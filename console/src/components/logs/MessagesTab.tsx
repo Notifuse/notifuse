@@ -218,20 +218,17 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
 
   const [columns, setColumns] = useState<MessageColumns>(loadMessageColumns)
 
-  // Refresh asks the list and the counts once: again for the same window, or for the window moved
-  // to now (the old one is then dropped, not fetched again).
+  // Refresh moves the clock to now (it also dates the Created column) and asks the list and the
+  // counts once: again when the window stays the same (all time, or the same minute); otherwise the
+  // moved window is a new key, fetched on its own.
   const refresh = () => {
     const next = Date.now()
-    const keys = [
-      ['logs', 'messages', workspaceId],
-      ['logs', 'messages-count', workspaceId]
-    ]
-    if (periodBounds(period, next).from === periodBounds(period, now).from) {
-      for (const queryKey of keys) void queryClient.resetQueries({ queryKey })
-      return
-    }
-    for (const queryKey of keys) queryClient.removeQueries({ queryKey, type: 'inactive' })
+    const sameWindow = periodBounds(period, next).from === periodBounds(period, now).from
     setClock({ key: filtersKey, now: next })
+    if (sameWindow) {
+      void queryClient.resetQueries({ queryKey: ['logs', 'messages', workspaceId] })
+      void queryClient.resetQueries({ queryKey: ['logs', 'messages-count', workspaceId] })
+    }
   }
 
   // Labels
@@ -694,10 +691,15 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
       key: 'id',
       hidden: !columns.id,
       render: (_, message) => (
-        // Copying the ID must not open the message as well.
+        // The copy button must not open the message as well; the ID itself opens it like the row,
+        // and J and K still reach the panel.
         <span
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            if ((event.target as HTMLElement).closest('button')) event.stopPropagation()
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()
+          }}
         >
           <Mono copy>{message.id}</Mono>
         </span>

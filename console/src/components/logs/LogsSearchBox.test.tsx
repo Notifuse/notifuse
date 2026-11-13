@@ -58,7 +58,8 @@ describe('LogsSearchBox', () => {
   })
 
   it('switches to Email when an "@" is typed', () => {
-    const { onWrite } = renderBox()
+    const { onWrite } = renderBox({ id: 'msg_1' })
+    expect(chosenKey()).toBe('Message ID')
     type('ann@example.com')
     expect(chosenKey()).toBe('Email')
     act(() => vi.advanceTimersByTime(300))
@@ -100,20 +101,24 @@ describe('LogsSearchBox', () => {
     expect(onWrite).toHaveBeenCalledWith({ ...cleared, external_id: 'order-42' })
   })
 
-  it('keeps a key the member picked, or a link named, when an ID holds an "@"', () => {
-    const { onWrite, unmount } = renderBox()
+  it('keeps a key the member picked when an ID holds an "@", until the box is emptied', () => {
+    const { onWrite } = renderBox()
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Search by' }))
     fireEvent.click(screen.getByRole('option', { name: 'Message ID' }))
     type('CAFabc+1@mail.gmail.com')
     expect(chosenKey()).toBe('Message ID')
     act(() => vi.advanceTimersByTime(300))
     expect(onWrite).toHaveBeenLastCalledWith({ ...cleared, id: 'CAFabc+1@mail.gmail.com' })
-    unmount()
+    type('')
+    type('ann@example.com')
+    expect(chosenKey()).toBe('Email')
+  })
 
-    const second = renderBox({ external_id: 'order-42' })
-    type('order@shop')
+  it('keeps the key of a link whose value already holds an "@"', () => {
+    const { onWrite } = renderBox({ external_id: 'order@shop' })
+    type('order@shop2')
     expect(chosenKey()).toBe('External ID')
     act(() => vi.advanceTimersByTime(300))
-    expect(second.onWrite).toHaveBeenLastCalledWith({ ...cleared, external_id: 'order@shop' })
+    expect(onWrite).toHaveBeenLastCalledWith({ ...cleared, external_id: 'order@shop2' })
   })
 })

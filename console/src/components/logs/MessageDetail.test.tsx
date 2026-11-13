@@ -206,13 +206,17 @@ describe('MessageDetail', () => {
       messages: [message({ id: params.id, contact_email: `${params.id}@example.com` })],
       has_more: false
     }))
-    const { show } = renderDetail()
+    const { show } = renderDetail({ onNext: vi.fn() })
     await screen.findByText('To m1@example.com')
     const drawer = document.querySelector('.ant-drawer')
     await userEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    const next = screen.getByRole('button', { name: 'Next' })
+    next.focus()
     show('m2', message({ id: 'm2', contact_email: 'm2@example.com' }))
     expect(await screen.findByText('To m2@example.com')).toBeInTheDocument()
     expect(document.querySelector('.ant-drawer')).toBe(drawer)
+    // The focus stays on the button J and K mirror.
+    expect(document.activeElement).toBe(next)
     expect(screen.getByRole('tab', { name: 'Events' })).toHaveAttribute('aria-selected', 'true')
   })
 
@@ -231,7 +235,10 @@ describe('MessageDetail', () => {
     renderDetail()
     await screen.findByText('To ann@example.com')
     await userEvent.click(screen.getByRole('tab', { name: 'Sent content' }))
-    expect(await screen.findByText("Couldn't load the template")).toBeInTheDocument()
+    // The template query retries once, a second later.
+    expect(
+      await screen.findByText("Couldn't load the template", undefined, { timeout: 4000 })
+    ).toBeInTheDocument()
     expect(screen.getByText('server error')).toBeInTheDocument()
   })
 
@@ -251,9 +258,22 @@ describe('MessageDetail', () => {
     state.permissions = allRead
     state.getTemplate.mockResolvedValue({ template: template({ category: 'opt_in', email: {} }) })
     state.listMessages.mockResolvedValue({ messages: [message()], has_more: false })
-    renderDetail()
+    const second = renderDetail()
     await screen.findByText('To ann@example.com')
     await waitFor(() => expect(value('From')).toHaveTextContent('News <news@acme.io>'))
+    second.unmount()
+
+    // A notification goes through the transactional provider, whatever its template's category.
+    state.getTemplate.mockResolvedValue({
+      template: template({ category: 'marketing', email: {} })
+    })
+    state.listMessages.mockResolvedValue({
+      messages: [message({ transactional_notification_id: 'password_reset' })],
+      has_more: false
+    })
+    renderDetail()
+    await screen.findByText('To ann@example.com')
+    await waitFor(() => expect(value('From')).toHaveTextContent('Default <default@acme.io>'))
   })
 
   it('lists the events in time order, without a line for the send', async () => {

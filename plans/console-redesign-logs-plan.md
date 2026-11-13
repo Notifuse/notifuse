@@ -130,7 +130,9 @@ webhooks, 104 audit log). This plan implements its console part.
 | `components/logs/MessageDetail.tsx` (new) | `SidePanel`, Events / Sent content / Data | `MessageDetail.test.tsx`: loaded by D1; J and K; another message keeps the panel; not found; load error with Retry; template error other than 404; Events order, no `sent_at` row; deleted template; template unreadable; contact erased; Open contact disabled without `contacts.read`; Sent by links; forced subject with "Set at send time"; From address of the provider the message went through; Tracking "On (default)"; HTML / Text / MJML tabs, compiled with the open pixel blanked; render failure alert; Data with "No data"; a message sent in a translation shows its subject, language and sender, and is rendered in it |
 | `components/logs/InboundWebhooksTab.tsx` (new) | toolbar, table, `SidePanel` detail (`copyLink={false}`) | `InboundWebhooksTab.test.tsx`: malformed email not sent; Source and Type sent; period sends `timestamp_after`, none for a recipient; linked message only for the four delivery types and with `message_history.read`; "Bounce · Permanent"; "Contact erased"; detail with J and raw payload; footer count and Load more; the three empty states; error with Retry; a message ID holding "@" searched as such; Refresh asks once |
 | `pages/LogsPage.tsx` | renders the new tabs and passes them the rights it loaded | `LogsPage.test.tsx`: mocks moved to the new tabs |
-| `components/logs/logsSearch.ts` | drops `contact_email` / `recipient_email` that are not a full address (the server answers 400) | `logsSearch.test.ts`: cut-short email dropped, full one kept |
+| `components/logs/logsSearch.ts` | drops `contact_email` / `recipient_email` that are not a full address, and `clicked_url` without `broadcast_id` (the server answers 400) | `logsSearch.test.ts`: cut-short email dropped, full one kept; clicked link dropped without its newsletter |
+| `components/logs/LogsSearchBox.tsx` (new) | key menu and value, debounced, Enter writes at once | `LogsSearchBox.test.tsx`: see below |
+| `components/layout/SidePanel.tsx` | `bodyKey`: a new body, scrolled to the top, in the same panel | `SidePanel.test.tsx`: same drawer, new body at the top |
 | `components/logs/period.ts` | `COUNT_MAX_PERIOD`, `canCountMessages` | `period.test.ts`: each rolling period up to `7d`, `30d` and `all` only with an indexed filter |
 | `components/logs/messageColumns.ts`, `messageTemplate.ts`, `lib/email.ts` (new) | column choice and its migration; language and translation of a message; the server's email test | `messageColumns.test.ts`, `messageTemplate.test.ts`, `lib/email.test.ts` |
 | `components/analytics/RecentFailures.tsx` | "View in logs" adds `period: 'all'` (one line, declared) | `RecentFailures.test.tsx`: link search has `is_failed` and `period` |
@@ -235,14 +237,20 @@ tests mock the API, so it needed nothing from #535's Go code. The PR opened once
     and the language are the message's; it runs only once "Sent content" is opened. "Sent content" shows
     a note, then a `Segmented` HTML / Text version / MJML Source with the iframe, the text and the MJML in
     a `CodeBlock`. Declared difference with `TemplatePreviewDrawer.tsx`: the From row takes the provider
-    the message went through (transactional for a notification; marketing for a newsletter, an
-    automation or a double opt-in confirmation; for another message, its template's category), then the
-    template's sender, else that provider's default sender. J and K keep the panel mounted and reset its
-    tab.
+    the message most likely went through (transactional for a notification; marketing for a newsletter
+    or an automation; for a message of no origin, marketing with a marketing or opt-in template, as a
+    double opt-in confirmation is sent, transactional otherwise, as the test dialog defaults), then the
+    template's sender, else that provider's default sender. Not recorded on the message, so not shown:
+    an automation email node's own integration, a test sent through another integration, a `sender_id`
+    passed to a transactional send. J and K keep the panel mounted (with the row as placeholder) and
+    start its body afresh (`SidePanel`'s new `bodyKey`), back on Events and scrolled to the top.
 11. **Sent by links**: `broadcasts?broadcast={id}`, `automations?automation={id}`,
     `transactional-notifications?notification={id}` (each route's parser already reads that key).
-12. **Refresh** resets `['logs', 'messages', workspaceId]` and `['logs', 'messages-count', workspaceId]`, or
-    `['logs', 'inbound', workspaceId]`, and moves the tab's clock, as the audit tab does.
+12. **Refresh** moves the tab's clock to now (it also dates the Created column). When the window stays
+    the same (all time, or the same minute) it resets `['logs', 'messages', workspaceId]` and
+    `['logs', 'messages-count', workspaceId]`, or `['logs', 'inbound', workspaceId]`; otherwise the moved
+    window is a new key, fetched once. (The audit tab still does both, so it fetches twice when the
+    minute changed: known, not handled here.)
 13. **Removed with the old tabs**: `buildLogsTabUrl` and its test (no other caller), `rawSearchValue` and
     its test (no caller left); `LOGS_TAB` stays.
 14. **Rights**: `LogsPage` already loads the member's rights; it passes them to both tabs as a prop, which
@@ -252,8 +260,9 @@ tests mock the API, so it needed nothing from #535's Go code. The PR opened once
 16. **Search delay**: 300 ms, the delay of the audit search (`useDebouncedUrlValue`).
 17. **Declared differences**: "Clear filters" keeps the period, as the audit tab does (the spec keeps only
     `tab`). The counters' tooltip, when they cannot count, says counts cover 7 days at most and names the
-    indexed filters. A key the member picked in the search, or that a link named, stays when the text
-    holds an "@" (a reply's Message-ID, an external ID); an "@" switches to Email only while no key was picked. A
+    indexed filters. A key the member picked in the search menu stays when the text holds an "@" (a
+    reply's Message-ID, an external ID), until the box is emptied; otherwise a newly typed "@" switches
+    to Email (a link's value that already holds one keeps its key). A
     `clicked_url` without `broadcast_id` is dropped by `parseLogsSearch`, since the server answers 400.
 18. **Footer total**: "{n} of {total} messages" takes the count of the active counter (`total` for All);
     with no count (period not counted, several flags), "{n} messages".

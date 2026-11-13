@@ -468,19 +468,22 @@ describe('MessagesTab', () => {
   })
 
   it('asks the list and the counts once on Refresh, the window moved or not', async () => {
-    const start = Date.now()
-    renderTab({ tab: 'messages', period: '7d' })
-    await screen.findByText('ann@example.com')
-    await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(1))
-    expect(state.listMessages).toHaveBeenCalledTimes(1)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
-    await waitFor(() => expect(state.listMessages).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(2))
-    expect(lastList().created_after).toBe(state.listMessages.mock.calls[0][1].created_after)
-
-    const spy = vi.spyOn(Date, 'now').mockReturnValue(start + 3 * 60_000)
+    // A minute start, so that the first Refresh stays in the same minute.
+    const start = Math.floor(Date.now() / 60_000) * 60_000 + 1_000
+    const spy = vi.spyOn(Date, 'now').mockReturnValue(start)
     try {
+      renderTab({ tab: 'messages', period: '7d' })
+      await screen.findByText('ann@example.com')
+      await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(1))
+      expect(state.listMessages).toHaveBeenCalledTimes(1)
+
+      spy.mockReturnValue(start + 20_000)
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+      await waitFor(() => expect(state.listMessages).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(2))
+      expect(lastList().created_after).toBe(state.listMessages.mock.calls[0][1].created_after)
+
+      spy.mockReturnValue(start + 3 * 60_000)
       fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
       await waitFor(() => expect(state.listMessages).toHaveBeenCalledTimes(3))
       await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(3))
@@ -488,6 +491,21 @@ describe('MessagesTab', () => {
       expect(state.listMessages).toHaveBeenCalledTimes(3)
       expect(state.countMessages).toHaveBeenCalledTimes(3)
       expect(lastList().created_after).not.toBe(state.listMessages.mock.calls[0][1].created_after)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('dates the Created column from the last Refresh, over all time too', async () => {
+    localStorage.setItem(MESSAGE_COLUMNS_KEY, JSON.stringify({ created: true }))
+    const created = Date.parse('2026-11-13T09:00:00Z')
+    const spy = vi.spyOn(Date, 'now').mockReturnValue(created + 5 * 60_000)
+    try {
+      renderTab({ tab: 'messages', period: 'all', broadcast_id: 'b1' })
+      expect(await screen.findByText('5 minutes ago')).toBeInTheDocument()
+      spy.mockReturnValue(created + 20 * 60_000)
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+      expect(await screen.findByText('20 minutes ago')).toBeInTheDocument()
     } finally {
       spy.mockRestore()
     }

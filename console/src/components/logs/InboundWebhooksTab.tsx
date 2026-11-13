@@ -115,16 +115,13 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
     [listQuery.data]
   )
 
-  // Refresh asks the list once: again for the same window, or for the window moved to now.
+  // Refresh moves the clock to now and asks the list once: again when the window stays the same
+  // (all time, or the same minute); otherwise the moved window is a new key, fetched on its own.
   const refresh = () => {
     const next = Date.now()
-    const queryKey = ['logs', 'inbound', workspaceId]
-    if (periodBounds(period, next).from === periodBounds(period, now).from) {
-      void queryClient.resetQueries({ queryKey })
-      return
-    }
-    queryClient.removeQueries({ queryKey, type: 'inactive' })
+    const sameWindow = periodBounds(period, next).from === periodBounds(period, now).from
     setClock({ key: filtersKey, now: next })
+    if (sameWindow) void queryClient.resetQueries({ queryKey: ['logs', 'inbound', workspaceId] })
   }
 
   const periodLabels: Record<LivePeriod, string> = {

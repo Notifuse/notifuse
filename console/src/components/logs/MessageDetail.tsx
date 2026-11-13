@@ -277,7 +277,6 @@ function LoadedMessage({
         label: t`Sent content`,
         children: (
           <SentContent
-            key={message.id}
             canReadTemplates={canReadTemplates}
             erased={erased}
             templateMissing={templateMissing}
@@ -330,6 +329,7 @@ function LoadedMessage({
       ]}
       nav={nav}
       tabs={tabs}
+      bodyKey={message.id}
       footer={
         !canReadContacts ? (
           <Tooltip title={t`You need access to contacts`}>
@@ -489,11 +489,14 @@ interface MessageFieldsProps {
   names: MessageNames
 }
 
-/** The From address as the send picks it: the email's sender, else the default one. */
 /**
- * The provider a message went through: a notification uses the transactional one; newsletters,
- * automations and double opt-in confirmations the marketing one. A message of no origin otherwise
- * (a template test) follows its template's category when it is known.
+ * The From address as the send most likely picked it: the email's sender, else the default one, of
+ * the provider that sent it. A notification goes through the transactional provider; a newsletter
+ * or an automation through the marketing one. A message of no origin is mostly a double opt-in
+ * confirmation (marketing, with an opt-in template) or a template test, sent by default through the
+ * marketing provider for a marketing template and the transactional one otherwise. Not recorded on
+ * the message, so not shown here: an automation email node's own integration, a test sent through
+ * another integration, and a sender_id passed to a transactional send.
  */
 function senderOf(
   workspace: Workspace | undefined,
@@ -502,8 +505,10 @@ function senderOf(
   email: Template['email'] | undefined
 ) {
   const origin = messageOrigin(message)
+  const marketingTemplate = template?.category === 'marketing' || template?.category === 'opt_in'
   const transactional =
-    origin === 'transactional' || (origin === 'other' && template?.category === 'transactional')
+    origin === 'transactional' ||
+    (origin === 'other' && template !== undefined && !marketingTemplate)
   const providerId = transactional
     ? workspace?.settings?.transactional_email_provider_id
     : workspace?.settings?.marketing_email_provider_id

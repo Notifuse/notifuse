@@ -104,12 +104,12 @@ msgid "{0, plural, one {{1} email} other {{2} emails}}"
 msgstr "{0, plural, one {{1} email} other {{2} emails}}"
 
 #. placeholder {0}: rows.length
-#: src/components/logs/InboundWebhooksTab.tsx:349
+#: src/components/logs/InboundWebhooksTab.tsx:346
 msgid "{0, plural, one {{shown} event} other {{shown} events}}"
 msgstr "{0, plural, one {{shown} event} other {{shown} events}}"
 
 #. placeholder {0}: rows.length
-#: src/components/logs/MessagesTab.tsx:824
+#: src/components/logs/MessagesTab.tsx:835
 msgid "{0, plural, one {{shown} message} other {{shown} messages}}"
 msgstr "{0, plural, one {{shown} message} other {{shown} messages}}"
 
@@ -311,7 +311,7 @@ msgstr "{0, plural, one {The provider refused # recipient and every retry was us
 
 #. placeholder {0}: template.name
 #: src/components/logs/MessageDetail.tsx:222
-#: src/components/logs/MessageDetail.tsx:564
+#: src/components/logs/MessageDetail.tsx:569
 msgid "{0} · deleted"
 msgstr "{0} · deleted"
 
@@ -955,7 +955,7 @@ msgstr "{total, plural, one {{part} of {all} notification} other {{part} of {all
 msgid "{total, plural, one {{shown} of # delivery} other {{shown} of # deliveries}}"
 msgstr "{total, plural, one {{shown} of # delivery} other {{shown} of # deliveries}}"
 
-#: src/components/logs/MessagesTab.tsx:823
+#: src/components/logs/MessagesTab.tsx:834
 msgid "{total, plural, one {{shown} of # message} other {{shown} of # messages}}"
 msgstr "{total, plural, one {{shown} of # message} other {{shown} of # messages}}"
 
@@ -1898,10 +1898,10 @@ msgstr "Alignment"
 #: src/components/logs/AuditLogTab.tsx:221
 #: src/components/logs/AuditLogTab.tsx:243
 #: src/components/logs/AuditLogTab.tsx:281
-#: src/components/logs/InboundWebhooksTab.tsx:155
-#: src/components/logs/InboundWebhooksTab.tsx:164
-#: src/components/logs/InboundWebhooksTab.tsx:195
-#: src/components/logs/InboundWebhooksTab.tsx:200
+#: src/components/logs/InboundWebhooksTab.tsx:152
+#: src/components/logs/InboundWebhooksTab.tsx:161
+#: src/components/logs/InboundWebhooksTab.tsx:192
+#: src/components/logs/InboundWebhooksTab.tsx:197
 #: src/components/logs/MessagesTab.tsx:258
 #: src/components/logs/MessagesTab.tsx:293
 #: src/components/logs/MessagesTab.tsx:482
@@ -1989,7 +1989,7 @@ msgstr "All sides"
 #: src/components/automations/AutomationEditor.tsx:455
 #: src/components/automations/NodeConfigPanel.tsx:188
 #: src/components/logs/AuditLogTab.tsx:182
-#: src/components/logs/InboundWebhooksTab.tsx:135
+#: src/components/logs/InboundWebhooksTab.tsx:132
 #: src/components/logs/MessagesTab.tsx:240
 #: src/components/web_analytics/toolbar.tsx:32
 msgid "All time"
@@ -2531,7 +2531,7 @@ msgstr "At least one root email is required"
 msgid "at most"
 msgstr "at most"
 
-#: src/components/logs/MessageDetail.tsx:655
+#: src/components/logs/MessageDetail.tsx:660
 #: src/components/templates/SendTemplateModal.tsx:459
 msgid "Attachments"
 msgstr "Attachments"
@@ -2926,7 +2926,7 @@ msgstr "Basic blocks"
 msgid "Basic Information"
 msgstr "Basic Information"
 
-#: src/components/logs/MessageDetail.tsx:647
+#: src/components/logs/MessageDetail.tsx:652
 #: src/components/templates/TemplatePreviewDrawer.tsx:382
 msgid "BCC"
 msgstr "BCC"
@@ -3180,7 +3180,7 @@ msgstr "Bottom Right"
 msgid "Bounce"
 msgstr "Bounce"
 
-#: src/components/logs/InboundWebhooksTab.tsx:401
+#: src/components/logs/InboundWebhooksTab.tsx:398
 msgid "Bounce category"
 msgstr "Bounce category"
 
@@ -3188,7 +3188,7 @@ msgstr "Bounce category"
 #~ msgid "Bounce Category"
 #~ msgstr "Bounce Category"
 
-#: src/components/logs/InboundWebhooksTab.tsx:404
+#: src/components/logs/InboundWebhooksTab.tsx:401
 msgid "Bounce diagnostic"
 msgstr "Bounce diagnostic"
 
@@ -3229,7 +3229,7 @@ msgstr "Bounce threshold"
 msgid "Bounce threshold (seconds)"
 msgstr "Bounce threshold (seconds)"
 
-#: src/components/logs/InboundWebhooksTab.tsx:399
+#: src/components/logs/InboundWebhooksTab.tsx:396
 msgid "Bounce type"
 msgstr "Bounce type"
 
@@ -3247,7 +3247,7 @@ msgstr "Bounce type"
 #: src/components/logs/MessageDetail.tsx:401
 #: src/components/logs/MessagesTab.tsx:253
 #: src/components/logs/MessagesTab.tsx:262
-#: src/components/logs/MessagesTab.tsx:901
+#: src/components/logs/MessagesTab.tsx:912
 #: src/components/messages/MessageHistoryTable.tsx:362
 #: src/components/transactional/RecentSends.tsx:40
 #: src/components/transactional/SendsPerDayChart.tsx:50
@@ -3769,7 +3769,7 @@ msgstr "Category updated successfully"
 msgid "Category:"
 msgstr "Category:"
 
-#: src/components/logs/MessageDetail.tsx:646
+#: src/components/logs/MessageDetail.tsx:651
 #: src/components/templates/TemplatePreviewDrawer.tsx:370
 msgid "CC"
 msgstr "CC"
@@ -4017,8 +4017,8 @@ msgid "Clear field"
 msgstr "Clear field"
 
 #: src/components/logs/AuditLogTab.tsx:616
-#: src/components/logs/InboundWebhooksTab.tsx:300
-#: src/components/logs/MessagesTab.tsx:775
+#: src/components/logs/InboundWebhooksTab.tsx:297
+#: src/components/logs/MessagesTab.tsx:786
 #: src/components/logs/OutgoingWebhooksTab.tsx:233
 #: src/pages/AutomationsPage.tsx:259
 #: src/pages/BroadcastsPage.tsx:306
@@ -4106,7 +4106,7 @@ msgstr "clicked"
 #: src/components/logs/MessageDetail.tsx:424
 #: src/components/logs/MessagesTab.tsx:252
 #: src/components/logs/MessagesTab.tsx:261
-#: src/components/logs/MessagesTab.tsx:917
+#: src/components/logs/MessagesTab.tsx:928
 #: src/components/messages/MessageHistoryTable.tsx:354
 #: src/components/transactional/RecentSends.tsx:42
 #: src/components/transactional/TransactionalDetail.tsx:214
@@ -4669,10 +4669,10 @@ msgstr "Contact email (leave empty for random)"
 msgid "Contact Email:"
 msgstr "Contact Email:"
 
-#: src/components/logs/InboundWebhooksTab.tsx:245
-#: src/components/logs/InboundWebhooksTab.tsx:378
-#: src/components/logs/MessageDetail.tsx:328
-#: src/components/logs/MessagesTab.tsx:634
+#: src/components/logs/InboundWebhooksTab.tsx:242
+#: src/components/logs/InboundWebhooksTab.tsx:375
+#: src/components/logs/MessageDetail.tsx:327
+#: src/components/logs/MessagesTab.tsx:637
 msgid "Contact erased"
 msgstr "Contact erased"
 
@@ -5009,7 +5009,7 @@ msgstr "Couldn't load the members"
 msgid "Couldn't load the message"
 msgstr "Couldn't load the message"
 
-#: src/components/logs/MessagesTab.tsx:764
+#: src/components/logs/MessagesTab.tsx:775
 msgid "Couldn't load the messages"
 msgstr "Couldn't load the messages"
 
@@ -5029,7 +5029,7 @@ msgstr "Couldn't load the statistics of this broadcast"
 msgid "Couldn't load the success rate"
 msgstr "Couldn't load the success rate"
 
-#: src/components/logs/MessageDetail.tsx:738
+#: src/components/logs/MessageDetail.tsx:743
 #: src/components/transactional/notificationRules.ts:67
 msgid "Couldn't load the template"
 msgstr "Couldn't load the template"
@@ -5038,7 +5038,7 @@ msgstr "Couldn't load the template"
 msgid "Couldn't load the templates"
 msgstr "Couldn't load the templates"
 
-#: src/components/logs/InboundWebhooksTab.tsx:289
+#: src/components/logs/InboundWebhooksTab.tsx:286
 msgid "Couldn't load the webhook events"
 msgstr "Couldn't load the webhook events"
 
@@ -5063,7 +5063,7 @@ msgstr "Couldn't load this webhook"
 msgid "Couldn't render the preview"
 msgstr "Couldn't render the preview"
 
-#: src/components/logs/MessageDetail.tsx:750
+#: src/components/logs/MessageDetail.tsx:755
 msgid "Couldn't render this message"
 msgstr "Couldn't render this message"
 
@@ -5134,7 +5134,7 @@ msgstr "Country"
 msgid "Country level (~111km precision)"
 msgstr "Country level (~111km precision)"
 
-#: src/components/logs/MessagesTab.tsx:578
+#: src/components/logs/MessagesTab.tsx:580
 msgid "Counts cover 7 days at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"
 msgstr "Counts cover 7 days at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"
 
@@ -5774,7 +5774,7 @@ msgstr "Dashboard"
 msgid "Dashed"
 msgstr "Dashed"
 
-#: src/components/logs/MessageDetail.tsx:298
+#: src/components/logs/MessageDetail.tsx:297
 msgid "Data"
 msgstr "Data"
 
@@ -6319,7 +6319,7 @@ msgstr "delivered"
 #: src/components/logs/MessageDetail.tsx:394
 #: src/components/logs/MessagesTab.tsx:249
 #: src/components/logs/MessagesTab.tsx:259
-#: src/components/logs/MessagesTab.tsx:901
+#: src/components/logs/MessagesTab.tsx:912
 #: src/components/logs/OutgoingWebhooksTab.tsx:402
 #: src/components/messages/MessageHistoryTable.tsx:330
 #: src/components/settings/WebhookDetail.tsx:534
@@ -6358,7 +6358,7 @@ msgstr "Delivery ID"
 #~ msgstr "Delivery ID:"
 
 #: src/components/logs/MessagesTab.tsx:528
-#: src/components/logs/MessagesTab.tsx:904
+#: src/components/logs/MessagesTab.tsx:915
 msgid "Delivery isn't reported by SMTP providers"
 msgstr "Delivery isn't reported by SMTP providers"
 
@@ -7114,7 +7114,7 @@ msgstr "Element Padding"
 #: src/components/contacts/sheet/activityLabel.ts:16
 #: src/components/contacts/visits/webVisitSource.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:326
-#: src/components/logs/InboundWebhooksTab.tsx:184
+#: src/components/logs/InboundWebhooksTab.tsx:181
 #: src/components/logs/MessagesTab.tsx:276
 #: src/components/logs/MessagesTab.tsx:470
 #: src/components/segment/segmentSummary.ts:28
@@ -7452,7 +7452,7 @@ msgstr "Engagement by country and region"
 msgid "Enter {0}"
 msgstr "Enter {0}"
 
-#: src/components/logs/LogsSearchBox.tsx:109
+#: src/components/logs/LogsSearchBox.tsx:114
 msgid "Enter a full email address"
 msgstr "Enter a full email address"
 
@@ -7749,7 +7749,7 @@ msgid "event"
 msgstr "event"
 
 #: src/components/contacts/sheet/activityLabel.ts:22
-#: src/components/logs/InboundWebhooksTab.tsx:264
+#: src/components/logs/InboundWebhooksTab.tsx:261
 #: src/components/logs/OutgoingWebhooksTab.tsx:172
 #: src/components/timeline/ContactTimeline.tsx:757
 msgid "Event"
@@ -7763,7 +7763,7 @@ msgstr "Event {kind}"
 msgid "Event {name}"
 msgstr "Event {name}"
 
-#: src/components/logs/InboundWebhooksTab.tsx:394
+#: src/components/logs/InboundWebhooksTab.tsx:391
 msgid "Event ID"
 msgstr "Event ID"
 
@@ -7850,7 +7850,7 @@ msgstr "Everything the key grants keeps working during the grace period. Renew i
 msgid "Exact ID"
 msgstr "Exact ID"
 
-#: src/components/logs/LogsSearchBox.tsx:95
+#: src/components/logs/LogsSearchBox.tsx:100
 msgid "Exact match"
 msgstr "Exact match"
 
@@ -7859,7 +7859,7 @@ msgid "Exact URL"
 msgstr "Exact URL"
 
 #: src/components/logs/AuditLogTab.tsx:396
-#: src/components/logs/InboundWebhooksTab.tsx:190
+#: src/components/logs/InboundWebhooksTab.tsx:187
 #: src/components/logs/MessagesTab.tsx:477
 msgid "Exact value"
 msgstr "Exact value"
@@ -8016,7 +8016,7 @@ msgstr "Exporting all contacts"
 #: src/components/contacts/ContactsFilters.tsx:20
 #: src/components/contacts/ExportContactsModal.tsx:66
 #: src/components/contacts/sheet/ContactProfileFields.tsx:125
-#: src/components/logs/MessageDetail.tsx:635
+#: src/components/logs/MessageDetail.tsx:640
 #: src/components/logs/MessagesTab.tsx:457
 #: src/components/logs/MessagesTab.tsx:472
 #: src/components/messages/MessageHistoryTable.tsx:147
@@ -8052,7 +8052,7 @@ msgstr "failed"
 #: src/components/logs/MessageDetail.tsx:386
 #: src/components/logs/MessagesTab.tsx:250
 #: src/components/logs/MessagesTab.tsx:263
-#: src/components/logs/MessagesTab.tsx:893
+#: src/components/logs/MessagesTab.tsx:904
 #: src/components/messages/MessageHistoryTable.tsx:338
 #: src/components/settings/WebhookDetail.tsx:539
 #: src/components/transactional/RecentSends.tsx:38
@@ -8631,7 +8631,7 @@ msgstr "Featured Image URL"
 msgid "Features"
 msgstr "Features"
 
-#: src/components/logs/InboundWebhooksTab.tsx:407
+#: src/components/logs/InboundWebhooksTab.tsx:404
 msgid "Feedback type"
 msgstr "Feedback type"
 
@@ -9007,7 +9007,7 @@ msgstr "Frequency"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:91
 #: src/components/broadcasts/detail/AbTestPanel.tsx:154
 #: src/components/broadcasts/detail/BroadcastAside.tsx:105
-#: src/components/logs/MessageDetail.tsx:639
+#: src/components/logs/MessageDetail.tsx:644
 #: src/components/templates/TemplatePreviewDrawer.tsx:303
 msgid "From"
 msgstr "From"
@@ -9445,7 +9445,7 @@ msgid "How to use:"
 msgstr "How to use:"
 
 #: src/components/email_builder/panels/Preview.tsx:397
-#: src/components/logs/MessageDetail.tsx:766
+#: src/components/logs/MessageDetail.tsx:771
 #: src/components/templates/ImportExportButton.tsx:239
 msgid "HTML"
 msgstr "HTML"
@@ -9941,7 +9941,7 @@ msgstr "Integration created successfully"
 msgid "Integration deleted successfully"
 msgstr "Integration deleted successfully"
 
-#: src/components/logs/InboundWebhooksTab.tsx:396
+#: src/components/logs/InboundWebhooksTab.tsx:393
 msgid "Integration ID"
 msgstr "Integration ID"
 
@@ -10239,7 +10239,7 @@ msgstr "Joined segment {segment}"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "Joined with the invitation <0>{target}</0>"
 
-#: src/components/logs/MessagesTab.tsx:663
+#: src/components/logs/MessagesTab.tsx:666
 msgid "Journey"
 msgstr "Journey"
 
@@ -10341,7 +10341,7 @@ msgstr "Landing pages"
 #: src/components/contacts/ContactsTable.tsx:275
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/ContactProfileFields.tsx:124
-#: src/components/logs/MessageDetail.tsx:643
+#: src/components/logs/MessageDetail.tsx:648
 #: src/components/segment/segmentSummary.ts:35
 #: src/components/templates/SendTemplateModal.tsx:392
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
@@ -10371,7 +10371,7 @@ msgstr "Large images can significantly slow down email loading times for recipie
 #~ msgstr "Last {WINDOW_MINUTES} minutes"
 
 #: src/components/logs/AuditLogTab.tsx:178
-#: src/components/logs/InboundWebhooksTab.tsx:132
+#: src/components/logs/InboundWebhooksTab.tsx:129
 #: src/components/logs/MessagesTab.tsx:237
 msgid "Last 24 hours"
 msgstr "Last 24 hours"
@@ -10380,7 +10380,7 @@ msgstr "Last 24 hours"
 #: src/components/automations/NodeConfigPanel.tsx:188
 #: src/components/broadcasts/BroadcastKpis.tsx:138
 #: src/components/logs/AuditLogTab.tsx:180
-#: src/components/logs/InboundWebhooksTab.tsx:134
+#: src/components/logs/InboundWebhooksTab.tsx:131
 #: src/components/logs/MessagesTab.tsx:239
 msgid "Last 30 days"
 msgstr "Last 30 days"
@@ -10395,7 +10395,7 @@ msgstr "Last 30 days: {0}"
 #~ msgstr "last 30 minutes"
 
 #: src/components/logs/AuditLogTab.tsx:179
-#: src/components/logs/InboundWebhooksTab.tsx:133
+#: src/components/logs/InboundWebhooksTab.tsx:130
 #: src/components/logs/MessagesTab.tsx:238
 msgid "Last 7 days"
 msgstr "Last 7 days"
@@ -10432,7 +10432,7 @@ msgstr "Last Edited"
 msgid "Last fetched:"
 msgstr "Last fetched:"
 
-#: src/components/logs/InboundWebhooksTab.tsx:131
+#: src/components/logs/InboundWebhooksTab.tsx:128
 #: src/components/logs/MessagesTab.tsx:236
 msgid "Last hour"
 msgstr "Last hour"
@@ -10662,7 +10662,7 @@ msgstr "Link:"
 msgid "Linked from the notification center and available to templates; also used to find your logo"
 msgstr "Linked from the notification center and available to templates; also used to find your logo"
 
-#: src/components/logs/InboundWebhooksTab.tsx:267
+#: src/components/logs/InboundWebhooksTab.tsx:264
 msgid "Linked message"
 msgstr "Linked message"
 
@@ -10697,7 +10697,7 @@ msgstr "Liquid block - Click to add MJML + Liquid content"
 #: src/components/contacts/sheet/activityLabel.ts:17
 #: src/components/file_manager/FileExplorer.tsx:679
 #: src/components/file_manager/FileExplorer.tsx:680
-#: src/components/logs/MessageDetail.tsx:650
+#: src/components/logs/MessageDetail.tsx:655
 #: src/components/logs/MessagesTab.tsx:268
 #: src/components/logs/MessagesTab.tsx:460
 #: src/components/messages/MessageHistoryTable.tsx:152
@@ -10903,8 +10903,8 @@ msgstr "Load {PAGE_SIZE} more"
 #: src/components/blog/PostsTable.tsx:469
 #: src/components/contacts/visits/ContactWebVisits.tsx:360
 #: src/components/logs/AuditLogTab.tsx:676
-#: src/components/logs/InboundWebhooksTab.tsx:357
-#: src/components/logs/MessagesTab.tsx:832
+#: src/components/logs/InboundWebhooksTab.tsx:354
+#: src/components/logs/MessagesTab.tsx:843
 #: src/components/logs/OutgoingWebhooksTab.tsx:286
 msgid "Load more"
 msgstr "Load more"
@@ -11153,8 +11153,8 @@ msgstr "Mark the dates that explain a chart — a launch, a campaign, an outage 
 
 #: src/components/analytics/RecentFailures.tsx:57
 #: src/components/logs/MessageDetail.tsx:409
-#: src/components/logs/MessagesTab.tsx:681
-#: src/components/logs/MessagesTab.tsx:909
+#: src/components/logs/MessagesTab.tsx:684
+#: src/components/logs/MessagesTab.tsx:920
 msgid "Marked as spam"
 msgstr "Marked as spam"
 
@@ -11304,8 +11304,8 @@ msgstr "Members"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:258
 #: src/components/logs/MessageDetail.tsx:83
-#: src/components/logs/MessageDetail.tsx:629
-#: src/components/logs/MessagesTab.tsx:640
+#: src/components/logs/MessageDetail.tsx:634
+#: src/components/logs/MessagesTab.tsx:643
 msgid "Message"
 msgstr "Message"
 
@@ -11318,9 +11318,9 @@ msgstr "Message History"
 msgid "Message history and webhook events will be anonymized (email addresses redacted) but retained for analytics."
 msgstr "Message history and webhook events will be anonymized (email addresses redacted) but retained for analytics."
 
-#: src/components/logs/InboundWebhooksTab.tsx:185
-#: src/components/logs/InboundWebhooksTab.tsx:397
-#: src/components/logs/MessageDetail.tsx:633
+#: src/components/logs/InboundWebhooksTab.tsx:182
+#: src/components/logs/InboundWebhooksTab.tsx:394
+#: src/components/logs/MessageDetail.tsx:638
 #: src/components/logs/MessagesTab.tsx:456
 #: src/components/logs/MessagesTab.tsx:471
 #: src/components/messages/MessageHistoryTable.tsx:146
@@ -11359,12 +11359,12 @@ msgid "Meta Title"
 msgstr "Meta Title"
 
 #: src/components/logs/AuditEntryDetail.tsx:212
-#: src/components/logs/MessageDetail.tsx:819
+#: src/components/logs/MessageDetail.tsx:824
 msgid "metadata"
 msgstr "metadata"
 
 #: src/components/logs/AuditEntryDetail.tsx:211
-#: src/components/logs/MessageDetail.tsx:817
+#: src/components/logs/MessageDetail.tsx:822
 #: src/components/logs/MessagesTab.tsx:458
 #: src/components/messages/MessageHistoryTable.tsx:148
 #: src/components/messages/MessageHistoryTable.tsx:192
@@ -11423,7 +11423,7 @@ msgid "Missing workspace ID or template data."
 msgstr "Missing workspace ID or template data."
 
 #: src/components/email_builder/panels/Preview.tsx:379
-#: src/components/logs/MessageDetail.tsx:785
+#: src/components/logs/MessageDetail.tsx:790
 #: src/components/templates/ImportExportButton.tsx:220
 #: src/components/templates/ImportExportButton.tsx:249
 msgid "MJML"
@@ -11478,7 +11478,7 @@ msgstr "MJML Import Error"
 msgid "MJML Import Validation Failed"
 msgstr "MJML Import Validation Failed"
 
-#: src/components/logs/MessageDetail.tsx:768
+#: src/components/logs/MessageDetail.tsx:773
 #: src/components/templates/TemplatePreviewDrawer.tsx:260
 msgid "MJML Source"
 msgstr "MJML Source"
@@ -12025,7 +12025,7 @@ msgstr "No CSV data available"
 msgid "No custom field is named yet"
 msgstr "No custom field is named yet"
 
-#: src/components/logs/MessageDetail.tsx:800
+#: src/components/logs/MessageDetail.tsx:805
 msgid "No data"
 msgstr "No data"
 
@@ -12193,7 +12193,7 @@ msgstr "No members found"
 msgid "No messages found"
 msgstr "No messages found"
 
-#: src/components/logs/MessagesTab.tsx:778
+#: src/components/logs/MessagesTab.tsx:789
 msgid "No messages sent yet"
 msgstr "No messages sent yet"
 
@@ -12295,8 +12295,8 @@ msgid "No results found"
 msgstr "No results found"
 
 #: src/components/logs/AuditLogTab.tsx:615
-#: src/components/logs/InboundWebhooksTab.tsx:299
-#: src/components/logs/MessagesTab.tsx:774
+#: src/components/logs/InboundWebhooksTab.tsx:296
+#: src/components/logs/MessagesTab.tsx:785
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
 msgid "No results match"
 msgstr "No results match"
@@ -12456,7 +12456,7 @@ msgstr "No webhook deliveries yet"
 #~ msgid "No webhook events found"
 #~ msgstr "No webhook events found"
 
-#: src/components/logs/InboundWebhooksTab.tsx:303
+#: src/components/logs/InboundWebhooksTab.tsx:300
 msgid "No webhook events received yet"
 msgstr "No webhook events received yet"
 
@@ -12537,7 +12537,7 @@ msgstr "Not assigned"
 msgid "Not available here"
 msgstr "Not available here"
 
-#: src/components/logs/MessagesTab.tsx:920
+#: src/components/logs/MessagesTab.tsx:931
 msgid "Not clicked"
 msgstr "Not clicked"
 
@@ -12560,7 +12560,7 @@ msgstr "not contains"
 msgid "not created yet — register webhooks"
 msgstr "not created yet — register webhooks"
 
-#: src/components/logs/MessagesTab.tsx:904
+#: src/components/logs/MessagesTab.tsx:915
 msgid "Not delivered"
 msgstr "Not delivered"
 
@@ -12598,7 +12598,7 @@ msgstr "Not in the test data: the rule is evaluated as if the variable were empt
 msgid "Not now"
 msgstr "Not now"
 
-#: src/components/logs/MessagesTab.tsx:912
+#: src/components/logs/MessagesTab.tsx:923
 msgid "Not opened"
 msgstr "Not opened"
 
@@ -12610,7 +12610,7 @@ msgstr "Not resolved"
 msgid "Not saved"
 msgstr "Not saved"
 
-#: src/components/logs/MessagesTab.tsx:896
+#: src/components/logs/MessagesTab.tsx:907
 msgid "Not sent"
 msgstr "Not sent"
 
@@ -12666,8 +12666,8 @@ msgstr "Notes"
 msgid "Nothing has been recorded over the last 24 hours. Check that this snippet is still installed on your website."
 msgstr "Nothing has been recorded over the last 24 hours. Check that this snippet is still installed on your website."
 
-#: src/components/logs/InboundWebhooksTab.tsx:316
-#: src/components/logs/MessagesTab.tsx:780
+#: src/components/logs/InboundWebhooksTab.tsx:313
+#: src/components/logs/MessagesTab.tsx:791
 msgid "Nothing in the last 24 hours"
 msgstr "Nothing in the last 24 hours"
 
@@ -12676,8 +12676,8 @@ msgid "Nothing in the last 7 days"
 msgstr "Nothing in the last 7 days"
 
 #: src/components/logs/AuditLogTab.tsx:623
-#: src/components/logs/InboundWebhooksTab.tsx:318
-#: src/components/logs/MessagesTab.tsx:782
+#: src/components/logs/InboundWebhooksTab.tsx:315
+#: src/components/logs/MessagesTab.tsx:793
 msgid "Nothing in this period"
 msgstr "Nothing in this period"
 
@@ -12827,7 +12827,7 @@ msgstr "of emails sent that day"
 msgid "of the following conditions match:"
 msgstr "of the following conditions match:"
 
-#: src/components/logs/MessageDetail.tsx:555
+#: src/components/logs/MessageDetail.tsx:560
 msgid "off"
 msgstr "off"
 
@@ -12851,7 +12851,7 @@ msgstr "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openi
 msgid "OK"
 msgstr "OK"
 
-#: src/components/logs/MessageDetail.tsx:555
+#: src/components/logs/MessageDetail.tsx:560
 msgid "on"
 msgstr "on"
 
@@ -12860,7 +12860,7 @@ msgstr "on"
 msgid "On"
 msgstr "On"
 
-#: src/components/logs/MessageDetail.tsx:558
+#: src/components/logs/MessageDetail.tsx:563
 msgid "On (default)"
 msgstr "On (default)"
 
@@ -12963,7 +12963,7 @@ msgstr "Open"
 msgid "Open and click tracking"
 msgstr "Open and click tracking"
 
-#: src/components/logs/MessageDetail.tsx:317
+#: src/components/logs/MessageDetail.tsx:316
 msgid "Open contact"
 msgstr "Open contact"
 
@@ -13079,7 +13079,7 @@ msgstr "opened"
 #: src/components/logs/MessageDetail.tsx:416
 #: src/components/logs/MessagesTab.tsx:251
 #: src/components/logs/MessagesTab.tsx:260
-#: src/components/logs/MessagesTab.tsx:909
+#: src/components/logs/MessagesTab.tsx:920
 #: src/components/messages/MessageHistoryTable.tsx:346
 #: src/components/transactional/RecentSends.tsx:43
 #: src/components/transactional/TransactionalDetail.tsx:213
@@ -13110,7 +13110,7 @@ msgstr "Opens"
 
 #. placeholder {0}: tracked(message.opens_tracked)
 #. placeholder {1}: tracked(message.clicks_tracked)
-#: src/components/logs/MessageDetail.tsx:559
+#: src/components/logs/MessageDetail.tsx:564
 msgid "Opens {0} · clicks {1}"
 msgstr "Opens {0} · clicks {1}"
 
@@ -13475,7 +13475,7 @@ msgstr "Paused the newsletter <0>{target}</0>"
 msgid "Paused: {reason}"
 msgstr "Paused: {reason}"
 
-#: src/components/logs/InboundWebhooksTab.tsx:415
+#: src/components/logs/InboundWebhooksTab.tsx:412
 #: src/components/logs/OutgoingWebhooksTab.tsx:449
 msgid "payload"
 msgstr "payload"
@@ -13547,7 +13547,7 @@ msgstr "Per-recipient feed URL"
 
 #: src/components/automations/AutomationEditor.tsx:450
 #: src/components/logs/AuditLogTab.tsx:430
-#: src/components/logs/InboundWebhooksTab.tsx:192
+#: src/components/logs/InboundWebhooksTab.tsx:189
 #: src/components/logs/MessagesTab.tsx:479
 msgid "Period"
 msgstr "Period"
@@ -14406,7 +14406,7 @@ msgstr "Raw HTML block - Click to add custom HTML content"
 msgid "Raw JSON"
 msgstr "Raw JSON"
 
-#: src/components/logs/InboundWebhooksTab.tsx:413
+#: src/components/logs/InboundWebhooksTab.tsx:410
 msgid "Raw payload"
 msgstr "Raw payload"
 
@@ -14621,7 +14621,7 @@ msgstr "Rebuild segment"
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "Rebuilt the segment <0>{target}</0>"
 
-#: src/components/logs/InboundWebhooksTab.tsx:398
+#: src/components/logs/InboundWebhooksTab.tsx:395
 msgid "Received"
 msgstr "Received"
 
@@ -14655,7 +14655,7 @@ msgstr "Recent sends"
 msgid "Recently Used"
 msgstr "Recently Used"
 
-#: src/components/logs/InboundWebhooksTab.tsx:265
+#: src/components/logs/InboundWebhooksTab.tsx:262
 #: src/components/logs/MessagesTab.tsx:454
 #: src/components/transactional/RecentSends.tsx:101
 msgid "Recipient"
@@ -14771,8 +14771,8 @@ msgstr "Referrers"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:205
 #: src/components/logs/AuditLogTab.tsx:507
 #: src/components/logs/AuditLogTab.tsx:511
-#: src/components/logs/InboundWebhooksTab.tsx:206
-#: src/components/logs/InboundWebhooksTab.tsx:210
+#: src/components/logs/InboundWebhooksTab.tsx:203
+#: src/components/logs/InboundWebhooksTab.tsx:207
 #: src/components/logs/MessagesTab.tsx:508
 #: src/components/logs/MessagesTab.tsx:512
 #: src/components/logs/OutgoingWebhooksTab.tsx:146
@@ -15025,7 +15025,7 @@ msgstr "Renamed the custom fields of <0>{target}</0>"
 msgid "Renaming this connection does not change the address of the API key it already minted."
 msgstr "Renaming this connection does not change the address of the API key it already minted."
 
-#: src/components/logs/MessageDetail.tsx:759
+#: src/components/logs/MessageDetail.tsx:764
 msgid "Rendered again from the template and the message data; Notifuse doesn't store the sent HTML"
 msgstr "Rendered again from the template and the message data; Notifuse doesn't store the sent HTML"
 
@@ -15107,7 +15107,7 @@ msgstr "Reply to"
 #~ msgstr "Reply To:"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:113
-#: src/components/logs/MessageDetail.tsx:645
+#: src/components/logs/MessageDetail.tsx:650
 #: src/components/templates/SendTemplateModal.tsx:450
 #: src/components/transactional/TransactionalDetail.tsx:412
 msgid "Reply-To"
@@ -15360,9 +15360,9 @@ msgstr "Retried the failed sends of the newsletter <0>{target}</0>"
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:780
 #: src/components/logs/AuditLogTab.tsx:603
-#: src/components/logs/InboundWebhooksTab.tsx:291
+#: src/components/logs/InboundWebhooksTab.tsx:288
 #: src/components/logs/MessageDetail.tsx:91
-#: src/components/logs/MessagesTab.tsx:766
+#: src/components/logs/MessagesTab.tsx:777
 #: src/components/logs/OutgoingWebhooksTab.tsx:225
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
@@ -15819,7 +15819,7 @@ msgstr "Screen width below which mobile layout is activated. Common values: 480p
 msgid "Search"
 msgstr "Search"
 
-#: src/components/logs/LogsSearchBox.tsx:88
+#: src/components/logs/LogsSearchBox.tsx:93
 msgid "Search by"
 msgstr "Search by"
 
@@ -15862,7 +15862,7 @@ msgstr "Search the audit log"
 msgid "Search the messages"
 msgstr "Search the messages"
 
-#: src/components/logs/InboundWebhooksTab.tsx:189
+#: src/components/logs/InboundWebhooksTab.tsx:186
 msgid "Search the webhook events"
 msgstr "Search the webhook events"
 
@@ -16609,7 +16609,7 @@ msgstr "sent"
 #: src/components/broadcasts/detail/AbTestPanel.tsx:161
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
 #: src/components/logs/labels.ts:110
-#: src/components/logs/MessagesTab.tsx:893
+#: src/components/logs/MessagesTab.tsx:904
 #: src/components/messages/MessageHistoryTable.tsx:322
 #: src/components/transactional/RecentSends.tsx:45
 #: src/components/transactional/SendsPerDayChart.tsx:48
@@ -16619,7 +16619,7 @@ msgstr "sent"
 msgid "Sent"
 msgstr "Sent"
 
-#: src/components/logs/MessageDetail.tsx:669
+#: src/components/logs/MessageDetail.tsx:674
 msgid "Sent by"
 msgstr "Sent by"
 
@@ -16639,7 +16639,7 @@ msgid "Sent by the transactional notification {0}"
 msgstr "Sent by the transactional notification {0}"
 
 #: src/components/logs/MessageDetail.tsx:277
-#: src/components/logs/MessageDetail.tsx:773
+#: src/components/logs/MessageDetail.tsx:778
 msgid "Sent content"
 msgstr "Sent content"
 
@@ -16651,7 +16651,7 @@ msgstr "Sent on {date} at {time}"
 msgid "Sent the newsletter <0>{target}</0> to one recipient"
 msgstr "Sent the newsletter <0>{target}</0> to one recipient"
 
-#: src/components/logs/MessagesTab.tsx:600
+#: src/components/logs/MessagesTab.tsx:603
 msgid "Sent to {audienceName}"
 msgstr "Sent to {audienceName}"
 
@@ -16815,7 +16815,7 @@ msgstr "Set as marketing email provider?"
 msgid "Set as transactional email provider?"
 msgstr "Set as transactional email provider?"
 
-#: src/components/logs/MessageDetail.tsx:546
+#: src/components/logs/MessageDetail.tsx:551
 msgid "Set at send time"
 msgstr "Set at send time"
 
@@ -16902,7 +16902,7 @@ msgstr "Set to null"
 msgid "Set up"
 msgstr "Set up"
 
-#: src/components/logs/InboundWebhooksTab.tsx:312
+#: src/components/logs/InboundWebhooksTab.tsx:309
 msgid "Set up an email provider"
 msgstr "Set up an email provider"
 
@@ -16987,8 +16987,8 @@ msgid "Show"
 msgstr "Show"
 
 #: src/components/logs/AuditLogTab.tsx:610
-#: src/components/logs/InboundWebhooksTab.tsx:295
-#: src/components/logs/MessagesTab.tsx:770
+#: src/components/logs/InboundWebhooksTab.tsx:292
+#: src/components/logs/MessagesTab.tsx:781
 msgid "Show all time"
 msgstr "Show all time"
 
@@ -17384,9 +17384,9 @@ msgid "Something went wrong"
 msgstr "Something went wrong"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:270
-#: src/components/logs/InboundWebhooksTab.tsx:194
-#: src/components/logs/InboundWebhooksTab.tsx:263
-#: src/components/logs/InboundWebhooksTab.tsx:395
+#: src/components/logs/InboundWebhooksTab.tsx:191
+#: src/components/logs/InboundWebhooksTab.tsx:260
+#: src/components/logs/InboundWebhooksTab.tsx:392
 msgid "Source"
 msgstr "Source"
 
@@ -17534,7 +17534,7 @@ msgstr "Stats appear once the broadcast starts sending"
 #: src/components/blog/RecentThemesTable.tsx:115
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
-#: src/components/logs/MessagesTab.tsx:655
+#: src/components/logs/MessagesTab.tsx:658
 #: src/components/logs/OutgoingWebhooksTab.tsx:139
 #: src/components/logs/OutgoingWebhooksTab.tsx:182
 #: src/components/settings/LicenseSettings.tsx:150
@@ -17629,14 +17629,14 @@ msgstr "Style Attributes"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:92
 #: src/components/broadcasts/detail/AbTestPanel.tsx:130
 #: src/components/broadcasts/detail/BroadcastAside.tsx:114
-#: src/components/logs/MessageDetail.tsx:640
+#: src/components/logs/MessageDetail.tsx:645
 #: src/components/templates/TemplatePreviewDrawer.tsx:358
 #: src/components/templates/TemplateTranslationsTab.tsx:278
 msgid "Subject"
 msgstr "Subject"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
-#: src/components/logs/MessageDetail.tsx:641
+#: src/components/logs/MessageDetail.tsx:646
 #: src/components/templates/CreateTemplateDrawer.tsx:1092
 #: src/components/templates/TemplatePreviewDrawer.tsx:363
 #: src/components/templates/TemplateTranslationsTab.tsx:287
@@ -17940,7 +17940,7 @@ msgstr "template"
 #: src/components/broadcasts/compose/ContentCard.tsx:123
 #: src/components/broadcasts/detail/AbTestPanel.tsx:125
 #: src/components/lists/ListHeader.tsx:101
-#: src/components/logs/MessageDetail.tsx:638
+#: src/components/logs/MessageDetail.tsx:643
 #: src/components/logs/MessagesTab.tsx:459
 #: src/components/messages/MessageHistoryTable.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:236
@@ -17987,11 +17987,11 @@ msgstr "Template changed by someone else"
 msgid "Template created successfully"
 msgstr "Template created successfully"
 
-#: src/components/logs/MessageDetail.tsx:811
+#: src/components/logs/MessageDetail.tsx:816
 msgid "template data"
 msgstr "template data"
 
-#: src/components/logs/MessageDetail.tsx:809
+#: src/components/logs/MessageDetail.tsx:814
 msgid "Template data"
 msgstr "Template data"
 
@@ -18254,7 +18254,7 @@ msgstr "Testing feed..."
 
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:62
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:135
-#: src/components/logs/MessageDetail.tsx:780
+#: src/components/logs/MessageDetail.tsx:785
 msgid "text"
 msgstr "text"
 
@@ -18317,7 +18317,7 @@ msgstr "Text Transform"
 #: src/components/email_builder/EmailBuilder.tsx:1064
 #: src/components/email_builder/MjmlCodeEditor.tsx:689
 #: src/components/email_builder/panels/TextVersionPanel.tsx:119
-#: src/components/logs/MessageDetail.tsx:767
+#: src/components/logs/MessageDetail.tsx:772
 #: src/components/templates/TemplatePreviewDrawer.tsx:211
 msgid "Text version"
 msgstr "Text version"
@@ -18393,7 +18393,7 @@ msgstr "The broadcast will stop sending and can be resumed later."
 msgid "The comparison period as extra columns"
 msgstr "The comparison period as extra columns"
 
-#: src/components/logs/MessageDetail.tsx:731
+#: src/components/logs/MessageDetail.tsx:736
 msgid "The contact was erased; the message data is gone"
 msgstr "The contact was erased; the message data is gone"
 
@@ -18622,7 +18622,7 @@ msgstr "The status to assign when adding to the list"
 msgid "The storage did not return the whole bucket. Folder counts, total size and search only cover the files shown."
 msgstr "The storage did not return the whole bucket. Folder counts, total size and search only cover the files shown."
 
-#: src/components/logs/MessageDetail.tsx:732
+#: src/components/logs/MessageDetail.tsx:737
 msgid "The template behind this message isn't available"
 msgstr "The template behind this message isn't available"
 
@@ -18877,7 +18877,7 @@ msgstr "This deployment has reached the number of workspaces its licence allows.
 #~ msgid "This deployment keeps working without them."
 #~ msgstr "This deployment keeps working without them."
 
-#: src/components/logs/MessageDetail.tsx:782
+#: src/components/logs/MessageDetail.tsx:787
 msgid "This email is sent as HTML only"
 msgstr "This email is sent as HTML only"
 
@@ -19160,8 +19160,8 @@ msgstr "This wrapper has no sections. Add a section to display content."
 #: src/components/broadcasts/compose/SendingCard.tsx:100
 #: src/components/broadcasts/compose/SendingCard.tsx:102
 #: src/components/logs/AuditLogTab.tsx:523
-#: src/components/logs/InboundWebhooksTab.tsx:252
-#: src/components/logs/MessagesTab.tsx:617
+#: src/components/logs/InboundWebhooksTab.tsx:249
+#: src/components/logs/MessagesTab.tsx:620
 #: src/components/logs/OutgoingWebhooksTab.tsx:161
 #: src/components/transactional/RecentSends.tsx:89
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:154
@@ -19332,7 +19332,7 @@ msgstr "TLS Private Key (Base64)"
 msgid "TLS private key is required"
 msgstr "TLS private key is required"
 
-#: src/components/logs/MessageDetail.tsx:328
+#: src/components/logs/MessageDetail.tsx:327
 msgid "To {recipient}"
 msgstr "To {recipient}"
 
@@ -19501,7 +19501,7 @@ msgstr "Tracked"
 msgid "Tracked on {tracked} of {total} emails"
 msgstr "Tracked on {tracked} of {total} emails"
 
-#: src/components/logs/MessageDetail.tsx:648
+#: src/components/logs/MessageDetail.tsx:653
 #: src/components/settings/WebAnalyticsSettings.tsx:298
 #: src/components/transactional/TransactionalDetail.tsx:401
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:377
@@ -19684,7 +19684,7 @@ msgid "type"
 msgstr "type"
 
 #: src/components/file_manager/FilePreview.tsx:47
-#: src/components/logs/InboundWebhooksTab.tsx:199
+#: src/components/logs/InboundWebhooksTab.tsx:196
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
 #: src/components/settings/GeneralSettings.tsx:196
 msgid "Type"
@@ -21330,7 +21330,7 @@ msgstr "You need access to message history"
 msgid "You need access to message history to see sends"
 msgstr "You need access to message history to see sends"
 
-#: src/components/logs/MessageDetail.tsx:730
+#: src/components/logs/MessageDetail.tsx:735
 #: src/components/transactional/notificationRules.ts:61
 #: src/components/transactional/PreviewPanel.tsx:75
 msgid "You need access to templates"

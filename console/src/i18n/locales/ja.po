@@ -104,12 +104,12 @@ msgid "{0, plural, one {{1} email} other {{2} emails}}"
 msgstr "{0, plural, other {{2} 件のメール}}"
 
 #. placeholder {0}: rows.length
-#: src/components/logs/InboundWebhooksTab.tsx:349
+#: src/components/logs/InboundWebhooksTab.tsx:346
 msgid "{0, plural, one {{shown} event} other {{shown} events}}"
 msgstr "{0, plural, other {{shown} 件のイベント}}"
 
 #. placeholder {0}: rows.length
-#: src/components/logs/MessagesTab.tsx:824
+#: src/components/logs/MessagesTab.tsx:835
 msgid "{0, plural, one {{shown} message} other {{shown} messages}}"
 msgstr "{0, plural, other {{shown} 件のメッセージ}}"
 
@@ -311,7 +311,7 @@ msgstr "{0, plural, one {プロバイダーが # 件の宛先を拒否し、す�
 
 #. placeholder {0}: template.name
 #: src/components/logs/MessageDetail.tsx:222
-#: src/components/logs/MessageDetail.tsx:564
+#: src/components/logs/MessageDetail.tsx:569
 msgid "{0} · deleted"
 msgstr "{0} · 削除済み"
 
@@ -955,7 +955,7 @@ msgstr "{total, plural, other {{all} 件中 {part} 件の通知}}"
 msgid "{total, plural, one {{shown} of # delivery} other {{shown} of # deliveries}}"
 msgstr "{total, plural, other {# 件中 {shown} 件の配信}}"
 
-#: src/components/logs/MessagesTab.tsx:823
+#: src/components/logs/MessagesTab.tsx:834
 msgid "{total, plural, one {{shown} of # message} other {{shown} of # messages}}"
 msgstr "{total, plural, other {# 件中 {shown} 件のメッセージ}}"
 
@@ -1898,10 +1898,10 @@ msgstr "配置"
 #: src/components/logs/AuditLogTab.tsx:221
 #: src/components/logs/AuditLogTab.tsx:243
 #: src/components/logs/AuditLogTab.tsx:281
-#: src/components/logs/InboundWebhooksTab.tsx:155
-#: src/components/logs/InboundWebhooksTab.tsx:164
-#: src/components/logs/InboundWebhooksTab.tsx:195
-#: src/components/logs/InboundWebhooksTab.tsx:200
+#: src/components/logs/InboundWebhooksTab.tsx:152
+#: src/components/logs/InboundWebhooksTab.tsx:161
+#: src/components/logs/InboundWebhooksTab.tsx:192
+#: src/components/logs/InboundWebhooksTab.tsx:197
 #: src/components/logs/MessagesTab.tsx:258
 #: src/components/logs/MessagesTab.tsx:293
 #: src/components/logs/MessagesTab.tsx:482
@@ -1989,7 +1989,7 @@ msgstr "全辺"
 #: src/components/automations/AutomationEditor.tsx:455
 #: src/components/automations/NodeConfigPanel.tsx:188
 #: src/components/logs/AuditLogTab.tsx:182
-#: src/components/logs/InboundWebhooksTab.tsx:135
+#: src/components/logs/InboundWebhooksTab.tsx:132
 #: src/components/logs/MessagesTab.tsx:240
 #: src/components/web_analytics/toolbar.tsx:32
 msgid "All time"
@@ -2531,7 +2531,7 @@ msgstr "少なくとも1つのルートメールアドレスが必要です"
 msgid "at most"
 msgstr "最大"
 
-#: src/components/logs/MessageDetail.tsx:655
+#: src/components/logs/MessageDetail.tsx:660
 #: src/components/templates/SendTemplateModal.tsx:459
 msgid "Attachments"
 msgstr "添付ファイル"
@@ -2926,7 +2926,7 @@ msgstr "基本ブロック"
 msgid "Basic Information"
 msgstr "基本情報"
 
-#: src/components/logs/MessageDetail.tsx:647
+#: src/components/logs/MessageDetail.tsx:652
 #: src/components/templates/TemplatePreviewDrawer.tsx:382
 msgid "BCC"
 msgstr "BCC"
@@ -3180,7 +3180,7 @@ msgstr "右下"
 msgid "Bounce"
 msgstr "バウンス"
 
-#: src/components/logs/InboundWebhooksTab.tsx:401
+#: src/components/logs/InboundWebhooksTab.tsx:398
 msgid "Bounce category"
 msgstr "バウンスのカテゴリ"
 
@@ -3188,7 +3188,7 @@ msgstr "バウンスのカテゴリ"
 #~ msgid "Bounce Category"
 #~ msgstr "バウンスカテゴリ"
 
-#: src/components/logs/InboundWebhooksTab.tsx:404
+#: src/components/logs/InboundWebhooksTab.tsx:401
 msgid "Bounce diagnostic"
 msgstr "バウンスの診断"
 
@@ -3229,7 +3229,7 @@ msgstr "バウンスのしきい値"
 msgid "Bounce threshold (seconds)"
 msgstr "バウンスのしきい値 (秒)"
 
-#: src/components/logs/InboundWebhooksTab.tsx:399
+#: src/components/logs/InboundWebhooksTab.tsx:396
 msgid "Bounce type"
 msgstr "バウンスの種類"
 
@@ -3247,7 +3247,7 @@ msgstr "バウンスの種類"
 #: src/components/logs/MessageDetail.tsx:401
 #: src/components/logs/MessagesTab.tsx:253
 #: src/components/logs/MessagesTab.tsx:262
-#: src/components/logs/MessagesTab.tsx:901
+#: src/components/logs/MessagesTab.tsx:912
 #: src/components/messages/MessageHistoryTable.tsx:362
 #: src/components/transactional/RecentSends.tsx:40
 #: src/components/transactional/SendsPerDayChart.tsx:50
@@ -3769,7 +3769,7 @@ msgstr "カテゴリを更新しました"
 msgid "Category:"
 msgstr "カテゴリ:"
 
-#: src/components/logs/MessageDetail.tsx:646
+#: src/components/logs/MessageDetail.tsx:651
 #: src/components/templates/TemplatePreviewDrawer.tsx:370
 msgid "CC"
 msgstr "CC"
@@ -4017,8 +4017,8 @@ msgid "Clear field"
 msgstr "フィールドをクリア"
 
 #: src/components/logs/AuditLogTab.tsx:616
-#: src/components/logs/InboundWebhooksTab.tsx:300
-#: src/components/logs/MessagesTab.tsx:775
+#: src/components/logs/InboundWebhooksTab.tsx:297
+#: src/components/logs/MessagesTab.tsx:786
 #: src/components/logs/OutgoingWebhooksTab.tsx:233
 #: src/pages/AutomationsPage.tsx:259
 #: src/pages/BroadcastsPage.tsx:306
@@ -4106,7 +4106,7 @@ msgstr "クリック"
 #: src/components/logs/MessageDetail.tsx:424
 #: src/components/logs/MessagesTab.tsx:252
 #: src/components/logs/MessagesTab.tsx:261
-#: src/components/logs/MessagesTab.tsx:917
+#: src/components/logs/MessagesTab.tsx:928
 #: src/components/messages/MessageHistoryTable.tsx:354
 #: src/components/transactional/RecentSends.tsx:42
 #: src/components/transactional/TransactionalDetail.tsx:214
@@ -4669,10 +4669,10 @@ msgstr "コンタクトのメールアドレス (空欄の場合はランダム)
 msgid "Contact Email:"
 msgstr "コンタクトメール:"
 
-#: src/components/logs/InboundWebhooksTab.tsx:245
-#: src/components/logs/InboundWebhooksTab.tsx:378
-#: src/components/logs/MessageDetail.tsx:328
-#: src/components/logs/MessagesTab.tsx:634
+#: src/components/logs/InboundWebhooksTab.tsx:242
+#: src/components/logs/InboundWebhooksTab.tsx:375
+#: src/components/logs/MessageDetail.tsx:327
+#: src/components/logs/MessagesTab.tsx:637
 msgid "Contact erased"
 msgstr "削除された連絡先"
 
@@ -5009,7 +5009,7 @@ msgstr "メンバーを読み込めませんでした"
 msgid "Couldn't load the message"
 msgstr "メッセージを読み込めませんでした"
 
-#: src/components/logs/MessagesTab.tsx:764
+#: src/components/logs/MessagesTab.tsx:775
 msgid "Couldn't load the messages"
 msgstr "メッセージを読み込めませんでした"
 
@@ -5029,7 +5029,7 @@ msgstr "このブロードキャストの統計を読み込めませんでした
 msgid "Couldn't load the success rate"
 msgstr "成功率を読み込めませんでした"
 
-#: src/components/logs/MessageDetail.tsx:738
+#: src/components/logs/MessageDetail.tsx:743
 #: src/components/transactional/notificationRules.ts:67
 msgid "Couldn't load the template"
 msgstr "テンプレートを読み込めませんでした"
@@ -5038,7 +5038,7 @@ msgstr "テンプレートを読み込めませんでした"
 msgid "Couldn't load the templates"
 msgstr "テンプレートを読み込めませんでした"
 
-#: src/components/logs/InboundWebhooksTab.tsx:289
+#: src/components/logs/InboundWebhooksTab.tsx:286
 msgid "Couldn't load the webhook events"
 msgstr "Webhook イベントを読み込めませんでした"
 
@@ -5063,7 +5063,7 @@ msgstr "この Webhook を読み込めませんでした"
 msgid "Couldn't render the preview"
 msgstr "プレビューを表示できませんでした"
 
-#: src/components/logs/MessageDetail.tsx:750
+#: src/components/logs/MessageDetail.tsx:755
 msgid "Couldn't render this message"
 msgstr "このメッセージを表示できませんでした"
 
@@ -5134,7 +5134,7 @@ msgstr "国"
 msgid "Country level (~111km precision)"
 msgstr "国レベル (約111kmの精度)"
 
-#: src/components/logs/MessagesTab.tsx:578
+#: src/components/logs/MessagesTab.tsx:580
 msgid "Counts cover 7 days at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"
 msgstr "件数は最大 7 日間です。それより長く数えるには、メール、メッセージID、ニュースレター、オートメーション、通知、テンプレートのいずれかで絞り込んでください"
 
@@ -5774,7 +5774,7 @@ msgstr "ダッシュボード"
 msgid "Dashed"
 msgstr "破線"
 
-#: src/components/logs/MessageDetail.tsx:298
+#: src/components/logs/MessageDetail.tsx:297
 msgid "Data"
 msgstr "データ"
 
@@ -6319,7 +6319,7 @@ msgstr "配信済み"
 #: src/components/logs/MessageDetail.tsx:394
 #: src/components/logs/MessagesTab.tsx:249
 #: src/components/logs/MessagesTab.tsx:259
-#: src/components/logs/MessagesTab.tsx:901
+#: src/components/logs/MessagesTab.tsx:912
 #: src/components/logs/OutgoingWebhooksTab.tsx:402
 #: src/components/messages/MessageHistoryTable.tsx:330
 #: src/components/settings/WebhookDetail.tsx:534
@@ -6358,7 +6358,7 @@ msgstr "配信 ID"
 #~ msgstr "配信ID:"
 
 #: src/components/logs/MessagesTab.tsx:528
-#: src/components/logs/MessagesTab.tsx:904
+#: src/components/logs/MessagesTab.tsx:915
 msgid "Delivery isn't reported by SMTP providers"
 msgstr "SMTP プロバイダーは配信を報告しません"
 
@@ -7114,7 +7114,7 @@ msgstr "要素パディング"
 #: src/components/contacts/sheet/activityLabel.ts:16
 #: src/components/contacts/visits/webVisitSource.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:326
-#: src/components/logs/InboundWebhooksTab.tsx:184
+#: src/components/logs/InboundWebhooksTab.tsx:181
 #: src/components/logs/MessagesTab.tsx:276
 #: src/components/logs/MessagesTab.tsx:470
 #: src/components/segment/segmentSummary.ts:28
@@ -7452,7 +7452,7 @@ msgstr "国・地域別のエンゲージメント"
 msgid "Enter {0}"
 msgstr "{0}を入力"
 
-#: src/components/logs/LogsSearchBox.tsx:109
+#: src/components/logs/LogsSearchBox.tsx:114
 msgid "Enter a full email address"
 msgstr "完全なメールアドレスを入力してください"
 
@@ -7749,7 +7749,7 @@ msgid "event"
 msgstr "イベント"
 
 #: src/components/contacts/sheet/activityLabel.ts:22
-#: src/components/logs/InboundWebhooksTab.tsx:264
+#: src/components/logs/InboundWebhooksTab.tsx:261
 #: src/components/logs/OutgoingWebhooksTab.tsx:172
 #: src/components/timeline/ContactTimeline.tsx:757
 msgid "Event"
@@ -7763,7 +7763,7 @@ msgstr "イベント {kind}"
 msgid "Event {name}"
 msgstr "イベント {name}"
 
-#: src/components/logs/InboundWebhooksTab.tsx:394
+#: src/components/logs/InboundWebhooksTab.tsx:391
 msgid "Event ID"
 msgstr "イベントID"
 
@@ -7850,7 +7850,7 @@ msgstr ""
 msgid "Exact ID"
 msgstr "完全一致の ID"
 
-#: src/components/logs/LogsSearchBox.tsx:95
+#: src/components/logs/LogsSearchBox.tsx:100
 msgid "Exact match"
 msgstr "完全一致"
 
@@ -7859,7 +7859,7 @@ msgid "Exact URL"
 msgstr "完全一致の URL"
 
 #: src/components/logs/AuditLogTab.tsx:396
-#: src/components/logs/InboundWebhooksTab.tsx:190
+#: src/components/logs/InboundWebhooksTab.tsx:187
 #: src/components/logs/MessagesTab.tsx:477
 msgid "Exact value"
 msgstr "完全一致"
@@ -8016,7 +8016,7 @@ msgstr "すべてのコンタクトをエクスポート中"
 #: src/components/contacts/ContactsFilters.tsx:20
 #: src/components/contacts/ExportContactsModal.tsx:66
 #: src/components/contacts/sheet/ContactProfileFields.tsx:125
-#: src/components/logs/MessageDetail.tsx:635
+#: src/components/logs/MessageDetail.tsx:640
 #: src/components/logs/MessagesTab.tsx:457
 #: src/components/logs/MessagesTab.tsx:472
 #: src/components/messages/MessageHistoryTable.tsx:147
@@ -8052,7 +8052,7 @@ msgstr "失敗"
 #: src/components/logs/MessageDetail.tsx:386
 #: src/components/logs/MessagesTab.tsx:250
 #: src/components/logs/MessagesTab.tsx:263
-#: src/components/logs/MessagesTab.tsx:893
+#: src/components/logs/MessagesTab.tsx:904
 #: src/components/messages/MessageHistoryTable.tsx:338
 #: src/components/settings/WebhookDetail.tsx:539
 #: src/components/transactional/RecentSends.tsx:38
@@ -8631,7 +8631,7 @@ msgstr "アイキャッチ画像URL"
 msgid "Features"
 msgstr "機能"
 
-#: src/components/logs/InboundWebhooksTab.tsx:407
+#: src/components/logs/InboundWebhooksTab.tsx:404
 msgid "Feedback type"
 msgstr "フィードバックの種類"
 
@@ -9007,7 +9007,7 @@ msgstr "頻度"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:91
 #: src/components/broadcasts/detail/AbTestPanel.tsx:154
 #: src/components/broadcasts/detail/BroadcastAside.tsx:105
-#: src/components/logs/MessageDetail.tsx:639
+#: src/components/logs/MessageDetail.tsx:644
 #: src/components/templates/TemplatePreviewDrawer.tsx:303
 msgid "From"
 msgstr "差出人"
@@ -9445,7 +9445,7 @@ msgid "How to use:"
 msgstr "使用方法:"
 
 #: src/components/email_builder/panels/Preview.tsx:397
-#: src/components/logs/MessageDetail.tsx:766
+#: src/components/logs/MessageDetail.tsx:771
 #: src/components/templates/ImportExportButton.tsx:239
 msgid "HTML"
 msgstr "HTML"
@@ -9941,7 +9941,7 @@ msgstr "連携を作成しました"
 msgid "Integration deleted successfully"
 msgstr "連携を削除しました"
 
-#: src/components/logs/InboundWebhooksTab.tsx:396
+#: src/components/logs/InboundWebhooksTab.tsx:393
 msgid "Integration ID"
 msgstr "連携ID"
 
@@ -10239,7 +10239,7 @@ msgstr "セグメント {segment} に参加"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "招待 <0>{target}</0> で参加しました"
 
-#: src/components/logs/MessagesTab.tsx:663
+#: src/components/logs/MessagesTab.tsx:666
 msgid "Journey"
 msgstr "経過"
 
@@ -10341,7 +10341,7 @@ msgstr "ランディングページ"
 #: src/components/contacts/ContactsTable.tsx:275
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/ContactProfileFields.tsx:124
-#: src/components/logs/MessageDetail.tsx:643
+#: src/components/logs/MessageDetail.tsx:648
 #: src/components/segment/segmentSummary.ts:35
 #: src/components/templates/SendTemplateModal.tsx:392
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
@@ -10371,7 +10371,7 @@ msgstr "大きな画像は、特にモバイルデバイスや遅い接続では
 #~ msgstr ""
 
 #: src/components/logs/AuditLogTab.tsx:178
-#: src/components/logs/InboundWebhooksTab.tsx:132
+#: src/components/logs/InboundWebhooksTab.tsx:129
 #: src/components/logs/MessagesTab.tsx:237
 msgid "Last 24 hours"
 msgstr "過去24時間"
@@ -10380,7 +10380,7 @@ msgstr "過去24時間"
 #: src/components/automations/NodeConfigPanel.tsx:188
 #: src/components/broadcasts/BroadcastKpis.tsx:138
 #: src/components/logs/AuditLogTab.tsx:180
-#: src/components/logs/InboundWebhooksTab.tsx:134
+#: src/components/logs/InboundWebhooksTab.tsx:131
 #: src/components/logs/MessagesTab.tsx:239
 msgid "Last 30 days"
 msgstr "過去 30 日間"
@@ -10395,7 +10395,7 @@ msgstr "過去 30 日: {0}"
 #~ msgstr ""
 
 #: src/components/logs/AuditLogTab.tsx:179
-#: src/components/logs/InboundWebhooksTab.tsx:133
+#: src/components/logs/InboundWebhooksTab.tsx:130
 #: src/components/logs/MessagesTab.tsx:238
 msgid "Last 7 days"
 msgstr "過去7日間"
@@ -10432,7 +10432,7 @@ msgstr "最終編集"
 msgid "Last fetched:"
 msgstr "最終取得:"
 
-#: src/components/logs/InboundWebhooksTab.tsx:131
+#: src/components/logs/InboundWebhooksTab.tsx:128
 #: src/components/logs/MessagesTab.tsx:236
 msgid "Last hour"
 msgstr "過去1時間"
@@ -10662,7 +10662,7 @@ msgstr "リンク:"
 msgid "Linked from the notification center and available to templates; also used to find your logo"
 msgstr "通知センターからリンクされ、テンプレートで利用できます。ロゴの検出にも使われます"
 
-#: src/components/logs/InboundWebhooksTab.tsx:267
+#: src/components/logs/InboundWebhooksTab.tsx:264
 msgid "Linked message"
 msgstr "関連メッセージ"
 
@@ -10697,7 +10697,7 @@ msgstr "Liquidブロック - クリックしてMJML + Liquidコンテンツを�
 #: src/components/contacts/sheet/activityLabel.ts:17
 #: src/components/file_manager/FileExplorer.tsx:679
 #: src/components/file_manager/FileExplorer.tsx:680
-#: src/components/logs/MessageDetail.tsx:650
+#: src/components/logs/MessageDetail.tsx:655
 #: src/components/logs/MessagesTab.tsx:268
 #: src/components/logs/MessagesTab.tsx:460
 #: src/components/messages/MessageHistoryTable.tsx:152
@@ -10903,8 +10903,8 @@ msgstr "さらに {PAGE_SIZE} 件読み込む"
 #: src/components/blog/PostsTable.tsx:469
 #: src/components/contacts/visits/ContactWebVisits.tsx:360
 #: src/components/logs/AuditLogTab.tsx:676
-#: src/components/logs/InboundWebhooksTab.tsx:357
-#: src/components/logs/MessagesTab.tsx:832
+#: src/components/logs/InboundWebhooksTab.tsx:354
+#: src/components/logs/MessagesTab.tsx:843
 #: src/components/logs/OutgoingWebhooksTab.tsx:286
 msgid "Load more"
 msgstr "さらに読み込む"
@@ -11153,8 +11153,8 @@ msgstr "チャートの動きを説明する日付 — ローンチ、キャン�
 
 #: src/components/analytics/RecentFailures.tsx:57
 #: src/components/logs/MessageDetail.tsx:409
-#: src/components/logs/MessagesTab.tsx:681
-#: src/components/logs/MessagesTab.tsx:909
+#: src/components/logs/MessagesTab.tsx:684
+#: src/components/logs/MessagesTab.tsx:920
 msgid "Marked as spam"
 msgstr "スパムとしてマーク"
 
@@ -11304,8 +11304,8 @@ msgstr "メンバー"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:258
 #: src/components/logs/MessageDetail.tsx:83
-#: src/components/logs/MessageDetail.tsx:629
-#: src/components/logs/MessagesTab.tsx:640
+#: src/components/logs/MessageDetail.tsx:634
+#: src/components/logs/MessagesTab.tsx:643
 msgid "Message"
 msgstr "メッセージ"
 
@@ -11318,9 +11318,9 @@ msgstr "メッセージ履歴"
 msgid "Message history and webhook events will be anonymized (email addresses redacted) but retained for analytics."
 msgstr "メッセージ履歴とWebhookイベントは匿名化（メールアドレスは編集）されますが、分析用に保持されます。"
 
-#: src/components/logs/InboundWebhooksTab.tsx:185
-#: src/components/logs/InboundWebhooksTab.tsx:397
-#: src/components/logs/MessageDetail.tsx:633
+#: src/components/logs/InboundWebhooksTab.tsx:182
+#: src/components/logs/InboundWebhooksTab.tsx:394
+#: src/components/logs/MessageDetail.tsx:638
 #: src/components/logs/MessagesTab.tsx:456
 #: src/components/logs/MessagesTab.tsx:471
 #: src/components/messages/MessageHistoryTable.tsx:146
@@ -11359,12 +11359,12 @@ msgid "Meta Title"
 msgstr "メタタイトル"
 
 #: src/components/logs/AuditEntryDetail.tsx:212
-#: src/components/logs/MessageDetail.tsx:819
+#: src/components/logs/MessageDetail.tsx:824
 msgid "metadata"
 msgstr "メタデータ"
 
 #: src/components/logs/AuditEntryDetail.tsx:211
-#: src/components/logs/MessageDetail.tsx:817
+#: src/components/logs/MessageDetail.tsx:822
 #: src/components/logs/MessagesTab.tsx:458
 #: src/components/messages/MessageHistoryTable.tsx:148
 #: src/components/messages/MessageHistoryTable.tsx:192
@@ -11423,7 +11423,7 @@ msgid "Missing workspace ID or template data."
 msgstr "ワークスペースIDまたはテンプレートデータがありません。"
 
 #: src/components/email_builder/panels/Preview.tsx:379
-#: src/components/logs/MessageDetail.tsx:785
+#: src/components/logs/MessageDetail.tsx:790
 #: src/components/templates/ImportExportButton.tsx:220
 #: src/components/templates/ImportExportButton.tsx:249
 msgid "MJML"
@@ -11478,7 +11478,7 @@ msgstr "MJMLインポートエラー"
 msgid "MJML Import Validation Failed"
 msgstr "MJMLインポート検証に失敗しました"
 
-#: src/components/logs/MessageDetail.tsx:768
+#: src/components/logs/MessageDetail.tsx:773
 #: src/components/templates/TemplatePreviewDrawer.tsx:260
 msgid "MJML Source"
 msgstr "MJMLソース"
@@ -12025,7 +12025,7 @@ msgstr "CSVデータがありません"
 msgid "No custom field is named yet"
 msgstr "名前の付いたカスタムフィールドはまだありません"
 
-#: src/components/logs/MessageDetail.tsx:800
+#: src/components/logs/MessageDetail.tsx:805
 msgid "No data"
 msgstr "データなし"
 
@@ -12193,7 +12193,7 @@ msgstr "メンバーが見つかりません"
 msgid "No messages found"
 msgstr "メッセージが見つかりません"
 
-#: src/components/logs/MessagesTab.tsx:778
+#: src/components/logs/MessagesTab.tsx:789
 msgid "No messages sent yet"
 msgstr "まだメッセージは送信されていません"
 
@@ -12295,8 +12295,8 @@ msgid "No results found"
 msgstr "結果が見つかりません"
 
 #: src/components/logs/AuditLogTab.tsx:615
-#: src/components/logs/InboundWebhooksTab.tsx:299
-#: src/components/logs/MessagesTab.tsx:774
+#: src/components/logs/InboundWebhooksTab.tsx:296
+#: src/components/logs/MessagesTab.tsx:785
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
 msgid "No results match"
 msgstr "一致する結果はありません"
@@ -12456,7 +12456,7 @@ msgstr "Webhook の配信はまだありません"
 #~ msgid "No webhook events found"
 #~ msgstr "Webhookイベントが見つかりません"
 
-#: src/components/logs/InboundWebhooksTab.tsx:303
+#: src/components/logs/InboundWebhooksTab.tsx:300
 msgid "No webhook events received yet"
 msgstr "まだ Webhook イベントは受信されていません"
 
@@ -12537,7 +12537,7 @@ msgstr "未割り当て"
 msgid "Not available here"
 msgstr "ここでは使用できません"
 
-#: src/components/logs/MessagesTab.tsx:920
+#: src/components/logs/MessagesTab.tsx:931
 msgid "Not clicked"
 msgstr "未クリック"
 
@@ -12560,7 +12560,7 @@ msgstr "含まない"
 msgid "not created yet — register webhooks"
 msgstr "まだ作成されていません — Webhookを登録してください"
 
-#: src/components/logs/MessagesTab.tsx:904
+#: src/components/logs/MessagesTab.tsx:915
 msgid "Not delivered"
 msgstr "未配信"
 
@@ -12598,7 +12598,7 @@ msgstr "テストデータにありません。変数が空であるものとし
 msgid "Not now"
 msgstr "今はしない"
 
-#: src/components/logs/MessagesTab.tsx:912
+#: src/components/logs/MessagesTab.tsx:923
 msgid "Not opened"
 msgstr "未開封"
 
@@ -12610,7 +12610,7 @@ msgstr "未解決"
 msgid "Not saved"
 msgstr "未保存"
 
-#: src/components/logs/MessagesTab.tsx:896
+#: src/components/logs/MessagesTab.tsx:907
 msgid "Not sent"
 msgstr "未送信"
 
@@ -12666,8 +12666,8 @@ msgstr "メモ"
 msgid "Nothing has been recorded over the last 24 hours. Check that this snippet is still installed on your website."
 msgstr "過去24時間に何も記録されていません。このスニペットがWebサイトに設置されたままか確認してください。"
 
-#: src/components/logs/InboundWebhooksTab.tsx:316
-#: src/components/logs/MessagesTab.tsx:780
+#: src/components/logs/InboundWebhooksTab.tsx:313
+#: src/components/logs/MessagesTab.tsx:791
 msgid "Nothing in the last 24 hours"
 msgstr "過去24時間は何もありません"
 
@@ -12676,8 +12676,8 @@ msgid "Nothing in the last 7 days"
 msgstr "過去 7 日間は何もありません"
 
 #: src/components/logs/AuditLogTab.tsx:623
-#: src/components/logs/InboundWebhooksTab.tsx:318
-#: src/components/logs/MessagesTab.tsx:782
+#: src/components/logs/InboundWebhooksTab.tsx:315
+#: src/components/logs/MessagesTab.tsx:793
 msgid "Nothing in this period"
 msgstr "この期間は何もありません"
 
@@ -12827,7 +12827,7 @@ msgstr "（その日の送信メールに対する割合）"
 msgid "of the following conditions match:"
 msgstr "の以下の条件に一致:"
 
-#: src/components/logs/MessageDetail.tsx:555
+#: src/components/logs/MessageDetail.tsx:560
 msgid "off"
 msgstr "オフ"
 
@@ -12851,7 +12851,7 @@ msgstr "OIDC発行者のベースURL — ディスカバリーは <issuer>/.well
 msgid "OK"
 msgstr "OK"
 
-#: src/components/logs/MessageDetail.tsx:555
+#: src/components/logs/MessageDetail.tsx:560
 msgid "on"
 msgstr "オン"
 
@@ -12860,7 +12860,7 @@ msgstr "オン"
 msgid "On"
 msgstr "オン"
 
-#: src/components/logs/MessageDetail.tsx:558
+#: src/components/logs/MessageDetail.tsx:563
 msgid "On (default)"
 msgstr "オン（デフォルト）"
 
@@ -12963,7 +12963,7 @@ msgstr "開く"
 msgid "Open and click tracking"
 msgstr "開封とクリックのトラッキング"
 
-#: src/components/logs/MessageDetail.tsx:317
+#: src/components/logs/MessageDetail.tsx:316
 msgid "Open contact"
 msgstr "連絡先を開く"
 
@@ -13079,7 +13079,7 @@ msgstr "開封"
 #: src/components/logs/MessageDetail.tsx:416
 #: src/components/logs/MessagesTab.tsx:251
 #: src/components/logs/MessagesTab.tsx:260
-#: src/components/logs/MessagesTab.tsx:909
+#: src/components/logs/MessagesTab.tsx:920
 #: src/components/messages/MessageHistoryTable.tsx:346
 #: src/components/transactional/RecentSends.tsx:43
 #: src/components/transactional/TransactionalDetail.tsx:213
@@ -13110,7 +13110,7 @@ msgstr "開封"
 
 #. placeholder {0}: tracked(message.opens_tracked)
 #. placeholder {1}: tracked(message.clicks_tracked)
-#: src/components/logs/MessageDetail.tsx:559
+#: src/components/logs/MessageDetail.tsx:564
 msgid "Opens {0} · clicks {1}"
 msgstr "開封 {0} · クリック {1}"
 
@@ -13475,7 +13475,7 @@ msgstr "ニュースレター <0>{target}</0> を一時停止しました"
 msgid "Paused: {reason}"
 msgstr "一時停止中: {reason}"
 
-#: src/components/logs/InboundWebhooksTab.tsx:415
+#: src/components/logs/InboundWebhooksTab.tsx:412
 #: src/components/logs/OutgoingWebhooksTab.tsx:449
 msgid "payload"
 msgstr "ペイロード"
@@ -13547,7 +13547,7 @@ msgstr "受信者別フィードURL"
 
 #: src/components/automations/AutomationEditor.tsx:450
 #: src/components/logs/AuditLogTab.tsx:430
-#: src/components/logs/InboundWebhooksTab.tsx:192
+#: src/components/logs/InboundWebhooksTab.tsx:189
 #: src/components/logs/MessagesTab.tsx:479
 msgid "Period"
 msgstr "期間"
@@ -14406,7 +14406,7 @@ msgstr "Raw HTMLブロック - クリックしてカスタムHTMLコンテンツ
 msgid "Raw JSON"
 msgstr "Raw JSON"
 
-#: src/components/logs/InboundWebhooksTab.tsx:413
+#: src/components/logs/InboundWebhooksTab.tsx:410
 msgid "Raw payload"
 msgstr "生のペイロード"
 
@@ -14621,7 +14621,7 @@ msgstr "セグメントを再構築"
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "セグメント <0>{target}</0> を再構築しました"
 
-#: src/components/logs/InboundWebhooksTab.tsx:398
+#: src/components/logs/InboundWebhooksTab.tsx:395
 msgid "Received"
 msgstr "受信日時"
 
@@ -14655,7 +14655,7 @@ msgstr "最近の送信"
 msgid "Recently Used"
 msgstr "最近使用した色"
 
-#: src/components/logs/InboundWebhooksTab.tsx:265
+#: src/components/logs/InboundWebhooksTab.tsx:262
 #: src/components/logs/MessagesTab.tsx:454
 #: src/components/transactional/RecentSends.tsx:101
 msgid "Recipient"
@@ -14771,8 +14771,8 @@ msgstr "リファラー"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:205
 #: src/components/logs/AuditLogTab.tsx:507
 #: src/components/logs/AuditLogTab.tsx:511
-#: src/components/logs/InboundWebhooksTab.tsx:206
-#: src/components/logs/InboundWebhooksTab.tsx:210
+#: src/components/logs/InboundWebhooksTab.tsx:203
+#: src/components/logs/InboundWebhooksTab.tsx:207
 #: src/components/logs/MessagesTab.tsx:508
 #: src/components/logs/MessagesTab.tsx:512
 #: src/components/logs/OutgoingWebhooksTab.tsx:146
@@ -15025,7 +15025,7 @@ msgstr "<0>{target}</0> のカスタムフィールド名を変更しました"
 msgid "Renaming this connection does not change the address of the API key it already minted."
 msgstr "この接続の名前を変更しても、すでに作成されたAPIキーのアドレスは変わりません。"
 
-#: src/components/logs/MessageDetail.tsx:759
+#: src/components/logs/MessageDetail.tsx:764
 msgid "Rendered again from the template and the message data; Notifuse doesn't store the sent HTML"
 msgstr "テンプレートとメッセージデータから再生成しています。Notifuse は送信した HTML を保存しません"
 
@@ -15107,7 +15107,7 @@ msgstr "返信先"
 #~ msgstr "返信先:"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:113
-#: src/components/logs/MessageDetail.tsx:645
+#: src/components/logs/MessageDetail.tsx:650
 #: src/components/templates/SendTemplateModal.tsx:450
 #: src/components/transactional/TransactionalDetail.tsx:412
 msgid "Reply-To"
@@ -15360,9 +15360,9 @@ msgstr "ニュースレター <0>{target}</0> の失敗した送信を再試行�
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:780
 #: src/components/logs/AuditLogTab.tsx:603
-#: src/components/logs/InboundWebhooksTab.tsx:291
+#: src/components/logs/InboundWebhooksTab.tsx:288
 #: src/components/logs/MessageDetail.tsx:91
-#: src/components/logs/MessagesTab.tsx:766
+#: src/components/logs/MessagesTab.tsx:777
 #: src/components/logs/OutgoingWebhooksTab.tsx:225
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
@@ -15819,7 +15819,7 @@ msgstr "モバイルレイアウトが有効になる画面幅。一般的な値
 msgid "Search"
 msgstr "検索"
 
-#: src/components/logs/LogsSearchBox.tsx:88
+#: src/components/logs/LogsSearchBox.tsx:93
 msgid "Search by"
 msgstr "検索対象"
 
@@ -15862,7 +15862,7 @@ msgstr "監査ログを検索"
 msgid "Search the messages"
 msgstr "メッセージを検索"
 
-#: src/components/logs/InboundWebhooksTab.tsx:189
+#: src/components/logs/InboundWebhooksTab.tsx:186
 msgid "Search the webhook events"
 msgstr "Webhook イベントを検索"
 
@@ -16609,7 +16609,7 @@ msgstr "送信済み"
 #: src/components/broadcasts/detail/AbTestPanel.tsx:161
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
 #: src/components/logs/labels.ts:110
-#: src/components/logs/MessagesTab.tsx:893
+#: src/components/logs/MessagesTab.tsx:904
 #: src/components/messages/MessageHistoryTable.tsx:322
 #: src/components/transactional/RecentSends.tsx:45
 #: src/components/transactional/SendsPerDayChart.tsx:48
@@ -16619,7 +16619,7 @@ msgstr "送信済み"
 msgid "Sent"
 msgstr "送信済み"
 
-#: src/components/logs/MessageDetail.tsx:669
+#: src/components/logs/MessageDetail.tsx:674
 msgid "Sent by"
 msgstr "送信元"
 
@@ -16639,7 +16639,7 @@ msgid "Sent by the transactional notification {0}"
 msgstr "トランザクション通知 {0} が送信"
 
 #: src/components/logs/MessageDetail.tsx:277
-#: src/components/logs/MessageDetail.tsx:773
+#: src/components/logs/MessageDetail.tsx:778
 msgid "Sent content"
 msgstr "送信内容"
 
@@ -16651,7 +16651,7 @@ msgstr "{date} {time} に送信"
 msgid "Sent the newsletter <0>{target}</0> to one recipient"
 msgstr "ニュースレター <0>{target}</0> を 1 人の受信者に送信しました"
 
-#: src/components/logs/MessagesTab.tsx:600
+#: src/components/logs/MessagesTab.tsx:603
 msgid "Sent to {audienceName}"
 msgstr "{audienceName} に送信"
 
@@ -16815,7 +16815,7 @@ msgstr "マーケティングメールプロバイダーに設定しますか？
 msgid "Set as transactional email provider?"
 msgstr "トランザクションメールプロバイダーに設定しますか？"
 
-#: src/components/logs/MessageDetail.tsx:546
+#: src/components/logs/MessageDetail.tsx:551
 msgid "Set at send time"
 msgstr "送信時に指定"
 
@@ -16902,7 +16902,7 @@ msgstr "nullに設定"
 msgid "Set up"
 msgstr "設定済み"
 
-#: src/components/logs/InboundWebhooksTab.tsx:312
+#: src/components/logs/InboundWebhooksTab.tsx:309
 msgid "Set up an email provider"
 msgstr "メールプロバイダーを設定"
 
@@ -16987,8 +16987,8 @@ msgid "Show"
 msgstr "表示"
 
 #: src/components/logs/AuditLogTab.tsx:610
-#: src/components/logs/InboundWebhooksTab.tsx:295
-#: src/components/logs/MessagesTab.tsx:770
+#: src/components/logs/InboundWebhooksTab.tsx:292
+#: src/components/logs/MessagesTab.tsx:781
 msgid "Show all time"
 msgstr "全期間を表示"
 
@@ -17384,9 +17384,9 @@ msgid "Something went wrong"
 msgstr "エラーが発生しました"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:270
-#: src/components/logs/InboundWebhooksTab.tsx:194
-#: src/components/logs/InboundWebhooksTab.tsx:263
-#: src/components/logs/InboundWebhooksTab.tsx:395
+#: src/components/logs/InboundWebhooksTab.tsx:191
+#: src/components/logs/InboundWebhooksTab.tsx:260
+#: src/components/logs/InboundWebhooksTab.tsx:392
 msgid "Source"
 msgstr "流入元"
 
@@ -17534,7 +17534,7 @@ msgstr "ブロードキャストの送信が始まると統計が表示されま
 #: src/components/blog/RecentThemesTable.tsx:115
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
-#: src/components/logs/MessagesTab.tsx:655
+#: src/components/logs/MessagesTab.tsx:658
 #: src/components/logs/OutgoingWebhooksTab.tsx:139
 #: src/components/logs/OutgoingWebhooksTab.tsx:182
 #: src/components/settings/LicenseSettings.tsx:150
@@ -17629,14 +17629,14 @@ msgstr "スタイル属性"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:92
 #: src/components/broadcasts/detail/AbTestPanel.tsx:130
 #: src/components/broadcasts/detail/BroadcastAside.tsx:114
-#: src/components/logs/MessageDetail.tsx:640
+#: src/components/logs/MessageDetail.tsx:645
 #: src/components/templates/TemplatePreviewDrawer.tsx:358
 #: src/components/templates/TemplateTranslationsTab.tsx:278
 msgid "Subject"
 msgstr "件名"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
-#: src/components/logs/MessageDetail.tsx:641
+#: src/components/logs/MessageDetail.tsx:646
 #: src/components/templates/CreateTemplateDrawer.tsx:1092
 #: src/components/templates/TemplatePreviewDrawer.tsx:363
 #: src/components/templates/TemplateTranslationsTab.tsx:287
@@ -17940,7 +17940,7 @@ msgstr "テンプレート"
 #: src/components/broadcasts/compose/ContentCard.tsx:123
 #: src/components/broadcasts/detail/AbTestPanel.tsx:125
 #: src/components/lists/ListHeader.tsx:101
-#: src/components/logs/MessageDetail.tsx:638
+#: src/components/logs/MessageDetail.tsx:643
 #: src/components/logs/MessagesTab.tsx:459
 #: src/components/messages/MessageHistoryTable.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:236
@@ -17987,11 +17987,11 @@ msgstr "テンプレートが他のユーザーによって変更されました
 msgid "Template created successfully"
 msgstr "テンプレートが正常に作成されました"
 
-#: src/components/logs/MessageDetail.tsx:811
+#: src/components/logs/MessageDetail.tsx:816
 msgid "template data"
 msgstr "テンプレートデータ"
 
-#: src/components/logs/MessageDetail.tsx:809
+#: src/components/logs/MessageDetail.tsx:814
 msgid "Template data"
 msgstr "テンプレートデータ"
 
@@ -18254,7 +18254,7 @@ msgstr "フィードをテスト中..."
 
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:62
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:135
-#: src/components/logs/MessageDetail.tsx:780
+#: src/components/logs/MessageDetail.tsx:785
 msgid "text"
 msgstr "テキスト"
 
@@ -18317,7 +18317,7 @@ msgstr "テキスト変換"
 #: src/components/email_builder/EmailBuilder.tsx:1064
 #: src/components/email_builder/MjmlCodeEditor.tsx:689
 #: src/components/email_builder/panels/TextVersionPanel.tsx:119
-#: src/components/logs/MessageDetail.tsx:767
+#: src/components/logs/MessageDetail.tsx:772
 #: src/components/templates/TemplatePreviewDrawer.tsx:211
 msgid "Text version"
 msgstr "テキスト版"
@@ -18393,7 +18393,7 @@ msgstr "ブロードキャストは送信を停止し、後で再開できます
 msgid "The comparison period as extra columns"
 msgstr "比較期間を追加の列として表示"
 
-#: src/components/logs/MessageDetail.tsx:731
+#: src/components/logs/MessageDetail.tsx:736
 msgid "The contact was erased; the message data is gone"
 msgstr "連絡先が削除されたため、メッセージデータはありません"
 
@@ -18622,7 +18622,7 @@ msgstr "リストに追加する際に割り当てるステータス"
 msgid "The storage did not return the whole bucket. Folder counts, total size and search only cover the files shown."
 msgstr "ストレージからバケット全体が返されませんでした。フォルダの件数、合計サイズ、検索は表示中のファイルだけが対象です。"
 
-#: src/components/logs/MessageDetail.tsx:732
+#: src/components/logs/MessageDetail.tsx:737
 msgid "The template behind this message isn't available"
 msgstr "このメッセージのテンプレートは利用できません"
 
@@ -18877,7 +18877,7 @@ msgstr ""
 #~ msgid "This deployment keeps working without them."
 #~ msgstr ""
 
-#: src/components/logs/MessageDetail.tsx:782
+#: src/components/logs/MessageDetail.tsx:787
 msgid "This email is sent as HTML only"
 msgstr "このメールは HTML のみで送信されます"
 
@@ -19160,8 +19160,8 @@ msgstr "このラッパーにはセクションがありません。コンテン
 #: src/components/broadcasts/compose/SendingCard.tsx:100
 #: src/components/broadcasts/compose/SendingCard.tsx:102
 #: src/components/logs/AuditLogTab.tsx:523
-#: src/components/logs/InboundWebhooksTab.tsx:252
-#: src/components/logs/MessagesTab.tsx:617
+#: src/components/logs/InboundWebhooksTab.tsx:249
+#: src/components/logs/MessagesTab.tsx:620
 #: src/components/logs/OutgoingWebhooksTab.tsx:161
 #: src/components/transactional/RecentSends.tsx:89
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:154
@@ -19332,7 +19332,7 @@ msgstr "TLS秘密鍵（Base64）"
 msgid "TLS private key is required"
 msgstr "TLS秘密鍵は必須です"
 
-#: src/components/logs/MessageDetail.tsx:328
+#: src/components/logs/MessageDetail.tsx:327
 msgid "To {recipient}"
 msgstr "宛先 {recipient}"
 
@@ -19501,7 +19501,7 @@ msgstr "トラッキング済み"
 msgid "Tracked on {tracked} of {total} emails"
 msgstr "{total} 件中 {tracked} 件のメールでトラッキング"
 
-#: src/components/logs/MessageDetail.tsx:648
+#: src/components/logs/MessageDetail.tsx:653
 #: src/components/settings/WebAnalyticsSettings.tsx:298
 #: src/components/transactional/TransactionalDetail.tsx:401
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:377
@@ -19684,7 +19684,7 @@ msgid "type"
 msgstr "タイプ"
 
 #: src/components/file_manager/FilePreview.tsx:47
-#: src/components/logs/InboundWebhooksTab.tsx:199
+#: src/components/logs/InboundWebhooksTab.tsx:196
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
 #: src/components/settings/GeneralSettings.tsx:196
 msgid "Type"
@@ -21330,7 +21330,7 @@ msgstr "メッセージ履歴へのアクセス権が必要です"
 msgid "You need access to message history to see sends"
 msgstr "送信を表示するにはメッセージ履歴へのアクセス権が必要です"
 
-#: src/components/logs/MessageDetail.tsx:730
+#: src/components/logs/MessageDetail.tsx:735
 #: src/components/transactional/notificationRules.ts:61
 #: src/components/transactional/PreviewPanel.tsx:75
 msgid "You need access to templates"

@@ -104,12 +104,12 @@ msgid "{0, plural, one {{1} email} other {{2} emails}}"
 msgstr "{0, plural, one {{1} correu} other {{2} correus}}"
 
 #. placeholder {0}: rows.length
-#: src/components/logs/InboundWebhooksTab.tsx:349
+#: src/components/logs/InboundWebhooksTab.tsx:346
 msgid "{0, plural, one {{shown} event} other {{shown} events}}"
 msgstr "{0, plural, one {{shown} esdeveniment} other {{shown} esdeveniments}}"
 
 #. placeholder {0}: rows.length
-#: src/components/logs/MessagesTab.tsx:824
+#: src/components/logs/MessagesTab.tsx:835
 msgid "{0, plural, one {{shown} message} other {{shown} messages}}"
 msgstr "{0, plural, one {{shown} missatge} other {{shown} missatges}}"
 
@@ -311,7 +311,7 @@ msgstr "{0, plural, one {El proveïdor ha rebutjat # destinatari i s'han esgotat
 
 #. placeholder {0}: template.name
 #: src/components/logs/MessageDetail.tsx:222
-#: src/components/logs/MessageDetail.tsx:564
+#: src/components/logs/MessageDetail.tsx:569
 msgid "{0} · deleted"
 msgstr "{0} · eliminada"
 
@@ -955,7 +955,7 @@ msgstr "{total, plural, one {{part} de {all} notificació} other {{part} de {all
 msgid "{total, plural, one {{shown} of # delivery} other {{shown} of # deliveries}}"
 msgstr "{total, plural, one {{shown} de # lliurament} other {{shown} de # lliuraments}}"
 
-#: src/components/logs/MessagesTab.tsx:823
+#: src/components/logs/MessagesTab.tsx:834
 msgid "{total, plural, one {{shown} of # message} other {{shown} of # messages}}"
 msgstr "{total, plural, one {{shown} de # missatge} other {{shown} de # missatges}}"
 
@@ -1898,10 +1898,10 @@ msgstr "Alineació"
 #: src/components/logs/AuditLogTab.tsx:221
 #: src/components/logs/AuditLogTab.tsx:243
 #: src/components/logs/AuditLogTab.tsx:281
-#: src/components/logs/InboundWebhooksTab.tsx:155
-#: src/components/logs/InboundWebhooksTab.tsx:164
-#: src/components/logs/InboundWebhooksTab.tsx:195
-#: src/components/logs/InboundWebhooksTab.tsx:200
+#: src/components/logs/InboundWebhooksTab.tsx:152
+#: src/components/logs/InboundWebhooksTab.tsx:161
+#: src/components/logs/InboundWebhooksTab.tsx:192
+#: src/components/logs/InboundWebhooksTab.tsx:197
 #: src/components/logs/MessagesTab.tsx:258
 #: src/components/logs/MessagesTab.tsx:293
 #: src/components/logs/MessagesTab.tsx:482
@@ -1989,7 +1989,7 @@ msgstr "Tots els costats"
 #: src/components/automations/AutomationEditor.tsx:455
 #: src/components/automations/NodeConfigPanel.tsx:188
 #: src/components/logs/AuditLogTab.tsx:182
-#: src/components/logs/InboundWebhooksTab.tsx:135
+#: src/components/logs/InboundWebhooksTab.tsx:132
 #: src/components/logs/MessagesTab.tsx:240
 #: src/components/web_analytics/toolbar.tsx:32
 msgid "All time"
@@ -2531,7 +2531,7 @@ msgstr "Cal com a mínim un correu arrel"
 msgid "at most"
 msgstr "com a màxim"
 
-#: src/components/logs/MessageDetail.tsx:655
+#: src/components/logs/MessageDetail.tsx:660
 #: src/components/templates/SendTemplateModal.tsx:459
 msgid "Attachments"
 msgstr "Adjunts"
@@ -2926,7 +2926,7 @@ msgstr "Blocs bàsics"
 msgid "Basic Information"
 msgstr "Informació bàsica"
 
-#: src/components/logs/MessageDetail.tsx:647
+#: src/components/logs/MessageDetail.tsx:652
 #: src/components/templates/TemplatePreviewDrawer.tsx:382
 msgid "BCC"
 msgstr "CCO"
@@ -3180,7 +3180,7 @@ msgstr "Inferior dreta"
 msgid "Bounce"
 msgstr "Rebot"
 
-#: src/components/logs/InboundWebhooksTab.tsx:401
+#: src/components/logs/InboundWebhooksTab.tsx:398
 msgid "Bounce category"
 msgstr "Categoria de rebot"
 
@@ -3188,7 +3188,7 @@ msgstr "Categoria de rebot"
 #~ msgid "Bounce Category"
 #~ msgstr "Categoria de rebot"
 
-#: src/components/logs/InboundWebhooksTab.tsx:404
+#: src/components/logs/InboundWebhooksTab.tsx:401
 msgid "Bounce diagnostic"
 msgstr "Diagnòstic del rebot"
 
@@ -3229,7 +3229,7 @@ msgstr "Llindar de rebot"
 msgid "Bounce threshold (seconds)"
 msgstr "Llindar de rebot (segons)"
 
-#: src/components/logs/InboundWebhooksTab.tsx:399
+#: src/components/logs/InboundWebhooksTab.tsx:396
 msgid "Bounce type"
 msgstr "Tipus de rebot"
 
@@ -3247,7 +3247,7 @@ msgstr "Tipus de rebot"
 #: src/components/logs/MessageDetail.tsx:401
 #: src/components/logs/MessagesTab.tsx:253
 #: src/components/logs/MessagesTab.tsx:262
-#: src/components/logs/MessagesTab.tsx:901
+#: src/components/logs/MessagesTab.tsx:912
 #: src/components/messages/MessageHistoryTable.tsx:362
 #: src/components/transactional/RecentSends.tsx:40
 #: src/components/transactional/SendsPerDayChart.tsx:50
@@ -3769,7 +3769,7 @@ msgstr "Categoria actualitzada correctament"
 msgid "Category:"
 msgstr "Categoria:"
 
-#: src/components/logs/MessageDetail.tsx:646
+#: src/components/logs/MessageDetail.tsx:651
 #: src/components/templates/TemplatePreviewDrawer.tsx:370
 msgid "CC"
 msgstr "CC"
@@ -4017,8 +4017,8 @@ msgid "Clear field"
 msgstr "Esborrar camp"
 
 #: src/components/logs/AuditLogTab.tsx:616
-#: src/components/logs/InboundWebhooksTab.tsx:300
-#: src/components/logs/MessagesTab.tsx:775
+#: src/components/logs/InboundWebhooksTab.tsx:297
+#: src/components/logs/MessagesTab.tsx:786
 #: src/components/logs/OutgoingWebhooksTab.tsx:233
 #: src/pages/AutomationsPage.tsx:259
 #: src/pages/BroadcastsPage.tsx:306
@@ -4106,7 +4106,7 @@ msgstr "Clicat"
 #: src/components/logs/MessageDetail.tsx:424
 #: src/components/logs/MessagesTab.tsx:252
 #: src/components/logs/MessagesTab.tsx:261
-#: src/components/logs/MessagesTab.tsx:917
+#: src/components/logs/MessagesTab.tsx:928
 #: src/components/messages/MessageHistoryTable.tsx:354
 #: src/components/transactional/RecentSends.tsx:42
 #: src/components/transactional/TransactionalDetail.tsx:214
@@ -4669,10 +4669,10 @@ msgstr "Correu del contacte (deixeu-ho buit per a un d'aleatori)"
 msgid "Contact Email:"
 msgstr "Correu del contacte:"
 
-#: src/components/logs/InboundWebhooksTab.tsx:245
-#: src/components/logs/InboundWebhooksTab.tsx:378
-#: src/components/logs/MessageDetail.tsx:328
-#: src/components/logs/MessagesTab.tsx:634
+#: src/components/logs/InboundWebhooksTab.tsx:242
+#: src/components/logs/InboundWebhooksTab.tsx:375
+#: src/components/logs/MessageDetail.tsx:327
+#: src/components/logs/MessagesTab.tsx:637
 msgid "Contact erased"
 msgstr "Contacte esborrat"
 
@@ -5009,7 +5009,7 @@ msgstr "No s'han pogut carregar els membres"
 msgid "Couldn't load the message"
 msgstr "No s'ha pogut carregar el missatge"
 
-#: src/components/logs/MessagesTab.tsx:764
+#: src/components/logs/MessagesTab.tsx:775
 msgid "Couldn't load the messages"
 msgstr "No s'han pogut carregar els missatges"
 
@@ -5029,7 +5029,7 @@ msgstr "No s'han pogut carregar les estadístiques d'aquesta difusió"
 msgid "Couldn't load the success rate"
 msgstr "No s'ha pogut carregar la taxa d'èxit"
 
-#: src/components/logs/MessageDetail.tsx:738
+#: src/components/logs/MessageDetail.tsx:743
 #: src/components/transactional/notificationRules.ts:67
 msgid "Couldn't load the template"
 msgstr "No s'ha pogut carregar la plantilla"
@@ -5038,7 +5038,7 @@ msgstr "No s'ha pogut carregar la plantilla"
 msgid "Couldn't load the templates"
 msgstr "No s'han pogut carregar les plantilles"
 
-#: src/components/logs/InboundWebhooksTab.tsx:289
+#: src/components/logs/InboundWebhooksTab.tsx:286
 msgid "Couldn't load the webhook events"
 msgstr "No s'han pogut carregar els esdeveniments de webhook"
 
@@ -5063,7 +5063,7 @@ msgstr "No s'ha pogut carregar aquest webhook"
 msgid "Couldn't render the preview"
 msgstr "No s'ha pogut generar la previsualització"
 
-#: src/components/logs/MessageDetail.tsx:750
+#: src/components/logs/MessageDetail.tsx:755
 msgid "Couldn't render this message"
 msgstr "No s'ha pogut mostrar aquest missatge"
 
@@ -5134,7 +5134,7 @@ msgstr "País"
 msgid "Country level (~111km precision)"
 msgstr "Nivell de país (~111 km de precisió)"
 
-#: src/components/logs/MessagesTab.tsx:578
+#: src/components/logs/MessagesTab.tsx:580
 msgid "Counts cover 7 days at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"
 msgstr "Els recomptes cobreixen 7 dies com a màxim. Per comptar més enllà, filtra per correu, ID de missatge, butlletí, automatització, notificació o plantilla"
 
@@ -5774,7 +5774,7 @@ msgstr "Dashboard"
 msgid "Dashed"
 msgstr "Discontinu"
 
-#: src/components/logs/MessageDetail.tsx:298
+#: src/components/logs/MessageDetail.tsx:297
 msgid "Data"
 msgstr "Dades"
 
@@ -6319,7 +6319,7 @@ msgstr "Lliurat"
 #: src/components/logs/MessageDetail.tsx:394
 #: src/components/logs/MessagesTab.tsx:249
 #: src/components/logs/MessagesTab.tsx:259
-#: src/components/logs/MessagesTab.tsx:901
+#: src/components/logs/MessagesTab.tsx:912
 #: src/components/logs/OutgoingWebhooksTab.tsx:402
 #: src/components/messages/MessageHistoryTable.tsx:330
 #: src/components/settings/WebhookDetail.tsx:534
@@ -6358,7 +6358,7 @@ msgstr "ID del lliurament"
 #~ msgstr "ID de lliurament:"
 
 #: src/components/logs/MessagesTab.tsx:528
-#: src/components/logs/MessagesTab.tsx:904
+#: src/components/logs/MessagesTab.tsx:915
 msgid "Delivery isn't reported by SMTP providers"
 msgstr "Els proveïdors SMTP no informen del lliurament"
 
@@ -7114,7 +7114,7 @@ msgstr "Farciment de l'element"
 #: src/components/contacts/sheet/activityLabel.ts:16
 #: src/components/contacts/visits/webVisitSource.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:326
-#: src/components/logs/InboundWebhooksTab.tsx:184
+#: src/components/logs/InboundWebhooksTab.tsx:181
 #: src/components/logs/MessagesTab.tsx:276
 #: src/components/logs/MessagesTab.tsx:470
 #: src/components/segment/segmentSummary.ts:28
@@ -7452,7 +7452,7 @@ msgstr "Interacció per país i regió"
 msgid "Enter {0}"
 msgstr "Introduïu {0}"
 
-#: src/components/logs/LogsSearchBox.tsx:109
+#: src/components/logs/LogsSearchBox.tsx:114
 msgid "Enter a full email address"
 msgstr "Introdueix una adreça de correu completa"
 
@@ -7749,7 +7749,7 @@ msgid "event"
 msgstr "esdeveniment"
 
 #: src/components/contacts/sheet/activityLabel.ts:22
-#: src/components/logs/InboundWebhooksTab.tsx:264
+#: src/components/logs/InboundWebhooksTab.tsx:261
 #: src/components/logs/OutgoingWebhooksTab.tsx:172
 #: src/components/timeline/ContactTimeline.tsx:757
 msgid "Event"
@@ -7763,7 +7763,7 @@ msgstr "Esdeveniment {kind}"
 msgid "Event {name}"
 msgstr "Esdeveniment {name}"
 
-#: src/components/logs/InboundWebhooksTab.tsx:394
+#: src/components/logs/InboundWebhooksTab.tsx:391
 msgid "Event ID"
 msgstr "ID de l'esdeveniment"
 
@@ -7850,7 +7850,7 @@ msgstr ""
 msgid "Exact ID"
 msgstr "ID exacte"
 
-#: src/components/logs/LogsSearchBox.tsx:95
+#: src/components/logs/LogsSearchBox.tsx:100
 msgid "Exact match"
 msgstr "Coincidència exacta"
 
@@ -7859,7 +7859,7 @@ msgid "Exact URL"
 msgstr "URL exacta"
 
 #: src/components/logs/AuditLogTab.tsx:396
-#: src/components/logs/InboundWebhooksTab.tsx:190
+#: src/components/logs/InboundWebhooksTab.tsx:187
 #: src/components/logs/MessagesTab.tsx:477
 msgid "Exact value"
 msgstr "Valor exacte"
@@ -8016,7 +8016,7 @@ msgstr "Exportant tots els contactes"
 #: src/components/contacts/ContactsFilters.tsx:20
 #: src/components/contacts/ExportContactsModal.tsx:66
 #: src/components/contacts/sheet/ContactProfileFields.tsx:125
-#: src/components/logs/MessageDetail.tsx:635
+#: src/components/logs/MessageDetail.tsx:640
 #: src/components/logs/MessagesTab.tsx:457
 #: src/components/logs/MessagesTab.tsx:472
 #: src/components/messages/MessageHistoryTable.tsx:147
@@ -8052,7 +8052,7 @@ msgstr "Fallat"
 #: src/components/logs/MessageDetail.tsx:386
 #: src/components/logs/MessagesTab.tsx:250
 #: src/components/logs/MessagesTab.tsx:263
-#: src/components/logs/MessagesTab.tsx:893
+#: src/components/logs/MessagesTab.tsx:904
 #: src/components/messages/MessageHistoryTable.tsx:338
 #: src/components/settings/WebhookDetail.tsx:539
 #: src/components/transactional/RecentSends.tsx:38
@@ -8631,7 +8631,7 @@ msgstr "URL de la imatge destacada"
 msgid "Features"
 msgstr "Funcionalitats"
 
-#: src/components/logs/InboundWebhooksTab.tsx:407
+#: src/components/logs/InboundWebhooksTab.tsx:404
 msgid "Feedback type"
 msgstr "Tipus de queixa"
 
@@ -9007,7 +9007,7 @@ msgstr "Freqüència"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:91
 #: src/components/broadcasts/detail/AbTestPanel.tsx:154
 #: src/components/broadcasts/detail/BroadcastAside.tsx:105
-#: src/components/logs/MessageDetail.tsx:639
+#: src/components/logs/MessageDetail.tsx:644
 #: src/components/templates/TemplatePreviewDrawer.tsx:303
 msgid "From"
 msgstr "Des de"
@@ -9445,7 +9445,7 @@ msgid "How to use:"
 msgstr "Com utilitzar:"
 
 #: src/components/email_builder/panels/Preview.tsx:397
-#: src/components/logs/MessageDetail.tsx:766
+#: src/components/logs/MessageDetail.tsx:771
 #: src/components/templates/ImportExportButton.tsx:239
 msgid "HTML"
 msgstr "HTML"
@@ -9941,7 +9941,7 @@ msgstr "Integració creada correctament"
 msgid "Integration deleted successfully"
 msgstr "Integració eliminada correctament"
 
-#: src/components/logs/InboundWebhooksTab.tsx:396
+#: src/components/logs/InboundWebhooksTab.tsx:393
 msgid "Integration ID"
 msgstr "ID de la integració"
 
@@ -10239,7 +10239,7 @@ msgstr "S'ha unit al segment {segment}"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "S'ha unit amb la invitació <0>{target}</0>"
 
-#: src/components/logs/MessagesTab.tsx:663
+#: src/components/logs/MessagesTab.tsx:666
 msgid "Journey"
 msgstr "Recorregut"
 
@@ -10341,7 +10341,7 @@ msgstr "Pàgines d'aterratge"
 #: src/components/contacts/ContactsTable.tsx:275
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/ContactProfileFields.tsx:124
-#: src/components/logs/MessageDetail.tsx:643
+#: src/components/logs/MessageDetail.tsx:648
 #: src/components/segment/segmentSummary.ts:35
 #: src/components/templates/SendTemplateModal.tsx:392
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
@@ -10371,7 +10371,7 @@ msgstr "Les imatges grans poden alentir significativament els temps de càrrega 
 #~ msgstr ""
 
 #: src/components/logs/AuditLogTab.tsx:178
-#: src/components/logs/InboundWebhooksTab.tsx:132
+#: src/components/logs/InboundWebhooksTab.tsx:129
 #: src/components/logs/MessagesTab.tsx:237
 msgid "Last 24 hours"
 msgstr "Últimes 24 hores"
@@ -10380,7 +10380,7 @@ msgstr "Últimes 24 hores"
 #: src/components/automations/NodeConfigPanel.tsx:188
 #: src/components/broadcasts/BroadcastKpis.tsx:138
 #: src/components/logs/AuditLogTab.tsx:180
-#: src/components/logs/InboundWebhooksTab.tsx:134
+#: src/components/logs/InboundWebhooksTab.tsx:131
 #: src/components/logs/MessagesTab.tsx:239
 msgid "Last 30 days"
 msgstr "Últims 30 dies"
@@ -10395,7 +10395,7 @@ msgstr "Últims 30 dies: {0}"
 #~ msgstr ""
 
 #: src/components/logs/AuditLogTab.tsx:179
-#: src/components/logs/InboundWebhooksTab.tsx:133
+#: src/components/logs/InboundWebhooksTab.tsx:130
 #: src/components/logs/MessagesTab.tsx:238
 msgid "Last 7 days"
 msgstr "Últims 7 dies"
@@ -10432,7 +10432,7 @@ msgstr "Última edició"
 msgid "Last fetched:"
 msgstr "Darrera recuperació:"
 
-#: src/components/logs/InboundWebhooksTab.tsx:131
+#: src/components/logs/InboundWebhooksTab.tsx:128
 #: src/components/logs/MessagesTab.tsx:236
 msgid "Last hour"
 msgstr "Última hora"
@@ -10662,7 +10662,7 @@ msgstr "Enllaç:"
 msgid "Linked from the notification center and available to templates; also used to find your logo"
 msgstr "Enllaçat des del centre de notificacions i disponible a les plantilles; també serveix per trobar el vostre logotip"
 
-#: src/components/logs/InboundWebhooksTab.tsx:267
+#: src/components/logs/InboundWebhooksTab.tsx:264
 msgid "Linked message"
 msgstr "Missatge vinculat"
 
@@ -10697,7 +10697,7 @@ msgstr "Bloc Liquid - Feu clic per afegir contingut MJML + Liquid"
 #: src/components/contacts/sheet/activityLabel.ts:17
 #: src/components/file_manager/FileExplorer.tsx:679
 #: src/components/file_manager/FileExplorer.tsx:680
-#: src/components/logs/MessageDetail.tsx:650
+#: src/components/logs/MessageDetail.tsx:655
 #: src/components/logs/MessagesTab.tsx:268
 #: src/components/logs/MessagesTab.tsx:460
 #: src/components/messages/MessageHistoryTable.tsx:152
@@ -10903,8 +10903,8 @@ msgstr "Carrega'n {PAGE_SIZE} més"
 #: src/components/blog/PostsTable.tsx:469
 #: src/components/contacts/visits/ContactWebVisits.tsx:360
 #: src/components/logs/AuditLogTab.tsx:676
-#: src/components/logs/InboundWebhooksTab.tsx:357
-#: src/components/logs/MessagesTab.tsx:832
+#: src/components/logs/InboundWebhooksTab.tsx:354
+#: src/components/logs/MessagesTab.tsx:843
 #: src/components/logs/OutgoingWebhooksTab.tsx:286
 msgid "Load more"
 msgstr "Carrega'n més"
@@ -11153,8 +11153,8 @@ msgstr "Marqueu les dates que expliquen un gràfic — un llançament, una campa
 
 #: src/components/analytics/RecentFailures.tsx:57
 #: src/components/logs/MessageDetail.tsx:409
-#: src/components/logs/MessagesTab.tsx:681
-#: src/components/logs/MessagesTab.tsx:909
+#: src/components/logs/MessagesTab.tsx:684
+#: src/components/logs/MessagesTab.tsx:920
 msgid "Marked as spam"
 msgstr "Marcat com a correu brossa"
 
@@ -11304,8 +11304,8 @@ msgstr "Membres"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:258
 #: src/components/logs/MessageDetail.tsx:83
-#: src/components/logs/MessageDetail.tsx:629
-#: src/components/logs/MessagesTab.tsx:640
+#: src/components/logs/MessageDetail.tsx:634
+#: src/components/logs/MessagesTab.tsx:643
 msgid "Message"
 msgstr "Missatge"
 
@@ -11318,9 +11318,9 @@ msgstr "Historial de missatges"
 msgid "Message history and webhook events will be anonymized (email addresses redacted) but retained for analytics."
 msgstr "L'historial de missatges i els esdeveniments de webhook s'anonimitzaran (adreces de correu redactades) però es conservaran per a analítica."
 
-#: src/components/logs/InboundWebhooksTab.tsx:185
-#: src/components/logs/InboundWebhooksTab.tsx:397
-#: src/components/logs/MessageDetail.tsx:633
+#: src/components/logs/InboundWebhooksTab.tsx:182
+#: src/components/logs/InboundWebhooksTab.tsx:394
+#: src/components/logs/MessageDetail.tsx:638
 #: src/components/logs/MessagesTab.tsx:456
 #: src/components/logs/MessagesTab.tsx:471
 #: src/components/messages/MessageHistoryTable.tsx:146
@@ -11359,12 +11359,12 @@ msgid "Meta Title"
 msgstr "Meta títol"
 
 #: src/components/logs/AuditEntryDetail.tsx:212
-#: src/components/logs/MessageDetail.tsx:819
+#: src/components/logs/MessageDetail.tsx:824
 msgid "metadata"
 msgstr "metadades"
 
 #: src/components/logs/AuditEntryDetail.tsx:211
-#: src/components/logs/MessageDetail.tsx:817
+#: src/components/logs/MessageDetail.tsx:822
 #: src/components/logs/MessagesTab.tsx:458
 #: src/components/messages/MessageHistoryTable.tsx:148
 #: src/components/messages/MessageHistoryTable.tsx:192
@@ -11423,7 +11423,7 @@ msgid "Missing workspace ID or template data."
 msgstr "Falta l'ID de l'espai de treball o les dades de la plantilla."
 
 #: src/components/email_builder/panels/Preview.tsx:379
-#: src/components/logs/MessageDetail.tsx:785
+#: src/components/logs/MessageDetail.tsx:790
 #: src/components/templates/ImportExportButton.tsx:220
 #: src/components/templates/ImportExportButton.tsx:249
 msgid "MJML"
@@ -11478,7 +11478,7 @@ msgstr "Error d'importació MJML"
 msgid "MJML Import Validation Failed"
 msgstr "La validació d'importació MJML ha fallat"
 
-#: src/components/logs/MessageDetail.tsx:768
+#: src/components/logs/MessageDetail.tsx:773
 #: src/components/templates/TemplatePreviewDrawer.tsx:260
 msgid "MJML Source"
 msgstr "Font MJML"
@@ -12025,7 +12025,7 @@ msgstr "No hi ha dades CSV disponibles"
 msgid "No custom field is named yet"
 msgstr "Encara no hi ha cap camp personalitzat amb nom"
 
-#: src/components/logs/MessageDetail.tsx:800
+#: src/components/logs/MessageDetail.tsx:805
 msgid "No data"
 msgstr "Sense dades"
 
@@ -12193,7 +12193,7 @@ msgstr "No s'han trobat membres"
 msgid "No messages found"
 msgstr "No s'han trobat missatges"
 
-#: src/components/logs/MessagesTab.tsx:778
+#: src/components/logs/MessagesTab.tsx:789
 msgid "No messages sent yet"
 msgstr "Encara no s'ha enviat cap missatge"
 
@@ -12295,8 +12295,8 @@ msgid "No results found"
 msgstr "No s'han trobat resultats"
 
 #: src/components/logs/AuditLogTab.tsx:615
-#: src/components/logs/InboundWebhooksTab.tsx:299
-#: src/components/logs/MessagesTab.tsx:774
+#: src/components/logs/InboundWebhooksTab.tsx:296
+#: src/components/logs/MessagesTab.tsx:785
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
 msgid "No results match"
 msgstr "Cap resultat no coincideix"
@@ -12456,7 +12456,7 @@ msgstr "Encara no hi ha lliuraments de webhook"
 #~ msgid "No webhook events found"
 #~ msgstr "No s'han trobat esdeveniments de webhook"
 
-#: src/components/logs/InboundWebhooksTab.tsx:303
+#: src/components/logs/InboundWebhooksTab.tsx:300
 msgid "No webhook events received yet"
 msgstr "Encara no s'ha rebut cap esdeveniment de webhook"
 
@@ -12537,7 +12537,7 @@ msgstr "No assignat"
 msgid "Not available here"
 msgstr "No disponible aquí"
 
-#: src/components/logs/MessagesTab.tsx:920
+#: src/components/logs/MessagesTab.tsx:931
 msgid "Not clicked"
 msgstr "No clicat"
 
@@ -12560,7 +12560,7 @@ msgstr "no conté"
 msgid "not created yet — register webhooks"
 msgstr "encara no creat — registreu els webhooks"
 
-#: src/components/logs/MessagesTab.tsx:904
+#: src/components/logs/MessagesTab.tsx:915
 msgid "Not delivered"
 msgstr "No lliurat"
 
@@ -12598,7 +12598,7 @@ msgstr "No és a les dades de prova: la regla s'avalua com si la variable fos bu
 msgid "Not now"
 msgstr "Ara no"
 
-#: src/components/logs/MessagesTab.tsx:912
+#: src/components/logs/MessagesTab.tsx:923
 msgid "Not opened"
 msgstr "No obert"
 
@@ -12610,7 +12610,7 @@ msgstr "No resolt"
 msgid "Not saved"
 msgstr "No desat"
 
-#: src/components/logs/MessagesTab.tsx:896
+#: src/components/logs/MessagesTab.tsx:907
 msgid "Not sent"
 msgstr "No enviat"
 
@@ -12666,8 +12666,8 @@ msgstr "Notes"
 msgid "Nothing has been recorded over the last 24 hours. Check that this snippet is still installed on your website."
 msgstr "No s'ha registrat res en les darreres 24 hores. Comproveu que aquest fragment segueixi instal·lat al vostre lloc web."
 
-#: src/components/logs/InboundWebhooksTab.tsx:316
-#: src/components/logs/MessagesTab.tsx:780
+#: src/components/logs/InboundWebhooksTab.tsx:313
+#: src/components/logs/MessagesTab.tsx:791
 msgid "Nothing in the last 24 hours"
 msgstr "Res en les últimes 24 hores"
 
@@ -12676,8 +12676,8 @@ msgid "Nothing in the last 7 days"
 msgstr "Res en els últims 7 dies"
 
 #: src/components/logs/AuditLogTab.tsx:623
-#: src/components/logs/InboundWebhooksTab.tsx:318
-#: src/components/logs/MessagesTab.tsx:782
+#: src/components/logs/InboundWebhooksTab.tsx:315
+#: src/components/logs/MessagesTab.tsx:793
 msgid "Nothing in this period"
 msgstr "Res en aquest període"
 
@@ -12827,7 +12827,7 @@ msgstr "dels correus enviats aquell dia"
 msgid "of the following conditions match:"
 msgstr "de les condicions següents coincideixen:"
 
-#: src/components/logs/MessageDetail.tsx:555
+#: src/components/logs/MessageDetail.tsx:560
 msgid "off"
 msgstr "desactivats"
 
@@ -12851,7 +12851,7 @@ msgstr "URL base de l'emissor OIDC — el descobriment es fa a <issuer>/.well-kn
 msgid "OK"
 msgstr "D'acord"
 
-#: src/components/logs/MessageDetail.tsx:555
+#: src/components/logs/MessageDetail.tsx:560
 msgid "on"
 msgstr "activats"
 
@@ -12860,7 +12860,7 @@ msgstr "activats"
 msgid "On"
 msgstr "Activat"
 
-#: src/components/logs/MessageDetail.tsx:558
+#: src/components/logs/MessageDetail.tsx:563
 msgid "On (default)"
 msgstr "Activat (per defecte)"
 
@@ -12963,7 +12963,7 @@ msgstr "Obre"
 msgid "Open and click tracking"
 msgstr "Seguiment d'obertures i clics"
 
-#: src/components/logs/MessageDetail.tsx:317
+#: src/components/logs/MessageDetail.tsx:316
 msgid "Open contact"
 msgstr "Obre el contacte"
 
@@ -13079,7 +13079,7 @@ msgstr "Obert"
 #: src/components/logs/MessageDetail.tsx:416
 #: src/components/logs/MessagesTab.tsx:251
 #: src/components/logs/MessagesTab.tsx:260
-#: src/components/logs/MessagesTab.tsx:909
+#: src/components/logs/MessagesTab.tsx:920
 #: src/components/messages/MessageHistoryTable.tsx:346
 #: src/components/transactional/RecentSends.tsx:43
 #: src/components/transactional/TransactionalDetail.tsx:213
@@ -13110,7 +13110,7 @@ msgstr "Obertures"
 
 #. placeholder {0}: tracked(message.opens_tracked)
 #. placeholder {1}: tracked(message.clicks_tracked)
-#: src/components/logs/MessageDetail.tsx:559
+#: src/components/logs/MessageDetail.tsx:564
 msgid "Opens {0} · clicks {1}"
 msgstr "Obertures {0} · clics {1}"
 
@@ -13475,7 +13475,7 @@ msgstr "Ha posat en pausa el butlletí <0>{target}</0>"
 msgid "Paused: {reason}"
 msgstr "En pausa: {reason}"
 
-#: src/components/logs/InboundWebhooksTab.tsx:415
+#: src/components/logs/InboundWebhooksTab.tsx:412
 #: src/components/logs/OutgoingWebhooksTab.tsx:449
 msgid "payload"
 msgstr "payload"
@@ -13547,7 +13547,7 @@ msgstr "URL del feed per destinatari"
 
 #: src/components/automations/AutomationEditor.tsx:450
 #: src/components/logs/AuditLogTab.tsx:430
-#: src/components/logs/InboundWebhooksTab.tsx:192
+#: src/components/logs/InboundWebhooksTab.tsx:189
 #: src/components/logs/MessagesTab.tsx:479
 msgid "Period"
 msgstr "Període"
@@ -14406,7 +14406,7 @@ msgstr "Bloc HTML en brut - Feu clic per afegir contingut HTML personalitzat"
 msgid "Raw JSON"
 msgstr "JSON en brut"
 
-#: src/components/logs/InboundWebhooksTab.tsx:413
+#: src/components/logs/InboundWebhooksTab.tsx:410
 msgid "Raw payload"
 msgstr "Contingut en brut"
 
@@ -14621,7 +14621,7 @@ msgstr "Reconstruir segment"
 msgid "Rebuilt the segment <0>{target}</0>"
 msgstr "Ha recalculat el segment <0>{target}</0>"
 
-#: src/components/logs/InboundWebhooksTab.tsx:398
+#: src/components/logs/InboundWebhooksTab.tsx:395
 msgid "Received"
 msgstr "Rebut"
 
@@ -14655,7 +14655,7 @@ msgstr "Enviaments recents"
 msgid "Recently Used"
 msgstr "Utilitzat recentment"
 
-#: src/components/logs/InboundWebhooksTab.tsx:265
+#: src/components/logs/InboundWebhooksTab.tsx:262
 #: src/components/logs/MessagesTab.tsx:454
 #: src/components/transactional/RecentSends.tsx:101
 msgid "Recipient"
@@ -14771,8 +14771,8 @@ msgstr "Referents"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:205
 #: src/components/logs/AuditLogTab.tsx:507
 #: src/components/logs/AuditLogTab.tsx:511
-#: src/components/logs/InboundWebhooksTab.tsx:206
-#: src/components/logs/InboundWebhooksTab.tsx:210
+#: src/components/logs/InboundWebhooksTab.tsx:203
+#: src/components/logs/InboundWebhooksTab.tsx:207
 #: src/components/logs/MessagesTab.tsx:508
 #: src/components/logs/MessagesTab.tsx:512
 #: src/components/logs/OutgoingWebhooksTab.tsx:146
@@ -15025,7 +15025,7 @@ msgstr "Ha canviat el nom dels camps personalitzats de <0>{target}</0>"
 msgid "Renaming this connection does not change the address of the API key it already minted."
 msgstr "Canviar el nom d'aquesta connexió no modifica l'adreça de la clau API que ja ha creat."
 
-#: src/components/logs/MessageDetail.tsx:759
+#: src/components/logs/MessageDetail.tsx:764
 msgid "Rendered again from the template and the message data; Notifuse doesn't store the sent HTML"
 msgstr "Generat de nou a partir de la plantilla i les dades del missatge; Notifuse no desa l'HTML enviat"
 
@@ -15107,7 +15107,7 @@ msgstr "Respondre a"
 #~ msgstr "Respondre a:"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:113
-#: src/components/logs/MessageDetail.tsx:645
+#: src/components/logs/MessageDetail.tsx:650
 #: src/components/templates/SendTemplateModal.tsx:450
 #: src/components/transactional/TransactionalDetail.tsx:412
 msgid "Reply-To"
@@ -15360,9 +15360,9 @@ msgstr "Ha reintentat els enviaments fallits del butlletí <0>{target}</0>"
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:780
 #: src/components/logs/AuditLogTab.tsx:603
-#: src/components/logs/InboundWebhooksTab.tsx:291
+#: src/components/logs/InboundWebhooksTab.tsx:288
 #: src/components/logs/MessageDetail.tsx:91
-#: src/components/logs/MessagesTab.tsx:766
+#: src/components/logs/MessagesTab.tsx:777
 #: src/components/logs/OutgoingWebhooksTab.tsx:225
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
@@ -15819,7 +15819,7 @@ msgstr "Amplada de pantalla per sota de la qual s'activa el disseny mòbil. Valo
 msgid "Search"
 msgstr "Cercar"
 
-#: src/components/logs/LogsSearchBox.tsx:88
+#: src/components/logs/LogsSearchBox.tsx:93
 msgid "Search by"
 msgstr "Cerca per"
 
@@ -15862,7 +15862,7 @@ msgstr "Cerca al registre d'auditoria"
 msgid "Search the messages"
 msgstr "Cerca als missatges"
 
-#: src/components/logs/InboundWebhooksTab.tsx:189
+#: src/components/logs/InboundWebhooksTab.tsx:186
 msgid "Search the webhook events"
 msgstr "Cerca als esdeveniments de webhook"
 
@@ -16609,7 +16609,7 @@ msgstr "Enviat"
 #: src/components/broadcasts/detail/AbTestPanel.tsx:161
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
 #: src/components/logs/labels.ts:110
-#: src/components/logs/MessagesTab.tsx:893
+#: src/components/logs/MessagesTab.tsx:904
 #: src/components/messages/MessageHistoryTable.tsx:322
 #: src/components/transactional/RecentSends.tsx:45
 #: src/components/transactional/SendsPerDayChart.tsx:48
@@ -16619,7 +16619,7 @@ msgstr "Enviat"
 msgid "Sent"
 msgstr "Enviat"
 
-#: src/components/logs/MessageDetail.tsx:669
+#: src/components/logs/MessageDetail.tsx:674
 msgid "Sent by"
 msgstr "Enviat per"
 
@@ -16639,7 +16639,7 @@ msgid "Sent by the transactional notification {0}"
 msgstr "Enviat per la notificació transaccional {0}"
 
 #: src/components/logs/MessageDetail.tsx:277
-#: src/components/logs/MessageDetail.tsx:773
+#: src/components/logs/MessageDetail.tsx:778
 msgid "Sent content"
 msgstr "Contingut enviat"
 
@@ -16651,7 +16651,7 @@ msgstr "Enviada el {date} a les {time}"
 msgid "Sent the newsletter <0>{target}</0> to one recipient"
 msgstr "Ha enviat el butlletí <0>{target}</0> a un destinatari"
 
-#: src/components/logs/MessagesTab.tsx:600
+#: src/components/logs/MessagesTab.tsx:603
 msgid "Sent to {audienceName}"
 msgstr "Enviat a {audienceName}"
 
@@ -16815,7 +16815,7 @@ msgstr "Establir com a proveïdor de correu de màrqueting?"
 msgid "Set as transactional email provider?"
 msgstr "Establir com a proveïdor de correu transaccional?"
 
-#: src/components/logs/MessageDetail.tsx:546
+#: src/components/logs/MessageDetail.tsx:551
 msgid "Set at send time"
 msgstr "Fixat en enviar"
 
@@ -16902,7 +16902,7 @@ msgstr "Establir a null"
 msgid "Set up"
 msgstr "Configurat"
 
-#: src/components/logs/InboundWebhooksTab.tsx:312
+#: src/components/logs/InboundWebhooksTab.tsx:309
 msgid "Set up an email provider"
 msgstr "Configura un proveïdor de correu"
 
@@ -16987,8 +16987,8 @@ msgid "Show"
 msgstr "Mostrar"
 
 #: src/components/logs/AuditLogTab.tsx:610
-#: src/components/logs/InboundWebhooksTab.tsx:295
-#: src/components/logs/MessagesTab.tsx:770
+#: src/components/logs/InboundWebhooksTab.tsx:292
+#: src/components/logs/MessagesTab.tsx:781
 msgid "Show all time"
 msgstr "Mostra tot el temps"
 
@@ -17384,9 +17384,9 @@ msgid "Something went wrong"
 msgstr "Alguna cosa ha anat malament"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:270
-#: src/components/logs/InboundWebhooksTab.tsx:194
-#: src/components/logs/InboundWebhooksTab.tsx:263
-#: src/components/logs/InboundWebhooksTab.tsx:395
+#: src/components/logs/InboundWebhooksTab.tsx:191
+#: src/components/logs/InboundWebhooksTab.tsx:260
+#: src/components/logs/InboundWebhooksTab.tsx:392
 msgid "Source"
 msgstr "Origen"
 
@@ -17534,7 +17534,7 @@ msgstr "Les estadístiques apareixen quan la difusió comença a enviar-se"
 #: src/components/blog/RecentThemesTable.tsx:115
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastAside.tsx:241
-#: src/components/logs/MessagesTab.tsx:655
+#: src/components/logs/MessagesTab.tsx:658
 #: src/components/logs/OutgoingWebhooksTab.tsx:139
 #: src/components/logs/OutgoingWebhooksTab.tsx:182
 #: src/components/settings/LicenseSettings.tsx:150
@@ -17629,14 +17629,14 @@ msgstr "Atributs d'estil"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:92
 #: src/components/broadcasts/detail/AbTestPanel.tsx:130
 #: src/components/broadcasts/detail/BroadcastAside.tsx:114
-#: src/components/logs/MessageDetail.tsx:640
+#: src/components/logs/MessageDetail.tsx:645
 #: src/components/templates/TemplatePreviewDrawer.tsx:358
 #: src/components/templates/TemplateTranslationsTab.tsx:278
 msgid "Subject"
 msgstr "Assumpte"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
-#: src/components/logs/MessageDetail.tsx:641
+#: src/components/logs/MessageDetail.tsx:646
 #: src/components/templates/CreateTemplateDrawer.tsx:1092
 #: src/components/templates/TemplatePreviewDrawer.tsx:363
 #: src/components/templates/TemplateTranslationsTab.tsx:287
@@ -17940,7 +17940,7 @@ msgstr "plantilla"
 #: src/components/broadcasts/compose/ContentCard.tsx:123
 #: src/components/broadcasts/detail/AbTestPanel.tsx:125
 #: src/components/lists/ListHeader.tsx:101
-#: src/components/logs/MessageDetail.tsx:638
+#: src/components/logs/MessageDetail.tsx:643
 #: src/components/logs/MessagesTab.tsx:459
 #: src/components/messages/MessageHistoryTable.tsx:150
 #: src/components/messages/MessageHistoryTable.tsx:236
@@ -17987,11 +17987,11 @@ msgstr "Plantilla canviada per una altra persona"
 msgid "Template created successfully"
 msgstr "Plantilla creada correctament"
 
-#: src/components/logs/MessageDetail.tsx:811
+#: src/components/logs/MessageDetail.tsx:816
 msgid "template data"
 msgstr "dades de la plantilla"
 
-#: src/components/logs/MessageDetail.tsx:809
+#: src/components/logs/MessageDetail.tsx:814
 msgid "Template data"
 msgstr "Dades de la plantilla"
 
@@ -18254,7 +18254,7 @@ msgstr "Provant feed..."
 
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:62
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:135
-#: src/components/logs/MessageDetail.tsx:780
+#: src/components/logs/MessageDetail.tsx:785
 msgid "text"
 msgstr "Text"
 
@@ -18317,7 +18317,7 @@ msgstr "Transformació de text"
 #: src/components/email_builder/EmailBuilder.tsx:1064
 #: src/components/email_builder/MjmlCodeEditor.tsx:689
 #: src/components/email_builder/panels/TextVersionPanel.tsx:119
-#: src/components/logs/MessageDetail.tsx:767
+#: src/components/logs/MessageDetail.tsx:772
 #: src/components/templates/TemplatePreviewDrawer.tsx:211
 msgid "Text version"
 msgstr "Versió de text"
@@ -18393,7 +18393,7 @@ msgstr "La difusió deixarà d'enviar i es pot reprendre més tard."
 msgid "The comparison period as extra columns"
 msgstr "El període de comparació com a columnes addicionals"
 
-#: src/components/logs/MessageDetail.tsx:731
+#: src/components/logs/MessageDetail.tsx:736
 msgid "The contact was erased; the message data is gone"
 msgstr "El contacte es va esborrar; les dades del missatge ja no existeixen"
 
@@ -18622,7 +18622,7 @@ msgstr "L'estat a assignar quan s'afegeix a la llista"
 msgid "The storage did not return the whole bucket. Folder counts, total size and search only cover the files shown."
 msgstr "L'emmagatzematge no ha retornat tot el bucket. Els recomptes de carpetes, la mida total i la cerca només inclouen els fitxers mostrats."
 
-#: src/components/logs/MessageDetail.tsx:732
+#: src/components/logs/MessageDetail.tsx:737
 msgid "The template behind this message isn't available"
 msgstr "La plantilla d'aquest missatge no està disponible"
 
@@ -18877,7 +18877,7 @@ msgstr ""
 #~ msgid "This deployment keeps working without them."
 #~ msgstr ""
 
-#: src/components/logs/MessageDetail.tsx:782
+#: src/components/logs/MessageDetail.tsx:787
 msgid "This email is sent as HTML only"
 msgstr "Aquest correu s'envia només en HTML"
 
@@ -19160,8 +19160,8 @@ msgstr "Aquest contenidor no té seccions. Afegiu una secció per mostrar contin
 #: src/components/broadcasts/compose/SendingCard.tsx:100
 #: src/components/broadcasts/compose/SendingCard.tsx:102
 #: src/components/logs/AuditLogTab.tsx:523
-#: src/components/logs/InboundWebhooksTab.tsx:252
-#: src/components/logs/MessagesTab.tsx:617
+#: src/components/logs/InboundWebhooksTab.tsx:249
+#: src/components/logs/MessagesTab.tsx:620
 #: src/components/logs/OutgoingWebhooksTab.tsx:161
 #: src/components/transactional/RecentSends.tsx:89
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:154
@@ -19332,7 +19332,7 @@ msgstr "Clau privada TLS (Base64)"
 msgid "TLS private key is required"
 msgstr "La clau privada TLS és obligatòria"
 
-#: src/components/logs/MessageDetail.tsx:328
+#: src/components/logs/MessageDetail.tsx:327
 msgid "To {recipient}"
 msgstr "Per a {recipient}"
 
@@ -19501,7 +19501,7 @@ msgstr "Amb seguiment"
 msgid "Tracked on {tracked} of {total} emails"
 msgstr "Amb seguiment en {tracked} de {total} correus"
 
-#: src/components/logs/MessageDetail.tsx:648
+#: src/components/logs/MessageDetail.tsx:653
 #: src/components/settings/WebAnalyticsSettings.tsx:298
 #: src/components/transactional/TransactionalDetail.tsx:401
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:377
@@ -19684,7 +19684,7 @@ msgid "type"
 msgstr "Tipus"
 
 #: src/components/file_manager/FilePreview.tsx:47
-#: src/components/logs/InboundWebhooksTab.tsx:199
+#: src/components/logs/InboundWebhooksTab.tsx:196
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
 #: src/components/settings/GeneralSettings.tsx:196
 msgid "Type"
@@ -21330,7 +21330,7 @@ msgstr "Necessiteu accés a l'historial de missatges"
 msgid "You need access to message history to see sends"
 msgstr "Necessiteu accés a l'historial de missatges per veure els enviaments"
 
-#: src/components/logs/MessageDetail.tsx:730
+#: src/components/logs/MessageDetail.tsx:735
 #: src/components/transactional/notificationRules.ts:61
 #: src/components/transactional/PreviewPanel.tsx:75
 msgid "You need access to templates"
