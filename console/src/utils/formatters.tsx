@@ -1,6 +1,8 @@
 import React from 'react'
 import { Tag, Tooltip } from 'antd'
 import numbro from 'numbro'
+import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import dayjs from '../lib/dayjs'
 
 /**
@@ -41,9 +43,14 @@ export const formatValue = (value: unknown, timezone?: string): React.ReactNode 
   ) {
     const date = dayjs(value)
     if (date.isValid()) {
-      const timezoneSuffix = timezone ? ` in ${timezone}` : ''
+      // On the clock of the timezone it names, in the console's language; without one, the
+      // browser's clock and no zone name.
+      const when = timezone ? date.tz(timezone).format('LLLL') : date.format('LLLL')
+      // Named `zone` so the message is the "{when} in {zone}" already translated for the timeline.
+      const zone = timezone
+      const title = zone ? i18n._(msg`${when} in ${zone}`) : when
       return (
-        <Tooltip title={`${date.format('LLLL')}${timezoneSuffix}`}>
+        <Tooltip title={title}>
           <span style={{ cursor: 'help', borderBottom: '1px dotted #999' }}>
             {date.fromNow()}
           </span>
