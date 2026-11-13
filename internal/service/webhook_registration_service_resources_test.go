@@ -62,14 +62,33 @@ func (f *fakeSESProvider) DeleteSendingResources(_ context.Context, _, _ string,
 	return f.teardownErr
 }
 
+// webhooksOnlyProvider registers webhooks and owns nothing else, and counts the
+// unregistrations it receives.
+type webhooksOnlyProvider struct {
+	unregistered int
+}
+
+func (p *webhooksOnlyProvider) RegisterWebhooks(_ context.Context, _, _ string, _ string, _ []domain.EmailEventType, _ *domain.EmailProvider) (*domain.WebhookRegistrationStatus, error) {
+	return &domain.WebhookRegistrationStatus{}, nil
+}
+
+func (p *webhooksOnlyProvider) GetWebhookStatus(_ context.Context, _, _ string, _ *domain.EmailProvider) (*domain.WebhookRegistrationStatus, error) {
+	return &domain.WebhookRegistrationStatus{}, nil
+}
+
+func (p *webhooksOnlyProvider) UnregisterWebhooks(_ context.Context, _, _ string, _ *domain.EmailProvider) error {
+	p.unregistered++
+	return nil
+}
+
 type sesRegistrationFixture struct {
 	svc           *WebhookRegistrationService
 	workspaceRepo *mocks.MockWorkspaceRepository
 	provider      *fakeSESProvider
 }
 
-// sesIntegrationWorkspace returns a new workspace holding one SES integration, so each read of the
-// workspace hands out its own copy, as the repository does.
+// sesIntegrationWorkspace returns a new workspace holding one SES integration. A test
+// whose reads must not share it returns a fresh one per read (DoAndReturn).
 func sesIntegrationWorkspace(ses domain.AmazonSESSettings) *domain.Workspace {
 	return &domain.Workspace{ID: "ws-1", Integrations: domain.Integrations{{
 		ID: "int-1",
@@ -321,7 +340,7 @@ func TestDeleteIntegrationResources(t *testing.T) {
 	})
 
 	t.Run("a provider without sending resources only unregisters", func(t *testing.T) {
-		provider := &fakeInboundProvider{}
+		provider := &webhooksOnlyProvider{}
 		f := newSESRegistrationFixture(t, &fakeSESProvider{}, false)
 		f.svc.webhookProviders = map[domain.EmailProviderKind]domain.WebhookProvider{domain.EmailProviderKindMailgun: provider}
 		f.workspaceRepo.EXPECT().GetByID(gomock.Any(), "ws-1").Return(&domain.Workspace{ID: "ws-1", Integrations: domain.Integrations{{
@@ -329,6 +348,7 @@ func TestDeleteIntegrationResources(t *testing.T) {
 		}}}, nil)
 
 		require.NoError(t, f.svc.DeleteIntegrationResources(ctx, "ws-1", "int-1"))
+		assert.Equal(t, 1, provider.unregistered)
 	})
 
 	t.Run("the integration is gone", func(t *testing.T) {

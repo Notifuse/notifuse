@@ -13,8 +13,9 @@ import (
 	"github.com/Notifuse/notifuse/internal/repository/testutil"
 )
 
-// A rotation that fails part way rolls back and commits nothing: every case below sets
-// no ExpectCommit, so a commit would fail ExpectationsWereMet.
+// A rotation that fails part way commits nothing, and once the transaction has started
+// it is rolled back: no case below sets ExpectCommit, so a commit would fail
+// ExpectationsWereMet.
 func TestRotateSecretKey_FailureRollsBack(t *testing.T) {
 	ctx := context.Background()
 	previous := []string{rotationPreviousKey}

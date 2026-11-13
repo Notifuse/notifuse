@@ -30,7 +30,8 @@ deleted; `go.mod` does not change (`golang/mock` is still used by the tests).
   branch: `ProcessUserCreatedHook` returns an error only for a disposable address, which
   takes the 400 branch; every other failure is logged and returns nil.
 - `tree.go`: the second `field_type` check inside the `json_path` block (an invalid type
-  is refused earlier) and the `json.Unmarshal` failure in `TreeNode.ToMapOfAny`.
+  is refused earlier) and the `json.Unmarshal` failure in `TreeNode.ToMapOfAny`; likewise
+  the `json.Unmarshal` failure in `Contact.ToMapOfAny`.
 - `NullableTime.Scan` of `[]byte`, success branch: see the defect below.
 
 ### Possible defects found (reported, not fixed here)
@@ -40,8 +41,9 @@ deleted; `go.mod` does not change (`golang/mock` is still used by the tests).
   *time.Time"). A driver that hands a timestamp as text would fail the read.
 - `tasks.reset` / `tasks.trigger` answer a database failure with 400 and the raw error
   text (`failed to reset task: …`), where a 500 with a generic message is expected.
-- `TaskService.ResetTask` turns any error from the task lookup into `ErrTaskNotFound`, so a
-  database outage reads as 404.
+- `TaskService.ResetTask` and `TaskService.TriggerTask` turn any error from the task lookup
+  into `ErrTaskNotFound`, so a database failure between the handler's authorization read
+  and the service's own read answers 404.
 
 ## Files and test cases
 
@@ -99,7 +101,7 @@ fake SES provider implementing `WebhookProvider`, `TenantAssociator`,
   - webhooks unregistered, then `DeleteSendingResources`, in that order;
   - unregister failure → teardown still runs, nil returned;
   - teardown failure → nil returned (deletion is never blocked);
-  - a provider without teardown → only unregister;
+  - a provider without teardown → unregistered once, nothing else;
   - integration gone → error, no provider call; provider kind without webhooks → error.
 
 ### 3. `internal/http/supabase_webhook_handler.go`
@@ -130,8 +132,10 @@ Test file: `internal/http/task_handler_refusals_test.go`.
   404; `*domain.ErrTaskAlreadyRunning` → 409; `*domain.ErrTaskExecution` wrapping
   `ErrTaskAlreadyRunning` → 409; reason "failed to mark task as running" → 409; any other
   error → 500.
-- Reset / trigger: `domain.ErrTaskNotFound` → 404; a state refusal from the service → 400
-  with its message (fixtures are state errors, not database errors: see the defects).
+- Reset / trigger: `domain.ErrTaskNotFound` → 404; a state refusal from the service ("task
+  is not a recurring task", "task cannot be triggered in current status: completed") → 400
+  with its message (fixtures are the service's own state errors, not database errors: see
+  the defects).
 
 ### 5. `internal/http/blog_theme_handler.go`
 

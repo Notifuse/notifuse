@@ -72,7 +72,7 @@ func TestUpsertContactRequest_Validate_RequiresTheContact(t *testing.T) {
 	assert.Contains(t, err.Error(), "contact field is required")
 }
 
-func TestGetContactsRequest_ConsentFilters(t *testing.T) {
+func TestGetContactsRequest_SegmentsAndConsentFilters(t *testing.T) {
 	t.Run("query: segments are read", func(t *testing.T) {
 		var req GetContactsRequest
 		params := url.Values{"workspace_id": {"ws-1"}, "segments[]": {"seg-a", "seg-b"}}

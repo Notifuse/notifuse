@@ -201,7 +201,7 @@ func TestTreeNode_Validate_Refusals(t *testing.T) {
 	}
 }
 
-func TestTreeNode_Validate_AcceptsGoalLeaves(t *testing.T) {
+func TestTreeNode_Validate_AcceptsGoalAndTimelineLeaves(t *testing.T) {
 	between := validGoal()
 	between.Operator = "between"
 	upper := 500.0

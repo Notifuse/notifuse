@@ -76,8 +76,8 @@ func TestTaskHandler_DeleteTask_GoneBetweenCheckAndDelete(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
 
-// The scheduler retries on some statuses and not others, so each execution failure
-// keeps its own status.
+// The dispatcher takes a 409 for a run already under way and logs anything else as an
+// error, so a concurrent run must answer 409 and a real failure must not.
 func TestTaskHandler_ExecuteTask_FailureStatuses(t *testing.T) {
 	const secretKey = "test-secret-key"
 	body := []byte(`{"workspace_id": "ws-1", "id": "task-1"}`)
@@ -121,7 +121,6 @@ func TestTaskHandler_ExecuteTask_FailureStatuses(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			handler, mockTaskService, _ := newTaskHandlerForAuth(t, ctrl)
-			handler.secretKey = secretKey
 			mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(&domain.Task{ID: "task-1", MaxRuntime: 50}, nil)
 			mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "task-1", gomock.Any()).Return(tc.err)
 
@@ -162,9 +161,9 @@ func TestTaskHandler_ResetAndTrigger_ServiceFailures(t *testing.T) {
 		wantError  string
 	}{
 		{name: "reset: task gone", route: "reset", err: domain.ErrTaskNotFound, wantStatus: http.StatusNotFound, wantError: "Task not found"},
-		{name: "reset: refused", route: "reset", err: errors.New("task is not recurring"), wantStatus: http.StatusBadRequest, wantError: "task is not recurring"},
+		{name: "reset: refused", route: "reset", err: errors.New("task is not a recurring task"), wantStatus: http.StatusBadRequest, wantError: "task is not a recurring task"},
 		{name: "trigger: task gone", route: "trigger", err: domain.ErrTaskNotFound, wantStatus: http.StatusNotFound, wantError: "Task not found"},
-		{name: "trigger: refused", route: "trigger", err: errors.New("task is paused"), wantStatus: http.StatusBadRequest, wantError: "task is paused"},
+		{name: "trigger: refused", route: "trigger", err: errors.New("task cannot be triggered in current status: completed"), wantStatus: http.StatusBadRequest, wantError: "task cannot be triggered in current status: completed"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
