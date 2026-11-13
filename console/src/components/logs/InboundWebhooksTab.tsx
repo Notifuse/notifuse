@@ -115,9 +115,16 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
     [listQuery.data]
   )
 
+  // Refresh asks the list once: again for the same window, or for the window moved to now.
   const refresh = () => {
-    setClock({ key: filtersKey, now: Date.now() })
-    void queryClient.resetQueries({ queryKey: ['logs', 'inbound', workspaceId] })
+    const next = Date.now()
+    const queryKey = ['logs', 'inbound', workspaceId]
+    if (periodBounds(period, next).from === periodBounds(period, now).from) {
+      void queryClient.resetQueries({ queryKey })
+      return
+    }
+    queryClient.removeQueries({ queryKey, type: 'inactive' })
+    setClock({ key: filtersKey, now: next })
   }
 
   const periodLabels: Record<LivePeriod, string> = {
@@ -337,7 +344,7 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
   const shown = int(rows.length)
   const footer =
     rows.length > 0 ? (
-      <div className="flex items-center justify-between">
+      <div className="flex w-full items-center justify-between">
         <span className="text-sm text-ink-3">
           {plural(rows.length, { one: `${shown} event`, other: `${shown} events` })}
         </span>

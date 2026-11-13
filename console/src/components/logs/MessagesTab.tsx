@@ -218,10 +218,20 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
 
   const [columns, setColumns] = useState<MessageColumns>(loadMessageColumns)
 
+  // Refresh asks the list and the counts once: again for the same window, or for the window moved
+  // to now (the old one is then dropped, not fetched again).
   const refresh = () => {
-    setClock({ key: filtersKey, now: Date.now() })
-    void queryClient.resetQueries({ queryKey: ['logs', 'messages', workspaceId] })
-    void queryClient.resetQueries({ queryKey: ['logs', 'messages-count', workspaceId] })
+    const next = Date.now()
+    const keys = [
+      ['logs', 'messages', workspaceId],
+      ['logs', 'messages-count', workspaceId]
+    ]
+    if (periodBounds(period, next).from === periodBounds(period, now).from) {
+      for (const queryKey of keys) void queryClient.resetQueries({ queryKey })
+      return
+    }
+    for (const queryKey of keys) queryClient.removeQueries({ queryKey, type: 'inactive' })
+    setClock({ key: filtersKey, now: next })
   }
 
   // Labels
@@ -568,7 +578,10 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
         return countable ? (
           button
         ) : (
-          <Tooltip key={item.count} title={t`Pick a period or a filter to count`}>
+          <Tooltip
+            key={item.count}
+            title={t`Counts cover 7 days at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template`}
+          >
             {button}
           </Tooltip>
         )
@@ -680,7 +693,15 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
       title: columnTitles.id,
       key: 'id',
       hidden: !columns.id,
-      render: (_, message) => <Mono copy>{message.id}</Mono>
+      render: (_, message) => (
+        // Copying the ID must not open the message as well.
+        <span
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <Mono copy>{message.id}</Mono>
+        </span>
+      )
     },
     {
       title: columnTitles.external_id,
@@ -805,7 +826,7 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
   const shown = int(rows.length)
   const footer =
     rows.length > 0 ? (
-      <div className="flex items-center justify-between">
+      <div className="flex w-full items-center justify-between">
         <span className="text-sm text-ink-3">
           {total !== undefined
             ? plural(total, { one: `${shown} of # message`, other: `${shown} of # messages` })

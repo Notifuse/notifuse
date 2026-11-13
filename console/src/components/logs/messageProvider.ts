@@ -47,8 +47,8 @@ export function rowIsSmtp(message: Partial<OriginFields>, workspace?: Workspace)
 
 /**
  * Whether the Delivered count can mean anything for the messages of this origin filter. Without one,
- * a provider that reports deliveries must be set up: an SMTP marketing provider and no
- * transactional one count nothing.
+ * it counts unless every provider set up is SMTP (an SMTP marketing provider and no transactional
+ * one count nothing); with no provider set up at all, nothing says it won't, so it counts.
  */
 export function countsDeliveries(
   workspace: Workspace | undefined,

@@ -27,8 +27,20 @@ vi.mock('../../contexts/AuthContext', () => ({
     workspaces: [
       {
         id: 'ws1',
-        settings: { timezone: 'UTC', default_language: 'en', transactional_email_provider_id: 't' },
+        settings: {
+          timezone: 'UTC',
+          default_language: 'en',
+          marketing_email_provider_id: 'm',
+          transactional_email_provider_id: 't'
+        },
         integrations: [
+          {
+            id: 'm',
+            email_provider: {
+              kind: 'ses',
+              senders: [{ id: 's9', name: 'News', email: 'news@acme.io', is_default: true }]
+            }
+          },
           {
             id: 't',
             email_provider: {
@@ -104,16 +116,17 @@ const compiled = {
   subject_preview: 'Start here'
 }
 
-const renderDetail = (
-  props: Partial<{
-    id?: string
-    row?: MessageHistory
-    onClose: () => void
-    onNext: () => void
-  }> = {}
-) => {
+interface DetailProps {
+  id?: string
+  row?: MessageHistory
+  onClose: () => void
+  onNext: () => void
+  onPrev: () => void
+}
+
+const renderDetail = (props: Partial<DetailProps> = {}) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+  const makeUi = (current: Partial<DetailProps>) => (
     <QueryClientProvider client={client}>
       <I18nProvider i18n={i18n}>
         <ConfigProvider>
@@ -121,17 +134,21 @@ const renderDetail = (
             <MessageDetail
               workspaceId="ws1"
               permissions={state.permissions as never}
-              id={'id' in props ? props.id : 'm1'}
-              row={props.row}
+              id={'id' in current ? current.id : 'm1'}
+              row={current.row}
               names={names}
-              nav={{ position: 1, total: 2, onNext: props.onNext }}
-              onClose={props.onClose ?? vi.fn()}
+              nav={{ position: 1, total: 2, onNext: current.onNext, onPrev: current.onPrev }}
+              onClose={current.onClose ?? vi.fn()}
             />
           </App>
         </ConfigProvider>
       </I18nProvider>
     </QueryClientProvider>
   )
+  const view = render(makeUi(props))
+  // Another message in the same panel, as J and K open it: the tab passes its row.
+  const show = (id: string, row?: MessageHistory) => view.rerender(makeUi({ ...props, id, row }))
+  return { ...view, show }
 }
 
 const value = (label: string) => {
@@ -173,12 +190,70 @@ describe('MessageDetail', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('goes to the next message with J', async () => {
+  it('goes to the next message with J and the previous one with K', async () => {
     const onNext = vi.fn()
-    renderDetail({ onNext })
+    const onPrev = vi.fn()
+    renderDetail({ onNext, onPrev })
     await screen.findByText('To ann@example.com')
     fireEvent.keyDown(document, { key: 'j' })
-    expect(onNext).toHaveBeenCalled()
+    expect(onNext).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(document, { key: 'k' })
+    expect(onPrev).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the panel when another message opens, back on its Events tab', async () => {
+    state.listMessages.mockImplementation(async (_ws: string, params: { id: string }) => ({
+      messages: [message({ id: params.id, contact_email: `${params.id}@example.com` })],
+      has_more: false
+    }))
+    const { show } = renderDetail()
+    await screen.findByText('To m1@example.com')
+    const drawer = document.querySelector('.ant-drawer')
+    await userEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    show('m2', message({ id: 'm2', contact_email: 'm2@example.com' }))
+    expect(await screen.findByText('To m2@example.com')).toBeInTheDocument()
+    expect(document.querySelector('.ant-drawer')).toBe(drawer)
+    expect(screen.getByRole('tab', { name: 'Events' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('says when the message cannot be loaded, with a retry', async () => {
+    state.listMessages.mockRejectedValueOnce(new Error('database is down'))
+    renderDetail()
+    expect(await screen.findByText("Couldn't load the message")).toBeInTheDocument()
+    expect(screen.getByText('database is down')).toBeInTheDocument()
+    expect(screen.queryByText('Message not found')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByText('To ann@example.com')).toBeInTheDocument()
+  })
+
+  it('says when the template cannot be loaded for another reason than being gone', async () => {
+    state.getTemplate.mockRejectedValue(new Error('server error'))
+    renderDetail()
+    await screen.findByText('To ann@example.com')
+    await userEvent.click(screen.getByRole('tab', { name: 'Sent content' }))
+    expect(await screen.findByText("Couldn't load the template")).toBeInTheDocument()
+    expect(screen.getByText('server error')).toBeInTheDocument()
+  })
+
+  it('takes the sender of the provider the message went through', async () => {
+    // A newsletter goes through the marketing provider, whatever is known of its template.
+    state.permissions = { ...allRead, templates: { read: false, write: false } }
+    state.listMessages.mockResolvedValue({
+      messages: [message({ broadcast_id: 'b1' })],
+      has_more: false
+    })
+    const { unmount } = renderDetail()
+    await screen.findByText('To ann@example.com')
+    expect(value('From')).toHaveTextContent('News <news@acme.io>')
+    unmount()
+
+    // A double opt-in confirmation too: no origin, and an opt-in template.
+    state.permissions = allRead
+    state.getTemplate.mockResolvedValue({ template: template({ category: 'opt_in', email: {} }) })
+    state.listMessages.mockResolvedValue({ messages: [message()], has_more: false })
+    renderDetail()
+    await screen.findByText('To ann@example.com')
+    await waitFor(() => expect(value('From')).toHaveTextContent('News <news@acme.io>'))
   })
 
   it('lists the events in time order, without a line for the send', async () => {
@@ -239,11 +314,15 @@ describe('MessageDetail', () => {
 
   it('shows an erased contact: no contact to open, no content, no data', async () => {
     state.listMessages.mockResolvedValue({
-      messages: [message({ contact_email: 'DELETED_EMAIL', message_data: { data: {} } })],
+      // The server answers an erased message's data as null.
+      messages: [
+        message({ contact_email: 'DELETED_EMAIL', message_data: { data: null as never } })
+      ],
       has_more: false
     })
     renderDetail()
-    expect(await screen.findByText('To Contact erased')).toBeInTheDocument()
+    expect(await screen.findByText('Contact erased')).toBeInTheDocument()
+    expect(screen.queryByText('To DELETED_EMAIL')).toBeNull()
     expect(screen.getByRole('button', { name: /Open contact/ })).toBeDisabled()
     await userEvent.click(screen.getByRole('tab', { name: 'Sent content' }))
     expect(screen.getByText('The contact was erased; the message data is gone')).toBeInTheDocument()
@@ -337,7 +416,8 @@ describe('MessageDetail', () => {
     expect(state.preview).toHaveBeenCalledWith(
       expect.objectContaining({
         email: expect.objectContaining({ subject: 'Hello {{ name }}' }),
-        testData: { name: 'Ann' }
+        // The recorded open pixel is blanked: viewing must not record an open.
+        testData: { name: 'Ann', tracking_opens_url: '' }
       })
     )
     expect(

@@ -147,21 +147,29 @@ describe('InboundWebhooksTab', () => {
   })
 
   it('links a delivery event to its message, which needs message history read', async () => {
+    const delivery = ['delivered', 'bounce', 'complaint', 'unsubscribe'] as const
     state.list.mockResolvedValue({
-      events: [event(), event({ id: 'e2', type: 'reply', message_id: 'reply-own-id' })],
+      events: [
+        ...delivery.map((type, index) => event({ id: `d${index}`, type, message_id: `m_${type}` })),
+        event({ id: 'e2', type: 'reply', message_id: 'reply-own-id' })
+      ],
       has_more: false
     })
     const { unmount } = renderTab()
-    const link = await screen.findByRole('link', { name: 'm1' })
-    expect(link).toHaveAttribute('href', '/logs?tab=messages&id=m1&message=m1')
+    for (const type of delivery) {
+      expect(await screen.findByRole('link', { name: `m_${type}` })).toHaveAttribute(
+        'href',
+        `/logs?tab=messages&id=m_${type}&message=m_${type}`
+      )
+    }
     // A reply's message ID is the reply's own: no message of the workspace to open.
     expect(screen.getByText('reply-own-id').closest('a')).toBeNull()
     unmount()
 
     renderTab({ tab: 'incoming-webhooks' }, {})
     await screen.findAllByText('ann@example.com')
-    expect(screen.queryByRole('link', { name: 'm1' })).toBeNull()
-    expect(screen.getByText('m1')).toBeInTheDocument()
+    expect(screen.queryAllByRole('link')).toHaveLength(0)
+    expect(screen.getByText('m_delivered')).toBeInTheDocument()
   })
 
   it('opens the detail with the raw payload, and goes to the next event with J', async () => {
@@ -228,5 +236,41 @@ describe('InboundWebhooksTab', () => {
     expect(await screen.findByText('database is down')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByText('ann@example.com')).toBeInTheDocument()
+  })
+
+  it('searches a message ID holding an "@" as a message ID, in replace', async () => {
+    renderTab()
+    await screen.findByText('ann@example.com')
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Search by' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Message ID' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search the webhook events' }), {
+      target: { value: 'CAFabc+1@mail.gmail.com' }
+    })
+    await waitFor(() =>
+      expect(state.navigate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          search: { tab: 'incoming-webhooks', message_id: 'CAFabc+1@mail.gmail.com' },
+          replace: true
+        })
+      )
+    )
+  })
+
+  it('asks the list once on Refresh, the window moved or not', async () => {
+    const start = Date.now()
+    renderTab()
+    await screen.findByText('ann@example.com')
+    expect(state.list).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await waitFor(() => expect(state.list).toHaveBeenCalledTimes(2))
+    const spy = vi.spyOn(Date, 'now').mockReturnValue(start + 3 * 60_000)
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+      await waitFor(() => expect(state.list).toHaveBeenCalledTimes(3))
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(state.list).toHaveBeenCalledTimes(3)
+    } finally {
+      spy.mockRestore()
+    }
   })
 })

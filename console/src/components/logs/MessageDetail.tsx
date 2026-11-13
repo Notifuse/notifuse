@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Alert, Button, Empty, Segmented, Skeleton, Tooltip } from 'antd'
+import { Alert, Button, Empty, Result, Segmented, Skeleton, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useNavigate } from '@tanstack/react-router'
 import {
@@ -83,6 +83,13 @@ export function MessageDetail({
       <SidePanel open onClose={onClose} title={t`Message`} copyLink={false} nav={nav}>
         {messageQuery.isPending ? (
           <Skeleton active paragraph={{ rows: 6 }} />
+        ) : messageQuery.isError ? (
+          <Result
+            status="error"
+            title={t`Couldn't load the message`}
+            subTitle={messageQuery.error instanceof Error ? messageQuery.error.message : undefined}
+            extra={<Button onClick={() => void messageQuery.refetch()}>{t`Retry`}</Button>}
+          />
         ) : (
           <div className="py-10">
             <Empty description={t`Message not found`}>
@@ -96,7 +103,6 @@ export function MessageDetail({
 
   return (
     <LoadedMessage
-      key={message.id}
       workspaceId={workspaceId}
       permissions={permissions}
       message={message}
@@ -131,9 +137,13 @@ function LoadedMessage({
   const timezone = workspace?.settings.timezone
   const canReadTemplates = Boolean(permissions?.templates?.read)
   const canReadContacts = Boolean(permissions?.contacts?.read)
-  const [tab, setTab] = useState('events')
-  // The preview compiles once "Sent content" was opened; the subject then comes from it.
-  const [previewWanted, setPreviewWanted] = useState(false)
+  // The tab shown, back to Events for each message; the preview compiles once "Sent content" was
+  // opened, and the subject then comes from it. Reset here rather than by remounting, so J and K
+  // keep the panel and the focus on its buttons.
+  const [view, setView] = useState({ id: message.id, tab: 'events', previewWanted: false })
+  if (view.id !== message.id) setView({ id: message.id, tab: 'events', previewWanted: false })
+  const tab = view.id === message.id ? view.tab : 'events'
+  const previewWanted = view.id === message.id && view.previewWanted
 
   // D2: the template at the version sent.
   const templateQuery = useQuery({
@@ -156,9 +166,12 @@ function LoadedMessage({
     templateQuery.error instanceof ApiError && templateQuery.error.status === 404
 
   // D3: the template compiled again with the message's data, in the language it was sent in. An
-  // erased message has no data; null data would fall back to the template's test data.
+  // erased message has no data, and is not compiled.
   const erased = isErased(message)
   const data = message.message_data?.data ?? {}
+  // The recorded pixel URL is live and signed: rendering it would record an open (as the web
+  // version does, it is blanked).
+  const previewData = { ...data, tracking_opens_url: '' }
   const language = messageLanguage(data)
   const email = template
     ? resolveEmail(template, language, workspace?.settings?.default_language ?? '')
@@ -172,7 +185,7 @@ function LoadedMessage({
       language ?? null,
       message.id
     ],
-    queryFn: () => compileTemplatePreview({ workspace: workspace!, email, testData: data }),
+    queryFn: () => compileTemplatePreview({ workspace: workspace!, email, testData: previewData }),
     enabled: previewWanted && Boolean(workspace) && Boolean(template) && !erased,
     staleTime: 5 * 60_000,
     retry: false
@@ -192,8 +205,7 @@ function LoadedMessage({
       <Mono>{message.template_id}</Mono>
     )
   const status = messageStatus(message)
-  const recipient =
-    message.contact_email === ERASED_EMAIL ? t`Contact erased` : message.contact_email
+  const recipient = message.contact_email
 
   const at = (value: string) => {
     const date = timezone ? dayjs(value).tz(timezone) : dayjs(value)
@@ -213,10 +225,12 @@ function LoadedMessage({
 
   const tabs = {
     activeKey: tab,
-    onChange: (key: string) => {
-      setTab(key)
-      if (key === 'content') setPreviewWanted(true)
-    },
+    onChange: (key: string) =>
+      setView((current) => ({
+        ...current,
+        tab: key,
+        previewWanted: current.previewWanted || key === 'content'
+      })),
     items: [
       {
         key: 'events',
@@ -263,9 +277,17 @@ function LoadedMessage({
         label: t`Sent content`,
         children: (
           <SentContent
+            key={message.id}
             canReadTemplates={canReadTemplates}
             erased={erased}
             templateMissing={templateMissing}
+            templateError={
+              templateQuery.isError && !templateMissing
+                ? templateQuery.error instanceof Error
+                  ? templateQuery.error.message
+                  : ''
+                : undefined
+            }
             templateLoading={templateQuery.isPending}
             preview={preview}
           />
@@ -302,7 +324,10 @@ function LoadedMessage({
       onClose={onClose}
       title={title}
       status={<Pill tone={status.tone}>{i18n._(MESSAGE_STATUS_LABELS[status.key])}</Pill>}
-      meta={[t`To ${recipient}`, at(message.created_at)]}
+      meta={[
+        recipient === ERASED_EMAIL ? t`Contact erased` : t`To ${recipient}`,
+        at(message.created_at)
+      ]}
       nav={nav}
       tabs={tabs}
       footer={
@@ -465,15 +490,23 @@ interface MessageFieldsProps {
 }
 
 /** The From address as the send picks it: the email's sender, else the default one. */
+/**
+ * The provider a message went through: a notification uses the transactional one; newsletters,
+ * automations and double opt-in confirmations the marketing one. A message of no origin otherwise
+ * (a template test) follows its template's category when it is known.
+ */
 function senderOf(
   workspace: Workspace | undefined,
+  message: MessageHistory,
   template: Template | undefined,
   email: Template['email'] | undefined
 ) {
-  const providerId =
-    template?.category === 'marketing'
-      ? workspace?.settings?.marketing_email_provider_id
-      : workspace?.settings?.transactional_email_provider_id
+  const origin = messageOrigin(message)
+  const transactional =
+    origin === 'transactional' || (origin === 'other' && template?.category === 'transactional')
+  const providerId = transactional
+    ? workspace?.settings?.transactional_email_provider_id
+    : workspace?.settings?.marketing_email_provider_id
   const provider = workspace?.integrations?.find(
     (integration) => integration.id === providerId
   )?.email_provider
@@ -501,7 +534,7 @@ function MessageFields({
   const navigate = useNavigate()
   const options = message.channel_options
 
-  const sender = senderOf(workspace, template, email)
+  const sender = senderOf(workspace, message, template, email)
   const fromName = options?.from_name ?? sender?.name
   const from =
     fromName || sender?.email ? `${fromName ?? ''} <${sender?.email ?? '—'}>`.trim() : undefined
@@ -667,6 +700,8 @@ interface SentContentProps {
   canReadTemplates: boolean
   erased: boolean
   templateMissing: boolean
+  /** Why the template could not be loaded, other than a 404; undefined when it loaded. */
+  templateError?: string
   templateLoading: boolean
   preview: {
     data?: CompileTemplateResponse
@@ -680,6 +715,7 @@ function SentContent({
   canReadTemplates,
   erased,
   templateMissing,
+  templateError,
   templateLoading,
   preview
 }: SentContentProps) {
@@ -694,6 +730,16 @@ function SentContent({
   if (!canReadTemplates) return note(t`You need access to templates`)
   if (erased) return note(t`The contact was erased; the message data is gone`)
   if (templateMissing) return note(t`The template behind this message isn't available`)
+  if (templateError !== undefined) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        title={t`Couldn't load the template`}
+        description={templateError || undefined}
+      />
+    )
+  }
   if (templateLoading || preview.isLoading) return <Skeleton active paragraph={{ rows: 6 }} />
 
   const failure =

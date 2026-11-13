@@ -660,7 +660,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
   const shown = rows.length
   const footer =
     rows.length > 0 || scope === 'workspace' ? (
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex w-full items-center justify-between gap-3">
         <span className="flex items-center gap-3">
           {rows.length > 0 ? (
             <span className="text-sm text-ink-3">

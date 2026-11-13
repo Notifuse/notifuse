@@ -160,4 +160,12 @@ describe('parseLogsSearch', () => {
       parseLogsSearch({ contact_email: 'ann@example.com', recipient_email: 'Bob@Example.com' })
     ).toEqual({ contact_email: 'ann@example.com', recipient_email: 'Bob@Example.com' })
   })
+
+  it('drops a clicked link without its newsletter, which the server would refuse', () => {
+    expect(parseLogsSearch({ clicked_url: 'https://x.io' })).toEqual({})
+    expect(parseLogsSearch({ clicked_url: 'https://x.io', broadcast_id: 'b1' })).toEqual({
+      clicked_url: 'https://x.io',
+      broadcast_id: 'b1'
+    })
+  })
 })

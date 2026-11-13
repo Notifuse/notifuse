@@ -81,13 +81,3 @@ export function loadMessageColumns(): MessageColumns {
   write(columns)
   return columns
 }
-
-export function saveMessageColumn(
-  columns: MessageColumns,
-  key: MessageColumnKey,
-  visible: boolean
-): MessageColumns {
-  const next = { ...columns, [key]: visible }
-  write(next)
-  return next
-}

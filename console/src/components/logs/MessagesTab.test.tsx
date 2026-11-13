@@ -48,7 +48,7 @@ vi.mock('./MessageDetail', () => ({
 }))
 
 import { MessagesTab } from './MessagesTab'
-import { LEGACY_COLUMNS_KEY } from './messageColumns'
+import { LEGACY_COLUMNS_KEY, MESSAGE_COLUMNS_KEY } from './messageColumns'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -276,7 +276,7 @@ describe('MessagesTab', () => {
     expect(state.countMessages).not.toHaveBeenCalled()
     expect(within(counter(/^All/)).queryByText(/\d/)).toBeNull()
     fireEvent.mouseOver(counter(/^All/))
-    expect(await screen.findByText('Pick a period or a filter to count')).toBeInTheDocument()
+    expect(await screen.findByText(/^Counts cover 7 days at most/)).toBeInTheDocument()
   })
 
   it('counts all time with an indexed filter', async () => {
@@ -411,6 +411,12 @@ describe('MessagesTab', () => {
     expect(screen.queryByRole('menuitem', { name: 'Clicked link' })).toBeNull()
     unmount()
 
+    const second = renderTab({ tab: 'messages', broadcast_id: 'b1' })
+    await screen.findByText('ann@example.com')
+    await userEvent.click(screen.getByRole('button', { name: /\+ Filter/ }))
+    expect(await screen.findByRole('menuitem', { name: 'Clicked link' })).toBeInTheDocument()
+    second.unmount()
+
     renderTab({ tab: 'messages', broadcast_id: 'b1', clicked_url: 'https://x.io' })
     await screen.findByText('ann@example.com')
     await userEvent.click(screen.getByRole('button', { name: 'Remove Newsletter filter' }))
@@ -429,6 +435,62 @@ describe('MessagesTab', () => {
     )
     expect(headers).toContain('External ID')
     expect(headers).not.toContain('Recipient')
+  })
+
+  it('searches by email in replace, once the address is complete', async () => {
+    renderTab()
+    await screen.findByText('ann@example.com')
+    const box = screen.getByRole('textbox', { name: 'Search the messages' })
+    fireEvent.change(box, { target: { value: 'Bo@' } })
+    expect(await screen.findByText('Enter a full email address')).toBeInTheDocument()
+    fireEvent.change(box, { target: { value: 'Bo@Example.com' } })
+    await waitFor(() =>
+      expect(lastNavigation()).toMatchObject({
+        search: { tab: 'messages', contact_email: 'bo@example.com' },
+        replace: true
+      })
+    )
+    expect(
+      state.navigate.mock.calls.some(
+        ([call]) => (call as { search: Record<string, unknown> }).search.contact_email === 'bo@'
+      )
+    ).toBe(false)
+  })
+
+  it('copies a message ID without opening the message', async () => {
+    localStorage.setItem(MESSAGE_COLUMNS_KEY, JSON.stringify({ id: true }))
+    renderTab()
+    await screen.findByText('ann@example.com')
+    const copy = within(rows()[0] as HTMLElement).getByRole('button', { name: 'Copy' })
+    fireEvent.click(copy)
+    fireEvent.keyDown(copy, { key: 'Enter' })
+    expect(state.navigate).not.toHaveBeenCalled()
+  })
+
+  it('asks the list and the counts once on Refresh, the window moved or not', async () => {
+    const start = Date.now()
+    renderTab({ tab: 'messages', period: '7d' })
+    await screen.findByText('ann@example.com')
+    await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(1))
+    expect(state.listMessages).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await waitFor(() => expect(state.listMessages).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(2))
+    expect(lastList().created_after).toBe(state.listMessages.mock.calls[0][1].created_after)
+
+    const spy = vi.spyOn(Date, 'now').mockReturnValue(start + 3 * 60_000)
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+      await waitFor(() => expect(state.listMessages).toHaveBeenCalledTimes(3))
+      await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(3))
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(state.listMessages).toHaveBeenCalledTimes(3)
+      expect(state.countMessages).toHaveBeenCalledTimes(3)
+      expect(lastList().created_after).not.toBe(state.listMessages.mock.calls[0][1].created_after)
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('opens a message in replace', async () => {

@@ -273,7 +273,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
   const shown = int(deliveries.length)
   const footer =
     deliveries.length > 0 && total !== undefined ? (
-      <div className="flex items-center justify-between">
+      <div className="flex w-full items-center justify-between">
         <span className="text-sm text-ink-3">
           {plural(total, { one: `${shown} of # delivery`, other: `${shown} of # deliveries` })}
         </span>

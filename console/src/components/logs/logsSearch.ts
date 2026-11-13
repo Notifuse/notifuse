@@ -3,7 +3,7 @@
  * `?is_failed=true` arrives as a boolean, `?template_id=2024` as a number and a string the page
  * once wrote as 'true' as the text "true". The route's `validateSearch` normalises it, and each tab
  * reads it through `parseLogsSearch` again: the router keeps the raw value of a key the parser
- * dropped. The old Messages and Incoming webhooks tabs still read the location themselves.
+ * dropped.
  */
 
 import { searchString } from '../../lib/searchParams'
@@ -191,5 +191,7 @@ export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
   for (const key of ['contact_email', 'recipient_email'] as const) {
     if (out[key] !== undefined && !isFullEmail(out[key])) delete out[key]
   }
+  // The server answers 400 to a clicked link without its newsletter.
+  if (out.broadcast_id === undefined) delete out.clicked_url
   return out
 }

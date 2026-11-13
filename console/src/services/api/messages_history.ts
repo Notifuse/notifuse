@@ -113,9 +113,7 @@ export interface MessageListResult {
   has_more: boolean
 }
 
-/**
- * Lists message history with pagination and filtering
- */
+// The filters messages.list and messages.count share.
 const FILTER_KEYS = [
   'id',
   'external_id',

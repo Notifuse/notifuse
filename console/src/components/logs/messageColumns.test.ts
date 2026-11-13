@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  LEGACY_COLUMNS_KEY,
-  MESSAGE_COLUMNS_KEY,
-  loadMessageColumns,
-  saveMessageColumn
-} from './messageColumns'
+import { LEGACY_COLUMNS_KEY, MESSAGE_COLUMNS_KEY, loadMessageColumns } from './messageColumns'
 
 describe('message columns', () => {
   beforeEach(() => localStorage.clear())
@@ -53,11 +48,6 @@ describe('message columns', () => {
     // A later change of the old key is no longer read.
     localStorage.setItem(LEGACY_COLUMNS_KEY, JSON.stringify({ external_id: false }))
     expect(loadMessageColumns().external_id).toBe(true)
-  })
-
-  it('saves one column under the new key', () => {
-    saveMessageColumn(loadMessageColumns(), 'template', true)
-    expect(loadMessageColumns().template).toBe(true)
   })
 
   it('falls back to the defaults on unreadable storage', () => {
