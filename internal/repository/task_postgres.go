@@ -210,7 +210,7 @@ func (r *TaskRepository) GetTx(ctx context.Context, tx *sql.Tx, workspace, id st
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("task not found")
+			return nil, domain.ErrTaskNotFound
 		}
 		return nil, fmt.Errorf("failed to get task: %w", err)
 	}

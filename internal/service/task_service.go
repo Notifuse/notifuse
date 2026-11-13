@@ -626,10 +626,13 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 				"workspace_id": workspace,
 				"error":        taskErr.Error(),
 			}).Error("Failed to get task for execution")
-			return &domain.ErrNotFound{
-				Entity: "task",
-				ID:     taskID,
+			if errors.Is(taskErr, domain.ErrTaskNotFound) {
+				return &domain.ErrNotFound{
+					Entity: "task",
+					ID:     taskID,
+				}
 			}
+			return fmt.Errorf("failed to load task for execution: %w", taskErr)
 		}
 
 		if task != nil {
