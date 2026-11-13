@@ -101,9 +101,12 @@ export function ContactTimeline({
   const { t, i18n } = useLingui()
 
   // A changed value as written beside its old one: numbers with the separators of the console's
-  // language ("1 234,5" in French), anything else as it came.
+  // language ("1 234,5" in French) and every decimal they carry, so 0.0001 → 0.0002 does not read
+  // "0 → 0"; anything else as it came.
   const changedValue = (value: unknown): string =>
-    typeof value === 'number' ? value.toLocaleString(i18n.locale) : String(value)
+    typeof value === 'number'
+      ? value.toLocaleString(i18n.locale, { maximumFractionDigits: 20 })
+      : String(value)
 
   // A tooltip's full date, in the console's language, on the clock of the timezone it names.
   const timeInZone = (at: string, zone: string = timezone): string => {

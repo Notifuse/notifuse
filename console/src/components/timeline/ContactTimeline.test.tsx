@@ -620,7 +620,10 @@ describe('ContactTimeline numbers in the console language', () => {
       entity_type: 'contact',
       kind: 'contact.updated',
       entity_id: 'reader@example.com',
-      changes: { custom_number_1: { old: 1234.5, new: 12345 } },
+      changes: {
+        custom_number_1: { old: 1234.5, new: 12345 },
+        custom_number_2: { old: 0.0001, new: 48.8566141 }
+      },
       created_at: '2026-08-12T10:04:00Z',
       db_created_at: '2026-08-12T10:04:00Z'
     }
@@ -630,6 +633,9 @@ describe('ContactTimeline numbers in the console language', () => {
     expect(screen.getByText(/^\$1\s234,50$/)).toBeInTheDocument()
     expect(screen.getByText(/^1\s234,5$/)).toBeInTheDocument()
     expect(screen.getByText(/^12\s345$/)).toBeInTheDocument()
+    // Every decimal a change carries is kept.
+    expect(screen.getByText('0,0001')).toBeInTheDocument()
+    expect(screen.getByText('48,8566141')).toBeInTheDocument()
   })
 })
 

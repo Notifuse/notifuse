@@ -18,7 +18,8 @@ these as known. Pierre chose to align them in one small PR.
      row count of the file.
    - `settings/Integrations.tsx`: the emails per hour and per day under the rate limit.
 2. `timeline/ContactTimeline.tsx`: the old and new values of a contact change (the `{old, new}` pairs
-   the contact trigger writes, shown "1 234,5 → 12 345"), a flat changed number and a goal value pass
+   the contact trigger writes, shown "1 234,5 → 12 345", with every decimal they carry so that
+   0.0001 never reads "0"), a flat changed number and a goal value pass
    `i18n.locale` to `toLocaleString`, keeping their options (the goal value keeps two decimals and
    its "$"). Non-numbers are still shown with `String()`.
 3. `web_analytics/lib/format.ts` `formatCurrency`: `i18n.locale || 'en'` instead of the browser's
@@ -46,7 +47,8 @@ thousands with a narrow no-break space, matched with `\s` or normalised.
 - `utils/formatters.test.tsx`: "12 345" and "1 234,57" in French, "12,345" and "1,234.5" in English,
   and -0.4 gives "0", -1234.5 "-1,234".
 - `timeline/ContactTimeline.test.tsx`: a purchase goal reads "$1 234,50", and a contact change
-  `{ old: 1234.5, new: 12345 }` reads "1 234,5" and "12 345" in French.
+  `{ old: 1234.5, new: 12345 }` reads "1 234,5" and "12 345" in French, and 0.0001 and 48.8566141
+  keep every decimal.
 - `settings/Integrations.test.tsx`: the SES form's rate limit (25 per minute) reads "≈ 1 500" and
   "≈ 36 000" in French.
 - Not tested: `ExportContactsModal` (the count shows only while the export fetches) and
