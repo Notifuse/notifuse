@@ -230,7 +230,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       <div className="py-10">
         {filtered ? (
           <Empty description={t`No results match`}>
-            <Button onClick={clear}>{t`Clear filters`}</Button>
+            <Button onClick={() => clear()}>{t`Clear filters`}</Button>
           </Empty>
         ) : (
           <Empty description={t`No webhook deliveries yet`}>
@@ -257,7 +257,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
         rowKey="id"
         pagination={false}
         rowClassName={(delivery) =>
-          delivery.id === openId ? 'cursor-pointer bg-primary-50' : 'cursor-pointer'
+          delivery.id === openId ? 'cursor-pointer is-hover' : 'cursor-pointer'
         }
         onRow={(delivery) => ({
           onClick: () => setOpenId(delivery.id),

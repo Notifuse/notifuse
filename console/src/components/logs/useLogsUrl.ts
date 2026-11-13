@@ -1,17 +1,19 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import type { LogsSearch, LogsTab } from './logsSearch'
+import { parseLogsSearch, type LogsSearch, type LogsTab } from './logsSearch'
 
 export interface LogsUrl {
   search: LogsSearch
   /** Sets or removes (undefined) parameters of this tab; a new history entry unless `replace`. */
   update: (patch: Partial<LogsSearch>, options?: { replace?: boolean }) => void
-  /** Keeps the tab alone. */
-  clear: () => void
+  /** Keeps the tab, and the given parameters of the current URL. */
+  clear: (keep?: readonly (keyof LogsSearch)[]) => void
 }
 
 /** The URL of one Logs tab: its filters are written through the router, always with the tab. */
 export function useLogsUrl(workspaceId: string, tab: LogsTab): LogsUrl {
-  const search = useSearch({ strict: false }) as LogsSearch
+  // Parsed again: the router keeps the raw value of a key its parser dropped (`outcome=bogus`),
+  // which would reach the server as written.
+  const search = parseLogsSearch(useSearch({ strict: false }) as Record<string, unknown>)
   const navigate = useNavigate()
 
   const write = (next: LogsSearch, replace?: boolean) =>
@@ -28,5 +30,11 @@ export function useLogsUrl(workspaceId: string, tab: LogsTab): LogsUrl {
     write(next as LogsSearch, options?.replace)
   }
 
-  return { search, update, clear: () => write({}) }
+  const clear: LogsUrl['clear'] = (keep = []) => {
+    const next: Record<string, unknown> = {}
+    for (const key of keep) if (search[key] !== undefined) next[key] = search[key]
+    write(next as LogsSearch)
+  }
+
+  return { search, update, clear }
 }

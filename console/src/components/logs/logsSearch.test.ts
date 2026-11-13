@@ -124,4 +124,10 @@ describe('parseLogsSearch', () => {
       parseLogsSearch({ tab: 'audit', categories: 'templates,blog', actions: 'templates.create' })
     ).toEqual({ tab: 'audit', categories: 'templates,blog', actions: 'templates.create' })
   })
+
+  it('drops a custom bound that is not a date', () => {
+    expect(
+      parseLogsSearch({ tab: 'audit', period: 'custom', from: 'x', to: '2026-11-02T00:00:00Z' })
+    ).toEqual({ tab: 'audit', period: 'custom', to: '2026-11-02T00:00:00Z' })
+  })
 })

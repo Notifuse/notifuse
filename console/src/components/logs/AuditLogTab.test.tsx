@@ -17,7 +17,8 @@ const state = vi.hoisted(() => ({
   exportLog: vi.fn(),
   getMembers: vi.fn(),
   download: vi.fn(),
-  retention: undefined as number | undefined
+  retention: undefined as number | undefined,
+  timezone: 'UTC'
 }))
 
 vi.mock('../../services/api/client', () => ({
@@ -94,7 +95,7 @@ const tree = (isRoot: boolean, client: QueryClient) => (
     <I18nProvider i18n={i18n}>
       <ConfigProvider>
         <App>
-          <AuditLogTab workspaceId="ws1" timezone="UTC" isRoot={isRoot} />
+          <AuditLogTab workspaceId="ws1" timezone={state.timezone} isRoot={isRoot} />
         </App>
       </ConfigProvider>
     </I18nProvider>
@@ -139,6 +140,7 @@ describe('AuditLogTab', () => {
     state.getMembers.mockResolvedValue({ members })
     state.download.mockClear()
     state.retention = undefined
+    state.timezone = 'UTC'
   })
 
   afterEach(() => vi.restoreAllMocks())
@@ -393,5 +395,43 @@ describe('AuditLogTab', () => {
     await waitFor(() => expect(state.getMembers).toHaveBeenCalled())
     await screen.findByText('Kept for the deployment default', { exact: false })
     expect(screen.queryByText('Change in Settings')).not.toBeInTheDocument()
+  })
+
+  it('sends nothing the URL holds outside its lists', async () => {
+    renderTab({
+      tab: 'audit',
+      outcome: 'bogus',
+      actor_type: 'robot',
+      period: '1h'
+    } as unknown as LogsSearch)
+    await waitFor(() => expect(state.list).toHaveBeenCalled())
+    expect(lastListParams()).not.toHaveProperty('outcome', 'bogus')
+    expect(lastListParams().actor_type).toBeUndefined()
+    expect(screen.getByRole('button', { name: /Period Last 7 days/ })).toBeInTheDocument()
+  })
+
+  it('keeps the view and the period when clearing the filters', async () => {
+    renderTab({ tab: 'audit', scope: 'deployment', period: '30d', outcome: 'denied' }, true)
+    await userEvent.click(await screen.findByRole('button', { name: 'Clear all' }))
+    expect(lastSearch().search).toEqual({ tab: 'audit', scope: 'deployment', period: '30d' })
+  })
+
+  it('shows a custom range as the days of the workspace timezone', async () => {
+    state.timezone = 'Asia/Tokyo'
+    renderTab({
+      tab: 'audit',
+      period: 'custom',
+      from: '2026-11-09T15:00:00.000Z',
+      to: '2026-11-10T14:59:59.999Z'
+    })
+    expect(
+      await screen.findByRole('button', { name: /Period Nov 10, 2026 → Nov 10, 2026/ })
+    ).toBeInTheDocument()
+  })
+
+  it('names the parameter the search box shows', async () => {
+    renderTab({ tab: 'audit', actor_email: 'bob' })
+    expect(await screen.findByText('Searching by actor email')).toBeInTheDocument()
+    expect(screen.queryByText('Searching by target ID')).not.toBeInTheDocument()
   })
 })

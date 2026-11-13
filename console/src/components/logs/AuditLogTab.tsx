@@ -43,6 +43,7 @@ import {
   auditSearchKey,
   auditSearchShown,
   dayBound,
+  dayInZone,
   hasAuditFilters
 } from './auditSearch'
 import { FilterChip } from './FilterChip'
@@ -161,7 +162,10 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
       )
     }
   )
-  const typedKey = searchText.trim() ? auditSearchKey(searchText) : undefined
+  // The hint names the parameter the box shows, until what is typed there differs from it.
+  const shownText = shownKey ? (search[shownKey] ?? '') : ''
+  const hintKey =
+    searchText === shownText ? shownKey : searchText.trim() ? auditSearchKey(searchText) : undefined
   const searchHints: Record<string, string> = {
     ip_address: t`Searching by IP address`,
     actor_email: t`Searching by actor email`,
@@ -191,7 +195,9 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
     }
   }
   const customValue: [Dayjs, Dayjs] | null =
-    period === 'custom' && search.from && search.to ? [dayjs(search.from), dayjs(search.to)] : null
+    period === 'custom' && search.from && search.to
+      ? [dayInZone(search.from, timezone), dayInZone(search.to, timezone)]
+      : null
   const periodValue =
     period === 'custom' && customValue
       ? `${customValue[0].format('ll')} → ${customValue[1].format('ll')}`
@@ -398,6 +404,8 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
   }
 
   const filtered = hasAuditFilters(search)
+  // The view (scope) and the period are not filters: clearing keeps them.
+  const clearFilters = () => clear(['scope', 'period', 'from', 'to'])
   const toolbar = (
     <TableToolbar
       start={
@@ -416,7 +424,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
               />
             </Tooltip>
           </div>
-          {typedKey ? <span className="text-xs text-ink-3">{searchHints[typedKey]}</span> : null}
+          {hintKey ? <span className="text-xs text-ink-3">{searchHints[hintKey]}</span> : null}
           <FilterChip
             label={t`Period`}
             value={periodValue}
@@ -453,7 +461,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
             <FilterChip label={t`+ Filter`} dashed menu={addMenu} />
           ) : null}
           {filtered ? (
-            <Button type="link" size="small" onClick={clear}>
+            <Button type="link" size="small" onClick={clearFilters}>
               {t`Clear all`}
             </Button>
           ) : null}
@@ -604,7 +612,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
       <div className="py-10">
         {filtered ? (
           <Empty description={t`No results match`}>
-            <Button onClick={clear}>{t`Clear filters`}</Button>
+            <Button onClick={clearFilters}>{t`Clear filters`}</Button>
           </Empty>
         ) : period === 'all' ? (
           <Empty description={t`No audit entries yet`} />
@@ -625,7 +633,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
         pagination={false}
         scroll={{ x: 'max-content' }}
         rowClassName={(entry) =>
-          entry.id === search.id ? 'cursor-pointer bg-primary-50' : 'cursor-pointer'
+          entry.id === search.id ? 'cursor-pointer is-hover' : 'cursor-pointer'
         }
         onRow={(entry) => ({
           onClick: () => openEntry(entry.id),

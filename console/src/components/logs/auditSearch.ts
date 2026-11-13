@@ -84,3 +84,8 @@ export function dayBound(day: Dayjs, edge: 'start' | 'end', timezone?: string): 
   const inZone = timezone ? dayjs.tz(date, timezone) : dayjs(date)
   return (edge === 'start' ? inZone.startOf('day') : inZone.endOf('day')).toISOString()
 }
+
+/** A bound written by `dayBound`, read back as the day it names in the workspace's timezone. */
+export function dayInZone(iso: string, timezone?: string): Dayjs {
+  return timezone ? dayjs(iso).tz(timezone) : dayjs(iso)
+}

@@ -26,7 +26,8 @@ export function searchString(value: unknown): string | undefined {
  */
 export function rawSearchValue(params: URLSearchParams, key: string): string | null {
   const value = params.get(key)
-  if (value === null || value.length < 2 || !value.startsWith('"') || !value.endsWith('"')) return value
+  if (value === null || value.length < 2 || !value.startsWith('"') || !value.endsWith('"'))
+    return value
   try {
     const parsed: unknown = JSON.parse(value)
     return typeof parsed === 'string' ? parsed : value

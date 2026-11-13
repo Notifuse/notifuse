@@ -127,8 +127,8 @@ export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
   const tab = oneOf(LOGS_TABS, search.tab)
   if (tab) out.tab = tab
 
-  // A tab without its own periods (outgoing webhooks) has none; without a tab the page opens the
-  // messages, so theirs apply.
+  // A tab without its own periods (outgoing webhooks) has none. Without a tab, the periods of the
+  // messages apply: the first tab most members open.
   const periods: readonly string[] =
     tab === 'audit' ? AUDIT_PERIODS : tab === 'outgoing-webhooks' ? [] : LIVE_PERIODS
   const period = oneOf(periods as readonly LogsPeriod[], search.period)
@@ -156,6 +156,10 @@ export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
   for (const key of TEXT_KEYS) {
     const value = searchString(search[key])
     if (value !== undefined) out[key] = value
+  }
+  // The bounds of a custom period reach the server as dates, which answers 400 to anything else.
+  for (const key of ['from', 'to'] as const) {
+    if (out[key] !== undefined && Number.isNaN(Date.parse(out[key]))) delete out[key]
   }
   return out
 }

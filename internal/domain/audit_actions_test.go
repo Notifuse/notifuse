@@ -107,7 +107,7 @@ func TestAuditCatalogue_TargetPathsAreWellFormed(t *testing.T) {
 	}
 }
 
-// auditPhrase is one line of the console's AUDIT_PHRASES block: the action and its sentence.
+// auditPhraseLine matches one line of the console's AUDIT_PHRASES block: the action and its sentence.
 var auditPhraseLine = regexp.MustCompile(`^\s*'([A-Za-z]+(?:\.[A-Za-z]+)+)':\s*msg\(\{\s*message:\s*'(.*)'\s*\}\),?$`)
 
 // readConsoleAuditPhrases reads console/src/components/logs/auditPhrases.ts, the sentence the audit
@@ -165,7 +165,7 @@ func TestTheConsoleHasAPhraseForEveryAuditedAction(t *testing.T) {
 		assert.True(t, ok, "the console has a phrase for %s, which the server does not audit", action)
 	}
 
-	// Two actions with two dots in their name, which a one-dot pattern would skip.
+	// Two actions with two dots in their name, whose lines a one-dot pattern would refuse.
 	assert.Contains(t, phrases, "user.oidc.callback")
 	assert.Contains(t, phrases, "user.oidc.exchange")
 }

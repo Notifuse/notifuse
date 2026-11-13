@@ -6,6 +6,7 @@ import {
   auditSearchKey,
   auditSearchShown,
   dayBound,
+  dayInZone,
   hasAuditFilters
 } from './auditSearch'
 
@@ -32,8 +33,11 @@ describe('auditSearchKey', () => {
 })
 
 describe('auditSearchShown', () => {
-  it('shows the first of the three search parameters', () => {
+  it('shows the target, then the actor email, then the IP address', () => {
+    const all = { ip_address: '1.2.3.4', actor_email: 'a@b.co', target_id: 'tpl1' }
+    expect(auditSearchShown(all)).toBe('target_id')
     expect(auditSearchShown({ ip_address: '1.2.3.4', actor_email: 'a@b.co' })).toBe('actor_email')
+    expect(auditSearchShown({ ip_address: '1.2.3.4' })).toBe('ip_address')
     expect(auditSearchShown({})).toBeUndefined()
   })
 })
@@ -107,5 +111,14 @@ describe('dayBound', () => {
     const day = dayjs('2026-11-12')
     expect(dayBound(day, 'start', 'Asia/Tokyo')).toBe('2026-11-11T15:00:00.000Z')
     expect(dayBound(day, 'end', 'Asia/Tokyo')).toBe('2026-11-12T14:59:59.999Z')
+  })
+})
+
+describe('dayInZone', () => {
+  it('reads a bound back as the day it names in the workspace timezone', () => {
+    const start = dayBound(dayjs('2026-11-10'), 'start', 'Asia/Tokyo')
+    const end = dayBound(dayjs('2026-11-10'), 'end', 'America/Los_Angeles')
+    expect(dayInZone(start, 'Asia/Tokyo').format('YYYY-MM-DD')).toBe('2026-11-10')
+    expect(dayInZone(end, 'America/Los_Angeles').format('YYYY-MM-DD')).toBe('2026-11-10')
   })
 })

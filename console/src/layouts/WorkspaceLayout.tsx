@@ -107,9 +107,9 @@ export function WorkspaceLayout() {
     fetchUserPermissions()
   }, [workspaceId, user])
 
-  // Helper function to check if user has access to a resource
   const auditAccess = useAuditLogAccess(workspaceId)
 
+  // Helper function to check if user has access to a resource
   const hasAccess = (resource: keyof UserPermissions): boolean => {
     if (!userPermissions) return false
     // User needs at least read or write permission to access the resource

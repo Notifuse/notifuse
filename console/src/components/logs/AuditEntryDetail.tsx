@@ -66,7 +66,8 @@ export function AuditEntryDetail({
 
   // A2: by id, so a copied link opens the entry even when it is not in the loaded rows.
   const entryQuery = useQuery({
-    queryKey: ['audit-logs', 'entry', scope, id],
+    // The workspace too: the same id asked of another workspace is another answer (a 404).
+    queryKey: ['audit-logs', 'entry', scope, scope === 'workspace' ? workspaceId : null, id],
     queryFn: () => auditLogApi.get(id!, scope, scope === 'workspace' ? workspaceId : undefined),
     enabled: id !== undefined,
     placeholderData: row ? { log: row } : undefined,
