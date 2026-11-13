@@ -50,4 +50,22 @@ describe('useDebouncedUrlValue', () => {
     act(() => vi.advanceTimersByTime(300))
     expect(write).not.toHaveBeenCalled()
   })
+
+  it('writes the pending value at once on flush, and only once', () => {
+    const write = vi.fn()
+    const { result } = renderHook(() => useDebouncedUrlValue('', write))
+    act(() => result.current[1]('launch '))
+    act(() => result.current[2]())
+    expect(write).toHaveBeenCalledTimes(1)
+    expect(write).toHaveBeenCalledWith('launch')
+    act(() => vi.advanceTimersByTime(300))
+    expect(write).toHaveBeenCalledTimes(1)
+  })
+
+  it('writes nothing on flush when nothing is pending', () => {
+    const write = vi.fn()
+    const { result } = renderHook(() => useDebouncedUrlValue('launch', write))
+    act(() => result.current[2]())
+    expect(write).not.toHaveBeenCalled()
+  })
 })

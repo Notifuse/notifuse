@@ -31,6 +31,8 @@ export interface SidePanelProps {
   footer?: ReactNode
   /** The body, when there are no tabs or the active tab has no children. */
   children?: ReactNode
+  /** Changing it starts the body afresh, scrolled to the top, while the panel itself stays (J, K). */
+  bodyKey?: string
 }
 
 /** A 520px panel on the right, over a list that stays readable behind its unblurred mask. */
@@ -45,7 +47,8 @@ export function SidePanel({
   nav,
   copyLink = true,
   footer,
-  children
+  children,
+  bodyKey
 }: SidePanelProps) {
   const headerRef = useRef<HTMLDivElement>(null)
   useDrawerNavKeys({ enabled: open, onPrev: nav?.onPrev, onNext: nav?.onNext, anchorRef: headerRef })
@@ -111,7 +114,7 @@ export function SidePanel({
           />
         </div>
       ) : null}
-      <div data-sidepanel-body className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
+      <div key={bodyKey} data-sidepanel-body className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
         {body}
       </div>
       {footer ? (

@@ -105,6 +105,25 @@ describe('SidePanel', () => {
     expect(onNext).not.toHaveBeenCalled()
   })
 
+  it('starts its body afresh, scrolled to the top, when bodyKey changes, and keeps the panel', () => {
+    const panel = (bodyKey: string) => (
+      <App>
+        <SidePanel open onClose={vi.fn()} title="jane@example.com" bodyKey={bodyKey}>
+          <p>Panel body</p>
+        </SidePanel>
+      </App>
+    )
+    const { rerender } = render(panel('a'))
+    const drawer = document.querySelector('.ant-drawer')
+    const body = document.querySelector<HTMLElement>('[data-sidepanel-body]')!
+    body.scrollTop = 200
+    rerender(panel('b'))
+    expect(document.querySelector('.ant-drawer')).toBe(drawer)
+    const next = document.querySelector<HTMLElement>('[data-sidepanel-body]')!
+    expect(next).not.toBe(body)
+    expect(next.scrollTop).toBe(0)
+  })
+
   it('copies the page URL', async () => {
     const copy = vi.spyOn(clipboard, 'copyToClipboard').mockResolvedValue(true)
     renderPanel()

@@ -185,7 +185,7 @@ test.describe('Protected Pages Load', () => {
     await waitForPageLoad(page)
 
     await expect(page.getByText('Everything sent, received and changed in this workspace')).toBeVisible()
-    await expect(page.getByText('No messages found')).toBeVisible()
+    await expect(page.getByText('Nothing in the last 24 hours')).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)

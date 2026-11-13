@@ -51,16 +51,16 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../hooks/useAuditLogAccess', () => ({
   useAuditLogAccess: () => state.access
 }))
-vi.mock('../components/messages/MessageHistoryTab', () => ({
-  MessageHistoryTab: function FakeMessages() {
+vi.mock('../components/logs/MessagesTab', () => ({
+  MessagesTab: function FakeMessages() {
     useEffect(() => {
       state.mounts.messages += 1
     }, [])
     return <div>messages-tab</div>
   }
 }))
-vi.mock('../components/webhooks/InboundWebhookEventsTab', () => ({
-  InboundWebhookEventsTab: () => <div>inbound-tab</div>
+vi.mock('../components/logs/InboundWebhooksTab', () => ({
+  InboundWebhooksTab: () => <div>inbound-tab</div>
 }))
 vi.mock('../components/logs/OutgoingWebhooksTab', () => ({
   OutgoingWebhooksTab: () => <div>outgoing-tab</div>

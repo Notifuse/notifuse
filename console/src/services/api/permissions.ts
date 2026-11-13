@@ -731,6 +731,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`List sent messages with their recipient address, delivery and engagement timestamps, and the data each was rendered with`,
         },
         {
+          endpoint: "/api/messages.count",
+          action: msg`Count the messages of the same filters, in total and by delivery and engagement status`,
+        },
+        {
           endpoint: "/api/messages.broadcastStats",
           action: msg`Read a broadcast's delivered, open, click, bounce and complaint counts`,
         },

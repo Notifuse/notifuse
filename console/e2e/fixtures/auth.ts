@@ -25,6 +25,7 @@ import {
   mockTransactionalResponse,
   mockEmptyTransactional,
   mockEmptyLogs,
+  mockEmptyMessageCounts,
   mockEmptyFiles,
   mockTotalContacts,
   mockAnalyticsData,
@@ -472,6 +473,9 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     // ============================================
     // LOGS & ANALYTICS (supports both singular and plural API routes)
     // ============================================
+    if (url.includes('/api/messages.count')) {
+      return route.fulfill(jsonResponse(mockEmptyMessageCounts))
+    }
     if (
       url.includes('/api/log.list') ||
       url.includes('/api/logs.list') ||

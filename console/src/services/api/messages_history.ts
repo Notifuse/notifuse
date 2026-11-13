@@ -7,6 +7,9 @@ import { api } from './client'
 export interface ChannelOptions {
   // Email options
   from_name?: string
+  // Set when the send forced them (transactional email_options), as stored, Liquid included.
+  subject?: string
+  subject_preview?: string
   cc?: string[]
   bcc?: string[]
   reply_to?: string
@@ -17,11 +20,21 @@ export interface MessageData {
   metadata?: Record<string, unknown>
 }
 
+export interface MessageAttachment {
+  checksum: string
+  filename: string
+  content_type: string
+  disposition: string
+  content_id?: string
+}
+
 export interface MessageHistory {
   id: string
   external_id?: string
   contact_email: string
   broadcast_id?: string
+  automation_id?: string
+  transactional_notification_id?: string
   list_id?: string
   template_id: string
   template_version: number
@@ -32,6 +45,7 @@ export interface MessageHistory {
   status_info?: string
   message_data: MessageData
   channel_options?: ChannelOptions
+  attachments?: MessageAttachment[]
 
   // Event timestamps
   sent_at: string
@@ -43,16 +57,20 @@ export interface MessageHistory {
   complained_at?: string
   unsubscribed_at?: string
 
+  // Whether the email carried the open pixel and tracked links; absent on messages older than these
+  // fields, which were tracked.
+  opens_tracked?: boolean
+  clicks_tracked?: boolean
+
   // System timestamps
   created_at: string
   updated_at: string
 }
 
-export interface MessageListParams {
-  cursor?: string
-  limit?: number
+/** What sent a message: a broadcast, an automation, a transactional notification, or none of them. */
+export type MessageOrigin = 'broadcast' | 'automation' | 'transactional' | 'other'
 
-  // Filters
+export interface MessageFilterParams {
   id?: string
   external_id?: string
   list_id?: string
@@ -73,18 +91,67 @@ export interface MessageListParams {
   is_bounced?: boolean
   is_complained?: boolean
   is_unsubscribed?: boolean
+  origin?: MessageOrigin
 
-  // Time range filters
+  // Time range filters; created_after and created_before are the indexed ones.
+  created_after?: string
+  created_before?: string
   sent_after?: string
   sent_before?: string
   updated_after?: string
   updated_before?: string
 }
 
+export interface MessageListParams extends MessageFilterParams {
+  cursor?: string
+  limit?: number
+}
+
 export interface MessageListResult {
   messages: MessageHistory[]
   next_cursor?: string
   has_more: boolean
+}
+
+// The filters messages.list and messages.count share.
+const FILTER_KEYS = [
+  'id',
+  'external_id',
+  'list_id',
+  'channel',
+  'contact_email',
+  'broadcast_id',
+  'automation_id',
+  'template_id',
+  'transactional_notification_id',
+  'clicked_url',
+  'is_sent',
+  'is_delivered',
+  'is_failed',
+  'is_opened',
+  'is_clicked',
+  'is_bounced',
+  'is_complained',
+  'is_unsubscribed',
+  'origin',
+  'created_after',
+  'created_before',
+  'sent_after',
+  'sent_before',
+  'updated_after',
+  'updated_before'
+] as const satisfies readonly (keyof MessageFilterParams)[]
+
+function filterQuery(workspaceId: string, params: MessageFilterParams): URLSearchParams {
+  const query = new URLSearchParams()
+  query.append('workspace_id', workspaceId)
+  for (const key of FILTER_KEYS) {
+    const value = params[key]
+    // A false status filter is a filter; an empty text is none.
+    if (typeof value === 'boolean') query.append(key, String(value))
+    else if (value) query.append(key, value)
+  }
+  return query
 }
 
 /**
@@ -94,41 +161,34 @@ export function listMessages(
   workspaceId: string,
   params: MessageListParams
 ): Promise<MessageListResult> {
-  // Convert params object to URLSearchParams for query string
-  const queryParams = new URLSearchParams()
-  queryParams.append('workspace_id', workspaceId)
-
-  // Add all other params that are defined
+  const queryParams = filterQuery(workspaceId, params)
   if (params.cursor) queryParams.append('cursor', params.cursor)
   if (params.limit) queryParams.append('limit', String(params.limit))
-  if (params.id) queryParams.append('id', params.id)
-  if (params.external_id) queryParams.append('external_id', params.external_id)
-  if (params.list_id) queryParams.append('list_id', params.list_id)
-  if (params.channel) queryParams.append('channel', params.channel)
-  if (params.contact_email) queryParams.append('contact_email', params.contact_email)
-  if (params.broadcast_id) queryParams.append('broadcast_id', params.broadcast_id)
-  if (params.automation_id) queryParams.append('automation_id', params.automation_id)
-  if (params.template_id) queryParams.append('template_id', params.template_id)
-  if (params.transactional_notification_id)
-    queryParams.append('transactional_notification_id', params.transactional_notification_id)
-  if (params.clicked_url) queryParams.append('clicked_url', params.clicked_url)
-  if (params.is_sent !== undefined) queryParams.append('is_sent', String(params.is_sent))
-  if (params.is_delivered !== undefined)
-    queryParams.append('is_delivered', String(params.is_delivered))
-  if (params.is_failed !== undefined) queryParams.append('is_failed', String(params.is_failed))
-  if (params.is_opened !== undefined) queryParams.append('is_opened', String(params.is_opened))
-  if (params.is_clicked !== undefined) queryParams.append('is_clicked', String(params.is_clicked))
-  if (params.is_bounced !== undefined) queryParams.append('is_bounced', String(params.is_bounced))
-  if (params.is_complained !== undefined)
-    queryParams.append('is_complained', String(params.is_complained))
-  if (params.is_unsubscribed !== undefined)
-    queryParams.append('is_unsubscribed', String(params.is_unsubscribed))
-  if (params.sent_after) queryParams.append('sent_after', params.sent_after)
-  if (params.sent_before) queryParams.append('sent_before', params.sent_before)
-  if (params.updated_after) queryParams.append('updated_after', params.updated_after)
-  if (params.updated_before) queryParams.append('updated_before', params.updated_before)
-
   return api.get<MessageListResult>(`/api/messages.list?${queryParams.toString()}`)
+}
+
+/** The counts of messages.count; each follows the is_*=true filter of the same name. */
+export interface MessageCounts {
+  total: number
+  delivered: number
+  opened: number
+  clicked: number
+  bounced: number
+  failed: number
+  complained: number
+}
+
+/**
+ * Counts the messages of the same filters as listMessages, in total and by status. The server
+ * refuses (400) a count without created_after and without an indexed filter.
+ */
+export function countMessages(
+  workspaceId: string,
+  params: MessageFilterParams
+): Promise<MessageCounts> {
+  return api.get<MessageCounts>(
+    `/api/messages.count?${filterQuery(workspaceId, params).toString()}`
+  )
 }
 
 /**

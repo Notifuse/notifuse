@@ -65,3 +65,18 @@ export function defaultInboundPeriod(search: LogsSearch): LivePeriod {
 export function defaultAuditPeriod(search: LogsSearch): AuditPeriod {
   return search.target_id !== undefined ? 'all' : '7d'
 }
+
+/**
+ * The longest rolling period whose messages are counted without an indexed filter. On 6 million
+ * messages, 1.5 million of them in the last 30 days, messages.count read the whole table over 30
+ * days: 1 to 2 seconds warm, 2 to 3.4 seconds cold. Over 7 days it took 0.2 to 0.65 seconds.
+ */
+export const COUNT_MAX_PERIOD: LivePeriod = '7d'
+
+const COUNTED_PERIODS: readonly LivePeriod[] = ['1h', '24h', '7d', '30d']
+
+/** Whether the counters of the Messages tab ask for numbers: the server needs a bound. */
+export function canCountMessages(search: LogsSearch, period: LivePeriod): boolean {
+  if (hasIndexedMessageFilter(search)) return true
+  return COUNTED_PERIODS.slice(0, COUNTED_PERIODS.indexOf(COUNT_MAX_PERIOD) + 1).includes(period)
+}

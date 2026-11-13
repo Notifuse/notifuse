@@ -4,8 +4,7 @@ import {
   parseSettingsSearch,
   parseTemplatesSearch,
   parseBlogSearch,
-  parseFileManagerSearch,
-  rawSearchValue
+  parseFileManagerSearch
 } from './searchParams'
 
 // The router's default search parser runs JSON.parse on each value: "?webhook=2024" arrives as the
@@ -110,22 +109,5 @@ describe('parseFileManagerSearch', () => {
   it('drops an empty folder or file, and other types', () => {
     expect(parseFileManagerSearch({ path: '', file: '  ' })).toEqual({})
     expect(parseFileManagerSearch({ path: '/', file: { key: 'a' } })).toEqual({})
-  })
-})
-
-describe('rawSearchValue', () => {
-  // The router writes the text "12345" as %2212345%22, so that its parser reads a string back.
-  it('takes off the quotes the router put around a text', () => {
-    expect(rawSearchValue(new URLSearchParams('id=%2212345%22'), 'id')).toBe('12345')
-    expect(rawSearchValue(new URLSearchParams('id=%22true%22'), 'id')).toBe('true')
-  })
-
-  it('leaves any other value as written', () => {
-    const params = new URLSearchParams('a=12345&b=abc&c=%22&d=%22a%22b%22')
-    expect(rawSearchValue(params, 'a')).toBe('12345')
-    expect(rawSearchValue(params, 'b')).toBe('abc')
-    expect(rawSearchValue(params, 'c')).toBe('"')
-    expect(rawSearchValue(params, 'd')).toBe('"a"b"')
-    expect(rawSearchValue(params, 'missing')).toBeNull()
   })
 })

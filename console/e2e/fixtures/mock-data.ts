@@ -864,6 +864,17 @@ export const mockEmptyLogs = {
   has_more: false
 }
 
+// The messages.count shape (MessageCounts) of an empty workspace.
+export const mockEmptyMessageCounts = {
+  total: 0,
+  delivered: 0,
+  opened: 0,
+  clicked: 0,
+  bounced: 0,
+  failed: 0,
+  complained: 0
+}
+
 // ============================================
 // FILES
 // ============================================

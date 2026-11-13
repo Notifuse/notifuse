@@ -84,8 +84,9 @@ export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
       to="/console/workspace/$workspaceId/logs"
       params={{ workspaceId }}
       // A boolean, which the router writes as is_failed=true; the string 'true' would be written
-      // JSON-quoted and read back as not true.
-      search={{ tab: LOGS_TAB.messages, is_failed: true }}
+      // JSON-quoted and read back as not true. All time: the card lists the latest failures
+      // whatever their date, past the tab's default 24 hours.
+      search={{ tab: LOGS_TAB.messages, is_failed: true, period: 'all' }}
     >
       {t`View in logs`}
     </Link>

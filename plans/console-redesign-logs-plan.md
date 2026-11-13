@@ -126,9 +126,15 @@ webhooks, 104 audit log). This plan implements its console part.
 | `services/api/messages_history.ts` | `MessageHistory` gains `automation_id`, `transactional_notification_id`, `opens_tracked`, `clicks_tracked`, `attachments`; `ChannelOptions` gains `subject`, `subject_preview`; params `origin`, `created_after`, `created_before`; `countMessages` | `messages_history.test.ts`: query string of each new param; `countMessages` URL |
 | `services/api/inbound_webhook_event.ts` | `source`; `reply`, `auto_reply` in `EmailEventType`; `transactional_id`, `broadcast_id` params removed | `inbound_webhook_event.test.ts`: query string |
 | `services/api/permissions.ts` | `/api/messages.count` under Message History read | `permissions.test.ts`: listed under its right |
-| `components/logs/MessagesTab.tsx` (new) | toolbar, counters, table, footer | `MessagesTab.test.tsx`: search mode switches to Email on "@", writes in `replace`, incomplete email neither written nor sent; counter sets its `is_*` and removes the others, `false` included; active counter; M2 gets the filters minus `is_*`, one key across counter clicks; no number on `all` without an indexed filter nor with `external_id` alone; `COUNT_MAX_PERIOD` at `7d` and `30d`; count error "—"; SMTP rule on the Delivered counter; Journey tones and the SMTP tooltip by origin; ids in `Mono` without broadcasts, automations or lists read; Clicked link offered only with a Broadcast; columns taken once from the old key; "Contact erased"; Load more; empty states |
-| `components/logs/MessageDetail.tsx` (new) | `SidePanel`, Events / Sent content / Data | `MessageDetail.test.tsx`: loaded by D1; J and K; not found; Events order, no `sent_at` row, titles and tones; deleted template; template unreadable; contact erased; Open contact disabled without `contacts.read`; Sent by links; forced subject with "Set at send time"; From address; Tracking "On (default)"; HTML / Text / MJML tabs; render failure alert; Data with "No data" |
-| `components/logs/InboundWebhooksTab.tsx` (new) | toolbar, table, `SidePanel` detail (`copyLink={false}`) | `InboundWebhooksTab.test.tsx`: malformed email not sent; Source and Type sent; period sends `timestamp_after`; linked message only for the four delivery types and with `message_history.read`; detail with J/K and raw payload; "No webhook events received yet" with its link |
+| `components/logs/MessagesTab.tsx` (new) | toolbar, counters, table, footer | `MessagesTab.test.tsx`: an email search written in `replace` once complete, never cut short; counter sets its `is_*` and removes the others, `false` included; active counter; M2 gets the filters minus `is_*`, one key across counter clicks; no number on `all` without an indexed filter nor with `external_id` alone; counted up to `7d`, `30d` only with an indexed filter; the period window kept when a counter or a message opens minutes later, moved when a filter changes; count error "—"; SMTP rule on the Delivered counter; Journey tones and the SMTP tooltip by origin; ids in `Mono` without broadcasts, automations or lists read; Clicked link offered only with a Broadcast; copying a message ID does not open it, the ID itself does; Refresh asks once, the window moved or not; the Created column dated from Refresh; columns taken once from the old key; "Contact erased"; Load more; empty states |
+| `components/logs/MessageDetail.tsx` (new) | `SidePanel`, Events / Sent content / Data | `MessageDetail.test.tsx`: loaded by D1; J and K; another message keeps the panel and the focus on Next, with a new body; not found; load error with Retry; template error other than 404; Events order, no `sent_at` row; deleted template; template unreadable; contact erased; Open contact disabled without `contacts.read`; Sent by links; forced subject with "Set at send time"; From address of the provider the message went through (newsletter without `templates.read`, double opt-in, notification with a marketing template, test of another template, first email integration without a transactional provider, none for a notification without it, unknown template); Tracking "On (default)"; HTML / Text / MJML tabs, compiled with the open pixel blanked; render failure alert; Data with "No data"; a message sent in a translation shows its subject, language and sender, and is rendered in it |
+| `components/logs/InboundWebhooksTab.tsx` (new) | toolbar, table, `SidePanel` detail (`copyLink={false}`) | `InboundWebhooksTab.test.tsx`: malformed email not sent; Source and Type sent; period sends `timestamp_after`, none for a recipient; linked message only for the four delivery types and with `message_history.read`; "Bounce · Permanent"; "Contact erased"; detail with J and raw payload; footer count and Load more; the three empty states; error with Retry; a message ID holding "@" searched as such; Refresh asks once |
+| `pages/LogsPage.tsx` | renders the new tabs and passes them the rights it loaded | `LogsPage.test.tsx`: mocks moved to the new tabs |
+| `components/logs/logsSearch.ts` | drops `contact_email` / `recipient_email` that are not a full address, and `clicked_url` without `broadcast_id` (the server answers 400) | `logsSearch.test.ts`: cut-short email dropped, full one kept; clicked link dropped without its newsletter |
+| `components/logs/LogsSearchBox.tsx` (new) | key menu and value, debounced, Enter writes at once | `LogsSearchBox.test.tsx`: email written lower-cased after the pause; incomplete email not written and hinted; switch to Email on "@"; Enter writes at once; identifier case kept; emptied text clears every key; URL key and value shown; key change moves the text; a picked key kept on "@" until the box is emptied, across its own write, while the box holds only spaces (its URL value removed), and when picked before the emptied box was written; forgotten when the URL empties the box or brings another key; a link's value holding "@" keeps its key |
+| `components/layout/SidePanel.tsx` | `bodyKey`: a new body, scrolled to the top, in the same panel | `SidePanel.test.tsx`: same drawer, new body at the top |
+| `components/logs/period.ts` | `COUNT_MAX_PERIOD`, `canCountMessages` | `period.test.ts`: each rolling period up to `7d`, `30d` and `all` only with an indexed filter |
+| `components/logs/messageColumns.ts`, `messageTemplate.ts`, `lib/email.ts` (new) | column choice and its migration; language and translation of a message; the server's email test | `messageColumns.test.ts`, `messageTemplate.test.ts`, `lib/email.test.ts` |
 | `components/analytics/RecentFailures.tsx` | "View in logs" adds `period: 'all'` (one line, declared) | `RecentFailures.test.tsx`: link search has `is_failed` and `period` |
 | `components/logs/logsUrl.ts`, `logsUrl.test.ts` | `buildLogsTabUrl` removed with its test (kept: `LOGS_TAB`) | — |
 | `e2e/protected-pages.spec.ts`, `e2e/fixtures/auth.ts` | "Nothing in the last 24 hours"; `messages.count` route | the test itself |
@@ -147,7 +153,7 @@ npx tsc --noEmit -p tsconfig.app.json
 npm run lint
 npm run lingui:extract
 npm run build
-npx playwright test -c playwright.local.config.ts e2e/protected-pages.spec.ts --trace off
+npx playwright test e2e/protected-pages.spec.ts --trace off   # locally: a config on port 19173
 cd .. && make test-domain   # audit phrases test (L1)
 ```
 
@@ -176,3 +182,109 @@ Reviewed against the spec, #535 and the code. Taken into the plan:
 
 Known, not handled here: `useWorkspacePermissions` does not reset `loading` when the workspace changes
 (review N15); the Logs page reads it as it is.
+
+## PR L2: decisions taken while reading the code (2026-11-13)
+
+L1 is on `dev` (#552). L2 was built on `dev` while #535 was still a draft: it is console code only, and its
+tests mock the API, so it needed nothing from #535's Go code. The PR opened once #535 was on `dev`, since
+`messages.count`, `origin`, `created_after` and `source` answer 400 or are ignored before it.
+
+1. **API shapes, read from #535**: `GET /api/messages.count` takes the filters of `messages.list` and answers
+   `{ total, delivered, opened, clicked, bounced, failed, complained }`. `inboundWebhookEvents.list` takes
+   `source`. A 400 carries the server's message, shown by the error `Result`.
+2. **Message language**: `message_history` has no language column, but `message_data.data.contact.language`
+   is the contact's language at send time. The Language row shows it, and the subject, sender and preview
+   follow the translation the server would have picked (`Template.ResolveEmailContent`: the contact's
+   language, else the workspace default; a translation's empty sender falls back to the template's).
+3. **Attachments** (declared difference): no API returns an attachment's size (`AttachmentMetadata` holds
+   `filename`, `content_type`, `disposition`). The row lists the names, with the content type in `ink-3`.
+4. **Erased contact**: the server writes `DELETED_EMAIL` in `contact_email` (message history) and in
+   `recipient_email` (incoming webhooks), and empties `message_data` and `raw_payload`. Both tabs read that
+   constant.
+5. **`COUNT_MAX_PERIOD` is `7d`**, measured first. `EXPLAIN (ANALYZE, BUFFERS)` of the `messages.count` SQL
+   of #535, on PostgreSQL 16 with 256 MB of shared buffers, 6 million messages (4.6 GB), 1.5 million of
+   them in the last 30 days, rows in creation order: over 30 days the planner reads the whole table, 1.0 s
+   warm and 2.1 s cold with 2 parallel workers, 2.2 s warm and 3.4 s cold without. Over 7 days it reads the
+   creation index, 0.17 to 0.25 s warm and 0.57 to 0.65 s cold. 30 days is over the spec's 2 seconds, so
+   `1h`, `24h` and `7d` count; `30d` and `all` count only with an indexed filter. (#535's 100 to 190 ms was
+   on a table that held only those 30 days.) The result goes in the PR.
+6. **Search** (Messages and Incoming webhooks): `components/logs/LogsSearchBox.tsx` (new), a `Select` of
+   the searched key before an `Input`, built on `useDebouncedUrlValue`. That hook gains a `flush` (third
+   element of its tuple), so Enter writes at once; the audit box keeps its two elements. In Email mode an
+   address is written only when it passes the server's test (`lib/email.ts` if one exists, else the
+   pattern of `message_history.go`), lower-cased; otherwise "Enter a full email address" shows under the
+   field and the URL is left as is. Switching the key moves the typed text to the new key.
+7. **"+ Filter" of Messages**: `TextFilter` moves out of `AuditLogTab.tsx` to `components/logs/TextFilter.tsx`
+   (same props). Status filters are chips with a Yes / No menu. Channel is a menu. List, Broadcast and
+   Automation are a searchable `Select` of the names from N1 to N3, or a `TextFilter` of the id without the
+   read right. Template ID, Transactional notification and Clicked link are a `TextFilter`; Clicked link is
+   offered only while `broadcast_id` is set, and removing the Broadcast removes it.
+8. **Columns**: `MessageColumnsSelector` is kept as it is (the contact sheet uses it). The tab stores under
+   `logs_message_columns`; on first read without that key it maps the old `message_columns_visibility`
+   (`id`, `external_id`, `metadata`, `contact_email` → `recipient`, `template_id` → `template`, `list_id` →
+   `list`, `status_info` → `error`, `created_at` → `created`) and writes the new key at once, so the old
+   choice is taken once. Hidden by default: Message ID, External ID, Metadata, Template, List, Created.
+9. **Provider per row** (SMTP rule): `components/logs/messageProvider.ts` — `rowIsSmtp(message, workspace)`
+   (marketing provider for a newsletter or an automation, transactional for a notification, either for
+   Other) and `countsDeliveries(workspace, origin?)`. Without an origin, the Delivered counter has a number
+   when no provider is set up or when some configured provider is not SMTP (a lone SMTP provider gives
+   "—"); with an origin, when the provider of that kind is not SMTP.
+10. **Message detail**: D1 `['logs', 'message', workspaceId, id]`; D2 reuses the key of the old preview
+    button, `['template', workspaceId, templateId, templateVersion]`; D3 calls `compileTemplatePreview`
+    with `message_data.data`, its `tracking_opens_url` blanked (the stored pixel URL is live and signed,
+    as the web version knows). Declared difference: the preview has its own key,
+    `['message-preview', workspaceId, templateId, version, language, messageId]`, since the template data
+    and the language are the message's; it runs only once "Sent content" is opened. "Sent content" shows
+    a note, then a `Segmented` HTML / Text version / MJML Source with the iframe, the text and the MJML in
+    a `CodeBlock`. Declared difference with `TemplatePreviewDrawer.tsx`: the From row takes the provider
+    the message most likely went through (transactional for a notification; marketing for a newsletter
+    or an automation; for a message of no origin, marketing with a marketing or opt-in template, as a
+    double opt-in confirmation is sent, transactional otherwise, as the test dialog defaults, and the
+    first email integration when that default is not set or no longer exists; an unknown template
+    counts as marketing), then the template's sender, else that provider's default sender. Not
+    recorded on the message, so not shown: the integration and the sender picked in a test dialog (a
+    test goes out from the dialog's sender, never the template's, so the address shown for a test is a
+    guess), an automation email node's own integration, a newsletter variation's sender, a `sender_id`
+    passed to a transactional send. J and K
+    keep the panel mounted (with the row as placeholder) and the focus on its header buttons, and start
+    its body afresh (`SidePanel`'s new `bodyKey`), back on Events and scrolled to the top.
+11. **Sent by links**: `broadcasts?broadcast={id}`, `automations?automation={id}`,
+    `transactional-notifications?notification={id}` (each route's parser already reads that key).
+12. **Refresh** moves the tab's clock to now (it also dates the Created column). When the window stays
+    the same (all time, or the same minute) it resets `['logs', 'messages', workspaceId]` and
+    `['logs', 'messages-count', workspaceId]`, or `['logs', 'inbound', workspaceId]`; otherwise the moved
+    window is a new key, fetched once. (The audit tab still does both, so it fetches twice when the
+    minute changed: known, not handled here.)
+13. **Removed with the old tabs**: `buildLogsTabUrl` and its test (no other caller), `rawSearchValue` and
+    its test (no caller left); `LOGS_TAB` stays.
+14. **Rights**: `LogsPage` already loads the member's rights; it passes them to both tabs as a prop, which
+    gate N1 to N3, the links to messages, Open contact and the Sent content.
+15. **Period clock** (Messages): the clock key leaves out `message` and every `is_*`, so opening a message
+    or clicking a counter keeps the list and the counts on the same window; any other filter moves it.
+16. **Search delay**: 300 ms, the delay of the audit search (`useDebouncedUrlValue`).
+17. **Declared differences**: "Clear filters" keeps the period, as the audit tab does (the spec keeps only
+    `tab`). The counters' tooltip, when they cannot count, says counts cover 7 days at most and names the
+    indexed filters. A key the member picked in the search menu stays when the text holds an "@" (a
+    reply's Message-ID, an external ID), until the box is emptied, by the member or by the URL (Clear
+    filters, Back); a key the URL brings is not a pick. Otherwise a newly typed "@" switches to Email (a
+    link's value that already holds one keeps its key). A
+    `clicked_url` without `broadcast_id` is dropped by `parseLogsSearch`, since the server answers 400.
+18. **Footer total**: "{n} of {total} messages" takes the count of the active counter (`total` for All);
+    with no count (period not counted, several flags), "{n} messages".
+
+Test files added beyond the table above: `TextFilter.test.tsx` (Enter and Apply), `messageProvider.test.ts` (each origin, both SMTP, origin filter), `useDebouncedUrlValue.test.tsx`
+(flush writes at once and cancels the pending write).
+
+### L2 verification
+
+```bash
+cd console
+npx vitest run src/components/logs src/lib src/services/api src/pages/LogsPage.test.tsx \
+  src/components/analytics/RecentFailures.test.tsx
+npx vitest run --maxWorkers=3
+npx tsc --noEmit -p tsconfig.app.json
+npm run lint
+npm run lingui:extract
+NODE_OPTIONS=--max-old-space-size=6144 npm run build
+npx playwright test e2e/protected-pages.spec.ts --trace off   # locally: a config on port 19173
+```

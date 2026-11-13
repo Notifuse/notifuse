@@ -153,4 +153,19 @@ describe('parseLogsSearch', () => {
       from: '2028-02-29T23:59:59.999Z'
     })
   })
+
+  it('drops an email filter that is not a full address, which the server would refuse', () => {
+    expect(parseLogsSearch({ contact_email: 'ann@', recipient_email: 'bob' })).toEqual({})
+    expect(
+      parseLogsSearch({ contact_email: 'ann@example.com', recipient_email: 'Bob@Example.com' })
+    ).toEqual({ contact_email: 'ann@example.com', recipient_email: 'Bob@Example.com' })
+  })
+
+  it('drops a clicked link without its newsletter, which the server would refuse', () => {
+    expect(parseLogsSearch({ clicked_url: 'https://x.io' })).toEqual({})
+    expect(parseLogsSearch({ clicked_url: 'https://x.io', broadcast_id: 'b1' })).toEqual({
+      clicked_url: 'https://x.io',
+      broadcast_id: 'b1'
+    })
+  })
 })

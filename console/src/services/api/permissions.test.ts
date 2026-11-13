@@ -253,3 +253,10 @@ describe('automations catalogue', () => {
     expect(endpoints).toContain('/api/automations.nodeStats')
   })
 })
+
+describe('message history catalogue', () => {
+  it('lists the message counts under read', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.message_history.read.endpoints.map((e) => e.endpoint)
+    expect(endpoints).toContain('/api/messages.count')
+  })
+})
