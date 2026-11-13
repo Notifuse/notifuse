@@ -125,11 +125,12 @@ func TestAutomationClaim(t *testing.T) {
 		require.NoError(t, err)
 		return emails
 	}
-	activeJourneys := func(t *testing.T, automationID string) int {
+	// Safe to call from the executors' goroutines: it reports, it does not stop the test.
+	activeJourneys := func(automationID string) (int, error) {
 		var count int
-		require.NoError(t, db.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM contact_automations WHERE automation_id = $1 AND status = 'active'`, automationID).Scan(&count))
-		return count
+		err := db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM contact_automations WHERE automation_id = $1 AND status = 'active'`, automationID).Scan(&count)
+		return count, err
 	}
 
 	t.Run("two instances on one backlog run each journey once", func(t *testing.T) {
@@ -159,7 +160,11 @@ func TestAutomationClaim(t *testing.T) {
 		runCtx, cancel := context.WithTimeout(ctx, 90*time.Second)
 		defer cancel()
 		run := func(executor *service.AutomationExecutor) {
-			for runCtx.Err() == nil && activeJourneys(t, automationID) > 0 {
+			for runCtx.Err() == nil {
+				active, err := activeJourneys(automationID)
+				if !assert.NoError(t, err) || active == 0 {
+					return
+				}
 				processed, err := executor.ProcessBatch(runCtx, 50)
 				assert.NoError(t, err)
 				if processed == 0 {
@@ -181,7 +186,9 @@ func TestAutomationClaim(t *testing.T) {
 			run(newExecutor())
 		}()
 		wg.Wait()
-		require.Equal(t, 0, activeJourneys(t, automationID), "every journey ran to its end")
+		active, err := activeJourneys(automationID)
+		require.NoError(t, err)
+		require.Equal(t, 0, active, "every journey ran to its end")
 
 		mu.Lock()
 		defer mu.Unlock()
@@ -227,7 +234,7 @@ func TestAutomationClaim(t *testing.T) {
 				assert.True(t, ca.ScheduledAt.After(time.Now().Add(lease/2)), "the claim moves scheduled_at ahead")
 			}
 		}
-		assert.Len(t, seen, 60, "between them, every due journey (50 + 10)")
+		assert.Len(t, seen, 60, "between them, every due journey")
 		assert.Equal(t, 0, func() int {
 			var due int
 			require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM contact_automations

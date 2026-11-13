@@ -30,28 +30,29 @@ WITH picked AS (
     SELECT ca.id, ca.scheduled_at AS due_at
     FROM contact_automations ca
     JOIN automations a ON ca.automation_id = a.id
-    WHERE ca.status = 'active' AND ca.scheduled_at <= $1
+    WHERE ca.status = 'active' AND ca.scheduled_at <= NOW()
       AND a.status = 'live' AND a.deleted_at IS NULL
     ORDER BY ca.scheduled_at ASC
-    LIMIT $2
+    LIMIT $1
     FOR UPDATE OF ca SKIP LOCKED
 ), claimed AS (
     UPDATE contact_automations ca
-    SET scheduled_at = NOW() + $3 * INTERVAL '1 millisecond'
+    SET scheduled_at = NOW() + $2 * INTERVAL '1 millisecond'
     FROM picked
     WHERE ca.id = picked.id
     RETURNING ca.id, ca.automation_id, ca.contact_email, ca.current_node_id, ca.status,
               ca.exit_reason, ca.entered_at, ca.scheduled_at, ca.context, ca.retry_count, ca.last_error,
               ca.last_retry_at, ca.max_retries, picked.due_at
 )
-SELECT * FROM claimed ORDER BY due_at ASC
+SELECT id, automation_id, contact_email, current_node_id, status, exit_reason, entered_at,
+       scheduled_at, context, retry_count, last_error, last_retry_at, max_retries
+FROM claimed ORDER BY due_at ASC
 ```
 
 - The data-modifying CTE runs in one statement, so the lock lasts until the update is done.
 - Another instance's `SELECT … scheduled_at <= now` no longer sees a claimed row, and `SKIP LOCKED` skips
   a row that is being claimed.
-- Signature: `ClaimScheduledContactAutomations(ctx, workspaceID, before time.Time, limit int,
-  lease time.Duration)`, renamed from `GetScheduledContactAutomations` because it now writes. The same
+- Signature: `ClaimScheduledContactAutomations(ctx, workspaceID, limit int, lease time.Duration)`, renamed from `GetScheduledContactAutomations` because it now writes. The same
   rename applies to the global variant (`ClaimScheduledContactAutomationsGlobal`), which keeps its
   round-robin.
 - The rows come back with `ScheduledAt` set to the claim (`NOW() + lease`). That value is the **claim
@@ -68,7 +69,6 @@ journey, `ProcessBatch` renews its claim with a compare-and-set on the token:
 ```sql
 UPDATE contact_automations SET scheduled_at = NOW() + $3 * INTERVAL '1 millisecond'
 WHERE id = $1 AND status = 'active' AND scheduled_at = $2
-RETURNING scheduled_at
 ```
 
 - New repository method `RenewContactAutomationClaim(ctx, workspaceID, id string, token time.Time,
@@ -100,11 +100,11 @@ RETURNING scheduled_at
 - `ClaimScheduledContactAutomations`:
   - the statement has the `FOR UPDATE OF ca SKIP LOCKED`, the `UPDATE … SET scheduled_at` and the
     `RETURNING`;
-  - its args are before, limit and lease in ms;
+  - its args are limit and lease in ms;
   - the rows are scanned, `ScheduledAt` holds the claim;
   - empty result, scan error and query error are covered.
 - The global variant keeps its round-robin tests, renamed.
-- `RenewContactAutomationClaim`: true on one row, false on no row (`sql.ErrNoRows`), and an error is
+- `RenewContactAutomationClaim`: true when one row is updated, false when none is, and an error is
   wrapped.
 
 ### Executor, gomock: `internal/service/automation_executor_test.go`, `automation_scheduler_test.go`
@@ -157,6 +157,9 @@ now runs on one instance at a time."
 
 ## Plan review (Opus xhigh) and corrections
 
+(The sections above were updated to the reviewed version: the database clock, no `before` argument, the
+listed columns, and a renewal that counts the rows it updated.)
+
 The approach holds. Two blocking points, both corrected:
 
 1. **The global variant trimmed the rows it fetched** (`perWorkspace = limit/len+1`, then cut to
@@ -188,6 +191,14 @@ Non-blocking points taken:
 - The `updated_at` remark goes: `contact_automations` has no such column and no triggers.
 
 Known, not handled:
+- **A graceful shutdown leaves the claims of the journeys it had not run yet.** They wait out the lease
+  (5 min at most) before another instance takes them.
+- **Clocks.** The claim and its renewal use the database clock; the in-tick lease that `Execute` writes
+  still uses the app's clock, as today. A large skew shortens or lengthens that lease, not the claim.
+- **Log noise.** A workspace whose claim keeps failing logs one error per tick.
+- **Write load.** Each tick now writes every claimed row once, and each journey once more on renewal.
+- **A poison row.** A journey whose run always fails before persisting stays claimed and is retried every
+  5 min, instead of every tick.
 - **A step or a stall running past the 5-min lease.** `UpdateContactAutomationIfActive` checks only the
   status. If one journey's run stalls past the lease (GC, waiting on the pool or on a lock), another
   instance can re-claim it, and the first one's later persist overwrites the second's state. Webhooks

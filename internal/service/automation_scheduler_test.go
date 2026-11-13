@@ -316,7 +316,7 @@ func TestAutomationScheduler_ProcessBatchError(t *testing.T) {
 
 	scheduler := NewAutomationScheduler(executor, mockLogger, 50*time.Millisecond, 50)
 
-	// Return error from GetScheduledContactAutomationsGlobal
+	// Return error from ClaimScheduledContactAutomationsGlobal
 	mockAutomationRepo.EXPECT().
 		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
 		Return(nil, assert.AnError).
