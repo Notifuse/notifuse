@@ -67,8 +67,8 @@ func TestGapBuildRecipientFeedContactNulls(t *testing.T) {
 	assert.Nil(t, got.CustomJSON1, "unset JSON fields stay nil")
 }
 
-// TestGapNullableTimeScan pins the scanner contract: []byte timestamps from
-// drivers, invalid bytes error, unsupported Go types name the type, and Value
+// TestGapNullableTimeScan pins the scanner contract: NULL, time.Time and []byte
+// timestamps from drivers scan, unsupported Go types name the type, and Value
 // round-trips NULL.
 func TestGapNullableTimeScan(t *testing.T) {
 	var nt NullableTime
@@ -83,9 +83,10 @@ func TestGapNullableTimeScan(t *testing.T) {
 	assert.Equal(t, stamp, nt.Time)
 
 	// A timestamp read as text is parsed; a zoneless one is UTC.
-	require.NoError(t, nt.Scan([]byte("2026-03-04 05:06:07")))
-	assert.False(t, nt.IsNull)
-	assert.True(t, stamp.Equal(nt.Time))
+	fromText := NullableTime{IsNull: true}
+	require.NoError(t, fromText.Scan([]byte("2026-03-04 05:06:07")))
+	assert.False(t, fromText.IsNull)
+	assert.True(t, stamp.Equal(fromText.Time), "got %s", fromText.Time)
 	err := nt.Scan(12345)
 	require.EqualError(t, err, "cannot scan int into NullableTime")
 

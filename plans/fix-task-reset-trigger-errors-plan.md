@@ -23,9 +23,8 @@ No schema change, no migration, no environment variable.
 
 `GetTx` returns `domain.ErrTaskNotFound` for `sql.ErrNoRows`, and `MarkAsPendingTx`
 returns it when no row is updated, instead of `fmt.Errorf("task not found")`. The text is
-the same ("task not found"), so the callers that match the string (the `GetTask` handler,
-`authorizeExistingTask`, the `ExecuteTask` handler, `MarkAsFailedTx`, the orchestrator)
-behave as before; callers can now use `errors.Is`. `Get` goes through `GetTx` inside
+the same ("task not found"), so the callers that match the string (the `GetTask` handler, `authorizeExistingTask`)
+or carry it on (the `ExecuteTask` handler, `MarkAsFailedTx`, the orchestrator) behave as before; callers can now use `errors.Is`. `Get` goes through `GetTx` inside
 `WithTransaction`, which returns the callback's error unwrapped. The `MarkAsPendingTx`
 change keeps a task deleted between reset's read and its write a 404 rather than a 500,
 and makes the "recurring task deleted during execution" branch of `ExecuteTask`
@@ -83,7 +82,8 @@ PostgreSQL's text output with a numeric zone (`2006-01-02 15:04:05.999999999-07:
 `-07`), without zone, and a bare date. A zoneless value is read as UTC, as lib/pq does and
 as the `TIMESTAMP` columns are written. Text that matches none is an error naming the
 text. Refused on purpose, since a `time.Time` cannot hold them or Go cannot parse them:
-`infinity`, BC dates, years above 9999 and historic second-level offsets.
+`infinity` (a `time.Time` cannot hold it), BC dates, years above 9999 and historic
+second-level offsets (`time.Parse` does not read them). A refused text leaves the value as it was.
 
 No production code scans into `NullableTime` today (contacts go through `sql.NullTime`,
 and lib/pq decodes timestamps to `time.Time` itself), so the change is not visible with the
@@ -92,7 +92,7 @@ shipped driver.
 Test files: `internal/domain/nullable_time_text_test.go` (each layout as `[]byte` and as
 `string` → the expected instant, compared with `Equal`; `invalid`, `2026-13-45`, empty,
 `infinity`, a BC date → error), `internal/domain/feed_nullable_gap_test.go` (its `[]byte`
-case pinned the old failure; it now pins the parsed instant), `internal/domain/nullables_test.go`
+case pinned the old failure; it now scans into a fresh NULL value and pins the parsed instant), `internal/domain/nullables_test.go`
 (the string case is renamed "scan text that is not a time").
 
 ### `CHANGELOG.md`

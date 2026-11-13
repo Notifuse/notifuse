@@ -216,7 +216,9 @@ var timestampTextLayouts = []string{
 }
 
 // scanText reads a timestamp given as text. Text in none of the layouts is refused,
-// infinity and BC dates included: a time.Time cannot hold them.
+// and the value is left as it was. That includes infinity, which a time.Time cannot
+// hold, and BC dates, years above 9999 and second-level offsets, which time.Parse
+// does not read.
 func (nt *NullableTime) scanText(text string) error {
 	for _, layout := range timestampTextLayouts {
 		if t, err := time.Parse(layout, text); err == nil {
