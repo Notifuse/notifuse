@@ -52,7 +52,7 @@ func TestAutomationScheduler_StartStop(t *testing.T) {
 
 	// Expect at least one batch processing call
 	mockAutomationRepo.EXPECT().
-		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
+		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
 		Return([]*domain.ContactAutomationWithWorkspace{}, nil).
 		AnyTimes()
 
@@ -87,7 +87,7 @@ func TestAutomationScheduler_Start_AlreadyRunning(t *testing.T) {
 	scheduler := NewAutomationScheduler(executor, mockLogger, 1*time.Second, 50)
 
 	mockAutomationRepo.EXPECT().
-		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
+		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
 		Return([]*domain.ContactAutomationWithWorkspace{}, nil).
 		AnyTimes()
 
@@ -141,7 +141,7 @@ func TestAutomationScheduler_ContextCancellation(t *testing.T) {
 	scheduler := NewAutomationScheduler(executor, mockLogger, 1*time.Second, 50)
 
 	mockAutomationRepo.EXPECT().
-		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
+		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
 		Return([]*domain.ContactAutomationWithWorkspace{}, nil).
 		AnyTimes()
 
@@ -175,7 +175,7 @@ func TestAutomationScheduler_IsRunning(t *testing.T) {
 	scheduler := NewAutomationScheduler(executor, mockLogger, 1*time.Second, 50)
 
 	mockAutomationRepo.EXPECT().
-		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
+		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
 		Return([]*domain.ContactAutomationWithWorkspace{}, nil).
 		AnyTimes()
 
@@ -221,6 +221,7 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 	var mu sync.Mutex
 
 	nodeID := "terminal_node"
+	claim := time.Now().UTC().Add(inTickResumeLease) // the claim token
 	contacts := []*domain.ContactAutomationWithWorkspace{
 		{
 			WorkspaceID: "ws1",
@@ -230,6 +231,9 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 				ContactEmail:  "test@example.com",
 				CurrentNodeID: &nodeID,
 				Status:        domain.ContactAutomationStatusActive,
+				// The same journey is returned by two ticks, and running it moves its
+				// ScheduledAt on, so the renewal below takes any token.
+				ScheduledAt: &claim,
 			},
 		},
 	}
@@ -256,8 +260,8 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 
 	// Setup mock to track calls and return empty after first few
 	mockAutomationRepo.EXPECT().
-		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
-		DoAndReturn(func(ctx context.Context, beforeTime time.Time, limit int) ([]*domain.ContactAutomationWithWorkspace, error) {
+		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
+		DoAndReturn(func(ctx context.Context, limit int, lease time.Duration) ([]*domain.ContactAutomationWithWorkspace, error) {
 			mu.Lock()
 			defer mu.Unlock()
 			callCount++
@@ -268,6 +272,7 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 		}).AnyTimes()
 
 	// Setup expectations for processing contacts
+	mockAutomationRepo.EXPECT().RenewContactAutomationClaim(gomock.Any(), "ws1", "ca1", gomock.Any(), inTickResumeLease).Return(true, nil).AnyTimes()
 	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), "ws1", "auto1").Return(automation, nil).AnyTimes()
 	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), "ws1", "test@example.com").Return(contact, nil).AnyTimes()
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), "ws1", gomock.Any()).Return(nil).AnyTimes()
@@ -313,7 +318,7 @@ func TestAutomationScheduler_ProcessBatchError(t *testing.T) {
 
 	// Return error from GetScheduledContactAutomationsGlobal
 	mockAutomationRepo.EXPECT().
-		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
+		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
 		Return(nil, assert.AnError).
 		AnyTimes()
 
@@ -349,7 +354,7 @@ func TestAutomationScheduler_ConcurrentSafety(t *testing.T) {
 	scheduler := NewAutomationScheduler(executor, mockLogger, 50*time.Millisecond, 50)
 
 	mockAutomationRepo.EXPECT().
-		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
+		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
 		Return([]*domain.ContactAutomationWithWorkspace{}, nil).
 		AnyTimes()
 
@@ -396,8 +401,8 @@ func TestAutomationScheduler_PausedAutomationsNotProcessed(t *testing.T) {
 	// Mock returns empty slice - simulating that paused automation contacts are filtered out
 	// by the SQL query's `a.status = 'live'` condition
 	mockAutomationRepo.EXPECT().
-		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
-		DoAndReturn(func(ctx context.Context, beforeTime time.Time, limit int) ([]*domain.ContactAutomationWithWorkspace, error) {
+		ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
+		DoAndReturn(func(ctx context.Context, limit int, lease time.Duration) ([]*domain.ContactAutomationWithWorkspace, error) {
 			mu.Lock()
 			defer mu.Unlock()
 			callCount++

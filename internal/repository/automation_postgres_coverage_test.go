@@ -164,9 +164,10 @@ var scheduledCols = []string{
 	"last_error", "last_retry_at", "max_retries",
 }
 
-func TestAutomationRepository_GetScheduledContactAutomationsGlobal(t *testing.T) {
+func TestAutomationRepository_ClaimScheduledContactAutomationsGlobal(t *testing.T) {
 	ctx := context.Background()
-	before := time.Now().UTC()
+	const lease = 5 * time.Minute
+	leaseMs := lease.Milliseconds()
 
 	newGlobalRepo := func(t *testing.T, wsRepo *mocks.MockWorkspaceRepository) (sqlmock.Sqlmock, *AutomationRepository) {
 		db, mock, err := sqlmock.New()
@@ -181,7 +182,7 @@ func TestAutomationRepository_GetScheduledContactAutomationsGlobal(t *testing.T)
 
 	t.Run("a missing workspace repository is an explicit error", func(t *testing.T) {
 		_, _, repo := setupAutomationMock(t) // db-only repo: workspaceRepo is nil
-		_, err := repo.GetScheduledContactAutomationsGlobal(ctx, before, 10)
+		_, err := repo.ClaimScheduledContactAutomationsGlobal(ctx, 10, lease)
 		require.EqualError(t, err, "workspace repository is required for global scheduling")
 	})
 
@@ -191,7 +192,7 @@ func TestAutomationRepository_GetScheduledContactAutomationsGlobal(t *testing.T)
 		_, repo := newGlobalRepo(t, wsRepo)
 		sentinel := errors.New("cannot list workspaces")
 		wsRepo.EXPECT().List(gomock.Any()).Return(nil, sentinel).Times(1)
-		_, err := repo.GetScheduledContactAutomationsGlobal(ctx, before, 10)
+		_, err := repo.ClaimScheduledContactAutomationsGlobal(ctx, 10, lease)
 		require.ErrorContains(t, err, "failed to get workspaces:")
 		assert.ErrorIs(t, err, sentinel)
 	})
@@ -201,34 +202,48 @@ func TestAutomationRepository_GetScheduledContactAutomationsGlobal(t *testing.T)
 		wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		_, repo := newGlobalRepo(t, wsRepo)
 		wsRepo.EXPECT().List(gomock.Any()).Return(nil, nil).Times(1)
-		got, err := repo.GetScheduledContactAutomationsGlobal(ctx, before, 10)
+		got, err := repo.ClaimScheduledContactAutomationsGlobal(ctx, 10, lease)
 		require.NoError(t, err)
 		assert.Nil(t, got)
 	})
 
-	t.Run("round-robin trims to the limit and tags each row with its workspace", func(t *testing.T) {
+	t.Run("one workspace is asked for the whole batch, not one more", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mock, repo := newGlobalRepo(t, wsRepo)
+		wsRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{{ID: "ws-a"}}, nil).Times(1)
+
+		mock.ExpectQuery(regexp.QuoteMeta("FROM contact_automations")).
+			WithArgs(50, leaseMs).
+			WillReturnRows(sqlmock.NewRows(scheduledCols))
+
+		_, err := repo.ClaimScheduledContactAutomationsGlobal(ctx, 50, lease)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("round-robin asks each workspace only for the room left, and tags each row", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mock, repo := newGlobalRepo(t, wsRepo)
 		wsRepo.EXPECT().List(gomock.Any()).Return([]*domain.Workspace{
-			{ID: "ws-a"}, {ID: "ws-b"},
+			{ID: "ws-a"}, {ID: "ws-b"}, {ID: "ws-c"},
 		}, nil).Times(1)
 
-		// limit=3 over 2 workspaces -> perWorkspace = 3/2+1 = 2 from each;
-		// the combined 4 must be trimmed to 3, ws-a first (list order).
+		// limit=3 over 3 workspaces -> a share of 3/3+1 = 2. ws-a fills 2, so ws-b is asked
+		// for the 1 left and ws-c for nothing: no claimed journey is left out of the batch.
 		entered := time.Now().UTC()
 		mock.ExpectQuery(regexp.QuoteMeta("FROM contact_automations")).
-			WithArgs(before, 2).
+			WithArgs(2, leaseMs).
 			WillReturnRows(sqlmock.NewRows(scheduledCols).
 				AddRow(scheduledRow("ca-1", "a1@example.com", entered)...).
 				AddRow(scheduledRow("ca-2", "a2@example.com", entered)...))
 		mock.ExpectQuery(regexp.QuoteMeta("FROM contact_automations")).
-			WithArgs(before, 2).
+			WithArgs(1, leaseMs).
 			WillReturnRows(sqlmock.NewRows(scheduledCols).
-				AddRow(scheduledRow("ca-3", "b1@example.com", entered)...).
-				AddRow(scheduledRow("ca-4", "b2@example.com", entered)...))
+				AddRow(scheduledRow("ca-3", "b1@example.com", entered)...))
 
-		got, err := repo.GetScheduledContactAutomationsGlobal(ctx, before, 3)
+		got, err := repo.ClaimScheduledContactAutomationsGlobal(ctx, 3, lease)
 		require.NoError(t, err)
 		require.Len(t, got, 3)
 		assert.Equal(t, "ws-a", got[0].WorkspaceID)
@@ -239,7 +254,7 @@ func TestAutomationRepository_GetScheduledContactAutomationsGlobal(t *testing.T)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("a failing workspace is skipped, the others still contribute", func(t *testing.T) {
+	t.Run("a failing workspace is skipped and its error returned with the others' journeys", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mock, repo := newGlobalRepo(t, wsRepo)
@@ -254,9 +269,11 @@ func TestAutomationRepository_GetScheduledContactAutomationsGlobal(t *testing.T)
 			WillReturnRows(sqlmock.NewRows(scheduledCols).
 				AddRow(scheduledRow("ca-9", "g1@example.com", entered)...))
 
-		got, err := repo.GetScheduledContactAutomationsGlobal(ctx, before, 10)
-		require.NoError(t, err, "one bad workspace must not starve the scheduler")
-		require.Len(t, got, 1)
+		got, err := repo.ClaimScheduledContactAutomationsGlobal(ctx, 10, lease)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace ws-bad")
+		assert.Contains(t, err.Error(), "workspace db down")
+		require.Len(t, got, 1, "one bad workspace must not starve the scheduler")
 		assert.Equal(t, "ws-good", got[0].WorkspaceID)
 		assert.Equal(t, "g1@example.com", got[0].ContactEmail)
 	})
