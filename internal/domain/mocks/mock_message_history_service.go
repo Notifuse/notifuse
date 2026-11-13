@@ -35,6 +35,21 @@ func (m *MockMessageHistoryService) EXPECT() *MockMessageHistoryServiceMockRecor
 	return m.recorder
 }
 
+// CountMessages mocks base method.
+func (m *MockMessageHistoryService) CountMessages(arg0 context.Context, arg1 string, arg2 domain.MessageFilter) (*domain.MessageCounts, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountMessages", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*domain.MessageCounts)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountMessages indicates an expected call of CountMessages.
+func (mr *MockMessageHistoryServiceMockRecorder) CountMessages(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountMessages", reflect.TypeOf((*MockMessageHistoryService)(nil).CountMessages), arg0, arg1, arg2)
+}
+
 // GetBroadcastLinkStats mocks base method.
 func (m *MockMessageHistoryService) GetBroadcastLinkStats(arg0 context.Context, arg1, arg2, arg3 string) ([]domain.LinkClickStats, error) {
 	m.ctrl.T.Helper()

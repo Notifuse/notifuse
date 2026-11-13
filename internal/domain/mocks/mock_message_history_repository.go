@@ -36,6 +36,21 @@ func (m *MockMessageHistoryRepository) EXPECT() *MockMessageHistoryRepositoryMoc
 	return m.recorder
 }
 
+// CountMessages mocks base method.
+func (m *MockMessageHistoryRepository) CountMessages(arg0 context.Context, arg1 string, arg2 domain.MessageFilter) (*domain.MessageCounts, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountMessages", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*domain.MessageCounts)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountMessages indicates an expected call of CountMessages.
+func (mr *MockMessageHistoryRepositoryMockRecorder) CountMessages(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountMessages", reflect.TypeOf((*MockMessageHistoryRepository)(nil).CountMessages), arg0, arg1, arg2)
+}
+
 // Create mocks base method.
 func (m *MockMessageHistoryRepository) Create(arg0 context.Context, arg1, arg2 string, arg3 *domain.MessageHistory) error {
 	m.ctrl.T.Helper()
