@@ -26,6 +26,11 @@ INSERT, the UPDATE, `scanBroadcast`). So the API always returns 0 and every real
   before each write: inside the `handleTestPhaseCompletion` transaction (before `UpdateBroadcastTx`) and in
   the final block next to `broadcast.EnqueuedCount = …` (before `UpdateBroadcast`). The final save also
   repairs a copy `SelectWinner` wrote with 0. A single-template broadcast keeps 0.
+- The stored counts are what each phase sent, not the planned split: a winner picked before the sample went
+  out, or during the test, cuts the test short. The task state records the offset at which the winner
+  phase began (`WinnerPhaseStartOffset`, JSON in the task state, no schema change), set once by every
+  switch to the winner phase; in the winner phase the test count is that offset and the winner count the
+  rest. A state saved before the field existed keeps the planned split. (Found by the code review.)
 - Repository: write both columns in `CreateBroadcastTx` and `UpdateBroadcastTx`, read them in
   `broadcastListColumns`, `getBroadcastQuery` (used by `GetBroadcast` / `getBroadcastTx`) and
   `scanBroadcast` (appended at the end as `COALESCE(…, 0)`, the columns being nullable; order kept in
@@ -47,6 +52,8 @@ INSERT, the UPDATE, `scanBroadcast`). So the API always returns 0 and every real
   copy on every call, so the in-loop refresh behaves as in production:
   - the broadcast written by `UpdateBroadcastTx` at test completion carries test 2 / winner 2;
   - the broadcast written by the final `UpdateBroadcast` of the winner phase carries 2 / 2;
+  - a winner picked before any test email: written with 0 / 4, and the saved state keeps start offset 0;
+  - a winner picked after the first test email (batches of one): written with 1 / 3;
   - a single-template broadcast is written with 0 / 0.
 - `tests/integration/broadcast_ab_testing_e2e_test.go`, "should complete full A/B testing workflow": after
   waiting for status `processed` (not `winner_selected`, which can come before the final save),

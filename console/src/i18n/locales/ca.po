@@ -1553,7 +1553,7 @@ msgstr "Afegir {name}"
 
 #: src/components/settings/Integrations.tsx:145
 msgid "Add {name} integration"
-msgstr "Afegir la integració de {name}"
+msgstr "Afegir la integració amb {name}"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:524
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:730
@@ -6916,7 +6916,7 @@ msgstr "Editar la traducció {0}"
 
 #: src/components/settings/Integrations.tsx:145
 msgid "Edit {name} integration"
-msgstr "Editar la integració de {name}"
+msgstr "Editar la integració amb {name}"
 
 #: src/services/api/permissions.ts:567
 msgid "Edit a broadcast, including its audience and templates"
