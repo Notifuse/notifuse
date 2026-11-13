@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { PlayCircleOutlined, StopOutlined, SyncOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { webAnalyticsService } from '../../../services/api/web_analytics'
+import { useNumberFormat } from '../../layout'
 
 const { Text } = Typography
 
@@ -23,6 +24,7 @@ export const BACKFILL_QUERY_KEY = 'web-analytics-backfill'
  */
 export function BackfillStatus(props: BackfillStatusProps) {
   const { t } = useLingui()
+  const { int } = useNumberFormat()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const { workspaceId, filtersVersion, hasRules } = props
@@ -101,7 +103,7 @@ export function BackfillStatus(props: BackfillStatusProps) {
               {partitionTotal > 0 ? (
                 <span>{t`Partition ${state.partition_index} of ${partitionTotal}`}</span>
               ) : null}
-              <span>{t`${state.rows_updated.toLocaleString()} rows rewritten`}</span>
+              <span>{t`${int(state.rows_updated)} rows rewritten`}</span>
             </Space>
           </div>
         ) : null}

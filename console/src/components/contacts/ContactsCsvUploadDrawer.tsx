@@ -29,6 +29,7 @@ import { List } from '../../services/api/types'
 import { useAuth } from '../../contexts/AuthContext'
 import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
 import dayjs from '../../lib/dayjs'
+import { useNumberFormat } from '../layout'
 
 const { Text } = Typography
 const { Option } = Select
@@ -81,6 +82,7 @@ export function ContactsCsvUploadDrawer({
   onClose
 }: ContactsCsvUploadDrawerProps) {
   const { t } = useLingui()
+  const { int } = useNumberFormat()
   // Get workspace for custom field labels
   const { workspaces } = useAuth()
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
@@ -532,8 +534,8 @@ export function ContactsCsvUploadDrawer({
 
           message.success(
             failureCount > 0
-              ? t`Imported ${successCount.toLocaleString()} contacts (${failureCount.toLocaleString()} failed, see details below)`
-              : t`Imported ${successCount.toLocaleString()} contacts`
+              ? t`Imported ${int(successCount)} contacts (${int(failureCount)} failed, see details below)`
+              : t`Imported ${int(successCount)} contacts`
           )
           return
         }
@@ -699,8 +701,8 @@ export function ContactsCsvUploadDrawer({
 
           message.success(
             failureCount > 0
-              ? t`Imported ${successCount.toLocaleString()} contacts (${failureCount.toLocaleString()} failed, see details below)`
-              : t`Imported ${successCount.toLocaleString()} contacts`
+              ? t`Imported ${int(successCount)} contacts (${int(failureCount)} failed, see details below)`
+              : t`Imported ${int(successCount)} contacts`
           )
         }
       }
@@ -875,7 +877,7 @@ export function ContactsCsvUploadDrawer({
           <Progress percent={uploadProgress} status={paused ? 'exception' : undefined} />
           <div style={{ marginTop: 12, textAlign: 'center' }}>
             <Text>
-              {t`Processing batch ${currentBatch} of ${totalBatches} (${currentRow.toLocaleString()} of ${totalRows.toLocaleString()} rows)`}
+              {t`Processing batch ${currentBatch} of ${totalBatches} (${int(currentRow)} of ${int(totalRows)} rows)`}
               {paused && t` (Paused)`}
             </Text>
           </div>
@@ -895,7 +897,7 @@ export function ContactsCsvUploadDrawer({
         <div style={{ marginTop: 24, marginBottom: 24 }}>
           <Alert
             title={t`Upload Complete`}
-            description={t`Processed ${totalRows.toLocaleString()} contacts: ${successCount.toLocaleString()} successful, ${failureCount.toLocaleString()} failed`}
+            description={t`Processed ${int(totalRows)} contacts: ${int(successCount)} successful, ${int(failureCount)} failed`}
             type={failureCount === 0 ? 'success' : 'warning'}
             showIcon
             style={{ marginBottom: 24 }}
@@ -904,7 +906,7 @@ export function ContactsCsvUploadDrawer({
           {failureCount > 0 && (
             <>
               <Typography.Title level={4}>
-                {t`Errors (${Math.min(failureCount, 100)} of ${failureCount.toLocaleString()} shown)`}
+                {t`Errors (${Math.min(failureCount, 100)} of ${int(failureCount)} shown)`}
               </Typography.Title>
               <div style={{ overflowY: 'auto', maxHeight: '400px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -977,10 +979,10 @@ export function ContactsCsvUploadDrawer({
             <div style={{ marginBottom: 24 }}>
               <Text strong>{t`File`}: </Text>
               <Text>{fileName}</Text>
-              <Text style={{ marginLeft: 8 }}>({csvData.rows.length.toLocaleString()} {t`rows`})</Text>
+              <Text style={{ marginLeft: 8 }}>({int(csvData.rows.length)} {t`rows`})</Text>
               {currentRow > 0 && (
                 <Text type="success" style={{ marginLeft: 8 }}>
-                  {t`Will resume from row ${currentRow.toLocaleString()}`}
+                  {t`Will resume from row ${int(currentRow)}`}
                 </Text>
               )}
             </div>

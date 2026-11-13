@@ -58,7 +58,7 @@ import { LLMProviderKind } from '../../services/api/types'
 import { v4 as uuidv4 } from 'uuid'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { Blocks, MoreHorizontal, Pencil, Plus } from 'lucide-react'
-import { KeyValueList, Mono, Pill } from '../layout'
+import { KeyValueList, Mono, Pill, useNumberFormat } from '../layout'
 import { IntegrationCard } from './integrations/IntegrationCard'
 import { EmailProviderCard, type EmailIntegration } from './integrations/EmailProviderCard'
 import dayjs from '../../lib/dayjs'
@@ -140,6 +140,7 @@ const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailPr
 // Main Integrations component
 export function Integrations({ workspace, onSave, loading, isOwner }: IntegrationsProps) {
   const { t } = useLingui()
+  const { int } = useNumberFormat()
   const { modal } = App.useApp()
   // Advisory only; EnsureTenantIsolation is the gate. A tenant that already exists keeps
   // resolving with no key at all — the send path is deliberately unlicensed — so an owner
@@ -1725,8 +1726,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
         {(rateLimitPerMinute || 25) > 0 && (
           <div className="text-xs text-gray-600 -mt-4 mb-4">
-            <div>≈ {((rateLimitPerMinute || 25) * 60).toLocaleString()} {t`emails per hour`}</div>
-            <div>≈ {((rateLimitPerMinute || 25) * 60 * 24).toLocaleString()} {t`emails per day`}</div>
+            <div>≈ {int((rateLimitPerMinute || 25) * 60)} {t`emails per hour`}</div>
+            <div>≈ {int((rateLimitPerMinute || 25) * 60 * 24)} {t`emails per day`}</div>
           </div>
         )}
 

@@ -98,7 +98,15 @@ export function ContactTimeline({
   hasMore = false,
   isLoadingMore = false
 }: ContactTimelineProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
+
+  // A changed value as written beside its old one: numbers with the separators of the console's
+  // language ("1 234,5" in French) and every decimal they carry, so 0.0001 → 0.0002 does not read
+  // "0 → 0"; anything else as it came.
+  const changedValue = (value: unknown): string =>
+    typeof value === 'number'
+      ? value.toLocaleString(i18n.locale, { maximumFractionDigits: 20 })
+      : String(value)
 
   // A tooltip's full date, in the console's language, on the clock of the timezone it names.
   const timeInZone = (at: string, zone: string = timezone): string => {
@@ -549,9 +557,9 @@ export function ContactTimeline({
                           <Text type="secondary" className="font-mono text-xs">
                             {key}:
                           </Text>{' '}
-                          <Text type="secondary">{String(oldVal)}</Text>
+                          <Text type="secondary">{changedValue(oldVal)}</Text>
                           <Text type="secondary"> → </Text>
-                          <Text>{String(newVal)}</Text>
+                          <Text>{changedValue(newVal)}</Text>
                         </div>
                       )
                     } else {
@@ -568,7 +576,7 @@ export function ContactTimeline({
                       <Tag color={value ? 'green' : 'red'}>{value ? 'true' : 'false'}</Tag>
                     )
                   } else if (typeof value === 'number') {
-                    displayValue = <Text strong>{value.toLocaleString()}</Text>
+                    displayValue = <Text strong>{value.toLocaleString(i18n.locale)}</Text>
                   } else if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T/)) {
                     // Likely a date string
                     displayValue = (
@@ -840,7 +848,7 @@ export function ContactTimeline({
               {goalValue !== undefined && goalValue !== null && (
                 <Tag color="cyan" variant="filled">
                   {goalType === 'purchase' || goalType === 'subscription' ? '$' : ''}
-                  {goalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {goalValue.toLocaleString(i18n.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Tag>
               )}
               {customEventData?.source && getSourceBadge(customEventData.source)}
