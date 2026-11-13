@@ -161,9 +161,9 @@ func TestTaskHandler_ResetAndTrigger_ServiceFailures(t *testing.T) {
 		wantError  string
 	}{
 		{name: "reset: task gone", route: "reset", err: domain.ErrTaskNotFound, wantStatus: http.StatusNotFound, wantError: "Task not found"},
-		{name: "reset: refused", route: "reset", err: errors.New("task is not a recurring task"), wantStatus: http.StatusBadRequest, wantError: "task is not a recurring task"},
+		{name: "reset: refused", route: "reset", err: domain.NewValidationError("task is not a recurring task"), wantStatus: http.StatusBadRequest, wantError: "validation error: task is not a recurring task"},
 		{name: "trigger: task gone", route: "trigger", err: domain.ErrTaskNotFound, wantStatus: http.StatusNotFound, wantError: "Task not found"},
-		{name: "trigger: refused", route: "trigger", err: errors.New("task cannot be triggered in current status: completed"), wantStatus: http.StatusBadRequest, wantError: "task cannot be triggered in current status: completed"},
+		{name: "trigger: refused", route: "trigger", err: domain.NewValidationError("task cannot be triggered in current status: completed"), wantStatus: http.StatusBadRequest, wantError: "validation error: task cannot be triggered in current status: completed"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

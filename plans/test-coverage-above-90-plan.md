@@ -134,8 +134,9 @@ Test file: `internal/http/task_handler_refusals_test.go`.
   error → 500.
 - Reset / trigger: `domain.ErrTaskNotFound` → 404; a state refusal from the service ("task
   is not a recurring task", "task cannot be triggered in current status: completed") → 400
-  with its message (fixtures are the service's own state errors, not database errors: see
-  the defects).
+  with its message. The fixtures are `domain.ValidationError`s, as the service returns them
+  once the reset / trigger error fix (`fix/task-reset-trigger-errors`) is in; they answer 400
+  with their text before and after it.
 
 ### 5. `internal/http/blog_theme_handler.go`
 
