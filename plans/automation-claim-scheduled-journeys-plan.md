@@ -57,8 +57,6 @@ FROM claimed ORDER BY due_at ASC
   round-robin.
 - The rows come back with `ScheduledAt` set to the claim (`NOW() + lease`). That value is the **claim
   token** for step 2.
-- `updated_at`: the claim does not touch it. The claim is a scheduling detail, not a change of the
-  journey; check whether a trigger sets it anyway.
 
 ### 2. Re-claim before each journey: `internal/service/automation_executor.go`
 
@@ -122,25 +120,26 @@ WHERE id = $1 AND status = 'active' AND scheduled_at = $2
      after 50 ms, so a batch takes a while.
    - Enrol 40 contacts. The app's background workers are not started, so nothing processes them
      meanwhile.
-   - Build two `AutomationExecutor`s on the app's repositories. Run `ProcessBatch(ctx, 50)` on both at
-     once, in goroutines started on a barrier, and repeat until every journey is `completed`.
+   - Build two `AutomationExecutor`s on the app's repositories. A runs `ProcessBatch(ctx, 50)` in a loop;
+     B starts its own loop when the receiver gets A's first call, so B claims while A's batch is running.
+     Both loop until every journey is `completed`.
    - Every contact got exactly one call, and the webhook step has one `completed` execution per journey.
    - Without the fix both batches hold all 40 journeys, so the check fails (red first).
 2. **Concurrent claims are disjoint.** Two goroutines call `ClaimScheduledContactAutomations` together on
-   60 due journeys with limit 50. The two sets do not overlap and together hold all 60 (50 + 10). Each
+   60 due journeys with limit 50. The two sets do not overlap and together hold all 60. Each
    claimed row's `scheduled_at` is in the future.
 3. **An expired claim taken over.**
-   - Instance A claims a journey.
-   - Its `scheduled_at` is moved back to the past to simulate the lease running out, and instance B
-     claims it again.
+   - Instance A claims a journey with a 1 ms lease. Once that lease has run out, instance B claims it
+     again.
    - A's renewal with its token is false, and B's renewal with its own token is true.
+   - A alone, after its lease ran out, still renews (one instance).
    - A journey exited meanwhile (status `exited`) is not renewed.
 
 ## Changelog
 
 44.0, under **Fix**, since the scheduler is released behaviour: "With several Notifuse instances, a
-contact could go through the same automation step twice and receive the same email twice; each journey
-now runs on one instance at a time."
+contact could go through the same automation step twice and receive the same email twice; an instance now
+claims each journey before it runs it, so another instance leaves it alone."
 
 ## Out of scope
 - The nodeStats "passes" change (another PR).
@@ -157,8 +156,7 @@ now runs on one instance at a time."
 
 ## Plan review (Opus xhigh) and corrections
 
-(The sections above were updated to the reviewed version: the database clock, no `before` argument, the
-listed columns, and a renewal that counts the rows it updated.)
+(The sections above were updated to the reviewed version, including the tests as written.)
 
 The approach holds. Two blocking points, both corrected:
 
@@ -193,8 +191,12 @@ Non-blocking points taken:
 Known, not handled:
 - **A graceful shutdown leaves the claims of the journeys it had not run yet.** They wait out the lease
   (5 min at most) before another instance takes them.
-- **Clocks.** The claim and its renewal use the database clock; the in-tick lease that `Execute` writes
-  still uses the app's clock, as today. A large skew shortens or lengthens that lease, not the claim.
+- **Clocks.** The claim and its renewal use the database clock, while every `scheduled_at` the app writes
+  (delays, retry backoff, the in-tick lease, the hand-off after `maxNodesPerTick`) uses the app's clock.
+  What is due is now decided by the database clock, so an app clock skew shifts all of those times.
+- **A context that does not decode.** If one claimed row's `context` JSON fails to unmarshal, the claim of
+  that workspace returns an error after its whole batch was claimed, so that batch waits 5 min each time.
+  Before this change the same error blocked the workspace on every tick.
 - **Log noise.** A workspace whose claim keeps failing logs one error per tick.
 - **Write load.** Each tick now writes every claimed row once, and each journey once more on renewal.
 - **A poison row.** A journey whose run always fails before persisting stays claimed and is retried every
