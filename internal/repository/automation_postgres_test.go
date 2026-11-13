@@ -922,7 +922,7 @@ func TestAutomationRepository_UpdateContactAutomation(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestAutomationRepository_GetScheduledContactAutomations(t *testing.T) {
+func TestAutomationRepository_ClaimScheduledContactAutomations(t *testing.T) {
 	db, mock, repo := setupAutomationMock(t)
 	defer func() { _ = db.Close() }()
 
@@ -930,50 +930,104 @@ func TestAutomationRepository_GetScheduledContactAutomations(t *testing.T) {
 	workspaceID := "workspace-123"
 	now := time.Now().UTC()
 	limit := 100
+	lease := 5 * time.Minute
 
 	contextJSON, _ := json.Marshal(map[string]interface{}{})
-
-	// Test successful retrieval - query now joins with automations to filter by live status
-	rows := sqlmock.NewRows([]string{
+	columns := []string{
 		"id", "automation_id", "contact_email", "current_node_id", "status",
 		"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
 		"last_retry_at", "max_retries",
-	}).AddRow(
-		"ca-1", "auto-123", "user1@example.com", "node-1", "active",
-		nil, now, now, contextJSON, 0, nil, nil, 3,
-	)
+	}
+	// One statement picks the due journeys of live automations under row locks, moves their
+	// scheduled_at ahead by the lease and returns them, oldest first.
+	claimQuery := `(?s)WITH picked AS \(\s*SELECT ca\.id, ca\.scheduled_at AS due_at\s+FROM contact_automations ca\s+JOIN automations a ON ca\.automation_id = a\.id\s+` +
+		`WHERE ca\.status = 'active'\s+AND ca\.scheduled_at <= NOW\(\)\s+AND a\.status = 'live'\s+AND a\.deleted_at IS NULL\s+` +
+		`ORDER BY ca\.scheduled_at ASC\s+LIMIT \$1\s+FOR UPDATE OF ca SKIP LOCKED\s*\), claimed AS \(\s*` +
+		`UPDATE contact_automations ca\s+SET scheduled_at = NOW\(\) \+ \$2 \* INTERVAL '1 millisecond'\s+FROM picked\s+WHERE ca\.id = picked\.id\s+RETURNING .*picked\.due_at\s*\)` +
+		`.*FROM claimed\s+ORDER BY due_at ASC`
 
-	mock.ExpectQuery("SELECT ca.* FROM contact_automations ca JOIN automations a").
-		WillReturnRows(rows)
+	claim := now.Add(lease)
+	mock.ExpectQuery(claimQuery).WithArgs(limit, lease.Milliseconds()).
+		WillReturnRows(sqlmock.NewRows(columns).AddRow(
+			"ca-1", "auto-123", "user1@example.com", "node-1", "active",
+			nil, now, claim, contextJSON, 0, nil, nil, 3,
+		))
 
-	cas, err := repo.GetScheduledContactAutomations(ctx, workspaceID, now, limit)
+	cas, err := repo.ClaimScheduledContactAutomations(ctx, workspaceID, limit, lease)
 	assert.NoError(t, err)
-	assert.Len(t, cas, 1)
+	require.Len(t, cas, 1)
 	assert.Equal(t, "ca-1", cas[0].ID)
+	require.NotNil(t, cas[0].ScheduledAt)
+	assert.True(t, claim.Equal(*cas[0].ScheduledAt), "ScheduledAt is the claim token")
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// Test empty result
-	mock.ExpectQuery("SELECT ca.* FROM contact_automations ca JOIN automations a").
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "automation_id", "contact_email", "current_node_id", "status",
-			"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
-			"last_retry_at", "max_retries",
-		}))
+	// Nothing due
+	mock.ExpectQuery(claimQuery).WithArgs(limit, lease.Milliseconds()).
+		WillReturnRows(sqlmock.NewRows(columns))
 
-	cas, err = repo.GetScheduledContactAutomations(ctx, workspaceID, now, limit)
+	cas, err = repo.ClaimScheduledContactAutomations(ctx, workspaceID, limit, lease)
 	assert.NoError(t, err)
 	assert.Len(t, cas, 0)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// Test database error
-	mock.ExpectQuery("SELECT ca.* FROM contact_automations ca JOIN automations a").
-		WillReturnError(fmt.Errorf("database error"))
+	// Database error
+	mock.ExpectQuery(claimQuery).WillReturnError(fmt.Errorf("database error"))
 
-	cas, err = repo.GetScheduledContactAutomations(ctx, workspaceID, now, limit)
+	cas, err = repo.ClaimScheduledContactAutomations(ctx, workspaceID, limit, lease)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get scheduled contact automations")
+	assert.Contains(t, err.Error(), "failed to claim scheduled contact automations")
 	assert.Nil(t, cas)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAutomationRepository_RenewContactAutomationClaim(t *testing.T) {
+	ctx := context.Background()
+	token := time.Date(2026, 11, 13, 8, 0, 0, 123456000, time.UTC)
+	lease := 5 * time.Minute
+	renewQuery := `UPDATE contact_automations\s+SET scheduled_at = NOW\(\) \+ \$3 \* INTERVAL '1 millisecond'\s+WHERE id = \$1 AND status = 'active' AND scheduled_at = \$2`
+
+	t.Run("the holder of the claim renews it", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec(renewQuery).WithArgs("ca-1", token, lease.Milliseconds()).WillReturnResult(sqlmock.NewResult(0, 1))
+
+		renewed, err := repo.RenewContactAutomationClaim(ctx, "ws", "ca-1", token, lease)
+		require.NoError(t, err)
+		assert.True(t, renewed)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a claim taken over or a journey that ended is not renewed", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec(renewQuery).WithArgs("ca-1", token, lease.Milliseconds()).WillReturnResult(sqlmock.NewResult(0, 0))
+
+		renewed, err := repo.RenewContactAutomationClaim(ctx, "ws", "ca-1", token, lease)
+		require.NoError(t, err)
+		assert.False(t, renewed)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a database error is wrapped", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec(renewQuery).WillReturnError(fmt.Errorf("db down"))
+
+		renewed, err := repo.RenewContactAutomationClaim(ctx, "ws", "ca-1", token, lease)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to renew contact automation claim")
+		assert.False(t, renewed)
+	})
+
+	t.Run("an unreadable result is an error", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec(renewQuery).WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("no count")))
+
+		renewed, err := repo.RenewContactAutomationClaim(ctx, "ws", "ca-1", token, lease)
+		require.Error(t, err)
+		assert.False(t, renewed)
+	})
 }
 
 func TestAutomationRepository_CreateNodeExecution(t *testing.T) {
@@ -1417,23 +1471,22 @@ func TestAutomationRepository_List_ScanError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestAutomationRepository_GetScheduledContactAutomations_ScanError(t *testing.T) {
+func TestAutomationRepository_ClaimScheduledContactAutomations_ScanError(t *testing.T) {
 	db, mock, repo := setupAutomationMock(t)
 	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "workspace-123"
-	now := time.Now().UTC()
 	limit := 100
 
 	// Return rows with wrong number of columns
 	rows := sqlmock.NewRows([]string{"id", "automation_id"}).
 		AddRow("ca-1", "auto-123")
 
-	mock.ExpectQuery("SELECT ca.* FROM contact_automations ca JOIN automations a").
+	mock.ExpectQuery("WITH picked AS").
 		WillReturnRows(rows)
 
-	cas, err := repo.GetScheduledContactAutomations(ctx, workspaceID, now, limit)
+	cas, err := repo.ClaimScheduledContactAutomations(ctx, workspaceID, limit, 5*time.Minute)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to scan contact automation row")
 	assert.Nil(t, cas)

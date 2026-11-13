@@ -469,6 +469,7 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 	workspaceID := "ws1"
 	nodeID := "terminal_node"
 
+	claim := time.Now().UTC().Add(inTickResumeLease) // the claim token
 	contacts := []*domain.ContactAutomationWithWorkspace{
 		{
 			WorkspaceID: workspaceID,
@@ -478,6 +479,7 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 				ContactEmail:  "test1@example.com",
 				CurrentNodeID: &nodeID,
 				Status:        domain.ContactAutomationStatusActive,
+				ScheduledAt:   &claim,
 			},
 		},
 		{
@@ -488,6 +490,7 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 				ContactEmail:  "test2@example.com",
 				CurrentNodeID: &nodeID,
 				Status:        domain.ContactAutomationStatusActive,
+				ScheduledAt:   &claim,
 			},
 		},
 	}
@@ -513,7 +516,11 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 	contact1 := &domain.Contact{Email: "test1@example.com"}
 	contact2 := &domain.Contact{Email: "test2@example.com"}
 
-	mockAutomationRepo.EXPECT().GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).Return(contacts, nil)
+	mockAutomationRepo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).Return(contacts, nil)
+
+	// Each claim is renewed with its token right before the journey runs.
+	mockAutomationRepo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca1", claim, inTickResumeLease).Return(true, nil)
+	mockAutomationRepo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca2", claim, inTickResumeLease).Return(true, nil)
 
 	// For first contact
 	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
@@ -555,7 +562,7 @@ func TestAutomationExecutor_ProcessBatch_Empty(t *testing.T) {
 		logger:         mockLogger,
 	}
 
-	mockAutomationRepo.EXPECT().GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).Return([]*domain.ContactAutomationWithWorkspace{}, nil)
+	mockAutomationRepo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).Return([]*domain.ContactAutomationWithWorkspace{}, nil)
 
 	processed, err := executor.ProcessBatch(context.Background(), 50)
 	require.NoError(t, err)
@@ -586,6 +593,7 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 	workspaceID := "ws1"
 	nodeID := "terminal_node"
 
+	claim := time.Now().UTC().Add(inTickResumeLease) // the claim token
 	contacts := []*domain.ContactAutomationWithWorkspace{
 		{
 			WorkspaceID: workspaceID,
@@ -595,6 +603,7 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 				ContactEmail:  "test1@example.com",
 				CurrentNodeID: &nodeID,
 				Status:        domain.ContactAutomationStatusActive,
+				ScheduledAt:   &claim,
 				MaxRetries:    3,
 			},
 		},
@@ -606,6 +615,7 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 				ContactEmail:  "test2@example.com",
 				CurrentNodeID: &nodeID,
 				Status:        domain.ContactAutomationStatusActive,
+				ScheduledAt:   &claim,
 			},
 		},
 	}
@@ -630,7 +640,10 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 
 	contact2 := &domain.Contact{Email: "test2@example.com"}
 
-	mockAutomationRepo.EXPECT().GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).Return(contacts, nil)
+	mockAutomationRepo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).Return(contacts, nil)
+
+	mockAutomationRepo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca1", claim, inTickResumeLease).Return(true, nil)
+	mockAutomationRepo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca2", claim, inTickResumeLease).Return(true, nil)
 
 	// First contact fails
 	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
@@ -2265,4 +2278,87 @@ func TestAutomationExecutor_HandleError_DoesNotResurrectConcurrentlyExitedJourne
 
 	err := executor.handleError(context.Background(), workspaceID, ca, errors.New("boom"), "node failed")
 	assert.NoError(t, err)
+}
+
+// ProcessBatch runs a claimed journey only once its claim is renewed with the token the claim
+// returned: a journey another instance took over, one whose renewal failed and one without a
+// token are left alone, and the others still run.
+func TestAutomationExecutor_ProcessBatch_RenewsEachClaim(t *testing.T) {
+	workspaceID := "ws1"
+	nodeID := "node-1"
+	journey := func(id string, token *time.Time) *domain.ContactAutomationWithWorkspace {
+		return &domain.ContactAutomationWithWorkspace{WorkspaceID: workspaceID, ContactAutomation: domain.ContactAutomation{
+			ID: id, AutomationID: "auto1", ContactEmail: id + "@example.com", CurrentNodeID: &nodeID,
+			Status: domain.ContactAutomationStatusActive, ScheduledAt: token,
+		}}
+	}
+	// A paused automation: Execute reads it and returns, which is enough to see who ran.
+	paused := &domain.Automation{ID: "auto1", Status: domain.AutomationStatusPaused}
+
+	t.Run("only journeys whose claim is renewed run", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockAutomationRepository(ctrl)
+		executor := &AutomationExecutor{automationRepo: repo, logger: setupMockLogger(ctrl)}
+
+		lostToken, errToken, runToken := time.Now().UTC(), time.Now().UTC().Add(time.Second), time.Now().UTC().Add(2*time.Second)
+		repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).Return([]*domain.ContactAutomationWithWorkspace{
+			journey("ca-lost", &lostToken), journey("ca-err", &errToken), journey("ca-nil", nil), journey("ca-run", &runToken),
+		}, nil)
+		gomock.InOrder(
+			repo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca-lost", lostToken, inTickResumeLease).Return(false, nil),
+			repo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca-err", errToken, inTickResumeLease).Return(false, errors.New("db down")),
+			repo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca-run", runToken, inTickResumeLease).Return(true, nil),
+			repo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(paused, nil).Times(1),
+		)
+
+		processed, err := executor.ProcessBatch(context.Background(), 50)
+		require.NoError(t, err)
+		assert.Equal(t, 1, processed, "skipped journeys are not counted")
+	})
+
+	t.Run("a workspace that failed to claim does not stop the others' journeys", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockAutomationRepository(ctrl)
+		executor := &AutomationExecutor{automationRepo: repo, logger: setupMockLogger(ctrl)}
+
+		token := time.Now().UTC()
+		repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
+			Return([]*domain.ContactAutomationWithWorkspace{journey("ca-run", &token)}, errors.New("workspace ws2: db down"))
+		repo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca-run", token, inTickResumeLease).Return(true, nil)
+		repo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(paused, nil)
+
+		processed, err := executor.ProcessBatch(context.Background(), 50)
+		require.NoError(t, err)
+		assert.Equal(t, 1, processed)
+	})
+
+	t.Run("a claim that failed everywhere is an error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockAutomationRepository(ctrl)
+		executor := &AutomationExecutor{automationRepo: repo, logger: setupMockLogger(ctrl)}
+
+		repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).Return(nil, errors.New("db down"))
+
+		processed, err := executor.ProcessBatch(context.Background(), 50)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "db down")
+		assert.Equal(t, 0, processed)
+	})
+
+	t.Run("on shutdown the journeys left keep their claim and are not renewed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockAutomationRepository(ctrl)
+		executor := &AutomationExecutor{automationRepo: repo, logger: setupMockLogger(ctrl)}
+
+		token := time.Now().UTC()
+		repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
+			Return([]*domain.ContactAutomationWithWorkspace{journey("ca-1", &token), journey("ca-2", &token)}, nil)
+		// No renewal and no run is expected.
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		processed, err := executor.ProcessBatch(ctx, 50)
+		require.NoError(t, err)
+		assert.Equal(t, 0, processed)
+	})
 }

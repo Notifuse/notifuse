@@ -908,7 +908,13 @@ type AutomationRepository interface {
 	// was updated — i.e. the journey was concurrently exited (e.g. by a reply
 	// interrupt) — so the executor stops instead of clobbering the exit.
 	UpdateContactAutomationIfActive(ctx context.Context, workspaceID string, ca *ContactAutomation) (bool, error)
-	GetScheduledContactAutomations(ctx context.Context, workspaceID string, beforeTime time.Time, limit int) ([]*ContactAutomation, error)
+	// ClaimScheduledContactAutomations takes up to limit due journeys of live automations and
+	// moves their scheduled_at to now + lease in the same statement, so that no other instance
+	// takes them meanwhile. Each journey's ScheduledAt is its claim token.
+	ClaimScheduledContactAutomations(ctx context.Context, workspaceID string, limit int, lease time.Duration) ([]*ContactAutomation, error)
+	// RenewContactAutomationClaim extends a claim to now + lease while the journey is active and
+	// still holds token; false when another instance claimed it since or it ended.
+	RenewContactAutomationClaim(ctx context.Context, workspaceID, id string, token time.Time, lease time.Duration) (bool, error)
 
 	// ExitContactJourneysOnReply marks the contact's active journeys as exited
 	// (with the given reason) when their automation has exit_on_reply enabled. When
@@ -919,8 +925,9 @@ type AutomationRepository interface {
 	// number of journeys exited.
 	ExitContactJourneysOnReply(ctx context.Context, workspaceID, contactEmail string, automationID *string, reason string, before time.Time) (int, error)
 
-	// Global scheduling (across all workspaces with round-robin)
-	GetScheduledContactAutomationsGlobal(ctx context.Context, beforeTime time.Time, limit int) ([]*ContactAutomationWithWorkspace, error)
+	// Global scheduling (across all workspaces with round-robin). It returns the journeys it
+	// claimed with the errors of the workspaces it skipped.
+	ClaimScheduledContactAutomationsGlobal(ctx context.Context, limit int, lease time.Duration) ([]*ContactAutomationWithWorkspace, error)
 
 	// Node execution logging
 	CreateNodeExecution(ctx context.Context, workspaceID string, entry *NodeExecution) error

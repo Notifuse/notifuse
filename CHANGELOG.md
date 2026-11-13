@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
 
+- **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone.
+
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
 - **Feature**: The analytics API splits message history by what sent each message, with the new `origin` dimension (`broadcast`, `automation` or `transactional`).

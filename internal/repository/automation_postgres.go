@@ -1179,37 +1179,53 @@ func (r *AutomationRepository) UpdateContactAutomationTx(ctx context.Context, tx
 	return nil
 }
 
-// GetScheduledContactAutomations retrieves contact automations scheduled for processing
-// Uses FOR UPDATE SKIP LOCKED to prevent concurrent processing of the same records
-// Only returns contacts from LIVE automations (paused automations' contacts stay frozen)
-func (r *AutomationRepository) GetScheduledContactAutomations(ctx context.Context, workspaceID string, beforeTime time.Time, limit int) ([]*domain.ContactAutomation, error) {
+// claimedContactAutomationColumns are the columns a claim returns, in scan order.
+const claimedContactAutomationColumns = `ca.id, ca.automation_id, ca.contact_email, ca.current_node_id, ca.status,
+		       ca.exit_reason, ca.entered_at, ca.scheduled_at, ca.context, ca.retry_count, ca.last_error,
+		       ca.last_retry_at, ca.max_retries`
+
+// ClaimScheduledContactAutomations takes up to limit journeys due now (the database's clock)
+// from live automations, oldest first, and claims them: in the same statement it moves their
+// scheduled_at to NOW() + lease, so no other instance sees them as due until the lease ends.
+// The row locks of FOR UPDATE SKIP LOCKED last until the claim is written, so two instances
+// claiming at once get disjoint journeys. Each returned journey's ScheduledAt is its claim,
+// the token RenewContactAutomationClaim compares. Paused automations' journeys are not taken:
+// they stay frozen at their current step.
+func (r *AutomationRepository) ClaimScheduledContactAutomations(ctx context.Context, workspaceID string, limit int, lease time.Duration) ([]*domain.ContactAutomation, error) {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	// Build query with FOR UPDATE SKIP LOCKED to prevent concurrent processing
-	// Join with automations to filter by automation status (only process contacts from live automations)
-	// This implements the "pause" behavior: paused automations' contacts stay frozen at their current node
 	query := `
-		SELECT ca.id, ca.automation_id, ca.contact_email, ca.current_node_id, ca.status,
-		       ca.exit_reason, ca.entered_at, ca.scheduled_at, ca.context, ca.retry_count, ca.last_error,
-		       ca.last_retry_at, ca.max_retries
-		FROM contact_automations ca
-		JOIN automations a ON ca.automation_id = a.id
-		WHERE ca.status = 'active'
-		  AND ca.scheduled_at <= $1
-		  AND a.status = 'live'
-		  AND a.deleted_at IS NULL
-		ORDER BY ca.scheduled_at ASC
-		LIMIT $2
-		FOR UPDATE OF ca SKIP LOCKED
+		WITH picked AS (
+			SELECT ca.id, ca.scheduled_at AS due_at
+			FROM contact_automations ca
+			JOIN automations a ON ca.automation_id = a.id
+			WHERE ca.status = 'active'
+			  AND ca.scheduled_at <= NOW()
+			  AND a.status = 'live'
+			  AND a.deleted_at IS NULL
+			ORDER BY ca.scheduled_at ASC
+			LIMIT $1
+			FOR UPDATE OF ca SKIP LOCKED
+		), claimed AS (
+			UPDATE contact_automations ca
+			SET scheduled_at = NOW() + $2 * INTERVAL '1 millisecond'
+			FROM picked
+			WHERE ca.id = picked.id
+			RETURNING ` + claimedContactAutomationColumns + `, picked.due_at
+		)
+		SELECT id, automation_id, contact_email, current_node_id, status,
+		       exit_reason, entered_at, scheduled_at, context, retry_count, last_error,
+		       last_retry_at, max_retries
+		FROM claimed
+		ORDER BY due_at ASC
 	`
-	args := []interface{}{beforeTime, limit}
 
-	rows, err := db.QueryContext(ctx, query, args...)
+	rows, err := db.QueryContext(ctx, query, limit, lease.Milliseconds())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get scheduled contact automations: %w", err)
+		return nil, fmt.Errorf("failed to claim scheduled contact automations: %w", err)
 	}
 	defer rows.Close()
 
@@ -1243,37 +1259,61 @@ func (r *AutomationRepository) GetScheduledContactAutomations(ctx context.Contex
 	return cas, nil
 }
 
-// GetScheduledContactAutomationsGlobal retrieves contacts from all workspaces using round-robin
-// to prevent starvation of any single workspace
-func (r *AutomationRepository) GetScheduledContactAutomationsGlobal(ctx context.Context, beforeTime time.Time, limit int) ([]*domain.ContactAutomationWithWorkspace, error) {
+// RenewContactAutomationClaim extends a claim to NOW() + lease, only while the journey is
+// still active and still holds the claim token (its scheduled_at as the claim set it). It
+// returns false when another instance claimed the journey since, or when it ended.
+func (r *AutomationRepository) RenewContactAutomationClaim(ctx context.Context, workspaceID, id string, token time.Time, lease time.Duration) (bool, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	result, err := db.ExecContext(ctx, `
+		UPDATE contact_automations
+		SET scheduled_at = NOW() + $3 * INTERVAL '1 millisecond'
+		WHERE id = $1 AND status = 'active' AND scheduled_at = $2
+	`, id, token, lease.Milliseconds())
+	if err != nil {
+		return false, fmt.Errorf("failed to renew contact automation claim: %w", err)
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to read renewed claim: %w", err)
+	}
+	return n == 1, nil
+}
+
+// ClaimScheduledContactAutomationsGlobal claims up to limit due journeys across all
+// workspaces, an equal share from each in turn so that no workspace starves. Each workspace
+// is asked only for what the batch still has room for, since a claimed journey left out of
+// the batch would wait out its lease. A workspace that fails is skipped; its error is
+// returned with the journeys claimed elsewhere.
+func (r *AutomationRepository) ClaimScheduledContactAutomationsGlobal(ctx context.Context, limit int, lease time.Duration) ([]*domain.ContactAutomationWithWorkspace, error) {
 	if r.workspaceRepo == nil {
 		return nil, fmt.Errorf("workspace repository is required for global scheduling")
 	}
 
-	// Get all workspaces
 	workspaces, err := r.workspaceRepo.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspaces: %w", err)
 	}
 
-	if len(workspaces) == 0 {
+	if len(workspaces) == 0 || limit <= 0 {
 		return nil, nil
 	}
 
-	// Round-robin: fetch equal amounts from each workspace
 	perWorkspace := (limit / len(workspaces)) + 1
-	if perWorkspace < 1 {
-		perWorkspace = 1
-	}
 
 	var allContacts []*domain.ContactAutomationWithWorkspace
-
-	// First pass: get perWorkspace from each
+	var errs []error
 	for _, ws := range workspaces {
-		contacts, err := r.GetScheduledContactAutomations(ctx, ws.ID, beforeTime, perWorkspace)
+		room := limit - len(allContacts)
+		if room <= 0 {
+			break
+		}
+		contacts, err := r.ClaimScheduledContactAutomations(ctx, ws.ID, min(perWorkspace, room), lease)
 		if err != nil {
-			// Log error but continue with other workspaces
-			// In production, we'd want proper logging here
+			errs = append(errs, fmt.Errorf("workspace %s: %w", ws.ID, err))
 			continue
 		}
 
@@ -1283,19 +1323,9 @@ func (r *AutomationRepository) GetScheduledContactAutomationsGlobal(ctx context.
 				ContactAutomation: *ca,
 			})
 		}
-
-		// Stop if we have enough
-		if len(allContacts) >= limit {
-			break
-		}
 	}
 
-	// Trim to limit
-	if len(allContacts) > limit {
-		allContacts = allContacts[:limit]
-	}
-
-	return allContacts, nil
+	return allContacts, errors.Join(errs...)
 }
 
 // Node execution logging
