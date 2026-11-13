@@ -598,7 +598,7 @@ msgstr "{count, plural, one {# notificação} other {# notificações}}"
 msgid "{count, plural, one {# recipient} other {# recipients}}"
 msgstr "{count, plural, one {# destinatário} other {# destinatários}}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:250
+#: src/components/broadcasts/BroadcastsTable.tsx:240
 msgid "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
 msgstr "{count, plural, one {A/B · # variante} other {A/B · # variantes}}"
 
@@ -1374,7 +1374,7 @@ msgstr "Um vencedor foi selecionado. Os emails estão sendo enviados aos destina
 msgid "A/B"
 msgstr "A/B"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:246
+#: src/components/broadcasts/BroadcastsTable.tsx:236
 msgid "A/B · {winnerName}"
 msgstr "A/B · {winnerName}"
 
@@ -2580,7 +2580,7 @@ msgstr "Regras de atribuição"
 #~ msgid "Attribution rules saved. Run a backfill to rewrite historical data."
 #~ msgstr ""
 
-#: src/components/broadcasts/BroadcastsTable.tsx:277
+#: src/components/broadcasts/BroadcastsTable.tsx:267
 #: src/components/broadcasts/compose/AudienceCard.tsx:56
 #: src/components/broadcasts/detail/BroadcastAside.tsx:136
 msgid "Audience"
@@ -3300,7 +3300,7 @@ msgid "Bounced or failed"
 msgstr "Retornados ou com falha"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:150
-#: src/components/broadcasts/BroadcastsTable.tsx:324
+#: src/components/broadcasts/BroadcastsTable.tsx:314
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:109
 #: src/components/transactional/TransactionalTable.tsx:200
 msgid "Bounces"
@@ -3363,7 +3363,7 @@ msgid "broadcast"
 msgstr "broadcast"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:366
-#: src/components/broadcasts/BroadcastsTable.tsx:232
+#: src/components/broadcasts/BroadcastsTable.tsx:222
 #: src/components/messages/MessageHistoryTable.tsx:151
 #: src/components/messages/MessageHistoryTable.tsx:249
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:63
@@ -3604,7 +3604,7 @@ msgstr "Campanhas"
 #: src/components/blog/ThemeEditorDrawer.tsx:280
 #: src/components/blog/ThemeEditorDrawer.tsx:310
 #: src/components/blog/ThemeEditorDrawer.tsx:469
-#: src/components/broadcasts/BroadcastsTable.tsx:198
+#: src/components/broadcasts/BroadcastsTable.tsx:188
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:360
 #: src/components/broadcasts/compose/ContentCard.tsx:81
@@ -4183,7 +4183,7 @@ msgstr "Links clicados"
 #~ msgstr "cliques"
 
 #: src/components/analytics/OriginVolumeChart.tsx:164
-#: src/components/broadcasts/BroadcastsTable.tsx:295
+#: src/components/broadcasts/BroadcastsTable.tsx:285
 #: src/components/broadcasts/detail/AbTestPanel.tsx:168
 #: src/components/contacts/TrackingConsent.tsx:32
 #: src/components/contacts/TrackingConsent.tsx:174
@@ -5949,7 +5949,7 @@ msgstr "Atraso"
 #: src/components/blog/DeleteCategoryModal.tsx:29
 #: src/components/blog/DeletePostModal.tsx:29
 #: src/components/blog/PostsTable.tsx:228
-#: src/components/broadcasts/BroadcastsTable.tsx:202
+#: src/components/broadcasts/BroadcastsTable.tsx:192
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:58
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:283
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:283
@@ -6887,7 +6887,7 @@ msgstr "Cada variação mantém o remetente do seu template, a menos que você e
 #: src/components/automations/config/ConditionsField.tsx:112
 #: src/components/blog/BlogSidebar.tsx:86
 #: src/components/blog/PostsTable.tsx:214
-#: src/components/broadcasts/BroadcastsTable.tsx:195
+#: src/components/broadcasts/BroadcastsTable.tsx:185
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:311
 #: src/components/contacts/ContactsTable.tsx:263
 #: src/components/email_builder/EmailBuilder.tsx:1057
@@ -7106,7 +7106,7 @@ msgstr "Markup editável"
 msgid "Edited {0}"
 msgstr "Editado {0}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:129
+#: src/components/broadcasts/BroadcastsTable.tsx:119
 msgid "Edited {ago}"
 msgstr "Editado {ago}"
 
@@ -11585,7 +11585,7 @@ msgstr "Mensal"
 #: src/components/automations/AutomationEditor.tsx:492
 #: src/components/automations/list/AutomationsTable.tsx:287
 #: src/components/blog/PostsTable.tsx:390
-#: src/components/broadcasts/BroadcastsTable.tsx:404
+#: src/components/broadcasts/BroadcastsTable.tsx:394
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:347
 #: src/components/contacts/ContactsViewHeader.tsx:109
 #: src/components/contacts/ContactsViewHeader.tsx:179
@@ -12419,7 +12419,7 @@ msgstr "Nenhuma entrega bem-sucedida"
 msgid "No template chosen"
 msgstr "Nenhum template escolhido"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:257
+#: src/components/broadcasts/BroadcastsTable.tsx:247
 #: src/components/broadcasts/detail/BroadcastAside.tsx:90
 msgid "No template yet"
 msgstr "Nenhum template ainda"
@@ -13130,7 +13130,7 @@ msgstr "Aberto"
 #~ msgstr "aberturas"
 
 #: src/components/analytics/OriginVolumeChart.tsx:163
-#: src/components/broadcasts/BroadcastsTable.tsx:282
+#: src/components/broadcasts/BroadcastsTable.tsx:272
 #: src/components/broadcasts/detail/AbTestPanel.tsx:167
 #: src/components/contacts/TrackingConsent.tsx:29
 #: src/components/contacts/TrackingConsent.tsx:165
@@ -13449,9 +13449,9 @@ msgstr "Acesso estilo caminho"
 
 #: src/components/automations/AutomationEditor.tsx:469
 #: src/components/automations/AutomationEditor.tsx:508
-#: src/components/broadcasts/BroadcastsTable.tsx:196
-#: src/components/broadcasts/BroadcastsTable.tsx:392
-#: src/components/broadcasts/BroadcastsTable.tsx:396
+#: src/components/broadcasts/BroadcastsTable.tsx:186
+#: src/components/broadcasts/BroadcastsTable.tsx:382
+#: src/components/broadcasts/BroadcastsTable.tsx:386
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:315
 #: src/components/contacts/BulkActionProgressModal.tsx:50
 #: src/components/contacts/BulkUpdateDrawer.tsx:586
@@ -14709,7 +14709,7 @@ msgstr "Teste do feed de destinatário concluído com sucesso"
 msgid "recipient@example.com"
 msgstr "destinatario@exemplo.com"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:279
+#: src/components/broadcasts/BroadcastsTable.tsx:269
 msgid "Recipients"
 msgstr "Destinatários"
 
@@ -15335,7 +15335,7 @@ msgstr "Resultados"
 msgid "Results:"
 msgstr "Resultados:"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:197
+#: src/components/broadcasts/BroadcastsTable.tsx:187
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:322
 #: src/components/contacts/BulkActionProgressModal.tsx:55
 #: src/components/contacts/BulkUpdateDrawer.tsx:414
@@ -15411,12 +15411,12 @@ msgstr "Tentou novamente os envios com falha da newsletter <0>{target}</0>"
 msgid "Retry"
 msgstr "Tentar novamente"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:199
+#: src/components/broadcasts/BroadcastsTable.tsx:189
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:335
 msgid "Retry failed"
 msgstr "Tentar novamente os com falha"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:201
+#: src/components/broadcasts/BroadcastsTable.tsx:191
 msgid "Retry failed…"
 msgstr "Tentar novamente os com falha…"
 
@@ -16421,8 +16421,8 @@ msgstr "Dimensões selecionadas, em ordem:"
 msgid "Selected: {0}"
 msgstr "Selecionado: {0}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:381
-#: src/components/broadcasts/BroadcastsTable.tsx:385
+#: src/components/broadcasts/BroadcastsTable.tsx:371
+#: src/components/broadcasts/BroadcastsTable.tsx:375
 msgid "Send"
 msgstr "Enviar"
 
@@ -16585,7 +16585,7 @@ msgid "SendGrid"
 msgstr "SendGrid"
 
 #: src/components/analytics/SendingCard.tsx:39
-#: src/components/broadcasts/BroadcastsTable.tsx:278
+#: src/components/broadcasts/BroadcastsTable.tsx:268
 #: src/components/broadcasts/BroadcastStatusPill.tsx:39
 #: src/components/broadcasts/BroadcastStatusPill.tsx:43
 #: src/components/broadcasts/BroadcastStatusPill.tsx:51
@@ -16816,7 +16816,7 @@ msgstr "Sessões (variação %)"
 msgid "Sessions (previous)"
 msgstr "Sessões (anterior)"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:344
+#: src/components/broadcasts/BroadcastsTable.tsx:334
 msgid "Sessions from the broadcast's UTM campaign, from the day it was sent to 7 days after it completed."
 msgstr "Sessões da campanha UTM do broadcast, do dia do envio até 7 dias após a conclusão."
 
@@ -17569,7 +17569,7 @@ msgstr "As estatísticas aparecem quando o broadcast começa a ser enviado"
 #: src/components/automations/list/AutomationsTable.tsx:114
 #: src/components/blog/PostsTable.tsx:306
 #: src/components/blog/RecentThemesTable.tsx:115
-#: src/components/broadcasts/BroadcastsTable.tsx:220
+#: src/components/broadcasts/BroadcastsTable.tsx:210
 #: src/components/broadcasts/detail/BroadcastAside.tsx:234
 #: src/components/logs/MessagesTab.tsx:672
 #: src/components/logs/OutgoingWebhooksTab.tsx:139
@@ -18221,7 +18221,7 @@ msgstr "Testar Provedor de Email"
 msgid "Test email sent successfully"
 msgstr "Email de teste enviado com sucesso"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:144
+#: src/components/broadcasts/BroadcastsTable.tsx:134
 msgid "Test ends in {duration}"
 msgstr "O teste termina em {duration}"
 
@@ -18865,7 +18865,7 @@ msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "Este broadcast falhou devido a um erro. Verifique os logs para mais detalhes."
 
 #: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:79
-#: src/components/broadcasts/BroadcastsTable.tsx:354
+#: src/components/broadcasts/BroadcastsTable.tsx:344
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:194
 msgid "This broadcast has no UTM campaign, so its website traffic can't be identified"
 msgstr "Este broadcast não tem campanha UTM, então seu tráfego de site não pode ser identificado"
@@ -19904,7 +19904,7 @@ msgstr "não definido"
 #~ msgid "Unsub"
 #~ msgstr "Desins"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:308
+#: src/components/broadcasts/BroadcastsTable.tsx:298
 msgid "Unsub."
 msgstr "Desins."
 
@@ -20797,7 +20797,7 @@ msgid "Website preview"
 msgstr "Pré-visualização do site"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:168
-#: src/components/broadcasts/BroadcastsTable.tsx:209
+#: src/components/broadcasts/BroadcastsTable.tsx:199
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:297
 msgid "Website traffic"
 msgstr "Tráfego do site"
@@ -20825,7 +20825,7 @@ msgstr "Analytics de visitantes do site — sessões, visualizações de página
 #: src/components/analytics/DashboardKpis.tsx:284
 #: src/components/analytics/DashboardKpis.tsx:292
 #: src/components/analytics/DashboardKpis.tsx:317
-#: src/components/broadcasts/BroadcastsTable.tsx:345
+#: src/components/broadcasts/BroadcastsTable.tsx:335
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:93
 msgid "Website visits"
 msgstr "Visitas ao site"
@@ -21304,7 +21304,7 @@ msgstr "Você não tem permissão para ver webhooks"
 msgid "You don't have write permission for automations"
 msgstr "Você não tem permissão de escrita para automações"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:100
+#: src/components/broadcasts/BroadcastsTable.tsx:90
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:366
 #: src/components/broadcasts/detail/AbTestPanel.tsx:196
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:177
