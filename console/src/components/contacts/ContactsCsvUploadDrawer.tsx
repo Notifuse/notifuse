@@ -28,6 +28,7 @@ import { contactsApi } from '../../services/api/contacts'
 import { List } from '../../services/api/types'
 import { useAuth } from '../../contexts/AuthContext'
 import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
+import dayjs from '../../lib/dayjs'
 
 const { Text } = Typography
 const { Option } = Select
@@ -373,7 +374,7 @@ export function ContactsCsvUploadDrawer({
           if (savedProgress && !savedProgressExists) {
             Modal.confirm({
               title: t`Resume Previous Upload`,
-              content: t`A previous upload for "${file.name}" was found (${new Date(savedProgress.timestamp).toLocaleString()}). Would you like to resume from where you left off?`,
+              content: t`A previous upload for "${file.name}" was found (${dayjs(savedProgress.timestamp).format('lll')}). Would you like to resume from where you left off?`,
               okText: t`Resume`,
               cancelText: t`Start New`,
               onOk: () => {
