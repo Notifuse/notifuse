@@ -67,7 +67,8 @@ func TestAutomationRepository_CountJourneysByStatus(t *testing.T) {
 // The node stats statements, matched on their FROM and WHERE clauses, the part that decides
 // which rows count; the integration test checks what they count.
 const (
-	visitsQuery         = `FROM automation_node_executions\s+WHERE automation_id = \$1%s\s+GROUP BY node_id$`
+	visitsQuery         = `SELECT node_id,\s+COUNT\(\*\) FILTER \(WHERE action IN \('processing', 'completed', 'skipped'\)\),[\s\S]*FROM automation_node_executions\s+WHERE automation_id = \$1%s\s+GROUP BY node_id$`
+	notPassedQuery      = `FROM contact_automations ca\s+CROSS JOIN LATERAL \([\s\S]*ORDER BY e.entered_at DESC\s+LIMIT 1\s+\) l\s+WHERE ca.automation_id = \$1 AND ca.status IN \('active', 'failed', 'exited'\)\s+AND ca.current_node_id IS NOT NULL\s+AND l.node_id = ca.current_node_id AND l.action IN \('entered', 'failed'\)%s\s+GROUP BY 1$`
 	skipReasonsQuery    = `SELECT node_id, output->>'skip_reason', COUNT\(\*\)\s+FROM automation_node_executions\s+WHERE automation_id = \$1 AND action = 'completed' AND output->>'skipped' = 'true'\s+AND output->>'skip_reason' IS NOT NULL%s\s+GROUP BY 1, 2$`
 	branchesQuery       = `AND node_type IN \('filter', 'list_status_branch', 'ab_test', 'branch'\)%s\s+\) b\s+WHERE branch IS NOT NULL`
 	inPlaceQuery        = `WHERE ca.automation_id = \$1 AND ca.status = 'active'\s+\) s\s+WHERE node_id IS NOT NULL\s+GROUP BY 1, 2$`
@@ -92,6 +93,10 @@ func expectNodeStatsQueries(mock sqlmock.Sqlmock, bounded, withEmail bool, args 
 		WillReturnRows(sqlmock.NewRows([]string{"node_id", "visits", "completed", "errors", "failed_attempts", "skipped"}).
 			AddRow("email-1", 10, 8, 0, 3, 2).
 			AddRow("list-1", 5, 4, 1, 0, 0))
+	// The passes not passed yet: on email-1 (retrying) and on a trigger no execution reached in
+	// the visits rows (enrolled, not processed yet).
+	mock.ExpectQuery(sprintf(notPassedQuery, "l.entered_at")).WithArgs(args...).
+		WillReturnRows(sqlmock.NewRows([]string{"node_id", "count"}).AddRow("email-1", 2).AddRow("trigger-1", 1))
 	mock.ExpectQuery(sprintf(skipReasonsQuery, "entered_at")).WithArgs(args...).
 		WillReturnRows(sqlmock.NewRows([]string{"node_id", "reason", "count"}).AddRow("email-1", "unsubscribed", 2))
 	mock.ExpectQuery(sprintf(branchesQuery, "entered_at")).WithArgs(args...).
@@ -129,7 +134,7 @@ func TestAutomationRepository_GetNodeStats(t *testing.T) {
 
 		email := got.Nodes["email-1"]
 		require.NotNil(t, email)
-		assert.Equal(t, int64(10), email.Visits)
+		assert.Equal(t, int64(12), email.Visits, "passed rows plus the passes not passed yet")
 		assert.Equal(t, int64(8), email.Completed)
 		assert.Equal(t, int64(3), email.FailedAttempts)
 		assert.Equal(t, int64(2), email.Skipped)
@@ -146,6 +151,11 @@ func TestAutomationRepository_GetNodeStats(t *testing.T) {
 		assert.Equal(t, map[string]int64{"yes": 6, "no": 4}, got.Nodes["filter-1"].Branches)
 		assert.Equal(t, int64(7), got.Nodes["delay-1"].Waiting)
 		assert.NotNil(t, got.Nodes["delay-1"].Branches, "maps are never nil")
+		trigger := got.Nodes["trigger-1"]
+		require.NotNil(t, trigger, "a step only the not-passed statement returns")
+		assert.Equal(t, int64(1), trigger.Visits)
+		assert.NotNil(t, trigger.Branches)
+		assert.NotNil(t, trigger.SkipReasons)
 	})
 
 	t.Run("a period bounds every statement but the journeys in place", func(t *testing.T) {
@@ -186,6 +196,23 @@ func TestAutomationRepository_GetNodeStats(t *testing.T) {
 		_, err := repo.GetNodeStats(context.Background(), "ws1", "auto1", nil, nil, true)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "visits")
+		assert.Contains(t, err.Error(), "db down")
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("the not-passed statement error is returned and the snapshot rolled back", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(fmt.Sprintf(visitsQuery, "")).WithArgs("auto1").
+			WillReturnRows(sqlmock.NewRows([]string{"node_id", "visits", "completed", "errors", "failed_attempts", "skipped"}))
+		mock.ExpectQuery(fmt.Sprintf(notPassedQuery, "")).WithArgs("auto1").WillReturnError(errors.New("db down"))
+		mock.ExpectRollback()
+
+		_, err := repo.GetNodeStats(context.Background(), "ws1", "auto1", nil, nil, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "not passed")
 		assert.Contains(t, err.Error(), "db down")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})

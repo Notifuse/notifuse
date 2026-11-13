@@ -373,7 +373,7 @@ export interface NodeEmailStats {
 /** The results of one step of an automation (automations.nodeStats). */
 export interface NodeStats {
   node_type: NodeType
-  /** Distinct journeys that reached the step: a retry is not a new visit. */
+  /** Each time a journey reached the step: a loop counts each time round, a retry is the same visit. */
   visits: number
   completed: number
   /** Each failed attempt, retries included. */

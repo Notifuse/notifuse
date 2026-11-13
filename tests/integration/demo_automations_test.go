@@ -215,12 +215,26 @@ func TestDemoAutomationsSeedRealHistory(t *testing.T) {
 			var failedJourneys int64
 			require.NoError(t, wsDB.QueryRowContext(ctx,
 				`SELECT COUNT(*) FROM contact_automations WHERE automation_id = $1 AND status = 'failed'`, automation.ID).Scan(&failedJourneys))
+			// The demo graphs have no loop, so each step's passes are its distinct journeys.
+			distinct := map[string]int64{}
+			rows, err := wsDB.QueryContext(ctx, `SELECT node_id, COUNT(DISTINCT contact_automation_id)
+				FROM automation_node_executions WHERE automation_id = $1 GROUP BY node_id`, automation.ID)
+			require.NoError(t, err)
+			for rows.Next() {
+				var id string
+				var n int64
+				require.NoError(t, rows.Scan(&id, &n))
+				distinct[id] = n
+			}
+			require.NoError(t, rows.Err())
+			_ = rows.Close()
 			var counted, attempts int64
 			for _, node := range automation.Nodes {
 				stats := raw.Nodes[node.ID]
 				if stats == nil {
 					continue
 				}
+				assert.Equal(t, distinct[node.ID], stats.Visits, "%s %s: without a loop, one pass per journey", automation.ID, node.ID)
 				counted += stats.FailedJourneys
 				attempts += stats.FailedAttempts
 				switch node.Type {
