@@ -3,9 +3,9 @@
 ## Why
 
 **No screen passes a currency today.** `MetricSummary`, `MetricChart` and `DimensionTableWidget`
-accept one, but `DashboardTab`, `GoalDashboardDrawer`, `GoalCard`, `BroadcastKpis`,
-`BroadcastFunnel`, `CountryMapView`, `TrafficHeatmapWidget` and `ExploreSummary` call
-`formatValue(v, 'currency')` without it, and no workspace setting holds one. So every amount users
+accept one, but `DashboardTab` and `GoalDashboardDrawer` never pass it, `GoalCard`,
+`BroadcastKpis` and `BroadcastFunnel` call `formatValue(v, 'currency')` without it, and no
+workspace setting holds one. So every amount users
 see goes through the no-currency branch ("999,999", "12 500" in French), in 43.0 as now. The
 currency branch below is dormant: it is fixed so it is right the day a currency is wired, and the
 CHANGELOG says nothing about it.
@@ -38,8 +38,9 @@ only numbro depends on) remain.
    The suffix regex and its comment go.
 2. **`formatCurrency`** without a currency: the decimals cutoff reads the absolute value, so
    -1,234.567 reads "-1,235" like 1,234.567 reads "1,235" (today "-1,234.57").
-3. **numbro**: `npm uninstall numbro` in `console/`, which drops numbro and `bignumber.js` from
-   `package-lock.json`. Checked first that nothing else in the lockfile depends on `bignumber.js`.
+3. **numbro**: removed from `package.json`, and its two blocks (numbro, `bignumber.js`) and root
+   entry removed from `package-lock.json` by hand: `npm uninstall` with this machine's npm also
+   stripped unrelated `libc` fields. Checked first that nothing else in the lockfile depends on `bignumber.js`.
 4. **CHANGELOG** 44.0: only what users see. A Fix line for the negative cutoff (change 2, released
    in 43.0; goal values can be negative for refunds, `internal/domain/custom_event.go`). The 44.0
    Fix line from #558 about "2M 346 €" is removed: it described the dormant branch, which no user
@@ -57,14 +58,14 @@ only numbro depends on) remain.
   - Spanish: 2,345,678,000 EUR → "2.345,68 M €" (fails without forced grouping).
   Non-breaking spaces compared as plain spaces, as today.
 - The components that show amounts (`MetricSummary`, `GoalCard`, `GoalDashboardDrawer`,
-  `DimensionTableWidget`, `DashboardTab`, `MetricChart`) only call `formatValue`/`formatCurrency`:
+  `DimensionTableWidget`, `DashboardTab`, `MetricChart`, `BroadcastKpis`, `BroadcastFunnel`) only call `formatValue`/`formatCurrency`:
   their existing tests must still pass.
 
 ## Out of scope
 
 - Wiring a currency to any screen (it needs a workspace setting, so a schema change).
-- German has no compact unit below a million, so from ten thousand it keeps cents ("12.345,68 €")
-  where 9,999.67 reads "10.000 €". Dormant like the rest of the branch.
+- German has no compact unit below a million, so from 9,999.5 up it keeps cents ("9.999,67 €",
+  "12.345,68 €") where 9,999.4 reads "9.999 €". Dormant like the rest of the branch.
 - The chart axis for a currency metric goes through `formatNumber` (no symbol); unchanged.
 - Japanese yen in compact keeps up to two decimals ("￥234.57万"): Intl's choice for the unit.
 
