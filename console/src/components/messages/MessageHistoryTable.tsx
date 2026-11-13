@@ -133,10 +133,12 @@ export function MessageHistoryTable({
 }: MessageHistoryTableProps) {
   const { t } = useLingui()
 
-  // Format date using dayjs
+  // The full date, in the console's language, on the clock of the workspace timezone it names.
   const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-'
-    return `${dayjs(dateString).format('lll')} in ${workspace.settings.timezone}`
+    const zone = workspace.settings.timezone || 'UTC'
+    const when = dayjs(dateString).tz(zone).format('lll')
+    return t`${when} in ${zone}`
   }
 
   // All available columns with their metadata for the selector

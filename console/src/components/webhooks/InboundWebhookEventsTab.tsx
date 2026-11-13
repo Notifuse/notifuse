@@ -22,6 +22,7 @@ import dayjs from '../../lib/dayjs'
 import { getProviderIcon, getProviderName } from '../integrations/EmailProviders'
 import { useLingui } from '@lingui/react/macro'
 import { buildLogsTabUrl, LOGS_TAB } from '../logs/logsUrl'
+import { rawSearchValue } from '../../lib/searchParams'
 
 const { Title, Text } = Typography
 
@@ -131,7 +132,7 @@ export const InboundWebhookEventsTab: React.FC<InboundWebhookEventsTabProps> = (
     const initialFilters: Filter[] = []
 
     filterOptions.forEach((option) => {
-      const value = searchParams.get(option.key)
+      const value = rawSearchValue(searchParams, option.key)
       if (value) {
         initialFilters.push({
           field: option.key,

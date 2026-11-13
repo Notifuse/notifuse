@@ -21,6 +21,7 @@ import { MessageHistoryTable } from './MessageHistoryTable'
 import { broadcastApi } from '../../services/api/broadcast'
 import { listsApi } from '../../services/api/list'
 import { buildLogsTabUrl, LOGS_TAB } from '../logs/logsUrl'
+import { rawSearchValue } from '../../lib/searchParams'
 
 const { Title, Text } = Typography
 
@@ -61,6 +62,7 @@ const filterKeys = [
   'list_id',
   'template_id',
   'broadcast_id',
+  'automation_id',
   'transactional_notification_id',
   'clicked_url'
 ]
@@ -228,6 +230,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
       { key: 'list_id', label: t`List ID` },
       { key: 'template_id', label: t`Template ID` },
       { key: 'broadcast_id', label: t`Broadcast ID` },
+      { key: 'automation_id', label: t`Automation ID` },
       { key: 'transactional_notification_id', label: t`Transactional notification ID` },
       { key: 'clicked_url', label: t`Clicked link` }
     ],
@@ -337,7 +340,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
     const initialFilters: Filter[] = []
 
     filterKeys.forEach((key) => {
-      const value = searchParams.get(key)
+      const value = rawSearchValue(searchParams, key)
       if (value) {
         initialFilters.push({
           field: key,
