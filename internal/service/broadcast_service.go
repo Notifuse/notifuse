@@ -307,8 +307,9 @@ func (s *BroadcastService) ListBroadcasts(ctx context.Context, params domain.Lis
 		return nil, err
 	}
 
-	// If WithTemplates is true, fetch template details for each variation
-	if params.WithTemplates {
+	// If WithTemplates is true, fetch template details for each variation. Without Templates read
+	// every lookup would be refused and logged: the broadcasts come back without their templates.
+	if params.WithTemplates && userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeRead) {
 		for _, broadcast := range response.Broadcasts {
 			for i, variation := range broadcast.TestSettings.Variations {
 				if variation.TemplateID != "" {
