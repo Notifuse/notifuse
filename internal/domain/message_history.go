@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"net/url"
 	"time"
-
-	"github.com/asaskevich/govalidator"
 )
 
 //go:generate mockgen -destination mocks/mock_message_history_service.go -package mocks github.com/Notifuse/notifuse/internal/domain MessageHistoryService
@@ -184,6 +182,9 @@ type MessageHistoryRepository interface {
 	// ListMessages retrieves message history with cursor-based pagination and filtering
 	ListMessages(ctx context.Context, workspaceID string, secretKey string, params MessageListParams) ([]*MessageHistory, string, error)
 
+	// CountMessages counts the messages matching the filter, in total and by status
+	CountMessages(ctx context.Context, workspaceID string, filter MessageFilter) (*MessageCounts, error)
+
 	// SetStatusesIfNotSet updates multiple message statuses in a batch if they haven't been set before.
 	// An unsubscribe is not recorded on a message whose address an erasure redacted.
 	SetStatusesIfNotSet(ctx context.Context, workspaceID string, updates []MessageEventUpdate) error
@@ -252,6 +253,9 @@ type MessageHistoryService interface {
 	// ListMessages retrieves messages for a workspace with cursor-based pagination and filters
 	ListMessages(ctx context.Context, workspaceID string, params MessageListParams) (*MessageListResult, error)
 
+	// CountMessages counts a workspace's messages matching the filter, in total and by status
+	CountMessages(ctx context.Context, workspaceID string, filter MessageFilter) (*MessageCounts, error)
+
 	// GetBroadcastStats retrieves statistics for a broadcast, together with what its queue is still holding
 	GetBroadcastStats(ctx context.Context, workspaceID, broadcastID string) (*BroadcastDeliveryStats, error)
 
@@ -290,30 +294,21 @@ type MessageListParams struct {
 	IsUnsubscribed *bool  `json:"is_unsubscribed,omitempty"` // filter messages that are unsubscribed
 
 	TransactionalNotificationID string `json:"transactional_notification_id,omitempty"` // filter by transactional notification
+	Origin                      string `json:"origin,omitempty"`                        // broadcast, automation, transactional or other (MessageOrigins)
 
 	// Time range filters
 	SentAfter     *time.Time `json:"sent_after,omitempty"`
 	SentBefore    *time.Time `json:"sent_before,omitempty"`
 	UpdatedAfter  *time.Time `json:"updated_after,omitempty"`
 	UpdatedBefore *time.Time `json:"updated_before,omitempty"`
+	CreatedAfter  *time.Time `json:"created_after,omitempty"`
+	CreatedBefore *time.Time `json:"created_before,omitempty"`
 }
 
 // FromQuery creates MessageListParams from HTTP query parameters
 func (p *MessageListParams) FromQuery(query url.Values) error {
-	// Parse cursor and basic string filters
 	p.Cursor = query.Get("cursor")
-	p.ID = query.Get("id")
-	p.ExternalID = query.Get("external_id")
-	p.ListID = query.Get("list_id")
-	p.Channel = query.Get("channel")
-	p.ContactEmail = query.Get("contact_email")
-	p.BroadcastID = query.Get("broadcast_id")
-	p.AutomationID = query.Get("automation_id")
-	p.TransactionalNotificationID = query.Get("transactional_notification_id")
-	p.TemplateID = query.Get("template_id")
-	p.ClickedURL = query.Get("clicked_url")
 
-	// Parse limit
 	if limitStr := query.Get("limit"); limitStr != "" {
 		var limit int
 		if err := json.Unmarshal([]byte(limitStr), &limit); err != nil {
@@ -322,86 +317,11 @@ func (p *MessageListParams) FromQuery(query url.Values) error {
 		p.Limit = limit
 	}
 
-	// Parse isSent if provided
-	if isSentStr := query.Get("is_sent"); isSentStr != "" {
-		var isSent bool
-		if err := json.Unmarshal([]byte(isSentStr), &isSent); err != nil {
-			return fmt.Errorf("invalid is_sent value: %s", isSentStr)
-		}
-		p.IsSent = &isSent
-	}
-
-	// Parse isDelivered if provided
-	if isDeliveredStr := query.Get("is_delivered"); isDeliveredStr != "" {
-		var isDelivered bool
-		if err := json.Unmarshal([]byte(isDeliveredStr), &isDelivered); err != nil {
-			return fmt.Errorf("invalid is_delivered value: %s", isDeliveredStr)
-		}
-		p.IsDelivered = &isDelivered
-	}
-	// Parse isFailed if provided
-	if isFailedStr := query.Get("is_failed"); isFailedStr != "" {
-		var isFailed bool
-		if err := json.Unmarshal([]byte(isFailedStr), &isFailed); err != nil {
-			return fmt.Errorf("invalid is_failed value: %s", isFailedStr)
-		}
-		p.IsFailed = &isFailed
-	}
-	// Parse isOpened if provided
-	if isOpenedStr := query.Get("is_opened"); isOpenedStr != "" {
-		var isOpened bool
-		if err := json.Unmarshal([]byte(isOpenedStr), &isOpened); err != nil {
-			return fmt.Errorf("invalid is_opened value: %s", isOpenedStr)
-		}
-		p.IsOpened = &isOpened
-	}
-
-	// Parse isClicked if provided
-	if isClickedStr := query.Get("is_clicked"); isClickedStr != "" {
-		var isClicked bool
-		if err := json.Unmarshal([]byte(isClickedStr), &isClicked); err != nil {
-			return fmt.Errorf("invalid is_clicked value: %s", isClickedStr)
-		}
-		p.IsClicked = &isClicked
-	}
-
-	// Parse isBounced if provided
-	if isBouncedStr := query.Get("is_bounced"); isBouncedStr != "" {
-		var isBounced bool
-		if err := json.Unmarshal([]byte(isBouncedStr), &isBounced); err != nil {
-			return fmt.Errorf("invalid is_bounced value: %s", isBouncedStr)
-		}
-		p.IsBounced = &isBounced
-	}
-	// Parse isComplained if provided
-	if isComplainedStr := query.Get("is_complained"); isComplainedStr != "" {
-		var isComplained bool
-		if err := json.Unmarshal([]byte(isComplainedStr), &isComplained); err != nil {
-			return fmt.Errorf("invalid is_complained value: %s", isComplainedStr)
-		}
-		p.IsComplained = &isComplained
-	}
-	// Parse isUnsubscribed if provided
-	if isUnsubscribedStr := query.Get("is_unsubscribed"); isUnsubscribedStr != "" {
-		var isUnsubscribed bool
-		if err := json.Unmarshal([]byte(isUnsubscribedStr), &isUnsubscribed); err != nil {
-			return fmt.Errorf("invalid is_unsubscribed value: %s", isUnsubscribedStr)
-		}
-		p.IsUnsubscribed = &isUnsubscribed
-	}
-	// Parse time filters if provided
-	if err := parseTimeParam(query, "sent_after", &p.SentAfter); err != nil {
+	var f MessageFilter
+	if err := f.FromQuery(query); err != nil {
 		return err
 	}
-	if err := parseTimeParam(query, "sent_before", &p.SentBefore); err != nil {
-		return err
-	}
-	if err := parseTimeParam(query, "updated_after", &p.UpdatedAfter); err != nil {
-		return err
-	}
-	if err := parseTimeParam(query, "updated_before", &p.UpdatedBefore); err != nil {
-		return err
-	}
+	p.setFilter(f)
 
 	// Validate all parameters
 	return p.Validate()
@@ -431,48 +351,7 @@ func (p *MessageListParams) Validate() error {
 		p.Limit = 20 // Default limit
 	}
 
-	// Validate channel
-	if p.Channel != "" {
-		// Use govalidator to check if channel is valid
-		if !govalidator.IsIn(p.Channel, "email", "sms", "push") {
-			return fmt.Errorf("invalid channel type: %s", p.Channel)
-		}
-	}
-
-	// Validate contact email if provided
-	if p.ContactEmail != "" && !govalidator.IsEmail(p.ContactEmail) {
-		return fmt.Errorf("invalid contact email format")
-	}
-
-	// clicked_url is matched inside clicked_links, which no index covers, so it only
-	// narrows a broadcast's messages; PostgreSQL plans it like the other filters of
-	// this list.
-	if p.ClickedURL != "" {
-		if p.BroadcastID == "" {
-			return fmt.Errorf("clicked_url requires broadcast_id")
-		}
-		if len(p.ClickedURL) > MaxClickedURLLength {
-			return fmt.Errorf("clicked_url must be at most %d characters", MaxClickedURLLength)
-		}
-	}
-
-	// Note: BroadcastID and TemplateID are not validated as UUIDs
-	// They can be any non-empty string format
-
-	// Validate time ranges
-	if p.SentAfter != nil && p.SentBefore != nil {
-		if p.SentAfter.After(*p.SentBefore) {
-			return fmt.Errorf("sent_after must be before sent_before")
-		}
-	}
-
-	if p.UpdatedAfter != nil && p.UpdatedBefore != nil {
-		if p.UpdatedAfter.After(*p.UpdatedBefore) {
-			return fmt.Errorf("updated_after must be before updated_before")
-		}
-	}
-
-	return nil
+	return p.Filter().Validate()
 }
 
 // MessageListResult contains the result of a ListMessages operation

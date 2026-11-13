@@ -90,6 +90,18 @@ const (
 	WebhookSourceSendGrid WebhookSource = "sendgrid"
 )
 
+// WebhookSources are the accepted values of the source filter of inboundWebhookEvents.list.
+var WebhookSources = []WebhookSource{
+	WebhookSourceSES,
+	WebhookSourcePostmark,
+	WebhookSourceMailgun,
+	WebhookSourceSparkPost,
+	WebhookSourceMailjet,
+	WebhookSourceSMTP,
+	WebhookSourceSupabase,
+	WebhookSourceSendGrid,
+}
+
 // InboundWebhookEvent represents an event received from an email provider or integration webhook
 type InboundWebhookEvent struct {
 	ID             string         `json:"id"`
@@ -168,6 +180,7 @@ type InboundWebhookEventListParams struct {
 	EventType      EmailEventType `json:"event_type,omitempty"`
 	RecipientEmail string         `json:"recipient_email,omitempty"`
 	MessageID      string         `json:"message_id,omitempty"`
+	Source         WebhookSource  `json:"source,omitempty"`
 
 	// Time range filters
 	TimestampAfter  *time.Time `json:"timestamp_after,omitempty"`
@@ -182,6 +195,7 @@ func (p *InboundWebhookEventListParams) FromQuery(query url.Values) error {
 	p.EventType = EmailEventType(query.Get("event_type"))
 	p.RecipientEmail = query.Get("recipient_email")
 	p.MessageID = query.Get("message_id")
+	p.Source = WebhookSource(query.Get("source"))
 
 	// Parse limit
 	if limitStr := query.Get("limit"); limitStr != "" {
@@ -238,6 +252,10 @@ func (p *InboundWebhookEventListParams) Validate() error {
 		}
 	}
 
+	if p.Source != "" && !isWebhookSource(p.Source) {
+		return fmt.Errorf("invalid source: %s", p.Source)
+	}
+
 	// Validate contact email if provided
 	if p.RecipientEmail != "" && !govalidator.IsEmail(p.RecipientEmail) {
 		return fmt.Errorf("invalid contact email format")
@@ -251,6 +269,15 @@ func (p *InboundWebhookEventListParams) Validate() error {
 	}
 
 	return nil
+}
+
+func isWebhookSource(source WebhookSource) bool {
+	for _, s := range WebhookSources {
+		if s == source {
+			return true
+		}
+	}
+	return false
 }
 
 // InboundWebhookEventListResult contains the result of a ListInboundWebhookEvents operation

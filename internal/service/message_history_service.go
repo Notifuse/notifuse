@@ -33,6 +33,38 @@ func NewMessageHistoryService(repo domain.MessageHistoryRepository, workspaceRep
 	}
 }
 
+// CountMessages counts a workspace's messages matching the filter, in total and by status.
+// It needs the read permission of messages.list.
+func (s *MessageHistoryService) CountMessages(ctx context.Context, workspaceID string, filter domain.MessageFilter) (*domain.MessageCounts, error) {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "MessageHistoryService", "CountMessages")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	// codecov:ignore:end
+
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceMessageHistory, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceMessageHistory,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to message history required",
+		)
+	}
+
+	counts, err := s.repo.CountMessages(ctx, workspaceID, filter)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to count messages: %w", err)
+	}
+	return counts, nil
+}
+
 // ListMessages retrieves messages for a workspace with cursor-based pagination and filters
 func (s *MessageHistoryService) ListMessages(ctx context.Context, workspaceID string, params domain.MessageListParams) (*domain.MessageListResult, error) {
 	// codecov:ignore:start

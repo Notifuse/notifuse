@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql/driver"
 	"encoding/base64"
 	"errors"
 	"strings"
@@ -831,4 +832,47 @@ func TestInboundWebhookEventRepository_ListEvents_CursorSubSecondPrecision(t *te
 	assert.True(t, second.Before(cursorTime),
 		"event at %s would be skipped by the next page's WHERE timestamp < %s",
 		second.Format(time.RFC3339Nano), cursorTime.Format(time.RFC3339Nano))
+}
+
+// The source filter adds its condition, with the provider as an argument, and nothing
+// without it.
+func TestInboundWebhookEventRepository_ListEvents_Source(t *testing.T) {
+	columns := []string{
+		"id", "type", "source", "integration_id", "recipient_email",
+		"message_id", "timestamp", "raw_payload",
+		"bounce_type", "bounce_category", "bounce_diagnostic", "complaint_feedback_type",
+		"created_at",
+	}
+	for _, tc := range []struct {
+		name   string
+		source domain.WebhookSource
+		query  string
+		args   []driver.Value
+	}{
+		{"with source", domain.WebhookSourcePostmark, `FROM inbound_webhook_events WHERE source = \$1 ORDER BY`, []driver.Value{"postmark"}},
+		{"without source", "", `FROM inbound_webhook_events ORDER BY`, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			repo := NewInboundWebhookEventRepository(mockWorkspaceRepo)
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+			mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws-123").Return(db, nil)
+
+			expect := mock.ExpectQuery(tc.query)
+			if tc.args != nil {
+				expect = expect.WithArgs(tc.args...)
+			} else {
+				expect = expect.WithoutArgs()
+			}
+			expect.WillReturnRows(sqlmock.NewRows(columns))
+
+			_, err = repo.ListEvents(context.Background(), "ws-123", domain.InboundWebhookEventListParams{Limit: 10, Source: tc.source})
+			require.NoError(t, err)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }

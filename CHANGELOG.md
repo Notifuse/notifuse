@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: An automation's statistics no longer count every journey that entered as in flight; each step shows the journeys actually on it.
 
+- **Feature**: The new `messages.count` API endpoint counts messages by status for the same filters as `messages.list`, which also takes `origin`, `created_after` and `created_before`; `inboundWebhookEvents.list` filters by `source`.
+
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
 
 - **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.

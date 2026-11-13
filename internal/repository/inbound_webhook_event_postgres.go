@@ -184,6 +184,10 @@ func (r *inboundWebhookEventRepository) ListEvents(ctx context.Context, workspac
 		queryBuilder = queryBuilder.Where(sq.Eq{"type": params.EventType})
 	}
 
+	if params.Source != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"source": params.Source})
+	}
+
 	if params.RecipientEmail != "" {
 		queryBuilder = queryBuilder.Where(sq.Eq{"recipient_email": params.RecipientEmail})
 	}
