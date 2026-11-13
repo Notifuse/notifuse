@@ -221,6 +221,13 @@ func TestAutomationNodeStats(t *testing.T) {
 		var caID string
 		require.NoError(t, db.QueryRowContext(ctx,
 			`SELECT id FROM contact_automations WHERE automation_id = $1 AND contact_email = $2`, automationB, retry).Scan(&caID))
+		// The executor writes the journey's retry schedule after the failed attempt's row:
+		// wait for that write (its retry count), or it would replace the schedule set here.
+		require.Eventually(t, func() bool {
+			var n int
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT retry_count FROM contact_automations WHERE id = $1`, caID).Scan(&n))
+			return n == 1
+		}, 30*time.Second, 100*time.Millisecond, "the failure persisted")
 		require.NoError(t, factory.UpdateContactAutomationScheduledAt(workspace.ID, caID, time.Now().UTC().Add(-time.Second)))
 
 		stats := waitForStats(t, automationB, "the retried webhook to complete", func(s domain.NodeStatsResponse) bool {
