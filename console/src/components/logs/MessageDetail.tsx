@@ -494,12 +494,14 @@ interface MessageFieldsProps {
  * The From address as the send most likely picked it: the email's sender, else the default one, of
  * the provider that sent it. A notification goes through the transactional provider; a newsletter
  * or an automation through the marketing one. A message of no origin is a double opt-in
- * confirmation (marketing provider, opt-in template) or a template test, read here as the test
- * dialog's default: the marketing provider for a marketing template, the transactional one
- * otherwise, and the first email integration when that default is not set. An unknown template (no
- * templates.read, still loading, deleted) counts as marketing. Not recorded on the message, so not
- * shown here: the integration and the sender picked in a test dialog, an automation email node's
- * own integration, a newsletter variation's sender, and a sender_id passed to a transactional send.
+ * confirmation (marketing provider, opt-in template) or a template test, whose provider is read as
+ * the test dialog's default: the marketing one for a marketing template, the transactional one
+ * otherwise, and the first email integration when that default is not set or no longer exists. An
+ * unknown template (no templates.read, still loading, deleted) counts as marketing. Not recorded on
+ * the message, so not shown here: the integration picked in a test dialog and its sender (a test
+ * goes out from the dialog's sender, never the template's, so the address shown for a test is a
+ * guess), an automation email node's own integration, a newsletter variation's sender, and a
+ * sender_id passed to a transactional send.
  */
 function senderOf(
   workspace: Workspace | undefined,

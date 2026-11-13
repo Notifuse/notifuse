@@ -45,12 +45,6 @@ export function LogsSearchBox<K extends string>({
   // newly typed "@" switches to Email. A key the URL brings is not a pick.
   const [picked, setPicked] = useState(false)
   const [seenUrlKey, setSeenUrlKey] = useState(urlKey)
-  if (urlKey !== seenUrlKey) {
-    setSeenUrlKey(urlKey)
-    if (urlKey) setChosen(urlKey)
-    // The box's own writes go to the key chosen; any other change comes from outside.
-    if (urlKey !== chosen) setPicked(false)
-  }
 
   const writeFor = (key: K, value: string) => {
     const clean = key === emailKey ? value.toLowerCase() : value
@@ -65,6 +59,15 @@ export function LogsSearchBox<K extends string>({
     urlKey ? (values[urlKey] ?? '') : '',
     (value) => writeFor(chosen, value)
   )
+
+  if (urlKey !== seenUrlKey) {
+    setSeenUrlKey(urlKey)
+    if (urlKey) setChosen(urlKey)
+    // The box writes its text to the key chosen, and an empty or blank text by removing every key;
+    // another key, or every key removed while the box still holds text, comes from outside. The
+    // text is still the one before the URL changed: the box follows the URL after this render.
+    if (urlKey ? urlKey !== chosen : text.trim() !== '') setPicked(false)
+  }
 
   const onChange = (value: string) => {
     if (value === '') setPicked(false)

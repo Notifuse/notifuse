@@ -168,11 +168,28 @@ describe('LogsSearchBox', () => {
     expect(chosenKey()).toBe('Email')
   })
 
-  it('keeps a picked key while the box holds only spaces', () => {
-    renderBox()
+  it('keeps a picked key while the box holds only spaces, its URL value removed', () => {
+    const { onWrite, setUrl } = renderBox()
     pick('Message ID')
+    type('abc')
+    act(() => vi.advanceTimersByTime(300))
+    setUrl({ id: 'abc' })
     type(' ')
+    act(() => vi.advanceTimersByTime(300))
+    expect(onWrite).toHaveBeenLastCalledWith(cleared)
+    setUrl({})
     type(' CAFabc@mail.gmail.com')
+    expect(chosenKey()).toBe('Message ID')
+  })
+
+  it('keeps a key picked while the emptied box was still to be written', () => {
+    const { onWrite, setUrl } = renderBox({ external_id: 'x' })
+    type('')
+    pick('Message ID')
+    act(() => vi.advanceTimersByTime(300))
+    expect(onWrite).toHaveBeenLastCalledWith(cleared)
+    setUrl({})
+    type('CAFabc@mail.gmail.com')
     expect(chosenKey()).toBe('Message ID')
   })
 })

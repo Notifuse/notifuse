@@ -285,8 +285,8 @@ describe('MessageDetail', () => {
     await waitFor(() => expect(value('From')).toHaveTextContent('Default <default@acme.io>'))
     third.unmount()
 
-    // A test of any other template, as the test dialog sends it: through the transactional
-    // provider, with the template's sender.
+    // A test of any other template: the dialog's default provider, the transactional one (the
+    // sender shown, the template's, is a guess: the dialog sends its own).
     state.getTemplate.mockResolvedValue({ template: template({ category: 'welcome' }) })
     state.listMessages.mockResolvedValue({ messages: [message()], has_more: false })
     const fourth = renderDetail()
@@ -300,7 +300,19 @@ describe('MessageDetail', () => {
     await screen.findByText('To ann@example.com')
     await waitFor(() => expect(value('From')).toHaveTextContent('News <news@acme.io>'))
     fifth.unmount()
+
+    // A notification has no such fallback: without its provider, no sender is known.
+    state.listMessages.mockResolvedValue({
+      messages: [message({ transactional_notification_id: 'password_reset' })],
+      has_more: false
+    })
+    const sixth = renderDetail()
+    await screen.findByText('To ann@example.com')
+    await waitFor(() => expect(state.getTemplate).toHaveBeenCalled())
+    expect(value('From')).toHaveTextContent('—')
+    sixth.unmount()
     state.settings = {}
+    state.listMessages.mockResolvedValue({ messages: [message()], has_more: false })
 
     // An unknown template counts as marketing.
     state.permissions = { ...allRead, templates: { read: false, write: false } }
