@@ -19,7 +19,7 @@ export function useAuditLogAccess(workspaceId?: string): AuditLogAccess {
   const isRoot = isRootUser(user?.email);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["workspace-members", workspaceId],
+    queryKey: ["workspace-members", workspaceId, user?.id],
     queryFn: () => workspaceService.getMembers(workspaceId as string),
     enabled: Boolean(workspaceId) && Boolean(user) && !isRoot,
     staleTime: 60_000,
