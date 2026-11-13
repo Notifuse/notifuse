@@ -72,6 +72,7 @@ func NewAutomationExecutor(
 // on to the next one. It keeps another instance from picking the contact up for the rest of
 // the tick, and resumes the journey if the tick dies before its next persist. It is renewed
 // after every step, so it only has to outlast one node: a webhook node waits 30 s at most.
+// The claim of a batch (ProcessBatch) uses the same lease, renewed before each journey.
 const inTickResumeLease = 5 * time.Minute
 
 // Execute processes a contact through their automation nodes until a delay or completion.
@@ -233,12 +234,19 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 	return nil
 }
 
-// ProcessBatch processes a batch of scheduled contacts
+// ProcessBatch claims a batch of due journeys and runs them one after the other. A batch can
+// outlast its claim (a webhook step waits up to 30 s), after which another instance may claim
+// a journey again, so each journey's claim is renewed right before it runs, against the token
+// the claim returned: a journey whose claim was lost meanwhile is left to the instance that
+// holds it.
 func (e *AutomationExecutor) ProcessBatch(ctx context.Context, limit int) (int, error) {
-	// Get scheduled contacts globally
-	contacts, err := e.automationRepo.GetScheduledContactAutomationsGlobal(ctx, time.Now().UTC(), limit)
+	contacts, err := e.automationRepo.ClaimScheduledContactAutomationsGlobal(ctx, limit, inTickResumeLease)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get scheduled contacts: %w", err)
+		if len(contacts) == 0 {
+			return 0, fmt.Errorf("failed to get scheduled contacts: %w", err)
+		}
+		// Some workspaces failed; run what the others gave.
+		e.logger.WithField("error", err.Error()).Error("Failed to claim scheduled contacts in some workspaces")
 	}
 
 	if len(contacts) == 0 {
@@ -247,13 +255,32 @@ func (e *AutomationExecutor) ProcessBatch(ctx context.Context, limit int) (int, 
 
 	processed := 0
 	for _, ca := range contacts {
+		// Shutting down: the journeys left keep their claim and are due again when it ends.
+		if ctx.Err() != nil {
+			break
+		}
+		fields := map[string]interface{}{
+			"contact_email": ca.ContactEmail,
+			"automation_id": ca.AutomationID,
+			"workspace_id":  ca.WorkspaceID,
+		}
+		if ca.ScheduledAt == nil {
+			e.logger.WithFields(fields).Error("Claimed contact automation has no claim token; skipping")
+			continue
+		}
+		renewed, err := e.automationRepo.RenewContactAutomationClaim(ctx, ca.WorkspaceID, ca.ID, *ca.ScheduledAt, inTickResumeLease)
+		if err != nil {
+			fields["error"] = err.Error()
+			e.logger.WithFields(fields).Error("Failed to renew the claim of a contact automation; skipping")
+			continue
+		}
+		if !renewed {
+			e.logger.WithFields(fields).Debug("Contact automation claimed by another instance or ended; skipping")
+			continue
+		}
 		if err := e.Execute(ctx, ca.WorkspaceID, &ca.ContactAutomation); err != nil {
-			e.logger.WithFields(map[string]interface{}{
-				"contact_email": ca.ContactEmail,
-				"automation_id": ca.AutomationID,
-				"workspace_id":  ca.WorkspaceID,
-				"error":         err.Error(),
-			}).Error("Failed to execute automation for contact")
+			fields["error"] = err.Error()
+			e.logger.WithFields(fields).Error("Failed to execute automation for contact")
 			// Continue with other contacts
 			continue
 		}

@@ -342,6 +342,15 @@ export const mockEmptyTemplates = {
   templates: []
 }
 
+// templates.usage: the monthly newsletter is the variation of one broadcast
+export const mockTemplatesUsage = {
+  usage: { 'tpl-2': { broadcasts: 1 } },
+  references: [{ type: 'broadcast', id: 'bc-1', name: 'November newsletter', status: 'draft' }],
+  hidden_types: []
+}
+
+export const mockEmptyTemplatesUsage = { usage: {}, references: [], hidden_types: [] }
+
 export const mockCompiledTemplate = {
   html: '<html><body><p>Welcome, John!</p></body></html>'
 }
@@ -537,10 +546,15 @@ export const mockEmptyTransactional = {
 export const mockSegments = [
   {
     id: 'seg-1',
+    color: 'blue',
+    timezone: 'UTC',
+    // The definition the console reads; `rules` is the legacy shape.
+    tree: { kind: 'branch', branch: { operator: 'and', leaves: [{ kind: 'leaf', leaf: { source: 'contact_timeline', contact_timeline: { kind: 'open_email', count_operator: 'at_least', count_value: 1, timeframe_operator: 'in_the_last_days', timeframe_values: ['30'] } } }] } },
     name: 'Active Users',
     description: 'Users who opened email in last 30 days',
     contact_count: 150,
-    status: 'ready',
+    users_count: 150,
+    status: 'active',
     rules: {
       operator: 'and',
       conditions: [
@@ -557,10 +571,15 @@ export const mockSegments = [
   },
   {
     id: 'seg-2',
+    color: 'green',
+    timezone: 'UTC',
+    // The definition the console reads; `rules` is the legacy shape.
+    tree: { kind: 'branch', branch: { operator: 'and', leaves: [{ kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'country', field_type: 'string', operator: 'equals', string_values: ['US'] }] } } }] } },
     name: 'US Customers',
     description: 'Contacts located in the United States',
     contact_count: 250,
-    status: 'ready',
+    users_count: 250,
+    status: 'active',
     rules: {
       operator: 'and',
       conditions: [
@@ -577,9 +596,14 @@ export const mockSegments = [
   },
   {
     id: 'seg-3',
+    color: 'orange',
+    timezone: 'UTC',
+    // The definition the console reads; `rules` is the legacy shape.
+    tree: { kind: 'branch', branch: { operator: 'or', leaves: [{ kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'custom_string_2', field_type: 'string', operator: 'equals', string_values: ['Enterprise'] }] } } }, { kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'custom_string_2', field_type: 'string', operator: 'equals', string_values: ['Pro'] }] } } }] } },
     name: 'Enterprise Plans',
     description: 'Contacts on enterprise plans',
     contact_count: 45,
+    users_count: 45,
     status: 'building',
     rules: {
       operator: 'or',
@@ -745,9 +769,19 @@ export const mockBlogCategoriesResponse = {
 
 export const mockBlogPostsResponse = {
   posts: mockBlogPosts,
-  // The blog list endpoint names its count `total_count` (internal/http/blog_handler.go),
-  // and BlogPage reads that key to decide between the empty state and the posts table.
+  // The blog list endpoint names its count `total_count` (internal/http/blog_handler.go);
+  // the posts table reads it to show Load more.
   total_count: 4
+}
+
+// blogPosts.counts of the mocked posts; BlogPage reads all_total to choose the empty state.
+export const mockBlogPostCounts = {
+  all_total: 4,
+  total: 4,
+  published: 2,
+  scheduled: 0,
+  draft: 2,
+  by_category: { 'cat-1': 1, 'cat-2': 2, 'cat-3': 1 }
 }
 
 export const mockEmptyBlogPosts = {
@@ -779,16 +813,11 @@ export const mockBlogThemesResponse = {
 // ANALYTICS
 // ============================================
 
+// The analytics.query response: rows plus the generated query. Empty, so every chart and count of
+// the dashboard reads zero.
 export const mockAnalyticsData = {
-  data: [
-    { date: '2024-01-01', sent: 100, delivered: 95, opened: 50, clicked: 20 },
-    { date: '2024-01-02', sent: 150, delivered: 145, opened: 75, clicked: 30 },
-    { date: '2024-01-03', sent: 200, delivered: 190, opened: 100, clicked: 45 }
-  ],
-  total_sent: 450,
-  total_delivered: 430,
-  total_opened: 225,
-  total_clicked: 95
+  data: [],
+  meta: { total: 0, query: '', params: [] }
 }
 
 // ============================================
@@ -829,7 +858,10 @@ export const mockLogsResponse = {
 
 export const mockEmptyLogs = {
   logs: [],
-  total: 0
+  total: 0,
+  // The messages.list shape (MessageListResult).
+  messages: [],
+  has_more: false
 }
 
 // ============================================
@@ -940,4 +972,137 @@ export const mockBlogCategoryCreateResponse = {
 export const mockTestEmailResponse = {
   sent: true,
   message_id: 'test-message-id-123'
+}
+
+// ============================================
+// AUTOMATIONS
+// ============================================
+const automationNode = (
+  automationId: string,
+  id: string,
+  type: string,
+  config: Record<string, unknown>,
+  y: number,
+  next?: string,
+  x = 400
+) => ({
+  id,
+  automation_id: automationId,
+  type,
+  config,
+  next_node_id: next,
+  position: { x, y },
+  created_at: '2026-09-01T09:00:00Z'
+})
+
+export const mockAutomations = [
+  {
+    id: 'auto-welcome',
+    workspace_id: 'test-workspace',
+    name: 'Welcome series',
+    status: 'live',
+    list_id: 'list-1',
+    exit_on_reply: false,
+    trigger: { event_kind: 'list.subscribed', list_id: 'list-1', frequency: 'once' },
+    root_node_id: 'w-trigger',
+    nodes: [
+      automationNode('auto-welcome', 'w-trigger', 'trigger', {}, 50, 'w-email'),
+      automationNode('auto-welcome', 'w-email', 'email', { template_id: 'tpl-1', description: 'Welcome email' }, 250, 'w-delay'),
+      automationNode('auto-welcome', 'w-delay', 'delay', { duration: 2, unit: 'days' }, 450, 'w-filter'),
+      automationNode(
+        'auto-welcome',
+        'w-filter',
+        'filter',
+        {
+          description: 'Opened the welcome email',
+          conditions: {
+            kind: 'leaf',
+            leaf: { source: 'contacts', contact: { filters: [{ field_name: 'email', field_type: 'string', operator: 'contains', string_values: ['@'] }] } }
+          },
+          continue_node_id: 'w-tour',
+          exit_node_id: 'w-remind'
+        },
+        650
+      ),
+      automationNode('auto-welcome', 'w-tour', 'email', { template_id: 'tpl-2', description: 'Product tour' }, 900, undefined, 230),
+      automationNode('auto-welcome', 'w-remind', 'email', { template_id: 'tpl-1', description: 'Reminder' }, 900, undefined, 570)
+    ],
+    created_at: '2026-09-01T09:00:00Z',
+    updated_at: '2026-11-10T14:00:00Z'
+  },
+  {
+    id: 'auto-tag',
+    workspace_id: 'test-workspace',
+    name: 'Tag trial users',
+    status: 'paused',
+    list_id: '',
+    exit_on_reply: false,
+    trigger: { event_kind: 'custom_event', custom_event_name: 'trial_started', frequency: 'every_time' },
+    root_node_id: 't-trigger',
+    nodes: [
+      automationNode('auto-tag', 't-trigger', 'trigger', {}, 50, 't-add'),
+      automationNode('auto-tag', 't-add', 'add_to_list', { list_id: 'list-2', status: 'active' }, 250)
+    ],
+    created_at: '2026-10-01T09:00:00Z',
+    updated_at: '2026-11-01T09:00:00Z'
+  }
+]
+
+export const mockAutomationsResponse = {
+  automations: mockAutomations,
+  total: mockAutomations.length,
+  journey_counts: {
+    'auto-welcome': { active: 214, completed: 2840, exited: 512, failed: 12, total: 3578 },
+    'auto-tag': { active: 0, completed: 940, exited: 0, failed: 3, total: 943 }
+  }
+}
+
+const stepStats = (over: Record<string, unknown>) => ({
+  visits: 0,
+  completed: 0,
+  failed_attempts: 0,
+  skipped: 0,
+  skip_reasons: {},
+  errors: 0,
+  failed_journeys: 0,
+  in_progress: 0,
+  waiting: 0,
+  retrying: 0,
+  branches: {},
+  ...over
+})
+
+const emailStats = (sent: number, opened: number, clicked: number) => ({
+  executions: sent,
+  queued: 0,
+  not_sent: 0,
+  sent,
+  delivered: Math.round(sent * 0.98),
+  opened,
+  opens_tracked: sent,
+  clicked,
+  clicks_tracked: sent,
+  failed: 2,
+  bounced: 9,
+  complained: 0,
+  unsubscribed: 6
+})
+
+export const mockAutomationNodeStats = {
+  automation_id: 'auto-welcome',
+  nodes: {
+    'w-trigger': stepStats({ node_type: 'trigger', visits: 1240, completed: 1240 }),
+    'w-email': stepStats({
+      node_type: 'email',
+      visits: 1238,
+      completed: 1236,
+      skipped: 2,
+      skip_reasons: { unsubscribed: 2 },
+      email: emailStats(1236, 642, 188)
+    }),
+    'w-delay': stepStats({ node_type: 'delay', visits: 1236, completed: 1102, waiting: 134, in_progress: 134 }),
+    'w-filter': stepStats({ node_type: 'filter', visits: 1102, completed: 1102, branches: { yes: 701, no: 401 } }),
+    'w-tour': stepStats({ node_type: 'email', visits: 701, completed: 699, failed_journeys: 2, email: emailStats(699, 380, 121) }),
+    'w-remind': stepStats({ node_type: 'email', visits: 401, completed: 401, email: emailStats(401, 143, 22) })
+  }
 }

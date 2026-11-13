@@ -1,16 +1,14 @@
-import { useState, useEffect } from 'react'
 import { App } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { FileManager } from '../components/file_manager/fileManager'
-import { FileManagerProps } from '../components/file_manager/interfaces'
-import { StorageObject } from '../components/file_manager/interfaces'
+import type { FileManagerProps } from '../components/file_manager/interfaces'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../contexts/AuthContext'
 import { workspaceService } from '../services/api/workspace'
 import { Workspace, FileManagerSettings } from '../services/api/types'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 import { workspaceFileManagerRoute } from '../router'
-import { PageHeader } from '../components/layout'
+import type { FileManagerSearch } from '../lib/searchParams'
 
 export function FileManagerPage() {
   const { t } = useLingui()
@@ -19,35 +17,30 @@ export function FileManagerPage() {
   const navigate = useNavigate()
   const { workspaces, refreshWorkspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
-  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null)
   const { message } = App.useApp()
-
-  // Initialize settings from the current workspace
-  useEffect(() => {
-    if (workspaceId && workspaces.length > 0) {
-      const workspace = workspaces.find((w) => w.id === workspaceId)
-      if (workspace) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCurrentWorkspace(workspace)
-      }
-    }
-  }, [workspaceId, workspaces])
+  const currentWorkspace: Workspace | null = workspaces.find((w) => w.id === workspaceId) ?? null
 
   const handleError = (error: Error) => {
     console.error('File manager error:', error)
     message.error(t`An error occurred with the file manager`)
   }
 
-  const handleSelect = (items: StorageObject[]) => {
-    console.log('Selected items:', items)
-    // Handle selected items as needed
-  }
-
+  // Opening a folder closes the preview: its file belongs to the folder left.
   const handlePathChange = (newPath: string) => {
     navigate({
       to: workspaceFileManagerRoute.to,
       params: { workspaceId },
       search: { path: newPath || undefined }
+    })
+  }
+
+  // The previewed file, replaced rather than pushed: J and K would fill the history.
+  const handleFileChange = (key: string | undefined) => {
+    navigate({
+      to: workspaceFileManagerRoute.to,
+      params: { workspaceId },
+      search: (prev: FileManagerSearch) => ({ ...prev, file: key }),
+      replace: true
     })
   }
 
@@ -88,10 +81,14 @@ export function FileManagerPage() {
 
   const fileManagerProps: FileManagerProps = {
     currentPath: '',
+    workspaceId,
     controlledPath: search.path || '',
     onPathChange: handlePathChange,
+    controlledFile: search.file,
+    onFileChange: handleFileChange,
     onError: handleError,
-    onSelect: handleSelect,
+    // The page inserts nothing: files are only managed here.
+    onSelect: () => {},
     height: 600,
     acceptFileType: '*',
     acceptItem: () => true,
@@ -111,16 +108,5 @@ export function FileManagerPage() {
     readOnly: !permissions?.templates?.write
   }
 
-  // console.log('fileManagerProps', fileManagerProps)
-  // console.log('currentWorkspace', currentWorkspace)
-
-  return (
-    <div className="flex flex-col gap-3">
-      <PageHeader title={t`File Manager`} />
-
-      <div className="border border-gray-200 rounded-md p-4">
-        <FileManager {...fileManagerProps} />
-      </div>
-    </div>
-  )
+  return <FileManager {...fileManagerProps} />
 }

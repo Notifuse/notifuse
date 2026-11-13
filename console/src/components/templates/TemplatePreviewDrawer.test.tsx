@@ -236,3 +236,51 @@ describe('TemplatePreviewDrawer custom text version', () => {
     vi.mocked(templatesApi.compile).mockRejectedValue(new Error('no preview in tests'))
   })
 })
+
+describe('TemplatePreviewDrawer preview errors', () => {
+  it('says the template data is missing when the editor mode has no content, without compiling', async () => {
+    vi.mocked(templatesApi.compile).mockClear()
+    await openDrawer(undefined, { ...template, email: { editor_mode: 'code' } } as unknown as Template)
+
+    expect(await screen.findByText('Missing workspace ID or template data.')).toBeInTheDocument()
+    expect(templatesApi.compile).not.toHaveBeenCalled()
+  })
+
+  it('says the structure is invalid when the tree does not parse, without compiling', async () => {
+    vi.mocked(templatesApi.compile).mockClear()
+    await openDrawer(undefined, { ...template, email: { visual_editor_tree: '{not json' } } as unknown as Template)
+
+    expect(await screen.findByText('Invalid template structure data.')).toBeInTheDocument()
+    expect(templatesApi.compile).not.toHaveBeenCalled()
+  })
+})
+
+// The templates page opens the preview from its row menu and from the URL.
+describe('TemplatePreviewDrawer controlled by the page', () => {
+  const renderControlled = (open: boolean, onClose = vi.fn()) =>
+    render(
+      <ConfigProvider>
+        <App>
+          <TemplatePreviewDrawer record={template} workspace={workspace} open={open} onClose={onClose} />
+        </App>
+      </ConfigProvider>
+    )
+
+  it('opens without children when told to', async () => {
+    renderControlled(true)
+    expect(await screen.findByText('Template Data')).toBeInTheDocument()
+  })
+
+  it('stays closed while open is false', () => {
+    renderControlled(false)
+    expect(screen.queryByText('Template Data')).not.toBeInTheDocument()
+  })
+
+  it('asks the page to close it', async () => {
+    const onClose = vi.fn()
+    renderControlled(true, onClose)
+    await screen.findByText('Template Data')
+    fireEvent.click(document.querySelector('.ant-drawer-close') as HTMLElement)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})

@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Alert, App, Button, Descriptions, Input, Space, Tag, Typography } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import dayjs from '../../lib/dayjs'
 import { ApiError } from '../../services/api/client'
 import { licenseApi } from '../../services/api/license'
 import { useLicense } from '../../hooks/useLicense'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { Panel } from '../layout'
 import {
   LICENSE_FEATURES,
   LICENSE_PRICING_URL,
@@ -13,7 +15,7 @@ import {
   type LicenseFeature
 } from '../../types/license'
 
-const { Text, Paragraph } = Typography
+const { Paragraph } = Typography
 
 // Punctuation, not prose. Wrapping an em dash in t`` would put a message in eight catalogues
 // whose only possible translation is itself.
@@ -131,7 +133,6 @@ export function LicenseSettings() {
           cryptographic, and deliberately so. It is shown first and in full for that reason. */}
       {licensed && entitlements && (
         <Alert
-          className="!mb-4"
           type="success"
           showIcon
           title={t`Licensed to ${entitlements.org}`}
@@ -139,6 +140,7 @@ export function LicenseSettings() {
         />
       )}
 
+      <Panel title={t`Licence`}>
       <Descriptions
         bordered
         column={1}
@@ -160,7 +162,7 @@ export function LicenseSettings() {
           {entitlements?.tier ? <Tag>{entitlements.tier}</Tag> : t`Community`}
         </Descriptions.Item>
         <Descriptions.Item label={t`Expires`}>
-          {expiresAt ? expiresAt.toLocaleDateString() : EMPTY_VALUE}
+          {expiresAt ? dayjs(expiresAt).format('ll') : EMPTY_VALUE}
         </Descriptions.Item>
         <Descriptions.Item label={t`Workspaces`}>{quota || EMPTY_VALUE}</Descriptions.Item>
         <Descriptions.Item label={t`Capabilities`}>
@@ -200,11 +202,9 @@ export function LicenseSettings() {
           {t`Buy a licence`}
         </Button>
       )}
+      </Panel>
 
-      <div style={{ marginTop: '24px' }}>
-        <Paragraph>
-          <Text strong>{t`Install a licence key`}</Text>
-        </Paragraph>
+      <Panel title={t`Install a licence key`}>
         <Paragraph type="secondary">
           {t`Paste the key from your purchase email. It is verified offline against a signing key built into this binary — nothing is sent anywhere.`}
         </Paragraph>
@@ -223,7 +223,7 @@ export function LicenseSettings() {
             {t`Install licence key`}
           </Button>
         )}
-      </div>
+      </Panel>
     </>
   )
 }

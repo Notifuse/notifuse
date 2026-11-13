@@ -9,6 +9,7 @@ import { i18n } from '@lingui/core'
 import { createFullPermissions } from '../services/api/permissions'
 
 // Use vi.hoisted to define mock data before mocks are hoisted
+const smokeSearch = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 const { mockWorkspace, mockUser } = vi.hoisted(() => ({
   mockWorkspace: {
     id: 'test-workspace',
@@ -54,7 +55,7 @@ vi.mock('@tanstack/react-router', async () => {
     useNavigate: () => vi.fn(),
     useMatch: () => false,
     useParams: () => ({ workspaceId: 'test-workspace', section: 'team', tab: 'dashboard' }),
-    useSearch: () => ({}),
+    useSearch: () => smokeSearch.value,
     // The real Link reads the router through context; these tests render pages
     // in isolation, without a RouterProvider.
     Link: ({ children, ...props }: { children?: ReactNode; to?: string }) => (
@@ -169,9 +170,26 @@ vi.mock('../services/api/broadcasts', () => ({
 }))
 
 // Mock automations API
-vi.mock('../services/api/automations', () => ({
-  automationsApi: {
-    list: vi.fn().mockResolvedValue({ automations: [] }),
+vi.mock('../services/api/automation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../services/api/automation')>()),
+  automationApi: {
+    list: vi.fn().mockResolvedValue({
+      automations: [
+        {
+          id: 'auto-smoke',
+          workspace_id: 'test-workspace',
+          name: 'Smoke automation',
+          status: 'paused',
+          list_id: '',
+          root_node_id: 't',
+          nodes: [],
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z'
+        }
+      ],
+      total: 1,
+      journey_counts: {}
+    }),
     get: vi.fn().mockResolvedValue({ automation: null }),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
@@ -180,8 +198,8 @@ vi.mock('../services/api/automations', () => ({
 }))
 
 // Mock transactional notifications API
-vi.mock('../services/api/transactional', () => ({
-  transactionalApi: {
+vi.mock('../services/api/transactional_notifications', () => ({
+  transactionalNotificationsApi: {
     list: vi.fn().mockResolvedValue({ notifications: [] }),
     get: vi.fn().mockResolvedValue({ notification: null }),
     create: vi.fn().mockResolvedValue({}),
@@ -296,7 +314,6 @@ import { CreateWorkspacePage } from '../pages/CreateWorkspacePage'
 import { AnalyticsPage } from '../pages/AnalyticsPage'
 import { BroadcastsPage } from '../pages/BroadcastsPage'
 import { ContactsPage } from '../pages/ContactsPage'
-import { ListsPage } from '../pages/ListsPage'
 import { TemplatesPage } from '../pages/TemplatesPage'
 import { AutomationsPage } from '../pages/AutomationsPage'
 import { TransactionalNotificationsPage } from '../pages/TransactionalNotificationsPage'
@@ -415,12 +432,14 @@ describe('Page Smoke Tests', () => {
       })
     })
 
-    it('ListsPage renders without error', async () => {
+    it('ContactsPage renders a list view without error', async () => {
+      smokeSearch.value = { list_id: 'newsletter' }
       const Wrapper = createWrapper()
-      expect(() => render(<ListsPage />, { wrapper: Wrapper })).not.toThrow()
+      expect(() => render(<ContactsPage />, { wrapper: Wrapper })).not.toThrow()
       await waitFor(() => {
         expect(document.body).toBeTruthy()
       })
+      smokeSearch.value = {}
     })
 
     it('TemplatesPage renders without error', async () => {
@@ -431,12 +450,10 @@ describe('Page Smoke Tests', () => {
       })
     })
 
-    it('AutomationsPage renders without error', async () => {
+    it('AutomationsPage renders a mocked row', async () => {
       const Wrapper = createWrapper()
-      expect(() => render(<AutomationsPage />, { wrapper: Wrapper })).not.toThrow()
-      await waitFor(() => {
-        expect(document.body).toBeTruthy()
-      })
+      render(<AutomationsPage />, { wrapper: Wrapper })
+      expect(await screen.findByText('Smoke automation')).toBeInTheDocument()
     })
 
     it('TransactionalNotificationsPage renders without error', async () => {
@@ -525,7 +542,7 @@ describe('Page Smoke Tests', () => {
       const Wrapper = createWrapper()
       render(<ContactsPage />, { wrapper: Wrapper })
       await waitFor(() => {
-        expect(screen.getByText(/Contacts/i)).toBeTruthy()
+        expect(screen.getByRole('heading', { name: 'Contacts' })).toBeTruthy()
       })
     })
   })

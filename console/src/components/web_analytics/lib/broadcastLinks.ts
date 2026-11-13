@@ -57,6 +57,35 @@ export interface BroadcastAnalyticsLinksInput {
   now?: Dayjs
 }
 
+export interface AttributionWindow {
+  /** Start of the local day the broadcast started. */
+  start: Dayjs
+  /** The last moment of the window: completion (or now) plus the conversion days, capped at now. */
+  end: Dayjs
+}
+
+/**
+ * The days during which a visit counts as coming from a broadcast, in the workspace timezone:
+ * from the day it started to the day it completed (or today) plus
+ * BROADCAST_CONVERSION_WINDOW_DAYS, capped at now and never before the start. Shared by the
+ * web analytics links, the list's visits column and the detail page. Null before the start.
+ */
+export function broadcastAttributionWindow(
+  broadcast: { started_at?: string | null; completed_at?: string | null },
+  timezone: string,
+  nowInput?: Dayjs
+): AttributionWindow | null {
+  if (!broadcast.started_at) return null
+  const now = (nowInput ?? dayjs()).tz(timezone)
+  const start = dayjs(broadcast.started_at).tz(timezone).startOf('day')
+  const lastActivity = broadcast.completed_at ? dayjs(broadcast.completed_at).tz(timezone) : now
+  const windowEnd = lastActivity.add(BROADCAST_CONVERSION_WINDOW_DAYS, 'day')
+  // The conversion window usually runs past today, and a range that ends in the
+  // future reads as missing data rather than as a window still open.
+  const capped = windowEnd.isAfter(now) ? now : windowEnd
+  return { start, end: capped.isBefore(start) ? start : capped }
+}
+
 /**
  * Builds both targets. They share a period and a filter so the two reports
  * always describe the same traffic; only the tab and the explore-specific
@@ -66,15 +95,11 @@ export function buildBroadcastAnalyticsLinks(
   input: BroadcastAnalyticsLinksInput
 ): BroadcastAnalyticsLinks {
   const { workspaceId, campaign, content, startedAt, completedAt, timezone } = input
-  const now = (input.now ?? dayjs()).tz(timezone)
-
-  const start = dayjs(startedAt).tz(timezone).startOf('day')
-  const lastActivity = completedAt ? dayjs(completedAt).tz(timezone) : now
-  const windowEnd = lastActivity.add(BROADCAST_CONVERSION_WINDOW_DAYS, 'day')
-  // The conversion window usually runs past today, and a range that ends in the
-  // future reads as missing data rather than as a window still open.
-  const capped = windowEnd.isAfter(now) ? now : windowEnd
-  const end = capped.isBefore(start) ? start : capped
+  const { start, end } = broadcastAttributionWindow(
+    { started_at: startedAt, completed_at: completedAt },
+    timezone,
+    input.now
+  )!
 
   const dimensionFilters = [{ dimension: 'utm_campaign', operator: 'equals', values: [campaign] }]
   if (content) {

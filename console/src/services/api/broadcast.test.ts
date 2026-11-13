@@ -1,6 +1,11 @@
-import { describe, it, expect } from 'vitest'
-import { getStatusesForGroup, BROADCAST_STATUS_GROUPS, testEmailListProps } from './broadcast'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { getStatusesForGroup, BROADCAST_STATUS_GROUPS, testEmailListProps, broadcastApi } from './broadcast'
 import type { Broadcast } from './broadcast'
+import { api } from './client'
+
+vi.mock('./client', () => ({
+  api: { get: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) }
+}))
 
 describe('getStatusesForGroup', () => {
   it('returns undefined for "all" and undefined (no status filter)', () => {
@@ -67,5 +72,32 @@ describe('testEmailListProps', () => {
 
   it('preselects nothing when the audience has no list', () => {
     expect(testEmailListProps(broadcastWith({ exclude_unsubscribed: true })).defaultListId).toBeUndefined()
+  })
+})
+
+describe('broadcastApi.list', () => {
+  beforeEach(() => vi.mocked(api.get).mockClear())
+
+  it('asks for the status counts and the start bound only when set', async () => {
+    await broadcastApi.list({ workspace_id: 'ws', limit: 25 })
+    expect(vi.mocked(api.get).mock.calls[0][0]).toBe('/api/broadcasts.list?workspace_id=ws&limit=25')
+
+    await broadcastApi.list({
+      workspace_id: 'ws',
+      with_status_counts: true,
+      started_after: '2026-10-06T00:00:00.000Z'
+    })
+    expect(vi.mocked(api.get).mock.calls[1][0]).toBe(
+      '/api/broadcasts.list?workspace_id=ws&with_status_counts=true&started_after=2026-10-06T00%3A00%3A00.000Z'
+    )
+  })
+})
+
+describe('broadcastApi.estimateAudience', () => {
+  it('posts the audience to broadcasts.estimateAudience', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ count: 1200 })
+    const audience = { list: 'news', segments: ['vip'], exclude_unsubscribed: true }
+    await expect(broadcastApi.estimateAudience({ workspace_id: 'ws', audience })).resolves.toEqual({ count: 1200 })
+    expect(api.post).toHaveBeenCalledWith('/api/broadcasts.estimateAudience', { workspace_id: 'ws', audience })
   })
 })

@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App, ConfigProvider } from 'antd'
+import dayjs from '../../lib/dayjs'
 import { MessageHistoryTable } from './MessageHistoryTable'
 import type { MessageHistory, MessageData } from '../../services/api/messages_history'
 import type { Workspace } from '../../services/api/types'
@@ -34,7 +35,11 @@ const message = (id: string, messageData: Partial<MessageData>): MessageHistory 
     updated_at: '2026-08-01T10:00:00Z'
   }) as MessageHistory
 
-const renderTable = (messages: MessageHistory[], visibleColumns?: Record<string, boolean>) => {
+const renderTable = (
+  messages: MessageHistory[],
+  visibleColumns?: Record<string, boolean>,
+  tableWorkspace: Workspace = workspace
+) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -45,7 +50,7 @@ const renderTable = (messages: MessageHistory[], visibleColumns?: Record<string,
             loading={false}
             isLoadingMore={false}
             onLoadMore={() => {}}
-            workspace={workspace}
+            workspace={tableWorkspace}
             visibleColumns={visibleColumns}
           />
         </App>
@@ -129,7 +134,7 @@ describe('MessageHistoryTable metadata column', () => {
   })
 
   it('shows the column when no visibility map is supplied', () => {
-    // ContactDetailsDrawer and FailedMessagesTable pass none. The Logs page does pass one,
+    // ContactDetailsDrawer passes none. The Logs page does pass one,
     // but leaves `metadata` out of it, so the column reads as visible there too.
     renderTable([message('m1', { data: {}, metadata: { order_id: '9912' } })])
 
@@ -176,5 +181,27 @@ describe('MessageHistoryTable error column', () => {
     renderTable([failed('m1', undefined)])
 
     expect(screen.queryByText(/rejected with code/)).not.toBeInTheDocument()
+  })
+})
+
+describe('MessageHistoryTable dates', () => {
+  it('gives the full date on the clock of the workspace timezone it names', async () => {
+    const tokyo = { ...workspace, settings: { timezone: 'Asia/Tokyo' } } as unknown as Workspace
+    renderTable([message('m1', { data: {} })], undefined, tokyo)
+
+    fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
+
+    // 10:00 UTC is 19:00 in Tokyo. The browser's clock, which the old label used, shows another
+    // hour on every runner not on UTC+9.
+    expect(await screen.findByText('Aug 1, 2026 7:00 PM in Asia/Tokyo')).toBeInTheDocument()
+  })
+
+  it('falls back to UTC when the workspace has no timezone', async () => {
+    const unset = { ...workspace, settings: { timezone: '' } } as unknown as Workspace
+    renderTable([message('m1', { data: {} })], undefined, unset)
+
+    fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
+
+    expect(await screen.findByText('Aug 1, 2026 10:00 AM in UTC')).toBeInTheDocument()
   })
 })

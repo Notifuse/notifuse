@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test'
 import { test, expect, requestCapture } from '../fixtures/auth'
-import { waitForLoading, waitForSuccessMessage, clickButton } from '../fixtures/test-utils'
+import { waitForLoading, waitForSuccessMessage } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
 import { fillContactForm } from '../fixtures/form-fillers'
 import { testContactDataMinimal } from '../fixtures/form-data'
@@ -20,10 +20,7 @@ const updateContactDrawer = (page: Page) =>
 /** Open the row's "…" menu and pick Edit, which opens the prefilled upsert drawer. */
 async function openEditDrawer(page: Page, rowIndex = 0): Promise<Locator> {
   const row = page.locator('.ant-table-row').nth(rowIndex)
-  await row
-    .locator('.contacts-actions-col button')
-    .filter({ has: page.locator('svg[data-icon="ellipsis-vertical"]') })
-    .click()
+  await row.locator('.contacts-actions-col button').click()
   await page.getByRole('menuitem', { name: 'Edit', exact: true }).click()
 
   const drawer = updateContactDrawer(page)
@@ -54,9 +51,7 @@ test.describe('Contacts Feature', () => {
       await expect(page.getByText('Contacts', { exact: true }).first()).toBeVisible()
 
       // The table renders its own empty text when the list endpoint returns no contacts
-      await expect(
-        page.getByText('No contacts found. Add some contacts to get started.')
-      ).toBeVisible()
+      await expect(page.getByText('No contacts yet')).toBeVisible()
     })
 
     test('loads contacts page with data', async ({ authenticatedPageWithData }) => {
@@ -79,7 +74,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await clickButton(page, 'Add')
+      // The header's button; an empty table offers a second one.
+      await page.getByRole('button', { name: 'New contact' }).first().click()
 
       const drawer = addContactDrawer(page)
       await expect(drawer).toBeVisible()
@@ -94,7 +90,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await clickButton(page, 'Add')
+      // The header's button; an empty table offers a second one.
+      await page.getByRole('button', { name: 'New contact' }).first().click()
       const drawer = addContactDrawer(page)
       await expect(drawer).toBeVisible()
 
@@ -116,7 +113,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await clickButton(page, 'Add')
+      // The header's button; an empty table offers a second one.
+      await page.getByRole('button', { name: 'New contact' }).first().click()
       const drawer = addContactDrawer(page)
       await expect(drawer).toBeVisible()
 
@@ -140,44 +138,35 @@ test.describe('Contacts Feature', () => {
       expect(contact.last_name).toBe('User')
     })
 
-    test('views contact details in drawer', async ({ authenticatedPageWithData }) => {
+    test('opens the contact sheet from a row, in the URL', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // The eye button in the row's action column opens the read-only details drawer
-      await page
-        .locator('.ant-table-row')
-        .first()
-        .locator('.contacts-actions-col button')
-        .filter({ has: page.locator('svg[data-icon="eye"]') })
-        .click()
+      // A click on the row, outside its checkbox and its menu, opens the sheet
+      await page.locator('.ant-table-row').first().getByText('john@example.com').click()
 
-      const drawer = page.getByRole('dialog', { name: 'Contact Details', exact: true })
-      await expect(drawer).toBeVisible()
-      await expect(drawer.getByText('john@example.com').first()).toBeVisible()
+      await expect(page).toHaveURL(/[?&]contact=john%40example\.com/)
+      await expect(page.locator('[data-drawer-bar]')).toBeVisible()
+      await expect(page.locator('[data-drawer-position]')).toHaveText(/^1 of /)
     })
 
-    test('closes contact drawer', async ({ authenticatedPageWithData }) => {
+    test('walks the contacts with J and K, and closes the sheet', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
 
-      await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts?contact=john%40example.com`)
       await waitForLoading(page)
 
-      await page
-        .locator('.ant-table-row')
-        .first()
-        .locator('.contacts-actions-col button')
-        .filter({ has: page.locator('svg[data-icon="eye"]') })
-        .click()
+      await expect(page.locator('[data-drawer-position]')).toHaveText(/^1 of /)
+      await page.keyboard.press('j')
+      await expect(page).toHaveURL(/[?&]contact=jane%40example\.com/)
+      await page.keyboard.press('k')
+      await expect(page).toHaveURL(/[?&]contact=john%40example\.com/)
 
-      const drawer = page.getByRole('dialog', { name: 'Contact Details', exact: true })
-      await expect(drawer).toBeVisible()
-
-      await drawer.getByRole('button', { name: 'Close', exact: true }).click()
-
-      await expect(drawer).toBeHidden()
+      await page.locator('[data-drawer-bar]').getByRole('button', { name: 'Close', exact: true }).click()
+      await expect(page.locator('[data-drawer-bar]')).toBeHidden()
+      await expect(page).not.toHaveURL(/[?&]contact=/)
     })
   })
 
@@ -188,14 +177,16 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Each filter field is a button that opens a popover with its input
+      // « Filter by… » lists the fields; each opens a popover with its input
+      await page.getByRole('button', { name: 'Filter by…' }).click()
       await page.getByRole('button', { name: 'Email', exact: true }).click()
       await page.getByPlaceholder('Filter by Email').fill('john@example.com')
       await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 
       // The filter is applied by writing it into the URL query string
       await expect(page).toHaveURL(/[?&]email=john%40example\.com/)
-      await expect(page.getByRole('button', { name: 'Email: john@example.com' })).toBeVisible()
+      // The chip above the table (the filter popover lists the same text)
+      await expect(page.locator('.ant-tag', { hasText: 'Email: john@example.com' })).toBeVisible()
     })
 
     test('shows a filter button for every contact field', async ({ authenticatedPageWithData }) => {
@@ -204,9 +195,12 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      for (const field of ['Email', 'External ID', 'First Name', 'Last Name', 'Country', 'List']) {
+      await page.getByRole('button', { name: 'Filter by…' }).click()
+      for (const field of ['Email', 'External ID', 'First Name', 'Last Name', 'Country']) {
         await expect(page.getByRole('button', { name: field, exact: true })).toBeVisible()
       }
+      // The list is the view, chosen in the rail: it is not a filter any more
+      await expect(page.getByRole('button', { name: 'List', exact: true })).toHaveCount(0)
     })
   })
 
@@ -217,7 +211,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await expect(page.getByRole('columnheader', { name: 'Email', exact: true })).toBeVisible()
+      // The Contact column carries the name and the email beneath it
+      await expect(page.getByRole('columnheader', { name: 'Contact', exact: true })).toBeVisible()
       await expect(page.locator('.ant-table-row').first()).toContainText('john@example.com')
     })
 
@@ -308,7 +303,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await clickButton(page, 'Add')
+      // The header's button; an empty table offers a second one.
+      await page.getByRole('button', { name: 'New contact' }).first().click()
       const drawer = addContactDrawer(page)
       await expect(drawer).toBeVisible()
 
@@ -325,7 +321,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await clickButton(page, 'Add')
+      // The header's button; an empty table offers a second one.
+      await page.getByRole('button', { name: 'New contact' }).first().click()
       const drawer = addContactDrawer(page)
       await expect(drawer).toBeVisible()
 
@@ -361,7 +358,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await clickButton(page, 'Add')
+      // The header's button; an empty table offers a second one.
+      await page.getByRole('button', { name: 'New contact' }).first().click()
       const drawer = addContactDrawer(page)
       await expect(drawer).toBeVisible()
 
@@ -391,7 +389,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await clickButton(page, 'Add')
+      // The header's button; an empty table offers a second one.
+      await page.getByRole('button', { name: 'New contact' }).first().click()
       const drawer = addContactDrawer(page)
       await expect(drawer).toBeVisible()
 

@@ -12,17 +12,21 @@ const WORKSPACE_ID = 'test-workspace'
 const CREATE_DRAWER = 'Create a notification'
 const EDIT_DRAWER = 'Edit notification'
 
-// The per-notification card actions are icon-only buttons. FontAwesome stamps the
-// icon name onto the svg, which is the only stable handle they expose.
-const cardAction = (page: Page, notificationName: string, icon: string): Locator =>
-  page
-    .locator('.ant-card-head')
-    .filter({ hasText: notificationName })
-    .locator(`button:has(svg[data-icon="${icon}"])`)
+// The table row of a notification, found by its name.
+const notificationRow = (page: Page, notificationName: string): Locator =>
+  page.locator('tr').filter({ has: page.getByText(notificationName, { exact: true }) })
 
-// Opens the edit drawer of an existing notification and returns it.
+// A button of a row, shown when the row is hovered.
+const rowAction = async (page: Page, notificationName: string, label: string): Promise<Locator> => {
+  const row = notificationRow(page, notificationName)
+  await row.hover()
+  return row.getByRole('button', { name: label, exact: true })
+}
+
+// Opens the edit drawer of an existing notification from its row menu and returns it.
 const openEditDrawer = async (page: Page, notificationName: string): Promise<Locator> => {
-  await cardAction(page, notificationName, 'pen-to-square').click()
+  await (await rowAction(page, notificationName, 'More actions')).click()
+  await page.getByRole('menuitem', { name: 'Edit', exact: true }).click()
   const drawer = page.getByRole('dialog', { name: EDIT_DRAWER })
   await expect(drawer).toBeVisible()
   return drawer
@@ -30,7 +34,7 @@ const openEditDrawer = async (page: Page, notificationName: string): Promise<Loc
 
 // Opens the creation drawer and returns it.
 const openCreateDrawer = async (page: Page): Promise<Locator> => {
-  await page.getByRole('button', { name: 'Create Notification', exact: true }).click()
+  await page.getByRole('button', { name: 'New notification', exact: true }).click()
   const drawer = page.getByRole('dialog', { name: CREATE_DRAWER })
   await expect(drawer).toBeVisible()
   return drawer
@@ -46,7 +50,7 @@ test.describe('Transactional Notifications Feature', () => {
 
       await expect(page.getByText('No transactional notifications found')).toBeVisible()
       await expect(
-        page.getByRole('button', { name: 'Create Notification', exact: true })
+        page.getByRole('button', { name: 'New notification', exact: true })
       ).toBeVisible()
     })
 
@@ -58,14 +62,11 @@ test.describe('Transactional Notifications Feature', () => {
 
       await expect(page).toHaveURL(/transactional/)
 
-      // One card per notification returned by the API
-      await expect(page.locator('.ant-card-head').filter({ hasText: 'Password Reset' })).toBeVisible()
-      await expect(
-        page.locator('.ant-card-head').filter({ hasText: 'Order Confirmation' })
-      ).toBeVisible()
-      await expect(
-        page.locator('.ant-card-head').filter({ hasText: 'Account Verification' })
-      ).toBeVisible()
+      // One row per notification returned by the API
+      await expect(notificationRow(page, 'Password Reset')).toBeVisible()
+      await expect(notificationRow(page, 'Order Confirmation')).toBeVisible()
+      await expect(notificationRow(page, 'Account Verification')).toBeVisible()
+      await expect(page.getByText('3 notifications', { exact: true })).toBeVisible()
     })
   })
 
@@ -111,10 +112,74 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      // Each card carries the notification's API id and description
-      const card = page.locator('.ant-card').filter({ hasText: 'Password Reset' })
-      await expect(card.getByText('transactional-1', { exact: true })).toBeVisible()
-      await expect(card.getByText('Sent when user requests password reset')).toBeVisible()
+      // Each row carries the notification's API id; its sheet, the description
+      await expect(notificationRow(page, 'Password Reset').getByText('transactional-1', { exact: true })).toBeVisible()
+      await notificationRow(page, 'Password Reset').click()
+      await expect(page).toHaveURL(/notification=transactional-1/)
+      const sheet = page.locator('.app-full-drawer')
+      await expect(sheet.getByText('Sent when user requests password reset')).toBeVisible()
+      await expect(sheet.getByText('1 of 3')).toBeVisible()
+    })
+
+    test('opens the sheet of a notification from its URL', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications?notification=transactional-2`)
+      await waitForLoading(page)
+
+      const sheet = page.locator('.app-full-drawer')
+      await expect(sheet.getByRole('heading', { name: 'Order Confirmation' })).toBeVisible()
+      await expect(sheet.getByText('2 of 3')).toBeVisible()
+
+      // J goes to the next row, in place of the current history entry
+      await page.keyboard.press('j')
+      await expect(page).toHaveURL(/notification=transactional-3/)
+      await expect(sheet.getByRole('heading', { name: 'Account Verification' })).toBeVisible()
+    })
+  })
+
+  test.describe('Keyboard and preview', () => {
+    test('opens a sheet from the keyboard through the name link, one history entry', async ({
+      authenticatedPageWithData
+    }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+
+      const link = notificationRow(page, 'Password Reset').getByRole('link', { name: 'Password Reset' })
+      await expect(link).toHaveAttribute('href', /notification=transactional-1/)
+      await link.focus()
+      await page.keyboard.press('Enter')
+      await expect(page).toHaveURL(/notification=transactional-1/)
+      const sheet = page.locator('.app-full-drawer')
+      await expect(sheet.getByRole('heading', { name: 'Password Reset' })).toBeVisible()
+
+      // One step back closes the sheet: the link and the row did not both navigate.
+      await page.goBack()
+      await expect(page).not.toHaveURL(/notification=/)
+    })
+
+    test("opens the template preview above the sheet from the preview's Open", async ({
+      authenticatedPageWithData
+    }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications?notification=transactional-1`)
+      await waitForLoading(page)
+
+      const sheet = page.locator('.app-full-drawer')
+      await expect(sheet.getByRole('heading', { name: 'Password Reset' })).toBeVisible()
+      const open = sheet.getByRole('button', { name: 'Open', exact: true })
+      await expect(open).toBeEnabled()
+      await open.click()
+
+      const preview = page.getByRole('dialog', { name: 'Welcome Email' })
+      await expect(preview).toBeVisible()
+      // A click inside it fails if the sheet covers it.
+      await preview.getByRole('button', { name: 'Close' }).click()
+      await expect(preview).toBeHidden()
+      await expect(sheet.getByRole('heading', { name: 'Password Reset' })).toBeVisible()
     })
   })
 
@@ -159,7 +224,7 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      await cardAction(page, 'Password Reset', 'terminal').click()
+      await (await rowAction(page, 'Password Reset', 'API command')).click()
 
       const modal = page.getByRole('dialog', { name: 'API Command' })
       await expect(modal).toBeVisible()
@@ -167,6 +232,25 @@ test.describe('Transactional Notifications Feature', () => {
       // The snippet targets the send endpoint with this notification's id
       await expect(modal).toContainText('/api/transactional.send')
       await expect(modal).toContainText('transactional-1')
+      // A click on a row button does not open the sheet
+      await expect(page).not.toHaveURL(/notification=/)
+    })
+
+    test('opens every language above the sheet, where J does nothing', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications?notification=transactional-1`)
+      await waitForLoading(page)
+
+      const sheet = page.locator('.app-full-drawer')
+      await expect(sheet.getByRole('heading', { name: 'Password Reset' })).toBeVisible()
+      await sheet.getByRole('button', { name: 'All languages' }).click()
+
+      const modal = page.getByRole('dialog', { name: 'API Command' })
+      await expect(modal).toBeVisible()
+      await page.keyboard.press('j')
+      await expect(page).toHaveURL(/notification=transactional-1/)
+      await expect(modal).toBeVisible()
     })
   })
 
@@ -317,8 +401,9 @@ test.describe('Transactional Notifications Feature', () => {
       await drawer.getByLabel('Notification name').fill(testTransactionalData.name)
 
       // testTransactionalData.id contains dashes, which the API identifier rejects;
-      // the value the form derives from the name is what actually gets submitted.
-      const expectedId = 'e2e_test_transactional_notification'
+      // the value the form derives from the name is what actually gets submitted,
+      // cut to the identifier's 32 characters.
+      const expectedId = 'e2e_test_transactional_notificat'
       await expect(drawer.getByLabel('API Identifier')).toHaveValue(expectedId)
 
       await drawer.getByLabel('Description').fill(testTransactionalData.description!)

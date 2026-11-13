@@ -11,6 +11,8 @@ interface ChangeVariationSenderModalProps {
   workspace: Workspace
   broadcast: Broadcast
   disabled?: boolean
+  // Without Templates read, the sender fields do not look up the templates' senders.
+  canReadTemplates: boolean
 }
 
 interface SenderFormValues {
@@ -23,7 +25,8 @@ interface SenderFormValues {
 export function ChangeVariationSenderModal({
   workspace,
   broadcast,
-  disabled
+  disabled,
+  canReadTemplates
 }: ChangeVariationSenderModalProps) {
   const { t } = useLingui()
   const { message } = App.useApp()
@@ -108,6 +111,8 @@ export function ChangeVariationSenderModal({
       message.success(t`Sender changed. You can now resume the broadcast.`)
       setOpen(false)
       queryClient.invalidateQueries({ queryKey: ['broadcasts', workspace.id] })
+      // The detail page reads the broadcast by its own key.
+      queryClient.invalidateQueries({ queryKey: ['broadcast', workspace.id, broadcast.id] })
     } catch (error) {
       message.error(
         error instanceof Error
@@ -145,7 +150,11 @@ export function ChangeVariationSenderModal({
               label={variationLabel(variation)}
               rules={senderRules}
             >
-              <VariationSenderSelect workspace={workspace} templateId={variation.template_id} />
+              <VariationSenderSelect
+                workspace={workspace}
+                templateId={variation.template_id}
+                canReadTemplates={canReadTemplates}
+              />
             </Form.Item>
           ))}
         </Form>

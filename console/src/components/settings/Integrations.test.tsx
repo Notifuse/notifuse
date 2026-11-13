@@ -1,5 +1,5 @@
 import type React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { afterAll, describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from 'antd'
@@ -10,7 +10,18 @@ import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import type { Entitlements } from '../../types/license'
 import type { Integration, Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
+import { activateDayjsLocale } from '../../i18n/dayjsLocales'
 import { getWebhookStatus, registerWebhook } from '../../services/api/webhook_registration'
+
+// The dates here are read on the browser's clock. Pinned to UTC so the day the tests expect is the
+// day shown on any runner, including one east of UTC+11 or west of UTC-10. Restored after the
+// file: a worker can go on to run other files.
+const runnerTimeZone = process.env.TZ
+process.env.TZ = 'UTC'
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -267,18 +278,18 @@ describe('Integrations — SES tenant isolation', () => {
 
 describe('Integrations — Zapier', () => {
   it('offers Zapier in the empty-state catalogue', async () => {
-    // The Add Integration dropdown is hidden until the workspace has at least one integration,
+    // The Connect dropdown is hidden until the workspace has at least one integration,
     // so on a fresh workspace the catalogue is the only way in.
     renderIntegrations()
 
     expect(await screen.findByText('Zapier')).toBeInTheDocument()
   })
 
-  it('offers Zapier in the Add Integration dropdown once an integration exists', async () => {
+  it('offers Zapier in the Connect dropdown once an integration exists', async () => {
     const user = userEvent.setup()
     renderIntegrations({ integrations: [zapierIntegration] })
 
-    await user.click(screen.getByRole('button', { name: /Add Integration/ }))
+    await user.click(screen.getByRole('button', { name: /Connect/ }))
 
     expect(await screen.findByRole('menuitem', { name: /Zapier/ })).toBeInTheDocument()
   })
@@ -323,25 +334,26 @@ describe('Integrations — Zapier', () => {
     expect(screen.getByLabelText('API key token')).toHaveValue('tok_secret_value')
   })
 
-  it('shows a member the Zapier card without Edit or Delete', async () => {
-    const { container } = renderIntegrations({
+  it('shows a member the Zapier card without Edit nor its menu', async () => {
+    renderIntegrations({
       integrations: [zapierIntegration],
       isOwner: false
     })
 
     expect(await screen.findByText(ZAPIER_KEY_EMAIL)).toBeInTheDocument()
-    expect(container.querySelector('[data-icon="pen-to-square"]')).toBeNull()
-    expect(container.querySelector('[data-icon="trash-can"]')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Connect/ })).toBeNull()
   })
 
-  it('warns that deleting a Zapier connection revokes its key', async () => {
+  it('warns that disconnecting Zapier revokes its key', async () => {
     const user = userEvent.setup()
-    const { container } = renderIntegrations({ integrations: [zapierIntegration] })
+    renderIntegrations({ integrations: [zapierIntegration] })
 
-    await user.click(
-      container.querySelector('[data-icon="trash-can"]')?.closest('button') as HTMLElement
-    )
+    await user.click(screen.getByRole('button', { name: 'More actions' }))
+    await user.click(await screen.findByText('Disconnect'))
 
+    expect((await screen.findAllByText('Delete this connection?')).length).toBeGreaterThan(0)
     const warning = await screen.findByText(/revokes the API key/)
     expect(warning).toHaveTextContent(/stops working/)
   })
@@ -373,7 +385,9 @@ describe('Integrations — webhook registration', () => {
     renderIntegrations({ integrations: [mailjetIntegration] })
     await waitFor(() => expect(getWebhookStatus).toHaveBeenCalledTimes(1))
 
-    await user.click(await screen.findByRole('button', { name: 'Register Webhooks' }))
+    await user.click(await screen.findByRole('button', { name: 'More actions' }))
+    // Not registered yet: the first registration asks nothing, as before.
+    await user.click(await screen.findByText('Register webhooks'))
 
     await waitFor(() => expect(registerWebhook).toHaveBeenCalledTimes(1))
     expect(vi.mocked(registerWebhook).mock.calls[0][0]).toEqual({
@@ -381,5 +395,55 @@ describe('Integrations — webhook registration', () => {
       integration_id: 'int_mailjet_1',
       base_url: expect.any(String)
     })
+  })
+})
+
+describe('Integrations — blocks', () => {
+  it('titles the catalogue of a workspace without integrations', async () => {
+    renderIntegrations()
+
+    expect(await screen.findByText('Available integrations')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Configure' }).length).toBeGreaterThan(0)
+  })
+
+  it('shows a member the catalogue without buttons, and opens nothing on a click', async () => {
+    const user = userEvent.setup()
+    renderIntegrations({ isOwner: false })
+
+    await screen.findByText('Available integrations')
+    expect(screen.queryByRole('button', { name: 'Configure' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Connect' })).toBeNull()
+
+    await user.click(screen.getByText('Amazon SES'))
+    expect(screen.queryByText('SES tenant isolation')).toBeNull()
+  })
+
+  it('says which provider sends what, and which role has none', async () => {
+    renderIntegrations({ integrations: [mailjetIntegration] })
+
+    expect(await screen.findByText('Email providers')).toBeInTheDocument()
+    expect(screen.getByText('Marketing: not set')).toBeInTheDocument()
+    expect(screen.getByText('Email Provider Configuration Needed')).toBeInTheDocument()
+  })
+
+  it('invites to add an email provider when only other integrations exist', async () => {
+    renderIntegrations({ integrations: [zapierIntegration] })
+
+    expect(await screen.findByText('No email provider yet')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Add a provider/ }).length).toBeGreaterThan(0)
+    expect(screen.getByText('Other integrations')).toBeInTheDocument()
+  })
+})
+
+describe('Integrations — dates', () => {
+  afterEach(() => {
+    activateDayjsLocale('en')
+  })
+
+  it('writes the day a Zapier card was connected in the console language', async () => {
+    activateDayjsLocale('fr')
+    renderIntegrations({ integrations: [zapierIntegration] })
+
+    expect(await screen.findByText('1 août 2026')).toBeInTheDocument()
   })
 })

@@ -34,6 +34,12 @@ interface UpsertTransactionalNotificationDrawerProps {
   buttonProps?: Record<string, unknown>
   buttonContent?: React.ReactNode
   onClose?: () => void
+  /**
+   * Opens the drawer from outside (the notification sheet, a row's menu) instead of its own button,
+   * which is then not rendered. The form is filled each time it turns true; `onClose` must set it
+   * back to false.
+   */
+  open?: boolean
   // Without Templates read the template field requests nothing and says why it shows only
   // the template's ID. Required, so a caller cannot forget it.
   canReadTemplates: boolean
@@ -45,10 +51,13 @@ export function UpsertTransactionalNotificationDrawer({
   canReadTemplates,
   buttonProps = {},
   buttonContent,
-  onClose
+  onClose,
+  open
 }: UpsertTransactionalNotificationDrawerProps) {
   const { t } = useLingui()
-  const [isOpen, setIsOpen] = useState(false)
+  const controlled = open !== undefined
+  const [ownOpen, setIsOpen] = useState(false)
+  const isOpen = controlled ? open : ownOpen
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
@@ -97,6 +106,12 @@ export function UpsertTransactionalNotificationDrawer({
       )
       handleClose()
       queryClient.invalidateQueries({ queryKey: ['transactional-notifications', workspace.id] })
+      if (notification) {
+        // The sheet loads the notification on its own key.
+        queryClient.invalidateQueries({
+          queryKey: ['transactional-notification', workspace.id, notification.id]
+        })
+      }
       setLoading(false)
     },
     onError: (error) => {
@@ -109,7 +124,8 @@ export function UpsertTransactionalNotificationDrawer({
     }
   })
 
-  const showDrawer = () => {
+  // Only the form's store: the touched flag is already false whenever the drawer is closed.
+  const fillForm = () => {
     if (notification) {
       // For existing notifications, populate form with current values
       form.setFieldsValue({
@@ -146,9 +162,19 @@ export function UpsertTransactionalNotificationDrawer({
         }
       })
     }
+  }
+
+  const showDrawer = () => {
+    fillForm()
     setFormTouched(false)
     setIsOpen(true)
   }
+
+  useEffect(() => {
+    if (open) fillForm()
+    // Filled when the parent opens it, not on every render of the notification it shows.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const handleClose = () => {
     if (formTouched && !loading && !upsertNotificationMutation.isPending) {
@@ -199,9 +225,11 @@ export function UpsertTransactionalNotificationDrawer({
 
   return (
     <>
-      <Button onClick={showDrawer} {...buttonProps}>
-        {buttonContent || (notification ? t`Edit Notification` : t`Create Notification`)}
-      </Button>
+      {controlled ? null : (
+        <Button onClick={showDrawer} {...buttonProps}>
+          {buttonContent || (notification ? t`Edit Notification` : t`Create Notification`)}
+        </Button>
+      )}
       {isOpen && (
         <Drawer
           title={<>{notification ? t`Edit notification` : t`Create a notification`}</>}

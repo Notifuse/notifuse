@@ -16,7 +16,7 @@ interface AuditLogsSettingsProps {
 
 // Settings → Audit logs holds what an owner configures: the retention, and
 // the licence notice when nothing is being recorded. The log itself is read
-// under Logs → Audit logs.
+// under Logs → Audit log.
 export function AuditLogsSettings({
   workspace,
   isOwner,
@@ -26,14 +26,14 @@ export function AuditLogsSettings({
   if (!workspace) return null;
 
   return (
-    <div>
+    <div className="flex flex-col gap-3">
       <SettingsSectionHeader
-        title={t`Audit logs`}
+        title={t`Audit log`}
         description={t`Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed.`}
       />
       <LicenceGateNotice feature="audit_logs" workspaceId={workspace.id} />
-      <div className="mb-6 flex items-center gap-3">
-        <Text type="secondary">{t`Browse, filter and export the log under Logs → Audit logs.`}</Text>
+      <div className="flex items-center gap-3">
+        <Text type="secondary">{t`Browse, filter and export the log under Logs → Audit log.`}</Text>
         <Link
           to="/console/workspace/$workspaceId/logs"
           params={{ workspaceId: workspace.id }}

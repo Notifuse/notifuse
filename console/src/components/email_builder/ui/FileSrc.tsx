@@ -12,6 +12,8 @@ interface FileSrcProps {
   buttonText?: string
   disabled?: boolean
   size?: 'small' | 'middle' | 'large'
+  /** Where the file goes, in the picker's footer ("the Image block"). */
+  targetLabel?: string
 }
 
 const FileSrcContent: React.FC<FileSrcProps> = ({
@@ -22,7 +24,8 @@ const FileSrcContent: React.FC<FileSrcProps> = ({
   acceptItem = (item) => !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false),
   buttonText,
   disabled = false,
-  size = 'small'
+  size = 'small',
+  targetLabel
 }) => {
   const { t } = useLingui()
   const { SelectFileButton } = useFileManager()
@@ -57,6 +60,7 @@ const FileSrcContent: React.FC<FileSrcProps> = ({
         onSelect={handleFileSelect}
         acceptFileType={acceptFileType}
         acceptItem={acceptItem}
+        targetLabel={targetLabel}
         buttonText={resolvedButtonText}
         disabled={disabled}
         size={size}

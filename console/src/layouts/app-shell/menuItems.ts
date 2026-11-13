@@ -6,7 +6,6 @@ import {
   AlignJustify,
   ChartLine,
   Files,
-  FolderOpen,
   LayoutGrid,
   Send,
   Settings,
@@ -65,7 +64,8 @@ export function selectedMenuKey(pathname: string): string {
       : 'web-analytics-dashboard'
   }
   const cascade: [string, string][] = [
-    ['/lists', 'lists'],
+    // The Lists page redirects to Contacts, whose rail holds the lists.
+    ['/lists', 'contacts'],
     ['/templates', 'templates'],
     ['/blog', 'blog'],
     ['/contacts', 'contacts'],
@@ -93,7 +93,11 @@ export type GroupPage =
     }
 
 /** Where opening a group lands: the first child the group renders. */
-export function firstPageOfGroup(group: string, hasAccess: HasAccess, workspaceId: string): GroupPage | null {
+export function firstPageOfGroup(
+  group: string,
+  hasAccess: HasAccess,
+  workspaceId: string
+): GroupPage | null {
   if (group === 'web-analytics') {
     return {
       to: '/console/workspace/$workspaceId/web-analytics/$tab',
@@ -115,6 +119,64 @@ export function firstPageOfGroup(group: string, hasAccess: HasAccess, workspaceI
   return null
 }
 
+/** The page each top entry links to, for the entries that are plain links. */
+const ENTRY_PAGES: Record<string, (workspaceId: string) => MenuTarget> = {
+  contacts: (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/contacts',
+    params: { workspaceId }
+  }),
+  broadcasts: (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/broadcasts',
+    params: { workspaceId }
+  }),
+  automations: (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/automations',
+    params: { workspaceId }
+  }),
+  'transactional-notifications': (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/transactional-notifications',
+    params: { workspaceId }
+  }),
+  logs: (workspaceId) => ({ to: '/console/workspace/$workspaceId/logs', params: { workspaceId } }),
+  settings: (workspaceId) => ({
+    to: '/console/workspace/$workspaceId/settings',
+    params: { workspaceId }
+  })
+}
+
+/** The sidebar's top entries after the dashboard, in its order, with the right each needs. */
+const ENTRIES_AFTER_DASHBOARD: { key: string; reachable: (hasAccess: HasAccess) => boolean }[] = [
+  { key: 'web-analytics', reachable: (hasAccess) => hasAccess('web_analytics') },
+  // Contacts holds the lists too, as the sidebar entry does.
+  { key: 'contacts', reachable: (hasAccess) => hasAccess('contacts') || hasAccess('lists') },
+  { key: 'broadcasts', reachable: (hasAccess) => hasAccess('broadcasts') },
+  { key: 'automations', reachable: (hasAccess) => hasAccess('automations') },
+  { key: 'transactional-notifications', reachable: (hasAccess) => hasAccess('transactional') },
+  { key: 'content', reachable: (hasAccess) => hasAccess('templates') || hasAccess('workspace') },
+  { key: 'logs', reachable: (hasAccess) => hasAccess('message_history') },
+  { key: 'settings', reachable: (hasAccess) => hasAccess('workspace') }
+]
+
+export interface MenuPage {
+  key: string
+  target: MenuTarget
+}
+
+/**
+ * Where a member who cannot read the dashboard lands: the first sidebar entry after it they can
+ * reach, Settings when none. Never the dashboard itself, so a redirect from it cannot loop.
+ */
+export function firstAccessiblePage(hasAccess: HasAccess, workspaceId: string): MenuPage {
+  for (const entry of ENTRIES_AFTER_DASHBOARD) {
+    if (!entry.reachable(hasAccess)) continue
+    const group = firstPageOfGroup(entry.key, hasAccess, workspaceId)
+    if (group) return { key: entry.key, target: group }
+    const page = ENTRY_PAGES[entry.key]
+    if (page) return { key: entry.key, target: page(workspaceId) }
+  }
+  return { key: 'settings', target: ENTRY_PAGES.settings(workspaceId) }
+}
+
 const LABELS = {
   dashboard: msg`Dashboard`,
   webAnalytics: msg`Web Analytics`,
@@ -124,7 +186,6 @@ const LABELS = {
   filters: msg`Filters`,
   annotations: msg`Annotations`,
   contacts: msg`Contacts`,
-  lists: msg`Lists`,
   broadcasts: msg`Broadcasts`,
   automations: msg`Automations`,
   transactional: msg`Transactional`,
@@ -155,10 +216,20 @@ interface BuildMenuItemsOptions {
   workspaceId: string
   /** From useLingui(): the macro's `t` cannot leave the component that calls it. */
   i18n: I18n
+  /**
+   * Whether the member may open one of the Logs tabs: messages, incoming or outgoing webhooks read,
+   * or the audit log. Without it, the entry follows the message history right.
+   */
+  canOpenLogs?: boolean
 }
 
 /** The sidebar entries the member's rights allow, in the menu's order. */
-export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsOptions): MenuItem[] {
+export function buildMenuItems({
+  hasAccess,
+  workspaceId,
+  i18n,
+  canOpenLogs
+}: BuildMenuItemsOptions): MenuItem[] {
   const label = (descriptor: MessageDescriptor) => i18n._(descriptor)
   const tab = (key: (typeof WEB_ANALYTICS_SECTIONS)[number], text: MessageDescriptor): MenuItem =>
     key === 'live'
@@ -228,7 +299,10 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsO
     hasAccess('message_history') && {
       key: 'analytics',
       icon: icon(LayoutGrid),
-      label: link({ to: '/console/workspace/$workspaceId', params: { workspaceId } }, label(LABELS.dashboard))
+      label: link(
+        { to: '/console/workspace/$workspaceId', params: { workspaceId } },
+        label(LABELS.dashboard)
+      )
     },
     hasAccess('web_analytics') && {
       key: 'web-analytics',
@@ -245,7 +319,8 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsO
         tab('annotations', LABELS.annotations)
       ]
     },
-    hasAccess('contacts') && {
+    // Contacts holds the lists too: a member who may only read lists lands there.
+    (hasAccess('contacts') || hasAccess('lists')) && {
       key: 'contacts',
       icon: icon(SquareUserRound),
       label: link(
@@ -254,17 +329,6 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsO
           params: { workspaceId }
         },
         label(LABELS.contacts)
-      )
-    },
-    hasAccess('lists') && {
-      key: 'lists',
-      icon: icon(FolderOpen),
-      label: link(
-        {
-          to: '/console/workspace/$workspaceId/lists',
-          params: { workspaceId }
-        },
-        label(LABELS.lists)
       )
     },
     hasAccess('broadcasts') && {
@@ -306,10 +370,13 @@ export function buildMenuItems({ hasAccess, workspaceId, i18n }: BuildMenuItemsO
       label: label(LABELS.content),
       children: contentChildren
     },
-    hasAccess('message_history') && {
+    (canOpenLogs ?? hasAccess('message_history')) && {
       key: 'logs',
       icon: icon(AlignJustify),
-      label: link({ to: '/console/workspace/$workspaceId/logs', params: { workspaceId } }, label(LABELS.logs))
+      label: link(
+        { to: '/console/workspace/$workspaceId/logs', params: { workspaceId } },
+        label(LABELS.logs)
+      )
     },
     hasAccess('workspace') && {
       key: 'settings',

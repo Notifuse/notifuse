@@ -137,19 +137,36 @@ export interface GetBlogPostRequest {
   category_slug?: string
 }
 
-export type BlogPostStatus = 'all' | 'draft' | 'published'
+// `published` is every post with a publication date, scheduled ones included; `scheduled` only
+// those whose date is still to come.
+export type BlogPostStatus = 'all' | 'draft' | 'published' | 'scheduled'
 
 export interface ListBlogPostsRequest {
   category_id?: string
   status?: BlogPostStatus
   limit?: number
   page?: number
+  /** Matches the post title, case-insensitively. */
+  search?: string
 }
 
 export interface BlogPostListResponse {
   // null when no post matches: the server encodes an empty page as null
   posts: BlogPost[] | null
   total_count: number
+}
+
+/**
+ * Posts by status. `all_total` and `by_category` cover every post; the others follow the
+ * category asked for. A scheduled post counts in `published` and in `scheduled`.
+ */
+export interface BlogPostCounts {
+  all_total: number
+  total: number
+  published: number
+  scheduled: number
+  draft: number
+  by_category?: Record<string, number>
 }
 
 // Response wrappers
@@ -259,6 +276,7 @@ export const blogCategoriesApi: BlogCategoriesApi = {
 // Posts API
 export interface BlogPostsApi {
   list: (workspace_id: string, params: ListBlogPostsRequest) => Promise<BlogPostListResponse>
+  counts: (workspace_id: string, category_id?: string) => Promise<BlogPostCounts>
   get: (workspace_id: string, params: GetBlogPostRequest) => Promise<GetBlogPostResponse>
   create: (workspace_id: string, params: CreateBlogPostRequest) => Promise<CreateBlogPostResponse>
   update: (workspace_id: string, params: UpdateBlogPostRequest) => Promise<UpdateBlogPostResponse>
@@ -278,20 +296,20 @@ export const blogPostsApi: BlogPostsApi = {
     workspace_id: string,
     params: ListBlogPostsRequest
   ): Promise<BlogPostListResponse> => {
-    let url = `/api/blogPosts.list?workspace_id=${workspace_id}`
-    if (params.category_id) {
-      url += `&category_id=${params.category_id}`
-    }
-    if (params.status) {
-      url += `&status=${params.status}`
-    }
-    if (params.limit) {
-      url += `&limit=${params.limit}`
-    }
-    if (params.page) {
-      url += `&page=${params.page}`
-    }
+    const query = new URLSearchParams({ workspace_id })
+    if (params.category_id) query.set('category_id', params.category_id)
+    if (params.status) query.set('status', params.status)
+    if (params.limit) query.set('limit', String(params.limit))
+    if (params.page) query.set('page', String(params.page))
+    if (params.search) query.set('search', params.search)
+    const url = `/api/blogPosts.list?${query}`
     return await api.get<BlogPostListResponse>(url)
+  },
+
+  counts: async (workspace_id: string, category_id?: string): Promise<BlogPostCounts> => {
+    const query = new URLSearchParams({ workspace_id })
+    if (category_id) query.set('category_id', category_id)
+    return await api.get<BlogPostCounts>(`/api/blogPosts.counts?${query}`)
   },
 
   get: async (workspace_id: string, params: GetBlogPostRequest): Promise<GetBlogPostResponse> => {

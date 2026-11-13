@@ -1,36 +1,47 @@
-import { useState } from 'react'
-import { Button, Form, Input, Image, App, Space } from 'antd'
-import { SearchOutlined } from '@ant-design/icons'
+import { useEffect, useState } from 'react'
+import { App, Button, Form, Input, Popover } from 'antd'
+import { Search } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { workspaceService } from '../../services/api/workspace'
+import { WorkspaceBadge } from '../../layouts/app-shell/WorkspaceSwitcher'
 
 interface LogoInputProps {
-  name?: string
-  label?: string
-  placeholder?: string
-  rules?: Array<{ type?: 'url'; message?: string }>
+  /** Set by the Form.Item that holds the logo URL. */
+  value?: string
+  onChange?: (value: string) => void
+  /** For the initial shown without a logo. */
+  workspaceName?: string
+  /** The field the website URL is read from by "Detect from website". */
+  websiteField?: string
 }
 
+/**
+ * The logo of a workspace: a 40px preview, "Replace" (a URL or the icon of the website) and
+ * "Remove". It is the child of an always-mounted `Form.Item`: the popover mounts its content
+ * only when first opened, and a field that is not mounted would empty the logo on save.
+ */
 export function LogoInput({
-  name = 'logo_url',
-  label,
-  placeholder,
-  rules
+  value,
+  onChange,
+  workspaceName,
+  websiteField = 'website_url'
 }: LogoInputProps) {
   const { t } = useLingui()
-  const [isDetectingIcon, setIsDetectingIcon] = useState(false)
   const { message } = App.useApp()
-  const [form] = Form.useForm()
+  const form = Form.useFormInstance()
+  const [isDetectingIcon, setIsDetectingIcon] = useState(false)
+  const [open, setOpen] = useState(false)
+  // The URL that failed to load, so the next one gets its chance.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const logoUrl = value || ''
+  const failed = logoUrl !== '' && failedUrl === logoUrl
 
-  const finalLabel = label ?? t`Logo URL`
-  const finalPlaceholder = placeholder ?? 'https://example.com/logo.png'
-  const finalRules = rules ?? [{ type: 'url' as const, message: t`Please enter a valid URL` }]
-
-  // Get the form from context
-  const formInstance = Form.useFormInstance() || form
+  useEffect(() => {
+    if (failedUrl && failedUrl !== logoUrl) setFailedUrl(null)
+  }, [logoUrl, failedUrl])
 
   const handleDetectIcon = async () => {
-    const website = formInstance.getFieldValue('website_url')
+    const website = form.getFieldValue(websiteField)
     if (!website) {
       message.error(t`Please enter a website URL first`)
       return
@@ -41,7 +52,7 @@ export function LogoInput({
       const { iconUrl } = await workspaceService.detectFavicon(website)
 
       if (iconUrl) {
-        formInstance.setFieldsValue({ [name]: iconUrl })
+        onChange?.(iconUrl)
         message.success(t`Icon detected successfully`)
       } else {
         message.warning(t`No icon found`)
@@ -54,42 +65,56 @@ export function LogoInput({
     }
   }
 
+  const replace = (
+    <div className="flex w-80 flex-col gap-2">
+      <Input
+        aria-label={t`Logo URL`}
+        placeholder="https://example.com/logo.png"
+        value={logoUrl}
+        onChange={(event) => onChange?.(event.target.value)}
+      />
+      <Button
+        icon={<Search size={14} aria-hidden="true" />}
+        onClick={handleDetectIcon}
+        loading={isDetectingIcon}
+      >
+        {t`Detect from website`}
+      </Button>
+    </div>
+  )
+
   return (
-    <Form.Item label={finalLabel}>
-      <Space.Compact style={{ width: '100%' }}>
-        <Form.Item noStyle shouldUpdate={(prev, current) => prev[name] !== current[name]}>
-          {() => {
-            const logoUrl = formInstance.getFieldValue(name)
-            return logoUrl ? (
-              <div
-                style={{
-                  width: 40,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid #d9d9d9',
-                  borderRight: 0,
-                  borderRadius: '6px 0 0 6px',
-                  background: '#fafafa'
-                }}
-              >
-                <Image src={logoUrl} alt={t`Logo Preview`} height={24} preview={false} />
-              </div>
-            ) : null
-          }}
-        </Form.Item>
-        <Form.Item name={name} noStyle rules={finalRules}>
-          <Input placeholder={finalPlaceholder} style={{ flex: 1 }} />
-        </Form.Item>
-        <Button
-          icon={<SearchOutlined />}
-          onClick={handleDetectIcon}
-          loading={isDetectingIcon}
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-3">
+        {logoUrl && !failed ? (
+          <img
+            src={logoUrl}
+            alt={t`Logo Preview`}
+            data-logo-preview
+            onError={() => setFailedUrl(logoUrl)}
+            className="size-10 shrink-0 rounded-md border border-line bg-surface object-contain"
+          />
+        ) : (
+          <WorkspaceBadge workspace={{ name: workspaceName ?? '' }} large />
+        )}
+        <Popover
+          trigger="click"
+          placement="bottomLeft"
+          open={open}
+          onOpenChange={setOpen}
+          content={replace}
         >
-          {t`Detect from website URL`}
-        </Button>
-      </Space.Compact>
-    </Form.Item>
+          <Button size="small">{t`Replace`}</Button>
+        </Popover>
+        {logoUrl ? (
+          <Button size="small" type="text" danger onClick={() => onChange?.('')}>
+            {t`Remove`}
+          </Button>
+        ) : null}
+      </div>
+      {failed ? (
+        <div className="text-xs text-warning-fg">{t`This image couldn't be loaded`}</div>
+      ) : null}
+    </div>
   )
 }

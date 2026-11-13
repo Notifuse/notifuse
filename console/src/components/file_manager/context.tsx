@@ -20,10 +20,13 @@ interface SelectFileButtonProps {
   ghost?: boolean
   style?: React.CSSProperties
   maxFileSizeWarning?: number // Threshold in bytes, default 200KB (204800)
+  // Where the file goes, ended in the picker's footer: "· will be inserted into {targetLabel}".
+  targetLabel?: string
 }
 
 interface FileManagerProviderProps {
   children: React.ReactNode
+  workspaceId: string
   settings?: FileManagerSettings
   onUpdateSettings: (settings: FileManagerSettings) => Promise<void>
   settingsInfo?: React.ReactNode
@@ -34,6 +37,7 @@ const FileManagerContext = createContext<FileManagerContextValue | undefined>(un
 
 export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   children,
+  workspaceId,
   settings,
   onUpdateSettings,
   settingsInfo,
@@ -48,7 +52,10 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
     acceptFileType?: string
     acceptItem?: (item: StorageObject) => boolean
     maxFileSizeWarning?: number
+    targetLabel?: string
   } | null>(null)
+  // The picker reopens at the last folder visited, for the rest of the session.
+  const [pickerPath, setPickerPath] = useState('')
   const [warningModalVisible, setWarningModalVisible] = useState(false)
   const [pendingFile, setPendingFile] = useState<StorageObject | null>(null)
 
@@ -115,14 +122,16 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
     type = 'primary',
     ghost = false,
     style,
-    maxFileSizeWarning
+    maxFileSizeWarning,
+    targetLabel
   }) => {
     const handleOpenFileManager = () => {
       setCurrentOptions({
         onSelect,
         acceptFileType,
         acceptItem,
-        maxFileSizeWarning
+        maxFileSizeWarning,
+        targetLabel
       })
       setIsModalVisible(true)
     }
@@ -152,18 +161,25 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
 
       {/* File Manager Modal */}
       <Modal
-        title={t`File Manager`}
+        title={
+          (currentOptions?.acceptFileType || 'image/*').startsWith('image/')
+            ? t`Choose an image`
+            : t`Choose a file`
+        }
         open={isModalVisible}
         onCancel={closeModal}
         footer={null}
-        width={1000}
+        width="min(1200px, calc(100vw - 64px))"
         style={{ top: 20 }}
         styles={{ body: { padding: 0 } }}
         zIndex={1300}
+        destroyOnHidden
       >
         {currentOptions && (
           <FileManager
             key={`filemanager-${readOnly}-${!!currentOptions}`}
+            mode="picker"
+            workspaceId={workspaceId}
             settings={settings}
             onUpdateSettings={onUpdateSettings}
             onSelect={handleFileSelect}
@@ -178,6 +194,10 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
             multiple={false}
             settingsInfo={settingsInfo}
             readOnly={readOnly}
+            controlledPath={pickerPath}
+            onPathChange={setPickerPath}
+            targetLabel={currentOptions.targetLabel}
+            onCancel={closeModal}
           />
         )}
       </Modal>

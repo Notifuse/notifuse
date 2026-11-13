@@ -53,6 +53,8 @@ const ButtonUpsertSegment = (props: {
   totalContacts?: number
   onSuccess?: () => void
   children?: React.ReactNode
+  // Without Templates read the email conditions name their template by ID, locked.
+  canReadTemplates: boolean
 }) => {
   const { t } = useLingui()
   const [drawserVisible, setDrawserVisible] = useState(false)
@@ -80,17 +82,20 @@ const ButtonUpsertSegment = (props: {
           totalContacts={props.totalContacts}
           setDrawserVisible={setDrawserVisible}
           onSuccess={props.onSuccess}
+          canReadTemplates={props.canReadTemplates}
         />
       )}
     </>
   )
 }
 
-const DrawerSegment = (props: {
+// Exported for the Contacts rail, which opens it from its own "+" button.
+export const DrawerSegment = (props: {
   segment?: Segment
   totalContacts?: number
   setDrawserVisible: (visible: boolean) => void
   onSuccess?: () => void
+  canReadTemplates: boolean
 }) => {
   const { t } = useLingui()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
@@ -767,6 +772,7 @@ const DrawerSegment = (props: {
               schemas={schemas}
               lists={lists}
               workspaceId={workspaceId}
+              canReadTemplates={props.canReadTemplates}
               customFieldLabels={workspace?.settings?.custom_field_labels}
               onDraftTreeChange={setDraftTree}
             />

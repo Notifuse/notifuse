@@ -51,6 +51,14 @@ describe('SMTPBridgeSettings', () => {
     expect(screen.getByText('Off (plaintext)')).toBeInTheDocument()
   })
 
+  it('lists the domain and port of the bridge in its panel', () => {
+    window.SMTP_BRIDGE_TLS_MODE = 'starttls'
+    renderComponent()
+    expect(screen.getByRole('heading', { name: 'Server' })).toBeInTheDocument()
+    expect(screen.getByText('smtp.example.com')).toBeInTheDocument()
+    expect(screen.getByText('587')).toBeInTheDocument()
+  })
+
   it('shows fallback when bridge is disabled', () => {
     window.SMTP_BRIDGE_ENABLED = false
     window.SMTP_BRIDGE_TLS_MODE = 'off'

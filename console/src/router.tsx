@@ -15,14 +15,15 @@ import { CreateWorkspacePage } from "./pages/CreateWorkspacePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { WorkspaceSettingsPage } from "./pages/WorkspaceSettingsPage";
 import { ContactsPage } from "./pages/ContactsPage";
-import { ListsPage } from "./pages/ListsPage";
 import { FileManagerPage } from "./pages/FileManagerPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { BroadcastsPage } from "./pages/BroadcastsPage";
 import { AutomationsPage } from "./pages/AutomationsPage";
 import { TransactionalNotificationsPage } from "./pages/TransactionalNotificationsPage";
+import { validateTransactionalSearch } from "./components/transactional/transactionalSearch";
 import { LogsPage } from "./pages/LogsPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { validateDashboardSearch } from "./components/analytics/dashboardSearch";
 import { WebAnalyticsPage } from "./pages/WebAnalyticsPage";
 import { WebAnalyticsLivePage } from "./pages/WebAnalyticsLivePage";
 import {
@@ -39,6 +40,15 @@ import { BlogPage } from "./pages/BlogPage";
 import SetupWizard from "./pages/SetupWizard";
 import { createRouter } from "@tanstack/react-router";
 import type { TrackingConsentFilter } from "./services/api/contacts";
+import {
+  parseBlogSearch,
+  parseFileManagerSearch,
+  parseSettingsSearch,
+  parseTemplatesSearch,
+} from "./lib/searchParams";
+import { DEFAULT_SETTINGS_SECTION } from "./components/settings/SettingsSidebar";
+import { parseLogsSearch } from "./components/logs/logsSearch";
+export type { LogsSearch } from "./components/logs/logsSearch";
 
 export interface ContactsSearch {
   email?: string;
@@ -53,8 +63,33 @@ export interface ContactsSearch {
   contact_list_status?: string;
   tracking_opens_consent?: TrackingConsentFilter;
   tracking_clicks_consent?: TrackingConsentFilter;
+  /** Legacy filter: contacts in any of these segments (a chip). */
   segments?: string[];
+  /** The segment view; sent to the API as segments=[segment_id]. */
+  segment_id?: string;
+  /** Unified search on email, names and external ID. */
+  search?: string;
+  /** Email of the contact whose sheet is open. */
+  contact?: string;
   limit?: number;
+}
+
+const CONTACTS_DEFAULT_LIMIT = 50;
+const CONTACTS_MAX_LIMIT = 10000;
+
+// The default search parser JSON.parses each value, so ?search=123 arrives as a number and
+// ?x=a&x=b as an array: every contacts parameter is read back as one string.
+function searchText(value: unknown): string | undefined {
+  const single = Array.isArray(value) ? value[0] : value;
+  if (single === undefined || single === null) return undefined;
+  const text = String(single);
+  return text.trim() === "" ? undefined : text;
+}
+
+function contactsLimit(value: unknown): number {
+  const limit = Math.floor(Number(value));
+  if (!Number.isFinite(limit) || limit < 1) return CONTACTS_DEFAULT_LIMIT;
+  return Math.min(limit, CONTACTS_MAX_LIMIT);
 }
 
 const trackingConsentFilters: readonly TrackingConsentFilter[] = ["granted", "denied", "unknown"];
@@ -75,23 +110,62 @@ export interface AcceptInvitationSearch {
   token?: string;
 }
 
-export interface BlogSearch {
-  status?: string;
-  category_id?: string;
-}
-
-export interface FileManagerSearch {
-  path?: string;
-}
-
 export interface BroadcastsSearch {
   status?: string;
   q?: string;
+  /** Opens the detail page of this broadcast. */
+  broadcast?: string;
+  /** Opens the composer: `new`, or the id of a draft or scheduled broadcast. */
+  compose?: string;
 }
 
-export interface TemplatesSearch {
-  category?: string;
+/**
+ * Repeated query keys (?status=a&status=b) parse to arrays; coerce to a single value, trim, and
+ * drop empties so the page always sees a clean string or undefined. An identifier made of digits
+ * is parsed as a number by the router, and read back as text.
+ */
+export function validateBroadcastsSearch(search: Record<string, unknown>): BroadcastsSearch {
+  const normalize = (value: unknown, numbers = false): string | undefined => {
+    const single = Array.isArray(value) ? value[0] : value;
+    const text = numbers && typeof single === "number" && Number.isFinite(single) ? String(single) : single;
+    if (typeof text !== "string") return undefined;
+    const trimmed = text.trim();
+    return trimmed === "" ? undefined : trimmed;
+  };
+  return {
+    status: normalize(search.status),
+    q: normalize(search.q),
+    broadcast: normalize(search.broadcast, true),
+    compose: normalize(search.compose, true),
+  };
+}
+
+export type { BlogSearch, FileManagerSearch, TemplatesSearch } from "./lib/searchParams";
+
+export type AutomationStatusFilter = "live" | "paused" | "draft";
+
+export interface AutomationsSearch {
+  status?: AutomationStatusFilter;
   q?: string;
+  /** Opens the editor: `new`, or an automation id. */
+  automation?: string;
+  /** 1 when the editor shows each step's results. A number: a string that parses as JSON is written quoted. */
+  stats?: 1;
+}
+
+const AUTOMATION_STATUS_FILTERS: AutomationStatusFilter[] = ["live", "paused", "draft"];
+
+/** The automations search, normalised like the broadcasts one; an unknown status or stats is dropped. */
+export function validateAutomationsSearch(search: Record<string, unknown>): AutomationsSearch {
+  const plain = validateBroadcastsSearch({ status: search.status, q: search.q, broadcast: search.automation });
+  const status = AUTOMATION_STATUS_FILTERS.find((value) => value === plain.status);
+  const rawStats = Array.isArray(search.stats) ? search.stats[0] : search.stats;
+  return {
+    status,
+    q: plain.q,
+    automation: plain.broadcast,
+    stats: rawStats === 1 || rawStats === "1" ? 1 : undefined,
+  };
 }
 
 // Create the root route
@@ -163,6 +237,7 @@ const workspaceIndexRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/",
   component: AnalyticsPage,
+  validateSearch: validateDashboardSearch,
 });
 
 // Create workspace child routes
@@ -170,85 +245,95 @@ const workspaceBroadcastsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/broadcasts",
   component: BroadcastsPage,
-  validateSearch: (search: Record<string, unknown>): BroadcastsSearch => {
-    // Repeated query keys (?status=a&status=b) parse to arrays; coerce to a
-    // single value, trim, and drop empties so the page always sees a clean
-    // string or undefined.
-    const normalize = (value: unknown): string | undefined => {
-      const single = Array.isArray(value) ? value[0] : value;
-      if (typeof single !== "string") return undefined;
-      const trimmed = single.trim();
-      return trimmed === "" ? undefined : trimmed;
-    };
-    return { status: normalize(search.status), q: normalize(search.q) };
-  },
+  validateSearch: validateBroadcastsSearch,
 });
 
 const workspaceAutomationsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/automations",
   component: AutomationsPage,
+  validateSearch: validateAutomationsSearch,
 });
 
+// The lists live in the Contacts page's rail now.
 const workspaceListsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/lists",
-  component: ListsPage,
+  staticData: { layout: "rail" },
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/console/workspace/$workspaceId/contacts",
+      params: { workspaceId: params.workspaceId },
+      replace: true,
+    });
+  },
 });
 
 export const workspaceFileManagerRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/file-manager",
   component: FileManagerPage,
-  validateSearch: (search: Record<string, unknown>): FileManagerSearch => ({
-    path: search.path as string | undefined,
-  }),
+  staticData: { layout: "rail" },
+  validateSearch: parseFileManagerSearch,
 });
 
 const workspaceTransactionalNotificationsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/transactional-notifications",
   component: TransactionalNotificationsPage,
+  validateSearch: validateTransactionalSearch,
 });
 
-// The tab is typed; the message tab's own filters (is_failed and friends) pass
-// through untouched, since that tab reads them straight off the location.
-export type LogsSearch = { tab?: string } & Record<string, unknown>;
-
-const workspaceLogsRoute = createRoute({
+export const workspaceLogsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/logs",
   component: LogsPage,
-  validateSearch: (search: Record<string, unknown>): LogsSearch => ({
-    ...search,
-    tab: typeof search.tab === "string" ? search.tab : undefined,
-  }),
+  validateSearch: parseLogsSearch,
 });
 
 export const workspaceContactsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/contacts",
   component: ContactsPage,
-  validateSearch: (search: Record<string, unknown>): ContactsSearch => ({
-    email: search.email as string | undefined,
-    external_id: search.external_id as string | undefined,
-    first_name: search.first_name as string | undefined,
-    last_name: search.last_name as string | undefined,
-    full_name: search.full_name as string | undefined,
-    phone: search.phone as string | undefined,
-    country: search.country as string | undefined,
-    language: search.language as string | undefined,
-    list_id: search.list_id as string | undefined,
-    contact_list_status: search.contact_list_status as string | undefined,
-    tracking_opens_consent: trackingConsentFilter(search.tracking_opens_consent),
-    tracking_clicks_consent: trackingConsentFilter(search.tracking_clicks_consent),
-    segments: Array.isArray(search.segments)
-      ? (search.segments as string[])
-      : search.segments
-        ? [search.segments as string]
-        : undefined,
-    limit: search.limit ? Number(search.limit) : 10,
-  }),
+  staticData: { layout: "rail" },
+  validateSearch: (search: Record<string, unknown>): ContactsSearch => {
+    const listId = searchText(search.list_id);
+    const segments = (Array.isArray(search.segments) ? search.segments : [search.segments])
+      .map(searchText)
+      .filter((id): id is string => id !== undefined);
+    return {
+      email: searchText(search.email),
+      external_id: searchText(search.external_id),
+      first_name: searchText(search.first_name),
+      last_name: searchText(search.last_name),
+      full_name: searchText(search.full_name),
+      phone: searchText(search.phone),
+      country: searchText(search.country),
+      language: searchText(search.language),
+      list_id: listId,
+      contact_list_status: searchText(search.contact_list_status),
+      tracking_opens_consent: trackingConsentFilter(search.tracking_opens_consent),
+      tracking_clicks_consent: trackingConsentFilter(search.tracking_clicks_consent),
+      segments: segments.length > 0 ? segments : undefined,
+      // A list and a segment are both views: the list wins.
+      segment_id: listId ? undefined : searchText(search.segment_id),
+      search: searchText(search.search),
+      contact: searchText(search.contact),
+      limit: contactsLimit(search.limit),
+    };
+  },
+  // A link with one segment and no other view (the former segment filter) opens that
+  // segment's view.
+  beforeLoad: ({ params, search }) => {
+    if (search.segments?.length === 1 && !search.list_id && !search.segment_id) {
+      throw redirect({
+        to: "/console/workspace/$workspaceId/contacts",
+        params: { workspaceId: params.workspaceId },
+        search: { ...search, segments: undefined, segment_id: search.segments[0] },
+        replace: true,
+      });
+    }
+  },
 });
 
 // eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component
@@ -261,7 +346,7 @@ const WorkspaceSettingsRedirect = () => {
   useEffect(() => {
     navigate({
       to: "/console/workspace/$workspaceId/settings/$section",
-      params: { workspaceId, section: "team" },
+      params: { workspaceId, section: DEFAULT_SETTINGS_SECTION },
       replace: true,
     });
   }, [workspaceId, navigate]);
@@ -282,6 +367,7 @@ const workspaceSettingsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/settings/$section",
   component: WorkspaceSettingsPage,
+  validateSearch: parseSettingsSearch,
   staticData: { layout: "rail" },
 });
 
@@ -289,25 +375,14 @@ const workspaceTemplatesRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/templates",
   component: TemplatesPage,
-  validateSearch: (search: Record<string, unknown>): TemplatesSearch => {
-    // The default JSON.parse-based search parser coerces number/boolean-looking
-    // values (?q=123 -> number, ?q=a&q=b -> array), and the search box calls
-    // .trim() on q. Coerce every param to a clean string or undefined so a
-    // hand-written or shared URL can never feed a non-string into the page.
-    const normalize = (value: unknown): string | undefined => {
-      const single = Array.isArray(value) ? value[0] : value;
-      if (typeof single !== "string") return undefined;
-      const trimmed = single.trim();
-      return trimmed === "" ? undefined : trimmed;
-    };
-    return { category: normalize(search.category), q: normalize(search.q) };
-  },
+  validateSearch: parseTemplatesSearch,
 });
 
 const workspaceAnalyticsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/analytics",
   component: AnalyticsPage,
+  validateSearch: validateDashboardSearch,
 });
 
 // eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component
@@ -405,10 +480,7 @@ const workspaceBlogRoute = createRoute({
   path: "/blog",
   component: BlogPage,
   staticData: { layout: "rail" },
-  validateSearch: (search: Record<string, unknown>): BlogSearch => ({
-    status: search.status as string | undefined,
-    category_id: search.category_id as string | undefined,
-  }),
+  validateSearch: parseBlogSearch,
 });
 
 // Create the router

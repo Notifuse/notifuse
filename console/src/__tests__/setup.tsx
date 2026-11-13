@@ -14,7 +14,9 @@ i18n.activate('en')
 // This mock simulates the real behavior by using i18n._ for translations
 vi.mock('@lingui/react/macro', () => ({
   useLingui: () => ({
-    t: (strings: TemplateStringsArray, ...values: unknown[]) => {
+    t: (strings: TemplateStringsArray | { message: string; context?: string }, ...values: unknown[]) => {
+      // A descriptor (t({ message, context })): the context only tells catalog entries apart.
+      if (!Array.isArray(strings)) return i18n._((strings as { message: string }).message)
       // Reconstruct the template literal to get the message ID
       const messageId = strings.reduce((result, str, idx) => {
         return result + str + (values[idx] !== undefined ? `{${idx}}` : '')
@@ -43,7 +45,12 @@ vi.mock('@lingui/react/macro', () => ({
 // any call. The real macro turns msg`…` into a message descriptor, naming each placeholder after
 // the label in `${{ name: value }}`; reproduce enough of one that i18n._() renders it.
 vi.mock('@lingui/core/macro', () => ({
-  msg: (strings: TemplateStringsArray, ...placeholders: unknown[]) => {
+  msg: (strings: TemplateStringsArray | { message: string }, ...placeholders: unknown[]) => {
+    // A descriptor (msg({ message })): its message is its own id here, as for the tagged form.
+    if (!Array.isArray(strings)) {
+      const { message } = strings as { message: string }
+      return { id: message, message }
+    }
     const names = placeholders.map((placeholder, idx) =>
       placeholder && typeof placeholder === 'object'
         ? Object.keys(placeholder)[0]

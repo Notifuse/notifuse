@@ -1,494 +1,473 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  Typography,
-  Space,
-  Tooltip,
-  Button,
-  message,
-  Popconfirm,
-  Card,
-  Statistic,
-  Row,
-  Col,
-  Spin,
-  Segmented,
-  Descriptions,
-  Divider
-} from 'antd'
-import { useParams } from '@tanstack/react-router'
+import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
+import { Alert, App, Button, Empty, Result, Segmented, Skeleton, Tooltip } from 'antd'
+import { SquareTerminal, Zap } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
+import { KpiStrip, PageHeader, Panel, TableToolbar, useNumberFormat, type KpiItem } from '../components/layout'
 import {
   transactionalNotificationsApi,
-  TransactionalNotification
+  type TransactionalNotification
 } from '../services/api/transactional_notifications'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faPenToSquare,
-  faTrashCan,
-  faPaperPlane,
-  faEye,
-  faCircleCheck,
-  faCircleXmark
-} from '@fortawesome/free-regular-svg-icons'
-import { faTerminal, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
-import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
-import { useState } from 'react'
-import dayjs from '../lib/dayjs'
+import type { GetTemplateResponse, Template } from '../services/api/template'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
+import { canCreateTransactionalNotification } from '../services/api/permissions'
+import { copyToClipboard } from '../lib/copyToClipboard'
+import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
-import { templatesApi } from '../services/api/template'
-import { Workspace, UserPermissions } from '../services/api/types'
 import { ApiCommandModal } from '../components/transactional/ApiCommandModal'
-import { analyticsService } from '../services/api/analytics'
+import { TransactionalDetail } from '../components/transactional/TransactionalDetail'
+import { TransactionalTable } from '../components/transactional/TransactionalTable'
 import {
-  canCreateTransactionalNotification,
-  canEditTransactionalNotification,
-  canSendTestEmail
-} from '../services/api/permissions'
-import { PageHeader } from '../components/layout'
+  transactionalPeriod,
+  validateTransactionalSearch,
+  type TransactionalPeriod
+} from '../components/transactional/transactionalSearch'
+import { periodDays, resolveTransactionalPeriod, workspaceToday } from '../components/transactional/period'
+import { useMinuteTick } from '../components/transactional/transactionalClient'
+import { useTemplateStates, useTransactionalStats } from '../components/transactional/useTransactionalStats'
+import { defaultSender, transactionalProvider } from '../components/transactional/senderInfo'
+import { deliveredChange, statsRates, sumStats } from '../components/transactional/transactionalStats'
+import {
+  logsSearch,
+  templateIdOf,
+  useDeleteNotification,
+  useNotificationCount
+} from '../components/transactional/notificationRules'
 
-const { Title, Paragraph } = Typography
+const DOCS_URL = 'https://docs.notifuse.com/features/transactional-api'
+const SEARCH_DELAY_MS = 250
 
-// Helper function to get integration icon
-const getIntegrationIcon = (integrationType: string) => {
-  switch (integrationType) {
-    case 'supabase':
-      return <img src="/console/supabase.png" alt="Supabase" className="h-3" />
-    default:
-      return <FontAwesomeIcon icon={faTerminal} className="text-gray-600" />
-  }
-}
+type Overlay = { kind: 'test' | 'api' | 'edit' | 'preview'; notification: TransactionalNotification } | null
 
-// Helper for rate calculation
-const getRate = (numerator: number, denominator: number) => {
-  if (denominator === 0) return '-'
-  const percentage = (numerator / denominator) * 100
-  if (percentage === 0 || percentage >= 10) return `${Math.round(percentage)}%`
-  return `${percentage.toFixed(1)}%`
-}
+const PERIODS: TransactionalPeriod[] = ['7d', '30d', '60d']
 
-// Template preview component
-const TemplatePreview: React.FC<{ templateId: string; workspace: Workspace }> = ({
-  templateId,
-  workspace
-}) => {
-  const { t } = useLingui()
-  const { data: templateData } = useQuery({
-    queryKey: ['template', workspace.id, templateId],
-    queryFn: () => templatesApi.get({ workspace_id: workspace.id, id: templateId }),
-    enabled: !!workspace.id && !!templateId
-  })
-
-  if (!templateData?.template) {
-    return null
-  }
-
-  return (
-    <TemplatePreviewDrawer record={templateData.template} workspace={workspace}>
-      <Tooltip title={t`Preview template`}>
-        <Button type="text" size="small" className="ml-2">
-          <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} />
-        </Button>
-      </Tooltip>
-    </TemplatePreviewDrawer>
-  )
-}
-
-
-// Stats type
-interface NotificationStats {
-  sent: number
-  delivered: number
-  failed: number
-  bounced: number
-}
-
-// Card component for each transactional notification
-const TransactionalNotificationCard: React.FC<{
-  notification: TransactionalNotification
-  workspace: Workspace
-  // null, not undefined: useWorkspacePermissions reports "not loaded / no permissions" as null,
-  // and this card is the only consumer of that value, so the boundary keeps the hook's shape.
-  permissions: UserPermissions | null
-  stats: NotificationStats
-  isLoadingStats: boolean
-  onDelete: (n: TransactionalNotification) => void
-  onTest: (n: TransactionalNotification) => void
-  onShowApi: (n: TransactionalNotification) => void
-}> = ({
-  notification,
-  workspace,
-  permissions,
-  stats,
-  isLoadingStats,
-  onDelete,
-  onTest,
-  onShowApi
-}) => {
-  const { t } = useLingui()
-  const integration = workspace.integrations?.find((i) => i.id === notification.integration_id)
-  const canDelete = permissions?.transactional?.write && !notification.integration_id
-  const canEdit = canEditTransactionalNotification(permissions, notification)
-
-  return (
-    <Card
-      className="!mb-6"
-      title={
-        <Space size="large">
-          {integration && (
-            <Tooltip title={t`Managed by ${integration.name} (${integration.type} integration)`}>
-              {getIntegrationIcon(integration.type)}
-            </Tooltip>
-          )}
-          <div>{notification.name}</div>
-        </Space>
-      }
-      extra={
-        <Space>
-          {canDelete && (
-            <Popconfirm
-              title={t`Delete the notification?`}
-              description={t`This cannot be undone.`}
-              onConfirm={() => onDelete(notification)}
-              okText={t`Yes, Delete`}
-              cancelText={t`Cancel`}
-            >
-              <Button type="text" size="small">
-                <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
-              </Button>
-            </Popconfirm>
-          )}
-          {canEdit && (
-            <Tooltip title={t`Edit`}>
-              <span>
-                <UpsertTransactionalNotificationDrawer
-                  workspace={workspace}
-                  notification={notification}
-                  canReadTemplates={!!permissions?.templates?.read}
-                  buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                  buttonProps={{ type: 'text', size: 'small' }}
-                />
-              </span>
-            </Tooltip>
-          )}
-          {/* Previewing reads the template, which needs Templates read. */}
-          {permissions?.templates?.read && notification.channels?.email?.template_id && (
-            <TemplatePreview
-              templateId={notification.channels.email.template_id}
-              workspace={workspace}
-            />
-          )}
-          {canSendTestEmail(permissions) && (
-            <Tooltip title={t`Test`}>
-              <Button type="text" size="small" onClick={() => onTest(notification)}>
-                <FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />
-              </Button>
-            </Tooltip>
-          )}
-          <Tooltip title={t`API Command`}>
-            <Button type="text" size="small" onClick={() => onShowApi(notification)}>
-              <FontAwesomeIcon icon={faTerminal} style={{ opacity: 0.7 }} />
-            </Button>
-          </Tooltip>
-        </Space>
-      }
-    >
-      {/* Stats Row - Delivery-focused metrics */}
-      <Row gutter={[16, 16]}>
-        <Col span={6}>
-          <Statistic
-            title={
-              <Space className="font-medium">
-                <FontAwesomeIcon
-                  icon={faPaperPlane}
-                  style={{ opacity: 0.7 }}
-                  className="text-blue-500"
-                />{' '}
-                {t`Sent`}
-              </Space>
-            }
-            value={isLoadingStats ? '-' : stats.sent}
-            styles={{ content: { fontSize: '16px' } }}
-            prefix={isLoadingStats ? <Spin size="small" /> : undefined}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={
-              <Space className="font-medium">
-                <FontAwesomeIcon
-                  icon={faCircleCheck}
-                  style={{ opacity: 0.7 }}
-                  className="text-green-500"
-                />{' '}
-                {t`Delivered`}
-              </Space>
-            }
-            value={isLoadingStats ? '-' : getRate(stats.delivered, stats.sent)}
-            styles={{ content: { fontSize: '16px' } }}
-            prefix={isLoadingStats ? <Spin size="small" /> : undefined}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={
-              <Space className="font-medium">
-                <FontAwesomeIcon
-                  icon={faCircleXmark}
-                  style={{ opacity: 0.7 }}
-                  className="text-red-500"
-                />{' '}
-                {t`Failed`}
-              </Space>
-            }
-            value={isLoadingStats ? '-' : stats.failed}
-            styles={{ content: { fontSize: '16px' } }}
-            prefix={isLoadingStats ? <Spin size="small" /> : undefined}
-          />
-        </Col>
-        <Col span={6}>
-          <Statistic
-            title={
-              <Space className="font-medium">
-                <FontAwesomeIcon
-                  icon={faTriangleExclamation}
-                  style={{ opacity: 0.7 }}
-                  className="text-orange-500"
-                />{' '}
-                {t`Bounced`}
-              </Space>
-            }
-            value={isLoadingStats ? '-' : stats.bounced}
-            styles={{ content: { fontSize: '16px' } }}
-            prefix={isLoadingStats ? <Spin size="small" /> : undefined}
-          />
-        </Col>
-      </Row>
-
-      <Divider />
-
-      <Descriptions size="small" column={2}>
-        <Descriptions.Item label={t`ID`}>{notification.id}</Descriptions.Item>
-        {notification.description && (
-          <Descriptions.Item label={t`Description`}>{notification.description}</Descriptions.Item>
-        )}
-      </Descriptions>
-    </Card>
-  )
-}
-
+/** Screens 91 and 92: the transactional notifications, and the sheet of one. */
 export function TransactionalNotificationsPage() {
   const { t } = useLingui()
-  const { workspaceId } = useParams({ strict: false })
-  const { workspaces } = useAuth()
-  const { permissions } = useWorkspacePermissions(workspaceId as string)
+  const { int, percent, points } = useNumberFormat()
+  const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { workspaceId: rawWorkspaceId } = useParams({ strict: false })
+  const workspaceId = rawWorkspaceId as string
+  const search = validateTransactionalSearch(useSearch({ strict: false }) as Record<string, unknown>)
+  const period = transactionalPeriod(search)
+  const { workspaces } = useAuth()
+  const workspace = workspaces.find((item) => item.id === workspaceId)
+  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
+  const ready = !permissionsLoading
+  const canReadMessages = ready && Boolean(permissions?.message_history?.read)
+  const timezone = workspace?.settings?.timezone || 'UTC'
+  const tick = useMinuteTick()
+  // Read again each minute, so relative times stay true on an open page.
+  const now = useMemo(() => new Date(Math.max(Date.now(), tick * 60_000)), [tick])
+  // Resolved again when the workspace's day changes, so an open page follows midnight.
+  const today = workspaceToday(timezone, now)
+  const periods = useMemo(() => resolveTransactionalPeriod(period, timezone, today), [period, timezone, today])
+  const countLabel = useNotificationCount()
 
-  // Find the current workspace from the workspaces array
-  const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
+  const setSearch = (change: Record<string, unknown>, replace = false) =>
+    void navigate({
+      to: '.',
+      replace,
+      search: (prev: Record<string, unknown>) => ({ ...prev, ...change })
+    })
 
-  const [testModalOpen, setTestModalOpen] = useState(false)
-  const [apiModalOpen, setApiModalOpen] = useState(false)
-  const [currentApiNotification, setCurrentApiNotification] =
-    useState<TransactionalNotification | null>(null)
-  const [notificationToTest, setNotificationToTest] = useState<TransactionalNotification | null>(
-    null
-  )
-  const [statsPeriod, setStatsPeriod] = useState<'7D' | '30D' | '60D'>('30D')
+  // The search box mirrors what is typed and writes the trimmed term 250 ms later; the echo of its
+  // own write is ignored, so trailing spaces are not eaten while typing.
+  const searchQ = search.q ?? ''
+  const [typed, setTyped] = useState(searchQ)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const lastWritten = useRef<string | undefined>(undefined)
+  const onSearch = (value: string) => {
+    setTyped(value)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      const trimmed = value.trim()
+      lastWritten.current = trimmed
+      setSearch({ q: trimmed || undefined }, true)
+    }, SEARCH_DELAY_MS)
+  }
+  useEffect(() => {
+    if (searchQ !== lastWritten.current) {
+      if (timer.current) clearTimeout(timer.current)
+      setTyped(searchQ)
+      lastWritten.current = searchQ
+    }
+  }, [searchQ])
+  useEffect(() => () => clearTimeout(timer.current), [])
 
-  // Fetch notifications
-  const {
-    data: notificationsData,
-    isLoading: isLoadingNotifications,
-    error: notificationsError
-  } = useQuery({
+  const list = useQuery({
     queryKey: ['transactional-notifications', workspaceId],
-    queryFn: () =>
-      transactionalNotificationsApi.list({
-        workspace_id: workspaceId as string
+    queryFn: () => transactionalNotificationsApi.list({ workspace_id: workspaceId }),
+    enabled: Boolean(workspaceId)
+  })
+  const notifications = useMemo(() => list.data?.notifications ?? [], [list.data])
+  const ids = useMemo(() => notifications.map((item) => item.id).sort(), [notifications])
+  const templateIds = useMemo(
+    () => [...new Set(notifications.map(templateIdOf).filter((id): id is string => Boolean(id)))].sort(),
+    [notifications]
+  )
+
+  const provider = workspace ? transactionalProvider(workspace) : null
+  const smtp = provider?.email_provider?.kind === 'smtp'
+  const stats = useTransactionalStats({
+    workspaceId,
+    ids,
+    period,
+    periods,
+    timezone,
+    enabled: canReadMessages,
+    smtp
+  })
+  const templates = useTemplateStates({
+    workspaceId,
+    templateIds,
+    ready,
+    canRead: Boolean(permissions?.templates?.read)
+  })
+
+  const term = typed.trim().toLowerCase()
+  const shown = term
+    ? notifications.filter((item) => item.name.toLowerCase().includes(term) || item.id.toLowerCase().includes(term))
+    : notifications
+
+  const [overlay, setOverlay] = useState<Overlay>(null)
+  const closeOverlay = () => setOverlay(null)
+  const openSheet = (id: string, replace = false) => setSearch({ notification: id }, replace)
+  const closeSheet = () => setSearch({ notification: undefined })
+  const remove = useDeleteNotification(workspaceId, (id) => {
+    if (search.notification === id) closeSheet()
+  })
+
+  const actions = {
+    onOpen: (notification: TransactionalNotification) => openSheet(notification.id),
+    onTest: (notification: TransactionalNotification) => setOverlay({ kind: 'test', notification }),
+    onApi: (notification: TransactionalNotification) => setOverlay({ kind: 'api', notification }),
+    onEdit: (notification: TransactionalNotification) => setOverlay({ kind: 'edit', notification }),
+    onPreview: (notification: TransactionalNotification) => setOverlay({ kind: 'preview', notification }),
+    onCopyId: async (notification: TransactionalNotification) => {
+      if (await copyToClipboard(notification.id)) message.success(t`ID copied`)
+      else message.error(t`Failed to copy to clipboard`)
+    },
+    onLogs: (notification: TransactionalNotification) =>
+      void navigate({
+        to: '/console/workspace/$workspaceId/logs',
+        params: { workspaceId },
+        search: logsSearch(notification.id)
       }),
-    enabled: !!workspaceId
-  })
-
-  // Get days from period
-  const periodDays = statsPeriod === '7D' ? 7 : statsPeriod === '30D' ? 30 : 60
-
-  // Fetch delivery-focused stats grouped by external_id
-  const { data: statsData, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['transactional-stats', workspaceId, statsPeriod],
-    queryFn: () =>
-      analyticsService.query(
-        {
-          schema: 'message_history',
-          measures: ['count_sent', 'count_delivered', 'count_failed', 'count_bounced'],
-          dimensions: ['transactional_notification_id'],
-          filters: [
-            { member: 'broadcast_id', operator: 'notSet', values: [] },
-            {
-              member: 'sent_at',
-              operator: 'gte',
-              values: [dayjs().subtract(periodDays, 'days').toISOString()]
-            }
-          ]
-        },
-        workspaceId as string
-      ),
-    enabled: !!workspaceId
-  })
-
-  // Helper to get stats for a notification
-  const getStatsForNotification = (notificationId: string): NotificationStats => {
-    const row = statsData?.data?.find((d) => d.transactional_notification_id === notificationId)
-    return {
-      sent: Number(row?.count_sent || 0),
-      delivered: Number(row?.count_delivered || 0),
-      failed: Number(row?.count_failed || 0),
-      bounced: Number(row?.count_bounced || 0)
-    }
+    onDelete: remove
   }
 
-  const handleDeleteNotification = async (notification: TransactionalNotification) => {
-    try {
-      await transactionalNotificationsApi.delete({
-        workspace_id: workspaceId as string,
-        id: notification.id
-      })
-
-      message.success(t`Transactional notification deleted successfully`)
-
-      // Refresh the list
-      queryClient.invalidateQueries({ queryKey: ['transactional-notifications', workspaceId] })
-    } catch (error) {
-      console.error('Failed to delete notification:', error)
-      message.error(t`Failed to delete notification`)
-    }
-  }
-
-  const handleTestNotification = (notification: TransactionalNotification) => {
-    setNotificationToTest(notification)
-    setTestModalOpen(true)
-  }
-
-  const handleShowApiModal = (notification: TransactionalNotification) => {
-    setCurrentApiNotification(notification)
-    setApiModalOpen(true)
-  }
-
-  if (notificationsError) {
+  if (list.isError) {
     return (
-      <div>
-        <Title level={4}>{t`Error loading data`}</Title>
-        <Paragraph type="danger">{(notificationsError as Error)?.message}</Paragraph>
+      <div className="flex flex-col gap-3">
+        <PageHeader title={t`Transactional`} />
+        <Result
+          status="error"
+          title={t`Couldn't load the notifications`}
+          subTitle={(list.error as Error)?.message}
+          extra={<Button onClick={() => void list.refetch()}>{t`Retry`}</Button>}
+        />
       </div>
     )
   }
 
-  const notifications = notificationsData?.notifications || []
+  if (!workspace) return <Skeleton active />
+
   const hasNotifications = notifications.length > 0
-
-  if (!currentWorkspace) {
-    return <div>{t`Loading...`}</div>
-  }
-
-  // Shown in the header, and on the empty page in its place.
   const canCreate = canCreateTransactionalNotification(permissions)
-  const createButton = (
+  const createButton = ready ? (
     <Tooltip
       title={
-        canCreate
-          ? undefined
-          : t`You need Transactional write and Templates read permissions to create notifications`
+        canCreate ? undefined : t`You need Transactional write and Templates read permissions to create notifications`
       }
     >
-      <div>
+      <span>
         <UpsertTransactionalNotificationDrawer
-          workspace={currentWorkspace}
-          canReadTemplates={!!permissions?.templates?.read}
-          buttonContent={t`Create Notification`}
+          workspace={workspace}
+          canReadTemplates={Boolean(permissions?.templates?.read)}
+          buttonContent={t`New notification`}
           buttonProps={{ type: 'primary', disabled: !canCreate }}
         />
-      </div>
+      </span>
     </Tooltip>
+  ) : (
+    <Skeleton.Button active />
   )
+
+  const header = (
+    <PageHeader
+      title={t`Transactional`}
+      count={hasNotifications ? notifications.length : undefined}
+      actions={
+        <div className="flex items-center gap-2">
+          <Button
+            href={DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<SquareTerminal size={14} aria-hidden="true" />}
+          >
+            {t`API documentation`}
+          </Button>
+          {hasNotifications ? createButton : null}
+        </div>
+      }
+    />
+  )
+
+  const providerAlert = provider ? null : (
+    <Alert
+      type="warning"
+      showIcon
+      title={t`No transactional email provider. Notifications can't be sent until you choose one.`}
+      action={
+        <Link to="/console/workspace/$workspaceId/settings/$section" params={{ workspaceId, section: 'integrations' }}>
+          {t`Open integrations`}
+        </Link>
+      }
+    />
+  )
+
+  // KPIs: the sum of the rows of every notification, the search filters the table only.
+  const gate = {
+    forbidden: ready && !canReadMessages,
+    // No figures yet and no failure while the list loads or has notifications: they are on their way.
+    loading:
+      !ready ||
+      (canReadMessages && (list.isLoading || ids.length > 0) && !stats.current.data && !stats.current.isError),
+    error: stats.current.isError
+  }
+  // On a period switch the sheet's figures wait for the new period, as its chart does, rather than show the old one.
+  const sheetGate = { ...gate, loading: gate.loading || stats.current.isPlaceholderData }
+  const total = sumStats(stats.current.data, ids)
+  const previous = stats.previous.data ? sumStats(stats.previous.data, ids) : undefined
+  const rates = statsRates(total)
+  // While the old period stays on screen, it is not compared with the new previous period.
+  const change = stats.current.isPlaceholderData ? undefined : deliveredChange(total, previous)
+  // The figures shown are labelled with their own period, the old one while a switch loads.
+  const days = periodDays(stats.current.period ?? period)
+  const lastDays = t`${plural(days, { one: 'Last # day', other: 'Last # days' })}`
+  const dash = '—'
+  const rate = (value: number | null) => (value === null ? dash : percent(value))
+  const tracked = (value: { notTracked: boolean }) => (value.notTracked ? t`Not tracked` : t`On tracked emails`)
+  const kpis: KpiItem[] = [
+    { key: 'sent', label: t`Emails sent`, value: int(total.sent), sub: lastDays },
+    smtp
+      ? {
+          key: 'delivered',
+          label: t`Delivered`,
+          value: dash,
+          hint: t`SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked`
+        }
+      : {
+          key: 'delivered',
+          label: t`Delivered`,
+          value: rate(rates.delivered),
+          sub: change
+            ? t`${plural(days, {
+                one: `${points(change.points)} vs previous # day`,
+                other: `${points(change.points)} vs previous # days`
+              })}`
+            : undefined,
+          tone: change?.tone
+        },
+    { key: 'opens', label: t`Open rate`, value: rate(rates.opens.rate), sub: tracked(rates.opens) },
+    { key: 'clicks', label: t`Click rate`, value: rate(rates.clicks.rate), sub: tracked(rates.clicks) },
+    {
+      key: 'failed',
+      label: t`Failed`,
+      value: int(total.failed),
+      sub: rates.failedShare === null ? undefined : percent(rates.failedShare, 2),
+      hint: t`Sends refused by the provider. Requests rejected before sending are not logged.`
+    },
+    smtp
+      ? {
+          key: 'bounced',
+          label: t`Bounced`,
+          value: dash,
+          hint: t`SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked`
+        }
+      : {
+          key: 'bounced',
+          label: t`Bounced`,
+          value: rate(rates.bounced),
+          sub: t`${plural(total.bounced, { one: `${int(total.bounced)} email`, other: `${int(total.bounced)} emails` })}`,
+          tone: rates.bouncedTone
+        }
+  ]
+  const kpiItems = gate.error ? kpis.map((item) => ({ ...item, value: dash, sub: t`Couldn't load` })) : kpis
+
+  const sender = defaultSender(provider)
+  const providerLine = provider ? (
+    <span className="flex min-w-0 items-center gap-1.5 text-sm text-ink-3">
+      <Zap size={14} aria-hidden="true" className="shrink-0" />
+      <span className="truncate">
+        {sender ? t`Sent via ${provider.name} · ${sender.email}` : t`Sent via ${provider.name}`}
+      </span>
+    </span>
+  ) : null
+  const periodSwitch = (
+    <Segmented<TransactionalPeriod>
+      size="small"
+      value={period}
+      options={PERIODS.map((value) => ({
+        value,
+        label: value === '7d' ? t`7d` : value === '30d' ? t`30d` : t`60d`
+      }))}
+      onChange={(value) => setSearch({ period: value === '30d' ? undefined : value })}
+    />
+  )
+
+  let body
+  if (list.isLoading) {
+    body = (
+      <>
+        <KpiStrip items={kpis} loading />
+        <Panel flush>
+          <div className="px-3.5 py-3">
+            <Skeleton active title={false} paragraph={{ rows: 5 }} />
+          </div>
+        </Panel>
+      </>
+    )
+  } else if (!hasNotifications) {
+    body = (
+      <Panel>
+        <Empty
+          className="py-8"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-base font-medium text-ink">{t`No transactional notifications found`}</span>
+              <span className="text-sm text-ink-3">{t`Create your first notification to get started`}</span>
+            </div>
+          }
+        >
+          {createButton}
+        </Empty>
+      </Panel>
+    )
+  } else {
+    body = (
+      <>
+        {gate.forbidden ? null : <KpiStrip items={kpiItems} loading={gate.loading} />}
+        <Panel flush>
+          <TableToolbar
+            start={<TableToolbar.Search value={typed} onChange={onSearch} placeholder={t`Name or ID`} />}
+            end={
+              <>
+                {providerLine}
+                {periodSwitch}
+              </>
+            }
+          />
+          {shown.length === 0 ? (
+            <Empty className="py-6" image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No notifications match`}>
+              <Button onClick={() => onSearch('')}>{t`Clear search`}</Button>
+            </Empty>
+          ) : (
+            <TransactionalTable
+              {...actions}
+              workspace={workspace}
+              permissions={permissions}
+              notifications={shown}
+              stats={stats.current.data}
+              statsGate={gate}
+              lastSent={stats.lastSent.data}
+              lastSentGate={{
+                forbidden: gate.forbidden,
+                loading: !ready || stats.lastSent.isLoading,
+                error: stats.lastSent.isError
+              }}
+              templates={templates}
+              smtp={smtp}
+              timezone={timezone}
+              now={now}
+              footer={<span className="text-sm text-ink-3">{countLabel(shown.length, notifications.length)}</span>}
+            />
+          )}
+        </Panel>
+      </>
+    )
+  }
+
+  const previewTemplate = (notification: TransactionalNotification): Template | undefined => {
+    const templateId = templateIdOf(notification)
+    if (!templateId) return undefined
+    const state = templates.get(templateId)
+    if (state?.status === 'ok') return state.template
+    // The sheet of a notification outside the list reads its template under the same key.
+    return queryClient.getQueryData<GetTemplateResponse>(['template', workspaceId, templateId])?.template
+  }
+  const previewed = overlay?.kind === 'preview' ? previewTemplate(overlay.notification) : undefined
+  const testTemplateId = overlay?.kind === 'test' ? templateIdOf(overlay.notification) : undefined
 
   return (
     <div className="flex flex-col gap-3">
-      <PageHeader
-        title={t`Transactional Notifications`}
-        actions={
-          currentWorkspace && hasNotifications && (
-            <Space size="middle">
-              <Segmented
-                options={['7D', '30D', '60D']}
-                value={statsPeriod}
-                onChange={(value) => setStatsPeriod(value as '7D' | '30D' | '60D')}
-              />
-              {createButton}
-            </Space>
-          )
-        }
+      {header}
+      {providerAlert}
+      {body}
+
+      <TransactionalDetail
+        {...actions}
+        notificationId={search.notification}
+        workspace={workspace}
+        permissions={permissions}
+        permissionsLoading={permissionsLoading}
+        placeholder={notifications.find((item) => item.id === search.notification)}
+        order={shown.map((item) => item.id)}
+        onNavigate={(id) => openSheet(id, true)}
+        onClose={closeSheet}
+        period={period}
+        periods={periods}
+        onPeriodChange={(value) => setSearch({ period: value === '30d' ? undefined : value })}
+        stats={stats.current.data}
+        // Until the list is known, the sheet waits for its figures rather than ask its own.
+        listed={list.isLoading || (search.notification !== undefined && ids.includes(search.notification))}
+        statsGate={sheetGate}
+        smtp={smtp}
+        timezone={timezone}
+        now={now}
       />
 
-      {isLoadingNotifications ? (
-        <div>
-          {[1, 2, 3].map((key) => (
-            <Card key={key} loading className="!mb-6" />
-          ))}
-        </div>
-      ) : hasNotifications ? (
-        <div>
-          {notifications.map((notification) => (
-            <TransactionalNotificationCard
-              key={notification.id}
-              notification={notification}
-              workspace={currentWorkspace}
-              permissions={permissions}
-              stats={getStatsForNotification(notification.id)}
-              isLoadingStats={isLoadingStats}
-              onDelete={handleDeleteNotification}
-              onTest={handleTestNotification}
-              onShowApi={handleShowApiModal}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <Title level={4} type="secondary">
-            {t`No transactional notifications found`}
-          </Title>
-          <Paragraph type="secondary">{t`Create your first notification to get started`}</Paragraph>
-          <div className="mt-4">{createButton}</div>
-        </div>
-      )}
-
-      {/* API Command Modal */}
-      <ApiCommandModal
-        open={apiModalOpen}
-        onClose={() => setApiModalOpen(false)}
-        notification={currentApiNotification}
-        workspaceId={workspaceId as string}
-      />
-
-      {/* Use SendTemplateModal for testing */}
-      {notificationToTest?.channels?.email?.template_id && (
+      {/* Mounted only while open: each opening lies after the sheet in the page, so above it. */}
+      {overlay?.kind === 'api' ? (
+        <ApiCommandModal open onClose={closeOverlay} notification={overlay.notification} workspaceId={workspaceId} />
+      ) : null}
+      {overlay?.kind === 'edit' ? (
+        <UpsertTransactionalNotificationDrawer
+          open
+          workspace={workspace}
+          notification={overlay.notification}
+          canReadTemplates={Boolean(permissions?.templates?.read)}
+          onClose={closeOverlay}
+        />
+      ) : null}
+      {overlay?.kind === 'preview' && previewed ? (
+        <TemplatePreviewDrawer open record={previewed} workspace={workspace} onClose={closeOverlay} />
+      ) : null}
+      {overlay?.kind === 'test' && testTemplateId ? (
         <SendTemplateModal
-          isOpen={testModalOpen}
-          onClose={() => setTestModalOpen(false)}
+          isOpen
+          onClose={closeOverlay}
           template={{
-            id: notificationToTest.channels.email.template_id,
-            name: notificationToTest.name,
+            id: testTemplateId,
+            name: overlay.notification.name,
             version: 0,
             category: 'transactional',
             channel: 'email',
             created_at: '',
             updated_at: ''
           }}
-          workspace={currentWorkspace || null}
-          withCCAndBCC={true}
-          canReadContacts={!!permissions?.contacts?.read}
+          workspace={workspace}
+          withCCAndBCC
+          canReadContacts={Boolean(permissions?.contacts?.read)}
         />
-      )}
+      ) : null}
     </div>
   )
 }

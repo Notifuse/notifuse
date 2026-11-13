@@ -54,6 +54,8 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
     onSuccess: () => {
       message.success(t`Category updated successfully`)
       queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
+      // Its slug is in the posts' links and the 30-day views; its counts sit under the posts' key.
+      queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
       onClose()
       form.resetFields()
     },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import React from 'react'
 import {
   Form,
@@ -11,13 +11,12 @@ import {
   Modal,
   message,
   Space,
-  Descriptions,
   Tag,
   Drawer,
   Dropdown,
+  Empty,
+  App,
   Popconfirm,
-  Card,
-  Spin,
   Tooltip,
   Row,
   Col,
@@ -44,28 +43,9 @@ import { enableSESTenantIsolation, SESAccessDeniedError } from '../../services/a
 import { useLicense } from '../../hooks/useLicense'
 import { LicenceGateNotice } from '../license/LicenceGateNotice'
 import { listsApi } from '../../services/api/list'
-import { INBOUND_REPLY_PROVIDER_KINDS } from '../../services/api/automation'
-import {
-  faCheck,
-  faChevronDown,
-  faEnvelope,
-  faExclamationTriangle,
-  faPlus,
-  faTerminal,
-  faTimes
-} from '@fortawesome/free-solid-svg-icons'
+import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  getWebhookStatus,
-  registerWebhook,
-  WebhookRegistrationStatus
-} from '../../services/api/webhook_registration'
-import {
-  faCopy,
-  faPaperPlane,
-  faPenToSquare,
-  faTrashCan
-} from '@fortawesome/free-regular-svg-icons'
+import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { emailProviders } from '../integrations/EmailProviders'
 import { SupabaseIntegration } from '../integrations/SupabaseIntegration'
 import { LLMIntegration } from '../integrations/LLMIntegration'
@@ -77,9 +57,11 @@ import { zapierProvider } from '../integrations/ZapierProviders'
 import { LLMProviderKind } from '../../services/api/types'
 import { v4 as uuidv4 } from 'uuid'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
-
-// Provider types that only support transactional emails, not marketing emails
-const transactionalEmailOnly: EmailProviderKind[] = ['mailjet']
+import { Blocks, MoreHorizontal, Pencil, Plus } from 'lucide-react'
+import { KeyValueList, Mono, Pill } from '../layout'
+import { IntegrationCard } from './integrations/IntegrationCard'
+import { EmailProviderCard, type EmailIntegration } from './integrations/EmailProviderCard'
+import dayjs from '../../lib/dayjs'
 
 // Helper function to generate Supabase webhook URLs
 const generateSupabaseWebhookURL = (
@@ -97,11 +79,11 @@ const generateSupabaseWebhookURL = (
 }
 
 // The zapier card guards on zapier_settings because a record can be hand-written into the
-// integrations column; the same record can carry no usable created_at, and `new Date(undefined)`
-// stringifies to the literal "Invalid Date" rather than throwing.
+// integrations column; the same record can carry no usable created_at, and an invalid date
+// formats as the literal "Invalid Date" rather than throwing. The day is in the console's language.
 const formatConnectedOn = (value?: string): string => {
-  const at = value ? new Date(value) : null
-  return at && !Number.isNaN(at.getTime()) ? at.toLocaleDateString() : '\u2014'
+  const at = value ? dayjs(value) : null
+  return at?.isValid() ? at.format('ll') : '\u2014'
 }
 
 // Component Props
@@ -110,376 +92,6 @@ interface IntegrationsProps {
   onSave: (updatedWorkspace: Workspace) => Promise<void>
   loading: boolean
   isOwner: boolean
-}
-
-// EmailIntegration component props
-interface EmailIntegrationProps {
-  integration: {
-    id: string
-    name: string
-    type: IntegrationType
-    email_provider: EmailProvider
-    created_at: string
-    updated_at: string
-  }
-  isOwner: boolean
-  workspace: Workspace
-  getIntegrationPurpose: (id: string) => string[]
-  isIntegrationInUse: (id: string) => boolean
-  renderProviderSpecificDetails: (provider: EmailProvider) => React.ReactNode
-  startEditEmailProvider: (integration: Integration) => void
-  startTestEmailProvider: (integrationId: string) => void
-  setIntegrationAsDefault: (id: string, purpose: 'marketing' | 'transactional') => Promise<void>
-  deleteIntegration: (integrationId: string) => Promise<void>
-}
-
-// EmailIntegration component
-const EmailIntegration = ({
-  integration,
-  isOwner,
-  workspace,
-  getIntegrationPurpose,
-  isIntegrationInUse,
-  renderProviderSpecificDetails,
-  startEditEmailProvider,
-  startTestEmailProvider,
-  setIntegrationAsDefault,
-  deleteIntegration
-}: EmailIntegrationProps) => {
-  const { t } = useLingui()
-  const provider = integration.email_provider
-  const purposes = getIntegrationPurpose(integration.id)
-  const [webhookStatus, setWebhookStatus] = useState<WebhookRegistrationStatus | null>(null)
-  const [loadingWebhooks, setLoadingWebhooks] = useState(false)
-  const [registrationInProgress, setRegistrationInProgress] = useState(false)
-
-  // Fetch webhook status when component mounts
-  useEffect(() => {
-    if (workspace?.id && integration?.id) {
-      fetchWebhookStatus()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchWebhookStatus is stable
-  }, [workspace?.id, integration?.id])
-
-  // Function to fetch webhook status
-  const fetchWebhookStatus = async () => {
-    if (!workspace?.id || !integration?.id) return
-
-    // Only fetch webhook status for non-SMTP providers
-    if (integration.email_provider.kind === 'smtp') return
-
-    setLoadingWebhooks(true)
-    try {
-      const response = await getWebhookStatus({
-        workspace_id: workspace.id,
-        integration_id: integration.id
-      })
-
-      setWebhookStatus(response.status)
-    } catch (error) {
-      console.error('Failed to fetch webhook status:', error)
-    } finally {
-      setLoadingWebhooks(false)
-    }
-  }
-
-  // Function to register webhooks
-  const handleRegisterWebhooks = async () => {
-    if (!workspace?.id || !integration?.id) return
-
-    setRegistrationInProgress(true)
-    try {
-      const response = await registerWebhook({
-        workspace_id: workspace.id,
-        integration_id: integration.id,
-        base_url: window.API_ENDPOINT || 'http://localhost:3000'
-      })
-
-      // Use the status from the registration response directly
-      setWebhookStatus(response.status)
-      message.success(t`Webhooks registered successfully`)
-    } catch (error) {
-      console.error('Failed to register webhooks:', error)
-      const errorMessage = error instanceof Error ? error.message : t`Failed to register webhooks`
-      message.error(errorMessage)
-    } finally {
-      setRegistrationInProgress(false)
-    }
-  }
-
-  // Render webhook status
-  // Inbound (reply) forwarding status — for providers that support stop-on-reply. The
-  // "Register Webhooks" action also creates the provider-side route (a Mailgun Route, or an
-  // SES receipt rule + SNS topic) that forwards replies to Notifuse (for automation
-  // Exit-on-reply); surface whether that route exists, plus the manual MX-records prerequisite.
-  const renderInboundReplyStatus = () => {
-    if (!INBOUND_REPLY_PROVIDER_KINDS.includes(provider.kind) || !webhookStatus) return null
-    const inboundRegistered = webhookStatus.provider_details?.inbound_registered === true
-
-    // Provider-specific MX target the operator must point their domain at.
-    const mxTarget =
-      provider.kind === 'ses'
-        ? t`Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)`
-        : t`Mailgun (mxa.mailgun.org / mxb.mailgun.org)`
-
-    return (
-      <div className="mb-2">
-        <Tooltip
-          title={t`Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider.`}
-        >
-          <Tag variant="filled" color={inboundRegistered ? 'green' : 'orange'}>
-            {inboundRegistered ? (
-              <FontAwesomeIcon icon={faCheck} className="text-green-500 mr-1" />
-            ) : (
-              <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-            )}
-            {t`inbound replies`}
-          </Tag>
-        </Tooltip>
-        <div className="text-xs text-gray-400 mt-1">
-          {inboundRegistered
-            ? t`Reply forwarding is set up. Inbound replies also require your domain's MX records to point at ${mxTarget}.`
-            : t`Click Register Webhooks to set up reply forwarding, then point your domain's MX records at ${mxTarget}.`}
-        </div>
-      </div>
-    )
-  }
-
-  const renderWebhookStatus = () => {
-    if (loadingWebhooks) {
-      return (
-        <Descriptions.Item label={t`Webhooks`}>
-          <Spin size="small" /> {t`Loading webhook status...`}
-        </Descriptions.Item>
-      )
-    }
-
-    if (!webhookStatus || !webhookStatus.is_registered) {
-      return (
-        <Descriptions.Item label={t`Webhooks`}>
-          <div className="mb-2">
-            <Tag variant="filled" color="orange">
-              <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-              {t`delivered`}
-            </Tag>
-            <Tag variant="filled" color="orange">
-              <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-              {t`bounce`}
-            </Tag>
-            <Tag variant="filled" color="orange">
-              <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-              {t`complaint`}
-            </Tag>
-          </div>
-          {renderInboundReplyStatus()}
-          {isOwner && (
-            <Button
-              size="small"
-              className="ml-2"
-              type="primary"
-              onClick={handleRegisterWebhooks}
-              loading={registrationInProgress}
-            >
-              {t`Register Webhooks`}
-            </Button>
-          )}
-        </Descriptions.Item>
-      )
-    }
-
-    return (
-      <Descriptions.Item label={t`Webhooks`}>
-        <div>
-          {webhookStatus.endpoints && webhookStatus.endpoints.length > 0 && (
-            <div className="mb-2">
-              {webhookStatus.endpoints.map((endpoint, index) => (
-                <span key={index}>
-                  <Tooltip title={endpoint.webhook_id + ' - ' + endpoint.url}>
-                    <Tag variant="filled" color={endpoint.active ? 'green' : 'orange'}>
-                      {endpoint.active ? (
-                        <FontAwesomeIcon icon={faCheck} className="text-green-500 mr-1" />
-                      ) : (
-                        <FontAwesomeIcon
-                          icon={faExclamationTriangle}
-                          className="text-yellow-500 mr-1"
-                        />
-                      )}
-                      {endpoint.event_type}
-                    </Tag>
-                  </Tooltip>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {renderInboundReplyStatus()}
-
-          <div className="mb-2">
-            {isOwner && (
-              <Popconfirm
-                title={t`Register webhooks?`}
-                description={t`This will register or update webhook endpoints for this email provider.`}
-                onConfirm={handleRegisterWebhooks}
-                okText={t`Yes`}
-                cancelText={t`No`}
-              >
-                <Button
-                  size="small"
-                  className="ml-2"
-                  type={webhookStatus.is_registered ? undefined : 'primary'}
-                  loading={registrationInProgress}
-                >
-                  {webhookStatus.is_registered ? t`Re-register` : t`Register Webhooks`}
-                </Button>
-              </Popconfirm>
-            )}
-          </div>
-          {webhookStatus.error && (
-            <Alert title={webhookStatus.error} type="error" showIcon className="mt-2" />
-          )}
-        </div>
-      </Descriptions.Item>
-    )
-  }
-
-  return (
-    <Card
-      title={
-        <>
-          <div className="float-right">
-            {isOwner ? (
-              <Space>
-                <Tooltip title={t`Edit`}>
-                  <Button
-                    type="text"
-                    onClick={() => startEditEmailProvider(integration)}
-                    size="small"
-                  >
-                    <FontAwesomeIcon icon={faPenToSquare} />
-                  </Button>
-                </Tooltip>
-                <Popconfirm
-                  title={t`Delete this integration?`}
-                  description={t`This action cannot be undone.`}
-                  onConfirm={() => deleteIntegration(integration.id)}
-                  okText={t`Yes`}
-                  cancelText={t`No`}
-                >
-                  <Tooltip title={t`Delete`}>
-                    <Button size="small" type="text">
-                      <FontAwesomeIcon icon={faTrashCan} />
-                    </Button>
-                  </Tooltip>
-                </Popconfirm>
-                <Button onClick={() => startTestEmailProvider(integration.id)} size="small">
-                  {t`Test`}
-                </Button>
-              </Space>
-            ) : null}
-          </div>
-          <Tooltip title={integration.id}>
-            {emailProviders
-              .find((p) => p.kind === integration.email_provider.kind)
-              ?.getIcon('', 24) || <FontAwesomeIcon icon={faEnvelope} style={{ height: 24 }} />}
-          </Tooltip>
-        </>
-      }
-    >
-      <Descriptions bordered size="small" column={1} className="mt-2">
-        <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
-        <Descriptions.Item label={t`Senders`}>
-          {provider.senders && provider.senders.length > 0 ? (
-            <div>
-              {provider.senders.map((sender, index) => (
-                <div key={sender.id || index} className="mb-1">
-                  {sender.name} &lt;{sender.email}&gt;
-                  {sender.is_default && (
-                    <Tag variant="filled" color="blue" className="!ml-2">
-                      {t`Default`}
-                    </Tag>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <span>{t`No senders configured`}</span>
-          )}
-        </Descriptions.Item>
-        <Descriptions.Item label={t`Used for`}>
-          <Space>
-            {isIntegrationInUse(integration.id) ? (
-              <>
-                {purposes.includes('Marketing Emails') && (
-                  <Tag variant="filled" color="blue">
-                    <FontAwesomeIcon icon={faPaperPlane} className="mr-1" /> {t`Marketing Emails`}
-                  </Tag>
-                )}
-                {purposes.includes('Transactional Emails') && (
-                  <Tag variant="filled" color="purple">
-                    <FontAwesomeIcon icon={faTerminal} className="mr-1" /> {t`Transactional Emails`}
-                  </Tag>
-                )}
-                {purposes.length === 0 && (
-                  <Tag variant="filled" color="red">
-                    {t`Not assigned`}
-                  </Tag>
-                )}
-              </>
-            ) : (
-              <Tag variant="filled" color="red">
-                {t`Not assigned`}
-              </Tag>
-            )}
-            {isOwner && (
-              <>
-                {!purposes.includes('Marketing Emails') &&
-                  !transactionalEmailOnly.includes(provider.kind) && (
-                    <Popconfirm
-                      title={t`Set as marketing email provider?`}
-                      description={t`All marketing emails (broadcasts, campaigns) will be sent through this provider from now on.`}
-                      onConfirm={() => setIntegrationAsDefault(integration.id, 'marketing')}
-                      okText={t`Yes`}
-                      cancelText={t`No`}
-                    >
-                      <Button
-                        size="small"
-                        className="mr-2 mt-2"
-                        type={
-                          !workspace?.settings.marketing_email_provider_id ? 'primary' : undefined
-                        }
-                      >
-                        {t`Use for Marketing`}
-                      </Button>
-                    </Popconfirm>
-                  )}
-                {!purposes.includes('Transactional Emails') && (
-                  <Popconfirm
-                    title={t`Set as transactional email provider?`}
-                    description={t`All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on.`}
-                    onConfirm={() => setIntegrationAsDefault(integration.id, 'transactional')}
-                    okText={t`Yes`}
-                    cancelText={t`No`}
-                  >
-                    <Button
-                      size="small"
-                      className="mt-2"
-                      type={
-                        !workspace?.settings.transactional_email_provider_id ? 'primary' : undefined
-                      }
-                    >
-                      {t`Use for Transactional`}
-                    </Button>
-                  </Popconfirm>
-                )}
-              </>
-            )}
-          </Space>
-        </Descriptions.Item>
-        {renderProviderSpecificDetails(provider)}
-        {provider.kind !== 'smtp' && renderWebhookStatus()}
-      </Descriptions>
-    </Card>
-  )
 }
 
 // Helper functions for handling email integrations
@@ -528,6 +140,7 @@ const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailPr
 // Main Integrations component
 export function Integrations({ workspace, onSave, loading, isOwner }: IntegrationsProps) {
   const { t } = useLingui()
+  const { modal } = App.useApp()
   // Advisory only; EnsureTenantIsolation is the gate. A tenant that already exists keeps
   // resolving with no key at all — the send path is deliberately unlicensed — so an owner
   // whose licence lapsed can still switch isolation OFF, and only switching it ON is locked.
@@ -644,29 +257,6 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     if (!editingIntegrationId) return fallback
     const hint = getIntegrationById(editingIntegrationId)?.credential_hints?.[hintKey]
     return hint ? `••••••••${hint}` : t`Leave blank to keep the current value`
-  }
-
-  // Is the integration being used
-  const isIntegrationInUse = (id: string): boolean => {
-    return (
-      workspace.settings.marketing_email_provider_id === id ||
-      workspace.settings.transactional_email_provider_id === id
-    )
-  }
-
-  // Get purpose of integration
-  const getIntegrationPurpose = (id: string): string[] => {
-    const purposes: string[] = []
-
-    if (workspace.settings.marketing_email_provider_id === id) {
-      purposes.push('Marketing Emails')
-    }
-
-    if (workspace.settings.transactional_email_provider_id === id) {
-      purposes.push('Transactional Emails')
-    }
-
-    return purposes
   }
 
   // Set integration as default for a purpose
@@ -1248,542 +838,474 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     }
   }
 
-  // Render the list of available integrations
+  // Render the list of available integrations. A member sees what can be connected, but neither
+  // the buttons nor a clickable row: the drawers they opened could only fail to save.
   const renderAvailableIntegrations = () => {
+    const entries: Array<{ key: string; icon: ReactNode; name: string; action: string; onSelect: () => void }> = [
+      ...emailProviders.map((provider) => ({
+        key: `${provider.type}-${provider.kind}`,
+        icon: provider.getIcon('', 'large'),
+        name: provider.name,
+        action: t`Configure`,
+        onSelect: () => handleSelectProviderType(provider.kind)
+      })),
+      {
+        key: 'supabase',
+        icon: <img src="/console/supabase.png" alt="Supabase" className="h-3.5" />,
+        name: 'Supabase',
+        action: t`Configure`,
+        onSelect: handleSelectSupabase
+      },
+      ...llmProviders.map((provider) => ({
+        key: `${provider.type}-${provider.kind}`,
+        icon: provider.getIcon('', 'large'),
+        name: provider.name,
+        action: t`Configure`,
+        onSelect: () => handleSelectLLMProvider(provider.kind)
+      })),
+      {
+        key: 'firecrawl',
+        icon: firecrawlProvider.getIcon('', 'large'),
+        name: firecrawlProvider.name,
+        action: t`Configure`,
+        onSelect: handleSelectFirecrawl
+      },
+      {
+        key: 'zapier',
+        icon: zapierProvider.getIcon('', 'large'),
+        name: zapierProvider.name,
+        action: t`Connect`,
+        onSelect: handleSelectZapier
+      }
+    ]
+
     return (
-      <>
-        {emailProviders.map((provider) => (
-          <div
-            key={`${provider.type}-${provider.kind}`}
-            onClick={() => handleSelectProviderType(provider.kind)}
-            className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
-          >
-            <div className="flex items-center">
-              {provider.getIcon('', 'large')}
-              <span className="ml-3 font-medium">{provider.name}</span>
-            </div>
-            <Button
-              type="primary"
-              ghost
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleSelectProviderType(provider.kind)
-              }}
+      <section data-integrations-block="available" className="flex flex-col gap-3">
+        <h2 data-unreset className="m-0 text-base font-semibold text-ink">
+          {t`Available integrations`}
+        </h2>
+        <div className="flex flex-col gap-2">
+          {entries.map((entry) => (
+            <div
+              key={entry.key}
+              data-catalogue-entry
+              onClick={isOwner ? entry.onSelect : undefined}
+              className={`flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3.5 py-3 ${
+                isOwner ? 'cursor-pointer hover:border-primary-300' : ''
+              }`}
             >
-              {t`Configure`}
-            </Button>
-          </div>
-        ))}
-
-        {/* Supabase Integration */}
-        <div
-          key="supabase"
-          onClick={() => handleSelectSupabase()}
-          className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
-        >
-          <div className="flex items-center">
-            <img src="/console/supabase.png" alt="Supabase" style={{ height: 13 }} />
-            <span className="ml-3 font-medium">Supabase</span>
-          </div>
-          <Button
-            type="primary"
-            ghost
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleSelectSupabase()
-            }}
-          >
-            Configure
-          </Button>
-        </div>
-
-        {/* LLM Providers */}
-        {llmProviders.map((provider) => (
-          <div
-            key={`${provider.type}-${provider.kind}`}
-            onClick={() => handleSelectLLMProvider(provider.kind)}
-            className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
-          >
-            <div className="flex items-center">
-              {provider.getIcon('', 'large')}
-              <span className="ml-3 font-medium">{provider.name}</span>
+              <div className="flex min-w-0 items-center gap-3">
+                {entry.icon}
+                <span className="font-medium text-ink">{entry.name}</span>
+              </div>
+              {isOwner ? (
+                <Button
+                  type="primary"
+                  ghost
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    entry.onSelect()
+                  }}
+                >
+                  {entry.action}
+                </Button>
+              ) : null}
             </div>
-            <Button
-              type="primary"
-              ghost
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleSelectLLMProvider(provider.kind)
-              }}
-            >
-              {t`Configure`}
-            </Button>
-          </div>
-        ))}
-
-        {/* Firecrawl */}
-        <div
-          onClick={() => handleSelectFirecrawl()}
-          className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
-        >
-          <div className="flex items-center">
-            {firecrawlProvider.getIcon('', 'large')}
-            <span className="ml-3 font-medium">{firecrawlProvider.name}</span>
-          </div>
-          <Button
-            type="primary"
-            ghost
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleSelectFirecrawl()
-            }}
-          >
-            Configure
-          </Button>
+          ))}
         </div>
-
-        {/* Zapier */}
-        <div
-          onClick={() => handleSelectZapier()}
-          className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
-        >
-          <div className="flex items-center">
-            {zapierProvider.getIcon('', 'large')}
-            <span className="ml-3 font-medium">{zapierProvider.name}</span>
-          </div>
-          <Button
-            type="primary"
-            ghost
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleSelectZapier()
-            }}
-          >
-            {t`Connect`}
-          </Button>
-        </div>
-      </>
+      </section>
     )
   }
 
+  // Edit and the menu of a card of the Other integrations block, for the owner.
+  const otherCardActions = (
+    integration: Integration,
+    onEdit: () => void,
+    remove: { label: string; title: string; content: string }
+  ) =>
+    isOwner ? (
+      <>
+        <Button
+          type="text"
+          size="small"
+          icon={<Pencil size={14} aria-hidden="true" />}
+          onClick={onEdit}
+        >
+          {t`Edit`}
+        </Button>
+        <Dropdown
+          trigger={['click']}
+          placement="bottomRight"
+          menu={{
+            items: [
+              {
+                key: 'delete',
+                label: remove.label,
+                danger: true,
+                onClick: () =>
+                  modal.confirm({
+                    title: remove.title,
+                    content: remove.content,
+                    okText: t`Yes`,
+                    cancelText: t`No`,
+                    okButtonProps: { danger: true },
+                    onOk: () => deleteIntegration(integration.id)
+                  })
+              }
+            ]
+          }}
+        >
+          <Button
+            type="text"
+            size="small"
+            aria-label={t`More actions`}
+            icon={<MoreHorizontal size={16} aria-hidden="true" />}
+          />
+        </Dropdown>
+      </>
+    ) : null
+
+  const deleteIntegrationTexts = {
+    label: t`Delete`,
+    title: t`Delete this integration?`,
+    content: t`This action cannot be undone.`
+  }
+
+  const configured = (
+    <Pill tone="success" dot={false}>
+      {t`Configured`}
+    </Pill>
+  )
+
+  // A hook of Supabase: configured with the endpoint to paste into Supabase, or not.
+  const supabaseHook = (configuredHook: boolean, url: string) =>
+    configuredHook ? (
+      <div className="flex min-w-0 flex-col items-start gap-1">
+        {configured}
+        <Mono copy>{url}</Mono>
+      </div>
+    ) : (
+      <Pill tone="neutral" dot={false}>
+        {t`Not configured`}
+      </Pill>
+    )
+
+  const renderOtherIntegration = (integration: Integration) => {
+    if (integration.type === 'supabase') {
+      // The encrypted form, not the plaintext: credentials are no longer
+      // served to clients, so keying off signature_key would show every
+      // configured hook as unconfigured.
+      const hasAuthEmailHook =
+        !!integration.supabase_settings?.auth_email_hook?.encrypted_signature_key ||
+        !!integration.supabase_settings?.auth_email_hook?.signature_key
+      const hasBeforeUserCreatedHook =
+        !!integration.supabase_settings?.before_user_created_hook?.encrypted_signature_key ||
+        !!integration.supabase_settings?.before_user_created_hook?.signature_key
+      const addToLists =
+        integration.supabase_settings?.before_user_created_hook?.add_user_to_lists || []
+      const customJsonField =
+        integration.supabase_settings?.before_user_created_hook?.custom_json_field
+      const rejectDisposableEmail =
+        integration.supabase_settings?.before_user_created_hook?.reject_disposable_email
+
+      return (
+        <IntegrationCard
+          key={integration.id}
+          icon={<img src="/console/supabase.png" alt="Supabase" className="h-3.5" />}
+          title={integration.name}
+          titleTooltip={integration.id}
+          subtitle={t`Authentication`}
+          actions={otherCardActions(
+            integration,
+            () => startEditSupabaseIntegration(integration),
+            deleteIntegrationTexts
+          )}
+        >
+          <KeyValueList
+            layout="stacked"
+            items={[
+              {
+                label: t`Auth Email Hook`,
+                value: supabaseHook(
+                  hasAuthEmailHook,
+                  generateSupabaseWebhookURL('auth-email', workspace.id, integration.id)
+                )
+              },
+              {
+                label: t`Before User Created Hook`,
+                value: supabaseHook(
+                  hasBeforeUserCreatedHook,
+                  generateSupabaseWebhookURL('before-user-created', workspace.id, integration.id)
+                )
+              },
+              ...(hasBeforeUserCreatedHook && addToLists.length > 0
+                ? [
+                    {
+                      label: t`Auto-subscribe to Lists`,
+                      value: addToLists
+                        .map((listId) => lists.find((l) => l.id === listId)?.name || listId)
+                        .join(', ')
+                    }
+                  ]
+                : []),
+              ...(hasBeforeUserCreatedHook
+                ? [
+                    {
+                      label: t`Reject Disposable Email`,
+                      value: rejectDisposableEmail ? t`Enabled` : t`Disabled`
+                    }
+                  ]
+                : []),
+              ...(hasBeforeUserCreatedHook && customJsonField
+                ? [
+                    {
+                      label: t`User Metadata Field`,
+                      value:
+                        workspace.settings?.custom_field_labels?.[customJsonField] ||
+                        customJsonField
+                    }
+                  ]
+                : [])
+            ]}
+          />
+        </IntegrationCard>
+      )
+    }
+
+    if (integration.type === 'llm' && integration.llm_provider) {
+      const provider = integration.llm_provider
+      const model =
+        provider.kind === 'openai'
+          ? provider.openai?.model
+          : provider.kind === 'gemini'
+            ? provider.gemini?.model
+            : provider.anthropic?.model
+      return (
+        <IntegrationCard
+          key={integration.id}
+          icon={getLLMProviderIcon(provider.kind, 14)}
+          title={integration.name}
+          titleTooltip={integration.id}
+          subtitle={t`AI assistant`}
+          status={configured}
+          actions={otherCardActions(
+            integration,
+            () => startEditLLMIntegration(integration),
+            deleteIntegrationTexts
+          )}
+        >
+          <KeyValueList
+            layout="stacked"
+            columns={2}
+            items={[
+              { label: t`Provider`, value: getLLMProviderName(provider.kind) },
+              { label: t`Model`, value: model ? <Mono>{model}</Mono> : t`Not configured` },
+              ...(provider.kind === 'openai' && provider.openai?.base_url
+                ? [{ label: t`Base URL`, value: <Mono>{provider.openai.base_url}</Mono> }]
+                : []),
+              { label: t`API Key`, value: t`Configured` }
+            ]}
+          />
+        </IntegrationCard>
+      )
+    }
+
+    if (integration.type === 'firecrawl' && integration.firecrawl_settings) {
+      const baseUrl = integration.firecrawl_settings.base_url
+      return (
+        <IntegrationCard
+          key={integration.id}
+          icon={firecrawlProvider.getIcon('', 14)}
+          title={integration.name}
+          titleTooltip={integration.id}
+          subtitle={t`Web page import`}
+          status={configured}
+          actions={otherCardActions(
+            integration,
+            () => startEditFirecrawlIntegration(integration),
+            deleteIntegrationTexts
+          )}
+        >
+          <KeyValueList
+            layout="stacked"
+            columns={2}
+            items={[
+              { label: t`API Key`, value: t`Configured` },
+              {
+                label: t`Tools`,
+                value: (
+                  <span className="inline-flex flex-wrap gap-1">
+                    <Mono>scrape_url</Mono>
+                    <Mono>search_web</Mono>
+                  </span>
+                )
+              },
+              ...(baseUrl ? [{ label: t`Base URL`, value: <Mono>{baseUrl}</Mono> }] : [])
+            ]}
+          />
+        </IntegrationCard>
+      )
+    }
+
+    // Guarded on the settings object, not on the type alone: a record written before this
+    // release, or by a build that has been rolled back, has none, and reading
+    // api_key_email off it would take the whole screen down. It degrades to the card below.
+    if (integration.type === 'zapier' && integration.zapier_settings) {
+      return (
+        <IntegrationCard
+          key={integration.id}
+          icon={zapierProvider.getIcon('', 14)}
+          title={integration.name}
+          titleTooltip={integration.id}
+          subtitle={t`Triggers and actions`}
+          status={
+            <Pill tone="success" dot={false}>
+              {t`Connected`}
+            </Pill>
+          }
+          actions={otherCardActions(integration, () => startEditZapierIntegration(integration), {
+            label: t`Disconnect`,
+            title: t`Delete this connection?`,
+            content: t`Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone.`
+          })}
+        >
+          <KeyValueList
+            layout="stacked"
+            columns={2}
+            items={[
+              // Shown alongside the name because the two can disagree: renaming the card
+              // never re-mints the key, so the address keeps the label it was created
+              // under, and this is where an owner matches it to Settings → Team & API keys.
+              {
+                label: t`API key address`,
+                value: <Mono>{integration.zapier_settings.api_key_email}</Mono>
+              },
+              { label: t`Connected`, value: formatConnectedOn(integration.created_at) }
+            ]}
+          />
+        </IntegrationCard>
+      )
+    }
+
+    // Handle other types of integrations here in the future
+    return (
+      <IntegrationCard
+        key={integration.id}
+        icon={<Blocks size={14} aria-hidden="true" className="text-ink-3" />}
+        title={integration.name}
+        titleTooltip={integration.id}
+        subtitle={`Type: ${integration.type}`}
+      />
+    )
+  }
+
+  const blockTitle = (title: string, summary: ReactNode, action: ReactNode) => (
+    <div className="flex items-end justify-between gap-3">
+      <div className="flex min-w-0 flex-col">
+        <h2 data-unreset className="m-0 text-base font-semibold text-ink">
+          {title}
+        </h2>
+        {summary ? <div className="text-xs text-ink-3">{summary}</div> : null}
+      </div>
+      {action}
+    </div>
+  )
+
   // Render the list of integrations
   const renderWorkspaceIntegrations = () => {
-    if (!workspace?.integrations) {
-      return null // We'll handle this case differently in the main render
-    }
+    const integrations = workspace.integrations ?? []
+    const emailIntegrations = integrations.filter(
+      (integration): integration is EmailIntegration =>
+        integration.type === 'email' && Boolean(integration.email_provider)
+    )
+    const otherIntegrations = integrations.filter(
+      (integration) => !(integration.type === 'email' && integration.email_provider)
+    )
+
+    const nameOf = (id?: string) => (id ? getIntegrationById(id)?.name : undefined)
+    const marketingName = nameOf(workspace.settings.marketing_email_provider_id)
+    const transactionalName = nameOf(workspace.settings.transactional_email_provider_id)
+    const summary = (
+      <>
+        {marketingName ? (
+          t`Marketing: ${marketingName}`
+        ) : (
+          <span className="text-warning-fg">{t`Marketing: not set`}</span>
+        )}
+        {' · '}
+        {transactionalName ? (
+          t`Transactional: ${transactionalName}`
+        ) : (
+          <span className="text-warning-fg">{t`Transactional: not set`}</span>
+        )}
+      </>
+    )
+
+    const addProvider = isOwner ? (
+      <Dropdown menu={{ items: emailMenuItems }} trigger={['click']}>
+        <Button size="small" icon={<Plus size={14} aria-hidden="true" />}>
+          {t`Add a provider`}
+        </Button>
+      </Dropdown>
+    ) : null
 
     return (
       <>
-        {workspace?.integrations.map((integration) => {
-          if (integration.type === 'email' && integration.email_provider) {
-            return (
-              <div key={integration.id} className="mb-4">
-                <EmailIntegration
-                  key={integration.id}
-                  integration={integration as Integration & { email_provider: EmailProvider }}
-                  isOwner={isOwner}
-                  workspace={workspace}
-                  getIntegrationPurpose={getIntegrationPurpose}
-                  isIntegrationInUse={isIntegrationInUse}
-                  renderProviderSpecificDetails={renderProviderSpecificDetails}
-                  startEditEmailProvider={startEditEmailProvider}
-                  startTestEmailProvider={startTestEmailProvider}
-                  setIntegrationAsDefault={setIntegrationAsDefault}
-                  deleteIntegration={deleteIntegration}
-                />
+        <section data-integrations-block="email" className="flex flex-col gap-3">
+          {blockTitle(t`Email providers`, summary, addProvider)}
+          {missingProviderAlert}
+          {emailIntegrations.length === 0 ? (
+            <div className="rounded-lg border border-line bg-surface py-8 shadow-card">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No email provider yet`}>
+                {addProvider}
+              </Empty>
+            </div>
+          ) : (
+            emailIntegrations.map((integration) => (
+              <EmailProviderCard
+                key={integration.id}
+                integration={integration}
+                workspace={workspace}
+                isOwner={isOwner}
+                onEdit={startEditEmailProvider}
+                onAddSender={(target) => {
+                  startEditEmailProvider(target)
+                  addSender()
+                }}
+                onTest={startTestEmailProvider}
+                onSetDefault={setIntegrationAsDefault}
+                onDelete={deleteIntegration}
+              />
+            ))
+          )}
+        </section>
+
+        {/* Shown to the owner without other integrations too: it holds the only way to connect one. */}
+        {otherIntegrations.length > 0 || isOwner ? (
+          <section data-integrations-block="other" className="flex flex-col gap-3">
+            {blockTitle(
+              t`Other integrations`,
+              otherIntegrations.length === 0
+                ? t`Supabase, AI assistants, Firecrawl and Zapier`
+                : null,
+              isOwner ? (
+                <Dropdown menu={{ items: otherMenuItems }} trigger={['click']}>
+                  <Button size="small" icon={<Plus size={14} aria-hidden="true" />}>
+                    {t`Connect`}
+                  </Button>
+                </Dropdown>
+              ) : null
+            )}
+            {otherIntegrations.length > 0 ? (
+              <div className="@container">
+                <div className="grid grid-cols-2 gap-3 @max-[900px]:grid-cols-1">
+                  {otherIntegrations.map(renderOtherIntegration)}
+                </div>
               </div>
-            )
-          }
-
-          if (integration.type === 'supabase') {
-            // The encrypted form, not the plaintext: credentials are no longer
-            // served to clients, so keying off signature_key would show every
-            // configured hook as unconfigured.
-            const hasAuthEmailHook =
-              !!integration.supabase_settings?.auth_email_hook?.encrypted_signature_key ||
-              !!integration.supabase_settings?.auth_email_hook?.signature_key
-            const hasBeforeUserCreatedHook =
-              !!integration.supabase_settings?.before_user_created_hook?.encrypted_signature_key ||
-              !!integration.supabase_settings?.before_user_created_hook?.signature_key
-            const addToLists =
-              integration.supabase_settings?.before_user_created_hook?.add_user_to_lists || []
-            const customJsonField =
-              integration.supabase_settings?.before_user_created_hook?.custom_json_field
-            const rejectDisposableEmail =
-              integration.supabase_settings?.before_user_created_hook?.reject_disposable_email
-
-            // Generate webhook URLs dynamically
-            const authEmailWebhookURL = generateSupabaseWebhookURL(
-              'auth-email',
-              workspace.id,
-              integration.id
-            )
-            const beforeUserCreatedWebhookURL = generateSupabaseWebhookURL(
-              'before-user-created',
-              workspace.id,
-              integration.id
-            )
-
-            return (
-              <div key={integration.id} className="mb-4">
-                <Card
-                  title={
-                    <>
-                      <div className="float-right">
-                        {isOwner && (
-                          <Space>
-                            <Tooltip title={t`Edit`}>
-                              <Button
-                                type="text"
-                                onClick={() => startEditSupabaseIntegration(integration)}
-                                size="small"
-                              >
-                                <FontAwesomeIcon icon={faPenToSquare} />
-                              </Button>
-                            </Tooltip>
-                            <Popconfirm
-                              title={t`Delete this integration?`}
-                              description={t`This action cannot be undone.`}
-                              onConfirm={() => deleteIntegration(integration.id)}
-                              okText={t`Yes`}
-                              cancelText={t`No`}
-                            >
-                              <Tooltip title={t`Delete`}>
-                                <Button size="small" type="text">
-                                  <FontAwesomeIcon icon={faTrashCan} />
-                                </Button>
-                              </Tooltip>
-                            </Popconfirm>
-                          </Space>
-                        )}
-                      </div>
-                      <Tooltip title={integration.id}>
-                        <img src="/console/supabase.png" alt="Supabase" style={{ height: 24 }} />
-                      </Tooltip>
-                    </>
-                  }
-                >
-                  <Descriptions bordered size="small" column={1} className="mt-2">
-                    <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
-                    <Descriptions.Item label={t`Auth Email Hook`}>
-                      {hasAuthEmailHook ? (
-                        <Space orientation="vertical">
-                          <Tag variant="filled" color="green" className="mb-2">
-                            <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
-                          </Tag>
-                          <div className="mt-2 text-xs text-gray-500">{t`Webhook endpoint:`}</div>
-
-                          <Input
-                            value={authEmailWebhookURL}
-                            readOnly
-                            size="small"
-                            variant="filled"
-                            suffix={
-                              <Tooltip title={t`Copy Webhook endpoint`}>
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(authEmailWebhookURL)
-                                    message.success(t`Webhook endpoint copied to clipboard`)
-                                  }}
-                                  icon={<FontAwesomeIcon icon={faCopy} />}
-                                  className="mt-1"
-                                >
-                                  {t`Copy`}
-                                </Button>
-                              </Tooltip>
-                            }
-                          />
-                        </Space>
-                      ) : (
-                        <Tag variant="filled" color="default">
-                          {t`Not configured`}
-                        </Tag>
-                      )}
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t`Before User Created Hook`}>
-                      {hasBeforeUserCreatedHook ? (
-                        <Space orientation="vertical">
-                          <Tag variant="filled" color="green" className="mb-2">
-                            <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
-                          </Tag>
-                          <div className="mt-2 text-xs text-gray-500">{t`Webhook endpoint:`}</div>
-
-                          <Input
-                            value={beforeUserCreatedWebhookURL}
-                            readOnly
-                            size="small"
-                            variant="filled"
-                            suffix={
-                              <Tooltip title={t`Copy Webhook endpoint`}>
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(beforeUserCreatedWebhookURL)
-                                    message.success(t`Webhook endpoint copied to clipboard`)
-                                  }}
-                                  icon={<FontAwesomeIcon icon={faCopy} />}
-                                  className="mt-1"
-                                >
-                                  {t`Copy`}
-                                </Button>
-                              </Tooltip>
-                            }
-                          />
-                        </Space>
-                      ) : (
-                        <Tag variant="filled" color="default">
-                          {t`Not configured`}
-                        </Tag>
-                      )}
-                    </Descriptions.Item>
-                    {hasBeforeUserCreatedHook && addToLists.length > 0 && (
-                      <Descriptions.Item label={t`Auto-subscribe to Lists`}>
-                        {addToLists.map((listId) => {
-                          const list = lists.find((l) => l.id === listId)
-                          return (
-                            <Tag key={listId} variant="filled" color="blue" className="mb-1">
-                              {list?.name || listId}
-                            </Tag>
-                          )
-                        })}
-                      </Descriptions.Item>
-                    )}
-                    {hasBeforeUserCreatedHook && customJsonField && (
-                      <Descriptions.Item label={t`User Metadata Field`}>
-                        <Tag variant="filled" color="purple">
-                          {workspace.settings?.custom_field_labels?.[customJsonField] ||
-                            customJsonField}
-                        </Tag>
-                      </Descriptions.Item>
-                    )}
-                    {hasBeforeUserCreatedHook && (
-                      <Descriptions.Item label={t`Reject Disposable Email`}>
-                        <Tag variant="filled" color={rejectDisposableEmail ? 'green' : 'default'}>
-                          {rejectDisposableEmail ? (
-                            <>
-                              <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Enabled`}
-                            </>
-                          ) : (
-                            <>
-                              <FontAwesomeIcon icon={faTimes} className="mr-1" /> {t`Disabled`}
-                            </>
-                          )}
-                        </Tag>
-                      </Descriptions.Item>
-                    )}
-                  </Descriptions>
-                </Card>
-              </div>
-            )
-          }
-
-          if (integration.type === 'llm' && integration.llm_provider) {
-            const provider = integration.llm_provider
-
-            return (
-              <div key={integration.id} className="mb-4">
-                <Card
-                  title={
-                    <>
-                      <div className="float-right">
-                        {isOwner && (
-                          <Space>
-                            <Tooltip title={t`Edit`}>
-                              <Button
-                                type="text"
-                                onClick={() => startEditLLMIntegration(integration)}
-                                size="small"
-                              >
-                                <FontAwesomeIcon icon={faPenToSquare} />
-                              </Button>
-                            </Tooltip>
-                            <Popconfirm
-                              title={t`Delete this integration?`}
-                              description={t`This action cannot be undone.`}
-                              onConfirm={() => deleteIntegration(integration.id)}
-                              okText={t`Yes`}
-                              cancelText={t`No`}
-                            >
-                              <Tooltip title={t`Delete`}>
-                                <Button size="small" type="text">
-                                  <FontAwesomeIcon icon={faTrashCan} />
-                                </Button>
-                              </Tooltip>
-                            </Popconfirm>
-                          </Space>
-                        )}
-                      </div>
-                      <Tooltip title={integration.id}>
-                        {getLLMProviderIcon(provider.kind, 14)}
-                      </Tooltip>
-                    </>
-                  }
-                >
-                  <Descriptions bordered size="small" column={1} className="mt-2">
-                    <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
-                    <Descriptions.Item label={t`Model`}>
-                      <Tag variant="filled" color="purple">
-                        {provider.kind === 'openai'
-                          ? provider.openai?.model || 'Not configured'
-                          : provider.kind === 'gemini'
-                            ? provider.gemini?.model || 'Not configured'
-                            : provider.anthropic?.model || 'Not configured'}
-                      </Tag>
-                    </Descriptions.Item>
-                    {provider.kind === 'openai' && provider.openai?.base_url && (
-                      <Descriptions.Item label={t`Base URL`}>
-                        <Tag variant="filled" color="blue">
-                          {provider.openai.base_url}
-                        </Tag>
-                      </Descriptions.Item>
-                    )}
-                    <Descriptions.Item label={t`API Key`}>
-                      <Tag variant="filled" color="green">
-                        <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
-                      </Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
-              </div>
-            )
-          }
-
-          if (integration.type === 'firecrawl' && integration.firecrawl_settings) {
-            return (
-              <div key={integration.id} className="mb-4">
-                <Card
-                  title={
-                    <>
-                      <div className="float-right">
-                        {isOwner && (
-                          <Space>
-                            <Tooltip title={t`Edit`}>
-                              <Button
-                                type="text"
-                                onClick={() => startEditFirecrawlIntegration(integration)}
-                                size="small"
-                              >
-                                <FontAwesomeIcon icon={faPenToSquare} />
-                              </Button>
-                            </Tooltip>
-                            <Popconfirm
-                              title={t`Delete this integration?`}
-                              description={t`This action cannot be undone.`}
-                              onConfirm={() => deleteIntegration(integration.id)}
-                              okText={t`Yes`}
-                              cancelText={t`No`}
-                            >
-                              <Tooltip title={t`Delete`}>
-                                <Button size="small" type="text">
-                                  <FontAwesomeIcon icon={faTrashCan} />
-                                </Button>
-                              </Tooltip>
-                            </Popconfirm>
-                          </Space>
-                        )}
-                      </div>
-                      <Tooltip title={integration.id}>{firecrawlProvider.getIcon('', 14)}</Tooltip>
-                    </>
-                  }
-                >
-                  <Descriptions bordered size="small" column={1} className="mt-2">
-                    <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
-                    <Descriptions.Item label={t`API Key`}>
-                      <Tag variant="filled" color="green">
-                        <FontAwesomeIcon icon={faCheck} className="mr-1" /> {t`Configured`}
-                      </Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t`Tools`}>
-                      <Space>
-                        <Tag variant="filled" color="blue">
-                          scrape_url
-                        </Tag>
-                        <Tag variant="filled" color="blue">
-                          search_web
-                        </Tag>
-                      </Space>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
-              </div>
-            )
-          }
-
-          // Guarded on the settings object, not on the type alone: a record written before this
-          // release, or by a build that has been rolled back, has none, and reading
-          // api_key_email off it would take the whole screen down. It degrades to the card below.
-          if (integration.type === 'zapier' && integration.zapier_settings) {
-            return (
-              <div key={integration.id} className="mb-4">
-                <Card
-                  title={
-                    <>
-                      <div className="float-right">
-                        {isOwner && (
-                          <Space>
-                            <Tooltip title={t`Edit`}>
-                              <Button
-                                type="text"
-                                onClick={() => startEditZapierIntegration(integration)}
-                                size="small"
-                              >
-                                <FontAwesomeIcon icon={faPenToSquare} />
-                              </Button>
-                            </Tooltip>
-                            <Popconfirm
-                              title={t`Delete this connection?`}
-                              description={t`Deleting revokes the API key this connection minted, so any Zap still using it stops working. This action cannot be undone.`}
-                              onConfirm={() => deleteIntegration(integration.id)}
-                              okText={t`Yes`}
-                              cancelText={t`No`}
-                            >
-                              <Tooltip title={t`Delete`}>
-                                <Button size="small" type="text">
-                                  <FontAwesomeIcon icon={faTrashCan} />
-                                </Button>
-                              </Tooltip>
-                            </Popconfirm>
-                          </Space>
-                        )}
-                      </div>
-                      <Tooltip title={integration.id}>{zapierProvider.getIcon('', 14)}</Tooltip>
-                    </>
-                  }
-                >
-                  <Descriptions bordered size="small" column={1} className="mt-2">
-                    <Descriptions.Item label={t`Name`}>{integration.name}</Descriptions.Item>
-                    {/* Shown alongside the name because the two can disagree: renaming the card
-                        never re-mints the key, so the address keeps the label it was created
-                        under, and this is where an owner matches it to Settings → Team. */}
-                    <Descriptions.Item label={t`API key address`}>
-                      <Tag variant="filled" color="blue">
-                        {integration.zapier_settings.api_key_email}
-                      </Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label={t`Connected`}>
-                      {formatConnectedOn(integration.created_at)}
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
-              </div>
-            )
-          }
-
-          // Handle other types of integrations here in the future
-          return (
-            <Card key={integration.id} className="mb-4">
-              <Card.Meta title={integration.name} description={`Type: ${integration.type}`} />
-            </Card>
-          )
-        })}
+            ) : null}
+          </section>
+        ) : null}
       </>
     )
   }
@@ -2402,126 +1924,6 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   }
 
   // Render provider specific details for the given provider
-  const renderProviderSpecificDetails = (provider: EmailProvider) => {
-    const items = []
-
-    if (provider.kind === 'smtp' && provider.smtp) {
-      items.push(
-        <Descriptions.Item key="host" label={t`SMTP Host`}>
-          {provider.smtp.host}:{provider.smtp.port}
-        </Descriptions.Item>,
-        <Descriptions.Item key="username" label={t`SMTP User`}>
-          {provider.smtp.username}
-        </Descriptions.Item>,
-        <Descriptions.Item key="tls" label={t`TLS Enabled`}>
-          {provider.smtp.use_tls ? 'Yes' : 'No'}
-        </Descriptions.Item>,
-        <Descriptions.Item key="auth" label={t`Authentication`}>
-          {provider.smtp.auth_type === 'oauth2' ? (
-            <span>
-              OAuth2 ({provider.smtp.oauth2_provider === 'microsoft' ? 'Microsoft 365' : 'Google'})
-            </span>
-          ) : (
-            'Basic (Username/Password)'
-          )}
-        </Descriptions.Item>
-      )
-      if (provider.smtp.ehlo_hostname) {
-        items.push(
-          <Descriptions.Item key="ehlo" label={t`EHLO Hostname`}>
-            {provider.smtp.ehlo_hostname}
-          </Descriptions.Item>
-        )
-      }
-    } else if (provider.kind === 'ses' && provider.ses) {
-      const ses = provider.ses
-      const configurationSet = ses.configuration_set_name || ses.managed_configuration_set
-      const tenant = ses.tenant_name || ses.managed_tenant_name
-
-      items.push(
-        <Descriptions.Item key="region" label={t`AWS Region`}>
-          {ses.region}
-        </Descriptions.Item>,
-        <Descriptions.Item key="configuration_set" label={t`Configuration set`}>
-          {configurationSet ? (
-            <>
-              <span className="font-mono text-xs">{configurationSet}</span>
-              <Tag variant="filled" color={ses.configuration_set_name ? 'purple' : 'blue'} className="!ml-2">
-                {ses.configuration_set_name ? t`custom` : t`managed`}
-              </Tag>
-            </>
-          ) : (
-            <Tag variant="filled" color="orange">
-              <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-              {t`not created yet — register webhooks`}
-            </Tag>
-          )}
-        </Descriptions.Item>,
-        <Descriptions.Item key="reputation" label={t`Reputation`}>
-          {tenant ? (
-            <>
-              <Tag variant="filled" color="green">
-                {t`isolated`}
-              </Tag>
-              <span className="font-mono text-xs">{tenant}</span>
-            </>
-          ) : ses.tenant_isolation_enabled ? (
-            // Intent recorded but nothing provisioned: the state that must never look fine.
-            <Tag variant="filled" color="orange">
-              <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 mr-1" />
-              {t`isolation requested but not provisioned`}
-            </Tag>
-          ) : (
-            <span className="text-gray-500">{t`shared with the rest of this AWS account`}</span>
-          )}
-        </Descriptions.Item>
-      )
-    } else if (provider.kind === 'sparkpost' && provider.sparkpost) {
-      items.push(
-        <Descriptions.Item key="endpoint" label={t`API Endpoint`}>
-          {provider.sparkpost.endpoint}
-        </Descriptions.Item>,
-        <Descriptions.Item key="sandbox" label={t`Sandbox Mode`}>
-          {provider.sparkpost.sandbox_mode ? 'Enabled' : 'Disabled'}
-        </Descriptions.Item>
-      )
-    } else if (provider.kind === 'mailgun' && provider.mailgun) {
-      items.push(
-        <Descriptions.Item key="domain" label={t`Domain`}>
-          {provider.mailgun.domain}
-        </Descriptions.Item>,
-        <Descriptions.Item key="region" label={t`Region`}>
-          {provider.mailgun.region || 'US'}
-        </Descriptions.Item>
-      )
-    } else if (provider.kind === 'postmark' && provider.postmark) {
-      items.push(
-        <Descriptions.Item key="message_stream" label={t`Message Stream`}>
-          {provider.postmark.message_stream || 'outbound'}
-        </Descriptions.Item>
-      )
-    } else if (provider.kind === 'mailjet' && provider.mailjet) {
-      items.push(
-        <Descriptions.Item key="sandbox" label={t`Sandbox Mode`}>
-          {provider.mailjet.sandbox_mode ? 'Enabled' : 'Disabled'}
-        </Descriptions.Item>
-      )
-    }
-
-    // Add rate limit for all providers
-    items.push(
-      <Descriptions.Item key="rate_limit" label={t`Rate Limit for Marketing`}>
-        <div>{provider.rate_limit_per_minute} emails/min</div>
-        <div className="text-xs text-gray-600 mt-1">
-          <div>≈ {(provider.rate_limit_per_minute * 60).toLocaleString()} {t`emails per hour`}</div>
-          <div>≈ {(provider.rate_limit_per_minute * 60 * 24).toLocaleString()} {t`emails per day`}</div>
-        </div>
-      </Descriptions.Item>
-    )
-
-    return items
-  }
-
   // Render the drawer for configuring email providers
   const renderProviderDrawer = () => {
     // Test provider from the drawer
@@ -2586,8 +1988,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     )
   }
 
-  // Add integration dropdown menu items
-  const integrationMenuItems = [
+  // "Add a provider": the email providers.
+  const emailMenuItems = [
     ...emailProviders.map((provider) => ({
       key: provider.kind,
       label: provider.name,
@@ -2595,7 +1997,11 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         provider.getIcon('h-6 w-12 object-contain mr-1') as React.ReactElement
       ),
       onClick: () => handleSelectProviderType(provider.kind)
-    })),
+    }))
+  ]
+
+  // "Connect": everything else.
+  const otherMenuItems = [
     {
       key: 'supabase',
       label: 'Supabase',
@@ -2630,28 +2036,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     }
   ]
 
-  return (
-    <>
-      <SettingsSectionHeader
-        title={t`Integrations`}
-        description={t`Connect and manage external services`}
-      />
-
-      {isOwner && (workspace?.integrations?.length ?? 0) > 0 && (
-        <div style={{ textAlign: 'right', marginBottom: 16 }}>
-          <Dropdown menu={{ items: integrationMenuItems }} trigger={['click']}>
-            <Button type="primary" size="small" ghost>
-              {t`Add Integration`} <FontAwesomeIcon icon={faChevronDown} />
-            </Button>
-          </Dropdown>
-        </div>
-      )}
-
-      {/* Check and display alert for missing email provider configuration */}
-      {workspace && (
-        <>
-          {(!workspace.settings.transactional_email_provider_id ||
-            !workspace.settings.marketing_email_provider_id) && (
+  // Above the email cards while a role has no provider.
+  const missingProviderAlert =
+    !workspace.settings.transactional_email_provider_id ||
+    !workspace.settings.marketing_email_provider_id ? (
             <Alert
               title={t`Email Provider Configuration Needed`}
               description={
@@ -2670,16 +2058,23 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               }
               type="info"
               showIcon
-              style={{ marginBottom: 16 }}
             />
-          )}
+    ) : null
+
+  return (
+    <>
+      <SettingsSectionHeader
+        title={t`Integrations`}
+        description={t`Email providers and connected services`}
+      />
+      {(workspace.integrations?.length ?? 0) === 0 ? (
+        <>
+          {missingProviderAlert}
+          {renderAvailableIntegrations()}
         </>
+      ) : (
+        renderWorkspaceIntegrations()
       )}
-
-      {(workspace?.integrations?.length ?? 0) === 0
-        ? renderAvailableIntegrations()
-        : renderWorkspaceIntegrations()}
-
       {/* Provider Configuration Drawer */}
       {renderProviderDrawer()}
 

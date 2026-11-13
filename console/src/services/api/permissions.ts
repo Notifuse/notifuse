@@ -380,6 +380,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Read one template, at any stored version`,
         },
         {
+          endpoint: "/api/templates.usage",
+          action: msg`Count the broadcasts, transactional notifications, automations and lists using each template, among those the member may read`,
+        },
+        {
           endpoint: "/api/templates.compile",
           action: msg`Compile MJML to HTML with test data`,
         },
@@ -449,6 +453,10 @@ export const PERMISSION_DESCRIPTORS: Record<
         {
           endpoint: "/api/blogPosts.get",
           action: msg`Read one post, including unpublished drafts`,
+        },
+        {
+          endpoint: "/api/blogPosts.counts",
+          action: msg`Count posts by status and by category`,
         },
         {
           endpoint: "/api/blogThemes.list",
@@ -525,6 +533,10 @@ export const PERMISSION_DESCRIPTORS: Record<
         {
           endpoint: "/api/broadcasts.getTestResults",
           action: msg`Read A/B test results for a broadcast`,
+        },
+        {
+          endpoint: "/api/broadcasts.estimateAudience",
+          action: msg`Count the contacts an audience would reach (lists and, for segments, segments read too)`,
         },
         {
           endpoint: "/api/analytics.query",
@@ -668,6 +680,10 @@ export const PERMISSION_DESCRIPTORS: Record<
         {
           endpoint: "/api/automations.nodeExecutions",
           action: msg`Read one named contact's journey through an automation, node by node`,
+        },
+        {
+          endpoint: "/api/automations.nodeStats",
+          action: msg`Read the results of each step of an automation; its email figures also need Message history read`,
         },
         {
           endpoint: "/api/analytics.query",

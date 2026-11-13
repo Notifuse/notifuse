@@ -1,16 +1,12 @@
 import React, { useRef } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Button, Dropdown, Modal, App } from 'antd'
+import { Button, Dropdown, App } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronDown, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import type { EmailBlock } from '../email_builder/types'
-import { EmailBlockClass } from '../email_builder/EmailBlockClass'
-import { conditionErrorsInTree } from '../email_builder/displayCondition'
-import {
-  convertMjmlToJsonBrowser,
-  hasDisplayConditionLiquid
-} from '../mjml-converter/mjml-to-json-browser'
 import { templatesApi } from '../../services/api/template'
+import { importTemplateFile, type TemplateFileKind } from './importTemplateFile'
+import { ImportErrorsModal } from './ImportErrorsModal'
 
 interface ImportExportButtonProps {
   // Import props
@@ -23,13 +19,6 @@ interface ImportExportButtonProps {
   workspaceId: string
   // Template name used as the download filename
   templateName?: string
-}
-
-interface ImportedData {
-  emailTree: EmailBlock
-  testData?: Record<string, unknown>
-  exportedAt?: string
-  version?: string
 }
 
 // Sanitize a template name for use as a filename
@@ -50,7 +39,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   workspaceId,
   templateName
 }) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const { message, modal } = App.useApp()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -68,192 +57,26 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
     setIsErrorModalVisible(true)
   }
 
-  // Function to validate imported email tree structure
-  const validateEmailTree = (tree: unknown): { isValid: boolean; errors: string[] } => {
-    // Basic type and structure validation
-    if (!tree || typeof tree !== 'object') {
-      return { isValid: false, errors: [t`Invalid tree structure: not an object`] }
+  // Read, check and hand over a picked file; the checks live in importTemplateFile.
+  const handleFile = async (file: File, kind: TemplateFileKind) => {
+    const result = await importTemplateFile(file, kind, i18n)
+    if (!result.ok) {
+      if (result.title) showErrorModal(result.title, result.errors)
+      else message.error(result.errors[0])
+      return
     }
-
-    // Type guard to check if tree has the required properties
-    const hasRequiredProperties = (
-      obj: object
-    ): obj is { id: unknown; type: unknown; children?: unknown } => {
-      return 'id' in obj && 'type' in obj
+    onImport(result.tree, result.testData)
+    // If test data exists and handler is provided, import it separately
+    if (result.testData && onTestDataImport) {
+      onTestDataImport(result.testData)
     }
-
-    if (!hasRequiredProperties(tree)) {
-      return { isValid: false, errors: [t`Invalid tree structure: missing id or type`] }
-    }
-
-    // Check required properties types
-    if (typeof tree.id !== 'string' || typeof tree.type !== 'string') {
-      return { isValid: false, errors: [t`Invalid tree structure: missing id or type`] }
-    }
-
-    // Check if it's a valid MJML root
-    if (tree.type !== 'mjml') {
-      return { isValid: false, errors: [t`Invalid tree structure: root must be mjml type`] }
-    }
-
-    // Check if children exist and are arrays
-    if (tree.children && !Array.isArray(tree.children)) {
-      return { isValid: false, errors: [t`Invalid tree structure: children must be an array`] }
-    }
-
-    // Use comprehensive EmailBlockClass validation
-    const structureErrors = EmailBlockClass.validateStructure(tree as EmailBlock)
-
-    // If validation fails, provide more helpful error messages
-    if (structureErrors.length > 0) {
-      const helpfulErrors = structureErrors.map((error) => {
-        // Check for common mj-raw placement issues
-        if (error.includes('mj-raw cannot be placed inside mj-wrapper')) {
-          return `${error}\n\n${t`Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components.`}`
-        }
-
-        // Check for HTML elements inside mj-raw (which shouldn't happen with our fixed parser)
-        if (error.includes('cannot be placed inside mj-raw')) {
-          return `${error}\n\n${t`Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements.`}`
-        }
-
-        return error
-      })
-
-      return {
-        isValid: false,
-        errors: helpfulErrors
-      }
-    }
-
-    // display conditions the server would refuse, and would crash the editor if malformed
-    const conditionErrors = conditionErrorsInTree(tree as EmailBlock)
-    if (conditionErrors.length > 0) {
-      return { isValid: false, errors: conditionErrors }
-    }
-
-    return {
-      isValid: true,
-      errors: []
-    }
-  }
-
-  // Handle file selection and parsing
-  const handleFileUpload = (file: File) => {
-    const reader = new FileReader()
-
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string
-
-        // Check if it's an MJML file
-        if (
-          file.name.endsWith('.mjml') ||
-          file.type === 'text/xml' ||
-          file.type === 'application/xml'
-        ) {
-          handleMjmlContent(content)
-          return
-        }
-
-        // Handle JSON files
-        const parsedData = JSON.parse(content)
-
-        // Check if it's the full export format or just a tree
-        let emailTree: EmailBlock
-        let testData: Record<string, unknown> | undefined = undefined
-
-        if (parsedData.emailTree) {
-          // It's the full export format
-          const importedData = parsedData as ImportedData
-          emailTree = importedData.emailTree
-          testData = importedData.testData
-        } else {
-          // It's just a tree
-          emailTree = parsedData as EmailBlock
-        }
-
-        // Validate the email tree
-        const validation = validateEmailTree(emailTree)
-        if (!validation.isValid) {
-          showErrorModal('Import Validation Failed', validation.errors)
-          return
-        }
-
-        // Import the data
-        onImport(emailTree, testData)
-
-        // If test data exists and handler is provided, import it separately
-        if (testData && onTestDataImport) {
-          onTestDataImport(testData)
-        }
-
-        message.success(t`Template imported successfully`)
-      } catch (error) {
-        console.error('Import failed:', error)
-
-        if (error instanceof Error && error.message.includes('Validation failed:')) {
-          // Extract validation errors from the error message
-          const errorMessage = error.message.replace('Validation failed: ', '')
-          const errors = errorMessage.split(', ')
-          showErrorModal(t`Import Validation Failed`, errors)
-        } else {
-          message.error(t`Failed to import template. Please check the file format.`)
-        }
-      }
-    }
-
-    reader.onerror = () => {
-      message.error(t`Failed to read the file`)
-    }
-
-    reader.readAsText(file)
-  }
-
-  // Handle MJML content parsing
-  const handleMjmlContent = (mjmlContent: string) => {
-    try {
-      // Convert MJML to EmailBlock format using browser-compatible parser
-      const emailTree = convertMjmlToJsonBrowser(mjmlContent)
-
-      // Validate the email tree
-      const validation = validateEmailTree(emailTree)
-      if (!validation.isValid) {
-        showErrorModal(t`MJML Import Validation Failed`, validation.errors)
-        return
-      }
-
-      // Import the converted tree
-      onImport(emailTree)
-
-      message.success(t`MJML template imported and converted successfully`)
-      if (hasDisplayConditionLiquid(mjmlContent)) {
-        modal.warning({
-          title: t`Display conditions not imported`,
-          content: t`This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings.`
-        })
-      }
-    } catch (error) {
-      console.error('MJML import failed:', error)
-
-      if (error instanceof Error) {
-        // Check if it's a syntax error from MJML parsing
-        if (
-          error.message.includes('Invalid MJML syntax') ||
-          error.message.includes('Root element must be')
-        ) {
-          showErrorModal(t`MJML Syntax Error`, [error.message])
-        } else if (error.message.includes('Validation failed:')) {
-          // Extract validation errors from the error message
-          const errorMessage = error.message.replace('Validation failed: ', '')
-          const errors = errorMessage.split(', ')
-          showErrorModal(t`MJML Validation Failed`, errors)
-        } else {
-          showErrorModal(t`MJML Import Error`, [error.message])
-        }
-      } else {
-        message.error(t`Failed to import MJML template. Please check the MJML syntax.`)
-      }
+    message.success(
+      kind === 'mjml'
+        ? t`MJML template imported and converted successfully`
+        : t`Template imported successfully`
+    )
+    for (const warning of result.warnings) {
+      modal.warning({ title: warning.title, content: warning.content })
     }
   }
 
@@ -272,34 +95,12 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   }
 
   // Handle file input change
-  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    kind: TemplateFileKind
+  ) => {
     const file = event.target.files?.[0]
-    if (file) {
-      if (file.type === 'application/json' || file.name.endsWith('.json')) {
-        handleFileUpload(file)
-      } else {
-        message.error(t`Please select a JSON file`)
-      }
-    }
-    // Reset input so same file can be selected again
-    event.target.value = ''
-  }
-
-  // Handle MJML file input change
-  const handleMjmlFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      if (
-        file.name.endsWith('.mjml') ||
-        file.type === 'text/xml' ||
-        file.type === 'application/xml' ||
-        file.type === 'text/plain'
-      ) {
-        handleFileUpload(file)
-      } else {
-        message.error(t`Please select an MJML file`)
-      }
-    }
+    if (file) void handleFile(file, kind)
     // Reset input so same file can be selected again
     event.target.value = ''
   }
@@ -480,7 +281,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
         type="file"
         accept=".json,application/json"
         style={{ display: 'none' }}
-        onChange={handleFileInputChange}
+        onChange={(event) => handleFileInputChange(event, 'json')}
       />
 
       {/* Hidden file input for MJML */}
@@ -489,53 +290,15 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
         type="file"
         accept=".mjml,.xml,text/xml,application/xml,text/plain"
         style={{ display: 'none' }}
-        onChange={handleMjmlFileInputChange}
+        onChange={(event) => handleFileInputChange(event, 'mjml')}
       />
 
-      {/* Error Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500" />
-            <span>{errorTitle}</span>
-          </div>
-        }
+      <ImportErrorsModal
         open={isErrorModalVisible}
-        onCancel={() => setIsErrorModalVisible(false)}
-        footer={[
-          <Button key="ok" type="primary" onClick={() => setIsErrorModalVisible(false)}>
-            {t`OK`}
-          </Button>
-        ]}
-        width={600}
-      >
-        <div className="space-y-3">
-          <p className="text-gray-600">
-            {t`The following validation errors were found in your import:`}
-          </p>
-
-          <div className="bg-red-50 border border-red-200 rounded-md p-3 max-h-60 overflow-y-auto">
-            <ul className="space-y-2">
-              {validationErrors.map((error, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="text-red-500 font-bold mt-0.5">•</span>
-                  <span className="text-red-700 text-sm">{error}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="text-sm text-gray-500">
-            <p className="font-medium">{t`Tips for fixing these errors:`}</p>
-            <ul className="mt-1 ml-4 space-y-1">
-              <li>{t`• Check that your MJML structure follows the proper hierarchy`}</li>
-              <li>{t`• Ensure all required components are properly nested`}</li>
-              <li>{t`• Verify that component attributes are valid`}</li>
-              <li>{t`• Make sure all XML tags are properly closed`}</li>
-            </ul>
-          </div>
-        </div>
-      </Modal>
+        title={errorTitle}
+        errors={validationErrors}
+        onClose={() => setIsErrorModalVisible(false)}
+      />
     </div>
   )
 }

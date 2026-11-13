@@ -25,6 +25,7 @@ import {
 import { CodeSnippet } from '../common/CodeSnippet'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { Panel } from '../layout'
 
 const DEFAULT_SETTINGS: WebAnalyticsSettingsValues = {
   enabled: false,
@@ -229,10 +230,11 @@ export function WebAnalyticsSettings({
     return (
       <>
         <SettingsSectionHeader
-          title={t`Web Analytics`}
+          title={t`Web analytics`}
           description={t`Website traffic tracking settings`}
         />
 
+        <Panel>
         <Descriptions
           bordered
           column={1}
@@ -281,6 +283,7 @@ export function WebAnalyticsSettings({
             {stored?.geo_enabled ? t`Resolved` : t`Not resolved`}
           </Descriptions.Item>
         </Descriptions>
+        </Panel>
       </>
     )
   }
@@ -288,10 +291,11 @@ export function WebAnalyticsSettings({
   return (
     <>
       <SettingsSectionHeader
-        title={t`Web Analytics`}
+        title={t`Web analytics`}
         description={t`Track website traffic with a first-party script. Beats are stored in this workspace's database, so no data leaves your infrastructure.`}
       />
 
+      <Panel title={t`Tracking`}>
       <Form
         form={form}
         layout="vertical"
@@ -439,23 +443,24 @@ export function WebAnalyticsSettings({
         </Row>
 
       </Form>
+      </Panel>
 
-      <Divider className="!my-8" />
+      <Panel title={t`Install`}>
+        <div className="mb-3 text-sm text-ink-3">
+          {t`Paste this snippet before the closing </head> tag of your website.`}
+        </div>
+        <CodeSnippet code={snippet} language="markup" />
+      </Panel>
 
-      <div className="text-xl font-medium mb-2">{t`Install`}</div>
-      <div className="text-gray-500 mb-4">
-        {t`Paste this snippet before the closing </head> tag of your website.`}
-      </div>
-      <CodeSnippet code={snippet} language="markup" />
-
-      <div className="text-xl font-medium mb-2 mt-8">{t`Identify a visitor`}</div>
-      <div className="text-gray-500 mb-4">
-        {t`Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored.`}
-      </div>
-      <CodeSnippet code={identifySnippet} language="javascript" />
-      <div className="text-gray-500">
-        {t`An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code.`}
-      </div>
+      <Panel title={t`Identify a visitor`}>
+        <div className="mb-3 text-sm text-ink-3">
+          {t`Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored.`}
+        </div>
+        <CodeSnippet code={identifySnippet} language="javascript" />
+        <div className="mt-3 text-sm text-ink-3">
+          {t`An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code.`}
+        </div>
+      </Panel>
 
       {/* Last child on purpose — see SettingsSaveBar for why. */}
       <SettingsSaveBar

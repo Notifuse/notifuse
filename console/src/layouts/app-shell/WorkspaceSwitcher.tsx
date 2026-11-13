@@ -7,9 +7,21 @@ import { layout } from '../../theme/tokens'
 
 const NEW_WORKSPACE_KEY = '__new_workspace__'
 
-/** The workspace's logo, or its initial on the brand gradient. */
-function WorkspaceBadge({ workspace, small }: { workspace?: Workspace; small?: boolean }) {
-  const size = small ? 'size-4.5 rounded-sm text-overline' : 'size-6 rounded-md text-xs'
+/** The workspace's logo, or its initial on the brand gradient. `large` is the 40px of the settings. */
+export function WorkspaceBadge({
+  workspace,
+  small,
+  large
+}: {
+  workspace?: Pick<Workspace, 'name'> & { settings?: Pick<Workspace['settings'], 'logo_url'> }
+  small?: boolean
+  large?: boolean
+}) {
+  const size = small
+    ? 'size-4.5 rounded-sm text-overline'
+    : large
+      ? 'size-10 rounded-md text-base'
+      : 'size-6 rounded-md text-xs'
   const logo = workspace?.settings?.logo_url
   if (logo) {
     return (

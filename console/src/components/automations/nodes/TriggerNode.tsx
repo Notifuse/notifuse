@@ -1,9 +1,9 @@
 import React from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { Zap } from 'lucide-react'
+import type { NodeProps } from '@xyflow/react'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
-import { nodeTypeColors, getNodeDescription } from './constants'
+import { SourceHandle } from './handles'
+import { getNodeDescription } from './constants'
 import { useAutomation } from '../context'
 import type { AutomationFlowNode } from '../utils/flowConverter'
 import type { TimelineTriggerConfig } from '../../../services/api/automation'
@@ -14,7 +14,7 @@ type TriggerNodeProps = NodeProps<AutomationFlowNode>
 // a Partial of the API's trigger config rather than assuming event_kind/frequency are present.
 type TriggerConfig = Partial<TimelineTriggerConfig>
 
-export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
+export const TriggerNode: React.FC<TriggerNodeProps> = ({ id, data, selected }) => {
   const { t } = useLingui()
   const { lists, segments } = useAutomation()
   const config = data.config as TriggerConfig
@@ -61,27 +61,22 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
   return (
     <>
       <BaseNode
+        nodeId={id}
         type="trigger"
-        label={t`Trigger`}
         description={getNodeDescription(data.config)}
-        icon={<Zap size={16} color={selected ? undefined : nodeTypeColors.trigger} />}
         selected={selected}
       >
         {hasEventKind ? (
           <div>
             <div>{getEventDisplay()}</div>
-            {detail && <div className="text-gray-500 truncate" title={detail}>{detail}</div>}
-            <div className="text-gray-400">{frequency}</div>
+            {detail && <div className="text-ink-3 truncate" title={detail}>{detail}</div>}
+            <div className="text-ink-3">{frequency}</div>
           </div>
         ) : (
-          <div className="text-orange-500">{t`Configure`}</div>
+          <div className="text-warning-fg">{t`Configure`}</div>
         )}
       </BaseNode>
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ background: '#3b82f6', width: 10, height: 10 }}
-      />
+      <SourceHandle isOrphan={data.isOrphan} />
     </>
   )
 }

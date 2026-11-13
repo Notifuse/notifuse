@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Node, Edge } from '@xyflow/react'
-import type { Automation } from '../../../services/api/automation'
+import type { Automation, TriggerFrequency } from '../../../services/api/automation'
 import type { Workspace, Template } from '../../../services/api/types'
 import type { List } from '../../../services/api/list'
 import type { Segment } from '../../../services/api/segment'
@@ -24,11 +24,19 @@ export interface CanvasState {
 export interface AutomationContextType {
   // Core data
   workspace: Workspace
+  /** The automation as last loaded or saved in this session; null until a new one is created. */
   automation: Automation | null
+  /** The id this session saves under: the loaded one, or the one a new automation is created with. */
+  automationId: string
   isEditing: boolean
+  /** Live, or no write permission: nothing can be changed and every writer is a no-op. */
+  readOnly: boolean
   lists: List[]
   segments: Segment[]
   templates: Template[]
+  // Without Templates read, templates.list and templates.get answer 403: the template fields
+  // show the stored IDs, locked.
+  canReadTemplates: boolean
 
   // Form state
   name: string
@@ -37,15 +45,26 @@ export interface AutomationContextType {
   setListId: (id: string | undefined) => void
   exitOnReply: boolean
   setExitOnReply: (v: boolean) => void
+  /** The trigger's frequency, kept on the trigger node's config. */
+  frequency: TriggerFrequency
+  setFrequency: (frequency: TriggerFrequency) => void
+
+  // Selected step (its panel is open)
+  selectedNodeId: string | null
+  setSelectedNodeId: (id: string | null) => void
 
   // Canvas state (shared with hook)
   canvasState: CanvasState
 
   // Save state
+  /** What would be sent differs from what was loaded or last saved (timestamps aside). */
   hasUnsavedChanges: boolean
+  /** Kept for the canvas writers; changes are now read from the payload itself. */
   markAsChanged: () => void
   isSaving: boolean
   lastError: Error | null
+  /** The last save lost a race with another change (409): reload before saving again. */
+  conflict: boolean
 
   // Initial selection
   initialSelectedNodeId: string | undefined
@@ -59,7 +78,8 @@ export interface AutomationContextType {
   pushHistory: (coalesceKey?: string) => void
 
   // Operations
-  save: () => Promise<void>
+  /** Resolves true once saved; the failure is shown to the user. */
+  save: () => Promise<boolean>
   validate: () => ValidationError[]
   reset: () => void
 }

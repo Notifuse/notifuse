@@ -121,14 +121,19 @@ export function RecipientFeedSettings({
                 onChange={(e) => handleChange('url', e.target.value)}
                 disabled={disabled}
               />
-              <Button
-                type="primary"
-                ghost
-                onClick={() => setModalOpen(true)}
-                disabled={disabled || !settings.url || !broadcastId}
-              >
-                {t`Test`}
-              </Button>
+              {/* The test calls the feed for a stored broadcast; a disabled button fires no mouse event, hence the span. */}
+              <Tooltip title={broadcastId ? undefined : t`Save the broadcast first`}>
+                <span className="inline-flex">
+                  <Button
+                    type="primary"
+                    ghost
+                    onClick={() => setModalOpen(true)}
+                    disabled={disabled || !settings.url || !broadcastId}
+                  >
+                    {t`Test`}
+                  </Button>
+                </span>
+              </Tooltip>
             </Space.Compact>
           </Form.Item>
 

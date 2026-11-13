@@ -18,7 +18,7 @@ export interface AnnotationTableProps {
  * point of storing one: the instant is already fixed by annotated_at.
  */
 function formatMoment(annotation: Annotation): string {
-  return dayjs(annotation.annotated_at).tz(annotation.timezone).format('MMM D, YYYY HH:mm')
+  return dayjs(annotation.annotated_at).tz(annotation.timezone).format('lll')
 }
 
 function useDeletePrompt() {

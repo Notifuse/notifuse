@@ -31,6 +31,8 @@ export type LeafFormProps = {
   lists?: Array<{ id: string; name: string }>
   customFieldLabels?: Record<string, string>
   workspaceId?: string
+  // Without Templates read the template field shows the stored ID, locked. Defaults to true.
+  canReadTemplates?: boolean
   // Reports the condition as it currently stands in the form, before Confirm. The drawer previews
   // this draft so the contacts count follows the condition while it is still being written.
   onDraftChange?: (draftLeaf: TreeNode) => void
@@ -426,6 +428,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
                         placeholder={t`Any template`}
                         clearable={true}
                         size="small"
+                        canReadTemplates={props.canReadTemplates}
                       />
                     </Form.Item>
                     <span className="opacity-60" style={{ lineHeight: '32px' }}>

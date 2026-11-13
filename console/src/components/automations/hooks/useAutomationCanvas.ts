@@ -23,9 +23,15 @@ import {
 import { layoutNodes } from '../utils/layoutNodes'
 import { textEditCoalesceKey } from '../utils/historyCoalescing'
 import type { NodeType, ABTestNodeConfig, FilterNodeConfig, ListStatusBranchNodeConfig } from '../../../services/api/automation'
+import { colors } from '../../../theme/tokens'
 
 // Editor uses larger nodes
 const EDITOR_NODE_WIDTH = 300
+
+// A placeholder "+" sits under its node's measured bottom: a node grows with its stats footer.
+const DEFAULT_NODE_HEIGHT = 86
+const STUB_GAP = 34
+const stubOffset = (node: Node<AutomationNodeData>) => (node.measured?.height ?? DEFAULT_NODE_HEIGHT) + STUB_GAP
 
 // layoutNodes accepts a minimal structural edge whose sourceHandle is `string | undefined`,
 // while ReactFlow's Edge declares it `string | null`. Everything downstream reads it as
@@ -45,7 +51,7 @@ export interface UnconnectedOutput {
   handleId: string | null  // null for default single output
   position: { x: number; y: number }  // placeholder position in flow coords
   label?: string  // "Yes", "No", or variant name
-  color?: string  // "#22c55e" for Yes, "#ef4444" for No
+  color?: string  // a status colour of the theme tokens
 }
 
 export interface UseAutomationCanvasReturn {
@@ -89,11 +95,19 @@ export interface UseAutomationCanvasReturn {
 }
 
 export function useAutomationCanvas(): UseAutomationCanvasReturn {
-  const { canvasState, markAsChanged, initialSelectedNodeId, pushHistory, listId } = useAutomation()
+  const {
+    canvasState,
+    markAsChanged,
+    initialSelectedNodeId,
+    pushHistory,
+    listId,
+    readOnly,
+    selectedNodeId,
+    setSelectedNodeId
+  } = useAutomation()
   const { nodes, edges, setNodes, setEdges } = canvasState
 
-  // Selection state
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  // Selection lives in the context: the editor knows when a step's panel is open.
   const [lastAddedNodeId, setLastAddedNodeId] = useState<string | undefined>(undefined)
   const appliedInitialSelectionRef = useRef<string | null>(null)
 
@@ -117,7 +131,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         )
       }
     }
-  }, [initialSelectedNodeId, lastAddedNodeId, nodes, setNodes])
+  }, [initialSelectedNodeId, lastAddedNodeId, nodes, setNodes, setSelectedNodeId])
 
   // Get selected node object
   const selectedNode = useMemo(() => {
@@ -134,7 +148,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         selected: n.id === id
       }))
     )
-  }, [setNodes])
+  }, [setNodes, setSelectedNodeId])
 
   // Unselect node
   const unselectNode = useCallback(() => {
@@ -145,10 +159,12 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         selected: false
       }))
     )
-  }, [setNodes])
+  }, [setNodes, setSelectedNodeId])
 
   // Handle nodes change from ReactFlow
-  const onNodesChange = useCallback((changes: NodeChange<Node<AutomationNodeData>>[]) => {
+  const onNodesChange = useCallback((incoming: NodeChange<Node<AutomationNodeData>>[]) => {
+    // Read-only: ReactFlow still measures and selects, nothing else applies.
+    const changes = readOnly ? incoming.filter(c => c.type === 'select' || c.type === 'dimensions') : incoming
     // Handle node removal - clean up edges and selection
     const removeChanges = changes.filter(c => c.type === 'remove')
     if (removeChanges.length > 0) {
@@ -178,16 +194,18 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     if (selectChange && 'id' in selectChange) {
       setSelectedNodeId(selectChange.id)
     }
-  }, [setNodes, setEdges, selectedNodeId, markAsChanged, pushHistory])
+  }, [setNodes, setEdges, selectedNodeId, setSelectedNodeId, markAsChanged, pushHistory, readOnly])
 
   // Handle edges change from ReactFlow
-  const onEdgesChange = useCallback((changes: EdgeChange<Edge>[]) => {
+  const onEdgesChange = useCallback((incoming: EdgeChange<Edge>[]) => {
+    const changes = readOnly ? incoming.filter(c => c.type === 'select') : incoming
     setEdges(eds => applyEdgeChanges(changes, eds))
     markAsChanged()
-  }, [setEdges, markAsChanged])
+  }, [setEdges, markAsChanged, readOnly])
 
   // Handle new connection
   const onConnect = useCallback((params: Connection) => {
+    if (readOnly) return
     if (!params.source || !params.target) return
 
     const sourceNode = nodes.find(n => n.id === params.source)
@@ -259,7 +277,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     // Trigger auto-reorganization after manual connection
     setNeedsReorganize(true)
     markAsChanged()
-  }, [nodes, setNodes, setEdges, markAsChanged, pushHistory])
+  }, [nodes, setNodes, setEdges, markAsChanged, pushHistory, readOnly])
 
   // Get default config for node type
   const getDefaultConfig = useCallback((type: NodeType): Record<string, unknown> => {
@@ -297,6 +315,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
   // Add a new node
   const addNode = useCallback((type: NodeType, position: { x: number; y: number }) => {
+    if (readOnly) return
     pushHistory()
     const newNode: Node<AutomationNodeData> = {
       id: generateId(),
@@ -310,7 +329,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     }
     setNodes(nds => [...nds, newNode])
     markAsChanged()
-  }, [setNodes, markAsChanged, pushHistory, getDefaultConfig])
+  }, [setNodes, markAsChanged, pushHistory, getDefaultConfig, readOnly])
 
   // Add node with edge from source
   const addNodeWithEdge = useCallback((
@@ -319,6 +338,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     position: { x: number; y: number },
     sourceHandle?: string | null
   ) => {
+    if (readOnly) return
     const sourceNode = nodes.find(n => n.id === sourceNodeId)
     if (!sourceNode) return
 
@@ -414,10 +434,11 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     setTimeout(() => {
       selectNode(newNodeId)
     }, 50)
-  }, [nodes, setNodes, setEdges, markAsChanged, selectNode, pushHistory, getDefaultConfig])
+  }, [nodes, setNodes, setEdges, markAsChanged, selectNode, pushHistory, getDefaultConfig, readOnly])
 
   // Insert a node on an existing edge (between source and target)
   const insertNodeOnEdge = useCallback((edgeId: string, type: NodeType) => {
+    if (readOnly) return
     const edge = edges.find(e => e.id === edgeId)
     if (!edge) return
 
@@ -557,10 +578,11 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     setTimeout(() => {
       selectNode(newNodeId)
     }, 50)
-  }, [nodes, edges, setNodes, setEdges, markAsChanged, selectNode, pushHistory, getDefaultConfig])
+  }, [nodes, edges, setNodes, setEdges, markAsChanged, selectNode, pushHistory, getDefaultConfig, readOnly])
 
   // Delete an edge
   const deleteEdge = useCallback((edgeId: string) => {
+    if (readOnly) return
     const edge = edges.find(e => e.id === edgeId)
     if (!edge) return
 
@@ -621,10 +643,11 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     setEdges(eds => eds.filter(e => e.id !== edgeId))
     markAsChanged()
-  }, [nodes, edges, setNodes, setEdges, markAsChanged, pushHistory])
+  }, [nodes, edges, setNodes, setEdges, markAsChanged, pushHistory, readOnly])
 
   // Remove a node
   const removeNode = useCallback((id: string) => {
+    if (readOnly) return
     pushHistory()
     setNodes(nds => nds.filter(n => n.id !== id))
     setEdges(eds => eds.filter(e => e.source !== id && e.target !== id))
@@ -632,10 +655,11 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       setSelectedNodeId(null)
     }
     markAsChanged()
-  }, [setNodes, setEdges, selectedNodeId, markAsChanged, pushHistory])
+  }, [setNodes, setEdges, selectedNodeId, markAsChanged, pushHistory, readOnly, setSelectedNodeId])
 
   // Update node config
   const updateNodeConfig = useCallback((nodeId: string, config: Record<string, unknown>) => {
+    if (readOnly) return
     const previous = nodes.find(n => n.id === nodeId)?.data.config
     pushHistory(textEditCoalesceKey(nodeId, previous, config))
     setNodes(nds =>
@@ -646,7 +670,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       )
     )
     markAsChanged()
-  }, [nodes, setNodes, markAsChanged, pushHistory])
+  }, [nodes, setNodes, markAsChanged, pushHistory, readOnly])
 
   // Handle node drag stop - push history for position changes
   // Note: We ignore the event params, just need to know drag ended
@@ -686,18 +710,18 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           outputs.push({
             nodeId: node.id,
             handleId: 'continue',
-            position: { x: node.position.x + (nodeWidth * 0.3), y: node.position.y + 120 },
+            position: { x: node.position.x + (nodeWidth * 0.3), y: node.position.y + stubOffset(node) },
             label: 'Yes',
-            color: '#22c55e'  // green
+            color: colors.status.success
           })
         }
         if (!hasNoEdge) {
           outputs.push({
             nodeId: node.id,
             handleId: 'exit',
-            position: { x: node.position.x + (nodeWidth * 0.7), y: node.position.y + 120 },
+            position: { x: node.position.x + (nodeWidth * 0.7), y: node.position.y + stubOffset(node) },
             label: 'No',
-            color: '#ef4444'  // red
+            color: colors.status.danger
           })
         }
       } else if (node.data.nodeType === 'ab_test') {
@@ -717,7 +741,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
             outputs.push({
               nodeId: node.id,
               handleId: variant.id,
-              position: { x: node.position.x + (nodeWidth * handlePercent / 100), y: node.position.y + 120 },
+              position: { x: node.position.x + (nodeWidth * handlePercent / 100), y: node.position.y + stubOffset(node) },
               label: variant.name
             })
           }
@@ -733,24 +757,24 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           outputs.push({
             nodeId: node.id,
             handleId: 'not_in_list',
-            position: { x: node.position.x + (nodeWidth * 0.2), y: node.position.y + 120 },
-            color: '#9ca3af'  // gray
+            position: { x: node.position.x + (nodeWidth * 0.2), y: node.position.y + stubOffset(node) },
+            color: colors.gray[400]
           })
         }
         if (!hasActiveEdge) {
           outputs.push({
             nodeId: node.id,
             handleId: 'active',
-            position: { x: node.position.x + (nodeWidth * 0.5), y: node.position.y + 120 },
-            color: '#22c55e'  // green
+            position: { x: node.position.x + (nodeWidth * 0.5), y: node.position.y + stubOffset(node) },
+            color: colors.status.success
           })
         }
         if (!hasNonActiveEdge) {
           outputs.push({
             nodeId: node.id,
             handleId: 'non_active',
-            position: { x: node.position.x + (nodeWidth * 0.8), y: node.position.y + 120 },
-            color: '#f97316'  // orange
+            position: { x: node.position.x + (nodeWidth * 0.8), y: node.position.y + stubOffset(node) },
+            color: colors.status.warning
           })
         }
       } else {
@@ -760,7 +784,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           outputs.push({
             nodeId: node.id,
             handleId: null,
-            position: { x: node.position.x + 150, y: node.position.y + 120 }
+            position: { x: node.position.x + 150, y: node.position.y + stubOffset(node) }
           })
         }
       }
@@ -804,6 +828,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
   // Reorganize nodes in a clean hierarchical layout
   const reorganizeNodes = useCallback(() => {
+    if (readOnly) return
     if (!nodes.find(n => n.data.nodeType === 'trigger')) return
 
     pushHistory()
@@ -811,7 +836,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     const layoutedNodes = layoutNodes(nodes, toLayoutEdges(edges), { nodeWidth: EDITOR_NODE_WIDTH })
     setNodes(layoutedNodes)
     markAsChanged()
-  }, [nodes, edges, setNodes, markAsChanged, pushHistory])
+  }, [nodes, edges, setNodes, markAsChanged, pushHistory, readOnly])
 
   // Clear reorganize flag (called after reorganization is handled)
   const clearReorganizeFlag = useCallback(() => {

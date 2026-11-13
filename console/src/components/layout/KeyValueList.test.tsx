@@ -36,3 +36,34 @@ describe('KeyValueList', () => {
     expect(screen.getByText('Partial tracking')).toBeInTheDocument()
   })
 })
+
+describe('KeyValueList stacked', () => {
+  it('puts each label above its value, in one column by default', () => {
+    const { container } = render(
+      <KeyValueList layout="stacked" items={[{ label: 'Region', value: 'eu-west-3' }, { label: 'Port', value: null }]} />
+    )
+    const list = container.querySelector('dl') as HTMLElement
+    expect(list.style.gridTemplateColumns).toBe('')
+    expect(list).toHaveAttribute('data-columns', '1')
+    expect(screen.getByText('Region')).toBeInTheDocument()
+    expect(screen.getByText('eu-west-3')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it.each([2, 3] as const)('lays the entries out in %i columns', (columns) => {
+    const { container } = render(
+      <KeyValueList layout="stacked" columns={columns} items={[{ label: 'A', value: 'B' }]} />
+    )
+    expect(container.querySelector('dl')).toHaveAttribute('data-columns', String(columns))
+  })
+
+  it('keeps the inline layout by default', () => {
+    const { container } = render(<KeyValueList items={[{ label: 'A', value: 'B' }]} />)
+    expect(container.firstChild).not.toHaveAttribute('data-columns')
+  })
+
+  it('shows a hint under a stacked value', () => {
+    render(<KeyValueList layout="stacked" items={[{ label: 'Limit', value: '20', hint: 'per hour' }]} />)
+    expect(screen.getByText('per hour')).toBeInTheDocument()
+  })
+})

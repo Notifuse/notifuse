@@ -64,7 +64,7 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
   notice
 }) => {
   const { t } = useLingui()
-  const { lists, workspace } = useAutomation()
+  const { lists, workspace, canReadTemplates, readOnly } = useAutomation()
   const [open, setOpen] = useState(false)
 
   const configured = HasLeaf(value)
@@ -88,21 +88,25 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
 
   return (
     <>
-      {!configured && (
+      {/* Read-only (a live automation, or no write permission): the summary, nothing to change. */}
+      {!configured && readOnly && <div className="text-xs text-ink-3">{t`No conditions`}</div>}
+
+      {!configured && !readOnly && (
         <Button type="link" size="small" icon={<PlusOutlined />} onClick={() => setOpen(true)}>
           {addLabel}
         </Button>
       )}
 
       {configured && (
-        <div className="border border-gray-200 rounded-md p-2">
-          <div className="text-sm font-medium text-gray-700">{title}</div>
-          <div className="text-xs text-gray-500 mt-0.5">
+        <div className="rounded-md border border-line p-2">
+          <div className="text-sm font-medium text-ink-2">{title}</div>
+          <div className="mt-0.5 text-xs text-ink-3">
             {/* A count rather than a rendering of the tree: a partial paraphrase that quietly
                 dropped a nested branch would be worse than no paraphrase at all. */}
             <Plural value={leafCount} one="# condition" other="# conditions" />
           </div>
-          <div className="text-xs text-gray-400 mt-1">{description}</div>
+          <div className="mt-1 text-xs text-ink-3">{description}</div>
+          {!readOnly && (
           <Space size="small" className="mt-2">
             <Button type="link" size="small" icon={<EditOutlined />} onClick={() => setOpen(true)}>
               {t`Edit`}
@@ -125,6 +129,7 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
               </Button>
             </Popconfirm>
           </Space>
+          )}
         </div>
       )}
 
@@ -143,6 +148,7 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
           schemas={TableSchemas}
           lists={lists}
           workspaceId={workspace.id}
+          canReadTemplates={canReadTemplates}
         />
       </Drawer>
     </>

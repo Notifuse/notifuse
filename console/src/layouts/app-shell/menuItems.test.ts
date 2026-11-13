@@ -2,7 +2,15 @@ import { describe, it, expect, vi } from 'vitest'
 import { i18n } from '@lingui/core'
 import type { ReactNode } from 'react'
 import type { UserPermissions } from '../../services/api/types'
-import { activeGroup, buildMenuItems, firstPageOfGroup, selectedMenuKey, type MenuItem } from './menuItems'
+import {
+  activeGroup,
+  buildMenuItems,
+  firstAccessiblePage,
+  firstPageOfGroup,
+  selectedMenuKey,
+  type HasAccess,
+  type MenuItem
+} from './menuItems'
 
 vi.mock('./MenuLink', () => ({
   MenuLink: ({ children }: { children: ReactNode }) => children
@@ -19,7 +27,8 @@ describe('selectedMenuKey', () => {
     [`${ws}/web-analytics/annotations`, 'web-analytics-annotations'],
     [`${ws}/web-analytics/unknown`, 'web-analytics-dashboard'],
     [`${ws}/web-analytics`, 'web-analytics-dashboard'],
-    [`${ws}/lists`, 'lists'],
+    // The Lists page redirects to Contacts, whose rail holds the lists.
+    [`${ws}/lists`, 'contacts'],
     [`${ws}/templates`, 'templates'],
     [`${ws}/blog`, 'blog'],
     [`${ws}/contacts`, 'contacts'],
@@ -90,7 +99,6 @@ describe('buildMenuItems', () => {
       'analytics',
       'web-analytics',
       'contacts',
-      'lists',
       'broadcasts',
       'automations',
       'transactional-notifications',
@@ -112,19 +120,40 @@ describe('buildMenuItems', () => {
   it.each([
     ['message_history', ['analytics', 'logs']],
     ['web_analytics', ['web-analytics']],
-    ['contacts', ['contacts']],
-    ['lists', ['lists']],
     ['broadcasts', ['broadcasts']],
     ['automations', ['automations']],
     ['transactional', ['transactional-notifications']],
     ['workspace', ['settings']]
   ] as const)('drops the entries a member without %s cannot reach', (resource, gone) => {
-    const items = keys(buildMenuItems({ hasAccess: allowAllBut(resource), workspaceId: 'ws1', i18n }))
+    const items = keys(
+      buildMenuItems({ hasAccess: allowAllBut(resource), workspaceId: 'ws1', i18n })
+    )
     gone.forEach((key) => expect(items).not.toContain(key))
   })
 
+  it('shows Logs when the layout says a Logs tab can open, whatever the message history right', () => {
+    const entries = (
+      canOpenLogs: boolean,
+      hasAccess: (resource: keyof UserPermissions) => boolean
+    ) => keys(buildMenuItems({ hasAccess, workspaceId: 'ws1', i18n, canOpenLogs }))
+    expect(entries(true, allowAllBut('message_history'))).toContain('logs')
+    expect(entries(false, allowAll)).not.toContain('logs')
+  })
+
+  it('shows Contacts with contacts or lists, and drops it without both', () => {
+    const entries = (hasAccess: (resource: keyof UserPermissions) => boolean) =>
+      keys(buildMenuItems({ hasAccess, workspaceId: 'ws1', i18n }))
+    expect(entries(allowAllBut('contacts'))).toContain('contacts')
+    expect(entries(allowAllBut('lists'))).toContain('contacts')
+    expect(entries(allowAllBut('contacts', 'lists'))).not.toContain('contacts')
+  })
+
   it('keeps Blog and File Manager without templates, and drops Content without any child', () => {
-    const noTemplates = buildMenuItems({ hasAccess: allowAllBut('templates'), workspaceId: 'ws1', i18n })
+    const noTemplates = buildMenuItems({
+      hasAccess: allowAllBut('templates'),
+      workspaceId: 'ws1',
+      i18n
+    })
     expect(childKeys(noTemplates, 'content')).toEqual(['blog', 'file-manager'])
     const none = buildMenuItems({
       hasAccess: allowAllBut('templates', 'workspace'),
@@ -140,6 +169,53 @@ describe('buildMenuItems', () => {
       children?: { icon?: unknown }[]
     }[]
     items.forEach((item) => expect(item.icon).toBeTruthy())
-    items.flatMap((item) => item.children ?? []).forEach((child) => expect(child.icon).toBeUndefined())
+    items
+      .flatMap((item) => item.children ?? [])
+      .forEach((child) => expect(child.icon).toBeUndefined())
+  })
+})
+
+describe('firstAccessiblePage', () => {
+  const only =
+    (...resources: (keyof UserPermissions)[]): HasAccess =>
+    (resource) =>
+      resources.includes(resource)
+
+  it.each([
+    ['a full access', allowAll],
+    ['no web analytics', allowAllBut('web_analytics')],
+    ['lists and logs only', only('lists', 'message_history')],
+    ['templates and logs only', only('templates', 'message_history')],
+    ['logs only', only('message_history')]
+  ] as const)(
+    'opens the first entry after the dashboard the sidebar shows, with %s',
+    (_, hasAccess) => {
+      const shown = keys(buildMenuItems({ hasAccess, workspaceId: 'ws1', i18n })).filter(
+        (key) => key !== 'analytics'
+      )
+      expect(firstAccessiblePage(hasAccess, 'ws1').key).toBe(shown[0])
+    }
+  )
+
+  it('lands on the web analytics dashboard, else the first content page', () => {
+    expect(firstAccessiblePage(allowAll, 'ws1').target).toEqual({
+      to: '/console/workspace/$workspaceId/web-analytics/$tab',
+      params: { workspaceId: 'ws1', tab: 'dashboard' }
+    })
+    expect(firstAccessiblePage(only('templates'), 'ws1').target).toEqual({
+      to: '/console/workspace/$workspaceId/templates',
+      params: { workspaceId: 'ws1' }
+    })
+    expect(firstAccessiblePage(only('contacts'), 'ws1').target).toEqual({
+      to: '/console/workspace/$workspaceId/contacts',
+      params: { workspaceId: 'ws1' }
+    })
+  })
+
+  it('falls back to settings when nothing is reachable', () => {
+    expect(firstAccessiblePage(() => false, 'ws1')).toEqual({
+      key: 'settings',
+      target: { to: '/console/workspace/$workspaceId/settings', params: { workspaceId: 'ws1' } }
+    })
   })
 })
