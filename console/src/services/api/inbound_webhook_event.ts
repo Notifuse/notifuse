@@ -9,8 +9,7 @@ export type EmailEventType =
   | 'auto_reply'
   | 'auth_email'
   | 'before_user_created'
-export type WebhookSource =
-  'ses' | 'sparkpost' | 'mailgun' | 'mailjet' | 'postmark' | 'smtp' | 'supabase' | 'sendgrid'
+export type WebhookSource = 'ses' | 'sparkpost' | 'mailgun' | 'mailjet' | 'postmark' | 'smtp' | 'supabase' | 'sendgrid'
 
 export interface InboundWebhookEvent {
   id: string
@@ -75,7 +74,5 @@ export function listInboundWebhookEvents(
   if (params.timestamp_after) queryParams.append('timestamp_after', params.timestamp_after)
   if (params.timestamp_before) queryParams.append('timestamp_before', params.timestamp_before)
 
-  return api.get<InboundWebhookEventListResult>(
-    `/api/inboundWebhookEvents.list?${queryParams.toString()}`
-  )
+  return api.get<InboundWebhookEventListResult>(`/api/inboundWebhookEvents.list?${queryParams.toString()}`)
 }

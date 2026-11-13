@@ -20,11 +20,7 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigate,
   Link: ({ search, children }: { search?: Record<string, unknown>; children: ReactNode }) => {
     linkSearch(search)
-    return (
-      <a href={`/logs?${new URLSearchParams(search as Record<string, string>).toString()}`}>
-        {children}
-      </a>
-    )
+    return <a href={`/logs?${new URLSearchParams(search as Record<string, string>).toString()}`}>{children}</a>
   }
 }))
 
@@ -51,9 +47,7 @@ const lists = (complained: MessageHistory[], bounced: MessageHistory[], failed: 
 
 const renderCard = () =>
   render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <I18nProvider i18n={i18n}>
         <RecentFailures workspaceId="ws1" timezone="Europe/Paris" />
       </I18nProvider>

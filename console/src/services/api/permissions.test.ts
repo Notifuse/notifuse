@@ -20,8 +20,8 @@ import type { PermissionType } from './permissions'
 // offers. The unenforced verbs are always granted and gate nothing, so counting them would only
 // shift both sides of the badge.
 describe('ENFORCED_PERMISSION_VERBS', () => {
-  const allPairs = [...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].flatMap(
-    (resource) => (['read', 'write'] as PermissionType[]).map((verb) => [resource, verb] as const)
+  const allPairs = [...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].flatMap((resource) =>
+    (['read', 'write'] as PermissionType[]).map((verb) => [resource, verb] as const)
   )
 
   // Pinned against literals rather than rebuilt from isPermissionEnforced, so a change to the
@@ -30,8 +30,7 @@ describe('ENFORCED_PERMISSION_VERBS', () => {
     expect(ALL_PERMISSION_RESOURCES).toHaveLength(14)
     expect(OPT_IN_PERMISSION_RESOURCES).toEqual(['audit_logs'])
     const excluded = allPairs.filter(
-      ([resource, verb]) =>
-        !ENFORCED_PERMISSION_VERBS.some(([r, v]) => r === resource && v === verb)
+      ([resource, verb]) => !ENFORCED_PERMISSION_VERBS.some(([r, v]) => r === resource && v === verb)
     )
     expect(excluded.map(([resource, verb]) => `${resource}.${verb}`).sort()).toEqual([
       'audit_logs.write',
@@ -87,9 +86,9 @@ describe('grantsFullPermissions', () => {
       audit_logs: { read: true, write: true }
     }
     expect(grantsFullPermissions(permissions)).toBe(true)
-    expect(
-      grantsFullPermissions({ ...permissions, audit_logs: { read: false, write: false } })
-    ).toBe(true)
+    expect(grantsFullPermissions({ ...permissions, audit_logs: { read: false, write: false } })).toBe(
+      true
+    )
   })
 
   it('is false when one verb is missing', () => {
@@ -147,27 +146,13 @@ describe('opt-in permission resources', () => {
 // plays no part; tests/integration/transactional_handler_test.go pins both against the server.
 describe('canSendTestEmail', () => {
   it('needs templates read and transactional write', () => {
-    expect(
-      canSendTestEmail({
-        templates: { read: true, write: false },
-        transactional: { read: false, write: true }
-      })
-    ).toBe(true)
+    expect(canSendTestEmail({ templates: { read: true, write: false }, transactional: { read: false, write: true } })).toBe(true)
   })
 
   it.each([
-    [
-      'without templates read',
-      { templates: { read: false, write: true }, transactional: { read: true, write: true } }
-    ],
-    [
-      'without transactional write',
-      { templates: { read: true, write: true }, transactional: { read: true, write: false } }
-    ],
-    [
-      'with the contacts write the buttons used to ask for',
-      { templates: { read: true, write: false }, contacts: { read: true, write: true } }
-    ],
+    ['without templates read', { templates: { read: false, write: true }, transactional: { read: true, write: true } }],
+    ['without transactional write', { templates: { read: true, write: true }, transactional: { read: true, write: false } }],
+    ['with the contacts write the buttons used to ask for', { templates: { read: true, write: false }, contacts: { read: true, write: true } }],
     ['with no permissions', {}]
   ])('is false %s', (_label, permissions) => {
     expect(canSendTestEmail(permissions)).toBe(false)
@@ -184,23 +169,12 @@ describe('canSendTestEmail', () => {
 // pins these requirements against the server.
 describe('canCreateTransactionalNotification', () => {
   it('needs transactional write and templates read', () => {
-    expect(
-      canCreateTransactionalNotification({
-        templates: { read: true, write: false },
-        transactional: { read: false, write: true }
-      })
-    ).toBe(true)
+    expect(canCreateTransactionalNotification({ templates: { read: true, write: false }, transactional: { read: false, write: true } })).toBe(true)
   })
 
   it.each([
-    [
-      'without templates read',
-      { templates: { read: false, write: true }, transactional: { read: true, write: true } }
-    ],
-    [
-      'without transactional write',
-      { templates: { read: true, write: true }, transactional: { read: true, write: false } }
-    ]
+    ['without templates read', { templates: { read: false, write: true }, transactional: { read: true, write: true } }],
+    ['without transactional write', { templates: { read: true, write: true }, transactional: { read: true, write: false } }]
   ])('is false %s', (_label, permissions) => {
     expect(canCreateTransactionalNotification(permissions)).toBe(false)
   })
@@ -211,18 +185,9 @@ describe('canCreateTransactionalNotification', () => {
 })
 
 describe('canEditTransactionalNotification', () => {
-  const both = {
-    templates: { read: true, write: false },
-    transactional: { read: false, write: true }
-  }
-  const writeOnly = {
-    templates: { read: false, write: false },
-    transactional: { read: true, write: true }
-  }
-  const readTemplatesOnly = {
-    templates: { read: true, write: true },
-    transactional: { read: true, write: false }
-  }
+  const both = { templates: { read: true, write: false }, transactional: { read: false, write: true } }
+  const writeOnly = { templates: { read: false, write: false }, transactional: { read: true, write: true } }
+  const readTemplatesOnly = { templates: { read: true, write: true }, transactional: { read: true, write: false } }
 
   it('needs transactional write and templates read for a notification no integration manages', () => {
     expect(canEditTransactionalNotification(both, {})).toBe(true)
@@ -240,16 +205,12 @@ describe('canEditTransactionalNotification', () => {
   })
 
   it('is false without transactional write, even for a managed notification', () => {
-    expect(
-      canEditTransactionalNotification(readTemplatesOnly, { integration_id: 'supabase' })
-    ).toBe(false)
+    expect(canEditTransactionalNotification(readTemplatesOnly, { integration_id: 'supabase' })).toBe(false)
     expect(canEditTransactionalNotification(readTemplatesOnly, {})).toBe(false)
   })
 
   it.each([null, undefined])('is false for %s', (permissions) => {
-    expect(canEditTransactionalNotification(permissions, { integration_id: 'supabase' })).toBe(
-      false
-    )
+    expect(canEditTransactionalNotification(permissions, { integration_id: 'supabase' })).toBe(false)
   })
 })
 
@@ -288,8 +249,7 @@ describe('broadcasts permission descriptor', () => {
 
 describe('automations catalogue', () => {
   it('lists the step results under read', () => {
-    const endpoints =
-      PERMISSION_DESCRIPTORS.automations.read?.endpoints.map((e) => e.endpoint) ?? []
+    const endpoints = PERMISSION_DESCRIPTORS.automations.read?.endpoints.map((e) => e.endpoint) ?? []
     expect(endpoints).toContain('/api/automations.nodeStats')
   })
 })

@@ -128,9 +128,7 @@ export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
             key: 'at',
             width: 64,
             render: (_, row) => (
-              <span className="text-xs text-ink-3 tabular-nums">
-                {formatEventTime(row.at, timezone, i18n.locale)}
-              </span>
+              <span className="text-xs text-ink-3 tabular-nums">{formatEventTime(row.at, timezone, i18n.locale)}</span>
             )
           },
           {

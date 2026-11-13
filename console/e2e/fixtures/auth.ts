@@ -1,5 +1,9 @@
 import { test as base, Page, Route } from '@playwright/test'
-import { RequestCaptureStore, parseRequestBody, getPatternFromUrl } from './request-capture'
+import {
+  RequestCaptureStore,
+  parseRequestBody,
+  getPatternFromUrl
+} from './request-capture'
 import {
   mockUserMeResponse,
   mockWorkspace,
@@ -138,11 +142,7 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       const contact = mockContactsResponse.contacts.find((c) => c.email === email)
       return contact
         ? route.fulfill(jsonResponse({ contact }))
-        : route.fulfill({
-            status: 404,
-            contentType: 'application/json',
-            body: JSON.stringify({ error: 'contact not found' })
-          })
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'contact not found' }) })
     }
     if (url.includes('/api/contact.get') || url.includes('/api/contacts.get')) {
       return route.fulfill(jsonResponse({ contact: mockContactsResponse.contacts[0] }))
@@ -296,11 +296,7 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       const broadcast = mockBroadcastsResponse.broadcasts.find((b) => b.id === id)
       return broadcast
         ? route.fulfill(jsonResponse({ broadcast }))
-        : route.fulfill({
-            status: 404,
-            contentType: 'application/json',
-            body: JSON.stringify({ error: 'Broadcast not found' })
-          })
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Broadcast not found' }) })
     }
     if (url.includes('/api/broadcast.create') || url.includes('/api/broadcasts.create')) {
       return route.fulfill(jsonResponse(mockBroadcastCreateResponse))
@@ -354,39 +350,25 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     // AUTOMATIONS
     // ============================================
     if (url.includes('/api/automation.list') || url.includes('/api/automations.list')) {
-      return route.fulfill(
-        jsonResponse(
-          withData ? mockAutomationsResponse : { automations: [], total: 0, journey_counts: {} }
-        )
-      )
+      return route.fulfill(jsonResponse(withData ? mockAutomationsResponse : { automations: [], total: 0, journey_counts: {} }))
     }
     if (url.includes('/api/automations.nodeStats')) {
       return route.fulfill(jsonResponse(mockAutomationNodeStats))
     }
     if (url.includes('/api/automation.get') || url.includes('/api/automations.get')) {
       const id = new URL(url).searchParams.get('automation_id')
-      const automation = withData
-        ? mockAutomationsResponse.automations.find((a) => a.id === id)
-        : undefined
+      const automation = withData ? mockAutomationsResponse.automations.find((a) => a.id === id) : undefined
       return automation
         ? route.fulfill(jsonResponse({ automation }))
-        : route.fulfill({
-            status: 404,
-            contentType: 'application/json',
-            body: JSON.stringify({ error: 'Automation not found' })
-          })
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Automation not found' }) })
     }
     if (url.includes('/api/automation.create') || url.includes('/api/automations.create')) {
       const body = route.request().postDataJSON() as { automation?: Record<string, unknown> } | null
-      return route.fulfill(
-        jsonResponse({ automation: body?.automation ?? { id: 'new-automation' } })
-      )
+      return route.fulfill(jsonResponse({ automation: body?.automation ?? { id: 'new-automation' } }))
     }
     if (url.includes('/api/automation.update') || url.includes('/api/automations.update')) {
       const body = route.request().postDataJSON() as { automation?: Record<string, unknown> } | null
-      return route.fulfill(
-        jsonResponse({ automation: body?.automation ?? { id: 'updated-automation' } })
-      )
+      return route.fulfill(jsonResponse({ automation: body?.automation ?? { id: 'updated-automation' } }))
     }
     if (url.includes('/api/automation.delete') || url.includes('/api/automations.delete')) {
       return route.fulfill(jsonResponse(mockSuccessResponse))
@@ -396,16 +378,13 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     // TRANSACTIONAL NOTIFICATIONS
     // ============================================
     if (url.includes('/api/transactional.list')) {
-      return route.fulfill(
-        jsonResponse(withData ? mockTransactionalResponse : mockEmptyTransactional)
-      )
+      return route.fulfill(jsonResponse(withData ? mockTransactionalResponse : mockEmptyTransactional))
     }
     if (url.includes('/api/transactional.get')) {
       // The notification of the requested id, so a sheet opened by URL shows that one.
       const id = new URL(url).searchParams.get('id')
       const notification =
-        mockTransactionalResponse.notifications.find((item) => item.id === id) ??
-        mockTransactionalResponse.notifications[0]
+        mockTransactionalResponse.notifications.find((item) => item.id === id) ?? mockTransactionalResponse.notifications[0]
       return route.fulfill(jsonResponse({ notification }))
     }
     if (url.includes('/api/transactional.create')) {
@@ -427,57 +406,29 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     if (url.includes('/api/blogPosts.counts')) {
       return route.fulfill(jsonResponse(mockBlogPostCounts))
     }
-    if (
-      url.includes('/api/blogPosts.list') ||
-      url.includes('/api/blog.post.list') ||
-      url.includes('/api/blog_post.list')
-    ) {
+    if (url.includes('/api/blogPosts.list') || url.includes('/api/blog.post.list') || url.includes('/api/blog_post.list')) {
       return route.fulfill(jsonResponse(mockBlogPostsResponse))
     }
-    if (
-      url.includes('/api/blogPosts.get') ||
-      url.includes('/api/blog.post.get') ||
-      url.includes('/api/blog_post.get')
-    ) {
+    if (url.includes('/api/blogPosts.get') || url.includes('/api/blog.post.get') || url.includes('/api/blog_post.get')) {
       return route.fulfill(jsonResponse({ post: mockBlogPostsResponse.posts[0] }))
     }
-    if (
-      url.includes('/api/blogPosts.create') ||
-      url.includes('/api/blog.post.create') ||
-      url.includes('/api/blog_post.create')
-    ) {
+    if (url.includes('/api/blogPosts.create') || url.includes('/api/blog.post.create') || url.includes('/api/blog_post.create')) {
       return route.fulfill(jsonResponse(mockBlogPostCreateResponse))
     }
-    if (
-      url.includes('/api/blogPosts.update') ||
-      url.includes('/api/blog.post.update') ||
-      url.includes('/api/blog_post.update')
-    ) {
+    if (url.includes('/api/blogPosts.update') || url.includes('/api/blog.post.update') || url.includes('/api/blog_post.update')) {
       return route.fulfill(jsonResponse(mockBlogPostCreateResponse))
     }
-    if (
-      url.includes('/api/blogPosts.delete') ||
-      url.includes('/api/blog.post.delete') ||
-      url.includes('/api/blog_post.delete')
-    ) {
+    if (url.includes('/api/blogPosts.delete') || url.includes('/api/blog.post.delete') || url.includes('/api/blog_post.delete')) {
       return route.fulfill(jsonResponse(mockSuccessResponse))
     }
-    if (
-      url.includes('/api/blogPosts.publish') ||
-      url.includes('/api/blog.post.publish') ||
-      url.includes('/api/blog_post.publish')
-    ) {
+    if (url.includes('/api/blogPosts.publish') || url.includes('/api/blog.post.publish') || url.includes('/api/blog_post.publish')) {
       return route.fulfill(
         jsonResponse({
           post: { ...mockBlogPostsResponse.posts[0], status: 'published' }
         })
       )
     }
-    if (
-      url.includes('/api/blogPosts.unpublish') ||
-      url.includes('/api/blog.post.unpublish') ||
-      url.includes('/api/blog_post.unpublish')
-    ) {
+    if (url.includes('/api/blogPosts.unpublish') || url.includes('/api/blog.post.unpublish') || url.includes('/api/blog_post.unpublish')) {
       return route.fulfill(
         jsonResponse({
           post: { ...mockBlogPostsResponse.posts[0], status: 'draft' }
@@ -485,69 +436,32 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       )
     }
 
-    if (
-      url.includes('/api/blogCategories.list') ||
-      url.includes('/api/blog.category.list') ||
-      url.includes('/api/blog_category.list')
-    ) {
+    if (url.includes('/api/blogCategories.list') || url.includes('/api/blog.category.list') || url.includes('/api/blog_category.list')) {
       return route.fulfill(jsonResponse(mockBlogCategoriesResponse))
     }
-    if (
-      url.includes('/api/blogCategories.get') ||
-      url.includes('/api/blog.category.get') ||
-      url.includes('/api/blog_category.get')
-    ) {
+    if (url.includes('/api/blogCategories.get') || url.includes('/api/blog.category.get') || url.includes('/api/blog_category.get')) {
       return route.fulfill(jsonResponse({ category: mockBlogCategoriesResponse.categories[0] }))
     }
-    if (
-      url.includes('/api/blogCategories.create') ||
-      url.includes('/api/blog.category.create') ||
-      url.includes('/api/blog_category.create')
-    ) {
+    if (url.includes('/api/blogCategories.create') || url.includes('/api/blog.category.create') || url.includes('/api/blog_category.create')) {
       return route.fulfill(jsonResponse(mockBlogCategoryCreateResponse))
     }
-    if (
-      url.includes('/api/blogCategories.update') ||
-      url.includes('/api/blog.category.update') ||
-      url.includes('/api/blog_category.update')
-    ) {
+    if (url.includes('/api/blogCategories.update') || url.includes('/api/blog.category.update') || url.includes('/api/blog_category.update')) {
       return route.fulfill(jsonResponse(mockBlogCategoryCreateResponse))
     }
-    if (
-      url.includes('/api/blogCategories.delete') ||
-      url.includes('/api/blog.category.delete') ||
-      url.includes('/api/blog_category.delete')
-    ) {
+    if (url.includes('/api/blogCategories.delete') || url.includes('/api/blog.category.delete') || url.includes('/api/blog_category.delete')) {
       return route.fulfill(jsonResponse(mockSuccessResponse))
     }
 
-    if (
-      url.includes('/api/blogThemes.list') ||
-      url.includes('/api/blog.theme.list') ||
-      url.includes('/api/blog_theme.list')
-    ) {
+    if (url.includes('/api/blogThemes.list') || url.includes('/api/blog.theme.list') || url.includes('/api/blog_theme.list')) {
       return route.fulfill(jsonResponse(mockBlogThemesResponse))
     }
-    if (
-      url.includes('/api/blogThemes.get') ||
-      url.includes('/api/blogThemes.getPublished') ||
-      url.includes('/api/blog.theme.get') ||
-      url.includes('/api/blog_theme.get')
-    ) {
+    if (url.includes('/api/blogThemes.get') || url.includes('/api/blogThemes.getPublished') || url.includes('/api/blog.theme.get') || url.includes('/api/blog_theme.get')) {
       return route.fulfill(jsonResponse({ theme: mockBlogThemesResponse.themes[0] }))
     }
-    if (
-      url.includes('/api/blogThemes.update') ||
-      url.includes('/api/blog.theme.update') ||
-      url.includes('/api/blog_theme.update')
-    ) {
+    if (url.includes('/api/blogThemes.update') || url.includes('/api/blog.theme.update') || url.includes('/api/blog_theme.update')) {
       return route.fulfill(jsonResponse({ theme: mockBlogThemesResponse.themes[0] }))
     }
-    if (
-      url.includes('/api/blogThemes.publish') ||
-      url.includes('/api/blog.theme.publish') ||
-      url.includes('/api/blog_theme.publish')
-    ) {
+    if (url.includes('/api/blogThemes.publish') || url.includes('/api/blog.theme.publish') || url.includes('/api/blog_theme.publish')) {
       return route.fulfill(jsonResponse(mockSuccessResponse))
     }
 
