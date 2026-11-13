@@ -5,6 +5,7 @@ import {
   formatXAxisLabel,
   formatDuration,
   formatNumber,
+  formatCurrency,
   formatRangeSeriesName,
   toNumber,
   changePercent
@@ -78,3 +79,27 @@ describe('formatters', () => {
     expect(formatDuration(0)).toBe('0s')
   })
 })
+
+describe('formatCurrency in the console language', () => {
+  // Intl separates French thousands with a narrow no-break space; compared as plain spaces.
+  const plain = (text: string) => text.replace(/[\u202f\u00a0]/g, ' ')
+
+  it('writes amounts with the separators of the active language', () => {
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    try {
+      expect(plain(formatCurrency(1234.5))).toBe('1 235')
+      expect(plain(formatCurrency(12.25))).toBe('12,25')
+      expect(plain(formatCurrency(980, 'EUR'))).toBe('980 €')
+      expect(plain(formatCurrency(12_500, 'EUR'))).toBe('12,5K €')
+      // Past a billion the millions keep their grouping: "2 346M €", not "2M 346 €".
+      expect(plain(formatCurrency(2_345_678_000, 'EUR'))).toBe('2 346M €')
+    } finally {
+      i18n.activate('en')
+    }
+    expect(formatCurrency(1234.5)).toBe('1,235')
+    expect(formatCurrency(12_500, 'USD')).toBe('$12.5K')
+    expect(formatCurrency(2_345_678_000, 'USD')).toBe('$2,346M')
+  })
+})
+

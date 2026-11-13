@@ -1,5 +1,6 @@
 import { Progress, Typography, Space } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { useNumberFormat } from '../layout'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-regular-svg-icons'
 
@@ -45,6 +46,7 @@ export function SendingProgress({
   remainingOverride
 }: SendingProgressProps) {
   const { t } = useLingui()
+  const { int } = useNumberFormat()
   // When the queue tells us what is left, everything else follows from it. Derived
   // from message history instead, `processed` counts a refused message as both sent
   // and failed, so the bar reached 100% and read "68 of 68" beside a badge saying 23
@@ -66,7 +68,7 @@ export function SendingProgress({
           <span className="font-medium text-gray-700">{t`Sending emails...`}</span>
         </Space>
         <Text type="secondary">
-          {t`${processed.toLocaleString()} of ${enqueuedCount.toLocaleString()}`}
+          {t`${int(processed)} of ${int(enqueuedCount)}`}
           {eta && <span className="ml-2">(~{eta})</span>}
         </Text>
       </div>

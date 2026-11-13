@@ -7,6 +7,7 @@ import { Workspace, List, Segment } from '../../services/api/types'
 import { contactsApi, Contact, ListContactsRequest } from '../../services/api/contacts'
 import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
 import { useTrackingConsentOptions } from './TrackingConsent'
+import { useNumberFormat } from '../layout'
 
 interface ExportContactsModalProps {
   visible: boolean
@@ -28,6 +29,7 @@ export function ExportContactsModal({
   listsData
 }: ExportContactsModalProps) {
   const { t } = useLingui()
+  const { int } = useNumberFormat()
   const [isExporting, setIsExporting] = useState(false)
   const [fetchedCount, setFetchedCount] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
@@ -388,7 +390,7 @@ export function ExportContactsModal({
           <div className="my-4">
             <Space align="center">
               <Spin size="small" />
-              <span>{t`Fetched ${fetchedCount.toLocaleString()} contacts...`}</span>
+              <span>{t`Fetched ${int(fetchedCount)} contacts...`}</span>
             </Space>
             {elapsedTime > 0 && (
               <div className="text-gray-500 text-sm mt-2">

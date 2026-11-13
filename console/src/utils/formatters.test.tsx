@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
+import { i18n } from '@lingui/core'
 import dayjs from '../lib/dayjs'
 import { formatValue } from './formatters'
 
@@ -22,3 +23,37 @@ describe('formatValue dates', () => {
     expect(await screen.findByText(dayjs('2026-08-12T10:00:00Z').format('LLLL'))).toBeInTheDocument()
   })
 })
+
+describe('formatValue numbers', () => {
+  afterEach(() => {
+    i18n.activate('en')
+  })
+
+  it('writes numbers with the separators of the console language', () => {
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    // French groups thousands with a narrow no-break space, which \s matches.
+    render(
+      <>
+        <span>{formatValue(12345)}</span>
+        <span>{formatValue(1234.567)}</span>
+      </>
+    )
+
+    expect(screen.getByText(/^12\s345$/)).toBeInTheDocument()
+    expect(screen.getByText(/^1\s234,57$/)).toBeInTheDocument()
+  })
+
+  it('keeps the English separators in English', () => {
+    render(
+      <>
+        <span>{formatValue(12345)}</span>
+        <span>{formatValue(1234.5)}</span>
+      </>
+    )
+
+    expect(screen.getByText('12,345')).toBeInTheDocument()
+    expect(screen.getByText('1,234.5')).toBeInTheDocument()
+  })
+})
+

@@ -1,3 +1,4 @@
+import { i18n } from '@lingui/core'
 import dayjs from '../../../lib/dayjs'
 import { DayjsRange } from './dates'
 import { Granularity, ValueFormat } from './types'
@@ -46,11 +47,13 @@ export function formatDuration(seconds: number): string {
  * decimal rather than the abbreviated form used for counts.
  */
 export function formatCurrency(value: number, currency?: string): string {
+  // The console's language, not the browser's: "1 235" in French, "1,235" in English.
+  const locale = i18n.locale || 'en'
   if (!currency) {
-    return value.toLocaleString(undefined, { maximumFractionDigits: value >= 1000 ? 0 : 2 })
+    return value.toLocaleString(locale, { maximumFractionDigits: value >= 1000 ? 0 : 2 })
   }
   const format = (amount: number) =>
-    new Intl.NumberFormat(undefined, {
+    new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       currencyDisplay: 'narrowSymbol',
@@ -59,8 +62,11 @@ export function formatCurrency(value: number, currency?: string): string {
     }).format(amount)
 
   const absolute = Math.abs(value)
-  if (absolute >= 1_000_000) return format(value / 1_000_000).replace(/[\d.,]+/, (n) => `${n}M`)
-  if (absolute >= 10_000) return format(value / 1_000).replace(/[\d.,]+/, (n) => `${n}K`)
+  // The suffix goes after the whole number, group separators included: French groups with a
+  // narrow no-break space, so "2 346 €" becomes "2 346M €", not "2M 346 €".
+  const amount = /\d(?:[\d.,\u202f\u00a0]*\d)?/
+  if (absolute >= 1_000_000) return format(value / 1_000_000).replace(amount, (n) => `${n}M`)
+  if (absolute >= 10_000) return format(value / 1_000).replace(amount, (n) => `${n}K`)
   return format(value)
 }
 

@@ -98,7 +98,7 @@ export function ContactTimeline({
   hasMore = false,
   isLoadingMore = false
 }: ContactTimelineProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
 
   // A tooltip's full date, in the console's language, on the clock of the timezone it names.
   const timeInZone = (at: string, zone: string = timezone): string => {
@@ -568,7 +568,7 @@ export function ContactTimeline({
                       <Tag color={value ? 'green' : 'red'}>{value ? 'true' : 'false'}</Tag>
                     )
                   } else if (typeof value === 'number') {
-                    displayValue = <Text strong>{value.toLocaleString()}</Text>
+                    displayValue = <Text strong>{value.toLocaleString(i18n.locale)}</Text>
                   } else if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T/)) {
                     // Likely a date string
                     displayValue = (
@@ -840,7 +840,7 @@ export function ContactTimeline({
               {goalValue !== undefined && goalValue !== null && (
                 <Tag color="cyan" variant="filled">
                   {goalType === 'purchase' || goalType === 'subscription' ? '$' : ''}
-                  {goalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {goalValue.toLocaleString(i18n.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Tag>
               )}
               {customEventData?.source && getSourceBadge(customEventData.source)}

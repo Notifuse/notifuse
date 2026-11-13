@@ -1,6 +1,5 @@
 import React from 'react'
 import { Tag, Tooltip } from 'antd'
-import numbro from 'numbro'
 import { i18n } from '@lingui/core'
 import { msg } from '@lingui/core/macro'
 import dayjs from '../lib/dayjs'
@@ -19,21 +18,11 @@ export const formatValue = (value: unknown, timezone?: string): React.ReactNode 
     return <Tag color={value ? 'green' : 'red'}>{value ? 'true' : 'false'}</Tag>
   }
 
-  // Format number values with numbro
+  // Numbers with the separators of the console's language: "12 345" in French, "12,345" in
+  // English. A positive decimal keeps up to two digits ("1 234,57"); anything else is rounded.
   if (typeof value === 'number') {
-    // For currency-like fields (decimals)
-    if (String(value).includes('.') && value > 0) {
-      return numbro(value).format({
-        thousandSeparated: true,
-        mantissa: 2,
-        trimMantissa: true
-      })
-    }
-    // For integer values
-    return numbro(value).format({
-      thousandSeparated: true,
-      mantissa: 0
-    })
+    const decimals = String(value).includes('.') && value > 0 ? 2 : 0
+    return new Intl.NumberFormat(i18n.locale || 'en', { maximumFractionDigits: decimals }).format(value)
   }
 
   // Handle date strings (ISO 8601 format)

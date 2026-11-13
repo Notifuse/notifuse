@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import dayjs from '../../lib/dayjs'
@@ -592,3 +592,42 @@ describe('ContactTimeline entry time tooltip', () => {
     expect(await screen.findByText('Wednesday, August 12, 2026 7:00 PM in Asia/Tokyo')).toBeInTheDocument()
   })
 })
+
+describe('ContactTimeline numbers in the console language', () => {
+  afterEach(() => {
+    i18n.activate('en')
+  })
+
+  it('writes a goal value and a changed number with the separators of the console language', () => {
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    const purchase: ContactTimelineEntry = {
+      id: '44444444-4444-4444-4444-444444444444',
+      email: 'reader@example.com',
+      operation: 'insert',
+      entity_type: 'custom_event',
+      kind: 'custom_event.order',
+      entity_id: 'order-1',
+      changes: { goal_type: webChange('purchase'), goal_value: webChange(1234.5) },
+      created_at: '2026-08-12T10:03:00Z',
+      db_created_at: '2026-08-12T10:03:00Z'
+    }
+    const scored: ContactTimelineEntry = {
+      id: '55555555-5555-5555-5555-555555555555',
+      email: 'reader@example.com',
+      operation: 'update',
+      entity_type: 'contact',
+      kind: 'contact.update',
+      entity_id: 'reader@example.com',
+      changes: { score: 12345.5 } as unknown as ContactTimelineEntry['changes'],
+      created_at: '2026-08-12T10:04:00Z',
+      db_created_at: '2026-08-12T10:04:00Z'
+    }
+    render(<ContactTimeline entries={[purchase, scored]} />)
+
+    // French groups thousands with a narrow no-break space, which \s matches.
+    expect(screen.getByText(/^\$1\s234,50$/)).toBeInTheDocument()
+    expect(screen.getByText(/^12\s345,5$/)).toBeInTheDocument()
+  })
+})
+

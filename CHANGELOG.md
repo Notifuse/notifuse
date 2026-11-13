@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The Logs page shows the tabs you may open, and the Logs menu entry appears with any of them, the audit log included. The audit log reads as sentences, such as "Invited ann@example.com", filtered by period, actor, resource, action or outcome, with its filters kept in the link. An outgoing webhook delivery opens in a side panel with its response and payload.
 
-- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, the web analytics charts, ranges and annotations, the licence and invitation expiry dates, the day an integration was connected, and the dates in the prompts to restore a blog draft or resume a contact import. Weeks start on Monday in French, Spanish, German, Catalan and Italian.
+- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, the web analytics charts, ranges and annotations, the licence and invitation expiry dates, the day an integration was connected, and the dates in the prompts to restore a blog draft or resume a contact import. Counts and amounts use its separators too ("12 345" in French): contact imports and exports, sending progress, analytics amounts, rate limits and the values in a contact's activity and fields. Weeks start on Monday in French, Spanish, German, Catalan and Italian.
 
 - **Fix**: In a contact's activity and fields and in the message history, the full date shown on hover is the time in the timezone it names (the contact's or the workspace's), in the console's language, not in your browser's.
 
