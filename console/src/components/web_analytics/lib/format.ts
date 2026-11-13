@@ -89,15 +89,18 @@ export function formatCurrency(value: number, currency?: string): string {
   if (!currency) {
     return value.toLocaleString(language, { maximumFractionDigits: absolute >= 1000 ? 0 : 2 })
   }
-  // From ten thousand, each language's own units ("$12.5K", "12,5 k €", "2,35 Mio. €"). Intl
-  // picks the unit after rounding, so 999,999 reads "$1M", never "$1,000K".
+  // From ten thousand, each language's own units ("$12.5K", "12,5 k €", "2,35 Mio. €"). Rounded
+  // before the cutoff, so 9,999.5 reads "$10K" like 10,000; above it Intl picks the unit after
+  // rounding, so 999,999 reads "$1M", never "$1,000K". Grouping forced, as in formatNumber:
+  // Spanish writes thousands of millions ("2.345,68 M €") and Japanese 万 ("￥1,234.57万").
+  const compact = Math.round(absolute) >= 10_000
   return new Intl.NumberFormat(language, {
     style: 'currency',
     currency,
     currencyDisplay: 'narrowSymbol',
     minimumFractionDigits: 0,
-    maximumFractionDigits: absolute >= 1000 && absolute < 10_000 ? 0 : 2,
-    ...(absolute >= 10_000 ? { notation: 'compact' as const } : {})
+    maximumFractionDigits: !compact && absolute >= 1000 ? 0 : 2,
+    ...(compact ? { notation: 'compact' as const, useGrouping: true } : {})
   }).format(value)
 }
 

@@ -168,8 +168,11 @@ describe('formatCurrency in the console language', () => {
     // The unit is picked after rounding: never "$1,000K" or "$1,000M".
     expect(formatCurrency(999_999, 'USD')).toBe('$1M')
     expect(formatCurrency(999_999_999, 'USD')).toBe('$1B')
-    // Below ten thousand the amount is written out.
+    // Rounded before the cutoff, so 9,999.5 reads like 10,000.
+    expect(formatCurrency(9_999.5, 'USD')).toBe('$10K')
+    // Below ten thousand the amount is written out, with the same decimals either side of zero.
     expect(formatCurrency(9_999, 'USD')).toBe('$9,999')
+    expect(formatCurrency(-1234.567, 'USD')).toBe('-$1,235')
     expect(formatCurrency(980, 'USD')).toBe('$980')
     expect(formatCurrency(12.25, 'USD')).toBe('$12.25')
 
@@ -188,6 +191,15 @@ describe('formatCurrency in the console language', () => {
       // German has no unit for thousands: the amount is written out.
       expect(plain(formatCurrency(12_345, 'EUR'))).toBe('12.345 €')
       expect(plain(formatCurrency(2_345_678, 'EUR'))).toBe('2,35 Mio. €')
+    } finally {
+      i18n.activate('en')
+    }
+
+    i18n.load('es', {})
+    i18n.activate('es')
+    try {
+      // Spanish counts thousands of millions: grouped like any other amount.
+      expect(plain(formatCurrency(2_345_678_000, 'EUR'))).toBe('2.345,68 M €')
     } finally {
       i18n.activate('en')
     }
