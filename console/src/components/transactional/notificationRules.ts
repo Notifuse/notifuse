@@ -10,10 +10,11 @@ import {
 import type { UserPermissions, Workspace } from '../../services/api/types'
 import { canEditTransactionalNotification, canSendTestEmail } from '../../services/api/permissions'
 import type { TemplateState } from './PreviewPanel'
+import { LOGS_TAB } from '../logs/logsUrl'
 
 /** The search of the message log, filtered on one notification (`extra`: a KPI's flag). */
 export function logsSearch(notificationId: string, extra: Record<string, string | boolean> = {}) {
-  return { tab: 'messages', transactional_notification_id: notificationId, ...extra }
+  return { tab: LOGS_TAB.messages, transactional_notification_id: notificationId, ...extra }
 }
 
 export function templateIdOf(notification: Pick<TransactionalNotification, 'channels'>): string | undefined {

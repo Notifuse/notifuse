@@ -184,7 +184,7 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/logs`)
     await waitForPageLoad(page)
 
-    await expect(page.getByText('Monitor message delivery status and webhook events')).toBeVisible()
+    await expect(page.getByText('Everything sent, received and changed in this workspace')).toBeVisible()
     await expect(page.getByText('No messages found')).toBeVisible()
 
     // Check for critical console errors

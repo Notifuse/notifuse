@@ -19,6 +19,23 @@ export function searchString(value: unknown): string | undefined {
   return trimmed === '' ? undefined : trimmed
 }
 
+/**
+ * A value read straight from `location.search`, as the router writes it: the router quotes a text
+ * that would otherwise parse as JSON (an id "12345" is written `%2212345%22`), so the quotes are
+ * taken off again. For the screens that still read the location themselves.
+ */
+export function rawSearchValue(params: URLSearchParams, key: string): string | null {
+  const value = params.get(key)
+  if (value === null || value.length < 2 || !value.startsWith('"') || !value.endsWith('"'))
+    return value
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return typeof parsed === 'string' ? parsed : value
+  } catch {
+    return value
+  }
+}
+
 /** Search of `/settings/$section`: the webhook whose detail panel is open. */
 export interface SettingsSearch {
   webhook?: string

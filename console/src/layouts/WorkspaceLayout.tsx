@@ -20,6 +20,7 @@ import {
   selectedMenuKey
 } from './app-shell/menuItems'
 import { useSidebarCollapsed } from './app-shell/useSidebarCollapsed'
+import { useAuditLogAccess } from '../hooks/useAuditLogAccess'
 
 export type PageLayout = 'page' | 'rail'
 
@@ -106,6 +107,8 @@ export function WorkspaceLayout() {
     fetchUserPermissions()
   }, [workspaceId, user])
 
+  const auditAccess = useAuditLogAccess(workspaceId)
+
   // Helper function to check if user has access to a resource
   const hasAccess = (resource: keyof UserPermissions): boolean => {
     if (!userPermissions) return false
@@ -160,7 +163,16 @@ export function WorkspaceLayout() {
     }
   }
 
-  const menuItems = buildMenuItems({ hasAccess, workspaceId, i18n })
+  // The Logs entry shows when one of its tabs can open: each needs its read right, and the audit
+  // log its own access (owner, grant or root).
+  const canRead = (resource: keyof UserPermissions) => Boolean(userPermissions?.[resource]?.read)
+  const canOpenLogs =
+    canRead('message_history') ||
+    canRead('webhook_events') ||
+    canRead('webhook_subscriptions') ||
+    auditAccess.canRead
+
+  const menuItems = buildMenuItems({ hasAccess, workspaceId, i18n, canOpenLogs })
 
   return (
     <ContactsCsvUploadProvider>

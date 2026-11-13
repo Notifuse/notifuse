@@ -6,7 +6,9 @@ describe('buildLogsTabUrl', () => {
 
   it('keeps the tab with the filters, so a copied link reopens the same tab', () => {
     expect(
-      buildLogsTabUrl(pathname, LOGS_TAB.incomingWebhooks, [{ field: 'event_type', value: 'bounce' }])
+      buildLogsTabUrl(pathname, LOGS_TAB.incomingWebhooks, [
+        { field: 'event_type', value: 'bounce' }
+      ])
     ).toBe(`${pathname}?tab=incoming-webhooks&event_type=bounce`)
   })
 
@@ -31,7 +33,8 @@ describe('buildLogsTabUrl', () => {
     expect(LOGS_TAB).toEqual({
       messages: 'messages',
       incomingWebhooks: 'incoming-webhooks',
-      outgoingWebhooks: 'outgoing-webhooks'
+      outgoingWebhooks: 'outgoing-webhooks',
+      audit: 'audit'
     })
   })
 })
