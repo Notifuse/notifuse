@@ -6,6 +6,7 @@ import { workspaceService } from '../services/api/workspace'
 import { MainLayout } from '../layouts/MainLayout'
 import type { VerifyInvitationTokenResponse } from '../services/api/types'
 import { useLingui } from '@lingui/react/macro'
+import dayjs from '../lib/dayjs'
 
 const { Title, Text } = Typography
 
@@ -153,7 +154,7 @@ export function AcceptInvitationPage() {
             </div>
             <div>
               <Text strong>{t`Expires:`}</Text>{' '}
-              {new Date(invitationData.invitation.expires_at).toLocaleDateString()}
+              {dayjs(invitationData.invitation.expires_at).format('ll')}
             </div>
           </div>
 

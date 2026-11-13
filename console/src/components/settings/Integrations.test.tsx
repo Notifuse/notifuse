@@ -1,5 +1,5 @@
 import type React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from 'antd'
@@ -10,6 +10,7 @@ import { LicenseContext, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import type { Entitlements } from '../../types/license'
 import type { Integration, Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
+import { activateDayjsLocale } from '../../i18n/dayjsLocales'
 import { getWebhookStatus, registerWebhook } from '../../services/api/webhook_registration'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
@@ -421,5 +422,18 @@ describe('Integrations — blocks', () => {
     expect(await screen.findByText('No email provider yet')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /Add a provider/ }).length).toBeGreaterThan(0)
     expect(screen.getByText('Other integrations')).toBeInTheDocument()
+  })
+})
+
+describe('Integrations — dates', () => {
+  afterEach(() => {
+    activateDayjsLocale('en')
+  })
+
+  it('writes the day a Zapier card was connected in the console language', async () => {
+    activateDayjsLocale('fr')
+    renderIntegrations({ integrations: [zapierIntegration] })
+
+    expect(await screen.findByText('1 août 2026')).toBeInTheDocument()
   })
 })

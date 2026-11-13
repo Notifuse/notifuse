@@ -40,6 +40,7 @@ import { jsonToHtml, extractTextContent } from './utils'
 import type { Workspace } from '../../services/api/types'
 import { BlogAIAssistant } from './BlogAIAssistant'
 import { blogTemplateName } from './blogTemplateName'
+import dayjs from '../../lib/dayjs'
 
 // TiptapNode shape matching the structure expected by utils.
 // Declared as a type alias rather than an interface on purpose: the editor and the AI
@@ -290,7 +291,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
             const { content, formValues, savedAt } = JSON.parse(savedDraft)
             modal.confirm({
               title: t`Restore Draft?`,
-              content: t`Found unsaved changes from ${new Date(savedAt).toLocaleString()}`,
+              content: t`Found unsaved changes from ${dayjs(savedAt).format('lll')}`,
               okText: t`Yes`,
               cancelText: t`No`,
               onOk: () => {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Alert, App, Button, Descriptions, Input, Space, Tag, Typography } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import dayjs from '../../lib/dayjs'
 import { ApiError } from '../../services/api/client'
 import { licenseApi } from '../../services/api/license'
 import { useLicense } from '../../hooks/useLicense'
@@ -161,7 +162,7 @@ export function LicenseSettings() {
           {entitlements?.tier ? <Tag>{entitlements.tier}</Tag> : t`Community`}
         </Descriptions.Item>
         <Descriptions.Item label={t`Expires`}>
-          {expiresAt ? expiresAt.toLocaleDateString() : EMPTY_VALUE}
+          {expiresAt ? dayjs(expiresAt).format('ll') : EMPTY_VALUE}
         </Descriptions.Item>
         <Descriptions.Item label={t`Workspaces`}>{quota || EMPTY_VALUE}</Descriptions.Item>
         <Descriptions.Item label={t`Capabilities`}>

@@ -61,6 +61,7 @@ import { Blocks, MoreHorizontal, Pencil, Plus } from 'lucide-react'
 import { KeyValueList, Mono, Pill } from '../layout'
 import { IntegrationCard } from './integrations/IntegrationCard'
 import { EmailProviderCard, type EmailIntegration } from './integrations/EmailProviderCard'
+import dayjs from '../../lib/dayjs'
 
 // Helper function to generate Supabase webhook URLs
 const generateSupabaseWebhookURL = (
@@ -78,11 +79,11 @@ const generateSupabaseWebhookURL = (
 }
 
 // The zapier card guards on zapier_settings because a record can be hand-written into the
-// integrations column; the same record can carry no usable created_at, and `new Date(undefined)`
-// stringifies to the literal "Invalid Date" rather than throwing.
+// integrations column; the same record can carry no usable created_at, and an invalid date
+// formats as the literal "Invalid Date" rather than throwing. The day is in the console's language.
 const formatConnectedOn = (value?: string): string => {
-  const at = value ? new Date(value) : null
-  return at && !Number.isNaN(at.getTime()) ? at.toLocaleDateString() : '\u2014'
+  const at = value ? dayjs(value) : null
+  return at?.isValid() ? at.format('ll') : '\u2014'
 }
 
 // Component Props

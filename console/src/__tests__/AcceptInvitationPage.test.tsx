@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { AcceptInvitationPage } from '../pages/AcceptInvitationPage'
 import { workspaceService } from '../services/api/workspace'
+import { activateDayjsLocale } from '../i18n/dayjsLocales'
 
 // Signing out ends the account's sessions on every device, so the page may do it only for a
 // valid link addressed to someone else — never for a dead link, such as one whose invitation
@@ -39,7 +40,7 @@ const validFor = (email: string) =>
   ({
     status: 'success',
     valid: true,
-    invitation: { id: 'inv-1', workspace_id: 'wsacme', email },
+    invitation: { id: 'inv-1', workspace_id: 'wsacme', email, expires_at: '2026-11-20T12:00:00Z' },
     workspace: { id: 'wsacme', name: 'Acme' }
   }) as unknown as Awaited<ReturnType<typeof workspaceService.verifyInvitationToken>>
 
@@ -85,5 +86,19 @@ describe('AcceptInvitationPage', () => {
     await waitFor(() => expect(workspaceService.verifyInvitationToken).toHaveBeenCalled())
     expect(await screen.findByRole('button', { name: 'Accept Invitation' })).toBeInTheDocument()
     expect(mockSignout).not.toHaveBeenCalled()
+  })
+})
+
+describe('AcceptInvitationPage dates', () => {
+  afterEach(() => {
+    activateDayjsLocale('en')
+  })
+
+  it('writes the expiry date in the console language', async () => {
+    activateDayjsLocale('fr')
+    vi.mocked(workspaceService.verifyInvitationToken).mockResolvedValue(validFor('jane@example.com'))
+    renderPage()
+
+    expect(await screen.findByText('20 nov. 2026')).toBeInTheDocument()
   })
 })

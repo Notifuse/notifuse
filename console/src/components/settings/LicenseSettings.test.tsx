@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App as AntApp } from 'antd'
 import { LicenseContext, LicenseContextValue, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import { LicenseSettings } from './LicenseSettings'
 import type { Entitlements } from '../../types/license'
+import { activateDayjsLocale } from '../../i18n/dayjsLocales'
 
 const { setLicense } = vi.hoisted(() => ({ setLicense: vi.fn() }))
 
@@ -37,6 +38,20 @@ const renderSettings = (value: Partial<LicenseContextValue>) =>
 describe('LicenseSettings', () => {
   beforeEach(() => {
     setLicense.mockReset()
+  })
+
+  afterEach(() => {
+    activateDayjsLocale('en')
+  })
+
+  it('writes the expiry date in the console language', () => {
+    activateDayjsLocale('fr')
+    renderSettings({
+      canManageLicense: true,
+      entitlements: entitlements({ expires_at: '2027-03-15T12:00:00Z' })
+    })
+
+    expect(screen.getByText('15 mars 2027')).toBeInTheDocument()
   })
 
   // Root, not owner: the server's licence endpoints are gated on requireRootUser, and the
