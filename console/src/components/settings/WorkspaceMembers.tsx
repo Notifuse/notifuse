@@ -36,6 +36,7 @@ import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { Panel, Pill } from '../layout'
 import { initialsFor } from '../../layouts/app-shell/gravatar'
 import { summarizeAccess } from './accessSummary'
+import { API_KEY_PREFIX_MAX_LENGTH, toApiKeyPrefix } from './apiKeyPrefix'
 import { PERMISSION_RESOURCE_LABELS } from './permissionLabels'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -341,18 +342,13 @@ export function WorkspaceMembers({
       return
     }
 
-    // Convert to snake_case
-    const snakeCaseName = apiKeyName
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '')
+    const prefix = toApiKeyPrefix(apiKeyName.trim())
 
     setCreatingApiKey(true)
     try {
       const response = await workspaceService.createAPIKey({
         workspace_id: workspaceId,
-        email_prefix: snakeCaseName,
+        email_prefix: prefix,
         permissions: apiKeyPermissions
       })
 
@@ -639,15 +635,8 @@ export function WorkspaceMembers({
               <Space.Compact style={{ width: '100%' }}>
                 <Input
                   value={apiKeyName}
-                  onChange={(e) => {
-                    // Convert to snake_case on change
-                    const snakeCaseName = e.target.value
-                      .toLowerCase()
-                      .replace(/\s+/g, '_')
-                      .replace(/[^a-z0-9_]/g, '')
-                    setApiKeyName(snakeCaseName)
-                  }}
-                  maxLength={64}
+                  onChange={(e) => setApiKeyName(toApiKeyPrefix(e.target.value))}
+                  maxLength={API_KEY_PREFIX_MAX_LENGTH}
                   style={{ flex: 1 }}
                 />
                 <Button disabled style={{ pointerEvents: 'none', color: 'rgba(0, 0, 0, 0.88)' }}>

@@ -28,7 +28,8 @@ INSERT, the UPDATE, `scanBroadcast`). So the API always returns 0 and every real
   repairs a copy `SelectWinner` wrote with 0. A single-template broadcast keeps 0.
 - Repository: write both columns in `CreateBroadcastTx` and `UpdateBroadcastTx`, read them in
   `broadcastListColumns`, `getBroadcastQuery` (used by `GetBroadcast` / `getBroadcastTx`) and
-  `scanBroadcast` (appended at the end, order kept in sync). The status-only UPDATEs are untouched.
+  `scanBroadcast` (appended at the end as `COALESCE(…, 0)`, the columns being nullable; order kept in
+  sync). The status-only UPDATEs are untouched.
 - Console: broadcasts sent before this fix keep 0 in the column (backfilling from task state would need a
   migration, out of scope). `AbTestSummary` shows "sent to the remaining {n} at {time}" when the count is
   above 0, and "winner sent at {time}" otherwise, instead of a false 0. New string extracted and translated
@@ -40,13 +41,13 @@ INSERT, the UPDATE, `scanBroadcast`). So the API always returns 0 and every real
   - `UpdateBroadcast_Success`: expects both counts among the UPDATE args.
   - `GetBroadcast_Success`: rows carry the two columns; the returned broadcast has them.
   - `broadcastListColumnNames` and every ad-hoc sqlmock row set gain the two columns (scan order).
-- `internal/service/broadcast/orchestrator_test.go`
-  - new `TestBroadcastOrchestrator_Process_ABTestStoresPhaseCountsOnBroadcast`: A/B broadcast, 50 % sample
-    of 10 recipients, `GetBroadcast` returns a fresh copy of the stored broadcast on every call
-    (`DoAndReturn`) so the in-loop refresh behaves as in production → the broadcast written by
-    `UpdateBroadcastTx` at test completion carries test 5 / winner 5.
-  - winner-phase case: the broadcast written by the final `UpdateBroadcast` carries 5 / 5.
-  - an existing single-template test asserts the written broadcast keeps 0 / 0.
+- `internal/service/broadcast/orchestrator_phase_counts_test.go` (new),
+  `TestOrchestrator_Process_StoresABPhaseCountsOnTheBroadcast`, on the A/B fixture of
+  `orchestrator_winner_templates_test.go` (4 recipients, 50 % sample) whose `GetBroadcast` returns a fresh
+  copy on every call, so the in-loop refresh behaves as in production:
+  - the broadcast written by `UpdateBroadcastTx` at test completion carries test 2 / winner 2;
+  - the broadcast written by the final `UpdateBroadcast` of the winner phase carries 2 / 2;
+  - a single-template broadcast is written with 0 / 0.
 - `tests/integration/broadcast_ab_testing_e2e_test.go`, "should complete full A/B testing workflow": after
   waiting for status `processed` (not `winner_selected`, which can come before the final save),
   `broadcasts.get` returns `test_phase_recipient_count` 10 and `winner_phase_recipient_count` 10
@@ -75,7 +76,8 @@ to underscores, drops other characters, lowercases, caps at 64. `WorkspaceMember
 promises. At 1440 px with the sidebar open, the name column is about 40 px wide.
 
 **Fix.** `scroll.x` = the sum of the fixed widths of the columns actually shown + 200
-(`BROADCAST_NAME_MIN_WIDTH`), computed by an exported pure helper `minTableWidth(columns, nameMinWidth)` that counts numeric widths only.
+(`BROADCAST_NAME_MIN_WIDTH`), computed by the pure helper `minTableWidth(columns, nameMinWidth)` of
+`console/src/components/broadcasts/tableWidth.ts`, which counts numeric widths only.
 Below that width the table scrolls, as the comment intends.
 
 **Tests.** `console/src/components/broadcasts/BroadcastsTable.test.tsx` (new): `minTableWidth` adds the
@@ -107,7 +109,7 @@ titles; re-shot after merge if wanted. No docs text names these titles.
 "winner sent at" fallback and fix 3 get no `Fix` bullet: they are folded into the 44.0 broadcasts feature
 bullet (new list, detail page). Released behaviour gets `Fix` bullets:
 - fix 1: `broadcasts.get` / `broadcasts.list` returned the A/B test and winner recipient counts as 0, and the
-  analytics measures built on them read 0; true for A/B broadcasts sent from now on.
+  analytics measures built on them read 0; true for A/B broadcasts sent from 44.0 on.
 - fixes 2 and 4: one console `Fix` bullet (hyphens kept in an API key name; integration drawer titles
   translated, no longer in capitals).
 No database version bump (no schema change).

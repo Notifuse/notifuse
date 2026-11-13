@@ -463,3 +463,28 @@ describe('Integrations — dates', () => {
     expect(await screen.findByText('1 août 2026')).toBeInTheDocument()
   })
 })
+
+describe('Integrations — drawer titles', () => {
+  const drawerTitle = () => document.querySelector('.ant-drawer-open .ant-drawer-title')?.textContent
+
+  it('names the email provider as the catalogue does', async () => {
+    const user = userEvent.setup()
+    renderIntegrations()
+    await user.click(await screen.findByText('Mailgun'))
+
+    await waitFor(() => expect(drawerTitle()).toBe('Add Mailgun integration'))
+  })
+
+  it.each([
+    ['Supabase', 'Add Supabase integration'],
+    ['Anthropic', 'Add Anthropic integration'],
+    ['Firecrawl', 'Add Firecrawl integration']
+  ])('names %s in the title of its drawer', async (item, title) => {
+    const user = userEvent.setup()
+    renderIntegrations({ integrations: [zapierIntegration] })
+    await user.click(screen.getByRole('button', { name: /Connect/ }))
+    await user.click(await screen.findByRole('menuitem', { name: new RegExp(item) }))
+
+    await waitFor(() => expect(drawerTitle()).toBe(title))
+  })
+})
