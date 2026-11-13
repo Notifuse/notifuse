@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, render, screen, fireEvent, within, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query'
 import { App, Modal } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -19,8 +19,18 @@ const { getNotification, getTemplate, query, listMessages, compile } = vi.hoiste
 
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-router')>()),
-  Link: ({ search, children }: { search?: Record<string, unknown>; children: ReactNode }) => (
-    <a href={`/logs?${new URLSearchParams(search as Record<string, string>).toString()}`}>{children}</a>
+  Link: ({
+    search,
+    children,
+    'aria-label': label
+  }: {
+    search?: Record<string, unknown>
+    children: ReactNode
+    'aria-label'?: string
+  }) => (
+    <a href={`/logs?${new URLSearchParams(search as Record<string, string>).toString()}`} aria-label={label}>
+      {children}
+    </a>
   )
 }))
 vi.mock('../../services/api/transactional_notifications', () => ({
@@ -114,6 +124,7 @@ function props(extra: Partial<TransactionalDetailProps> = {}): TransactionalDeta
     periods,
     onPeriodChange: vi.fn(),
     stats: new Map([['reset', stats]]),
+    listed: true,
     statsGate: gate,
     smtp: false,
     timezone: 'Europe/Paris',
@@ -133,6 +144,12 @@ function tree(p: TransactionalDetailProps, client: QueryClient, children?: React
       </I18nProvider>
     </QueryClientProvider>
   )
+}
+
+/** Hovers the element a tooltip is on and resolves to the tooltip's text. */
+async function tooltipOf(element: Element) {
+  fireEvent.mouseEnter(element)
+  return (await screen.findByRole('tooltip')).textContent
 }
 
 const newClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -168,6 +185,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  // A focus test forces the focus state: the next test starts from the browser's own.
+  focusManager.setFocused(undefined)
 })
 
 describe('TransactionalDetail', () => {
@@ -265,6 +284,80 @@ describe('TransactionalDetail', () => {
     expect(within(kpi('Clicked')).getByText('Not tracked')).toBeInTheDocument()
   })
 
+  it('names each KPI link after what it counts', async () => {
+    renderDetail()
+    await screen.findByText('Name reset')
+
+    expect(screen.getByRole('link', { name: 'Sent: 1,000, view in the message log' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Opened: 30.0%, view in the message log' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Failed: 4, view in the message log' })).toBeInTheDocument()
+  })
+
+  it("reads the figures of a notification the list's statistics do not cover", async () => {
+    const daily = query.getMockImplementation()
+    query.mockImplementation((q: AnalyticsQuery) =>
+      q.dimensions.includes('transactional_notification_id')
+        ? Promise.resolve({
+            data: [{ transactional_notification_id: 'reset', count_sent: 1234, count_failed: 7 }],
+            meta: { total: 1, query: '', params: [] }
+          })
+        : daily?.(q)
+    )
+    renderDetail(props({ listed: false, stats: new Map() }))
+
+    await screen.findByText('Name reset')
+    await waitFor(() => expect(within(kpi('Sent')).getByText('1,234')).toBeInTheDocument())
+    expect(within(kpi('Failed')).getByText('7')).toBeInTheDocument()
+    const asked = query.mock.calls
+      .map(([q]) => q as AnalyticsQuery)
+      .find((q) => q.dimensions.includes('transactional_notification_id'))
+    expect(asked?.filters).toEqual([
+      { member: 'transactional_notification_id', operator: 'in', values: ['reset'] },
+      { member: 'created_at', operator: 'inDateRange', values: [periods.current.startUtc, periods.current.endUtc] }
+    ])
+  })
+
+  it('waits for the new period of a notification outside the list rather than show the old one', async () => {
+    const daily = query.getMockImplementation()
+    query.mockImplementation((q: AnalyticsQuery) =>
+      q.dimensions.includes('transactional_notification_id')
+        ? Promise.resolve({
+            data: [{ transactional_notification_id: 'reset', count_sent: 1234 }],
+            meta: { total: 1, query: '', params: [] }
+          })
+        : daily?.(q)
+    )
+    const client = newClient()
+    const { rerender } = render(tree(props({ listed: false, stats: new Map() }), client))
+    await screen.findByText('Name reset')
+    await waitFor(() => expect(within(kpi('Sent')).getByText('1,234')).toBeInTheDocument())
+
+    query.mockImplementation(() => new Promise(() => {}))
+    const sevenDays = resolveTransactionalPeriod('7d', 'Europe/Paris')
+    rerender(tree(props({ listed: false, stats: new Map(), period: '7d', periods: sevenDays }), client))
+    await waitFor(() => expect(within(kpi('Sent')).queryByText('1,234')).not.toBeInTheDocument())
+  })
+
+  it("asks no figures of its own when the list's statistics cover the notification", async () => {
+    renderDetail()
+    await screen.findByTestId('echart')
+
+    expect(query.mock.calls.some(([q]) => (q as AnalyticsQuery).dimensions.length > 0)).toBe(false)
+  })
+
+  it('says when the figures of a notification outside the list fail', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const daily = query.getMockImplementation()
+    query.mockImplementation((q: AnalyticsQuery) =>
+      q.dimensions.includes('transactional_notification_id') ? Promise.reject(new Error('boom')) : daily?.(q)
+    )
+    renderDetail(props({ listed: false, stats: new Map() }))
+
+    await screen.findByText('Name reset')
+    await waitFor(() => expect(within(kpi('Sent')).getByText("Couldn't load")).toBeInTheDocument())
+    warn.mockRestore()
+  })
+
   it('shows the day failures peaked', async () => {
     renderDetail()
     expect(await screen.findByText(/^Peak on Nov 11/)).toBeInTheDocument()
@@ -326,7 +419,10 @@ describe('TransactionalDetail', () => {
   it("shows the provider's default without templates read, marked as such", async () => {
     renderDetail(props({ permissions: { ...full, templates: { read: false, write: false } } as UserPermissions }))
 
-    expect(await screen.findByText('Acme <hello@acme.test> (default)')).toBeInTheDocument()
+    const sender = await screen.findByText('Acme <hello@acme.test> (default)')
+    expect(await tooltipOf(sender)).toBe(
+      "The provider's default sender: you need access to templates to see the template's own."
+    )
     expect(getTemplate).not.toHaveBeenCalled()
     expect(screen.getByText('You need access to templates')).toBeInTheDocument()
   })
@@ -342,16 +438,146 @@ describe('TransactionalDetail', () => {
     expect(screen.queryByTestId('echart')).not.toBeInTheDocument()
   })
 
-  it("does not mark the provider's default when the template only failed to load", { timeout: 15_000 }, async () => {
+  it("marks the provider's default when the template failed to load", { timeout: 15_000 }, async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     getTemplate.mockRejectedValue(new Error('boom'))
     renderDetail()
 
     // The template is asked again before it shows as failed.
     expect(await screen.findAllByRole('button', { name: 'Retry' }, { timeout: 8000 })).not.toHaveLength(0)
-    expect(screen.getByText('Acme <hello@acme.test>')).toBeInTheDocument()
-    expect(screen.queryByText(/\(default\)/)).not.toBeInTheDocument()
+    const sender = screen.getByText('Acme <hello@acme.test> (default)')
+    // Its Reply-To is unknown too, not none.
+    expect(screen.getByText('Unknown')).toBeInTheDocument()
+    expect(await tooltipOf(sender)).toBe(
+      "The provider's default sender: the template, which can choose another one, couldn't be loaded."
+    )
     warn.mockRestore()
+  })
+
+  it("marks the provider's default when the template is not found", async () => {
+    getTemplate.mockRejectedValue(new ApiError('not found', 404, {}))
+    renderDetail()
+    const sender = await screen.findByText('Acme <hello@acme.test> (default)')
+    expect(await tooltipOf(sender)).toBe("The provider's default sender: the template was not found.")
+  })
+
+  it("marks the provider's default of a notification without template", async () => {
+    getNotification.mockImplementation(({ id }: { id: string }) =>
+      Promise.resolve({ notification: notification(id, { channels: {} }) })
+    )
+    renderDetail()
+    const sender = await screen.findByText('Acme <hello@acme.test> (default)')
+    expect(await tooltipOf(sender)).toBe("The provider's default sender: this notification has no email template.")
+    expect(screen.queryByText('Unknown')).not.toBeInTheDocument()
+  })
+
+  it('shows no sender while the template loads', async () => {
+    let resolve: (value: unknown) => void = () => {}
+    getTemplate.mockImplementation(() => new Promise((done) => (resolve = done)))
+    renderDetail()
+    await screen.findByText('Name reset')
+
+    expect(screen.queryByText(/hello@acme\.test/)).not.toBeInTheDocument()
+    expect(screen.queryByText('No sender')).not.toBeInTheDocument()
+    resolve(template())
+    expect(await screen.findByText('Acme <hello@acme.test>')).toBeInTheDocument()
+    expect(screen.queryByText(/\(default\)/)).not.toBeInTheDocument()
+  })
+
+  it('flags a deleted template in the header', async () => {
+    getTemplate.mockResolvedValue({
+      template: { ...template().template, deleted_at: '2026-11-01T00:00:00Z' }
+    })
+    renderDetail()
+    await screen.findByText('Name reset')
+
+    // In the header, next to the template's name; the preview panel leaves it there.
+    const name = await screen.findByText('Reset email')
+    expect(within(name.parentElement as HTMLElement).getByText('Deleted template')).toBeInTheDocument()
+    expect(screen.getAllByText('Deleted template')).toHaveLength(1)
+  })
+
+  it('says in the menu itself why its entries are disabled', async () => {
+    renderDetail(
+      props({
+        permissions: {
+          ...full,
+          transactional: { read: true, write: false },
+          message_history: { read: false, write: false }
+        } as UserPermissions
+      })
+    )
+    await screen.findByText('Name reset')
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    const menu = await screen.findByRole('menu')
+
+    const logs = within(menu).getByRole('menuitem', { name: /View in logs/ })
+    expect(logs).toHaveAttribute('aria-disabled', 'true')
+    expect(within(logs).getByText('You need access to message history')).toBeInTheDocument()
+    const remove = within(menu).getByRole('menuitem', { name: /Delete/ })
+    expect(remove).toHaveAttribute('aria-disabled', 'true')
+    expect(within(remove).getByText('You need Transactional write permission')).toBeInTheDocument()
+  })
+
+  it('names the integration that keeps a managed notification from being deleted, in the menu', async () => {
+    getNotification.mockImplementation(({ id }: { id: string }) =>
+      Promise.resolve({
+        notification: notification(id, { integration_id: 'supabase' })
+      })
+    )
+    renderDetail()
+    await screen.findByText('Name reset')
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    const menu = await screen.findByRole('menu')
+
+    const remove = within(menu).getByRole('menuitem', { name: /Delete/ })
+    expect(within(remove).getByText("Managed by Supabase: it can't be deleted")).toBeInTheDocument()
+  })
+
+  it("opens the template preview from the preview's Open button", async () => {
+    const p = props()
+    renderDetail(p)
+    const open = await screen.findByRole('button', { name: 'Open' })
+    await waitFor(() => expect(open).toBeEnabled())
+
+    fireEvent.click(open)
+    expect(p.onPreview).toHaveBeenCalledWith(expect.objectContaining({ id: 'reset' }))
+  })
+
+  it('asks the sends per day again on return to the tab, once they are stale', async () => {
+    // As the console's client: focus refetch off unless a query turns it on.
+    render(tree(props(), new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })))
+    await screen.findByTestId('echart')
+    const calls = query.mock.calls.length
+
+    const later = Date.now() + 61_000
+    vi.spyOn(Date, 'now').mockReturnValue(later)
+    act(() => {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+    })
+    await waitFor(() => expect(query.mock.calls.length).toBe(calls + 1))
+    focusManager.setFocused(undefined)
+  })
+
+  it('asks the sends per day again when the last day of the window moves', async () => {
+    const client = newClient()
+    const { rerender } = render(tree(props(), client))
+    await screen.findByTestId('echart')
+
+    // The day after the fixture's own last day, whatever today is.
+    const after = new Date(`${periods.current.endDay}T00:00:00Z`)
+    after.setUTCDate(after.getUTCDate() + 1)
+    const nextDay = resolveTransactionalPeriod('30d', 'Europe/Paris', after.toISOString().slice(0, 10))
+    rerender(tree(props({ periods: nextDay }), client))
+    await waitFor(() =>
+      expect(
+        query.mock.calls.some(
+          ([q]) => (q as AnalyticsQuery).timeDimensions?.[0]?.dateRange?.[1] === nextDay.current.endDay
+        )
+      ).toBe(true)
+    )
+    expect(nextDay.current.endDay).not.toBe(periods.current.endDay)
   })
 
   it('reads an empty tracking mode as following the workspace, with the UTM the send sets', async () => {

@@ -138,6 +138,51 @@ test.describe('Transactional Notifications Feature', () => {
     })
   })
 
+  test.describe('Keyboard and preview', () => {
+    test('opens a sheet from the keyboard through the name link, one history entry', async ({
+      authenticatedPageWithData
+    }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+
+      const link = notificationRow(page, 'Password Reset').getByRole('link', { name: 'Password Reset' })
+      await expect(link).toHaveAttribute('href', /notification=transactional-1/)
+      await link.focus()
+      await page.keyboard.press('Enter')
+      await expect(page).toHaveURL(/notification=transactional-1/)
+      const sheet = page.locator('.app-full-drawer')
+      await expect(sheet.getByRole('heading', { name: 'Password Reset' })).toBeVisible()
+
+      // One step back closes the sheet: the link and the row did not both navigate.
+      await page.goBack()
+      await expect(page).not.toHaveURL(/notification=/)
+    })
+
+    test("opens the template preview above the sheet from the preview's Open", async ({
+      authenticatedPageWithData
+    }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications?notification=transactional-1`)
+      await waitForLoading(page)
+
+      const sheet = page.locator('.app-full-drawer')
+      await expect(sheet.getByRole('heading', { name: 'Password Reset' })).toBeVisible()
+      const open = sheet.getByRole('button', { name: 'Open', exact: true })
+      await expect(open).toBeEnabled()
+      await open.click()
+
+      const preview = page.getByRole('dialog', { name: 'Welcome Email' })
+      await expect(preview).toBeVisible()
+      // A click inside it fails if the sheet covers it.
+      await preview.getByRole('button', { name: 'Close' }).click()
+      await expect(preview).toBeHidden()
+      await expect(sheet.getByRole('heading', { name: 'Password Reset' })).toBeVisible()
+    })
+  })
+
   test.describe('Configuration', () => {
     test('shows template selection', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData

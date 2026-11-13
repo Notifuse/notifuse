@@ -130,3 +130,10 @@
 .ant-table-tbody > tr.is-hover > td {
   background: var(--color-subtle);
 }
+
+/* A row's name that links to its sheet reads as the row's title, in ink: inside antd's App
+ * every anchor takes colorLink from an unlayered rule, which beats a Tailwind text utility. */
+.ant-table-tbody a.row-title-link,
+.ant-table-tbody a.row-title-link:hover {
+  color: var(--color-ink);
+}

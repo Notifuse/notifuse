@@ -6,7 +6,10 @@ export interface SenderInfo {
   provider: Integration | null
   /** The sender of the template's default language, or the provider's default; null when none. */
   sender: Sender | null
-  /** The template was not read (no templates.read): the provider's default is shown, marked « (default) ». */
+  /**
+   * The template was not read (no templates.read, missing, failed, or none set): the provider's
+   * default is shown, marked « (default) ».
+   */
   providerDefaultOnly: boolean
   replyTo: string | null
 }

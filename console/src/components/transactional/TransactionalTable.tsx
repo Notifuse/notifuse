@@ -1,16 +1,26 @@
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
+import { Link } from '@tanstack/react-router'
 import { Button, Dropdown, Table, Tooltip, type MenuProps } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 import { MoreHorizontal, Send, SquareTerminal } from 'lucide-react'
-import { Mono, Pill, RateBar, useNumberFormat } from '../layout'
+import { Mono, RateBar, useNumberFormat } from '../layout'
 import type { TransactionalNotification } from '../../services/api/transactional_notifications'
 import type { UserPermissions, Workspace } from '../../services/api/types'
 import type { TemplateState } from './PreviewPanel'
-import { GatedStat, IntegrationTag, SmtpDash, type StatGate } from './notificationParts'
+import {
+  DeletedTemplatePill,
+  GatedStat,
+  IntegrationTag,
+  MenuEntryLabel,
+  SmtpDash,
+  type StatGate
+} from './notificationParts'
 import { templateIdOf, useActionRules } from './notificationRules'
 import { statsOf, statsRates, BOUNCE_WARNING, type NotificationStats, type TrackedRate } from './transactionalStats'
 import { formatFullDateTime, formatLastSent } from './transactionalTime'
+import { LAST_SENT_DAYS } from './useTransactionalStats'
 
 export interface TransactionalRowActions {
   onOpen: (notification: TransactionalNotification) => void
@@ -63,13 +73,7 @@ export function TemplateLabel({ state, templateId }: { state: TemplateState | un
     return (
       <span className="inline-flex min-w-0 items-center gap-2">
         <span className="truncate text-sm text-ink-3">{state.template.name}</span>
-        {state.template.deleted_at ? (
-          <Tooltip title={t`This notification still sends with it`}>
-            <span className="shrink-0">
-              <Pill tone="warning">{t`Deleted template`}</Pill>
-            </span>
-          </Tooltip>
-        ) : null}
+        {state.template.deleted_at ? <DeletedTemplatePill /> : null}
       </span>
     )
   }
@@ -86,7 +90,17 @@ export function TemplateLabel({ state, templateId }: { state: TemplateState | un
 }
 
 /** Keeps a click on a button of the row from opening the sheet. */
-const stop = (event: MouseEvent | KeyboardEvent) => event.stopPropagation()
+const stop = (event: MouseEvent) => event.stopPropagation()
+
+/**
+ * A plain click on a notification's link: the row's own click opens the sheet, so the link does not
+ * navigate as well (one history entry). A click with a modifier is the browser's (a new tab or
+ * window), and does not open the sheet here.
+ */
+function onNameClick(event: MouseEvent<HTMLAnchorElement>) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) event.stopPropagation()
+  else event.preventDefault()
+}
 
 /** The list of screen 91: one row per notification, in the server's order. */
 export function TransactionalTable(props: TransactionalTableProps) {
@@ -123,7 +137,15 @@ export function TransactionalTable(props: TransactionalTableProps) {
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex min-w-0 items-center gap-2">
             <Tooltip title={notification.description || undefined}>
-              <span className="truncate text-base font-medium text-ink">{notification.name}</span>
+              {/* The row's link, for the keyboard and screen readers; a plain click is left to the row. */}
+              <Link
+                to="."
+                search={(prev: Record<string, unknown>) => ({ ...prev, notification: notification.id })}
+                onClick={onNameClick}
+                className="row-title-link truncate text-base font-medium"
+              >
+                {notification.name}
+              </Link>
             </Tooltip>
             <IntegrationTag notification={notification} workspace={workspace} />
           </div>
@@ -198,7 +220,12 @@ export function TransactionalTable(props: TransactionalTableProps) {
             const at = lastSent?.get(notification.id)
             if (!at)
               return (
-                <Tooltip title={t`No successful send in the last 60 days`}>
+                <Tooltip
+                  title={t`${plural(LAST_SENT_DAYS, {
+                    one: 'No successful send in the last # day',
+                    other: 'No successful send in the last # days'
+                  })}`}
+                >
                   <span className="text-sm text-ink-3">—</span>
                 </Tooltip>
               )
@@ -222,18 +249,26 @@ export function TransactionalTable(props: TransactionalTableProps) {
         const templateId = templateIdOf(notification)
         const rules = rulesOf(notification, permissions, templateId ? templates.get(templateId) : undefined, workspace)
         const items: MenuProps['items'] = [
-          { key: 'edit', label: menuLabel(t`Edit`, rules.edit), disabled: rules.edit !== undefined },
+          {
+            key: 'edit',
+            label: <MenuEntryLabel label={t`Edit`} reason={rules.edit} />,
+            disabled: rules.edit !== undefined
+          },
           {
             key: 'preview',
-            label: menuLabel(t`Preview template`, rules.preview),
+            label: <MenuEntryLabel label={t`Preview template`} reason={rules.preview} />,
             disabled: rules.preview !== undefined
           },
           { key: 'copy', label: t`Copy ID` },
-          { key: 'logs', label: menuLabel(t`View in logs`, rules.logs), disabled: rules.logs !== undefined },
+          {
+            key: 'logs',
+            label: <MenuEntryLabel label={t`View in logs`} reason={rules.logs} />,
+            disabled: rules.logs !== undefined
+          },
           { type: 'divider' },
           {
             key: 'delete',
-            label: menuLabel(t`Delete`, rules.remove),
+            label: <MenuEntryLabel label={t`Delete`} reason={rules.remove} />,
             danger: rules.remove === undefined,
             disabled: rules.remove !== undefined
           }
@@ -250,7 +285,6 @@ export function TransactionalTable(props: TransactionalTableProps) {
           <div
             className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
             onClick={stop}
-            onKeyDown={stop}
           >
             <Tooltip title={rules.test ?? t`Send test`}>
               {/* A span: a disabled button receives no hover, and its tooltip would never show. */}
@@ -296,25 +330,8 @@ export function TransactionalTable(props: TransactionalTableProps) {
       dataSource={notifications}
       pagination={false}
       rowClassName="group cursor-pointer"
-      onRow={(notification) => ({
-        tabIndex: 0,
-        'aria-label': notification.name,
-        onClick: () => props.onOpen(notification),
-        onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-          if (event.key === 'Enter' && event.target === event.currentTarget) props.onOpen(notification)
-        }
-      })}
+      onRow={(notification) => ({ onClick: () => props.onOpen(notification) })}
       footer={() => footer}
     />
-  )
-}
-
-/** A menu entry with the reason it is disabled, if it is. */
-function menuLabel(label: string, reason: string | undefined) {
-  if (!reason) return label
-  return (
-    <Tooltip title={reason} placement="left">
-      <span>{label}</span>
-    </Tooltip>
   )
 }

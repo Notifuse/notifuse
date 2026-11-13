@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Button, Skeleton, Tooltip } from 'antd'
+import { Button, Skeleton } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { Panel, Pill } from '../layout'
+import { Panel } from '../layout'
 import { compileTemplatePreview, TemplatePreviewError } from '../templates/compileTemplatePreview'
 import type { Template } from '../../services/api/template'
 import type { Workspace } from '../../services/api/types'
@@ -59,13 +59,6 @@ export function PreviewPanel({ workspace, template, onOpen }: PreviewPanelProps)
 
   const extra = (
     <div className="flex items-center gap-2">
-      {loaded?.deleted_at ? (
-        <Tooltip title={t`This notification still sends with it`}>
-          <span>
-            <Pill tone="warning">{t`Deleted template`}</Pill>
-          </span>
-        </Tooltip>
-      ) : null}
       <Button size="small" type="link" disabled={!loaded} onClick={onOpen}>
         {t({ message: 'Open', context: 'action' })}
       </Button>

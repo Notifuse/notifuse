@@ -166,8 +166,53 @@ export function SendsPerDayChart({
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No sends in this period`} />
       </div>
     )
-  else
-    body = <ReactECharts option={option} notMerge style={{ height: SENDS_CHART_HEIGHT }} opts={{ renderer: 'svg' }} />
+  else {
+    const columns: [string, (point: DailyPoint) => number][] = smtp
+      ? [
+          [labels.sent, (point) => point.sent],
+          [labels.failed, (point) => point.failed]
+        ]
+      : [
+          [labels.sent, (point) => point.sent],
+          [labels.delivered, (point) => point.delivered],
+          [labels.bounced, (point) => point.bounced],
+          [labels.failed, (point) => point.failed]
+        ]
+    body = (
+      <>
+        {/* The bars say nothing to a screen reader: the same days are read from the table. */}
+        <div aria-hidden="true">
+          <ReactECharts option={option} notMerge style={{ height: SENDS_CHART_HEIGHT }} opts={{ renderer: 'svg' }} />
+        </div>
+        <table className="sr-only">
+          <caption>{t`Sends per day`}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t`Day`}</th>
+              {columns.map(([name]) => (
+                <th key={name} scope="col">
+                  {name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(points ?? []).map((point) => (
+              <tr key={point.day}>
+                <th scope="row">
+                  {formatSeriesDay(point.day, i18n.locale)}
+                  {point.day === today ? ` (${labels.today})` : ''}
+                </th>
+                {columns.map(([name, value]) => (
+                  <td key={name}>{int(value(point))}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    )
+  }
 
   return (
     <Panel

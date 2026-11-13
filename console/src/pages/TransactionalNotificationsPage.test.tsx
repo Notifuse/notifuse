@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
-import type { ReactNode } from 'react'
+import type { MouseEventHandler, ReactNode } from 'react'
 import type { StoredPermissions } from '../services/api/permissions'
 import type { AnalyticsQuery } from '../services/api/analytics'
 
@@ -27,7 +27,11 @@ vi.mock('@tanstack/react-router', async (importOriginal) => ({
   useParams: () => ({ workspaceId: 'ws1' }),
   useSearch: () => state.search,
   useNavigate: () => navigate,
-  Link: ({ children }: { children: ReactNode }) => <a href="/link">{children}</a>
+  Link: ({ children, onClick }: { children: ReactNode; onClick?: MouseEventHandler<HTMLAnchorElement> }) => (
+    <a href="/link" onClick={onClick}>
+      {children}
+    </a>
+  )
 }))
 
 const integrations = [
@@ -215,6 +219,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  // A focus test forces the focus state: the next test starts from the browser's own.
+  focusManager.setFocused(undefined)
 })
 
 describe('TransactionalNotificationsPage list', () => {
@@ -295,6 +301,35 @@ describe('TransactionalNotificationsPage list', () => {
           .includes('2026-11-13T22:59:59.999Z')
       ).toBe(true)
     )
+  })
+
+  it('reads the figures and the last sends again on return to the tab, not the previous window', async () => {
+    // As the console's client: focus refetch off unless a query turns it on.
+    client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <TransactionalNotificationsPage />
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    await strip().findByText('2,000')
+    await waitFor(() => expect(query).toHaveBeenCalledTimes(3))
+    query.mockClear()
+
+    // Past every stale time but the previous window's.
+    vi.setSystemTime(new Date('2026-11-12T09:02:00Z'))
+    act(() => {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+    })
+    await waitFor(() => expect(query).toHaveBeenCalledTimes(2))
+    const asked = query.mock.calls.map(([q]) => (q as AnalyticsQuery).measures)
+    expect(asked.some((measures) => measures.includes('last_sent_at'))).toBe(true)
+    expect(asked.some((measures) => measures.length === 8)).toBe(true)
+    focusManager.setFocused(undefined)
   })
 
   it('keeps the old period labelled as such while a switch loads, without comparing it', async () => {
@@ -450,7 +485,7 @@ describe('TransactionalNotificationsPage list', () => {
     expect(screen.getByPlaceholderText('Name or ID')).toHaveValue('reset ')
   })
 
-  it('opens the sheet of a row with a new history entry, by click and with Enter', async () => {
+  it('opens the sheet of a row with a new history entry, from its name and from the rest of the row', async () => {
     renderPage()
     fireEvent.click(await screen.findByText('Password reset'))
 
@@ -459,7 +494,7 @@ describe('TransactionalNotificationsPage list', () => {
     expect(call.replace).toBe(false)
     expect(call.search({ q: 'pass' })).toEqual({ q: 'pass', notification: 'password_reset' })
 
-    fireEvent.keyDown(row('Welcome'), { key: 'Enter' })
+    fireEvent.click(within(row('Welcome')).getByText('welcome'))
     expect(navigate).toHaveBeenCalledTimes(2)
   })
 
@@ -487,6 +522,28 @@ describe('TransactionalNotificationsPage list', () => {
     fireEvent.click(within(row('Password reset')).getByRole('button', { name: 'Send test' }))
     expect(screen.getByTestId('test-modal-tpl-password_reset')).toBeInTheDocument()
     expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it("opens the template preview over the sheet when the sheet's Open asks", async () => {
+    state.search = { notification: 'password_reset' }
+    renderPage()
+    // The template's name in its row: the template is read.
+    await screen.findByText('Template tpl-password_reset')
+
+    act(() => (detailProps.mock.calls.at(-1)?.[0] as { onPreview: (n: unknown) => void }).onPreview(reset))
+    expect(screen.getByTestId('preview-tpl-password_reset')).toBeInTheDocument()
+  })
+
+  it('opens the template preview of a notification outside the list, read by its sheet', async () => {
+    const other = notification('other', 'Other')
+    state.search = { notification: 'other' }
+    renderPage()
+    await screen.findByText('Welcome')
+    // What the sheet reads, under the key the page shares with it.
+    act(() => queryClientOf().setQueryData(['template', 'ws1', 'tpl-other'], { template: { id: 'tpl-other' } }))
+
+    act(() => (detailProps.mock.calls.at(-1)?.[0] as { onPreview: (n: unknown) => void }).onPreview(other))
+    expect(screen.getByTestId('preview-tpl-other')).toBeInTheDocument()
   })
 
   it('changes the period with a new history entry, 30 days written as nothing', async () => {
@@ -547,6 +604,48 @@ describe('TransactionalNotificationsPage states', () => {
     await screen.findByText('No transactional notifications found')
     const last = detailProps.mock.calls.at(-1)?.[0] as { statsGate: { loading: boolean } }
     expect(last.statsGate.loading).toBe(false)
+  })
+
+  it('lets the sheet wait for the list rather than ask its own figures while the list loads', async () => {
+    listNotifications.mockImplementation(() => new Promise(() => {}))
+    state.search = { notification: 'created_since' }
+    renderPage()
+
+    await waitFor(() => expect(detailProps).toHaveBeenCalled())
+    expect((detailProps.mock.calls.at(-1)?.[0] as { listed: boolean }).listed).toBe(true)
+  })
+
+  it('tells the sheet whether the statistics of the list cover its notification', async () => {
+    state.search = { notification: 'welcome' }
+    const { rerender } = renderPage()
+    await strip().findByText('2,000')
+    expect((detailProps.mock.calls.at(-1)?.[0] as { listed: boolean }).listed).toBe(true)
+
+    state.search = { notification: 'created_since' }
+    rerender(
+      <QueryClientProvider client={queryClientOf()}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <TransactionalNotificationsPage />
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    expect((detailProps.mock.calls.at(-1)?.[0] as { listed: boolean }).listed).toBe(false)
+  })
+
+  it('stops counting a notification as listed once the list is read again without it', async () => {
+    listNotifications.mockResolvedValueOnce({ notifications: [welcome], total: 1 })
+    listNotifications.mockResolvedValue({ notifications: [], total: 0 })
+    state.search = { notification: 'welcome' }
+    renderPage()
+    await screen.findByText('Welcome')
+    await strip().findByText('1,000')
+    expect((detailProps.mock.calls.at(-1)?.[0] as { listed: boolean }).listed).toBe(true)
+
+    await act(() => queryClientOf().invalidateQueries({ queryKey: ['transactional-notifications', 'ws1'] }))
+    await screen.findByText('No transactional notifications found')
+    expect((detailProps.mock.calls.at(-1)?.[0] as { listed: boolean }).listed).toBe(false)
   })
 
   it('shows the empty page with its own button, none in the header', async () => {

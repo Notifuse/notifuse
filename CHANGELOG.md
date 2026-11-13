@@ -138,7 +138,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: Templates are listed in a table with a tab per category and a search on name or subject. Each template shows where it is used (newsletters, transactional notifications, automations, lists), and deleting one lists what still uses it first. A Notifuse export or an MJML file is imported from the page header into a new template, and a template's preview has its own link.
 
-- **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console.
+- **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console. Each notification's name links to its detail view, a disabled action says why in its menu, and the sends per day can be read as a table by screen readers.
 
 ## [43.0] - 2026-11-07
 
