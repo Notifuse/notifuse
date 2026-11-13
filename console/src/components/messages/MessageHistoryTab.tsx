@@ -21,6 +21,7 @@ import { MessageHistoryTable } from './MessageHistoryTable'
 import { broadcastApi } from '../../services/api/broadcast'
 import { listsApi } from '../../services/api/list'
 import { buildLogsTabUrl, LOGS_TAB } from '../logs/logsUrl'
+import { rawSearchValue } from '../../lib/searchParams'
 
 const { Title, Text } = Typography
 
@@ -339,7 +340,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
     const initialFilters: Filter[] = []
 
     filterKeys.forEach((key) => {
-      const value = searchParams.get(key)
+      const value = rawSearchValue(searchParams, key)
       if (value) {
         initialFilters.push({
           field: key,

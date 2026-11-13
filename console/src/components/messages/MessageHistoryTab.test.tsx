@@ -210,4 +210,11 @@ describe('MessageHistoryTab clicked link filter', () => {
     await waitFor(async () => expect(await lastListParams()).toMatchObject({ automation_id: 'welcome' }))
     expect(screen.getByText('Automation ID: welcome')).toBeInTheDocument()
   })
+
+  it('reads an id the router quoted, as the router writes a numeric-looking text', async () => {
+    window.history.replaceState({}, '', '/logs?external_id=%2212345%22')
+    renderTab()
+
+    await waitFor(async () => expect(await lastListParams()).toMatchObject({ external_id: '12345' }))
+  })
 })

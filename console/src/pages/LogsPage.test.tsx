@@ -150,6 +150,17 @@ describe('LogsPage', () => {
     expect(state.navigate).toHaveBeenCalledWith(
       expect.objectContaining({ search: { tab: 'messages' }, replace: true })
     )
+    // Mounted now, the messages tab would read the audit entry's id from the URL as a message id.
+    expect(screen.queryByText('messages-tab')).not.toBeInTheDocument()
+    expect(state.mounts.messages).toBe(0)
+  })
+
+  it('replaces a tab that does not exist by the first one, alone', () => {
+    renderPage({ tab: 'settings', id: 'x' } as unknown as LogsSearch)
+    expect(state.navigate).toHaveBeenCalledWith(
+      expect.objectContaining({ search: { tab: 'messages' }, replace: true })
+    )
+    expect(state.mounts.messages).toBe(0)
   })
 
   it('keeps an audit link while the access loads, then opens it', () => {

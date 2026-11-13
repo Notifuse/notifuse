@@ -10,11 +10,13 @@ import { AuditLogTab } from '../components/logs/AuditLogTab'
 import { PageHeader } from '../components/layout'
 import { useAuditLogAccess } from '../hooks/useAuditLogAccess'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
-import type { LogsSearch, LogsTab } from '../components/logs/logsSearch'
+import { parseLogsSearch, type LogsTab } from '../components/logs/logsSearch'
+import { searchString } from '../lib/searchParams'
 
 export function LogsPage() {
   const { workspaceId = '' } = useParams({ strict: false })
-  const search = useSearch({ strict: false }) as LogsSearch
+  // The router keeps the raw value of a key its parser dropped: an unknown tab arrives as written.
+  const raw = useSearch({ strict: false }) as Record<string, unknown>
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useLingui()
@@ -34,12 +36,14 @@ export function LogsPage() {
       ]
     : []
   const first = allowed[0]
-  const requested = search.tab
-  const refused = ready && requested !== undefined && !allowed.includes(requested)
-  const active = requested !== undefined && !refused ? requested : first
+  const requested = searchString(raw.tab)
+  const refused =
+    ready && requested !== undefined && !(allowed as readonly string[]).includes(requested)
+  const active = (!refused && parseLogsSearch(raw).tab) || first
 
-  // A tab the member may not open is replaced by the first one, alone: its parameters (an audit
-  // entry's `id`) would mean something else there. A link without a tab keeps its filters.
+  // A tab the member may not open, or that does not exist, is replaced by the first one, alone: its
+  // parameters (an audit entry's `id`) would mean something else there, so no tab shows until the
+  // URL holds the tab alone. A link without a tab keeps its filters.
   useEffect(() => {
     if (!refused || !first) return
     void navigate({
@@ -59,7 +63,7 @@ export function LogsPage() {
     />
   )
 
-  if (!ready) {
+  if (!ready || (refused && first)) {
     return (
       <div className="flex flex-col gap-3">
         {header}
