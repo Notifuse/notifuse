@@ -34,7 +34,9 @@ const broadcastListColumns = `id,
 			paused_at,
 			pause_reason,
 			data_feed,
-			tracking_mode`
+			tracking_mode,
+			COALESCE(test_phase_recipient_count, 0),
+			COALESCE(winner_phase_recipient_count, 0)`
 
 // escapeLikePattern escapes the characters that carry special meaning in a SQL
 // LIKE/ILIKE pattern so a user-provided search term is matched literally.
@@ -122,9 +124,11 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			paused_at,
 			pause_reason,
 			data_feed,
-			tracking_mode
+			tracking_mode,
+			test_phase_recipient_count,
+			winner_phase_recipient_count
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NULLIF($22, '')
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NULLIF($22, ''), $23, $24
 		)
 	`
 
@@ -151,6 +155,8 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.PauseReason,
 		broadcast.DataFeed,
 		broadcast.TrackingMode,
+		broadcast.TestPhaseRecipientCount,
+		broadcast.WinnerPhaseRecipientCount,
 	)
 
 	if err != nil {
@@ -185,7 +191,9 @@ const getBroadcastQuery = `
 			paused_at,
 			pause_reason,
 			data_feed,
-			tracking_mode
+			tracking_mode,
+			COALESCE(test_phase_recipient_count, 0),
+			COALESCE(winner_phase_recipient_count, 0)
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -272,7 +280,9 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			pause_reason = $18,
 			enqueued_count = $19,
 			data_feed = $20,
-			tracking_mode = NULLIF($21, '')
+			tracking_mode = NULLIF($21, ''),
+			test_phase_recipient_count = $22,
+			winner_phase_recipient_count = $23
 		WHERE id = $1 AND workspace_id = $2
 			AND status != 'cancelled'
 			AND status != 'processed'
@@ -300,6 +310,8 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.EnqueuedCount,
 		broadcast.DataFeed,
 		broadcast.TrackingMode,
+		broadcast.TestPhaseRecipientCount,
+		broadcast.WinnerPhaseRecipientCount,
 	)
 
 	if err != nil {
@@ -652,6 +664,8 @@ func scanBroadcast(scanner interface {
 		&pauseReason,
 		&dataFeed,
 		&trackingMode,
+		&broadcast.TestPhaseRecipientCount,
+		&broadcast.WinnerPhaseRecipientCount,
 	)
 
 	if err != nil {

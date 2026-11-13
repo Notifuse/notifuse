@@ -1672,6 +1672,8 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 		// Set final enqueued count on the broadcast (included in atomic update)
 		broadcast.EnqueuedCount = broadcastState.EnqueuedCount
+		// A copy SelectWinner wrote may still hold no phase counts
+		setPhaseRecipientCounts(broadcast, broadcastState)
 
 		// Save the updated broadcast (includes enqueued_count atomically)
 		updateErr := o.broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
@@ -1710,6 +1712,15 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	}).Info("Broadcast processing cycle completed")
 	// codecov:ignore:end
 	return allDone, err
+}
+
+// setPhaseRecipientCounts puts the A/B test and winner recipient counts the run
+// worked out on the broadcast it is about to write. The run reads the broadcast
+// again before each batch, so counts set when they were worked out do not reach
+// the copy written; a broadcast with one template keeps 0 for both.
+func setPhaseRecipientCounts(broadcast *domain.Broadcast, state *domain.SendBroadcastState) {
+	broadcast.TestPhaseRecipientCount = state.TestPhaseRecipientCount
+	broadcast.WinnerPhaseRecipientCount = state.WinnerPhaseRecipientCount
 }
 
 // handleTestPhaseCompletion handles the transition from test phase to test_completed status
@@ -1756,6 +1767,7 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 		if broadcast.TestSentAt == nil {
 			broadcast.TestSentAt = &now
 		}
+		setPhaseRecipientCounts(broadcast, broadcastState)
 		return o.broadcastRepo.UpdateBroadcastTx(context.Background(), tx, broadcast)
 	})
 	if err != nil {
