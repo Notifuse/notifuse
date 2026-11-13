@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App, ConfigProvider } from 'antd'
+import dayjs from '../../lib/dayjs'
 import { MessageHistoryTable } from './MessageHistoryTable'
 import type { MessageHistory, MessageData } from '../../services/api/messages_history'
 import type { Workspace } from '../../services/api/types'
@@ -34,7 +35,11 @@ const message = (id: string, messageData: Partial<MessageData>): MessageHistory 
     updated_at: '2026-08-01T10:00:00Z'
   }) as MessageHistory
 
-const renderTable = (messages: MessageHistory[], visibleColumns?: Record<string, boolean>) => {
+const renderTable = (
+  messages: MessageHistory[],
+  visibleColumns?: Record<string, boolean>,
+  tableWorkspace: Workspace = workspace
+) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -45,7 +50,7 @@ const renderTable = (messages: MessageHistory[], visibleColumns?: Record<string,
             loading={false}
             isLoadingMore={false}
             onLoadMore={() => {}}
-            workspace={workspace}
+            workspace={tableWorkspace}
             visibleColumns={visibleColumns}
           />
         </App>
@@ -176,5 +181,17 @@ describe('MessageHistoryTable error column', () => {
     renderTable([failed('m1', undefined)])
 
     expect(screen.queryByText(/rejected with code/)).not.toBeInTheDocument()
+  })
+})
+
+describe('MessageHistoryTable dates', () => {
+  it('gives the full date on the clock of the workspace timezone it names', async () => {
+    const tokyo = { ...workspace, settings: { timezone: 'Asia/Tokyo' } } as unknown as Workspace
+    renderTable([message('m1', { data: {} })], undefined, tokyo)
+
+    fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
+
+    // 10:00 UTC is 19:00 in Tokyo, whatever timezone the browser runs in.
+    expect(await screen.findByText('Aug 1, 2026 7:00 PM in Asia/Tokyo')).toBeInTheDocument()
   })
 })
