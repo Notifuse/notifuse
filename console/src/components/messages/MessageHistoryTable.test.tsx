@@ -191,7 +191,17 @@ describe('MessageHistoryTable dates', () => {
 
     fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
 
-    // 10:00 UTC is 19:00 in Tokyo, whatever timezone the browser runs in.
+    // 10:00 UTC is 19:00 in Tokyo. The browser's clock, which the old label used, shows another
+    // hour on every runner not itself in Tokyo.
     expect(await screen.findByText('Aug 1, 2026 7:00 PM in Asia/Tokyo')).toBeInTheDocument()
+  })
+
+  it('falls back to UTC when the workspace has no timezone', async () => {
+    const unset = { ...workspace, settings: { timezone: '' } } as unknown as Workspace
+    renderTable([message('m1', { data: {} })], undefined, unset)
+
+    fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
+
+    expect(await screen.findByText('Aug 1, 2026 10:00 AM in UTC')).toBeInTheDocument()
   })
 })

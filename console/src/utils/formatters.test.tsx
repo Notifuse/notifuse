@@ -9,7 +9,8 @@ describe('formatValue dates', () => {
 
     fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-12T10:00:00Z').fromNow()))
 
-    // 10:00 UTC is 19:00 in Tokyo, whatever timezone the browser runs in.
+    // 10:00 UTC is 19:00 in Tokyo. The browser's clock, which the old label used, shows another
+    // hour on every runner not itself in Tokyo.
     expect(await screen.findByText('Wednesday, August 12, 2026 7:00 PM in Asia/Tokyo')).toBeInTheDocument()
   })
 
