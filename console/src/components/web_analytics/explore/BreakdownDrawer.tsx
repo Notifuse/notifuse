@@ -5,7 +5,7 @@ import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from '../context'
 import { formatDimensionValue, getDimensionLabel } from '../lib/dimensions'
 import { ExploreRow } from '../lib/exploreRows'
-import { formatDuration, formatNumber, toNumber } from '../lib/format'
+import { formatDuration, formatNumber, formatPercent, toNumber } from '../lib/format'
 import { getHeatMapStyle } from '../lib/heatmap'
 import { buildWebQuery, webAnalyticsClient } from '../lib/query'
 import {
@@ -220,7 +220,7 @@ function BreakdownTable(props: BreakdownTableProps) {
           dataIndex: 'bounce_rate',
           width: 70,
           align: 'right',
-          render: (value: unknown) => `${toNumber(value).toFixed(1)}%`
+          render: (value: unknown) => formatPercent(toNumber(value))
         }
       ]}
     />
