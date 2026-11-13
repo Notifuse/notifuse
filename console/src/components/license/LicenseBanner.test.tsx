@@ -1,10 +1,20 @@
-import { afterEach, describe, it, expect, vi } from 'vitest'
+import { afterAll, afterEach, describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { LicenseContext, LicenseContextValue, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import { LicenseBanner } from './LicenseBanner'
 import { LICENSE_BANNER_HEIGHT_VAR } from './bannerOffset'
 import type { Entitlements } from '../../types/license'
 import { activateDayjsLocale } from '../../i18n/dayjsLocales'
+
+// The dates here are read on the browser's clock. Pinned to UTC so the day the tests expect is the
+// day shown on any runner, including one east of UTC+11 or west of UTC-10. Restored after the
+// file: a worker can go on to run other files.
+const runnerTimeZone = process.env.TZ
+process.env.TZ = 'UTC'
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({

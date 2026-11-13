@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterAll, describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
@@ -6,6 +6,16 @@ import { I18nProvider } from '@lingui/react'
 import { AcceptInvitationPage } from '../pages/AcceptInvitationPage'
 import { workspaceService } from '../services/api/workspace'
 import { activateDayjsLocale } from '../i18n/dayjsLocales'
+
+// The dates here are read on the browser's clock. Pinned to UTC so the day the tests expect is the
+// day shown on any runner, including one east of UTC+11 or west of UTC-10. Restored after the
+// file: a worker can go on to run other files.
+const runnerTimeZone = process.env.TZ
+process.env.TZ = 'UTC'
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
 
 // Signing out ends the account's sessions on every device, so the page may do it only for a
 // valid link addressed to someone else — never for a dead link, such as one whose invitation

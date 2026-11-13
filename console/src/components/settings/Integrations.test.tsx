@@ -1,5 +1,5 @@
 import type React from 'react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterAll, describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from 'antd'
@@ -12,6 +12,16 @@ import type { Integration, Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { activateDayjsLocale } from '../../i18n/dayjsLocales'
 import { getWebhookStatus, registerWebhook } from '../../services/api/webhook_registration'
+
+// The dates here are read on the browser's clock. Pinned to UTC so the day the tests expect is the
+// day shown on any runner, including one east of UTC+11 or west of UTC-10. Restored after the
+// file: a worker can go on to run other files.
+const runnerTimeZone = process.env.TZ
+process.env.TZ = 'UTC'
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 

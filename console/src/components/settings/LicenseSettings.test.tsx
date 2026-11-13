@@ -1,10 +1,20 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterAll, describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App as AntApp } from 'antd'
 import { LicenseContext, LicenseContextValue, UNKNOWN_LICENSE } from '../../contexts/licenseState'
 import { LicenseSettings } from './LicenseSettings'
 import type { Entitlements } from '../../types/license'
 import { activateDayjsLocale } from '../../i18n/dayjsLocales'
+
+// The dates here are read on the browser's clock. Pinned to UTC so the day the tests expect is the
+// day shown on any runner, including one east of UTC+11 or west of UTC-10. Restored after the
+// file: a worker can go on to run other files.
+const runnerTimeZone = process.env.TZ
+process.env.TZ = 'UTC'
+afterAll(() => {
+  if (runnerTimeZone === undefined) delete process.env.TZ
+  else process.env.TZ = runnerTimeZone
+})
 
 const { setLicense } = vi.hoisted(() => ({ setLicense: vi.fn() }))
 

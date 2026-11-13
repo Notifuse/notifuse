@@ -4,7 +4,7 @@
 
 Six dates are written with `toLocaleDateString()` / `toLocaleString()`, which use the browser's
 language, not the console's: a French console in an English browser shows "8/1/2026". They were
-left out of #550 and #553 and listed there as known. Pierre chose to align them in one small PR.
+left out of #550 and #553, and listed as out of scope in #550's plan. Pierre chose to align them in one small PR.
 
 - `components/settings/Integrations.tsx` `formatConnectedOn`: the day a Zapier card was connected.
 - `components/settings/LicenseSettings.tsx`: the licence's Expires row.
@@ -22,8 +22,8 @@ left out of #550 and #553 and listed there as known. Pierre chose to align them 
 2. `formatConnectedOn` keeps its guard: `dayjs(value).isValid()`, else an em dash. Its comment is
    updated.
 3. The two prompts keep a call expression inside `t`, so their message ids keep the positional
-   placeholder (`{0}`) and stay translated. `npm run lingui:extract` adds no message (reference churn
-   only, not kept).
+   placeholder (`{0}`) and stay translated. `npm run lingui:extract` adds no message and changes no
+   msgid or msgstr (only references and placeholder comments move, not kept).
 4. English changes too: in a US-English browser, "8/1/2026" becomes "Aug 1, 2026", and "8/1/2026, 10:00:00 AM" becomes
    "Aug 1, 2026 10:00 AM", as `WorkspaceMembers` already writes dates (`dateStyle: 'medium'`).
 5. **CHANGELOG**: folded into the unreleased 44.0 Improvement bullet on dates following the console
@@ -31,8 +31,10 @@ left out of #550 and #553 and listed there as known. Pierre chose to align them 
 
 ## Tests (TDD: written first, seen failing)
 
-Each activates the French dayjs locale and puts English back afterwards. Instants are at midday UTC,
-so the day is the same on any runner clock from UTC−11 to UTC+11.
+Each activates the French dayjs locale and puts English back afterwards. The dates are read on the
+browser's clock, so each of the four files pins `TZ=UTC` and restores it after the file, as
+`i18n/dateFormats.test.ts` does: the expected day is then the one shown on any runner, including one
+at UTC+14 or UTC−12.
 
 - `components/license/LicenseBanner.test.tsx`: the grace banner reads "expired on 1 mars 2026".
 - `components/settings/LicenseSettings.test.tsx`: the Expires row reads "15 mars 2027".
@@ -45,8 +47,9 @@ so the day is the same on any runner clock from UTC−11 to UTC+11.
 
 ## Out of scope
 
-- Numbers written with `toLocaleString()` (counts in the CSV import, the export modal, sending
-  progress, rate limits) still follow the browser's language.
+- Numbers written with `toLocaleString()` still follow the browser's language: counts in the CSV
+  import, the export modal, sending progress and the backfill status, rate limits, timeline values,
+  and web analytics values.
 
 ## Verification
 
