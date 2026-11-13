@@ -52,6 +52,7 @@ import { AUDIT_ACTOR_TYPES, AUDIT_OUTCOMES, type AuditPeriod, type LogsSearch } 
 import { formatLogDateTime, formatLogTime } from './logTime'
 import { defaultAuditPeriod } from './period'
 import { useLogsUrl } from './useLogsUrl'
+import { TextFilter } from './TextFilter'
 import { useDebouncedUrlValue } from '../../lib/useDebouncedUrlValue'
 
 const PAGE_SIZE = 50
@@ -729,35 +730,6 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
         }
         onClose={() => update({ id: undefined }, { replace: true })}
       />
-    </div>
-  )
-}
-
-function TextFilter({
-  initial,
-  placeholder,
-  onApply
-}: {
-  initial: string
-  placeholder: string
-  onApply: (value: string) => void
-}) {
-  const { t } = useLingui()
-  const [value, setValue] = useState(initial)
-  return (
-    <div className="flex items-center gap-2">
-      <Input
-        autoFocus
-        size="small"
-        placeholder={placeholder}
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        onPressEnter={() => onApply(value.trim())}
-        style={{ width: 240 }}
-      />
-      <Button size="small" type="primary" onClick={() => onApply(value.trim())}>
-        {t`Apply`}
-      </Button>
     </div>
   )
 }

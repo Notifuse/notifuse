@@ -39,3 +39,73 @@ export const DELIVERY_STATUS_LABELS: Record<
   retrying: msg`Retrying`,
   failed: msg`Failed`
 }
+
+/** Providers and services that send webhooks to Notifuse. */
+export const WEBHOOK_SOURCE_LABELS: Record<
+  'ses' | 'postmark' | 'mailgun' | 'sparkpost' | 'mailjet' | 'smtp' | 'sendgrid' | 'supabase',
+  MessageDescriptor
+> = {
+  ses: msg`Amazon SES`,
+  postmark: msg`Postmark`,
+  mailgun: msg`Mailgun`,
+  sparkpost: msg`SparkPost`,
+  mailjet: msg`Mailjet`,
+  smtp: msg`SMTP`,
+  sendgrid: msg`SendGrid`,
+  supabase: msg`Supabase`
+}
+
+/** Types of incoming webhook events. */
+export const INBOUND_EVENT_LABELS: Record<
+  | 'delivered'
+  | 'bounce'
+  | 'complaint'
+  | 'unsubscribe'
+  | 'reply'
+  | 'auto_reply'
+  | 'auth_email'
+  | 'before_user_created',
+  MessageDescriptor
+> = {
+  delivered: msg`Delivered`,
+  bounce: msg`Bounce`,
+  complaint: msg`Complaint`,
+  unsubscribe: msg`Unsubscribe`,
+  reply: msg`Reply`,
+  auto_reply: msg`Auto-reply`,
+  auth_email: msg`Auth email`,
+  before_user_created: msg`User created`
+}
+
+/** Origins of a message, as the Origin filter and the Message column name them. */
+export const MESSAGE_ORIGIN_LABELS: Record<
+  'broadcast' | 'automation' | 'transactional' | 'other',
+  MessageDescriptor
+> = {
+  broadcast: msg`Newsletter`,
+  automation: msg`Automation`,
+  transactional: msg`Transactional`,
+  other: msg`Other`
+}
+
+/** The most advanced status of a message (lib/messageStatus). */
+export const MESSAGE_STATUS_LABELS: Record<
+  | 'failed'
+  | 'complained'
+  | 'bounced'
+  | 'unsubscribed'
+  | 'clicked'
+  | 'opened'
+  | 'delivered'
+  | 'sent',
+  MessageDescriptor
+> = {
+  failed: msg`Failed`,
+  complained: msg`Complaint`,
+  bounced: msg`Bounced`,
+  unsubscribed: msg`Unsubscribed`,
+  clicked: msg`Clicked`,
+  opened: msg`Opened`,
+  delivered: msg`Delivered`,
+  sent: msg`Sent`
+}

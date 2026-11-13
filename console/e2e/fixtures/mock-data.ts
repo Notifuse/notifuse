@@ -549,7 +549,27 @@ export const mockSegments = [
     color: 'blue',
     timezone: 'UTC',
     // The definition the console reads; `rules` is the legacy shape.
-    tree: { kind: 'branch', branch: { operator: 'and', leaves: [{ kind: 'leaf', leaf: { source: 'contact_timeline', contact_timeline: { kind: 'open_email', count_operator: 'at_least', count_value: 1, timeframe_operator: 'in_the_last_days', timeframe_values: ['30'] } } }] } },
+    tree: {
+      kind: 'branch',
+      branch: {
+        operator: 'and',
+        leaves: [
+          {
+            kind: 'leaf',
+            leaf: {
+              source: 'contact_timeline',
+              contact_timeline: {
+                kind: 'open_email',
+                count_operator: 'at_least',
+                count_value: 1,
+                timeframe_operator: 'in_the_last_days',
+                timeframe_values: ['30']
+              }
+            }
+          }
+        ]
+      }
+    },
     name: 'Active Users',
     description: 'Users who opened email in last 30 days',
     contact_count: 150,
@@ -574,7 +594,30 @@ export const mockSegments = [
     color: 'green',
     timezone: 'UTC',
     // The definition the console reads; `rules` is the legacy shape.
-    tree: { kind: 'branch', branch: { operator: 'and', leaves: [{ kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'country', field_type: 'string', operator: 'equals', string_values: ['US'] }] } } }] } },
+    tree: {
+      kind: 'branch',
+      branch: {
+        operator: 'and',
+        leaves: [
+          {
+            kind: 'leaf',
+            leaf: {
+              source: 'contacts',
+              contact: {
+                filters: [
+                  {
+                    field_name: 'country',
+                    field_type: 'string',
+                    operator: 'equals',
+                    string_values: ['US']
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
     name: 'US Customers',
     description: 'Contacts located in the United States',
     contact_count: 250,
@@ -599,7 +642,46 @@ export const mockSegments = [
     color: 'orange',
     timezone: 'UTC',
     // The definition the console reads; `rules` is the legacy shape.
-    tree: { kind: 'branch', branch: { operator: 'or', leaves: [{ kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'custom_string_2', field_type: 'string', operator: 'equals', string_values: ['Enterprise'] }] } } }, { kind: 'leaf', leaf: { source: 'contacts', contact: { filters: [{ field_name: 'custom_string_2', field_type: 'string', operator: 'equals', string_values: ['Pro'] }] } } }] } },
+    tree: {
+      kind: 'branch',
+      branch: {
+        operator: 'or',
+        leaves: [
+          {
+            kind: 'leaf',
+            leaf: {
+              source: 'contacts',
+              contact: {
+                filters: [
+                  {
+                    field_name: 'custom_string_2',
+                    field_type: 'string',
+                    operator: 'equals',
+                    string_values: ['Enterprise']
+                  }
+                ]
+              }
+            }
+          },
+          {
+            kind: 'leaf',
+            leaf: {
+              source: 'contacts',
+              contact: {
+                filters: [
+                  {
+                    field_name: 'custom_string_2',
+                    field_type: 'string',
+                    operator: 'equals',
+                    string_values: ['Pro']
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
     name: 'Enterprise Plans',
     description: 'Contacts on enterprise plans',
     contact_count: 45,
@@ -864,6 +946,17 @@ export const mockEmptyLogs = {
   has_more: false
 }
 
+// The messages.count shape (MessageCounts) of an empty workspace.
+export const mockEmptyMessageCounts = {
+  total: 0,
+  delivered: 0,
+  opened: 0,
+  clicked: 0,
+  bounced: 0,
+  failed: 0,
+  complained: 0
+}
+
 // ============================================
 // FILES
 // ============================================
@@ -1007,8 +1100,22 @@ export const mockAutomations = [
     root_node_id: 'w-trigger',
     nodes: [
       automationNode('auto-welcome', 'w-trigger', 'trigger', {}, 50, 'w-email'),
-      automationNode('auto-welcome', 'w-email', 'email', { template_id: 'tpl-1', description: 'Welcome email' }, 250, 'w-delay'),
-      automationNode('auto-welcome', 'w-delay', 'delay', { duration: 2, unit: 'days' }, 450, 'w-filter'),
+      automationNode(
+        'auto-welcome',
+        'w-email',
+        'email',
+        { template_id: 'tpl-1', description: 'Welcome email' },
+        250,
+        'w-delay'
+      ),
+      automationNode(
+        'auto-welcome',
+        'w-delay',
+        'delay',
+        { duration: 2, unit: 'days' },
+        450,
+        'w-filter'
+      ),
       automationNode(
         'auto-welcome',
         'w-filter',
@@ -1017,15 +1124,43 @@ export const mockAutomations = [
           description: 'Opened the welcome email',
           conditions: {
             kind: 'leaf',
-            leaf: { source: 'contacts', contact: { filters: [{ field_name: 'email', field_type: 'string', operator: 'contains', string_values: ['@'] }] } }
+            leaf: {
+              source: 'contacts',
+              contact: {
+                filters: [
+                  {
+                    field_name: 'email',
+                    field_type: 'string',
+                    operator: 'contains',
+                    string_values: ['@']
+                  }
+                ]
+              }
+            }
           },
           continue_node_id: 'w-tour',
           exit_node_id: 'w-remind'
         },
         650
       ),
-      automationNode('auto-welcome', 'w-tour', 'email', { template_id: 'tpl-2', description: 'Product tour' }, 900, undefined, 230),
-      automationNode('auto-welcome', 'w-remind', 'email', { template_id: 'tpl-1', description: 'Reminder' }, 900, undefined, 570)
+      automationNode(
+        'auto-welcome',
+        'w-tour',
+        'email',
+        { template_id: 'tpl-2', description: 'Product tour' },
+        900,
+        undefined,
+        230
+      ),
+      automationNode(
+        'auto-welcome',
+        'w-remind',
+        'email',
+        { template_id: 'tpl-1', description: 'Reminder' },
+        900,
+        undefined,
+        570
+      )
     ],
     created_at: '2026-09-01T09:00:00Z',
     updated_at: '2026-11-10T14:00:00Z'
@@ -1037,11 +1172,21 @@ export const mockAutomations = [
     status: 'paused',
     list_id: '',
     exit_on_reply: false,
-    trigger: { event_kind: 'custom_event', custom_event_name: 'trial_started', frequency: 'every_time' },
+    trigger: {
+      event_kind: 'custom_event',
+      custom_event_name: 'trial_started',
+      frequency: 'every_time'
+    },
     root_node_id: 't-trigger',
     nodes: [
       automationNode('auto-tag', 't-trigger', 'trigger', {}, 50, 't-add'),
-      automationNode('auto-tag', 't-add', 'add_to_list', { list_id: 'list-2', status: 'active' }, 250)
+      automationNode(
+        'auto-tag',
+        't-add',
+        'add_to_list',
+        { list_id: 'list-2', status: 'active' },
+        250
+      )
     ],
     created_at: '2026-10-01T09:00:00Z',
     updated_at: '2026-11-01T09:00:00Z'
@@ -1100,9 +1245,31 @@ export const mockAutomationNodeStats = {
       skip_reasons: { unsubscribed: 2 },
       email: emailStats(1236, 642, 188)
     }),
-    'w-delay': stepStats({ node_type: 'delay', visits: 1236, completed: 1102, waiting: 134, in_progress: 134 }),
-    'w-filter': stepStats({ node_type: 'filter', visits: 1102, completed: 1102, branches: { yes: 701, no: 401 } }),
-    'w-tour': stepStats({ node_type: 'email', visits: 701, completed: 699, failed_journeys: 2, email: emailStats(699, 380, 121) }),
-    'w-remind': stepStats({ node_type: 'email', visits: 401, completed: 401, email: emailStats(401, 143, 22) })
+    'w-delay': stepStats({
+      node_type: 'delay',
+      visits: 1236,
+      completed: 1102,
+      waiting: 134,
+      in_progress: 134
+    }),
+    'w-filter': stepStats({
+      node_type: 'filter',
+      visits: 1102,
+      completed: 1102,
+      branches: { yes: 701, no: 401 }
+    }),
+    'w-tour': stepStats({
+      node_type: 'email',
+      visits: 701,
+      completed: 699,
+      failed_journeys: 2,
+      email: emailStats(699, 380, 121)
+    }),
+    'w-remind': stepStats({
+      node_type: 'email',
+      visits: 401,
+      completed: 401,
+      email: emailStats(401, 143, 22)
+    })
   }
 }

@@ -1,10 +1,9 @@
 import { Result, Skeleton, Tabs } from 'antd'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import { useEffect } from 'react'
-import { MessageHistoryTab } from '../components/messages/MessageHistoryTab'
-import { InboundWebhookEventsTab } from '../components/webhooks/InboundWebhookEventsTab'
+import { MessagesTab } from '../components/logs/MessagesTab'
+import { InboundWebhooksTab } from '../components/logs/InboundWebhooksTab'
 import { OutgoingWebhooksTab } from '../components/logs/OutgoingWebhooksTab'
 import { AuditLogTab } from '../components/logs/AuditLogTab'
 import { PageHeader } from '../components/layout'
@@ -18,7 +17,6 @@ export function LogsPage() {
   // The router keeps the raw value of a key its parser dropped: an unknown tab arrives as written.
   const raw = useSearch({ strict: false }) as Record<string, unknown>
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const { t } = useLingui()
   const { workspaces } = useAuth()
   const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
@@ -99,18 +97,9 @@ export function LogsPage() {
   const content = (tab: LogsTab) => {
     switch (tab) {
       case 'messages':
-        return <MessageHistoryTab workspaceId={workspaceId} />
+        return <MessagesTab workspaceId={workspaceId} permissions={permissions} />
       case 'incoming-webhooks':
-        return (
-          <InboundWebhookEventsTab
-            workspaceId={workspaceId}
-            onRefresh={() =>
-              void queryClient.invalidateQueries({
-                queryKey: ['inbound-webhook-events', workspaceId]
-              })
-            }
-          />
-        )
+        return <InboundWebhooksTab workspaceId={workspaceId} permissions={permissions} />
       case 'outgoing-webhooks':
         return <OutgoingWebhooksTab workspaceId={workspaceId} />
       case 'audit':

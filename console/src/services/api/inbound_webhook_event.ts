@@ -1,7 +1,16 @@
 import { api } from './client'
 
-export type EmailEventType = 'delivered' | 'bounce' | 'complaint' | 'unsubscribe' | 'auth_email' | 'before_user_created'
-export type WebhookSource = 'ses' | 'sparkpost' | 'mailgun' | 'mailjet' | 'postmark' | 'smtp' | 'supabase' | 'sendgrid'
+export type EmailEventType =
+  | 'delivered'
+  | 'bounce'
+  | 'complaint'
+  | 'unsubscribe'
+  | 'reply'
+  | 'auto_reply'
+  | 'auth_email'
+  | 'before_user_created'
+export type WebhookSource =
+  'ses' | 'sparkpost' | 'mailgun' | 'mailjet' | 'postmark' | 'smtp' | 'supabase' | 'sendgrid'
 
 export interface InboundWebhookEvent {
   id: string
@@ -10,8 +19,6 @@ export interface InboundWebhookEvent {
   integration_id: string
   recipient_email: string
   message_id?: string
-  transactional_id?: string
-  broadcast_id?: string
   timestamp: string
   raw_payload: string
 
@@ -32,10 +39,9 @@ export interface InboundWebhookEventListParams {
 
   // Filters
   event_type?: EmailEventType
+  source?: WebhookSource
   recipient_email?: string
   message_id?: string
-  transactional_id?: string
-  broadcast_id?: string
 
   // Time range filters
   timestamp_after?: string
@@ -63,12 +69,13 @@ export function listInboundWebhookEvents(
   if (params.cursor) queryParams.append('cursor', params.cursor)
   if (params.limit) queryParams.append('limit', String(params.limit))
   if (params.event_type) queryParams.append('event_type', params.event_type)
+  if (params.source) queryParams.append('source', params.source)
   if (params.recipient_email) queryParams.append('recipient_email', params.recipient_email)
   if (params.message_id) queryParams.append('message_id', params.message_id)
-  if (params.transactional_id) queryParams.append('transactional_id', params.transactional_id)
-  if (params.broadcast_id) queryParams.append('broadcast_id', params.broadcast_id)
   if (params.timestamp_after) queryParams.append('timestamp_after', params.timestamp_after)
   if (params.timestamp_before) queryParams.append('timestamp_before', params.timestamp_before)
 
-  return api.get<InboundWebhookEventListResult>(`/api/inboundWebhookEvents.list?${queryParams.toString()}`)
+  return api.get<InboundWebhookEventListResult>(
+    `/api/inboundWebhookEvents.list?${queryParams.toString()}`
+  )
 }

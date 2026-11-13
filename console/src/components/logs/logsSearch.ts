@@ -7,6 +7,7 @@
  */
 
 import { searchString } from '../../lib/searchParams'
+import { isFullEmail } from '../../lib/email'
 
 export const LOGS_TABS = ['messages', 'incoming-webhooks', 'outgoing-webhooks', 'audit'] as const
 export type LogsTab = (typeof LOGS_TABS)[number]
@@ -185,6 +186,10 @@ export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
   // anything else (a bare date included).
   for (const key of ['from', 'to'] as const) {
     if (out[key] !== undefined && !isRfc3339(out[key])) delete out[key]
+  }
+  // The server answers 400 to an email filter that is not a full address (a link cut short).
+  for (const key of ['contact_email', 'recipient_email'] as const) {
+    if (out[key] !== undefined && !isFullEmail(out[key])) delete out[key]
   }
   return out
 }

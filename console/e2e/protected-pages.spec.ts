@@ -103,7 +103,9 @@ test.describe('Protected Pages Load', () => {
     expect(errors).toHaveLength(0)
   })
 
-  test('the former Lists page opens Contacts, with the lists in its rail', async ({ authenticatedPage }) => {
+  test('the former Lists page opens Contacts, with the lists in its rail', async ({
+    authenticatedPage
+  }) => {
     const page = authenticatedPage
     const errors = setupConsoleErrorTracking(page)
 
@@ -184,8 +186,10 @@ test.describe('Protected Pages Load', () => {
     await page.goto(`/console/workspace/${WORKSPACE_ID}/logs`)
     await waitForPageLoad(page)
 
-    await expect(page.getByText('Everything sent, received and changed in this workspace')).toBeVisible()
-    await expect(page.getByText('No messages found')).toBeVisible()
+    await expect(
+      page.getByText('Everything sent, received and changed in this workspace')
+    ).toBeVisible()
+    await expect(page.getByText('Nothing in the last 24 hours')).toBeVisible()
 
     // Check for critical console errors
     expect(errors).toHaveLength(0)

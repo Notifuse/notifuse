@@ -3,7 +3,9 @@ import {
   defaultAuditPeriod,
   defaultInboundPeriod,
   defaultMessagesPeriod,
-  periodBounds
+  periodBounds,
+  COUNT_MAX_PERIOD,
+  canCountMessages
 } from './period'
 
 // 2026-11-12 14:34:27.512 UTC
@@ -65,5 +67,24 @@ describe('default periods', () => {
   it('opens the audit log on all time for a target, seven days otherwise', () => {
     expect(defaultAuditPeriod({ target_id: 't1' })).toBe('all')
     expect(defaultAuditPeriod({ actor_email: 'a@b.co' })).toBe('7d')
+  })
+})
+
+describe('canCountMessages', () => {
+  it('counts every rolling period up to COUNT_MAX_PERIOD', () => {
+    expect(COUNT_MAX_PERIOD).toBe('7d')
+    for (const period of ['1h', '24h', '7d'] as const) {
+      expect(canCountMessages({}, period)).toBe(true)
+    }
+    expect(canCountMessages({}, '30d')).toBe(false)
+    expect(canCountMessages({ broadcast_id: 'b1' }, '30d')).toBe(true)
+  })
+
+  it('counts all time only with an indexed filter', () => {
+    expect(canCountMessages({}, 'all')).toBe(false)
+    expect(canCountMessages({ external_id: 'x' }, 'all')).toBe(false)
+    expect(canCountMessages({ list_id: 'l' }, 'all')).toBe(false)
+    expect(canCountMessages({ template_id: 't' }, 'all')).toBe(true)
+    expect(canCountMessages({ contact_email: 'ann@example.com' }, 'all')).toBe(true)
   })
 })

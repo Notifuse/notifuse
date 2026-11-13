@@ -20,7 +20,11 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigate,
   Link: ({ search, children }: { search?: Record<string, unknown>; children: ReactNode }) => {
     linkSearch(search)
-    return <a href={`/logs?${new URLSearchParams(search as Record<string, string>).toString()}`}>{children}</a>
+    return (
+      <a href={`/logs?${new URLSearchParams(search as Record<string, string>).toString()}`}>
+        {children}
+      </a>
+    )
   }
 }))
 
@@ -47,7 +51,9 @@ const lists = (complained: MessageHistory[], bounced: MessageHistory[], failed: 
 
 const renderCard = () =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <I18nProvider i18n={i18n}>
         <RecentFailures workspaceId="ws1" timezone="Europe/Paris" />
       </I18nProvider>
@@ -118,18 +124,20 @@ describe('RecentFailures', () => {
     })
   })
 
-  it('links to the failed messages in the logs', async () => {
+  it('links to the failed messages of all time in the logs', async () => {
     lists([], [], [])
     renderCard()
 
     expect((await screen.findByText('View in logs')).closest('a')).toHaveAttribute(
       'href',
-      '/logs?tab=messages&is_failed=true'
+      '/logs?tab=messages&is_failed=true&period=all'
     )
     // A boolean: the router would write the string 'true' JSON-quoted, read back as not true.
+    // All time: the card lists the latest failures whatever their date, past the tab's 24 hours.
     expect(linkSearch).toHaveBeenLastCalledWith({
       tab: 'messages',
-      is_failed: true
+      is_failed: true,
+      period: 'all'
     })
   })
 
