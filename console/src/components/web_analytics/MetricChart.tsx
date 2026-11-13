@@ -14,7 +14,7 @@ import {
   escapeTooltipHTML,
   sanitizeRichLabelText
 } from './lib/annotations'
-import { formatAxisValue, formatValue, formatXAxisLabel } from './lib/format'
+import { formatAxisValue, formatPercent, formatValue, formatXAxisLabel } from './lib/format'
 import {
   ChartDataPoint,
   COMPARISON_COLOR,
@@ -210,7 +210,7 @@ export function MetricChart(props: MetricChartProps) {
             const previousValue = Number(params[1].value ?? 0)
             const delta = previousValue !== 0 ? ((currentValue - previousValue) / previousValue) * 100 : 0
             const better = metric.invertTrend ? delta <= 0 : delta >= 0
-            const sign = delta >= 0 ? '+' : ''
+            const sign = delta >= 0 ? '+' : '-'
             rows.push(
               `<div>${bullet(COMPARISON_COLOR)}${params[1].seriesName}: <b>${formatValue(
                 previousValue,
@@ -218,9 +218,9 @@ export function MetricChart(props: MetricChartProps) {
                 props.currency
               )}</b>` +
                 (delta !== 0
-                  ? ` <span style="color:${better ? '#10b981' : '#ef4444'}">${sign}${delta.toFixed(
-                      1
-                    )}%</span>`
+                  ? ` <span style="color:${better ? '#10b981' : '#ef4444'}">${sign}${formatPercent(
+                      Math.abs(delta)
+                    )}</span>`
                   : '') +
                 `</div>`
             )

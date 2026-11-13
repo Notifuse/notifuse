@@ -1,4 +1,5 @@
 import { i18n } from '@lingui/core'
+import { msg } from '@lingui/core/macro'
 import dayjs from '../../../lib/dayjs'
 import { DayjsRange } from './dates'
 import { Granularity, ValueFormat } from './types'
@@ -18,27 +19,62 @@ export function toNumber(value: unknown): number {
   return 0
 }
 
-/** 1234 → "1.2K", 1234567 → "1.2M". */
+// Every label here is in the console's language, not the browser's: the active Lingui locale.
+const locale = (): string => i18n.locale || 'en'
+
+/**
+ * 999 → "999", 1234 → "1.2K", 1234567 → "1.2M" in English; "1,2 k" and "1,2 M" in French. Each
+ * language abbreviates its own way (Japanese "1.2万" from ten thousand, German not below a million).
+ */
 export function formatNumber(value: number): string {
   if (!Number.isFinite(value)) return '0'
-  const absolute = Math.abs(value)
-  if (absolute >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
-  if (absolute >= 1_000) return `${(value / 1_000).toFixed(1)}K`
-  return value.toFixed(0)
+  // Rounded before the cutoff, so 999.6 reads "1K" like 1000 does, not "1,000". Halves go away
+  // from zero, as Intl rounds them, so -999.5 reads "-1K" like 999.5 reads "1K".
+  const rounded = Math.sign(value) * Math.round(Math.abs(value))
+  if (Math.abs(rounded) < 1_000) {
+    return new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 }).format(value)
+  }
+  // Grouping forced: compact notation leaves German and Japanese four-digit counts ungrouped
+  // ("1234") where the rest of the console writes "1.234".
+  return new Intl.NumberFormat(locale(), {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+    useGrouping: true
+  }).format(Math.abs(value) < 1_000 ? rounded : value)
 }
 
-/** Seconds → "45s", "5m 12s", "2h 30m". */
-export function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return '0s'
-  if (seconds < 60) return `${Math.round(seconds)}s`
-  if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60)
-    const remainder = Math.round(seconds % 60)
-    return remainder > 0 ? `${minutes}m ${remainder}s` : `${minutes}m`
+/** A percentage given in percent: 12.5 → "12.5%" in English, "12,5 %" in French. */
+export function formatPercent(value: number, decimals = 1, minimumDecimals = decimals): string {
+  return new Intl.NumberFormat(locale(), {
+    style: 'percent',
+    minimumFractionDigits: minimumDecimals,
+    maximumFractionDigits: decimals
+  }).format(value / 100)
+}
+
+/**
+ * Seconds in the words of the console's language: "45 s", "5 min 12 s", "5 min", "1 h 05 min",
+ * "2 h". The same messages as a contact's visits (contacts/visits/duration.ts), plus the two
+ * round forms.
+ */
+export function formatDuration(value: number): string {
+  const total = Number.isFinite(value) && value > 0 ? Math.round(value) : 0
+  if (total < 60) {
+    const seconds = total
+    return i18n._(msg`${seconds} s`)
   }
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.round((seconds % 3600) / 60)
-  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
+  if (total < 3600) {
+    const minutes = Math.floor(total / 60)
+    const seconds = total % 60
+    return seconds > 0 ? i18n._(msg`${minutes} min ${seconds} s`) : i18n._(msg`${minutes} min`)
+  }
+  // Rounded to the minute from the value itself, not from its rounded seconds.
+  const roundedMinutes = Math.round(value / 60)
+  const hours = Math.floor(roundedMinutes / 60)
+  const rest = roundedMinutes % 60
+  if (rest === 0) return i18n._(msg`${hours} h`)
+  const mm = String(rest).padStart(2, '0')
+  return i18n._(msg`${hours} h ${mm} min`)
 }
 
 /**
@@ -48,26 +84,24 @@ export function formatDuration(seconds: number): string {
  */
 export function formatCurrency(value: number, currency?: string): string {
   // The console's language, not the browser's: "1 235" in French, "1,235" in English.
-  const locale = i18n.locale || 'en'
-  if (!currency) {
-    return value.toLocaleString(locale, { maximumFractionDigits: value >= 1000 ? 0 : 2 })
-  }
-  const format = (amount: number) =>
-    new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      currencyDisplay: 'narrowSymbol',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: amount >= 1000 ? 0 : 2
-    }).format(amount)
-
+  const language = locale()
   const absolute = Math.abs(value)
-  // The suffix goes after the whole number, group separators included: French groups with a
-  // narrow no-break space, so "2 346 €" becomes "2 346M €", not "2M 346 €".
-  const amount = /\d(?:[\d.,\u202f\u00a0]*\d)?/
-  if (absolute >= 1_000_000) return format(value / 1_000_000).replace(amount, (n) => `${n}M`)
-  if (absolute >= 10_000) return format(value / 1_000).replace(amount, (n) => `${n}K`)
-  return format(value)
+  if (!currency) {
+    return value.toLocaleString(language, { maximumFractionDigits: absolute >= 1000 ? 0 : 2 })
+  }
+  // From ten thousand, each language's own units ("$12.5K", "12,5 k €", "2,35 Mio. €"). Rounded
+  // before the cutoff, so 9,999.5 reads "$10K" like 10,000; above it Intl picks the unit after
+  // rounding, so 999,999 reads "$1M", never "$1,000K". Grouping forced, as in formatNumber:
+  // Spanish writes thousands of millions ("2.345,68 M €") and Japanese 万 ("￥1,234.57万").
+  const compact = Math.round(absolute) >= 10_000
+  return new Intl.NumberFormat(language, {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: !compact && absolute >= 1000 ? 0 : 2,
+    ...(compact ? { notation: 'compact' as const, useGrouping: true } : {})
+  }).format(value)
 }
 
 export function formatValue(value: number, format: ValueFormat, currency?: string): string {
@@ -75,7 +109,7 @@ export function formatValue(value: number, format: ValueFormat, currency?: strin
     case 'duration':
       return formatDuration(value)
     case 'percentage':
-      return `${value.toFixed(1)}%`
+      return formatPercent(value)
     case 'currency':
       return formatCurrency(value, currency)
     default:
@@ -83,13 +117,19 @@ export function formatValue(value: number, format: ValueFormat, currency?: strin
   }
 }
 
-/** Shorter than formatValue: chart axes have no room for "5m 12s". */
+/** Shorter than formatValue: chart axes have no room for "5 min 12 s". */
 export function formatAxisValue(value: number, format: ValueFormat): string {
   switch (format) {
-    case 'duration':
-      return value < 60 ? `${Math.round(value)}s` : `${(value / 60).toFixed(1)}m`
+    case 'duration': {
+      if (Math.round(value) < 60) {
+        const seconds = Math.round(value)
+        return i18n._(msg`${seconds} s`)
+      }
+      const minutes = new Intl.NumberFormat(locale(), { maximumFractionDigits: 1 }).format(value / 60)
+      return i18n._(msg`${minutes} min`)
+    }
     case 'percentage':
-      return `${Math.round(value)}%`
+      return formatPercent(value, 0)
     default:
       return formatNumber(value)
   }

@@ -730,6 +730,10 @@ msgstr "{goalCount} objetivos"
 msgid "{hiddenBlockCount} blocks hidden by their condition with this test data."
 msgstr "{hiddenBlockCount} bloques ocultos por su condición con estos datos de prueba."
 
+#: src/components/web_analytics/lib/format.ts
+msgid "{hours} h"
+msgstr "{hours} h"
+
 #: src/components/contacts/visits/duration.ts:12
 msgid "{hours} h {mm} min"
 msgstr "{hours} h {mm} min"
@@ -785,6 +789,10 @@ msgstr "{median} de tiempo mediano en el sitio"
 #: src/components/blog/PostsTable.tsx:283
 msgid "{minutes, plural, one {# min read} other {# min read}}"
 msgstr "{minutes, plural, one {# min de lectura} other {# min de lectura}}"
+
+#: src/components/web_analytics/lib/format.ts
+msgid "{minutes} min"
+msgstr "{minutes} min"
 
 #: src/components/contacts/visits/duration.ts:14
 msgid "{minutes} min {seconds} s"

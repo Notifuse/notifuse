@@ -361,3 +361,19 @@ describe('MetricChart annotations', () => {
     expect(markLine()?.[0].xAxis).toBe(1)
   })
 })
+
+describe('MetricChart tooltip change', () => {
+  it('writes the change against the previous period with its sign', () => {
+    renderChart()
+    const formatter = option().tooltip.formatter
+    const pair = (current: number, previous: number): TooltipParam[] => [
+      { axisValue: 'Aug 14', value: current, seriesName: 'Aug 13-15', dataIndex: 1 },
+      { axisValue: 'Aug 14', value: previous, seriesName: 'Aug 6-8', dataIndex: 1 }
+    ]
+
+    expect(formatter(pair(120, 100))).toContain('+20.0%</span>')
+    expect(formatter(pair(80, 100))).toContain('-20.0%</span>')
+    expect(formatter(pair(80, 100))).not.toContain('--')
+  })
+})
+
