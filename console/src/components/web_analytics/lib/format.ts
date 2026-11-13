@@ -85,25 +85,20 @@ export function formatDuration(value: number): string {
 export function formatCurrency(value: number, currency?: string): string {
   // The console's language, not the browser's: "1 235" in French, "1,235" in English.
   const language = locale()
-  if (!currency) {
-    return value.toLocaleString(language, { maximumFractionDigits: value >= 1000 ? 0 : 2 })
-  }
-  const format = (amount: number) =>
-    new Intl.NumberFormat(language, {
-      style: 'currency',
-      currency,
-      currencyDisplay: 'narrowSymbol',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: amount >= 1000 ? 0 : 2
-    }).format(amount)
-
   const absolute = Math.abs(value)
-  // The suffix goes after the whole number, group separators included: French groups with a
-  // narrow no-break space, so "2 346 €" becomes "2 346M €", not "2M 346 €".
-  const amount = /\d(?:[\d.,\u202f\u00a0]*\d)?/
-  if (absolute >= 1_000_000) return format(value / 1_000_000).replace(amount, (n) => `${n}M`)
-  if (absolute >= 10_000) return format(value / 1_000).replace(amount, (n) => `${n}K`)
-  return format(value)
+  if (!currency) {
+    return value.toLocaleString(language, { maximumFractionDigits: absolute >= 1000 ? 0 : 2 })
+  }
+  // From ten thousand, each language's own units ("$12.5K", "12,5 k €", "2,35 Mio. €"). Intl
+  // picks the unit after rounding, so 999,999 reads "$1M", never "$1,000K".
+  return new Intl.NumberFormat(language, {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: absolute >= 1000 && absolute < 10_000 ? 0 : 2,
+    ...(absolute >= 10_000 ? { notation: 'compact' as const } : {})
+  }).format(value)
 }
 
 export function formatValue(value: number, format: ValueFormat, currency?: string): string {
