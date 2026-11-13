@@ -61,7 +61,9 @@ func TestWebAnalyticsConsoleQueryShapes(t *testing.T) {
 	// Rows are written directly so created_at can sit days in the past: the
 	// ingest path always stamps sessions with the current time, which cannot
 	// express a period boundary.
-	now := time.Now().UTC()
+	// Noon of the previous UTC day: the seeded hours (now-1h to now-3h) then
+	// fall on one day whatever the hour the suite runs, and stay in the past.
+	now := time.Now().UTC().Truncate(24 * time.Hour).Add(-12 * time.Hour)
 	for _, month := range []time.Time{now, now.AddDate(0, 0, -7), now.AddDate(0, -1, 0)} {
 		for _, table := range schema.WebAnalyticsTableNames {
 			_, err := wsDB.Exec(schema.WebAnalyticsPartitionDDL(table, month))
