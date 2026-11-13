@@ -10,7 +10,7 @@ import {
   groupByCategory
 } from './lib/dimensions'
 import { DIMENSION_VALUE_OPTIONS } from './lib/dictionaries'
-import { formatDuration } from './lib/format'
+import { formatDuration, formatPercent } from './lib/format'
 import {
   DimensionFilterOperator,
   MetricFilterOperator,
@@ -90,7 +90,7 @@ export function FilterBuilder(props: FilterBuilderProps) {
   const describeMetricValue = (filter: WebMetricFilter) =>
     filter.metric === 'median_duration'
       ? formatDuration(filter.values[0])
-      : `${filter.values[0]}%`
+      : formatPercent(filter.values[0], 2, 0)
 
   return (
     <div className="flex flex-wrap items-center gap-2">

@@ -730,6 +730,10 @@ msgstr "{goalCount}件のゴール"
 msgid "{hiddenBlockCount} blocks hidden by their condition with this test data."
 msgstr "このテストデータでは {hiddenBlockCount} 個のブロックが条件により非表示です。"
 
+#: src/components/web_analytics/lib/format.ts
+msgid "{hours} h"
+msgstr "{hours} 時間"
+
 #: src/components/contacts/visits/duration.ts:12
 msgid "{hours} h {mm} min"
 msgstr "{hours} 時間 {mm} 分"
@@ -785,6 +789,10 @@ msgstr "サイト滞在時間の中央値 {median}"
 #: src/components/blog/PostsTable.tsx:283
 msgid "{minutes, plural, one {# min read} other {# min read}}"
 msgstr "{minutes, plural, other {# 分で読めます}}"
+
+#: src/components/web_analytics/lib/format.ts
+msgid "{minutes} min"
+msgstr "{minutes} 分"
 
 #: src/components/contacts/visits/duration.ts:14
 msgid "{minutes} min {seconds} s"

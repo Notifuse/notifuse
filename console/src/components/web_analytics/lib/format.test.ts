@@ -6,6 +6,9 @@ import {
   formatDuration,
   formatNumber,
   formatCurrency,
+  formatPercent,
+  formatValue,
+  formatAxisValue,
   formatRangeSeriesName,
   toNumber,
   changePercent
@@ -72,11 +75,50 @@ describe('formatters', () => {
     expect(formatNumber(999)).toBe('999')
     expect(formatNumber(1500)).toBe('1.5K')
     expect(formatNumber(2_400_000)).toBe('2.4M')
-    expect(formatDuration(45)).toBe('45s')
-    expect(formatDuration(312)).toBe('5m 12s')
-    expect(formatDuration(300)).toBe('5m')
-    expect(formatDuration(9000)).toBe('2h 30m')
-    expect(formatDuration(0)).toBe('0s')
+    // Rounded before it is abbreviated: never "1000.0K".
+    expect(formatNumber(999_999)).toBe('1M')
+    expect(formatDuration(45)).toBe('45 s')
+    expect(formatDuration(312)).toBe('5 min 12 s')
+    expect(formatDuration(300)).toBe('5 min')
+    expect(formatDuration(9000)).toBe('2 h 30 min')
+    expect(formatDuration(3900)).toBe('1 h 05 min')
+    expect(formatDuration(7200)).toBe('2 h')
+    expect(formatDuration(0)).toBe('0 s')
+    // Seconds that round up to a minute carry over: never "4 min 60 s".
+    expect(formatDuration(299.6)).toBe('5 min')
+    expect(formatDuration(7199.9)).toBe('2 h')
+  })
+
+  it('writes percentages and axis values', () => {
+    expect(formatPercent(12.5)).toBe('12.5%')
+    expect(formatPercent(12.46, 0)).toBe('12%')
+    expect(formatValue(12.5, 'percentage')).toBe('12.5%')
+    expect(formatValue(312, 'duration')).toBe('5 min 12 s')
+    expect(formatAxisValue(12.6, 'percentage')).toBe('13%')
+    expect(formatAxisValue(45, 'duration')).toBe('45 s')
+    expect(formatAxisValue(150, 'duration')).toBe('2.5 min')
+    expect(formatAxisValue(1500, 'number')).toBe('1.5K')
+  })
+})
+
+describe('formatters in the console language', () => {
+  // Intl separates some French parts with a narrow no-break space; compared as plain spaces.
+  const plain = (text: string) => text.replace(/[\u202f\u00a0]/g, ' ')
+
+  it('writes counts, percentages and durations with the separators of the active language', () => {
+    i18n.load('fr', {})
+    i18n.activate('fr')
+    try {
+      expect(plain(formatNumber(999))).toBe('999')
+      expect(plain(formatNumber(1500))).toBe('1,5 k')
+      expect(plain(formatNumber(2_400_000))).toBe('2,4 M')
+      expect(plain(formatPercent(12.5))).toBe('12,5 %')
+      expect(plain(formatValue(12.5, 'percentage'))).toBe('12,5 %')
+      expect(plain(formatAxisValue(150, 'duration'))).toBe('2,5 min')
+      expect(plain(formatAxisValue(12.6, 'percentage'))).toBe('13 %')
+    } finally {
+      i18n.activate('en')
+    }
   })
 })
 
