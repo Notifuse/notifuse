@@ -78,7 +78,7 @@ keep `npm run lint` from passing, so that CI can run it. Console only; no API, S
 
 | File | Test file | Cases |
 |---|---|---|
-| `logs/AuditLogTab.tsx` | `AuditLogTab.test.tsx` | Refresh minutes later: exactly one more request (red first); the later `from` is pinned by the existing test above it. Guards, green today: Refresh in the same minute, on all time and on a custom range each ask once more. Clock pinned with `vi.spyOn(Date, 'now')` at a minute start; counts asserted once requests have settled |
+| `logs/AuditLogTab.tsx` | `AuditLogTab.test.tsx` | Refresh minutes later: exactly one more request (red first); that the window moves (a different `from`) is pinned by the existing test above it. Guards, green today: Refresh in the same minute, on all time and on a custom range each ask once more. Clock pinned with `vi.spyOn(Date, 'now')` at a minute start; counts asserted once requests have settled |
 | `blog/PostsTable.tsx` | `PostsTable.test.tsx` | The footer's count and Load more are direct children of `[data-panel-footer]`; the count span has no `text-sm` |
 | `logs/MessageDetail.tsx` | `MessageDetail.test.tsx` | `templates.get` answering without a template: the alert's description is the French text of "The server returned no template" when that translation is loaded (timeout 4000: the query retries once) |
 | `messages/MessageHistoryTable.tsx` | `MessageHistoryTable.test.tsx` | — (the message is not shown there; the change is the same translated text) |
