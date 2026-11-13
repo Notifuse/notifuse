@@ -5159,7 +5159,7 @@ msgstr "国レベル (約111kmの精度)"
 
 #: src/components/logs/MessagesTab.tsx:594
 msgid "Counts cover {countMax} at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"
-msgstr "件数は最大 {countMax} です。それより長く数えるには、メール、メッセージID、ニュースレター、オートメーション、通知、テンプレートのいずれかで絞り込んでください"
+msgstr "件数は最大 {countMax}です。それより長く数えるには、メール、メッセージID、ニュースレター、オートメーション、通知、テンプレートのいずれかで絞り込んでください"
 
 #: src/components/logs/MessagesTab.tsx:580
 #~ msgid "Counts cover 7 days at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"

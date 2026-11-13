@@ -73,7 +73,7 @@ export function defaultAuditPeriod(search: LogsSearch): AuditPeriod {
  */
 export const COUNT_MAX_PERIOD: CountedPeriod = '7d'
 
-/** A rolling period: the ones whose messages can be counted without an indexed filter. */
+/** Every rolling period, the ones COUNT_MAX_PERIOD can name; only those up to it are counted. */
 export type CountedPeriod = Exclude<LivePeriod, 'all'>
 
 const COUNTED_PERIODS: readonly LivePeriod[] = ['1h', '24h', '7d', '30d']

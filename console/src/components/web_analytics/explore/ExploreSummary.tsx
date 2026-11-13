@@ -1,14 +1,14 @@
-import { Skeleton, Tooltip } from 'antd'
-import { InfoCircleOutlined } from '@ant-design/icons'
-import { i18n } from '@lingui/core'
-import { useLingui } from '@lingui/react/macro'
-import { useWebAnalytics } from '../useWebAnalytics'
-import { Delta } from '../Delta'
-import { ExploreTotals } from '../lib/exploreRows'
-import { formatDimensionValue, getDimensionLabel } from '../lib/dimensions'
-import { formatValue } from '../lib/format'
-import { getHeatMapStyle } from '../lib/heatmap'
-import { SESSION_METRICS, TIMESCORE_REFERENCE_SECONDS } from '../lib/types'
+import { Skeleton, Tooltip } from "antd";
+import { InfoCircleOutlined } from "@ant-design/icons";
+import { i18n } from "@lingui/core";
+import { useLingui } from "@lingui/react/macro";
+import { useWebAnalytics } from "../useWebAnalytics";
+import { Delta } from "../Delta";
+import { ExploreTotals } from "../lib/exploreRows";
+import { formatDimensionValue, getDimensionLabel } from "../lib/dimensions";
+import { formatValue } from "../lib/format";
+import { getHeatMapStyle } from "../lib/heatmap";
+import { SESSION_METRICS, TIMESCORE_REFERENCE_SECONDS } from "../lib/types";
 
 interface ExploreSummaryProps {
   totals?: ExploreTotals;

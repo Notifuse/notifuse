@@ -78,11 +78,11 @@ keep `npm run lint` from passing, so that CI can run it. Console only; no API, S
 
 | File | Test file | Cases |
 |---|---|---|
-| `logs/AuditLogTab.tsx` | `AuditLogTab.test.tsx` | Refresh minutes later: exactly one more request, with a later `from` (red first). Guards, green today: Refresh in the same minute, on all time and on a custom range each ask once more. Clock pinned with `vi.spyOn(Date, 'now')` at a minute start; counts asserted once requests have settled |
+| `logs/AuditLogTab.tsx` | `AuditLogTab.test.tsx` | Refresh minutes later: exactly one more request (red first); the later `from` is pinned by the existing test above it. Guards, green today: Refresh in the same minute, on all time and on a custom range each ask once more. Clock pinned with `vi.spyOn(Date, 'now')` at a minute start; counts asserted once requests have settled |
 | `blog/PostsTable.tsx` | `PostsTable.test.tsx` | The footer's count and Load more are direct children of `[data-panel-footer]`; the count span has no `text-sm` |
 | `logs/MessageDetail.tsx` | `MessageDetail.test.tsx` | `templates.get` answering without a template: the alert's description is the French text of "The server returned no template" when that translation is loaded (timeout 4000: the query retries once) |
 | `messages/MessageHistoryTable.tsx` | `MessageHistoryTable.test.tsx` | — (the message is not shown there; the change is the same translated text) |
-| `logs/MessagesTab.tsx`, `logs/period.ts` | `MessagesTab.test.tsx` | Existing tooltip test keeps "Counts cover 7 days at most"; with `COUNT_MAX_PERIOD` mocked to `'24h'` through a getter, on the 30d period, the tooltip reads "Counts cover 24 hours at most" |
+| `logs/MessagesTab.tsx`, `logs/period.ts` | `MessagesTab.test.tsx` | Existing tooltip test keeps "Counts cover 7 days at most"; with `COUNT_MAX_PERIOD` mocked to `'24h'` through a getter, on all time, the tooltip reads "Counts cover 24 hours at most" |
 | `messages/MessageColumnsSelector.tsx` | `MessageColumnsSelector.test.tsx` (new) | The button is found by role `button`, name "Select columns" |
 | `logs/LogsSearchBox.tsx` | `LogsSearchBox.test.tsx` | Incomplete email: the input's `aria-describedby` holds the hint's id (red first), and also the tooltip's id while the tooltip is open; ids read with `getElementById` |
 | `logs/MessageDetail.tsx` | `MessageDetail.test.tsx` | The router mock gains a `Link` stub that builds `href` from `to`, `params` and `search` (as in `InboundWebhooksTab.test.tsx`). The newsletter, automation and notification Sent by links have their real `href`; the existing click-and-navigate test becomes an `href` test |
