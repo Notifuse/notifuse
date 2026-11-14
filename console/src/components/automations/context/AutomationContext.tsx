@@ -37,6 +37,10 @@ const changedDespiteFailure = (error: Error): boolean => {
   return paused === true || running_previous_trigger === true
 }
 
+// Stable defaults: a fresh [] on each render would change the context value every time.
+const NO_SEGMENTS: Segment[] = []
+const NO_TEMPLATES: Template[] = []
+
 // Provider props
 interface AutomationProviderProps {
   workspace: Workspace
@@ -56,8 +60,8 @@ export function AutomationProvider({
   workspace,
   automation,
   lists,
-  segments = [],
-  templates = [],
+  segments = NO_SEGMENTS,
+  templates = NO_TEMPLATES,
   canReadTemplates,
   readOnly = false,
   onSaved,
@@ -66,6 +70,10 @@ export function AutomationProvider({
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const { message } = App.useApp()
+  // The macro's t is a new function on each render: the callbacks below take their strings, so
+  // that they, and the context value, keep their identity.
+  const listInUseMessage = t`Cannot remove list while email nodes exist. Delete email nodes first.`
+  const nameRequiredMessage = t`Please enter an automation name`
 
   // Form state
   const [name, setName] = useState(automation?.name || '')
@@ -175,9 +183,9 @@ export function AutomationProvider({
     [automationId, workspace.id, name, listId, exitOnReply, nodes, edges, saved]
   )
   const payloadKey = useMemo(() => stableKey(payload), [payload])
-  const hasUnsavedChanges = !readOnly && savedKey !== null && payloadKey !== savedKey
-
-  const markAsChanged = useCallback(() => {}, [])
+  const changed = savedKey !== null && payloadKey !== savedKey
+  const hasUnsavedChanges = !readOnly && changed
+  const hasHeldChanges = readOnly && changed
 
   // Read-only: the writers do nothing.
   const setNameWithChange = useCallback((newName: string) => {
@@ -198,7 +206,7 @@ export function AutomationProvider({
     if (!newListId) {
       const hasEmailNodes = nodes.some(n => n.data.nodeType === 'email')
       if (hasEmailNodes) {
-        message.error(t`Cannot remove list while email nodes exist. Delete email nodes first.`)
+        message.error(listInUseMessage)
         return
       }
     }
@@ -279,7 +287,7 @@ export function AutomationProvider({
     }
 
     setListId(newListId)
-  }, [nodes, edges, message, t, readOnly])
+  }, [nodes, edges, message, listInUseMessage, readOnly])
 
   // Push current canvas state to history (call BEFORE making changes). Pass a coalesceKey to fold a
   // run of edits — typing in one field — into a single undo step; see useUndoRedo.push.
@@ -339,8 +347,8 @@ export function AutomationProvider({
     onSaved?.(next)
   }, [queryClient, workspace.id, onSaved])
 
-  // Create mutation
-  const createMutation = useMutation({
+  // Create mutation (its mutateAsync is stable, the result object is not)
+  const { mutateAsync: createAsync } = useMutation({
     mutationFn: (data: { workspace_id: string; automation: Automation }) =>
       automationApi.create(data),
     onSuccess: (data, variables) => {
@@ -354,21 +362,11 @@ export function AutomationProvider({
   })
 
   // Update mutation
-  const updateMutation = useMutation({
+  const { mutateAsync: updateAsync } = useMutation({
     mutationFn: (data: { workspace_id: string; automation: Automation }) =>
       automationApi.update(data),
     onSuccess: (data, variables) => {
-      // Saving keeps the stored status, and the automation can have been paused since the editor
-      // loaded it live, by a save that failed among others: saved, but not running, which a plain
-      // success would hide.
-      if (saved?.status === 'live' && data?.automation?.status === 'paused') {
-        message.warning({
-          content: t`Automation updated, but it is paused: activate it to run this version.`,
-          duration: 10
-        })
-      } else {
-        message.success(t`Automation updated successfully`)
-      }
+      message.success(t`Automation updated successfully`)
       afterSave(variables.automation, data?.automation)
     },
     onError: (error: Error) => {
@@ -400,7 +398,7 @@ export function AutomationProvider({
     if (readOnly || savingRef.current) return false
     // Validate name
     if (!name.trim()) {
-      message.error(t`Please enter an automation name`)
+      message.error(nameRequiredMessage)
       return false
     }
 
@@ -418,8 +416,8 @@ export function AutomationProvider({
     setLastError(null)
 
     try {
-      const mutation = isEditing ? updateMutation : createMutation
-      await mutation.mutateAsync({ workspace_id: workspace.id, automation: payload })
+      const mutateAsync = isEditing ? updateAsync : createAsync
+      await mutateAsync({ workspace_id: workspace.id, automation: payload })
       return true
     } catch {
       return false
@@ -427,7 +425,7 @@ export function AutomationProvider({
       savingRef.current = false
       setIsSaving(false)
     }
-  }, [readOnly, name, payload, workspace.id, isEditing, validate, createMutation, updateMutation, message, t])
+  }, [readOnly, name, payload, workspace.id, isEditing, validate, createAsync, updateAsync, message, nameRequiredMessage])
 
   // Reset state
   const reset = useCallback(() => {
@@ -472,7 +470,7 @@ export function AutomationProvider({
     setSelectedNodeId,
     canvasState,
     hasUnsavedChanges,
-    markAsChanged,
+    hasHeldChanges,
     isSaving,
     lastError,
     conflict,
@@ -506,7 +504,7 @@ export function AutomationProvider({
     selectedNodeId,
     canvasState,
     hasUnsavedChanges,
-    markAsChanged,
+    hasHeldChanges,
     isSaving,
     lastError,
     conflict,

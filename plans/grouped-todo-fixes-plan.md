@@ -1548,6 +1548,17 @@ fixed: "Fix: members with Blog write but not Workspace write can write blog post
 others no longer see buttons that fail." "Fix: the automation editor clears a branch path when its link is
 deleted."
 
+### What the code did differently (lot 8)
+
+- 8.1, one drawer: the editor's bar title and actions reach the drawer's bar through portals, and the drawer's
+  back, close and Escape call the editor's close through a ref. A reopen still shows the skeleton while it
+  reads: the editor opens on a copy read since it opened (review fix E1, tested by "opens on the server copy"),
+  since a cached copy's flow would be saved over a newer one. The drawer no longer slides twice either way.
+- 8.1, "+" under 1200 px: the step panel is a column at every width and the canvas is clipped, rather than a
+  panel over the canvas whose width the canvas reserves.
+- 8.1, context identity: the macro's `t` is a new function on every render, so the two callbacks that used it
+  take their strings from the render instead; the mutations give their stable `mutateAsync`.
+
 ## Test commands for lot 8
 
 ```

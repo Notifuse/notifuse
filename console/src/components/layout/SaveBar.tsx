@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Button, Modal, Tooltip } from 'antd'
 import { useBlocker } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
+import { isMac } from '../../lib/platform'
 
 export interface SaveBarProps {
   /** True once the form holds edits that are not stored yet. */
@@ -22,10 +23,6 @@ export interface SaveBarProps {
    * leaving, so one confirmation is asked, not two.
    */
   blockNavigation?: boolean
-}
-
-function isMac(): boolean {
-  return typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)
 }
 
 /**

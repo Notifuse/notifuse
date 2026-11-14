@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
-import { Button, Tooltip } from 'antd'
+import { forwardRef, type ReactNode } from 'react'
+import { Button, Tooltip, type ButtonProps } from 'antd'
+import { createLink } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import { RateBar, useNumberFormat } from '../../layout'
@@ -10,14 +11,19 @@ interface EmailStepStatsProps {
   canReadHistory: boolean
   /** SMTP reports no delivery: that row reads "—". */
   smtp: boolean
-  /** The step's messages in Logs. */
-  messagesHref: string
+  /** The step's messages in Logs: a router link, so the console does not load again. */
+  messages: { workspaceId: string; automationId: string; templateId?: string }
 }
+
+// An antd button that navigates through the router (antd renders an <a> for an href).
+const ButtonLink = createLink(
+  forwardRef<HTMLAnchorElement, ButtonProps>((props, ref) => <Button ref={ref as never} {...props} />)
+)
 
 const ratio = (part: number, whole: number) => (whole > 0 ? part / whole : null)
 
 /** An email step's results: sent, delivered, opened, clicked, then what went wrong. */
-export function EmailStepStats({ email, canReadHistory, smtp, messagesHref }: EmailStepStatsProps) {
+export function EmailStepStats({ email, canReadHistory, smtp, messages }: EmailStepStatsProps) {
   const { t } = useLingui()
   const { int } = useNumberFormat()
 
@@ -82,9 +88,17 @@ export function EmailStepStats({ email, canReadHistory, smtp, messagesHref }: Em
         <div className="text-xs text-ink-3">{plural(e.not_sent, { one: '# not sent', other: '# not sent' })}</div>
       ) : null}
       <div>
-        <Button size="small" href={messagesHref}>
+        <ButtonLink
+          size="small"
+          to="/console/workspace/$workspaceId/logs"
+          params={{ workspaceId: messages.workspaceId }}
+          search={{
+            automation_id: messages.automationId,
+            ...(messages.templateId ? { template_id: messages.templateId } : {})
+          }}
+        >
           {t`View messages`}
-        </Button>
+        </ButtonLink>
       </div>
     </div>
   )

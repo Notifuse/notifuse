@@ -59,8 +59,11 @@ export interface AutomationContextType {
   // Save state
   /** What would be sent differs from what was loaded or last saved (timestamps aside). */
   hasUnsavedChanges: boolean
-  /** Kept for the canvas writers; changes are now read from the payload itself. */
-  markAsChanged: () => void
+  /**
+   * Read-only, with changes made before it turned so (the automation went live elsewhere):
+   * they stay on screen and cannot be saved. hasUnsavedChanges is false then.
+   */
+  hasHeldChanges: boolean
   isSaving: boolean
   lastError: Error | null
   /** The last save lost a race with another change (409): reload before saving again. */

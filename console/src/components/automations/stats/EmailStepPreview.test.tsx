@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
@@ -7,6 +7,7 @@ import { I18nProvider } from '@lingui/react'
 import type { Workspace } from '../../../services/api/types'
 import { templatesApi } from '../../../services/api/template'
 import { EmailStepPreview } from './EmailStepPreview'
+import { ApiError } from '../../../services/api/errors'
 
 vi.mock('../../../services/api/template', () => ({ templatesApi: { get: vi.fn() } }))
 vi.mock('../../broadcasts/detail/TemplatePreviewFrame', () => ({ TemplatePreviewFrame: () => <div data-testid="frame" /> }))
@@ -71,6 +72,24 @@ describe('EmailStepPreview', () => {
     renderPreview({ template_id: 'tpl-1' }, false)
     expect(screen.getByText('You need access to templates to preview this email.')).toBeInTheDocument()
     expect(templatesApi.get).not.toHaveBeenCalled()
+  })
+
+  it('says a deleted template no longer exists', async () => {
+    vi.mocked(templatesApi.get).mockRejectedValueOnce(new ApiError('template not found', 404))
+    renderPreview({ template_id: 'tpl-gone' })
+    expect(await screen.findByText('This template no longer exists')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+  })
+
+  it('tells another read error from a deleted template, and retries it', async () => {
+    vi.mocked(templatesApi.get).mockRejectedValueOnce(new ApiError('boom', 500))
+    renderPreview({ template_id: 'tpl-1' })
+    expect(await screen.findByText("Couldn't load the template")).toBeInTheDocument()
+    expect(screen.queryByText('This template no longer exists')).toBeNull()
+
+    vi.mocked(templatesApi.get).mockResolvedValue(template() as never)
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByTestId('frame')).toBeInTheDocument()
   })
 
   it('shows nothing without a template', () => {

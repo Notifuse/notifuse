@@ -60,7 +60,9 @@ const line = () => document.querySelector('[data-node-stats]')?.textContent
 
 describe('NodeStatsFooter', () => {
   it.each([
-    { type: 'trigger' as const, s: stats({ visits: 1 }), text: '1 entered' },
+    { type: 'trigger' as const, s: stats({ visits: 1 }), text: '1 pass' },
+    // A journey looping back to the trigger passes it again: passes, not entries.
+    { type: 'trigger' as const, s: stats({ visits: 3 }), text: '3 passes' },
     { type: 'delay' as const, s: stats({ waiting: 2 }), text: '2 waiting' },
     { type: 'filter' as const, s: stats({ completed: 2 }), text: '2 checked' },
     { type: 'ab_test' as const, s: stats({ visits: 1 }), text: '1 reached' },
@@ -104,7 +106,7 @@ describe('NodeStatsFooter', () => {
 
   it('counts zero for a saved step no journey reached', () => {
     renderFooter('trigger', undefined)
-    expect(line()).toContain('0 entered')
+    expect(line()).toContain('0 passes')
   })
 
   it('shows nothing for an unsaved step, with stats off or on an error', () => {
