@@ -16,7 +16,6 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	http_handler "github.com/Notifuse/notifuse/internal/http"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
-	notifusemjml "github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 
 	"github.com/golang/mock/gomock"
 
@@ -47,7 +46,6 @@ func createTestBroadcast() *domain.Broadcast {
 func setupBroadcastHandler(t *testing.T) (
 	*http_handler.BroadcastHandler,
 	*mocks.MockBroadcastService,
-	*mocks.MockTemplateService,
 	*pkgmocks.MockLogger,
 	*gomock.Controller,
 ) {
@@ -55,7 +53,6 @@ func setupBroadcastHandler(t *testing.T) (
 
 	// Create mocks
 	mockBroadcastService := mocks.NewMockBroadcastService(ctrl)
-	mockTemplateService := mocks.NewMockTemplateService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Create a public key for authentication
@@ -63,18 +60,17 @@ func setupBroadcastHandler(t *testing.T) (
 	// Create the handler with mocks
 	handler := http_handler.NewBroadcastHandler(
 		mockBroadcastService,
-		mockTemplateService,
 		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		false,
 	)
 
-	return handler, mockBroadcastService, mockTemplateService, mockLogger, ctrl
+	return handler, mockBroadcastService, mockLogger, ctrl
 }
 
 // TestHandleList tests the handleList function
 func TestHandleList(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 	broadcasts := []*domain.Broadcast{createTestBroadcast()}
 
@@ -254,7 +250,7 @@ func TestHandleList(t *testing.T) {
 
 // TestHandleGet tests the handleGet function
 func TestHandleGet(t *testing.T) {
-	handler, mockService, mockTemplateService, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, _, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 	broadcast := createTestBroadcast()
 
@@ -272,7 +268,7 @@ func TestHandleGet(t *testing.T) {
 	// Test successful get
 	t.Run("Success", func(t *testing.T) {
 		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), "workspace123", "broadcast123").
+			GetBroadcast(gomock.Any(), "workspace123", "broadcast123", domain.GetBroadcastOptions{}).
 			Return(broadcast, nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/broadcasts.get?workspace_id=workspace123&id=broadcast123", nil)
@@ -288,109 +284,24 @@ func TestHandleGet(t *testing.T) {
 		assert.Contains(t, response, "broadcast")
 	})
 
-	// Test successful get with template fetching
-	t.Run("SuccessWithTemplates", func(t *testing.T) {
+	// The service sets the templates, and only for a member who may read them.
+	t.Run("with_templates is passed to the service", func(t *testing.T) {
 		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), "workspace123", "broadcast123").
+			GetBroadcast(gomock.Any(), "workspace123", "broadcast123", domain.GetBroadcastOptions{WithTemplates: true}).
 			Return(broadcast, nil)
 
-		// Setup mock template service to return a template when requested
-		template := &domain.Template{
-			ID:      "template123",
-			Name:    "Test Template",
-			Channel: "email",
-			Email: &domain.EmailTemplate{
-				SenderID:        "sender123",
-				Subject:         "Test Subject",
-				CompiledPreview: "<p>Test HTML content</p>",
-				VisualEditorTree: func() notifusemjml.EmailBlock {
-					base := notifusemjml.NewBaseBlock("root", notifusemjml.MJMLComponentMjml)
-					base.Attributes["version"] = "4.0.0"
-					return &notifusemjml.MJMLBlock{BaseBlock: base}
-				}(),
-			},
-			Category:  "marketing",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-		mockTemplateService.EXPECT().
-			GetTemplateByID(gomock.Any(), "workspace123", "template123", int64(0)).
-			Return(template, nil)
-
-		// Create request with WithTemplates=true
 		req := httptest.NewRequest(http.MethodGet, "/api/broadcasts.get?workspace_id=workspace123&id=broadcast123&with_templates=true", nil)
 		w := httptest.NewRecorder()
 
 		handler.HandleGet(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Contains(t, response, "broadcast")
-
-		// Access the broadcast data to verify the template was attached
-		broadcastData, ok := response["broadcast"].(map[string]interface{})
-		assert.True(t, ok)
-
-		testSettings, ok := broadcastData["test_settings"].(map[string]interface{})
-		assert.True(t, ok)
-
-		variations, ok := testSettings["variations"].([]interface{})
-		assert.True(t, ok)
-		assert.Len(t, variations, 1)
-
-		// The template should be attached to the variation
-		variation, ok := variations[0].(map[string]interface{})
-		assert.True(t, ok)
-		assert.Contains(t, variation, "template")
-	})
-
-	// Test template fetch error (should continue without failing)
-	t.Run("TemplateError", func(t *testing.T) {
-		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), "workspace123", "broadcast123").
-			Return(broadcast, nil)
-
-		// Setup mock template service to return an error
-		templateError := errors.New("template error")
-		mockTemplateService.EXPECT().
-			GetTemplateByID(gomock.Any(), "workspace123", "template123", int64(0)).
-			Return(nil, templateError)
-
-		// Setup mock for logger.WithFields and the warning
-		mockLoggerWithFields := pkgmocks.NewMockLogger(ctrl)
-		expectedFields := map[string]interface{}{
-			"error":        templateError,
-			"workspace_id": "workspace123",
-			"broadcast_id": "broadcast123",
-			"template_id":  "template123",
-		}
-		mockLogger.EXPECT().
-			WithFields(expectedFields).
-			Return(mockLoggerWithFields)
-		mockLoggerWithFields.EXPECT().
-			Warn("Failed to fetch template for broadcast variation")
-
-		// Create request with WithTemplates=true
-		req := httptest.NewRequest(http.MethodGet, "/api/broadcasts.get?workspace_id=workspace123&id=broadcast123&with_templates=true", nil)
-		w := httptest.NewRecorder()
-
-		handler.HandleGet(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var response map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &response)
-		assert.NoError(t, err)
-		assert.Contains(t, response, "broadcast")
 	})
 
 	// Test broadcast not found
 	t.Run("BroadcastNotFound", func(t *testing.T) {
 		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), "workspace123", "nonexistent").
+			GetBroadcast(gomock.Any(), "workspace123", "nonexistent", gomock.Any()).
 			Return(nil, &domain.ErrBroadcastNotFound{ID: "nonexistent"})
 
 		req := httptest.NewRequest(http.MethodGet, "/api/broadcasts.get?workspace_id=workspace123&id=nonexistent", nil)
@@ -424,7 +335,7 @@ func TestHandleGet(t *testing.T) {
 
 // TestHandleCreate tests the handleCreate function
 func TestHandleCreate(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 	broadcast := createTestBroadcast()
 
@@ -515,7 +426,7 @@ func TestHandleCreate(t *testing.T) {
 
 // TestHandleSchedule tests the handleSchedule function
 func TestHandleSchedule(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	// Test successful scheduling for later
@@ -624,7 +535,6 @@ func TestHandleSchedule(t *testing.T) {
 		customController := gomock.NewController(t)
 		defer customController.Finish()
 		customMock := mocks.NewMockBroadcastService(customController)
-		customTemplateService := mocks.NewMockTemplateService(customController)
 		customLogger := pkgmocks.NewMockLogger(customController)
 
 		// Create a public key for authentication
@@ -633,7 +543,6 @@ func TestHandleSchedule(t *testing.T) {
 		// Create the handler with mocks
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
-			customTemplateService,
 			func() ([]byte, error) { return jwtSecret, nil },
 			customLogger,
 			false,
@@ -666,7 +575,6 @@ func TestHandleSchedule(t *testing.T) {
 		customController := gomock.NewController(t)
 		defer customController.Finish()
 		customMock := mocks.NewMockBroadcastService(customController)
-		customTemplateService := mocks.NewMockTemplateService(customController)
 		customLogger := pkgmocks.NewMockLogger(customController)
 
 		// Create a public key for authentication
@@ -675,7 +583,6 @@ func TestHandleSchedule(t *testing.T) {
 		// Create the handler with mocks
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
-			customTemplateService,
 			func() ([]byte, error) { return jwtSecret, nil },
 			customLogger,
 			false,
@@ -713,7 +620,6 @@ func TestHandleSchedule(t *testing.T) {
 		customController := gomock.NewController(t)
 		defer customController.Finish()
 		customMock := mocks.NewMockBroadcastService(customController)
-		customTemplateService := mocks.NewMockTemplateService(customController)
 		customLogger := pkgmocks.NewMockLogger(customController)
 
 		// Create a public key for authentication
@@ -722,7 +628,6 @@ func TestHandleSchedule(t *testing.T) {
 		// Create the handler with mocks
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
-			customTemplateService,
 			func() ([]byte, error) { return jwtSecret, nil },
 			customLogger,
 			false,
@@ -777,7 +682,7 @@ func TestHandleSchedule(t *testing.T) {
 
 // TestHandleCancel tests the handleCancel function
 func TestHandleCancel(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	// Test successful cancel
@@ -835,7 +740,7 @@ func TestHandleCancel(t *testing.T) {
 		}
 
 		// Create a custom handler just for this test
-		customHandler, customMock, _, _, customCtrl := setupBroadcastHandler(t)
+		customHandler, customMock, _, customCtrl := setupBroadcastHandler(t)
 		defer customCtrl.Finish()
 
 		// Setup mock to return a broadcast not found error
@@ -861,7 +766,7 @@ func TestHandleCancel(t *testing.T) {
 		}
 
 		// Create a custom handler just for this test
-		customHandler, customMock, _, customLogger, customCtrl := setupBroadcastHandler(t)
+		customHandler, customMock, customLogger, customCtrl := setupBroadcastHandler(t)
 		defer customCtrl.Finish()
 
 		// Set up expectations differently - this is more direct and explicit
@@ -892,7 +797,7 @@ func TestHandleCancel(t *testing.T) {
 		}
 
 		// Create a custom handler just for this test
-		customHandler, customMock, _, customLogger, customCtrl := setupBroadcastHandler(t)
+		customHandler, customMock, customLogger, customCtrl := setupBroadcastHandler(t)
 		defer customCtrl.Finish()
 
 		// Set up expectations differently - this is more direct and explicit
@@ -944,7 +849,7 @@ func TestHandleCancel(t *testing.T) {
 
 // TestHandlePause tests the handlePause function
 func TestHandlePause(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	// Test successful pause
@@ -1002,7 +907,7 @@ func TestHandlePause(t *testing.T) {
 		}
 
 		// Create a custom handler just for this test
-		customHandler, customMock, _, _, customCtrl := setupBroadcastHandler(t)
+		customHandler, customMock, _, customCtrl := setupBroadcastHandler(t)
 		defer customCtrl.Finish()
 
 		// Setup mock to return a broadcast not found error
@@ -1028,7 +933,7 @@ func TestHandlePause(t *testing.T) {
 		}
 
 		// Create a custom handler just for this test
-		customHandler, customMock, _, customLogger, customCtrl := setupBroadcastHandler(t)
+		customHandler, customMock, customLogger, customCtrl := setupBroadcastHandler(t)
 		defer customCtrl.Finish()
 
 		// Set up expectations differently - this is more direct and explicit
@@ -1059,7 +964,7 @@ func TestHandlePause(t *testing.T) {
 		}
 
 		// Create a custom handler just for this test
-		customHandler, customMock, _, customLogger, customCtrl := setupBroadcastHandler(t)
+		customHandler, customMock, customLogger, customCtrl := setupBroadcastHandler(t)
 		defer customCtrl.Finish()
 
 		// Set up expectations differently - this is more direct and explicit
@@ -1111,7 +1016,7 @@ func TestHandlePause(t *testing.T) {
 
 // TestHandleDelete tests the handleDelete function
 func TestHandleDelete(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	// Test successful delete
@@ -1169,7 +1074,7 @@ func TestHandleDelete(t *testing.T) {
 		}
 
 		// Create a custom handler just for this test
-		customHandler, customMock, _, _, customCtrl := setupBroadcastHandler(t)
+		customHandler, customMock, _, customCtrl := setupBroadcastHandler(t)
 		defer customCtrl.Finish()
 
 		// Setup mock to return a broadcast not found error
@@ -1195,7 +1100,7 @@ func TestHandleDelete(t *testing.T) {
 		}
 
 		// Create a custom handler just for this test
-		customHandler, customMock, _, customLogger, customCtrl := setupBroadcastHandler(t)
+		customHandler, customMock, customLogger, customCtrl := setupBroadcastHandler(t)
 		defer customCtrl.Finish()
 
 		// Set up expectations differently - this is more direct and explicit
@@ -1247,7 +1152,7 @@ func TestHandleDelete(t *testing.T) {
 
 // TestHandleUpdate tests the handleUpdate function
 func TestHandleUpdate(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 	broadcast := createTestBroadcast()
 	updatedBroadcast := &domain.Broadcast{
@@ -1274,7 +1179,7 @@ func TestHandleUpdate(t *testing.T) {
 		}
 
 		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, broadcast.ID).
+			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, broadcast.ID, gomock.Any()).
 			Return(broadcast, nil)
 
 		mockService.EXPECT().
@@ -1315,7 +1220,7 @@ func TestHandleUpdate(t *testing.T) {
 		}
 
 		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, "nonexistent").
+			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, "nonexistent", gomock.Any()).
 			Return(nil, &domain.ErrBroadcastNotFound{ID: "nonexistent"})
 
 		requestBody, _ := json.Marshal(updateRequest)
@@ -1338,7 +1243,7 @@ func TestHandleUpdate(t *testing.T) {
 		}
 
 		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, broadcast.ID).
+			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, broadcast.ID, gomock.Any()).
 			Return(broadcast, nil)
 
 		requestBody, _ := json.Marshal(updateRequest)
@@ -1370,7 +1275,7 @@ func TestHandleUpdate(t *testing.T) {
 		errorLogger.EXPECT().Error("Failed to get existing broadcast")
 
 		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, broadcast.ID).
+			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, broadcast.ID, gomock.Any()).
 			Return(nil, errors.New("service error"))
 
 		requestBody, _ := json.Marshal(updateRequest)
@@ -1397,7 +1302,7 @@ func TestHandleUpdate(t *testing.T) {
 		}
 
 		mockService.EXPECT().
-			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, broadcast.ID).
+			GetBroadcast(gomock.Any(), broadcast.WorkspaceID, broadcast.ID, gomock.Any()).
 			Return(broadcast, nil)
 
 		// Set up expectations for logger using gomock
@@ -1451,7 +1356,7 @@ func TestHandleUpdate(t *testing.T) {
 
 // TestHandleResume tests the HandleResume function
 func TestHandleResume(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	// Test successful resume
@@ -1580,7 +1485,7 @@ func TestHandleResume(t *testing.T) {
 
 // TestHandleSendToIndividual tests the HandleSendToIndividual function
 func TestHandleSendToIndividual(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	// Test successful send to individual
@@ -1713,7 +1618,7 @@ func TestHandleSendToIndividual(t *testing.T) {
 
 // TestRegisterRoutes tests the RegisterRoutes function
 func TestRegisterRoutes(t *testing.T) {
-	handler, _, _, _, ctrl := setupBroadcastHandler(t)
+	handler, _, _, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	// Create a new mux
@@ -1747,7 +1652,7 @@ func TestRegisterRoutes(t *testing.T) {
 
 // Tests for A/B testing endpoints: HandleGetTestResults and HandleSelectWinner
 func TestHandleGetTestResults(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	t.Run("Success", func(t *testing.T) {
@@ -1805,7 +1710,7 @@ func TestHandleGetTestResults(t *testing.T) {
 }
 
 func TestHandleSelectWinner(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	t.Run("Success", func(t *testing.T) {
@@ -1875,7 +1780,7 @@ func TestHandleSelectWinner(t *testing.T) {
 
 // TestHandleRefreshGlobalFeed tests the HandleRefreshGlobalFeed handler
 func TestHandleRefreshGlobalFeed(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	t.Run("Success", func(t *testing.T) {
@@ -2066,7 +1971,7 @@ func TestHandleRefreshGlobalFeed(t *testing.T) {
 
 // TestHandleTestRecipientFeed tests the HandleTestRecipientFeed handler
 func TestHandleTestRecipientFeed(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	t.Run("Success", func(t *testing.T) {
@@ -2360,7 +2265,7 @@ func TestBroadcastHandlers_PermissionDenied(t *testing.T) {
 	)
 
 	t.Run("List (GET, read)", func(t *testing.T) {
-		handler, mockService, _, _, ctrl := setupBroadcastHandler(t)
+		handler, mockService, _, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 
 		mockService.EXPECT().ListBroadcasts(gomock.Any(), gomock.Any()).Return(nil, permErr)
@@ -2372,7 +2277,7 @@ func TestBroadcastHandlers_PermissionDenied(t *testing.T) {
 	})
 
 	t.Run("Delete (POST, write)", func(t *testing.T) {
-		handler, mockService, _, _, ctrl := setupBroadcastHandler(t)
+		handler, mockService, _, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 
 		mockService.EXPECT().DeleteBroadcast(gomock.Any(), gomock.Any()).Return(permErr)
@@ -2386,7 +2291,7 @@ func TestBroadcastHandlers_PermissionDenied(t *testing.T) {
 	})
 
 	t.Run("SendToIndividual (POST, send)", func(t *testing.T) {
-		handler, mockService, _, _, ctrl := setupBroadcastHandler(t)
+		handler, mockService, _, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 
 		mockService.EXPECT().SendToIndividual(gomock.Any(), gomock.Any()).Return(permErr)
@@ -2408,7 +2313,7 @@ func TestBroadcastHandlers_PermissionDenied(t *testing.T) {
 // not a typed literal. A struct literal cannot express a body that omitted a field,
 // which is exactly the shape that gets past validation unnoticed.
 func TestHandleRetryFailed(t *testing.T) {
-	handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+	handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 	defer ctrl.Finish()
 
 	post := func(body map[string]interface{}) *httptest.ResponseRecorder {
@@ -2505,7 +2410,6 @@ func TestBroadcastHandler_SendingRoutesAreRestrictedInDemo(t *testing.T) {
 		mockService := mocks.NewMockBroadcastService(ctrl)
 		handler := http_handler.NewBroadcastHandler(
 			mockService,
-			mocks.NewMockTemplateService(ctrl),
 			func() ([]byte, error) { return []byte("test-jwt-secret-key-for-testing-32bytes"), nil },
 			pkgmocks.NewMockLogger(ctrl),
 			demo,

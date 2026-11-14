@@ -12,6 +12,7 @@ import (
 	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	broadcastmocks "github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	notifusemjml "github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/safe-mjml/mjml"
 	"github.com/golang/mock/gomock"
@@ -775,9 +776,76 @@ func TestBroadcastService_GetBroadcast_Success(t *testing.T) {
 	expected := testBroadcast(workspaceID, broadcastID)
 	d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(expected, nil)
 
-	b, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID)
+	b, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID, domain.GetBroadcastOptions{})
 	require.NoError(t, err)
 	assert.Equal(t, expected, b)
+}
+
+// broadcasts.get with with_templates: the service sets the variations' templates, as
+// ListBroadcasts does, and a template it cannot read leaves its variation without it.
+func TestBroadcastService_GetBroadcast_WithTemplates(t *testing.T) {
+	ctx := context.Background()
+	workspaceID, broadcastID := "w1", "b1"
+	withVariations := func() *domain.Broadcast {
+		b := testBroadcast(workspaceID, broadcastID)
+		b.TestSettings.Variations = []domain.BroadcastVariation{
+			{VariationName: "A", TemplateID: "tplA"},
+			{VariationName: "B", TemplateID: "tplB"},
+		}
+		return b
+	}
+
+	t.Run("sets each template, and warns once for one it cannot read", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+		log := pkgmocks.NewMockLogger(d.ctrl)
+		d.svc.logger = log
+		authAs(d.authService, ctx, workspaceID, "member", broadcastsAndTemplatesRead)
+		d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(withVariations(), nil)
+		d.templateSvc.EXPECT().GetTemplateByID(ctx, workspaceID, "tplA", int64(0)).Return(&domain.Template{ID: "tplA"}, nil)
+		d.templateSvc.EXPECT().GetTemplateByID(ctx, workspaceID, "tplB", int64(0)).Return(nil, errors.New("template error"))
+		log.EXPECT().WithFields(map[string]interface{}{
+			"error": "template error", "broadcast_id": broadcastID, "template_id": "tplB",
+		}).Return(log)
+		log.EXPECT().Warn("Failed to fetch template for broadcast variation")
+
+		b, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID, domain.GetBroadcastOptions{WithTemplates: true})
+
+		require.NoError(t, err)
+		require.NotNil(t, b.TestSettings.Variations[0].Template)
+		assert.Equal(t, "tplA", b.TestSettings.Variations[0].Template.ID)
+		assert.Nil(t, b.TestSettings.Variations[1].Template)
+	})
+
+	// The strict mocks refuse any template lookup and any log.
+	t.Run("a member without Templates read gets the variations without their templates", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+		d.svc.logger = pkgmocks.NewMockLogger(d.ctrl)
+		authAs(d.authService, ctx, workspaceID, "member", domain.UserPermissions{
+			domain.PermissionResourceBroadcasts: {Read: true},
+		})
+		d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(withVariations(), nil)
+
+		b, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID, domain.GetBroadcastOptions{WithTemplates: true})
+
+		require.NoError(t, err)
+		assert.Equal(t, "tplA", b.TestSettings.Variations[0].TemplateID)
+		assert.Nil(t, b.TestSettings.Variations[0].Template)
+		assert.Nil(t, b.TestSettings.Variations[1].Template)
+	})
+
+	t.Run("without the option the templates are not read", func(t *testing.T) {
+		d := setupBroadcastSvc(t)
+		defer d.ctrl.Finish()
+		authAs(d.authService, ctx, workspaceID, "member", broadcastsAndTemplatesRead)
+		d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(withVariations(), nil)
+
+		b, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID, domain.GetBroadcastOptions{})
+
+		require.NoError(t, err)
+		assert.Nil(t, b.TestSettings.Variations[0].Template)
+	})
 }
 
 func TestBroadcastService_UpdateBroadcast_Success(t *testing.T) {
@@ -963,7 +1031,7 @@ func TestBroadcastService_GetBroadcast_AuthFailure(t *testing.T) {
 
 	d.authService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth failed"))
 
-	_, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID)
+	_, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID, domain.GetBroadcastOptions{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to authenticate user")
 }
@@ -986,7 +1054,7 @@ func TestBroadcastService_GetBroadcast_PermissionDenied(t *testing.T) {
 	}
 	d.authService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "user1"}, userWorkspace, nil)
 
-	_, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID)
+	_, err := d.svc.GetBroadcast(ctx, workspaceID, broadcastID, domain.GetBroadcastOptions{})
 	require.Error(t, err)
 	assert.IsType(t, &domain.PermissionError{}, err)
 }

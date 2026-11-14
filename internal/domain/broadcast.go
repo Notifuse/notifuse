@@ -1415,13 +1415,20 @@ type TestRecipientFeedResponse struct {
 	ContactEmail string `json:"contact_email,omitempty"`
 }
 
+// GetBroadcastOptions says what BroadcastService.GetBroadcast adds to the broadcast it reads.
+type GetBroadcastOptions struct {
+	// WithTemplates sets each variation's template, as ListBroadcasts does: only for a member
+	// with Templates read, the others get the variations without their templates.
+	WithTemplates bool
+}
+
 // BroadcastService defines the interface for broadcast operations
 type BroadcastService interface {
 	// CreateBroadcast creates a new broadcast
 	CreateBroadcast(ctx context.Context, request *CreateBroadcastRequest) (*Broadcast, error)
 
-	// GetBroadcast retrieves a broadcast by ID
-	GetBroadcast(ctx context.Context, workspaceID, id string) (*Broadcast, error)
+	// GetBroadcast retrieves a broadcast by ID, with what opts asks for
+	GetBroadcast(ctx context.Context, workspaceID, id string, opts GetBroadcastOptions) (*Broadcast, error)
 
 	// UpdateBroadcast updates an existing broadcast
 	UpdateBroadcast(ctx context.Context, request *UpdateBroadcastRequest) (*Broadcast, error)

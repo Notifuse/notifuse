@@ -1607,7 +1607,7 @@ func (a *App) InitHandlers() error {
 		service.NewWebVersionService(trackingWorkspaces, a.workspaceRepo, a.messageHistoryRepo, a.templateRepo, a.config.APIEndpoint, a.logger),
 		a.rateLimiter,
 	)
-	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
+	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogHandler := httpHandler.NewBlogHandler(a.blogService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogThemeHandler := httpHandler.NewBlogThemeHandler(a.blogService, getJWTSecret, a.logger)
 	taskHandler := httpHandler.NewTaskHandler(

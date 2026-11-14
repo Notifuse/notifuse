@@ -166,8 +166,9 @@ func (s *BroadcastService) requireKnownVariationSenders(ctx context.Context, wor
 	return domain.CheckVariationSenders(provider, variations)
 }
 
-// GetBroadcast retrieves a broadcast by ID
-func (s *BroadcastService) GetBroadcast(ctx context.Context, workspaceID, broadcastID string) (*domain.Broadcast, error) {
+// GetBroadcast retrieves a broadcast by ID, with its variations' templates when opts asks for
+// them and the member may read templates.
+func (s *BroadcastService) GetBroadcast(ctx context.Context, workspaceID, broadcastID string, opts domain.GetBroadcastOptions) (*domain.Broadcast, error) {
 	// Authenticate user for workspace
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
@@ -185,8 +186,36 @@ func (s *BroadcastService) GetBroadcast(ctx context.Context, workspaceID, broadc
 		)
 	}
 
-	// Fetch the broadcast from the repository
-	return s.repo.GetBroadcast(ctx, workspaceID, broadcastID)
+	broadcast, err := s.repo.GetBroadcast(ctx, workspaceID, broadcastID)
+	if err != nil {
+		return nil, err
+	}
+	if opts.WithTemplates && userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeRead) {
+		s.setVariationTemplates(ctx, workspaceID, broadcast)
+	}
+	return broadcast, nil
+}
+
+// setVariationTemplates sets on each variation the latest version of its template, the one
+// that is sent. A template that cannot be read leaves its variation without it, and the
+// broadcast is still answered. The caller checks Templates read first: without it every
+// lookup would be refused and logged.
+func (s *BroadcastService) setVariationTemplates(ctx context.Context, workspaceID string, broadcast *domain.Broadcast) {
+	for i, variation := range broadcast.TestSettings.Variations {
+		if variation.TemplateID == "" {
+			continue
+		}
+		template, err := s.templateSvc.GetTemplateByID(ctx, workspaceID, variation.TemplateID, 0)
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"error":        err.Error(),
+				"broadcast_id": broadcast.ID,
+				"template_id":  variation.TemplateID,
+			}).Warn("Failed to fetch template for broadcast variation")
+			continue
+		}
+		broadcast.SetTemplateForVariation(i, template)
+	}
 }
 
 // UpdateBroadcast updates an existing broadcast
@@ -307,24 +336,10 @@ func (s *BroadcastService) ListBroadcasts(ctx context.Context, params domain.Lis
 		return nil, err
 	}
 
-	// If WithTemplates is true, fetch template details for each variation. Without Templates read
-	// every lookup would be refused and logged: the broadcasts come back without their templates.
+	// Without Templates read the broadcasts come back without their templates.
 	if params.WithTemplates && userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeRead) {
 		for _, broadcast := range response.Broadcasts {
-			for i, variation := range broadcast.TestSettings.Variations {
-				if variation.TemplateID != "" {
-					// Fetch the template for this variation
-					template, err := s.templateSvc.GetTemplateByID(ctx, params.WorkspaceID, variation.TemplateID, 0)
-					if err != nil {
-						s.logger.Error("Failed to fetch template for broadcast variation")
-						// Continue with the next variation rather than failing the whole request
-						continue
-					}
-
-					// Assign the template to the variation
-					broadcast.SetTemplateForVariation(i, template)
-				}
-			}
+			s.setVariationTemplates(ctx, params.WorkspaceID, broadcast)
 		}
 	}
 
