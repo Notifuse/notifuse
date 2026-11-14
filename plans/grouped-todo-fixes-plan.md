@@ -1330,6 +1330,23 @@ together.", "Fix: `timeline.list` answers an empty list instead of null for a co
 "Fix: the audit log names the theme a `blogThemes.create` saved." The session pages flags and the visits email
 limit extend the 44.0 lines of those endpoints, which are unreleased.
 
+### What the code did differently (lot 7)
+
+- 7.1: the console keeps one query per origin; its comment no longer says two origins overwrite each other.
+  Lot 8 decides whether one query with the `origin` dimension replaces them.
+- 7.2: `webAnalytics.contactSessionPages` has no OpenAPI entry (a console endpoint), so the flags are documented
+  in the domain type. The contact sheet notes a cut session.
+- 7.4: the demo counts are pinned by the service test only; no integration test seeds the whole demo.
+- 7.6: the timeline time zone case writes an entry from a session in Asia/Tokyo with a wall time and reads the
+  instant back through `timeline.list`.
+- 7.7: the audience statuses test cannot wait with `WaitForMailpitMessages`: its count comes from Mailpit's
+  search, which matches words, so `audience-statuses-1` also counts `audience-statuses-2`. It waits on an exact
+  listed count (`CountMailpitMessagesBySubject`). The other callers of the search count are left as they are
+  ("known, not handled").
+- 7.7: `TestWorkspaceLock_GrantedAsTheContextEnds` failed 5 runs of 20: lib/pq reports a wait the context ended
+  as the server's "canceling statement due to user request", which names no context error. The lock now names
+  both (`withLockTransaction`), with a sqlmock test that fails without it.
+
 ## Test commands for lot 7
 
 ```
