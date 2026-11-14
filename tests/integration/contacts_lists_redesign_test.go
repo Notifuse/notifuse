@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"sort"
 	"testing"
@@ -166,6 +167,18 @@ func TestContactsListsRedesign(t *testing.T) {
 			timelineTypes(t, map[string]string{"entity_types": "message_history,contact"}))
 		assert.Equal(t, http.StatusBadRequest, get(t, "/api/timeline.list",
 			map[string]string{"email": "ann@example.com", "entity_types": "bogus"}, nil))
+	})
+
+	t.Run("timeline.list of an email with no entry is an empty list, not null", func(t *testing.T) {
+		resp, err := client.Get("/api/timeline.list", map[string]string{"workspace_id": workspace.ID, "email": "nobody@example.com"})
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		raw, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode, string(raw))
+		var body map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(raw, &body))
+		assert.Equal(t, "[]", string(body["timeline"]))
 	})
 
 	t.Run("a member who may not read message history sees neither messages nor provider events", func(t *testing.T) {

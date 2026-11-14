@@ -187,7 +187,8 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 	defer func() { _ = rows.Close() }()
 
 	// Parse results
-	var entries []*domain.ContactTimelineEntry
+	// An empty slice, so a contact without entries answers [] rather than null.
+	entries := []*domain.ContactTimelineEntry{}
 	for rows.Next() {
 		entry := &domain.ContactTimelineEntry{}
 		var changesJSON []byte
