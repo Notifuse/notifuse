@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Emails are rendered with safe-mjml v1.0.0, the new name of the MJML engine Notifuse used (gomjml). Their HTML is the HTML the official MJML 4.18 writes, inline `mj-style` applies every selector as MJML does, and Liquid tags are kept intact. A condition written in `mj-raw` tags between sections now applies to the plain-text version too, as it does to the HTML. A template without `mj-body` fails to compile instead of giving an empty email.
 
-- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, activity, messages and web visits.
+- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, activity, messages and web visits, each visit with its pages and goals (a very long one says it shows only its first).
 
 - **Feature**: The blog page in the console lists posts with a tab per status, scheduled posts included, and their counts, a title search, and each post's views over 30 days once the web analytics script is in the blog's theme. Categories show their post counts in the side rail, with a menu to edit or delete them.
 
@@ -98,7 +98,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A variation whose chosen sender is removed from the integration afterwards is queued for no further recipient until another sender is chosen: the broadcast cannot be scheduled, cannot be resumed while that variation still has recipients to queue, and pauses before its next batch if it is queuing them. The console then offers to change the sender of the paused broadcast. Emails already queued keep the sender they were queued with, and no email falls back to another address.
 
-- **Feature**: `contacts.list` takes `search`, which matches a contact's email, first, last and full name, and external ID.
+- **Feature**: `contacts.list` takes `search`, which matches a contact's email, first, last and full name, first and last name together ("Jane Doe"), and external ID.
 
 - **Fix**: A contact's activity (`timeline.list`) no longer shows messages and provider events such as bounces to members and API keys without Message history read, nor website visits to those without Web analytics read.
 

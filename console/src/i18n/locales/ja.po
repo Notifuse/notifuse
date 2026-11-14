@@ -1107,8 +1107,8 @@ msgstr "+ フィルター"
 #. placeholder {0}: session.pageview_count - 1
 #. placeholder {0}: summary.more
 #: src/components/contacts/SegmentDefinedBy.tsx:40
-#: src/components/contacts/visits/ContactWebVisits.tsx:268
-#: src/components/contacts/visits/ContactWebVisits.tsx:304
+#: src/components/contacts/visits/ContactWebVisits.tsx:273
+#: src/components/contacts/visits/ContactWebVisits.tsx:309
 msgid "+{0}"
 msgstr "+{0}"
 
@@ -1920,7 +1920,7 @@ msgstr "配置"
 #: src/components/blog/PostsTable.tsx:402
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:104
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
-#: src/components/contacts/visits/ContactWebVisits.tsx:320
+#: src/components/contacts/visits/ContactWebVisits.tsx:325
 #: src/components/email_builder/panels/LibraryPanel.tsx:210
 #: src/components/logs/AuditLogTab.tsx:227
 #: src/components/logs/AuditLogTab.tsx:249
@@ -6445,7 +6445,7 @@ msgstr "ウェブサイトから検出"
 #~ msgid "Detect from website URL"
 #~ msgstr "WebサイトURLから検出"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:282
+#: src/components/contacts/visits/ContactWebVisits.tsx:287
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
 #: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
@@ -6749,7 +6749,7 @@ msgstr "ここにファイルをドロップしてアップロード"
 msgid "Duplicate"
 msgstr "複製"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:274
+#: src/components/contacts/visits/ContactWebVisits.tsx:279
 msgid "Duration"
 msgstr "滞在時間"
 
@@ -7691,7 +7691,7 @@ msgstr "エンティティID:"
 msgid "Entries older than this are deleted once a day. Leave it empty for the deployment default ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever."
 msgstr "これより古い項目は 1 日 1 回削除されます。空欄にするとデプロイメントのデフォルト（root ユーザーが変更していなければ {AUDIT_LOG_DEFAULT_RETENTION_DAYS} 日）が適用され、0 はすべての項目を永久に保持します。"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:262
+#: src/components/contacts/visits/ContactWebVisits.tsx:267
 msgid "Entry"
 msgstr "入口"
 
@@ -7950,7 +7950,7 @@ msgstr "終了"
 msgid "Exited"
 msgstr "終了"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:204
+#: src/components/contacts/visits/ContactWebVisits.tsx:209
 msgid "Exited on"
 msgstr "離脱ページ"
 
@@ -9047,7 +9047,7 @@ msgstr "頻度"
 msgid "From"
 msgstr "差出人"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:322
+#: src/components/contacts/visits/ContactWebVisits.tsx:327
 msgid "From an email"
 msgstr "メールから"
 
@@ -9206,7 +9206,7 @@ msgstr "グローバルフィードのURL"
 msgid "Go to Sign In"
 msgstr "サインインへ"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:296
+#: src/components/contacts/visits/ContactWebVisits.tsx:301
 #: src/components/segment/form_leaf.tsx:724
 #: src/components/segment/input.tsx:634
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
@@ -10936,7 +10936,7 @@ msgid "Load {PAGE_SIZE} more"
 msgstr "さらに {PAGE_SIZE} 件読み込む"
 
 #: src/components/blog/PostsTable.tsx:467
-#: src/components/contacts/visits/ContactWebVisits.tsx:350
+#: src/components/contacts/visits/ContactWebVisits.tsx:355
 #: src/components/logs/AuditLogTab.tsx:682
 #: src/components/logs/InboundWebhooksTab.tsx:354
 #: src/components/logs/MessagesTab.tsx:857
@@ -12382,7 +12382,7 @@ msgstr "この期間に送信はありません"
 msgid "No sends yet"
 msgstr "まだ送信はありません"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:328
+#: src/components/contacts/visits/ContactWebVisits.tsx:333
 msgid "No sessions match this filter"
 msgstr "このフィルターに一致するセッションはありません"
 
@@ -12475,7 +12475,7 @@ msgstr "トランザクション通知が見つかりません"
 msgid "No trigger configured"
 msgstr "トリガーが設定されていません"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:242
+#: src/components/contacts/visits/ContactWebVisits.tsx:247
 msgid "No visits recorded for this contact"
 msgstr "このコンタクトの訪問は記録されていません"
 
@@ -13040,7 +13040,7 @@ msgstr "ログで開く"
 msgid "Open in new tab"
 msgstr "新しいタブで開く"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:212
+#: src/components/contacts/visits/ContactWebVisits.tsx:217
 msgid "Open in web analytics"
 msgstr "ウェブ解析で開く"
 
@@ -16788,7 +16788,7 @@ msgstr "SESテナントの分離"
 msgid "SES tenant isolation requires a Notifuse {tier} licence."
 msgstr ""
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:254
+#: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:70
 #: src/components/web_analytics/explore/DimensionSelector.tsx:104
 #: src/components/web_analytics/FilterBuilder.tsx:62
@@ -17424,7 +17424,7 @@ msgstr "編集中に他のユーザーがバージョン{0}を保存しました
 msgid "Something went wrong"
 msgstr "エラーが発生しました"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:260
+#: src/components/contacts/visits/ContactWebVisits.tsx:265
 #: src/components/logs/InboundWebhooksTab.tsx:191
 #: src/components/logs/InboundWebhooksTab.tsx:260
 #: src/components/logs/InboundWebhooksTab.tsx:392
@@ -19079,6 +19079,10 @@ msgstr "このセグメントは相対日付フィルターを使用しており
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "この送信者はマーケティングメール連携に含まれなくなりました。別の送信者を選ぶか、欄を空にしてテンプレートの送信者を使ってください。"
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:205
+msgid "This session is too long to show in full: only its first pages and goals are listed."
+msgstr "このセッションは長すぎるため全体を表示できません。最初のページと目標のみを表示しています。"
+
 #: src/components/automations/NodeConfigPanel.tsx:179
 msgid "This step is edited through the API."
 msgstr "このステップは API で編集します。"
@@ -19411,7 +19415,7 @@ msgstr "これらのイベントを止めるには、代わりにZapierでZapを
 msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 msgstr "{0}を使用するには、ワークスペース設定でAnthropic連携を設定する必要があります。"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:234
+#: src/components/contacts/visits/ContactWebVisits.tsx:239
 #: src/components/web_analytics/usePeriodLabels.ts:8
 msgid "Today"
 msgstr "今日"
@@ -19825,7 +19829,7 @@ msgstr "不明"
 msgid "Unknown date"
 msgstr "日付不明"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:289
+#: src/components/contacts/visits/ContactWebVisits.tsx:294
 msgid "Unknown device"
 msgstr "不明なデバイス"
 
@@ -20599,7 +20603,7 @@ msgstr "訪問者の所在地"
 msgid "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 msgstr "訪問者が複数のSDKバージョン ({newest} と並んで{0}) でトラッキングされています。トラッキングスニペットのキャッシュされたコピーがまだ配信されている可能性があります。"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:244
+#: src/components/contacts/visits/ContactWebVisits.tsx:249
 msgid "Visits show up once the visitor is identified"
 msgstr "訪問者が識別されると訪問が表示されます"
 
@@ -21011,7 +21015,7 @@ msgstr "{time} に勝者を送信"
 #~ msgid "Winning metric"
 #~ msgstr "勝利指標"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:321
+#: src/components/contacts/visits/ContactWebVisits.tsx:326
 msgid "With a goal"
 msgstr "ゴールあり"
 
@@ -21255,7 +21259,7 @@ msgstr "はい、再送します"
 #~ msgid "Yes, Select Winner"
 #~ msgstr "はい、優勝者を選択"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:234
+#: src/components/contacts/visits/ContactWebVisits.tsx:239
 #: src/components/web_analytics/usePeriodLabels.ts:9
 msgid "Yesterday"
 msgstr "昨日"

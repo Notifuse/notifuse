@@ -1107,8 +1107,8 @@ msgstr "+ Filtro"
 #. placeholder {0}: session.pageview_count - 1
 #. placeholder {0}: summary.more
 #: src/components/contacts/SegmentDefinedBy.tsx:40
-#: src/components/contacts/visits/ContactWebVisits.tsx:268
-#: src/components/contacts/visits/ContactWebVisits.tsx:304
+#: src/components/contacts/visits/ContactWebVisits.tsx:273
+#: src/components/contacts/visits/ContactWebVisits.tsx:309
 msgid "+{0}"
 msgstr "+{0}"
 
@@ -1920,7 +1920,7 @@ msgstr "Alineación"
 #: src/components/blog/PostsTable.tsx:402
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:104
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
-#: src/components/contacts/visits/ContactWebVisits.tsx:320
+#: src/components/contacts/visits/ContactWebVisits.tsx:325
 #: src/components/email_builder/panels/LibraryPanel.tsx:210
 #: src/components/logs/AuditLogTab.tsx:227
 #: src/components/logs/AuditLogTab.tsx:249
@@ -6445,7 +6445,7 @@ msgstr "Detectar desde el sitio web"
 #~ msgid "Detect from website URL"
 #~ msgstr "Detectar desde URL del sitio web"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:282
+#: src/components/contacts/visits/ContactWebVisits.tsx:287
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
 #: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
@@ -6749,7 +6749,7 @@ msgstr "Suelta archivos aquí para subir"
 msgid "Duplicate"
 msgstr "Duplicar"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:274
+#: src/components/contacts/visits/ContactWebVisits.tsx:279
 msgid "Duration"
 msgstr "Duración"
 
@@ -7691,7 +7691,7 @@ msgstr "ID de entidad:"
 msgid "Entries older than this are deleted once a day. Leave it empty for the deployment default ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever."
 msgstr "Las entradas más antiguas se eliminan una vez al día. Déjelo vacío para el valor por defecto del despliegue ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} días salvo que un usuario root lo haya cambiado); 0 conserva cada entrada para siempre."
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:262
+#: src/components/contacts/visits/ContactWebVisits.tsx:267
 msgid "Entry"
 msgstr "Entrada"
 
@@ -7950,7 +7950,7 @@ msgstr "salido"
 msgid "Exited"
 msgstr "Salido"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:204
+#: src/components/contacts/visits/ContactWebVisits.tsx:209
 msgid "Exited on"
 msgstr "Salió en"
 
@@ -9047,7 +9047,7 @@ msgstr "Frecuencia"
 msgid "From"
 msgstr "Desde"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:322
+#: src/components/contacts/visits/ContactWebVisits.tsx:327
 msgid "From an email"
 msgstr "Desde un email"
 
@@ -9206,7 +9206,7 @@ msgstr "URL del feed global"
 msgid "Go to Sign In"
 msgstr "Ir a iniciar sesión"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:296
+#: src/components/contacts/visits/ContactWebVisits.tsx:301
 #: src/components/segment/form_leaf.tsx:724
 #: src/components/segment/input.tsx:634
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
@@ -10936,7 +10936,7 @@ msgid "Load {PAGE_SIZE} more"
 msgstr "Cargar {PAGE_SIZE} más"
 
 #: src/components/blog/PostsTable.tsx:467
-#: src/components/contacts/visits/ContactWebVisits.tsx:350
+#: src/components/contacts/visits/ContactWebVisits.tsx:355
 #: src/components/logs/AuditLogTab.tsx:682
 #: src/components/logs/InboundWebhooksTab.tsx:354
 #: src/components/logs/MessagesTab.tsx:857
@@ -12382,7 +12382,7 @@ msgstr "Sin envíos en este periodo"
 msgid "No sends yet"
 msgstr "Aún no hay envíos"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:328
+#: src/components/contacts/visits/ContactWebVisits.tsx:333
 msgid "No sessions match this filter"
 msgstr "Ninguna sesión coincide con este filtro"
 
@@ -12475,7 +12475,7 @@ msgstr "No se encontraron notificaciones transaccionales"
 msgid "No trigger configured"
 msgstr "No hay disparador configurado"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:242
+#: src/components/contacts/visits/ContactWebVisits.tsx:247
 msgid "No visits recorded for this contact"
 msgstr "No hay visitas registradas para este contacto"
 
@@ -13040,7 +13040,7 @@ msgstr "Abrir en los registros"
 msgid "Open in new tab"
 msgstr "Abrir en una pestaña nueva"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:212
+#: src/components/contacts/visits/ContactWebVisits.tsx:217
 msgid "Open in web analytics"
 msgstr "Abrir en analítica web"
 
@@ -16788,7 +16788,7 @@ msgstr "Aislamiento de tenant SES"
 msgid "SES tenant isolation requires a Notifuse {tier} licence."
 msgstr ""
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:254
+#: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:70
 #: src/components/web_analytics/explore/DimensionSelector.tsx:104
 #: src/components/web_analytics/FilterBuilder.tsx:62
@@ -17424,7 +17424,7 @@ msgstr "Alguien ha guardado la versión {0} mientras editabas (tú partiste de l
 msgid "Something went wrong"
 msgstr "Algo salió mal"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:260
+#: src/components/contacts/visits/ContactWebVisits.tsx:265
 #: src/components/logs/InboundWebhooksTab.tsx:191
 #: src/components/logs/InboundWebhooksTab.tsx:260
 #: src/components/logs/InboundWebhooksTab.tsx:392
@@ -19079,6 +19079,10 @@ msgstr "Este segmento usa filtros de fecha relativos y se recalculará automáti
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Este remitente ya no forma parte de la integración de email de marketing. Elige otro o vacía el campo para usar el de la plantilla."
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:205
+msgid "This session is too long to show in full: only its first pages and goals are listed."
+msgstr "Esta sesión es demasiado larga para mostrarla entera: solo se listan sus primeras páginas y objetivos."
+
 #: src/components/automations/NodeConfigPanel.tsx:179
 msgid "This step is edited through the API."
 msgstr "Este paso se edita a través de la API."
@@ -19411,7 +19415,7 @@ msgstr "Para detener estos eventos, desactiva el Zap en Zapier. Zapier eliminar�
 msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 msgstr "Para usar {0}, necesitas configurar la integración de Anthropic en la configuración de tu espacio de trabajo."
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:234
+#: src/components/contacts/visits/ContactWebVisits.tsx:239
 #: src/components/web_analytics/usePeriodLabels.ts:8
 msgid "Today"
 msgstr "Hoy"
@@ -19825,7 +19829,7 @@ msgstr "Desconocido"
 msgid "Unknown date"
 msgstr "Fecha desconocida"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:289
+#: src/components/contacts/visits/ContactWebVisits.tsx:294
 msgid "Unknown device"
 msgstr "Dispositivo desconocido"
 
@@ -20599,7 +20603,7 @@ msgstr "Ubicaciones de los visitantes"
 msgid "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 msgstr "Se está haciendo seguimiento de los visitantes con más de una versión del SDK ({0} junto a {newest}). Probablemente todavía se esté sirviendo una copia en caché del fragmento de seguimiento."
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:244
+#: src/components/contacts/visits/ContactWebVisits.tsx:249
 msgid "Visits show up once the visitor is identified"
 msgstr "Las visitas aparecen cuando se identifica al visitante"
 
@@ -21011,7 +21015,7 @@ msgstr "ganador enviado a las {time}"
 #~ msgid "Winning metric"
 #~ msgstr "Métrica ganadora"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:321
+#: src/components/contacts/visits/ContactWebVisits.tsx:326
 msgid "With a goal"
 msgstr "Con un objetivo"
 
@@ -21255,7 +21259,7 @@ msgstr "Sí, reintentar"
 #~ msgid "Yes, Select Winner"
 #~ msgstr "Sí, seleccionar ganador"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:234
+#: src/components/contacts/visits/ContactWebVisits.tsx:239
 #: src/components/web_analytics/usePeriodLabels.ts:9
 msgid "Yesterday"
 msgstr "Ayer"

@@ -1107,8 +1107,8 @@ msgstr "+ Filter"
 #. placeholder {0}: session.pageview_count - 1
 #. placeholder {0}: summary.more
 #: src/components/contacts/SegmentDefinedBy.tsx:40
-#: src/components/contacts/visits/ContactWebVisits.tsx:268
-#: src/components/contacts/visits/ContactWebVisits.tsx:304
+#: src/components/contacts/visits/ContactWebVisits.tsx:273
+#: src/components/contacts/visits/ContactWebVisits.tsx:309
 msgid "+{0}"
 msgstr "+{0}"
 
@@ -1920,7 +1920,7 @@ msgstr "Alignment"
 #: src/components/blog/PostsTable.tsx:402
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:104
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
-#: src/components/contacts/visits/ContactWebVisits.tsx:320
+#: src/components/contacts/visits/ContactWebVisits.tsx:325
 #: src/components/email_builder/panels/LibraryPanel.tsx:210
 #: src/components/logs/AuditLogTab.tsx:227
 #: src/components/logs/AuditLogTab.tsx:249
@@ -6445,7 +6445,7 @@ msgstr "Detect from website"
 #~ msgid "Detect from website URL"
 #~ msgstr "Detect from website URL"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:282
+#: src/components/contacts/visits/ContactWebVisits.tsx:287
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
 #: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
@@ -6749,7 +6749,7 @@ msgstr "Drop files here to upload"
 msgid "Duplicate"
 msgstr "Duplicate"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:274
+#: src/components/contacts/visits/ContactWebVisits.tsx:279
 msgid "Duration"
 msgstr "Duration"
 
@@ -7691,7 +7691,7 @@ msgstr "Entity ID:"
 msgid "Entries older than this are deleted once a day. Leave it empty for the deployment default ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever."
 msgstr "Entries older than this are deleted once a day. Leave it empty for the deployment default ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever."
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:262
+#: src/components/contacts/visits/ContactWebVisits.tsx:267
 msgid "Entry"
 msgstr "Entry"
 
@@ -7950,7 +7950,7 @@ msgstr "exited"
 msgid "Exited"
 msgstr "Exited"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:204
+#: src/components/contacts/visits/ContactWebVisits.tsx:209
 msgid "Exited on"
 msgstr "Exited on"
 
@@ -9047,7 +9047,7 @@ msgstr "Frequency"
 msgid "From"
 msgstr "From"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:322
+#: src/components/contacts/visits/ContactWebVisits.tsx:327
 msgid "From an email"
 msgstr "From an email"
 
@@ -9206,7 +9206,7 @@ msgstr "Global feed URL"
 msgid "Go to Sign In"
 msgstr "Go to Sign In"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:296
+#: src/components/contacts/visits/ContactWebVisits.tsx:301
 #: src/components/segment/form_leaf.tsx:724
 #: src/components/segment/input.tsx:634
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
@@ -10936,7 +10936,7 @@ msgid "Load {PAGE_SIZE} more"
 msgstr "Load {PAGE_SIZE} more"
 
 #: src/components/blog/PostsTable.tsx:467
-#: src/components/contacts/visits/ContactWebVisits.tsx:350
+#: src/components/contacts/visits/ContactWebVisits.tsx:355
 #: src/components/logs/AuditLogTab.tsx:682
 #: src/components/logs/InboundWebhooksTab.tsx:354
 #: src/components/logs/MessagesTab.tsx:857
@@ -12382,7 +12382,7 @@ msgstr "No sends in this period"
 msgid "No sends yet"
 msgstr "No sends yet"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:328
+#: src/components/contacts/visits/ContactWebVisits.tsx:333
 msgid "No sessions match this filter"
 msgstr "No sessions match this filter"
 
@@ -12475,7 +12475,7 @@ msgstr "No transactional notifications found"
 msgid "No trigger configured"
 msgstr "No trigger configured"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:242
+#: src/components/contacts/visits/ContactWebVisits.tsx:247
 msgid "No visits recorded for this contact"
 msgstr "No visits recorded for this contact"
 
@@ -13040,7 +13040,7 @@ msgstr "Open in logs"
 msgid "Open in new tab"
 msgstr "Open in new tab"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:212
+#: src/components/contacts/visits/ContactWebVisits.tsx:217
 msgid "Open in web analytics"
 msgstr "Open in web analytics"
 
@@ -16788,7 +16788,7 @@ msgstr "SES tenant isolation"
 msgid "SES tenant isolation requires a Notifuse {tier} licence."
 msgstr "SES tenant isolation requires a Notifuse {tier} licence."
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:254
+#: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:70
 #: src/components/web_analytics/explore/DimensionSelector.tsx:104
 #: src/components/web_analytics/FilterBuilder.tsx:62
@@ -17424,7 +17424,7 @@ msgstr "Someone saved version {0} while you were editing (you started from {1}).
 msgid "Something went wrong"
 msgstr "Something went wrong"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:260
+#: src/components/contacts/visits/ContactWebVisits.tsx:265
 #: src/components/logs/InboundWebhooksTab.tsx:191
 #: src/components/logs/InboundWebhooksTab.tsx:260
 #: src/components/logs/InboundWebhooksTab.tsx:392
@@ -19079,6 +19079,10 @@ msgstr "This segment uses relative date filters and will be automatically recomp
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 
+#: src/components/contacts/visits/ContactWebVisits.tsx:205
+msgid "This session is too long to show in full: only its first pages and goals are listed."
+msgstr "This session is too long to show in full: only its first pages and goals are listed."
+
 #: src/components/automations/NodeConfigPanel.tsx:179
 msgid "This step is edited through the API."
 msgstr "This step is edited through the API."
@@ -19411,7 +19415,7 @@ msgstr "To stop these events, turn the Zap off in Zapier instead. Zapier then re
 msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 msgstr "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:234
+#: src/components/contacts/visits/ContactWebVisits.tsx:239
 #: src/components/web_analytics/usePeriodLabels.ts:8
 msgid "Today"
 msgstr "Today"
@@ -19825,7 +19829,7 @@ msgstr "Unknown"
 msgid "Unknown date"
 msgstr "Unknown date"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:289
+#: src/components/contacts/visits/ContactWebVisits.tsx:294
 msgid "Unknown device"
 msgstr "Unknown device"
 
@@ -20599,7 +20603,7 @@ msgstr "Visitor locations"
 msgid "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 msgstr "Visitors are being tracked by more than one SDK version ({0} alongside {newest}). A cached copy of the tracking snippet is probably still being served."
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:244
+#: src/components/contacts/visits/ContactWebVisits.tsx:249
 msgid "Visits show up once the visitor is identified"
 msgstr "Visits show up once the visitor is identified"
 
@@ -21011,7 +21015,7 @@ msgstr "winner sent at {time}"
 #~ msgid "Winning metric"
 #~ msgstr "Winning metric"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:321
+#: src/components/contacts/visits/ContactWebVisits.tsx:326
 msgid "With a goal"
 msgstr "With a goal"
 
@@ -21255,7 +21259,7 @@ msgstr "Yes, retry"
 #~ msgid "Yes, Select Winner"
 #~ msgstr "Yes, Select Winner"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:234
+#: src/components/contacts/visits/ContactWebVisits.tsx:239
 #: src/components/web_analytics/usePeriodLabels.ts:9
 msgid "Yesterday"
 msgstr "Yesterday"

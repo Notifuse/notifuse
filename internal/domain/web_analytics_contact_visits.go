@@ -76,8 +76,8 @@ func (r *ContactVisitsRequest) Validate() error {
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("workspace_id is required")
 	}
-	if r.Email == "" {
-		return fmt.Errorf("email is required")
+	if err := validateContactVisitsEmail(r.Email); err != nil {
+		return err
 	}
 	switch r.Filter {
 	case ContactVisitsFilterAll, ContactVisitsFilterGoal, ContactVisitsFilterEmail:
@@ -99,10 +99,35 @@ func (r *ContactVisitsRequest) Validate() error {
 // PostgreSQL refuses, and invalid UTF-8, which normalizing would rewrite into an address
 // that matches nobody: both are the caller's error.
 func contactVisitsEmail(raw string) (string, error) {
-	if !utf8.ValidString(raw) || strings.ContainsRune(raw, 0) {
-		return "", fmt.Errorf("email must be valid UTF-8 without NUL bytes")
+	if err := checkContactVisitsEmailBytes(raw); err != nil {
+		return "", err
 	}
 	return NormalizeEmail(raw), nil
+}
+
+// ContactVisitsEmailMaxBytes is the longest address a visits query takes, the longest an
+// address can be (RFC 5321 path, less its angle brackets).
+const ContactVisitsEmailMaxBytes = 254
+
+func checkContactVisitsEmailBytes(email string) error {
+	if !utf8.ValidString(email) || strings.ContainsRune(email, 0) {
+		return fmt.Errorf("email must be valid UTF-8 without NUL bytes")
+	}
+	return nil
+}
+
+// validateContactVisitsEmail checks the email of a request built without FromQuery too.
+func validateContactVisitsEmail(email string) error {
+	if email == "" {
+		return fmt.Errorf("email is required")
+	}
+	if err := checkContactVisitsEmailBytes(email); err != nil {
+		return err
+	}
+	if len(email) > ContactVisitsEmailMaxBytes {
+		return fmt.Errorf("email must be at most %d bytes", ContactVisitsEmailMaxBytes)
+	}
+	return nil
 }
 
 // EncodeContactVisitsCursor returns the opaque cursor after the session created at
@@ -160,8 +185,8 @@ func (r *ContactSessionPagesRequest) Validate() error {
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("workspace_id is required")
 	}
-	if r.Email == "" {
-		return fmt.Errorf("email is required")
+	if err := validateContactVisitsEmail(r.Email); err != nil {
+		return err
 	}
 	if r.SessionID == "" {
 		return fmt.Errorf("session_id is required")
@@ -259,6 +284,10 @@ type ContactSessionGoal struct {
 type ContactSessionPagesResponse struct {
 	Pages []ContactSessionPage `json:"pages"`
 	Goals []ContactSessionGoal `json:"goals"`
+	// PagesTruncated and GoalsTruncated say the session has more than ContactSessionPagesMax
+	// pages or goals, of which only the first are listed.
+	PagesTruncated bool `json:"pages_truncated"`
+	GoalsTruncated bool `json:"goals_truncated"`
 }
 
 // WebAnalyticsContactVisitsRepository reads one contact's web sessions. Every email is

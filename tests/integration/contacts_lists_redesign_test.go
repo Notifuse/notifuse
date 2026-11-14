@@ -51,6 +51,7 @@ func TestContactsListsRedesign(t *testing.T) {
 	contact("bob@example.com", "Robert", "Nesta", "Bob Marley", "ext-bob-2")
 	contact("a_b@example.com", "Plain", "Name", "Plain Name", "x1")
 	contact("axb@example.com", "Plain", "Name", "Plain Name", "x2")
+	contact("jane@example.com", "Jane", "Doe", "", "x3")
 
 	get := func(t *testing.T, endpoint string, params map[string]string, out interface{}) int {
 		t.Helper()
@@ -86,6 +87,7 @@ func TestContactsListsRedesign(t *testing.T) {
 		assert.Equal(t, []string{"ann@example.com"}, search("ext-ann"), "external ID")
 		assert.Equal(t, []string{"bob@example.com"}, search("bob@"), "email")
 		assert.Equal(t, []string{"a_b@example.com"}, search("a_b"), "an underscore matches only itself")
+		assert.Equal(t, []string{"jane@example.com"}, search("jane doe"), "first and last name together, with no full name")
 	})
 
 	t.Run("contacts.list refuses a search over 100 characters", func(t *testing.T) {

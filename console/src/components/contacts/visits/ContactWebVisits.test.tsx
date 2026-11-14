@@ -11,7 +11,8 @@ import type { Workspace } from '../../../services/api/types'
 const state = vi.hoisted(() => ({
   summary: null as unknown,
   sessions: [] as unknown[],
-  linkSearch: [] as unknown[]
+  linkSearch: [] as unknown[],
+  pagesTruncated: false
 }))
 
 vi.mock('@tanstack/react-router', async () => ({
@@ -36,7 +37,9 @@ vi.mock('../../../services/api/web_analytics', () => ({
         { entered_at: '2026-11-12T10:00:00Z', path: '/pricing', duration_ms: 30000, page_number: 1 },
         { entered_at: '2026-11-12T10:02:00Z', path: '/signup', duration_ms: 60000, page_number: 2 }
       ],
-      goals: [{ goal_at: '2026-11-12T10:01:00Z', goal_name: 'Upgrade', goal_value: 290, path: '/pricing' }]
+      goals: [{ goal_at: '2026-11-12T10:01:00Z', goal_name: 'Upgrade', goal_value: 290, path: '/pricing' }],
+      pages_truncated: state.pagesTruncated,
+      goals_truncated: false
     }))
   }
 }))
@@ -94,6 +97,7 @@ function renderVisits() {
 describe('ContactWebVisits', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    state.pagesTruncated = false
     state.summary = summary()
     state.sessions = [
       session({}),
@@ -146,6 +150,20 @@ describe('ContactWebVisits', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /expand row/i })[0])
     expect(webAnalyticsService.contactSessionPages).toHaveBeenCalledTimes(1)
     expect(state.linkSearch.at(-1)).toMatchObject({ params: { workspaceId: 'ws', tab: 'dashboard' } })
+    expect(document.querySelector('[data-journey-truncated]')).toBeNull()
+  })
+
+  it('says when a session journey is cut', async () => {
+    state.pagesTruncated = true
+    renderVisits()
+    await screen.findAllByText('November')
+    fireEvent.click(screen.getAllByRole('button', { name: /expand row/i })[0])
+    const note = await waitFor(() => {
+      const element = document.querySelector('[data-journey-truncated]')
+      expect(element).not.toBeNull()
+      return element as HTMLElement
+    })
+    expect(note.textContent).toMatch(/only its first pages and goals/)
   })
 
   it('links to web analytics over the last 30 days, filtered on the contact', () => {
