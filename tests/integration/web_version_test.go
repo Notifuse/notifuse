@@ -140,7 +140,7 @@ func TestWebVersion(t *testing.T) {
 		_ = scheduleResp.Body.Close()
 		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, []string{"processed", "completed", "sent"}, 60*time.Second)
 		require.NoError(t, err)
-		msg, err := waitForEmailAndGetMessage(t, email, 30*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 30*time.Second)
 		require.NoError(t, err)
 		return msg
 	}
@@ -169,7 +169,7 @@ func TestWebVersion(t *testing.T) {
 		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, []string{"processed", "completed", "sent"}, 60*time.Second)
 		require.NoError(t, err)
 
-		msg, err := waitForEmailAndGetMessage(t, camille, 30*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, camille, 30*time.Second)
 		require.NoError(t, err)
 		clickLink, destination := deliveredWebVersionLink(t, msg.HTML)
 		require.True(t, strings.HasPrefix(destination, serverURL+"/v/"), destination)
@@ -239,7 +239,7 @@ func TestWebVersion(t *testing.T) {
 		assert.Equal(t, destination, redirect.Header.Get("Location"))
 
 		// A first name carrying markup reaches the page as written, under the sandbox.
-		attackerMsg, err := waitForEmailAndGetMessage(t, attacker, 30*time.Second)
+		attackerMsg, err := testutil.WaitForMailpitMessageByRecipient(t, attacker, 30*time.Second)
 		require.NoError(t, err)
 		_, attackerDestination := deliveredWebVersionLink(t, attackerMsg.HTML)
 		resp, body = getWebVersion(t, attackerDestination)
@@ -298,7 +298,7 @@ func TestWebVersion(t *testing.T) {
 		createActiveAutomation(t, client, workspace.ID, shortuuid.New(), list.ID, eventName, template.ID)
 		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, eventName, map[string]interface{}{}))
 
-		msg, err := waitForEmailAndGetMessage(t, email, 30*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 30*time.Second)
 		require.NoError(t, err)
 		_, destination := deliveredWebVersionLink(t, msg.HTML)
 		resp, body := getWebVersion(t, destination)
@@ -368,7 +368,7 @@ func TestWebVersion(t *testing.T) {
 		postOK(t, "/api/broadcasts.sendToIndividual", map[string]interface{}{
 			"workspace_id": workspace.ID, "broadcast_id": broadcast.ID, "recipient_email": email, "template_id": template.ID,
 		})
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err)
 		assert.NotContains(t, msg.HTML, serverURL+"/v/")
 		for _, m := range deliveredClickLinkRe.FindAllStringSubmatch(msg.HTML, -1) {
@@ -392,7 +392,7 @@ func TestWebVersion(t *testing.T) {
 			"sender_id":       integration.EmailProvider.Senders[0].ID,
 			"recipient_email": email,
 		})
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err)
 		for _, m := range deliveredClickLinkRe.FindAllStringSubmatch(msg.HTML, -1) {
 			tok, err := trackingtoken.Parse(m[2], trackingtoken.PurposeClick)

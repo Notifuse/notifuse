@@ -118,6 +118,6 @@ func TestAutomationExitOnReplySendsTheLastEmail(t *testing.T) {
 	journey := waitForAutomationStatus(t, factory, workspace.ID, automationID, email, domain.ContactAutomationStatusCompleted, 20*time.Second)
 	require.NotNil(t, journey)
 
-	_, err = waitForEmailAndGetMessage(t, email, 20*time.Second)
+	_, err = testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 	assert.NoError(t, err, "the last email of a completed Exit on reply journey must be sent")
 }

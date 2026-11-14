@@ -211,7 +211,7 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		_ = resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
 
-		email, err := waitForEmailByRecipientAddr(t, recipient, 30*time.Second)
+		email, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 30*time.Second)
 		require.NoError(t, err)
 		parts := readDeliveredParts(t, email.ID)
 
@@ -252,7 +252,7 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, []string{"processed", "completed", "sent"}, 60*time.Second)
 		require.NoError(t, err)
 
-		grantedEmail, err := waitForEmailByRecipientAddr(t, granted, 30*time.Second)
+		grantedEmail, err := testutil.WaitForMailpitMessageByRecipient(t, granted, 30*time.Second)
 		require.NoError(t, err)
 		grantedParts := readDeliveredParts(t, grantedEmail.ID)
 		assertTextMirrorsHTML(t, grantedParts)
@@ -260,7 +260,7 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		assert.Contains(t, grantedParts.text, linkEndpoint+"/r/", "a consenting recipient's text links are tracked")
 		assert.NotEmpty(t, grantedParts.header.Get("List-Unsubscribe"), "the unsubscribe header is still set")
 
-		refusedEmail, err := waitForEmailByRecipientAddr(t, refused, 30*time.Second)
+		refusedEmail, err := testutil.WaitForMailpitMessageByRecipient(t, refused, 30*time.Second)
 		require.NoError(t, err)
 		refusedParts := readDeliveredParts(t, refusedEmail.ID)
 		assertTextMirrorsHTML(t, refusedParts)
@@ -290,7 +290,7 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		})
 		require.Equal(t, http.StatusOK, status, body)
 
-		email, err := waitForEmailByRecipientAddr(t, recipient, 30*time.Second)
+		email, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 30*time.Second)
 		require.NoError(t, err)
 		parts := readDeliveredParts(t, email.ID)
 
@@ -413,7 +413,7 @@ func TestPlainTextCustom_E2E(t *testing.T) {
 		body, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
-		email, err := waitForEmailByRecipientAddr(t, recipient, 30*time.Second)
+		email, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 30*time.Second)
 		require.NoError(t, err)
 		return readDeliveredParts(t, email.ID)
 	}
@@ -516,7 +516,7 @@ func TestPlainTextCustom_E2E(t *testing.T) {
 		require.NoError(t, err)
 
 		for email, name := range recipients {
-			delivered, err := waitForEmailByRecipientAddr(t, email, 30*time.Second)
+			delivered, err := testutil.WaitForMailpitMessageByRecipient(t, email, 30*time.Second)
 			require.NoError(t, err)
 			parts := readDeliveredParts(t, delivered.ID)
 			require.Contains(t, parts.types, "multipart/alternative")

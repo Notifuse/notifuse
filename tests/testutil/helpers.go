@@ -1259,6 +1259,21 @@ func GetMailpitMessageRaw(t *testing.T, messageID string) (string, error) {
 	return string(body), nil
 }
 
+// GetMailpitMessageEventually reads a message, polling again after a failed read until the
+// timeout. A scan that skipped a message it could not read would miss the email it looks for,
+// or pass an assertion that no such email exists.
+func GetMailpitMessageEventually(t *testing.T, messageID string, timeout time.Duration) (*MailpitMessage, error) {
+	deadline := time.Now().Add(timeout)
+	for {
+		msg, err := GetMailpitMessage(t, messageID)
+		if err == nil || !time.Now().Before(deadline) {
+			return msg, err
+		}
+		t.Logf("Failed to read Mailpit message %s, polling again: %v", messageID, err)
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
 // WaitForMailpitMessageByRecipient polls Mailpit until an email for the given recipient is found,
 // then returns the full MailpitMessage (with Subject, HTML, Text fields).
 func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeout time.Duration) (*MailpitMessage, error) {
@@ -1336,6 +1351,14 @@ func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
 	}
 
 	return apiResp.Total, nil
+}
+
+// CountMailpitMessagesBySubject counts the listed messages whose subject contains subject. It
+// reads the list alone, no message's headers, and matches the subject exactly where the search
+// API behind GetMailpitMessageCount matches words, so "audience-statuses-1" also finds
+// "audience-statuses-2".
+func CountMailpitMessagesBySubject(t *testing.T, subject string) (int, error) {
+	return getMailpitMessageCountByListing(t, subject)
 }
 
 // getMailpitMessageCountByListing counts messages by listing all and filtering by subject
@@ -1427,7 +1450,7 @@ func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string][]*
 		if !strings.Contains(summary.Subject, subject) {
 			continue
 		}
-		msg, err := GetMailpitMessage(t, summary.ID)
+		msg, err := GetMailpitMessageEventually(t, summary.ID, 5*time.Second)
 		if err != nil {
 			return nil, err
 		}

@@ -102,7 +102,7 @@ func TestNotificationCenterPrivateListsAsDelivered(t *testing.T) {
 	sendBody, _ := io.ReadAll(resp.Body)
 	_ = resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, "send broadcast: %s", sendBody)
-	newsletterEmail, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+	newsletterEmail, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 	require.NoError(t, err, "the newsletter should reach Mailpit")
 	signed := listUnsubscribeURL(t, newsletterEmail).Query()
 

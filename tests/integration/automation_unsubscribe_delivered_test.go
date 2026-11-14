@@ -175,7 +175,7 @@ func TestAutomationUnsubscribeAsDelivered(t *testing.T) {
 		}
 
 		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, a.eventName, map[string]interface{}{}))
-		msg, err = waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err = testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err, "the automation email should reach Mailpit")
 
 		// An SMTP send records its message_history row only once the server has accepted the

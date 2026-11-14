@@ -136,7 +136,7 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 			t.Fatalf("Failed to send broadcast: status=%d, response=%+v", resp.StatusCode, errResult)
 		}
 
-		msg, err = waitForEmailAndGetMessage(t, email, 10*time.Second)
+		msg, err = testutil.WaitForMailpitMessageByRecipient(t, email, 10*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
 		return msg, email, listID
 	}
@@ -276,7 +276,7 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 			require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
 			require.True(t, result.Success, "test send failed: %s", result.Error)
 
-			msg, err := waitForEmailAndGetMessage(t, recipient, 10*time.Second)
+			msg, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 10*time.Second)
 			require.NoError(t, err, "Should receive the test email in Mailpit")
 			return msg
 		}
@@ -401,7 +401,7 @@ func TestListUnsubscribeHeaders(t *testing.T) {
 			[]string{"processed", "completed"}, 60*time.Second)
 		require.NoError(t, err)
 
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err, "Should receive the broadcast email in Mailpit")
 
 		u := listUnsubscribeURL(t, msg)
@@ -461,55 +461,3 @@ func requestListUnsubscribeURL(t *testing.T, method string, u *url.URL, contentT
 	return resp
 }
 
-// waitForEmailAndGetMessage polls Mailpit for an email to the specified recipient
-// and returns the full message with headers
-func waitForEmailAndGetMessage(t *testing.T, recipientEmail string, timeout time.Duration) (*testutil.MailpitMessage, error) {
-	deadline := time.Now().Add(timeout)
-	pollInterval := 500 * time.Millisecond
-	mailpitURL := "http://localhost:8025/api/v1/messages"
-
-	httpClient := &http.Client{Timeout: 5 * time.Second}
-
-	for time.Now().Before(deadline) {
-		resp, err := httpClient.Get(mailpitURL)
-		if err != nil {
-			t.Logf("Failed to connect to Mailpit API: %v", err)
-			time.Sleep(pollInterval)
-			continue
-		}
-
-		var apiResp testutil.MailpitMessagesResponse
-		err = json.NewDecoder(resp.Body).Decode(&apiResp)
-		resp.Body.Close()
-
-		if err != nil {
-			t.Logf("Failed to decode Mailpit response: %v", err)
-			time.Sleep(pollInterval)
-			continue
-		}
-
-		t.Logf("Mailpit has %d messages", len(apiResp.Messages))
-
-		// Check each message for matching recipient. A failed read of the newest match
-		// polls again rather than falling back to an older email to the same recipient.
-	scan:
-		for _, msg := range apiResp.Messages {
-			for _, to := range msg.To {
-				if strings.EqualFold(recipientEmail, to.Address) {
-					t.Logf("Found email for recipient: %s", recipientEmail)
-					// Get the full message with headers
-					fullMsg, err := testutil.GetMailpitMessage(t, msg.ID)
-					if err != nil {
-						t.Logf("Failed to get full message: %v", err)
-						break scan
-					}
-					return fullMsg, nil
-				}
-			}
-		}
-
-		time.Sleep(pollInterval)
-	}
-
-	return nil, fmt.Errorf("timeout waiting for email to %s after %v", recipientEmail, timeout)
-}

@@ -127,7 +127,7 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 	deliver := func(t *testing.T, email string) (*testutil.MailpitMessage, string) {
 		t.Helper()
 		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, eventName, map[string]interface{}{}))
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err, "the automation email should reach Mailpit")
 		messageID := deliveredHeader(t, msg, "X-Message-ID")
 
@@ -393,7 +393,7 @@ func TestAutomationComplaintFromContactNotOnList(t *testing.T) {
 
 		// The form sends the confirmation before it answers, so once the control's email is
 		// in, one sent to the complained address before it would be too
-		_, err = waitForEmailAndGetMessage(t, control, 20*time.Second)
+		_, err = testutil.WaitForMailpitMessageByRecipient(t, control, 20*time.Second)
 		require.NoError(t, err, "the form sends the confirmation email to a new subscriber")
 		assert.Zero(t, deliveredCountTo(t, complained), "no confirmation email to an address that complained")
 
