@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
@@ -79,5 +79,44 @@ describe('ExportContactsModal view', () => {
       segments: ['pro'],
       full_name: 'Ann Lee'
     })
+  })
+})
+
+describe('ExportContactsModal in French', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    i18n.load('fr', {})
+    i18n.activate('fr')
+  })
+
+  afterEach(() => {
+    i18n.activate('en')
+  })
+
+  it('counts the fetched contacts with the French thousands separator', async () => {
+    // A first page of 12,345 contacts, then a page that never answers, so the count stays on screen
+    const page = Array.from({ length: 12345 }, (_, i) => ({ email: `c${i}@example.com` }))
+    vi.mocked(contactsApi.list)
+      .mockResolvedValueOnce({ contacts: page, next_cursor: 'next' } as never)
+      .mockReturnValueOnce(new Promise(() => {}) as never)
+
+    render(
+      <I18nProvider i18n={i18n}>
+        <ExportContactsModal
+          visible
+          onCancel={vi.fn()}
+          workspaceId="ws1"
+          workspace={undefined}
+          filters={{}}
+          segmentsData={[]}
+          listsData={[]}
+        />
+      </I18nProvider>
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /export/i }))
+
+    // French groups thousands with a narrow no-break space
+    expect(await screen.findByText(/^Fetched 12\s345 contacts\.\.\.$/)).toBeInTheDocument()
   })
 })

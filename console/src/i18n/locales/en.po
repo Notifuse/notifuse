@@ -15561,7 +15561,11 @@ msgstr "Right to Left"
 #: src/components/file_manager/FilePreview.tsx:62
 #: src/components/file_manager/FileTable.tsx:88
 #: src/components/file_manager/FolderTree.tsx:121
-#: src/layouts/app-shell/AccountMenu.tsx:69
+msgid "Root"
+msgstr "Root"
+
+#: src/layouts/app-shell/AccountMenu.tsx:64
+msgctxt "role"
 msgid "Root"
 msgstr "Root"
 
@@ -21580,10 +21584,16 @@ msgstr "You need Transactional write and Templates read permissions to create no
 msgid "You need Transactional write permission"
 msgstr "You need Transactional write permission"
 
+#. placeholder {0}: int(currentRow + 1)
+#. placeholder {1}: int(totalRows)
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:857
+msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {1}."
+msgstr "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {1}."
+
 #. placeholder {0}: currentRow + 1
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:857
-msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
-msgstr "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
+#~ msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
+#~ msgstr "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
 
 #: src/pages/AcceptInvitationPage.tsx:142
 msgid "You've been invited to join"

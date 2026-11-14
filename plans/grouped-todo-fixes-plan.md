@@ -1693,6 +1693,21 @@ deleted."
   answer whose count did not grow, is a reset, and every answer from it counts.
 - 8.6, a 8.3 page test still expected the refused Send test to be `disabled`; it now checks `aria-disabled`
   and the description (folded into the 8.3 commit).
+- 8.7, French apostrophes: the script found 360 elisions (not about 280), "aujourd'hui" included; each one
+  was read in the word diff.
+- 8.7, "Root": the folder (file manager) and the role (account menu) were one msgid. The role now has the
+  `role` context, translated as the administrator's title; the folder keeps the plain msgid.
+- 8.7, test setup: the mocked `useLingui` returns the same `t` on every render, and resolves a descriptor's
+  `context` with `generateMessageId`; `__tests__/linguiMock.test.tsx` pins both.
+- 8.7, e2e: `mockAnalyticsAnswer` builds the rows each `analytics.query` asks for (its measures, its
+  dimensions, one row per day for a daily granularity). The "+" menu's refused saved blocks are disabled
+  buttons since 8.2, so the spec checks `toBeDisabled` and clicks with `force`; the library's rename reads the
+  block with `templateBlocks.get` since 8.2, which the spec's store now answers. With analytics rows to read,
+  the broadcast detail asked for its stats before its test ended, and the mock's `{}` crashed it: the fixture
+  answers `messages.broadcastStats`, `broadcastVariationStats` and `broadcastLinkStats` with empty stats.
+  No CI job runs these specs; they were run locally against the dev server, all 258 passing.
+- 8.7, import drawer: the "resume from row … of …" alert formatted its two numbers raw; they go through
+  `int` like the drawer's other counters.
 
 ## Test commands for lot 8
 

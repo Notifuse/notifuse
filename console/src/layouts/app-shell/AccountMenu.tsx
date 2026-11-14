@@ -68,7 +68,14 @@ export function AccountMenu({
   const [menuOpen, setMenuOpen] = useState(false)
   const { ref, focusBack } = useFocusBack<HTMLButtonElement>()
   const roleLabel =
-    role === 'root' ? t`Root` : role === 'owner' ? t`Owner` : role === 'member' ? t`Member` : null
+    // A context of its own: the same word names the root folder of the file manager
+    role === 'root'
+      ? t({ message: 'Root', context: 'role' })
+      : role === 'owner'
+        ? t`Owner`
+        : role === 'member'
+          ? t`Member`
+          : null
   const email = user?.email ?? ''
 
   const items: MenuProps['items'] = [

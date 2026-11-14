@@ -5,6 +5,8 @@ import { forwardRef, useState, type ReactNode } from 'react'
 import type { Workspace } from '../../services/api/types'
 import { AppSidebar, type AppSidebarProps } from './AppSidebar'
 import { changeLanguage } from '../../i18n/languages'
+import { i18n } from '@lingui/core'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 
 vi.mock('@tanstack/react-router', () => ({
   // Forwards its ref like the real Link: Escape on the pin moves the focus to the logo.
@@ -576,6 +578,17 @@ describe('AppSidebar', () => {
     ] as const)('reads the %s role with the language', (role, line) => {
       render(<Harness role={role} />)
       expect(document.querySelector('[data-account-role]')).toHaveTextContent(line)
+    })
+
+    it('reads the root role in its own words, apart from the root folder', () => {
+      i18n.load('fr', { [generateMessageId('Root', 'role')]: 'Administrateur', Root: 'Racine' })
+      i18n.activate('fr')
+      try {
+        render(<Harness role="root" />)
+        expect(document.querySelector('[data-account-role]')).toHaveTextContent('Administrateur · EN')
+      } finally {
+        i18n.activate('en')
+      }
     })
 
     it('lists the version and signs out from the menu', async () => {

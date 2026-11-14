@@ -4,33 +4,51 @@ import '@testing-library/jest-dom/vitest'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { ReactNode } from 'react'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 
 // Initialize i18n for tests
 i18n.load('en', {})
 i18n.activate('en')
 
+interface MessageDescriptorInput {
+  id?: string
+  message: string
+  context?: string
+  values?: Record<string, unknown>
+}
+
 // Mock @lingui/react/macro since it requires Babel transformation
 // The macro transforms t`text` into i18n._('text') at build time
-// This mock simulates the real behavior by using i18n._ for translations
+// This mock simulates the real behavior by using i18n._ for translations.
+// Created once, as the real `t` keeps its identity between renders: a new function on every
+// render would rerun the effects and memos that depend on it, which the app never does.
+const t = (strings: TemplateStringsArray | MessageDescriptorInput, ...values: unknown[]) => {
+  // A descriptor (t({ message, context })): resolved with its id, its context and its values. A
+  // context gives the message the id the macro generates, so a catalog tells "Open" (action) from
+  // "Open"; without one the id is the message, as for the tagged form below.
+  if (!Array.isArray(strings)) {
+    const { id, message, context, values: descriptorValues } = strings as MessageDescriptorInput
+    return i18n._({
+      id: id ?? (context ? generateMessageId(message, context) : message),
+      message,
+      values: descriptorValues
+    })
+  }
+  // Reconstruct the template literal to get the message ID
+  const messageId = (strings as TemplateStringsArray).reduce((result, str, idx) => {
+    return result + str + (values[idx] !== undefined ? `{${idx}}` : '')
+  }, '')
+  // Use i18n._ to get the translation (simulates real macro behavior)
+  // The values are passed as an object with numeric keys
+  const valuesObj = values.reduce<Record<string, unknown>>((acc, val, idx) => {
+    acc[idx] = val
+    return acc
+  }, {})
+  return i18n._(messageId, valuesObj)
+}
+
 vi.mock('@lingui/react/macro', () => ({
-  useLingui: () => ({
-    t: (strings: TemplateStringsArray | { message: string; context?: string }, ...values: unknown[]) => {
-      // A descriptor (t({ message, context })): the context only tells catalog entries apart.
-      if (!Array.isArray(strings)) return i18n._((strings as { message: string }).message)
-      // Reconstruct the template literal to get the message ID
-      const messageId = strings.reduce((result, str, idx) => {
-        return result + str + (values[idx] !== undefined ? `{${idx}}` : '')
-      }, '')
-      // Use i18n._ to get the translation (simulates real macro behavior)
-      // The values are passed as an object with numeric keys
-      const valuesObj = values.reduce<Record<string, unknown>>((acc, val, idx) => {
-        acc[idx] = val
-        return acc
-      }, {})
-      return i18n._(messageId, valuesObj)
-    },
-    i18n,
-  }),
+  useLingui: () => ({ t, i18n }),
   Trans: ({ children }: { children: ReactNode }) => children,
   // Plural macro fallback: pick `one` for 1, `other` otherwise, and replace `#`
   // with the value (matches real macro behavior well enough for tests).

@@ -1017,11 +1017,11 @@ msgstr "{unsubscribed, plural, one {# Kontakt} other {# Kontakte}}"
 
 #: src/components/layout/format.ts:46
 msgid "{value} pt"
-msgstr "{value} Pp."
+msgstr "{value} PP"
 
 #: src/components/layout/format.ts:47
 msgid "{value} pts"
-msgstr "{value} Pp."
+msgstr "{value} PP"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:171
 msgid "{weekday} at {time} {zone}"
@@ -15563,7 +15563,12 @@ msgstr "Rechts nach links"
 #: src/components/file_manager/FolderTree.tsx:121
 #: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Root"
-msgstr "Root"
+msgstr "Stammverzeichnis"
+
+#: src/layouts/app-shell/AccountMenu.tsx:64
+msgctxt "role"
+msgid "Root"
+msgstr "Administrator"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:260
 #: src/pages/SetupWizard.tsx:366
@@ -21580,10 +21585,16 @@ msgstr "Sie benötigen Schreibrecht für Transaktional und Leserecht für Vorlag
 msgid "You need Transactional write permission"
 msgstr "Sie benötigen Schreibrecht für Transaktional"
 
+#. placeholder {0}: int(currentRow + 1)
+#. placeholder {1}: int(totalRows)
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:857
+msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {1}."
+msgstr "Sie setzen eine frühere Upload-Sitzung von \"{fileName}\" fort. Der Upload wird ab Zeile {0} von {1} fortgesetzt."
+
 #. placeholder {0}: currentRow + 1
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:857
-msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
-msgstr "Sie setzen eine frühere Upload-Sitzung von \\\"{fileName}\\\" fort. Der Upload wird ab Zeile {0} von {totalRows} fortgesetzt."
+#~ msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
+#~ msgstr "Sie setzen eine frühere Upload-Sitzung von \"{fileName}\" fort. Der Upload wird ab Zeile {0} von {totalRows} fortgesetzt."
 
 #: src/pages/AcceptInvitationPage.tsx:142
 msgid "You've been invited to join"

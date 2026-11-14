@@ -813,11 +813,68 @@ export const mockBlogThemesResponse = {
 // ANALYTICS
 // ============================================
 
-// The analytics.query response: rows plus the generated query. Empty, so every chart and count of
-// the dashboard reads zero.
-export const mockAnalyticsData = {
-  data: [],
-  meta: { total: 0, query: '', params: [] }
+/** The part of an analytics.query request the mocked answer reads. */
+export interface MockAnalyticsQuery {
+  measures?: string[]
+  dimensions?: string[]
+  timeDimensions?: { dimension: string; granularity?: string; dateRange?: string[] }[]
+}
+
+/** The values a mocked answer gives each dimension: every origin, two of anything else. */
+const MOCK_DIMENSION_VALUES: Record<string, string[]> = {
+  origin: ['broadcast', 'transactional', 'automation', 'other'],
+  channel: ['email'],
+  device: ['desktop', 'mobile'],
+  country: ['FR', 'US']
+}
+
+const MAX_MOCK_DAYS = 92
+
+/** Each day of a date range, oldest first; the last week without one. */
+function mockDays(range: string[] | undefined): string[] {
+  const end = new Date(`${range?.[1] ?? new Date().toISOString().slice(0, 10)}T00:00:00Z`)
+  const start = range?.[0] ? new Date(`${range[0]}T00:00:00Z`) : new Date(end.getTime() - 6 * 86_400_000)
+  const days: string[] = []
+  for (let day = start; day <= end && days.length < MAX_MOCK_DAYS; day = new Date(day.getTime() + 86_400_000)) {
+    days.push(day.toISOString().slice(0, 10))
+  }
+  return days
+}
+
+/** A plausible value for a measure: rates and shares in percent, durations in seconds, counts else. */
+function mockMeasure(measure: string, day: number, group: number): number {
+  if (/rate|percent|share|bounce|scroll/.test(measure)) return 12.5 + group
+  if (/duration|time|seconds/.test(measure)) return 90 + 10 * group
+  return 40 + 7 * day + 3 * group
+}
+
+/**
+ * The analytics.query answer for a request: one row per value of its dimensions and, for a time
+ * series, per day of its range, with a value for each measure, so the dashboard reads numbers
+ * rather than zeros. A time series names its bucket `<dimension>_<granularity>`, as the engine does.
+ */
+export function mockAnalyticsAnswer(query: MockAnalyticsQuery) {
+  const measures = query.measures ?? []
+  const series = query.timeDimensions?.find((time) => time.granularity)
+  const groups = (query.dimensions ?? []).reduce<Record<string, string>[]>(
+    (rows, dimension) =>
+      rows.flatMap((row) =>
+        (MOCK_DIMENSION_VALUES[dimension] ?? [`${dimension}-a`, `${dimension}-b`]).map((value) => ({
+          ...row,
+          [dimension]: value
+        }))
+      ),
+    [{}]
+  )
+  const days = series ? mockDays(series.dateRange) : [undefined]
+  const data = days.flatMap((day, dayIndex) =>
+    groups.map((group, groupIndex) => ({
+      ...group,
+      ...(series && day ? { [`${series.dimension}_${series.granularity}`]: `${day}T00:00:00Z` } : {}),
+      ...Object.fromEntries(measures.map((measure) => [measure, mockMeasure(measure, dayIndex, groupIndex)]))
+    }))
+  )
+  return { data, meta: { total: data.length, query: '', params: [] } }
 }
 
 // ============================================
@@ -1116,4 +1173,27 @@ export const mockAutomationNodeStats = {
     'w-tour': stepStats({ node_type: 'email', visits: 701, completed: 699, failed_journeys: 2, email: emailStats(699, 380, 121) }),
     'w-remind': stepStats({ node_type: 'email', visits: 401, completed: 401, email: emailStats(401, 143, 22) })
   }
+}
+
+// messages.broadcastStats and messages.broadcastVariationStats of a broadcast with no message yet,
+// and an empty queue
+export const emptyBroadcastStats = {
+  total_sent: 0,
+  total_delivered: 0,
+  total_bounced: 0,
+  total_complained: 0,
+  total_failed: 0,
+  total_opened: 0,
+  total_clicked: 0,
+  total_unsubscribed: 0,
+  total_opens_tracked: 0,
+  total_clicks_tracked: 0
+}
+
+export const emptyBroadcastQueue = {
+  pending: 0,
+  processing: 0,
+  paused: 0,
+  failed_retrying: 0,
+  failed_terminal: 0
 }
