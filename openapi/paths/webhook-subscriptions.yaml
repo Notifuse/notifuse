@@ -378,7 +378,11 @@
         schema:
           type: string
           enum: [pending, delivering, delivered, failed]
-        description: Only deliveries in this status (optional). `total` counts the filtered deliveries. Any other value answers 400.
+        description: >-
+          Only deliveries in this status (optional). An empty value lists every
+          status; any other value answers 400. `failed` also covers the
+          deliveries waiting for a retry, which go back to `delivering` when
+          the worker takes them again. `total` counts the filtered deliveries.
         example: failed
       - name: limit
         in: query
@@ -407,7 +411,7 @@
             schema:
               $ref: '../components/schemas/webhook-subscription.yaml#/ListWebhookDeliveriesResponse'
       '400':
-        description: Bad request - missing parameters
+        description: Bad request - missing parameters or unknown status
         content:
           application/json:
             schema:

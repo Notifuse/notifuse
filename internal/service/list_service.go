@@ -490,7 +490,8 @@ func (s *ListService) SubscribeToListsWithResults(ctx context.Context, payload *
 			return nil, fmt.Errorf("failed to get marketing email provider: %w", err)
 		}
 
-		// if the marketing email provider is not set, we don't need to send the welcome email
+		// Without a marketing email provider, the double opt-in confirmation email cannot be
+		// sent: the subscription stays pending.
 		if marketingEmailProvider == nil {
 			continue
 		}
