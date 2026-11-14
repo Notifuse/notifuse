@@ -1345,7 +1345,9 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		MessageID:        messageID,
 		TrackingSettings: trackingSettings,
 		Broadcast:        broadcast,
-		WebVersion:       true,
+		// A test send is recorded without the broadcast (see below), and the web version page
+		// serves only broadcast and automation messages, so a link would lead to a page not found.
+		WebVersion: false,
 	}
 	templateData, err := domain.BuildTemplateData(req)
 	if err != nil {
@@ -1394,6 +1396,13 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		}).Warn("Custom text version could not be used, sending the automatic one")
 	}
 
+	// The subject is rendered with the same data as the body, as a real send renders it.
+	subject, err := notifuse_mjml.ProcessLiquidTemplate(emailContent.Subject, templateData, "email_subject")
+	if err != nil {
+		s.logger.Error("Failed to process the subject for broadcast")
+		return fmt.Errorf("failed to process subject: %w", err)
+	}
+
 	// Create SendEmailProviderRequest
 	emailRequest := domain.SendEmailProviderRequest{
 		WorkspaceID:   request.WorkspaceID,
@@ -1402,7 +1411,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		FromAddress:   emailSender.Email,
 		FromName:      emailSender.Name,
 		To:            request.RecipientEmail,
-		Subject:       emailContent.Subject,
+		Subject:       subject,
 		Content:       *compiledTemplate.HTML,
 		TextContent:   compiledTemplate.CustomText(),
 		Provider:      emailProvider,
@@ -1427,12 +1436,13 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		return err
 	}
 
+	// No broadcast_id: a test send is not part of the broadcast and must not count in its
+	// opens, clicks and sends.
 	now := time.Now().UTC()
 	listID := broadcast.Audience.List
 	message := &domain.MessageHistory{
 		ID:              messageID,
 		ContactEmail:    request.RecipientEmail,
-		BroadcastID:     &request.BroadcastID,
 		ListID:          &listID,
 		TemplateID:      template.ID,
 		TemplateVersion: template.Version,

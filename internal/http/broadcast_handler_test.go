@@ -2495,3 +2495,38 @@ func TestHandleRetryFailed(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 }
+
+// In demo mode the routes that send email are refused before authentication, the test send
+// as the schedule; outside demo mode they fall through to authentication.
+func TestBroadcastHandler_SendingRoutesAreRestrictedInDemo(t *testing.T) {
+	routes := []string{"/api/broadcasts.schedule", "/api/broadcasts.sendToIndividual"}
+	for _, demo := range []bool{true, false} {
+		ctrl := gomock.NewController(t)
+		mockService := mocks.NewMockBroadcastService(ctrl)
+		handler := http_handler.NewBroadcastHandler(
+			mockService,
+			mocks.NewMockTemplateService(ctrl),
+			func() ([]byte, error) { return []byte("test-jwt-secret-key-for-testing-32bytes"), nil },
+			pkgmocks.NewMockLogger(ctrl),
+			demo,
+		)
+		mux := http.NewServeMux()
+		handler.RegisterRoutes(mux)
+
+		for _, route := range routes {
+			req := httptest.NewRequest(http.MethodPost, route, bytes.NewBufferString(`{"workspace_id":"ws1"}`))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			if demo {
+				assert.Equal(t, http.StatusBadRequest, w.Code, route)
+				assert.Contains(t, w.Body.String(), "demo mode", route)
+			} else {
+				assert.Equal(t, http.StatusUnauthorized, w.Code, route)
+				assert.NotContains(t, w.Body.String(), "demo mode", route)
+			}
+		}
+		ctrl.Finish()
+	}
+}

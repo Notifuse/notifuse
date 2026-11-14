@@ -122,6 +122,29 @@ func TestWebVersion(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode, "%s: %s", path, raw)
 	}
 
+	// sendBroadcastTo sends a broadcast of the template to a list holding only email, and waits
+	// for the email.
+	sendBroadcastTo := func(t *testing.T, template *domain.Template, email string) *testutil.MailpitMessage {
+		t.Helper()
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		_, err = factory.CreateContactList(workspace.ID, testutil.WithContactListEmail(email),
+			testutil.WithContactListListID(list.ID), testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastTemplateID(template.ID),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{List: list.ID, ExcludeUnsubscribed: true}))
+		require.NoError(t, err)
+		scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{"workspace_id": workspace.ID, "id": broadcast.ID, "send_now": true})
+		require.NoError(t, err)
+		_ = scheduleResp.Body.Close()
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, []string{"processed", "completed", "sent"}, 60*time.Second)
+		require.NoError(t, err)
+		msg, err := waitForEmailAndGetMessage(t, email, 30*time.Second)
+		require.NoError(t, err)
+		return msg
+	}
+
 	t.Run("broadcast", func(t *testing.T) {
 		template := newTemplate(t, "the autumn coffees are here.")
 		list, err := factory.CreateList(workspace.ID)
@@ -248,21 +271,11 @@ func TestWebVersion(t *testing.T) {
 	})
 
 	t.Run("erasing the contact takes the web version down", func(t *testing.T) {
-		template := newTemplate(t, "a test send.")
+		template := newTemplate(t, "a broadcast.")
 		email := newEmail("erased")
 		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email), testutil.WithContactName("Erin", "Doe"))
 		require.NoError(t, err)
-		list, err := factory.CreateList(workspace.ID)
-		require.NoError(t, err)
-		broadcast, err := factory.CreateBroadcast(workspace.ID,
-			testutil.WithBroadcastTemplateID(template.ID),
-			testutil.WithBroadcastAudience(domain.AudienceSettings{List: list.ID}))
-		require.NoError(t, err)
-		postOK(t, "/api/broadcasts.sendToIndividual", map[string]interface{}{
-			"workspace_id": workspace.ID, "broadcast_id": broadcast.ID, "recipient_email": email, "template_id": template.ID,
-		})
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
-		require.NoError(t, err)
+		msg := sendBroadcastTo(t, template, email)
 		_, destination := deliveredWebVersionLink(t, msg.HTML)
 
 		resp, body := getWebVersion(t, destination)
@@ -305,17 +318,7 @@ func TestWebVersion(t *testing.T) {
 		email := newEmail("nolink")
 		_, err = factory.CreateContact(workspace.ID, testutil.WithContactEmail(email), testutil.WithContactName("Noa", "Doe"))
 		require.NoError(t, err)
-		list, err := factory.CreateList(workspace.ID)
-		require.NoError(t, err)
-		broadcast, err := factory.CreateBroadcast(workspace.ID,
-			testutil.WithBroadcastTemplateID(template.ID),
-			testutil.WithBroadcastAudience(domain.AudienceSettings{List: list.ID}))
-		require.NoError(t, err)
-		postOK(t, "/api/broadcasts.sendToIndividual", map[string]interface{}{
-			"workspace_id": workspace.ID, "broadcast_id": broadcast.ID, "recipient_email": email, "template_id": template.ID,
-		})
-		_, err = waitForEmailAndGetMessage(t, email, 20*time.Second)
-		require.NoError(t, err)
+		sendBroadcastTo(t, template, email)
 
 		var link string
 		require.Eventually(t, func() bool {
@@ -349,6 +352,34 @@ func TestWebVersion(t *testing.T) {
 		resp, body := getWebVersion(t, link)
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode, body)
 		assert.NotContains(t, body, "Noa")
+	})
+
+	t.Run("a test send of a broadcast gets no web version link", func(t *testing.T) {
+		// A test send is recorded without its broadcast, and the page serves only broadcast and
+		// automation messages: a link would lead to a page not found.
+		template := newTemplate(t, "a test send.")
+		email := newEmail("testsend")
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastTemplateID(template.ID),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{List: list.ID}))
+		require.NoError(t, err)
+		postOK(t, "/api/broadcasts.sendToIndividual", map[string]interface{}{
+			"workspace_id": workspace.ID, "broadcast_id": broadcast.ID, "recipient_email": email, "template_id": template.ID,
+		})
+		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		require.NoError(t, err)
+		assert.NotContains(t, msg.HTML, serverURL+"/v/")
+		for _, m := range deliveredClickLinkRe.FindAllStringSubmatch(msg.HTML, -1) {
+			tok, err := trackingtoken.Parse(m[2], trackingtoken.PurposeClick)
+			require.NoError(t, err)
+			assert.NotContains(t, tok.URL, "/v/")
+		}
+
+		var broadcastID sql.NullString
+		require.NoError(t, workspaceDB.QueryRow(`SELECT broadcast_id FROM message_history WHERE contact_email = $1`, email).Scan(&broadcastID))
+		assert.False(t, broadcastID.Valid, "a test send must not count in the broadcast's statistics")
 	})
 
 	t.Run("transactional emails get no web version link", func(t *testing.T) {
