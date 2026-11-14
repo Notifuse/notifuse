@@ -258,9 +258,15 @@ export function AbTestSummary({ broadcast, testResults, timezone }: AbTestSummar
       : t`Sample ${sample} % · winner picked manually`
   ]
   if (broadcast.winner_sent_at) {
-    const remaining = int(broadcast.winner_phase_recipient_count ?? 0)
+    const count = broadcast.winner_phase_recipient_count ?? 0
     const time = dates.time(broadcast.winner_sent_at, timezone)
-    parts.push(t`sent to the remaining ${remaining} at ${time}`)
+    // Broadcasts sent before the count was stored have none: say when, not "remaining 0".
+    if (count > 0) {
+      const remaining = int(count)
+      parts.push(t`sent to the remaining ${remaining} at ${time}`)
+    } else {
+      parts.push(t`winner sent at ${time}`)
+    }
   } else {
     const left = getRemainingTestTime(broadcast, testResults)
     if (left) parts.push(t`Test ends in ${left}`)

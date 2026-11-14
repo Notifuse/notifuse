@@ -287,6 +287,20 @@ describe('AbTestPanel', () => {
     expect(screen.getByText(/^Sample 20 % · winner picked manually · sent to the remaining 800 at /)).toBeInTheDocument()
   })
 
+  it('says when the winner was sent, without a count, for a broadcast that stored none', () => {
+    renderPanel({
+      broadcast: broadcast({
+        status: 'processed',
+        winning_template: 'tpl-a',
+        winner_sent_at: '2026-11-02T15:30:00Z',
+        winner_phase_recipient_count: 0,
+        test_settings: { ...broadcast().test_settings, auto_send_winner: false }
+      })
+    })
+    expect(screen.getByText(/^Sample 20 % · winner picked manually · winner sent at /)).toBeInTheDocument()
+    expect(screen.queryByText(/remaining/)).not.toBeInTheDocument()
+  })
+
   it('says when a running test ends', () => {
     const started = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     renderPanel({ broadcast: broadcast({ status: 'testing', test_sent_at: started }) })

@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
 
+- **Improvement**: `tasks.reset` and `tasks.trigger` answer 500 when the database fails, without the internal error in the response, and 404 only for a task that does not exist. A refusal because of the task's state (not recurring, not failed, already completed) still answers 400, its message now starting with "validation error: ".
+
 - **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
 
 - **Improvement**: With the internal scheduler off, `tasks.execute` answers 500 when the database fails while reading the task, without the internal error in the response, and 404 only for a task that does not exist.
@@ -35,6 +37,10 @@ All notable changes to this project will be documented in this file.
 - **Feature**: The analytics API gives when each transactional notification last sent successfully, with the new `last_sent_at` measure of message history, and `messages.list` filters by `transactional_notification_id`.
 
 - **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions. In the console, broadcasts get a new list with status tabs, a search and their 30-day results, a detail page with the funnel, opens and clicks over time, the A/B test and the clicked links, and a one-screen editor that saves as you type, previews the email and checks everything before sending.
+
+- **Fix**: `broadcasts.get` and `broadcasts.list` give the number of recipients of an A/B test and of its winner (`test_phase_recipient_count`, `winner_phase_recipient_count`) instead of 0, and so do the `test_recipients`, `winner_recipients` and `avg_test_recipients` broadcast analytics measures, while `count_with_ab_test` counts them, for A/B broadcasts sent from 44.0 on.
+
+- **Fix**: In the console, an API key name keeps its hyphens ("website-signup"), as the API accepts them, and the integration drawers are titled with the provider's name, in the console's language: "Add Mailgun integration", not "Add New MAILGUN Integration".
 
 - **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits (each time a journey reached the step, a loop counting each time round), results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`. In the console, automations get a list with status tabs, a search and their journeys, completion and open rates, and the editor becomes a full-screen canvas: read-only while live, warning before you leave unsaved changes, with a "With stats" view that shows each step's results on the canvas and in its panel, with the email's preview.
 

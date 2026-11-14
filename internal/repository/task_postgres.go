@@ -1036,7 +1036,7 @@ func (r *TaskRepository) MarkAsPendingTx(ctx context.Context, tx *sql.Tx, worksp
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("task not found")
+		return domain.ErrTaskNotFound
 	}
 
 	return nil

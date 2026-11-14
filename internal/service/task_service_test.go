@@ -2620,7 +2620,7 @@ func TestTaskService_ResetTask(t *testing.T) {
 		workspace := "ws-1"
 		taskID := "task-not-found"
 
-		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(nil, fmt.Errorf("not found"))
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(nil, domain.ErrTaskNotFound)
 
 		err := taskService.ResetTask(ctx, workspace, taskID)
 		assert.Error(t, err)
@@ -2755,7 +2755,7 @@ func TestTaskService_TriggerTask(t *testing.T) {
 		workspace := "ws-1"
 		taskID := "task-not-found"
 
-		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(nil, fmt.Errorf("not found"))
+		mockRepo.EXPECT().Get(gomock.Any(), workspace, taskID).Return(nil, domain.ErrTaskNotFound)
 
 		err := taskService.TriggerTask(ctx, workspace, taskID)
 		assert.Error(t, err)

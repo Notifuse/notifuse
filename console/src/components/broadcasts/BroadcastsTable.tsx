@@ -21,6 +21,7 @@ import { broadcastCampaign } from './attribution'
 import { scheduledInstant, useBroadcastDates } from './useBroadcastDates'
 import type { PageStats } from './useBroadcastPageStats'
 import type { ConfirmedAction } from './useBroadcastActions'
+import { BROADCAST_NAME_MIN_WIDTH, minTableWidth } from './tableWidth'
 
 export const OPEN_RATE_SCALE = 0.7
 export const CLICK_RATE_SCALE = 0.25
@@ -406,8 +407,8 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
       pagination={false}
       size="middle"
       tableLayout="fixed"
-      // The Broadcast column keeps about 200px: below that the table scrolls.
-      scroll={{ x: 1150 }}
+      // Below the width that leaves the Broadcast column its minimum, the table scrolls.
+      scroll={{ x: minTableWidth(columns, BROADCAST_NAME_MIN_WIDTH) }}
       rowClassName={(b) => `cursor-pointer ${b.id === activeId ? 'is-hover' : ''}`}
       onRow={(b) => ({ onClick: () => onOpen(b) })}
       footer={footer ? () => footer : undefined}
