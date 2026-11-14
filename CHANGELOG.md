@@ -128,6 +128,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The blog's post list in the console now shows every post, not only the first 100.
 
+- **Fix**: The system emails (workspace invitation, sign-in code, circuit breaker alert) now put their text part before their HTML part, as the standard asks, so a mail client that picks the last part it can display shows the HTML.
+
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
 
 - **Fix**: New notification and Edit are now disabled, with a tooltip naming the missing permission, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
