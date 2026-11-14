@@ -140,6 +140,43 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 	var senderErr *broadcast.SenderUnavailableError
 	require.ErrorAs(t, err, &senderErr)
 	assert.Equal(t, "template-1", senderErr.TemplateID)
+	assert.Equal(t, 1, senderErr.VariationNumber)
+	assert.Equal(t, 1, senderErr.VariationCount)
+}
+
+// In an A/B test the pause names an unnamed variation by its number among the broadcast's.
+func TestProcessBroadcastTask_VariationSenderGone_PausesNamingTheVariation(t *testing.T) {
+	d := newSenderOrchestratorDeps(t)
+	d.broadcasts.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	d.broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(&domain.Broadcast{
+		ID:       "broadcast-123",
+		Status:   domain.BroadcastStatusTesting,
+		Audience: domain.AudienceSettings{List: "list-1"},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: true, SamplePercentage: 20,
+			Variations: []domain.BroadcastVariation{
+				{TemplateID: "template-a", SenderID: d.kept.ID},
+				{TemplateID: "template-b", SenderID: "sender-since-deleted"},
+				{TemplateID: "template-c"},
+			},
+		},
+	}, nil).AnyTimes()
+	d.expectTemplate("template-a")
+	d.expectTemplate("template-b")
+	d.expectTemplate("template-c")
+	d.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		require.NotNil(t, b.PauseReason)
+		assert.Contains(t, *b.PauseReason, "the sender chosen for variation 2 (sender sender-since-deleted)")
+		return nil
+	})
+	d.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).AnyTimes()
+
+	_, err := d.orchestrate.Process(context.Background(), senderTask("test"), time.Now().Add(30*time.Second))
+	var senderErr *broadcast.SenderUnavailableError
+	require.ErrorAs(t, err, &senderErr)
+	assert.Equal(t, 2, senderErr.VariationNumber)
+	assert.Equal(t, 3, senderErr.VariationCount)
+	assert.Equal(t, "template-b", senderErr.TemplateID)
 }
 
 // A broadcast whose test phase is over waits for a winner: a losing variation's missing

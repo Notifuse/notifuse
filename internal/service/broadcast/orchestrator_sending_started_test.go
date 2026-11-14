@@ -221,6 +221,33 @@ func TestOrchestrator_Process_PublishesSendingStartedOnFirstSendingRun(t *testin
 	assert.Equal(t, sendingStartedTime.Format(time.RFC3339), published.Data["started_at"])
 }
 
+// An A/B test's first sending run is in testing, not processing: it sends too, and is
+// announced the same way.
+func TestOrchestrator_Process_PublishesSendingStartedOnFirstTestingRun(t *testing.T) {
+	m := newSendingStartedMocks(t)
+	defer m.ctrl.Finish()
+	m.broadcastRepo.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	m.expectConfiguredWorkspace()
+	inTest := sendingStartedBroadcast("Subject test")
+	inTest.Status = domain.BroadcastStatusTesting
+	m.broadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(inTest, nil).AnyTimes()
+	m.expectValidTemplate()
+	m.expectFailingRecipientFetch()
+
+	var published domain.EventPayload
+	m.eventBus.EXPECT().Publish(gomock.Any(), eventOfType(domain.EventBroadcastSendingStarted)).
+		Times(1).
+		Do(func(_ context.Context, event domain.EventPayload) { published = event })
+
+	task := sendingStartedTask(&domain.SendBroadcastState{BroadcastID: "broadcast-123", TotalRecipients: 25})
+	_, err := m.orchestrator(m.eventBus).Process(context.Background(), task, time.Now().Add(30*time.Second))
+	require.Error(t, err)
+
+	assert.Equal(t, "broadcast-123", published.EntityID)
+	assert.Equal(t, "Subject test", published.Data["broadcast_name"])
+}
+
 // TestOrchestrator_Process_TemplateFailure_PublishesNothing pins the reason the publish
 // sits after the template gates: a broadcast whose template cannot be loaded mails nobody,
 // and the announcement it would otherwise have made is never retracted. The state is that

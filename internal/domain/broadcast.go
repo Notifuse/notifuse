@@ -335,6 +335,17 @@ func (b *Broadcast) SendsListUnsubscribeHeader() bool {
 	return b != nil && b.Audience.ExcludeUnsubscribed
 }
 
+// ListUnsubscribeURL is the RFC 8058 List-Unsubscribe URL of a broadcast email rendered with
+// data: its oneclick_unsubscribe_url, or "" when the broadcast sends no such header or the
+// data has no such URL.
+func (b *Broadcast) ListUnsubscribeURL(data map[string]interface{}) string {
+	if !b.SendsListUnsubscribeHeader() {
+		return ""
+	}
+	url, _ := data["oneclick_unsubscribe_url"].(string)
+	return url
+}
+
 // UTMParameters contains UTM tracking parameters for the broadcast
 type UTMParameters struct {
 	Source   string `json:"source,omitempty"`

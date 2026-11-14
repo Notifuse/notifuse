@@ -3440,6 +3440,20 @@ func TestBroadcast_SendsListUnsubscribeHeader(t *testing.T) {
 	})
 }
 
+func TestBroadcast_ListUnsubscribeURL(t *testing.T) {
+	sends := &domain.Broadcast{Audience: domain.AudienceSettings{List: "list-1", ExcludeUnsubscribed: true}}
+	notice := &domain.Broadcast{Audience: domain.AudienceSettings{List: "list-1", ExcludeUnsubscribed: false}}
+	withURL := map[string]interface{}{"oneclick_unsubscribe_url": "https://e.com/unsubscribe-oneclick?t=1"}
+
+	assert.Equal(t, "https://e.com/unsubscribe-oneclick?t=1", sends.ListUnsubscribeURL(withURL))
+	assert.Empty(t, notice.ListUnsubscribeURL(withURL), "a notice to every member sends no header")
+	assert.Empty(t, sends.ListUnsubscribeURL(map[string]interface{}{}), "no URL in the data")
+	assert.Empty(t, sends.ListUnsubscribeURL(map[string]interface{}{"oneclick_unsubscribe_url": 42}), "not a string")
+	assert.Empty(t, sends.ListUnsubscribeURL(nil))
+	var none *domain.Broadcast
+	assert.Empty(t, none.ListUnsubscribeURL(withURL))
+}
+
 func TestBroadcast_VariationSenderID(t *testing.T) {
 	b := &domain.Broadcast{TestSettings: domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{
 		{VariationName: "A", TemplateID: "tpl-a", SenderID: "sender-promos"},

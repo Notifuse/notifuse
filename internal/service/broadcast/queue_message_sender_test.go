@@ -1932,10 +1932,13 @@ func TestQueueMessageSender_ListUnsubscribeHeaderFollowsExcludeUnsubscribed(t *t
 		for _, tc := range []struct {
 			name                string
 			excludeUnsubscribed bool
+			trackingMode        string
 			wantURL             bool
 		}{
-			{"excludes unsubscribed contacts: URL enqueued", true, true},
-			{"includes unsubscribed contacts: no URL enqueued", false, false},
+			{"excludes unsubscribed contacts: URL enqueued", true, "", true},
+			{"includes unsubscribed contacts: no URL enqueued", false, "", false},
+			// The one-click URL is not a tracked link: tracking off keeps the header.
+			{"tracking off: URL enqueued", true, domain.BroadcastTrackingModeNoTracking, true},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				ctrl := gomock.NewController(t)
@@ -1947,8 +1950,10 @@ func TestQueueMessageSender_ListUnsubscribeHeaderFollowsExcludeUnsubscribed(t *t
 				mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 				mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 
+				broadcast := broadcastFor(tc.excludeUnsubscribed)
+				broadcast.TrackingMode = tc.trackingMode
 				mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-1", "broadcast-1").
-					Return(broadcastFor(tc.excludeUnsubscribed), nil)
+					Return(broadcast, nil)
 
 				var enqueued []*domain.EmailQueueEntry
 				mockQueueRepo.EXPECT().Enqueue(gomock.Any(), "workspace-1", gomock.Any()).
@@ -1985,6 +1990,12 @@ func TestQueueMessageSender_ListUnsubscribeHeaderFollowsExcludeUnsubscribed(t *t
 				assert.Equal(t, 0, failed)
 				require.Len(t, enqueued, 1)
 				entry := enqueued[0]
+				if tc.trackingMode == domain.BroadcastTrackingModeNoTracking {
+					require.NotNil(t, entry.Payload.OpensTracked)
+					require.NotNil(t, entry.Payload.ClicksTracked)
+					assert.False(t, *entry.Payload.OpensTracked, "the row is sent with tracking off")
+					assert.False(t, *entry.Payload.ClicksTracked, "the row is sent with tracking off")
+				}
 				if tc.wantURL {
 					assert.Contains(t, entry.Payload.EmailOptions.ListUnsubscribeURL, "/unsubscribe-oneclick?")
 				} else {
@@ -1996,6 +2007,50 @@ func TestQueueMessageSender_ListUnsubscribeHeaderFollowsExcludeUnsubscribed(t *t
 			})
 		}
 	})
+}
+
+// A translation's own sender wins over the template's for a contact in its language; a
+// translation without one keeps the template's. Neither is the integration's default, so a
+// fall back to the default shows.
+func TestQueueMessageSender_BuildQueueEntry_TranslationSender(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sender := NewQueueMessageSender(
+		mocks.NewMockEmailQueueRepository(ctrl),
+		mocks.NewMockBroadcastRepository(ctrl),
+		mocks.NewMockMessageHistoryRepository(ctrl),
+		mocks.NewMockTemplateRepository(ctrl),
+		nil,
+		pkgmocks.NewMockLogger(ctrl),
+		nil,
+		"https://api.example.com",
+	)
+	qms := sender.(*queueMessageSender)
+	defaultSender := domain.NewEmailSender("default@example.com", "Default")
+	templateSender := domain.NewEmailSender("news@example.com", "Newsletter")
+	templateSender.IsDefault = false
+	frenchSender := domain.NewEmailSender("bonjour@example.com", "France")
+	frenchSender.IsDefault = false
+	emailProvider := &domain.EmailProvider{Kind: domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{defaultSender, templateSender, frenchSender}}
+	broadcast := &domain.Broadcast{ID: "broadcast-1", WorkspaceID: "workspace-1"}
+
+	template := createTestTemplateWithLink("template-1", templateSender.ID)
+	french := *template.Email
+	french.SenderID = frenchSender.ID
+	german := *template.Email
+	german.SenderID = ""
+	template.Translations = map[string]domain.TemplateTranslation{"fr": {Email: &french}, "de": {Email: &german}}
+
+	for contactLanguage, want := range map[string]domain.EmailSender{"fr": frenchSender, "de": templateSender, "": templateSender} {
+		entry, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1", "",
+			"https://api.test.com", testTrackingDecision(true), nil, broadcast, "msg-1", "recipient@example.com", template,
+			map[string]interface{}{}, emailProvider, contactLanguage, "en")
+		require.NoError(t, err, contactLanguage)
+		assert.Equal(t, want.Email, entry.Payload.FromAddress, "contact language %q", contactLanguage)
+		assert.Equal(t, want.Name, entry.Payload.FromName, "contact language %q", contactLanguage)
+	}
 }
 
 // The queue entry records the translation it was rendered in, "" for the base content,
