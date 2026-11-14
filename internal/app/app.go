@@ -1622,6 +1622,7 @@ func (a *App) InitHandlers() error {
 		// works exactly when something calls it.
 		!a.config.TaskScheduler.Enabled,
 	)
+	taskHandler.SetCronTaskCeiling(a.config.TaskScheduler.MaxTasks)
 	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
 	inboundWebhookEventHandler := httpHandler.NewInboundWebhookEventHandler(a.inboundWebhookEventService, getJWTSecret, a.rateLimiter, a.logger)
 	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getJWTSecret, a.logger)

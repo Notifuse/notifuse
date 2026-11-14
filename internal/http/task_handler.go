@@ -108,6 +108,20 @@ type TaskHandler struct {
 	// that now answers immediately cannot be used to spawn unbounded
 	// background runs.
 	cronRunning atomic.Bool
+	// cronTaskCeiling caps the max_tasks of one /api/cron run; 0 means
+	// defaultCronTaskCeiling. See SetCronTaskCeiling.
+	cronTaskCeiling int
+}
+
+// defaultCronTaskCeiling is the most tasks one /api/cron run executes, and the number it
+// executes when max_tasks is missing, zero or negative.
+const defaultCronTaskCeiling = 100
+
+// SetCronTaskCeiling sets the most tasks one /api/cron run executes, never below
+// defaultCronTaskCeiling. The endpoint is public: a larger max_tasks is clamped rather
+// than refused, so a crontab asking for more keeps working.
+func (h *TaskHandler) SetCronTaskCeiling(n int) {
+	h.cronTaskCeiling = max(n, defaultCronTaskCeiling)
 }
 
 // NewTaskHandler creates a new task handler
@@ -398,6 +412,11 @@ func (h *TaskHandler) ExecutePendingTasks(w http.ResponseWriter, r *http.Request
 	// database transaction. Answer immediately and let the work finish.
 	execCtx := context.WithoutCancel(r.Context())
 	maxTasks := executeRequest.MaxTasks
+	ceiling := max(h.cronTaskCeiling, defaultCronTaskCeiling)
+	if maxTasks <= 0 {
+		maxTasks = defaultCronTaskCeiling
+	}
+	maxTasks = min(maxTasks, ceiling)
 
 	go func() {
 		defer h.cronRunning.Store(false)

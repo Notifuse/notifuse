@@ -1825,3 +1825,46 @@ func TestTaskHandler_ExecuteTaskSignature(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	})
 }
+
+// /api/cron is public: max_tasks is clamped to a ceiling, never refused, so an external
+// crontab that asks for more keeps running.
+func TestTaskHandler_ExecutePendingTasks_MaxTasksCeiling(t *testing.T) {
+	run := func(t *testing.T, ceiling *int, query string, wantRun int) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		taskService := mocks.NewMockTaskService(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Error(gomock.Any()).AnyTimes()
+		handler := NewTaskHandler(taskService, mocks.NewMockAuthService(ctrl), func() ([]byte, error) { return nil, nil }, log, "k", true)
+		if ceiling != nil {
+			handler.SetCronTaskCeiling(*ceiling)
+		}
+		done := make(chan struct{})
+		taskService.EXPECT().ExecutePendingTasks(gomock.Any(), wantRun).DoAndReturn(func(context.Context, int) error {
+			close(done)
+			return nil
+		})
+
+		rec := httptest.NewRecorder()
+		handler.ExecutePendingTasks(rec, httptest.NewRequest(http.MethodGet, "/api/cron"+query, nil))
+		require.Equal(t, http.StatusAccepted, rec.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, float64(wantRun), resp["max_tasks"], "the response reports the value used")
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatal("background execution never started")
+		}
+	}
+	n := func(v int) *int { return &v }
+
+	t.Run("above the default ceiling", func(t *testing.T) { run(t, nil, "?max_tasks=1000000", 100) })
+	t.Run("below it, unchanged", func(t *testing.T) { run(t, nil, "?max_tasks=7", 7) })
+	t.Run("zero means the default", func(t *testing.T) { run(t, nil, "?max_tasks=0", 100) })
+	t.Run("negative means the default", func(t *testing.T) { run(t, nil, "?max_tasks=-5", 100) })
+	t.Run("a higher configured ceiling", func(t *testing.T) { run(t, n(500), "?max_tasks=1000", 500) })
+	t.Run("a configured ceiling never goes below the default", func(t *testing.T) { run(t, n(10), "?max_tasks=50", 50) })
+}
