@@ -489,9 +489,14 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 
 		db, err := factory.GetWorkspaceDB(workspaceID)
 		require.NoError(t, err)
+		// Processed means queued: an email is in the queue or, once sent, in the message history.
 		var total, loser int
-		require.NoError(t, db.QueryRow(`SELECT count(DISTINCT contact_email), count(*) FILTER (WHERE template_id <> $2)
-			FROM message_history WHERE broadcast_id = $1`, broadcastID, template2.ID).Scan(&total, &loser))
+		require.NoError(t, db.QueryRow(`
+			SELECT count(DISTINCT contact_email), count(*) FILTER (WHERE template_id <> $2) FROM (
+				SELECT contact_email, template_id FROM email_queue WHERE source_type = 'broadcast' AND source_id = $1
+				UNION ALL
+				SELECT contact_email, template_id FROM message_history WHERE broadcast_id = $1) sent`,
+			broadcastID, template2.ID).Scan(&total, &loser))
 		assert.Equal(t, 5, total, "every contact got the broadcast")
 		assert.LessOrEqual(t, loser, testCount, "the losing variation went to test recipients only")
 	})
