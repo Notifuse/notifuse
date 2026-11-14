@@ -275,7 +275,13 @@ func (f *dataFeedFetcher) FetchRecipient(ctx context.Context, settings *domain.R
 				"url":     settings.URL,
 				"attempt": attempt + 1,
 			}).Debug("Retrying recipient feed request")
-			time.Sleep(retryDelay)
+			timer := time.NewTimer(retryDelay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return nil, fmt.Errorf("recipient feed retry interrupted: %w", ctx.Err())
+			case <-timer.C:
+			}
 		}
 
 		result, statusCode, err := f.doRecipientRequest(ctx, settings, payloadBytes, timeout)
