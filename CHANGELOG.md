@@ -184,6 +184,12 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
 
+- **Fix**: The `count_transactional_messages` measure of message history counts only the messages sent by a transactional notification. It counted every message outside a broadcast, automation emails, template tests and double opt-in confirmations included.
+
+- **Fix**: An analytics query can be ordered by any of its schema's measures, selected or not. Ordering by a measure failed before.
+
+- **Fix**: An analytics time series split by a dimension keeps every value of each period: the periods filled because they had no data get a row for each value, and two values of the same period no longer overwrite each other. In a filled period, a `max`, `min` or `avg` measure is empty instead of 0.
+
 - **Feature**: The console has a new, denser look: the Inter typeface, new colors and tighter spacing.
 
 - **Feature**: The console has a new navigation: a lighter sidebar, which folds to icons and opens over the page when you point at it, or stays open once pinned (Contacts and Broadcasts open with it unpinned, for room), now holds the workspace switcher, the help and the account menus, and the top bar is gone. The sign-in page has a new background photo, by Sean Oulashin.

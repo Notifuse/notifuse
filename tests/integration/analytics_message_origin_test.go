@@ -131,6 +131,58 @@ func TestAnalyticsMessageOrigin(t *testing.T) {
 		}
 	})
 
+	t.Run("the transactional measure counts what the origin dimension calls transactional", func(t *testing.T) {
+		// Not the automation email that also carries a notification ID, nor the template tests.
+		result := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
+			"schema": "message_history", "measures": []string{"count_transactional_messages"},
+			"filters": []map[string]interface{}{rangeFilter},
+		})
+		require.Len(t, result.Data, 1)
+		assert.Equal(t, float64(3), waNumber(t, result.Data[0]["count_transactional_messages"]))
+	})
+
+	t.Run("a query orders by a measure it does not select", func(t *testing.T) {
+		result := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
+			"schema": "message_history", "measures": []string{"count"},
+			"dimensions": []string{"origin"},
+			"filters":    []map[string]interface{}{rangeFilter},
+			"order":      map[string]string{"count_transactional_messages": "desc"},
+		})
+		require.NotEmpty(t, result.Data)
+		assert.Equal(t, "transactional", result.Data[0]["origin"])
+		assert.Equal(t, float64(3), waNumber(t, result.Data[0]["count"]))
+	})
+
+	t.Run("a daily series by origin keeps every origin of a day and fills the empty day for each", func(t *testing.T) {
+		result := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
+			"schema": "message_history", "measures": []string{"count", "last_sent_at"},
+			"dimensions": []string{"origin"},
+			"timezone":   "Europe/Paris",
+			"timeDimensions": []map[string]interface{}{{
+				"dimension": "created_at", "granularity": "day",
+				"dateRange": []string{previousDay.Format("2006-01-02"), day.Format("2006-01-02")},
+			}},
+		})
+		emptyDay := previousDay.Format("2006-01-02") + "T00:00:00Z"
+		fullDay := day.Format("2006-01-02") + "T00:00:00Z"
+		got := map[string]float64{}
+		for _, row := range result.Data {
+			key, _ := row["created_at_day"].(string)
+			origin, _ := row["origin"].(string)
+			_, seen := got[key+" "+origin]
+			assert.False(t, seen, "one row per day and origin: %s %s", key, origin)
+			got[key+" "+origin] = waNumber(t, row["count"])
+			if key == emptyDay {
+				// A day with no message has no last send, not one at the epoch.
+				assert.Nil(t, row["last_sent_at"], origin)
+			}
+		}
+		assert.Equal(t, map[string]float64{
+			emptyDay + " broadcast": 0, emptyDay + " automation": 0, emptyDay + " transactional": 0, emptyDay + " other": 0,
+			fullDay + " broadcast": 2, fullDay + " automation": 3, fullDay + " transactional": 3, fullDay + " other": 2,
+		}, got)
+	})
+
 	t.Run("a daily series in Paris puts each message on its local day, last day included", func(t *testing.T) {
 		result := waRunQuery(t, suite, workspace.ID, map[string]interface{}{
 			"schema": "message_history", "measures": []string{"count"},

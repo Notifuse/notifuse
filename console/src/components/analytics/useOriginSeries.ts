@@ -58,9 +58,9 @@ function combine(results: UseQueryResult<AnalyticsResponse>[]): OriginSeries {
 }
 
 /**
- * Emails per day for each origin, one request per origin: with a dimension next to the time
- * dimension, the engine's gap filler keeps one row per day and two origins of the same day would
- * overwrite each other. The totals of the period are the sums of the series.
+ * Emails per day for each origin, one request per origin: each answer then has a row for every
+ * day of the range, even for an origin that sent nothing, where a query by origin would return no
+ * row at all for that origin. The totals of the period are the sums of the series.
  */
 export function useOriginSeries({ workspaceId, timezone, range, enabled }: UseOriginSeriesOptions): OriginSeries {
   return useQueries({

@@ -1943,7 +1943,7 @@ func TestProcessRows(t *testing.T) {
 			defer func() { _ = rows.Close() }()
 
 			// Test ProcessRows function
-			data, err := ProcessRows(rows, tt.query)
+			data, err := ProcessRows(rows, tt.query, nil)
 			require.NoError(t, err, tt.description)
 
 			// Verify results
@@ -1997,7 +1997,7 @@ func TestProcessRows_ErrorHandling(t *testing.T) {
 	defer func() { _ = rows2.Close() }()
 
 	// This should handle the scanning error
-	data, err := ProcessRows(rows2, query)
+	data, err := ProcessRows(rows2, query, nil)
 	// The error handling depends on the driver, but we expect either an error or empty data
 	if err == nil {
 		// If no error, data should be handled gracefully
@@ -2547,15 +2547,15 @@ func TestFillTimeSeriesGaps(t *testing.T) {
 			},
 			expectedData: []map[string]interface{}{
 				{"count": 10, "category": "A", "created_at_day": "2024-01-01T00:00:00Z"},
-				{"count": 0, "category": "", "created_at_day": "2024-01-02T00:00:00Z"},
+				{"count": 0, "category": "A", "created_at_day": "2024-01-02T00:00:00Z"},
 			},
-			description: "Should handle dimensions in gap filling",
+			description: "A missing period gets a row for the dimension value seen in the data",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := fillTimeSeriesGaps(tt.data, tt.query)
+			result, err := fillTimeSeriesGaps(tt.data, tt.query, nil)
 
 			if tt.expectedData == nil {
 				assert.Error(t, err, tt.description)
@@ -2733,7 +2733,7 @@ func TestProcessRowsEmptyBreakdownSerializesAsArray(t *testing.T) {
 		Schema:     "web_sessions",
 		Measures:   []string{"sessions"},
 		Dimensions: []string{"country"},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	assert.NotNil(t, data, "an empty breakdown must be an empty slice, not nil")
@@ -2742,4 +2742,79 @@ func TestProcessRowsEmptyBreakdownSerializesAsArray(t *testing.T) {
 	encoded, err := json.Marshal(map[string]interface{}{"data": data})
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"data":[]}`, string(encoded))
+}
+
+// A measure orders by its aggregate, as HAVING filters by it: its raw SQL (* for a count, a
+// column for a max) is not valid outside the aggregate, and the measure need not be selected.
+func TestSQLBuilder_OrderByMeasure(t *testing.T) {
+	schema := SchemaDefinition{
+		Name: "message_history",
+		Measures: map[string]MeasureDefinition{
+			"count_sent":   {Type: "count", SQL: "*", Filters: []MeasureFilter{{SQL: "sent_at IS NOT NULL"}}},
+			"last_sent_at": {Type: "max", SQL: "sent_at"},
+		},
+		Dimensions: map[string]DimensionDefinition{
+			"contact_email": {Type: "string", SQL: "contact_email"},
+		},
+	}
+	builder := NewSQLBuilder()
+	build := func(t *testing.T, query Query) string {
+		t.Helper()
+		sql, _, err := builder.BuildSQL(query, schema)
+		require.NoError(t, err)
+		return strings.Join(strings.Fields(sql), " ")
+	}
+
+	t.Run("a filtered count", func(t *testing.T) {
+		sql := build(t, Query{Schema: "message_history", Measures: []string{"count_sent"}, Dimensions: []string{"contact_email"},
+			Order: map[string]string{"count_sent": "desc"}})
+		assert.True(t, strings.HasSuffix(sql, "ORDER BY COUNT(*) FILTER (WHERE sent_at IS NOT NULL) DESC"), sql)
+	})
+
+	t.Run("a max, not selected", func(t *testing.T) {
+		sql := build(t, Query{Schema: "message_history", Measures: []string{"count_sent"}, Dimensions: []string{"contact_email"},
+			Order: map[string]string{"last_sent_at": "asc"}})
+		assert.True(t, strings.HasSuffix(sql, "ORDER BY MAX(sent_at) ASC"), sql)
+	})
+}
+
+// A query with a dimension keeps every row of a period, and a missing period gets a row per
+// dimension value; a filled row's max is nil, not 0.
+func TestFillTimeSeriesGaps_Dimensions(t *testing.T) {
+	query := Query{
+		Schema:     "message_history",
+		Measures:   []string{"count_sent", "last_sent_at"},
+		Dimensions: []string{"origin"},
+		TimeDimensions: []TimeDimension{{
+			Dimension: "created_at", Granularity: "day", DateRange: &[2]string{"2024-01-01", "2024-01-02"},
+		}},
+	}
+	data := []map[string]interface{}{
+		{"origin": "broadcast", "count_sent": 3, "last_sent_at": "2024-01-01T09:00:00Z", "created_at_day": "2024-01-01T00:00:00Z"},
+		{"origin": "automation", "count_sent": 2, "last_sent_at": "2024-01-01T10:00:00Z", "created_at_day": "2024-01-01T00:00:00Z"},
+	}
+	types := map[string]string{"count_sent": "count", "last_sent_at": "max"}
+
+	result, err := fillTimeSeriesGaps(data, query, types)
+	require.NoError(t, err)
+	assert.Equal(t, []map[string]interface{}{
+		data[0],
+		data[1],
+		{"origin": "broadcast", "count_sent": 0, "last_sent_at": nil, "created_at_day": "2024-01-02T00:00:00Z"},
+		{"origin": "automation", "count_sent": 0, "last_sent_at": nil, "created_at_day": "2024-01-02T00:00:00Z"},
+	}, result)
+}
+
+func TestEmptyMeasureValue(t *testing.T) {
+	for _, measureType := range []string{"count", "sum", "count_distinct", "count_distinct_approx", "", "custom"} {
+		assert.Equal(t, 0, emptyMeasureValue(measureType), measureType)
+	}
+	for _, measureType := range []string{"max", "min", "avg"} {
+		assert.Nil(t, emptyMeasureValue(measureType), measureType)
+	}
+}
+
+func TestSchemaDefinition_MeasureTypes(t *testing.T) {
+	schema := SchemaDefinition{Measures: map[string]MeasureDefinition{"count": {Type: "count"}, "last": {Type: "max"}}}
+	assert.Equal(t, map[string]string{"count": "count", "last": "max"}, schema.MeasureTypes())
 }

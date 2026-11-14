@@ -161,8 +161,10 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Type:        "count",
 				Title:       "Transactional Messages",
 				SQL:         "*",
-				Description: "Total number of transactional messages",
+				Description: "Messages sent by a transactional notification, what the origin dimension calls transactional: not automation emails, template tests or double opt-in confirmations",
 				Filters: []analytics.MeasureFilter{
+					{SQL: "transactional_notification_id IS NOT NULL"},
+					{SQL: "automation_id IS NULL"},
 					{SQL: "broadcast_id IS NULL"},
 				},
 			},
@@ -190,7 +192,7 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				Type:        "max",
 				Title:       "Last Sent At",
 				SQL:         "sent_at",
-				Description: "When the most recent message accepted by the email provider was sent",
+				Description: "When the most recent message accepted by the email provider was sent: for a transactional message, just before the provider call; for a broadcast or automation message, the time its email was queued",
 				Filters: []analytics.MeasureFilter{
 					// sent_at is stamped whatever the outcome (see count_sent), and a retry
 					// upsert does not move it. A transactional message's sent_at is taken just
