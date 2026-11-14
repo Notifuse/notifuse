@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"strconv"
@@ -377,30 +378,26 @@ func (p *ContactSegmentQueueProcessor) processContact(ctx context.Context, works
 		return fmt.Errorf("error iterating segment matches: %w", err)
 	}
 
-	// Now update segment memberships based on matches
+	// Now update segment memberships based on matches. Every segment is written even when one
+	// fails; the errors are returned together so ProcessQueue re-enqueues the contact, whose queue
+	// row the claim already deleted. Both writes are idempotent, so the retry rewriting the
+	// segments that succeeded changes nothing: an add of a member is an upsert that inserts no
+	// row, and a remove of a non-member deletes none.
+	var writeErrs []error
 	for _, segment := range segments {
 		if matchingSegments[segment.ID] {
-			// Contact matches - add to segment
 			if err := p.segmentRepo.AddContactToSegment(ctx, workspaceID, email, segment.ID, segment.Version); err != nil {
-				p.logger.WithFields(map[string]interface{}{
-					"segment_id": segment.ID,
-					"email":      email,
-					"error":      err.Error(),
-				}).Warn("Failed to add contact to segment")
+				writeErrs = append(writeErrs, fmt.Errorf("failed to add contact to segment %s: %w", segment.ID, err))
 			}
 		} else {
-			// Contact doesn't match - remove from segment if exists
+			// A contact that is not a member deletes nothing, which is not an error.
 			if err := p.segmentRepo.RemoveContactFromSegment(ctx, workspaceID, email, segment.ID); err != nil {
-				// It's OK if the contact wasn't in the segment, ignore the error
-				p.logger.WithFields(map[string]interface{}{
-					"segment_id": segment.ID,
-					"email":      email,
-				}).Debug("Contact not in segment or already removed")
+				writeErrs = append(writeErrs, fmt.Errorf("failed to remove contact from segment %s: %w", segment.ID, err))
 			}
 		}
 	}
 
-	return nil
+	return errors.Join(writeErrs...)
 }
 
 // rebindPlaceholders shifts SQL placeholders by the given offset, so a segment query written

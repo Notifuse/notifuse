@@ -30,6 +30,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: When Notifuse stops normally, during an upgrade for example, an automation step already under way finishes and is recorded before the server exits (for up to 20 seconds), so it does not run again after the restart and its email is not sent twice.
 
+- **Improvement**: The Docker Compose files give Notifuse 75 seconds to stop instead of Docker's default 10, so the work under way (an automation step, emails being sent, web analytics visits) finishes before the container exits. It applies once the container is recreated, for example by `docker compose up -d`. With your own Compose file, `docker run` or Kubernetes, set `stop_grace_period: 75s`, `--stop-timeout 75` or `terminationGracePeriodSeconds: 75` on the Notifuse container.
+
 - **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
@@ -157,6 +159,10 @@ All notable changes to this project will be documented in this file.
 - **Feature**: Templates are listed in a table with a tab per category and a search on name or subject. Each template shows where it is used (newsletters, transactional notifications, automations, lists), and deleting one lists what still uses it first. A Notifuse export or an MJML file is imported from the page header into a new template, and a template's preview has its own link.
 
 - **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console. Each notification's name links to its detail view, a disabled action says why in its menu, and the sends per day can be read as a table by screen readers.
+
+- **Fix**: Segments with relative dates, such as "opened in the last 7 days", now drop the contacts that no longer match at their daily update, and a segment updated to match nobody is emptied. The first daily update after the upgrade removes the contacts that stopped matching earlier, so automations and webhooks on leaving a segment receive those exits at once.
+
+- **Improvement**: A temporary database error while updating segment members, or in an automation's "Add to list" or "Remove from list" step, is now retried instead of leaving the contact out of the segment or the list.
 
 - **Fix**: The upgrade to 44.0 removes the segment memberships left behind by deleted contacts, mostly by deletions before 38.0, without any segment exit in the timeline, webhooks or automations, so segment counts and member lists no longer include them.
 

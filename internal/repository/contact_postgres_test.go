@@ -2677,6 +2677,81 @@ func TestContactRepository_GetBatchForSegment(t *testing.T) {
 	})
 }
 
+func TestContactRepository_GetBatchForSegmentAfter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewContactRepository(mockWorkspaceRepo)
+
+	db, mock, cleanup := setupMockDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	const query = `SELECT email FROM contacts WHERE email > \$1 ORDER BY email ASC LIMIT \$2`
+
+	t.Run("Success - Returns the emails after the cursor", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+
+		mock.ExpectQuery(query).
+			WithArgs("b@example.com", 10).
+			WillReturnRows(sqlmock.NewRows([]string{"email"}).
+				AddRow("c@example.com").
+				AddRow("d@example.com"))
+
+		emails, err := repo.GetBatchForSegmentAfter(ctx, workspaceID, "b@example.com", 10)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"c@example.com", "d@example.com"}, emails)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Success - Empty cursor starts from the first email", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+
+		mock.ExpectQuery(query).
+			WithArgs("", 10).
+			WillReturnRows(sqlmock.NewRows([]string{"email"}))
+
+		emails, err := repo.GetBatchForSegmentAfter(ctx, workspaceID, "", 10)
+		assert.NoError(t, err)
+		assert.Empty(t, emails)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(nil, errors.New("connection error"))
+
+		emails, err := repo.GetBatchForSegmentAfter(ctx, workspaceID, "", 10)
+		assert.Error(t, err)
+		assert.Nil(t, emails)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("Error - Query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+
+		mock.ExpectQuery(query).WithArgs("", 10).WillReturnError(errors.New("query error"))
+
+		emails, err := repo.GetBatchForSegmentAfter(ctx, workspaceID, "", 10)
+		assert.Error(t, err)
+		assert.Nil(t, emails)
+		assert.Contains(t, err.Error(), "failed to query emails")
+	})
+
+	t.Run("Error - Scan error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+
+		mock.ExpectQuery(query).
+			WithArgs("", 10).
+			WillReturnRows(sqlmock.NewRows([]string{"email"}).AddRow(nil))
+
+		emails, err := repo.GetBatchForSegmentAfter(ctx, workspaceID, "", 10)
+		assert.Error(t, err)
+		assert.Nil(t, emails)
+	})
+}
+
 func TestMarkEmailsAsBounced_FlipsActiveLists(t *testing.T) {
 	db, mock, cleanup := setupMockDB(t)
 	defer cleanup()

@@ -1773,6 +1773,44 @@ func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID 
 	return emails, nil
 }
 
+// GetBatchForSegmentAfter retrieves up to limit email addresses greater than afterEmail, in email
+// order. A scan paged this way is not shifted by contacts deleted or created behind its cursor.
+func (r *contactRepository) GetBatchForSegmentAfter(ctx context.Context, workspaceID string, afterEmail string, limit int) ([]string, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		SELECT email
+		FROM contacts
+		WHERE email > $1
+		ORDER BY email ASC
+		LIMIT $2
+	`
+
+	rows, err := db.QueryContext(ctx, query, afterEmail, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query emails: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	emails := make([]string, 0, limit)
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, fmt.Errorf("failed to scan email: %w", err)
+		}
+		emails = append(emails, email)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return emails, nil
+}
+
 // MarkEmailsAsBounced flips contact_lists.status='bounced' on every row each
 // given email has, except rows already in a terminal status ('complained' or
 // 'bounced'). A row whose contact was removed from the list takes the bounce

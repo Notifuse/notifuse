@@ -529,7 +529,7 @@ func TestSegmentRepository_AddContactToSegment(t *testing.T) {
 		INSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (email, segment_id)
-		DO UPDATE SET version = $3, computed_at = $5
+		DO UPDATE SET version = GREATEST(contact_segments.version, EXCLUDED.version), computed_at = $5
 	`)).WithArgs(
 			"test@example.com",
 			"seg123",
@@ -1224,5 +1224,162 @@ func TestSegmentRepository_GetSegmentContactDetails(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, details)
 		assert.Contains(t, err.Error(), "failed to scan segment contact detail")
+	})
+}
+
+func TestSegmentRepository_StartRecompute(t *testing.T) {
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+	ctx := context.Background()
+
+	const query = `
+		UPDATE segments
+		SET version = version + 1, status = 'building', db_updated_at = $3
+		WHERE id = $1 AND version = $2 AND status = 'active'
+	`
+
+	t.Run("bumps an active segment still at the expected version", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(query)).
+			WithArgs("seg123", int64(3), sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		started, err := repo.StartRecompute(ctx, "workspace123", "seg123", 3)
+		require.NoError(t, err)
+		assert.True(t, started)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("reports false when the segment moved on", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(query)).
+			WithArgs("seg123", int64(3), sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		started, err := repo.StartRecompute(ctx, "workspace123", "seg123", 3)
+		require.NoError(t, err)
+		assert.False(t, started)
+	})
+
+	t.Run("wraps an exec error", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(query)).WillReturnError(errors.New("boom"))
+
+		started, err := repo.StartRecompute(ctx, "workspace123", "seg123", 3)
+		require.Error(t, err)
+		assert.False(t, started)
+		assert.Contains(t, err.Error(), "failed to start segment recompute")
+	})
+
+	t.Run("wraps a rows affected error", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(query)).
+			WillReturnResult(sqlmock.NewErrorResult(errors.New("no count")))
+
+		started, err := repo.StartRecompute(ctx, "workspace123", "seg123", 3)
+		require.Error(t, err)
+		assert.False(t, started)
+	})
+
+	t.Run("wraps a connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(nil, errors.New("no db"))
+
+		started, err := repo.StartRecompute(ctx, "workspace123", "seg123", 3)
+		require.Error(t, err)
+		assert.False(t, started)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+}
+
+func TestSegmentRepository_UpdateSegmentStatus(t *testing.T) {
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+	ctx := context.Background()
+
+	const query = `
+		UPDATE segments
+		SET status = $3, db_updated_at = $4
+		WHERE id = $1 AND version = $2 AND status <> 'deleted'
+	`
+
+	t.Run("sets the status of a segment at the expected version", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(query)).
+			WithArgs("seg123", int64(4), "active", sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		updated, err := repo.UpdateSegmentStatus(ctx, "workspace123", "seg123", 4, "active")
+		require.NoError(t, err)
+		assert.True(t, updated)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("reports false for a deleted or newer segment", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(query)).
+			WithArgs("seg123", int64(4), "active", sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		updated, err := repo.UpdateSegmentStatus(ctx, "workspace123", "seg123", 4, "active")
+		require.NoError(t, err)
+		assert.False(t, updated)
+	})
+
+	t.Run("wraps an exec error", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(query)).WillReturnError(errors.New("boom"))
+
+		updated, err := repo.UpdateSegmentStatus(ctx, "workspace123", "seg123", 4, "active")
+		require.Error(t, err)
+		assert.False(t, updated)
+		assert.Contains(t, err.Error(), "failed to update segment status")
+	})
+
+	t.Run("wraps a rows affected error", func(t *testing.T) {
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(db, nil)
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(query)).
+			WillReturnResult(sqlmock.NewErrorResult(errors.New("no count")))
+
+		updated, err := repo.UpdateSegmentStatus(ctx, "workspace123", "seg123", 4, "active")
+		require.Error(t, err)
+		assert.False(t, updated)
+	})
+
+	t.Run("wraps a connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace123").Return(nil, errors.New("no db"))
+
+		updated, err := repo.UpdateSegmentStatus(ctx, "workspace123", "seg123", 4, "active")
+		require.Error(t, err)
+		assert.False(t, updated)
 	})
 }

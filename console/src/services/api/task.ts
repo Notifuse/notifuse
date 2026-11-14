@@ -20,6 +20,7 @@ export interface BuildSegmentState {
   processed_count: number
   matched_count: number
   contact_offset: number
+  last_email?: string
   batch_size: number
   started_at: string
 }

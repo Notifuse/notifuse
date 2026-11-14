@@ -1134,6 +1134,12 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		require.NoError(t, err)
 		require.Contains(t, []string{"built", "active"}, segmentStatus, "Segment must be active before recompute check")
 
+		// Tasks created from here on are the recompute's. Taken before recompute_after moves:
+		// WaitForSegmentBuilt calls /api/cron, whose check may still be running in the
+		// background, and that check can create the build task (and mark the segment building)
+		// before the explicit execution below.
+		timeBeforeExecution := time.Now()
+
 		// NOW set recompute_after to the past - segment is active and eligible
 		pastTime := time.Now().Add(-1 * time.Hour)
 		err = factory.SetSegmentRecomputeAfter(workspaceID, segment1ID, pastTime)
@@ -1167,9 +1173,6 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 
 		recomputeTask := tasks[0].(map[string]interface{})
 		recomputeTaskID := recomputeTask["id"].(string)
-
-		// Get the current time to track tasks created after the recompute task runs
-		timeBeforeExecution := time.Now()
 
 		// Execute the check_segment_recompute task
 		executeResp, err := client.ExecuteTask(map[string]interface{}{
