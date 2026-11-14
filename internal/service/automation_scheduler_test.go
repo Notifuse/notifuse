@@ -539,7 +539,7 @@ func TestAutomationScheduler_StopTimeoutDefault(t *testing.T) {
 		"without an executor, the default drain")
 }
 
-// A batch that keeps failing the same way is logged at Error once per window, then at Debug.
+// A batch that keeps failing is logged at Error once per window, then at Debug.
 func TestAutomationScheduler_RepeatedBatchErrorLoggedOnce(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	repo := mocks.NewMockAutomationRepository(ctrl)
@@ -559,8 +559,8 @@ func TestAutomationScheduler_RepeatedBatchErrorLoggedOnce(t *testing.T) {
 	}
 }
 
-// A claim that fails in some workspaces, the same way at every tick, is logged at Error once
-// per window; the journeys the others gave still run.
+// A claim that fails in some workspaces at every tick is logged at Error once per window; the
+// journeys the others gave still run.
 func TestAutomationExecutor_ProcessBatch_RepeatedPartialClaimErrorLoggedOnce(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	repo := mocks.NewMockAutomationRepository(ctrl)

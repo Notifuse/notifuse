@@ -20,7 +20,7 @@ type AutomationScheduler struct {
 	running     bool
 	// stopMargin overrides automationStopMargin when positive (tests).
 	stopMargin  time.Duration
-	batchErrors repeatedErrorLog // a batch failing the same way, logged once per window
+	batchErrors repeatedErrorLog // a failing batch, logged at Error once per window
 }
 
 // automationStopMargin is how long Stop waits past the executor's drain deadline: once the

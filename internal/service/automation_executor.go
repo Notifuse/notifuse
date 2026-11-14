@@ -100,7 +100,8 @@ const afterStepWriteTimeout = 5 * time.Second
 const releaseClaimsTimeout = 3 * time.Second
 
 // writeContext returns a context for the writes that record what a step did: it is not
-// cancelled with the run, but afterStepWriteTimeout after the run's context is done.
+// cancelled with the run, but afterStepWriteTimeout after the run's context is done, or after
+// this call when it is already done.
 func writeContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	writeCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	stop := context.AfterFunc(ctx, func() {
