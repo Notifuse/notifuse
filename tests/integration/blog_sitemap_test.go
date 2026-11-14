@@ -94,7 +94,7 @@ func TestBlogSitemap(t *testing.T) {
 	)
 	require.NoError(t, err)
 	// A category created before its slug was refused: another route answers its page, while
-	// its posts and feed reach the blog (TestBlogReservedCategorySlugs covers every slug).
+	// its posts and feed reach the blog (TestBlogReservedCategorySlugs covers the others).
 	track, err := factory.CreateBlogCategory(workspace.ID, testutil.WithCategorySlug("track"))
 	require.NoError(t, err)
 	_, err = factory.CreateBlogPost(workspace.ID, track.ID,

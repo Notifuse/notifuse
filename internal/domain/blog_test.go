@@ -2126,14 +2126,15 @@ func TestBlogSitemapLimits(t *testing.T) {
 	assert.Equal(t, 49998, BlogSitemapMaxPosts)
 }
 
-// The slugs are written out: tests/integration TestBlogReservedCategorySlugs checks the same
-// table against the routes the running server registers.
+// The slugs are written out, so that a slug dropped from the domain's lists shows here.
+// TestBlogReservedCategorySlugs (tests/integration) checks most of them against the running
+// server.
 func TestBlogCategorySlugRouteOf(t *testing.T) {
 	cases := map[BlogCategorySlugRoute][]string{
 		BlogCategorySlugSubtreeTaken: {
 			"v", "t", "r",
 			"api", "console", "notification-center",
-			// The root handler matches these three by prefix.
+			// The root handler matches api, console and notification-center by prefix.
 			"apis", "api-docs", "consoles", "notification-centers",
 		},
 		BlogCategorySlugPageTaken: {

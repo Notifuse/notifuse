@@ -1065,11 +1065,32 @@ Known, not handled: a category named `webhooks` (now allowed) loses the address 
 to the email webhook, and one named after another route's first segment loses the matching post addresses
 the same way; the page cache still keys on the raw Host.
 
+### After the delta review (lot 5, round 2)
+
+Review: `/mnt/project-files/reviews/grouped-pr-lot5-delta-review.md`.
+
+- **N1** `writeBlogSitemap`'s comment says which addresses it leaves out, by route kind.
+- **N2** The integration test's comment says what it pins: what the server does for each slug it names, not
+  that the domain knows every route the server registers (known, not handled: a test reading the mux's
+  registered patterns).
+- **n1, n2** The exact-route budget case uses a budget of 4, which a cost of 3 would overflow; a new case
+  pins that a post under a subtree route costs nothing.
+- **n5** The exact routes include the web analytics collector.
+- **n6, n7** No unpinned counts in those comments; the domain test says the integration test checks most of
+  its slugs.
+- **n8** The update schema's slug names the refusal on a rename; **n10** the integration test refuses a
+  rename to `healthz` and keeps `opens` on an edit of its category.
+- **n9** The lot's integration command also runs `TestTemplatesUsage`.
+- **n11** The TTL lower bound leaves 5 s for the build.
+
+Known, not handled: `/track/` (trailing slash) answers the blog's category page; a category `webhooks`
+lists `/webhooks/email`, which the email webhook answers (as in 43.0).
+
 ## Test commands for lot 5
 
 ```
 go test ./internal/domain/ ./internal/service/ ./internal/repository/ ./internal/http/
-INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestBlog' -count=1
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestBlog|TestTemplatesUsage' -count=1
 ```
 
 ## Lot 6: templates, the plain-text version, the visual editor's MJML, system emails

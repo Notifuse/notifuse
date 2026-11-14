@@ -365,7 +365,8 @@ const (
 )
 
 // blogCategorySlugExactRoutes are the paths registered as exact patterns (no trailing slash)
-// on the server's mux: the email tracking, public preference and health routes.
+// on the server's mux: the email tracking, web analytics collector, public preference and
+// health routes.
 var blogCategorySlugExactRoutes = []string{
 	"visit", "opens", "track",
 	"preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick",

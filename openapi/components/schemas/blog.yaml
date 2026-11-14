@@ -119,7 +119,9 @@ UpdateBlogCategoryRequest:
       pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
       description: >-
         Changing it changes the URL of the category page and of every post in
-        it. No redirect is created from the old URLs.
+        it. No redirect is created from the old URLs. A new slug may not be one
+        another route answers on the blog's domain (see the create request); a
+        category keeps such a slug it already had.
       example: product
     description:
       type: string

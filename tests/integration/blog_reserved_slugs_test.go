@@ -45,18 +45,20 @@ func TestBlogReservedCategorySlugs(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// The slugs are written out, as in the domain test, so that a route added to the server
-	// and not to the domain shows here.
+	// The slugs are written out, as in the domain test: this pins what the server does for
+	// each of them, not that the domain knows every route the server registers.
 	slugs := []string{
 		"v", "t", "r", "api", "console", "notification-center", "apis",
 		"visit", "opens", "track", "preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick", "health", "healthz",
 		"webhooks", "tracking",
 	}
 	publishedAt := time.Now().Add(-time.Hour)
+	categoryIDs := map[string]string{}
 	for _, slug := range slugs {
 		// Created below the API, as a category made before its slug was refused would be.
 		category, err := factory.CreateBlogCategory(workspace.ID, testutil.WithCategorySlug(slug))
 		require.NoError(t, err)
+		categoryIDs[slug] = category.ID
 		_, err = factory.CreateBlogPost(workspace.ID, category.ID, testutil.WithPostSlug("post-in-"+slug),
 			testutil.WithPostPublishedAt(publishedAt))
 		require.NoError(t, err)
@@ -124,5 +126,24 @@ func TestBlogReservedCategorySlugs(t *testing.T) {
 				assert.Contains(t, string(raw), "slug is reserved by another route", slug)
 			}
 		}
+
+		// A rename may not take one either, while a category that already has one keeps it.
+		update := func(id, name, slug string) (int, string) {
+			resp, err := client.Post("/api/blogCategories.update", map[string]interface{}{
+				"workspace_id": workspace.ID, "id": id, "name": name, "slug": slug,
+			})
+			require.NoError(t, err)
+			raw, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			return resp.StatusCode, string(raw)
+		}
+		renamed, err := factory.CreateBlogCategory(workspace.ID, testutil.WithCategorySlug("renamed-later"))
+		require.NoError(t, err)
+		status, raw := update(renamed.ID, "Renamed", "healthz")
+		assert.Equal(t, http.StatusBadRequest, status, raw)
+		assert.Contains(t, raw, "slug is reserved by another route")
+
+		status, raw = update(categoryIDs["opens"], "Opens, renamed", "opens")
+		assert.Equal(t, http.StatusOK, status, raw)
 	})
 }

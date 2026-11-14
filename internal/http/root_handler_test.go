@@ -1121,13 +1121,25 @@ func TestWriteBlogSitemap_URLBudget(t *testing.T) {
 		writeBlogSitemap(&b, "example.com", []*domain.BlogSitemapPost{
 			{CategorySlug: "track", PostSlug: "p1", PublishedAt: at},
 			{CategorySlug: "tech", PostSlug: "p2", PublishedAt: at},
-		}, 6)
+		}, 4)
 		body := b.String()
-		// Home, main feed, p1 and the track feed take 4; p2 needs 3 more and does not fit in 6.
+		// Home, main feed, p1 and the track feed take 4, exactly the budget; p2 does not fit.
 		assert.Equal(t, 4, strings.Count(body, "<loc>"))
 		assert.Contains(t, body, "<loc>https://example.com/track/p1</loc>")
 		assert.Contains(t, body, "<loc>https://example.com/track/feed.xml</loc>")
 		assert.NotContains(t, body, "p2")
+	})
+
+	t.Run("a post under a route that takes the subtree costs nothing", func(t *testing.T) {
+		var b strings.Builder
+		writeBlogSitemap(&b, "example.com", []*domain.BlogSitemapPost{
+			{CategorySlug: "v", PostSlug: "p1", PublishedAt: at},
+			{CategorySlug: "tech", PostSlug: "p2", PublishedAt: at},
+		}, 5)
+		body := b.String()
+		// Home, main feed, p2 with the tech page and feed take 5, exactly the budget.
+		assert.Equal(t, 5, strings.Count(body, "<loc>"))
+		assert.Contains(t, body, "<loc>https://example.com/tech/p2</loc>")
 	})
 
 	t.Run("lists the home page and the main feed only when nothing else fits", func(t *testing.T) {
@@ -2271,7 +2283,7 @@ func TestRootHandler_BlogCacheTTL(t *testing.T) {
 		})
 		for _, key := range keys {
 			assert.LessOrEqual(t, ttls[key], 30*time.Second-buildTime, key)
-			assert.Greater(t, ttls[key], 29*time.Second, key)
+			assert.Greater(t, ttls[key], 25*time.Second, key)
 		}
 	})
 

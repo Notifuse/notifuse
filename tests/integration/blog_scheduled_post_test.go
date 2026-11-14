@@ -175,7 +175,7 @@ func TestBlogScheduledPost_OnTime(t *testing.T) {
 		testutil.WithPostPublishedAt(time.Now().Add(-time.Hour)),
 	)
 	require.NoError(t, err)
-	// Long enough for the four requests below on a loaded database; checked before the sleep.
+	// Long enough for the requests below on a loaded database; checked before the sleep.
 	due := time.Now().Add(6 * time.Second)
 	_, err = factory.CreateBlogPost(workspace.ID, category.ID,
 		testutil.WithPostTitle("Soon Post"),

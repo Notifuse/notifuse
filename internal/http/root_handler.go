@@ -650,9 +650,10 @@ func blogHost(r *http.Request) string {
 // writeBlogSitemap writes the sitemap of a blog: the home page, the posts newest first, the
 // main feed, then the page and the feed of each category with a listed post. It lists at most
 // maxURLs URLs (the home page and the main feed always, so at least two): past them, the
-// oldest posts are left out, and a category is listed only with a post of its own. A
-// category whose slug another route answers is left out with its posts: their addresses do
-// not reach the blog.
+// oldest posts are left out, and a category is listed only with a post of its own. An
+// address another route answers is left out (domain.BlogCategorySlugRouteOf): the page of a
+// category whose slug is an exact route, whose posts and feed are listed, and every address
+// of a category whose slug starts a route that takes the whole subtree.
 func writeBlogSitemap(w io.Writer, host string, posts []*domain.BlogSitemapPost, maxURLs int) {
 	writeURL := func(path, lastmod, changefreq, priority string) {
 		_, _ = io.WriteString(w, "  <url>\n")
