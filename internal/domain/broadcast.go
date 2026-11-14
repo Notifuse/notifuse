@@ -725,7 +725,14 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 	// decision about who the next send reaches and only the list is one Validate would
 	// object to losing. Every key stays writable: a list retargets, an empty segments
 	// array widens back to the whole list, and an explicit false switches the
-	// unsubscribed exclusion off.
+	// unsubscribed exclusion off, until the broadcast has started sending: past that point,
+	// as for tracking_mode, part of the audience already received the email as it was.
+	if !r.audienceExcludeUnsubscribedOmitted &&
+		r.Audience.ExcludeUnsubscribed != existingBroadcast.Audience.ExcludeUnsubscribed &&
+		existingBroadcast.Status != BroadcastStatusDraft &&
+		existingBroadcast.Status != BroadcastStatusScheduled {
+		return nil, fmt.Errorf("exclude_unsubscribed can only be changed on a draft or scheduled broadcast")
+	}
 	if !r.audienceListOmitted {
 		existingBroadcast.Audience.List = r.Audience.List
 	}

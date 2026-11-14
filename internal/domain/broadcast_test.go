@@ -2,6 +2,7 @@ package domain_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"testing"
 	"time"
@@ -608,6 +609,39 @@ func TestUpdateBroadcastRequest_Validate(t *testing.T) {
 	}
 }
 
+func TestUpdateBroadcastRequest_Validate_ExcludeUnsubscribedIsFixedOnceSent(t *testing.T) {
+	update := func(t *testing.T, status domain.BroadcastStatus, exclude bool) (*domain.Broadcast, error) {
+		t.Helper()
+		stored := storedBroadcastWithOmittableFields()
+		stored.Status = status
+		var req domain.UpdateBroadcastRequest
+		body := fmt.Sprintf(`{"workspace_id": "workspace123", "id": "broadcast123", "name": "Renamed", "audience": {"exclude_unsubscribed": %t}}`, exclude)
+		require.NoError(t, json.Unmarshal([]byte(body), &req))
+		return req.Validate(stored)
+	}
+
+	t.Run("a paused broadcast refuses a change", func(t *testing.T) {
+		updated, err := update(t, domain.BroadcastStatusPaused, false)
+		require.Error(t, err)
+		assert.Equal(t, "exclude_unsubscribed can only be changed on a draft or scheduled broadcast", err.Error())
+		assert.Nil(t, updated)
+	})
+
+	t.Run("a paused broadcast accepts the stored value", func(t *testing.T) {
+		updated, err := update(t, domain.BroadcastStatusPaused, true)
+		require.NoError(t, err)
+		assert.True(t, updated.Audience.ExcludeUnsubscribed)
+	})
+
+	for _, status := range []domain.BroadcastStatus{domain.BroadcastStatusDraft, domain.BroadcastStatusScheduled} {
+		t.Run(string(status)+" accepts a change", func(t *testing.T) {
+			updated, err := update(t, status, false)
+			require.NoError(t, err)
+			assert.False(t, updated.Audience.ExcludeUnsubscribed)
+		})
+	}
+}
+
 // storedBroadcastWithOmittableFields returns a broadcast carrying everything an update
 // body is allowed to leave out: a narrowed audience, an A/B test whose variations hold
 // the templates, a future schedule, UTM parameters and metadata. Seeded richly on
@@ -876,6 +910,7 @@ func TestUpdateBroadcastRequest_Validate_AudienceIsPatchedKeyByKey(t *testing.T)
 
 	t.Run("an explicit false switches the unsubscribed exclusion off", func(t *testing.T) {
 		stored := storedBroadcastWithOmittableFields()
+		stored.Status = domain.BroadcastStatusDraft
 		wantSegments := []string{"segment-vip", "segment-fr"}
 
 		updated, err := decode(t, body(`, "audience": {"exclude_unsubscribed": false}`)).Validate(stored)
@@ -887,6 +922,7 @@ func TestUpdateBroadcastRequest_Validate_AudienceIsPatchedKeyByKey(t *testing.T)
 
 	t.Run("a full audience replaces every key", func(t *testing.T) {
 		stored := storedBroadcastWithOmittableFields()
+		stored.Status = domain.BroadcastStatusDraft
 
 		updated, err := decode(t, body(`, "audience": {"list": "list456", "segments": ["segment-de"], "exclude_unsubscribed": false}`)).Validate(stored)
 		require.NoError(t, err)
@@ -912,6 +948,7 @@ func TestUpdateBroadcastRequest_Validate_AudienceIsPatchedKeyByKey(t *testing.T)
 	// audience quietly merged with the stored one.
 	t.Run("a request built in Go applies its own audience", func(t *testing.T) {
 		stored := storedBroadcastWithOmittableFields()
+		stored.Status = domain.BroadcastStatusDraft
 
 		updated, err := (&domain.UpdateBroadcastRequest{
 			WorkspaceID: "workspace123",
