@@ -11,6 +11,7 @@ import (
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewContactSegmentQueueProcessor(t *testing.T) {
@@ -1100,4 +1101,87 @@ func TestContactSegmentQueueProcessor_RequeueBatch_Dedup(t *testing.T) {
 	err = processor.requeueBatch(ctx, db, []string{"a@test.com", "a@test.com", "b@test.com"})
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// A membership write that fails must send the contact back to the queue: the claim already
+// deleted its queue row, so swallowing the error would lose the change until the contact's next
+// event. Every other segment is still written.
+func TestContactSegmentQueueProcessor_ProcessQueue_MembershipWriteFailureRequeues(t *testing.T) {
+	cases := []struct {
+		name        string
+		failAdd     bool
+		matchesBoth bool
+	}{
+		{name: "add fails", failAdd: true, matchesBoth: true},
+		{name: "remove fails", failAdd: false, matchesBoth: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockSegmentRepo := mocks.NewMockSegmentRepository(ctrl)
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+			mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+			processor := NewContactSegmentQueueProcessor(
+				mocks.NewMockContactSegmentQueueRepository(ctrl),
+				mockSegmentRepo,
+				mocks.NewMockContactRepository(ctrl),
+				mockWorkspaceRepo,
+				mockLogger,
+			)
+			ctx := context.Background()
+
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+
+			sqlText := "SELECT email FROM contacts WHERE email LIKE $1"
+			segA := &domain.Segment{ID: "segA", Status: string(domain.SegmentStatusActive), Version: 1,
+				GeneratedSQL: &sqlText, GeneratedArgs: domain.JSONArray{"%test%"}}
+			segB := &domain.Segment{ID: "segB", Status: string(domain.SegmentStatusActive), Version: 2,
+				GeneratedSQL: &sqlText, GeneratedArgs: domain.JSONArray{"%test%"}}
+
+			mock.ExpectBegin()
+			mock.ExpectQuery("DELETE FROM contact_segment_queue").
+				WillReturnRows(sqlmock.NewRows([]string{"email"}).AddRow("test@test.com"))
+			mock.ExpectCommit()
+
+			matches := sqlmock.NewRows([]string{"segment_id"})
+			if tc.matchesBoth {
+				matches.AddRow("segA").AddRow("segB")
+			}
+			mock.ExpectQuery("SELECT 'segA' as segment_id").WillReturnRows(matches)
+			// The contact goes back to the queue.
+			mock.ExpectExec("INSERT INTO contact_segment_queue").
+				WithArgs("test@test.com").
+				WillReturnResult(sqlmock.NewResult(0, 1))
+
+			mockWorkspaceRepo.EXPECT().GetConnection(ctx, "workspace1").Return(db, nil)
+			mockSegmentRepo.EXPECT().GetSegments(ctx, "workspace1", false).Return([]*domain.Segment{segA, segB}, nil)
+
+			if tc.failAdd {
+				mockSegmentRepo.EXPECT().AddContactToSegment(ctx, "workspace1", "test@test.com", "segA", int64(1)).
+					Return(errors.New("insert failed"))
+				mockSegmentRepo.EXPECT().AddContactToSegment(ctx, "workspace1", "test@test.com", "segB", int64(2)).
+					Return(nil)
+			} else {
+				mockSegmentRepo.EXPECT().RemoveContactFromSegment(ctx, "workspace1", "test@test.com", "segA").
+					Return(errors.New("delete failed"))
+				mockSegmentRepo.EXPECT().RemoveContactFromSegment(ctx, "workspace1", "test@test.com", "segB").
+					Return(nil)
+			}
+
+			count, err := processor.ProcessQueue(ctx, "workspace1")
+			require.NoError(t, err)
+			assert.Equal(t, 0, count, "a contact whose write failed is not processed")
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }

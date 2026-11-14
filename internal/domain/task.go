@@ -131,9 +131,13 @@ type BuildSegmentState struct {
 	TotalContacts  int    `json:"total_contacts"`
 	ProcessedCount int    `json:"processed_count"`
 	MatchedCount   int    `json:"matched_count"`
-	ContactOffset  int64  `json:"contact_offset"` // For resumable processing
-	BatchSize      int    `json:"batch_size"`     // Process 1000 at a time
-	StartedAt      string `json:"started_at"`
+	ContactOffset  int64  `json:"contact_offset"` // Contacts scanned so far
+	// LastEmail is the last email of the last fully processed batch: the build resumes after it.
+	// Empty before the first batch, and in a state saved before it was recorded, where the build
+	// resumes once by ContactOffset.
+	LastEmail string `json:"last_email,omitempty"`
+	BatchSize int    `json:"batch_size"` // Process 1000 at a time
+	StartedAt string `json:"started_at"`
 }
 
 // IntegrationSyncState contains state for integration sync tasks (recurring polling tasks)

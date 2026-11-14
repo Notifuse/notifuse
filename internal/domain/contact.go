@@ -836,6 +836,11 @@ type ContactRepository interface {
 	// GetBatchForSegment retrieves a batch of email addresses for segment processing
 	GetBatchForSegment(ctx context.Context, workspaceID string, offset int64, limit int) ([]string, error)
 
+	// GetBatchForSegmentAfter retrieves up to limit email addresses greater than afterEmail, in
+	// email order. Paging by the last email seen, rather than by offset, keeps a contact deleted
+	// or created mid-scan from shifting the window and making the scan skip another contact.
+	GetBatchForSegmentAfter(ctx context.Context, workspaceID string, afterEmail string, limit int) ([]string, error)
+
 	// MarkEmailsAsBounced flips contact_lists.status to 'bounced' on every row
 	// each given email has, except where the row is already 'bounced' or
 	// 'complained'. The row of a contact removed from a list takes the bounce
