@@ -34,8 +34,9 @@ import {
 } from '@fortawesome/free-brands-svg-icons'
 import { faGlobe } from '@fortawesome/free-solid-svg-icons'
 
-// Networks that have share URL templates in gomjml.
-// When name is plain (e.g. "facebook"), gomjml wraps href in share URL.
+// Networks that have share URL templates in safe-mjml.
+// When name is plain (e.g. "facebook"), safe-mjml wraps href in share URL,
+// unless href already points to that network (a profile or share URL).
 // When name has "-noshare" suffix (e.g. "facebook-noshare"), href passes through unchanged.
 const NETWORKS_WITH_SHARE_URL = new Set([
   'facebook',

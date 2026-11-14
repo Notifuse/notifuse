@@ -211,20 +211,27 @@ func TestCompileTemplate_CustomTextSeed(t *testing.T) {
 		assert.Contains(t, *resp.Text, "{% endfor %}")
 	})
 
-	t.Run("a condition in mj-raw tags around a section between a header and a footer is not carried over", func(t *testing.T) {
+	// MJML writes the content of an mj-raw placed between sections outside the
+	// Outlook conditional comments, so a condition written in mj-raw tags reaches the
+	// text as it reaches the HTML: the text shows the same blocks to the same
+	// contacts. (gomjml v0.14.1 hid it in an Outlook comment, and the text then
+	// showed every block to everyone.)
+	t.Run("a condition in mj-raw tags around a section between a header and a footer is carried over", func(t *testing.T) {
 		resp := seed(t, CompileTemplateRequest{MjmlSource: wrap(`<mj-section><mj-column><mj-text>Header</mj-text></mj-column></mj-section><mj-raw>{% if vip %}</mj-raw><mj-section><mj-column><mj-text>VIP offer</mj-text></mj-column></mj-section><mj-raw>{% endif %}</mj-raw><mj-section><mj-column><mj-text>Footer</mj-text></mj-column></mj-section>`)})
 		require.True(t, resp.Success)
 		require.NotNil(t, resp.Text)
 		assert.Contains(t, *resp.Text, "VIP offer")
-		assert.NotContains(t, *resp.Text, "{% if vip %}")
-		assert.NotContains(t, *resp.Text, "{% endif %}")
+		assert.Contains(t, *resp.Text, "{% if vip %}")
+		assert.Contains(t, *resp.Text, "{% endif %}")
+		assert.Empty(t, resp.TextError, "the carried-over pair is valid Liquid")
 	})
 
-	t.Run("an mj-raw tag placed between two sections is not carried over", func(t *testing.T) {
+	t.Run("mj-raw tags placed between two sections are carried over", func(t *testing.T) {
 		resp := seed(t, CompileTemplateRequest{MjmlSource: wrap(`<mj-raw>{% if vip %}</mj-raw><mj-section><mj-column><mj-text>VIP offer</mj-text></mj-column></mj-section><mj-raw>{% else %}</mj-raw><mj-section><mj-column><mj-text>Standard offer</mj-text></mj-column></mj-section><mj-raw>{% endif %}</mj-raw>`)})
 		require.True(t, resp.Success)
 		require.NotNil(t, resp.Text)
-		assert.NotContains(t, *resp.Text, "{% else %}")
+		assert.Contains(t, *resp.Text, "{% else %}")
+		assert.Empty(t, resp.TextError, "the carried-over tags are valid Liquid")
 	})
 
 	t.Run("a comparison written between blocks fails the seed", func(t *testing.T) {
