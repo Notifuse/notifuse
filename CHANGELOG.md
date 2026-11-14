@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, the web analytics charts, ranges and annotations, the licence and invitation expiry dates, the day an integration was connected, and the dates in the prompts to restore a blog draft or resume a contact import. Counts and amounts use its separators too ("12 345" in French): contact imports and exports, sending progress, analytics amounts, rate limits and the values in a contact's activity and fields. So do the web analytics counts, percentages and durations ("1,5 k", "12,5 %", "5 min 12 s"). Weeks start on Monday in French, Spanish, German, Catalan and Italian.
 
+- **Fix**: The French console has its apostrophes back: many of its translations had lost them ("d un contact", "l email").
+
 - **Fix**: Web analytics durations and counts no longer read "4m 60s", "1h 60m" or "1000.0K" at a rounding boundary.
 - **Fix**: Negative web analytics amounts, such as refunded goal values, drop their cents from a thousand like positive ones: "-1,235", not "-1,234.57".
 - **Fix**: In a contact's activity and fields and in the message history, the full date shown on hover is the time in the timezone it names (the contact's or the workspace's), in the console's language, not in your browser's.
@@ -131,6 +133,12 @@ All notable changes to this project will be documented in this file.
 - **Fix**: The blog's post list in the console now shows every post, not only the first 100.
 
 - **Fix**: On the blog page in the console, a member without Blog write no longer gets post and category buttons that fail: they are disabled. Writing or editing a post is disabled, with its reason, for a member without Templates read or write, since a post's content is a template.
+
+- **Fix**: The email builder's AI assistant is in the console's language: its title, its placeholder and its messages were in English whatever the language.
+
+- **Fix**: The subtitle of an integration card in Settings, "Type: …", is translated and names the integration's type in words.
+
+- **Fix**: For a member without Templates read, the message history no longer asks for the template of each message, which the server refused.
 
 - **Fix**: The system emails (workspace invitation, sign-in code, circuit breaker alert) now put their text part before their HTML part, as the standard asks, so a mail client that picks the last part it can display shows the HTML.
 
