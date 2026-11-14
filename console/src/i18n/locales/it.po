@@ -4306,8 +4306,8 @@ msgid "Collapse {label}"
 msgstr "Comprimi {label}"
 
 #: src/layouts/app-shell/AppSidebar.tsx:148
-msgid "Collapse sidebar"
-msgstr "Comprimi la barra laterale"
+#~ msgid "Collapse sidebar"
+#~ msgstr "Comprimi la barra laterale"
 
 #: src/components/blog_editor/menus/block-actions/BlockColorPopover.tsx:97
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:42
@@ -5527,7 +5527,7 @@ msgstr "Editor stile CSS"
 msgid "CSV must have at least a header row and one data row"
 msgstr "Il CSV deve avere almeno una riga di intestazione e una riga di dati"
 
-#: src/layouts/app-shell/AccountMenu.tsx:74
+#: src/layouts/app-shell/AccountMenu.tsx:83
 msgid "Current language"
 msgstr "Lingua attuale"
 
@@ -5792,7 +5792,7 @@ msgstr "Zona pericolosa"
 #~ msgid "Danger Zone"
 #~ msgstr "Zona di pericolo"
 
-#: src/layouts/app-shell/AppSidebar.tsx:139
+#: src/layouts/app-shell/AppSidebar.tsx:247
 #: src/layouts/app-shell/menuItems.ts:181
 #: src/pages/AnalyticsPage.tsx:105
 #: src/pages/WebAnalyticsLivePage.tsx:127
@@ -6622,7 +6622,7 @@ msgstr "Vuoi eliminare definitivamente questo file dal tuo storage?"
 #~ msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 #~ msgstr "Vuoi inviare \"{0}\" immediatamente o programmarlo per dopo?"
 
-#: src/layouts/app-shell/HelpMenu.tsx:40
+#: src/layouts/app-shell/HelpMenu.tsx:45
 msgid "Documentation"
 msgstr "Documentazione"
 
@@ -7968,8 +7968,8 @@ msgid "Expand {label}"
 msgstr "Espandi {label}"
 
 #: src/layouts/app-shell/AppSidebar.tsx:200
-msgid "Expand sidebar"
-msgstr "Espandi la barra laterale"
+#~ msgid "Expand sidebar"
+#~ msgstr "Espandi la barra laterale"
 
 #: src/components/settings/LicenseSettings.tsx:112
 msgid "Expired"
@@ -8638,7 +8638,7 @@ msgstr "Impossibile aggiornare le impostazioni delle web analytics"
 msgid "Failed to update workspace settings"
 msgstr "Impossibile aggiornare le impostazioni dello spazio di lavoro"
 
-#: src/layouts/WorkspaceLayout.tsx:121
+#: src/layouts/WorkspaceLayout.tsx:124
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Impossibile aggiornare le impostazioni dello spazio di lavoro: {errorMessage}"
 
@@ -9384,9 +9384,9 @@ msgstr "Altezza"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:716
 #: src/components/templates/CreateTemplateDrawer.tsx:179
-#: src/layouts/app-shell/HelpMenu.tsx:18
-#: src/layouts/app-shell/HelpMenu.tsx:24
-#: src/layouts/app-shell/HelpMenu.tsx:58
+#: src/layouts/app-shell/HelpMenu.tsx:20
+#: src/layouts/app-shell/HelpMenu.tsx:26
+#: src/layouts/app-shell/HelpMenu.tsx:65
 msgid "Help"
 msgstr "Aiuto"
 
@@ -10380,7 +10380,7 @@ msgstr "Pagine di atterraggio"
 #: src/components/segment/segmentSummary.ts:35
 #: src/components/templates/SendTemplateModal.tsx:392
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
-#: src/layouts/app-shell/AccountMenu.tsx:68
+#: src/layouts/app-shell/AccountMenu.tsx:77
 msgid "Language"
 msgstr "Lingua"
 
@@ -11040,7 +11040,7 @@ msgstr "Anteprima Logo"
 msgid "Logo URL"
 msgstr "URL Logo"
 
-#: src/layouts/app-shell/AccountMenu.tsx:80
+#: src/layouts/app-shell/AccountMenu.tsx:89
 msgid "Logout"
 msgstr "Esci"
 
@@ -11101,7 +11101,7 @@ msgstr "Mailjet"
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Logo principale per il tuo blog. Dimensione consigliata: 200x50px o proporzioni simili"
 
-#: src/layouts/app-shell/AppSidebar.tsx:170
+#: src/layouts/app-shell/AppSidebar.tsx:287
 msgid "Main navigation"
 msgstr "Navigazione principale"
 
@@ -11324,7 +11324,7 @@ msgstr "Mezzi"
 
 #: src/components/logs/auditDisplay.ts:20
 #: src/components/settings/WorkspaceMembers.tsx:247
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Member"
 msgstr "Membro"
 
@@ -11832,7 +11832,7 @@ msgstr "Nuovo Tema"
 msgid "New Window"
 msgstr "Nuova Finestra"
 
-#: src/layouts/app-shell/WorkspaceSwitcher.tsx:92
+#: src/layouts/app-shell/WorkspaceSwitcher.tsx:95
 #: src/pages/CreateWorkspacePage.tsx:108
 msgid "New workspace"
 msgstr "Nuovo spazio di lavoro"
@@ -13334,7 +13334,7 @@ msgid "Overwrite with mine"
 msgstr "Sovrascrivi con la mia versione"
 
 #: src/components/settings/WorkspaceMembers.tsx:81
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Owner"
 msgstr "Proprietario"
 
@@ -13679,6 +13679,10 @@ msgstr "Ha scelto la versione vincente della newsletter <0>{target}</0>"
 #: src/components/email_builder/dnd/LibraryDnd.tsx:134
 msgid "Picked up {name}."
 msgstr "{name} preso."
+
+#: src/layouts/app-shell/AppSidebar.tsx:175
+msgid "Pin sidebar"
+msgstr "Fissa la barra laterale"
 
 #: src/components/transactional/ApiCommandModal.tsx:529
 #~ msgid "Plain text (not recommended for production)"
@@ -15157,7 +15161,7 @@ msgstr "Rispondi a: {replyTo}"
 msgid "Report — {dimensions}"
 msgstr "Report — {dimensions}"
 
-#: src/layouts/app-shell/HelpMenu.tsx:49
+#: src/layouts/app-shell/HelpMenu.tsx:54
 msgid "Report an issue"
 msgstr "Segnala un problema"
 
@@ -15461,7 +15465,7 @@ msgstr "Da Destra a Sinistra"
 #: src/components/file_manager/FilePreview.tsx:62
 #: src/components/file_manager/FileTable.tsx:88
 #: src/components/file_manager/FolderTree.tsx:121
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Root"
 msgstr "Root"
 
@@ -19825,7 +19829,7 @@ msgstr "Data sconosciuta"
 msgid "Unknown device"
 msgstr "Dispositivo sconosciuto"
 
-#: src/layouts/WorkspaceLayout.tsx:120
+#: src/layouts/WorkspaceLayout.tsx:123
 msgid "Unknown error"
 msgstr "Errore sconosciuto"
 
@@ -19865,6 +19869,10 @@ msgstr "Segmento sconosciuto ({id})"
 #: src/components/settings/LicenseSettings.tsx:125
 msgid "Unlimited"
 msgstr ""
+
+#: src/layouts/app-shell/AppSidebar.tsx:175
+msgid "Unpin sidebar"
+msgstr "Sgancia la barra laterale"
 
 #: src/components/blog/PostsTable.tsx:206
 #: src/components/blog/PostsTable.tsx:226
@@ -21113,14 +21121,14 @@ msgstr "Il nome del workspace deve essere di almeno 3 caratteri"
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "Il nome del workspace deve essere di al massimo {WORKSPACE_NAME_MAX_LENGTH} caratteri"
 
-#: src/layouts/WorkspaceLayout.tsx:99
+#: src/layouts/WorkspaceLayout.tsx:102
 #: src/pages/AnalyticsPage.tsx:88
 #: src/pages/FileManagerPage.tsx:50
 msgid "Workspace not found"
 msgstr "Workspace non trovato"
 
 #: src/components/settings/GeneralSettings.tsx:133
-#: src/layouts/WorkspaceLayout.tsx:117
+#: src/layouts/WorkspaceLayout.tsx:120
 msgid "Workspace settings updated successfully"
 msgstr "Impostazioni workspace aggiornate con successo"
 

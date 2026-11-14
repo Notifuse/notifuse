@@ -1,16 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState, type ReactNode } from 'react'
+import { forwardRef, useState, type ReactNode } from 'react'
 import type { Workspace } from '../../services/api/types'
 import { AppSidebar, type AppSidebarProps } from './AppSidebar'
 import { changeLanguage } from '../../i18n/languages'
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, params, ...rest }: { children: ReactNode; to: string; params?: object }) => (
-    <a href={to} data-params={JSON.stringify(params)} {...rest}>
-      {children}
-    </a>
+  // Forwards its ref like the real Link: Escape on the pin moves the focus to the logo.
+  Link: forwardRef<HTMLAnchorElement, { children: ReactNode; to: string; params?: object }>(
+    ({ children, to, params, ...rest }, ref) => (
+      <a ref={ref} href={to} data-params={JSON.stringify(params)} {...rest}>
+        {children}
+      </a>
+    )
   )
 }))
 
@@ -37,20 +40,17 @@ const workspaces = [
   { id: 'ws2', name: 'Beta', settings: { logo_url: 'https://cdn.example.com/beta.png' } }
 ] as unknown as Workspace[]
 
-type HarnessProps = Partial<AppSidebarProps> & { startCollapsed?: boolean }
+type HarnessProps = Partial<AppSidebarProps> & { startPinned?: boolean }
 
-/** The sidebar with the collapse state WorkspaceLayout keeps: a stored choice, and a peek on rail. */
-function Harness({ startCollapsed = false, rail = false, ...props }: HarnessProps) {
-  const [stored, setStored] = useState(startCollapsed)
-  const [peek, setPeek] = useState(false)
+/** The sidebar with the pin WorkspaceLayout keeps; the overlay is the sidebar's own state. */
+function Harness({ startPinned = true, ...props }: HarnessProps) {
+  const [pinned, setPinned] = useState(startPinned)
   return (
     <>
       <AppSidebar
-        collapsed={rail ? !peek : stored}
-        peeking={rail && peek}
-        rail={rail}
-        onToggle={() => setStored((value) => !value)}
-        onPeekChange={setPeek}
+        pinned={pinned}
+        onPinnedChange={setPinned}
+        navigationKey="/console/workspace/ws1"
         menuItems={[{ key: 'contacts', label: 'Contacts', icon: <svg /> }]}
         selectedKey="contacts"
         openKeys={[]}
@@ -71,7 +71,17 @@ function Harness({ startCollapsed = false, rail = false, ...props }: HarnessProp
 }
 
 const aside = () => document.querySelector<HTMLElement>('[data-sidebar]')!
-const isCollapsed = () => aside().dataset.collapsed === 'true'
+const isExpanded = () => aside().dataset.expanded === 'true'
+const isPinned = () => aside().dataset.pinned === 'true'
+// Named by what a click does: Pin sidebar, or Unpin sidebar once pinned.
+const pinButton = () => screen.getByRole('button', { name: /^(Pin|Unpin) sidebar$/ })
+
+/** jsdom has no PointerEvent: the touch is written on a plain event. */
+const touchDown = (element: Element) => {
+  const event = createEvent.pointerDown(element)
+  Object.defineProperty(event, 'pointerType', { value: 'touch' })
+  fireEvent(element, event)
+}
 
 describe('AppSidebar', () => {
   beforeEach(() => {
@@ -107,122 +117,303 @@ describe('AppSidebar', () => {
     expect(aside().className).toContain('z-10')
   })
 
-  it('collapses and expands on a page, moving the focus to the other toggle', async () => {
-    render(<Harness />)
-    const collapse = screen.getByRole('button', { name: 'Collapse sidebar' })
-    expect(collapse).toHaveAttribute('aria-expanded', 'true')
-    expect(aside().className).toContain('w-sidebar')
-
-    await userEvent.click(collapse)
-    expect(isCollapsed()).toBe(true)
-    expect(aside().className).toContain('w-sidebar-collapsed')
-    const expand = screen.getByRole('button', { name: 'Expand sidebar' })
-    expect(expand).toHaveAttribute('aria-expanded', 'false')
-    expect(document.activeElement).toBe(expand)
-
-    await userEvent.click(expand)
-    expect(isCollapsed()).toBe(false)
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Collapse sidebar' }))
+  it('folds and opens without a transition', () => {
+    render(<Harness startPinned={false} />)
+    expect(aside().className).not.toMatch(/transition/)
+    fireEvent.pointerEnter(aside())
+    expect(aside().className).not.toMatch(/transition/)
   })
 
-  it('shows the symbol instead of the wordmark when collapsed', () => {
-    render(<Harness startCollapsed />)
-    expect(screen.queryByRole('button', { name: 'Collapse sidebar' })).toBeNull()
-    expect(screen.getByRole('img', { name: 'Notifuse' }).getAttribute('viewBox')).toBe('0 0 480 480')
+  describe('pinned', () => {
+    it('sits open in the flow, without a shadow, its pin pressed', () => {
+      render(<Harness />)
+      expect(isExpanded()).toBe(true)
+      expect(aside().className).toContain('w-sidebar')
+      expect(aside().className).not.toContain('w-sidebar-collapsed')
+      expect(aside().className).not.toContain('shadow-popup')
+      expect(pinButton()).toHaveAccessibleName('Unpin sidebar')
+    })
+
+    it('stays open when the pointer leaves', () => {
+      render(<Harness />)
+      fireEvent.pointerEnter(aside())
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(true)
+    })
+
+    it('unpins from the pin, and stays open over the content until the pointer leaves', async () => {
+      render(<Harness />)
+      await userEvent.click(pinButton())
+      expect(isPinned()).toBe(false)
+      expect(isExpanded()).toBe(true)
+      expect(aside().className).toContain('shadow-popup')
+      expect(pinButton()).toHaveAccessibleName('Pin sidebar')
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(false)
+    })
   })
 
-  describe('on a rail page', () => {
-    it('renders collapsed, then peeks over the rail with a shadow', async () => {
-      render(<Harness rail />)
-      expect(isCollapsed()).toBe(true)
-      await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-      expect(isCollapsed()).toBe(false)
+  describe('unpinned', () => {
+    it('is the folded rail with the symbol, and no toggle button at all', () => {
+      render(<Harness startPinned={false} />)
+      expect(isExpanded()).toBe(false)
+      expect(aside().className).toContain('w-sidebar-collapsed')
+      expect(screen.getByRole('img', { name: 'Notifuse' }).getAttribute('viewBox')).toBe('0 0 480 480')
+      for (const name of ['Pin sidebar', 'Unpin sidebar', 'Expand sidebar', 'Collapse sidebar']) {
+        expect(screen.queryByRole('button', { name })).toBeNull()
+      }
+    })
+
+    it('keeps the workspace, help and account reachable by name', () => {
+      render(<Harness startPinned={false} />)
+      expect(screen.getByRole('button', { name: 'Acme' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Help' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'jane@example.com' })).toBeInTheDocument()
+    })
+
+    it('opens over the content while the pointer is on it, and folds when it leaves', () => {
+      render(<Harness startPinned={false} />)
+
+      fireEvent.pointerEnter(aside())
+      expect(isExpanded()).toBe(true)
       expect(aside().className).toContain('shadow-popup')
       expect(screen.getByText('Contacts')).toBeVisible()
-      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Collapse sidebar' }))
+      expect(pinButton()).toHaveAccessibleName('Pin sidebar')
+
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(false)
     })
 
-    it('closes the peek on Escape and gives the focus back to the expand button', async () => {
-      render(<Harness rail />)
-      await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-      fireEvent.keyDown(document, { key: 'Escape' })
-      expect(isCollapsed()).toBe(true)
-      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Expand sidebar' }))
+    it('does not open for a drag passing over it', () => {
+      render(<Harness startPinned={false} />)
+      const event = createEvent.pointerOver(aside())
+      Object.defineProperty(event, 'buttons', { value: 1 })
+      fireEvent(aside(), event)
+      expect(isExpanded()).toBe(false)
     })
 
-    it('closes the peek on a click outside, not inside', async () => {
-      render(<Harness rail />)
-      await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-      fireEvent.mouseDown(screen.getByText('Contacts'))
-      expect(isCollapsed()).toBe(false)
-      fireEvent.mouseDown(screen.getByRole('button', { name: 'Outside' }))
-      expect(isCollapsed()).toBe(true)
+    it('pins from the overlay: in the flow, without the shadow', async () => {
+      render(<Harness startPinned={false} />)
+      fireEvent.pointerEnter(aside())
+      await userEvent.click(pinButton())
+      expect(isPinned()).toBe(true)
+      expect(aside().className).not.toContain('shadow-popup')
+      expect(pinButton()).toHaveAccessibleName('Unpin sidebar')
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(true)
     })
 
-    it('closes the peek when the focus leaves the sidebar, not when it moves inside', async () => {
-      render(<Harness rail />)
-      await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-      fireEvent.focusOut(screen.getByRole('button', { name: 'Collapse sidebar' }), {
-        relatedTarget: screen.getByRole('button', { name: /Acme/ })
-      })
-      expect(isCollapsed()).toBe(false)
-      fireEvent.focusOut(screen.getByRole('button', { name: /Acme/ }), {
-        relatedTarget: screen.getByRole('button', { name: 'Outside' })
-      })
-      expect(isCollapsed()).toBe(true)
-    })
-
-    it('closes the peek from the header button', async () => {
-      render(<Harness rail />)
-      await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-      expect(isCollapsed()).toBe(true)
-    })
-
-    it('keeps the peek open while a sidebar menu takes the Escape', async () => {
-      render(<Harness rail />)
-      await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-      await userEvent.click(screen.getByRole('button', { name: /Acme/ }))
+    it('stays open while a sidebar menu is open, and folds once it closes with the pointer outside', async () => {
+      render(<Harness startPinned={false} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Acme' }))
       await screen.findByRole('menuitem', { name: /Beta/ })
-      fireEvent.keyDown(document, { key: 'Escape' })
-      expect(isCollapsed()).toBe(false)
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(true)
+      await userEvent.click(screen.getByRole('button', { name: 'Outside' }))
+      await waitFor(() => expect(isExpanded()).toBe(false))
     })
 
-    // With changeLanguage mocked: in the app the locale change remounts the layout, which ends the peek.
-    it('keeps the peek open while the language submenu opens and takes a click', async () => {
-      render(<Harness rail />)
-      await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-      await userEvent.click(screen.getByRole('button', { name: /jane@example\.com/ }))
+    // With changeLanguage mocked: in the app the locale change remounts the layout.
+    it('keeps the overlay open while the language submenu opens and takes a click', async () => {
+      render(<Harness startPinned={false} />)
+      await userEvent.click(screen.getByRole('button', { name: 'jane@example.com' }))
       const language = await screen.findByRole('menuitem', { name: /Language/ })
       await userEvent.hover(language)
       const french = await screen.findByText('Français')
       expect(aside().contains(french)).toBe(true)
       await userEvent.click(french)
       expect(changeLanguage).toHaveBeenCalledWith(setLocale, 'fr')
-      expect(isCollapsed()).toBe(false)
+      expect(isExpanded()).toBe(true)
     })
-  })
 
-  describe('collapsed', () => {
+    it.each(['Acme', 'Help', 'jane@example.com'])(
+      'opens on keyboard focus on %s, and the focus stays on it',
+      (name) => {
+        render(<Harness startPinned={false} />)
+        const button = screen.getByRole('button', { name })
+        act(() => button.focus())
+        expect(isExpanded()).toBe(true)
+        expect(button).toBeInTheDocument()
+        expect(document.activeElement).toBe(button)
+      }
+    )
+
+    it('folds when the focus leaves the sidebar, not when it moves inside', async () => {
+      render(<Harness startPinned={false} />)
+      act(() => screen.getByRole('button', { name: 'Acme' }).focus())
+      act(() => screen.getByRole('button', { name: 'Help' }).focus())
+      await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(isExpanded()).toBe(true)
+      act(() => screen.getByRole('button', { name: 'Outside' }).focus())
+      await waitFor(() => expect(isExpanded()).toBe(false))
+    })
+
+    it('folds when the focus goes where blur cannot name it (an iframe), not when the window loses it', async () => {
+      render(<Harness startPinned={false} />)
+      const workspace = screen.getByRole('button', { name: 'Acme' })
+      act(() => workspace.focus())
+      // Another window: blur without a relatedTarget, the focused element unchanged.
+      fireEvent.blur(workspace)
+      await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(isExpanded()).toBe(true)
+
+      // A click into an iframe: blur without a relatedTarget, the focus now outside the sidebar.
+      const frame = document.createElement('iframe')
+      document.body.appendChild(frame)
+      act(() => frame.focus())
+      await waitFor(() => expect(isExpanded()).toBe(false))
+      frame.remove()
+    })
+
+    it('holds on a keyboard focus even while the mouse rests on it, so the focused pin survives the mouse leaving', () => {
+      render(<Harness startPinned={false} />)
+      fireEvent.pointerEnter(aside())
+      const pin = pinButton()
+      act(() => pin.focus())
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(true)
+      expect(document.activeElement).toBe(pin)
+    })
+
+    it('does not hold on the focus a click gives, even after a navigation under the pointer', async () => {
+      const { rerender } = render(<Harness />)
+      fireEvent.pointerEnter(aside())
+      // An entry clicked: the page changes with the pointer still on the sidebar.
+      rerender(<Harness navigationKey="/console/workspace/ws1/templates" />)
+      const pin = pinButton()
+      fireEvent.pointerDown(pin)
+      act(() => pin.focus())
+      fireEvent.pointerUp(pin)
+      fireEvent.click(pin, { detail: 1 })
+      expect(isPinned()).toBe(false)
+      // The press shows the pointer is there: open over the content until it leaves.
+      expect(isExpanded()).toBe(true)
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(false)
+    })
+
+    it('folds on Escape, the focus kept where it was', () => {
+      render(<Harness startPinned={false} />)
+      const workspace = screen.getByRole('button', { name: 'Acme' })
+      act(() => workspace.focus())
+      fireEvent.keyDown(document, { key: 'Escape' })
+      expect(isExpanded()).toBe(false)
+      expect(document.activeElement).toBe(workspace)
+    })
+
+    it('moves the focus from the pin to the logo when Escape folds it', () => {
+      render(<Harness startPinned={false} />)
+      act(() => screen.getByRole('button', { name: 'Acme' }).focus())
+      act(() => pinButton().focus())
+      fireEvent.keyDown(document, { key: 'Escape' })
+      expect(isExpanded()).toBe(false)
+      expect(document.activeElement).toBe(screen.getByRole('link', { name: 'Dashboard' }))
+    })
+
+    it('stays open while a sidebar menu takes the Escape', async () => {
+      render(<Harness startPinned={false} />)
+      const workspace = screen.getByRole('button', { name: 'Acme' })
+      act(() => workspace.focus())
+      fireEvent.click(workspace)
+      await screen.findByRole('menuitem', { name: /Beta/ })
+      fireEvent.keyDown(document, { key: 'Escape' })
+      expect(isExpanded()).toBe(true)
+    })
+
+    it('stays open under the pointer when the page changes on its own (a redirect, a save)', () => {
+      const { rerender } = render(<Harness startPinned={false} />)
+      fireEvent.pointerEnter(aside())
+      rerender(<Harness startPinned={false} navigationKey="/console/workspace/ws1/contacts" />)
+      expect(isExpanded()).toBe(true)
+    })
+
+    it('still opens on keyboard focus after a press inside was released over the page', () => {
+      render(<Harness startPinned={false} />)
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'Help' }))
+      fireEvent.pointerLeave(aside())
+      fireEvent.pointerUp(screen.getByRole('button', { name: 'Outside' }))
+      expect(isExpanded()).toBe(false)
+      act(() => screen.getByRole('button', { name: 'Acme' }).focus())
+      expect(isExpanded()).toBe(true)
+    })
+
+    it('hands the focus of the pin to the logo when the pointer leaves and it folds', async () => {
+      render(<Harness />)
+      fireEvent.pointerEnter(aside())
+      await userEvent.click(pinButton())
+      expect(document.activeElement).toBe(pinButton())
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(false)
+      expect(document.activeElement).toBe(screen.getByRole('link', { name: 'Dashboard' }))
+    })
+
+    it('does not keep a focus taken while pinned once unpinned with the mouse', async () => {
+      render(<Harness />)
+      act(() => screen.getByRole('button', { name: /Acme/ }).focus())
+      await userEvent.click(pinButton())
+      expect(isExpanded()).toBe(true)
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(false)
+    })
+
+    it('stays open when unpinned from the keyboard, until the focus leaves', async () => {
+      render(<Harness />)
+      const pin = pinButton()
+      act(() => pin.focus())
+      // Enter or Space: a click with no pointer.
+      fireEvent.click(pin, { detail: 0 })
+      expect(isPinned()).toBe(false)
+      expect(isExpanded()).toBe(true)
+      act(() => screen.getByRole('button', { name: 'Outside' }).focus())
+      await waitFor(() => expect(isExpanded()).toBe(false))
+    })
+
     it.each([
-      ['Help', 'Documentation'],
-      ['Acme', 'Beta'],
-      ['jane@example.com', 'Logout']
-    ])('hides the tooltip of %s while its menu is open', async (name, item) => {
-      render(<Harness startCollapsed />)
-      const button = screen.getByRole('button', { name })
-      await userEvent.hover(button)
-      await screen.findByRole('tooltip')
-      await userEvent.click(button)
-      await screen.findByText(item)
-      await waitFor(() => expect(document.querySelector('.ant-tooltip:not(.ant-tooltip-hidden)')).toBeNull())
+      ['Help', 'Help'],
+      ['Acme', 'Acme'],
+      ['jane@example.com', 'jane@example.com']
+    ])('names the folded %s icon in a tooltip', async (name, title) => {
+      render(<Harness startPinned={false} />)
+      fireEvent.mouseEnter(screen.getByRole('button', { name }))
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(title)
     })
 
-    it('keeps the workspace, help and account reachable by name', () => {
-      render(<Harness startCollapsed />)
-      expect(screen.getByRole('button', { name: 'Acme' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Help' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'jane@example.com' })).toBeInTheDocument()
+    it('acts on a tapped entry at once, without widening first', () => {
+      render(<Harness startPinned={false} />)
+      touchDown(screen.getByRole('menuitem', { name: /Contacts/ }))
+      expect(isExpanded()).toBe(false)
+    })
+
+    it('opens on a tap, not on a touch passing over it, and folds on a tap outside', () => {
+      render(<Harness startPinned={false} />)
+      const event = createEvent.pointerOver(aside())
+      Object.defineProperty(event, 'pointerType', { value: 'touch' })
+      fireEvent(aside(), event)
+      expect(isExpanded()).toBe(false)
+      touchDown(aside())
+      expect(isExpanded()).toBe(true)
+      touchDown(screen.getByRole('button', { name: 'Outside' }))
+      expect(isExpanded()).toBe(false)
+    })
+
+    it('folds on a navigation made from it, whether held by the focus or by the pointer', () => {
+      const { rerender } = render(<Harness startPinned={false} />)
+      act(() => screen.getByRole('button', { name: 'Acme' }).focus())
+      rerender(<Harness startPinned={false} navigationKey="/console/workspace/ws1/contacts" />)
+      expect(isExpanded()).toBe(false)
+
+      // A click on an entry: the pointer is still on the sidebar when the page changes.
+      fireEvent.pointerEnter(aside())
+      expect(isExpanded()).toBe(true)
+      fireEvent.pointerDown(screen.getByRole('menuitem', { name: /Contacts/ }))
+      rerender(<Harness startPinned={false} navigationKey="/console/workspace/ws1/lists" />)
+      expect(isExpanded()).toBe(false)
+      expect(aside().className).not.toContain('shadow-popup')
+
+      // It opens again once the pointer has left and come back.
+      fireEvent.pointerLeave(aside())
+      fireEvent.pointerEnter(aside())
+      expect(isExpanded()).toBe(true)
     })
   })
 

@@ -5,11 +5,13 @@ import { useLingui } from '@lingui/react/macro'
 
 export interface HelpMenuProps {
   collapsed: boolean
+  /** Reports the menu opening and closing: an open menu holds the sidebar open. */
+  onMenuOpenChange?: (open: boolean) => void
   getPopupContainer: () => HTMLElement
 }
 
 /** Documentation and issue tracker, opened above the button. */
-export function HelpMenu({ collapsed, getPopupContainer }: HelpMenuProps) {
+export function HelpMenu({ collapsed, onMenuOpenChange, getPopupContainer }: HelpMenuProps) {
   const { t } = useLingui()
   const [menuOpen, setMenuOpen] = useState(false)
   const button = (
@@ -27,7 +29,10 @@ export function HelpMenu({ collapsed, getPopupContainer }: HelpMenuProps) {
   return (
     <Dropdown
       trigger={['click']}
-      onOpenChange={setMenuOpen}
+      onOpenChange={(open) => {
+        setMenuOpen(open)
+        onMenuOpenChange?.(open)
+      }}
       placement={collapsed ? 'rightBottom' : 'topLeft'}
       getPopupContainer={getPopupContainer}
       menu={{
@@ -53,19 +58,18 @@ export function HelpMenu({ collapsed, getPopupContainer }: HelpMenuProps) {
         ]
       }}
     >
-      {collapsed ? (
-        <Tooltip
-          title={t`Help`}
-          placement="right"
-          getPopupContainer={getPopupContainer}
-          // A tooltip left over the menu it opened would cover its first or last row.
-          open={menuOpen ? false : undefined}
-        >
-          {button}
-        </Tooltip>
-      ) : (
-        button
-      )}
+      {/* Always mounted, titled only when folded: swapping the wrapper would remount the button and
+          drop its focus when the sidebar opens. The name shows when the sidebar folds under a
+          still pointer, after a click on an entry. */}
+      <Tooltip
+        title={collapsed ? t`Help` : undefined}
+        placement="right"
+        getPopupContainer={getPopupContainer}
+        // A tooltip left over the menu it opened would cover its first or last row.
+        open={menuOpen ? false : undefined}
+      >
+        {button}
+      </Tooltip>
     </Dropdown>
   )
 }

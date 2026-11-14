@@ -17,7 +17,7 @@ import {
   firstPageOfGroup,
   selectedMenuKey
 } from './app-shell/menuItems'
-import { useSidebarCollapsed } from './app-shell/useSidebarCollapsed'
+import { useSidebarPinned } from './app-shell/useSidebarPinned'
 import { useAuditLogAccess } from '../hooks/useAuditLogAccess'
 
 export type PageLayout = 'page' | 'rail'
@@ -40,31 +40,34 @@ export function WorkspaceLayout() {
   // The deepest route that declares a layout decides it; a route declaring none is a plain page.
   const pageLayout: PageLayout =
     [...matches].reverse().find((match) => match.staticData?.layout)?.staticData?.layout ?? 'page'
-  const rail = pageLayout === 'rail'
 
-  // A rail page always folds the sidebar; its expand button peeks over the rail instead, which
-  // neither moves the content nor touches the stored choice.
-  const [storedCollapsed, setStoredCollapsed] = useSidebarCollapsed()
-  const [peek, setPeek] = useState(false)
-  const menuCollapsed = rail ? !peek : storedCollapsed
-  const offsetCollapsed = rail || storedCollapsed
+  // Pinned, the sidebar sits in the page flow; unpinned, it is the folded rail and opens over the
+  // content.
+  const [storedPinned, setStoredPinned] = useSidebarPinned()
 
-  // Every navigation folds the peek back.
-  useEffect(() => {
-    setPeek(false)
-  }, [currentPath])
+  // Contacts and Broadcasts need the width: they open with the sidebar unpinned, and a pin made
+  // there holds until the visit ends, without touching the stored choice.
+  const widePage = [...matches].reverse().find((match) => match.staticData?.unpinSidebar)?.routeId ?? null
+  const [visitPinned, setVisitPinned] = useState(false)
+  const [visitedPage, setVisitedPage] = useState(widePage)
+  if (visitedPage !== widePage) {
+    // Adjusted while rendering, as React recommends for state that follows a value.
+    setVisitedPage(widePage)
+    setVisitPinned(false)
+  }
+  const pinned = widePage ? visitPinned : storedPinned
+  const setPinned = (next: boolean) => (widePage ? setVisitPinned(next) : setStoredPinned(next))
 
   const activeGroup = groupOf(currentPath)
   const [openKeys, setOpenKeys] = useState<string[]>(activeGroup ? [activeGroup] : [])
 
   // Entering a group reveals it and leaving reclaims the rows it costs, so the sidebar only pays
-  // for the group you are actually in. One group at a time, and depending on the group and the
-  // fold rather than the path leaves a manual toggle alone for as long as you stay put. Folded,
-  // the menu shows flyouts and rc-menu drives openKeys itself; this restores them on unfolding.
+  // for the group you are actually in. One group at a time, and depending on the group rather than
+  // the path leaves a manual toggle alone for as long as you stay put, folds and hovers included
+  // (AppSidebar keeps rc-menu from clearing the groups when it folds).
   useEffect(() => {
-    if (menuCollapsed) return
     setOpenKeys(activeGroup ? [activeGroup] : [])
-  }, [activeGroup, menuCollapsed])
+  }, [activeGroup])
 
   const auditAccess = useAuditLogAccess(workspaceId)
 
@@ -76,14 +79,14 @@ export function WorkspaceLayout() {
     return permissions?.read || permissions?.write || false
   }
 
-  // Group titles are plain text, so a click on one only toggles it. Opening a group also lands on
-  // its first entry, which is what the click was reaching for; closing it goes nowhere, so the
-  // caret keeps its meaning. The folded menu opens these groups on hover, where navigating would
-  // follow the mouse.
+  // Group titles are plain text, so a click on one only toggles it. Pinned, opening a group also
+  // lands on its first entry, which is what the click was reaching for; closing it goes nowhere, so
+  // the caret keeps its meaning. Unpinned, it only opens: a navigation folds the sidebar, which
+  // would hide the group's other entries before you could pick one.
   const handleOpenChange: MenuProps['onOpenChange'] = (keys) => {
     const opened = keys.find((key) => !openKeys.includes(key))
     setOpenKeys(keys)
-    if (menuCollapsed || !opened) return
+    if (!pinned || !opened) return
     const page = firstPageOfGroup(opened, hasAccess, workspaceId)
     if (page) navigate(page)
   }
@@ -137,11 +140,9 @@ export function WorkspaceLayout() {
     <ContactsCsvUploadProvider>
       <div className="min-h-screen bg-canvas">
         <AppSidebar
-          collapsed={menuCollapsed}
-          peeking={rail && peek}
-          rail={rail}
-          onToggle={() => setStoredCollapsed(!storedCollapsed)}
-          onPeekChange={setPeek}
+          pinned={pinned}
+          onPinnedChange={setPinned}
+          navigationKey={currentPath}
           menuItems={loadingPermissions ? [] : menuItems}
           selectedKey={selectedMenuKey(currentPath)}
           openKeys={openKeys}
@@ -159,9 +160,7 @@ export function WorkspaceLayout() {
           data-page-layout={pageLayout}
           // isolate: the z-indexes of the page (sticky table columns at 12 and 13) stay inside it,
           // under the fixed sidebar (z-10), whose menus and tooltips render inside the sidebar.
-          className={`isolate motion-safe:transition-[margin] motion-safe:duration-180 ${
-            offsetCollapsed ? 'ml-sidebar-collapsed' : 'ml-sidebar'
-          }`}
+          className={`isolate ${pinned ? 'ml-sidebar' : 'ml-sidebar-collapsed'}`}
           // The page starts under the licence banner, which is 0px tall on a licensed console.
           style={{ paddingTop: withBannerOffset('0px') }}
         >

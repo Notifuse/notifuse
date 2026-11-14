@@ -152,7 +152,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The console has a new, denser look: the Inter typeface, new colors and tighter spacing.
 
-- **Feature**: The console has a new navigation: a lighter sidebar, which folds to icons, now holds the workspace switcher, the help and the account menus, and the top bar is gone. On Settings and the blog, which keep their own side menu, the sidebar stays folded and opens over the page. The sign-in page has a new background photo, by Sean Oulashin.
+- **Feature**: The console has a new navigation: a lighter sidebar, which folds to icons and opens over the page when you point at it, or stays open once pinned (Contacts and Broadcasts open with it unpinned, for room), now holds the workspace switcher, the help and the account menus, and the top bar is gone. The sign-in page has a new background photo, by Sean Oulashin.
 
 - **Feature**: The dashboard shows website visits, how rates moved since the previous period, emails sent each day by origin (broadcasts, transactional, automations, other), the latest failures and new contacts, and your upcoming broadcasts. Members who cannot read message history land on the first page they can open.
 

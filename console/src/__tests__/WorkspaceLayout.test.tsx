@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -19,6 +19,8 @@ vi.mock('../contexts/AuthContext', async (importOriginal) => ({
 // Read at render time, so a test can put the layout on any route before rendering.
 let currentPathname = '/console/workspace/ws1'
 let currentLayout: 'page' | 'rail' | undefined
+// A route that needs the width (Contacts, Broadcasts) opens with the sidebar unpinned.
+let currentUnpin = false
 let currentWorkspaceId = 'ws1'
 
 vi.mock('@tanstack/react-router', () => ({
@@ -27,8 +29,13 @@ vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ workspaceId: currentWorkspaceId }),
   // The workspace route declares no layout; the leaf may.
   useMatches: () => [
-    { pathname: '/console/workspace/ws1', staticData: {} },
-    { pathname: currentPathname, staticData: currentLayout ? { layout: currentLayout } : {} }
+    { routeId: '/console/workspace/$workspaceId', pathname: '/console/workspace/ws1', staticData: {} },
+    {
+      // The leaf's route id: one per page, whatever its search.
+      routeId: currentPathname,
+      pathname: currentPathname,
+      staticData: { ...(currentLayout ? { layout: currentLayout } : {}), ...(currentUnpin ? { unpinSidebar: true } : {}) }
+    }
   ],
   useNavigate: vi.fn()
 }))
@@ -94,6 +101,7 @@ const signInAsRoot = () => {
   window.localStorage.clear()
   currentPathname = '/console/workspace/ws1'
   currentLayout = undefined
+  currentUnpin = false
   currentWorkspaceId = 'ws1'
   vi.mocked(useNavigate).mockReturnValue(mockNavigate as never)
   vi.mocked(isRootUser).mockReturnValue(true)
@@ -141,6 +149,45 @@ describe('WorkspaceLayout sidebar groups', () => {
       to: '/console/workspace/$workspaceId/templates',
       params: { workspaceId: 'ws1' }
     })
+  })
+
+  it('only opens a group when the sidebar is unpinned, so its other entries stay in reach', async () => {
+    window.localStorage.setItem('notifuse.sidebar.collapsed', 'true')
+    renderLayout()
+    await screen.findByRole('navigation', { name: 'Main navigation' })
+    fireEvent.pointerEnter(document.querySelector<HTMLElement>('[data-sidebar]')!)
+    await userEvent.click(await screen.findByText('Content'))
+
+    expect(mockNavigate).not.toHaveBeenCalled()
+    expect(await screen.findByText('Blog')).toBeInTheDocument()
+    expect(document.querySelector<HTMLElement>('[data-sidebar]')!.dataset.expanded).toBe('true')
+  })
+
+  it('keeps the groups as they were, open or closed by hand, when the sidebar folds and opens again', async () => {
+    window.localStorage.setItem('notifuse.sidebar.collapsed', 'true')
+    currentPathname = '/console/workspace/ws1/templates'
+    renderLayout()
+    const sidebar = document.querySelector<HTMLElement>('[data-sidebar]')!
+    const nav = await screen.findByRole('navigation', { name: 'Main navigation' })
+    const contentOpen = () => nav.querySelector('.ant-menu-submenu-open > .ant-menu-submenu-title')
+
+    fireEvent.pointerEnter(sidebar)
+    await waitFor(() => expect(contentOpen()).toHaveTextContent('Content'))
+    // Folding does not close the active group either.
+    fireEvent.pointerLeave(sidebar)
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+    fireEvent.pointerEnter(sidebar)
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+    expect(contentOpen()).toHaveTextContent('Content')
+
+    await userEvent.click(screen.getByText('Content'))
+    await waitFor(() => expect(contentOpen()).toBeNull())
+
+    fireEvent.pointerLeave(sidebar)
+    fireEvent.pointerEnter(sidebar)
+    expect(sidebar.dataset.expanded).toBe('true')
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+    expect(contentOpen()).toBeNull()
   })
 
   it('falls back to the blog when the member cannot read templates', async () => {
@@ -223,32 +270,41 @@ describe('WorkspaceLayout chrome', () => {
     expect(content().className).toBe('')
   })
 
-  it('folds the sidebar on a rail page whatever the stored choice', async () => {
-    window.localStorage.setItem('notifuse.sidebar.collapsed', 'false')
-    currentPathname = '/console/workspace/ws1/settings/team'
-    currentLayout = 'rail'
-    renderLayout()
+  it.each([
+    ['a page', '/console/workspace/ws1', undefined],
+    ['a rail page', '/console/workspace/ws1/settings/team', 'rail' as const]
+  ])('puts the pinned sidebar in the flow on %s, and the unpinned one over it', async (_, path, layout) => {
+    currentPathname = path
+    currentLayout = layout
+    const { unmount } = renderLayout()
     await screen.findByRole('navigation', { name: 'Main navigation' })
-    expect(aside().dataset.collapsed).toBe('true')
-    expect(main().className).toContain('ml-sidebar-collapsed')
-  })
-
-  it('keeps the collapse chosen on a page, and writes it', async () => {
-    renderLayout()
+    expect(aside().dataset.expanded).toBe('true')
     expect(main().className).toContain('ml-sidebar')
     expect(main().className).not.toContain('ml-sidebar-collapsed')
-    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    expect(window.localStorage.getItem('notifuse.sidebar.collapsed')).toBe('true')
+    unmount()
+
+    window.localStorage.setItem('notifuse.sidebar.collapsed', 'true')
+    renderLayout()
+    await screen.findByRole('navigation', { name: 'Main navigation' })
+    expect(aside().dataset.expanded).toBe('false')
     expect(main().className).toContain('ml-sidebar-collapsed')
   })
 
-  it('reads a stored collapse', () => {
-    window.localStorage.setItem('notifuse.sidebar.collapsed', 'true')
+  it('stores the pin, and moves the page only when it changes', async () => {
     renderLayout()
-    expect(aside().dataset.collapsed).toBe('true')
+    await screen.findByRole('navigation', { name: 'Main navigation' })
+    await userEvent.click(screen.getByRole('button', { name: 'Unpin sidebar' }))
+    expect(window.localStorage.getItem('notifuse.sidebar.collapsed')).toBe('true')
+    expect(main().className).toContain('ml-sidebar-collapsed')
+    // Unpinned under the pointer, the sidebar stays open over the page.
+    expect(aside().dataset.expanded).toBe('true')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Pin sidebar' }))
+    expect(window.localStorage.getItem('notifuse.sidebar.collapsed')).toBe('false')
+    expect(main().className).not.toContain('ml-sidebar-collapsed')
   })
 
-  it('opens expanded and still collapses when the storage throws', async () => {
+  it('pins and unpins when the storage throws', async () => {
     // The setup replaces window.localStorage with a plain object, so the spy goes on it, not on Storage.
     const denied = () => {
       throw new Error('denied')
@@ -257,9 +313,9 @@ describe('WorkspaceLayout chrome', () => {
     const setItem = vi.spyOn(window.localStorage, 'setItem').mockImplementation(denied)
     try {
       renderLayout()
-      expect(aside().dataset.collapsed).toBe('false')
-      await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-      expect(aside().dataset.collapsed).toBe('true')
+      expect(aside().dataset.pinned).toBe('true')
+      await userEvent.click(screen.getByRole('button', { name: 'Unpin sidebar' }))
+      expect(aside().dataset.pinned).toBe('false')
       expect(setItem).toHaveBeenCalled()
     } finally {
       getItem.mockRestore()
@@ -267,13 +323,14 @@ describe('WorkspaceLayout chrome', () => {
     }
   })
 
-  it('peeks on the Blog with Content open and Blog selected, without moving the content', async () => {
+  it('opens over the Blog with Content open and Blog selected, without moving the page', async () => {
+    window.localStorage.setItem('notifuse.sidebar.collapsed', 'true')
     currentPathname = '/console/workspace/ws1/blog'
     currentLayout = 'rail'
     renderLayout()
     await screen.findByRole('navigation', { name: 'Main navigation' })
-    await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-    expect(aside().dataset.collapsed).toBe('false')
+    fireEvent.pointerEnter(aside())
+    expect(aside().dataset.expanded).toBe('true')
     const nav = screen.getByRole('navigation', { name: 'Main navigation' })
     await waitFor(() =>
       expect(
@@ -282,19 +339,96 @@ describe('WorkspaceLayout chrome', () => {
     )
     expect(nav.querySelector('.ant-menu-item-selected')).toHaveTextContent('Blog')
     expect(main().className).toContain('ml-sidebar-collapsed')
-    expect(window.localStorage.getItem('notifuse.sidebar.collapsed')).toBeNull()
+    expect(window.localStorage.getItem('notifuse.sidebar.collapsed')).toBe('true')
   })
 
-  it('folds the peek back on navigation', async () => {
+  it('folds an opening held by the focus on navigation', async () => {
+    window.localStorage.setItem('notifuse.sidebar.collapsed', 'true')
     currentPathname = '/console/workspace/ws1/blog'
     currentLayout = 'rail'
     const { rerender } = renderLayout()
     await screen.findByRole('navigation', { name: 'Main navigation' })
-    await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-    expect(aside().dataset.collapsed).toBe('false')
+    act(() => screen.getByRole('button', { name: 'Help' }).focus())
+    expect(aside().dataset.expanded).toBe('true')
     currentPathname = '/console/workspace/ws1/settings/team'
     act(() => rerender(<WorkspaceLayout />))
-    expect(aside().dataset.collapsed).toBe('true')
+    expect(aside().dataset.expanded).toBe('false')
+  })
+
+  it.each([
+    ['Contacts', '/console/workspace/ws1/contacts', 'rail' as const],
+    ['Broadcasts', '/console/workspace/ws1/broadcasts', undefined]
+  ])('opens %s with the sidebar unpinned, whatever the stored choice, and stores nothing', async (_, path, layout) => {
+    currentPathname = path
+    currentLayout = layout
+    currentUnpin = true
+    renderLayout()
+    await screen.findByRole('navigation', { name: 'Main navigation' })
+    expect(aside().dataset.pinned).toBe('false')
+    expect(aside().dataset.expanded).toBe('false')
+    expect(main().className).toContain('ml-sidebar-collapsed')
+    expect(window.localStorage.getItem('notifuse.sidebar.collapsed')).toBeNull()
+  })
+
+  it('pins on Contacts for the visit only, and gives the stored choice back elsewhere', async () => {
+    window.localStorage.setItem('notifuse.sidebar.collapsed', 'true')
+    currentPathname = '/console/workspace/ws1/contacts'
+    currentLayout = 'rail'
+    currentUnpin = true
+    const { rerender } = renderLayout()
+    await screen.findByRole('navigation', { name: 'Main navigation' })
+    fireEvent.pointerEnter(aside())
+    await userEvent.click(screen.getByRole('button', { name: 'Pin sidebar' }))
+    expect(main().className).not.toContain('ml-sidebar-collapsed')
+    expect(window.localStorage.getItem('notifuse.sidebar.collapsed')).toBe('true')
+
+    // Leaving: the stored choice (unpinned) applies again.
+    currentPathname = '/console/workspace/ws1/broadcasts'
+    currentLayout = undefined
+    act(() => rerender(<WorkspaceLayout />))
+    expect(aside().dataset.pinned).toBe('false')
+
+    // Back on Contacts, a new visit: unpinned again.
+    currentPathname = '/console/workspace/ws1/contacts'
+    currentLayout = 'rail'
+    act(() => rerender(<WorkspaceLayout />))
+    expect(aside().dataset.pinned).toBe('false')
+  })
+
+  it('folds the sidebar the pointer is still on once Contacts opens from it', async () => {
+    const { rerender } = renderLayout()
+    await screen.findByRole('navigation', { name: 'Main navigation' })
+    fireEvent.pointerEnter(aside())
+    expect(aside().dataset.pinned).toBe('true')
+    fireEvent.pointerDown(screen.getByText('Contacts'))
+
+    currentPathname = '/console/workspace/ws1/contacts'
+    currentLayout = 'rail'
+    currentUnpin = true
+    act(() => rerender(<WorkspaceLayout />))
+    expect(aside().dataset.pinned).toBe('false')
+    expect(aside().dataset.expanded).toBe('false')
+    expect(main().className).toContain('ml-sidebar-collapsed')
+  })
+
+  it('pins the stored choice on a page that does not need the width', async () => {
+    window.localStorage.setItem('notifuse.sidebar.collapsed', 'false')
+    currentPathname = '/console/workspace/ws1/contacts'
+    currentLayout = 'rail'
+    currentUnpin = true
+    const { rerender } = renderLayout()
+    await screen.findByRole('navigation', { name: 'Main navigation' })
+    expect(aside().dataset.pinned).toBe('false')
+    currentPathname = '/console/workspace/ws1/settings/team'
+    currentUnpin = false
+    act(() => rerender(<WorkspaceLayout />))
+    expect(aside().dataset.pinned).toBe('true')
+    expect(main().className).not.toContain('ml-sidebar-collapsed')
+  })
+
+  it('moves the page without a transition', () => {
+    renderLayout()
+    expect(main().className).not.toMatch(/transition/)
   })
 
   it('places the sidebar and the page under the licence banner', () => {
