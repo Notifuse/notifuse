@@ -111,14 +111,14 @@ func (p *SegmentRecomputeTaskProcessor) Process(ctx context.Context, task *domai
 				"error":      err.Error(),
 				"segment_id": segment.ID,
 				"task_id":    buildTask.ID,
-			}).Warn("Failed to move segment to its recompute version; its build waits for the next check")
+			}).Warn("Failed to move segment to its recompute version; its build retries until the version is reached")
 			continue
 		}
 		if !started {
 			p.logger.WithFields(map[string]interface{}{
 				"segment_id": segment.ID,
 				"task_id":    buildTask.ID,
-			}).Warn("Segment changed before its recompute started; its build waits for the next check")
+			}).Warn("Segment changed before its recompute started; its build runs only if the segment reaches its version")
 		}
 	}
 

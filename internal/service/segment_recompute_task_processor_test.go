@@ -219,8 +219,8 @@ func TestSegmentRecomputeTaskProcessor_Process(t *testing.T) {
 		}
 		mockSegmentRepo.EXPECT().GetSegmentsDueForRecompute(ctx, "workspace1", 100).Return(segments, nil)
 		mockTaskService.EXPECT().CreateTask(ctx, "workspace1", gomock.Any()).Return(nil).Times(2)
-		// Edited meanwhile, then a database error: the tasks stay, their build guard waits for
-		// the segment to reach their version.
+		// Edited meanwhile, then a database error: the tasks stay, and their builds only write
+		// once the segment is at their version.
 		mockSegmentRepo.EXPECT().StartRecompute(ctx, "workspace1", "segment1", int64(1)).Return(false, nil)
 		mockSegmentRepo.EXPECT().StartRecompute(ctx, "workspace1", "segment2", int64(5)).Return(false, assert.AnError)
 

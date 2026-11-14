@@ -193,6 +193,24 @@ func TestSegmentMembershipReliability(t *testing.T) {
 		assert.Equal(t, 0, segQueueSize(t, db))
 	})
 
+	t.Run("a membership write never moves a row back to an older version", func(t *testing.T) {
+		ws, db := newReliabilityWorkspace(t, factory, suite)
+		tag := uuid.New().String()[:8]
+		email := fmt.Sprintf("v-%s@example.com", tag)
+		createContacts(t, factory, ws, email)
+		segID := createSegmentWithSQL(t, db, "segver"+tag[:4], "SELECT email FROM contacts WHERE email LIKE $1",
+			domain.JSONArray{"v-%"}, string(domain.SegmentStatusActive))
+
+		// A rebuild wrote the row at version 2; a queue pass that read the segment at version 1
+		// writes after it.
+		require.NoError(t, segmentRepo.AddContactToSegment(ctx, ws, email, segID, 2))
+		require.NoError(t, segmentRepo.AddContactToSegment(ctx, ws, email, segID, 1))
+		assert.Equal(t, int64(2), memberVersion(t, db, email, segID))
+
+		require.NoError(t, segmentRepo.AddContactToSegment(ctx, ws, email, segID, 3))
+		assert.Equal(t, int64(3), memberVersion(t, db, email, segID))
+	})
+
 	t.Run("a segment deleted before its build ran stays deleted", func(t *testing.T) {
 		ws, db := newReliabilityWorkspace(t, factory, suite)
 		tag := uuid.New().String()[:8]

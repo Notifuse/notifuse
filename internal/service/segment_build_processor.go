@@ -79,8 +79,18 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 		state.StartedAt = time.Now().UTC().Format(time.RFC3339)
 	}
 
+	// A build that fails with no retry left must not leave the segment building: the contact
+	// queue and the daily check skip building segments, and the daily check may have marked it
+	// building before this task ever ran.
+	var segment *domain.Segment
+	defer func() {
+		if err != nil && !task.HasRetriesLeft() {
+			p.releaseAfterFinalFailure(ctx, task, state, segment)
+		}
+	}()
+
 	// Fetch the segment
-	segment, err := p.segmentRepo.GetSegmentByID(ctx, task.WorkspaceID, state.SegmentID)
+	segment, err = p.segmentRepo.GetSegmentByID(ctx, task.WorkspaceID, state.SegmentID)
 	if err != nil {
 		return false, fmt.Errorf("failed to fetch segment: %w", err)
 	}
@@ -134,11 +144,7 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 		return false, fmt.Errorf("segment has no generated SQL - segment may not have been properly initialized")
 	}
 
-	completed, err = p.build(ctx, task, state, segment, timeoutAt)
-	if err != nil && !task.HasRetriesLeft() {
-		p.releaseAfterFinalFailure(ctx, task, state, segment)
-	}
-	return completed, err
+	return p.build(ctx, task, state, segment, timeoutAt)
 }
 
 // errSegmentBehindBuild is returned when the segment is at a lower version than the build.
@@ -334,12 +340,22 @@ func (p *SegmentBuildProcessor) rescheduleRecompute(ctx context.Context, workspa
 	}).Info("Rescheduled segment for next daily recomputation")
 }
 
+// releaseSegmentTimeout bounds the writes of releaseAfterFinalFailure, which run on a context
+// detached from the task's.
+const releaseSegmentTimeout = 10 * time.Second
+
 // releaseAfterFinalFailure runs when a build fails with no retry left. Left building, the segment
 // would be skipped by the contact queue and by the daily rebuild for good, so it goes back to
 // active (with the members written so far) and, for a segment with relative dates, its next
-// rebuild moves to the next day rather than to every scheduler tick.
+// rebuild moves to the next day rather than to every scheduler tick. The write is conditional on
+// the task's version, so it never touches a segment that moved on. It runs on a context detached
+// from the task's, which is dead when the last attempt ended by timeout or shutdown. segment is
+// nil when the last attempt could not read it; nothing is rescheduled then.
 func (p *SegmentBuildProcessor) releaseAfterFinalFailure(ctx context.Context, task *domain.Task, state *domain.BuildSegmentState, segment *domain.Segment) {
-	updated, err := p.segmentRepo.UpdateSegmentStatus(ctx, task.WorkspaceID, state.SegmentID, state.Version, string(domain.SegmentStatusActive))
+	releaseCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), releaseSegmentTimeout)
+	defer cancel()
+
+	updated, err := p.segmentRepo.UpdateSegmentStatus(releaseCtx, task.WorkspaceID, state.SegmentID, state.Version, string(domain.SegmentStatusActive))
 	if err != nil {
 		p.logger.WithFields(map[string]interface{}{
 			"error":      err.Error(),
@@ -352,7 +368,9 @@ func (p *SegmentBuildProcessor) releaseAfterFinalFailure(ctx context.Context, ta
 	}
 
 	p.logger.WithField("segment_id", state.SegmentID).Warn("Segment build failed with no retry left, segment set back to active")
-	p.rescheduleRecompute(ctx, task.WorkspaceID, segment)
+	if segment != nil {
+		p.rescheduleRecompute(releaseCtx, task.WorkspaceID, segment)
+	}
 }
 
 // processBatch processes a batch of emails against the segment criteria

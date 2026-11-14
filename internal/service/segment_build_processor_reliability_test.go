@@ -124,9 +124,9 @@ func TestSegmentBuildProcessor_Process_AddContactErrorLastAttempt(t *testing.T) 
 
 	// No retry is left: the segment goes back to active, so the queue and the daily rebuild
 	// pick it up again, and its next rebuild waits for the next day instead of every tick.
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
 		Return(true, nil)
-	h.segmentRepo.EXPECT().UpdateRecomputeAfter(ctx, "workspace1", "segment1", gomock.Any()).
+	h.segmentRepo.EXPECT().UpdateRecomputeAfter(gomock.Any(), "workspace1", "segment1", gomock.Any()).
 		DoAndReturn(func(_ context.Context, _, _ string, at *time.Time) error {
 			require.NotNil(t, at)
 			assert.True(t, at.After(time.Now()), "the next rebuild must be in the future")
@@ -142,19 +142,80 @@ func TestSegmentBuildProcessor_Process_LastAttemptWithoutRecompute(t *testing.T)
 	h := newBuildProcessorHarness(t)
 	ctx := context.Background()
 	task := buildTask(1, true)
+	// No recompute_after: the segment goes back to active and nothing is rescheduled.
+	segment := createTestSegmentWithSQL("segment1", "S", 1, string(domain.SegmentStatusBuilding))
+
+	h.segmentRepo.EXPECT().GetSegmentByID(ctx, "workspace1", "segment1").Return(segment, nil).AnyTimes()
+	h.contactRepo.EXPECT().Count(ctx, "workspace1").Return(1, nil)
+	h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "", 100).Return(nil, errors.New("db down"))
+	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+		Return(true, nil)
+
+	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
+	require.Error(t, err)
+	assert.False(t, completed)
+	assert.Contains(t, err.Error(), "db down")
+}
+
+func TestSegmentBuildProcessor_Process_LastAttemptReleaseFails(t *testing.T) {
+	h := newBuildProcessorHarness(t)
+	ctx := context.Background()
+	task := buildTask(1, true)
 	segment := createTestSegmentWithSQL("segment1", "S", 1, string(domain.SegmentStatusBuilding))
 
 	h.segmentRepo.EXPECT().GetSegmentByID(ctx, "workspace1", "segment1").Return(segment, nil).AnyTimes()
 	h.contactRepo.EXPECT().Count(ctx, "workspace1").Return(1, nil)
 	h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "", 100).Return(nil, errors.New("db down"))
 	// A failed reactivation is only logged; the build's own error is the one returned.
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
 		Return(false, errors.New("still down"))
 
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
 	require.Error(t, err)
 	assert.False(t, completed)
 	assert.Contains(t, err.Error(), "db down")
+}
+
+func TestSegmentBuildProcessor_Process_LastAttemptFailsBeforeTheBuild(t *testing.T) {
+	h := newBuildProcessorHarness(t)
+	ctx := context.Background()
+	task := buildTask(4, true)
+
+	// The daily check already marked the segment building. A last attempt that cannot even
+	// read it still sets it back to active at the task's version, or it would stay building.
+	h.segmentRepo.EXPECT().GetSegmentByID(ctx, "workspace1", "segment1").Return(nil, errors.New("db down"))
+	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(4), string(domain.SegmentStatusActive)).
+		Return(true, nil)
+
+	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
+	require.Error(t, err)
+	assert.False(t, completed)
+}
+
+func TestSegmentBuildProcessor_Process_LastAttemptReleaseOutlivesTheTaskContext(t *testing.T) {
+	h := newBuildProcessorHarness(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	task := buildTask(1, true)
+	segment := createTestSegmentWithSQL("segment1", "S", 1, string(domain.SegmentStatusBuilding))
+
+	h.segmentRepo.EXPECT().GetSegmentByID(gomock.Any(), "workspace1", "segment1").Return(segment, nil).AnyTimes()
+	h.contactRepo.EXPECT().Count(gomock.Any(), "workspace1").Return(1, nil)
+	// The task's context dies with its slice (timeout or shutdown)...
+	h.contactRepo.EXPECT().GetBatchForSegmentAfter(gomock.Any(), "workspace1", "", 100).
+		DoAndReturn(func(context.Context, string, string, int) ([]string, error) {
+			cancel()
+			return nil, context.Canceled
+		})
+	// ...and the reactivation still gets a live one.
+	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+		DoAndReturn(func(c context.Context, _, _ string, _ int64, _ string) (bool, error) {
+			assert.NoError(t, c.Err(), "the release must not run on the dead task context")
+			return true, nil
+		})
+
+	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
+	require.Error(t, err)
+	assert.False(t, completed)
 }
 
 func TestSegmentBuildProcessor_Process_MatchedContactsAddedInQueryOrder(t *testing.T) {
@@ -245,6 +306,10 @@ func TestSegmentBuildProcessor_Process_BumpNotLanded(t *testing.T) {
 		task := buildTask(4, true)
 		segment := createTestSegmentWithSQL("segment1", "S", 3, string(domain.SegmentStatusActive))
 		h.segmentRepo.EXPECT().GetSegmentByID(ctx, "workspace1", "segment1").Return(segment, nil)
+		// The release is conditional on the task's version, which the segment never reached:
+		// it changes nothing, and nothing is rescheduled.
+		h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(4), string(domain.SegmentStatusActive)).
+			Return(false, nil)
 
 		completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
 		require.Error(t, err)

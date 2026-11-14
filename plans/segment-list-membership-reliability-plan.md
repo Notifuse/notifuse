@@ -25,11 +25,15 @@ behaviour and the tests are deterministic.
 
 **Last attempt.** When the task has no retries left (`!task.HasRetriesLeft()`), the build must not
 leave the segment `building` forever (the queue and the daily check skip `building` segments).
-Before returning the error, it sets the segment back to `active` (status-only write, section 6)
-and, for a segment with `recompute_after`, moves it to the next 5 AM, so the next daily rebuild
-tries again instead of a rebuild every scheduler tick.
+Before returning the error, it sets the segment back to `active` (status-only write, section 6,
+conditional on the task's version) and, for a segment with `recompute_after`, moves it to the
+next 5 AM, so the next daily rebuild tries again instead of a rebuild every scheduler tick. This
+covers every error once the state is valid, including a last attempt that cannot read the segment
+(the daily check marked it building before the task ran; nothing is rescheduled then), and runs on
+a context detached from the task's, which is dead after a timeout or a shutdown.
 
-**Unit tests** (`internal/service/segment_build_processor_test.go`):
+**Unit tests** (`internal/service/segment_build_processor_reliability_test.go`, existing ones in
+`segment_build_processor_test.go`):
 - `TestSegmentBuildProcessor_Process_AddContactError`: two matching emails, the first add fails →
   `(false, err)`, the second email is not added, no `RemoveOldMemberships`, no status write to
   `active`, no `SaveState` after the failed batch.
@@ -109,8 +113,11 @@ Per due segment, the task is created first, then the bump. Bumping first would l
 if `segment.Version < state.Version` the bump has not landed (another instance picked the task up
 first, a transient error, or a concurrent rename wrote the old version back): the build writes
 nothing and returns an error, so the task retries 60 s later. If the bump then lands, the retry
-proceeds; if not, the segment is still `active` and due, the next check creates a fresh task and
-bumps again, and the orphaned task fails after its retries without having written anything.
+proceeds; if not, the segment is still `active` and due, and the next check creates a fresh task
+and bumps to the same version. The earlier task's next retry then passes the guard too, so both
+tasks build at that version: a duplicate scan of the same stored query, which converges. A tree
+edit or a manual rebuild made just before the check bumps by one as well, so the check's task
+runs beside the edit's own task in the same way.
 
 Setting `building` in the compare-and-set keeps the next check from creating a second task while
 this one is pending.
@@ -243,8 +250,20 @@ real task service: `service.EnsureSegmentRecomputeTask` with the app's task repo
   running daily build; rows matching only the old tree are then kept until the next rebuild. The
   window is the few milliseconds between the edit's read and write.
 - When such a whole-row write lands in the middle of a daily build, the build stops with an error
-  at its next batch and its retries keep failing; the rows it wrote at the new version stay until
-  the following daily rebuild, which runs at a higher version and removes them.
+  at its next batch. The segment is back at its old version, active and due, so the next check
+  bumps it to the same version again and a new build runs there; rows the stopped build wrote at
+  that version and that no longer match are not removed by it, only by the next rebuild at a
+  higher version.
+- Duplicate builds at the same version (see the guard above) scan the contacts twice; one that
+  starts after the other finished marks the segment building again until it ends.
+- A membership insert that always fails (for example a broken trigger on `contact_timeline`)
+  stops the build at that contact on every attempt; after the last one the segment is active
+  with only the contacts before it rewritten. Before this change only that contact was skipped.
+- Removing stale memberships fires the membership triggers for each row, including rows of
+  contacts deleted before deletions cleaned memberships: those get a `segment.left` timeline row
+  and webhook delivery again. Manual rebuilds and tree edits already did this; the daily rebuild
+  now does it once at upgrade for every segment with relative dates. Not deleting them silently
+  needs a trigger or data migration, out of scope here.
 - A permanent membership write failure in the queue is retried on every pass (15 s debounce), as
   evaluation errors already are.
 - Stale rows are deleted in one statement; section 8 gives it a full time slice but does not
