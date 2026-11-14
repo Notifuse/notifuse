@@ -221,4 +221,48 @@ func TestTemplatesUsage(t *testing.T) {
 			assert.NotEqual(t, "automation", ref.(map[string]interface{})["type"])
 		}
 	})
+
+	t.Run("an empty template ID is no template, and a variations scalar fails nothing", func(t *testing.T) {
+		_, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusDraft, "Blank variation", ""))
+		require.NoError(t, err)
+		scalar, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusDraft, "Scalar variations", tid))
+		require.NoError(t, err)
+		_, err = workspaceDB.ExecContext(ctx, `UPDATE broadcasts SET test_settings = jsonb_set(test_settings, '{variations}', '"oops"') WHERE id = $1`, scalar.ID)
+		require.NoError(t, err)
+		_, err = factory.CreateTransactionalNotification(workspace.ID, func(n *domain.TransactionalNotification) {
+			n.Channels = domain.ChannelTemplates{domain.TransactionalChannelEmail: domain.ChannelTemplate{TemplateID: ""}}
+		})
+		require.NoError(t, err)
+		_, err = factory.CreateAutomation(workspace.ID, func(a *domain.Automation) {
+			a.Status = domain.AutomationStatusLive
+			a.Nodes = []*domain.AutomationNode{{ID: "n1", Type: domain.NodeTypeEmail, Config: map[string]interface{}{"template_id": ""}}}
+		})
+		require.NoError(t, err)
+		_, err = factory.CreateList(workspace.ID, func(l *domain.List) {
+			l.IsDoubleOptin = true
+			l.DoubleOptInTemplate = &domain.TemplateReference{ID: "", Version: 1}
+		})
+		require.NoError(t, err)
+
+		all := usage(t, map[string]string{})["usage"].(map[string]interface{})
+		assert.NotContains(t, all, "", "an empty ID counts for no template")
+		counts := all[tid].(map[string]interface{})
+		assert.Equal(t, float64(1), counts["broadcasts"], "the broadcast whose variations are a scalar uses nothing")
+	})
+
+	t.Run("references stop at the limit while the count stays exact", func(t *testing.T) {
+		popular, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+		for i := 0; i <= domain.TemplateUsageReferenceLimit; i++ {
+			_, err := factory.CreateTransactionalNotification(workspace.ID, func(n *domain.TransactionalNotification) {
+				n.Channels = domain.ChannelTemplates{domain.TransactionalChannelEmail: domain.ChannelTemplate{TemplateID: popular.ID}}
+			})
+			require.NoError(t, err)
+		}
+
+		got := usage(t, map[string]string{"template_id": popular.ID})
+		assert.Len(t, got["references"], domain.TemplateUsageReferenceLimit)
+		counts := got["usage"].(map[string]interface{})[popular.ID].(map[string]interface{})
+		assert.Equal(t, float64(domain.TemplateUsageReferenceLimit+1), counts["transactional_notifications"])
+	})
 }
