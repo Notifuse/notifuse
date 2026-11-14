@@ -15,6 +15,8 @@ export interface AccountMenuProps {
   role?: AccountRole
   collapsed: boolean
   onSignout: () => void
+  /** Reports the menu opening and closing: an open menu holds the sidebar open. */
+  onMenuOpenChange?: (open: boolean) => void
   getPopupContainer: () => HTMLElement
 }
 
@@ -52,7 +54,14 @@ function AccountAvatar({ user }: { user: AccountMenuProps['user'] }) {
 }
 
 /** The account: avatar, email, role and language, with its menu opened above. */
-export function AccountMenu({ user, role, collapsed, onSignout, getPopupContainer }: AccountMenuProps) {
+export function AccountMenu({
+  user,
+  role,
+  collapsed,
+  onSignout,
+  onMenuOpenChange,
+  getPopupContainer
+}: AccountMenuProps) {
   const { t } = useLingui()
   const { locale, setLocale } = useLocale()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -119,25 +128,27 @@ export function AccountMenu({ user, role, collapsed, onSignout, getPopupContaine
   return (
     <Dropdown
       trigger={['click']}
-      onOpenChange={setMenuOpen}
+      onOpenChange={(open) => {
+        setMenuOpen(open)
+        onMenuOpenChange?.(open)
+      }}
       placement={collapsed ? 'rightBottom' : 'topLeft'}
       getPopupContainer={getPopupContainer}
       // The language submenu opens in the sidebar too, so a click in it is not a click outside.
       menu={{ items, onClick: handleClick, getPopupContainer }}
     >
-      {collapsed ? (
-        <Tooltip
-          title={email}
-          placement="right"
-          getPopupContainer={getPopupContainer}
-          // A tooltip left over the menu it opened would cover its first or last row.
-          open={menuOpen ? false : undefined}
-        >
-          {button}
-        </Tooltip>
-      ) : (
-        button
-      )}
+      {/* Always mounted, titled only when folded: swapping the wrapper would remount the button and
+          drop its focus when the sidebar opens. The name shows when the sidebar folds under a
+          still pointer, after a click on an entry. */}
+      <Tooltip
+        title={collapsed ? email : undefined}
+        placement="right"
+        getPopupContainer={getPopupContainer}
+        // A tooltip left over the menu it opened would cover its first or last row.
+        open={menuOpen ? false : undefined}
+      >
+        {button}
+      </Tooltip>
     </Dropdown>
   )
 }

@@ -4306,8 +4306,8 @@ msgid "Collapse {label}"
 msgstr "Collapse {label}"
 
 #: src/layouts/app-shell/AppSidebar.tsx:148
-msgid "Collapse sidebar"
-msgstr "Collapse sidebar"
+#~ msgid "Collapse sidebar"
+#~ msgstr "Collapse sidebar"
 
 #: src/components/blog_editor/menus/block-actions/BlockColorPopover.tsx:97
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:42
@@ -5527,7 +5527,7 @@ msgstr "CSS Style Editor"
 msgid "CSV must have at least a header row and one data row"
 msgstr "CSV must have at least a header row and one data row"
 
-#: src/layouts/app-shell/AccountMenu.tsx:74
+#: src/layouts/app-shell/AccountMenu.tsx:83
 msgid "Current language"
 msgstr "Current language"
 
@@ -5792,7 +5792,7 @@ msgstr "Danger zone"
 #~ msgid "Danger Zone"
 #~ msgstr "Danger Zone"
 
-#: src/layouts/app-shell/AppSidebar.tsx:139
+#: src/layouts/app-shell/AppSidebar.tsx:247
 #: src/layouts/app-shell/menuItems.ts:181
 #: src/pages/AnalyticsPage.tsx:105
 #: src/pages/WebAnalyticsLivePage.tsx:127
@@ -6622,7 +6622,7 @@ msgstr "Do you want to permanently delete this file from your storage?"
 #~ msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 #~ msgstr "Do you want to send \"{0}\" immediately or schedule it for later?"
 
-#: src/layouts/app-shell/HelpMenu.tsx:40
+#: src/layouts/app-shell/HelpMenu.tsx:45
 msgid "Documentation"
 msgstr "Documentation"
 
@@ -7968,8 +7968,8 @@ msgid "Expand {label}"
 msgstr "Expand {label}"
 
 #: src/layouts/app-shell/AppSidebar.tsx:200
-msgid "Expand sidebar"
-msgstr "Expand sidebar"
+#~ msgid "Expand sidebar"
+#~ msgstr "Expand sidebar"
 
 #: src/components/settings/LicenseSettings.tsx:112
 msgid "Expired"
@@ -8638,7 +8638,7 @@ msgstr "Failed to update web analytics settings"
 msgid "Failed to update workspace settings"
 msgstr "Failed to update workspace settings"
 
-#: src/layouts/WorkspaceLayout.tsx:121
+#: src/layouts/WorkspaceLayout.tsx:124
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Failed to update workspace settings: {errorMessage}"
 
@@ -9384,9 +9384,9 @@ msgstr "Height"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:716
 #: src/components/templates/CreateTemplateDrawer.tsx:179
-#: src/layouts/app-shell/HelpMenu.tsx:18
-#: src/layouts/app-shell/HelpMenu.tsx:24
-#: src/layouts/app-shell/HelpMenu.tsx:58
+#: src/layouts/app-shell/HelpMenu.tsx:20
+#: src/layouts/app-shell/HelpMenu.tsx:26
+#: src/layouts/app-shell/HelpMenu.tsx:65
 msgid "Help"
 msgstr "Help"
 
@@ -10380,7 +10380,7 @@ msgstr "Landing pages"
 #: src/components/segment/segmentSummary.ts:35
 #: src/components/templates/SendTemplateModal.tsx:392
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
-#: src/layouts/app-shell/AccountMenu.tsx:68
+#: src/layouts/app-shell/AccountMenu.tsx:77
 msgid "Language"
 msgstr "Language"
 
@@ -11040,7 +11040,7 @@ msgstr "Logo Preview"
 msgid "Logo URL"
 msgstr "Logo URL"
 
-#: src/layouts/app-shell/AccountMenu.tsx:80
+#: src/layouts/app-shell/AccountMenu.tsx:89
 msgid "Logout"
 msgstr "Logout"
 
@@ -11101,7 +11101,7 @@ msgstr "Mailjet"
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 
-#: src/layouts/app-shell/AppSidebar.tsx:170
+#: src/layouts/app-shell/AppSidebar.tsx:287
 msgid "Main navigation"
 msgstr "Main navigation"
 
@@ -11324,7 +11324,7 @@ msgstr "Mediums"
 
 #: src/components/logs/auditDisplay.ts:20
 #: src/components/settings/WorkspaceMembers.tsx:247
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Member"
 msgstr "Member"
 
@@ -11832,7 +11832,7 @@ msgstr "New Theme"
 msgid "New Window"
 msgstr "New Window"
 
-#: src/layouts/app-shell/WorkspaceSwitcher.tsx:92
+#: src/layouts/app-shell/WorkspaceSwitcher.tsx:95
 #: src/pages/CreateWorkspacePage.tsx:108
 msgid "New workspace"
 msgstr "New workspace"
@@ -13334,7 +13334,7 @@ msgid "Overwrite with mine"
 msgstr "Overwrite with mine"
 
 #: src/components/settings/WorkspaceMembers.tsx:81
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Owner"
 msgstr "Owner"
 
@@ -13679,6 +13679,10 @@ msgstr "Picked the winning version of the newsletter <0>{target}</0>"
 #: src/components/email_builder/dnd/LibraryDnd.tsx:134
 msgid "Picked up {name}."
 msgstr "Picked up {name}."
+
+#: src/layouts/app-shell/AppSidebar.tsx:175
+msgid "Pin sidebar"
+msgstr "Pin sidebar"
 
 #: src/components/transactional/ApiCommandModal.tsx:529
 #~ msgid "Plain text (not recommended for production)"
@@ -15157,7 +15161,7 @@ msgstr "Reply-To: {replyTo}"
 msgid "Report — {dimensions}"
 msgstr "Report — {dimensions}"
 
-#: src/layouts/app-shell/HelpMenu.tsx:49
+#: src/layouts/app-shell/HelpMenu.tsx:54
 msgid "Report an issue"
 msgstr "Report an issue"
 
@@ -15461,7 +15465,7 @@ msgstr "Right to Left"
 #: src/components/file_manager/FilePreview.tsx:62
 #: src/components/file_manager/FileTable.tsx:88
 #: src/components/file_manager/FolderTree.tsx:121
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Root"
 msgstr "Root"
 
@@ -19825,7 +19829,7 @@ msgstr "Unknown date"
 msgid "Unknown device"
 msgstr "Unknown device"
 
-#: src/layouts/WorkspaceLayout.tsx:120
+#: src/layouts/WorkspaceLayout.tsx:123
 msgid "Unknown error"
 msgstr "Unknown error"
 
@@ -19865,6 +19869,10 @@ msgstr "Unknown segment ({id})"
 #: src/components/settings/LicenseSettings.tsx:125
 msgid "Unlimited"
 msgstr "Unlimited"
+
+#: src/layouts/app-shell/AppSidebar.tsx:175
+msgid "Unpin sidebar"
+msgstr "Unpin sidebar"
 
 #: src/components/blog/PostsTable.tsx:206
 #: src/components/blog/PostsTable.tsx:226
@@ -21113,14 +21121,14 @@ msgstr "Workspace name must be at least 3 characters long"
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 
-#: src/layouts/WorkspaceLayout.tsx:99
+#: src/layouts/WorkspaceLayout.tsx:102
 #: src/pages/AnalyticsPage.tsx:88
 #: src/pages/FileManagerPage.tsx:50
 msgid "Workspace not found"
 msgstr "Workspace not found"
 
 #: src/components/settings/GeneralSettings.tsx:133
-#: src/layouts/WorkspaceLayout.tsx:117
+#: src/layouts/WorkspaceLayout.tsx:120
 msgid "Workspace settings updated successfully"
 msgstr "Workspace settings updated successfully"
 

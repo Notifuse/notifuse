@@ -21,7 +21,7 @@ export function WorkspaceBadge({
     ? 'size-4.5 rounded-sm text-overline'
     : large
       ? 'size-10 rounded-md text-base'
-      : 'size-6 rounded-md text-xs'
+      : 'size-5 rounded-sm text-2xs'
   const logo = workspace?.settings?.logo_url
   if (logo) {
     return (
@@ -52,6 +52,8 @@ export interface WorkspaceSwitcherProps {
   collapsed: boolean
   onSelect: (workspaceId: string) => void
   onCreate: () => void
+  /** Reports the menu opening and closing: an open menu holds the sidebar open. */
+  onMenuOpenChange?: (open: boolean) => void
   getPopupContainer: () => HTMLElement
 }
 
@@ -63,6 +65,7 @@ export function WorkspaceSwitcher({
   collapsed,
   onSelect,
   onCreate,
+  onMenuOpenChange,
   getPopupContainer
 }: WorkspaceSwitcherProps) {
   const { t } = useLingui()
@@ -101,7 +104,7 @@ export function WorkspaceSwitcher({
       aria-label={collapsed ? current?.name : undefined}
       className={
         collapsed
-          ? 'mx-auto grid size-9 cursor-pointer place-items-center rounded-md border-0 bg-transparent hover:bg-fill focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none'
+          ? 'grid size-9 cursor-pointer place-items-center rounded-md border-0 bg-transparent hover:bg-fill focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none'
           : 'flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-line bg-surface pr-2 pl-1.5 text-left hover:bg-fill focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none'
       }
     >
@@ -118,7 +121,10 @@ export function WorkspaceSwitcher({
   return (
     <Dropdown
       trigger={['click']}
-      onOpenChange={setMenuOpen}
+      onOpenChange={(open) => {
+        setMenuOpen(open)
+        onMenuOpenChange?.(open)
+      }}
       placement={collapsed ? 'rightTop' : 'bottomLeft'}
       getPopupContainer={getPopupContainer}
       styles={{ root: { minWidth: layout.sidebar - 20 } }}
@@ -130,19 +136,18 @@ export function WorkspaceSwitcher({
         onClick: ({ key }) => (key === NEW_WORKSPACE_KEY ? onCreate() : onSelect(key))
       }}
     >
-      {collapsed ? (
-        <Tooltip
-          title={current?.name}
-          placement="right"
-          getPopupContainer={getPopupContainer}
-          // A tooltip left over the menu it opened would cover its first or last row.
-          open={menuOpen ? false : undefined}
-        >
-          {button}
-        </Tooltip>
-      ) : (
-        button
-      )}
+      {/* Always mounted, titled only when folded: swapping the wrapper would remount the button and
+          drop its focus when the sidebar opens. The name shows when the sidebar folds under a
+          still pointer, after a click on an entry. */}
+      <Tooltip
+        title={collapsed ? current?.name : undefined}
+        placement="right"
+        getPopupContainer={getPopupContainer}
+        // A tooltip left over the menu it opened would cover its first or last row.
+        open={menuOpen ? false : undefined}
+      >
+        {button}
+      </Tooltip>
     </Dropdown>
   )
 }

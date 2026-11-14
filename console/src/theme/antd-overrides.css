@@ -65,6 +65,21 @@
   width: 100%;
 }
 
+/* The sidebar folds and opens at once, on every hover: antd's menu animates its
+   width, its items' padding and its labels' opacity and margin whenever
+   inlineCollapsed changes. Scoped by .ant-menu-root to outrank antd's
+   ".ant-menu-inline.ant-menu-root .ant-menu-item" (its hashed scope is a
+   zero-specificity :where). A submenu still slides open: that motion is
+   rc-menu's, on the submenu list. */
+.app-sidebar-nav .ant-menu.ant-menu-root,
+.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-item,
+.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-submenu-title,
+.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-item-icon,
+.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-item-icon + span,
+.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-title-content {
+  transition: none;
+}
+
 /* Full-width drawers (FullDrawer) sit on the canvas, like a page: antd paints a
    drawer with colorBgElevated and has no per-drawer token. */
 .app-full-drawer .ant-drawer-section,

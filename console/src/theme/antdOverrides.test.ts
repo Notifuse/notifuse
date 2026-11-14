@@ -81,6 +81,23 @@ describe('global antd rules', () => {
     expect(css).toMatch(/\.app-sidebar-nav\.is-collapsed \.ant-menu-inline-collapsed\s*\{\s*width: 100%;/)
   })
 
+  it('fold and open the sidebar menu without the width, padding and label transitions of antd', () => {
+    const css = stripComments(read('theme/antd-overrides.css'))
+    const rule = /(\.app-sidebar-nav \.ant-menu\.ant-menu-root[^{}]*)\{\s*transition: none;\s*\}/.exec(css)
+    expect(rule).not.toBeNull()
+    const scoped = rule![1].split(',').map((selector) => selector.trim())
+    // Each outranks antd's own rule for the same element, ".ant-menu-inline.ant-menu-root .ant-menu-item"
+    // being the most specific of them.
+    expect(scoped).toEqual([
+      '.app-sidebar-nav .ant-menu.ant-menu-root',
+      '.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-item',
+      '.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-submenu-title',
+      '.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-item-icon',
+      '.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-item-icon + span',
+      '.app-sidebar-nav .ant-menu.ant-menu-root .ant-menu-title-content'
+    ])
+  })
+
   it('put the full-width drawers on the canvas', () => {
     const css = stripComments(read('theme/antd-overrides.css'))
     expect(css).toMatch(

@@ -4306,8 +4306,8 @@ msgid "Collapse {label}"
 msgstr "Replega {label}"
 
 #: src/layouts/app-shell/AppSidebar.tsx:148
-msgid "Collapse sidebar"
-msgstr "Plegar la barra lateral"
+#~ msgid "Collapse sidebar"
+#~ msgstr "Plegar la barra lateral"
 
 #: src/components/blog_editor/menus/block-actions/BlockColorPopover.tsx:97
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:42
@@ -5527,7 +5527,7 @@ msgstr "Editor d'estils CSS"
 msgid "CSV must have at least a header row and one data row"
 msgstr "El CSV ha de tenir com a mínim una fila de capçalera i una fila de dades"
 
-#: src/layouts/app-shell/AccountMenu.tsx:74
+#: src/layouts/app-shell/AccountMenu.tsx:83
 msgid "Current language"
 msgstr "Idioma actual"
 
@@ -5792,7 +5792,7 @@ msgstr "Zona de perill"
 #~ msgid "Danger Zone"
 #~ msgstr "Zona de perill"
 
-#: src/layouts/app-shell/AppSidebar.tsx:139
+#: src/layouts/app-shell/AppSidebar.tsx:247
 #: src/layouts/app-shell/menuItems.ts:181
 #: src/pages/AnalyticsPage.tsx:105
 #: src/pages/WebAnalyticsLivePage.tsx:127
@@ -6622,7 +6622,7 @@ msgstr "Voleu eliminar permanentment aquest fitxer del vostre emmagatzematge?"
 #~ msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
 #~ msgstr "Voleu enviar \"{0}\" immediatament o programar-ho per més tard?"
 
-#: src/layouts/app-shell/HelpMenu.tsx:40
+#: src/layouts/app-shell/HelpMenu.tsx:45
 msgid "Documentation"
 msgstr "Documentació"
 
@@ -7968,8 +7968,8 @@ msgid "Expand {label}"
 msgstr "Desplega {label}"
 
 #: src/layouts/app-shell/AppSidebar.tsx:200
-msgid "Expand sidebar"
-msgstr "Desplegar la barra lateral"
+#~ msgid "Expand sidebar"
+#~ msgstr "Desplegar la barra lateral"
 
 #: src/components/settings/LicenseSettings.tsx:112
 msgid "Expired"
@@ -8638,7 +8638,7 @@ msgstr "No s'ha pogut actualitzar la configuració d'analítica web"
 msgid "Failed to update workspace settings"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball"
 
-#: src/layouts/WorkspaceLayout.tsx:121
+#: src/layouts/WorkspaceLayout.tsx:124
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "No s'han pogut actualitzar els paràmetres de l'espai de treball: {errorMessage}"
 
@@ -9384,9 +9384,9 @@ msgstr "Alçada"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:716
 #: src/components/templates/CreateTemplateDrawer.tsx:179
-#: src/layouts/app-shell/HelpMenu.tsx:18
-#: src/layouts/app-shell/HelpMenu.tsx:24
-#: src/layouts/app-shell/HelpMenu.tsx:58
+#: src/layouts/app-shell/HelpMenu.tsx:20
+#: src/layouts/app-shell/HelpMenu.tsx:26
+#: src/layouts/app-shell/HelpMenu.tsx:65
 msgid "Help"
 msgstr "Ajuda"
 
@@ -10380,7 +10380,7 @@ msgstr "Pàgines d'aterratge"
 #: src/components/segment/segmentSummary.ts:35
 #: src/components/templates/SendTemplateModal.tsx:392
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
-#: src/layouts/app-shell/AccountMenu.tsx:68
+#: src/layouts/app-shell/AccountMenu.tsx:77
 msgid "Language"
 msgstr "Idioma"
 
@@ -11040,7 +11040,7 @@ msgstr "Previsualització del logotip"
 msgid "Logo URL"
 msgstr "URL del logotip"
 
-#: src/layouts/app-shell/AccountMenu.tsx:80
+#: src/layouts/app-shell/AccountMenu.tsx:89
 msgid "Logout"
 msgstr "Tancar sessió"
 
@@ -11101,7 +11101,7 @@ msgstr "Mailjet"
 msgid "Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
 msgstr "Logotip principal per al vostre blog. Mida recomanada: 200x50px o proporció similar"
 
-#: src/layouts/app-shell/AppSidebar.tsx:170
+#: src/layouts/app-shell/AppSidebar.tsx:287
 msgid "Main navigation"
 msgstr "Navegació principal"
 
@@ -11324,7 +11324,7 @@ msgstr "Mitjans"
 
 #: src/components/logs/auditDisplay.ts:20
 #: src/components/settings/WorkspaceMembers.tsx:247
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Member"
 msgstr "Membre"
 
@@ -11832,7 +11832,7 @@ msgstr "Nou tema"
 msgid "New Window"
 msgstr "Nova finestra"
 
-#: src/layouts/app-shell/WorkspaceSwitcher.tsx:92
+#: src/layouts/app-shell/WorkspaceSwitcher.tsx:95
 #: src/pages/CreateWorkspacePage.tsx:108
 msgid "New workspace"
 msgstr "Nou espai de treball"
@@ -13334,7 +13334,7 @@ msgid "Overwrite with mine"
 msgstr "Sobreescriure amb el meu"
 
 #: src/components/settings/WorkspaceMembers.tsx:81
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Owner"
 msgstr "Propietari"
 
@@ -13679,6 +13679,10 @@ msgstr "Ha triat la versió guanyadora del butlletí <0>{target}</0>"
 #: src/components/email_builder/dnd/LibraryDnd.tsx:134
 msgid "Picked up {name}."
 msgstr "{name} agafat."
+
+#: src/layouts/app-shell/AppSidebar.tsx:175
+msgid "Pin sidebar"
+msgstr "Fixar la barra lateral"
 
 #: src/components/transactional/ApiCommandModal.tsx:529
 #~ msgid "Plain text (not recommended for production)"
@@ -15157,7 +15161,7 @@ msgstr "Respon a: {replyTo}"
 msgid "Report — {dimensions}"
 msgstr "Informe — {dimensions}"
 
-#: src/layouts/app-shell/HelpMenu.tsx:49
+#: src/layouts/app-shell/HelpMenu.tsx:54
 msgid "Report an issue"
 msgstr "Informar d'un problema"
 
@@ -15461,7 +15465,7 @@ msgstr "Dreta a esquerra"
 #: src/components/file_manager/FilePreview.tsx:62
 #: src/components/file_manager/FileTable.tsx:88
 #: src/components/file_manager/FolderTree.tsx:121
-#: src/layouts/app-shell/AccountMenu.tsx:60
+#: src/layouts/app-shell/AccountMenu.tsx:69
 msgid "Root"
 msgstr "Root"
 
@@ -19825,7 +19829,7 @@ msgstr "Data desconeguda"
 msgid "Unknown device"
 msgstr "Dispositiu desconegut"
 
-#: src/layouts/WorkspaceLayout.tsx:120
+#: src/layouts/WorkspaceLayout.tsx:123
 msgid "Unknown error"
 msgstr "Error desconegut"
 
@@ -19865,6 +19869,10 @@ msgstr "Segment desconegut ({id})"
 #: src/components/settings/LicenseSettings.tsx:125
 msgid "Unlimited"
 msgstr ""
+
+#: src/layouts/app-shell/AppSidebar.tsx:175
+msgid "Unpin sidebar"
+msgstr "Deixar de fixar la barra lateral"
 
 #: src/components/blog/PostsTable.tsx:206
 #: src/components/blog/PostsTable.tsx:226
@@ -21113,14 +21121,14 @@ msgstr "El nom de l'espai de treball ha de tenir almenys 3 caràcters"
 msgid "Workspace name must be at most {WORKSPACE_NAME_MAX_LENGTH} characters long"
 msgstr "El nom de l'espai de treball ha de tenir com a màxim {WORKSPACE_NAME_MAX_LENGTH} caràcters"
 
-#: src/layouts/WorkspaceLayout.tsx:99
+#: src/layouts/WorkspaceLayout.tsx:102
 #: src/pages/AnalyticsPage.tsx:88
 #: src/pages/FileManagerPage.tsx:50
 msgid "Workspace not found"
 msgstr "Espai de treball no trobat"
 
 #: src/components/settings/GeneralSettings.tsx:133
-#: src/layouts/WorkspaceLayout.tsx:117
+#: src/layouts/WorkspaceLayout.tsx:120
 msgid "Workspace settings updated successfully"
 msgstr "Configuració de l'espai de treball actualitzada correctament"
 

@@ -245,6 +245,7 @@ const workspaceBroadcastsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/broadcasts",
   component: BroadcastsPage,
+  staticData: { unpinSidebar: true },
   validateSearch: validateBroadcastsSearch,
 });
 
@@ -295,7 +296,7 @@ export const workspaceContactsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: "/contacts",
   component: ContactsPage,
-  staticData: { layout: "rail" },
+  staticData: { layout: "rail", unpinSidebar: true },
   validateSearch: (search: Record<string, unknown>): ContactsSearch => {
     const listId = searchText(search.list_id);
     const segments = (Array.isArray(search.segments) ? search.segments : [search.segments])
@@ -524,9 +525,13 @@ declare module "@tanstack/react-router" {
   interface StaticDataRouteOption {
     /**
      * The page template WorkspaceLayout lays the route out with: `page` (the default) gets the
-     * page padding and the stored sidebar; `rail`, a page with its own left column (Settings,
-     * Blog), gets no padding and a folded sidebar.
+     * page padding; `rail`, a page with its own left column (Settings, Blog), lays out its own.
      */
     layout?: "page" | "rail";
+    /**
+     * A page that needs the width (Contacts, Broadcasts): the sidebar opens unpinned there,
+     * whatever the stored choice, and its pin then holds for the visit only.
+     */
+    unpinSidebar?: boolean;
   }
 }
