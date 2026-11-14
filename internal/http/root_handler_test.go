@@ -833,6 +833,7 @@ func TestRootHandler_serveBlogRobots(t *testing.T) {
 			handler.serveBlogRobots(w, req)
 
 			assert.Equal(t, http.StatusMethodNotAllowed, w.Code, method)
+			assert.Equal(t, "GET, HEAD", w.Header().Get("Allow"), method)
 		}
 	})
 
@@ -1021,12 +1022,13 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		handler.serveBlogSitemap(w, req, workspace)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+		assert.Equal(t, "GET, HEAD", w.Header().Get("Allow"))
 	})
 
 	t.Run("serves a second request from the cache, per workspace and host", func(t *testing.T) {
 		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
-		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(nil, nil).Times(2)
-		mockBlogService.EXPECT().NextScheduledPublishAt(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(nil, nil).Times(3)
+		mockBlogService.EXPECT().NextScheduledPublishAt(gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
 
 		first := serve(t, handler, workspace)
 		req := httptest.NewRequest("GET", "/sitemap.xml", nil)
@@ -1039,11 +1041,33 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		assert.Equal(t, first.Body.String(), second.Body.String())
 		assert.Equal(t, "application/xml", second.Header().Get("Content-Type"))
 
-		// Another workspace on the same host, or another host, is built again.
+		// Another workspace on the same host is built again.
 		other := *workspace
 		other.ID = "other-workspace-id"
 		third := serve(t, handler, &other)
 		assert.Equal(t, "MISS", third.Header().Get("X-Cache"))
+
+		// So is another host of the same workspace.
+		req = httptest.NewRequest("GET", "/sitemap.xml", nil)
+		req.Host = "blog.example.org"
+		fourth := httptest.NewRecorder()
+		handler.serveBlogSitemap(fourth, req, workspace)
+		assert.Equal(t, "MISS", fourth.Header().Get("X-Cache"))
+		assert.Contains(t, fourth.Body.String(), "<loc>https://blog.example.org/</loc>")
+	})
+
+	t.Run("answers HEAD", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(nil, nil)
+		expectNoScheduledPost(mockBlogService)
+		req := httptest.NewRequest(http.MethodHead, "/sitemap.xml", nil)
+		req.Host = "example.com"
+		w := httptest.NewRecorder()
+
+		handler.serveBlogSitemap(w, req, workspace)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/xml", w.Header().Get("Content-Type"))
 	})
 }
 
@@ -1092,6 +1116,20 @@ func TestWriteBlogSitemap_URLBudget(t *testing.T) {
 		assert.NotContains(t, body, "p2")
 	})
 
+	t.Run("a new category whose page is an exact route costs its post and its feed", func(t *testing.T) {
+		var b strings.Builder
+		writeBlogSitemap(&b, "example.com", []*domain.BlogSitemapPost{
+			{CategorySlug: "track", PostSlug: "p1", PublishedAt: at},
+			{CategorySlug: "tech", PostSlug: "p2", PublishedAt: at},
+		}, 6)
+		body := b.String()
+		// Home, main feed, p1 and the track feed take 4; p2 needs 3 more and does not fit in 6.
+		assert.Equal(t, 4, strings.Count(body, "<loc>"))
+		assert.Contains(t, body, "<loc>https://example.com/track/p1</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/track/feed.xml</loc>")
+		assert.NotContains(t, body, "p2")
+	})
+
 	t.Run("lists the home page and the main feed only when nothing else fits", func(t *testing.T) {
 		for _, maxURLs := range []int{2, 3, 4} {
 			body := write(maxURLs)
@@ -1129,13 +1167,34 @@ func TestWriteBlogSitemap_Content(t *testing.T) {
 		assert.Equal(t, 1, strings.Count(body, "<loc>https://example.com/tech</loc>"))
 	})
 
-	t.Run("a category another route answers is left out with its posts", func(t *testing.T) {
+	t.Run("a post read without its edit date has its publication date", func(t *testing.T) {
+		body := write(&domain.BlogSitemapPost{CategorySlug: "tech", PostSlug: "p1", PublishedAt: published})
+		assert.Contains(t, body, "<loc>https://example.com/tech/p1</loc>\n    <lastmod>2026-10-01</lastmod>")
+	})
+
+	t.Run("a category whose page is an exact route keeps its posts and feed", func(t *testing.T) {
 		body := write(
 			&domain.BlogSitemapPost{CategorySlug: "track", PostSlug: "p1", PublishedAt: published},
+			&domain.BlogSitemapPost{CategorySlug: "health", PostSlug: "p2", PublishedAt: published},
+		)
+		assert.NotContains(t, body, "<loc>https://example.com/track</loc>")
+		assert.NotContains(t, body, "<loc>https://example.com/health</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/track/p1</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/track/feed.xml</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/health/p2</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/health/feed.xml</loc>")
+		// Home, main feed, and each category's post and feed.
+		assert.Equal(t, 6, strings.Count(body, "<loc>"))
+	})
+
+	t.Run("a category under a route that takes the subtree is left out with its posts", func(t *testing.T) {
+		body := write(
+			&domain.BlogSitemapPost{CategorySlug: "v", PostSlug: "p1", PublishedAt: published},
 			&domain.BlogSitemapPost{CategorySlug: "apis", PostSlug: "p2", PublishedAt: published},
 			&domain.BlogSitemapPost{CategorySlug: "tracking", PostSlug: "p3", PublishedAt: published},
 		)
-		assert.NotContains(t, body, "/track/")
+		assert.NotContains(t, body, "/v/")
+		assert.NotContains(t, body, "/v<")
 		assert.NotContains(t, body, "/apis")
 		assert.Contains(t, body, "<loc>https://example.com/tracking/p3</loc>")
 		// Home, main feed, p3 with the tracking page and feed.
@@ -2041,6 +2100,7 @@ func TestRootHandler_serveBlogFeed(t *testing.T) {
 		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+		assert.Equal(t, "GET, HEAD", w.Header().Get("Allow"))
 	})
 
 	t.Run("HEAD returns headers but empty body", func(t *testing.T) {
@@ -2152,6 +2212,9 @@ func (c *ttlRecordingCache) Set(key string, value interface{}, ttl time.Duration
 // The home, category and sitemap entries live no longer than until the next scheduled post
 // goes live, and at least a second; without a scheduled post, domain.BlogCacheTTL.
 func TestRootHandler_BlogCacheTTL(t *testing.T) {
+	// Each page takes at least this long to build, so that an entry counted from the instant
+	// before the build would outlive the publication by as much.
+	const buildTime = 50 * time.Millisecond
 	serve := func(t *testing.T, next func(now time.Time) (*time.Time, error)) map[string]time.Duration {
 		t.Helper()
 		ttls := map[string]time.Duration{}
@@ -2164,6 +2227,7 @@ func TestRootHandler_BlogCacheTTL(t *testing.T) {
 			case "/":
 				mockBlogService.EXPECT().RenderHomePage(gomock.Any(), workspace.ID, 1, nil).
 					DoAndReturn(func(context.Context, string, int, *int) (string, error) {
+						time.Sleep(buildTime)
 						renderedAfter = time.Now().UTC()
 						return "<html></html>", nil
 					})
@@ -2171,12 +2235,14 @@ func TestRootHandler_BlogCacheTTL(t *testing.T) {
 				mockBlogService.EXPECT().GetPublicCategoryBySlug(gomock.Any(), "tech").Return(&domain.BlogCategory{Slug: "tech"}, nil)
 				mockBlogService.EXPECT().RenderCategoryPage(gomock.Any(), workspace.ID, "tech", 1, nil).
 					DoAndReturn(func(context.Context, string, string, int, *int) (string, error) {
+						time.Sleep(buildTime)
 						renderedAfter = time.Now().UTC()
 						return "<html></html>", nil
 					})
 			case "/sitemap.xml":
 				mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).
 					DoAndReturn(func(context.Context) ([]*domain.BlogSitemapPost, error) {
+						time.Sleep(buildTime)
 						renderedAfter = time.Now().UTC()
 						return nil, nil
 					})
@@ -2198,13 +2264,14 @@ func TestRootHandler_BlogCacheTTL(t *testing.T) {
 	}
 	keys := []string{"example.com:/?page=1", "example.com:/tech?page=1", "sitemap:test-workspace-id:example.com"}
 
-	t.Run("a post due in 30 s bounds the entries to 30 s", func(t *testing.T) {
+	t.Run("a post due in 30 s bounds the entries to what is left of the 30 s once the page is built", func(t *testing.T) {
 		ttls := serve(t, func(now time.Time) (*time.Time, error) {
 			at := now.Add(30 * time.Second)
 			return &at, nil
 		})
 		for _, key := range keys {
-			assert.Equal(t, 30*time.Second, ttls[key], key)
+			assert.LessOrEqual(t, ttls[key], 30*time.Second-buildTime, key)
+			assert.Greater(t, ttls[key], 29*time.Second, key)
 		}
 	})
 

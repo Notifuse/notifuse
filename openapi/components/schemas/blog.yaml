@@ -87,7 +87,11 @@ CreateBlogCategoryRequest:
       pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
       description: >-
         Lowercase letters, digits and single hyphens. Must be unique among the
-        workspace's categories.
+        workspace's categories, and may not be a path another route answers on
+        the blog's domain (`v`, `t`, `r`, `visit`, `opens`, `track`,
+        `preferences`, `subscribe`, `unsubscribe`, `unsubscribe-oneclick`,
+        `health`, `healthz`) or start with `api`, `console` or
+        `notification-center`. A category keeps such a slug it already had.
       example: product
     description:
       type: string

@@ -124,7 +124,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: A broadcast run that ends while its recipient feed waits to retry stops at once instead of waiting out the delay.
 
-- **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date, and on the cached home and category pages from that date, not up to 5 minutes later.
+- **Fix**: A scheduled blog post now appears on the blog's pages, cached ones included, and at its address only from its publication date.
 
 - **Fix**: The blog's post list in the console now shows every post, not only the first 100.
 
@@ -144,7 +144,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: A blog feed read with both `If-None-Match` and `If-Modified-Since` is sent again when it changed, instead of answering 304 because of the date; `If-None-Match` also matches a list of ETags and `*`. A feed's `Last-Modified` moves when a scheduled post goes live, so a reader that only sends the date sees the post.
 
-- **Improvement**: A blog category can no longer take a slug another route answers on the blog's domain (`api`, `track`, `unsubscribe`, `webhooks`, …), or one starting with `api`, `console` or `notification-center`: its pages would never show. An existing category keeps its slug and stays editable; the sitemap leaves it out.
+- **Improvement**: A blog category can no longer take a slug whose address another route answers on the blog's domain: `v`, `t`, `r` and any slug starting with `api`, `console` or `notification-center`, where none of its pages would show, and `track`, `unsubscribe`, `health` and the like, where its own page would not while its posts and feed do. An existing category keeps its slug and stays editable; the sitemap lists only its addresses that reach the blog.
 
 - **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
 

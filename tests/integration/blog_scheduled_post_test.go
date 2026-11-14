@@ -175,7 +175,8 @@ func TestBlogScheduledPost_OnTime(t *testing.T) {
 		testutil.WithPostPublishedAt(time.Now().Add(-time.Hour)),
 	)
 	require.NoError(t, err)
-	due := time.Now().Add(3 * time.Second)
+	// Long enough for the four requests below on a loaded database; checked before the sleep.
+	due := time.Now().Add(6 * time.Second)
 	_, err = factory.CreateBlogPost(workspace.ID, category.ID,
 		testutil.WithPostTitle("Soon Post"),
 		testutil.WithPostSlug("soon-post"),
@@ -199,6 +200,7 @@ func TestBlogScheduledPost_OnTime(t *testing.T) {
 		_, cache := get(path)
 		require.Equal(t, "HIT", cache, "%s is cached before the post is due", path)
 	}
+	require.True(t, time.Now().Before(due), "the pages were cached before the post was due")
 
 	time.Sleep(time.Until(due))
 	for _, path := range []string{"/", "/news"} {

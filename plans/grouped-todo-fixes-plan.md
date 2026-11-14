@@ -1030,6 +1030,41 @@ and minor problems in lots 5 and 6. These replace what the points above say wher
   5.4 gets its own Fix line (a reader that sent both headers got 304 for a changed feed); robots.txt and the
   sitemap join the 44.0 sitemap Fix line.
 
+### Corrections after the code review (lot 5, round 1)
+
+Review: `/mnt/project-files/reviews/grouped-pr-lot5-code-review.md`.
+
+- **B1** The reserved slugs split by what the route takes. `domain.BlogCategorySlugRouteOf` answers
+  `BlogCategorySlugSubtreeTaken` for `v`, `t`, `r` (subtree patterns) and any slug starting with `api`,
+  `console` or `notification-center` (prefixes the root handler matches), `BlogCategorySlugPageTaken` for the
+  exact patterns (`visit`, `opens`, `track`, `preferences`, `subscribe`, `unsubscribe`, `unsubscribe-oneclick`,
+  `health`, `healthz`), and `BlogCategorySlugFree` otherwise. `webhooks` leaves the list: nothing is
+  registered at `/webhooks`. `IsReservedBlogCategorySlug` (creation and rename) refuses both taken kinds. The
+  sitemap skips every address of a subtree slug and only the page of an exact-route slug (its posts and feed
+  are listed; a new such category costs 2 URLs). Tests: `TestBlogCategorySlugRouteOf` with the slugs written
+  out; `TestWriteBlogSitemap_Content` and `_URLBudget` cases per kind; `TestBlogSitemap`'s track category now
+  lists its post and feed; `TestBlogReservedCategorySlugs` (integration) requests the page, a post and the
+  feed of a category per slug on the running app, asserts each reaches the blog exactly when the domain says
+  so and the sitemap lists exactly those, and that creating `health` or `v` answers 400.
+- **B2** The domain test no longer iterates the list it protects (see B1).
+- **m1** `blogPageTTL` counts the time left to the next publication from the call (`time.Until`), just before
+  the Set; the next publication is still read after the instant taken before the build. Test: each page takes
+  50 ms to build, and the entry for a post due in 30 s is at most 30 s less that.
+- **m2** `TestRootHandler_serveBlogSitemap` "answers HEAD".
+- **m3** The `lastmod` fallback gets a case (a post read without its edit date).
+- **m4** The cache-key test also requests another host of the same workspace.
+- **m5** `BlogSitemapMaxPosts`'s comment names the category's page and feed.
+- **m6** The scheduled post's Fix line no longer compares with the 5-minute delay of unreleased code.
+- **m7** Integration cases for the `search` and `template_id` 400s; the reserved-slug refusal is in
+  `TestBlogReservedCategorySlugs`; the OpenAPI category slug and its 400 examples name the reserved slugs;
+  `TestBlogScheduledPost_OnTime` leaves 6 s and asserts the pages were cached before the date.
+- **m8** Comment wording (sitemaps protocol; the sitemap's cache key); the three blog 405s send
+  `Allow: GET, HEAD` through `refuseBlogMethod`.
+
+Known, not handled: a category named `webhooks` (now allowed) loses the address of a post slugged `email`
+to the email webhook, and one named after another route's first segment loses the matching post addresses
+the same way; the page cache still keys on the raw Host.
+
 ## Test commands for lot 5
 
 ```

@@ -93,7 +93,8 @@ func TestBlogSitemap(t *testing.T) {
 		publishedAt(time.Now().Add(-time.Hour)),
 	)
 	require.NoError(t, err)
-	// A category created before its slug was reserved: its addresses reach another route.
+	// A category created before its slug was refused: another route answers its page, while
+	// its posts and feed reach the blog (TestBlogReservedCategorySlugs covers every slug).
 	track, err := factory.CreateBlogCategory(workspace.ID, testutil.WithCategorySlug("track"))
 	require.NoError(t, err)
 	_, err = factory.CreateBlogPost(workspace.ID, track.ID,
@@ -159,15 +160,16 @@ func TestBlogSitemap(t *testing.T) {
 		assert.Zero(t, locs[url("/archived/feed.xml")])
 	})
 
-	t.Run("leaves out a category another route answers, with its posts", func(t *testing.T) {
+	t.Run("leaves out the page another route answers, and lists the category's post and feed", func(t *testing.T) {
 		assert.Zero(t, locs[url("/track")])
-		assert.Zero(t, locs[url("/track/feed.xml")])
-		assert.Zero(t, locs[url("/track/tracked-post")])
+		assert.Equal(t, 1, locs[url("/track/feed.xml")])
+		assert.Equal(t, 1, locs[url("/track/tracked-post")])
 	})
 
 	t.Run("lists nothing else", func(t *testing.T) {
-		// Home page, main feed, the live posts and the two live categories' pages and feeds.
-		assert.Len(t, sitemap.URLs, 2+len(live)+4)
+		// Home page, main feed, the live posts, the two live categories' pages and feeds, and
+		// the track category's post and feed.
+		assert.Len(t, sitemap.URLs, 2+len(live)+4+2)
 	})
 
 	t.Run("an edited post's lastmod is its edit date", func(t *testing.T) {

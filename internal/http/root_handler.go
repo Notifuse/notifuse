@@ -551,21 +551,31 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 	_, _ = w.Write([]byte(html))
 }
 
+// refuseBlogMethod answers 405, with the methods allowed, a request to a blog file that is
+// neither GET nor HEAD, and reports whether it did.
+func refuseBlogMethod(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		return false
+	}
+	w.Header().Set("Allow", "GET, HEAD")
+	http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	return true
+}
+
 // serveBlogRobots serves robots.txt for the blog. The sitemap is named by its absolute URL,
-// as the robots.txt protocol requires.
+// as the sitemaps protocol requires of a robots.txt entry.
 func (h *RootHandler) serveBlogRobots(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	if refuseBlogMethod(w, r) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain")
 	_, _ = fmt.Fprintf(w, "User-agent: *\nAllow: /\n\nSitemap: https://%s/sitemap.xml\n", blogHost(r))
 }
 
-// serveBlogSitemap serves sitemap.xml for the blog, cached as the pages are.
+// serveBlogSitemap serves sitemap.xml for the blog, cached per workspace and per host (in
+// lower case, without its port), with the pages' TTL.
 func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	if refuseBlogMethod(w, r) {
 		return
 	}
 	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace.ID)
@@ -606,10 +616,12 @@ func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, w
 	_, _ = io.WriteString(w, sitemap)
 }
 
-// blogPageTTL is how long a public page built at now may stay cached: domain.BlogCacheTTL,
-// or less when a scheduled post goes live sooner, and at least one second. now is taken
-// before the page is built, so a post that goes live while it is built shortens the entry.
-// Zero when the next publication cannot be read: the page is then not cached.
+// blogPageTTL is how long a public page whose build started at now may stay cached, called
+// just before the entry is set: domain.BlogCacheTTL, or less when a scheduled post goes live
+// sooner, and at least one second. The next publication is read after now, so a post that
+// goes live while the page is built shortens the entry; the time left is counted from this
+// call, as the cache counts the TTL from the Set, not from the build. Zero when the next
+// publication cannot be read: the page is then not cached.
 func (h *RootHandler) blogPageTTL(ctx context.Context, now time.Time) time.Duration {
 	next, err := h.blogService.NextScheduledPublishAt(ctx, now)
 	if err != nil {
@@ -618,7 +630,7 @@ func (h *RootHandler) blogPageTTL(ctx context.Context, now time.Time) time.Durat
 	}
 	ttl := domain.BlogCacheTTL
 	if next != nil {
-		if untilNext := next.Sub(now); untilNext < ttl {
+		if untilNext := time.Until(*next); untilNext < ttl {
 			ttl = untilNext
 		}
 	}
@@ -663,13 +675,17 @@ func writeBlogSitemap(w io.Writer, host string, posts []*domain.BlogSitemapPost,
 	var categories []string
 	seen := map[string]struct{}{}
 	for _, post := range posts {
-		if domain.IsReservedBlogCategorySlug(post.CategorySlug) {
+		route := domain.BlogCategorySlugRouteOf(post.CategorySlug)
+		if route == domain.BlogCategorySlugSubtreeTaken {
 			continue
 		}
 		cost := 1
 		_, known := seen[post.CategorySlug]
 		if !known {
-			cost += 2 // the category's page and feed
+			cost++ // the category's feed
+			if route == domain.BlogCategorySlugFree {
+				cost++ // and its page
+			}
 		}
 		if cost > budget {
 			break
@@ -688,7 +704,9 @@ func writeBlogSitemap(w io.Writer, host string, posts []*domain.BlogSitemapPost,
 
 	writeURL("/feed.xml", "", "daily", "0.3")
 	for _, slug := range categories {
-		writeURL("/"+slug, "", "daily", "0.5")
+		if domain.BlogCategorySlugRouteOf(slug) == domain.BlogCategorySlugFree {
+			writeURL("/"+slug, "", "daily", "0.5")
+		}
 		writeURL("/"+slug+"/feed.xml", "", "daily", "0.3")
 	}
 
@@ -703,8 +721,7 @@ const (
 )
 
 func (h *RootHandler) serveBlogFeed(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace, categorySlug *string, format feedFormat) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	if refuseBlogMethod(w, r) {
 		return
 	}
 

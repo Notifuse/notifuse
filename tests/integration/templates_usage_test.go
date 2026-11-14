@@ -186,6 +186,15 @@ func TestTemplatesUsage(t *testing.T) {
 		assert.Equal(t, float64(1), all[tid].(map[string]interface{})["broadcasts"])
 	})
 
+	t.Run("a template_id PostgreSQL cannot read is a 400, not a 500", func(t *testing.T) {
+		for _, id := range []string{"a\x00b", "caf\xe9"} {
+			resp, err := client.Get("/api/templates.usage", map[string]string{"workspace_id": workspace.ID, "template_id": id})
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "%q", id)
+		}
+	})
+
 	t.Run("an unused template has no entry and no reference", func(t *testing.T) {
 		unused, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)

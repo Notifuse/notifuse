@@ -348,32 +348,64 @@ func (r *CreateBlogCategoryRequest) Validate() error {
 	return nil
 }
 
-// ReservedBlogCategorySlugs are the first path segments the server routes before the blog: a
-// category with one of these slugs would have pages that never reach it.
-var ReservedBlogCategorySlugs = []string{
-	"api", "console", "notification-center",
-	"v", "t", "r", "visit", "opens", "track",
+// BlogCategorySlugRoute says which of a category's addresses another route of the server
+// answers before the blog does.
+type BlogCategorySlugRoute int
+
+const (
+	// BlogCategorySlugFree: every address of the category reaches the blog.
+	BlogCategorySlugFree BlogCategorySlugRoute = iota
+	// BlogCategorySlugPageTaken: a route registered for the exact path /<slug> answers the
+	// category's page; its posts (/<slug>/<post>) and its feed (/<slug>/feed.xml) still
+	// reach the blog.
+	BlogCategorySlugPageTaken
+	// BlogCategorySlugSubtreeTaken: a route answers /<slug> and every path under it, so none
+	// of the category's addresses reaches the blog.
+	BlogCategorySlugSubtreeTaken
+)
+
+// blogCategorySlugExactRoutes are the paths registered as exact patterns (no trailing slash)
+// on the server's mux: the email tracking, public preference and health routes.
+var blogCategorySlugExactRoutes = []string{
+	"visit", "opens", "track",
 	"preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick",
-	"health", "healthz", "webhooks",
+	"health", "healthz",
 }
 
-// reservedBlogCategorySlugPrefixes are matched by prefix by the root handler, so any slug
-// starting with one of them is taken too.
-var reservedBlogCategorySlugPrefixes = []string{"api", "console", "notification-center"}
+// blogCategorySlugSubtreeRoutes are the paths registered as subtree patterns ("/v/" and the
+// like): the web version and the encrypted open and click links.
+var blogCategorySlugSubtreeRoutes = []string{"v", "t", "r"}
 
-// IsReservedBlogCategorySlug reports whether a category slug is a path another route answers.
-func IsReservedBlogCategorySlug(slug string) bool {
-	for _, reserved := range ReservedBlogCategorySlugs {
-		if slug == reserved {
-			return true
-		}
-	}
-	for _, prefix := range reservedBlogCategorySlugPrefixes {
+// blogCategorySlugSubtreePrefixes are matched by string prefix by the root handler before
+// the blog, so a slug starting with one of them loses every address.
+var blogCategorySlugSubtreePrefixes = []string{"api", "console", "notification-center"}
+
+// BlogCategorySlugRouteOf says which addresses of a category with this slug another route
+// takes. Paths that only start with the slug's segment, such as /webhooks/email, are not
+// counted: they take one post address, not the category.
+func BlogCategorySlugRouteOf(slug string) BlogCategorySlugRoute {
+	for _, prefix := range blogCategorySlugSubtreePrefixes {
 		if strings.HasPrefix(slug, prefix) {
-			return true
+			return BlogCategorySlugSubtreeTaken
 		}
 	}
-	return false
+	for _, route := range blogCategorySlugSubtreeRoutes {
+		if slug == route {
+			return BlogCategorySlugSubtreeTaken
+		}
+	}
+	for _, route := range blogCategorySlugExactRoutes {
+		if slug == route {
+			return BlogCategorySlugPageTaken
+		}
+	}
+	return BlogCategorySlugFree
+}
+
+// IsReservedBlogCategorySlug reports whether another route answers at least one address of a
+// category with this slug: a new or renamed category may not take it.
+func IsReservedBlogCategorySlug(slug string) bool {
+	return BlogCategorySlugRouteOf(slug) != BlogCategorySlugFree
 }
 
 // UpdateBlogCategoryRequest defines the request to update a blog category
@@ -711,8 +743,8 @@ func NewBlogPostCounts() BlogPostCounts {
 const BlogSitemapMaxURLs = 50000
 
 // BlogSitemapMaxPosts is the most posts the sitemap needs to read: BlogSitemapMaxURLs less the
-// home page and the main feed. Each listed post's category feed also takes a URL, so a full
-// sitemap lists fewer posts.
+// home page and the main feed. Each listed post's category also takes URLs (its page and its
+// feed), so a full sitemap lists fewer posts.
 const BlogSitemapMaxPosts = BlogSitemapMaxURLs - 2
 
 // BlogSitemapPost is what the blog sitemap needs of a live post.

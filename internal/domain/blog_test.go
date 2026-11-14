@@ -2126,17 +2126,33 @@ func TestBlogSitemapLimits(t *testing.T) {
 	assert.Equal(t, 49998, BlogSitemapMaxPosts)
 }
 
-func TestIsReservedBlogCategorySlug(t *testing.T) {
-	for _, slug := range ReservedBlogCategorySlugs {
-		assert.True(t, IsReservedBlogCategorySlug(slug), slug)
+// The slugs are written out: tests/integration TestBlogReservedCategorySlugs checks the same
+// table against the routes the running server registers.
+func TestBlogCategorySlugRouteOf(t *testing.T) {
+	cases := map[BlogCategorySlugRoute][]string{
+		BlogCategorySlugSubtreeTaken: {
+			"v", "t", "r",
+			"api", "console", "notification-center",
+			// The root handler matches these three by prefix.
+			"apis", "api-docs", "consoles", "notification-centers",
+		},
+		BlogCategorySlugPageTaken: {
+			"visit", "opens", "track",
+			"preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick",
+			"health", "healthz",
+		},
+		BlogCategorySlugFree: {
+			// Nothing is registered at /webhooks itself, only paths under it.
+			"webhooks",
+			// Neighbours of an exact route.
+			"vip", "tracking", "health-tips", "visits", "news", "r2", "tv",
+		},
 	}
-	// The root handler matches these by prefix.
-	for _, slug := range []string{"apis", "api-docs", "consoles", "notification-centers"} {
-		assert.True(t, IsReservedBlogCategorySlug(slug), slug)
-	}
-	// Neighbours of an exact route are free.
-	for _, slug := range []string{"vip", "tracking", "health-tips", "visits", "news", "r2", "tv"} {
-		assert.False(t, IsReservedBlogCategorySlug(slug), slug)
+	for want, slugs := range cases {
+		for _, slug := range slugs {
+			assert.Equal(t, want, BlogCategorySlugRouteOf(slug), slug)
+			assert.Equal(t, want != BlogCategorySlugFree, IsReservedBlogCategorySlug(slug), slug)
+		}
 	}
 }
 
