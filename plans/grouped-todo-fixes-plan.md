@@ -523,6 +523,17 @@ Known, not handled (lot 2): the terminal writes of `ExecuteTask` have no lease f
 task before the pause commits; `RunTaskNow` runs on `context.Background()` and is not released at shutdown;
 the sending-started annotation of a resume during a paused run; the small gaps left by #566.
 
+### Corrections after the delta review (lot 2, round 2)
+
+The review of 0b0c148 (`/mnt/project-files/reviews/grouped-pr-lot2-fix-review.md`) confirmed one bug: the run
+that loses its task read the broadcast unlocked, and a cancel marks the task failed before its own commit.
+`settleQueuedAfterLostTask` now reads it with `GetBroadcastForUpdateTx` and settles the rows with the Tx queue
+writes. Minor remarks taken: a pause never takes a held task (comments and the test case say so); a failed
+read of the task in `ResumeBroadcast` is logged; the final write's error reads "failed to write the end of
+the run"; the nothing-left-to-queue test asserts the send ends processed. Known, not handled: a refused
+schedule answers 500 like any error, the schedule's lock is held across the global feed fetch, and
+`PauseBroadcast` writes back a stale `completed_at`.
+
 ## Test commands for lot 2
 
 ```

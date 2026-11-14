@@ -2,6 +2,7 @@ package broadcast_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -270,7 +271,14 @@ func TestProcessBroadcastTask_VariationSenderGone_NothingLeftToQueue(t *testing.
 			VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)},
 		},
 	}, nil).AnyTimes()
-	d.broadcasts.EXPECT().WithTransaction(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	// The end of the run is written: the broadcast, read with its lock, becomes processed.
+	d.broadcasts.EXPECT().WithTransaction(gomock.Any(), "workspace-123", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) }).AnyTimes()
+	d.broadcasts.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "workspace-123", "broadcast-123").
+		Return(&domain.Broadcast{ID: "broadcast-123", Status: domain.BroadcastStatusProcessing}, nil).AnyTimes()
+	var final *domain.Broadcast
+	d.broadcasts.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error { final = b; return nil }).AnyTimes()
 	d.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
 		assert.NotEqual(t, domain.BroadcastStatusPaused, b.Status, "not paused again")
 		return nil
@@ -282,6 +290,9 @@ func TestProcessBroadcastTask_VariationSenderGone_NothingLeftToQueue(t *testing.
 
 	task := senderTask("single")
 	task.State.SendBroadcast.RecipientOffset = int64(task.State.SendBroadcast.TotalRecipients)
-	_, err := d.orchestrate.Process(context.Background(), task, time.Now().Add(30*time.Second))
-	assert.False(t, errors.Is(err, domain.ErrSenderNotFound), "unexpected sender error: %v", err)
+	done, err := d.orchestrate.Process(context.Background(), task, time.Now().Add(30*time.Second))
+	require.NoError(t, err)
+	assert.True(t, done, "the send ends")
+	require.NotNil(t, final, "the end of the run is written")
+	assert.Equal(t, domain.BroadcastStatusProcessed, final.Status)
 }

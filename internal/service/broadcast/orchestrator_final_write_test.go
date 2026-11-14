@@ -179,7 +179,7 @@ func TestProcess_FinalWriteKeepsWhatWasCommittedMeanwhile(t *testing.T) {
 		_, done, err := r.process(context.Background(), &domain.SendBroadcastState{})
 		assert.False(t, done)
 		assert.ErrorIs(t, err, dbErr)
-		assert.EqualError(t, err, "failed to update broadcast status to processed: connection reset")
+		assert.EqualError(t, err, "failed to write the end of the run: connection reset")
 	})
 
 	t.Run("a shutdown's cancellation does not lose the final write, bounded by the lease", func(t *testing.T) {

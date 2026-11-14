@@ -2,6 +2,7 @@ package broadcast_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
@@ -100,10 +101,11 @@ func TestSaveProgressState_WritesOnTheRunsLease(t *testing.T) {
 
 // A run whose progress write finds the task held by another execution stops before its next
 // batch: sending on would send the same recipients as the execution that holds the task.
-// A run that finds its task no longer its own (another execution holds it, or a cancel or a
-// pause moved it) stops after the batch it was queuing. That batch may have committed after
-// the cancel or pause cleared the queue: a cancelled broadcast's queued emails are deleted, a
-// paused one's paused, and another status leaves them to be sent.
+// A run that finds its task no longer its own (another execution holds it, or a cancel marked
+// it failed) stops after the batch it was queuing. That batch may have committed after the
+// cancel cleared the queue: under the broadcast's lock, a cancelled broadcast's queued emails
+// are deleted, and another status leaves them to be sent. A paused one's are paused: a pause
+// leaves a held task alone, so this needs a second instance that took the task past its lease.
 func TestProcess_StopsWhenTheTaskIsNoLongerItsOwn(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -112,10 +114,10 @@ func TestProcess_StopsWhenTheTaskIsNoLongerItsOwn(t *testing.T) {
 	}{
 		{"another execution holds the task", domain.BroadcastStatusProcessing, func(*domainmocks.MockEmailQueueRepository) {}},
 		{"cancelled during the batch", domain.BroadcastStatusCancelled, func(q *domainmocks.MockEmailQueueRepository) {
-			q.EXPECT().DeleteBySource(gomock.Any(), "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(10), nil)
+			q.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(10), nil)
 		}},
-		{"paused during the batch", domain.BroadcastStatusPaused, func(q *domainmocks.MockEmailQueueRepository) {
-			q.EXPECT().PauseBySource(gomock.Any(), "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(10), nil)
+		{"paused, the task taken by another instance", domain.BroadcastStatusPaused, func(q *domainmocks.MockEmailQueueRepository) {
+			q.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(10), nil)
 		}},
 	}
 	for _, tc := range cases {
@@ -187,8 +189,16 @@ func stopsWhenTheTaskIsNoLongerItsOwn(t *testing.T, statusAfterBatch domain.Broa
 	contacts.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", gomock.Any(), 10, gomock.Any()).Return(batch, nil).Times(1)
 	sender.EXPECT().SendBatch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(10, 0, nil).Times(1)
-	// The cancel or pause committed while the batch was queued: it moved the task, so the
-	// run's save finds it no longer running.
+	// The queued emails are settled from the broadcast read with its lock, inside one
+	// transaction (the queue writes are the Tx ones).
+	broadcasts.EXPECT().WithTransaction(gomock.Any(), "workspace-123", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) }).Times(1)
+	broadcasts.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "workspace-123", broadcastID).
+		DoAndReturn(func(context.Context, *sql.Tx, string, string) (*domain.Broadcast, error) {
+			return &domain.Broadcast{ID: broadcastID, Status: statusAfterBatch}, nil
+		}).Times(1)
+	// The cancel committed while the batch was queued: it marked the task failed, so the run's
+	// save finds it no longer running.
 	taskRepo.EXPECT().SaveState(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(context.Context, string, string, float64, *domain.TaskState) error {
 			batchQueued = true

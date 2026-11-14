@@ -1018,7 +1018,7 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 			return s.requeueTask(bgCtx, task, requeue)
 		}
 		// The processor found the task no longer its own (TaskRepository.SaveState): another
-		// execution holds it, or a cancel or a pause moved it. Every write from here would
+		// execution holds it, or a cancel marked it failed. Every write from here would
 		// land on a row this run no longer owns.
 		if errors.Is(err, domain.ErrTaskNotRunning) {
 			s.logger.WithFields(map[string]interface{}{

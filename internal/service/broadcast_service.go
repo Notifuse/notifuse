@@ -671,8 +671,16 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		// broadcast past its completion date has a completed task.
 		var task *domain.Task
 		if broadcast.CompletedAt == nil {
-			if found, readErr := s.taskRepo.GetTaskByBroadcastID(ctx, request.WorkspaceID, broadcast.ID); readErr == nil {
+			found, readErr := s.taskRepo.GetTaskByBroadcastID(ctx, request.WorkspaceID, broadcast.ID)
+			switch {
+			case readErr == nil:
 				task = found
+			case !errors.Is(readErr, domain.ErrTaskNotFound):
+				// The budget is then reset by the resume event alone, after the commit.
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcast.ID,
+					"error":        readErr.Error(),
+				}).Warn("Failed to read the task of the broadcast to resume")
 			}
 			if !allRecipientsQueued(task) {
 				if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, broadcast.VariationsToSend()); err != nil {
@@ -750,7 +758,8 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		// broadcast for good: a broadcast read as resumed means the task read sees the
 		// budget. Reset after the commit, by the resume event, the run could read the
 		// broadcast resumed and the task at its last attempt, and fail a resumed broadcast.
-		// A failed reset is logged: the resume event resets the budget again.
+		// A failed read of the task or a failed reset is logged: the resume event resets the
+		// budget again, after the commit.
 		if task != nil && task.Status != domain.TaskStatusCompleted {
 			if resetErr := s.taskRepo.ResetRetryBudget(ctx, request.WorkspaceID, task.ID); resetErr != nil {
 				s.logger.WithFields(map[string]interface{}{

@@ -127,21 +127,30 @@ func (o *BroadcastOrchestrator) pauseQueueEntries(ctx context.Context, workspace
 
 // settleQueuedAfterLostTask deals with the emails a run queued before it found its task gone:
 // a cancelled broadcast's are deleted and a paused one's paused, as the cancel or pause did to
-// those already queued. Any other status leaves them to be sent.
+// those already queued. Any other status leaves them to be sent. The broadcast is read with its
+// lock: a cancel marks the task failed before its own transaction commits, so an unlocked read
+// could still see the broadcast sending; the locked read waits for that commit.
 func (o *BroadcastOrchestrator) settleQueuedAfterLostTask(ctx context.Context, workspaceID, broadcastID string) {
-	broadcast, err := o.broadcastRepo.GetBroadcast(ctx, workspaceID, broadcastID)
+	writeCtx, cancel := leaseContext(ctx)
+	defer cancel()
+	err := o.broadcastRepo.WithTransaction(writeCtx, workspaceID, func(tx *sql.Tx) error {
+		broadcast, err := o.broadcastRepo.GetBroadcastForUpdateTx(writeCtx, tx, workspaceID, broadcastID)
+		if err != nil {
+			return err
+		}
+		switch broadcast.Status {
+		case domain.BroadcastStatusCancelled:
+			return o.settleQueueEntriesTx(writeCtx, tx, broadcastID, o.emailQueueDeleteTx, "cancelled_queue_count")
+		case domain.BroadcastStatusPaused:
+			return o.settleQueueEntriesTx(writeCtx, tx, broadcastID, o.emailQueuePauseTx, "paused_queue_count")
+		}
+		return nil
+	})
 	if err != nil {
 		o.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"error":        err.Error(),
-		}).Warn("Failed to read the broadcast after losing its task")
-		return
-	}
-	switch broadcast.Status {
-	case domain.BroadcastStatusCancelled:
-		o.deleteQueueEntries(ctx, workspaceID, broadcastID)
-	case domain.BroadcastStatusPaused:
-		o.pauseQueueEntries(ctx, workspaceID, broadcastID)
+		}).Warn("Failed to settle the queued emails after losing the task")
 	}
 }
 
@@ -738,7 +747,8 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			// The broadcast is read before the task: a resume writes the task's
 			// fresh retry budget before its own transaction commits (ResumeBroadcast
 			// calls ResetRetryBudget inside it), so a broadcast read past a pause
-			// means the task read below sees that budget.
+			// means the task read below sees that budget, unless that reset or the
+			// read of the task before it failed (both logged).
 			broadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(finalizeCtx, task.WorkspaceID, broadcastID)
 			if getBroadcastErr != nil {
 				o.logger.WithFields(map[string]interface{}{
@@ -1516,11 +1526,11 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			startTime,
 		)
 		if errors.Is(saveErr, domain.ErrTaskNotRunning) {
-			// The task is no longer this run's: another execution holds it, or a cancel or a
-			// pause moved it. The next batch would go to recipients that are not this run's
-			// to send, so the run stops and writes nothing more to the task. The batch it
-			// just queued may have committed after the cancel or pause cleared the queue:
-			// it is settled as the broadcast now stands.
+			// The task is no longer this run's: another execution holds it, or a cancel marked
+			// it failed (a pause leaves a held task to its run). The next batch would go to
+			// recipients that are not this run's to send, so the run stops and writes nothing
+			// more to the task. The batch it just queued may have committed after the cancel
+			// cleared the queue: it is settled as the broadcast now stands.
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":      task.ID,
 				"broadcast_id": broadcastState.BroadcastID,
@@ -1737,8 +1747,8 @@ func (o *BroadcastOrchestrator) finishRun(ctx context.Context, task *domain.Task
 			"task_id":      task.ID,
 			"broadcast_id": broadcastID,
 			"error":        err.Error(),
-		}).Error("Failed to update broadcast status to processed")
-		return false, fmt.Errorf("failed to update broadcast status to processed: %w", err)
+		}).Error("Failed to write the end of the run")
+		return false, fmt.Errorf("failed to write the end of the run: %w", err)
 	}
 
 	switch left {

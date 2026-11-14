@@ -928,7 +928,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 			},
 			expectedDone:  false,
 			expectedError: true,
-			errorContains: "failed to update broadcast status to processed",
+			errorContains: "failed to write the end of the run",
 		},
 		{
 			name: "workspace_not_found",
