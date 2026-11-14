@@ -13,10 +13,10 @@ const seconds = (ms: number) => `${ms / 1000}s`
 export const antdTheme: ThemeConfig = {
   token: {
     colorPrimary: c.primary[500],
-    // One step darker than the button: a filled primary button's hover has to read as a change. The
-    // press is one step darker again.
-    colorPrimaryHover: c.primary[600],
-    colorPrimaryActive: c.primary[700],
+    // Two steps darker than the button: at 600 a filled primary button's hover hardly read as a
+    // change. The press is one step darker again.
+    colorPrimaryHover: c.primary[700],
+    colorPrimaryActive: c.primary[800],
     colorPrimaryBorder: c.primary[300],
     colorLink: c.primary[600],
     colorLinkHover: c.primary[700],

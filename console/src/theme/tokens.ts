@@ -30,7 +30,9 @@ const primary = {
   400: '#8c82ff',
   500: '#6a5af9',
   600: '#5b4beb',
-  700: '#4b3fd6'
+  700: '#4b3fd6',
+  /** A pressed primary button, one step past its hover (700). */
+  800: '#3b33c1'
 } as const
 
 export const colors = {

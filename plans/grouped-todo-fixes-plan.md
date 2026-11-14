@@ -1560,7 +1560,7 @@ translated in the eight catalogues (`console/CLAUDE.md`). Each point gets a vite
   `RailLayout.tsx:140, 163`: `has-[:focus-visible]` instead of `focus-within`. `MetaLine.test.tsx` added.
 - `theme/antdTheme.ts`: `Table.rowHoverBg` takes a tint distinct from `Table.headerBg` (Pierre, 14/11), and
   `antdTheme.test.ts` computes the contrast ratio between `Tag.defaultBg` and the hover tint; `colorPrimaryHover`
-  one step darker; `Menu.activeBarBorderWidth: 0` moves to the sidebar's own `ConfigProvider`; a sorted fixed
+  two steps darker (`primary[700]`, the press `primary[800]`); `Menu.activeBarBorderWidth: 0` moves to the sidebar's own `ConfigProvider`; a sorted fixed
   column has an opaque background (`td.ant-table-cell-fix.ant-table-column-sort`); links marked
   `data-plain-link` inherit their color (`antd-overrides.css`), used by `WebAnalyticsLivePage.tsx:125-131`.
 - `blog/ThemeEditorDrawer.tsx`: the editor fills the drawer with a flex column (`min-h-0 flex-1`).
@@ -1681,8 +1681,10 @@ deleted."
   (`ant-popover-open`), holds the focus.
 - 8.6, theme: the row hover is `primary[500]` at 3 % over the surface, made opaque (`over()`, `#fbfaff`) so
   that a fixed column hides what scrolls under it; the test computes the contrast of the neutral tag on it
-  (1.059) and on the header (1.044), and requires more than the header's. `colorPrimaryHover` is
-  `primary[600]`, one step darker than the button and one lighter than `colorPrimaryActive` (`primary[700]`). The sidebar's menu border is removed by a rule
+  (1.077) and on the header (1.062), and requires more than the header's. `colorPrimaryHover` is
+  `primary[700]` (contrast 1.490 with the button, against 1.217 for the `primary[600]` it had, which the TODO point
+  found too faint), and `colorPrimaryActive` a new `primary[800]` (`#3b33c1`, 1.829); the test requires the hover
+  to stand further from the button than 600 did, and the press further again. The sidebar's menu border is removed by a rule
   scoped to `.app-sidebar-nav` in `antd-overrides.css`, not a local `ConfigProvider` (the theme rules forbid a
   local theme). `data-plain-link` uses `color: revert-layer`, which hands the colour back to the link's
   Tailwind classes; `inherit` would beat them too. The open-row hover reads `--ant-table-row-hover-bg`.
@@ -1804,7 +1806,7 @@ console builds the missing series of a dimension query with no data; the visits 
 extra row with `WithArgs(..., 201)`; the audit middleware test is rewritten so it fails without the fix
 and the `theme.version` ResponseKey goes; the lot 7 command is `TestTemplatesUsage` plus the `-count=20`
 run; the docs' "entered" line of the trigger card (features/automations.mdx) joins 9.3; the drag
-announcements are in `dnd/LibraryDnd.tsx`; primary hover takes a step that is not the active colour; the
+announcements are in `dnd/LibraryDnd.tsx`; primary hover takes a step that is not the active colour, and (delta review N1) a step past the 600 it had; the
 console defects shipped in 43.0 (fr.po apostrophes, AI assistant strings, "Type:", template preview and
 PostDrawer reads without Templates read, API key name underscore) get Fix lines; lot 8 runs the e2e
 specs it changes and `vitest run`, not bare `vitest`.

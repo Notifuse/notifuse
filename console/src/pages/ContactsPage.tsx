@@ -375,7 +375,7 @@ export function ContactsPage() {
     mutationFn: (email: string) => contactsApi.delete({ workspace_id: workspaceId, email }),
     onMutate: async (email) => {
       setDeletedAt((prev) => new Map(prev).set(email, Date.now()))
-      // Every page size of every view: while more rows load, the table still shows the key before
+      // Every page size of every view, since the table may show any of them next
       const tables = { queryKey: ['contacts', workspaceId] }
       await queryClient.cancelQueries(tables)
       const previous = queryClient.getQueriesData<ContactsTableData>(tables)
@@ -406,6 +406,20 @@ export function ContactsPage() {
     },
     onSettled: invalidateAfterContactChange
   })
+
+  // Once the table's data is newer than a delete (the optimistic update stamps it, and so does any
+  // later read), that data no longer holds the row: forget the delete, so that a contact created
+  // again with that email shows during the next load more.
+  React.useEffect(() => {
+    if (table.isPlaceholderData) return
+    const answered = [...deletedAt].filter(([, at]) => table.dataUpdatedAt > at).map(([email]) => email)
+    if (answered.length === 0) return
+    setDeletedAt((prev) => {
+      const next = new Map(prev)
+      for (const email of answered) next.delete(email)
+      return next
+    })
+  }, [deletedAt, table.isPlaceholderData, table.dataUpdatedAt])
 
   // ---- Lists and segments created or edited from the rail and the list header
   const [listDrawer, setListDrawer] = React.useState<'create' | 'edit' | null>(null)

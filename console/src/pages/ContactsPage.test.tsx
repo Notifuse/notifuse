@@ -660,7 +660,7 @@ describe('ContactsPage', () => {
     it('removes the row from every table of the workspace while the delete runs', async () => {
       renderPage()
       await screen.findByText('alice@example.com')
-      // The key of the next page size, still loading when the delete starts
+      // The cached rows of another page size, which the table may show next
       const other = ['contacts', 'ws', { limit: 100 }]
       // Kept without an observer (the client collects at once otherwise)
       queryClient.setQueryDefaults(other, { gcTime: Infinity })
@@ -692,6 +692,22 @@ describe('ContactsPage', () => {
         expect(screen.queryByRole('button', { name: 'delete alice@example.com' })).not.toBeInTheDocument()
       )
       expect(screen.getByRole('button', { name: 'delete bob@example.com' })).toBeInTheDocument()
+    })
+
+    it('shows a contact created again with a deleted email while more rows load', async () => {
+      const { rerender } = renderPage()
+      // The delete succeeds and she is created anew with that email before the next read
+      vi.mocked(contactsApi.delete).mockImplementationOnce(async () => ({ success: true }))
+      fireEvent.click(await screen.findByRole('button', { name: 'delete alice@example.com' }))
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
+      await waitFor(() => expect(contactsApi.delete).toHaveBeenCalled())
+      await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(2))
+      await screen.findByRole('button', { name: 'delete alice@example.com' })
+      // Load more: the next page size is still loading, so the table shows the rows it had
+      vi.mocked(contactsApi.list).mockImplementationOnce(() => new Promise(() => {}))
+      rerender({ limit: 100 })
+      await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(3))
+      expect(screen.getByRole('button', { name: 'delete alice@example.com' })).toBeInTheDocument()
     })
 
     it('closes the sheet of a contact deleted from it', async () => {

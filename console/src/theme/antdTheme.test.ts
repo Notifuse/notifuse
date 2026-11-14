@@ -54,11 +54,13 @@ describe('antd theme', () => {
     expect(components.Table!.rowHoverBg).toMatch(/^#[0-9a-f]{6}$/i)
   })
 
-  it('makes the hover of a primary button one step darker than the button', () => {
-    expect(token.colorPrimaryHover).toBe(colors.primary[600])
-    expect(token.colorPrimaryHover).not.toBe(token.colorPrimary)
-    // and apart from a pressed one
-    expect(token.colorPrimaryHover).not.toBe(token.colorPrimaryActive)
+  it('makes the hover of a primary button stand further from the button than the 600 step it had', () => {
+    const button = token.colorPrimary as string
+    const hover = token.colorPrimaryHover as string
+    const pressed = token.colorPrimaryActive as string
+    expect(contrast(button, hover)).toBeGreaterThan(contrast(button, colors.primary[600]))
+    // and a pressed button darker again
+    expect(contrast(button, pressed)).toBeGreaterThan(contrast(button, hover))
   })
 
   it('leaves the right border of the menus to antd: the sidebar takes its own off in the overrides', () => {
@@ -68,8 +70,8 @@ describe('antd theme', () => {
   it('takes its colours from the Nuit claire tokens', () => {
     expect(token).toMatchObject({
       colorPrimary: '#6a5af9',
-      colorPrimaryHover: '#5b4beb',
-      colorPrimaryActive: '#4b3fd6',
+      colorPrimaryHover: '#4b3fd6',
+      colorPrimaryActive: '#3b33c1',
       colorPrimaryBorder: '#c9c4ff',
       colorLink: '#5b4beb',
       colorLinkHover: '#4b3fd6',

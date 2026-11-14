@@ -135,7 +135,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The blog's post list in the console now shows every post, not only the first 100.
 
-- **Fix**: On the blog page in the console, a member without Blog write no longer gets buttons that fail: New post, Create Your First Post and Theme are disabled, and the category buttons and the post menus are not shown. Writing or editing a post is disabled, with its reason, for a member without Templates read or write, since a post's content is a template.
+- **Fix**: On the blog page in the console, a member with Blog write but without Workspace write can now write posts, and a member without Blog write no longer gets buttons that fail: New post, Create Your First Post and Theme are disabled, and the category buttons and the post menus are not shown. Writing or editing a post is disabled, with its reason, for a member without Templates read or write, since a post's content is a template.
 
 - **Fix**: The email builder's AI assistant is in the console's language: its title, its placeholder and its messages were in English whatever the language.
 
