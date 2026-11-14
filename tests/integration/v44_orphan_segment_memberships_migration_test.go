@@ -17,8 +17,8 @@ import (
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
 
-// v44 removes the segment memberships whose contact no longer exists (left behind by deletions
-// before 38.0) without a segment.left timeline entry or webhook delivery for the erased address,
+// v44 removes the segment memberships whose contact no longer exists (mostly left behind by
+// deletions before 38.0) without a segment.left timeline entry or webhook delivery for the erased address,
 // keeps the memberships of existing contacts, and leaves both membership triggers working.
 func TestV44OrphanSegmentMembershipsMigration(t *testing.T) {
 	testutil.SkipIfShort(t)
@@ -56,7 +56,7 @@ func TestV44OrphanSegmentMembershipsMigration(t *testing.T) {
 		require.NoError(t, err)
 	}
 	insertMembership(t, kept)
-	insertMembership(t, gone) // no contact row: what a deletion before 38.0 left behind
+	insertMembership(t, gone) // no contact row, as a deletion before 38.0 left behind
 
 	runV44 := func(t *testing.T) *sql.Tx {
 		t.Helper()

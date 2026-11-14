@@ -58,26 +58,30 @@ import (
 //
 // Between the builds and the recount, the segment memberships whose contact no longer exists
 // are deleted (v44OrphanMembershipsSQL), with the two membership triggers of contact_segments
-// disabled around the delete. Until 38.0 deleting a contact left its memberships in place (since
-// then, only a deletion failing between the contact row and its memberships does), and
-// contact_segments has no foreign key to contacts, so they stay until a rebuild at a higher
-// version (an edit, a manual rebuild) or a recomputation of the address by the segment queue
-// removes them, each delete writing a segment.left timeline entry and webhook delivery with the
-// erased address. A daily rebuild of relative-date segments at a new version would do this for
-// every such segment at once. The disabled state is a
-// catalog change seen by no other session before commit, and ALTER TABLE ... DISABLE TRIGGER
-// holds a SHARE ROW EXCLUSIVE lock on contact_segments until commit: it lets reads through
-// and makes every membership write wait, so none runs without its triggers; a rollback
-// restores them. The lock is taken after the builds so membership writes (segment builds, the
-// segment queue, contact deletions) do not wait for their duration, and before the recount
-// because a membership write locks contact_segments and then, through the timeline trigger,
-// automations: taking contact_segments while holding automations rows could deadlock with it.
-// No membership write touches message_history or broadcasts, so waiting for contact_segments
-// while holding the builds' SHARE lock and the backfill's locks forms no cycle; the wait is
-// bounded by the same lock_timeout. Writes to message_history, already waiting behind the
-// builds' SHARE lock, also wait for the delete. Enabling a trigger sets it to fire normally, whatever its
-// state before the migration. A rerun takes the lock again and deletes only the memberships
-// orphaned since the previous run, without events either.
+// disabled around the delete. Until 38.0 deleting a contact left its memberships in place.
+// Since then a deletion failing between the contact row and its memberships still leaves
+// some, as does a segment build or queue recomputation that matches a contact and adds its
+// membership just after a deletion removed it. contact_segments has no foreign key to
+// contacts, so these rows stay until a rebuild at a higher version, a recomputation of the
+// address by the segment queue or the deletion of the segment removes them, each delete
+// writing a segment.left timeline entry and webhook delivery with the erased address. A
+// daily rebuild of relative-date segments at a new version would do this for every such
+// segment at once.
+//
+// The disabled state is a catalog change seen by no other session before commit, and
+// ALTER TABLE ... DISABLE TRIGGER holds a SHARE ROW EXCLUSIVE lock on contact_segments until
+// commit: it lets reads through and makes every membership write wait, so none runs without
+// its triggers; a rollback restores them. The lock is taken after the builds so membership
+// writes (segment builds, the segment queue, contact deletions) do not wait for their
+// duration, and before the recount because a membership write locks contact_segments and
+// then, through the timeline trigger, automations: taking contact_segments while holding
+// automations rows could deadlock with it. No membership write touches message_history or
+// broadcasts, so waiting for contact_segments while holding the builds' SHARE lock and the
+// backfill's locks forms no cycle; the wait is bounded by the same lock_timeout. Writes to
+// message_history, already waiting behind the builds' SHARE lock, also wait for the delete.
+// Enabling a trigger sets it to fire normally, whatever its state before the migration. A
+// rerun takes the lock again and deletes only the memberships orphaned since the previous
+// run, without events either.
 //
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}
