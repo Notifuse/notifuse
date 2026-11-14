@@ -1109,10 +1109,13 @@ func (s *TaskService) SubscribeToBroadcastEvents(eventBus domain.EventBus) {
 	s.logger.Info("TaskService subscribed to broadcast events")
 }
 
-// sendNowTaskDelay is how far ahead a send-now task is due when it is created: the
-// scheduler and the cron leave it to RunTaskNow, which the schedule request calls once the
-// broadcast has committed, and pick it up only if that execution never started.
-const sendNowTaskDelay = 30 * time.Second
+// sendNowTaskDelay is how far ahead a send-now task is due when it is created. The task
+// commits before the broadcast does, so the scheduler and the cron wait this long before they
+// may pick it, which the broadcast's commit takes far less than; a run that finds the
+// broadcast still a draft hands the task back anyway. Where tasks run in this process,
+// RunTaskNow starts it once the broadcast has committed; elsewhere (the cron, or a scheduler
+// that dispatches over HTTP) the next pass after this delay does.
+const sendNowTaskDelay = 5 * time.Second
 
 // ScheduleBroadcastTask creates or resets the task of a broadcast being scheduled; see
 // domain.TaskService. It runs in the request, before the broadcast's own write commits, so a

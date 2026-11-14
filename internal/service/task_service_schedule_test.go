@@ -51,8 +51,8 @@ func TestTaskService_ScheduleBroadcastTask(t *testing.T) {
 		require.NotNil(t, created.State.SendBroadcast)
 		assert.Equal(t, "b1", created.State.SendBroadcast.BroadcastID)
 		require.NotNil(t, created.NextRunAfter)
-		assert.True(t, (&timeNear{want: time.Now().Add(30 * time.Second)}).Matches(*created.NextRunAfter),
-			"the scheduler leaves it to RunTaskNow, which runs once the broadcast has committed")
+		assert.True(t, (&timeNear{want: time.Now().Add(sendNowTaskDelay)}).Matches(*created.NextRunAfter),
+			"due shortly: not before the broadcast has committed")
 	})
 
 	t.Run("a broadcast scheduled for later gets a task due at its time", func(t *testing.T) {

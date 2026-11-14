@@ -84,7 +84,7 @@ All notable changes to this project will be documented in this file.
 
   **Before you upgrade, if you set `email.text` through the API**: it was stored and never sent, and is now sent as the email's text version. It is checked when the template is saved (Liquid syntax, 64 KiB at most, 400 otherwise) and rendered with Liquid, so a literal `{{` needs `{% raw %}`.
 
-- **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, in the language it was sent in, with the template version and the data of that send. Viewing it records no open and its links record no click; they keep their UTM parameters. With click tracking on, the click on the link in the email itself counts as a click. Only emails whose template uses the variable have a web version; transactional and double opt-in emails leave it empty. Deleting the template takes its web versions down, and so does deleting the contact. The link signs the domain it was sent with, and the page opens there and on the API endpoint only, which keeps another workspace's custom domain from showing it. The API endpoint shows every workspace's web versions, and workspaces that already share a custom domain show each other's on it. After a workspace changes custom domain, its old links keep working while the old domain points to Notifuse, and stop within a few minutes of another workspace taking it; a redirect keeps them working only if it goes to the API endpoint. Behind a reverse proxy, forward the original `Host` or set `X-Forwarded-Host` or `Forwarded`, which is then the only host the request is judged on; a proxy that sends the API endpoint's host as `Host` turns the rule off. The link editor of the visual builder offers it as a link type, "Web version of the email".
+- **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, in the language it was sent in, with the template version and the data of that send. Viewing it records no open and its links record no click; they keep their UTM parameters. With click tracking on, the click on the link in the email itself counts as a click. Only emails whose template uses the variable have a web version; transactional, double opt-in and broadcast test emails leave it empty. Deleting the template takes its web versions down, and so does deleting the contact. The link signs the domain it was sent with, and the page opens there and on the API endpoint only, which keeps another workspace's custom domain from showing it. The API endpoint shows every workspace's web versions, and workspaces that already share a custom domain show each other's on it. After a workspace changes custom domain, its old links keep working while the old domain points to Notifuse, and stop within a few minutes of another workspace taking it; a redirect keeps them working only if it goes to the API endpoint. Behind a reverse proxy, forward the original `Host` or set `X-Forwarded-Host` or `Forwarded`, which is then the only host the request is judged on; a proxy that sends the API endpoint's host as `Host` turns the rule off. The link editor of the visual builder offers it as a link type, "Web version of the email".
 
   From this version on, automation emails keep the data they were rendered with in the message history, encrypted, as broadcasts already did, so their web version can be shown. Deleting a contact removes it.
 
@@ -99,6 +99,24 @@ All notable changes to this project will be documented in this file.
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again. A custom domain URL whose domain cannot be read is refused.
 
 - **Fix**: Scheduled broadcasts now record when they started sending, as broadcasts sent at once already did. Upgrading to 44 dates the ones already sent from their first email.
+
+- **Fix**: A broadcast paused while its last emails are being queued stays paused, and those emails wait for the resume.
+
+- **Fix**: Scheduling a broadcast fails when its sending task cannot be created, instead of leaving a broadcast that never sends. "Send now" starts that broadcast at once, not another one that is due.
+
+- **Improvement**: A broadcast whose last attempt cannot record its outcome is tried again instead of staying in Sending; a run that outlives its time no longer makes the next run send to recipients again.
+
+- **Fix**: With Exit on reply, the last email of a journey is sent.
+
+- **Improvement**: With Exit on reply, an email whose journey cannot be checked is retried later instead of being sent, and an email whose journey no longer exists is not sent.
+
+- **Fix**: The test send of a broadcast renders Liquid in its subject and no longer counts in the broadcast's statistics.
+
+- **Improvement**: `audience.exclude_unsubscribed` can only be changed before a broadcast starts sending, and a scheduled broadcast that has started sending can no longer change its tracking mode.
+
+- **Improvement**: A graceful shutdown ends within 70 seconds, even when closing the database hangs.
+
+- **Improvement**: A broadcast run that ends while its recipient feed waits to retry stops at once instead of waiting out the delay.
 
 - **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date.
 
