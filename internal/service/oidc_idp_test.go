@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -29,6 +30,8 @@ type fakeIdP struct {
 	key     *rsa.PrivateKey
 	kid     string
 	idToken string // the id_token the /token endpoint returns on the next exchange
+	// tokenHits counts the calls to the token endpoint.
+	tokenHits atomic.Int32
 }
 
 func newFakeIdP(t *testing.T) *fakeIdP {
@@ -60,6 +63,7 @@ func newFakeIdP(t *testing.T) *fakeIdP {
 		})
 	})
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+		f.tokenHits.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"access_token": "fake-access-token",

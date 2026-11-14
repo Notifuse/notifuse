@@ -118,6 +118,10 @@ type SendBroadcastState struct {
 	TestPhaseCompleted        bool   `json:"test_phase_completed"`
 	TestPhaseRecipientCount   int    `json:"test_phase_recipient_count"`
 	WinnerPhaseRecipientCount int    `json:"winner_phase_recipient_count"`
+	// WinnerPhaseStartOffset is the recipient offset at which the winner phase began:
+	// the recipients the test phase actually reached, 0 when a winner was picked before
+	// any test email went out. Unset in a state saved before it was recorded.
+	WinnerPhaseStartOffset *int64 `json:"winner_phase_start_offset,omitempty"`
 }
 
 // BuildSegmentState contains state specific to segment building tasks
