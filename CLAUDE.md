@@ -17,6 +17,15 @@ Clean Architecture with constructor-based dependency injection, layered as:
 
 Interface conventions: define interfaces in the consuming package (not the implementing one), keep them small and focused, and generate mocks with `//go:generate mockgen`.
 
+## Architecture reference
+
+The private repository `Notifuse/architecture` (checked out at `../architecture`) documents the broadcast,
+email queue and provider webhook flows, task scheduling and shutdown, and the properties each one holds,
+verified against a notifuse commit. When a change alters one of these flows (its steps, the conditions its
+writes check, its transactions, or a property's statement), update the matching `flows/*.md` in a PR to
+that repository, and mark each finding the change settles `fixed` with the notifuse commit. Without access
+to it, list the flows the change touches in the PR description.
+
 ## Database migrations
 
 One system database plus one database per workspace; a schema change can touch either or both. All schema changes go through the custom migration system in `internal/migrations/`:

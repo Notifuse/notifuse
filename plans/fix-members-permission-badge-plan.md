@@ -85,8 +85,7 @@ a literal, per CLAUDE.md):
 
 ## Gemini review
 
-Raw: `/mnt/project-files/reviews/fix-members-permission-badge-gemini-brut-plan.md`; verification:
-`/mnt/project-files/reviews/fix-members-permission-badge-gemini-verif-plan.md`. Remarks 1, 2 and 4
+A raw answer and its verification, kept outside the repository. Remarks 1, 2 and 4
 integrated. Remark on the read-only popover matrix showing unenforced verbs as stored (not as
 granted) is pre-existing display and left as is.
 

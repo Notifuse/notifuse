@@ -35,8 +35,8 @@ Resolve, do not persist. In `ResolveEmailContent`, when a translation is picked:
 - if the translation has no `SenderID`, use the base template's `SenderID`;
 - if the translation has no `ReplyTo`, use the base template's `ReplyTo`;
 - a value set on the translation itself (possible through the API) still wins;
-- return a **shallow copy** of the translation's `EmailTemplate` with those two fields filled, so the
-  stored template (which callers may hold, cache or re-save) is never mutated.
+- return a **shallow copy** of the translation's `EmailTemplate` with those two fields filled, so
+  the stored template (which callers may hold, cache or re-save) is never mutated.
 
 Nothing else changes: subject, preview, content, editor mode, MJML source and plain text stay
 per-language. When the default content is returned (no language, default language, no translation,
@@ -51,17 +51,17 @@ while the base template sets one; the console cannot express either anyway.
 `SendEmailForTemplate` (`internal/service/email_service.go`, "optional override for reply to")
 replaces an explicit `email_options.reply_to` with the template's reply-to whenever the template has
 one. The API documents `reply_to` as "Set custom reply-to email address", and `TestTemplate` already
-lets the explicit one win. Today translated sends escape that override only because their reply-to is
-empty; inheriting it would extend the override to them. So the same PR makes the template's reply-to
-a fallback there too: applied only when the send gives none. Covers transactional sends, emails
-relayed through the SMTP bridge (whose `Reply-To` header fills `email_options.reply_to`), and list
-double opt-in emails (which never set one, so they keep the template's).
+lets the explicit one win. Today translated sends escape that override only because their reply-to
+is empty; inheriting it would extend the override to them. So the same PR makes the template's
+reply-to a fallback there too: applied only when the send gives none. Covers transactional sends,
+emails relayed through the SMTP bridge (whose `Reply-To` header fills `email_options.reply_to`), and
+list double opt-in emails (which never set one, so they keep the template's).
 
 Why at resolution rather than on save: it heals templates already stored without a migration, covers
 translations written by the API, and keeps one rule in one place for all six send paths.
 
-No SQL change, no environment variable. No version bump of its own: the change ships in 44.0, which `dev`
-already carries, so the CHANGELOG entries go under `## [44.0] - unreleased` and the web
+No SQL change, no environment variable. No version bump of its own: the change ships in 44.0, which
+`dev` already carries, so the CHANGELOG entries go under `## [44.0] - unreleased` and the web
 analytics SDK (`web_analytics_sdk/package.json` and its `dist/` bundles) keeps `dev`'s version.
 
 ## Files and tests (TDD: tests first)
@@ -70,11 +70,13 @@ analytics SDK (`web_analytics_sdk/package.json` and its `dist/` bundles) keeps `
 
 `ResolveEmailContent`: copy-and-inherit as described.
 
-Tests — `internal/domain/template_test.go`, new `TestTemplate_ResolveEmailContent_InheritsSenderAndReplyTo`:
+Tests — `internal/domain/template_test.go`, new
+`TestTemplate_ResolveEmailContent_InheritsSenderAndReplyTo`:
 
 1. translation without `sender_id` inherits the base template's `sender_id`;
 2. translation without `reply_to` inherits the base template's `reply_to`;
-3. translation with its own `sender_id` / `reply_to` keeps them, each field on its own (new `it` fixture, `it-sender`);
+3. translation with its own `sender_id` / `reply_to` keeps them, each field on its own (new `it`
+   fixture, `it-sender`);
 4. base template without sender or reply-to: translation stays empty (default sender is then picked
    by `GetSender`, as today);
 5. resolving does not mutate the stored translation (`Translations["it"].Email.SenderID` and
@@ -129,8 +131,8 @@ reply-to, and its `fr` translation has neither:
 - `openapi/components/schemas/transactional.yaml`, `reply_to`: overrides the template's reply-to.
 - `openapi.json` re-bundled from those schemas.
 - `../docs` (separate PR, `docs/` branch to `dev`): `features/templates.mdx` (translations send from
-  the template's sender with its reply-to) and `features/transactional-api.mdx` (`reply_to` overrides
-  the template's).
+  the template's sender with its reply-to) and `features/transactional-api.mdx` (`reply_to`
+  overrides the template's).
 
 ## Known, not handled here
 

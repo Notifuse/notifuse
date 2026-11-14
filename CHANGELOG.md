@@ -140,6 +140,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: For a member without Templates read, the message history no longer asks for the template of each message, which the server refused.
 
+- **Fix**: The button that picks the message history's columns has an accessible name, "Select columns", for screen readers.
+
 - **Fix**: The system emails (workspace invitation, sign-in code, circuit breaker alert) now put their text part before their HTML part, as the standard asks, so a mail client that picks the last part it can display shows the HTML.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
@@ -180,7 +182,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Deleting a folder in the file manager now deletes its files too.
 
-- **Fix**: Emails sent in a template's translation now leave from the sender chosen on the template, with its reply-to, instead of the email integration's default sender with no reply-to. Emails already queued before the upgrade keep the sender they were queued with.
+- **Fix**: Emails sent in a template's translation now leave from the sender chosen on the template, with its reply-to, instead of the email integration's default sender with no reply-to. Emails already queued before the upgrade keep the sender and reply-to they were queued with.
 
 - **Fix**: A transactional email sent with `email_options.reply_to`, or relayed through the SMTP bridge with a `Reply-To` header, now uses that address even when its template has a reply-to of its own.
 

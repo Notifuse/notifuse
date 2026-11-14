@@ -1,6 +1,6 @@
 # Saved blocks: manage them from the library, and a richer "+" popover
 
-Lots 2 and 3 of the custom blocks study (`/mnt/project-files/etudes/custom-blocks-ux-bibliotheque.md`, P4 and P2).
+Lots 2 and 3 of the custom blocks study (P4, library management, and P2, the "+" popover).
 Builds on the library of #517 (`feat/saved-blocks-library`). This branch, `feat/saved-blocks-management`, starts
 from it, and its PR goes to `dev` once #517 is merged. Frontend only: the API already has `templateBlocks.update`
 (id, name, block) and `templateBlocks.delete`, both gated on Templates write. No schema, migration or env change.

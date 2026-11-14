@@ -459,7 +459,7 @@ Released behaviour, so Fix lines, short and client-facing:
 
 ### Corrections after the plan review
 
-The plan review (`/mnt/project-files/reviews/grouped-pr-lot2-plan-review.md`, Opus, xhigh) confirmed problems in
+The plan review (Opus, xhigh) confirmed problems in
 ten points. They replace what the points above say where the two differ.
 
 - **2.1** The requeue does not go through `MarkAsPending`, which resets `retry_count`. A new repository method
@@ -525,7 +525,7 @@ the sending-started annotation of a resume during a paused run; the small gaps l
 
 ### Corrections after the delta review (lot 2, round 2)
 
-The review of 0b0c148 (`/mnt/project-files/reviews/grouped-pr-lot2-fix-review.md`) confirmed one bug: the run
+The review of 0b0c148 confirmed one bug: the run
 that loses its task read the broadcast unlocked, and a cancel marks the task failed before its own commit.
 `settleQueuedAfterLostTask` now reads it with `GetBroadcastForUpdateTx` and settles the rows with the Tx queue
 writes. Minor remarks taken: a pause never takes a held task (comments and the test case say so); a failed
@@ -552,7 +552,7 @@ make test-integration  # the full suite once before the code review
 
 ## Lot 3: the automation executor and its step statistics
 
-Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot3-plan-review.md`; corrections at the
+Reviewed before code (Opus xhigh; corrections at the
 end of the lot). No schema change: every point is Go code or a statement on existing columns.
 
 ### 3.1 A journey whose `context` is not a JSON object no longer holds its batch
@@ -761,7 +761,7 @@ the two differ.
 
 ### Corrections after the code review (lot 3, round 1)
 
-The code review (`/mnt/project-files/reviews/grouped-pr-lot3-code-review.md`, Fable, high) confirmed three bugs,
+The code review (Fable, high) confirmed three bugs,
 three tests that could not fail and four overstated claims. Each fix has a test, and reverting a fix fails it.
 The delta review (`grouped-pr-lot3-fix-review.md`) found three mutations short of a revert that pass: the timer
 armed at creation, the `AfterFunc` not unregistered, and the row-written-then-cancelled case; they stay as they
@@ -875,7 +875,7 @@ compile request limit: "Improvement: `templates.compile` refuses a text version 
 
 ### Corrections after the plan review (lot 4)
 
-The plan review (`/mnt/project-files/reviews/grouped-pr-lot4-plan-review.md`, Opus, xhigh) confirmed four
+The plan review (Opus, xhigh) confirmed four
 blocking and ten minor problems. These replace what the points above say where the two differ.
 
 - **4.1** The handler tests that return a plain `errors.New("task not found")` and expect 404
@@ -910,7 +910,7 @@ blocking and ten minor problems. These replace what the points above say where t
 
 ### Corrections after the code review (lot 4, round 1)
 
-The code review (`/mnt/project-files/reviews/grouped-pr-lot4-code-review.md`, Fable, high) found no blocking
+The code review (Fable, high) found no blocking
 problem and eleven minor ones. Fixed: the zero-row sentinel of `UpdateTx` and `MarkAsFailedTx` is pinned; the
 Warn for a missing task is pinned in the handler and in `runTaskNow`, whose own read now logs a missing task at
 Warn too (`logExecutionFailure` reads `domain.ErrTaskNotFound`); a task ID must be 36 characters, so the
@@ -932,7 +932,7 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 
 ## Lot 5: the public blog (robots, sitemap, feeds, cache) and the blog API
 
-Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot5-6-plan-review.md`; corrections in "Corrections after the plan review (lot 5)"). No schema change.
+Reviewed before code (Opus xhigh; corrections in "Corrections after the plan review (lot 5)"). No schema change.
 
 ### 5.1 robots.txt and the sitemap answer as the feeds do
 
@@ -1008,7 +1008,7 @@ unreadable search or category ID, and `templates.usage` for an unreadable templa
 
 ### Corrections after the plan review (lot 5)
 
-The plan review (`/mnt/project-files/reviews/grouped-pr-lot5-6-plan-review.md`, Opus, xhigh) confirmed blocking
+The plan review (Opus, xhigh) confirmed blocking
 and minor problems in lots 5 and 6. These replace what the points above say where the two differ.
 
 - **5.2** The sitemap cache is keyed on the workspace ID and the normalised host, not `r.Host`. The integration
@@ -1031,8 +1031,6 @@ and minor problems in lots 5 and 6. These replace what the points above say wher
   sitemap join the 44.0 sitemap Fix line.
 
 ### Corrections after the code review (lot 5, round 1)
-
-Review: `/mnt/project-files/reviews/grouped-pr-lot5-code-review.md`.
 
 - **B1** The reserved slugs split by what the route takes. `domain.BlogCategorySlugRouteOf` answers
   `BlogCategorySlugSubtreeTaken` for `v`, `t`, `r` (subtree patterns) and any slug starting with `api`,
@@ -1067,8 +1065,6 @@ the same way; the page cache still keys on the raw Host.
 
 ### After the delta review (lot 5, round 2)
 
-Review: `/mnt/project-files/reviews/grouped-pr-lot5-delta-review.md`.
-
 - **N1** `writeBlogSitemap`'s comment says which addresses it leaves out, by route kind.
 - **N2** The integration test's comment says what it pins: what the server does for each slug it names, not
   that the domain knows every route the server registers (known, not handled: a test reading the mux's
@@ -1095,7 +1091,7 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 
 ## Lot 6: templates, the plain-text version, the visual editor's MJML, system emails
 
-Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot5-6-plan-review.md`; corrections in "Corrections after the plan review (lot 6)"). No schema change.
+Reviewed before code (Opus xhigh; corrections in "Corrections after the plan review (lot 6)"). No schema change.
 
 ### 6.1 The automatic plain-text version (`pkg/plaintext`)
 
@@ -1217,7 +1213,7 @@ read, without a lookup per variation."
 
 ### Corrections after the code review (lot 6, round 1)
 
-Review: `/mnt/project-files/reviews/grouped-pr-lot6-code-review.md`, of 6c590c7.
+Review of 6c590c7.
 
 - B1: the stray-winner comments of `templates.usage` (repository and integration test) now say what the code
   does: a winner that is none of the variations counts the variations, as `VariationsToSend` reads them, while
@@ -1252,7 +1248,7 @@ INTEGRATION_TESTS=true go test -race -timeout 45m -tags integration,licdev ./tes
 
 ## Lot 7: analytics, contacts and visits, the timeline, the demo, the audit log, the test helpers
 
-Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot7-9-plan-review.md`; corrections after lot 9). No schema change.
+Reviewed before code (Opus xhigh; corrections after lot 9). No schema change.
 
 ### 7.1 Analytics
 
@@ -1415,7 +1411,7 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 
 ## Lot 8: console
 
-Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot7-9-plan-review.md`; corrections after lot 9). Every user-facing string goes through Lingui and is
+Reviewed before code (Opus xhigh; corrections after lot 9). Every user-facing string goes through Lingui and is
 translated in the eight catalogues (`console/CLAUDE.md`). Each point gets a vitest test next to its component
 (created when the component has none), written first. Paths are under `console/src/`.
 
@@ -1745,7 +1741,7 @@ Reviewed before code with lots 7 and 8; the corrections follow lot 9.
 - Plans: `test-coverage-critical-paths-plan.md` (the OIDC issuer check is reachable),
   `fix-task-reset-trigger-errors-plan.md` (line width, the repeated sentence), `feat-send-time-sender-plan.md:135,
   138` (file names), `fix-translation-sender-reply-to-plan.md` (wrap at 100), and the eight plans that cite
-  `/mnt/project-files/…`: the path goes, a one-line summary of the review stays.
+  the shared project folder: the path goes, a one-line summary of the review stays.
 - `CLAUDE.md` gains the architecture instruction, copied from `cadrer-le-document-d-architecture-de-reference.md`
   as written there.
 

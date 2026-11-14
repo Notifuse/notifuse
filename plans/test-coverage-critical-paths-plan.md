@@ -28,15 +28,18 @@ Out of scope (not critical, or not reachable in production): `internal/app/app.g
 - `!token.Valid` after a nil error from `jwt.ParseWithClaims` cannot happen with
   golang-jwt v5 (`smtp_bridge_handler.go`, `auth_service.go`, `middleware/auth.go`);
   these defensive lines stay uncovered.
-- The post-`Verify` `idToken.Issuer` check in OIDC *is* reachable: go-oidc accepts
-  `iss = "accounts.google.com"` for the `https://accounts.google.com` provider, and
-  `oidc_service.go` then rejects it. The fake IdP cannot serve that issuer, so the
-  branch stays untested here.
 - In `Process`, the three "test phase complete but winner already selected" branches
   cannot be reached: a winner known before the loop switches the phase up front, and
   the refresh at the loop top re-checks right after reassigning the broadcast. The
   "winner picked during the run" case is already covered by
   `TestOrchestrator_Process_WinnerPickedDuringTheRun…`.
+
+### Reachable, but not tested here
+
+- The post-`Verify` `idToken.Issuer` check in OIDC: go-oidc accepts
+  `iss = "accounts.google.com"` for the `https://accounts.google.com` provider, and
+  `oidc_service.go` then rejects it. The fake IdP cannot serve that issuer, so the
+  branch stays untested here.
 
 ### Possible defect found (reported, not fixed here)
 
