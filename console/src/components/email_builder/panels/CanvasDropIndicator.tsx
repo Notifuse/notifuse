@@ -2,8 +2,10 @@ import React from 'react'
 import { createPortal } from 'react-dom'
 import { useLingui } from '@lingui/react/macro'
 import type { CanvasDropResult } from '../utils/canvasDrop'
+import { useDropRefusalText } from './dropRefusalText'
+import { alpha, colors } from '../../../theme/tokens'
 
-const ACCENT = '#7763F1'
+const ACCENT = colors.primary[500]
 
 interface CanvasDropIndicatorProps {
   // The place shown for the dragged block, or why it cannot go there; nothing when null
@@ -16,15 +18,12 @@ interface CanvasDropIndicatorProps {
 // place that refuses the block, no line, and the reason by the pointer.
 export const CanvasDropIndicator: React.FC<CanvasDropIndicatorProps> = ({ result, pointer }) => {
   const { t } = useLingui()
+  const refusalText = useDropRefusalText()
   if (!result) return null
 
   if (!result.drop) {
-    if (!result.refusal) return null
-    let reason = t`Not allowed here`
-    if (result.refusal === 'liquid') reason = t`Not allowed inside a conditional block`
-    else if (result.reason === 'column') reason = t`Goes inside a column`
-    else if (result.reason === 'section') reason = t`Goes inside a section`
-    else if (result.reason === 'social') reason = t`Goes inside a social block`
+    const reason = refusalText(result)
+    if (!reason) return null
     return createPortal(
       <div
         data-testid="canvas-drop-refusal"
@@ -66,7 +65,7 @@ export const CanvasDropIndicator: React.FC<CanvasDropIndicatorProps> = ({ result
           width: box.right - box.left,
           height: box.bottom - box.top,
           border: `2px dashed ${ACCENT}`,
-          background: 'rgba(119, 99, 241, 0.08)',
+          background: alpha(ACCENT, 0.08),
           boxSizing: 'border-box',
           pointerEvents: 'none',
           zIndex: 2999

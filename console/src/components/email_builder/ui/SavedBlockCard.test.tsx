@@ -1,7 +1,8 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { DndContext, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SavedBlockCard, type CardActions } from './SavedBlockCard'
 import { headKeyOf, type LibraryItem } from '../utils/library'
 import { b, email, text } from '../utils/libraryTestTrees'
@@ -99,7 +100,7 @@ describe('SavedBlockCard', () => {
     unmount()
     renderCard({ highlight: 'updated' })
     expect(screen.queryByText('New')).toBeNull()
-    expect(document.querySelector('[data-library-card]')!.className).toContain('border-[#7763F1]')
+    expect(document.querySelector('[data-library-card]')!.className).toContain('border-primary-500')
   })
 })
 
@@ -122,6 +123,38 @@ describe('SavedBlockCard actions', () => {
     await userEvent.click(menuItem('Rename'))
     return (await screen.findByRole('textbox', { name: 'Block name' })) as HTMLInputElement
   }
+
+  const moreButton = () => screen.getByRole('button', { name: 'More actions for Header' })
+
+  it('gives the focus back to its menu button after a rename ended with Enter or Escape', async () => {
+    renderCard({ actions: actions() })
+    let input = await startRename()
+    await userEvent.type(input, ' bis{Enter}')
+    await waitFor(() => expect(moreButton()).toHaveFocus())
+
+    input = await startRename()
+    fireEvent.keyDown(input, { key: 'Escape', keyCode: 27 })
+    await waitFor(() => expect(moreButton()).toHaveFocus())
+  })
+
+  it('leaves the focus where a blur took it', async () => {
+    renderCard({ actions: actions() })
+    const input = await startRename()
+    const elsewhere = screen.getByRole('button', { name: 'Insert' })
+    elsewhere.focus()
+    fireEvent.blur(input)
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Block name' })).toBeNull())
+    expect(moreButton()).not.toHaveFocus()
+  })
+
+  it('gives the focus back to its menu button after duplicate', async () => {
+    const onDuplicate = vi.fn()
+    renderCard({ actions: actions({ onDuplicate }) })
+    await openMenu()
+    await userEvent.click(menuItem('Duplicate'))
+    expect(onDuplicate).toHaveBeenCalled()
+    expect(moreButton()).toHaveFocus()
+  })
 
   it('has no menu without actions', () => {
     renderCard()
@@ -225,6 +258,43 @@ describe('SavedBlockCard actions', () => {
     expect(handle.className).not.toContain('cursor-grab')
   })
 
+  it('starts no drag from the card while its name is edited', async () => {
+    const onDragStart = vi.fn()
+    const Context = ({ children }: { children: React.ReactNode }) => {
+      const sensors = useSensors(useSensor(KeyboardSensor))
+      return (
+        <DndContext sensors={sensors} onDragStart={onDragStart}>
+          {children}
+        </DndContext>
+      )
+    }
+    render(
+      <Context>
+        <SavedBlockCard
+          item={item}
+          typeLabel="Section"
+          locale="en"
+          emailTree={tree}
+          headKey={headKeyOf(tree)}
+          refusal={null}
+          onInsert={vi.fn()}
+          actions={actions()}
+        />
+      </Context>
+    )
+    const handle = document.querySelector('[data-library-drag-handle]') as HTMLElement
+
+    await startRename()
+    fireEvent.keyDown(handle, { code: 'Space' })
+    expect(onDragStart).not.toHaveBeenCalled()
+
+    // The same key starts a drag once the edit is over
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Block name' }), { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Block name' })).toBeNull())
+    fireEvent.keyDown(handle, { code: 'Space' })
+    expect(onDragStart).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps editing when Escape ends an IME conversion', async () => {
     const onRename = vi.fn().mockResolvedValue(undefined)
     renderCard({ actions: actions({ onRename }) })
@@ -232,6 +302,16 @@ describe('SavedBlockCard actions', () => {
     fireEvent.keyDown(input, { key: 'Escape', isComposing: true })
     expect(screen.getByRole('textbox', { name: 'Block name' })).toBeInTheDocument()
     expect(onRename).not.toHaveBeenCalled()
+  })
+
+  it("keeps editing on Safari's Escape that ends a conversion (keyCode 229)", async () => {
+    const onRename = vi.fn().mockResolvedValue(undefined)
+    renderCard({ actions: actions({ onRename }) })
+    const input = await startRename()
+    fireEvent.keyDown(input, { key: 'Escape', keyCode: 229 })
+    expect(screen.getByRole('textbox', { name: 'Block name' })).toBeInTheDocument()
+    fireEvent.keyDown(input, { key: 'Escape', keyCode: 27 })
+    expect(screen.queryByRole('textbox', { name: 'Block name' })).toBeNull()
   })
 
   it('disables the input while the name is saved, and keeps the old name on failure', async () => {

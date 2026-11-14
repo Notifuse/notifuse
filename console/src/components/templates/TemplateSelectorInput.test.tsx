@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App, ConfigProvider } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -19,9 +19,14 @@ vi.mock('../../services/api/template', () => ({
 }))
 
 // Provide the current workspace so the component renders past its loading guard
+const access = vi.hoisted(() => ({ templatesWrite: false }))
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
     workspaces: [{ id: 'ws1', name: 'WS', integrations: [] }]
+  }),
+  useWorkspacePermissions: () => ({
+    permissions: { templates: { read: true, write: access.templatesWrite } },
+    loading: false
   })
 }))
 
@@ -29,8 +34,12 @@ vi.mock('../../contexts/AuthContext', () => ({
 vi.mock('./TemplatePreviewDrawer', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
+const drawers = vi.hoisted(() => [] as { canManageSavedBlocks?: boolean; fromTemplate?: unknown }[])
 vi.mock('./CreateTemplateDrawer', () => ({
-  CreateTemplateDrawer: () => null
+  CreateTemplateDrawer: (props: { canManageSavedBlocks?: boolean; fromTemplate?: unknown }) => {
+    drawers.push(props)
+    return null
+  }
 }))
 
 const makeTemplate = (id: string, name: string): Template =>
@@ -199,5 +208,22 @@ describe('TemplateSelectorInput without Templates read', () => {
     expect(await screen.findByDisplayValue('Template A')).toBeInTheDocument()
     expect(templatesApi.list).toHaveBeenCalled()
     expect(templatesApi.get).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'tpl-a' })
+  })
+})
+
+// The create and clone drawers the selector opens manage the saved blocks with Templates write,
+// as the templates page's do.
+describe('TemplateSelectorInput drawers', () => {
+  it.each([true, false])('give canManageSavedBlocks %s from Templates write', async (write) => {
+    access.templatesWrite = write
+    drawers.length = 0
+    ;(templatesApi.list as Mock).mockResolvedValue({ templates: [makeTemplate('tpl-a', 'Template A')] })
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate('tpl-a', 'Template A') })
+    render(<Wrapper value={null} />)
+    fireEvent.click(screen.getByRole('textbox'))
+    // The drawer's header drawer and the list's clone drawer
+    await waitFor(() => expect(drawers.some((d) => d.fromTemplate)).toBe(true))
+    expect(drawers.length).toBeGreaterThan(0)
+    for (const drawer of drawers) expect(drawer.canManageSavedBlocks).toBe(write)
   })
 })

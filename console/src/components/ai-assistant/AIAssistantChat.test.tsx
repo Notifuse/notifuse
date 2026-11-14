@@ -118,6 +118,16 @@ describe('AIAssistantChat', () => {
     expect(rendered.tagName).toBe('STRONG')
   })
 
+  it("gives the markdown's headings the theme's sizes", () => {
+    const { container } = renderChat({
+      bubbleItems: [{ key: 'm1', role: 'ai', content: '# Plan\n\n## Steps\n\nText' }]
+    })
+
+    expect(screen.getByText('Plan').tagName).toBe('H1')
+    const box = container.querySelector('[data-assistant-markdown]')
+    expect(box?.className.split(' ')).toEqual(expect.arrayContaining(['[&_h1]:text-title', '[&_h2]:text-subtitle']))
+  })
+
   it('renders tool output as a plain start-placed bubble, not the centered system banner', () => {
     const { container } = renderChat({
       bubbleItems: [{ key: 'm1', role: 'system', content: 'Opened https://example.com/report' }]

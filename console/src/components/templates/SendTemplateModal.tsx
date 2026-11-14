@@ -124,11 +124,26 @@ export default function SendTemplateModal({
           ? defaultId
           : emailIntegrations[0]?.id || ''
       )
-
-      // set first sender from email integration
-      setSelectedSenderId(emailIntegrations[0]?.email_provider?.senders[0]?.id || '')
     }
   }, [isOpen, template, workspace, emailIntegrations, selectedIntegrationId])
+
+  // The sender the test starts with, again when the integration or the language changes: the one the email of
+  // that language sends with (the translation's, else the template's) when the integration has it, else the
+  // integration's default, else its first
+  const defaultLanguage = workspace?.settings?.default_language
+  const languageSenderId =
+    (selectedLanguage && selectedLanguage !== defaultLanguage
+      ? template?.translations?.[selectedLanguage]?.email?.sender_id
+      : undefined) || template?.email?.sender_id
+  useEffect(() => {
+    if (!isOpen) return
+    const senders = emailIntegrations.find((i) => i.id === selectedIntegrationId)?.email_provider?.senders ?? []
+    const preselected =
+      senders.find((sender) => sender.id === languageSenderId) ??
+      senders.find((sender) => sender.is_default) ??
+      senders[0]
+    setSelectedSenderId(preselected?.id || '')
+  }, [isOpen, emailIntegrations, selectedIntegrationId, languageSenderId])
 
   // Reset form when modal opens
   useEffect(() => {

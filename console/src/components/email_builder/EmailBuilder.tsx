@@ -27,7 +27,7 @@ import type {
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
-import { rebalanceAfterAdd, rebalanceAfterRemove } from './utils/columnWidths'
+import { rebalanceAdded, rebalanceRemoved } from './utils/layoutRebalance'
 import { countHiddenBlocks, liquidPlacementError } from './displayCondition'
 
 type ViewMode = 'edit' | 'preview' | 'text'
@@ -475,7 +475,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         if (parentContainer && parentContainer.children) {
           if (parentContainer.type === 'mj-section') {
             const columns = parentContainer.children.filter((child) => child.type === 'mj-column')
-            rebalanceAfterAdd(parentContainer, newBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
+            rebalanceAdded(updatedTree, parentId, newBlock.id)
 
             // Add a default text element to the new column
             const newColumn = EmailBlockClass.findBlockById(updatedTree, newBlock.id)
@@ -499,7 +499,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               ;(newColumn.children as EmailBlock[]).push(textBlock)
             }
           } else if (parentContainer.type === 'mj-group') {
-            rebalanceAfterAdd(parentContainer, newBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
+            rebalanceAdded(updatedTree, parentId, newBlock.id)
 
             // Add a default text element to the new column
             const newColumn = EmailBlockClass.findBlockById(updatedTree, newBlock.id)
@@ -527,10 +527,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       }
 
       // A group added to a section makes room: the columns keep their proportions
-      if (blockType === 'mj-group') {
-        const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentId)
-        if (parentContainer) rebalanceAfterAdd(parentContainer, newBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
-      }
+      if (blockType === 'mj-group') rebalanceAdded(updatedTree, parentId, newBlock.id)
 
       // If we're adding a section to the body (or, from the library, to a wrapper), add a default column with text
       if (blockType === 'mj-section') {
@@ -651,13 +648,8 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       }
 
       // If we deleted a column or a group, the remaining columns of its container keep their proportions
-      if (
-        (blockToDelete?.type === 'mj-column' || blockToDelete?.type === 'mj-group') &&
-        parentContainerId &&
-        parentContainerType
-      ) {
-        const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentContainerId)
-        if (parentContainer) rebalanceAfterRemove(parentContainer, EmailBlockClass.extractAttributeDefaults(updatedTree))
+      if (parentContainerId && parentContainerType) {
+        rebalanceRemoved(updatedTree, parentContainerId, blockToDelete?.type)
       }
 
       updateTreeWithHistory(updatedTree)
@@ -724,10 +716,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     if (updatedTree) {
       // If we're cloning a column, it gets its share and the other columns keep their proportions; a cloned
       // group makes room the same way
-      if (blockToClone.type === 'mj-column' || blockToClone.type === 'mj-group') {
-        const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentInfo.parent.id)
-        if (parentContainer) rebalanceAfterAdd(parentContainer, clonedBlock.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
-      }
+      rebalanceAdded(updatedTree, parentInfo.parent.id, clonedBlock.id)
 
       updateTreeWithHistory(updatedTree)
       setState((prev) => ({ ...prev, selectedBlockId: clonedBlock.id }))
@@ -769,12 +758,9 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     if (updatedTree) {
       // A column or a group that changes container: both containers keep their proportions. Reordering within a
       // container leaves the widths alone.
-      const moved = EmailBlockClass.findBlockById(updatedTree, blockId)
-      if ((moved?.type === 'mj-column' || moved?.type === 'mj-group') && !sameParent) {
-        const source = EmailBlockClass.findBlockById(updatedTree, original.parent.id)
-        if (source) rebalanceAfterRemove(source, EmailBlockClass.extractAttributeDefaults(updatedTree))
-        const destination = EmailBlockClass.findBlockById(updatedTree, newParentId)
-        if (destination) rebalanceAfterAdd(destination, blockId, EmailBlockClass.extractAttributeDefaults(updatedTree))
+      if (!sameParent) {
+        rebalanceRemoved(updatedTree, original.parent.id, movedBlock?.type)
+        rebalanceAdded(updatedTree, newParentId, blockId)
       }
 
       updateTreeWithHistory(updatedTree)
@@ -804,10 +790,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
     if (updatedTree) {
       // A saved column takes its share of the container like an added one, and a saved group makes room
-      if (blockWithNewIds.type === 'mj-column' || blockWithNewIds.type === 'mj-group') {
-        const parentContainer = EmailBlockClass.findBlockById(updatedTree, parentId)
-        if (parentContainer) rebalanceAfterAdd(parentContainer, blockWithNewIds.id, EmailBlockClass.extractAttributeDefaults(updatedTree))
-      }
+      rebalanceAdded(updatedTree, parentId, blockWithNewIds.id)
 
       updateTreeWithHistory(updatedTree)
       handleSelectBlock(blockWithNewIds.id, updatedTree)
@@ -866,31 +849,39 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     setLibraryHighlight({ id: savedId, kind: 'new' })
   }
 
-  // Runs a change of the library unless one is running; rejects with the change's error
-  const changeLibrary = async (change: () => Promise<void>) => {
-    if (libraryBusyRef.current) return
+  // Runs a change of the library unless one is running: false when another one is, so a caller
+  // never takes a change that did not run for one that did. Rejects with the change's error.
+  const changeLibrary = async (change: () => Promise<void>): Promise<boolean> => {
+    if (libraryBusyRef.current) return false
     libraryBusyRef.current = true
     setLibraryBusy(true)
     try {
       await change()
+      return true
     } finally {
       libraryBusyRef.current = false
       setLibraryBusy(false)
     }
   }
   // The handlers report their errors to the user: a failed change only leaves the library as it was
-  const quietly = (change: () => Promise<void>) => changeLibrary(change).catch(() => {})
+  const busyMessage = t`Another change to the library is running. Try again in a moment.`
+  const quietly = (change: () => Promise<void>) =>
+    changeLibrary(change)
+      .then((ran) => {
+        if (!ran) message.info(busyMessage)
+      })
+      .catch(() => {})
 
   // The save dialog takes its turn too; while another change runs it keeps what was entered
   const saveFromDialog: SaveBlockHandler = async (block, operation, nameOrId) => {
-    if (libraryBusyRef.current) {
-      message.info(t`Another change to the library is running. Try again in a moment.`)
-      throw new Error('library busy')
-    }
     let savedId = ''
-    await changeLibrary(async () => {
+    const ran = await changeLibrary(async () => {
       savedId = await onSaveBlock(block, operation, nameOrId)
     })
+    if (!ran) {
+      message.info(busyMessage)
+      throw new Error('library busy')
+    }
     return savedId
   }
 
@@ -898,11 +889,17 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     ? {
         busy: libraryBusy,
         onRename: onRenameSavedBlock
-          ? (saved, name) =>
-              changeLibrary(async () => {
+          ? async (saved, name) => {
+              const ran = await changeLibrary(async () => {
                 await onRenameSavedBlock(saved.id, name)
                 setLibraryHighlight({ id: saved.id, kind: 'updated' })
               })
+              // The card keeps the old name, as on a failure
+              if (!ran) {
+                message.info(busyMessage)
+                throw new Error('library busy')
+              }
+            }
           : undefined,
         onDuplicate: (saved) =>
           quietly(async () => {
@@ -1132,7 +1129,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                             <span
                               data-testid="library-count"
                               className={`ml-0.5 inline-block min-w-[18px] rounded-full px-1 text-center text-[10px] leading-4 ${
-                                savedBlocks?.length ? 'bg-[#7763F1] text-white' : 'bg-gray-200 text-gray-500'
+                                savedBlocks?.length ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
                               }`}
                             >
                               {savedBlocks?.length ?? 0}
@@ -1239,6 +1236,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         emailTree={tree}
         savedBlocks={savedBlocks}
         onSave={saveFromDialog}
+        libraryBusy={libraryBusy}
         onSaved={handleBlockSaved}
         onClose={() => setSaveDialogBlockId(null)}
       />

@@ -29,6 +29,8 @@ vi.mock('@tanstack/react-router', async () => {
 })
 
 vi.mock('../../contexts/AuthContext', () => ({
+  // TemplateSelectorInput reads the member's permissions for its drawers
+  useWorkspacePermissions: () => ({ permissions: null }),
   useAuth: () => ({
     workspaces: [{ id: 'ws1', settings: { timezone: 'UTC', custom_field_labels: {} } }]
   })

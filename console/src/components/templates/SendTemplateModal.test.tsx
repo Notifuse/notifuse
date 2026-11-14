@@ -240,6 +240,69 @@ describe('SendTemplateModal mailing list', () => {
   })
 })
 
+describe('SendTemplateModal sender', () => {
+  const senders = [
+    { id: 's-first', email: 'first@example.com', name: 'First', is_default: false },
+    { id: 's-default', email: 'default@example.com', name: 'Default', is_default: true },
+    { id: 's-template', email: 'template@example.com', name: 'Template', is_default: false },
+    { id: 's-fr', email: 'fr@example.com', name: 'French', is_default: false }
+  ]
+  const withSenders = {
+    ...workspace,
+    settings: { default_language: 'en', marketing_email_provider_id: 'int2' },
+    integrations: [
+      workspace.integrations![0],
+      { id: 'int2', name: 'Postmark', type: 'email', email_provider: { kind: 'postmark', senders } }
+    ]
+  } as unknown as Workspace
+
+  const open = (tpl: Template) => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AntApp>
+          <SendTemplateModal isOpen onClose={() => {}} template={tpl} workspace={withSenders} canReadContacts={false} />
+        </AntApp>
+      </QueryClientProvider>
+    )
+  }
+  const sentSender = async () => (await sendTo('a@b.co'))[3]
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(transactionalNotificationsApi.testTemplate as Mock).mockResolvedValue({ success: true })
+  })
+
+  it("preselects the template's sender in the default integration, not the first integration's", async () => {
+    open({ ...template, email: { sender_id: 's-template' } } as unknown as Template)
+    expect(await sentSender()).toBe('s-template')
+  })
+
+  it("preselects the integration's default sender when the template's is not one of its senders", async () => {
+    open({ ...template, email: { sender_id: 'elsewhere' } } as unknown as Template)
+    expect(await sentSender()).toBe('s-default')
+  })
+
+  it("preselects the open translation's sender", async () => {
+    open({
+      ...template,
+      email: { sender_id: 's-template' },
+      translations: { fr: { email: { sender_id: 's-fr' } } }
+    } as unknown as Template)
+    const field = (await screen.findByText('Language')).closest('.ant-form-item')
+    fireEvent.mouseDown(field!.querySelector('.ant-select')!)
+    const option = await waitFor(() => {
+      const found = Array.from(document.querySelectorAll('.ant-select-item-option')).find((el) =>
+        /fr|French|Français/i.test(el.textContent ?? '')
+      )
+      expect(found).toBeDefined()
+      return found as Element
+    })
+    fireEvent.click(option)
+    expect(await sentSender()).toBe('s-fr')
+  })
+})
+
 describe('SendTemplateModal cc and bcc', () => {
   beforeEach(() => {
     vi.clearAllMocks()

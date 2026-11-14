@@ -156,10 +156,12 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
     }
   }
 
-  // Worked out only while the popover is open: the Liquid check walks the email for each saved block
-  const savedRows = useMemo((): { available: SavedBlockRow[]; unavailable: SavedBlockRow[] } => {
+  // Worked out only while the popover is open: the Liquid check walks the email for each saved block.
+  // The last rows are kept while it closes, so the tab does not empty during the animation.
+  const openRows = useMemo((): { available: SavedBlockRow[]; unavailable: SavedBlockRow[] } | null => {
     const rows = { available: [] as SavedBlockRow[], unavailable: [] as SavedBlockRow[] }
-    if (!visible || !contentMode || !parentType) return rows
+    if (!visible) return null
+    if (!contentMode || !parentType) return rows
     const allowed = new Set(
       EmailBlockFactory.getAvailableBlocksForParent(parentType).map((option) => option.type)
     )
@@ -176,6 +178,11 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
     // reasonText and t follow the language, which i18n.locale stands for
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, contentMode, parentType, parentId, emailTree, bodySavedBlocks, i18n.locale])
+  const [savedRows, setSavedRows] = useState<{ available: SavedBlockRow[]; unavailable: SavedBlockRow[] }>({
+    available: [],
+    unavailable: []
+  })
+  if (openRows && openRows !== savedRows) setSavedRows(openRows)
 
   const headKey = useMemo(
     () => (visible && contentMode && emailTree ? headKeyOf(emailTree) : ''),
@@ -613,13 +620,14 @@ const SavedBlockRowItem: React.FC<SavedBlockRowItemProps> = ({
   onHover,
   onAdd
 }) => {
+  // Buttons, so the keyboard reaches them; a refused one is disabled, its reason written under its name
   if (refusal) {
     return (
-      <div
+      <button
+        type="button"
+        disabled
         data-saved-row={saved.id}
-        aria-disabled="true"
-        title={refusal}
-        className="mb-1 w-full cursor-not-allowed rounded border border-transparent px-2 py-1.5 text-left text-xs text-gray-400"
+        className="mb-1 block w-full cursor-not-allowed rounded border border-transparent bg-transparent px-2 py-1.5 text-left text-xs text-gray-400"
       >
         <Space>
           {EmailBlockClass.from(saved.block).getIcon()}
@@ -630,11 +638,12 @@ const SavedBlockRowItem: React.FC<SavedBlockRowItemProps> = ({
             <span className="block text-[11px]">{refusal}</span>
           </span>
         </Space>
-      </div>
+      </button>
     )
   }
   return (
-    <div
+    <button
+      type="button"
       data-saved-row={saved.id}
       className={`mb-1 flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-all duration-200 ease-in-out ${
         selected
@@ -642,6 +651,7 @@ const SavedBlockRowItem: React.FC<SavedBlockRowItemProps> = ({
           : 'border border-transparent bg-transparent hover:border-primary'
       }`}
       onMouseEnter={() => onHover?.(saved)}
+      onFocus={() => onHover?.(saved)}
       onClick={() => onAdd(saved.id)}
     >
       {emailTree && (
@@ -659,7 +669,7 @@ const SavedBlockRowItem: React.FC<SavedBlockRowItemProps> = ({
       <span className="min-w-0 truncate" style={{ fontSize: 12 }}>
         {saved.name}
       </span>
-    </div>
+    </button>
   )
 }
 

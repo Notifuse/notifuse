@@ -2,15 +2,17 @@ import type { EmailBlock } from '../types'
 
 const MAX_LENGTH = 32
 
+// Every entity of the text, &amp; and &eacute; as &nbsp; (a parsed document runs no script)
+const decodeEntities = (text: string) =>
+  new DOMParser().parseFromString(text, 'text/html').documentElement.textContent ?? ''
+
 const plainText = (content: string) =>
-  content
-    .replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
+  decodeEntities(content.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, '').replace(/<[^>]*>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim()
-    // A tag between a word and its punctuation leaves a space before it
-    .replace(/ ([,.;:!?])/g, '$1')
+    // A tag between a word and its comma or full stop leaves a space before it; the space before
+    // ! ? : ; is French typography and stays
+    .replace(/ ([,.])/g, '$1')
 
 const shorten = (value: string) => {
   if (value.length <= MAX_LENGTH) return value

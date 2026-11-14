@@ -47,19 +47,24 @@ interface BasicTileProps {
 // it, since a drag does not depend on the selection.
 const BasicTile: React.FC<BasicTileProps> = ({ item, icon, refusal, onInsert }) => {
   const { t } = useLingui()
-  const { listeners, setNodeRef, isDragging } = useLibraryDraggable(item)
+  const { attributes, listeners, setNodeRef, isDragging } = useLibraryDraggable(item)
   return (
+    // The tooltip sits on a wrapper: it sets the aria-describedby of its child, which would drop
+    // dnd-kit's instructions from the button
     <Tooltip title={refusal ?? t`Insert, or drag into the email`} mouseEnterDelay={0.4}>
+      <span className="flex">
       <button
         ref={setNodeRef}
         type="button"
+        // dnd-kit's attributes link its screen reader instructions; the tile's own refusal wins
+        {...attributes}
         {...listeners}
         data-library-tile={item.block.type}
         aria-disabled={refusal ? true : undefined}
         onClick={() => {
           if (!refusal) onInsert(item)
         }}
-        className={`flex cursor-grab select-none flex-col items-center gap-1 rounded border border-gray-200 bg-white px-1 py-2 text-[11px] text-gray-700 hover:border-[#7763F1] ${
+        className={`flex w-full cursor-grab select-none flex-col items-center gap-1 rounded border border-gray-200 bg-white px-1 py-2 text-[11px] text-gray-700 hover:border-primary-500 ${
           refusal ? 'text-gray-400' : ''
         }`}
         style={{ opacity: isDragging ? 0.4 : 1, touchAction: 'none' }}
@@ -67,6 +72,7 @@ const BasicTile: React.FC<BasicTileProps> = ({ item, icon, refusal, onInsert }) 
         <span className="text-sm">{icon}</span>
         <span className="truncate max-w-full">{item.name}</span>
       </button>
+      </span>
     </Tooltip>
   )
 }
@@ -113,17 +119,28 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const [filter, setFilter] = useState<Filter>('all')
   const headKey = useMemo(() => headKeyOf(emailTree), [emailTree])
 
+  // A card just changed stays listed, highlighted, until the search or the filter changes, so a
+  // rename out of the search does not make it vanish
+  const [kept, setKept] = useState<{ id: string; search: string; filter: Filter } | null>(null)
+  const [seenHighlight, setSeenHighlight] = useState(highlight)
+  if (highlight !== seenHighlight) {
+    setSeenHighlight(highlight)
+    setKept(highlight ? { id: highlight.id, search, filter } : null)
+  }
+  const keptId = kept && kept.search === search && kept.filter === filter ? kept.id : null
+
   const items = useMemo(() => {
     const query = searchable(search.trim())
     return [...savedBlocks]
       .filter((saved) => {
+        if (saved.id === keptId) return true
         const isSection = SECTION_TYPES.includes(saved.block.type)
         if (filter === 'sections' && !isSection) return false
         if (filter === 'content' && isSection) return false
         return !query || searchable(saved.name).includes(query)
       })
       .sort((a, b) => savedBlockTime(b) - savedBlockTime(a))
-  }, [savedBlocks, search, filter])
+  }, [savedBlocks, search, filter, keptId])
 
   const basics = useMemo(
     () =>
@@ -162,6 +179,23 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     return null
   }
 
+  // After a delete, the focus goes to the next card's menu button, else to the list
+  const focusAfterDelete = useRef<{ deleted: string; next: string | null } | null>(null)
+  useEffect(() => {
+    const pending = focusAfterDelete.current
+    if (!pending) return
+    if (items.some((saved) => saved.id === pending.deleted)) {
+      // Still listed once the change is over: not deleted (cancelled or failed)
+      if (!manage?.busy) focusAfterDelete.current = null
+      return
+    }
+    focusAfterDelete.current = null
+    const next = pending.next
+      ? rootRef.current?.querySelector<HTMLElement>(`[data-library-card=${JSON.stringify(pending.next)}] [data-library-more]`)
+      : null
+    ;(next ?? rootRef.current?.querySelector<HTMLElement>('[data-testid="library-saved-blocks"]'))?.focus()
+  }, [items, manage?.busy])
+
   const actionsFor = (saved: SavedBlock): CardActions | undefined =>
     manage && {
       busy: manage.busy,
@@ -169,7 +203,14 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       onRename: manage.onRename && ((name: string) => manage.onRename!(saved, name)),
       onReplace: () => manage.onReplace(saved),
       onDuplicate: () => manage.onDuplicate(saved),
-      onDelete: manage.onDelete && (() => manage.onDelete!(saved))
+      onDelete:
+        manage.onDelete &&
+        (() => {
+          const at = items.findIndex((item) => item.id === saved.id)
+          const next = items[at + 1] ?? items[at - 1]
+          focusAfterDelete.current = { deleted: saved.id, next: next?.id ?? null }
+          manage.onDelete!(saved)
+        })
     }
 
   // A changed block moves to the top of the list, sorted by modification date: it is brought into view
@@ -213,7 +254,7 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
               ]}
             />
           </div>
-          <div className="flex flex-col gap-2" data-testid="library-saved-blocks">
+          <div className="flex flex-col gap-2" data-testid="library-saved-blocks" tabIndex={-1}>
             {items.map((saved) => (
               <SavedBlockCard
                 key={saved.id}

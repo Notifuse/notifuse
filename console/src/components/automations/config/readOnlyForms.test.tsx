@@ -17,6 +17,8 @@ vi.mock('../../../services/api/template', () => ({
   }
 }))
 vi.mock('../../../contexts/AuthContext', () => ({
+  // TemplateSelectorInput reads the member's permissions for its drawers
+  useWorkspacePermissions: () => ({ permissions: null }),
   useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Workspace' }] })
 }))
 

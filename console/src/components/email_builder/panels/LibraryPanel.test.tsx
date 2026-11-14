@@ -2,6 +2,7 @@ import React from 'react'
 import { describe, it, expect, onTestFinished, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { DndContext } from '@dnd-kit/core'
 import { LibraryPanel, type LibraryManage } from './LibraryPanel'
 import type { SavedBlock } from '../types'
 import { b, email, text } from '../utils/libraryTestTrees'
@@ -164,6 +165,41 @@ describe('LibraryPanel', () => {
     const item = (name: string) =>
       screen.getAllByRole('menuitem', { name: new RegExp(name) }).at(-1)!
 
+    it('keeps a renamed card that leaves the search listed, until the search changes', async () => {
+      const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn(), onOpenSaveDialog: vi.fn(), manage: manage() }
+      const { rerender } = render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
+      await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'head')
+      expect(cardNames()).toEqual(['header'])
+
+      const renamed = { ...header, name: 'Banner', updated: '2026-11-01T00:00:00Z' }
+      rerender(<LibraryPanel {...props} savedBlocks={[renamed, cta, footer]} highlight={{ id: 'header', kind: 'updated' }} />)
+      expect(cardNames()).toEqual(['header'])
+
+      await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'e')
+      expect(cardNames()).toEqual([])
+    })
+
+    it('moves the focus to the next card after a delete, else to the list', async () => {
+      const onDelete = vi.fn()
+      const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn(), onOpenSaveDialog: vi.fn(), manage: manage({ onDelete }) }
+      const { rerender } = render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
+      // Newest first: footer, cta, header
+      await menuOf('cta', 'Élan CTA')
+      await userEvent.click(item('Delete'))
+      expect(onDelete).toHaveBeenCalledWith(cta)
+      rerender(<LibraryPanel {...props} savedBlocks={[header, footer]} />)
+      const headerCard = document.querySelector('[data-library-card="header"]') as HTMLElement
+      expect(within(headerCard).getByRole('button', { name: 'More actions for Header' })).toHaveFocus()
+
+      await menuOf('header', 'Header')
+      await userEvent.click(item('Delete'))
+      await menuOf('footer', 'Pied de page')
+      rerender(<LibraryPanel {...props} savedBlocks={[footer]} />)
+      await userEvent.click(item('Delete'))
+      rerender(<LibraryPanel {...props} savedBlocks={[]} />)
+      expect(document.activeElement).toBe(document.body)
+    })
+
     it('shows no menu without the right to change the library', () => {
       renderPanel()
       expect(screen.queryByRole('button', { name: /More actions/ })).toBeNull()
@@ -203,7 +239,7 @@ describe('LibraryPanel', () => {
       renderPanel({ highlight: { id: 'header', kind: 'updated' } })
       expect(screen.queryByText('New')).toBeNull()
       const card = document.querySelector('[data-library-card="header"]') as HTMLElement
-      expect(card.className).toContain('border-[#7763F1]')
+      expect(card.className).toContain('border-primary-500')
     })
 
     it('brings the changed card into view once, not again when the list changes', () => {
@@ -238,7 +274,7 @@ describe('LibraryPanel', () => {
       expect(scroll).toHaveBeenCalledTimes(1)
     })
 
-    it('brings a changed card hidden by the search into view once the search shows it', async () => {
+    it('lists a changed card the search hides, and brings it into view once', async () => {
       const scroll = vi.fn()
       const original = Element.prototype.scrollIntoView
       Element.prototype.scrollIntoView = scroll
@@ -252,7 +288,9 @@ describe('LibraryPanel', () => {
       rerender(
         <LibraryPanel {...props} savedBlocks={[header, cta, footer]} highlight={highlight} />
       )
-      expect(scroll).not.toHaveBeenCalled()
+      // Changed from this editor: listed despite the search, until the search changes
+      expect(cardNames()).toEqual(['header', 'cta'])
+      expect(scroll).toHaveBeenCalledTimes(1)
       await userEvent.clear(screen.getByPlaceholderText('Search saved blocks'))
       expect(scroll).toHaveBeenCalledTimes(1)
     })
@@ -262,5 +300,24 @@ describe('LibraryPanel', () => {
       await menuOf('cta', 'Élan CTA')
       expect(item('Duplicate')).toHaveAttribute('aria-disabled', 'true')
     })
+  })
+
+  it("links dnd-kit's instructions to each tile and saved card, the tile keeping its own refusal", () => {
+    render(
+      <DndContext accessibility={{ screenReaderInstructions: { draggable: 'Use Insert instead.' } }}>
+        <LibraryPanel emailTree={tree} savedBlocks={[header]} selectedBlockId={null} onInsert={vi.fn()} onOpenSaveDialog={vi.fn()} />
+      </DndContext>
+    )
+    const described = (element: Element | null) => {
+      const id = element?.getAttribute('aria-describedby')
+      return id ? document.getElementById(id)?.textContent : undefined
+    }
+    const tile = document.querySelector('[data-library-tile="mj-text"]')
+    expect(described(tile)).toBe('Use Insert instead.')
+    // Nothing selected: a content block cannot be inserted, which the tile says
+    expect(tile).toHaveAttribute('aria-disabled', 'true')
+    const handle = document.querySelector('[data-library-card] [data-library-drag-handle]')
+    expect(described(handle)).toBe('Use Insert instead.')
+    expect(handle).not.toHaveAttribute('tabindex')
   })
 })

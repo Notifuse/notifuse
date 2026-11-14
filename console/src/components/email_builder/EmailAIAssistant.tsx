@@ -31,22 +31,6 @@ export interface EmailAIAssistantProps {
   hidden?: boolean
 }
 
-const config: AIAssistantConfig = {
-  title: 'AI Email Designer',
-  icon: <Wand2 size={18} />,
-  iconButton: <Wand2 size={24} />,
-  iconLarge: <Wand2 size={32} />,
-  iconColor: '#764ba2',
-  avatarColor: '#764ba2',
-  placeholder: 'Ask me to design your email...',
-  // Kept at 8192: this is sent as max_tokens to every provider, and some reasoning
-  // models (e.g. DeepSeek-reasoner) hard-cap output at 8192 and 400 on higher values.
-  // When reasoning still exhausts the budget the backend flags `truncated` and the
-  // user is told to lower the reasoning effort rather than the request silently failing.
-  maxTokens: 8192,
-  notConfiguredGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-}
-
 export function EmailAIAssistant({
   workspace,
   callbacks,
@@ -59,6 +43,21 @@ export function EmailAIAssistant({
   hidden = false
 }: EmailAIAssistantProps) {
   const { t } = useLingui()
+  const config: AIAssistantConfig = {
+    title: t`AI Email Designer`,
+    icon: <Wand2 size={18} />,
+    iconButton: <Wand2 size={24} />,
+    iconLarge: <Wand2 size={32} />,
+    iconColor: '#764ba2',
+    avatarColor: '#764ba2',
+    placeholder: t`Ask me to design your email...`,
+    // Kept at 8192: this is sent as max_tokens to every provider, and some reasoning
+    // models (e.g. DeepSeek-reasoner) hard-cap output at 8192 and 400 on higher values.
+    // When reasoning still exhausts the budget the backend flags `truncated` and the
+    // user is told to lower the reasoning effort rather than the request silently failing.
+    maxTokens: 8192,
+    notConfiguredGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+  }
   // Deliberately not memoized: the hook refreshes its ref on every render and calls this
   // once per request round, so a category or a tree changed mid-conversation reaches the
   // next round. A useCallback here would pin a stale closure instead.
@@ -91,7 +90,7 @@ export function EmailAIAssistant({
         }
         callbacks.onUpdateBlock(input.blockId, input.updates)
         insert(`Updated block ${input.blockId}`, TOOL_NAMES.UPDATE_BLOCK)
-        message.success('Block updated')
+        message.success(t`Block updated`)
         return { content: `Updated block ${input.blockId}`, silent: true }
       }
     ],
@@ -122,7 +121,8 @@ export function EmailAIAssistant({
           input.attributes
         )
         insert(`Added ${input.blockType} to ${input.parentId}`, TOOL_NAMES.ADD_BLOCK)
-        message.success(`Added ${input.blockType}`)
+        const blockType = input.blockType
+        message.success(t`Added ${blockType}`)
         return { content: `Added ${input.blockType} to ${input.parentId}`, silent: true }
       }
     ],
@@ -133,7 +133,7 @@ export function EmailAIAssistant({
         if (!input?.blockId) return
         callbacks.onDeleteBlock(input.blockId)
         insert(`Deleted block ${input.blockId}`, TOOL_NAMES.DELETE_BLOCK)
-        message.success('Block deleted')
+        message.success(t`Block deleted`)
         return { content: `Deleted block ${input.blockId}`, silent: true }
       }
     ],
@@ -158,7 +158,7 @@ export function EmailAIAssistant({
         }
         callbacks.onMoveBlock(input.blockId, input.newParentId, input.position)
         insert(`Moved block ${input.blockId} to ${input.newParentId}`, TOOL_NAMES.MOVE_BLOCK)
-        message.success('Block moved')
+        message.success(t`Block moved`)
         return { content: `Moved block ${input.blockId} to ${input.newParentId}`, silent: true }
       }
     ],
@@ -184,7 +184,7 @@ export function EmailAIAssistant({
             'The email structure was not applied: the request arrived without a tree, which usually means the response hit the token limit. Ask me again, or ask for a simpler layout.',
             TOOL_NAMES.SET_EMAIL_TREE
           )
-          message.error('Email structure not applied')
+          message.error(t`Email structure not applied`)
           return
         }
 
@@ -194,14 +194,14 @@ export function EmailAIAssistant({
         ]
         if (errors.length > 0) {
           insert(`Tree validation failed: ${errors.join(', ')}`, TOOL_NAMES.SET_EMAIL_TREE)
-          message.error('Invalid tree structure')
+          message.error(t`Invalid tree structure`)
           return
         }
 
         const treeWithNewIds = EmailBlockClass.regenerateIds(input.tree)
         callbacks.setEmailTree(treeWithNewIds)
         insert('Email structure replaced', TOOL_NAMES.SET_EMAIL_TREE)
-        message.success('Email template updated')
+        message.success(t`Email template updated`)
         return { content: 'Email structure replaced', silent: true }
       }
     ],
@@ -226,7 +226,13 @@ export function EmailAIAssistant({
 
         if (updates.length > 0) {
           insert(`Updated ${updates.join(' and ')}`, TOOL_NAMES.UPDATE_EMAIL_METADATA)
-          message.success(`Updated ${updates.join(' and ')}`)
+          message.success(
+            updates.length > 1
+              ? t`Updated the subject and the preview text`
+              : input.subject && onUpdateSubject
+                ? t`Updated the subject`
+                : t`Updated the preview text`
+          )
           return { content: `Updated ${updates.join(' and ')}`, silent: true }
         }
       }

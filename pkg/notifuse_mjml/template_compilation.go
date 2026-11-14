@@ -776,6 +776,7 @@ func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *str
 		if err := ValidateLiquidSyntax(auto); err != nil {
 			textErr = err.Error()
 		} else if (req.MjmlSource == nil || *req.MjmlSource == "") && liquidAmongBlocks(req.VisualEditorTree) {
+			// The console (textVersionSeed.ts) tells this notice from refused markup by its start
 			textErr = "Liquid placed between the blocks of a section or a column may not land where it applies in the text version: check it before saving"
 		}
 	}

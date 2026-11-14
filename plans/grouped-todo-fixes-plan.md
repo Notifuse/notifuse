@@ -1597,6 +1597,23 @@ deleted."
   panel over the canvas whose width the canvas reserves.
 - 8.1, context identity: the macro's `t` is a new function on every render, so the two callbacks that used it
   take their strings from the render instead; the mutations give their stable `mutateAsync`.
+- 8.2, rename: the block is read with `templateBlocks.get` just before the update, rather than the whole
+  workspace; a block gone between the two reads (404 on either call) refreshes the library as before.
+- 8.2, column widths: the rebalance takes `{ bodyWidth }` (the `mj-body` width, 600 px by default) and, on
+  removal, `{ removed }`; a section's side padding is read from its `paddingLeft`/`paddingRight`, then its
+  `padding` shorthand, then the template's default attributes. Wrapper padding and borders are not taken off.
+  The editor and the AI assistant both call `utils/layoutRebalance.ts`. Changing a group's width warns (the
+  section's overflow, in the group's settings) rather than rebalancing the columns.
+- 8.2, empty code source: the preview and the HTML are cleared with the text, so nothing of the last compile
+  stays on screen.
+- 8.2, text version: the placement notice is recognised by its start (the Go test pins the whole sentence) and
+  shown as the console's own translated sentence. The "Liquid lost" count leaves out the `mj-head`, comments and
+  tag attributes; the notice now names display conditions, which the compiled MJML always carries as tags
+  between blocks.
+- 8.2, test sender: it follows the selected integration and language, so it is no longer taken from the first
+  integration whatever the selected one.
+- 8.2, colours: the walk excludes tests and two files whose colours are not the console's (the blog themes and
+  the broadcast annotation colour), each checked to still hold an old colour.
 
 ## Test commands for lot 8
 

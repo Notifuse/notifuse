@@ -45,4 +45,14 @@ describe('suggestBlockName', () => {
     expect(suggestBlockName(b('d', 'mj-divider'), 'Divider')).toBe('Divider')
     expect(suggestBlockName(text('t', '<p>{{ only_liquid }}</p>'), 'Text')).toBe('Text')
   })
+
+  it('decodes every HTML entity of the text', () => {
+    const block = text('t', '<p>Fish &amp; chips &eacute;t&eacute; &lt;3&nbsp;!</p>')
+    expect(suggestBlockName(block, 'Text')).toBe('Text · Fish & chips été <3 !')
+  })
+
+  it('keeps the space French puts before ! ? : ; and drops the one a tag leaves before , and .', () => {
+    expect(suggestBlockName(text('t', '<p>Prête ? Oui : <b>go</b> !</p>'), 'Text')).toBe('Text · Prête ? Oui : go !')
+    expect(suggestBlockName(text('t', '<p><b>Anne</b>, <i>Paul</i>.</p>'), 'Text')).toBe('Text · Anne, Paul.')
+  })
 })

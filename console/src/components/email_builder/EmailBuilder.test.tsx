@@ -769,7 +769,7 @@ describe('EmailBuilder library', () => {
         string
       ]
       expect([block.id, operation, id]).toEqual(['section-2', 'update', 'header'])
-      await waitFor(() => expect(card('header').className).toContain('border-[#7763F1]'))
+      await waitFor(() => expect(card('header').className).toContain('border-primary-500'))
       expect(within(card('header')).queryByText('New')).toBeNull()
     })
 
@@ -836,7 +836,7 @@ describe('EmailBuilder library', () => {
       )
     })
 
-    it('keeps the save dialog open while another library change runs', async () => {
+    it('holds the save dialog while another library change runs', async () => {
       let finish: () => void = () => {}
       const onDelete = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)))
       const save = vi.fn(async () => 'new-id')
@@ -848,16 +848,15 @@ describe('EmailBuilder library', () => {
       await waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1))
 
       act(() => (mockEditPanelProps.onOpenSaveDialog as (id: string) => void)('section-1'))
-      await userEvent.click(await screen.findByRole('button', { name: 'Save' }))
-      expect(
-        await screen.findByText('Another change to the library is running. Try again in a moment.')
-      ).toBeInTheDocument()
+      // Save waits for the running change, Enter in the name included
+      const saveButton = await screen.findByRole('button', { name: /Save/ })
+      expect(saveButton).toBeDisabled()
+      fireEvent.keyDown(screen.getByPlaceholderText('Enter a name for this block'), { key: 'Enter', keyCode: 13 })
       expect(save).not.toHaveBeenCalled()
-      // The dialog stays open, its Save button ready
-      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
 
       await act(async () => finish())
-      await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: /Save/ })).toBeEnabled())
+      await userEvent.click(screen.getByRole('button', { name: /Save/ }))
       await waitFor(() => expect(save).toHaveBeenCalledTimes(1))
     })
   })
