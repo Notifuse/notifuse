@@ -680,12 +680,17 @@ func (h *TaskHandler) ResetTask(w http.ResponseWriter, r *http.Request) {
 			WriteJSONError(w, "Task not found", http.StatusNotFound)
 			return
 		}
+		// A refusal of the task's state is the caller's to fix; anything else is a
+		// failure on our side, whose text stays in the logs.
+		if writeValidationError(w, err) {
+			return
+		}
 		h.logger.WithFields(map[string]interface{}{
 			"task_id":      req.ID,
 			"workspace_id": req.WorkspaceID,
 			"error":        err.Error(),
 		}).Error("Failed to reset task")
-		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		WriteJSONError(w, "Failed to reset task", http.StatusInternalServerError)
 		return
 	}
 
@@ -729,12 +734,15 @@ func (h *TaskHandler) TriggerTask(w http.ResponseWriter, r *http.Request) {
 			WriteJSONError(w, "Task is already running", http.StatusConflict)
 			return
 		}
+		if writeValidationError(w, err) {
+			return
+		}
 		h.logger.WithFields(map[string]interface{}{
 			"task_id":      req.ID,
 			"workspace_id": req.WorkspaceID,
 			"error":        err.Error(),
 		}).Error("Failed to trigger task")
-		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		WriteJSONError(w, "Failed to trigger task", http.StatusInternalServerError)
 		return
 	}
 

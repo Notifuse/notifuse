@@ -411,7 +411,7 @@ func TestNullableTime(t *testing.T) {
 				wantErr:  false,
 			},
 			{
-				name:     "scan invalid type",
+				name:     "scan text that is not a time",
 				input:    "invalid",
 				expected: NullableTime{},
 				wantErr:  true,

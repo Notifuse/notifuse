@@ -57,6 +57,7 @@ func TestTaskRepository_GetTx_Branches(t *testing.T) {
 				WillReturnRows(sqlmock.NewRows(taskCols))
 		})
 		require.EqualError(t, err, "task not found")
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound, "callers tell a missing task from a failed read")
 	})
 
 	t.Run("driver failure is wrapped", func(t *testing.T) {
