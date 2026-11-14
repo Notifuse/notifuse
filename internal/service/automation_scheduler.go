@@ -18,6 +18,22 @@ type AutomationScheduler struct {
 	stoppedChan chan struct{}
 	mu          sync.Mutex
 	running     bool
+	// stopMargin overrides automationStopMargin when positive (tests).
+	stopMargin time.Duration
+}
+
+// automationStopMargin is how long Stop waits past the executor's drain deadline: once the
+// deadline cancels the node, the writes left fail fast and the loop returns.
+const automationStopMargin = 5 * time.Second
+
+// stopTimeout is how long Stop waits for the batch in progress: the executor's drain, which
+// counts from the stop, plus a margin.
+func (s *AutomationScheduler) stopTimeout() time.Duration {
+	margin := automationStopMargin
+	if s.stopMargin > 0 {
+		margin = s.stopMargin
+	}
+	return s.executor.drainTimeout() + margin
 }
 
 // NewAutomationScheduler creates a new automation scheduler
@@ -71,7 +87,7 @@ func (s *AutomationScheduler) Stop() {
 	select {
 	case <-s.stoppedChan:
 		s.logger.Info("Automation scheduler stopped successfully")
-	case <-time.After(5 * time.Second):
+	case <-time.After(s.stopTimeout()):
 		s.logger.Warn("Automation scheduler stop timeout exceeded")
 	}
 }
@@ -82,6 +98,17 @@ func (s *AutomationScheduler) run(ctx context.Context) {
 		s.mu.Lock()
 		s.running = false
 		s.mu.Unlock()
+	}()
+
+	// Stop without a cancelled context stops the batch in progress too, with the same drain.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		select {
+		case <-s.stopChan:
+			cancel()
+		case <-ctx.Done():
+		}
 	}()
 
 	ticker := time.NewTicker(s.interval)

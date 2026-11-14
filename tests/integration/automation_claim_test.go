@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -201,6 +202,74 @@ func TestAutomationClaim(t *testing.T) {
 			WHERE automation_id = $1 AND node_id = $2 AND action = 'completed'`, automationID, webhookID).Scan(&executions, &journeys))
 		assert.Equal(t, len(emails), journeys)
 		assert.Equal(t, journeys, executions, "one completed webhook step per journey")
+	})
+
+	t.Run("a stop during a step lets it finish and record it", func(t *testing.T) {
+		// The receiver holds the webhook call until the test has stopped the batch.
+		var calls atomic.Int32
+		received, release := make(chan struct{}, 1), make(chan struct{})
+		var releaseOnce sync.Once
+		releaseReceiver := func() { releaseOnce.Do(func() { close(release) }) }
+		receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls.Add(1)
+			select {
+			case received <- struct{}{}:
+			default:
+			}
+			<-release
+			_, _ = w.Write([]byte(`{}`))
+		}))
+		defer receiver.Close()
+		defer releaseReceiver() // runs before Close, so a failed assertion cannot hang the test
+
+		automationID, webhookID := createAutomation(t, "claim_stop", receiver.URL)
+		enrol(t, automationID, "claim_stop", 1)
+		executor := newExecutor()
+
+		stopCtx, stop := context.WithCancel(ctx)
+		defer stop()
+		type result struct {
+			processed int
+			err       error
+		}
+		done := make(chan result, 1)
+		go func() {
+			processed, err := executor.ProcessBatch(stopCtx, 50)
+			done <- result{processed, err}
+		}()
+		select {
+		case <-received:
+		case <-time.After(30 * time.Second):
+			t.Fatal("the webhook step did not start")
+		}
+		stop() // the app stops while the webhook is under way
+		releaseReceiver()
+		var res result
+		select {
+		case res = <-done:
+		case <-time.After(30 * time.Second):
+			t.Fatal("the batch did not return after the stop")
+		}
+		require.NoError(t, res.err)
+		assert.Equal(t, 1, res.processed)
+
+		var status string
+		require.NoError(t, db.QueryRowContext(ctx,
+			`SELECT status FROM contact_automations WHERE automation_id = $1`, automationID).Scan(&status))
+		assert.Equal(t, "completed", status, "the journey moved past the webhook step")
+		var completedSteps int
+		require.NoError(t, db.QueryRowContext(ctx, `SELECT COUNT(*) FROM automation_node_executions
+			WHERE automation_id = $1 AND node_id = $2 AND action = 'completed'`, automationID, webhookID).Scan(&completedSteps))
+		assert.Equal(t, 1, completedSteps, "the webhook step is recorded as completed")
+
+		// Once the claim would have ended, nothing runs the step again.
+		_, err := db.ExecContext(ctx, `UPDATE contact_automations SET scheduled_at = NOW() - INTERVAL '1 second'
+			WHERE automation_id = $1`, automationID)
+		require.NoError(t, err)
+		processed, err := executor.ProcessBatch(ctx, 50)
+		require.NoError(t, err)
+		assert.Equal(t, 0, processed)
+		assert.Equal(t, int32(1), calls.Load(), "one webhook call")
 	})
 
 	t.Run("two claims at once get disjoint journeys", func(t *testing.T) {
