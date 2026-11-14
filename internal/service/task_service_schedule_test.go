@@ -14,6 +14,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
 // The schedule request writes the broadcast's task itself, in one system-database
@@ -138,6 +139,49 @@ func TestTaskService_RunTaskNow(t *testing.T) {
 		repo.EXPECT().GetTx(gomock.Any(), gomock.Any(), "w1", "task-1").Return(nil, domain.ErrTaskNotFound)
 
 		svc.runTaskNow("w1", "task-1")
+	})
+
+	// A task deleted before it runs is logged at Warn, by either read; any other failure at Error.
+	t.Run("a missing task is logged at Warn, a failed read at Error", func(t *testing.T) {
+		for _, tc := range []struct {
+			name     string
+			setup    func(repo *mocks.MockTaskRepository)
+			expected func(log *pkgmocks.MockLogger)
+		}{
+			{"gone before its first read", func(repo *mocks.MockTaskRepository) {
+				repo.EXPECT().Get(gomock.Any(), "w1", "task-1").Return(nil, domain.ErrTaskNotFound)
+			}, func(log *pkgmocks.MockLogger) {
+				log.EXPECT().Warn("Failed to read the task to run now: the task no longer exists").Times(1)
+			}},
+			{"gone when the execution reads it", func(repo *mocks.MockTaskRepository) {
+				repo.EXPECT().Get(gomock.Any(), "w1", "task-1").Return(&domain.Task{ID: "task-1", MaxRuntime: 50}, nil)
+				repo.EXPECT().WithTransaction(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, fn func(*sql.Tx) error) error { return fn(nil) })
+				repo.EXPECT().GetTx(gomock.Any(), gomock.Any(), "w1", "task-1").Return(nil, domain.ErrTaskNotFound)
+			}, func(log *pkgmocks.MockLogger) {
+				log.EXPECT().Warn("Failed to run the task now: the task no longer exists").Times(1)
+			}},
+			{"a failed read", func(repo *mocks.MockTaskRepository) {
+				repo.EXPECT().Get(gomock.Any(), "w1", "task-1").Return(nil, errors.New("pq: connection refused"))
+			}, func(log *pkgmocks.MockLogger) {
+				log.EXPECT().Error("Failed to read the task to run now").Times(1)
+			}},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				ctrl := gomock.NewController(t)
+				repo := mocks.NewMockTaskRepository(ctrl)
+				log := pkgmocks.NewMockLogger(ctrl)
+				log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+				log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+				log.EXPECT().Info(gomock.Any()).AnyTimes()
+				log.EXPECT().Debug(gomock.Any()).AnyTimes()
+				tc.expected(log)
+				svc := NewTaskService(repo, mocks.NewMockSettingRepository(ctrl), log, nil, "http://localhost:8080")
+				tc.setup(repo)
+
+				svc.runTaskNow("w1", "task-1")
+			})
+		}
 	})
 
 	t.Run("nothing runs when this instance does not execute its tasks itself", func(t *testing.T) {

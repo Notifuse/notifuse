@@ -15,7 +15,7 @@ import (
 
 // TestWebhookEmailStatuses: /webhooks/email answers 404 for a workspace or an integration that
 // does not exist and 400 for a body the provider's parser cannot read, so the provider stops
-// sending it; a failure on our side is a 500, which it retries.
+// sending it. The 500 for a failure on our side is covered by the service and handler tests.
 func TestWebhookEmailStatuses(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()

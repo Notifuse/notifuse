@@ -84,12 +84,25 @@ func TestProcessWebhook_FailureKinds(t *testing.T) {
 
 	t.Run("an SNS confirmation whose URL is not AWS's", func(t *testing.T) {
 		svc := newService(t, domain.EmailProviderKindSES, answer(http.StatusOK, nil))
+		// The sender's mistake: logged at Warn, never at Error (the strict mock refuses it).
+		log := pkgmocks.NewMockLogger(gomock.NewController(t))
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().Warn("Refused the subscription confirmation URL").Times(1)
+		svc.logger = log
 		err := svc.ProcessWebhook(context.Background(), workspaceID, integrationID, confirmation(t, "https://attacker.example/confirm"))
 		assert.ErrorIs(t, err, domain.ErrWebhookPayloadInvalid)
 	})
 
 	t.Run("an SNS confirmation AWS cannot be reached for", func(t *testing.T) {
 		svc := newService(t, domain.EmailProviderKindSES, answer(0, errors.New("dial tcp: i/o timeout")))
+		log := pkgmocks.NewMockLogger(gomock.NewController(t))
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().Error("Failed to confirm subscription").Times(1)
+		svc.logger = log
 		err := svc.ProcessWebhook(context.Background(), workspaceID, integrationID, confirmation(t, awsURL))
 		require.Error(t, err)
 		assert.NotErrorIs(t, err, domain.ErrWebhookPayloadInvalid, "ours: SNS sends the confirmation again")

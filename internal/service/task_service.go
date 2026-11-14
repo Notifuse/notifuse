@@ -585,7 +585,7 @@ func (s *TaskService) executeTasksDirectly(ctx context.Context, tasks []*domain.
 func logExecutionFailure(entry logger.Logger, err error, message string) {
 	entry = entry.WithField("error", err.Error())
 	var notFound *domain.ErrNotFound
-	if errors.As(err, &notFound) {
+	if errors.As(err, &notFound) || errors.Is(err, domain.ErrTaskNotFound) {
 		entry.Warn(message + ": the task no longer exists")
 		return
 	}
@@ -1216,7 +1216,7 @@ func (s *TaskService) runTaskNow(workspaceID, taskID string) {
 	})
 	task, err := s.repo.Get(ctx, workspaceID, taskID)
 	if err != nil {
-		logger.WithField("error", err.Error()).Error("Failed to read the task to run now")
+		logExecutionFailure(logger, err, "Failed to read the task to run now")
 		return
 	}
 	timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)

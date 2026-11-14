@@ -71,6 +71,7 @@ func TestLogExecutionFailure(t *testing.T) {
 	}{
 		{"a missing task", &domain.ErrNotFound{Entity: "task", ID: "task123"}, true},
 		{"a missing task, wrapped", fmt.Errorf("run: %w", &domain.ErrNotFound{Entity: "task", ID: "task123"}), true},
+		{"a missing task, as the repository says it", fmt.Errorf("read: %w", domain.ErrTaskNotFound), true},
 		{"a database failure", errors.New("pq: connection refused"), false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -780,9 +780,14 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 		// the SSRF-safe client so it cannot be aimed at a private address.
 		resp, err := s.confirmSNSSubscription(snsPayload.SubscribeURL)
 		if err != nil {
-			s.logger.WithField("error", err.Error()).
-				WithField("integration_id", integrationID).
-				Error("Failed to confirm subscription")
+			entry := s.logger.WithField("error", err.Error()).WithField("integration_id", integrationID)
+			var serverErr *webhookServerError
+			if errors.As(err, &serverErr) {
+				entry.Error("Failed to confirm subscription")
+			} else {
+				// A refused SubscribeURL answers 400: the sender's mistake, not ours.
+				entry.Warn("Refused the subscription confirmation URL")
+			}
 			return nil, fmt.Errorf("failed to confirm subscription: %w", err)
 		}
 		defer func() { _ = resp.Body.Close() }()

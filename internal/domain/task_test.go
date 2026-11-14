@@ -1094,7 +1094,8 @@ func TestTask_RecurringFields(t *testing.T) {
 // Every request that names a task refuses an ID that is not a UUID.
 func TestTaskRequests_IDMustBeAUUID(t *testing.T) {
 	const valid = "11111111-1111-4111-8111-111111111111"
-	for _, id := range []string{"not-a-uuid", "task-1", valid + "x"} {
+	// uuid.Parse reads the urn and braced forms; PostgreSQL's uuid type refuses the urn one.
+	for _, id := range []string{"not-a-uuid", "task-1", valid + "x", "urn:uuid:" + valid, "{" + valid + "}"} {
 		params := url.Values{"workspace_id": {"ws"}, "id": {id}}
 		assert.EqualError(t, (&GetTaskRequest{}).FromURLParams(params), "task id must be a UUID", id)
 		assert.EqualError(t, (&DeleteTaskRequest{}).FromURLParams(params), "task id must be a UUID", id)

@@ -273,10 +273,13 @@ func TestDataFeedFetcher_FetchRecipient_RetriesThenFails(t *testing.T) {
 		t.Cleanup(server.Close)
 		t.Cleanup(func() { close(release) })
 
+		start := time.Now()
 		result, err := f.FetchRecipient(context.Background(), &domain.RecipientFeedSettings{Enabled: true, URL: server.URL}, recipientPayload())
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Equal(t, int32(f.recipientRetries+1), transport.n.Load(), "every attempt is made")
+		// The shortened timeout and delay are the ones used: the fixed ones take seconds.
+		assert.Less(t, time.Since(start), 2*time.Second)
 	})
 
 	t.Run("a refused connection", func(t *testing.T) {
@@ -285,10 +288,12 @@ func TestDataFeedFetcher_FetchRecipient_RetriesThenFails(t *testing.T) {
 		url := server.URL
 		server.Close() // nothing listens on its address any more
 
+		start := time.Now()
 		result, err := f.FetchRecipient(context.Background(), &domain.RecipientFeedSettings{Enabled: true, URL: url}, recipientPayload())
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Equal(t, int32(f.recipientRetries+1), transport.n.Load(), "every attempt is made")
+		assert.Less(t, time.Since(start), 2*time.Second, "the shortened delay is the one used")
 	})
 
 	t.Run("the defaults are the feed's fixed settings", func(t *testing.T) {

@@ -121,6 +121,7 @@ func TestTaskBlogGap_TaskUpdateTx_RowsAffectedBranches(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		err := repo.UpdateTx(ctx, tx, "ws-1", newTask())
 		require.EqualError(t, err, "task not found")
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -408,6 +409,15 @@ func TestTaskBlogGap_TaskMarkAsFailedTx_RetryBranches(t *testing.T) {
 		err := repo.MarkAsFailedTx(ctx, tx, "ws-1", "task-1", "boom")
 		require.NoError(t, err)
 		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("an update that matches no row is domain.ErrTaskNotFound", func(t *testing.T) {
+		_, mock, repo, tx := gapBeginTaskTx(t)
+		defer func() { _ = tx.Rollback() }()
+		mock.ExpectQuery(regexp.QuoteMeta("FOR UPDATE")).WillReturnRows(taskRow(0, 3))
+		mock.ExpectExec(regexp.QuoteMeta("UPDATE tasks")).WillReturnResult(sqlmock.NewResult(0, 0))
+		err := repo.MarkAsFailedTx(ctx, tx, "ws-1", "task-1", "boom")
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 	})
 
 	t.Run("update rows-affected failure is wrapped", func(t *testing.T) {

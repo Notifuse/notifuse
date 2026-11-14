@@ -779,7 +779,7 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 
 ## Lot 4: the tasks API, the email webhook's statuses, the compile request
 
-Reviewed before code (to be filled in after the review). #568, #569 and #570 are merged in dev, so the points
+Reviewed before code: see "Corrections after the plan review (lot 4)". #568, #569 and #570 are merged in dev, so the points
 that waited for them are done here.
 
 ### 4.1 A missing task is `domain.ErrTaskNotFound` everywhere, and recognised only as such
@@ -900,11 +900,26 @@ blocking and ten minor problems. These replace what the points above say where t
 - **4.9** The compile limit is folded into the 44.0 plain-text Feature line (`CHANGELOG.md:77`): the request's
   `text` field is 44.0 work.
 
+### Corrections after the code review (lot 4, round 1)
+
+The code review (`/mnt/project-files/reviews/grouped-pr-lot4-code-review.md`, Fable, high) found no blocking
+problem and eleven minor ones. Fixed: the zero-row sentinel of `UpdateTx` and `MarkAsFailedTx` is pinned; the
+Warn for a missing task is pinned in the handler and in `runTaskNow`, whose own read now logs a missing task at
+Warn too (`logExecutionFailure` reads `domain.ErrTaskNotFound`); a task ID must be 36 characters, so the
+`urn:uuid:` form answers 400; a refused SNS `SubscribeURL` is logged at Warn; the feed retry test bounds its
+time; the CHANGELOG's 400 line and the webhook integration test's comment say what they cover; the test
+commands above list every test that posts to `/webhooks/email`.
+
+Known, not handled: `assertAuditReason` takes the status it checks from its caller; a payload that parses but
+cannot be stored (an over-long bounce type, invalid UTF-8 in the raw payload) answers 500 on every delivery; a
+delivery sent again after a failure past `StoreEvents` stores its events twice (a soft bounce counts twice
+toward the threshold); `tasks.get` and `tasks.delete` still log a cancelled request at Error.
+
 ## Test commands for lot 4
 
 ```
-go test ./internal/domain/ ./internal/service/... ./internal/repository/ ./internal/http/
-INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestTask|TestWebhook|TestInbound|TestTemplate' -count=1
+go test ./internal/domain/ ./internal/service/... ./internal/repository/ ./internal/http/ ./pkg/notifuse_mjml/
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestTask|TestWebhook|TestInbound|TestTemplate|TestPlainText|TestEmailEvent|TestBounce|TestMailjet|TestSESBounceHandling|TestAutomationComplaint|TestMessageStatusRecordsTheListRow' -count=1
 ```
 
 ## Lot 5: the public blog (robots, sitemap, feeds, cache) and the blog API

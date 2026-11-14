@@ -620,9 +620,13 @@ func (r *ExecuteTaskRequest) Validate() error {
 	return validateTaskID(r.ID)
 }
 
-// validateTaskID refuses a task ID that is not a UUID: tasks.id is a UUID column, so such an ID
-// would reach the database only to fail there.
+// validateTaskID refuses a task ID that is not a UUID in its 36-character form: tasks.id is a
+// UUID column, so another ID would reach the database only to fail there. uuid.Parse also
+// reads forms PostgreSQL refuses, such as urn:uuid:<uuid>.
 func validateTaskID(id string) error {
+	if len(id) != 36 {
+		return fmt.Errorf("task id must be a UUID")
+	}
 	if _, err := uuid.Parse(id); err != nil {
 		return fmt.Errorf("task id must be a UUID")
 	}

@@ -65,7 +65,18 @@ func TestTaskHandler_ExecuteTask_LookupErrors(t *testing.T) {
 	})
 
 	t.Run("the task is gone when the execution reads it", func(t *testing.T) {
-		handler, svc, _, _ := newHandler(t) // logged at Warn, not Error
+		// Logged at Warn once, never at Error: the strict logger refuses anything else.
+		ctrl := gomock.NewController(t)
+		svc := mocks.NewMockTaskService(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().Debug(gomock.Any()).AnyTimes()
+		log.EXPECT().Warn("Task to execute not found").Times(1)
+		handler := NewTaskHandler(svc, mocks.NewMockAuthService(ctrl),
+			func() ([]byte, error) { return []byte("test-jwt-secret-key-for-testing-32bytes"), nil },
+			log, secretKey, true)
 		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").Return(&domain.Task{MaxRuntime: 60}, nil)
 		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123", gomock.Any()).
 			Return(&domain.ErrNotFound{Entity: "task", ID: "12312312-3123-4123-8123-123123123123"})
