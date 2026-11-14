@@ -54,11 +54,10 @@ func TestTaskService_ExecuteTask(t *testing.T) {
 		workspaceID := "workspace1"
 		taskID := "task123"
 
-		// Configure mock repository to return a "not found" error
-		notFoundErr := fmt.Errorf("task not found")
+		// The repository reports a missing task with its sentinel
 		mockRepo.EXPECT().
 			GetTx(gomock.Any(), gomock.Any(), workspaceID, taskID).
-			Return(nil, notFoundErr)
+			Return(nil, domain.ErrTaskNotFound)
 
 		// Call the method under test
 		timeoutAt := time.Now().Add(60 * time.Second) // 60 seconds timeout for test

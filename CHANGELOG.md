@@ -26,6 +26,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
 
+- **Improvement**: With the internal scheduler off, `tasks.execute` answers 500 when the database fails while reading the task, without the internal error in the response, and 404 only for a task that does not exist.
+
 - **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.

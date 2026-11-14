@@ -199,14 +199,10 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 
 		reqJSON, _ := json.Marshal(reqBody)
 
-		// Configure service mock to return a NotFound error
-		notFoundErr := &domain.ErrNotFound{
-			Entity: "task",
-			ID:     reqBody.ID,
-		}
+		// The service reports a missing task with the repository's sentinel
 		mockTaskService.EXPECT().
 			GetTask(gomock.Any(), reqBody.WorkspaceID, reqBody.ID).
-			Return(nil, notFoundErr)
+			Return(nil, domain.ErrTaskNotFound)
 
 		// Call handler
 		req := newSignedExecuteRequest(secretKey, reqJSON)
@@ -214,8 +210,11 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 
 		handler.ExecuteTask(rec, req)
 
-		// Verify response has correct status code for not found
+		// Verify response has correct status code and message for not found
 		assert.Equal(t, http.StatusNotFound, rec.Code)
+		var resp map[string]string
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, "Task not found", resp["error"])
 	})
 
 	t.Run("Task execution error - unsupported task type", func(t *testing.T) {

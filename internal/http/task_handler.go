@@ -536,7 +536,16 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 	// Get the task to calculate timeout
 	task, err := h.taskService.GetTask(execCtx, executeRequest.WorkspaceID, executeRequest.ID)
 	if err != nil {
-		WriteJSONError(w, err.Error(), http.StatusNotFound)
+		if errors.Is(err, domain.ErrTaskNotFound) {
+			WriteJSONError(w, "Task not found", http.StatusNotFound)
+			return
+		}
+		h.logger.WithFields(map[string]interface{}{
+			"task_id":      executeRequest.ID,
+			"workspace_id": executeRequest.WorkspaceID,
+			"error":        err.Error(),
+		}).Error("Failed to get task for execution")
+		WriteJSONError(w, "Failed to get task", http.StatusInternalServerError)
 		return
 	}
 
