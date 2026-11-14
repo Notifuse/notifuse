@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -33,6 +34,9 @@ func TestNullableTime_ScanText(t *testing.T) {
 
 				assert.False(t, nt.IsNull)
 				assert.True(t, tc.want.Equal(nt.Time), "got %s, want %s", nt.Time, tc.want)
+				if tc.want.Location() == time.UTC && !hasOffset(tc.text) {
+					assert.Equal(t, time.UTC, nt.Time.Location(), "a zoneless value is UTC")
+				}
 			})
 		}
 	}
@@ -42,7 +46,9 @@ func TestNullableTime_ScanText(t *testing.T) {
 // is left as it was. Values PostgreSQL can write but Go does not read (infinity, which
 // a time.Time cannot hold, and BC dates, which time.Parse does not read) are refused too.
 func TestNullableTime_ScanText_Refusals(t *testing.T) {
-	for _, text := range []string{"invalid", "2026-13-45", "", "infinity", "2026-03-04 05:06:07 BC"} {
+	// A five-digit year and an offset with seconds (PostgreSQL's LMT zones) are refused too.
+	for _, text := range []string{"invalid", "2026-13-45", "", "infinity", "2026-03-04 05:06:07 BC",
+		"10000-01-01", "1900-01-01 00:00:00+00:09:21"} {
 		t.Run(text, func(t *testing.T) {
 			before := NullableTime{Time: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)}
 			nt := before
@@ -54,4 +60,18 @@ func TestNullableTime_ScanText_Refusals(t *testing.T) {
 			assert.Equal(t, before, nt)
 		})
 	}
+}
+
+// hasOffset tells a text that carries a zone (Z or a signed offset after the time).
+func hasOffset(text string) bool {
+	if len(text) <= len("2026-03-04") {
+		return false
+	}
+	rest := text[len("2026-03-04"):]
+	for _, marker := range []string{"Z", "+", "-"} {
+		if strings.Contains(rest, marker) {
+			return true
+		}
+	}
+	return false
 }

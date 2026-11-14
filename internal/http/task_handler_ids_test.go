@@ -35,6 +35,38 @@ func strictTaskHandler(t *testing.T) (*TaskHandler, *mocks.MockTaskService, *moc
 	return handler, svc, auth, log
 }
 
+// recordingTaskHandler is strictTaskHandler with the fields of each WithFields call kept, so
+// a test can check what an Error log carried.
+func recordingTaskHandler(t *testing.T) (*TaskHandler, *mocks.MockTaskService, *mocks.MockAuthService, *pkgmocks.MockLogger, *[]map[string]interface{}) {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	svc := mocks.NewMockTaskService(ctrl)
+	auth := mocks.NewMockAuthService(ctrl)
+	log := pkgmocks.NewMockLogger(ctrl)
+	var fields []map[string]interface{}
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().WithFields(gomock.Any()).DoAndReturn(func(f map[string]interface{}) *pkgmocks.MockLogger {
+		fields = append(fields, f)
+		return log
+	}).AnyTimes()
+	log.EXPECT().Info(gomock.Any()).AnyTimes()
+	log.EXPECT().Warn(gomock.Any()).AnyTimes()
+	handler := NewTaskHandler(svc, auth, func() ([]byte, error) { return []byte("test-jwt-secret-key-for-testing-32bytes"), nil },
+		log, "test-secret-key", true)
+	return handler, svc, auth, log, &fields
+}
+
+// assertErrorFieldLogged checks that one of the logged field sets carries the internal error.
+func assertErrorFieldLogged(t *testing.T, fields []map[string]interface{}, text string) {
+	t.Helper()
+	for _, f := range fields {
+		if e, ok := f["error"].(string); ok && strings.Contains(e, text) {
+			return
+		}
+	}
+	t.Errorf("no log carried the error %q: %v", text, fields)
+}
+
 // Every task route refuses an ID that is not a UUID with a 400, before any service call.
 func TestTaskHandler_TaskIDMustBeAUUID(t *testing.T) {
 	routes := map[string]func(h *TaskHandler) *httptest.ResponseRecorder{

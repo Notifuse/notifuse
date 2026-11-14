@@ -87,6 +87,7 @@ func TestGapNullableTimeScan(t *testing.T) {
 	require.NoError(t, fromText.Scan([]byte("2026-03-04 05:06:07")))
 	assert.False(t, fromText.IsNull)
 	assert.True(t, stamp.Equal(fromText.Time), "got %s", fromText.Time)
+	assert.Equal(t, time.UTC, fromText.Time.Location(), "a zoneless value is UTC")
 	err := nt.Scan(12345)
 	require.EqualError(t, err, "cannot scan int into NullableTime")
 
