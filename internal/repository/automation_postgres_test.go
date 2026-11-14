@@ -787,7 +787,8 @@ func TestAutomationRepository_GetContactAutomation(t *testing.T) {
 	ca, err = repo.GetContactAutomation(ctx, workspaceID, id)
 	assert.Error(t, err)
 	assert.Nil(t, ca)
-	assert.Contains(t, err.Error(), "contact automation not found")
+	assert.Equal(t, "contact automation not found: "+id, err.Error())
+	assert.ErrorIs(t, err, domain.ErrContactAutomationNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
