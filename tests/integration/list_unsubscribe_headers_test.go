@@ -460,4 +460,3 @@ func requestListUnsubscribeURL(t *testing.T, method string, u *url.URL, contentT
 	t.Cleanup(func() { _ = resp.Body.Close() })
 	return resp
 }
-

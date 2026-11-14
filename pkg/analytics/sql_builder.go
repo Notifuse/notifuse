@@ -677,6 +677,9 @@ func generateZeroValueRow(query Query) []map[string]interface{} {
 // dimension values seen in the data (or one row with empty dimensions when there is none). A
 // row is keyed by its period and its dimension values, so a query with a dimension keeps every
 // row of a period. A filled row holds each measure's empty value (emptyMeasureValue).
+// Periods times combinations is bounded by maxGapFilledRows: past it, the data is returned
+// unfilled, as a dimension with many values over a long range would otherwise make millions
+// of rows.
 func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes map[string]string) ([]map[string]interface{}, error) {
 	if len(query.TimeDimensions) == 0 {
 		return data, nil
@@ -754,6 +757,10 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 		combinations = append(combinations, empty)
 	}
 
+	if len(timeRange)*len(combinations) > maxGapFilledRows {
+		return data, nil
+	}
+
 	result := make([]map[string]interface{}, 0, len(timeRange)*len(combinations))
 	for _, timeStr := range timeRange {
 		for _, combination := range combinations {
@@ -775,6 +782,9 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes
 
 	return result, nil
 }
+
+// maxGapFilledRows bounds the rows the gap filling may return.
+const maxGapFilledRows = 50000
 
 // generateTimeRange generates a slice of time strings based on start, end, and granularity
 func generateTimeRange(start, end time.Time, granularity string) []string {

@@ -3,6 +3,7 @@ package analytics
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -2803,6 +2804,37 @@ func TestFillTimeSeriesGaps_Dimensions(t *testing.T) {
 		{"origin": "broadcast", "count_sent": 0, "last_sent_at": nil, "created_at_day": "2024-01-02T00:00:00Z"},
 		{"origin": "automation", "count_sent": 0, "last_sent_at": nil, "created_at_day": "2024-01-02T00:00:00Z"},
 	}, result)
+}
+
+// A dimension with many values over a long range would fill periods times values rows: past
+// maxGapFilledRows the data comes back unfilled, and up to it every period gets its rows.
+func TestFillTimeSeriesGaps_BoundedByTheRowsItWouldMake(t *testing.T) {
+	query := Query{
+		Schema:     "message_history",
+		Measures:   []string{"count_sent"},
+		Dimensions: []string{"contact_email"},
+		TimeDimensions: []TimeDimension{{
+			Dimension: "created_at", Granularity: "day", DateRange: &[2]string{"2024-01-01", "2024-01-10"},
+		}},
+	}
+	const periods = 10
+	rowsFor := func(values int) []map[string]interface{} {
+		data := make([]map[string]interface{}, values)
+		for i := range data {
+			data[i] = map[string]interface{}{"contact_email": fmt.Sprintf("c%d@x.com", i), "count_sent": 1, "created_at_day": "2024-01-01T00:00:00Z"}
+		}
+		return data
+	}
+
+	over := rowsFor(maxGapFilledRows/periods + 1)
+	result, err := fillTimeSeriesGaps(over, query, nil)
+	require.NoError(t, err)
+	assert.Equal(t, over, result)
+
+	atTheBound := rowsFor(maxGapFilledRows / periods)
+	result, err = fillTimeSeriesGaps(atTheBound, query, nil)
+	require.NoError(t, err)
+	assert.Len(t, result, periods*len(atTheBound))
 }
 
 func TestEmptyMeasureValue(t *testing.T) {

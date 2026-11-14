@@ -186,9 +186,10 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The `count_transactional_messages` measure of message history counts only the messages sent by a transactional notification. It counted every message outside a broadcast, automation emails, template tests and double opt-in confirmations included.
 
-- **Fix**: An analytics query can be ordered by any of its schema's measures, selected or not. Ordering by a measure failed before.
+- **Fix**: `templates.compile` with an empty `mjml_source` and a visual tree renders the Liquid of the tree's `mj-liquid` blocks and the preview text override; it compiled the tree but left both unrendered.
+- **Fix**: An analytics query can be ordered by any of its schema's measures, selected or not. Ordering by a measure whose SQL is a column or `*` rather than an aggregate failed before.
 
-- **Fix**: An analytics time series split by a dimension keeps every value of each period: the periods filled because they had no data get a row for each value, and two values of the same period no longer overwrite each other. In a filled period, a `max`, `min` or `avg` measure is empty instead of 0.
+- **Fix**: An analytics time series split by a dimension keeps every value of each period: the periods filled because they had no data get a row for each value, and two values of the same period no longer overwrite each other. In a filled period, a `max`, `min` or `avg` measure is empty instead of 0. Past 50,000 rows, the series is returned without the filled periods.
 
 - **Fix**: `timeline.list` answers an empty list instead of `null` for a contact without entries.
 

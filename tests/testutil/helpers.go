@@ -1350,13 +1350,13 @@ func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
 		return 0, fmt.Errorf("failed to decode Mailpit search response: %w", err)
 	}
 
-	return apiResp.Total, nil
+	// messages_count is the search's count; total is the whole mailbox.
+	return apiResp.MessagesCount, nil
 }
 
 // CountMailpitMessagesBySubject counts the listed messages whose subject contains subject. It
-// reads the list alone, no message's headers, and matches the subject exactly where the search
-// API behind GetMailpitMessageCount matches words, so "audience-statuses-1" also finds
-// "audience-statuses-2".
+// reads the list alone, no message's headers, and compares the subjects itself rather than
+// going through Mailpit's search.
 func CountMailpitMessagesBySubject(t *testing.T, subject string) (int, error) {
 	return getMailpitMessageCountByListing(t, subject)
 }

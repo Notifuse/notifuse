@@ -1000,7 +1000,7 @@
               "type": "string",
               "maxLength": 100
             },
-            "description": "Search across email, first name, last name, full name and external ID (case-insensitive partial match).\nLeading and trailing spaces are ignored; `%` and `_` are matched literally. At most 100 characters.\n",
+            "description": "Search across email, first name, last name, full name, first and last name together (\"Jane Doe\") and\nexternal ID (case-insensitive partial match).\nLeading and trailing spaces are ignored; `%` and `_` are matched literally. At most 100 characters.\n",
             "example": "john"
           },
           {
@@ -3764,7 +3764,7 @@
     "/api/templates.usage": {
       "get": {
         "summary": "Get template usage",
-        "description": "Counts the broadcasts, transactional notifications, automations and double opt-in lists that use each template. Broadcasts count while they may still send (draft, scheduled, processing, paused, testing, test_completed or winner_selected); deleted notifications, automations and lists do not count; an automation counts once, through its email nodes or its trigger. Templates referenced in segment or trigger conditions, and blog web templates, are not counted. With `template_id`, only that template is counted and `references` lists the objects using it, at most 50 per type, ordered by name; the counts stay exact beyond. Requires the templates read permission; a type the member cannot read (broadcasts, transactional, automations or lists read) is left out of the counts and references and listed in `hidden_types`.",
+        "description": "Counts the broadcasts, transactional notifications, automations and double opt-in lists that use each template. Broadcasts count while they may still send (draft, scheduled, processing, paused, testing, test_completed or winner_selected), and an A/B broadcast counts only the variations it can still send: the winner's once one is chosen, every variation before; deleted notifications, automations and lists do not count; an automation counts once, through its email nodes or its trigger. Templates referenced in segment or trigger conditions, and blog web templates, are not counted. With `template_id`, only that template is counted and `references` lists the objects using it, at most 50 per type, ordered by name; the counts stay exact beyond. Requires the templates read permission; a type the member cannot read (broadcasts, transactional, automations or lists read) is left out of the counts and references and listed in `hidden_types`.",
         "operationId": "getTemplateUsage",
         "security": [
           {
@@ -4566,6 +4566,11 @@
                   "invalidSlug": {
                     "value": {
                       "error": "slug must contain only lowercase letters, numbers, and hyphens"
+                    }
+                  },
+                  "reservedSlug": {
+                    "value": {
+                      "error": "slug is reserved by another route"
                     }
                   }
                 }
@@ -6952,7 +6957,7 @@
                 "failed"
               ]
             },
-            "description": "Only deliveries in this status (optional). `total` counts the filtered deliveries. Any other value answers 400.",
+            "description": "Only deliveries in this status (optional). An empty value lists every status; any other value answers 400. `failed` also covers the deliveries waiting for a retry, which go back to `delivering` when the worker takes them again. `total` counts the filtered deliveries.",
             "example": "failed"
           },
           {
@@ -6993,7 +6998,7 @@
             }
           },
           "400": {
-            "description": "Bad request - missing parameters",
+            "description": "Bad request - missing parameters or unknown status",
             "content": {
               "application/json": {
                 "schema": {
@@ -11124,7 +11129,7 @@
           },
           "text_error": {
             "type": "string",
-            "description": "Why the custom `text` of the request could not be used (a Liquid\nerror, or a rendered text over 256 KiB); `text` is then the automatic\nversion, as a send would be. With `preserve_liquid`, also flags an\nautomatic text whose Liquid tags would not parse.\n"
+            "description": "Why the custom `text` of the request could not be used (a Liquid\nerror, a rendered text over 256 KiB, or a custom text that renders\nblank for this data); `text` is then the automatic version, as a\nsend would be. With\n`preserve_liquid`, also flags an automatic text whose Liquid tags\nwould not parse, or a visual template that places Liquid between the\nblocks of a section or a column, where it may not land where it\napplies in the text.\n"
           },
           "error": {
             "type": "object",
@@ -11393,7 +11398,7 @@
             "type": "string",
             "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "Lowercase letters, digits and single hyphens. Must be unique among the workspace's categories.",
+            "description": "Lowercase letters, digits and single hyphens. Must be unique among the workspace's categories, and may not be a path another route answers on the blog's domain (`v`, `t`, `r`, `visit`, `opens`, `track`, `preferences`, `subscribe`, `unsubscribe`, `unsubscribe-oneclick`, `health`, `healthz`) or start with `api`, `console` or `notification-center`. A category keeps such a slug it already had.",
             "example": "product"
           },
           "description": {
@@ -11427,7 +11432,7 @@
             "type": "string",
             "maxLength": 100,
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "Changing it changes the URL of the category page and of every post in it. No redirect is created from the old URLs.",
+            "description": "Changing it changes the URL of the category page and of every post in it. No redirect is created from the old URLs. A new slug may not be one another route answers on the blog's domain (see the create request); a category keeps such a slug it already had.",
             "example": "product"
           },
           "description": {

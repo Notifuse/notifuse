@@ -1199,8 +1199,8 @@ read, without a lookup per variation."
 - **6.2** The 100 KB limit: the scenario is far over it whatever the names (measured 239 KB to 1.5 MB), so the
   lot keeps the doc note of the limit and the shortening is "known, not handled". The seed notice is detected
   on the request's visual tree (a `mj-liquid` or `mj-raw` placed among rows or columns), not on the parsed HTML.
-  Tests: a condition on a block holding `mj-liquid` refused by the compile request's `Validate` (which the
-  handlers answer with 400); a code-mode compile whose data carries
+  Tests: a condition on a block holding `mj-liquid` refused by the compile request's `Validate` (which
+  `templates.compile` answers with 400); a code-mode compile whose data carries
   `__dc_<id>`; a blank custom text with and without `IncludeText`.
 - **6.3** `templates.usage` counts `VariationsToSend()`: the winning variation once set, every stored variation
   otherwise (the random pick among stale variations with A/B off is "known, not handled"). `broadcasts.get`:
@@ -1350,19 +1350,40 @@ limit extend the 44.0 lines of those endpoints, which are unreleased.
 - 7.4: the demo counts are pinned by the service test only; no integration test seeds the whole demo.
 - 7.6: the timeline time zone case writes an entry from a session in Asia/Tokyo with a wall time and reads the
   instant back through `timeline.list`.
-- 7.7: the audience statuses test cannot wait with `WaitForMailpitMessages`: its count comes from Mailpit's
-  search, which matches words, so `audience-statuses-1` also counts `audience-statuses-2`. It waits on an exact
-  listed count (`CountMailpitMessagesBySubject`). The other callers of the search count are left as they are
-  ("known, not handled").
+- 7.7: the audience statuses test waited on a count that was the whole mailbox: `GetMailpitMessageCount`
+  returned the search answer's `total` instead of its `messages_count`. It now returns the search's count, which
+  every `WaitForMailpitMessages` caller reads; the audience test waits on its listed count
+  (`CountMailpitMessagesBySubject`). (Corrected after the code review: the cause first given here, a search
+  matching words, was false.)
+- 7.7: `TestWebhookWorkerEndToEnd/a_slow_batch…` did not fail in 50 runs with `-race`: no fix is claimed, and it
+  is in "known, not handled".
+- 7.1: the gap filling is bounded: past 50,000 rows (periods times dimension values) the series comes back
+  unfilled, where a dimension with thousands of values over a year made millions of rows (code review B1).
 - 7.7: `TestWorkspaceLock_GrantedAsTheContextEnds` failed 5 runs of 20: lib/pq reports a wait the context ended
   as the server's "canceling statement due to user request", which names no context error. The lock now names
   both (`withLockTransaction`), with a sqlmock test that fails without it.
+
+### Corrections after the code review (lot 7, round 1)
+
+- B1: the gap filling is bounded at 50,000 rows; past it the series is returned unfilled. Test:
+  `TestFillTimeSeriesGaps_BoundedByTheRowsItWouldMake`, which fails without the bound.
+- B2: the CHANGELOG line on ordering names what failed in 43.0: a measure whose SQL is a column or `*`.
+- B3: `GetMailpitMessageCount` returns the search's `messages_count`, not the mailbox's `total`; the comments
+  and the 7.7 note say so, and the `WaitForMailpitMessages` callers are no longer "known, not handled". The
+  broadcast and analytics integration tests pass with it.
+- B4: the lot 7 commands name `TestTemplatesUsage` and `TestAuditLogs`, and the `-count=20` lock run.
+- Minors taken: a unit test pins the `count_transactional_messages` filters; the webhook flake outcome; gofmt of
+  `list_unsubscribe_headers_test.go`; the `contacts.list` `search` description; `openapi.json` regenerated.
+- Also taken from the lot 6 delta reviews: a `Fix` line for `templates.compile` with an empty `mjml_source`
+  (43.0 had the same two tests), the 6.2 line, the `text_error` wrap, and a lot 8.2 point for the
+  `SendTemplateModal` sender.
 
 ## Test commands for lot 7
 
 ```
 go test ./pkg/... ./internal/...
-INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestAnalytics|TestContact|TestTimeline|TestDemo|TestWebAnalytics|TestTemplateUsage|TestWebhookWorker|TestWorkspaceLock|TestTransactional|TestListUnsubscribe|TestBroadcast' -count=1
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestAnalytics|TestContact|TestTimeline|TestDemo|TestWebAnalytics|TestTemplatesUsage|TestAuditLogs|TestWebhookWorker|TestWorkspaceLock|TestTransactional|TestListUnsubscribe|TestBroadcast' -count=1
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestWorkspaceLock_GrantedAsTheContextEnds' -count=20
 ```
 
 ## Lot 8: console
@@ -1412,6 +1433,8 @@ translated in the eight catalogues (`console/CLAUDE.md`). Each point gets a vite
   list) after delete.
 - `ui/AddBlockPopover.tsx`: saved block rows are `button`s (disabled with their reason as text, no redundant
   `title`); the last rows are kept while the popover closes.
+- `templates/SendTemplateModal.tsx:129`: the test send preselects the sender of the template (or of the open
+  translation) when the integration has it, else the integration's default, rather than its first sender.
 - `TemplateSelectorInput.tsx:208, 242, 281`: the three drawers get `canManageSavedBlocks` from
   `permissions?.templates?.write`.
 - `CreateTemplateDrawer.tsx:637`: Replace has its own refresh failure message.
