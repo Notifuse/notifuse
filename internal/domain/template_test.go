@@ -3187,6 +3187,15 @@ func TestGetTemplateUsageRequest_FromURLParams(t *testing.T) {
 		require.NoError(t, req.FromURLParams(url.Values{"workspace_id": {"ws1"}, "template_id": {"welcome"}}))
 		assert.Equal(t, GetTemplateUsageRequest{WorkspaceID: "ws1", TemplateID: "welcome"}, req)
 	})
+
+	t.Run("a template_id PostgreSQL cannot read is refused", func(t *testing.T) {
+		for _, id := range []string{"wel\x00come", "wel\xffcome"} {
+			var req GetTemplateUsageRequest
+			err := req.FromURLParams(url.Values{"workspace_id": {"ws1"}, "template_id": {id}})
+			require.Error(t, err, "%q", id)
+			assert.Contains(t, err.Error(), "template_id must be valid UTF-8 text without NUL bytes")
+		}
+	})
 }
 
 func TestTemplateUsage_JSON(t *testing.T) {

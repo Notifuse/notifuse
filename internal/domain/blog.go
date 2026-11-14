@@ -341,7 +341,39 @@ func (r *CreateBlogCategoryRequest) Validate() error {
 		return fmt.Errorf("slug must be less than 100 characters")
 	}
 
+	if IsReservedBlogCategorySlug(r.Slug) {
+		return fmt.Errorf("slug is reserved by another route")
+	}
+
 	return nil
+}
+
+// ReservedBlogCategorySlugs are the first path segments the server routes before the blog: a
+// category with one of these slugs would have pages that never reach it.
+var ReservedBlogCategorySlugs = []string{
+	"api", "console", "notification-center",
+	"v", "t", "r", "visit", "opens", "track",
+	"preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick",
+	"health", "healthz", "webhooks",
+}
+
+// reservedBlogCategorySlugPrefixes are matched by prefix by the root handler, so any slug
+// starting with one of them is taken too.
+var reservedBlogCategorySlugPrefixes = []string{"api", "console", "notification-center"}
+
+// IsReservedBlogCategorySlug reports whether a category slug is a path another route answers.
+func IsReservedBlogCategorySlug(slug string) bool {
+	for _, reserved := range ReservedBlogCategorySlugs {
+		if slug == reserved {
+			return true
+		}
+	}
+	for _, prefix := range reservedBlogCategorySlugPrefixes {
+		if strings.HasPrefix(slug, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // UpdateBlogCategoryRequest defines the request to update a blog category
@@ -630,6 +662,9 @@ func (r *ListBlogPostsRequest) Validate() error {
 	}
 
 	r.Search = strings.TrimSpace(r.Search)
+	if !utf8.ValidString(r.Search) || strings.ContainsRune(r.Search, 0) {
+		return ValidationError{Message: "search must be valid UTF-8 text without NUL bytes"}
+	}
 	if utf8.RuneCountInString(r.Search) > BlogPostSearchMaxLength {
 		return ValidationError{Message: fmt.Sprintf("search must be at most %d characters", BlogPostSearchMaxLength)}
 	}
@@ -685,6 +720,8 @@ type BlogSitemapPost struct {
 	CategorySlug string
 	PostSlug     string
 	PublishedAt  time.Time
+	// LastModified is the post's last change: its publication, or a later edit.
+	LastModified time.Time
 }
 
 // BlogPostListResponse defines the response for listing blog posts
@@ -745,6 +782,9 @@ type BlogPostRepository interface {
 	// ListSitemapPosts returns, newest first, at most limit live posts with the slug of their
 	// category: published at or before now, not deleted, in a category that is not deleted.
 	ListSitemapPosts(ctx context.Context, now time.Time, limit int) ([]*BlogSitemapPost, error)
+	// NextScheduledPublishAt returns the earliest publication after now of a post that is not
+	// deleted, or nil when none is scheduled.
+	NextScheduledPublishAt(ctx context.Context, now time.Time) (*time.Time, error)
 
 	// Transaction management
 	WithTransaction(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error
@@ -784,10 +824,12 @@ type BlogService interface {
 	// Public operations (no auth required)
 	GetPublicCategoryBySlug(ctx context.Context, slug string) (*BlogCategory, error)
 	GetPublicPostByCategoryAndSlug(ctx context.Context, categorySlug, postSlug string) (*BlogPost, error)
-	ListPublicPosts(ctx context.Context, params *ListBlogPostsRequest) (*BlogPostListResponse, error)
-	// ListPublicSitemapPosts returns the live posts the blog sitemap lists, newest first, at
+	// ListPublicSitemapPosts returns the live posts the sitemap can list, newest first, at
 	// most BlogSitemapMaxPosts of them (no authentication: the sitemap is public).
 	ListPublicSitemapPosts(ctx context.Context) ([]*BlogSitemapPost, error)
+	// NextScheduledPublishAt returns the earliest publication after now, or nil when no post
+	// is scheduled: the public pages cached before it must not outlive it.
+	NextScheduledPublishAt(ctx context.Context, now time.Time) (*time.Time, error)
 
 	// Theme operations
 	CreateTheme(ctx context.Context, request *CreateBlogThemeRequest) (*BlogTheme, error)

@@ -60,9 +60,9 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise, and then while the instance's own links are removed from the click statistics, which takes longer the more clicked links the workspace has recorded.
 
-- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
+- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template (a `template_id` that is not valid UTF-8 or holds a NUL byte answers 400). It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search` (400 for a search that is not valid UTF-8 or holds a NUL byte); `workspaces.members` returns each member's `name`.
 
-- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status.
+- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status or a `category_id` that is not a UUID.
 
 - **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
 
@@ -94,7 +94,7 @@ All notable changes to this project will be documented in this file.
 
   From this version on, automation emails keep the data they were rendered with in the message history, encrypted, as broadcasts already did, so their web version can be shown. Deleting a contact removes it.
 
-  The `/v/` path is now reserved for web versions: on a blog's custom domain, a blog category whose slug is `v` is no longer reachable. Rename such a category before upgrading.
+  The `/v/` path is now reserved for web versions: on a blog's custom domain, a blog category whose slug is `v` is no longer reachable, and a new category cannot take it. Rename such a category before upgrading.
 
 - **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A variation whose chosen sender is removed from the integration afterwards is queued for no further recipient until another sender is chosen: the broadcast cannot be scheduled, cannot be resumed while that variation still has recipients to queue, and pauses before its next batch if it is queuing them. The console then offers to change the sender of the paused broadcast. Emails already queued keep the sender they were queued with, and no email falls back to another address.
 
@@ -124,7 +124,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: A broadcast run that ends while its recipient feed waits to retry stops at once instead of waiting out the delay.
 
-- **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date.
+- **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date, and on the cached home and category pages from that date, not up to 5 minutes later.
 
 - **Fix**: The blog's post list in the console now shows every post, not only the first 100.
 
@@ -140,7 +140,11 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
 
-- **Fix**: The blog's sitemap now lists the blog's posts and the feeds of its categories.
+- **Fix**: The blog's sitemap now lists the blog's posts, with the date of their last change, and the page and feed of each of its categories, on the custom domain in lower case. robots.txt names the sitemap by its absolute address, as search engines require, and both answer 405 to a method other than GET or HEAD.
+
+- **Fix**: A blog feed read with both `If-None-Match` and `If-Modified-Since` is sent again when it changed, instead of answering 304 because of the date; `If-None-Match` also matches a list of ETags and `*`. A feed's `Last-Modified` moves when a scheduled post goes live, so a reader that only sends the date sees the post.
+
+- **Improvement**: A blog category can no longer take a slug another route answers on the blog's domain (`api`, `track`, `unsubscribe`, `webhooks`, …), or one starting with `api`, `console` or `notification-center`: its pages would never show. An existing category keeps its slug and stays editable; the sitemap leaves it out.
 
 - **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
 

@@ -986,7 +986,7 @@ func (r *blogPostRepository) ListSitemapPosts(ctx context.Context, now time.Time
 
 	// The join drops posts without a category or in a deleted one: their address answers 404.
 	query := `
-		SELECT c.slug, p.slug, p.published_at
+		SELECT c.slug, p.slug, p.published_at, GREATEST(p.published_at, p.updated_at)
 		FROM blog_posts p
 		JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
 		WHERE p.deleted_at IS NULL
@@ -1005,7 +1005,7 @@ func (r *blogPostRepository) ListSitemapPosts(ctx context.Context, now time.Time
 	var posts []*domain.BlogSitemapPost
 	for rows.Next() {
 		var post domain.BlogSitemapPost
-		if err := rows.Scan(&post.CategorySlug, &post.PostSlug, &post.PublishedAt); err != nil {
+		if err := rows.Scan(&post.CategorySlug, &post.PostSlug, &post.PublishedAt, &post.LastModified); err != nil {
 			return nil, fmt.Errorf("failed to scan sitemap post: %w", err)
 		}
 		posts = append(posts, &post)
@@ -1016,11 +1016,42 @@ func (r *blogPostRepository) ListSitemapPosts(ctx context.Context, now time.Time
 	return posts, nil
 }
 
+// NextScheduledPublishAt returns the earliest publication after now of a post that is not
+// deleted, or nil when none is scheduled. published_at holds UTC, as in ListSitemapPosts.
+func (r *blogPostRepository) NextScheduledPublishAt(ctx context.Context, now time.Time) (*time.Time, error) {
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	var next sql.NullTime
+	err = workspaceDB.QueryRowContext(ctx, `
+		SELECT MIN(published_at)
+		FROM blog_posts
+		WHERE deleted_at IS NULL
+		  AND published_at > $1
+	`, now.UTC()).Scan(&next)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the next scheduled publication: %w", err)
+	}
+	if !next.Valid {
+		return nil, nil
+	}
+	at := next.Time.UTC()
+	return &at, nil
+}
+
 // GetFeedFingerprint returns (maxUpdatedAt, idsHash) over the same slice of
 // posts ListFeedPosts would return.
 //
-// maxUpdatedAt = MAX(GREATEST(p.updated_at, c.updated_at)) so a category
-// rename invalidates the ETag even if no post was touched. idsHash = MD5 of
+// maxUpdatedAt = MAX(GREATEST(p.published_at, p.updated_at, c.updated_at)) so a category
+// rename invalidates the ETag even if no post was touched, and a scheduled post going live
+// (its updated_at older than its published_at) moves Last-Modified. idsHash = MD5 of
 // the comma-joined, sorted post IDs so a same-second delete-and-publish that
 // leaves the timestamp unchanged still invalidates.
 func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlug *string, limit int) (time.Time, string, error) {
@@ -1055,7 +1086,7 @@ func (r *blogPostRepository) GetFeedFingerprint(ctx context.Context, categorySlu
 	// emitting 1970-01-01 which some CDNs treat as uncacheable.
 	query := fmt.Sprintf(`
 		WITH top_posts AS (
-			SELECT p.id, p.updated_at AS post_updated, c.updated_at AS cat_updated
+			SELECT p.id, GREATEST(p.published_at, p.updated_at) AS post_updated, c.updated_at AS cat_updated
 			FROM blog_posts p
 			JOIN blog_categories c ON c.id = p.category_id AND c.deleted_at IS NULL
 			WHERE p.deleted_at IS NULL

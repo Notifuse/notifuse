@@ -712,6 +712,46 @@ func TestBlogPostRepository(t *testing.T) {
 			assert.NoError(t, testSqlMock.ExpectationsWereMet())
 		})
 
+		// Every filter at once numbers its placeholders in order, LIMIT and OFFSET last.
+		t.Run("every filter at once numbers its placeholders in order", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			testMockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
+			testDB, testSqlMock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = testDB.Close() }()
+
+			testMockWorkspaceRepo.EXPECT().
+				GetConnection(gomock.Any(), "workspace123").
+				Return(testDB, nil)
+
+			now := time.Date(2026, 11, 12, 9, 0, 0, 0, time.UTC)
+			cutoff := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
+			where := `category_id = \$1 AND published_at IS NOT NULL AND published_at > \$2 AND published_at <= \$3 AND settings->>'title' ILIKE \$4`
+			testSqlMock.ExpectQuery(`(?s)SELECT COUNT\(\*\).*`+where).
+				WithArgs("cat-1", now, cutoff, "%launch%").
+				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+			testSqlMock.ExpectQuery(`(?s)SELECT id, category_id.*`+where+`\s+ORDER BY published_at ASC, id ASC\s+LIMIT \$5 OFFSET \$6`).
+				WithArgs("cat-1", now, cutoff, "%launch%", 10, 20).
+				WillReturnRows(sqlmock.NewRows([]string{
+					"id", "category_id", "slug", "settings", "published_at", "created_at", "updated_at", "deleted_at",
+				}))
+
+			_, err = testRepo.ListPosts(ctx, domain.ListBlogPostsRequest{
+				CategoryID:      "cat-1",
+				Status:          domain.BlogPostStatusScheduled,
+				Now:             now,
+				PublishedBefore: &cutoff,
+				Search:          "launch",
+				Limit:           10,
+				Offset:          20,
+			})
+			require.NoError(t, err)
+			assert.NoError(t, testSqlMock.ExpectationsWereMet())
+		})
+
 		t.Run("no PublishedBefore means no date bound", func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
@@ -1294,7 +1334,7 @@ func TestBlogPostRepository_ListSitemapPosts(t *testing.T) {
 	// A time in another zone, to check the query receives it in UTC.
 	paris := time.FixedZone("Paris", 3600)
 	now := time.Date(2026, 11, 12, 13, 0, 0, 0, paris)
-	sitemapQuery := `(?s)SELECT c\.slug, p\.slug, p\.published_at\s+FROM blog_posts p\s+` +
+	sitemapQuery := `(?s)SELECT c\.slug, p\.slug, p\.published_at, GREATEST\(p\.published_at, p\.updated_at\)\s+FROM blog_posts p\s+` +
 		`JOIN blog_categories c ON c\.id = p\.category_id AND c\.deleted_at IS NULL\s+` +
 		`WHERE p\.deleted_at IS NULL\s+AND p\.published_at IS NOT NULL\s+AND p\.published_at <= \$1\s+` +
 		`ORDER BY p\.published_at DESC, p\.id DESC\s+LIMIT \$2`
@@ -1303,18 +1343,19 @@ func TestBlogPostRepository_ListSitemapPosts(t *testing.T) {
 		repo, sqlMock, ctx := setup(t)
 		first := time.Date(2026, 11, 10, 9, 0, 0, 0, time.UTC)
 		second := time.Date(2026, 11, 1, 9, 0, 0, 0, time.UTC)
+		edited := time.Date(2026, 11, 11, 17, 0, 0, 0, time.UTC)
 		sqlMock.ExpectQuery(sitemapQuery).
 			WithArgs(now.UTC(), 500).
-			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at"}).
-				AddRow("tech", "newest", first).
-				AddRow("design", "older", second))
+			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at", "greatest"}).
+				AddRow("tech", "newest", first, first).
+				AddRow("design", "older", second, edited))
 
 		posts, err := repo.ListSitemapPosts(ctx, now, 500)
 
 		require.NoError(t, err)
 		assert.Equal(t, []*domain.BlogSitemapPost{
-			{CategorySlug: "tech", PostSlug: "newest", PublishedAt: first},
-			{CategorySlug: "design", PostSlug: "older", PublishedAt: second},
+			{CategorySlug: "tech", PostSlug: "newest", PublishedAt: first, LastModified: first},
+			{CategorySlug: "design", PostSlug: "older", PublishedAt: second, LastModified: edited},
 		}, posts)
 		assert.NoError(t, sqlMock.ExpectationsWereMet())
 	})
@@ -1332,8 +1373,8 @@ func TestBlogPostRepository_ListSitemapPosts(t *testing.T) {
 	t.Run("returns a scan error", func(t *testing.T) {
 		repo, sqlMock, ctx := setup(t)
 		sqlMock.ExpectQuery(sitemapQuery).
-			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at"}).
-				AddRow("tech", "post", "not a time"))
+			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at", "greatest"}).
+				AddRow("tech", "post", "not a time", "not a time"))
 
 		_, err := repo.ListSitemapPosts(ctx, now, 500)
 
@@ -1343,8 +1384,8 @@ func TestBlogPostRepository_ListSitemapPosts(t *testing.T) {
 	t.Run("returns an iteration error", func(t *testing.T) {
 		repo, sqlMock, ctx := setup(t)
 		sqlMock.ExpectQuery(sitemapQuery).
-			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at"}).
-				AddRow("tech", "post", now).
+			WillReturnRows(sqlmock.NewRows([]string{"slug", "slug", "published_at", "greatest"}).
+				AddRow("tech", "post", now, now).
 				RowError(0, errors.New("broken row")))
 
 		_, err := repo.ListSitemapPosts(ctx, now, 500)
@@ -1471,7 +1512,7 @@ func TestBlogPostRepository_GetFeedFingerprint(t *testing.T) {
 	// renames invalidate the ETag.
 	// Regex validates: deleted_at IS NULL, published_at bounded by a UTC time
 	// parameter (as ListFeedPosts), ORDER BY, GREATEST, MD5.
-	sqlMock.ExpectQuery(`(?s)WITH top_posts.*deleted_at IS NULL.*published_at <= \$1.*ORDER BY p\.published_at DESC.*LIMIT \$2.*GREATEST\(post_updated, cat_updated\).*MD5\(STRING_AGG\(id::text`).
+	sqlMock.ExpectQuery(`(?s)WITH top_posts.*GREATEST\(p\.published_at, p\.updated_at\) AS post_updated.*deleted_at IS NULL.*published_at <= \$1.*ORDER BY p\.published_at DESC.*LIMIT \$2.*GREATEST\(post_updated, cat_updated\).*MD5\(STRING_AGG\(id::text`).
 		WithArgs(utcNowArg{}, 10).
 		WillReturnRows(sqlmock.NewRows([]string{"max_updated_at", "ids_hash"}).
 			AddRow(expectedTime, "hash123"))
@@ -1521,4 +1562,65 @@ func (utcNowArg) Match(v driver.Value) bool {
 	}
 	d := time.Since(at)
 	return d >= 0 && d < time.Minute
+}
+
+// The next publication is the smallest published_at after now of a post that is not deleted,
+// compared in UTC; none scheduled reads as nil.
+func TestBlogPostRepository_NextScheduledPublishAt(t *testing.T) {
+	setup := func(t *testing.T) (*blogPostRepository, sqlmock.Sqlmock, context.Context) {
+		ctrl := gomock.NewController(t)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(db, nil)
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+		return NewBlogPostRepository(mockWorkspaceRepo).(*blogPostRepository), sqlMock, ctx
+	}
+	now := time.Date(2026, 11, 12, 13, 0, 0, 0, time.FixedZone("Paris", 3600))
+	query := `(?s)SELECT MIN\(published_at\)\s+FROM blog_posts\s+WHERE deleted_at IS NULL\s+AND published_at > \$1`
+
+	t.Run("returns the earliest publication after now", func(t *testing.T) {
+		repo, sqlMock, ctx := setup(t)
+		due := time.Date(2026, 11, 12, 12, 30, 0, 0, time.UTC)
+		sqlMock.ExpectQuery(query).WithArgs(now.UTC()).
+			WillReturnRows(sqlmock.NewRows([]string{"min"}).AddRow(due))
+
+		next, err := repo.NextScheduledPublishAt(ctx, now)
+
+		require.NoError(t, err)
+		require.NotNil(t, next)
+		assert.True(t, due.Equal(*next))
+		assert.Equal(t, time.UTC, next.Location())
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("returns nil when no post is scheduled", func(t *testing.T) {
+		repo, sqlMock, ctx := setup(t)
+		sqlMock.ExpectQuery(query).WithArgs(now.UTC()).
+			WillReturnRows(sqlmock.NewRows([]string{"min"}).AddRow(nil))
+
+		next, err := repo.NextScheduledPublishAt(ctx, now)
+
+		require.NoError(t, err)
+		assert.Nil(t, next)
+	})
+
+	t.Run("returns the query error", func(t *testing.T) {
+		repo, sqlMock, ctx := setup(t)
+		sqlMock.ExpectQuery(query).WillReturnError(errors.New("boom"))
+
+		_, err := repo.NextScheduledPublishAt(ctx, now)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "boom")
+	})
+
+	t.Run("refuses a context without a workspace, without a query", func(t *testing.T) {
+		repo := NewBlogPostRepository(mocks.NewMockWorkspaceRepository(gomock.NewController(t)))
+
+		_, err := repo.NextScheduledPublishAt(context.Background(), now)
+
+		require.Error(t, err)
+	})
 }

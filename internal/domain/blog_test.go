@@ -2125,3 +2125,44 @@ func TestBlogSitemapLimits(t *testing.T) {
 	assert.Equal(t, 50000, BlogSitemapMaxURLs)
 	assert.Equal(t, 49998, BlogSitemapMaxPosts)
 }
+
+func TestIsReservedBlogCategorySlug(t *testing.T) {
+	for _, slug := range ReservedBlogCategorySlugs {
+		assert.True(t, IsReservedBlogCategorySlug(slug), slug)
+	}
+	// The root handler matches these by prefix.
+	for _, slug := range []string{"apis", "api-docs", "consoles", "notification-centers"} {
+		assert.True(t, IsReservedBlogCategorySlug(slug), slug)
+	}
+	// Neighbours of an exact route are free.
+	for _, slug := range []string{"vip", "tracking", "health-tips", "visits", "news", "r2", "tv"} {
+		assert.False(t, IsReservedBlogCategorySlug(slug), slug)
+	}
+}
+
+func TestCreateBlogCategoryRequest_Validate_ReservedSlug(t *testing.T) {
+	for _, slug := range []string{"track", "unsubscribe", "apis"} {
+		err := (&CreateBlogCategoryRequest{Name: "Name", Slug: slug}).Validate()
+		require.Error(t, err, slug)
+		assert.Equal(t, "slug is reserved by another route", err.Error())
+	}
+	assert.NoError(t, (&CreateBlogCategoryRequest{Name: "Name", Slug: "tracking"}).Validate())
+}
+
+// An existing category keeps a reserved slug it already had: the update refuses only a
+// change to one, in the service.
+func TestUpdateBlogCategoryRequest_Validate_ReservedSlugAllowed(t *testing.T) {
+	assert.NoError(t, (&UpdateBlogCategoryRequest{ID: "c1", Name: "Name", Slug: "health"}).Validate())
+}
+
+func TestListBlogPostsRequest_Validate_UnreadableSearch(t *testing.T) {
+	for _, search := range []string{"a\x00b", "caf\xe9"} {
+		req := &ListBlogPostsRequest{Search: search}
+		err := req.Validate()
+		require.Error(t, err, "%q", search)
+		var validation ValidationError
+		require.ErrorAs(t, err, &validation)
+		assert.Equal(t, "search must be valid UTF-8 text without NUL bytes", validation.Message)
+	}
+	assert.NoError(t, (&ListBlogPostsRequest{Search: "café"}).Validate())
+}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -133,4 +134,77 @@ func TestBlogScheduledPost(t *testing.T) {
 		assert.ElementsMatch(t, []string{live.ID, scheduled.ID}, ids)
 		assert.Equal(t, 2, result.TotalCount)
 	})
+}
+
+// TestBlogScheduledPost_OnTime checks that the cached home and category pages show a scheduled
+// post once it is due, not when the cache entry would otherwise end.
+func TestBlogScheduledPost_OnTime(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	factory := suite.DataFactory
+	client := suite.APIClient
+	const host = "on-time.blog"
+
+	workspace, err := factory.CreateWorkspace(
+		testutil.WithCustomDomain(host),
+		testutil.WithBlogEnabled(true),
+	)
+	require.NoError(t, err)
+	listTitles := "<html><body>{% for post in posts %}[{{ post.title }}]{% endfor %}</body></html>"
+	_, err = factory.CreateBlogTheme(workspace.ID,
+		testutil.WithThemePublished(true),
+		testutil.WithThemeFiles(domain.BlogThemeFiles{
+			HomeLiquid:     listTitles,
+			CategoryLiquid: listTitles,
+			PostLiquid:     "<html><body>{{ post.title }}</body></html>",
+		}),
+	)
+	require.NoError(t, err)
+	category, err := factory.CreateBlogCategory(workspace.ID, testutil.WithCategorySlug("news"))
+	require.NoError(t, err)
+	_, err = factory.CreateBlogPost(workspace.ID, category.ID,
+		testutil.WithPostTitle("Live Post"),
+		testutil.WithPostSlug("live-post"),
+		testutil.WithPostPublishedAt(time.Now().Add(-time.Hour)),
+	)
+	require.NoError(t, err)
+	due := time.Now().Add(3 * time.Second)
+	_, err = factory.CreateBlogPost(workspace.ID, category.ID,
+		testutil.WithPostTitle("Soon Post"),
+		testutil.WithPostSlug("soon-post"),
+		testutil.WithPostPublishedAt(due),
+	)
+	require.NoError(t, err)
+
+	get := func(path string) (string, string) {
+		resp, err := client.MakeRequestWithHost("GET", path, host, nil)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode, path)
+		return string(body), resp.Header.Get("X-Cache")
+	}
+
+	for _, path := range []string{"/", "/news"} {
+		body, _ := get(path)
+		require.NotContains(t, body, "Soon Post", "%s before the post is due", path)
+		_, cache := get(path)
+		require.Equal(t, "HIT", cache, "%s is cached before the post is due", path)
+	}
+
+	time.Sleep(time.Until(due))
+	for _, path := range []string{"/", "/news"} {
+		assert.Eventually(t, func() bool {
+			body, _ := get(path)
+			return strings.Contains(body, "[Soon Post]")
+		}, 5*time.Second, 200*time.Millisecond, "%s shows the post within seconds of its date", path)
+	}
 }

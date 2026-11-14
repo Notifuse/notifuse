@@ -1086,6 +1086,10 @@ func (r *GetTemplateUsageRequest) FromURLParams(queryParams url.Values) error {
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("invalid get template usage request: workspace_id is required")
 	}
+	// The ID is compared with a text column: PostgreSQL refuses a NUL byte or invalid UTF-8.
+	if !utf8.ValidString(r.TemplateID) || strings.ContainsRune(r.TemplateID, 0) {
+		return fmt.Errorf("invalid get template usage request: template_id must be valid UTF-8 text without NUL bytes")
+	}
 	return nil
 }
 

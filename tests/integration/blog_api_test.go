@@ -1438,7 +1438,7 @@ func runBlogFeedTests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 		defer func() { _ = resp.Body.Close() }()
 
 		body, _ := io.ReadAll(resp.Body)
-		assert.Contains(t, string(body), "Sitemap: /sitemap.xml")
+		assert.Contains(t, string(body), "Sitemap: https://feed.blog/sitemap.xml")
 	})
 
 	t.Run("Non-existent category feed returns empty items not 500", func(t *testing.T) {
