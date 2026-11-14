@@ -1023,6 +1023,12 @@ func (w *EmailQueueWorker) upsertMessageHistory(
 	// queued before the flags existed has neither and records NULL.
 	message.OpensTracked = entry.Payload.OpensTracked
 	message.ClicksTracked = entry.Payload.ClicksTracked
+	// The translation it was rendered in, so its web version shows the same language.
+	if entry.Payload.RenderedLanguage != nil {
+		message.MessageData.Metadata = map[string]interface{}{
+			domain.MessageMetadataRenderedLanguage: *entry.Payload.RenderedLanguage,
+		}
+	}
 
 	// Set source (broadcast or automation)
 	if entry.SourceType == domain.EmailQueueSourceBroadcast {

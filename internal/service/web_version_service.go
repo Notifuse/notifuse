@@ -291,7 +291,14 @@ func (s *WebVersionService) Render(ctx context.Context, ref WebVersionRef) (stri
 	// an open each time the page is viewed.
 	data["tracking_opens_url"] = ""
 
-	emailContent := template.ResolveEmailContent(contactLanguage(data), workspace.Settings.DefaultLanguage)
+	// The language it was sent in. A message sent before that was recorded is resolved
+	// as it is today, from the contact's language and the workspace's default one.
+	var emailContent *domain.EmailTemplate
+	if sent, ok := message.MessageData.Metadata[domain.MessageMetadataRenderedLanguage].(string); ok {
+		emailContent = template.EmailContentForLanguage(sent)
+	} else {
+		emailContent = template.ResolveEmailContent(contactLanguage(data), workspace.Settings.DefaultLanguage)
+	}
 	// The variable in the template is what turns the web version on. Every broadcast and
 	// automation email carries a link in its data, but only one whose email shows it has
 	// a web version.

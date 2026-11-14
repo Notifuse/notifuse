@@ -361,7 +361,8 @@ func (s *queueMessageSender) buildQueueEntry(
 	decision.Apply(&trackingSettings)
 
 	// Resolve language variant
-	emailContent := template.ResolveEmailContent(contactLanguage, workspaceDefaultLanguage)
+	renderedLanguage := template.ResolvedLanguage(contactLanguage, workspaceDefaultLanguage)
+	emailContent := template.EmailContentForLanguage(renderedLanguage)
 	if emailContent == nil {
 		return nil, fmt.Errorf("email content not available after language resolution")
 	}
@@ -449,9 +450,10 @@ func (s *queueMessageSender) buildQueueEntry(
 			EmailOptions: domain.EmailOptions{
 				ReplyTo: emailContent.ReplyTo,
 			},
-			TemplateVersion: int(template.Version),
-			ListID:          broadcast.Audience.List,
-			TemplateData:    data, // Store template data for message history
+			TemplateVersion:  int(template.Version),
+			ListID:           broadcast.Audience.List,
+			TemplateData:     data, // Store template data for message history
+			RenderedLanguage: &renderedLanguage,
 		},
 		MaxAttempts: 3,
 		CreatedAt:   time.Now().UTC(),

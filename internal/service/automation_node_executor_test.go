@@ -4364,3 +4364,61 @@ func TestEmailNodeExecutor_buildTrackingSettings_FollowsTrackingConsent(t *testi
 		assert.NotEmpty(t, settings.IdentifyToken)
 	})
 }
+
+// The queue entry records the translation the automation email was rendered in, "" for
+// the base content, so its web version shows the language that was sent.
+func TestEmailNodeExecutor_Execute_RecordsTheRenderedLanguage(t *testing.T) {
+	for contactLanguage, want := range map[string]string{"fr": "fr", "de": "", "": ""} {
+		t.Run("contact language "+contactLanguage, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+			mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockListRepo := mocks.NewMockListRepository(ctrl)
+			executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, mockListRepo,
+				mocks.NewMockContactListRepository(ctrl), "https://api.example.com", setupMockLoggerForNodeExecutor(ctrl))
+
+			workspace := createTestWorkspaceWithEmailProvider()
+			workspace.Settings.DefaultLanguage = "en"
+			base := &domain.EmailTemplate{
+				Subject:          "Hello",
+				SenderID:         "sender1",
+				VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", "Hello")),
+			}
+			french := *base
+			french.Subject = "Bonjour"
+			french.VisualEditorTree = createValidMJMLTree(createTestTextBlock("txt1", "Bonjour"))
+			template := &domain.Template{
+				ID: "tpl123", Name: "Test Template", Version: 1, Channel: "email", Email: base,
+				Translations: map[string]domain.TemplateTranslation{"fr": {Email: &french}},
+			}
+
+			mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(workspace, nil)
+			mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(template, nil)
+			mockListRepo.EXPECT().GetListByID(gomock.Any(), "ws1", "list1").Return(&domain.List{ID: "list1", Name: "Test List"}, nil)
+			mockEmailQueueRepo.EXPECT().Enqueue(gomock.Any(), "ws1", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _ string, entries []*domain.EmailQueueEntry) error {
+					require.Len(t, entries, 1)
+					require.NotNil(t, entries[0].Payload.RenderedLanguage)
+					assert.Equal(t, want, *entries[0].Payload.RenderedLanguage)
+					return nil
+				})
+
+			contact := &domain.Contact{Email: "recipient@example.com"}
+			if contactLanguage != "" {
+				contact.Language = &domain.NullableString{String: contactLanguage}
+			}
+			_, err := executor.Execute(context.Background(), NodeExecutionParams{
+				WorkspaceID: "ws1",
+				Node: &domain.AutomationNode{
+					ID: "email_node1", Type: domain.NodeTypeEmail, NextNodeID: strPtr("next_node"),
+					Config: map[string]interface{}{"template_id": "tpl123"},
+				},
+				Contact:     &domain.ContactAutomation{ID: "ca1", ContactEmail: "recipient@example.com"},
+				ContactData: contact,
+				Automation:  &domain.Automation{ID: "auto1", Name: "Test Automation", ListID: "list1"},
+			})
+			require.NoError(t, err)
+		})
+	}
+}

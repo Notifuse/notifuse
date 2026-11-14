@@ -1997,3 +1997,39 @@ func TestQueueMessageSender_ListUnsubscribeHeaderFollowsExcludeUnsubscribed(t *t
 		}
 	})
 }
+
+// The queue entry records the translation it was rendered in, "" for the base content,
+// so the web version shows the email that was sent whatever the languages become.
+func TestQueueMessageSender_BuildQueueEntry_RecordsTheRenderedLanguage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sender := NewQueueMessageSender(
+		mocks.NewMockEmailQueueRepository(ctrl),
+		mocks.NewMockBroadcastRepository(ctrl),
+		mocks.NewMockMessageHistoryRepository(ctrl),
+		mocks.NewMockTemplateRepository(ctrl),
+		nil,
+		pkgmocks.NewMockLogger(ctrl),
+		nil,
+		"https://api.example.com",
+	)
+	qms := sender.(*queueMessageSender)
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{Kind: domain.EmailProviderKindSMTP, Senders: []domain.EmailSender{emailSender}}
+	broadcast := &domain.Broadcast{ID: "broadcast-1", WorkspaceID: "workspace-1"}
+
+	template := createTestTemplateWithLink("template-1", emailSender.ID)
+	french := *template.Email
+	french.Subject = "Bonjour"
+	template.Translations = map[string]domain.TemplateTranslation{"fr": {Email: &french}}
+
+	for contactLanguage, want := range map[string]string{"fr": "fr", "de": "", "": "", "en": ""} {
+		entry, err := qms.buildQueueEntry(context.Background(), "workspace-1", "integration-1", "",
+			"https://api.test.com", testTrackingDecision(true), nil, broadcast, "msg-1", "recipient@example.com", template,
+			map[string]interface{}{}, emailProvider, contactLanguage, "en")
+		require.NoError(t, err, contactLanguage)
+		require.NotNil(t, entry.Payload.RenderedLanguage, contactLanguage)
+		assert.Equal(t, want, *entry.Payload.RenderedLanguage, contactLanguage)
+	}
+}
