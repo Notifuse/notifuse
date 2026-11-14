@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/gomjml/mjml"
+	"github.com/Notifuse/safe-mjml/mjml"
 	"github.com/Notifuse/notifuse/internal/domain"
 	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	broadcastmocks "github.com/Notifuse/notifuse/internal/service/broadcast/mocks"

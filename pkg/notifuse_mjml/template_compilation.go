@@ -12,7 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Notifuse/gomjml/mjml"
+	"github.com/Notifuse/safe-mjml/mjml"
 	"github.com/Notifuse/notifuse/pkg/plaintext"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 )

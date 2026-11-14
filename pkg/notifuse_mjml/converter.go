@@ -887,22 +887,29 @@ func camelToKebab(str string) string {
 // All ampersands must be escaped as &amp; per XML specification
 // The MJML compiler will handle converting them back to & in the final HTML
 func escapeAttributeValue(value string, attributeName string) string {
-	// gomjml (v0.14.1) escapes " < and > in the attributes it writes through
-	// html.HTMLTag, but writes inline style values (font-family, color...) and
-	// some hand-built attributes (bgcolor, the carousel's alt, href and src) as
-	// they are. A value escaped the ordinary XML way (" -> &quot;) is decoded to a
-	// raw " by the XML parser, and that " would close the attribute of the output.
-	// Escaping the ampersand of each entity a second time (&amp;quot;) makes the
-	// XML parser give back the literal entity &quot;, which those writers leave as
-	// is and the browser decodes to ". The apostrophe uses the numeric &#39;, and a
-	// raw ' inside a double-quoted attribute needs no further escaping. Keep the
-	// doubling while gomjml leaves style values and these attributes unescaped.
+	// Text that reads as an entity (&quot;, &eacute;, &#39;) is the character a
+	// browser reads there, as it has always been: decode it first. Then the
+	// ordinary XML escaping is enough, since safe-mjml escapes every attribute
+	// value it writes (its XML parser decodes &quot; back to ", and the output
+	// escapes it again). A decoded character XML does not allow would fail the
+	// whole compile, so it is dropped.
+	value = strings.Map(xmlAllowedRune, html.UnescapeString(value))
 	value = strings.ReplaceAll(value, "&", "&amp;")
-	value = strings.ReplaceAll(value, "\"", "&amp;quot;")
+	value = strings.ReplaceAll(value, "\"", "&quot;")
 	value = strings.ReplaceAll(value, "'", "&#39;")
-	value = strings.ReplaceAll(value, "<", "&amp;lt;")
-	value = strings.ReplaceAll(value, ">", "&amp;gt;")
+	value = strings.ReplaceAll(value, "<", "&lt;")
+	value = strings.ReplaceAll(value, ">", "&gt;")
 	return value
+}
+
+// xmlAllowedRune returns r, or -1 (dropped by strings.Map) for a character XML
+// does not allow: a control character other than tab and line breaks, U+FFFE and
+// U+FFFF.
+func xmlAllowedRune(r rune) rune {
+	if (r < 0x20 && r != '\t' && r != '\n' && r != '\r') || r == 0xFFFE || r == 0xFFFF {
+		return -1
+	}
+	return r
 }
 
 // escapeContent escapes content for safe insertion as element text content.

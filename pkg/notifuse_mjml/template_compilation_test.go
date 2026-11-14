@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/gomjml/mjml"
+	"github.com/Notifuse/safe-mjml/mjml"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
