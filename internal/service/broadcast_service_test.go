@@ -209,7 +209,7 @@ func TestBroadcastService_ScheduleBroadcast_SendNow_Success(t *testing.T) {
 
 	// Inside tx: get -> update -> the broadcast's task; after the commit, that task runs
 	draft := testBroadcast(req.WorkspaceID, req.ID)
-	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	d.taskService.EXPECT().ScheduleBroadcastTask(gomock.Any(), "w1", "b1", true, (*time.Time)(nil)).DoAndReturn(
 		func(context.Context, string, string, bool, *time.Time) (string, error) {
@@ -1269,7 +1269,7 @@ func TestBroadcastService_ScheduleBroadcast_InvalidStatus(t *testing.T) {
 			// broadcast with invalid status for scheduling
 			broadcast := testBroadcast(req.WorkspaceID, req.ID)
 			broadcast.Status = domain.BroadcastStatusProcessing // not draft
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(broadcast, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(broadcast, nil)
 			return fn(nil)
 		},
 	)
@@ -1300,7 +1300,7 @@ func TestBroadcastService_ScheduleBroadcast_TaskSchedulingFailure(t *testing.T) 
 	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
 			draft := testBroadcast(req.WorkspaceID, req.ID)
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 			// The task cannot be written: the transaction returns the error, so the
@@ -1354,7 +1354,7 @@ func TestBroadcastService_ScheduleWithGlobalFeed_Success(t *testing.T) {
 			URL:     "https://api.example.com/feed",
 		},
 	}
-	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 
 	// List service returns list details
 	list := &domain.List{ID: "list1", Name: "Test List"}
@@ -1429,7 +1429,7 @@ func TestBroadcastService_ScheduleWithGlobalFeed_FetchError(t *testing.T) {
 					URL:     "https://api.example.com/feed",
 				},
 			}
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 
 			// List service returns list details
 			d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, "list1").Return(&domain.List{ID: "list1", Name: "Test List"}, nil)
@@ -1476,7 +1476,7 @@ func TestBroadcastService_ScheduleWithoutGlobalFeed(t *testing.T) {
 	// Inside tx: get broadcast WITHOUT GlobalFeed
 	draft := testBroadcast(req.WorkspaceID, req.ID)
 	// DataFeed is already nil from testBroadcast(), meaning no global feed configured
-	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 
 	// FetchGlobal should NOT be called
 	// (no expectation set means it will fail if called)
@@ -1524,7 +1524,7 @@ func TestBroadcastService_ScheduleWithGlobalFeed_Disabled(t *testing.T) {
 			URL:     "https://api.example.com/feed",
 		},
 	}
-	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 
 	// FetchGlobal should NOT be called when disabled
 	// (no expectation set means it will fail if called)
@@ -1572,7 +1572,7 @@ func TestBroadcastService_ScheduleWithGlobalFeed_ListNotFound(t *testing.T) {
 			URL:     "https://api.example.com/feed",
 		},
 	}
-	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 
 	// List service returns error (list not found) - should continue with empty list name
 	d.listService.EXPECT().GetListByID(ctx, req.WorkspaceID, "list1").Return(nil, errors.New("list not found"))
@@ -2972,7 +2972,7 @@ func TestBroadcastService_ScheduleBroadcast_ScheduledTimeInPayload(t *testing.T)
 	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
 			draft := testBroadcast(req.WorkspaceID, req.ID)
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 			// The task is due at the broadcast's scheduled time

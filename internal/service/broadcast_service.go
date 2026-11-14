@@ -383,8 +383,9 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 	// back finds a draft, which the orchestrator never sends.
 	var taskID string
 	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
-		// Retrieve the broadcast
-		bcast, err := s.repo.GetBroadcastTx(ctx, tx, request.WorkspaceID, request.ID)
+		// The broadcast is read with its lock: two schedules of the same draft would both
+		// read it as a draft, and the second would start its task over under the first.
+		bcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, request.WorkspaceID, request.ID)
 		if err != nil {
 			s.logger.Error("Failed to get broadcast for scheduling")
 			return err
@@ -666,9 +667,17 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		// queued only releases emails that already carry their sender: its completion
 		// date, or its task's cursor at the end of the list when the pause came before
 		// the run wrote that date.
-		if broadcast.CompletedAt == nil && !s.allRecipientsQueued(ctx, request.WorkspaceID, broadcast.ID) {
-			if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, broadcast.VariationsToSend()); err != nil {
-				return err
+		// The task is read only while the run may still have recipients to enqueue: a
+		// broadcast past its completion date has a completed task.
+		var task *domain.Task
+		if broadcast.CompletedAt == nil {
+			if found, readErr := s.taskRepo.GetTaskByBroadcastID(ctx, request.WorkspaceID, broadcast.ID); readErr == nil {
+				task = found
+			}
+			if !allRecipientsQueued(task) {
+				if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, broadcast.VariationsToSend()); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -735,6 +744,23 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 			"resumed_queue_count": resumedCount,
 		}).Info("Broadcast resumed successfully")
 
+		// The task's fresh retry budget is written before the resume commits (the task
+		// lives in the system database, outside this transaction). A run that fails while
+		// the broadcast is paused reads the broadcast, then its task, before it fails the
+		// broadcast for good: a broadcast read as resumed means the task read sees the
+		// budget. Reset after the commit, by the resume event, the run could read the
+		// broadcast resumed and the task at its last attempt, and fail a resumed broadcast.
+		// A failed reset is logged: the resume event resets the budget again.
+		if task != nil && task.Status != domain.TaskStatusCompleted {
+			if resetErr := s.taskRepo.ResetRetryBudget(ctx, request.WorkspaceID, task.ID); resetErr != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcast.ID,
+					"task_id":      task.ID,
+					"error":        resetErr.Error(),
+				}).Error("Failed to reset the retry budget of the resumed broadcast's task")
+			}
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -774,11 +800,10 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 }
 
 // allRecipientsQueued reports whether the broadcast's task has queued every recipient: its
-// state is past the test phase and its cursor at the end of the list. A task that cannot be
-// read answers false, so the caller keeps its check.
-func (s *BroadcastService) allRecipientsQueued(ctx context.Context, workspaceID, broadcastID string) bool {
-	task, err := s.taskRepo.GetTaskByBroadcastID(ctx, workspaceID, broadcastID)
-	if err != nil || task == nil || task.State == nil || task.State.SendBroadcast == nil {
+// state is past the test phase and its cursor at the end of the list. No task (one that
+// could not be read) answers false, so the caller keeps its check.
+func allRecipientsQueued(task *domain.Task) bool {
+	if task == nil || task.State == nil || task.State.SendBroadcast == nil {
 		return false
 	}
 	state := task.State.SendBroadcast

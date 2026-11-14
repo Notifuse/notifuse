@@ -1010,13 +1010,14 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		if errors.As(err, &requeue) {
 			return s.requeueTask(bgCtx, task, requeue)
 		}
-		// The processor found its lease gone (TaskRepository.SaveState): another execution
-		// holds the task, and every write from here would land on that execution's row.
+		// The processor found the task no longer its own (TaskRepository.SaveState): another
+		// execution holds it, or a cancel or a pause moved it. Every write from here would
+		// land on a row this run no longer owns.
 		if errors.Is(err, domain.ErrTaskNotRunning) {
 			s.logger.WithFields(map[string]interface{}{
 				"task_id":      taskID,
 				"workspace_id": workspace,
-			}).Info("Task is held by another execution - this run stops without writing")
+			}).Info("Task is no longer this run's - this run stops without writing")
 			return nil
 		}
 
@@ -1146,8 +1147,9 @@ func (s *TaskService) ScheduleBroadcastTask(ctx context.Context, workspaceID, br
 		existing, err := s.repo.GetTaskByBroadcastIDTx(ctx, tx, workspaceID, broadcastID)
 		switch {
 		case err == nil:
-			// Only a draft can be scheduled, so an existing task is left by a schedule whose
-			// broadcast write rolled back: it starts over.
+			// Only a draft can be scheduled, and ScheduleBroadcast reads it locked, so an
+			// existing task is left by a schedule whose broadcast write rolled back: it
+			// starts over.
 			taskID = existing.ID
 			return s.repo.ResetBroadcastTaskTx(ctx, tx, workspaceID, existing.ID, state, nextRunAfter)
 		case errors.Is(err, domain.ErrTaskNotFound):
@@ -1352,6 +1354,8 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 	// budget is reset before the wake, so that whichever comes first, the
 	// resume or that run's failure, the task ends up queued: a run that
 	// failed for good after a refused wake left a failed task nothing woke.
+	// ResumeBroadcast has already reset it before its commit; this second reset
+	// covers a failure of that first one.
 	if err := s.repo.ResetRetryBudget(ctx, payload.WorkspaceID, task.ID); err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{

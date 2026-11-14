@@ -95,14 +95,30 @@ func TestProcess_FinalWriteKeepsWhatWasCommittedMeanwhile(t *testing.T) {
 		assert.Equal(t, len(abAudience), written.EnqueuedCount)
 	})
 
+	// The last rows are settled under the broadcast's lock: settled after the commit, a
+	// resume committed in between had its rows paused again.
+	inLockedTx := func(r *finalWriteRun) *bool {
+		locked := new(bool)
+		r.m.broadcastRepo.EXPECT().WithTransaction(gomock.Any(), "workspace-123", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
+				*locked = true
+				defer func() { *locked = false }()
+				return fn(nil)
+			})
+		return locked
+	}
+
 	t.Run("a pause committed meanwhile parks the task and pauses the last rows", func(t *testing.T) {
 		r := newFinalWriteRun(t)
-		r.m.broadcastRepo.EXPECT().WithTransaction(gomock.Any(), "workspace-123", gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) })
+		locked := inLockedTx(r)
 		r.m.broadcastRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "workspace-123", "broadcast-123").
 			Return(singleTemplateBroadcast(domain.BroadcastStatusPaused), nil)
 		r.m.broadcastRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-		r.queue.EXPECT().PauseBySource(gomock.Any(), "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(2), nil)
+		r.queue.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "broadcast-123").
+			DoAndReturn(func(context.Context, *sql.Tx, domain.EmailQueueSourceType, string) (int64, error) {
+				assert.True(t, *locked, "the rows are paused inside the locked transaction")
+				return 2, nil
+			})
 
 		_, done, err := r.process(context.Background(), &domain.SendBroadcastState{})
 		assert.False(t, done)
@@ -113,16 +129,33 @@ func TestProcess_FinalWriteKeepsWhatWasCommittedMeanwhile(t *testing.T) {
 
 	t.Run("a cancel committed meanwhile completes the task and removes the last rows", func(t *testing.T) {
 		r := newFinalWriteRun(t)
-		r.m.broadcastRepo.EXPECT().WithTransaction(gomock.Any(), "workspace-123", gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) })
+		locked := inLockedTx(r)
 		r.m.broadcastRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "workspace-123", "broadcast-123").
 			Return(singleTemplateBroadcast(domain.BroadcastStatusCancelled), nil)
 		r.m.broadcastRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-		r.queue.EXPECT().DeleteBySource(gomock.Any(), "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(2), nil)
+		r.queue.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "broadcast-123").
+			DoAndReturn(func(context.Context, *sql.Tx, domain.EmailQueueSourceType, string) (int64, error) {
+				assert.True(t, *locked, "the rows are removed inside the locked transaction")
+				return 2, nil
+			})
 
 		_, done, err := r.process(context.Background(), &domain.SendBroadcastState{})
 		require.NoError(t, err)
 		assert.True(t, done)
+	})
+
+	t.Run("a failed pause of the last rows fails the final write", func(t *testing.T) {
+		r := newFinalWriteRun(t)
+		inLockedTx(r)
+		r.m.broadcastRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "workspace-123", "broadcast-123").
+			Return(singleTemplateBroadcast(domain.BroadcastStatusPaused), nil)
+		r.queue.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "broadcast-123").
+			Return(int64(0), errors.New("connection reset"))
+
+		_, done, err := r.process(context.Background(), &domain.SendBroadcastState{})
+		assert.False(t, done)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "connection reset")
 	})
 
 	t.Run("a broadcast already processed is left as it is", func(t *testing.T) {
@@ -211,7 +244,7 @@ func TestProcess_NoRecipientWriteKeepsWhatWasCommittedMeanwhile(t *testing.T) {
 		r.m.broadcastRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "workspace-123", "broadcast-123").
 			Return(singleTemplateBroadcast(domain.BroadcastStatusCancelled), nil)
 		r.m.broadcastRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-		r.queue.EXPECT().DeleteBySource(gomock.Any(), "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(0), nil)
+		r.queue.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(0), nil)
 
 		done, err := noRecipients(r)
 		require.NoError(t, err)

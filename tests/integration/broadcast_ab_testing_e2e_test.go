@@ -481,8 +481,8 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 		finalBroadcastData := getBroadcastResult2["broadcast"].(map[string]interface{})
 		assert.Equal(t, template2.ID, finalBroadcastData["winning_template"])
 
-		// The two phases add up to the audience, and every contact got one email: the
-		// losing variation only in the test phase.
+		// The two phases add up to the audience, every contact got the broadcast, and the
+		// losing variation went out in the test phase only.
 		testCount := int(finalBroadcastData["test_phase_recipient_count"].(float64))
 		winnerCount := int(finalBroadcastData["winner_phase_recipient_count"].(float64))
 		assert.Equal(t, 5, testCount+winnerCount, "test %d + winner %d", testCount, winnerCount)

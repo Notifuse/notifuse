@@ -125,6 +125,26 @@ func (o *BroadcastOrchestrator) pauseQueueEntries(ctx context.Context, workspace
 	}
 }
 
+// settleQueuedAfterLostTask deals with the emails a run queued before it found its task gone:
+// a cancelled broadcast's are deleted and a paused one's paused, as the cancel or pause did to
+// those already queued. Any other status leaves them to be sent.
+func (o *BroadcastOrchestrator) settleQueuedAfterLostTask(ctx context.Context, workspaceID, broadcastID string) {
+	broadcast, err := o.broadcastRepo.GetBroadcast(ctx, workspaceID, broadcastID)
+	if err != nil {
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"error":        err.Error(),
+		}).Warn("Failed to read the broadcast after losing its task")
+		return
+	}
+	switch broadcast.Status {
+	case domain.BroadcastStatusCancelled:
+		o.deleteQueueEntries(ctx, workspaceID, broadcastID)
+	case domain.BroadcastStatusPaused:
+		o.pauseQueueEntries(ctx, workspaceID, broadcastID)
+	}
+}
+
 // deleteQueueEntries removes pending/failed/paused queue rows for the given broadcast.
 // Nil-safe. Used when the orchestrator observes an external cancellation.
 func (o *BroadcastOrchestrator) deleteQueueEntries(ctx context.Context, workspaceID, broadcastID string) {
@@ -715,10 +735,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			// its task dead and no way back.
 			finalizeCtx := context.WithoutCancel(ctx)
 
-			// The broadcast is read before the task: a resume commits the task's
-			// fresh retry budget before its own transaction (ResetRetryBudget runs
-			// inside the resume), so a broadcast read past a pause means the task
-			// read below sees that budget.
+			// The broadcast is read before the task: a resume writes the task's
+			// fresh retry budget before its own transaction commits (ResumeBroadcast
+			// calls ResetRetryBudget inside it), so a broadcast read past a pause
+			// means the task read below sees that budget.
 			broadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(finalizeCtx, task.WorkspaceID, broadcastID)
 			if getBroadcastErr != nil {
 				o.logger.WithFields(map[string]interface{}{
@@ -1143,8 +1163,12 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// paused stops in the loop below, and one whose test phase is over waits for a winner:
 	// neither is paused again for a variation it may never send. SendBatch runs the same
 	// check on the templates of each batch it is given, so nothing leaves from another
-	// address either way.
-	if broadcast.Status != domain.BroadcastStatusPaused && broadcast.Status != domain.BroadcastStatusTestCompleted {
+	// address either way. A run with every recipient queued already (resumed after a pause
+	// that came while its last batch was queued) has no email left to address, so it is not
+	// paused for a sender either, as ResumeBroadcast does not refuse it.
+	nothingLeftToQueue := (broadcastState.Phase == "single" || broadcastState.Phase == "winner") &&
+		broadcastState.TotalRecipients > 0 && broadcastState.RecipientOffset >= int64(broadcastState.TotalRecipients)
+	if broadcast.Status != domain.BroadcastStatusPaused && broadcast.Status != domain.BroadcastStatusTestCompleted && !nothingLeftToQueue {
 		if senderErr := findUnavailableVariationSender(broadcast, templates, emailProvider); senderErr != nil {
 			o.pauseForSendError(ctx, task, broadcastState.BroadcastID, broadcastState.RecipientOffset, senderErr)
 			err = senderErr
@@ -1492,12 +1516,16 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			startTime,
 		)
 		if errors.Is(saveErr, domain.ErrTaskNotRunning) {
-			// Another execution holds the task now: the next batch would go to the
-			// recipients that execution sends to. Stop, and write nothing more.
+			// The task is no longer this run's: another execution holds it, or a cancel or a
+			// pause moved it. The next batch would go to recipients that are not this run's
+			// to send, so the run stops and writes nothing more to the task. The batch it
+			// just queued may have committed after the cancel or pause cleared the queue:
+			// it is settled as the broadcast now stands.
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":      task.ID,
 				"broadcast_id": broadcastState.BroadcastID,
-			}).Warn("Task is held by another execution - stopping this run")
+			}).Warn("Task is no longer this run's - stopping this run")
+			o.settleQueuedAfterLostTask(ctx, task.WorkspaceID, broadcastState.BroadcastID)
 			err = saveErr
 			return false, err
 		}
@@ -1642,12 +1670,41 @@ func (o *BroadcastOrchestrator) refuseDraft(task *domain.Task, broadcast *domain
 	return true, true, nil
 }
 
+// emailQueuePauseTx and emailQueueDeleteTx are the queue writes settleQueueEntriesTx makes.
+func (o *BroadcastOrchestrator) emailQueuePauseTx(ctx context.Context, tx *sql.Tx, broadcastID string) (int64, error) {
+	return o.emailQueueRepo.PauseBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, broadcastID)
+}
+
+func (o *BroadcastOrchestrator) emailQueueDeleteTx(ctx context.Context, tx *sql.Tx, broadcastID string) (int64, error) {
+	return o.emailQueueRepo.DeleteBySourceTx(ctx, tx, domain.EmailQueueSourceBroadcast, broadcastID)
+}
+
+// settleQueueEntriesTx pauses or deletes the broadcast's queue rows inside tx. A failure is
+// returned: the transaction cannot go on after a failed statement. Nil-safe.
+func (o *BroadcastOrchestrator) settleQueueEntriesTx(ctx context.Context, tx *sql.Tx, broadcastID string,
+	write func(context.Context, *sql.Tx, string) (int64, error), countField string) error {
+	if o.emailQueueRepo == nil {
+		return nil
+	}
+	n, err := write(ctx, tx, broadcastID)
+	if err != nil {
+		return fmt.Errorf("failed to settle the queue entries of the broadcast: %w", err)
+	}
+	if n > 0 {
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			countField:     n,
+		}).Info("Settled email queue entries for broadcast")
+	}
+	return nil
+}
+
 // finishRun writes the end of a run that queued every recipient: setFinal sets the final
 // fields on the broadcast's row read with its lock, so a column another writer changed
 // since the run's last refresh is not written back, and a pause or a cancel committed
 // meanwhile is kept. A paused broadcast parks the task and its queue entries are paused
 // again (the last batch's rows may have been committed after the pause paused the others);
-// a cancelled one has them removed. The write is made on the run's lease (leaseContext).
+// a cancelled one has them removed. Both happen under the broadcast's lock. The write is made on the run's lease (leaseContext).
 func (o *BroadcastOrchestrator) finishRun(ctx context.Context, task *domain.Task, broadcastID string, setFinal func(*domain.Broadcast)) (bool, error) {
 	writeCtx, cancel := leaseContext(ctx)
 	defer cancel()
@@ -1658,8 +1715,17 @@ func (o *BroadcastOrchestrator) finishRun(ctx context.Context, task *domain.Task
 		if err != nil {
 			return err
 		}
+		// The queue rows of a paused or cancelled broadcast are settled under its lock:
+		// settled after the commit, a resume committed in between had its rows paused
+		// again by this run and the broadcast sent nothing more.
 		switch latest.Status {
-		case domain.BroadcastStatusPaused, domain.BroadcastStatusCancelled, domain.BroadcastStatusProcessed:
+		case domain.BroadcastStatusPaused:
+			left = latest.Status
+			return o.settleQueueEntriesTx(writeCtx, tx, broadcastID, o.emailQueuePauseTx, "paused_queue_count")
+		case domain.BroadcastStatusCancelled:
+			left = latest.Status
+			return o.settleQueueEntriesTx(writeCtx, tx, broadcastID, o.emailQueueDeleteTx, "cancelled_queue_count")
+		case domain.BroadcastStatusProcessed:
 			left = latest.Status
 			return nil
 		}
@@ -1677,10 +1743,8 @@ func (o *BroadcastOrchestrator) finishRun(ctx context.Context, task *domain.Task
 
 	switch left {
 	case domain.BroadcastStatusPaused:
-		o.pauseQueueEntries(writeCtx, task.WorkspaceID, broadcastID)
 		return false, o.parkPausedTask(task, broadcastID)
 	case domain.BroadcastStatusCancelled:
-		o.deleteQueueEntries(writeCtx, task.WorkspaceID, broadcastID)
 		o.logger.WithFields(map[string]interface{}{
 			"task_id":      task.ID,
 			"broadcast_id": broadcastID,

@@ -100,8 +100,35 @@ func TestSaveProgressState_WritesOnTheRunsLease(t *testing.T) {
 
 // A run whose progress write finds the task held by another execution stops before its next
 // batch: sending on would send the same recipients as the execution that holds the task.
-func TestProcess_StopsWhenAnotherExecutionHoldsTheTask(t *testing.T) {
+// A run that finds its task no longer its own (another execution holds it, or a cancel or a
+// pause moved it) stops after the batch it was queuing. That batch may have committed after
+// the cancel or pause cleared the queue: a cancelled broadcast's queued emails are deleted, a
+// paused one's paused, and another status leaves them to be sent.
+func TestProcess_StopsWhenTheTaskIsNoLongerItsOwn(t *testing.T) {
+	cases := []struct {
+		name   string
+		status domain.BroadcastStatus
+		expect func(q *domainmocks.MockEmailQueueRepository)
+	}{
+		{"another execution holds the task", domain.BroadcastStatusProcessing, func(*domainmocks.MockEmailQueueRepository) {}},
+		{"cancelled during the batch", domain.BroadcastStatusCancelled, func(q *domainmocks.MockEmailQueueRepository) {
+			q.EXPECT().DeleteBySource(gomock.Any(), "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(10), nil)
+		}},
+		{"paused during the batch", domain.BroadcastStatusPaused, func(q *domainmocks.MockEmailQueueRepository) {
+			q.EXPECT().PauseBySource(gomock.Any(), "workspace-123", domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(10), nil)
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			stopsWhenTheTaskIsNoLongerItsOwn(t, tc.status, tc.expect)
+		})
+	}
+}
+
+func stopsWhenTheTaskIsNoLongerItsOwn(t *testing.T, statusAfterBatch domain.BroadcastStatus, expectQueue func(q *domainmocks.MockEmailQueueRepository)) {
 	ctrl := gomock.NewController(t)
+	queue := domainmocks.NewMockEmailQueueRepository(ctrl)
+	expectQueue(queue)
 	sender := mocks.NewMockMessageSender(ctrl)
 	broadcasts := domainmocks.NewMockBroadcastRepository(ctrl)
 	templates := domainmocks.NewMockTemplateRepository(ctrl)
@@ -123,7 +150,7 @@ func TestProcess_StopsWhenAnotherExecutionHoldsTheTask(t *testing.T) {
 	broadcasts.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	o := broadcast.NewBroadcastOrchestrator(sender, broadcasts, templates, contacts, taskRepo, workspaces,
-		nil, nil, logger, &broadcast.Config{FetchBatchSize: 10}, timeProvider, "https://api.example.com", eventBus)
+		queue, nil, logger, &broadcast.Config{FetchBatchSize: 10}, timeProvider, "https://api.example.com", eventBus)
 
 	broadcastID := "broadcast-123"
 	workspace := &domain.Workspace{
@@ -136,10 +163,17 @@ func TestProcess_StopsWhenAnotherExecutionHoldsTheTask(t *testing.T) {
 			Senders: []domain.EmailSender{{Name: "S", Email: "s@example.com"}}},
 	})
 	workspaces.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(workspace, nil).AnyTimes()
-	broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", broadcastID).Return(&domain.Broadcast{
-		ID: broadcastID, Status: domain.BroadcastStatusProcessing, Audience: domain.AudienceSettings{List: "list-1"},
-		TestSettings: domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{{TemplateID: "template-1"}}},
-	}, nil).AnyTimes()
+	batchQueued := false
+	broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", broadcastID).DoAndReturn(func(context.Context, string, string) (*domain.Broadcast, error) {
+		status := domain.BroadcastStatusProcessing
+		if batchQueued {
+			status = statusAfterBatch
+		}
+		return &domain.Broadcast{
+			ID: broadcastID, Status: status, Audience: domain.AudienceSettings{List: "list-1"},
+			TestSettings: domain.BroadcastTestSettings{Variations: []domain.BroadcastVariation{{TemplateID: "template-1"}}},
+		}, nil
+	}).AnyTimes()
 	templates.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(&domain.Template{
 		ID: "template-1", Email: &domain.EmailTemplate{Subject: "S",
 			VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}},
@@ -153,7 +187,13 @@ func TestProcess_StopsWhenAnotherExecutionHoldsTheTask(t *testing.T) {
 	contacts.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", gomock.Any(), 10, gomock.Any()).Return(batch, nil).Times(1)
 	sender.EXPECT().SendBatch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(10, 0, nil).Times(1)
-	taskRepo.EXPECT().SaveState(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(domain.ErrTaskNotRunning)
+	// The cancel or pause committed while the batch was queued: it moved the task, so the
+	// run's save finds it no longer running.
+	taskRepo.EXPECT().SaveState(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, string, string, float64, *domain.TaskState) error {
+			batchQueued = true
+			return domain.ErrTaskNotRunning
+		})
 
 	task := &domain.Task{
 		ID: "task-123", WorkspaceID: "workspace-123", BroadcastID: &broadcastID, MaxRetries: 3,

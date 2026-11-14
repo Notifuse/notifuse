@@ -248,3 +248,40 @@ func TestProcessBroadcastTask_WinnerPhase_OnlyTheWinnersSenderCounts(t *testing.
 	_, err := d.orchestrate.Process(context.Background(), senderTask("winner"), time.Now().Add(30*time.Second))
 	require.ErrorIs(t, err, stop)
 }
+
+// A run resumed with every recipient queued already (paused while its last batch was queued)
+// has no email left to address: a variation's removed sender does not pause it again, and it
+// ends the send, as ResumeBroadcast accepts it without the sender.
+func TestProcessBroadcastTask_VariationSenderGone_NothingLeftToQueue(t *testing.T) {
+	d := newSenderOrchestratorDeps(t)
+	d.broadcasts.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	d.broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(&domain.Broadcast{
+		ID:       "broadcast-123",
+		Status:   domain.BroadcastStatusProcessing,
+		Audience: domain.AudienceSettings{List: "list-1"},
+		TestSettings: domain.BroadcastTestSettings{
+			Variations: []domain.BroadcastVariation{{VariationName: "Spring", TemplateID: "template-1", SenderID: "sender-since-deleted"}},
+		},
+	}, nil).AnyTimes()
+	d.templates.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(&domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			Subject:          "Hello",
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)},
+		},
+	}, nil).AnyTimes()
+	d.broadcasts.EXPECT().WithTransaction(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	d.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		assert.NotEqual(t, domain.BroadcastStatusPaused, b.Status, "not paused again")
+		return nil
+	}).AnyTimes()
+	d.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Do(func(_ context.Context, event domain.EventPayload) {
+		assert.NotEqual(t, domain.EventBroadcastPaused, event.Type)
+	}).AnyTimes()
+	// Nothing is fetched or sent: every recipient is queued.
+
+	task := senderTask("single")
+	task.State.SendBroadcast.RecipientOffset = int64(task.State.SendBroadcast.TotalRecipients)
+	_, err := d.orchestrate.Process(context.Background(), task, time.Now().Add(30*time.Second))
+	assert.False(t, errors.Is(err, domain.ErrSenderNotFound), "unexpected sender error: %v", err)
+}
