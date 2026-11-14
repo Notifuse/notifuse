@@ -920,44 +920,13 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			}).Info("Broadcast completed with no recipients")
 			// codecov:ignore:end
 
-			// Get the broadcast and update its status to sent
-			broadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID)
-			if getBroadcastErr != nil {
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcastState.BroadcastID,
-					"error":        getBroadcastErr.Error(),
-				}).Error("Failed to get broadcast for status update (no recipients)")
-				err = fmt.Errorf("failed to get broadcast: %w", getBroadcastErr)
-				return false, err
-			}
-
-			// Update broadcast status to processed
-			broadcast.Status = domain.BroadcastStatusProcessed
-			broadcast.UpdatedAt = time.Now().UTC()
-			broadcast.EnqueuedCount = 0 // No recipients case
-
-			// Set completion time
-			completedAt := time.Now().UTC()
-			broadcast.CompletedAt = &completedAt
-
-			// Save the updated broadcast (includes enqueued_count atomically)
-			if updateErr := o.broadcastRepo.UpdateBroadcast(context.Background(), broadcast); updateErr != nil {
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcastState.BroadcastID,
-					"error":        updateErr.Error(),
-				}).Error("Failed to update broadcast status to processed (no recipients)")
-				err = fmt.Errorf("failed to update broadcast status to processed: %w", updateErr)
-				return false, err
-			}
-
-			o.logger.WithFields(map[string]interface{}{
-				"task_id":      task.ID,
-				"broadcast_id": broadcastState.BroadcastID,
-			}).Info("Broadcast marked as processed successfully (no recipients)")
-
-			allDone = true
+			allDone, err = o.finishRun(ctx, task, broadcastState.BroadcastID, func(broadcast *domain.Broadcast) {
+				completedAt := time.Now().UTC()
+				broadcast.Status = domain.BroadcastStatusProcessed
+				broadcast.UpdatedAt = completedAt
+				broadcast.CompletedAt = &completedAt
+				broadcast.EnqueuedCount = 0
+			})
 			return allDone, err
 		}
 
@@ -1606,59 +1575,39 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			return true, nil
 		}
 
-		var statusMessage string
-
 		switch broadcastState.Phase {
 		case "winner", "single":
-			// Winner phase or single template complete - mark as sent
-			broadcast.Status = domain.BroadcastStatusProcessed
-			broadcast.UpdatedAt = time.Now().UTC()
-
-			// Set completion time
-			completedAt := time.Now().UTC()
-			broadcast.CompletedAt = &completedAt
-
-			// For winner phase, set winner sent time
-			if broadcastState.Phase == "winner" {
-				broadcast.WinnerSentAt = &completedAt
+			// Winner phase or single template complete: the broadcast is processed.
+			allDone, err = o.finishRun(ctx, task, broadcastState.BroadcastID, func(broadcast *domain.Broadcast) {
+				completedAt := time.Now().UTC()
+				broadcast.Status = domain.BroadcastStatusProcessed
+				broadcast.UpdatedAt = completedAt
+				broadcast.CompletedAt = &completedAt
+				if broadcastState.Phase == "winner" {
+					broadcast.WinnerSentAt = &completedAt
+				}
+				broadcast.EnqueuedCount = broadcastState.EnqueuedCount
+				// A copy SelectWinner wrote may still hold no phase counts
+				setPhaseRecipientCounts(broadcast, broadcastState)
+			})
+			if err != nil || !allDone {
+				return allDone, err
 			}
-
-			statusMessage = "processed"
+			// codecov:ignore:start
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":        task.ID,
+				"broadcast_id":   broadcastState.BroadcastID,
+				"enqueued_count": sentCount,
+				"failed_count":   failedCount,
+				"phase":          broadcastState.Phase,
+			}).Info("Broadcast processing finished")
+			// codecov:ignore:end
 		case "test":
 			// Test phase complete - should have been handled by handleTestPhaseCompletion
 			// This shouldn't happen, but handle it gracefully
 			o.logger.WithField("broadcast_id", broadcastState.BroadcastID).Warn("Test phase marked as complete in final processing - this should have been handled earlier")
 			return false, nil // Pause task for winner selection
 		}
-
-		// Set final enqueued count on the broadcast (included in atomic update)
-		broadcast.EnqueuedCount = broadcastState.EnqueuedCount
-		// A copy SelectWinner wrote may still hold no phase counts
-		setPhaseRecipientCounts(broadcast, broadcastState)
-
-		// Save the updated broadcast (includes enqueued_count atomically)
-		updateErr := o.broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
-		if updateErr != nil {
-			// codecov:ignore:start
-			o.logger.WithFields(map[string]interface{}{
-				"task_id":      task.ID,
-				"broadcast_id": broadcastState.BroadcastID,
-				"error":        updateErr.Error(),
-			}).Error("Failed to update broadcast status to " + statusMessage)
-			// codecov:ignore:end
-			err = fmt.Errorf("failed to update broadcast status to %s: %w", statusMessage, updateErr)
-			return false, err
-		}
-
-		// codecov:ignore:start
-		o.logger.WithFields(map[string]interface{}{
-			"task_id":        task.ID,
-			"broadcast_id":   broadcastState.BroadcastID,
-			"enqueued_count": sentCount,
-			"failed_count":   failedCount,
-			"phase":          broadcastState.Phase,
-		}).Info("Broadcast marked as " + statusMessage + " successfully")
-		// codecov:ignore:end
 	}
 
 	// codecov:ignore:start
@@ -1673,6 +1622,63 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	}).Info("Broadcast processing cycle completed")
 	// codecov:ignore:end
 	return allDone, err
+}
+
+// finishRun writes the end of a run that queued every recipient: setFinal sets the final
+// fields on the broadcast's row read with its lock, so a column another writer changed
+// since the run's last refresh is not written back, and a pause or a cancel committed
+// meanwhile is kept. A paused broadcast parks the task and its queue entries are paused
+// again (the last batch's rows may have been committed after the pause paused the others);
+// a cancelled one has them removed. The write is made on the run's lease (leaseContext).
+func (o *BroadcastOrchestrator) finishRun(ctx context.Context, task *domain.Task, broadcastID string, setFinal func(*domain.Broadcast)) (bool, error) {
+	writeCtx, cancel := leaseContext(ctx)
+	defer cancel()
+
+	var left domain.BroadcastStatus
+	err := o.broadcastRepo.WithTransaction(writeCtx, task.WorkspaceID, func(tx *sql.Tx) error {
+		latest, err := o.broadcastRepo.GetBroadcastForUpdateTx(writeCtx, tx, task.WorkspaceID, broadcastID)
+		if err != nil {
+			return err
+		}
+		switch latest.Status {
+		case domain.BroadcastStatusPaused, domain.BroadcastStatusCancelled, domain.BroadcastStatusProcessed:
+			left = latest.Status
+			return nil
+		}
+		setFinal(latest)
+		return o.broadcastRepo.UpdateBroadcastTx(writeCtx, tx, latest)
+	})
+	if err != nil {
+		o.logger.WithFields(map[string]interface{}{
+			"task_id":      task.ID,
+			"broadcast_id": broadcastID,
+			"error":        err.Error(),
+		}).Error("Failed to update broadcast status to processed")
+		return false, fmt.Errorf("failed to update broadcast status to processed: %w", err)
+	}
+
+	switch left {
+	case domain.BroadcastStatusPaused:
+		o.pauseQueueEntries(writeCtx, task.WorkspaceID, broadcastID)
+		return false, o.parkPausedTask(task, broadcastID)
+	case domain.BroadcastStatusCancelled:
+		o.deleteQueueEntries(writeCtx, task.WorkspaceID, broadcastID)
+		o.logger.WithFields(map[string]interface{}{
+			"task_id":      task.ID,
+			"broadcast_id": broadcastID,
+		}).Info("Broadcast was cancelled before its run finished - task completed without status update")
+	case domain.BroadcastStatusProcessed:
+		o.logger.WithFields(map[string]interface{}{
+			"task_id":      task.ID,
+			"broadcast_id": broadcastID,
+		}).Info("Broadcast already processed - task completed without status update")
+	default:
+		o.logger.WithFields(map[string]interface{}{
+			"task_id":      task.ID,
+			"broadcast_id": broadcastID,
+		}).Info("Broadcast marked as processed")
+	}
+	return true, nil
 }
 
 // pausedParkInterval is how long a run that found its broadcast paused parks the task, as
@@ -1759,8 +1765,11 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 	var concurrent *domain.Broadcast
 	var left domain.BroadcastStatus
 	waiting := false
-	err := o.broadcastRepo.WithTransaction(context.Background(), broadcast.WorkspaceID, func(tx *sql.Tx) error {
-		latest, err := o.broadcastRepo.GetBroadcastForUpdateTx(context.Background(), tx, broadcast.WorkspaceID, broadcast.ID)
+	// Written on the run's lease, as its progress is.
+	writeCtx, cancel := leaseContext(ctx)
+	defer cancel()
+	err := o.broadcastRepo.WithTransaction(writeCtx, broadcast.WorkspaceID, func(tx *sql.Tx) error {
+		latest, err := o.broadcastRepo.GetBroadcastForUpdateTx(writeCtx, tx, broadcast.WorkspaceID, broadcast.ID)
 		if err != nil {
 			return err
 		}
@@ -1792,7 +1801,7 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 			broadcast.TestSentAt = &now
 		}
 		setPhaseRecipientCounts(broadcast, broadcastState)
-		return o.broadcastRepo.UpdateBroadcastTx(context.Background(), tx, broadcast)
+		return o.broadcastRepo.UpdateBroadcastTx(writeCtx, tx, broadcast)
 	})
 	if err != nil {
 		o.logger.WithFields(map[string]interface{}{

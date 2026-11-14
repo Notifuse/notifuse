@@ -719,7 +719,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 				mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(broadcast, nil).AnyTimes()
 
 				// Mock broadcast status update on completion
-				mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, b *domain.Broadcast) error {
+				locked := *broadcast
+				expectFinalWrite(mockBroadcastRepo, "workspace-123", &locked, func(ctx context.Context, b *domain.Broadcast) error {
 					// Verify the broadcast status was updated to processed
 					assert.Equal(t, domain.BroadcastStatusProcessed, b.Status)
 					assert.NotNil(t, b.CompletedAt)
@@ -860,7 +861,10 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 				mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(broadcast, nil).AnyTimes()
 
 				// Mock broadcast status update failure on completion
-				mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(fmt.Errorf("database error"))
+				locked := *broadcast
+				expectFinalWrite(mockBroadcastRepo, "workspace-123", &locked, func(context.Context, *domain.Broadcast) error {
+					return fmt.Errorf("database error")
+				})
 
 				// Mock template
 				template := &domain.Template{
@@ -1308,7 +1312,8 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 				mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-456").Return(broadcast, nil).AnyTimes()
 
 				// Mock broadcast status update on completion
-				mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, b *domain.Broadcast) error {
+				locked := *broadcast
+				expectFinalWrite(mockBroadcastRepo, "workspace-123", &locked, func(ctx context.Context, b *domain.Broadcast) error {
 					// Verify the broadcast status was updated to sent
 					assert.Equal(t, domain.BroadcastStatusProcessed, b.Status)
 					assert.NotNil(t, b.CompletedAt)
@@ -1880,8 +1885,8 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	// Save state
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "w", "t", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	// Final broadcast update to Sent
-	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil)
+	// Final broadcast update to processed, on the locked row
+	expectFinalWrite(mockBroadcastRepo, "w", &bcastAfter, func(context.Context, *domain.Broadcast) error { return nil })
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
 	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, abEval, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
@@ -2025,8 +2030,9 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 	// Mock task state saving
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	// Mock final broadcast status update to "sent"
-	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+	// Mock final broadcast status update to "processed", on the locked row
+	locked := *bcast
+	expectFinalWrite(mockBroadcastRepo, "workspace-123", &locked, func(_ context.Context, b *domain.Broadcast) error {
 		assert.Equal(t, domain.BroadcastStatusProcessed, b.Status)
 		return nil
 	})
@@ -2141,15 +2147,16 @@ func TestBroadcastOrchestrator_Process_NoRecipientsUpdatesBroadcastStatus(t *tes
 		},
 	}
 
-	// Mock GetBroadcast - called twice: once for counting recipients, once for updating status
-	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(testBroadcast, nil).Times(2)
+	// Mock GetBroadcast - read once, for counting recipients; the status is written on the locked row
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(testBroadcast, nil).Times(1)
 
 	// Mock CountContactsForBroadcast to return 0 recipients
 	mockContactRepo.EXPECT().CountContactsForBroadcast(gomock.Any(), "workspace-123", testBroadcast.Audience).Return(0, nil)
 
 	// Mock UpdateBroadcast - THIS IS THE KEY ASSERTION
 	// The broadcast status should be updated to "sent" with a CompletedAt timestamp
-	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+	locked := *testBroadcast
+	expectFinalWrite(mockBroadcastRepo, "workspace-123", &locked, func(_ context.Context, b *domain.Broadcast) error {
 		// Verify the broadcast was properly updated
 		assert.Equal(t, domain.BroadcastStatusProcessed, b.Status, "Broadcast status should be 'sent'")
 		assert.NotNil(t, b.CompletedAt, "CompletedAt should be set")
@@ -2933,6 +2940,8 @@ func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
 	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(testBroadcast, nil).AnyTimes()
 	// Mock broadcast status update on completion
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	locked := *testBroadcast
+	expectFinalWrite(mockBroadcastRepo, "workspace-123", &locked, func(context.Context, *domain.Broadcast) error { return nil })
 
 	// Mock template
 	template := &domain.Template{

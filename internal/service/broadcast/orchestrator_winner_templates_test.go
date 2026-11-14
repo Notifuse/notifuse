@@ -138,8 +138,8 @@ func TestOrchestrator_Process_RunAfterAManualPickSendsTheWinnerOnly(t *testing.T
 	m.recordBatches(&batches, nil)
 
 	var final *domain.Broadcast
-	m.broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+	expectFinalWrite(m.broadcastRepo, "workspace-123", abBroadcast(domain.BroadcastStatusWinnerSelected, stringPtr("template-B")),
+		func(_ context.Context, b *domain.Broadcast) error {
 			final = b
 			return nil
 		})
@@ -199,8 +199,8 @@ func TestOrchestrator_Process_WinnerPickedDuringTheRunSendsTheNextBatchWithTheWi
 	m.recordBatches(&batches, func() { picked = true })
 
 	var final *domain.Broadcast
-	m.broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+	expectFinalWrite(m.broadcastRepo, "workspace-123", abBroadcast(domain.BroadcastStatusWinnerSelected, stringPtr("template-B")),
+		func(_ context.Context, b *domain.Broadcast) error {
 			final = b
 			return nil
 		})

@@ -464,6 +464,59 @@ func TestBroadcastSingleExecution_RunThatFindsItsBroadcastPausedParksTheTask(t *
 	assert.Zero(t, h.pausedRows(broadcastID), "no email of the broadcast stays paused")
 }
 
+// TestBroadcastSingleExecution_PauseBeforeTheFinalWriteIsKept is a pause that
+// commits after the run's last read of the broadcast and before its final write:
+// the final write reads the row with its lock, finds the pause, and parks the task
+// instead of writing processed over it. The pause's statements are held on the
+// broadcast's row until the run has sent its last batch and waits for that row.
+func TestBroadcastSingleExecution_PauseBeforeTheFinalWriteIsKept(t *testing.T) {
+	h := setupSingleExecution(t, false)
+	const contacts = 20
+	listID := h.seed("final", contacts)
+	tpl := h.template("P", 0)
+	broadcastID := h.createBroadcast(listID, map[string]interface{}{
+		"enabled":    false,
+		"variations": []map[string]interface{}{{"variation_name": "P", "template_id": tpl.ID}},
+	})
+	h.sendNow(broadcastID)
+	task := h.task(broadcastID)
+	require.Equal(t, http.StatusOK, h.execute(task.ID), "the counting run")
+
+	const fetchLike = "SELECT c.email%FROM contacts c%"
+	releaseContacts := h.holdLock(`LOCK TABLE contacts IN ACCESS EXCLUSIVE MODE`)
+	run := h.start(task.ID)
+	h.waitUntil("the run to block in its page fetch", func() bool { return h.blockedOn(fetchLike) == 1 })
+
+	releaseRow := h.holdLock(fmt.Sprintf(`SELECT 1 FROM broadcasts WHERE id = '%s' FOR UPDATE`, broadcastID))
+	pause := make(chan execution, 1)
+	go func() {
+		resp, err := h.client.PauseBroadcast(map[string]interface{}{"workspace_id": h.workspaceID, "id": broadcastID})
+		if err != nil {
+			pause <- execution{err: err}
+			return
+		}
+		_ = resp.Body.Close()
+		pause <- execution{code: resp.StatusCode}
+	}()
+	h.waitUntil("the pause to wait for the broadcast's row", func() bool { return h.blockedOn("%UPDATE broadcasts%") == 1 })
+
+	releaseContacts()
+	h.waitUntil("the run's final write to wait behind the pause", func() bool { return h.blockedOn("%broadcasts%") == 2 })
+	releaseRow()
+	require.Equal(t, http.StatusOK, h.answer(pause))
+	require.Equal(t, http.StatusOK, h.answer(run))
+
+	assert.Equal(t, domain.BroadcastStatusPaused, h.status(broadcastID), "the pause is not written over")
+	parked := h.task(broadcastID)
+	assert.Equal(t, domain.TaskStatusPaused, parked.Status, "the run parks the task for the resume")
+	assert.Equal(t, contacts, h.pausedRows(broadcastID), "no email of the last batch is sent while paused")
+
+	h.post(h.client.ResumeBroadcast, map[string]interface{}{"workspace_id": h.workspaceID, "id": broadcastID})
+	h.executeUntil(task.ID, broadcastID, domain.BroadcastStatusProcessed)
+	assertEachContactOnce(t, h.enqueued(broadcastID, map[string]string{tpl.ID: "P"}), contacts)
+	assert.Zero(t, h.pausedRows(broadcastID))
+}
+
 // TestBroadcastSingleExecution_WinnerPickedAfterTheTestPhase is the console
 // flow: the test phase ends, a waiting run passes, the winner is picked, and
 // the rest of the list is sent.

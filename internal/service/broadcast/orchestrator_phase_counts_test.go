@@ -91,8 +91,8 @@ func TestOrchestrator_Process_StoresABPhaseCountsOnTheBroadcast(t *testing.T) {
 		m.recordBatches(&batches, nil)
 
 		var final *domain.Broadcast
-		m.broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		expectFinalWrite(m.broadcastRepo, "workspace-123", abBroadcast(domain.BroadcastStatusWinnerSelected, stringPtr("template-B")),
+			func(_ context.Context, b *domain.Broadcast) error {
 				final = b
 				return nil
 			})
@@ -152,13 +152,14 @@ func TestOrchestrator_Process_StoresABPhaseCountsOnTheBroadcast(t *testing.T) {
 		m.recordBatches(&batches, func() { sentBatches++ })
 
 		var final *domain.Broadcast
-		m.broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
-				if b.Status == domain.BroadcastStatusProcessed {
-					final = b
-				}
-				return nil
-			}).AnyTimes()
+		locked := abBroadcast(domain.BroadcastStatusProcessing, stringPtr("template-B"))
+		if pickAfterBatches > 0 {
+			locked.Status = domain.BroadcastStatusWinnerSelected
+		}
+		expectFinalWrite(m.broadcastRepo, "workspace-123", locked, func(_ context.Context, b *domain.Broadcast) error {
+			final = b
+			return nil
+		})
 
 		config := &broadcast.Config{FetchBatchSize: batchSize, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
 		orchestrator := broadcast.NewBroadcastOrchestrator(m.messageSender, m.broadcastRepo, m.templateRepo, m.contactRepo,
@@ -216,11 +217,10 @@ func TestOrchestrator_Process_StoresABPhaseCountsOnTheBroadcast(t *testing.T) {
 		m.recordBatches(&batches, nil)
 
 		var final *domain.Broadcast
-		m.broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
-				final = b
-				return nil
-			})
+		expectFinalWrite(m.broadcastRepo, "workspace-123", single(), func(_ context.Context, b *domain.Broadcast) error {
+			final = b
+			return nil
+		})
 
 		allDone, err := m.orchestrator(nil).Process(context.Background(), abTask(&domain.SendBroadcastState{}), time.Now().Add(30*time.Second))
 		require.NoError(t, err)

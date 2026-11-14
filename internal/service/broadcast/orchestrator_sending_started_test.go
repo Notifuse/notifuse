@@ -311,7 +311,8 @@ func TestOrchestrator_Process_NoRecipients_PublishesNothing(t *testing.T) {
 		Return(bcast, nil).AnyTimes()
 	m.contactRepo.EXPECT().CountContactsForBroadcast(gomock.Any(), "workspace-123", bcast.Audience).
 		Return(0, nil).Times(1)
-	m.broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	expectFinalWrite(m.broadcastRepo, "workspace-123", sendingStartedBroadcast("Summer sale"),
+		func(context.Context, *domain.Broadcast) error { return nil })
 
 	orchestrator := m.orchestrator(m.eventBus)
 	task := sendingStartedTask(&domain.SendBroadcastState{
