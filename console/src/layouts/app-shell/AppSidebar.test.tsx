@@ -467,7 +467,13 @@ describe('AppSidebar', () => {
       fireEvent.pointerEnter(aside())
       const button = screen.getByRole('button', { name: /jane@example\.com/ })
       await userEvent.click(button)
-      await userEvent.click(await screen.findByRole('menuitem', { name: /Logout/ }))
+      const logout = await screen.findByRole('menuitem', { name: /Logout/ })
+      fireEvent.pointerDown(logout)
+      // Where the press leaves the focus once the entry closes the menu
+      act(() => button.blur())
+      // A modifier held during the click repeats its keydown: still a mouse pick.
+      fireEvent.keyDown(document, { key: 'Shift' })
+      fireEvent.click(logout)
       await waitFor(() => expect(button).toHaveAttribute('aria-expanded', 'false'))
       await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
       expect(document.activeElement).not.toBe(button)
@@ -489,10 +495,10 @@ describe('AppSidebar', () => {
 
   describe('workspace switcher', () => {
     it('names the button after the workspace, or "Workspace" when the list does not hold it', () => {
-      const { unmount } = render(<Harness startCollapsed />)
+      const { unmount } = render(<Harness startPinned={false} />)
       expect(screen.getByRole('button', { name: 'Acme' })).toBeInTheDocument()
       unmount()
-      render(<Harness startCollapsed workspaceId="gone" />)
+      render(<Harness startPinned={false} workspaceId="gone" />)
       expect(screen.getByRole('button', { name: 'Workspace' })).toBeInTheDocument()
     })
 

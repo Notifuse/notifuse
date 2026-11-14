@@ -33,8 +33,8 @@ type NewAppFunc func(cfg *config.Config, opts ...app.AppOption) app.AppInterface
 // newApp creates the app runServer runs; tests replace it.
 var newApp NewAppFunc = app.NewApp
 
-// shutdownTimeout is the bound runServer applies: gracefulShutdownTimeout, which tests
-// shorten. Past it runServer returns, even when the app's shutdown has not ended; it leaves 5
+// shutdownTimeout is the bound runServer applies: gracefulShutdownTimeout, unless a test
+// sets it shorter. Past it runServer returns, even when the app's shutdown has not ended; it leaves 5
 // seconds beyond the app's own 65-second timeout.
 var shutdownTimeout = gracefulShutdownTimeout
 

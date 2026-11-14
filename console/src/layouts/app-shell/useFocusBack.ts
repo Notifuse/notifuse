@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 
+const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta'])
+
 /**
  * Gives the focus back to a menu's button when the menu closes from the keyboard and leaves it
  * nowhere: antd 6.6 drops it on the body after Escape. A close that moved the focus elsewhere, a
@@ -10,8 +12,9 @@ export function useFocusBack<T extends HTMLElement>() {
   const ref = useRef<T>(null)
   const lastInput = useRef<'keyboard' | 'pointer'>('keyboard')
   useEffect(() => {
-    const onKey = () => {
-      lastInput.current = 'keyboard'
+    // A modifier held for a click (Shift, Ctrl) repeats its keydown: it is not a keyboard close.
+    const onKey = (event: KeyboardEvent) => {
+      if (!MODIFIERS.has(event.key)) lastInput.current = 'keyboard'
     }
     const onPointer = () => {
       lastInput.current = 'pointer'

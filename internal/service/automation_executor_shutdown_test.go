@@ -243,7 +243,7 @@ func TestAutomationExecutor_ProcessBatch_Shutdown(t *testing.T) {
 			t.Fatal("ProcessBatch did not return after the drain deadline")
 		}
 		assert.GreaterOrEqual(t, nodeDoneAt.Sub(cancelledAt), drain, "the node keeps its context for the drain")
-		assert.Empty(t, h.landedWrites(), "a node cut by the deadline records nothing")
+		assert.Empty(t, h.landedWrites(), "a node cut by the deadline does not move its journey")
 	})
 
 	t.Run("no deadline while the app runs", func(t *testing.T) {

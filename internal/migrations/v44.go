@@ -17,7 +17,8 @@ import (
 // V44Migration, on workspaces that already exist, makes a click on a link write its own
 // timeline entry, adds the partial indexes of the dashboard's recent failures, dates the
 // broadcasts that started without a start date, removes the segment memberships of deleted
-// contacts and recounts the exited journeys of each automation.
+// contacts and the instance's own links recorded in clicked_links, and recounts the exited
+// journeys of each automation.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -48,7 +49,8 @@ import (
 // without any message keeps no date. The first messages are found in one grouped pass over
 // message_history, not one walk per broadcast.
 //
-// After the builds, under their SHARE lock, the links of clicked_links on the instance's own
+// After the builds, under their SHARE lock and before contact_segments is locked (so that
+// membership writes do not wait for it), the links of clicked_links on the instance's own
 // hosts are removed (v44OwnLinksPurgeSQL): those of the API endpoint and of the workspace's
 // current custom endpoint, on any port, in any case, with or without one trailing dot, as
 // the click recorder leaves them out since 44. Before, behind a reverse proxy, unsubscribe
@@ -217,14 +219,17 @@ func v44WorkspaceStatements(ownHosts []string) []v44WorkspaceStatement {
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, nil, "create idx_message_history_failed_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, nil, "create idx_message_history_bounced_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, nil, "create idx_message_history_complained_recent"},
+	}
+	statements = append(statements, purge...)
+	statements = append(statements, []v44WorkspaceStatement{
 		{`ALTER TABLE contact_segments DISABLE TRIGGER contact_segment_changes_trigger`, nil, "disable contact_segment_changes_trigger"},
 		{`ALTER TABLE contact_segments DISABLE TRIGGER webhook_contact_segments`, nil, "disable webhook_contact_segments"},
 		{v44OrphanMembershipsSQL, nil, "remove the segment memberships of deleted contacts"},
 		{`ALTER TABLE contact_segments ENABLE TRIGGER webhook_contact_segments`, nil, "enable webhook_contact_segments"},
 		{`ALTER TABLE contact_segments ENABLE TRIGGER contact_segment_changes_trigger`, nil, "enable contact_segment_changes_trigger"},
-	}
-	statements = append(statements, purge...)
-	return append(statements, v44WorkspaceStatement{v44ExitedRecountSQL, nil, "recount the exited journeys of each automation"})
+		{v44ExitedRecountSQL, nil, "recount the exited journeys of each automation"},
+	}...)
+	return statements
 }
 
 func (m *V44Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, workspace *domain.Workspace, db DBExecutor) error {

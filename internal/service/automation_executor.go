@@ -91,7 +91,7 @@ func (e *AutomationExecutor) drainTimeout() time.Duration {
 }
 
 // afterStepWriteTimeout is how long the writes that record a step go on once the run is
-// cancelled (a shutdown): the step's work is done, and a journey left on the step would run it
+// cancelled (at the end of a shutdown's drain): the step's work is done, and a journey left on the step would run it
 // again after the restart. While the run is live they have no deadline of their own, as the
 // run's other writes.
 const afterStepWriteTimeout = 5 * time.Second
@@ -370,9 +370,9 @@ func (e *AutomationExecutor) retryAfterFailedSave(ctx context.Context, workspace
 //
 // ctx is the app's shutdown context. It bounds the claim and stops the batch between two
 // journeys, but the journeys run on a context detached from it: a node under way when the stop
-// begins finishes, and the write that moves the journey past it lands, within
-// drainTimeout of the stop. Cutting the node instead would leave the journey on it, and the node
-// would run again once the claim ends.
+// begins has drainTimeout from the stop to finish, and the writes that move the journey past it
+// up to afterStepWriteTimeout more. Cutting the node instead would leave the journey on it, and
+// the node would run again once the claim ends.
 func (e *AutomationExecutor) ProcessBatch(ctx context.Context, limit int) (int, error) {
 	contacts, err := e.automationRepo.ClaimScheduledContactAutomationsGlobal(ctx, limit, inTickResumeLease)
 	if err != nil {
@@ -469,7 +469,7 @@ func (e *AutomationExecutor) releaseClaims(ctx context.Context, contacts []*doma
 
 // handleError records a failed attempt on the journey's current step and schedules a retry, or
 // fails the journey once it has used its retries. When the run's context is done, the error is
-// the cancellation (a shutdown), not a failed attempt: nothing is written, no retry is spent,
+// the cancellation (the end of a shutdown's drain), not a failed attempt: nothing is written, no retry is spent,
 // and the journey is due again when its claim ends.
 func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string, ca *domain.ContactAutomation, err error, context string) error {
 	if ctx.Err() != nil {

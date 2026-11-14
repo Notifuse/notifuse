@@ -24,8 +24,10 @@ type AutomationScheduler struct {
 }
 
 // automationStopMargin is how long Stop waits past the executor's drain deadline: once the
-// deadline cancels the node, the writes left fail fast and the loop returns.
-const automationStopMargin = 5 * time.Second
+// deadline cancels the node, the writes that record it have up to afterStepWriteTimeout, then
+// the release of the journeys the batch did not run has up to releaseClaimsTimeout, and the
+// loop returns. One more second covers the rest of the loop.
+const automationStopMargin = afterStepWriteTimeout + releaseClaimsTimeout + time.Second
 
 // stopTimeout is how long Stop waits for the batch in progress: the executor's drain, which
 // counts from the stop, plus a margin.

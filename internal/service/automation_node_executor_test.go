@@ -4487,7 +4487,7 @@ func TestEmailNodeExecutor_Execute_RecordsTheRenderedLanguage(t *testing.T) {
 }
 
 // A list step whose write a shutdown cut short fails, so the journey stays on it and runs it
-// again after the restart; a failed write on a live run is still logged in the output only.
+// again after the restart.
 func TestListNodeExecutors_CancelledRunFailsTheStep(t *testing.T) {
 	params := func(nodeType domain.NodeType) NodeExecutionParams {
 		return NodeExecutionParams{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -142,19 +143,35 @@ func TestV44Migration_UpdateWorkspaceStopsOnTheFirstError(t *testing.T) {
 // The purge of the instance's own links runs after the three index builds, under their
 // SHARE lock, and before the exited recount, with the hosts of the API endpoint and of the
 // workspace's current custom endpoint.
-func TestV44Migration_UpdateWorkspacePurgesTheOwnLinksAfterTheBuilds(t *testing.T) {
+// v44PurgeAt is where the purge runs among the other statements: after the index builds,
+// before contact_segments is locked.
+func v44PurgeAt(t *testing.T) int {
+	t.Helper()
+	for i, stmt := range v44ExpectedWorkspaceStatements {
+		if strings.HasPrefix(stmt, "ALTER TABLE contact_segments DISABLE TRIGGER") {
+			require.True(t, strings.HasPrefix(v44ExpectedWorkspaceStatements[i-1], "CREATE INDEX"), "the builds come right before")
+			return i
+		}
+	}
+	t.Fatal("no DISABLE TRIGGER statement")
+	return 0
+}
+
+func TestV44Migration_UpdateWorkspacePurgesTheOwnLinksBetweenTheBuildsAndTheMembershipLock(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
 
-	last := len(v44ExpectedWorkspaceStatements) - 1
-	for _, stmt := range v44ExpectedWorkspaceStatements[:last] {
+	at := v44PurgeAt(t)
+	for _, stmt := range v44ExpectedWorkspaceStatements[:at] {
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	mock.ExpectExec("^" + regexp.QuoteMeta(v44OwnLinksPurgeSQL) + "$").
 		WithArgs(`{"api.notifuse.test","mail.brand.example"}`).
 		WillReturnResult(sqlmock.NewResult(0, 3))
-	mock.ExpectExec("^" + regexp.QuoteMeta(v44ExpectedWorkspaceStatements[last]) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	for _, stmt := range v44ExpectedWorkspaceStatements[at:] {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
 
 	endpoint := "https://Mail.Brand.example./"
 	workspace := &domain.Workspace{ID: "ws1", Settings: domain.WorkspaceSettings{CustomEndpointURL: &endpoint}}
@@ -168,8 +185,7 @@ func TestV44Migration_ThePurgeErrorNamesItsStep(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	last := len(v44ExpectedWorkspaceStatements) - 1
-	for _, stmt := range v44ExpectedWorkspaceStatements[:last] {
+	for _, stmt := range v44ExpectedWorkspaceStatements[:v44PurgeAt(t)] {
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	mock.ExpectExec("^" + regexp.QuoteMeta(v44OwnLinksPurgeSQL) + "$").WillReturnError(errors.New("boom"))
