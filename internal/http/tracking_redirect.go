@@ -75,11 +75,19 @@ func classifyTrackedDestination(raw, requestHost, apiHost, endpointHost string) 
 		return decisionReject, "", nil, scheme
 	}
 	if isPlainWebURL(u) {
-		// The own hosts are in Punycode, as HostOf writes them. This one is encoded, not
-		// mapped: a look-alike such as the Kelvin sign for 'k' is not an own host.
+		// The own hosts are in Punycode, IP literals canonical, as HostOf writes them.
+		// This one is encoded, not mapped: a look-alike such as the Kelvin sign for 'k' is
+		// not an own host.
 		host, _ := displayHost(u.Hostname())
-		for _, own := range []string{hostnameOf(requestHost), apiHost, endpointHost} {
-			if asciiHostEqual(host, own) {
+		if ip, ok := trackingtoken.CanonicalIP(host); ok {
+			host = ip
+		}
+		reqHost := (&url.URL{Host: requestHost}).Hostname()
+		if ip, ok := trackingtoken.CanonicalIP(reqHost); ok {
+			reqHost = ip
+		}
+		for _, own := range []string{reqHost, apiHost, endpointHost} {
+			if trackingtoken.SameHostname(host, own) {
 				return decisionRedirect, u.String(), u, scheme
 			}
 		}
@@ -91,32 +99,6 @@ func classifyTrackedDestination(raw, requestHost, apiHost, endpointHost string) 
 // only destinations a visitor is ever offered to continue to.
 func isPlainWebURL(u *url.URL) bool {
 	return u != nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" && u.Hostname() != "" && u.User == nil
-}
-
-// hostnameOf strips the port from a host[:port] value such as a request's Host.
-func hostnameOf(hostport string) string {
-	return (&url.URL{Host: hostport}).Hostname()
-}
-
-// asciiHostEqual compares two hostnames, ports already removed, folding ASCII letters
-// only: strings.EqualFold would also fold, for instance, the Kelvin sign onto 'k'.
-func asciiHostEqual(a, b string) bool {
-	if a == "" || len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if lowerASCII(a[i]) != lowerASCII(b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func lowerASCII(c byte) byte {
-	if c >= 'A' && c <= 'Z' {
-		return c + ('a' - 'A')
-	}
-	return c
 }
 
 // displayHost returns the hostname to show on the interstitial: an all-ASCII hostname as
