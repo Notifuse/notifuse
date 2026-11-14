@@ -1351,12 +1351,15 @@ limit extend the 44.0 lines of those endpoints, which are unreleased.
 - 7.6: the timeline time zone case writes an entry from a session in Asia/Tokyo with a wall time and reads the
   instant back through `timeline.list`.
 - 7.7: the audience statuses test waited on a count that was the whole mailbox: `GetMailpitMessageCount`
-  returned the search answer's `total` instead of its `messages_count`. It now returns the search's count, which
-  every `WaitForMailpitMessages` caller reads; the audience test waits on its listed count
+  returned the search answer's `total` instead of its `messages_count`. It now returns the search's count. Only a
+  subject without a space reaches the search (`broadcast_scheduled_live_scheduler_test.go`): the helper does not
+  escape the subject, Mailpit refuses one with a space and the count comes from listing, the path of the other
+  callers before and after this change. The audience test waits on its listed count
   (`CountMailpitMessagesBySubject`). (Corrected after the code review: the cause first given here, a search
   matching words, was false.)
-- 7.7: `TestWebhookWorkerEndToEnd/a_slow_batch…` did not fail in 50 runs with `-race`: no fix is claimed, and it
-  is in "known, not handled".
+- 7.7: `TestWebhookWorkerEndToEnd/a_slow_batch…` did not fail in 50 runs with `-race`: no fix is claimed.
+- Known, not handled (lot 7): the webhook worker flake above; the periods of a time series are generated before
+  the 50,000-row bound is checked; past the bound the rows come in the query's order, with no mark in `Meta`.
 - 7.1: the gap filling is bounded: past 50,000 rows (periods times dimension values) the series comes back
   unfilled, where a dimension with thousands of values over a year made millions of rows (code review B1).
 - 7.7: `TestWorkspaceLock_GrantedAsTheContextEnds` failed 5 runs of 20: lib/pq reports a wait the context ended
@@ -1378,11 +1381,24 @@ limit extend the 44.0 lines of those endpoints, which are unreleased.
   (43.0 had the same two tests), the 6.2 line, the `text_error` wrap, and a lot 8.2 point for the
   `SendTemplateModal` sender.
 
+### Corrections after the delta review (lot 7, round 2)
+
+- B1: the integration command gets `-timeout 45m`: `TestBroadcast` alone runs past the default 10 minutes with
+  `-race`, and the tests after it never started. It also names `TestTask`, so every caller of the changed
+  Mailpit helper runs.
+- B2: the `templates.compile` line says what 43.0 did: the `mj-liquid` Liquid stayed raw, and the preview text
+  override was dropped from a tree without an `mj-preview` block (a tree with one rendered it).
+- B3: the 7.7 note says which callers reach the search; the helper's comments describe the listing as the
+  usual path.
+- Minors taken: the ordering line says a time series with a date range stays in period order; the bound's
+  sentence covers a series without a dimension; the `templates.compile` line moves out of the analytics lines;
+  lot 7 gets its own "known, not handled" line.
+
 ## Test commands for lot 7
 
 ```
 go test ./pkg/... ./internal/...
-INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestAnalytics|TestContact|TestTimeline|TestDemo|TestWebAnalytics|TestTemplatesUsage|TestAuditLogs|TestWebhookWorker|TestWorkspaceLock|TestTransactional|TestListUnsubscribe|TestBroadcast' -count=1
+INTEGRATION_TESTS=true go test -race -timeout 45m -tags integration,licdev ./tests/integration/ -run 'TestAnalytics|TestContact|TestTimeline|TestDemo|TestWebAnalytics|TestTemplatesUsage|TestAuditLogs|TestWebhookWorker|TestWorkspaceLock|TestTransactional|TestListUnsubscribe|TestBroadcast|TestTask|TestScheduled' -count=1
 INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestWorkspaceLock_GrantedAsTheContextEnds' -count=20
 ```
 

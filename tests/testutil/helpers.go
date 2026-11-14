@@ -1331,8 +1331,9 @@ func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeo
 func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
-	// Use the search API to find messages by subject
-	// Mailpit supports search queries in the format: subject:"text"
+	// The search API answers for a subject without a space. The subject goes into the URL
+	// unescaped and unquoted, so Mailpit refuses one with a space (400) and the count comes
+	// from listing the messages: the path most callers take.
 	searchURL := fmt.Sprintf("http://localhost:8025/api/v1/search?query=subject:%s", subject)
 	resp, err := httpClient.Get(searchURL)
 	if err != nil {
@@ -1341,7 +1342,7 @@ func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// Fall back to listing all messages if search not supported
+		// A refused query (a subject with a space): count by listing
 		return getMailpitMessageCountByListing(t, subject)
 	}
 
