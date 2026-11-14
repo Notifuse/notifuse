@@ -294,7 +294,11 @@ func (r *segmentRepository) DeleteSegment(ctx context.Context, workspaceID strin
 	return nil
 }
 
-// AddContactToSegment adds a contact to a segment
+// AddContactToSegment adds a contact to a segment, or refreshes an existing membership.
+//
+// The version never moves back: a queue pass that read the segment before a rebuild bumped its
+// version would otherwise rewrite, at the old version, a row the rebuild had already written at
+// the new one, and the rebuild's RemoveOldMemberships would then delete a contact that matches.
 func (r *segmentRepository) AddContactToSegment(ctx context.Context, workspaceID string, email string, segmentID string, version int64) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
@@ -306,7 +310,7 @@ func (r *segmentRepository) AddContactToSegment(ctx context.Context, workspaceID
 		INSERT INTO contact_segments (email, segment_id, version, matched_at, computed_at)
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (email, segment_id)
-		DO UPDATE SET version = $3, computed_at = $5
+		DO UPDATE SET version = GREATEST(contact_segments.version, EXCLUDED.version), computed_at = $5
 	`
 
 	now := time.Now().UTC()
@@ -598,4 +602,60 @@ func (r *segmentRepository) UpdateRecomputeAfter(ctx context.Context, workspaceI
 	}
 
 	return nil
+}
+
+// StartRecompute moves an active segment at fromVersion to the next version and marks it building,
+// in one compare-and-set, so a concurrent edit is never overwritten with a stale snapshot. It
+// returns false when the segment is no longer active at fromVersion.
+func (r *segmentRepository) StartRecompute(ctx context.Context, workspaceID string, segmentID string, fromVersion int64) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		UPDATE segments
+		SET version = version + 1, status = 'building', db_updated_at = $3
+		WHERE id = $1 AND version = $2 AND status = 'active'
+	`
+
+	result, err := workspaceDB.ExecContext(ctx, query, segmentID, fromVersion, time.Now().UTC())
+	if err != nil {
+		return false, fmt.Errorf("failed to start segment recompute: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected == 1, nil
+}
+
+// UpdateSegmentStatus sets the status of a segment still at version and not deleted, leaving
+// every other column alone. It returns false when the segment moved to another version or was
+// deleted.
+func (r *segmentRepository) UpdateSegmentStatus(ctx context.Context, workspaceID string, segmentID string, version int64, status string) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		UPDATE segments
+		SET status = $3, db_updated_at = $4
+		WHERE id = $1 AND version = $2 AND status <> 'deleted'
+	`
+
+	result, err := workspaceDB.ExecContext(ctx, query, segmentID, version, status, time.Now().UTC())
+	if err != nil {
+		return false, fmt.Errorf("failed to update segment status: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected == 1, nil
 }

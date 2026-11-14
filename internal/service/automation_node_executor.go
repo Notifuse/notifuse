@@ -837,18 +837,12 @@ func (e *AddToListNodeExecutor) Execute(ctx context.Context, params NodeExecutio
 		UpdatedAt: now,
 	}
 
+	// A contact already in the list is updated in place, and a bounced or complained one is left
+	// as it is, both without an error: an error is a write that did not happen. Failing the step
+	// keeps the journey on it, and the executor retries it.
 	err = e.contactListRepo.AddContactToList(ctx, params.WorkspaceID, contactList)
 	if err != nil {
-		// Log but don't fail - contact might already be in list
-		return &NodeExecutionResult{
-			NextNodeID: params.Node.NextNodeID,
-			Status:     domain.ContactAutomationStatusActive,
-			Output: buildNodeOutput(domain.NodeTypeAddToList, map[string]interface{}{
-				"list_id": config.ListID,
-				"status":  config.Status,
-				"error":   err.Error(),
-			}),
-		}, nil
+		return nil, fmt.Errorf("failed to add contact to list %s: %w", config.ListID, err)
 	}
 
 	return &NodeExecutionResult{
@@ -907,13 +901,18 @@ func (e *RemoveFromListNodeExecutor) Execute(ctx context.Context, params NodeExe
 	// Remove contact from list
 	err = e.contactListRepo.RemoveContactFromList(ctx, params.WorkspaceID, params.Contact.ContactEmail, config.ListID)
 	if err != nil {
-		// Log but don't fail - contact might not be in list
+		// A contact that was never in the list is already where this step wants it.
+		var notFound *domain.ErrContactListNotFound
+		if !errors.As(err, &notFound) {
+			// Any other error is a removal that did not happen: fail the step so it is retried.
+			return nil, fmt.Errorf("failed to remove contact from list %s: %w", config.ListID, err)
+		}
 		return &NodeExecutionResult{
 			NextNodeID: params.Node.NextNodeID,
 			Status:     domain.ContactAutomationStatusActive,
 			Output: buildNodeOutput(domain.NodeTypeRemoveFromList, map[string]interface{}{
-				"list_id": config.ListID,
-				"error":   err.Error(),
+				"list_id":     config.ListID,
+				"not_in_list": true,
 			}),
 		}, nil
 	}
