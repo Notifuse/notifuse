@@ -1416,10 +1416,12 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	// --- Assert ---
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	// gomjml succeeds with minimal/empty MJML structures and produces valid HTML
-	assert.True(t, resp.Success, "gomjml should succeed with empty MJML block")
-	require.NotNil(t, resp.HTML, "Response HTML should not be nil")
-	assert.NotEmpty(t, *resp.HTML, "HTML output should not be empty")
+	// An mjml block without mj-body is refused, as MJML refuses it, instead of
+	// rendering an empty email (gomjml v0.14.1 rendered one).
+	assert.False(t, resp.Success, "an MJML document without mj-body must not compile")
+	assert.Nil(t, resp.HTML, "no HTML for a document that does not compile")
+	require.NotNil(t, resp.Error)
+	assert.Contains(t, resp.Error.Message, "mj-body")
 }
 
 func TestTemplateService_CreateTemplate_CodeMode(t *testing.T) {

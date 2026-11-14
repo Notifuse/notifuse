@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Notifuse/safe-mjml/mjml"
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/safe-mjml/mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html"
@@ -3537,7 +3537,10 @@ func TestCompileTemplateSubjectPreviewOverrideFallbackEscapesRenderedValue(t *te
 	require.NotNil(t, resp.MJML)
 	require.NotNil(t, resp.HTML)
 	assert.Contains(t, *resp.MJML, "Tom &amp; Jerry &#60;weekly&#62;")
-	assert.Contains(t, *resp.HTML, "Tom & Jerry")
+	// The preview text keeps its escaping, as MJML writes it: a client shows
+	// Tom & Jerry <weekly>. (gomjml v0.14.1 wrote the & and the brackets raw.)
+	assert.Contains(t, *resp.HTML, "Tom &amp; Jerry &#60;weekly&#62;")
+	assert.NotContains(t, *resp.HTML, "<weekly>")
 	assert.NotContains(t, *resp.HTML, "{{ global_feed.subject }}")
 }
 

@@ -12,9 +12,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Notifuse/safe-mjml/mjml"
 	"github.com/Notifuse/notifuse/pkg/plaintext"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
+	"github.com/Notifuse/safe-mjml/mjml"
 )
 
 // htmlVoidElements are HTML elements that must be self-closing in XML
