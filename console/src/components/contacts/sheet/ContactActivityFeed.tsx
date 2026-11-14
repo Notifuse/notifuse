@@ -95,7 +95,11 @@ export function ContactActivityFeed({
   }
 
   const days: Day[] = []
+  // The timeline query can return a row once per webhook event of its message: each entry once.
+  const seen = new Set<string>()
   for (const entry of entries) {
+    if (seen.has(entry.id)) continue
+    seen.add(entry.id)
     const at = dayjs(entry.created_at).tz(timezone)
     const key = at.format('YYYY-MM-DD')
     const last = days[days.length - 1]

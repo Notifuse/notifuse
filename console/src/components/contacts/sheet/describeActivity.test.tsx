@@ -6,8 +6,9 @@ import type { Segment } from '../../../services/api/segment'
 import type { Workspace } from '../../../services/api/types'
 import { useActivityDescriber } from './describeActivity'
 
-// Every fixture is a row as the database triggers write it: the kind they set, the operation, and
-// changes as {field: {old?, new}} envelopes (internal/database/schema/*_triggers.go).
+// The fixtures are rows as the database triggers write them: the kind they set, the operation, and
+// changes as {field: {old?, new}} envelopes (internal/database/schema/*_triggers.go). The one
+// exception is named: a legacy list row without status.
 
 const workspace = {
   id: 'ws',
@@ -156,6 +157,12 @@ describe('useActivityDescriber: lists', () => {
     expect(describeEntry(list('list.unsubscribed', { status: change('unsubscribed', 'active') })).title).toBe(
       'Unsubscribed from Newsletter'
     )
+    expect(describeEntry(list('list.complained', { status: change('complained', 'active') })).title).toBe(
+      'Complained in Newsletter'
+    )
+    const changed = describeEntry(list('list.status_changed', { status: change('archived', 'active') }))
+    expect(changed.title).toBe('Subscription to Newsletter changed')
+    expect(changed.meta).toBe('Active → archived')
     expect(describeEntry(list('list.bounced', { status: change('bounced', 'active') })).title).toBe(
       'Bounced in Newsletter'
     )
@@ -174,6 +181,7 @@ describe('useActivityDescriber: lists', () => {
   })
 
   it('says only that the subscription was updated when a row records no status', () => {
+    // A legacy row, written before the kinds: no status recorded.
     const got = describeEntry(list('update_contact_list', {}))
     expect(got.title).toBe('Subscription to Newsletter updated')
     expect(got.title).not.toContain('undefined')
@@ -185,18 +193,25 @@ describe('useActivityDescriber: profile, segments, events', () => {
     expect(
       describeEntry(entry({ entity_type: 'contact_segment', kind: 'segment.joined', entity_id: 'vip' })).title
     ).toBe('Joined segment VIP')
-    const left = describeEntry(entry({ entity_type: 'contact_segment', kind: 'segment.left', entity_id: 'vip' }))
+    const left = describeEntry(
+      entry({
+        entity_type: 'contact_segment',
+        kind: 'segment.left',
+        operation: 'delete',
+        entity_id: 'vip',
+        changes: { segment_id: { old: 'vip' } }
+      })
+    )
     expect(left.title).toBe('Left segment VIP')
     expect(left.source).toBe('Segment')
   })
 
-  it('spells out the changed profile fields, system fields left out, then +N', () => {
+  it('spells out the changed profile fields with their old values, then +N', () => {
     const got = describeEntry(
       entry({
         operation: 'update',
         kind: 'contact.updated',
         changes: {
-          updated_at: change('2026-11-10T09:00:00Z', '2026-11-01T09:00:00Z'),
           first_name: change('Anna', 'Ann'),
           last_name: change('Lee', null),
           phone: change('+33 6', null),

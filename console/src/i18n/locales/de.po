@@ -316,9 +316,7 @@ msgid "{0} · deleted"
 msgstr "{0} · gelöscht"
 
 #. placeholder {0}: at.format('LLLL')
-#. placeholder {0}: dayjs(message.sent_at || message.created_at).tz(timezone).format('LLLL')
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:126
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:270
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:130
 msgid "{0} ({timezone})"
 msgstr "{0} ({timezone})"
 
@@ -756,6 +754,10 @@ msgstr "{field} nicht in den letzten {days} Tagen"
 msgid "{field} starts with {value}"
 msgstr "{field} beginnt mit {value}"
 
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:273
+msgid "{full} ({timezone})"
+msgstr "{full} ({timezone})"
+
 #: src/components/timeline/ContactTimeline.tsx:941
 #~ msgid "{goalCount} goals"
 #~ msgstr "{goalCount} Ziele"
@@ -982,7 +984,7 @@ msgstr "{share} % erfasst"
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, one {{0} Eintrag} other {{1} Einträge}}"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:288
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:292
 msgid "{shown, plural, one {# message} other {# messages}}"
 msgstr "{shown, plural, one {# Nachricht} other {# Nachrichten}}"
 
@@ -996,7 +998,7 @@ msgstr "{time} Ortszeit"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:287
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:291
 msgid "{total, plural, one {{0} of # message} other {{1} of # messages}}"
 msgstr "{total, plural, one {{0} von # Nachricht} other {{1} von # Nachrichten}}"
 
@@ -5068,7 +5070,7 @@ msgstr "Die Anmerkungen konnten nicht geladen werden"
 msgid "Could not load the dashboard"
 msgstr "Das Dashboard konnte nicht geladen werden"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:133
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:132
 msgid "Could not load the email sent"
 msgstr "Die gesendete E-Mail konnte nicht geladen werden"
 
@@ -10457,7 +10459,7 @@ msgstr "Segment {segment} beigetreten"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "Ist über die Einladung <0>{target}</0> beigetreten"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:257
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:256
 #: src/components/logs/MessagesTab.tsx:680
 msgid "Journey"
 msgstr "Verlauf"
@@ -11129,7 +11131,7 @@ msgid "Load {PAGE_SIZE} more"
 msgstr "{PAGE_SIZE} weitere laden"
 
 #: src/components/blog/PostsTable.tsx:467
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:307
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:313
 #: src/components/contacts/visits/ContactWebVisits.tsx:366
 #: src/components/logs/AuditLogTab.tsx:682
 #: src/components/logs/InboundWebhooksTab.tsx:354
@@ -11142,7 +11144,7 @@ msgstr "Mehr laden"
 msgid "Load More"
 msgstr "Mehr laden"
 
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:173
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:177
 msgid "Load more activity"
 msgstr "Weitere Aktivität laden"
 
@@ -11541,7 +11543,7 @@ msgid "Members"
 msgstr "Mitglieder"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:251
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:234
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:233
 #: src/components/logs/MessageDetail.tsx:83
 #: src/components/logs/MessageDetail.tsx:644
 #: src/components/logs/MessagesTab.tsx:657
@@ -12432,7 +12434,7 @@ msgstr "Kein Treffer"
 msgid "No members found"
 msgstr "Keine Mitglieder gefunden"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:300
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:306
 msgid "No message sent to this contact yet"
 msgstr "Diesem Kontakt wurde noch keine Nachricht gesendet"
 
@@ -14665,7 +14667,7 @@ msgstr "Rohdaten"
 msgid "Raw entry"
 msgstr "Rohdaten"
 
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:141
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:145
 msgid "Raw Entry Data"
 msgstr "Rohe Eingabedaten"
 
@@ -16897,7 +16899,7 @@ msgstr "Vom Anbieter abgelehnte Versände. Vor dem Versand abgelehnte Anfragen w
 #: src/components/broadcasts/BroadcastStatusPill.tsx:55
 #: src/components/broadcasts/detail/AbTestPanel.tsx:159
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:265
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:264
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:82
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:84
 #: src/components/logs/labels.ts:110
@@ -20005,7 +20007,7 @@ msgstr "Hat den Webhook <0>{target}</0> ein- oder ausgeschaltet"
 msgid "type"
 msgstr "Typ"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:247
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:246
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/logs/InboundWebhooksTab.tsx:196
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
@@ -20706,7 +20708,7 @@ msgstr "Variable"
 msgid "Variant"
 msgstr "Variante"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:111
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:110
 msgid "Variant {variant}"
 msgstr "Variante {variant}"
 
@@ -20839,8 +20841,8 @@ msgstr "SMTP-Relay-Dokumentation und Einrichtungsanleitung anzeigen"
 msgid "View snippet"
 msgstr "Snippet anzeigen"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:137
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:141
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:136
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:140
 msgid "View the sent email"
 msgstr "Gesendete E-Mail ansehen"
 

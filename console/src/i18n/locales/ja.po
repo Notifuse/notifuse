@@ -316,9 +316,7 @@ msgid "{0} · deleted"
 msgstr "{0} · 削除済み"
 
 #. placeholder {0}: at.format('LLLL')
-#. placeholder {0}: dayjs(message.sent_at || message.created_at).tz(timezone).format('LLLL')
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:126
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:270
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:130
 msgid "{0} ({timezone})"
 msgstr "{0}（{timezone}）"
 
@@ -756,6 +754,10 @@ msgstr "{field} が過去 {days} 日以内ではない"
 msgid "{field} starts with {value}"
 msgstr "{field} が {value} で始まる"
 
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:273
+msgid "{full} ({timezone})"
+msgstr "{full} ({timezone})"
+
 #: src/components/timeline/ContactTimeline.tsx:941
 #~ msgid "{goalCount} goals"
 #~ msgstr "{goalCount}件のゴール"
@@ -982,7 +984,7 @@ msgstr "{share}% をトラッキング"
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, other {{1} 件のエントリ}}"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:288
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:292
 msgid "{shown, plural, one {# message} other {# messages}}"
 msgstr "{shown, plural, other {# 件のメッセージ}}"
 
@@ -996,7 +998,7 @@ msgstr "現地時間 {time}"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:287
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:291
 msgid "{total, plural, one {{0} of # message} other {{1} of # messages}}"
 msgstr "{total, plural, other {# 件中 {1} 件のメッセージ}}"
 
@@ -5068,7 +5070,7 @@ msgstr "注釈を読み込めませんでした"
 msgid "Could not load the dashboard"
 msgstr "ダッシュボードを読み込めませんでした"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:133
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:132
 msgid "Could not load the email sent"
 msgstr "送信されたメールを読み込めませんでした"
 
@@ -10457,7 +10459,7 @@ msgstr "セグメント {segment} に参加"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "招待 <0>{target}</0> で参加しました"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:257
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:256
 #: src/components/logs/MessagesTab.tsx:680
 msgid "Journey"
 msgstr "経過"
@@ -11129,7 +11131,7 @@ msgid "Load {PAGE_SIZE} more"
 msgstr "さらに {PAGE_SIZE} 件読み込む"
 
 #: src/components/blog/PostsTable.tsx:467
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:307
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:313
 #: src/components/contacts/visits/ContactWebVisits.tsx:366
 #: src/components/logs/AuditLogTab.tsx:682
 #: src/components/logs/InboundWebhooksTab.tsx:354
@@ -11142,7 +11144,7 @@ msgstr "さらに読み込む"
 msgid "Load More"
 msgstr "もっと読み込む"
 
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:173
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:177
 msgid "Load more activity"
 msgstr "さらにアクティビティを読み込む"
 
@@ -11541,7 +11543,7 @@ msgid "Members"
 msgstr "メンバー"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:251
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:234
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:233
 #: src/components/logs/MessageDetail.tsx:83
 #: src/components/logs/MessageDetail.tsx:644
 #: src/components/logs/MessagesTab.tsx:657
@@ -12432,7 +12434,7 @@ msgstr "一致なし"
 msgid "No members found"
 msgstr "メンバーが見つかりません"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:300
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:306
 msgid "No message sent to this contact yet"
 msgstr "この連絡先にはまだメッセージが送信されていません"
 
@@ -14665,7 +14667,7 @@ msgstr "生データ"
 msgid "Raw entry"
 msgstr "生データ"
 
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:141
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:145
 msgid "Raw Entry Data"
 msgstr "生のエントリデータ"
 
@@ -16897,7 +16899,7 @@ msgstr "プロバイダーに拒否された送信。送信前に拒否された
 #: src/components/broadcasts/BroadcastStatusPill.tsx:55
 #: src/components/broadcasts/detail/AbTestPanel.tsx:159
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:265
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:264
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:82
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:84
 #: src/components/logs/labels.ts:110
@@ -20005,7 +20007,7 @@ msgstr "Webhook <0>{target}</0> をオンまたはオフにしました"
 msgid "type"
 msgstr "タイプ"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:247
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:246
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/logs/InboundWebhooksTab.tsx:196
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
@@ -20706,7 +20708,7 @@ msgstr "変数"
 msgid "Variant"
 msgstr "パターン"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:111
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:110
 msgid "Variant {variant}"
 msgstr "バリアント {variant}"
 
@@ -20839,8 +20841,8 @@ msgstr "SMTPリレーのドキュメントとセットアップガイドを表�
 msgid "View snippet"
 msgstr "スニペットを表示"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:137
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:141
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:136
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:140
 msgid "View the sent email"
 msgstr "送信されたメールを表示"
 

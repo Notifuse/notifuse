@@ -1,5 +1,5 @@
 import '../../../__tests__/resizeObserverMock'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, onTestFinished } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
@@ -194,7 +194,12 @@ describe('ContactMessagesTab', () => {
         messages: [
           message('m1', { broadcast_id: 'b1', message_data: sentTo('fr') }),
           message('m2', { automation_id: 'a1', message_data: sentTo('en') }),
-          message('m3', { automation_id: 'a1', channel_options: { subject: 'Forced at send time' } })
+          // Forced at send time, rendered with the message data as the server did before sending.
+          message('m3', {
+            automation_id: 'a1',
+            channel_options: { subject: 'Your order {{ order.id }} has shipped' },
+            message_data: { data: { order: { id: 1042 } } }
+          })
         ],
         has_more: false
       }
@@ -202,11 +207,15 @@ describe('ContactMessagesTab', () => {
     renderTab()
     expect(await screen.findByText('Bonjour Ann')).toBeInTheDocument()
     expect(await screen.findByText('Hi Ann')).toBeInTheDocument()
-    expect(await screen.findByText('Forced at send time')).toBeInTheDocument()
+    expect(await screen.findByText('Your order 1042 has shipped')).toBeInTheDocument()
   })
 
   it('says so when the email sent cannot be loaded', async () => {
+    const loads = vi.mocked(templatesApi.get).getMockImplementation()
     vi.mocked(templatesApi.get).mockRejectedValue(new Error('gone'))
+    onTestFinished(() => {
+      vi.mocked(templatesApi.get).mockImplementation(loads!)
+    })
     state.pages = [{ messages: [message('m1', { broadcast_id: 'b1' })], has_more: false }]
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -216,7 +225,8 @@ describe('ContactMessagesTab', () => {
       </QueryClientProvider>
     )
     fireEvent.click(await screen.findByRole('button', { name: 'View the sent email' }))
-    expect(await screen.findByText('Could not load the email sent')).toBeInTheDocument()
+    // After the query's own retry.
+    expect(await screen.findByText('Could not load the email sent', {}, { timeout: 3000 })).toBeInTheDocument()
     expect(screen.queryByText(/preview drawer/)).toBeNull()
   })
 

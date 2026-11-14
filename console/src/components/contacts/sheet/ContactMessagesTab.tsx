@@ -77,7 +77,6 @@ function useRenderedSubject(workspace: Workspace, message: MessageHistory, templ
   return useQuery({
     queryKey: ['message-subject', message.id, subject],
     queryFn: async () => {
-      if (forced) return forced
       if (!subject || !subject.includes('{')) return subject ?? ''
       // Loaded on demand: the Liquid engine is only needed here and in the editors.
       const { renderSecureLiquid } = await import('../../../utils/liquidConfig')
@@ -264,13 +263,18 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
     {
       title: t`Sent`,
       key: 'sent',
-      width: 116,
+      width: 132,
       align: 'right',
-      render: (_, message) => (
-        <Tooltip title={t`${dayjs(message.sent_at || message.created_at).tz(timezone).format('LLLL')} (${timezone})`}>
-          <span className="text-xs whitespace-nowrap text-ink-3 tabular-nums">{sentLabel(message)}</span>
-        </Tooltip>
-      )
+      render: (_, message) => {
+        const full = dayjs(message.sent_at || message.created_at)
+          .tz(timezone)
+          .format('LLLL')
+        return (
+          <Tooltip title={t`${full} (${timezone})`}>
+            <span className="text-xs whitespace-nowrap text-ink-3 tabular-nums">{sentLabel(message)}</span>
+          </Tooltip>
+        )
+      }
     },
     {
       key: 'actions',
@@ -293,6 +297,8 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
         rowKey="id"
         size="small"
         tableLayout="fixed"
+        // Below this width the table scrolls in its column rather than squeezing the message to nothing.
+        scroll={{ x: 680 }}
         columns={columns}
         dataSource={rows}
         loading={messages.isLoading}

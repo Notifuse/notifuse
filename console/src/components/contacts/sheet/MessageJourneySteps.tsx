@@ -57,7 +57,7 @@ export function MessageJourneySteps({ message, smtp, timezone }: MessageJourneyS
     const reason = message.status_info || when(failure.at)
     return (
       <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-        <Tooltip title={reason}>
+        <Tooltip title={reason} trigger={['hover', 'focus']}>
           {/* Focusable, so the reason is reachable from the keyboard too. */}
           <span tabIndex={0} className="inline-flex">
             <Badge tone="red">{failure.label}</Badge>
@@ -118,14 +118,14 @@ export function MessageJourneySteps({ message, smtp, timezone }: MessageJourneyS
   ]
 
   return (
-    <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
+    <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-1">
       {steps.map((step) => (
-        <Tooltip key={step.key} title={step.tip}>
+        <Tooltip key={step.key} title={step.tip} trigger={['hover', 'focus']}>
           <span
             data-step={step.key}
             data-on={step.on}
             tabIndex={0}
-            className={`inline-flex items-center gap-1.5 text-xs ${step.on ? 'text-ink-2' : 'text-ink-4'}`}
+            className={`inline-flex items-center gap-1.5 text-xs whitespace-nowrap ${step.on ? 'text-ink-2' : 'text-ink-4'}`}
           >
             <span
               aria-hidden="true"

@@ -25,7 +25,7 @@ const entry = (id: string, created_at: string, extra: Partial<ContactTimelineEnt
     email: 'ann@x.com',
     operation: 'insert',
     entity_type: 'contact',
-    kind: 'insert_contact',
+    kind: 'contact.created',
     changes: {},
     created_at,
     ...extra
@@ -62,7 +62,7 @@ describe('ContactActivityFeed', () => {
           entries={[
             entry('1', '2026-11-14T10:00:00Z'),
             // 13 Nov in UTC, 14 Nov in Tokyo: today there.
-            entry('2', '2026-11-13T16:00:00Z', { operation: 'delete' }),
+            entry('2', '2026-11-13T16:00:00Z', { operation: 'update', kind: 'contact.updated' }),
             entry('3', '2026-11-13T12:00:00Z'),
             entry('4', '2026-11-01T00:00:00Z')
           ]}
@@ -78,7 +78,7 @@ describe('ContactActivityFeed', () => {
       const days = [...container.querySelectorAll('[data-activity-day]')]
       expect(days.map((day) => day.getAttribute('aria-label'))).toEqual(['Today', 'Yesterday', 'Nov 1'])
       expect(days[0].querySelectorAll('[data-activity-entry]')).toHaveLength(2)
-      expect(within(days[0] as HTMLElement).getByText('Contact deleted')).toBeInTheDocument()
+      expect(within(days[0] as HTMLElement).getByText('Profile updated')).toBeInTheDocument()
       // Each entry's time, read in Tokyo.
       expect(within(days[0] as HTMLElement).getByText('7:00 PM')).toBeInTheDocument()
       expect(within(days[0] as HTMLElement).getByText('1:00 AM')).toBeInTheDocument()
@@ -87,6 +87,17 @@ describe('ContactActivityFeed', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('shows an entry the server returned twice only once', () => {
+    // The webhook join can return the same row once per matching message.
+    const webhook = entry('w1', '2025-03-08T08:00:00Z', {
+      entity_type: 'inbound_webhook_event',
+      kind: 'insert_inbound_webhook_event',
+      changes: { type: { new: 'delivered' }, source: { new: 'ses' } }
+    })
+    const { container } = renderFeed([webhook, webhook, entry('2', '2025-03-08T07:00:00Z')])
+    expect(container.querySelectorAll('li')).toHaveLength(2)
   })
 
   it('loads more activity when there is more', () => {
@@ -103,7 +114,7 @@ describe('ContactActivityFeed', () => {
     renderFeed([
       entry('1', '2025-03-08T08:00:00Z', {
         entity_type: 'message_history',
-        kind: 'insert_message_history',
+        kind: 'email.sent',
         entity_data: {
           template_id: 't1',
           template_name: 'Welcome',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import type { MessageHistory } from '../../../services/api/messages_history'
 import { MessageJourneySteps } from './MessageJourneySteps'
 
@@ -68,8 +68,13 @@ describe('MessageJourneySteps', () => {
     const { container } = renderSteps({ delivered_at: '2026-11-10T09:01:00Z', opens_tracked: false })
     const spoken = [...container.querySelectorAll('[data-step] .sr-only')].map((node) => node.textContent)
     expect(spoken).toEqual(['Delivered: Nov 10, 2026 9:01 AM', 'Not opened: Opens were not tracked', 'Not clicked'])
-    // Each step can be reached from the keyboard, for its tooltip.
     container.querySelectorAll('[data-step]').forEach((step) => expect(step.getAttribute('tabindex')).toBe('0'))
+  })
+
+  it('opens a step tooltip from the keyboard', async () => {
+    const { container } = renderSteps({ delivered_at: '2026-11-10T09:01:00Z', opens_tracked: false })
+    fireEvent.focus(container.querySelector('[data-step="opened"]') as HTMLElement)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Opens were not tracked')
   })
 
   it('keeps the failure reason readable and shows a complaint after a bounce', () => {
