@@ -1117,17 +1117,21 @@ func TestWriteBlogSitemap_URLBudget(t *testing.T) {
 	})
 
 	t.Run("a new category whose page is an exact route costs its post and its feed", func(t *testing.T) {
-		var b strings.Builder
-		writeBlogSitemap(&b, "example.com", []*domain.BlogSitemapPost{
-			{CategorySlug: "track", PostSlug: "p1", PublishedAt: at},
-			{CategorySlug: "tech", PostSlug: "p2", PublishedAt: at},
-		}, 4)
-		body := b.String()
-		// Home, main feed, p1 and the track feed take 4, exactly the budget; p2 does not fit.
-		assert.Equal(t, 4, strings.Count(body, "<loc>"))
-		assert.Contains(t, body, "<loc>https://example.com/track/p1</loc>")
-		assert.Contains(t, body, "<loc>https://example.com/track/feed.xml</loc>")
-		assert.NotContains(t, body, "p2")
+		// Home, main feed, p1 and the track feed take 4. At a budget of 4 a dearer track
+		// category would not fit; at 6 a cheaper one would leave room for p2 and its category
+		// (3 more). The same 4 addresses at both budgets pin the cost from both sides.
+		for _, budget := range []int{4, 6} {
+			var b strings.Builder
+			writeBlogSitemap(&b, "example.com", []*domain.BlogSitemapPost{
+				{CategorySlug: "track", PostSlug: "p1", PublishedAt: at},
+				{CategorySlug: "tech", PostSlug: "p2", PublishedAt: at},
+			}, budget)
+			body := b.String()
+			assert.Equal(t, 4, strings.Count(body, "<loc>"), "budget %d", budget)
+			assert.Contains(t, body, "<loc>https://example.com/track/p1</loc>", "budget %d", budget)
+			assert.Contains(t, body, "<loc>https://example.com/track/feed.xml</loc>", "budget %d", budget)
+			assert.NotContains(t, body, "p2", "budget %d", budget)
+		}
 	})
 
 	t.Run("a post under a route that takes the subtree costs nothing", func(t *testing.T) {
