@@ -46,8 +46,11 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // lock behind a transaction already writing to it. Before the builds, outside their lock, the
 // backfill dates the broadcasts that started sending without a start date (a scheduled send
 // never got one) from their first message, in one grouped pass; it only fills a NULL, so a
-// rerun writes nothing. The exited recount runs last, after the builds, so it never holds
-// automations rows while waiting for the message_history lock. No column is renamed or
+// rerun writes nothing. After the builds, the memberships whose contact no longer exists are
+// deleted with the two membership triggers disabled, so no segment.left entry or webhook
+// delivery carries an erased address, and both triggers are enabled again. The exited recount
+// runs last, after the builds and the delete, so it never holds automations rows while waiting
+// for the message_history or contact_segments lock. No column is renamed or
 // dropped, so no automation trigger function needs regenerating.
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
@@ -63,6 +66,12 @@ WHERE b.id = m.broadcast_id AND b.started_at IS NULL AND b.status NOT IN ('draft
 	`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`,
 	`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`,
+	`ALTER TABLE contact_segments DISABLE TRIGGER contact_segment_changes_trigger`,
+	`ALTER TABLE contact_segments DISABLE TRIGGER webhook_contact_segments`,
+	`DELETE FROM contact_segments cs
+WHERE NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = cs.email)`,
+	`ALTER TABLE contact_segments ENABLE TRIGGER webhook_contact_segments`,
+	`ALTER TABLE contact_segments ENABLE TRIGGER contact_segment_changes_trigger`,
 	`UPDATE automations a
 SET stats = jsonb_set(COALESCE(a.stats, '{}'::jsonb), '{exited}', to_jsonb(c.n)),
     updated_at = NOW()
