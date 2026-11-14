@@ -440,10 +440,12 @@ func TestAutomationScheduler_Stop_Drain(t *testing.T) {
 	}
 
 	t.Run("Stop waits for the node in progress and its write", func(t *testing.T) {
-		started := make(chan struct{})
-		h := newShutdownHarness(t, func(context.Context, NodeExecutionParams) (*NodeExecutionResult, error) {
+		started, stopped := make(chan struct{}), make(chan struct{})
+		h := newShutdownHarness(t, func(ctx context.Context, _ NodeExecutionParams) (*NodeExecutionResult, error) {
 			close(started)
-			time.Sleep(300 * time.Millisecond)
+			<-stopped
+			time.Sleep(300 * time.Millisecond) // still working after the stop
+			assert.NoError(t, ctx.Err(), "the node's context outlives the stop")
 			return &NodeExecutionResult{Status: domain.ContactAutomationStatusCompleted}, nil
 		}, nil)
 		h.executor.shutdownDrain = 2 * time.Second
@@ -456,6 +458,7 @@ func TestAutomationScheduler_Stop_Drain(t *testing.T) {
 		scheduler.stopMargin = 100 * time.Millisecond
 		<-started
 		cancel()
+		close(stopped)
 		scheduler.Stop()
 
 		writes := h.landedWrites()
@@ -528,7 +531,7 @@ func TestAutomationScheduler_StopTimeoutDefault(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	executor := &AutomationExecutor{logger: setupMockLogger(ctrl)}
 	scheduler := NewAutomationScheduler(executor, executor.logger, time.Second, 50)
-	assert.Equal(t, 25*time.Second, scheduler.stopTimeout(), "a 20 s drain and a 5 s margin")
+	assert.Equal(t, 25*time.Second, scheduler.stopTimeout(), "the default drain plus the default margin")
 
 	assert.Equal(t, 25*time.Second, NewAutomationScheduler(nil, executor.logger, time.Second, 50).stopTimeout(),
 		"without an executor, the default drain")

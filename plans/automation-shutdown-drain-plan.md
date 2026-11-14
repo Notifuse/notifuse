@@ -80,7 +80,7 @@ this change removes.
   closes (`context.WithCancel` + a goroutine that waits for `stopChan` or the context). A `Stop()`
   without a cancelled `Start` context then gets the same drain as the app's shutdown.
 - Replace `time.After(5 * time.Second)` with `time.After(s.stopTimeout())`:
-  `s.executor.drainTimeout() + s.stopMarginOrDefault()`, where the margin is a field with a
+  `s.executor.drainTimeout()` plus the margin, a field (`stopMargin`) with a
   fallback to `automationStopMargin = 5 * time.Second` (for the writes that fail fast once the run
   context is cancelled and for the loop to return). With the defaults: 25 s. Nil executor: fall back
   to the constant drain.
@@ -125,7 +125,8 @@ done context (returns `ctx.Err()`), like the database does, so tests fail on tod
    inside, returns next = B) → B (a second fake that fails the test if called). Expect one journey
    write with `CurrentNodeID == B` and `ScheduledAt` within a few seconds of now (not now +
    `inTickResumeLease`), and B never run.
-3. **No new journey starts after the stop** (regression guard). Two journeys; the first one's node
+3. **No new journey starts after the stop** (red today too: the first journey's write runs on
+   the cancelled context). Two journeys; the first one's node
    cancels the batch context. One renewal and one run; the second journey is neither renewed nor run.
 4. **The drain ends at its deadline** (red today: no deadline, the node would block forever).
    `shutdownDrain` = 200 ms. The fake blocks on its context; the test cancels the batch context and
