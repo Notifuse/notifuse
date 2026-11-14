@@ -60,9 +60,15 @@ func (p *SegmentRecomputeTaskProcessor) Process(ctx context.Context, task *domai
 		return false, nil
 	}
 
-	// Create build tasks for each segment
+	// Create build tasks for each segment. Each daily rebuild writes its memberships at a
+	// version of its own, so the build's RemoveOldMemberships drops the contacts that no longer
+	// match. The task is created before the segment is moved to that version: the other order
+	// would leave a segment building with no task if the creation failed, and building segments
+	// are never due. A task whose bump has not landed yet waits for it (see the build's guard).
 	tasksCreated := 0
 	for _, segment := range segments {
+		buildVersion := segment.Version + 1
+
 		// Create a build_segment task
 		buildTask := &domain.Task{
 			ID:          uuid.New().String(),
@@ -73,7 +79,7 @@ func (p *SegmentRecomputeTaskProcessor) Process(ctx context.Context, task *domai
 			State: &domain.TaskState{
 				BuildSegment: &domain.BuildSegmentState{
 					SegmentID: segment.ID,
-					Version:   segment.Version,
+					Version:   buildVersion,
 					BatchSize: 100,
 					StartedAt: time.Now().Format(time.RFC3339),
 				},
@@ -95,6 +101,25 @@ func (p *SegmentRecomputeTaskProcessor) Process(ctx context.Context, task *domai
 			"segment_id": segment.ID,
 			"task_id":    buildTask.ID,
 		}).Info("Created build task for segment recompute")
+
+		// Move the segment to the build's version and mark it building, which also keeps the next
+		// check from queueing a second build. Only an active segment still at the version read
+		// above moves: an edit made since then is never overwritten.
+		started, err := p.segmentRepo.StartRecompute(ctx, task.WorkspaceID, segment.ID, segment.Version)
+		if err != nil {
+			p.logger.WithFields(map[string]interface{}{
+				"error":      err.Error(),
+				"segment_id": segment.ID,
+				"task_id":    buildTask.ID,
+			}).Warn("Failed to move segment to its recompute version; its build waits for the next check")
+			continue
+		}
+		if !started {
+			p.logger.WithFields(map[string]interface{}{
+				"segment_id": segment.ID,
+				"task_id":    buildTask.ID,
+			}).Warn("Segment changed before its recompute started; its build waits for the next check")
+		}
 	}
 
 	p.logger.WithFields(map[string]interface{}{

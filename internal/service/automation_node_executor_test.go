@@ -2609,15 +2609,16 @@ func TestAddToListNodeExecutor_Execute_Success(t *testing.T) {
 	assert.NotContains(t, result.Output, "error")
 }
 
-func TestAddToListNodeExecutor_Execute_AlreadyInList(t *testing.T) {
+func TestAddToListNodeExecutor_Execute_RepositoryError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
-	// Returns error (contact already in list) but executor should not fail
+	// Adding a contact already in the list is an upsert, not an error: an error here is a write
+	// that did not happen, and the step must fail so the journey retries it.
 	mockContactListRepo.EXPECT().
 		AddContactToList(gomock.Any(), "ws1", gomock.Any()).
-		Return(errors.New("contact already exists in list"))
+		Return(errors.New("connection reset"))
 
 	executor := NewAddToListNodeExecutor(mockContactListRepo)
 
@@ -2639,13 +2640,9 @@ func TestAddToListNodeExecutor_Execute_AlreadyInList(t *testing.T) {
 	}
 
 	result, err := executor.Execute(context.Background(), params)
-	require.NoError(t, err) // Should not return error
-	require.NotNil(t, result)
-
-	assert.Equal(t, "next_node", *result.NextNodeID)
-	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
-	assert.Equal(t, "list123", result.Output["list_id"])
-	assert.Contains(t, result.Output, "error") // Error logged in output
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "connection reset")
 }
 
 func TestAddToListNodeExecutor_Execute_InvalidConfig(t *testing.T) {
@@ -2730,14 +2727,43 @@ func TestRemoveFromListNodeExecutor_Execute_NotInList(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
-	// Returns error (contact not in list) but executor should not fail
+	// A contact with no row for the list is already where the step wants it: success.
 	mockContactListRepo.EXPECT().
 		RemoveContactFromList(gomock.Any(), "ws1", "test@example.com", "list123").
-		Return(errors.New("contact not found in list"))
+		Return(&domain.ErrContactListNotFound{Message: "contact list not found"})
 
 	executor := NewRemoveFromListNodeExecutor(mockContactListRepo)
 
-	params := NodeExecutionParams{
+	result, err := executor.Execute(context.Background(), removeFromListParams())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, "next_node", *result.NextNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+	assert.Equal(t, "list123", result.Output["list_id"])
+	assert.Equal(t, true, result.Output["not_in_list"])
+	assert.NotContains(t, result.Output, "error")
+}
+
+func TestRemoveFromListNodeExecutor_Execute_RepositoryError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockContactListRepo.EXPECT().
+		RemoveContactFromList(gomock.Any(), "ws1", "test@example.com", "list123").
+		Return(errors.New("connection reset"))
+
+	executor := NewRemoveFromListNodeExecutor(mockContactListRepo)
+
+	result, err := executor.Execute(context.Background(), removeFromListParams())
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "connection reset")
+}
+
+func removeFromListParams() NodeExecutionParams {
+	return NodeExecutionParams{
 		WorkspaceID: "ws1",
 		Node: &domain.AutomationNode{
 			ID:         "remove_from_list1",
@@ -2752,15 +2778,6 @@ func TestRemoveFromListNodeExecutor_Execute_NotInList(t *testing.T) {
 			ContactEmail: "test@example.com",
 		},
 	}
-
-	result, err := executor.Execute(context.Background(), params)
-	require.NoError(t, err) // Should not return error
-	require.NotNil(t, result)
-
-	assert.Equal(t, "next_node", *result.NextNodeID)
-	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
-	assert.Equal(t, "list123", result.Output["list_id"])
-	assert.Contains(t, result.Output, "error") // Error logged in output
 }
 
 func TestRemoveFromListNodeExecutor_Execute_InvalidConfig(t *testing.T) {

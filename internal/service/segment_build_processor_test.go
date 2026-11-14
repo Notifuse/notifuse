@@ -117,6 +117,7 @@ func TestSegmentBuildProcessor_Process_ValidationErrors(t *testing.T) {
 			ID:          "task1",
 			WorkspaceID: "workspace1",
 			Type:        "build_segment",
+			MaxRetries:  3,
 			State:       &domain.TaskState{
 				// BuildSegment is nil
 			},
@@ -133,6 +134,7 @@ func TestSegmentBuildProcessor_Process_ValidationErrors(t *testing.T) {
 			ID:          "task1",
 			WorkspaceID: "workspace1",
 			Type:        "build_segment",
+			MaxRetries:  3,
 			State: &domain.TaskState{
 				BuildSegment: &domain.BuildSegmentState{
 					// SegmentID is empty
@@ -169,6 +171,7 @@ func TestSegmentBuildProcessor_Process_SegmentNotFound(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -209,6 +212,7 @@ func TestSegmentBuildProcessor_Process_UpdateStatusError(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -231,8 +235,8 @@ func TestSegmentBuildProcessor_Process_UpdateStatusError(t *testing.T) {
 		AnyTimes() // Called at start and before each batch
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(errors.New("db error"))
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(false, errors.New("db error"))
 
 	completed, err := processor.Process(ctx, task, timeoutAt)
 	assert.False(t, completed)
@@ -264,6 +268,7 @@ func TestSegmentBuildProcessor_Process_InvalidTree(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -317,6 +322,7 @@ func TestSegmentBuildProcessor_Process_CountError(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -333,8 +339,8 @@ func TestSegmentBuildProcessor_Process_CountError(t *testing.T) {
 		AnyTimes() // Called at start and before each batch
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		AnyTimes()
 
 	mockContactRepo.EXPECT().
@@ -371,6 +377,7 @@ func TestSegmentBuildProcessor_Process_NoContacts(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -387,8 +394,8 @@ func TestSegmentBuildProcessor_Process_NoContacts(t *testing.T) {
 		AnyTimes() // Called at start and before each batch
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		Times(1) // For final status update only
 
 	mockContactRepo.EXPECT().
@@ -396,10 +403,13 @@ func TestSegmentBuildProcessor_Process_NoContacts(t *testing.T) {
 		Return(0, nil)
 
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(0), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "", 100).
 		Return([]string{}, nil)
 
-	// RemoveOldMemberships should NOT be called when there are 0 matches
+	// A build that matches nobody still drops the memberships it did not rewrite
+	mockSegmentRepo.EXPECT().
+		RemoveOldMemberships(ctx, "workspace1", "segment1", int64(1)).
+		Return(nil)
 
 	completed, err := processor.Process(ctx, task, timeoutAt)
 	assert.True(t, completed)
@@ -430,6 +440,7 @@ func TestSegmentBuildProcessor_Process_GetBatchError(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -446,8 +457,8 @@ func TestSegmentBuildProcessor_Process_GetBatchError(t *testing.T) {
 		AnyTimes() // Called at start and before each batch
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		AnyTimes()
 
 	mockContactRepo.EXPECT().
@@ -455,7 +466,7 @@ func TestSegmentBuildProcessor_Process_GetBatchError(t *testing.T) {
 		Return(100, nil)
 
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(0), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "", 100).
 		Return(nil, errors.New("db error"))
 
 	completed, err := processor.Process(ctx, task, timeoutAt)
@@ -488,6 +499,7 @@ func TestSegmentBuildProcessor_Process_StateInitialization(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -504,8 +516,8 @@ func TestSegmentBuildProcessor_Process_StateInitialization(t *testing.T) {
 		AnyTimes() // Called at start and before each batch
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		Times(1) // For final status update only
 
 	mockContactRepo.EXPECT().
@@ -513,10 +525,13 @@ func TestSegmentBuildProcessor_Process_StateInitialization(t *testing.T) {
 		Return(0, nil)
 
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(0), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "", 100).
 		Return([]string{}, nil)
 
-	// RemoveOldMemberships should NOT be called when there are 0 matches
+	// A build that matches nobody still drops the memberships it did not rewrite
+	mockSegmentRepo.EXPECT().
+		RemoveOldMemberships(ctx, "workspace1", "segment1", int64(5)).
+		Return(nil)
 
 	completed, err := processor.Process(ctx, task, timeoutAt)
 	assert.True(t, completed)
@@ -552,6 +567,7 @@ func TestSegmentBuildProcessor_Process_ZeroMatchedContacts(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -568,8 +584,8 @@ func TestSegmentBuildProcessor_Process_ZeroMatchedContacts(t *testing.T) {
 		AnyTimes() // Called at start and before each batch
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		Times(1) // For final status update only
 
 	mockContactRepo.EXPECT().
@@ -577,10 +593,13 @@ func TestSegmentBuildProcessor_Process_ZeroMatchedContacts(t *testing.T) {
 		Return(100, nil)
 
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(0), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "", 100).
 		Return([]string{}, nil)
 
-	// RemoveOldMemberships should NOT be called when there are 0 matches
+	// A build that matches nobody still drops the memberships it did not rewrite
+	mockSegmentRepo.EXPECT().
+		RemoveOldMemberships(ctx, "workspace1", "segment1", int64(1)).
+		Return(nil)
 
 	completed, err := processor.Process(ctx, task, timeoutAt)
 	assert.True(t, completed)
@@ -614,6 +633,7 @@ func TestSegmentBuildProcessor_Process_RemoveMembershipsError(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -639,8 +659,8 @@ func TestSegmentBuildProcessor_Process_RemoveMembershipsError(t *testing.T) {
 		AnyTimes() // Called at start and before each batch
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		AnyTimes()
 
 	mockContactRepo.EXPECT().
@@ -648,11 +668,11 @@ func TestSegmentBuildProcessor_Process_RemoveMembershipsError(t *testing.T) {
 		Return(1, nil)
 
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(0), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "", 100).
 		Return([]string{"test@test.com"}, nil)
 
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(1), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "test@test.com", 100).
 		Return([]string{}, nil)
 
 	mockWorkspaceRepo.EXPECT().
@@ -705,6 +725,7 @@ func TestSegmentBuildProcessor_Process_FinalStatusUpdateError(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -734,11 +755,11 @@ func TestSegmentBuildProcessor_Process_FinalStatusUpdateError(t *testing.T) {
 		Return(1, nil)
 
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(0), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "", 100).
 		Return([]string{"test@test.com"}, nil)
 
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(1), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "test@test.com", 100).
 		Return([]string{}, nil)
 
 	mockWorkspaceRepo.EXPECT().
@@ -759,12 +780,8 @@ func TestSegmentBuildProcessor_Process_FinalStatusUpdateError(t *testing.T) {
 		Return(nil)
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workspaceID string, seg *domain.Segment) error {
-			// Verify status is being set to active
-			assert.Equal(t, string(domain.SegmentStatusActive), seg.Status)
-			return errors.New("db error")
-		})
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+		Return(false, errors.New("db error"))
 
 	completed, err := processor.Process(ctx, task, timeoutAt)
 	assert.False(t, completed)
@@ -892,6 +909,7 @@ func TestSegmentBuildProcessor_Process_VersionChanged(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -908,8 +926,8 @@ func TestSegmentBuildProcessor_Process_VersionChanged(t *testing.T) {
 		Return(initialSegment, nil)
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		AnyTimes()
 
 	mockContactRepo.EXPECT().
@@ -954,6 +972,7 @@ func TestSegmentBuildProcessor_Process_VersionChangedCleanupFails(t *testing.T) 
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -970,8 +989,8 @@ func TestSegmentBuildProcessor_Process_VersionChangedCleanupFails(t *testing.T) 
 		Return(initialSegment, nil)
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		AnyTimes()
 
 	mockContactRepo.EXPECT().
@@ -1017,6 +1036,7 @@ func TestSegmentBuildProcessor_Process_Timeout(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -1033,8 +1053,8 @@ func TestSegmentBuildProcessor_Process_Timeout(t *testing.T) {
 		AnyTimes()
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		AnyTimes()
 
 	mockContactRepo.EXPECT().
@@ -1074,6 +1094,7 @@ func TestSegmentBuildProcessor_Process_SuccessfulCompletion(t *testing.T) {
 		ID:          "task1",
 		WorkspaceID: "workspace1",
 		Type:        "build_segment",
+		MaxRetries:  3,
 		State: &domain.TaskState{
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: "segment1",
@@ -1099,8 +1120,8 @@ func TestSegmentBuildProcessor_Process_SuccessfulCompletion(t *testing.T) {
 		AnyTimes() // Initial load and refetch for each batch
 
 	mockSegmentRepo.EXPECT().
-		UpdateSegment(ctx, "workspace1", gomock.Any()).
-		Return(nil).
+		UpdateSegmentStatus(ctx, "workspace1", "segment1", gomock.Any(), gomock.Any()).
+		Return(true, nil).
 		AnyTimes()
 
 	mockContactRepo.EXPECT().
@@ -1109,12 +1130,12 @@ func TestSegmentBuildProcessor_Process_SuccessfulCompletion(t *testing.T) {
 
 	// First batch returns one email
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(0), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "", 100).
 		Return([]string{"test@test.com"}, nil)
 
 	// Second batch returns empty (done)
 	mockContactRepo.EXPECT().
-		GetBatchForSegment(ctx, "workspace1", int64(1), 100).
+		GetBatchForSegmentAfter(ctx, "workspace1", "test@test.com", 100).
 		Return([]string{}, nil)
 
 	mockWorkspaceRepo.EXPECT().

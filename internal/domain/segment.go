@@ -479,6 +479,17 @@ type SegmentRepository interface {
 
 	// UpdateRecomputeAfter updates only the recompute_after field for a segment
 	UpdateRecomputeAfter(ctx context.Context, workspaceID string, segmentID string, recomputeAfter *time.Time) error
+
+	// StartRecompute moves an active segment at fromVersion to the next version and marks it
+	// building, so the rebuild that follows writes its memberships at a generation of its own and
+	// RemoveOldMemberships can drop every row that rebuild did not rewrite. It returns false when
+	// the segment is no longer active at fromVersion (edited, deleted or already rebuilding).
+	StartRecompute(ctx context.Context, workspaceID string, segmentID string, fromVersion int64) (bool, error)
+
+	// UpdateSegmentStatus sets the status of a segment that is still at version and not deleted,
+	// leaving every other column alone. It returns false when the segment moved to another version
+	// or was deleted.
+	UpdateSegmentStatus(ctx context.Context, workspaceID string, segmentID string, version int64, status string) (bool, error)
 }
 
 // ErrSegmentNotFound is returned when a segment is not found
