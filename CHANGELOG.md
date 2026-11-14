@@ -40,6 +40,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone. A shutdown hands back the journeys it has not run yet, due at once, and a claim that keeps failing is logged as an error once every 5 minutes.
 
+- **Fix**: In the automation editor, deleting the link out of a branch's path or default path clears that path, which no longer leads to the step it was linked to.
+
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
 - **Feature**: The analytics API splits message history by what sent each message, with the new `origin` dimension (`broadcast`, `automation`, `transactional` or `other`, the values of the `messages.list` filter).
@@ -128,6 +130,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The blog's post list in the console now shows every post, not only the first 100.
 
+- **Fix**: On the blog page in the console, a member without Blog write no longer gets post and category buttons that fail: they are disabled. Writing or editing a post is disabled, with its reason, for a member without Templates read or write, since a post's content is a template.
+
 - **Fix**: The system emails (workspace invitation, sign-in code, circuit breaker alert) now put their text part before their HTML part, as the standard asks, so a mail client that picks the last part it can display shows the HTML.
 
 - **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
@@ -205,6 +209,8 @@ All notable changes to this project will be documented in this file.
 - **Feature**: Settings have a new layout. The side menu groups the pages into Workspace, Sending, Content and Security. General shows the workspace, its languages, email tracking and custom domain in separate panels, with a logo preview. Team & API keys lists members and keys in tables with each one's access, and invitations with when they expire. Each email provider is a card with its roles, webhook status, settings and senders, which you can add from the card. Webhooks are listed with their success rate over the last 7 days and their last success; a webhook opens in a side panel, with its statistics, its secret, a test and a link to its deliveries. Custom fields list the named slots, and how many of each type are still free.
 
 - **Feature**: Templates are listed in a table with a tab per category and a search on name or subject. Each template shows where it is used (newsletters, transactional notifications, automations, lists), and deleting one lists what still uses it first. A Notifuse export or an MJML file is imported from the page header into a new template, and a template's preview has its own link.
+
+- **Improvement**: A translation's visual editor can import an MJML or JSON file into its language, and export that language's email.
 
 - **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console. Each notification's name links to its detail view, a disabled action says why in its menu, and the sends per day can be read as a table by screen readers.
 
