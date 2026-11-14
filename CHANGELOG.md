@@ -24,7 +24,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `automations.get`, `automations.update`, `automations.delete`, `automations.activate` and `automations.pause` answer 404 instead of 500 for an automation that does not exist.
 
-- **Improvement**: `tasks.reset` and `tasks.trigger` answer 500 when the database fails, without the internal error in the response, and 404 only for a task that does not exist. A refusal because of the task's state (not recurring, not failed, already completed) still answers 400, its message now starting with "validation error: ".
+- **Improvement**: `tasks.get`, `tasks.delete`, `tasks.reset`, `tasks.trigger` and `tasks.execute` (with the internal scheduler off) answer 500 when the database fails, without the internal error in the response, 404 only for a task that does not exist, and 400 for a task ID that is not a UUID. A refusal of a reset or a trigger because of the task's state (not recurring, not failed, already completed) still answers 400, its message now starting with "validation error: ".
 
 - **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
 
@@ -33,8 +33,6 @@ All notable changes to this project will be documented in this file.
 - **Fix**: When saving a journey's last step fails and the journey has a retry left, it ends as that step decided, counted in the automation's completed or exited total, with its end in the contact's activity.
 
 - **Fix**: A journey ended by a reply or by its automation's deletion while one of its steps runs is no longer counted as completed or failed, nor shown as such in the contact's activity.
-
-- **Improvement**: With the internal scheduler off, `tasks.execute` answers 500 when the database fails while reading the task, without the internal error in the response, and 404 only for a task that does not exist.
 
 - **Improvement**: When Notifuse stops normally, during an upgrade for example, an automation step already under way finishes and is recorded before the server exits (for up to 20 seconds), so it does not run again after the restart and its email is not sent twice.
 
