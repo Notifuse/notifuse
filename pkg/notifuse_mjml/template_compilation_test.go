@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
 func TestTrackLinks(t *testing.T) {
@@ -1403,121 +1404,121 @@ func TestCompileTemplateWithButtonQueryParameters(t *testing.T) {
 	t.Logf("Generated HTML (excerpt):\n%s", *resp.HTML)
 }
 
-func TestPreprocessMjmlForXML(t *testing.T) {
+// TestCompileTemplate_HTMLFormsInMJML compiles HTML forms that gomjml's XML
+// parser refused and preprocessMjmlForXML used to rewrite (void tags, HTML
+// entities, quotes and upper-case hexadecimal references in URLs). safe-mjml
+// reads them as MJML does, so they are compiled as written; each case checks
+// what a browser reads in the HTML: the markup (want, compared once both sides
+// are parsed as a browser parses them) or the URL of the first link (wantHref).
+func TestCompileTemplate_HTMLFormsInMJML(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    string
-		expected string
+		input    string // the content of an mj-column
+		want     string
+		wantHref string
 	}{
+		{name: "br tag", input: "<mj-text><p>Line 1<br>Line 2</p></mj-text>", want: "<p>Line 1<br>Line 2</p>"},
+		{name: "br tag with space", input: "<mj-text><p>Line 1<br >Line 2</p></mj-text>", want: "<p>Line 1<br>Line 2</p>"},
+		{name: "self-closing br", input: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>", want: "<p>Line 1<br>Line 2</p>"},
+		{name: "self-closing br with space", input: "<mj-text><p>Line 1<br />Line 2</p></mj-text>", want: "<p>Line 1<br>Line 2</p>"},
 		{
-			name:     "convert br tag to self-closing",
-			input:    "<mj-text><p>Line 1<br>Line 2</p></mj-text>",
-			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
-		},
-		{
-			name:     "convert br tag with space to self-closing",
-			input:    "<mj-text><p>Line 1<br >Line 2</p></mj-text>",
-			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
-		},
-		{
-			name:     "preserve already self-closing br",
-			input:    "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
-			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
-		},
-		{
-			name:     "preserve already self-closing br with space",
-			input:    "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
-			expected: "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
-		},
-		{
-			name:     "&quot; in a double-quoted href is shielded from gomjml's entity pre-pass",
+			name:     "&quot; in a double-quoted href and title",
 			input:    `<mj-text><a href="https://example.com/s?q=&quot;x&quot;" title="&quot;t&quot;">l</a></mj-text>`,
-			expected: `<mj-text><a href="https://example.com/s?q=&amp;quot;x&amp;quot;" title="&quot;t&quot;">l</a></mj-text>`,
+			want:     `<a href='https://example.com/s?q="x"' title='"t"'>l</a>`,
+			wantHref: `https://example.com/s?q="x"`,
 		},
 		{
-			name:     "quotes in a single-quoted href are shielded from gomjml's entity pre-pass",
+			name:     "quotes in a single-quoted href",
 			input:    `<mj-button href='https://example.com/s?q="x"&amp;y=&quot;z&quot;&amp;n=O&apos;B'>b</mj-button>`,
-			expected: `<mj-button href='https://example.com/s?q=&amp;quot;x&amp;quot;&amp;y=&amp;quot;z&amp;quot;&amp;n=O&#39;B'>b</mj-button>`,
+			wantHref: `https://example.com/s?q="x"&y="z"&n=O'B`,
 		},
 		{
-			name:     "an upper-case hexadecimal reference in an href is lower-cased for the XML parser",
+			name:     "upper-case hexadecimal references in an href",
 			input:    `<mj-button href="https://example.com/what&#X27;s-new?a&#X3D;1&amp;b&#X3d;2">b</mj-button>`,
-			expected: `<mj-button href="https://example.com/what&#x27;s-new?a&#x3D;1&amp;b&#x3d;2">b</mj-button>`,
+			wantHref: `https://example.com/what's-new?a=1&b=2`,
 		},
 		{
-			name:     "' in a double-quoted href is left as is",
+			name:     "' in a double-quoted href",
 			input:    `<mj-button href="https://example.com/what's-new">b</mj-button>`,
-			expected: `<mj-button href="https://example.com/what's-new">b</mj-button>`,
+			wantHref: `https://example.com/what's-new`,
 		},
+		{name: "hr tag", input: "<mj-raw><hr></mj-raw>", want: "<hr>"},
+		{name: "several void tags", input: "<mj-text><p>A<br>B<br>C<hr>D</p></mj-text>", want: "<p>A<br>B<br>C<hr>D</p>"},
+		{name: "img tag with attributes", input: `<mj-raw><img src="test.jpg" alt="test"></mj-raw>`, want: `<img src="test.jpg" alt="test">`},
+		{name: "nbsp entity", input: "<mj-text>Hello&nbsp;World</mj-text>", want: "Hello&nbsp;World"},
+		{name: "several nbsp entities", input: "<mj-text>A&nbsp;&nbsp;&nbsp;B</mj-text>", want: "A&nbsp;&nbsp;&nbsp;B"},
+		{name: "copy entity", input: "<mj-text>&copy; 2024</mj-text>", want: "&copy; 2024"},
+		{name: "XML predefined entities", input: "<mj-text>&amp; &lt; &gt; &quot; &apos;</mj-text>", want: "&amp; &lt; &gt; &quot; &apos;"},
+		{name: "numeric entities", input: "<mj-text>&#160;&#169;</mj-text>", want: "&nbsp;&copy;"},
+		{name: "void tags and entities", input: "<mj-text><p>Hello<br>World&nbsp;&copy;</p></mj-text>", want: "<p>Hello<br>World&nbsp;&copy;</p>"},
+		{name: "Liquid output and nbsp", input: "<mj-text>Hello {{ user.name }}&nbsp;welcome!</mj-text>", want: "Hello {{ user.name }}&nbsp;welcome!"},
+		{name: "Liquid tags and br", input: "<mj-text>{% if show %}<br>Show this{% endif %}</mj-text>", want: "{% if show %}<br>Show this{% endif %}"},
 		{
-			name:     "convert hr tag to self-closing",
-			input:    "<mj-raw><hr></mj-raw>",
-			expected: "<mj-raw><hr/></mj-raw>",
-		},
-		{
-			name:     "convert multiple void tags",
-			input:    "<mj-text><p>A<br>B<br>C<hr>D</p></mj-text>",
-			expected: "<mj-text><p>A<br/>B<br/>C<hr/>D</p></mj-text>",
-		},
-		{
-			name:     "convert img tag with attributes to self-closing",
-			input:    `<mj-raw><img src="test.jpg" alt="test"></mj-raw>`,
-			expected: `<mj-raw><img src="test.jpg" alt="test"/></mj-raw>`,
-		},
-		{
-			name:     "convert nbsp entity to numeric",
-			input:    "<mj-text>Hello&nbsp;World</mj-text>",
-			expected: "<mj-text>Hello&#160;World</mj-text>",
-		},
-		{
-			name:     "convert multiple nbsp entities",
-			input:    "<mj-text>A&nbsp;&nbsp;&nbsp;B</mj-text>",
-			expected: "<mj-text>A&#160;&#160;&#160;B</mj-text>",
-		},
-		{
-			name:     "convert copy entity to numeric",
-			input:    "<mj-text>&copy; 2024</mj-text>",
-			expected: "<mj-text>&#169; 2024</mj-text>",
-		},
-		{
-			name:     "preserve xml predefined entities",
-			input:    "<mj-text>&amp; &lt; &gt; &quot; &apos;</mj-text>",
-			expected: "<mj-text>&amp; &lt; &gt; &quot; &apos;</mj-text>",
-		},
-		{
-			name:     "preserve numeric entities",
-			input:    "<mj-text>&#160;&#169;</mj-text>",
-			expected: "<mj-text>&#160;&#169;</mj-text>",
-		},
-		{
-			name:     "combined void tags and entities",
-			input:    "<mj-text><p>Hello<br>World&nbsp;&copy;</p></mj-text>",
-			expected: "<mj-text><p>Hello<br/>World&#160;&#169;</p></mj-text>",
-		},
-		{
-			name:     "preserve liquid double braces",
-			input:    "<mj-text>Hello {{ user.name }}&nbsp;welcome!</mj-text>",
-			expected: "<mj-text>Hello {{ user.name }}&#160;welcome!</mj-text>",
-		},
-		{
-			name:     "preserve liquid tags",
-			input:    "<mj-text>{% if show %}<br>Show this{% endif %}</mj-text>",
-			expected: "<mj-text>{% if show %}<br/>Show this{% endif %}</mj-text>",
-		},
-		{
-			name:     "combined liquid, void tags and entities",
-			input:    "<mj-text><p>Dear {{ user.name }},<br>Your order #{{ order.id }}&nbsp;shipped!</p></mj-text>",
-			expected: "<mj-text><p>Dear {{ user.name }},<br/>Your order #{{ order.id }}&#160;shipped!</p></mj-text>",
+			name:  "Liquid, void tags and entities",
+			input: "<mj-text><p>Dear {{ user.name }},<br>Your order #{{ order.id }}&nbsp;shipped!</p></mj-text>",
+			want:  "<p>Dear {{ user.name }},<br>Your order #{{ order.id }}&nbsp;shipped!</p>",
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := preprocessMjmlForXML(tt.input)
-			if result != tt.expected {
-				t.Errorf("preprocessMjmlForXML() =\n%s\nwant:\n%s", result, tt.expected)
+			source := "<mjml><mj-body><mj-section><mj-column>" + tt.input + "</mj-column></mj-section></mj-body></mjml>"
+			resp, err := CompileTemplate(CompileTemplateRequest{
+				WorkspaceID:    "ws",
+				MessageID:      "m",
+				MjmlSource:     &source,
+				Channel:        "web",
+				PreserveLiquid: true,
+			})
+			require.NoError(t, err)
+			require.True(t, resp.Success, "error: %v", resp.Error)
+			require.NotNil(t, resp.HTML)
+			if tt.want != "" {
+				assert.Contains(t, browserParsed(t, *resp.HTML), browserParsed(t, tt.want))
+			}
+			if tt.wantHref != "" {
+				href, ok := firstLinkHref(t, *resp.HTML)
+				require.True(t, ok, "no link in %s", *resp.HTML)
+				assert.Equal(t, tt.wantHref, href)
 			}
 		})
+	}
+}
+
+// browserParsed parses s as a browser parses the content of a body and writes
+// it back, so that two spellings of the same markup (<br> and <br/>, &nbsp; and
+// &#160;) compare equal.
+func browserParsed(t *testing.T, s string) string {
+	t.Helper()
+	body := &html.Node{Type: html.ElementNode, Data: "body", DataAtom: atom.Body}
+	nodes, err := html.ParseFragment(strings.NewReader(s), body)
+	require.NoError(t, err)
+	var b strings.Builder
+	for _, n := range nodes {
+		require.NoError(t, html.Render(&b, n))
+	}
+	return b.String()
+}
+
+// firstLinkHref returns the href of the first <a> of rendered, as a browser
+// reads it.
+func firstLinkHref(t *testing.T, rendered string) (string, bool) {
+	t.Helper()
+	z := html.NewTokenizer(strings.NewReader(rendered))
+	for {
+		switch z.Next() {
+		case html.ErrorToken:
+			return "", false
+		case html.StartTagToken:
+			tok := z.Token()
+			if tok.Data != "a" {
+				continue
+			}
+			for _, a := range tok.Attr {
+				if a.Key == "href" {
+					return a.Val, true
+				}
+			}
+		}
 	}
 }
 
