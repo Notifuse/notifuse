@@ -698,6 +698,17 @@ func CheckVariationSenders(provider *EmailProvider, variations []BroadcastVariat
 	return nil
 }
 
+// HasStartedSending reports whether part of the audience may already have received the
+// broadcast: it is neither a draft nor scheduled, or it has a start date. A broadcast
+// scheduled for later keeps the scheduled status while its task sends, and its first sending
+// run records started_at.
+func (b *Broadcast) HasStartedSending() bool {
+	if b.StartedAt != nil {
+		return true
+	}
+	return b.Status != BroadcastStatusDraft && b.Status != BroadcastStatusScheduled
+}
+
 // Validate validates the update broadcast request
 func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadcast, error) {
 	if r.WorkspaceID != existingBroadcast.WorkspaceID {
@@ -725,12 +736,12 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 	// decision about who the next send reaches and only the list is one Validate would
 	// object to losing. Every key stays writable: a list retargets, an empty segments
 	// array widens back to the whole list, and an explicit false switches the
-	// unsubscribed exclusion off, until the broadcast has started sending: past that point,
-	// as for tracking_mode, part of the audience already received the email as it was.
+	// unsubscribed exclusion off, until the broadcast has started sending (HasStartedSending):
+	// past that point, as for tracking_mode, part of the audience already received the email
+	// as it was.
 	if !r.audienceExcludeUnsubscribedOmitted &&
 		r.Audience.ExcludeUnsubscribed != existingBroadcast.Audience.ExcludeUnsubscribed &&
-		existingBroadcast.Status != BroadcastStatusDraft &&
-		existingBroadcast.Status != BroadcastStatusScheduled {
+		existingBroadcast.HasStartedSending() {
 		return nil, fmt.Errorf("exclude_unsubscribed can only be changed on a draft or scheduled broadcast")
 	}
 	if !r.audienceListOmitted {
@@ -761,9 +772,7 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 
 	if r.TrackingMode != nil {
 		mode := canonicalBroadcastTrackingMode(*r.TrackingMode)
-		if mode != existingBroadcast.TrackingMode &&
-			existingBroadcast.Status != BroadcastStatusDraft &&
-			existingBroadcast.Status != BroadcastStatusScheduled {
+		if mode != existingBroadcast.TrackingMode && existingBroadcast.HasStartedSending() {
 			// Part of the audience already received the email as it was.
 			return nil, fmt.Errorf("tracking_mode can only be changed on a draft or scheduled broadcast")
 		}

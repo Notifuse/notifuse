@@ -640,6 +640,43 @@ func TestUpdateBroadcastRequest_Validate_ExcludeUnsubscribedIsFixedOnceSent(t *t
 			assert.False(t, updated.Audience.ExcludeUnsubscribed)
 		})
 	}
+
+	// A broadcast scheduled for later keeps the scheduled status while its task sends.
+	t.Run("a scheduled broadcast that started sending refuses a change to either setting", func(t *testing.T) {
+		started := time.Now().Add(-time.Hour)
+		for _, body := range []string{
+			`{"workspace_id": "workspace123", "id": "broadcast123", "name": "Renamed", "audience": {"exclude_unsubscribed": false}}`,
+			`{"workspace_id": "workspace123", "id": "broadcast123", "name": "Renamed", "tracking_mode": "none"}`,
+		} {
+			stored := storedBroadcastWithOmittableFields()
+			stored.Status = domain.BroadcastStatusScheduled
+			stored.StartedAt = &started
+			var req domain.UpdateBroadcastRequest
+			require.NoError(t, json.Unmarshal([]byte(body), &req))
+			updated, err := req.Validate(stored)
+			require.Error(t, err, body)
+			assert.Contains(t, err.Error(), "can only be changed on a draft or scheduled broadcast")
+			assert.Nil(t, updated)
+		}
+	})
+}
+
+func TestBroadcast_HasStartedSending(t *testing.T) {
+	started := time.Now()
+	for _, tc := range []struct {
+		status    domain.BroadcastStatus
+		startedAt *time.Time
+		want      bool
+	}{
+		{domain.BroadcastStatusDraft, nil, false},
+		{domain.BroadcastStatusScheduled, nil, false},
+		{domain.BroadcastStatusScheduled, &started, true},
+		{domain.BroadcastStatusPaused, nil, true},
+		{domain.BroadcastStatusProcessing, nil, true},
+	} {
+		b := &domain.Broadcast{Status: tc.status, StartedAt: tc.startedAt}
+		assert.Equal(t, tc.want, b.HasStartedSending(), "%s, started %v", tc.status, tc.startedAt != nil)
+	}
 }
 
 // storedBroadcastWithOmittableFields returns a broadcast carrying everything an update
