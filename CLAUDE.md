@@ -56,7 +56,7 @@ GET  /api/contact.list
 - Standard library HTTP mux — deliberately no web framework.
 - JWT for stateless auth; bcrypt for password hashing.
 - Console UI: Ant Design for complex components, Tailwind for utility styling; TanStack Query for all server state; TanStack Router for routing.
-- Emails: MJML (gomjml) rendering + Liquid templating (Notifuse/liquidgo).
+- Emails: MJML (Notifuse/safe-mjml) rendering + Liquid templating (Notifuse/liquidgo).
 
 ## Frontend
 

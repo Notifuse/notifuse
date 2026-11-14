@@ -12,9 +12,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Notifuse/gomjml/mjml"
 	"github.com/Notifuse/notifuse/pkg/plaintext"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
+	"github.com/Notifuse/safe-mjml/mjml"
 )
 
 // htmlVoidElements are HTML elements that must be self-closing in XML
@@ -45,7 +45,9 @@ var htmlEntityToCodepoint = map[string]int{
 }
 
 // preprocessMjmlForXML preprocesses MJML string to fix common HTML vs XML incompatibilities
-// This is necessary because gomjml uses a strict XML parser
+// It was needed by gomjml, whose strict XML parser refused HTML void tags (<br>)
+// and HTML entities (&nbsp;). safe-mjml accepts both in content tags and
+// attributes; the preprocessing is kept as it was.
 func preprocessMjmlForXML(mjmlString string) string {
 	processed := mjmlString
 
@@ -1003,8 +1005,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		}
 	}
 
-	// Preprocess MJML to fix HTML vs XML incompatibilities
-	// gomjml uses a strict XML parser that doesn't accept HTML void tags (<br>) or HTML entities (&nbsp;)
+	// Preprocess MJML to fix HTML vs XML incompatibilities (see preprocessMjmlForXML)
 	// Restore the Liquid delimiters neutralized during the per-block render (see
 	// ConvertJSONToMJMLWithDataProtected). After this point data-borne Liquid is literal
 	// text; no-op when nothing was protected (code mode, no data).
@@ -1012,7 +1013,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 
 	preprocessedMjml := preprocessMjmlForXML(mjmlString)
 
-	// Compile MJML to HTML using gomjml library
+	// Compile MJML to HTML with safe-mjml
 	htmlResult, err := mjml.Render(preprocessedMjml)
 	if err != nil {
 		// Return the response struct with Success=false and the Error details
