@@ -426,3 +426,110 @@ func TestAutomationScheduler_PausedAutomationsNotProcessed(t *testing.T) {
 	// Test passes if no contacts are processed (empty result from scheduler query)
 	// The key behavior is that the SQL query itself filters out paused automations
 }
+
+// The app stops the scheduler by cancelling its context, then calling Stop. Stop waits for the
+// node in progress to finish and record itself, up to the drain deadline plus a margin.
+func TestAutomationScheduler_Stop_Drain(t *testing.T) {
+	startScheduler := func(t *testing.T, h *shutdownHarness, ctx context.Context) *AutomationScheduler {
+		t.Helper()
+		h.repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
+			Return(nil, nil).AnyTimes()
+		scheduler := NewAutomationScheduler(h.executor, h.executor.logger, time.Hour, 50)
+		scheduler.Start(ctx)
+		return scheduler
+	}
+
+	t.Run("Stop waits for the node in progress and its write", func(t *testing.T) {
+		started := make(chan struct{})
+		h := newShutdownHarness(t, func(context.Context, NodeExecutionParams) (*NodeExecutionResult, error) {
+			close(started)
+			time.Sleep(300 * time.Millisecond)
+			return &NodeExecutionResult{Status: domain.ContactAutomationStatusCompleted}, nil
+		}, nil)
+		h.executor.shutdownDrain = 2 * time.Second
+		journeys := h.claim("ca-1")
+		h.expectRenewal(journeys[0])
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		scheduler := startScheduler(t, h, ctx)
+		scheduler.stopMargin = 100 * time.Millisecond
+		<-started
+		cancel()
+		scheduler.Stop()
+
+		writes := h.landedWrites()
+		require.Len(t, writes, 1, "the node's journey write landed before Stop returned")
+		assert.Equal(t, domain.ContactAutomationStatusCompleted, writes[0].Status)
+	})
+
+	t.Run("Stop gives up at the drain deadline plus its margin", func(t *testing.T) {
+		started, release := make(chan struct{}), make(chan struct{})
+		h := newShutdownHarness(t, func(context.Context, NodeExecutionParams) (*NodeExecutionResult, error) {
+			close(started)
+			<-release // ignores its context
+			return &NodeExecutionResult{Status: domain.ContactAutomationStatusCompleted}, nil
+		}, nil)
+		h.executor.shutdownDrain = 200 * time.Millisecond
+		journeys := h.claim("ca-1")
+		h.expectRenewal(journeys[0])
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		scheduler := startScheduler(t, h, ctx)
+		scheduler.stopMargin = 100 * time.Millisecond
+		t.Cleanup(func() {
+			close(release)
+			select {
+			case <-scheduler.stoppedChan:
+			case <-time.After(5 * time.Second):
+				t.Error("the scheduler loop did not end after the node returned")
+			}
+		})
+		<-started
+		cancel()
+		stopStart := time.Now()
+		scheduler.Stop()
+		elapsed := time.Since(stopStart)
+
+		assert.GreaterOrEqual(t, elapsed, 300*time.Millisecond, "Stop waited for the drain and its margin")
+		assert.Less(t, elapsed, 2*time.Second, "Stop gave up at the drain deadline plus its margin")
+	})
+
+	t.Run("Stop without a cancelled context starts the drain too", func(t *testing.T) {
+		started := make(chan struct{})
+		nodeCut := make(chan struct{})
+		h := newShutdownHarness(t, func(ctx context.Context, _ NodeExecutionParams) (*NodeExecutionResult, error) {
+			close(started)
+			<-ctx.Done()
+			close(nodeCut)
+			return nil, ctx.Err()
+		}, nil)
+		h.executor.shutdownDrain = 200 * time.Millisecond
+		journeys := h.claim("ca-1")
+		h.expectRenewal(journeys[0])
+
+		scheduler := startScheduler(t, h, context.Background())
+		scheduler.stopMargin = 100 * time.Millisecond
+		<-started
+		stopStart := time.Now()
+		scheduler.Stop()
+
+		select {
+		case <-nodeCut:
+		default:
+			t.Fatal("the node's context was not ended by the drain deadline")
+		}
+		assert.Less(t, time.Since(stopStart), 2*time.Second)
+	})
+}
+
+func TestAutomationScheduler_StopTimeoutDefault(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	executor := &AutomationExecutor{logger: setupMockLogger(ctrl)}
+	scheduler := NewAutomationScheduler(executor, executor.logger, time.Second, 50)
+	assert.Equal(t, 25*time.Second, scheduler.stopTimeout(), "a 20 s drain and a 5 s margin")
+
+	assert.Equal(t, 25*time.Second, NewAutomationScheduler(nil, executor.logger, time.Second, 50).stopTimeout(),
+		"without an executor, the default drain")
+}
