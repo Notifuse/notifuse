@@ -517,5 +517,17 @@ func TestPlainTextCustom_E2E(t *testing.T) {
 		assert.Contains(t, *invalid.Text, "Compile HTML")
 		assert.Equal(t, "auto", invalid.TextSource)
 		assert.NotEmpty(t, invalid.TextError)
+
+		// A text over the size a saved template accepts is refused, as saving refuses it.
+		resp, err := client.Post("/api/templates.compile", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"message_id":   "preview",
+			"mjml_source":  customTextMJML("Compile HTML"),
+			"channel":      "email",
+			"text":         strings.Repeat("a", domain.MaxCustomTextSize+1),
+		})
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 }

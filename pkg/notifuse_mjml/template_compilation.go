@@ -663,6 +663,12 @@ func (r *CompileTemplateRequest) Validate() error {
 		return fmt.Errorf("invalid compile template request: message_id is required")
 	}
 
+	// The custom text is capped as a saved template's is (the source, normalised, in bytes),
+	// whichever source the email comes from.
+	if text := NormalizeCustomText(r.Text); text != nil && len(*text) > MaxCustomTextSize {
+		return fmt.Errorf("invalid compile template request: text version must be at most %d bytes", MaxCustomTextSize)
+	}
+
 	// Accept either MjmlSource or VisualEditorTree
 	if r.MjmlSource != nil && *r.MjmlSource != "" {
 		// MjmlSource is provided, no need to validate VisualEditorTree
@@ -714,6 +720,10 @@ func (r *CompileTemplateResponse) CustomText() string {
 	}
 	return *r.Text
 }
+
+// MaxCustomTextSize caps the source of a custom plain-text version, in bytes, at save and in
+// a compile request.
+const MaxCustomTextSize = 64 * 1024
 
 // NormalizeCustomText returns a custom text with \n line endings, or nil when it holds
 // only whitespace, which means the automatic version.

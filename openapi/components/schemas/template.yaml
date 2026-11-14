@@ -161,8 +161,9 @@ EmailTemplate:
         generated from the HTML at every send. Each translation has its own; a
         translation without one gets the automatic version of its own HTML. Saving
         a text with a Liquid syntax error, an `include` or `render` tag, or over
-        64 KiB answers 400. If it cannot be rendered at send time, the email gets
-        the automatic version.
+        64 KiB (65,536 bytes once line endings are `\n`; `maxLength` counts
+        characters) answers 400. If it cannot be rendered at send time, the email
+        gets the automatic version.
       example: "Hi {{ contact.first_name }},\n\nYour order has shipped.\n"
   required:
     - subject
@@ -399,8 +400,16 @@ CompileTemplateRequest:
         Optional source of a custom plain-text version, as stored in a
         template's `email.text`. It is rendered with `test_data` (kept as
         written when `preserve_liquid` is true) and returned as `text` with
-        `text_source` set to `custom`. Omit it to get the automatic version.
+        `text_source` set to `custom`. Omit it to get the automatic version. A
+        text over 64 KiB (65,536 bytes once line endings are `\n`) answers 400,
+        as saving it in a template does.
       example: "Hi {{ contact.first_name }}"
+    preserve_liquid:
+      type: boolean
+      default: false
+      description: >-
+        When true, Liquid is not rendered: the body, `subject`, `subject_preview` and
+        `text` are returned with their Liquid tags as written.
     test_data:
       type: object
       description: Data to use for Liquid templating

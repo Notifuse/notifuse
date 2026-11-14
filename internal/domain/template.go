@@ -299,7 +299,7 @@ func (e *EmailTemplate) ApplyToCompileRequest(req *CompileTemplateRequest, expli
 }
 
 // MaxCustomTextSize caps the source of a custom plain-text version, in bytes.
-const MaxCustomTextSize = 64 * 1024
+const MaxCustomTextSize = notifuse_mjml.MaxCustomTextSize
 
 // NormalizeCustomText returns the custom plain-text version as it is stored and compared:
 // line endings as \n, and nil when it holds only whitespace, which means the automatic

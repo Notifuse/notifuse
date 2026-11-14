@@ -10800,7 +10800,7 @@
             "type": "string",
             "nullable": true,
             "maxLength": 65536,
-            "description": "Custom plain-text version of the email, sent next to the HTML. Liquid is rendered with the same data as the body (write `{% raw %}` around a literal `{{`). Its links are sent as written: neither tracked nor given UTM parameters. Omit it, or send only whitespace, for the automatic version generated from the HTML at every send. Each translation has its own; a translation without one gets the automatic version of its own HTML. Saving a text with a Liquid syntax error, an `include` or `render` tag, or over 64 KiB answers 400. If it cannot be rendered at send time, the email gets the automatic version.",
+            "description": "Custom plain-text version of the email, sent next to the HTML. Liquid is rendered with the same data as the body (write `{% raw %}` around a literal `{{`). Its links are sent as written: neither tracked nor given UTM parameters. Omit it, or send only whitespace, for the automatic version generated from the HTML at every send. Each translation has its own; a translation without one gets the automatic version of its own HTML. Saving a text with a Liquid syntax error, an `include` or `render` tag, or over 64 KiB (65,536 bytes once line endings are `\\n`; `maxLength` counts characters) answers 400. If it cannot be rendered at send time, the email gets the automatic version.",
             "example": "Hi {{ contact.first_name }},\n\nYour order has shipped.\n"
           }
         },
@@ -11054,8 +11054,13 @@
           },
           "text": {
             "type": "string",
-            "description": "Optional source of a custom plain-text version, as stored in a\ntemplate's `email.text`. It is rendered with `test_data` (kept as\nwritten when `preserve_liquid` is true) and returned as `text` with\n`text_source` set to `custom`. Omit it to get the automatic version.\n",
+            "description": "Optional source of a custom plain-text version, as stored in a\ntemplate's `email.text`. It is rendered with `test_data` (kept as\nwritten when `preserve_liquid` is true) and returned as `text` with\n`text_source` set to `custom`. Omit it to get the automatic version. A\ntext over 64 KiB (65,536 bytes once line endings are `\\n`) answers 400,\nas saving it in a template does.\n",
             "example": "Hi {{ contact.first_name }}"
+          },
+          "preserve_liquid": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, Liquid is not rendered: the body, `subject`, `subject_preview` and `text` are returned with their Liquid tags as written."
           },
           "test_data": {
             "type": "object",

@@ -293,3 +293,36 @@ func TestCompileTemplateResponse_CustomText(t *testing.T) {
 	assert.Equal(t, "mine", (&CompileTemplateResponse{TextSource: TextSourceCustom, Text: customText("mine")}).CustomText())
 	assert.Empty(t, (&CompileTemplateResponse{TextSource: TextSourceCustom}).CustomText())
 }
+
+// A compile request's custom text is capped as a saved template's is: MaxCustomTextSize bytes
+// of the normalised source, with a visual editor tree or with MJML source alike.
+func TestCompileTemplateRequest_Validate_TextSize(t *testing.T) {
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{}
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+	source := "<mjml><mj-body></mj-body></mjml>"
+
+	modes := map[string]func(text string) CompileTemplateRequest{
+		"visual editor tree": func(text string) CompileTemplateRequest {
+			return CompileTemplateRequest{WorkspaceID: "w", MessageID: "m", VisualEditorTree: root, Text: &text}
+		},
+		"mjml source": func(text string) CompileTemplateRequest {
+			return CompileTemplateRequest{WorkspaceID: "w", MessageID: "m", MjmlSource: &source, Text: &text}
+		},
+	}
+	for name, request := range modes {
+		t.Run(name, func(t *testing.T) {
+			atLimit := request(strings.Repeat("é", MaxCustomTextSize/2))
+			require.NoError(t, atLimit.Validate(), "64 KiB is accepted")
+
+			over := request(strings.Repeat("é", MaxCustomTextSize/2) + "a")
+			err := over.Validate()
+			require.Error(t, err, "one byte more is refused")
+			assert.Contains(t, err.Error(), "text version must be at most 65536 bytes")
+
+			crlf := request(strings.Repeat("a\r\n", MaxCustomTextSize/2))
+			require.NoError(t, crlf.Validate(), "the limit counts the normalised text, \\n line endings")
+		})
+	}
+}
