@@ -71,15 +71,18 @@ export function defaultAuditPeriod(search: LogsSearch): AuditPeriod {
  * messages, 1.5 million of them in the last 30 days, messages.count read the whole table over 30
  * days: 1 to 2 seconds warm, 2 to 3.4 seconds cold. Over 7 days it took 0.2 to 0.65 seconds.
  */
-export const COUNT_MAX_PERIOD: CountedPeriod = '7d'
+export const COUNT_MAX_PERIOD: RollingPeriod = '7d'
 
-/** Every rolling period, the ones COUNT_MAX_PERIOD can name; only those up to it are counted. */
-export type CountedPeriod = Exclude<LivePeriod, 'all'>
+/** Every rolling period: the ones COUNT_MAX_PERIOD can name, counted only up to it. */
+export type RollingPeriod = Exclude<LivePeriod, 'all'>
 
-const COUNTED_PERIODS: readonly LivePeriod[] = ['1h', '24h', '7d', '30d']
+const COUNTED_PERIODS: readonly RollingPeriod[] = ['1h', '24h', '7d', '30d']
 
 /** Whether the counters of the Messages tab ask for numbers: the server needs a bound. */
 export function canCountMessages(search: LogsSearch, period: LivePeriod): boolean {
   if (hasIndexedMessageFilter(search)) return true
-  return COUNTED_PERIODS.slice(0, COUNTED_PERIODS.indexOf(COUNT_MAX_PERIOD) + 1).includes(period)
+  return (
+    period !== 'all' &&
+    COUNTED_PERIODS.slice(0, COUNTED_PERIODS.indexOf(COUNT_MAX_PERIOD) + 1).includes(period)
+  )
 }

@@ -14,3 +14,11 @@ export function toApiKeyPrefix(name: string): string {
     .replace(/[^a-z0-9_-]/g, '')
     .slice(0, API_KEY_PREFIX_MAX_LENGTH)
 }
+
+/**
+ * The prefix sent: the typed one without its leading and trailing `_` and `-`, which the field keeps
+ * while typing (a space becomes `_` at once, so « website » and a space would be sent as `website_`).
+ */
+export function finalApiKeyPrefix(typed: string): string {
+  return toApiKeyPrefix(typed).replace(/^[_-]+|[_-]+$/g, '')
+}

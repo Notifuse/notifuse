@@ -1639,6 +1639,24 @@ deleted."
 - 8.3, refused buttons: `common/RefusedButton.tsx` keeps Send test and Edit focusable (`aria-disabled`, antd's
   `ant-btn-disabled` class for the look, the reason in an `sr-only` element named by `aria-describedby`). The
   tooltip wraps a span, because antd's tooltip sets its own `aria-describedby` on its child.
+- 8.4, search box: the box remembers that its own last write removed every key; any other URL without a key
+  forgets the picked key, a box of spaces included. The hint's live region is always rendered, empty.
+- 8.4, double opt-in sender: only an opt-in template loses the first-integration fallback; an unknown template
+  keeps it, as it may be a template test.
+- 8.4, contacts search before the sheet: `router.history.flush()` between the replace and the push, rather than
+  awaiting the first `navigate`, whose promise also waits for the route to load. The page test checks the
+  order; `__tests__/browserHistoryBatching.test.ts` pins the merge on jsdom's history with
+  `createBrowserHistory`, with and without the flush.
+- 8.4, rows loaded while the sheet was open: kept by a replace of `limit` once Back has closed the sheet onto
+  the same filters, rather than outside the history entry (the URL keeps `limit`, so a reload keeps it too).
+- 8.4, "In any of": `toTableSearch` drops the legacy `segments` under a segment view, so neither the chip nor
+  the row-filter count sees them.
+- 8.4, API key name: `finalApiKeyPrefix` trims on send; the field still shows what was typed.
+- 8.4, storage: a key's empty segments are dropped for its place in the tree (`a//y.png` sits in `a/`); a marker
+  with an empty segment is not shown beside the folder it names. "Nothing to delete" is an info message, and
+  the explorer still moves to the parent.
+- 8.4, integration type: SMS, WhatsApp and a record missing its settings reach the generic card; product names
+  are not translated.
 
 ## Test commands for lot 8
 

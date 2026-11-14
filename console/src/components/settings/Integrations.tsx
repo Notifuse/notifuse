@@ -1192,14 +1192,24 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       )
     }
 
-    // Handle other types of integrations here in the future
+    // Any other type: its readable name (product names stay as they are), else the raw type
+    const typeNames: Record<IntegrationType, string> = {
+      email: t`Email`,
+      sms: t`SMS`,
+      whatsapp: 'WhatsApp',
+      supabase: 'Supabase',
+      llm: t`AI model`,
+      firecrawl: 'Firecrawl',
+      zapier: 'Zapier'
+    }
+    const typeName = typeNames[integration.type] ?? integration.type
     return (
       <IntegrationCard
         key={integration.id}
         icon={<Blocks size={14} aria-hidden="true" className="text-ink-3" />}
         title={integration.name}
         titleTooltip={integration.id}
-        subtitle={`Type: ${integration.type}`}
+        subtitle={t`Type: ${typeName}`}
       />
     )
   }

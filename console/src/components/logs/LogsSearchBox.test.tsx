@@ -203,6 +203,32 @@ describe('LogsSearchBox', () => {
     expect(chosenKey()).toBe('Message ID')
   })
 
+  it('forgets a picked key when the URL is cleared while the box holds only spaces', () => {
+    const { onWrite, setUrl } = renderBox()
+    pick('Message ID')
+    type('abc')
+    act(() => vi.advanceTimersByTime(300))
+    setUrl({ id: 'abc' })
+    // Clear filters during the pause after the text became blank
+    type('  ')
+    setUrl({})
+    act(() => vi.advanceTimersByTime(300))
+    type('ann@example.com')
+    expect(chosenKey()).toBe('Email')
+    act(() => vi.advanceTimersByTime(300))
+    expect(onWrite).toHaveBeenLastCalledWith({ ...cleared, contact_email: 'ann@example.com' })
+  })
+
+  it('keeps the hint in a live region that is there before the hint', () => {
+    renderBox()
+    const region = document.querySelector('[aria-live="polite"]')
+    expect(region).toBeInTheDocument()
+    expect(region).toBeEmptyDOMElement()
+    pick('Email')
+    type('ann@')
+    expect(region).toHaveTextContent('Enter a full email address')
+  })
+
   it('keeps a key picked while the emptied box was still to be written', () => {
     const { onWrite, setUrl } = renderBox({ external_id: 'x' })
     type('')

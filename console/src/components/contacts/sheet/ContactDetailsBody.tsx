@@ -131,6 +131,11 @@ export function ContactDetailsBody({
       // The read-back omits a field stored as NULL (omitempty), so a cleared field is cleared here
       // from what was sent. Lists and segments keep the cached ones, which their own card refreshes.
       const cleared = Object.fromEntries(Object.entries(fields).filter(([, value]) => value === null))
+      // A refetch already running would show the old values again once it lands
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: contactKey(workspaceId, email) }),
+        queryClient.cancelQueries({ queryKey: ['contacts', workspaceId] })
+      ])
       const merge = (old: Contact): Contact => ({
         ...old,
         ...stored,

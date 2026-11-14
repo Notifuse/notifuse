@@ -116,7 +116,7 @@ msgid "{0, plural, one {{shown} message} other {{shown} messages}}"
 msgstr "{0, plural, one {{shown} mensaje} other {{shown} mensajes}}"
 
 #. placeholder {0}: actions.length
-#: src/components/logs/AuditLogTab.tsx:368
+#: src/components/logs/AuditLogTab.tsx:369
 msgid "{0, plural, one {# action} other {# actions}}"
 msgstr "{0, plural, one {# acción} other {# acciones}}"
 
@@ -232,7 +232,7 @@ msgid "{0, plural, one {# removed} other {# removed}}"
 msgstr "{0, plural, one {# eliminado} other {# eliminados}}"
 
 #. placeholder {0}: categories.length
-#: src/components/logs/AuditLogTab.tsx:290
+#: src/components/logs/AuditLogTab.tsx:291
 msgid "{0, plural, one {# resource} other {# resources}}"
 msgstr "{0, plural, one {# recurso} other {# recursos}}"
 
@@ -242,7 +242,7 @@ msgid "{0, plural, one {# retrying} other {# retrying}}"
 msgstr "{0, plural, one {# reintentando} other {# reintentando}}"
 
 #. placeholder {0}: checkedFiles.length
-#: src/components/file_manager/FileExplorer.tsx:693
+#: src/components/file_manager/FileExplorer.tsx:695
 msgid "{0, plural, one {# selected} other {# selected}}"
 msgstr "{0, plural, one {# seleccionado} other {# seleccionados}}"
 
@@ -277,7 +277,7 @@ msgid "{0, plural, one {and # more} other {and # more}}"
 msgstr "{0, plural, one {y # más} other {y # más}}"
 
 #. placeholder {0}: keys.length
-#: src/components/file_manager/FileExplorer.tsx:381
+#: src/components/file_manager/FileExplorer.tsx:383
 msgid "{0, plural, one {Delete # selected file?} other {Delete # selected files?}}"
 msgstr "{0, plural, one {¿Eliminar # archivo seleccionado?} other {¿Eliminar # archivos seleccionados?}}"
 
@@ -287,7 +287,7 @@ msgid "{0, plural, one {Delete the folder {name} and its # file?} other {Delete 
 msgstr "{0, plural, one {¿Eliminar la carpeta {name} y su # archivo?} other {¿Eliminar la carpeta {name} y sus # archivos?}}"
 
 #. placeholder {0}: checkedFiles.length
-#: src/components/file_manager/FileExplorer.tsx:367
+#: src/components/file_manager/FileExplorer.tsx:369
 msgid "{0, plural, one {Downloaded # file} other {Downloaded # files}}"
 msgstr "{0, plural, one {# archivo descargado} other {# archivos descargados}}"
 
@@ -318,7 +318,7 @@ msgstr "{0, plural, one {El proveedor rechazó # destinatario y se agotaron todo
 
 #. placeholder {0}: template.name
 #: src/components/logs/MessageDetail.tsx:223
-#: src/components/logs/MessageDetail.tsx:579
+#: src/components/logs/MessageDetail.tsx:580
 msgid "{0} · deleted"
 msgstr "{0} · eliminada"
 
@@ -661,15 +661,15 @@ msgstr "{days, plural, one {Último # día} other {Últimos # días}}"
 msgid "{days, plural, one {Scheduled in # day} other {Scheduled in # days}}"
 msgstr "{days, plural, one {Programado en # día} other {Programado en # días}}"
 
-#: src/components/file_manager/FileExplorer.tsx:397
+#: src/components/file_manager/FileExplorer.tsx:399
 msgid "{deleted, plural, one {Deleted # file, {failed} failed} other {Deleted # files, {failed} failed}}"
 msgstr "{deleted, plural, one {# archivo eliminado, {failed} con error} other {# archivos eliminados, {failed} con error}}"
 
-#: src/components/file_manager/FileExplorer.tsx:394
+#: src/components/file_manager/FileExplorer.tsx:396
 msgid "{deleted, plural, one {Deleted # file} other {Deleted # files}}"
 msgstr "{deleted, plural, one {# archivo eliminado} other {# archivos eliminados}}"
 
-#: src/components/file_manager/FileExplorer.tsx:342
+#: src/components/file_manager/FileExplorer.tsx:344
 msgid "{deletedFiles, plural, one {Deleted # file, {failedFiles} failed} other {Deleted # files, {failedFiles} failed}}"
 msgstr "{deletedFiles, plural, one {# archivo eliminado, {failedFiles} con error} other {# archivos eliminados, {failedFiles} con error}}"
 
@@ -926,7 +926,7 @@ msgstr "{propertyCount} propiedades"
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# destinatario en cola para otro intento} other {# destinatarios en cola para otro intento}}"
 
-#: src/components/logs/AuditLogTab.tsx:663
+#: src/components/logs/AuditLogTab.tsx:664
 msgid "{retentionDays, plural, one {Kept # day} other {Kept # days}}"
 msgstr "{retentionDays, plural, one {Se conserva # día} other {Se conserva # días}}"
 
@@ -971,7 +971,7 @@ msgstr "{share} % con seguimiento"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/logs/AuditLogTab.tsx:673
+#: src/components/logs/AuditLogTab.tsx:674
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, one {{0} entrada} other {{1} entradas}}"
 
@@ -1125,7 +1125,7 @@ msgstr "+ Añadir filtro de propiedad"
 #~ msgid "+ Add variation"
 #~ msgstr "+ Añadir variación"
 
-#: src/components/logs/AuditLogTab.tsx:468
+#: src/components/logs/AuditLogTab.tsx:469
 #: src/components/logs/MessagesTab.tsx:501
 msgid "+ Filter"
 msgstr "+ Filtro"
@@ -1460,14 +1460,14 @@ msgstr "Aceptó la invitación <0>{target}</0>"
 msgid "Access"
 msgstr "Acceso"
 
-#: src/components/settings/Integrations.tsx:1389
+#: src/components/settings/Integrations.tsx:1399
 msgid "Access Key"
 msgstr "Clave de acceso"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:604
 #: src/components/logs/AuditEntryDetail.tsx:128
-#: src/components/logs/AuditLogTab.tsx:295
-#: src/components/logs/AuditLogTab.tsx:547
+#: src/components/logs/AuditLogTab.tsx:296
+#: src/components/logs/AuditLogTab.tsx:548
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
 msgid "Action"
 msgstr "Acción"
@@ -1523,7 +1523,7 @@ msgstr "activo"
 #: src/components/lists/ListHeader.tsx:40
 #: src/components/settings/LicenseSettings.tsx:110
 #: src/components/settings/WebhookDetail.tsx:265
-#: src/pages/ContactsPage.tsx:521
+#: src/pages/ContactsPage.tsx:539
 msgid "Active"
 msgstr "Activo"
 
@@ -1543,7 +1543,7 @@ msgstr "Filtros activos"
 #~ msgid "Active subscriber"
 #~ msgstr "Suscriptor activo"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:235
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:240
 #: src/components/segment/form_leaf.tsx:337
 #: src/components/segment/input.tsx:781
 #: src/components/segment/table_tag.tsx:30
@@ -1551,12 +1551,12 @@ msgid "Activity"
 msgstr "Actividad"
 
 #: src/components/logs/AuditEntryDetail.tsx:141
-#: src/components/logs/AuditLogTab.tsx:464
-#: src/components/logs/AuditLogTab.tsx:541
+#: src/components/logs/AuditLogTab.tsx:465
+#: src/components/logs/AuditLogTab.tsx:542
 msgid "Actor"
 msgstr "Actor"
 
-#: src/components/logs/AuditLogTab.tsx:297
+#: src/components/logs/AuditLogTab.tsx:298
 msgid "Actor email"
 msgstr "Email del actor"
 
@@ -1600,7 +1600,7 @@ msgstr "Añadir una condición"
 msgid "Add a filter"
 msgstr "Añadir un filtro"
 
-#: src/components/settings/Integrations.tsx:1252
+#: src/components/settings/Integrations.tsx:1262
 msgid "Add a provider"
 msgstr "Añadir un proveedor"
 
@@ -1740,7 +1740,7 @@ msgstr "Añadir nodo"
 msgid "Add notes about this version..."
 msgstr "Añadir notas sobre esta versión..."
 
-#: src/components/settings/Integrations.tsx:1904
+#: src/components/settings/Integrations.tsx:1914
 msgid "Add one or more email senders. The first sender will be used as the default."
 msgstr "Añade uno o más remitentes de correo. El primer remitente se usará como predeterminado."
 
@@ -1756,9 +1756,9 @@ msgstr "Añadir ruta"
 #~ msgid "Add rule"
 #~ msgstr ""
 
-#: src/components/settings/Integrations.tsx:1863
-#: src/components/settings/Integrations.tsx:1919
-#: src/components/settings/Integrations.tsx:2083
+#: src/components/settings/Integrations.tsx:1873
+#: src/components/settings/Integrations.tsx:1929
+#: src/components/settings/Integrations.tsx:2093
 msgid "Add Sender"
 msgstr "Añadir remitente"
 
@@ -1777,7 +1777,7 @@ msgstr "Añadir etiquetas..."
 #: src/components/automations/nodeTypes.ts:30
 #: src/components/contacts/BulkActionsBar.tsx:92
 #: src/components/contacts/BulkActionsBar.tsx:134
-#: src/pages/ContactsPage.tsx:256
+#: src/pages/ContactsPage.tsx:252
 msgid "Add to list"
 msgstr "Añadir a la lista"
 
@@ -1812,7 +1812,7 @@ msgid "Added {blockType}"
 msgstr "{blockType} añadido"
 
 #. placeholder {0}: dayjs(contact.created_at).tz(workspaceTimezone).format('ll')
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:193
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:198
 msgid "Added on {0}"
 msgstr "Añadido el {0}"
 
@@ -1920,6 +1920,10 @@ msgstr "Asistente de IA para blog"
 msgid "AI Email Designer"
 msgstr "Diseñador de emails con IA"
 
+#: src/components/settings/Integrations.tsx:1201
+msgid "AI model"
+msgstr "Modelo de IA"
+
 #: src/components/email_builder/blocks/MjImageBlock.tsx:76
 msgid "Align"
 msgstr "Alinear"
@@ -1961,9 +1965,9 @@ msgstr "Alineación"
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:325
 #: src/components/email_builder/panels/LibraryPanel.tsx:251
-#: src/components/logs/AuditLogTab.tsx:227
-#: src/components/logs/AuditLogTab.tsx:249
-#: src/components/logs/AuditLogTab.tsx:287
+#: src/components/logs/AuditLogTab.tsx:228
+#: src/components/logs/AuditLogTab.tsx:250
+#: src/components/logs/AuditLogTab.tsx:288
 #: src/components/logs/InboundWebhooksTab.tsx:152
 #: src/components/logs/InboundWebhooksTab.tsx:161
 #: src/components/logs/InboundWebhooksTab.tsx:192
@@ -1979,7 +1983,7 @@ msgstr "Alineación"
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
 #: src/pages/AutomationsPage.tsx:134
 #: src/pages/BroadcastsPage.tsx:181
-#: src/pages/ContactsPage.tsx:513
+#: src/pages/ContactsPage.tsx:531
 #: src/pages/TemplatesPage.tsx:151
 msgid "All"
 msgstr "Todos"
@@ -2016,8 +2020,8 @@ msgstr "Todos los campos de contacto son opcionales excepto el correo electróni
 
 #: src/components/analytics/NewContactsTable.tsx:52
 #: src/components/contacts/ContactsRail.tsx:64
-#: src/pages/ContactsPage.tsx:450
-#: src/pages/ContactsPage.tsx:590
+#: src/pages/ContactsPage.tsx:468
+#: src/pages/ContactsPage.tsx:608
 msgid "All contacts"
 msgstr "Todos los contactos"
 
@@ -2054,7 +2058,7 @@ msgstr "Todos los lados"
 
 #: src/components/automations/AutomationEditor.tsx:503
 #: src/components/automations/NodeConfigPanel.tsx:191
-#: src/components/logs/AuditLogTab.tsx:188
+#: src/components/logs/AuditLogTab.tsx:189
 #: src/components/logs/InboundWebhooksTab.tsx:132
 #: src/components/logs/MessagesTab.tsx:254
 #: src/components/web_analytics/usePeriodLabels.ts:25
@@ -2166,7 +2170,7 @@ msgstr "una integración"
 msgid "An invisible image in each email records when it is opened"
 msgstr "Una imagen invisible en cada correo registra cuándo se abre"
 
-#: src/components/logs/AuditLogTab.tsx:422
+#: src/components/logs/AuditLogTab.tsx:423
 msgid "An IP address and a target ID must match exactly; an actor email matches any part of it."
 msgstr "Una dirección IP y un ID de destino deben coincidir exactamente; un email de actor coincide con cualquier parte."
 
@@ -2229,9 +2233,9 @@ msgstr "Las anotaciones no tienen un permiso propio: responden deliberadamente a
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Hay otro cambio de la biblioteca en curso. Inténtalo de nuevo en un momento."
 
-#: src/components/logs/AuditLogTab.tsx:338
-#: src/components/logs/AuditLogTab.tsx:365
-#: src/components/logs/AuditLogTab.tsx:395
+#: src/components/logs/AuditLogTab.tsx:339
+#: src/components/logs/AuditLogTab.tsx:366
+#: src/components/logs/AuditLogTab.tsx:396
 #: src/components/logs/MessagesTab.tsx:369
 #: src/components/logs/MessagesTab.tsx:393
 #: src/components/logs/MessagesTab.tsx:428
@@ -2243,7 +2247,7 @@ msgstr "Cualquiera"
 msgid "ANY"
 msgstr "CUALQUIERA"
 
-#: src/components/logs/AuditLogTab.tsx:216
+#: src/components/logs/AuditLogTab.tsx:217
 msgid "Any API key"
 msgstr "Cualquier clave API"
 
@@ -2268,7 +2272,7 @@ msgstr "Cualquier nombre de objetivo"
 msgid "Any link"
 msgstr "Cualquier enlace"
 
-#: src/components/logs/AuditLogTab.tsx:215
+#: src/components/logs/AuditLogTab.tsx:216
 msgid "Any member"
 msgstr "Cualquier miembro"
 
@@ -2309,7 +2313,7 @@ msgstr "Documentación de la API"
 msgid "API endpoint"
 msgstr "Punto final de la API"
 
-#: src/components/settings/Integrations.tsx:1621
+#: src/components/settings/Integrations.tsx:1631
 #: src/components/settings/SystemSettingsDrawer.tsx:283
 #: src/pages/SetupWizard.tsx:379
 msgid "API Endpoint"
@@ -2340,16 +2344,16 @@ msgstr "Clave API"
 #: src/components/integrations/LLMIntegration.tsx:175
 #: src/components/settings/Integrations.tsx:1111
 #: src/components/settings/Integrations.tsx:1138
-#: src/components/settings/Integrations.tsx:1634
-#: src/components/settings/Integrations.tsx:1672
-#: src/components/settings/Integrations.tsx:1673
-#: src/components/settings/Integrations.tsx:1690
-#: src/components/settings/Integrations.tsx:1691
-#: src/components/settings/Integrations.tsx:1712
+#: src/components/settings/Integrations.tsx:1644
+#: src/components/settings/Integrations.tsx:1682
+#: src/components/settings/Integrations.tsx:1683
+#: src/components/settings/Integrations.tsx:1700
+#: src/components/settings/Integrations.tsx:1701
+#: src/components/settings/Integrations.tsx:1722
 msgid "API Key"
 msgstr "Clave API"
 
-#: src/components/settings/Integrations.tsx:1713
+#: src/components/settings/Integrations.tsx:1723
 msgid "API Key (starts with SG.)"
 msgstr "Clave API (empieza por SG.)"
 
@@ -2361,11 +2365,11 @@ msgstr "Dirección de la clave API"
 msgid "API key created"
 msgstr "Clave API creada"
 
-#: src/components/settings/WorkspaceMembers.tsx:356
+#: src/components/settings/WorkspaceMembers.tsx:355
 msgid "API key created successfully"
 msgstr "Clave API creada exitosamente"
 
-#: src/components/settings/WorkspaceMembers.tsx:667
+#: src/components/settings/WorkspaceMembers.tsx:666
 msgid "API Key Created Successfully"
 msgstr "Clave API creada exitosamente"
 
@@ -2373,7 +2377,7 @@ msgstr "Clave API creada exitosamente"
 #~ msgid "API key name"
 #~ msgstr "Nombre de la clave API"
 
-#: src/components/settings/WorkspaceMembers.tsx:631
+#: src/components/settings/WorkspaceMembers.tsx:630
 msgid "API Key Name"
 msgstr "Nombre de clave API"
 
@@ -2382,11 +2386,11 @@ msgid "API key token"
 msgstr "Token de la clave API"
 
 #: src/components/logs/labels.ts:11
-#: src/components/settings/WorkspaceMembers.tsx:512
+#: src/components/settings/WorkspaceMembers.tsx:511
 msgid "API keys"
 msgstr "Claves API"
 
-#: src/components/settings/WorkspaceMembers.tsx:674
+#: src/components/settings/WorkspaceMembers.tsx:673
 msgid "API Token"
 msgstr "Token API"
 
@@ -2601,7 +2605,7 @@ msgstr "Se requiere al menos un correo raíz"
 msgid "at most"
 msgstr "como máximo"
 
-#: src/components/logs/MessageDetail.tsx:670
+#: src/components/logs/MessageDetail.tsx:659
 #: src/components/templates/SendTemplateModal.tsx:474
 msgid "Attachments"
 msgstr "Adjuntos"
@@ -2689,7 +2693,7 @@ msgstr "Autenticación"
 msgid "Authentication email sent via Supabase"
 msgstr "Correo de autenticación enviado vía Supabase"
 
-#: src/components/settings/Integrations.tsx:1429
+#: src/components/settings/Integrations.tsx:1439
 msgid "Authentication Type"
 msgstr "Tipo de autenticación"
 
@@ -2858,7 +2862,7 @@ msgstr "URL del avatar"
 msgid "Avoid special characters that might not display properly"
 msgstr "Evita caracteres especiales que podrían no mostrarse correctamente"
 
-#: src/components/settings/Integrations.tsx:1386
+#: src/components/settings/Integrations.tsx:1396
 msgid "AWS Access Key"
 msgstr "Clave de acceso AWS"
 
@@ -2866,11 +2870,11 @@ msgstr "Clave de acceso AWS"
 msgid "AWS region"
 msgstr "Región de AWS"
 
-#: src/components/settings/Integrations.tsx:1327
+#: src/components/settings/Integrations.tsx:1337
 msgid "AWS Region"
 msgstr "Región AWS"
 
-#: src/components/settings/Integrations.tsx:1391
+#: src/components/settings/Integrations.tsx:1401
 msgid "AWS Secret Key"
 msgstr "Clave secreta AWS"
 
@@ -2983,7 +2987,7 @@ msgstr "Clave privada TLS codificada en Base64. Ejecutar: cat privkey.pem | base
 msgid "Basic (username and password)"
 msgstr "Básica (usuario y contraseña)"
 
-#: src/components/settings/Integrations.tsx:1434
+#: src/components/settings/Integrations.tsx:1444
 msgid "Basic Authentication (Username/Password)"
 msgstr "Autenticación básica (Usuario/Contraseña)"
 
@@ -2995,7 +2999,7 @@ msgstr "Bloques básicos"
 msgid "Basic Information"
 msgstr "Información básica"
 
-#: src/components/logs/MessageDetail.tsx:662
+#: src/components/logs/MessageDetail.tsx:651
 #: src/components/templates/TemplatePreviewDrawer.tsx:362
 msgid "BCC"
 msgstr "CCO"
@@ -3337,7 +3341,7 @@ msgstr "Tipo de rebote"
 #: src/components/transactional/RecentSends.tsx:40
 #: src/components/transactional/SendsPerDayChart.tsx:50
 #: src/components/transactional/TransactionalDetail.tsx:219
-#: src/pages/ContactsPage.tsx:524
+#: src/pages/ContactsPage.tsx:542
 #: src/pages/TransactionalNotificationsPage.tsx:290
 #: src/pages/TransactionalNotificationsPage.tsx:296
 msgid "Bounced"
@@ -3372,7 +3376,7 @@ msgstr "Rama"
 msgid "Branch Logic"
 msgstr "Lógica de rama"
 
-#: src/components/file_manager/FileExplorer.tsx:631
+#: src/components/file_manager/FileExplorer.tsx:633
 msgid "Breadcrumb"
 msgstr "Ruta de navegación"
 
@@ -3527,7 +3531,7 @@ msgstr "Envío masivo: {0}"
 msgid "Broadcasts"
 msgstr "Envíos masivos"
 
-#: src/components/settings/Integrations.tsx:1720
+#: src/components/settings/Integrations.tsx:1730
 msgid "Broadcasts and automation emails are sent at up to this rate. Keep it at or below your provider's sending limit, minus your transactional traffic."
 msgstr "Los envíos masivos y los correos de automatización se envían hasta esta tasa. Mantenla igual o por debajo del límite de envío de tu proveedor, menos tu tráfico transaccional."
 
@@ -3706,10 +3710,10 @@ msgstr "Campañas"
 #: src/components/file_manager/context.tsx:212
 #: src/components/file_manager/DeleteFolderModal.tsx:54
 #: src/components/file_manager/FileExplorer.tsx:307
-#: src/components/file_manager/FileExplorer.tsx:386
-#: src/components/file_manager/FileExplorer.tsx:863
-#: src/components/file_manager/FileExplorer.tsx:906
-#: src/components/file_manager/FileExplorer.tsx:1146
+#: src/components/file_manager/FileExplorer.tsx:388
+#: src/components/file_manager/FileExplorer.tsx:865
+#: src/components/file_manager/FileExplorer.tsx:908
+#: src/components/file_manager/FileExplorer.tsx:1148
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/segment/button_upsert.tsx:422
 #: src/components/segment/input_dimension_filters.tsx:179
@@ -3718,21 +3722,21 @@ msgstr "Campañas"
 #: src/components/settings/BlogSettings.tsx:207
 #: src/components/settings/CustomFieldsConfiguration.tsx:372
 #: src/components/settings/EditPermissionsDrawer.tsx:101
-#: src/components/settings/Integrations.tsx:1964
-#: src/components/settings/Integrations.tsx:2088
-#: src/components/settings/Integrations.tsx:2123
-#: src/components/settings/Integrations.tsx:2168
-#: src/components/settings/Integrations.tsx:2212
-#: src/components/settings/Integrations.tsx:2257
-#: src/components/settings/Integrations.tsx:2294
+#: src/components/settings/Integrations.tsx:1974
+#: src/components/settings/Integrations.tsx:2098
+#: src/components/settings/Integrations.tsx:2133
+#: src/components/settings/Integrations.tsx:2178
+#: src/components/settings/Integrations.tsx:2222
+#: src/components/settings/Integrations.tsx:2267
+#: src/components/settings/Integrations.tsx:2304
 #: src/components/settings/SystemSettingsDrawer.tsx:176
 #: src/components/settings/WebhookDetail.tsx:575
 #: src/components/settings/WebhookDetail.tsx:594
 #: src/components/settings/WebhooksSettings.tsx:499
 #: src/components/settings/WorkspaceMembers.tsx:192
 #: src/components/settings/WorkspaceMembers.tsx:204
-#: src/components/settings/WorkspaceMembers.tsx:552
-#: src/components/settings/WorkspaceMembers.tsx:614
+#: src/components/settings/WorkspaceMembers.tsx:551
+#: src/components/settings/WorkspaceMembers.tsx:613
 #: src/components/templates/CreateTemplateDrawer.tsx:740
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:318
@@ -3813,7 +3817,7 @@ msgstr "No se puede eliminar la lista mientras existan nodos de correo. Elimina 
 msgid "Cannot restore progress: CSV data is not available"
 msgstr "No se puede restaurar el progreso: los datos CSV no están disponibles"
 
-#: src/components/file_manager/FileExplorer.tsx:486
+#: src/components/file_manager/FileExplorer.tsx:488
 msgid "Cannot upload in read-only mode"
 msgstr "No se puede subir en modo de solo lectura"
 
@@ -3859,7 +3863,7 @@ msgstr "Categoría actualizada exitosamente"
 msgid "Category:"
 msgstr "Categoría:"
 
-#: src/components/logs/MessageDetail.tsx:661
+#: src/components/logs/MessageDetail.tsx:650
 #: src/components/templates/TemplatePreviewDrawer.tsx:350
 msgid "CC"
 msgstr "CC"
@@ -3916,7 +3920,7 @@ msgstr "Cambiar una suscripción, incluido a dónde publica y qué eventos trans
 msgid "Change a template's content, in any language"
 msgstr "Cambiar el contenido de una plantilla, en cualquier idioma"
 
-#: src/components/logs/AuditLogTab.tsx:696
+#: src/components/logs/AuditLogTab.tsx:697
 msgid "Change in Settings"
 msgstr "Cambiar en Configuración"
 
@@ -4049,7 +4053,7 @@ msgstr "Primero elige una plantilla"
 msgid "Choose a template to see the preview"
 msgstr "Elige una plantilla para ver la vista previa"
 
-#: src/components/logs/AuditLogTab.tsx:379
+#: src/components/logs/AuditLogTab.tsx:380
 msgid "Choose actions"
 msgstr "Elegir acciones"
 
@@ -4087,12 +4091,12 @@ msgstr "Nivel de ciudad (~1 km de precisión)"
 #: src/components/contacts/ContactsFilters.tsx:83
 #: src/components/contacts/InlineEditableField.tsx:295
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
-#: src/components/file_manager/FileExplorer.tsx:711
+#: src/components/file_manager/FileExplorer.tsx:713
 #: src/components/filters/Filter.tsx:193
 msgid "Clear"
 msgstr "Limpiar"
 
-#: src/components/logs/AuditLogTab.tsx:472
+#: src/components/logs/AuditLogTab.tsx:473
 #: src/components/logs/MessagesTab.tsx:504
 msgid "Clear all"
 msgstr "Borrar todo"
@@ -4106,13 +4110,13 @@ msgstr "Borrar todo"
 msgid "Clear field"
 msgstr "Limpiar campo"
 
-#: src/components/logs/AuditLogTab.tsx:622
+#: src/components/logs/AuditLogTab.tsx:623
 #: src/components/logs/InboundWebhooksTab.tsx:297
 #: src/components/logs/MessagesTab.tsx:800
 #: src/components/logs/OutgoingWebhooksTab.tsx:233
 #: src/pages/AutomationsPage.tsx:259
 #: src/pages/BroadcastsPage.tsx:306
-#: src/pages/ContactsPage.tsx:458
+#: src/pages/ContactsPage.tsx:476
 msgid "Clear filters"
 msgstr "Limpiar filtros"
 
@@ -4282,7 +4286,7 @@ msgstr "ID de cliente"
 msgid "Client ID is required"
 msgstr "El ID de cliente es obligatorio"
 
-#: src/components/settings/Integrations.tsx:1561
+#: src/components/settings/Integrations.tsx:1571
 #: src/components/settings/SystemSettingsDrawer.tsx:589
 #: src/pages/SetupWizard.tsx:733
 msgid "Client Secret"
@@ -4292,7 +4296,7 @@ msgstr "Secreto de cliente"
 msgid "Client Secret is required"
 msgstr "El secreto de cliente es obligatorio"
 
-#: src/components/settings/Integrations.tsx:1527
+#: src/components/settings/Integrations.tsx:1537
 msgid "Client Secret Value"
 msgstr "Valor del secreto de cliente"
 
@@ -4321,11 +4325,11 @@ msgstr "Clonar plantilla"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:142
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:838
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:156
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:161
 #: src/components/layout/DrawerControls.tsx:98
 #: src/components/logs/MessageDetail.tsx:96
 #: src/components/settings/WebhookDetail.tsx:591
-#: src/components/settings/WorkspaceMembers.tsx:610
+#: src/components/settings/WorkspaceMembers.tsx:609
 #: src/components/transactional/ApiCommandModal.tsx:276
 msgid "Close"
 msgstr "Cerrar"
@@ -4405,7 +4409,7 @@ msgstr "Valores separados por comas"
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Separados por comas. Solo estos dominios pueden crear cuentas automáticamente."
 
-#: src/components/settings/Integrations.tsx:1410
+#: src/components/settings/Integrations.tsx:1420
 #: src/components/settings/SystemSettingsDrawer.tsx:347
 #: src/pages/SetupWizard.tsx:466
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
@@ -4459,7 +4463,7 @@ msgstr "Queja de correo"
 #: src/components/lists/ListHeader.tsx:44
 #: src/components/logs/MessagesTab.tsx:268
 #: src/components/messages/MessageHistoryTable.tsx:374
-#: src/pages/ContactsPage.tsx:525
+#: src/pages/ContactsPage.tsx:543
 msgid "Complained"
 msgstr "Quejado"
 
@@ -4519,7 +4523,7 @@ msgstr "Completado"
 
 #: src/components/contacts/SegmentProgress.tsx:58
 #: src/components/contacts/SegmentProgress.tsx:66
-#: src/pages/ContactsPage.tsx:477
+#: src/pages/ContactsPage.tsx:495
 msgid "Computing this segment…"
 msgstr "Calculando este segmento…"
 
@@ -4555,7 +4559,7 @@ msgstr "Condiciones"
 #~ msgid "Configuration for {nodeType} is not available in Phase 2"
 #~ msgstr "La configuración para {nodeType} no está disponible en la Fase 2"
 
-#: src/components/settings/Integrations.tsx:1760
+#: src/components/settings/Integrations.tsx:1770
 #: src/components/settings/integrations/providerDetails.ts:84
 #: src/components/settings/integrations/providerDetails.ts:91
 msgid "Configuration set"
@@ -4592,8 +4596,8 @@ msgstr "Configura cómo se generan los feeds RSS y JSON de tu blog."
 msgid "Configure Integration"
 msgstr "Configurar integración"
 
-#: src/components/file_manager/FileExplorer.tsx:970
-#: src/components/file_manager/FileExplorer.tsx:975
+#: src/components/file_manager/FileExplorer.tsx:972
+#: src/components/file_manager/FileExplorer.tsx:977
 msgid "Configure now"
 msgstr "Configurar ahora"
 
@@ -4648,11 +4652,11 @@ msgid "Confirmed on {list}"
 msgstr "Confirmado en {list}"
 
 #: src/components/settings/Integrations.tsx:881
-#: src/components/settings/Integrations.tsx:1299
+#: src/components/settings/Integrations.tsx:1309
 msgid "Connect"
 msgstr "Conectar"
 
-#: src/components/file_manager/FileExplorer.tsx:965
+#: src/components/file_manager/FileExplorer.tsx:967
 msgid "Connect an S3-compatible bucket to upload images for your emails and blog."
 msgstr "Conecta un bucket compatible con S3 para subir imágenes para tus emails y tu blog."
 
@@ -4664,7 +4668,7 @@ msgstr "Conecta un bucket compatible con S3 para subir imágenes para tus emails
 #~ msgid "Connect Notifuse to more than 8,000 apps with Zapier"
 #~ msgstr "Conecta Notifuse con más de 8.000 aplicaciones gracias a Zapier"
 
-#: src/components/settings/Integrations.tsx:2283
+#: src/components/settings/Integrations.tsx:2293
 #: src/components/settings/ZapierSettings.tsx:288
 msgid "Connect Zapier"
 msgstr "Conectar Zapier"
@@ -4698,11 +4702,11 @@ msgstr "Detalles de conexión"
 msgid "Consecutive delivery failures: {consecutiveFailures}"
 msgstr "Errores de entrega consecutivos: {consecutiveFailures}"
 
-#: src/components/settings/Integrations.tsx:2054
+#: src/components/settings/Integrations.tsx:2064
 msgid "Consider connecting a marketing email provider to send newsletters, promotional campaigns, and announcements to engage with your audience."
 msgstr "Considera conectar un proveedor de correo de marketing para enviar boletines, campañas promocionales y anuncios para interactuar con tu audiencia."
 
-#: src/components/settings/Integrations.tsx:2049
+#: src/components/settings/Integrations.tsx:2059
 msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 msgstr "Considera conectar un proveedor de correo transaccional para poder usar correos transaccionales para notificaciones de cuenta, restablecimientos de contraseña y otros mensajes importantes del sistema."
 
@@ -4738,7 +4742,7 @@ msgstr "Contacto creado exitosamente"
 msgid "Contact deleted"
 msgstr "Contacto eliminado"
 
-#: src/pages/ContactsPage.tsx:365
+#: src/pages/ContactsPage.tsx:383
 msgid "Contact deleted successfully"
 msgstr "Contacto eliminado exitosamente"
 
@@ -4782,7 +4786,7 @@ msgstr "Identificación de contactos"
 msgid "Contact is not subscribed to this list"
 msgstr "El contacto no está suscrito a esta lista"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:155
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:160
 msgid "Contact not found"
 msgstr "Contacto no encontrado"
 
@@ -4823,7 +4827,7 @@ msgstr "Contacto actualizado exitosamente"
 #: src/components/logs/labels.ts:21
 #: src/components/settings/permissionLabels.ts:7
 #: src/layouts/app-shell/menuItems.ts:188
-#: src/pages/ContactsPage.tsx:571
+#: src/pages/ContactsPage.tsx:589
 #: src/services/api/errors.ts:82
 msgid "Contacts"
 msgstr "Contactos"
@@ -4982,7 +4986,7 @@ msgstr "Copiar secreto"
 #~ msgid "Copy to clipboard"
 #~ msgstr "Copiar al portapapeles"
 
-#: src/components/file_manager/FileExplorer.tsx:545
+#: src/components/file_manager/FileExplorer.tsx:547
 #: src/components/file_manager/FilePreview.tsx:94
 msgid "Copy URL"
 msgstr "Copiar URL"
@@ -5067,7 +5071,7 @@ msgstr "No se pudieron cargar más artículos"
 msgid "Couldn't load stats"
 msgstr "No se pudieron cargar las estadísticas"
 
-#: src/components/logs/AuditLogTab.tsx:607
+#: src/components/logs/AuditLogTab.tsx:608
 msgid "Couldn't load the audit log"
 msgstr "No se pudo cargar el registro de auditoría"
 
@@ -5087,11 +5091,11 @@ msgstr "No se pudieron cargar los envíos masivos"
 msgid "Couldn't load the deliveries"
 msgstr "No se pudieron cargar las entregas"
 
-#: src/components/file_manager/FileExplorer.tsx:776
+#: src/components/file_manager/FileExplorer.tsx:778
 msgid "Couldn't load the files"
 msgstr "No se pudieron cargar los archivos"
 
-#: src/components/settings/WorkspaceMembers.tsx:490
+#: src/components/settings/WorkspaceMembers.tsx:489
 msgid "Couldn't load the members"
 msgstr "No se pudieron cargar los miembros"
 
@@ -5120,7 +5124,7 @@ msgid "Couldn't load the success rate"
 msgstr "No se pudo cargar la tasa de éxito"
 
 #: src/components/automations/stats/EmailStepPreview.tsx:39
-#: src/components/logs/MessageDetail.tsx:743
+#: src/components/logs/MessageDetail.tsx:739
 #: src/components/transactional/notificationRules.ts:67
 msgid "Couldn't load the template"
 msgstr "No se pudo cargar la plantilla"
@@ -5154,7 +5158,7 @@ msgstr "No se pudo cargar este webhook"
 msgid "Couldn't render the preview"
 msgstr "No se pudo generar la vista previa"
 
-#: src/components/logs/MessageDetail.tsx:755
+#: src/components/logs/MessageDetail.tsx:751
 msgid "Couldn't render this message"
 msgstr "No se pudo mostrar este mensaje"
 
@@ -5248,7 +5252,7 @@ msgstr "Abarca más que las plantillas: los bloques reutilizables responden al m
 #: src/components/automations/AutomationEditor.tsx:536
 #: src/components/blog/CategoryDrawer.tsx:116
 #: src/components/blog/PostDrawer.tsx:692
-#: src/components/file_manager/FileExplorer.tsx:909
+#: src/components/file_manager/FileExplorer.tsx:911
 #: src/components/lists/ListDrawer.tsx:198
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Create"
@@ -5330,8 +5334,8 @@ msgstr "¿Crear un tenant SES para esta integración?"
 #~ msgid "Create and manage your blog content"
 #~ msgstr "Crear y administrar el contenido de tu blog"
 
-#: src/components/settings/WorkspaceMembers.tsx:597
-#: src/components/settings/WorkspaceMembers.tsx:621
+#: src/components/settings/WorkspaceMembers.tsx:596
+#: src/components/settings/WorkspaceMembers.tsx:620
 msgid "Create API Key"
 msgstr "Crear clave API"
 
@@ -5368,7 +5372,7 @@ msgstr "Crear nueva plantilla {0}"
 msgid "Create New Category"
 msgstr "Crear nueva categoría"
 
-#: src/components/file_manager/FileExplorer.tsx:900
+#: src/components/file_manager/FileExplorer.tsx:902
 msgid "Create new folder"
 msgstr "Crear nueva carpeta"
 
@@ -5411,7 +5415,7 @@ msgstr "Crear plantilla"
 msgid "Create tenant"
 msgstr "Crear tenant"
 
-#: src/components/settings/Integrations.tsx:1522
+#: src/components/settings/Integrations.tsx:1532
 msgid "Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
 msgstr "Crea esto en Azure Portal > Registros de aplicación > Tu aplicación > Certificados y secretos"
 
@@ -5487,7 +5491,7 @@ msgstr "Creada {0} · Actualizada {1} en {2}"
 
 #: src/components/contacts/contactColumns.ts:71
 #: src/components/contacts/ContactsTable.tsx:233
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:293
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:298
 #: src/components/messages/MessageHistoryTable.tsx:159
 #: src/components/messages/MessageHistoryTable.tsx:408
 #: src/components/segment/segmentSummary.ts:42
@@ -5795,7 +5799,7 @@ msgstr ""
 msgid "Custom permissions require a Notifuse {tier} licence."
 msgstr ""
 
-#: src/components/logs/AuditLogTab.tsx:189
+#: src/components/logs/AuditLogTab.tsx:190
 #: src/components/web_analytics/usePeriodLabels.ts:26
 msgid "Custom range"
 msgstr "Rango personalizado"
@@ -5986,7 +5990,7 @@ msgstr "Por defecto usa la meta descripción"
 msgid "Defaults to meta title"
 msgstr "Por defecto usa el meta título"
 
-#: src/components/settings/Integrations.tsx:1612
+#: src/components/settings/Integrations.tsx:1622
 #: src/pages/SetupWizard.tsx:526
 msgid "Defaults to SMTP host"
 msgstr "Por defecto, el host SMTP"
@@ -6024,10 +6028,10 @@ msgstr "Retraso"
 #: src/components/email_builder/EmailBuilder.tsx:937
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
 #: src/components/file_manager/FileExplorer.tsx:306
-#: src/components/file_manager/FileExplorer.tsx:385
-#: src/components/file_manager/FileExplorer.tsx:554
-#: src/components/file_manager/FileExplorer.tsx:702
-#: src/components/file_manager/FileExplorer.tsx:707
+#: src/components/file_manager/FileExplorer.tsx:387
+#: src/components/file_manager/FileExplorer.tsx:556
+#: src/components/file_manager/FileExplorer.tsx:704
+#: src/components/file_manager/FileExplorer.tsx:709
 #: src/components/file_manager/FilePreview.tsx:108
 #: src/components/file_manager/FilePreview.tsx:113
 #: src/components/lists/DeleteListModal.tsx:135
@@ -6166,7 +6170,7 @@ msgstr "Eliminar envío masivo"
 msgid "Delete Category"
 msgstr "Eliminar categoría"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:212
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:217
 msgid "Delete contact"
 msgstr "Eliminar contacto"
 
@@ -6176,7 +6180,7 @@ msgstr "Eliminar contacto"
 
 #: src/components/contacts/BulkActionsBar.tsx:215
 #: src/components/contacts/BulkUpdateDrawer.tsx:611
-#: src/pages/ContactsPage.tsx:246
+#: src/pages/ContactsPage.tsx:242
 msgid "Delete contacts"
 msgstr "Eliminar contactos"
 
@@ -6185,21 +6189,21 @@ msgstr "Eliminar contactos"
 msgid "Delete edge"
 msgstr "Eliminar conexión"
 
-#: src/components/file_manager/FileExplorer.tsx:555
-#: src/components/file_manager/FileExplorer.tsx:700
+#: src/components/file_manager/FileExplorer.tsx:557
+#: src/components/file_manager/FileExplorer.tsx:702
 #: src/components/file_manager/FilePreview.tsx:106
 msgid "Delete file (Read-only mode)"
 msgstr "Eliminar archivo (modo de solo lectura)"
 
 #: src/components/file_manager/DeleteFolderModal.tsx:52
 #: src/components/file_manager/DeleteFolderModal.tsx:53
-#: src/components/file_manager/FileExplorer.tsx:537
-#: src/components/file_manager/FileExplorer.tsx:1057
+#: src/components/file_manager/FileExplorer.tsx:539
+#: src/components/file_manager/FileExplorer.tsx:1059
 msgid "Delete folder"
 msgstr "Eliminar carpeta"
 
-#: src/components/file_manager/FileExplorer.tsx:538
-#: src/components/file_manager/FileExplorer.tsx:1058
+#: src/components/file_manager/FileExplorer.tsx:540
+#: src/components/file_manager/FileExplorer.tsx:1060
 msgid "Delete folder (Read-only mode)"
 msgstr "Eliminar carpeta (modo de solo lectura)"
 
@@ -6290,7 +6294,7 @@ msgstr "¿Eliminar esta operación?"
 msgid "Delete this rule?"
 msgstr "¿Eliminar esta regla?"
 
-#: src/components/settings/Integrations.tsx:1883
+#: src/components/settings/Integrations.tsx:1893
 msgid "Delete this sender?"
 msgstr "¿Eliminar este remitente?"
 
@@ -6465,7 +6469,7 @@ msgid "Denied"
 msgstr "Denegado"
 
 #: src/components/logs/AuditEntryDetail.tsx:176
-#: src/components/logs/AuditLogTab.tsx:582
+#: src/components/logs/AuditLogTab.tsx:583
 msgid "Deployment"
 msgstr "Despliegue"
 
@@ -6704,7 +6708,7 @@ msgstr "no es igual a"
 
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
-#: src/components/settings/Integrations.tsx:1669
+#: src/components/settings/Integrations.tsx:1679
 #: src/components/settings/integrations/providerDetails.ts:135
 #: src/pages/SetupWizard.tsx:605
 msgid "Domain"
@@ -6760,13 +6764,13 @@ msgstr "Doble confirmación"
 msgid "Double Opt-in Template"
 msgstr "Plantilla de doble confirmación"
 
-#: src/components/file_manager/FileExplorer.tsx:551
+#: src/components/file_manager/FileExplorer.tsx:553
 #: src/components/file_manager/FilePreview.tsx:97
 #: src/components/web_analytics/explore/CsvExportModal.tsx:143
 msgid "Download"
 msgstr "Descargar"
 
-#: src/components/file_manager/FileExplorer.tsx:697
+#: src/components/file_manager/FileExplorer.tsx:699
 msgid "Download as zip"
 msgstr "Descargar como zip"
 
@@ -6809,7 +6813,7 @@ msgstr "Arrastra para mover este bloque en el árbol"
 msgid "Dragging {name} was cancelled."
 msgstr "Se canceló el arrastre de {name}."
 
-#: src/components/file_manager/FileExplorer.tsx:830
+#: src/components/file_manager/FileExplorer.tsx:832
 msgid "Drop files here to upload"
 msgstr "Suelta archivos aquí para subir"
 
@@ -7112,7 +7116,7 @@ msgstr "Editar regla"
 msgid "Edit segment"
 msgstr "Editar segmento"
 
-#: src/components/settings/Integrations.tsx:2083
+#: src/components/settings/Integrations.tsx:2093
 msgid "Edit Sender"
 msgstr "Editar remitente"
 
@@ -7162,7 +7166,7 @@ msgstr "Editar valor"
 msgid "Edit Webhook"
 msgstr "Editar webhook"
 
-#: src/components/settings/Integrations.tsx:2283
+#: src/components/settings/Integrations.tsx:2293
 msgid "Edit Zapier connection"
 msgstr "Editar conexión de Zapier"
 
@@ -7187,7 +7191,7 @@ msgstr "Modo de editor"
 msgid "EHLO hostname"
 msgstr "Nombre de host EHLO"
 
-#: src/components/settings/Integrations.tsx:1609
+#: src/components/settings/Integrations.tsx:1619
 #: src/components/settings/SystemSettingsDrawer.tsx:438
 #: src/pages/SetupWizard.tsx:523
 msgid "EHLO Hostname"
@@ -7222,7 +7226,8 @@ msgstr "Relleno del elemento"
 #: src/components/logs/MessagesTab.tsx:290
 #: src/components/logs/MessagesTab.tsx:484
 #: src/components/segment/segmentSummary.ts:28
-#: src/components/settings/Integrations.tsx:2098
+#: src/components/settings/Integrations.tsx:1197
+#: src/components/settings/Integrations.tsx:2108
 #: src/components/timeline/ContactTimeline.tsx:670
 #: src/components/transactional/TransactionalDetail.tsx:404
 #: src/pages/SignInPage.tsx:276
@@ -7235,12 +7240,12 @@ msgid "Email (Required)"
 msgstr "Correo electrónico (Requerido)"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:372
-#: src/components/settings/Integrations.tsx:1465
-#: src/components/settings/WorkspaceMembers.tsx:567
+#: src/components/settings/Integrations.tsx:1475
+#: src/components/settings/WorkspaceMembers.tsx:566
 msgid "Email Address"
 msgstr "Dirección de correo electrónico"
 
-#: src/components/settings/Integrations.tsx:1467
+#: src/components/settings/Integrations.tsx:1477
 msgid "Email address is required for OAuth2"
 msgstr "La dirección de correo es requerida para OAuth2"
 
@@ -7333,7 +7338,7 @@ msgstr "Opciones de correo:"
 msgid "Email Preview"
 msgstr "Vista previa del correo"
 
-#: src/components/settings/Integrations.tsx:2044
+#: src/components/settings/Integrations.tsx:2054
 msgid "Email Provider Configuration Needed"
 msgstr "Configuración de proveedor de correo necesaria"
 
@@ -7341,11 +7346,11 @@ msgstr "Configuración de proveedor de correo necesaria"
 msgid "Email Provider Required"
 msgstr "Proveedor de correo requerido"
 
-#: src/components/settings/Integrations.tsx:1260
+#: src/components/settings/Integrations.tsx:1270
 msgid "Email providers"
 msgstr "Proveedores de correo"
 
-#: src/components/settings/Integrations.tsx:2068
+#: src/components/settings/Integrations.tsx:2078
 msgid "Email providers and connected services"
 msgstr "Proveedores de correo y servicios conectados"
 
@@ -7398,7 +7403,7 @@ msgstr "Consentimiento de seguimiento de emails"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "Los anchos de correo superiores a 650px podrían no mostrarse correctamente en algunos clientes de correo"
 
-#: src/pages/ContactsPage.tsx:651
+#: src/pages/ContactsPage.tsx:669
 msgid "Email, name or external ID"
 msgstr "Email, nombre o ID externo"
 
@@ -7423,11 +7428,11 @@ msgstr "Emails"
 msgid "Emails are being delivered. {count} still to go."
 msgstr "Se están entregando los correos. Quedan {count}."
 
-#: src/components/settings/Integrations.tsx:1733
+#: src/components/settings/Integrations.tsx:1743
 msgid "emails per day"
 msgstr "correos por día"
 
-#: src/components/settings/Integrations.tsx:1732
+#: src/components/settings/Integrations.tsx:1742
 msgid "emails per hour"
 msgstr "correos por hora"
 
@@ -7564,7 +7569,7 @@ msgstr "Interacción por país y región"
 msgid "Enter {0}"
 msgstr "Introduce {0}"
 
-#: src/components/logs/LogsSearchBox.tsx:123
+#: src/components/logs/LogsSearchBox.tsx:129
 msgid "Enter a full email address"
 msgstr "Introduce una dirección de email completa"
 
@@ -7576,7 +7581,7 @@ msgstr ""
 msgid "Enter a name for this block"
 msgstr "Introduce un nombre para este bloque"
 
-#: src/components/settings/Integrations.tsx:1322
+#: src/components/settings/Integrations.tsx:1332
 msgid "Enter a name for this integration"
 msgstr "Introduce un nombre para esta integración"
 
@@ -7600,7 +7605,7 @@ msgstr "Introduce un valor."
 msgid "Enter a variable path such as order.total: letters, digits and underscores, separated by dots."
 msgstr "Introduce una ruta de variable como order.total: letras, dígitos y guiones bajos, separados por puntos."
 
-#: src/components/settings/Integrations.tsx:2136
+#: src/components/settings/Integrations.tsx:2146
 msgid "Enter an email address to receive a test email:"
 msgstr "Introduce una dirección de correo para recibir un correo de prueba:"
 
@@ -7660,7 +7665,7 @@ msgid "Enter duration"
 msgstr "Introduce la duración"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:536
-#: src/components/settings/WorkspaceMembers.tsx:572
+#: src/components/settings/WorkspaceMembers.tsx:571
 msgid "Enter email address"
 msgstr "Introduce dirección de correo"
 
@@ -7962,7 +7967,7 @@ msgstr ""
 msgid "Exact ID"
 msgstr "ID exacto"
 
-#: src/components/logs/LogsSearchBox.tsx:107
+#: src/components/logs/LogsSearchBox.tsx:111
 msgid "Exact match"
 msgstr "Coincidencia exacta"
 
@@ -7970,7 +7975,7 @@ msgstr "Coincidencia exacta"
 msgid "Exact URL"
 msgstr "URL exacta"
 
-#: src/components/logs/AuditLogTab.tsx:402
+#: src/components/logs/AuditLogTab.tsx:403
 #: src/components/logs/InboundWebhooksTab.tsx:187
 #: src/components/logs/MessagesTab.tsx:491
 msgid "Exact value"
@@ -8073,7 +8078,7 @@ msgstr "Explorar"
 #: src/components/contacts/ContactsViewHeader.tsx:63
 #: src/components/contacts/ExportContactsModal.tsx:367
 #: src/components/email_builder/MjmlCodeEditor.tsx:649
-#: src/components/logs/AuditLogTab.tsx:508
+#: src/components/logs/AuditLogTab.tsx:509
 #: src/components/templates/ImportExportButton.tsx:233
 msgid "Export"
 msgstr "Exportar"
@@ -8128,7 +8133,7 @@ msgstr "Exportando todos los contactos"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
 #: src/components/contacts/ExportContactsModal.tsx:66
 #: src/components/contacts/sheet/ContactProfileFields.tsx:125
-#: src/components/logs/MessageDetail.tsx:650
+#: src/components/logs/MessageDetail.tsx:639
 #: src/components/logs/MessagesTab.tsx:471
 #: src/components/logs/MessagesTab.tsx:486
 #: src/components/messages/MessageHistoryTable.tsx:151
@@ -8235,7 +8240,7 @@ msgstr "Error al conectar Zapier"
 msgid "Failed to copy to clipboard"
 msgstr "Error al copiar al portapapeles"
 
-#: src/components/settings/WorkspaceMembers.tsx:362
+#: src/components/settings/WorkspaceMembers.tsx:361
 msgid "Failed to create API key"
 msgstr "Error al crear clave API"
 
@@ -8254,7 +8259,7 @@ msgstr "Error al crear automatización: {0}"
 msgid "Failed to create category: {0}"
 msgstr "Error al crear categoría: {0}"
 
-#: src/components/file_manager/FileExplorer.tsx:504
+#: src/components/file_manager/FileExplorer.tsx:506
 msgid "Failed to create folder: "
 msgstr "Error al crear carpeta: "
 
@@ -8301,7 +8306,7 @@ msgstr "Error al eliminar envío masivo"
 msgid "Failed to delete category"
 msgstr "Error al eliminar categoría"
 
-#: src/pages/ContactsPage.tsx:377
+#: src/pages/ContactsPage.tsx:395
 msgid "Failed to delete contact"
 msgstr "Error al eliminar contacto"
 
@@ -8309,7 +8314,7 @@ msgstr "Error al eliminar contacto"
 msgid "Failed to delete file: "
 msgstr "Error al eliminar archivo: "
 
-#: src/components/file_manager/FileExplorer.tsx:350
+#: src/components/file_manager/FileExplorer.tsx:352
 msgid "Failed to delete folder: "
 msgstr "No se pudo eliminar la carpeta: "
 
@@ -8317,7 +8322,7 @@ msgstr "No se pudo eliminar la carpeta: "
 msgid "Failed to delete integration"
 msgstr "Error al eliminar integración"
 
-#: src/components/settings/WorkspaceMembers.tsx:413
+#: src/components/settings/WorkspaceMembers.tsx:412
 msgid "Failed to delete invitation"
 msgstr "Error al eliminar invitación"
 
@@ -8363,7 +8368,7 @@ msgstr "Error al detectar icono: {0}"
 msgid "Failed to download file"
 msgstr "Error al descargar archivo"
 
-#: src/components/file_manager/FileExplorer.tsx:371
+#: src/components/file_manager/FileExplorer.tsx:373
 msgid "Failed to download files"
 msgstr "Error al descargar archivos"
 
@@ -8504,7 +8509,7 @@ msgstr "Error al registrar webhooks"
 msgid "Failed to remove custom field label"
 msgstr "Error al eliminar etiqueta de campo personalizado"
 
-#: src/components/settings/WorkspaceMembers.tsx:394
+#: src/components/settings/WorkspaceMembers.tsx:393
 msgid "Failed to remove member"
 msgstr "Error al eliminar miembro"
 
@@ -8516,7 +8521,7 @@ msgstr "No se pudo renombrar el bloque"
 msgid "Failed to render preview"
 msgstr "Error al renderizar vista previa"
 
-#: src/components/settings/WorkspaceMembers.tsx:446
+#: src/components/settings/WorkspaceMembers.tsx:445
 msgid "Failed to resend invitation"
 msgstr "Error al reenviar invitación"
 
@@ -8809,7 +8814,7 @@ msgstr "Archivo eliminado exitosamente."
 msgid "File is too large. Maximum size is 1MB."
 msgstr "El archivo es demasiado grande. El tamaño máximo es 1 MB."
 
-#: src/components/file_manager/FileExplorer.tsx:984
+#: src/components/file_manager/FileExplorer.tsx:986
 #: src/layouts/app-shell/menuItems.ts:195
 msgid "File Manager"
 msgstr "Administrador de archivos"
@@ -8822,13 +8827,13 @@ msgstr "Error del administrador de archivos: "
 msgid "File manager settings updated successfully"
 msgstr "Configuración del administrador de archivos actualizada exitosamente"
 
-#: src/components/file_manager/FileExplorer.tsx:724
-#: src/components/file_manager/FileExplorer.tsx:725
+#: src/components/file_manager/FileExplorer.tsx:726
+#: src/components/file_manager/FileExplorer.tsx:727
 #: src/components/web_analytics/explore/CsvExportModal.tsx:167
 msgid "File name"
 msgstr "Nombre del archivo"
 
-#: src/components/file_manager/FileExplorer.tsx:963
+#: src/components/file_manager/FileExplorer.tsx:965
 msgid "File storage is not configured."
 msgstr "El almacenamiento de archivos no está configurado."
 
@@ -8899,16 +8904,16 @@ msgstr "Filtros — limpiados"
 msgid "Filters:"
 msgstr "Filtros:"
 
-#: src/components/settings/Integrations.tsx:1506
+#: src/components/settings/Integrations.tsx:1516
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
 msgstr "Encuentra esto en Azure Portal > Registros de aplicación > Tu aplicación > Resumen"
 
-#: src/components/settings/Integrations.tsx:1495
+#: src/components/settings/Integrations.tsx:1505
 msgid "Find this in Azure Portal > Azure Active Directory > Overview"
 msgstr "Encuentra esto en Azure Portal > Azure Active Directory > Resumen"
 
-#: src/components/settings/Integrations.tsx:1543
-#: src/components/settings/Integrations.tsx:1556
+#: src/components/settings/Integrations.tsx:1553
+#: src/components/settings/Integrations.tsx:1566
 msgid "Find this in Google Cloud Console > APIs & Services > Credentials"
 msgstr "Encuentra esto en Google Cloud Console > APIs y servicios > Credenciales"
 
@@ -8986,23 +8991,23 @@ msgstr "Corrige el Zap en Zapier y vuelve a habilitar este webhook para reanudar
 msgid "Folder"
 msgstr "Carpeta"
 
-#: src/components/file_manager/FileExplorer.tsx:501
+#: src/components/file_manager/FileExplorer.tsx:503
 msgid "Folder already exists."
 msgstr "La carpeta ya existe."
 
-#: src/components/file_manager/FileExplorer.tsx:502
+#: src/components/file_manager/FileExplorer.tsx:504
 msgid "Folder created successfully."
 msgstr "Carpeta creada exitosamente."
 
-#: src/components/file_manager/FileExplorer.tsx:334
+#: src/components/file_manager/FileExplorer.tsx:336
 msgid "Folder deleted successfully."
 msgstr "Carpeta eliminada exitosamente."
 
-#: src/components/file_manager/FileExplorer.tsx:771
+#: src/components/file_manager/FileExplorer.tsx:773
 msgid "Folder is empty"
 msgstr "La carpeta está vacía"
 
-#: src/components/file_manager/FileExplorer.tsx:916
+#: src/components/file_manager/FileExplorer.tsx:918
 msgid "Folder name"
 msgstr "Nombre de carpeta"
 
@@ -9010,8 +9015,8 @@ msgstr "Nombre de carpeta"
 #~ msgid "folder with all its content?"
 #~ msgstr "carpeta con todo su contenido?"
 
-#: src/components/file_manager/FileExplorer.tsx:619
-#: src/components/file_manager/FileExplorer.tsx:1076
+#: src/components/file_manager/FileExplorer.tsx:621
+#: src/components/file_manager/FileExplorer.tsx:1078
 msgid "Folders"
 msgstr "Carpetas"
 
@@ -9119,7 +9124,7 @@ msgstr "Frecuencia"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:92
 #: src/components/broadcasts/detail/AbTestPanel.tsx:152
 #: src/components/broadcasts/detail/BroadcastAside.tsx:98
-#: src/components/logs/MessageDetail.tsx:654
+#: src/components/logs/MessageDetail.tsx:643
 #: src/components/templates/TemplatePreviewDrawer.tsx:306
 msgid "From"
 msgstr "Desde"
@@ -9254,7 +9259,7 @@ msgstr "Geografía"
 #~ msgid "Geolocation privacy"
 #~ msgstr ""
 
-#: src/components/settings/Integrations.tsx:1746
+#: src/components/settings/Integrations.tsx:1756
 msgid "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
 msgstr "Da a esta integración su propio perfil de reputación en SES y su propia lista de supresión, de modo que los rebotes de otro espacio de trabajo no puedan pausar ni suprimir este. AWS factura por tenant y mes, según el volumen."
 
@@ -9361,7 +9366,7 @@ msgstr "Va dentro de una sección"
 msgid "Goes inside a social block"
 msgstr "Va dentro de un bloque social"
 
-#: src/components/settings/Integrations.tsx:1459
+#: src/components/settings/Integrations.tsx:1469
 msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
 
@@ -9383,8 +9388,8 @@ msgstr "Conceder todo"
 msgid "Granted"
 msgstr "Concedido"
 
-#: src/components/file_manager/FileExplorer.tsx:673
-#: src/components/file_manager/FileExplorer.tsx:674
+#: src/components/file_manager/FileExplorer.tsx:675
+#: src/components/file_manager/FileExplorer.tsx:676
 msgid "Grid"
 msgstr "Cuadrícula"
 
@@ -9557,7 +9562,7 @@ msgid "How to use:"
 msgstr "Cómo usar:"
 
 #: src/components/email_builder/panels/Preview.tsx:397
-#: src/components/logs/MessageDetail.tsx:771
+#: src/components/logs/MessageDetail.tsx:767
 #: src/components/templates/ImportExportButton.tsx:239
 msgid "HTML"
 msgstr "HTML"
@@ -9778,7 +9783,7 @@ msgstr "TLS implícito (SMTPS)"
 #: src/components/contacts/TrackingConsent.tsx:48
 #: src/components/email_builder/MjmlCodeEditor.tsx:637
 #: src/components/templates/ImportExportButton.tsx:204
-#: src/pages/ContactsPage.tsx:486
+#: src/pages/ContactsPage.tsx:504
 #: src/pages/TemplatesPage.tsx:578
 msgid "Import"
 msgstr "Importar"
@@ -9792,7 +9797,7 @@ msgstr "Importar / Exportar"
 msgid "Import & Export Templates"
 msgstr "Importar y exportar plantillas"
 
-#: src/components/file_manager/FileExplorer.tsx:459
+#: src/components/file_manager/FileExplorer.tsx:461
 msgid "Import cancelled"
 msgstr "Importación cancelada"
 
@@ -9836,7 +9841,7 @@ msgid "Import MJML markup"
 msgstr "Importar marcado MJML"
 
 #: src/components/contacts/ContactsViewHeader.tsx:105
-#: src/pages/ContactsPage.tsx:468
+#: src/pages/ContactsPage.tsx:486
 msgid "Import to list"
 msgstr "Importar a la lista"
 
@@ -9874,7 +9879,7 @@ msgstr "Importó eventos personalizados"
 msgid "Imported Fonts"
 msgstr "Fuentes importadas"
 
-#: src/components/file_manager/FileExplorer.tsx:835
+#: src/components/file_manager/FileExplorer.tsx:837
 msgid "Importing files..."
 msgstr "Importando archivos..."
 
@@ -10010,7 +10015,7 @@ msgstr "Insertar emoji"
 msgid "Insert here"
 msgstr "Insertar aquí"
 
-#: src/components/file_manager/FileExplorer.tsx:1148
+#: src/components/file_manager/FileExplorer.tsx:1150
 msgid "Insert image"
 msgstr "Insertar imagen"
 
@@ -10064,7 +10069,7 @@ msgstr "ID de la integración"
 #: src/components/integrations/FirecrawlIntegration.tsx:76
 #: src/components/integrations/LLMIntegration.tsx:159
 #: src/components/integrations/SupabaseIntegration.tsx:130
-#: src/components/settings/Integrations.tsx:1321
+#: src/components/settings/Integrations.tsx:1331
 msgid "Integration Name"
 msgstr "Nombre de integración"
 
@@ -10078,7 +10083,7 @@ msgid "Integration updated successfully"
 msgstr "Integración actualizada exitosamente"
 
 #: src/components/logs/labels.ts:12
-#: src/components/settings/Integrations.tsx:2067
+#: src/components/settings/Integrations.tsx:2077
 #: src/components/settings/SettingsSidebar.tsx:63
 msgid "Integrations"
 msgstr "Integraciones"
@@ -10172,7 +10177,7 @@ msgstr "URL de YouTube inválida"
 msgid "Invitation accepted successfully! Welcome to the workspace."
 msgstr "¡Invitación aceptada exitosamente! Bienvenido al espacio de trabajo."
 
-#: src/components/settings/WorkspaceMembers.tsx:409
+#: src/components/settings/WorkspaceMembers.tsx:408
 msgid "Invitation deleted successfully"
 msgstr "Invitación eliminada exitosamente"
 
@@ -10180,7 +10185,7 @@ msgstr "Invitación eliminada exitosamente"
 msgid "Invitation expired"
 msgstr "Invitación caducada"
 
-#: src/components/settings/WorkspaceMembers.tsx:439
+#: src/components/settings/WorkspaceMembers.tsx:438
 msgid "Invitation resent to {email}"
 msgstr "Invitación reenviada a {email}"
 
@@ -10196,11 +10201,11 @@ msgstr "Invitación enviada {sent}, {expires}"
 msgid "Invitation sent to {inviteEmail}"
 msgstr "Invitación enviada a {inviteEmail}"
 
-#: src/components/settings/WorkspaceMembers.tsx:482
+#: src/components/settings/WorkspaceMembers.tsx:481
 msgid "Invite"
 msgstr "Invitar"
 
-#: src/components/settings/WorkspaceMembers.tsx:543
+#: src/components/settings/WorkspaceMembers.tsx:542
 msgid "Invite Member"
 msgstr "Invitar miembro"
 
@@ -10217,11 +10222,11 @@ msgstr "Invitación de {inviterName}"
 #~ msgstr "IP"
 
 #: src/components/logs/AuditEntryDetail.tsx:159
-#: src/components/logs/AuditLogTab.tsx:299
+#: src/components/logs/AuditLogTab.tsx:300
 msgid "IP address"
 msgstr "Dirección IP"
 
-#: src/components/logs/AuditLogTab.tsx:427
+#: src/components/logs/AuditLogTab.tsx:428
 msgid "IP address, actor email or target ID"
 msgstr "Dirección IP, email del actor o ID de destino"
 
@@ -10412,11 +10417,11 @@ msgstr "Conserva el enlace de confirmación: {CONFIRM_VARIABLE}."
 msgid "Keep the unsubscribe link: {UNSUBSCRIBE_VARIABLE}."
 msgstr "Conserva el enlace para darse de baja: {UNSUBSCRIBE_VARIABLE}."
 
-#: src/components/logs/AuditLogTab.tsx:664
+#: src/components/logs/AuditLogTab.tsx:665
 msgid "Kept for the deployment default"
 msgstr "Se conserva según el valor predeterminado de la instalación"
 
-#: src/components/logs/AuditLogTab.tsx:661
+#: src/components/logs/AuditLogTab.tsx:662
 msgid "Kept forever"
 msgstr "Se conserva para siempre"
 
@@ -10457,7 +10462,7 @@ msgstr "Páginas de destino"
 #: src/components/contacts/ContactsTable.tsx:209
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/ContactProfileFields.tsx:124
-#: src/components/logs/MessageDetail.tsx:658
+#: src/components/logs/MessageDetail.tsx:647
 #: src/components/segment/segmentSummary.ts:35
 #: src/components/templates/SendTemplateModal.tsx:407
 #: src/components/templates/TemplatePreviewDrawer.tsx:393
@@ -10486,7 +10491,7 @@ msgstr "Las imágenes grandes pueden ralentizar significativamente los tiempos d
 #~ msgid "Last {WINDOW_MINUTES} minutes"
 #~ msgstr ""
 
-#: src/components/logs/AuditLogTab.tsx:184
+#: src/components/logs/AuditLogTab.tsx:185
 #: src/components/logs/InboundWebhooksTab.tsx:129
 #: src/components/logs/MessagesTab.tsx:251
 msgid "Last 24 hours"
@@ -10495,7 +10500,7 @@ msgstr "Últimas 24 horas"
 #: src/components/automations/AutomationEditor.tsx:502
 #: src/components/automations/NodeConfigPanel.tsx:191
 #: src/components/broadcasts/BroadcastKpis.tsx:138
-#: src/components/logs/AuditLogTab.tsx:186
+#: src/components/logs/AuditLogTab.tsx:187
 #: src/components/logs/InboundWebhooksTab.tsx:131
 #: src/components/logs/MessagesTab.tsx:253
 msgid "Last 30 days"
@@ -10510,13 +10515,13 @@ msgstr "Últimos 30 días: {0}"
 #~ msgid "last 30 minutes"
 #~ msgstr ""
 
-#: src/components/logs/AuditLogTab.tsx:185
+#: src/components/logs/AuditLogTab.tsx:186
 #: src/components/logs/InboundWebhooksTab.tsx:130
 #: src/components/logs/MessagesTab.tsx:252
 msgid "Last 7 days"
 msgstr "Últimos 7 días"
 
-#: src/components/logs/AuditLogTab.tsx:187
+#: src/components/logs/AuditLogTab.tsx:188
 msgid "Last 90 days"
 msgstr "Últimos 90 días"
 
@@ -10627,7 +10632,7 @@ msgstr "Deja vacío para activar en cualquier cambio de campo"
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr "Déjalo vacío para usar un contacto aleatorio de la audiencia del envío masivo."
 
-#: src/components/settings/Integrations.tsx:1763
+#: src/components/settings/Integrations.tsx:1773
 msgid "Leave empty to use the one Notifuse manages for this integration."
 msgstr "Déjalo vacío para usar el que Notifuse gestiona para esta integración."
 
@@ -10815,9 +10820,9 @@ msgstr "El Liquid colocado entre los bloques de una sección o una columna puede
 #: src/components/contacts/BulkUpdateDrawer.tsx:617
 #: src/components/contacts/ExportContactsModal.tsx:89
 #: src/components/contacts/sheet/activityLabel.ts:17
-#: src/components/file_manager/FileExplorer.tsx:679
-#: src/components/file_manager/FileExplorer.tsx:680
-#: src/components/logs/MessageDetail.tsx:665
+#: src/components/file_manager/FileExplorer.tsx:681
+#: src/components/file_manager/FileExplorer.tsx:682
+#: src/components/logs/MessageDetail.tsx:654
 #: src/components/logs/MessagesTab.tsx:282
 #: src/components/logs/MessagesTab.tsx:474
 #: src/components/messages/MessageHistoryTable.tsx:156
@@ -11012,7 +11017,7 @@ msgstr "LLM"
 msgid "LLM integration saved successfully"
 msgstr "Integración LLM guardada exitosamente"
 
-#: src/pages/ContactsPage.tsx:704
+#: src/pages/ContactsPage.tsx:722
 msgid "Load {CONTACTS_PAGE_SIZE} more"
 msgstr "Cargar {CONTACTS_PAGE_SIZE} más"
 
@@ -11022,7 +11027,7 @@ msgstr "Cargar {PAGE_SIZE} más"
 
 #: src/components/blog/PostsTable.tsx:485
 #: src/components/contacts/visits/ContactWebVisits.tsx:355
-#: src/components/logs/AuditLogTab.tsx:682
+#: src/components/logs/AuditLogTab.tsx:683
 #: src/components/logs/InboundWebhooksTab.tsx:354
 #: src/components/logs/MessagesTab.tsx:857
 #: src/components/logs/OutgoingWebhooksTab.tsx:286
@@ -11050,7 +11055,7 @@ msgstr "Cargar el registro del espacio de trabajo, al que dan acceso tanto la le
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "Se ha cargado la última versión de esta plantilla (v{0})."
 
-#: src/components/file_manager/FileExplorer.tsx:801
+#: src/components/file_manager/FileExplorer.tsx:803
 msgid "Loading"
 msgstr "Cargando"
 
@@ -11090,7 +11095,7 @@ msgstr "Cargando plantilla..."
 #: src/components/templates/TemplateSelectorInput.tsx:154
 #: src/components/timeline/ContactTimeline.tsx:1136
 #: src/layouts/RootLayout.tsx:99
-#: src/pages/ContactsPage.tsx:418
+#: src/pages/ContactsPage.tsx:436
 msgid "Loading..."
 msgstr "Cargando..."
 
@@ -11299,11 +11304,11 @@ msgstr "Campañas de marketing: sus borradores, variaciones A/B, feeds de datos,
 #~ msgid "Marketing Provider"
 #~ msgstr "Proveedor de marketing"
 
-#: src/components/settings/Integrations.tsx:1236
+#: src/components/settings/Integrations.tsx:1246
 msgid "Marketing: {marketingName}"
 msgstr "Marketing: {marketingName}"
 
-#: src/components/settings/Integrations.tsx:1238
+#: src/components/settings/Integrations.tsx:1248
 msgid "Marketing: not set"
 msgstr "Marketing: sin definir"
 
@@ -11352,7 +11357,7 @@ msgstr "El rango máximo es de 2 años"
 msgid "Maximum range is 2 years. Dates are read in {timezone}."
 msgstr "El rango máximo es de 2 años. Las fechas se leen en {timezone}."
 
-#: src/components/logs/AuditLogTab.tsx:222
+#: src/components/logs/AuditLogTab.tsx:223
 msgid "Me"
 msgstr "Yo"
 
@@ -11413,18 +11418,18 @@ msgstr "Medios"
 msgid "Member"
 msgstr "Miembro"
 
-#: src/components/settings/WorkspaceMembers.tsx:390
+#: src/components/settings/WorkspaceMembers.tsx:389
 msgid "Member removed successfully"
 msgstr "Miembro eliminado exitosamente"
 
 #: src/components/logs/labels.ts:10
-#: src/components/settings/WorkspaceMembers.tsx:473
+#: src/components/settings/WorkspaceMembers.tsx:472
 msgid "Members"
 msgstr "Miembros"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:251
 #: src/components/logs/MessageDetail.tsx:83
-#: src/components/logs/MessageDetail.tsx:644
+#: src/components/logs/MessageDetail.tsx:633
 #: src/components/logs/MessagesTab.tsx:657
 msgid "Message"
 msgstr "Mensaje"
@@ -11440,7 +11445,7 @@ msgstr "El historial de mensajes y eventos de webhook se anonimizarán (direccio
 
 #: src/components/logs/InboundWebhooksTab.tsx:182
 #: src/components/logs/InboundWebhooksTab.tsx:394
-#: src/components/logs/MessageDetail.tsx:648
+#: src/components/logs/MessageDetail.tsx:637
 #: src/components/logs/MessagesTab.tsx:470
 #: src/components/logs/MessagesTab.tsx:485
 #: src/components/messages/MessageHistoryTable.tsx:150
@@ -11456,11 +11461,11 @@ msgstr "Mensaje no encontrado"
 msgid "Message stream"
 msgstr "Flujo de mensajes"
 
-#: src/components/settings/Integrations.tsx:1658
+#: src/components/settings/Integrations.tsx:1668
 msgid "Message Stream"
 msgstr "Flujo de mensajes"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:251
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:256
 #: src/pages/LogsPage.tsx:91
 msgid "Messages"
 msgstr "Mensajes"
@@ -11479,12 +11484,12 @@ msgid "Meta Title"
 msgstr "Meta título"
 
 #: src/components/logs/AuditEntryDetail.tsx:212
-#: src/components/logs/MessageDetail.tsx:824
+#: src/components/logs/MessageDetail.tsx:820
 msgid "metadata"
 msgstr "metadatos"
 
 #: src/components/logs/AuditEntryDetail.tsx:211
-#: src/components/logs/MessageDetail.tsx:822
+#: src/components/logs/MessageDetail.tsx:818
 #: src/components/logs/MessagesTab.tsx:472
 #: src/components/messages/MessageHistoryTable.tsx:152
 #: src/components/messages/MessageHistoryTable.tsx:196
@@ -11500,7 +11505,7 @@ msgstr "Métricas"
 msgid "Metrics and dimensions"
 msgstr "Métricas y dimensiones"
 
-#: src/components/settings/Integrations.tsx:1457
+#: src/components/settings/Integrations.tsx:1467
 msgid "Microsoft 365 / Office 365"
 msgstr "Microsoft 365 / Office 365"
 
@@ -11543,7 +11548,7 @@ msgid "Missing workspace ID or template data."
 msgstr "Falta ID del espacio de trabajo o datos de plantilla."
 
 #: src/components/email_builder/panels/Preview.tsx:379
-#: src/components/logs/MessageDetail.tsx:790
+#: src/components/logs/MessageDetail.tsx:786
 #: src/components/templates/ImportExportButton.tsx:220
 #: src/components/templates/ImportExportButton.tsx:249
 msgid "MJML"
@@ -11598,7 +11603,7 @@ msgstr "Error de importación MJML"
 msgid "MJML Import Validation Failed"
 msgstr "Error en la validación de importación MJML"
 
-#: src/components/logs/MessageDetail.tsx:773
+#: src/components/logs/MessageDetail.tsx:769
 #: src/components/templates/TemplatePreviewDrawer.tsx:261
 msgid "MJML Source"
 msgstr "Fuente MJML"
@@ -11675,8 +11680,8 @@ msgstr "Mensual"
 #: src/components/contacts/ContactsViewHeader.tsx:109
 #: src/components/contacts/ContactsViewHeader.tsx:179
 #: src/components/contacts/ContactsViewHeader.tsx:217
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:216
-#: src/components/file_manager/FileExplorer.tsx:1066
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:221
+#: src/components/file_manager/FileExplorer.tsx:1068
 #: src/components/settings/Integrations.tsx:966
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
 #: src/components/transactional/TransactionalDetail.tsx:358
@@ -11734,7 +11739,7 @@ msgstr "Mi webhook"
 msgid "my-custom-class"
 msgstr "mi-clase-personalizada"
 
-#: src/components/settings/Integrations.tsx:1816
+#: src/components/settings/Integrations.tsx:1826
 msgid "my-tenant"
 msgstr "mi-tenant"
 
@@ -11751,7 +11756,7 @@ msgstr "N/D"
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
-#: src/components/settings/Integrations.tsx:2108
+#: src/components/settings/Integrations.tsx:2118
 #: src/components/settings/WebhooksSettings.tsx:520
 #: src/components/settings/WorkspaceMembers.tsx:287
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:119
@@ -11805,7 +11810,7 @@ msgstr "Da nombre a esta conexión en Notifuse y a la clave API que crea en Conf
 msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 msgstr "Nombrar un espacio lo renombra en todos los sitios donde aparece: paneles, el selector de exploración y las reglas de atribución."
 
-#: src/components/settings/Integrations.tsx:1749
+#: src/components/settings/Integrations.tsx:1759
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "Necesita estos permisos IAM adicionales: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Añade ses:ListTenants y ses:ListTenantResources para los selectores de abajo, y ses:DeleteTenant más ses:DeleteTenantResourceAssociation para que el tenant se elimine junto con la integración en lugar de facturar para siempre."
 
@@ -11835,7 +11840,7 @@ msgstr "Nueva categoría"
 #~ msgstr "Nueva categoría"
 
 #: src/components/contacts/ContactsViewHeader.tsx:214
-#: src/pages/ContactsPage.tsx:490
+#: src/pages/ContactsPage.tsx:508
 msgid "New contact"
 msgstr "Nuevo contacto"
 
@@ -11851,18 +11856,18 @@ msgstr "Nuevos contactos"
 msgid "New conversation"
 msgstr "Nueva conversación"
 
-#: src/components/file_manager/FileExplorer.tsx:757
 #: src/components/file_manager/FileExplorer.tsx:759
-#: src/components/file_manager/FileExplorer.tsx:1035
+#: src/components/file_manager/FileExplorer.tsx:761
+#: src/components/file_manager/FileExplorer.tsx:1037
 msgid "New folder"
 msgstr "Nueva carpeta"
 
-#: src/components/file_manager/FileExplorer.tsx:757
-#: src/components/file_manager/FileExplorer.tsx:1029
+#: src/components/file_manager/FileExplorer.tsx:759
+#: src/components/file_manager/FileExplorer.tsx:1031
 msgid "New folder (Read-only mode)"
 msgstr "Nueva carpeta (modo de solo lectura)"
 
-#: src/components/settings/WorkspaceMembers.tsx:516
+#: src/components/settings/WorkspaceMembers.tsx:515
 msgid "New key"
 msgstr "Nueva clave"
 
@@ -12014,7 +12019,7 @@ msgstr "Aún no hay anotaciones"
 msgid "No answer was returned. Please try again."
 msgstr "No se devolvió ninguna respuesta. Inténtalo de nuevo."
 
-#: src/components/settings/WorkspaceMembers.tsx:527
+#: src/components/settings/WorkspaceMembers.tsx:526
 msgid "No API keys yet. Create one to call the API or connect Zapier."
 msgstr "Aún no hay claves API. Crea una para llamar a la API o conectar Zapier."
 
@@ -12026,7 +12031,7 @@ msgstr "Aún no hay reglas de atribución. Crea la primera para empezar a dar fo
 #~ msgid "No audit entries match"
 #~ msgstr "Ninguna entrada de auditoría coincide"
 
-#: src/components/logs/AuditLogTab.tsx:625
+#: src/components/logs/AuditLogTab.tsx:626
 msgid "No audit entries yet"
 msgstr "Aún no hay entradas de auditoría"
 
@@ -12107,7 +12112,7 @@ msgstr "Aún no hay contactos"
 #~ msgid "No contacts found. Add some contacts to get started."
 #~ msgstr "No se encontraron contactos. Añade algunos contactos para comenzar."
 
-#: src/pages/ContactsPage.tsx:464
+#: src/pages/ContactsPage.tsx:482
 msgid "No contacts in this list yet"
 msgstr "Aún no hay contactos en esta lista"
 
@@ -12115,15 +12120,15 @@ msgstr "Aún no hay contactos en esta lista"
 msgid "No contacts match the current filters"
 msgstr "Ningún contacto coincide con los filtros actuales"
 
-#: src/pages/ContactsPage.tsx:477
+#: src/pages/ContactsPage.tsx:495
 msgid "No contacts match this segment"
 msgstr "Ningún contacto coincide con este segmento"
 
-#: src/pages/ContactsPage.tsx:457
+#: src/pages/ContactsPage.tsx:475
 msgid "No contacts match your filters"
 msgstr "Ningún contacto coincide con tus filtros"
 
-#: src/pages/ContactsPage.tsx:483
+#: src/pages/ContactsPage.tsx:501
 msgid "No contacts yet"
 msgstr "Aún no hay contactos"
 
@@ -12145,7 +12150,7 @@ msgstr "No hay datos CSV disponibles"
 msgid "No custom field is named yet"
 msgstr "Aún no hay ningún campo personalizado con nombre"
 
-#: src/components/logs/MessageDetail.tsx:805
+#: src/components/logs/MessageDetail.tsx:801
 msgid "No data"
 msgstr "Sin datos"
 
@@ -12200,7 +12205,7 @@ msgstr "No se encontró columna de correo. Asegúrate de que tu CSV tenga una co
 msgid "No email integrations available. Please configure one in Settings."
 msgstr "No hay integraciones de correo disponibles. Por favor, configura una en Configuración."
 
-#: src/components/settings/Integrations.tsx:1264
+#: src/components/settings/Integrations.tsx:1274
 msgid "No email provider yet"
 msgstr "Aún no hay ningún proveedor de correo"
 
@@ -12224,7 +12229,7 @@ msgstr "Sin errores"
 msgid "No failure"
 msgstr "Sin fallos"
 
-#: src/components/file_manager/FileExplorer.tsx:771
+#: src/components/file_manager/FileExplorer.tsx:773
 msgid "No files match your search"
 msgstr "Ningún archivo coincide con tu búsqueda"
 
@@ -12305,7 +12310,7 @@ msgstr "Ningún proveedor de correo de marketing"
 msgid "No match"
 msgstr "Sin coincidencia"
 
-#: src/components/settings/WorkspaceMembers.tsx:505
+#: src/components/settings/WorkspaceMembers.tsx:504
 msgid "No members found"
 msgstr "No se encontraron miembros"
 
@@ -12414,7 +12419,7 @@ msgstr "Sin respuesta"
 msgid "No results found"
 msgstr "No se encontraron resultados"
 
-#: src/components/logs/AuditLogTab.tsx:621
+#: src/components/logs/AuditLogTab.tsx:622
 #: src/components/logs/InboundWebhooksTab.tsx:296
 #: src/components/logs/MessagesTab.tsx:799
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
@@ -12633,6 +12638,10 @@ msgstr "Ninguna (sin enlace de baja)"
 msgid "Normal"
 msgstr "Normal"
 
+#: src/components/file_manager/storageObjects.ts:170
+msgid "Not a folder prefix: \"{prefix}\""
+msgstr "No es un prefijo de carpeta: «{prefix}»"
+
 #: src/components/web_analytics/goals/GoalCard.tsx:122
 msgid "Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose."
 msgstr "No todos los visitantes llegan con la misma intención. Esta tasa debe interpretarse con cautela, ya que incluye todo el tráfico sea cual sea su propósito."
@@ -12791,11 +12800,11 @@ msgstr "No se ha registrado nada en las últimas 24 horas. Comprueba que este fr
 msgid "Nothing in the last 24 hours"
 msgstr "Nada en las últimas 24 horas"
 
-#: src/components/logs/AuditLogTab.tsx:627
+#: src/components/logs/AuditLogTab.tsx:628
 msgid "Nothing in the last 7 days"
 msgstr "Nada en los últimos 7 días"
 
-#: src/components/logs/AuditLogTab.tsx:629
+#: src/components/logs/AuditLogTab.tsx:630
 #: src/components/logs/InboundWebhooksTab.tsx:315
 #: src/components/logs/MessagesTab.tsx:807
 msgid "Nothing in this period"
@@ -12845,7 +12854,7 @@ msgstr "Exportación de Notifuse (.json)"
 msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 msgstr "Notifuse creará un tenant en tu cuenta de AWS, le dará su propia lista de supresión y le asociará el conjunto de configuración y las identidades de remitente de esta integración. AWS factura por tenant y mes, según el volumen."
 
-#: src/components/settings/Integrations.tsx:1775
+#: src/components/settings/Integrations.tsx:1785
 msgid "notifuse-…"
 msgstr "notifuse-…"
 
@@ -12888,7 +12897,7 @@ msgstr "Número de publicaciones a mostrar por página en la página de inicio"
 msgid "OAuth2 ({oauthProvider})"
 msgstr "OAuth2 ({oauthProvider})"
 
-#: src/components/settings/Integrations.tsx:1436
+#: src/components/settings/Integrations.tsx:1446
 msgid "OAuth2 (Microsoft 365 / Google)"
 msgstr "OAuth2 (Microsoft 365 / Google)"
 
@@ -12896,7 +12905,7 @@ msgstr "OAuth2 (Microsoft 365 / Google)"
 msgid "OAuth2 client secret"
 msgstr "Secreto de cliente OAuth2"
 
-#: src/components/settings/Integrations.tsx:1452
+#: src/components/settings/Integrations.tsx:1462
 msgid "OAuth2 Provider"
 msgstr "Proveedor OAuth2"
 
@@ -12913,7 +12922,7 @@ msgstr "Clave de objeto: {segment}"
 msgid "Oblique"
 msgstr "Oblicuo"
 
-#: src/components/settings/Integrations.tsx:1575
+#: src/components/settings/Integrations.tsx:1585
 msgid "Obtain this using the OAuth2 playground or your own OAuth flow"
 msgstr "Obtén esto usando el playground de OAuth2 o tu propio flujo OAuth"
 
@@ -12947,7 +12956,7 @@ msgstr "de los emails enviados ese día"
 msgid "of the following conditions match:"
 msgstr "de las siguientes condiciones coinciden:"
 
-#: src/components/logs/MessageDetail.tsx:570
+#: src/components/logs/MessageDetail.tsx:571
 msgid "off"
 msgstr "desactivados"
 
@@ -12971,7 +12980,7 @@ msgstr "URL base del emisor OIDC — el descubrimiento se hace en <issuer>/.well
 msgid "OK"
 msgstr "Aceptar"
 
-#: src/components/logs/MessageDetail.tsx:570
+#: src/components/logs/MessageDetail.tsx:571
 msgid "on"
 msgstr "activados"
 
@@ -12980,7 +12989,7 @@ msgstr "activados"
 msgid "On"
 msgstr "Activado"
 
-#: src/components/logs/MessageDetail.tsx:573
+#: src/components/logs/MessageDetail.tsx:574
 msgid "On (default)"
 msgstr "Activado (predeterminado)"
 
@@ -13050,7 +13059,7 @@ msgstr "Solo los enlaces de los emails de este envío masivo."
 msgid "Only links in emails sent with this template."
 msgstr "Solo los enlaces de los emails enviados con esta plantilla."
 
-#: src/components/file_manager/FileExplorer.tsx:927
+#: src/components/file_manager/FileExplorer.tsx:929
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Solo se permiten caracteres alfanuméricos en minúsculas, guión bajo y guión."
 
@@ -13070,7 +13079,7 @@ msgstr "Solo los propietarios del espacio de trabajo pueden modificar integracio
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:73
 #: src/components/contacts/sheet/activityLabel.ts:14
-#: src/components/file_manager/FileExplorer.tsx:534
+#: src/components/file_manager/FileExplorer.tsx:536
 msgid "Open"
 msgstr "Apertura"
 
@@ -13108,7 +13117,7 @@ msgstr "Imagen Open Graph"
 msgid "Open Graph Title"
 msgstr "Título Open Graph"
 
-#: src/components/file_manager/FileExplorer.tsx:548
+#: src/components/file_manager/FileExplorer.tsx:550
 #: src/components/file_manager/FilePreview.tsx:102
 msgid "Open in a new tab"
 msgstr "Abrir en una pestaña nueva"
@@ -13230,7 +13239,7 @@ msgstr "Aperturas"
 
 #. placeholder {0}: tracked(message.opens_tracked)
 #. placeholder {1}: tracked(message.clicks_tracked)
-#: src/components/logs/MessageDetail.tsx:574
+#: src/components/logs/MessageDetail.tsx:575
 msgid "Opens {0} · clicks {1}"
 msgstr "Aperturas {0} · clics {1}"
 
@@ -13348,7 +13357,7 @@ msgstr "Búsqueda orgánica"
 msgid "Organic social"
 msgstr "Social orgánico"
 
-#: src/components/logs/AuditLogTab.tsx:567
+#: src/components/logs/AuditLogTab.tsx:568
 #: src/components/logs/MessagesTab.tsx:495
 msgid "Origin"
 msgstr "Origen"
@@ -13371,7 +13380,7 @@ msgstr "SO"
 msgid "Other"
 msgstr "Otro"
 
-#: src/components/settings/Integrations.tsx:1292
+#: src/components/settings/Integrations.tsx:1302
 msgid "Other integrations"
 msgstr "Otras integraciones"
 
@@ -13380,7 +13389,7 @@ msgid "Outbound webhook subscriptions — where the workspace POSTs its own even
 msgstr "Suscripciones de webhook salientes —a dónde publica (POST) el espacio de trabajo sus propios eventos— y su registro de entregas."
 
 #: src/components/logs/AuditEntryDetail.tsx:131
-#: src/components/logs/AuditLogTab.tsx:296
+#: src/components/logs/AuditLogTab.tsx:297
 msgid "Outcome"
 msgstr "Resultado"
 
@@ -13482,7 +13491,7 @@ msgstr "Vídeo de pago"
 msgid "Parent Frame"
 msgstr "Marco padre"
 
-#: src/components/logs/AuditLogTab.tsx:402
+#: src/components/logs/AuditLogTab.tsx:403
 msgid "Part of an email"
 msgstr "Parte de un email"
 
@@ -13504,7 +13513,7 @@ msgstr "Las particiones ya reescritas conservan sus nuevos valores."
 msgid "Password"
 msgstr "Contraseña"
 
-#: src/components/settings/Integrations.tsx:1600
+#: src/components/settings/Integrations.tsx:1610
 msgid "Password (optional)"
 msgstr "Contraseña (opcional)"
 
@@ -13622,7 +13631,7 @@ msgstr "Pico el {0}"
 #: src/components/lists/ListHeader.tsx:41
 #: src/components/logs/labels.ts:36
 #: src/components/settings/WorkspaceMembers.tsx:85
-#: src/pages/ContactsPage.tsx:522
+#: src/pages/ContactsPage.tsx:540
 msgid "Pending"
 msgstr "Pendiente"
 
@@ -13667,7 +13676,7 @@ msgstr "URL del feed por destinatario"
 #~ msgstr "La URL del feed por destinatario es requerida cuando está habilitado"
 
 #: src/components/automations/AutomationEditor.tsx:498
-#: src/components/logs/AuditLogTab.tsx:436
+#: src/components/logs/AuditLogTab.tsx:437
 #: src/components/logs/InboundWebhooksTab.tsx:189
 #: src/components/logs/MessagesTab.tsx:493
 msgid "Period"
@@ -13699,8 +13708,8 @@ msgstr "Detalle de permisos"
 #~ msgid "Permission Details"
 #~ msgstr "Detalles de permiso"
 
-#: src/components/settings/WorkspaceMembers.tsx:578
-#: src/components/settings/WorkspaceMembers.tsx:648
+#: src/components/settings/WorkspaceMembers.tsx:577
+#: src/components/settings/WorkspaceMembers.tsx:647
 msgid "Permissions"
 msgstr "Permisos"
 
@@ -13923,8 +13932,8 @@ msgstr "Por favor, introduce un nombre de espacio de trabajo"
 msgid "Please enter an API identifier"
 msgstr "Por favor, introduce un identificador API"
 
-#: src/components/settings/WorkspaceMembers.tsx:341
-#: src/components/settings/WorkspaceMembers.tsx:633
+#: src/components/settings/WorkspaceMembers.tsx:342
+#: src/components/settings/WorkspaceMembers.tsx:632
 msgid "Please enter an API key name"
 msgstr "Por favor, introduce un nombre de clave API"
 
@@ -13934,7 +13943,7 @@ msgid "Please enter an automation name"
 msgstr "Por favor, introduce un nombre de automatización"
 
 #: src/components/settings/WorkspaceMembers.tsx:308
-#: src/components/settings/WorkspaceMembers.tsx:569
+#: src/components/settings/WorkspaceMembers.tsx:568
 msgid "Please enter an email address"
 msgstr "Por favor, introduce una dirección de correo"
 
@@ -14045,7 +14054,7 @@ msgstr "Por favor, selecciona un tipo de evento"
 msgid "Please select an MJML file"
 msgstr "Por favor, selecciona un archivo MJML"
 
-#: src/components/settings/Integrations.tsx:1453
+#: src/components/settings/Integrations.tsx:1463
 msgid "Please select an OAuth2 provider"
 msgstr "Por favor, selecciona un proveedor OAuth2"
 
@@ -14124,7 +14133,7 @@ msgstr "Código postal"
 msgid "Postmark"
 msgstr "Postmark"
 
-#: src/components/settings/Integrations.tsx:1660
+#: src/components/settings/Integrations.tsx:1670
 msgid "Postmark Message Stream ID (e.g. \"outbound\" for transactional, \"broadcast\" for marketing)"
 msgstr "ID del flujo de mensajes de Postmark (ej. \"outbound\" para transaccional, \"broadcast\" para marketing)"
 
@@ -14179,7 +14188,7 @@ msgstr "Presiona Enter para confirmar, Escape para cancelar"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:69
 #: src/components/common/ImageURLInput.tsx:52
 #: src/components/email_builder/EmailBuilder.tsx:1058
-#: src/components/file_manager/FileExplorer.tsx:1082
+#: src/components/file_manager/FileExplorer.tsx:1084
 #: src/components/segment/button_upsert.tsx:664
 #: src/components/transactional/PreviewPanel.tsx:120
 #: src/pages/TemplatesPage.tsx:292
@@ -14503,7 +14512,7 @@ msgstr "Límite de envío para marketing"
 #~ msgid "Rate Limit for Marketing"
 #~ msgstr "Límite de tasa para marketing"
 
-#: src/components/settings/Integrations.tsx:1719
+#: src/components/settings/Integrations.tsx:1729
 msgid "Rate limit for marketing emails (emails per minute)"
 msgstr "Límite de tasa para correos de marketing (correos por minuto)"
 
@@ -14901,9 +14910,9 @@ msgstr "Referente:"
 msgid "Referrers"
 msgstr "Referentes"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:204
-#: src/components/logs/AuditLogTab.tsx:513
-#: src/components/logs/AuditLogTab.tsx:517
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:209
+#: src/components/logs/AuditLogTab.tsx:514
+#: src/components/logs/AuditLogTab.tsx:518
 #: src/components/logs/InboundWebhooksTab.tsx:203
 #: src/components/logs/InboundWebhooksTab.tsx:207
 #: src/components/logs/MessagesTab.tsx:522
@@ -14914,8 +14923,8 @@ msgstr "Referentes"
 #: src/components/settings/LicenseSettings.tsx:157
 #: src/components/settings/WebhooksSettings.tsx:454
 #: src/components/settings/WebhooksSettings.tsx:458
-#: src/pages/ContactsPage.tsx:673
-#: src/pages/ContactsPage.tsx:676
+#: src/pages/ContactsPage.tsx:691
+#: src/pages/ContactsPage.tsx:694
 msgid "Refresh"
 msgstr "Actualizar"
 
@@ -14931,8 +14940,8 @@ msgstr "Actualizar estadísticas"
 msgid "Refresh the broadcast's data feed by calling the configured external URL"
 msgstr "Actualizar el feed de datos del envío masivo llamando a la URL externa configurada"
 
-#: src/components/file_manager/FileExplorer.tsx:729
-#: src/components/file_manager/FileExplorer.tsx:733
+#: src/components/file_manager/FileExplorer.tsx:731
+#: src/components/file_manager/FileExplorer.tsx:735
 msgid "Refresh the list"
 msgstr "Actualizar la lista"
 
@@ -14956,7 +14965,7 @@ msgstr "¿Regenerar secreto?"
 msgid "Regenerated the secret of the webhook <0>{target}</0>"
 msgstr "Regeneró el secreto del webhook <0>{target}</0>"
 
-#: src/components/settings/Integrations.tsx:1675
+#: src/components/settings/Integrations.tsx:1685
 #: src/components/settings/integrations/providerDetails.ts:136
 msgid "Region"
 msgstr "Región"
@@ -15069,7 +15078,7 @@ msgstr "Eliminar campo"
 #: src/components/contacts/BulkActionsBar.tsx:148
 #: src/components/contacts/sheet/ContactListsCard.tsx:104
 #: src/components/contacts/sheet/ContactListsCard.tsx:108
-#: src/pages/ContactsPage.tsx:287
+#: src/pages/ContactsPage.tsx:283
 msgid "Remove from list"
 msgstr "Quitar de la lista"
 
@@ -15158,7 +15167,7 @@ msgstr "Renombró los campos personalizados de <0>{target}</0>"
 msgid "Renaming this connection does not change the address of the API key it already minted."
 msgstr "Cambiar el nombre de esta conexión no modifica la dirección de la clave API que ya creó."
 
-#: src/components/logs/MessageDetail.tsx:764
+#: src/components/logs/MessageDetail.tsx:760
 msgid "Rendered again from the template and the message data; Notifuse doesn't store the sent HTML"
 msgstr "Generado de nuevo a partir de la plantilla y los datos del mensaje; Notifuse no guarda el HTML enviado"
 
@@ -15240,7 +15249,7 @@ msgstr "Responder a"
 #~ msgstr "Responder a:"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:106
-#: src/components/logs/MessageDetail.tsx:660
+#: src/components/logs/MessageDetail.tsx:649
 #: src/components/templates/SendTemplateModal.tsx:465
 #: src/components/transactional/TransactionalDetail.tsx:416
 msgid "Reply-To"
@@ -15367,8 +15376,8 @@ msgid "Resolved"
 msgstr "Resuelto"
 
 #: src/components/logs/AuditEntryDetail.tsx:129
-#: src/components/logs/AuditLogTab.tsx:465
-#: src/components/logs/AuditLogTab.tsx:561
+#: src/components/logs/AuditLogTab.tsx:466
+#: src/components/logs/AuditLogTab.tsx:562
 #: src/components/settings/PermissionsMatrix.tsx:237
 msgid "Resource"
 msgstr "Recurso"
@@ -15492,15 +15501,15 @@ msgstr "Reintentó los envíos fallidos de la newsletter <0>{target}</0>"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:548
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:171
 #: src/components/contacts/BlockError.tsx:11
-#: src/components/file_manager/FileExplorer.tsx:780
-#: src/components/logs/AuditLogTab.tsx:609
+#: src/components/file_manager/FileExplorer.tsx:782
+#: src/components/logs/AuditLogTab.tsx:610
 #: src/components/logs/InboundWebhooksTab.tsx:288
 #: src/components/logs/MessageDetail.tsx:91
 #: src/components/logs/MessagesTab.tsx:791
 #: src/components/logs/OutgoingWebhooksTab.tsx:225
 #: src/components/settings/WebhookDetail.tsx:430
 #: src/components/settings/WebhooksSettings.tsx:387
-#: src/components/settings/WorkspaceMembers.tsx:491
+#: src/components/settings/WorkspaceMembers.tsx:490
 #: src/components/transactional/LoadError.tsx:22
 #: src/pages/AutomationsPage.tsx:204
 #: src/pages/BroadcastsPage.tsx:224
@@ -15554,8 +15563,8 @@ msgstr "De derecha a izquierda"
 #~ msgid "Role"
 #~ msgstr "Rol"
 
-#: src/components/file_manager/FileExplorer.tsx:633
-#: src/components/file_manager/FileExplorer.tsx:1020
+#: src/components/file_manager/FileExplorer.tsx:635
+#: src/components/file_manager/FileExplorer.tsx:1022
 #: src/components/file_manager/FilePreview.tsx:62
 #: src/components/file_manager/FileTable.tsx:88
 #: src/components/file_manager/FolderTree.tsx:121
@@ -15691,7 +15700,7 @@ msgstr "Región S3"
 msgid "S3 secret key"
 msgstr "Clave secreta S3"
 
-#: src/components/file_manager/FileExplorer.tsx:608
+#: src/components/file_manager/FileExplorer.tsx:610
 msgid "S3 storage"
 msgstr "Almacenamiento S3"
 
@@ -15720,8 +15729,8 @@ msgstr "Valores de muestra"
 msgid "Sandbox mode"
 msgstr "Modo sandbox"
 
-#: src/components/settings/Integrations.tsx:1639
-#: src/components/settings/Integrations.tsx:1703
+#: src/components/settings/Integrations.tsx:1649
+#: src/components/settings/Integrations.tsx:1713
 msgid "Sandbox Mode"
 msgstr "Modo sandbox"
 
@@ -15743,12 +15752,12 @@ msgstr "Modo sandbox"
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:198
 #: src/components/settings/CustomFieldsConfiguration.tsx:374
-#: src/components/settings/Integrations.tsx:1967
-#: src/components/settings/Integrations.tsx:2091
-#: src/components/settings/Integrations.tsx:2176
-#: src/components/settings/Integrations.tsx:2220
-#: src/components/settings/Integrations.tsx:2265
-#: src/components/settings/Integrations.tsx:2301
+#: src/components/settings/Integrations.tsx:1977
+#: src/components/settings/Integrations.tsx:2101
+#: src/components/settings/Integrations.tsx:2186
+#: src/components/settings/Integrations.tsx:2230
+#: src/components/settings/Integrations.tsx:2275
+#: src/components/settings/Integrations.tsx:2311
 #: src/components/settings/SystemSettingsDrawer.tsx:245
 #: src/components/settings/WebhooksSettings.tsx:501
 #: src/components/templates/CreateTemplateDrawer.tsx:761
@@ -15953,7 +15962,7 @@ msgstr "Ancho de pantalla por debajo del cual se activa el diseño móvil. Valor
 msgid "Search"
 msgstr "Buscar"
 
-#: src/components/logs/LogsSearchBox.tsx:100
+#: src/components/logs/LogsSearchBox.tsx:104
 msgid "Search by"
 msgstr "Buscar por"
 
@@ -15976,7 +15985,7 @@ msgstr "Buscar dimensiones"
 msgid "Search Engine Indexing"
 msgstr "Indexación de motores de búsqueda"
 
-#: src/components/file_manager/FileExplorer.tsx:1020
+#: src/components/file_manager/FileExplorer.tsx:1022
 msgid "Search results"
 msgstr "Resultados de búsqueda"
 
@@ -15988,7 +15997,7 @@ msgstr "Buscar bloques guardados"
 msgid "Search templates..."
 msgstr "Buscar plantillas..."
 
-#: src/components/logs/AuditLogTab.tsx:426
+#: src/components/logs/AuditLogTab.tsx:427
 msgid "Search the audit log"
 msgstr "Buscar en el registro de auditoría"
 
@@ -16008,15 +16017,15 @@ msgstr "Buscar..."
 msgid "Searches the web and returns relevant URLs"
 msgstr "Busca en la web y devuelve URLs relevantes"
 
-#: src/components/logs/AuditLogTab.tsx:178
+#: src/components/logs/AuditLogTab.tsx:179
 msgid "Searching by actor email"
 msgstr "Buscando por email del actor"
 
-#: src/components/logs/AuditLogTab.tsx:177
+#: src/components/logs/AuditLogTab.tsx:178
 msgid "Searching by IP address"
 msgstr "Buscando por dirección IP"
 
-#: src/components/logs/AuditLogTab.tsx:179
+#: src/components/logs/AuditLogTab.tsx:180
 msgid "Searching by target ID"
 msgstr "Buscando por ID de destino"
 
@@ -16042,9 +16051,9 @@ msgstr "Secreto copiado al portapapeles"
 msgid "Secret key"
 msgstr "Clave secreta"
 
-#: src/components/settings/Integrations.tsx:1392
-#: src/components/settings/Integrations.tsx:1695
-#: src/components/settings/Integrations.tsx:1698
+#: src/components/settings/Integrations.tsx:1402
+#: src/components/settings/Integrations.tsx:1705
+#: src/components/settings/Integrations.tsx:1708
 msgid "Secret Key"
 msgstr "Clave secreta"
 
@@ -16209,7 +16218,7 @@ msgstr "Selecciona un rango de fechas personalizado"
 msgid "Select a field"
 msgstr "Selecciona un campo"
 
-#: src/components/file_manager/FileExplorer.tsx:1130
+#: src/components/file_manager/FileExplorer.tsx:1132
 msgid "Select a file"
 msgstr "Selecciona un archivo"
 
@@ -16289,7 +16298,7 @@ msgstr "Selecciona otra métrica para ver el gráfico"
 msgid "Select Avatar"
 msgstr "Seleccionar avatar"
 
-#: src/components/settings/Integrations.tsx:1328
+#: src/components/settings/Integrations.tsx:1338
 msgid "Select AWS Region"
 msgstr "Selecciona región de AWS"
 
@@ -16303,7 +16312,7 @@ msgstr "Seleccionar categoría"
 
 #: src/components/contacts/ContactColumnsSelector.tsx:131
 #: src/components/messages/MessageColumnsSelector.tsx:91
-#: src/components/messages/MessageColumnsSelector.tsx:92
+#: src/components/messages/MessageColumnsSelector.tsx:94
 msgid "Select columns"
 msgstr "Seleccionar columnas"
 
@@ -16367,7 +16376,7 @@ msgstr "Selecciona un campo"
 msgid "Select field to map to"
 msgstr "Selecciona campo para mapear"
 
-#: src/components/file_manager/FileExplorer.tsx:1148
+#: src/components/file_manager/FileExplorer.tsx:1150
 msgid "Select file"
 msgstr "Seleccionar archivo"
 
@@ -16413,7 +16422,7 @@ msgstr "Selecciona listas (opcional)"
 msgid "Select lists to add contacts to"
 msgstr "Selecciona listas para añadir contactos"
 
-#: src/components/settings/Integrations.tsx:1455
+#: src/components/settings/Integrations.tsx:1465
 msgid "Select OAuth2 Provider"
 msgstr "Selecciona proveedor OAuth2"
 
@@ -16580,7 +16589,7 @@ msgstr "Envía una notificación transaccional usando TypeScript/JavaScript:"
 msgid "Send emails and update lists when contacts do something"
 msgstr "Envía correos y actualiza listas cuando los contactos hacen algo"
 
-#: src/components/settings/WorkspaceMembers.tsx:559
+#: src/components/settings/WorkspaceMembers.tsx:558
 msgid "Send Invitation"
 msgstr "Enviar invitación"
 
@@ -16619,7 +16628,7 @@ msgstr "Enviar prueba"
 msgid "Send Test"
 msgstr "Enviar prueba"
 
-#: src/components/settings/Integrations.tsx:2132
+#: src/components/settings/Integrations.tsx:2142
 #: src/components/templates/SendTemplateModal.tsx:313
 #: src/components/templates/SendTemplateModal.tsx:329
 #: src/components/templates/SendTestEmailButton.tsx:24
@@ -16673,7 +16682,7 @@ msgstr "Nombre del remitente"
 msgid "Sender of variation {name}"
 msgstr "Remitente de la variante {name}"
 
-#: src/components/settings/Integrations.tsx:1902
+#: src/components/settings/Integrations.tsx:1912
 #: src/components/settings/integrations/EmailProviderCard.tsx:275
 msgid "Senders"
 msgstr "Remitentes"
@@ -16754,7 +16763,7 @@ msgstr "enviado"
 msgid "Sent"
 msgstr "Enviado"
 
-#: src/components/logs/MessageDetail.tsx:684
+#: src/components/logs/MessageDetail.tsx:673
 msgid "Sent by"
 msgstr "Enviado por"
 
@@ -16774,7 +16783,7 @@ msgid "Sent by the transactional notification {0}"
 msgstr "Enviado por la notificación transaccional {0}"
 
 #: src/components/logs/MessageDetail.tsx:278
-#: src/components/logs/MessageDetail.tsx:778
+#: src/components/logs/MessageDetail.tsx:774
 msgid "Sent content"
 msgstr "Contenido enviado"
 
@@ -16863,16 +16872,16 @@ msgstr "¡Servidor reiniciado exitosamente! Ahora puedes iniciar sesión."
 msgid "Server token"
 msgstr "Token del servidor"
 
-#: src/components/settings/Integrations.tsx:1651
-#: src/components/settings/Integrations.tsx:1654
+#: src/components/settings/Integrations.tsx:1661
+#: src/components/settings/Integrations.tsx:1664
 msgid "Server Token"
 msgstr "Token del servidor"
 
-#: src/components/settings/Integrations.tsx:1786
+#: src/components/settings/Integrations.tsx:1796
 msgid "SES tenant"
 msgstr "Tenant SES"
 
-#: src/components/settings/Integrations.tsx:1744
+#: src/components/settings/Integrations.tsx:1754
 #: src/components/settings/LicenseSettings.tsx:117
 #: src/services/api/licenseErrors.ts:50
 msgid "SES tenant isolation"
@@ -16934,7 +16943,7 @@ msgstr "Define un dominio en General, en Dominio personalizado, antes de activar
 msgid "Set as default marketing email provider"
 msgstr "Establecer como proveedor de correo de marketing predeterminado"
 
-#: src/components/settings/Integrations.tsx:1872
+#: src/components/settings/Integrations.tsx:1882
 msgid "Set as default sender"
 msgstr "Establecer como remitente predeterminado"
 
@@ -16950,7 +16959,7 @@ msgstr "¿Establecer como proveedor de correo de marketing?"
 msgid "Set as transactional email provider?"
 msgstr "¿Establecer como proveedor de correo transaccional?"
 
-#: src/components/logs/MessageDetail.tsx:561
+#: src/components/logs/MessageDetail.tsx:562
 msgid "Set at send time"
 msgstr "Fijado al enviar"
 
@@ -17121,7 +17130,7 @@ msgstr "compartido con el resto de esta cuenta de AWS"
 msgid "Show"
 msgstr "Mostrar"
 
-#: src/components/logs/AuditLogTab.tsx:616
+#: src/components/logs/AuditLogTab.tsx:617
 #: src/components/logs/InboundWebhooksTab.tsx:292
 #: src/components/logs/MessagesTab.tsx:795
 msgid "Show all time"
@@ -17165,7 +17174,7 @@ msgid "Show this block if"
 msgstr "Mostrar este bloque si"
 
 #. placeholder {0}: int(MAX_CONTACT_ROWS)
-#: src/pages/ContactsPage.tsx:691
+#: src/pages/ContactsPage.tsx:709
 msgid "Showing the first {0} contacts. Refine your filters to see more."
 msgstr "Se muestran los primeros {0} contactos. Ajusta los filtros para ver más."
 
@@ -17173,7 +17182,7 @@ msgstr "Se muestran los primeros {0} contactos. Ajusta los filtros para ver más
 #~ msgid "Showing the first {maxObjectsLabel} files of this bucket."
 #~ msgstr "Se muestran los primeros {maxObjectsLabel} archivos de este bucket."
 
-#: src/components/file_manager/FileExplorer.tsx:878
+#: src/components/file_manager/FileExplorer.tsx:880
 msgid "Showing the first {maxObjectsLabel} files of this bucket. Folder counts, total size and search only cover these files."
 msgstr "Se muestran los primeros {maxObjectsLabel} archivos de este bucket. Los recuentos de carpetas, el tamaño total y la búsqueda solo cubren estos archivos."
 
@@ -17237,7 +17246,7 @@ msgstr "Cerró la sesión"
 #~ msgstr "Cerró la sesión de <0>{target}</0>"
 
 #: src/components/logs/auditDisplay.ts:26
-#: src/components/logs/AuditLogTab.tsx:218
+#: src/components/logs/AuditLogTab.tsx:219
 msgid "Signed-out visitor"
 msgstr "Visitante sin sesión"
 
@@ -17332,6 +17341,7 @@ msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "El slug solo debe contener letras minúsculas, números y guiones"
 
 #: src/components/logs/MessagesTab.tsx:291
+#: src/components/settings/Integrations.tsx:1198
 msgid "SMS"
 msgstr "SMS"
 
@@ -17392,7 +17402,7 @@ msgstr "Dominio SMTP"
 msgid "SMTP host"
 msgstr "Host SMTP"
 
-#: src/components/settings/Integrations.tsx:1401
+#: src/components/settings/Integrations.tsx:1411
 #: src/components/settings/SystemSettingsDrawer.tsx:322
 #: src/pages/SetupWizard.tsx:454
 msgid "SMTP Host"
@@ -17402,7 +17412,7 @@ msgstr "Host SMTP"
 msgid "SMTP host is required"
 msgstr "El host SMTP es requerido"
 
-#: src/components/settings/Integrations.tsx:1599
+#: src/components/settings/Integrations.tsx:1609
 #: src/components/settings/SystemSettingsDrawer.tsx:390
 #: src/pages/SetupWizard.tsx:495
 msgid "SMTP Password"
@@ -17412,7 +17422,7 @@ msgstr "Contraseña SMTP"
 msgid "SMTP port"
 msgstr "Puerto SMTP"
 
-#: src/components/settings/Integrations.tsx:1408
+#: src/components/settings/Integrations.tsx:1418
 #: src/components/settings/SystemSettingsDrawer.tsx:335
 #: src/pages/SetupWizard.tsx:463
 msgid "SMTP Port"
@@ -17448,7 +17458,7 @@ msgstr "Usuario SMTP"
 #~ msgid "SMTP User"
 #~ msgstr "Usuario SMTP"
 
-#: src/components/settings/Integrations.tsx:1594
+#: src/components/settings/Integrations.tsx:1604
 #: src/components/settings/SystemSettingsDrawer.tsx:377
 #: src/pages/SetupWizard.tsx:490
 msgid "SMTP Username"
@@ -17551,7 +17561,7 @@ msgstr "Atributos del espaciador"
 msgid "SparkPost"
 msgstr "SparkPost"
 
-#: src/components/settings/Integrations.tsx:1633
+#: src/components/settings/Integrations.tsx:1643
 msgid "SparkPost API Key"
 msgstr "Clave API de SparkPost"
 
@@ -17706,14 +17716,14 @@ msgstr "Pasos"
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "Detiene esta automatización para un contacto en cuanto responde a uno de sus correos. Esto requiere que el reenvío de respuestas entrantes esté configurado en tu proveedor de correo (ESP): las respuestas a tu dominio de envío deben enrutarse al proveedor, que las reenvía a Notifuse. Sin esa configuración, las respuestas no se detectan y la secuencia no se detendrá."
 
-#: src/components/file_manager/FileExplorer.tsx:584
-#: src/components/file_manager/FileExplorer.tsx:594
-#: src/components/file_manager/FileExplorer.tsx:598
+#: src/components/file_manager/FileExplorer.tsx:586
+#: src/components/file_manager/FileExplorer.tsx:596
+#: src/components/file_manager/FileExplorer.tsx:600
 msgid "Storage settings"
 msgstr "Configuración de almacenamiento"
 
-#: src/components/file_manager/FileExplorer.tsx:579
-#: src/components/file_manager/FileExplorer.tsx:968
+#: src/components/file_manager/FileExplorer.tsx:581
+#: src/components/file_manager/FileExplorer.tsx:970
 msgid "Storage settings (Read-only mode)"
 msgstr "Configuración de almacenamiento (modo de solo lectura)"
 
@@ -17764,14 +17774,14 @@ msgstr "Atributos de estilo"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:93
 #: src/components/broadcasts/detail/AbTestPanel.tsx:128
 #: src/components/broadcasts/detail/BroadcastAside.tsx:107
-#: src/components/logs/MessageDetail.tsx:655
+#: src/components/logs/MessageDetail.tsx:644
 #: src/components/templates/TemplatePreviewDrawer.tsx:338
 #: src/components/templates/TemplateTranslationsTab.tsx:282
 msgid "Subject"
 msgstr "Asunto"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
-#: src/components/logs/MessageDetail.tsx:656
+#: src/components/logs/MessageDetail.tsx:645
 #: src/components/templates/CreateTemplateDrawer.tsx:1097
 #: src/components/templates/TemplatePreviewDrawer.tsx:343
 #: src/components/templates/TemplateTranslationsTab.tsx:291
@@ -17949,7 +17959,7 @@ msgstr "Supabase"
 msgid "Supabase integration saved successfully"
 msgstr "Integración de Supabase guardada exitosamente"
 
-#: src/components/settings/Integrations.tsx:1294
+#: src/components/settings/Integrations.tsx:1304
 msgid "Supabase, AI assistants, Firecrawl and Zapier"
 msgstr "Supabase, asistentes de IA, Firecrawl y Zapier"
 
@@ -17978,9 +17988,9 @@ msgstr "Cambia al modo Vista previa para ver cómo se verá tu correo para los d
 msgid "Switch to Preview mode to see the breakpoint effects. The edit mode shows the raw structure, but only preview mode compiles the MJML template and renders the responsive behavior properly."
 msgstr "Cambia al modo Vista previa para ver los efectos del punto de quiebre. El modo de edición muestra la estructura sin procesar, pero solo el modo de vista previa compila la plantilla MJML y renderiza correctamente el comportamiento responsive."
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:289
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:294
 #: src/components/logs/auditDisplay.ts:24
-#: src/components/logs/AuditLogTab.tsx:217
+#: src/components/logs/AuditLogTab.tsx:218
 #: src/components/logs/labels.ts:8
 msgid "System"
 msgstr "Sistema"
@@ -18020,7 +18030,7 @@ msgstr "Hacer un tour"
 msgid "Target"
 msgstr "Destino"
 
-#: src/components/logs/AuditLogTab.tsx:298
+#: src/components/logs/AuditLogTab.tsx:299
 msgid "Target ID"
 msgstr "ID del objetivo"
 
@@ -18046,7 +18056,7 @@ msgstr "Tipo de tarea"
 #~ msgstr "Equipo"
 
 #: src/components/settings/SettingsSidebar.tsx:62
-#: src/components/settings/WorkspaceMembers.tsx:469
+#: src/components/settings/WorkspaceMembers.tsx:468
 msgid "Team & API keys"
 msgstr "Equipo y claves API"
 
@@ -18075,7 +18085,7 @@ msgstr "plantilla"
 #: src/components/broadcasts/compose/ContentCard.tsx:123
 #: src/components/broadcasts/detail/AbTestPanel.tsx:123
 #: src/components/lists/ListHeader.tsx:79
-#: src/components/logs/MessageDetail.tsx:653
+#: src/components/logs/MessageDetail.tsx:642
 #: src/components/logs/MessagesTab.tsx:473
 #: src/components/messages/MessageHistoryTable.tsx:154
 #: src/components/messages/MessageHistoryTable.tsx:240
@@ -18121,11 +18131,11 @@ msgstr "Plantilla modificada por otra persona"
 msgid "Template created successfully"
 msgstr "Plantilla creada exitosamente"
 
-#: src/components/logs/MessageDetail.tsx:816
+#: src/components/logs/MessageDetail.tsx:812
 msgid "template data"
 msgstr "datos de la plantilla"
 
-#: src/components/logs/MessageDetail.tsx:814
+#: src/components/logs/MessageDetail.tsx:810
 msgid "Template data"
 msgstr "Datos de la plantilla"
 
@@ -18245,7 +18255,7 @@ msgstr "Plantillas"
 msgid "Templates that already contain this block do not change."
 msgstr "Las plantillas que ya contienen este bloque no cambian."
 
-#: src/components/settings/Integrations.tsx:1884
+#: src/components/settings/Integrations.tsx:1894
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "Las plantillas que usan este remitente necesitarán actualizarse para usar un remitente diferente."
 
@@ -18314,7 +18324,7 @@ msgstr "Aquí no se pueden hacer entregas de prueba: las URL de hook de Zapier s
 msgid "Test duration (hours)"
 msgstr "Duración de prueba (horas)"
 
-#: src/components/settings/Integrations.tsx:2118
+#: src/components/settings/Integrations.tsx:2128
 msgid "Test Email Provider"
 msgstr "Probar proveedor de correo"
 
@@ -18344,7 +18354,7 @@ msgstr "Prueba fallida: {0}"
 msgid "Test in different email clients as support varies"
 msgstr "Prueba en diferentes clientes de correo ya que el soporte varía"
 
-#: src/components/settings/Integrations.tsx:1965
+#: src/components/settings/Integrations.tsx:1975
 msgid "Test Integration"
 msgstr "Probar integración"
 
@@ -18393,7 +18403,7 @@ msgstr "Probando feed..."
 
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:62
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:135
-#: src/components/logs/MessageDetail.tsx:785
+#: src/components/logs/MessageDetail.tsx:781
 msgid "text"
 msgstr "texto"
 
@@ -18456,7 +18466,7 @@ msgstr "Transformación de texto"
 #: src/components/email_builder/EmailBuilder.tsx:1061
 #: src/components/email_builder/MjmlCodeEditor.tsx:698
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
-#: src/components/logs/MessageDetail.tsx:772
+#: src/components/logs/MessageDetail.tsx:768
 #: src/components/templates/TemplatePreviewDrawer.tsx:212
 msgid "Text version"
 msgstr "Versión de texto"
@@ -18532,7 +18542,7 @@ msgstr "El envío masivo dejará de enviar y puede reanudarse más tarde."
 msgid "The comparison period as extra columns"
 msgstr "El periodo de comparación como columnas adicionales"
 
-#: src/components/logs/MessageDetail.tsx:736
+#: src/components/logs/MessageDetail.tsx:732
 msgid "The contact was erased; the message data is gone"
 msgstr "El contacto se borró; los datos del mensaje ya no existen"
 
@@ -18572,7 +18582,7 @@ msgstr "La versión de texto personalizada ({languages}) no tiene enlace para da
 msgid "The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML."
 msgstr "El modo de editor no se puede cambiar después de crear la plantilla. Para usar el otro editor, crea una plantilla nueva y copia el contenido con Importar MJML o Exportar MJML."
 
-#: src/components/settings/Integrations.tsx:1469
+#: src/components/settings/Integrations.tsx:1479
 msgid "The email address that will be used as the SMTP user for authentication"
 msgstr "La dirección de correo que se usará como usuario SMTP para autenticación"
 
@@ -18592,13 +18602,17 @@ msgstr "No se pudo compilar el email"
 msgid "The email holds no text yet."
 msgstr "El email aún no contiene texto."
 
-#: src/components/logs/AuditLogTab.tsx:153
+#: src/components/logs/AuditLogTab.tsx:154
 msgid "The export failed"
 msgstr "La exportación falló"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:119
 msgid "The export failed. Please try again."
 msgstr "La exportación ha fallado. Inténtalo de nuevo."
+
+#: src/components/file_manager/FileExplorer.tsx:335
+msgid "The folder held nothing to delete."
+msgstr "La carpeta no contenía nada que eliminar."
 
 #: src/components/templates/ImportErrorsModal.tsx:33
 msgid "The following validation errors were found in your import:"
@@ -18616,7 +18630,7 @@ msgstr "el feed de datos global no tiene URL"
 msgid "the global data feed URL must start with https:// or http://, without query or fragment"
 msgstr "la URL del feed de datos global debe empezar por https:// o http://, sin consulta ni fragmento"
 
-#: src/components/settings/Integrations.tsx:1610
+#: src/components/settings/Integrations.tsx:1620
 #: src/pages/SetupWizard.tsx:524
 msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
 msgstr "El nombre de host con el que tu servidor se identifica al conectarse al servidor SMTP. Si se deja vacío, se usa el valor del host SMTP."
@@ -18770,11 +18784,15 @@ msgstr ""
 msgid "The status to assign when adding to the list"
 msgstr "El estado a asignar cuando se añade a la lista"
 
-#: src/components/file_manager/FileExplorer.tsx:879
+#: src/components/file_manager/FileExplorer.tsx:881
 msgid "The storage did not return the whole bucket. Folder counts, total size and search only cover the files shown."
 msgstr "El almacenamiento no devolvió todo el bucket. Los recuentos de carpetas, el tamaño total y la búsqueda solo cubren los archivos mostrados."
 
-#: src/components/logs/MessageDetail.tsx:737
+#: src/components/file_manager/storageObjects.ts:179
+msgid "The storage did not return the whole content of \"{prefix}\""
+msgstr "El almacenamiento no devolvió todo el contenido de «{prefix}»"
+
+#: src/components/logs/MessageDetail.tsx:733
 msgid "The template behind this message isn't available"
 msgstr "La plantilla de este mensaje no está disponible"
 
@@ -18883,7 +18901,7 @@ msgstr "Versiones del tema"
 msgid "There is nothing to write: the log is append-only, and the retention setting is owner-only. The switch is granted and locked for the same reason as the other unenforced verbs."
 msgstr "No hay nada que escribir: el registro es de solo anexado y la retención es exclusiva de los propietarios. El interruptor está concedido y bloqueado por la misma razón que los demás verbos no aplicados."
 
-#: src/components/settings/Integrations.tsx:1827
+#: src/components/settings/Integrations.tsx:1837
 msgid "These AWS credentials can't list tenants or configuration sets (needs ses:ListTenants). Type the names instead."
 msgstr "Estas credenciales de AWS no pueden listar tenants ni conjuntos de configuración (se necesita ses:ListTenants). Escribe los nombres a mano."
 
@@ -19029,7 +19047,7 @@ msgstr ""
 #~ msgid "This deployment keeps working without them."
 #~ msgstr ""
 
-#: src/components/logs/MessageDetail.tsx:787
+#: src/components/logs/MessageDetail.tsx:783
 msgid "This email is sent as HTML only"
 msgstr "Este email se envía solo en HTML"
 
@@ -19111,7 +19129,7 @@ msgstr ""
 msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 msgstr "Esta lista hace dos cosas. Filtra las señales entrantes: los demás orígenes se ignoran en silencio. También controla la identificación por clic en correo: un enlace con seguimiento solo lleva un token de identidad para un dominio listado aquí, así que mientras esto esté vacío ningún enlace de correo puede identificar a un contacto. Usa *.example.com para cubrir tanto example.com como sus subdominios: example.com por sí solo no coincide con www.example.com."
 
-#: src/pages/ContactsPage.tsx:588
+#: src/pages/ContactsPage.tsx:606
 msgid "This list no longer exists"
 msgstr "Esta lista ya no existe"
 
@@ -19173,7 +19191,7 @@ msgstr "Esta regla no es válida."
 msgid "This section is empty. Add columns or groups to display content."
 msgstr "Esta sección está vacía. Añade columnas o grupos para mostrar contenido."
 
-#: src/pages/ContactsPage.tsx:588
+#: src/pages/ContactsPage.tsx:606
 msgid "This segment no longer exists"
 msgstr "Este segmento ya no existe"
 
@@ -19240,7 +19258,7 @@ msgstr "Este texto no se actualiza cuando cambias el email."
 msgid "This token is displayed once and cannot be retrieved again. Copy it now and paste it into Zapier."
 msgstr "Este token solo se muestra una vez y no se puede recuperar de nuevo. Cópialo ahora y pégalo en Zapier."
 
-#: src/components/settings/WorkspaceMembers.tsx:668
+#: src/components/settings/WorkspaceMembers.tsx:667
 msgid "This token will only be displayed once. Please save it in a secure location. It cannot be retrieved again."
 msgstr "Este token solo se mostrará una vez. Por favor, guárdalo en un lugar seguro. No se puede recuperar de nuevo."
 
@@ -19293,7 +19311,7 @@ msgstr "Esto registrará o actualizará los puntos finales de webhook para este 
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "Esto reemplazará todo el contenido con la plantilla del idioma predeterminado. ¿Continuar?"
 
-#: src/components/settings/Integrations.tsx:2144
+#: src/components/settings/Integrations.tsx:2154
 msgid "This will send a real test email to the address provided."
 msgstr "Esto enviará un correo de prueba real a la dirección proporcionada."
 
@@ -19301,7 +19319,7 @@ msgstr "Esto enviará un correo de prueba real a la dirección proporcionada."
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "Esto establecerá el valor a NULL. ¿Estás seguro?"
 
-#: src/components/logs/AuditLogTab.tsx:491
+#: src/components/logs/AuditLogTab.tsx:492
 msgid "This workspace"
 msgstr "Este workspace"
 
@@ -19316,7 +19334,7 @@ msgstr "Este contenedor no tiene secciones. Añade una sección para mostrar con
 #: src/components/blog/PublishModal.tsx:149
 #: src/components/broadcasts/compose/SendingCard.tsx:100
 #: src/components/broadcasts/compose/SendingCard.tsx:102
-#: src/components/logs/AuditLogTab.tsx:529
+#: src/components/logs/AuditLogTab.tsx:530
 #: src/components/logs/InboundWebhooksTab.tsx:249
 #: src/components/logs/MessagesTab.tsx:634
 #: src/components/logs/OutgoingWebhooksTab.tsx:161
@@ -19658,7 +19676,7 @@ msgstr "Con seguimiento"
 msgid "Tracked on {tracked} of {total} emails"
 msgstr "Con seguimiento en {tracked} de {total} correos"
 
-#: src/components/logs/MessageDetail.tsx:663
+#: src/components/logs/MessageDetail.tsx:652
 #: src/components/settings/WebAnalyticsSettings.tsx:298
 #: src/components/transactional/TransactionalDetail.tsx:405
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:377
@@ -19675,7 +19693,7 @@ msgstr "El seguimiento (aperturas y clics) debe estar habilitado en la configura
 
 #: src/components/contacts/contactColumns.ts:72
 #: src/components/contacts/ContactsTable.tsx:212
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:279
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:284
 msgid "Tracking consent"
 msgstr "Consentimiento de seguimiento"
 
@@ -19741,11 +19759,11 @@ msgstr "Notificación transaccional eliminada exitosamente"
 #~ msgid "Transactional Provider"
 #~ msgstr "Proveedor transaccional"
 
-#: src/components/settings/Integrations.tsx:1242
+#: src/components/settings/Integrations.tsx:1252
 msgid "Transactional: {transactionalName}"
 msgstr "Transaccional: {transactionalName}"
 
-#: src/components/settings/Integrations.tsx:1244
+#: src/components/settings/Integrations.tsx:1254
 msgid "Transactional: not set"
 msgstr "Transaccional: sin definir"
 
@@ -19807,7 +19825,7 @@ msgstr "Desactivar"
 msgid "Turn off for notices every member must receive, such as security or legal notices: the list's unsubscribed contacts receive it too, and its emails carry no List-Unsubscribe header, so mail clients show no Unsubscribe button. The unsubscribe link in your template is not affected."
 msgstr "Desactívalo para avisos que todos los miembros deben recibir, como avisos de seguridad o legales: los contactos de la lista que se dieron de baja también lo reciben, y sus correos no llevan el encabezado List-Unsubscribe, así que los clientes de correo no muestran el botón para darse de baja. El enlace de baja de tu plantilla no cambia."
 
-#: src/components/settings/Integrations.tsx:1805
+#: src/components/settings/Integrations.tsx:1815
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr "Desactiva el aislamiento de tenant SES para usar tu propio tenant, o vacía este campo."
 
@@ -19865,6 +19883,10 @@ msgstr "Escribe {selectedCount} para confirmar:"
 #: src/components/timeline/ContactTimeline.tsx:795
 msgid "Type:"
 msgstr "Tipo:"
+
+#: src/components/settings/Integrations.tsx:1212
+msgid "Type: {typeName}"
+msgstr "Tipo: {typeName}"
 
 #: src/components/blog/PostsTable.tsx:317
 msgid "Uncategorized"
@@ -20045,7 +20067,7 @@ msgstr "CANCELAR SUSCRIPCIÓN"
 #: src/components/contacts/BulkUpdateDrawer.tsx:610
 #: src/components/segment/form_leaf.tsx:389
 #: src/components/segment/input.tsx:795
-#: src/pages/ContactsPage.tsx:304
+#: src/pages/ContactsPage.tsx:300
 msgid "Unsubscribe from list"
 msgstr "Cancelar suscripción de lista"
 
@@ -20062,7 +20084,7 @@ msgstr "Cancelar suscripción de lista"
 #: src/components/messages/MessageHistoryTable.tsx:382
 #: src/components/timeline/ContactTimeline.tsx:750
 #: src/components/transactional/RecentSends.tsx:41
-#: src/pages/ContactsPage.tsx:523
+#: src/pages/ContactsPage.tsx:541
 msgid "Unsubscribed"
 msgstr "Cancelado suscripción"
 
@@ -20090,8 +20112,8 @@ msgstr "Sin título"
 msgid "Untitled automation"
 msgstr "Automatización sin título"
 
-#: src/components/settings/Integrations.tsx:1767
-#: src/components/settings/Integrations.tsx:1794
+#: src/components/settings/Integrations.tsx:1777
+#: src/components/settings/Integrations.tsx:1804
 msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr "Hasta 64 letras, números, guiones o guiones bajos."
 
@@ -20147,7 +20169,7 @@ msgstr "Actualizado {updatedAgo}"
 msgid "Updated {updatedAt} in {timezone}"
 msgstr "Actualizado {updatedAt} ({timezone})"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:297
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:302
 #: src/components/segment/segmentSummary.ts:43
 msgid "Updated At"
 msgstr "Actualizado el"
@@ -20228,8 +20250,8 @@ msgstr "Actualizó la configuración del espacio de trabajo <0>{target}</0>"
 #~ msgid "Upgrade licence"
 #~ msgstr ""
 
-#: src/components/file_manager/FileExplorer.tsx:754
-#: src/components/file_manager/FileExplorer.tsx:1046
+#: src/components/file_manager/FileExplorer.tsx:756
+#: src/components/file_manager/FileExplorer.tsx:1048
 msgid "Upload"
 msgstr "Subir"
 
@@ -20241,7 +20263,7 @@ msgstr "Subida completada"
 msgid "Upload Error"
 msgstr "Error de subida"
 
-#: src/components/file_manager/FileExplorer.tsx:439
+#: src/components/file_manager/FileExplorer.tsx:441
 msgid "Upload failed: "
 msgstr "Error al subir: "
 
@@ -20254,8 +20276,8 @@ msgstr "Error en la subida: {0}"
 msgid "Upload failed. Please try again."
 msgstr "Error en la subida. Por favor, inténtalo de nuevo."
 
-#: src/components/file_manager/FileExplorer.tsx:747
-#: src/components/file_manager/FileExplorer.tsx:1038
+#: src/components/file_manager/FileExplorer.tsx:749
+#: src/components/file_manager/FileExplorer.tsx:1040
 msgid "Upload file (Read-only mode)"
 msgstr "Subir archivo (modo de solo lectura)"
 
@@ -20321,7 +20343,7 @@ msgstr "Use 0 para conservar para siempre, o un valor entre {AUDIT_LOG_MIN_RETEN
 msgid "Use a different email"
 msgstr "Usar otro correo"
 
-#: src/components/settings/Integrations.tsx:1790
+#: src/components/settings/Integrations.tsx:1800
 msgid "Use a tenant you manage yourself. Requires a configuration set associated with it in AWS."
 msgstr "Usa un tenant que gestiones tú mismo. Requiere un conjunto de configuración asociado a él en AWS."
 
@@ -20385,7 +20407,7 @@ msgstr "Usa este comando curl para enviar una notificación transaccional vía A
 msgid "Use This Theme"
 msgstr "Usar este tema"
 
-#: src/components/settings/Integrations.tsx:1419
+#: src/components/settings/Integrations.tsx:1429
 #: src/components/settings/SystemSettingsDrawer.tsx:360
 #: src/pages/SetupWizard.tsx:480
 msgid "Use TLS"
@@ -20830,7 +20852,7 @@ msgstr "Seguimiento web"
 msgid "Web version of the email"
 msgstr "Versión web del email"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:260
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:265
 msgid "Web visits"
 msgstr "Visitas web"
 
@@ -21067,7 +21089,7 @@ msgstr "¿Qué canales de adquisición y campañas trajeron más sesiones este p
 msgid "Which landing pages bring the most sessions, and which ones have the worst bounce rate or engagement?"
 msgstr "¿Qué páginas de destino traen más sesiones, y cuáles tienen la peor tasa de rebote o interacción?"
 
-#: src/components/settings/WorkspaceMembers.tsx:469
+#: src/components/settings/WorkspaceMembers.tsx:468
 msgid "Who can do what in this workspace"
 msgstr "Quién puede hacer qué en este espacio de trabajo"
 
@@ -21075,7 +21097,7 @@ msgstr "Quién puede hacer qué en este espacio de trabajo"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Quién hizo qué en este workspace: miembros, permisos, claves API, integraciones, configuración y cambios de contenido, con la dirección de origen y si estaba permitido."
 
-#: src/components/logs/AuditLogTab.tsx:492
+#: src/components/logs/AuditLogTab.tsx:493
 msgid "Whole deployment"
 msgstr "Todo el despliegue"
 
@@ -21092,7 +21114,7 @@ msgstr "¿Por qué cambió el tráfico?"
 msgid "Width"
 msgstr "Ancho"
 
-#: src/components/file_manager/FileExplorer.tsx:1135
+#: src/components/file_manager/FileExplorer.tsx:1137
 msgid "will be inserted into {targetLabel}"
 msgstr "se insertará en {targetLabel}"
 
@@ -21183,7 +21205,7 @@ msgid "Without its own text, this language receives the automatic version."
 msgstr "Sin texto propio, este idioma recibe la versión automática."
 
 #: src/components/logs/AuditEntryDetail.tsx:175
-#: src/components/logs/AuditLogTab.tsx:576
+#: src/components/logs/AuditLogTab.tsx:577
 #: src/components/logs/labels.ts:9
 #: src/components/settings/GeneralSettings.tsx:225
 #: src/components/settings/GeneralSettings.tsx:323
@@ -21415,8 +21437,8 @@ msgstr "No tienes acceso de escritura a {resource}."
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "No tienes un proveedor de correo de marketing configurado. Por favor, configura un proveedor de correo en la configuración de tu espacio de trabajo para enviar envíos masivos."
 
-#: src/pages/ContactsPage.tsx:429
-#: src/pages/ContactsPage.tsx:536
+#: src/pages/ContactsPage.tsx:447
+#: src/pages/ContactsPage.tsx:554
 msgid "You don't have access to contacts"
 msgstr "No tienes acceso a los contactos"
 
@@ -21515,7 +21537,7 @@ msgstr "Necesitas acceso al historial de mensajes"
 msgid "You need access to message history to see sends"
 msgstr "Necesitas acceso al historial de mensajes para ver los envíos"
 
-#: src/components/logs/MessageDetail.tsx:735
+#: src/components/logs/MessageDetail.tsx:731
 #: src/components/transactional/notificationRules.ts:61
 #: src/components/transactional/PreviewPanel.tsx:75
 msgid "You need access to templates"
