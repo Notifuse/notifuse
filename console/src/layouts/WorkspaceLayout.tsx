@@ -161,7 +161,8 @@ export function WorkspaceLayout() {
         <main
           data-page-layout={pageLayout}
           // isolate: the z-indexes of the page (sticky table columns at 12 and 13) stay inside it,
-          // under the fixed sidebar (z-10), whose menus and tooltips render inside the sidebar.
+          // under the fixed sidebar (z-10). The workspace, help and account menus render inside the
+          // sidebar; the tooltips and submenus of the folded navigation render in the body.
           className={`isolate ${pinned ? 'ml-sidebar' : 'ml-sidebar-collapsed'}`}
           // The page starts under the licence banner, which is 0px tall on a licensed console.
           style={{ paddingTop: withBannerOffset('0px') }}
