@@ -61,6 +61,18 @@ describe('RailSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New Category' }))
     expect(onClick).toHaveBeenCalled()
   })
+
+  it('shows its label in a tooltip on hover and a pointer cursor', async () => {
+    render(
+      <RailSection title="Lists" action={{ label: 'New list', icon: <span>+</span>, onClick: vi.fn() }}>
+        <span>child</span>
+      </RailSection>
+    )
+    const button = screen.getByRole('button', { name: 'New list' })
+    expect(button.className).toMatch(/\bcursor-pointer\b/)
+    fireEvent.mouseEnter(button)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('New list')
+  })
 })
 
 describe('RailItem', () => {

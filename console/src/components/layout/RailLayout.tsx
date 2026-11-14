@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Tooltip } from 'antd'
 import { Link } from '@tanstack/react-router'
 import type { LinkProps } from '@tanstack/react-router'
 import { minusBannerOffset, withBannerOffset } from '../license/bannerOffset'
@@ -56,15 +57,16 @@ export function RailSection({ title, action, children }: RailSectionProps) {
         <div data-rail-section-head className="flex items-center justify-between px-2 pt-4 pb-1">
           <span className="text-overline font-semibold uppercase tracking-[0.06em] text-ink-3">{title}</span>
           {action ? (
-            <button
-              type="button"
-              aria-label={action.label}
-              title={action.label}
-              onClick={action.onClick}
-              className="flex size-5 items-center justify-center rounded-sm text-ink-3 hover:bg-fill hover:text-ink focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none"
-            >
-              {action.icon}
-            </button>
+            <Tooltip title={action.label}>
+              <button
+                type="button"
+                aria-label={action.label}
+                onClick={action.onClick}
+                className="flex size-5 cursor-pointer items-center justify-center rounded-sm text-ink-3 hover:bg-fill hover:text-ink focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none"
+              >
+                {action.icon}
+              </button>
+            </Tooltip>
           ) : null}
         </div>
       ) : null}
@@ -153,7 +155,12 @@ export function RailItem({
           {content}
         </Link>
       ) : (
-        <button type="button" onClick={onClick} aria-current={active ? 'page' : undefined} className={mainClass}>
+        <button
+          type="button"
+          onClick={onClick}
+          aria-current={active ? 'page' : undefined}
+          className={`cursor-pointer ${mainClass}`}
+        >
           {content}
         </button>
       )}
