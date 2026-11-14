@@ -56,6 +56,10 @@ services:
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    # SIGTERM starts a graceful shutdown, given 70 s by cmd/api/main.go: the automation step
+    # under way, the emails being sent and the web analytics buffer finish. Docker's default 10 s
+    # would kill it first.
+    stop_grace_period: 75s
     networks:
       - notifuse-network
     healthcheck:
