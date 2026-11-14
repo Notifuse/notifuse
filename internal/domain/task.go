@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/url"
 	"strconv"
 	"strings"
@@ -454,7 +455,7 @@ func (r *GetTaskRequest) FromURLParams(values url.Values) error {
 		return fmt.Errorf("id is required")
 	}
 
-	return nil
+	return validateTaskID(r.ID)
 }
 
 // DeleteTaskRequest defines the request to delete a task
@@ -475,7 +476,7 @@ func (r *DeleteTaskRequest) FromURLParams(values url.Values) error {
 		return fmt.Errorf("id is required")
 	}
 
-	return nil
+	return validateTaskID(r.ID)
 }
 
 // ListTasksRequest is used to extract query parameters for listing tasks
@@ -616,6 +617,15 @@ func (r *ExecuteTaskRequest) Validate() error {
 		return fmt.Errorf("task id is required")
 	}
 
+	return validateTaskID(r.ID)
+}
+
+// validateTaskID refuses a task ID that is not a UUID: tasks.id is a UUID column, so such an ID
+// would reach the database only to fail there.
+func validateTaskID(id string) error {
+	if _, err := uuid.Parse(id); err != nil {
+		return fmt.Errorf("task id must be a UUID")
+	}
 	return nil
 }
 
@@ -635,7 +645,7 @@ func (r *ResetTaskRequest) Validate() error {
 		return fmt.Errorf("id is required")
 	}
 
-	return nil
+	return validateTaskID(r.ID)
 }
 
 // TriggerTaskRequest defines the request to trigger immediate execution of a recurring task
@@ -654,7 +664,7 @@ func (r *TriggerTaskRequest) Validate() error {
 		return fmt.Errorf("id is required")
 	}
 
-	return nil
+	return validateTaskID(r.ID)
 }
 
 type taskLeaseKey struct{}

@@ -1577,7 +1577,7 @@ func (s *TaskService) ResetTask(ctx context.Context, workspace, taskID string) e
 		if errors.Is(err, domain.ErrTaskNotFound) {
 			return domain.ErrTaskNotFound
 		}
-		return fmt.Errorf("failed to get task: %w", err)
+		return fmt.Errorf("failed to load task: %w", err)
 	}
 
 	// Verify task is in failed state
@@ -1634,7 +1634,7 @@ func (s *TaskService) TriggerTask(ctx context.Context, workspace, taskID string)
 		if errors.Is(err, domain.ErrTaskNotFound) {
 			return domain.ErrTaskNotFound
 		}
-		return fmt.Errorf("failed to get task: %w", err)
+		return fmt.Errorf("failed to load task: %w", err)
 	}
 
 	// Verify task is recurring

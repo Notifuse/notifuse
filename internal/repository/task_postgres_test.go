@@ -202,6 +202,18 @@ func TestTaskRepository_GetWithTransaction(t *testing.T) {
 	assert.Equal(t, taskID, task.ID)
 	assert.Equal(t, workspace, task.WorkspaceID)
 	assert.NoError(t, mock.ExpectationsWereMet())
+
+	// No row: Get passes GetTx's sentinel through its transaction.
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT .* FROM tasks WHERE id = .* AND workspace_id = .*").
+		WithArgs(taskID, workspace).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
+
+	task, err = repo.Get(ctx, workspace, taskID)
+	assert.Nil(t, task)
+	assert.ErrorIs(t, err, domain.ErrTaskNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTaskRepository_UpdateWithTransaction(t *testing.T) {
@@ -279,6 +291,7 @@ func TestTaskRepository_Delete(t *testing.T) {
 	err = repo.Delete(ctx, workspace, taskID)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "task not found")
+	assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	// Test database error
@@ -752,6 +765,7 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 	err = repo.MarkAsCompleted(ctx, workspace, taskID, state)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "task not found")
+	assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	// Test database error
@@ -1823,6 +1837,7 @@ func TestTaskRepository_MarkAsPending(t *testing.T) {
 		err := repo.MarkAsPending(ctx, workspace, id, nextRunAfter, progress, state)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "task not found")
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 		assert.ErrorIs(t, err, domain.ErrTaskNotFound, "a task deleted meanwhile is told apart from a failed write")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -1897,6 +1912,7 @@ func TestTaskRepository_MarkAsPendingTx(t *testing.T) {
 		err = repo.MarkAsPendingTx(ctx, tx, workspace, id, nextRunAfter, progress, state)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "task not found")
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 		assert.ErrorIs(t, err, domain.ErrTaskNotFound)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})

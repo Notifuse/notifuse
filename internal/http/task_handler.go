@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -212,7 +211,7 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	task, err := h.taskService.GetTask(ctx, getRequest.WorkspaceID, getRequest.ID)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, domain.ErrTaskNotFound) {
 			WriteJSONError(w, "Task not found", http.StatusNotFound)
 		} else {
 			h.logger.WithField("error", err.Error()).Error("Failed to get task")
@@ -254,6 +253,17 @@ func (h *TaskHandler) authorizeWorkspace(w http.ResponseWriter, r *http.Request,
 	return ctx, userWorkspace, true
 }
 
+// logTaskFailure logs a request's failure at Error, or at Debug when the client cancelled the
+// request: its context is done, or the error is the cancellation (a statement the driver
+// cancelled, a transaction that ended with it). Nothing is broken then, and the client is gone.
+func (h *TaskHandler) logTaskFailure(ctx context.Context, err error, fields map[string]interface{}, message string) {
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) {
+		h.logger.WithFields(fields).Debug(message + " (request cancelled)")
+		return
+	}
+	h.logger.WithFields(fields).Error(message)
+}
+
 // authorizeExistingTask checks write on the resource that owns the task being
 // mutated, writing the response and reporting false when it did.
 //
@@ -264,15 +274,15 @@ func (h *TaskHandler) authorizeWorkspace(w http.ResponseWriter, r *http.Request,
 func (h *TaskHandler) authorizeExistingTask(w http.ResponseWriter, ctx context.Context, userWorkspace *domain.UserWorkspace, workspaceID, taskID, fallback string) bool {
 	task, err := h.taskService.GetTask(ctx, workspaceID, taskID)
 	if err != nil {
-		if errors.Is(err, domain.ErrTaskNotFound) || strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, domain.ErrTaskNotFound) {
 			WriteJSONError(w, "Task not found", http.StatusNotFound)
 			return false
 		}
-		h.logger.WithFields(map[string]interface{}{
+		h.logTaskFailure(ctx, err, map[string]interface{}{
 			"task_id":      taskID,
 			"workspace_id": workspaceID,
 			"error":        err.Error(),
-		}).Error("Failed to load task for authorization")
+		}, "Failed to load task for authorization")
 		WriteJSONError(w, fallback, http.StatusInternalServerError)
 		return false
 	}
@@ -363,7 +373,7 @@ func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.taskService.DeleteTask(ctx, deleteRequest.WorkspaceID, deleteRequest.ID); err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, domain.ErrTaskNotFound) {
 			WriteJSONError(w, "Task not found", http.StatusNotFound)
 		} else {
 			h.logger.WithField("error", err.Error()).Error("Failed to delete task")
@@ -714,11 +724,11 @@ func (h *TaskHandler) ResetTask(w http.ResponseWriter, r *http.Request) {
 		if writeValidationError(w, err) {
 			return
 		}
-		h.logger.WithFields(map[string]interface{}{
+		h.logTaskFailure(ctx, err, map[string]interface{}{
 			"task_id":      req.ID,
 			"workspace_id": req.WorkspaceID,
 			"error":        err.Error(),
-		}).Error("Failed to reset task")
+		}, "Failed to reset task")
 		WriteJSONError(w, "Failed to reset task", http.StatusInternalServerError)
 		return
 	}
@@ -766,11 +776,11 @@ func (h *TaskHandler) TriggerTask(w http.ResponseWriter, r *http.Request) {
 		if writeValidationError(w, err) {
 			return
 		}
-		h.logger.WithFields(map[string]interface{}{
+		h.logTaskFailure(ctx, err, map[string]interface{}{
 			"task_id":      req.ID,
 			"workspace_id": req.WorkspaceID,
 			"error":        err.Error(),
-		}).Error("Failed to trigger task")
+		}, "Failed to trigger task")
 		WriteJSONError(w, "Failed to trigger task", http.StatusInternalServerError)
 		return
 	}

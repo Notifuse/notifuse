@@ -334,7 +334,7 @@ func (r *TaskRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspace str
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("task not found")
+		return domain.ErrTaskNotFound
 	}
 
 	return nil
@@ -354,7 +354,7 @@ func (r *TaskRepository) Delete(ctx context.Context, workspace, id string) error
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("task not found")
+		return domain.ErrTaskNotFound
 	}
 
 	return nil
@@ -853,7 +853,7 @@ func (r *TaskRepository) MarkAsCompletedTx(ctx context.Context, tx *sql.Tx, work
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("task not found")
+		return domain.ErrTaskNotFound
 	}
 
 	return nil
@@ -915,7 +915,7 @@ func (r *TaskRepository) MarkAsFailedTx(ctx context.Context, tx *sql.Tx, workspa
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("task not found")
+		return domain.ErrTaskNotFound
 	}
 
 	return nil

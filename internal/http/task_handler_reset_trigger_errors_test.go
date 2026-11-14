@@ -57,18 +57,18 @@ func TestTaskHandler_ResetAndTrigger_ErrorStatuses(t *testing.T) {
 				ctrl := gomock.NewController(t)
 				handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
 				allowOwner(mockAuth)
-				mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
-					Return(&domain.Task{ID: "task-1", Type: "sync_integration"}, nil)
+				mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+					Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", Type: "sync_integration"}, nil)
 				err := tc.err(route)
 
 				req := httptest.NewRequest(http.MethodPost, "/api/tasks."+route,
-					strings.NewReader(`{"workspace_id": "ws-1", "id": "task-1"}`))
+					strings.NewReader(`{"workspace_id": "ws-1", "id": "11111111-1111-4111-8111-111111111111"}`))
 				rec := httptest.NewRecorder()
 				if route == "reset" {
-					mockTaskService.EXPECT().ResetTask(gomock.Any(), "ws-1", "task-1").Return(err)
+					mockTaskService.EXPECT().ResetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(err)
 					handler.ResetTask(rec, req)
 				} else {
-					mockTaskService.EXPECT().TriggerTask(gomock.Any(), "ws-1", "task-1").Return(err)
+					mockTaskService.EXPECT().TriggerTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(err)
 					handler.TriggerTask(rec, req)
 				}
 

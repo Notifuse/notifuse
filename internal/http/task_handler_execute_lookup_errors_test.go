@@ -20,7 +20,7 @@ import (
 // with a generic message; the internal error stays in the logs.
 func TestTaskHandler_ExecuteTask_LookupErrors(t *testing.T) {
 	const secretKey = "test-secret-key"
-	body := []byte(`{"workspace_id":"workspace1","id":"task123"}`)
+	body := []byte(`{"workspace_id":"workspace1","id":"12312312-3123-4123-8123-123123123123"}`)
 	dbErr := errors.New("pq: connection refused")
 
 	newHandler := func(t *testing.T) (*TaskHandler, *mocks.MockTaskService) {
@@ -50,7 +50,7 @@ func TestTaskHandler_ExecuteTask_LookupErrors(t *testing.T) {
 
 	t.Run("the task cannot be read", func(t *testing.T) {
 		handler, svc := newHandler(t)
-		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "task123").Return(nil, dbErr)
+		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").Return(nil, dbErr)
 
 		code, msg := execute(t, handler)
 
@@ -60,8 +60,8 @@ func TestTaskHandler_ExecuteTask_LookupErrors(t *testing.T) {
 
 	t.Run("the execution cannot read the task", func(t *testing.T) {
 		handler, svc := newHandler(t)
-		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "task123").Return(&domain.Task{MaxRuntime: 60}, nil)
-		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "task123", gomock.Any()).
+		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").Return(&domain.Task{MaxRuntime: 60}, nil)
+		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123", gomock.Any()).
 			Return(fmt.Errorf("failed to load task for execution: %w", dbErr))
 
 		code, msg := execute(t, handler)
@@ -72,9 +72,9 @@ func TestTaskHandler_ExecuteTask_LookupErrors(t *testing.T) {
 
 	t.Run("the task is gone when the execution reads it", func(t *testing.T) {
 		handler, svc := newHandler(t)
-		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "task123").Return(&domain.Task{MaxRuntime: 60}, nil)
-		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "task123", gomock.Any()).
-			Return(&domain.ErrNotFound{Entity: "task", ID: "task123"})
+		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").Return(&domain.Task{MaxRuntime: 60}, nil)
+		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123", gomock.Any()).
+			Return(&domain.ErrNotFound{Entity: "task", ID: "12312312-3123-4123-8123-123123123123"})
 
 		code, _ := execute(t, handler)
 
