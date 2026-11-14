@@ -30,10 +30,18 @@ var signalNotify = signal.Notify
 // NewAppFunc defines the function signature for creating a new app
 type NewAppFunc func(cfg *config.Config, opts ...app.AppOption) app.AppInterface
 
+// newApp creates the app runServer runs; tests replace it.
+var newApp NewAppFunc = app.NewApp
+
+// shutdownTimeout is the bound runServer applies: gracefulShutdownTimeout, which tests
+// shorten. Past it runServer returns, even when the app's shutdown has not ended; it leaves 5
+// seconds beyond the app's own 65-second timeout.
+var shutdownTimeout = gracefulShutdownTimeout
+
 // runServer contains the core server logic, extracted for testability
 func runServer(cfg *config.Config, appLogger logger.Logger) error {
 	// Create app instance
-	appInstance := app.NewApp(cfg, app.WithLogger(appLogger))
+	appInstance := newApp(cfg, app.WithLogger(appLogger))
 
 	// Initialize all components
 	if err := appInstance.Initialize(); err != nil {
@@ -67,9 +75,7 @@ func runServer(cfg *config.Config, appLogger logger.Logger) error {
 		// Set to 65 seconds to allow tasks to complete or save progress
 		appInstance.SetShutdownTimeout(65 * time.Second)
 
-		// Create a context with timeout for graceful shutdown
-		// Use 70 seconds to give 5 seconds buffer beyond app's internal timeout
-		ctx, cancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 
 		// Log current active requests
@@ -95,6 +101,9 @@ func runServer(cfg *config.Config, appLogger logger.Logger) error {
 			}
 			appLogger.Info("Server shut down gracefully")
 			return nil
+		case <-ctx.Done():
+			appLogger.WithField("timeout", shutdownTimeout.String()).Error("Graceful shutdown did not end in time - exiting")
+			return ctx.Err()
 		case forceSig := <-forceShutdown:
 			appLogger.WithField("signal", forceSig.String()).Warn("Force shutdown signal received - terminating immediately")
 			appLogger.Warn("Some requests may be interrupted!")
