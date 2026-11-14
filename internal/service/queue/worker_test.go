@@ -1487,18 +1487,77 @@ func TestEmailQueueWorker_ProcessEntry_JITGuardActiveJourneyProceeds(t *testing.
 	processOne(worker, workspace, entry)
 }
 
-// TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorFailsOpen documents the fail-open
-// contract: if the guard lookup errors, the send still proceeds (a missed lookup must not
-// silently drop a legitimate email).
-func TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorFailsOpen(t *testing.T) {
+// TestEmailQueueWorker_ProcessEntry_JITGuardCompletedJourneyProceeds: the executor
+// completes a journey in the pass that queues its last email, so a completed (or failed)
+// journey still sends. Only an exit, a reply or a removal, cancels the email.
+func TestEmailQueueWorker_ProcessEntry_JITGuardCompletedJourneyProceeds(t *testing.T) {
+	for _, status := range []domain.ContactAutomationStatus{domain.ContactAutomationStatusCompleted, domain.ContactAutomationStatusFailed} {
+		t.Run(string(status), func(t *testing.T) {
+			worker, mockQueueRepo, mockEmailService, mockMessageHistoryRepo, mockAutomationRepo, workspace, entry := jitGuardWorker(t)
+			caID := *entry.Payload.ContactAutomationID
+
+			mockAutomationRepo.EXPECT().GetContactAutomation(gomock.Any(), workspace.ID, caID).
+				Return(&domain.ContactAutomation{ID: caID, Status: status}, nil)
+			mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspace.ID, entry.ID).Return(nil)
+			mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+			processOne(worker, workspace, entry)
+		})
+	}
+}
+
+// TestEmailQueueWorker_ProcessEntry_JITGuardMissingJourneyIsFinished: a journey that no
+// longer exists was removed with its automation, so its email is dropped unsent.
+func TestEmailQueueWorker_ProcessEntry_JITGuardMissingJourneyIsFinished(t *testing.T) {
+	worker, mockQueueRepo, mockEmailService, mockMessageHistoryRepo, mockAutomationRepo, workspace, entry := jitGuardWorker(t)
+	caID := *entry.Payload.ContactAutomationID
+
+	mockAutomationRepo.EXPECT().GetContactAutomation(gomock.Any(), workspace.ID, caID).
+		Return(nil, fmt.Errorf("%w: %s", domain.ErrContactAutomationNotFound, caID))
+	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspace.ID, entry.ID).Return(nil)
+	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	processOne(worker, workspace, entry)
+}
+
+// TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorFailsClosed: a journey that cannot
+// be read is not a reason to send. The entry goes back to the queue for a later attempt,
+// with no message history failure since nothing was sent.
+func TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorFailsClosed(t *testing.T) {
 	worker, mockQueueRepo, mockEmailService, mockMessageHistoryRepo, mockAutomationRepo, workspace, entry := jitGuardWorker(t)
 	caID := *entry.Payload.ContactAutomationID
 
 	mockAutomationRepo.EXPECT().GetContactAutomation(gomock.Any(), workspace.ID, caID).
 		Return(nil, errors.New("db down"))
-	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspace.ID, entry.ID).Return(nil)
-	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	before := time.Now()
+	mockQueueRepo.EXPECT().MarkAsFailed(gomock.Any(), workspace.ID, entry.ID, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _, reason string, nextRetry *time.Time) error {
+			assert.Contains(t, reason, "db down")
+			require.NotNil(t, nextRetry)
+			assert.True(t, nextRetry.After(before), "the entry is retried later")
+			return nil
+		})
+	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	processOne(worker, workspace, entry)
+}
+
+// TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorOnTheLastAttempt: an entry whose
+// journey could not be read on its last attempt fails for good, as a send would.
+func TestEmailQueueWorker_ProcessEntry_JITGuardLookupErrorOnTheLastAttempt(t *testing.T) {
+	worker, mockQueueRepo, mockEmailService, _, mockAutomationRepo, workspace, entry := jitGuardWorker(t)
+	caID := *entry.Payload.ContactAutomationID
+	entry.Attempts = entry.MaxAttempts - 1
+
+	mockAutomationRepo.EXPECT().GetContactAutomation(gomock.Any(), workspace.ID, caID).
+		Return(nil, errors.New("db down"))
+	mockQueueRepo.EXPECT().MarkAsPermanentlyFailed(gomock.Any(), workspace.ID, entry.ID, gomock.Any()).Return(nil)
+	mockQueueRepo.EXPECT().MarkAsFailed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 	processOne(worker, workspace, entry)
 }

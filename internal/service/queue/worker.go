@@ -738,8 +738,8 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 	}
 
 	// Stop-on-reply just-in-time guard: for automation sends flagged with a
-	// contact_automation_id, re-check the journey is still active right before
-	// sending. If a reply exited it after this email was enqueued, cancel the send.
+	// contact_automation_id, re-check the journey right before sending. If a reply
+	// exited it after this email was enqueued, cancel the send.
 	//
 	// This check belongs HERE, at the actual provider call, and moving it earlier
 	// reopens the hole it exists to close. Stopping a journey has two async windows:
@@ -750,22 +750,27 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 	// third layer is the optimistic lock on the journey persist, which stops the
 	// executor writing over an exit that landed mid-tick. Remove any one and
 	// "exited" stops meaning no further mail goes out.
+	//
+	// Only an exited journey (a reply, or the automation's removal) cancels the email. The
+	// executor completes a journey in the pass that queues its last email, so a completed
+	// or failed journey still sends what it queued. A journey that no longer exists has
+	// finished. One that cannot be read fails closed: the entry is retried later.
 	if w.automationRepo != nil && entry.Payload.ContactAutomationID != nil {
 		ca, lookupErr := w.automationRepo.GetContactAutomation(w.sendCtx, workspace.ID, *entry.Payload.ContactAutomationID)
-		if lookupErr != nil {
-			// Fail open (send) but make it observable — a silent allow could mask a
-			// systematically broken guard.
+		switch {
+		case lookupErr != nil && !errors.Is(lookupErr, domain.ErrContactAutomationNotFound):
+			w.retryAfterGuardError(workspace, entry, lookupErr)
+			return nil
+		case lookupErr != nil || (ca != nil && ca.Status == domain.ContactAutomationStatusExited):
+			status := "not found"
+			if ca != nil {
+				status = string(ca.Status)
+			}
 			w.logger.WithFields(map[string]interface{}{
 				"entry_id":              entry.ID,
 				"contact_automation_id": *entry.Payload.ContactAutomationID,
-				"error":                 lookupErr.Error(),
-			}).Warn("Stop-on-reply JIT guard lookup failed; proceeding with send (fail-open)")
-		} else if ca != nil && ca.Status != domain.ContactAutomationStatusActive {
-			w.logger.WithFields(map[string]interface{}{
-				"entry_id":              entry.ID,
-				"contact_automation_id": *entry.Payload.ContactAutomationID,
-				"status":                string(ca.Status),
-			}).Info("Skipping automation email: journey no longer active (stop-on-reply)")
+				"status":                status,
+			}).Info("Skipping automation email: journey exited or removed (stop-on-reply)")
 			// Remove the entry from the queue without sending.
 			if delErr := w.queueRepo.MarkAsSent(w.writeCtx, workspace.ID, entry.ID); delErr != nil {
 				w.logger.WithFields(map[string]interface{}{
@@ -928,6 +933,33 @@ func (w *EmailQueueWorker) releaseThrottled(workspace *domain.Workspace, entry *
 
 // handleError handles a send error, scheduling retry or deleting permanently failed entries
 // classifiedErr may be nil for internal errors (e.g., integration not found)
+// retryAfterGuardError puts back an entry whose journey could not be checked before
+// sending: like a failed send it is retried with backoff and fails for good after its
+// last attempt, but nothing was sent, so no message history failure is recorded and the
+// provider's circuit breaker does not count it.
+func (w *EmailQueueWorker) retryAfterGuardError(workspace *domain.Workspace, entry *domain.EmailQueueEntry, lookupErr error) {
+	attempts := entry.Attempts + 1 // MarkAsProcessing counted this attempt
+	reason := fmt.Sprintf("failed to check the automation journey before sending: %v", lookupErr)
+	w.logger.WithFields(map[string]interface{}{
+		"entry_id":              entry.ID,
+		"contact_automation_id": *entry.Payload.ContactAutomationID,
+		"attempts":              attempts,
+		"error":                 lookupErr.Error(),
+	}).Warn("Stop-on-reply guard could not read the journey; retrying the email later")
+	if attempts >= entry.MaxAttempts {
+		if err := w.queueRepo.MarkAsPermanentlyFailed(w.writeCtx, workspace.ID, entry.ID, reason); err != nil {
+			w.logger.WithFields(map[string]interface{}{"entry_id": entry.ID, "error": err.Error()}).
+				Error("Failed to record permanently failed queue entry")
+		}
+		return
+	}
+	nextRetry := domain.CalculateNextRetryTime(attempts)
+	if err := w.queueRepo.MarkAsFailed(w.writeCtx, workspace.ID, entry.ID, reason, &nextRetry); err != nil {
+		w.logger.WithFields(map[string]interface{}{"entry_id": entry.ID, "error": err.Error()}).
+			Error("Failed to mark as failed for retry")
+	}
+}
+
 func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domain.EmailQueueEntry, sendErr error, classifiedErr *emailerror.ClassifiedError) {
 	entry.Attempts++ // Increment since MarkAsProcessing already did this
 

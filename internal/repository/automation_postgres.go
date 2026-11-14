@@ -959,7 +959,7 @@ func (r *AutomationRepository) GetContactAutomationTx(ctx context.Context, tx *s
 		&ca.LastRetryAt, &ca.MaxRetries,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("contact automation not found: %s", id)
+		return nil, fmt.Errorf("%w: %s", domain.ErrContactAutomationNotFound, id)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contact automation: %w", err)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -110,6 +111,9 @@ func (t NodeType) IsValid() bool {
 		return false
 	}
 }
+
+// ErrContactAutomationNotFound is returned when a contact's journey does not exist.
+var ErrContactAutomationNotFound = errors.New("contact automation not found")
 
 // ContactAutomationStatus represents the status of a contact's journey in an automation
 type ContactAutomationStatus string
