@@ -95,9 +95,10 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 	return e.execute(ctx, nil, workspaceID, contactAutomation)
 }
 
-// execute is Execute with a stop signal: once stop is closed, no further node starts. A node
-// that finishes once it is closed hands the journey back due now; a journey stopped before its
-// next node keeps the time of its last write. A nil stop never fires.
+// execute is Execute with a stop signal: once stop is closed, no further node starts. A journey
+// still active with no time from the node that finished after the stop is handed back due now
+// (a delay or a retry keeps its own time); a journey stopped before its next node keeps the time
+// of its last write. A nil stop never fires.
 func (e *AutomationExecutor) execute(ctx context.Context, stop <-chan struct{}, workspaceID string, contactAutomation *domain.ContactAutomation) error {
 	stopping := func() bool {
 		select {
