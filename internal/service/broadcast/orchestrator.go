@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -207,7 +208,9 @@ func (o *BroadcastOrchestrator) winnerTemplates(ctx context.Context, workspaceID
 // data feed that failed, a chosen sender that has left the integration), pauses its
 // queued rows and announces the pause. Paused, unlike failed, can be edited and resumed.
 func (o *BroadcastOrchestrator) pauseForSendError(ctx context.Context, task *domain.Task, broadcastID string, offset int64, cause error) {
-	reason := fmt.Sprintf("Recipient feed failed: %v", cause)
+	// The senders wrap the feed's error as "<ErrBroadcastShouldPause>: ...": the user reads
+	// only what follows the internal sentinel.
+	reason := "Recipient feed failed: " + strings.TrimPrefix(cause.Error(), ErrBroadcastShouldPause.Error()+": ")
 	eventReason := "recipient_feed_failed"
 	var senderErr *SenderUnavailableError
 	if errors.As(cause, &senderErr) {
@@ -278,16 +281,16 @@ func (e *SenderUnavailableError) PauseReason() string {
 	variation := "this broadcast"
 	switch {
 	case e.VariationName != "":
-		variation = fmt.Sprintf("variation %q", e.VariationName)
+		variation = fmt.Sprintf("variation “%s”", e.VariationName)
 	case e.VariationCount > 1:
 		variation = fmt.Sprintf("variation %d", e.VariationNumber)
 	}
 	return fmt.Sprintf("Sender unavailable: the sender chosen for %s (sender %s) is no longer one of the marketing email integration's senders. Choose another sender, then resume.", variation, e.SenderID)
 }
 
-// checkVariationSenders returns a *SenderUnavailableError when a variation this run sends
+// findUnavailableVariationSender returns a *SenderUnavailableError when a variation this run sends
 // chooses a sender that is no longer one of the integration's.
-func checkVariationSenders(broadcast *domain.Broadcast, templates map[string]*domain.Template, provider *domain.EmailProvider) error {
+func findUnavailableVariationSender(broadcast *domain.Broadcast, templates map[string]*domain.Template, provider *domain.EmailProvider) error {
 	variations := broadcast.TestSettings.Variations
 	for i, variation := range variations {
 		if _, sends := templates[variation.TemplateID]; !sends {
@@ -631,19 +634,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Defer function to mark broadcast as failed if we're returning an error on the last attempt
 	defer func() {
 		if err != nil && isLastAttempt && broadcastID != "" {
-			// Check if the error is a circuit breaker error - don't mark as failed in that case
-			if broadcastErr, ok := err.(*BroadcastError); ok && broadcastErr.Code == ErrCodeCircuitOpen {
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcastID,
-					"retry_count":  task.RetryCount,
-					"max_retries":  task.MaxRetries,
-					"error":        err.Error(),
-				}).Info("Task failed due to circuit breaker - broadcast already paused, not marking as failed")
-				return
-			}
-
-			// Also skip if the broadcast was paused for a failed data feed or a chosen
+			// Skip if the broadcast was paused for a failed data feed or a chosen
 			// sender that left the integration
 			if errors.Is(err, ErrBroadcastShouldPause) {
 				o.logger.WithFields(map[string]interface{}{
@@ -1112,7 +1103,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// check on the templates of each batch it is given, so nothing leaves from another
 	// address either way.
 	if broadcast.Status != domain.BroadcastStatusPaused && broadcast.Status != domain.BroadcastStatusTestCompleted {
-		if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
+		if senderErr := findUnavailableVariationSender(broadcast, templates, emailProvider); senderErr != nil {
 			o.pauseForSendError(ctx, task, broadcastState.BroadcastID, broadcastState.RecipientOffset, senderErr)
 			err = senderErr
 			return false, err
@@ -1427,100 +1418,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 		// Handle errors during sending
 		if sendErr != nil {
-			// Check if this is a circuit breaker error
-			if broadcastErr, ok := sendErr.(*BroadcastError); ok && broadcastErr.Code == ErrCodeCircuitOpen {
-				// Circuit breaker is open - pause the broadcast immediately
-				o.logger.WithFields(map[string]interface{}{
-					"task_id":      task.ID,
-					"broadcast_id": broadcastState.BroadcastID,
-					"offset":       currentOffset,
-					"error":        sendErr.Error(),
-				}).Warn("Circuit breaker triggered - pausing broadcast")
-
-				// Get the current broadcast
-				currentBroadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID)
-				if getBroadcastErr == nil && currentBroadcast != nil {
-					// Update broadcast status to paused with reason
-					currentBroadcast.Status = domain.BroadcastStatusPaused
-					currentBroadcast.PausedAt = &[]time.Time{time.Now().UTC()}[0]
-					reason := fmt.Sprintf("Circuit breaker triggered: %v", broadcastErr.Err)
-					currentBroadcast.PauseReason = &reason
-					currentBroadcast.UpdatedAt = time.Now().UTC()
-
-					// Save the updated broadcast
-					if updateErr := o.broadcastRepo.UpdateBroadcast(ctx, currentBroadcast); updateErr == nil {
-						o.logger.WithFields(map[string]interface{}{
-							"task_id":      task.ID,
-							"broadcast_id": broadcastState.BroadcastID,
-							"pause_reason": currentBroadcast.PauseReason,
-						}).Info("Broadcast paused due to circuit breaker")
-
-						// Pause already-queued rows so the worker doesn't keep sending through
-						// the broken integration.
-						o.pauseQueueEntries(ctx, task.WorkspaceID, broadcastState.BroadcastID)
-
-						// Publish circuit breaker event for notification handling
-						if o.eventBus != nil {
-							event := domain.EventPayload{
-								Type:        domain.EventBroadcastCircuitBreaker,
-								WorkspaceID: task.WorkspaceID,
-								EntityID:    broadcastState.BroadcastID,
-								Data: map[string]interface{}{
-									"broadcast_id": broadcastState.BroadcastID,
-									"task_id":      task.ID,
-									"reason":       currentBroadcast.PauseReason,
-									"error":        broadcastErr.Err.Error(),
-								},
-							}
-
-							o.eventBus.Publish(context.Background(), event)
-
-							o.logger.WithFields(map[string]interface{}{
-								"task_id":      task.ID,
-								"broadcast_id": broadcastState.BroadcastID,
-								"workspace_id": task.WorkspaceID,
-							}).Info("Published circuit breaker event for notification handling")
-
-							// Also publish broadcast paused event for task management
-							pausedEvent := domain.EventPayload{
-								Type:        domain.EventBroadcastPaused,
-								WorkspaceID: task.WorkspaceID,
-								EntityID:    broadcastState.BroadcastID,
-								Data: map[string]interface{}{
-									"broadcast_id": broadcastState.BroadcastID,
-									"task_id":      task.ID,
-									"reason":       "circuit_breaker",
-								},
-							}
-
-							o.eventBus.Publish(context.Background(), pausedEvent)
-
-							o.logger.WithFields(map[string]interface{}{
-								"task_id":      task.ID,
-								"broadcast_id": broadcastState.BroadcastID,
-								"workspace_id": task.WorkspaceID,
-							}).Info("Published broadcast paused event for task management")
-						} else {
-							o.logger.WithFields(map[string]interface{}{
-								"task_id":      task.ID,
-								"broadcast_id": broadcastState.BroadcastID,
-								"workspace_id": task.WorkspaceID,
-							}).Warn("Cannot publish circuit breaker event - event bus not available")
-						}
-					} else {
-						o.logger.WithFields(map[string]interface{}{
-							"task_id":      task.ID,
-							"broadcast_id": broadcastState.BroadcastID,
-							"error":        updateErr.Error(),
-						}).Error("Failed to update broadcast status to paused")
-					}
-				}
-
-				// Return the circuit breaker error to stop processing
-				err = sendErr
-				return false, err
-			}
-
 			// A recipient feed that failed, or a sender chosen on a variation that has
 			// left the integration, pauses the broadcast for the user to fix.
 			if errors.Is(sendErr, ErrBroadcastShouldPause) {

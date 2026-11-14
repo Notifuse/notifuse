@@ -128,7 +128,7 @@ func (s *queueMessageSender) SendBatch(
 
 	// A sender chosen on a variation that has left the integration stops the batch before
 	// any recipient: the broadcast pauses and the batch is sent once the sender is fixed.
-	if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
+	if senderErr := findUnavailableVariationSender(broadcast, templates, emailProvider); senderErr != nil {
 		return 0, 0, senderErr
 	}
 

@@ -3156,7 +3156,8 @@ func TestProcessBroadcastTask_RecipientFeedFailure_PausesBroadcast(t *testing.T)
 		assert.Equal(t, domain.BroadcastStatusPaused, b.Status)
 		assert.NotNil(t, b.PausedAt)
 		require.NotNil(t, b.PauseReason)
-		assert.Contains(t, *b.PauseReason, "Recipient feed failed")
+		assert.Equal(t, "Recipient feed failed: recipient feed failed for user1@test.com: server error", *b.PauseReason,
+			"the reason the user reads carries the feed's error, not the internal pause sentinel")
 		return nil
 	})
 

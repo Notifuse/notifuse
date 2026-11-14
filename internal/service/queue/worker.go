@@ -138,18 +138,12 @@ func integrationRate(integration *domain.Integration) int {
 	return defaultRatePerMinute
 }
 
-// EmailSentCallback is called when an email is successfully sent
-type EmailSentCallback func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string)
-
 // CircuitOpenCallback is called the moment an integration's circuit breaker opens.
 // The transition is the signal, not the state: one outage is observed by every send in
 // flight. It is called once per opening, after the sends that were in flight have
 // recorded their outcome, so whatever it pauses includes them. It fires again each time
 // a probe fails after a cooldown, so whatever it triggers has to be idempotent.
 type CircuitOpenCallback func(workspaceID string, integrationID string, lastErr *emailerror.ClassifiedError)
-
-// EmailFailedCallback is called when an email fails to send
-type EmailFailedCallback func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string, err error, isPermanent bool)
 
 // EmailQueueWorker processes queued emails
 type EmailQueueWorker struct {
@@ -195,10 +189,6 @@ type EmailQueueWorker struct {
 
 	// inFlight counts the rows dispatched and not yet done, for the shutdown log.
 	inFlight atomic.Int64
-
-	// Callbacks for progress tracking
-	onEmailSent   EmailSentCallback
-	onEmailFailed EmailFailedCallback
 
 	// onCircuitOpen is optional; when unset an opening circuit only throttles.
 	onCircuitOpen CircuitOpenCallback
@@ -246,13 +236,6 @@ func NewEmailQueueWorker(
 		config:          config,
 		logger:          log,
 	}
-}
-
-// SetCallbacks sets callback functions for progress tracking. They are called from
-// concurrent sends, so they must be safe for concurrent use.
-func (w *EmailQueueWorker) SetCallbacks(onSent EmailSentCallback, onFailed EmailFailedCallback) {
-	w.onEmailSent = onSent
-	w.onEmailFailed = onFailed
 }
 
 // SetCircuitOpenCallback registers what happens when an integration's circuit opens.
@@ -896,11 +879,6 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 		"source_id":    entry.SourceID,
 		"workspace_id": workspace.ID,
 	}).Debug("Email sent successfully")
-
-	// Call success callback
-	if w.onEmailSent != nil {
-		w.onEmailSent(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID)
-	}
 	return nil
 }
 
@@ -931,8 +909,6 @@ func (w *EmailQueueWorker) releaseThrottled(workspace *domain.Workspace, entry *
 	}).Debug("Provider refused the email for its pace; it will be sent again more slowly")
 }
 
-// handleError handles a send error, scheduling retry or deleting permanently failed entries
-// classifiedErr may be nil for internal errors (e.g., integration not found)
 // retryAfterGuardError puts back an entry whose journey could not be checked before
 // sending: like a failed send it is retried with backoff and fails for good after its
 // last attempt, but nothing was sent, so no message history failure is recorded and the
@@ -960,6 +936,8 @@ func (w *EmailQueueWorker) retryAfterGuardError(workspace *domain.Workspace, ent
 	}
 }
 
+// handleError handles a send error, scheduling retry or deleting permanently failed entries
+// classifiedErr may be nil for internal errors (e.g., integration not found)
 func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domain.EmailQueueEntry, sendErr error, classifiedErr *emailerror.ClassifiedError) {
 	entry.Attempts++ // Increment since MarkAsProcessing already did this
 
@@ -1004,11 +982,6 @@ func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domai
 				"error":    err.Error(),
 			}).Error("Failed to record permanently failed queue entry")
 		}
-
-		// Call failure callback (isPermanent = true)
-		if w.onEmailFailed != nil {
-			w.onEmailFailed(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID, sendErr, true)
-		}
 		return
 	}
 
@@ -1019,11 +992,6 @@ func (w *EmailQueueWorker) handleError(workspace *domain.Workspace, entry *domai
 			"entry_id": entry.ID,
 			"error":    err.Error(),
 		}).Error("Failed to mark as failed for retry")
-	}
-
-	// Call failure callback (isPermanent = false, will retry)
-	if w.onEmailFailed != nil {
-		w.onEmailFailed(workspace.ID, entry.SourceType, entry.SourceID, entry.MessageID, sendErr, false)
 	}
 }
 

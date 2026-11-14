@@ -123,7 +123,7 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 		assert.NotNil(t, b.PausedAt)
 		require.NotNil(t, b.PauseReason)
 		assert.Contains(t, *b.PauseReason, "sender-since-deleted")
-		assert.Contains(t, *b.PauseReason, `variation "Spring"`)
+		assert.Contains(t, *b.PauseReason, "variation “Spring”")
 		assert.NotContains(t, *b.PauseReason, "feed")
 		return nil
 	})
@@ -200,7 +200,8 @@ func TestSenderUnavailableError_PauseReason(t *testing.T) {
 		err  broadcast.SenderUnavailableError
 		want string
 	}{
-		{"named variation", broadcast.SenderUnavailableError{VariationName: "Spring", VariationNumber: 2, VariationCount: 2, SenderID: "s-gone"}, `the sender chosen for variation "Spring" (sender s-gone)`},
+		{"named variation", broadcast.SenderUnavailableError{VariationName: "Spring", VariationNumber: 2, VariationCount: 2, SenderID: "s-gone"}, "the sender chosen for variation “Spring” (sender s-gone)"},
+		{"a name with quotes and a backslash is shown as written", broadcast.SenderUnavailableError{VariationName: `The "B" \ side`, VariationNumber: 2, VariationCount: 2, SenderID: "s-gone"}, `the sender chosen for variation “The "B" \ side” (sender s-gone)`},
 		{"unnamed A/B variation, as the console saves them", broadcast.SenderUnavailableError{VariationNumber: 2, VariationCount: 2, TemplateID: "tpl-b", SenderID: "s-gone"}, "the sender chosen for variation 2 (sender s-gone)"},
 		{"single variation", broadcast.SenderUnavailableError{VariationNumber: 1, VariationCount: 1, TemplateID: "tpl", SenderID: "s-gone"}, "the sender chosen for this broadcast (sender s-gone)"},
 	} {

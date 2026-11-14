@@ -102,7 +102,7 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 		return nil, err
 	}
 
-	if err := s.checkVariationSenders(ctx, request.WorkspaceID, broadcast.TestSettings.Variations); err != nil {
+	if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, broadcast.TestSettings.Variations); err != nil {
 		return nil, err
 	}
 
@@ -141,9 +141,9 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 	return broadcast, nil
 }
 
-// checkVariationSenders refuses variations whose chosen sender is not on the workspace's
+// requireKnownVariationSenders refuses variations whose chosen sender is not on the workspace's
 // marketing email integration. The workspace is only read when a variation chooses one.
-func (s *BroadcastService) checkVariationSenders(ctx context.Context, workspaceID string, variations []domain.BroadcastVariation) error {
+func (s *BroadcastService) requireKnownVariationSenders(ctx context.Context, workspaceID string, variations []domain.BroadcastVariation) error {
 	chosen := false
 	for _, variation := range variations {
 		if variation.SenderID != "" {
@@ -225,7 +225,7 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 	// Only senders the request sets are checked: a patch that leaves test_settings out
 	// keeps the stored variations and must not be blocked by a sender removed since.
 	if request.TestSettingsProvided() {
-		if err := s.checkVariationSenders(ctx, request.WorkspaceID, updatedBroadcast.TestSettings.Variations); err != nil {
+		if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, updatedBroadcast.TestSettings.Variations); err != nil {
 			return nil, err
 		}
 	}
@@ -705,7 +705,7 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		// may have left the integration during the pause. One whose recipients are all
 		// queued only releases emails that already carry their sender.
 		if broadcast.CompletedAt == nil {
-			if err := s.checkVariationSenders(ctx, request.WorkspaceID, broadcast.VariationsToSend()); err != nil {
+			if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, broadcast.VariationsToSend()); err != nil {
 				return err
 			}
 		}
