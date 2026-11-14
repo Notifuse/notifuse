@@ -1670,6 +1670,29 @@ deleted."
 - 8.5, chart fonts: the axis and legend sizes are the `2xs` and `overline` tokens.
 - 8.5, French renders: one file, `web_analytics/frenchRendering.test.tsx`, renders each component with French
   active, plus the three counts. The CSV keeps dot decimals in French; its readable duration is in words.
+- 8.6, sidebar menus: `app-shell/useFocusBack.ts` gives the focus back to the button after a close that leaves
+  it on the body or in the menu; a click on another control keeps it there. The switcher's menu is at most
+  `layout.aside` (320px) wide.
+- 8.6, logo: `homePage` (menuItems.ts) leads to the dashboard while the rights load or for a member who reads
+  the messages, otherwise to `dashboardFallback`, the page `AnalyticsPage` redirects to, under its entry's name.
+  The two share `canReadDashboard`.
+- 8.6, side panel: each tab's content is the antd tabpanel's own, inside the scrolling body; a tab without
+  content shows the panel's children. The tab chosen goes back to the first on close, reset during render
+  (the lint refuses a state set in an effect). The tab bar keeps its 16px inset as a margin.
+- 8.6, J and K: a popconfirm and a dropdown always take them; a popover takes them when it, or its trigger
+  (`ant-popover-open`), holds the focus.
+- 8.6, theme: the row hover is `alpha(primary[500], 0.03)`; the test computes the contrast of the neutral tag
+  on it and on the header, and requires at least the header's. `colorPrimaryHover` is `primary[700]`, the
+  same as `colorPrimaryActive`: the palette has no darker step. The sidebar's menu border is removed by a rule
+  scoped to `.app-sidebar-nav` in `antd-overrides.css`, not a local `ConfigProvider` (the theme rules forbid a
+  local theme). `data-plain-link` uses `color: revert-layer`, which hands the colour back to the link's
+  Tailwind classes; `inherit` would beat them too. The open-row hover reads `--ant-table-row-hover-bg`.
+- 8.6, blog preview: two SVGs in `src/assets/blog-preview/` (a landscape, an avatar), which Vite inlines.
+- 8.6, permissions after a reset: the test showed a caller mounted over a cached list staying loading, so
+  `useWorkspacePermissions` counts answers itself (`nextTally`): a count lower than the last seen, or an
+  answer whose count did not grow, is a reset, and every answer from it counts.
+- 8.6, a 8.3 page test still expected the refused Send test to be `disabled`; it now checks `aria-disabled`
+  and the description (folded into the 8.3 commit).
 
 ## Test commands for lot 8
 

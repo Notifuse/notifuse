@@ -39,19 +39,58 @@ describe('useDrawerNavKeys', () => {
   })
 
   it.each([
-    ['popconfirm or popover', 'ant-popover'],
-    ['dropdown menu', 'ant-dropdown']
-  ])('leaves the keys to an open %s, not to a hidden one', (_, popup) => {
+    ['popconfirm', 'ant-popover ant-popconfirm', 'ant-popover ant-popconfirm ant-popover-hidden'],
+    ['dropdown menu', 'ant-dropdown', 'ant-dropdown ant-dropdown-hidden']
+  ])('leaves the keys to an open %s, not to a hidden one', (_, shown, hidden) => {
     const { onNext } = setup()
     const open = document.createElement('div')
-    open.className = popup
+    open.className = shown
     document.body.appendChild(open)
     fireEvent.keyDown(document.body, { key: 'j' })
     expect(onNext).not.toHaveBeenCalled()
-    open.className = `${popup} ${popup}-hidden`
+    open.className = hidden
     fireEvent.keyDown(document.body, { key: 'j' })
     expect(onNext).toHaveBeenCalledTimes(1)
     open.remove()
+  })
+
+  it('keeps the keys while a popover only shows on hover', () => {
+    const { onNext } = setup()
+    const popover = document.createElement('div')
+    popover.className = 'ant-popover'
+    document.body.appendChild(popover)
+    fireEvent.keyDown(document.body, { key: 'j' })
+    expect(onNext).toHaveBeenCalledTimes(1)
+    popover.remove()
+  })
+
+  it('leaves the keys to a popover holding the focus', () => {
+    const { onNext } = setup()
+    const popover = document.createElement('div')
+    popover.className = 'ant-popover'
+    const button = document.createElement('button')
+    popover.appendChild(button)
+    document.body.appendChild(popover)
+    button.focus()
+    fireEvent.keyDown(button, { key: 'j' })
+    expect(onNext).not.toHaveBeenCalled()
+    popover.remove()
+  })
+
+  it('leaves the keys to a popover whose trigger holds the focus, as after a click', () => {
+    const { onNext, getByRole } = setup()
+    const popover = document.createElement('div')
+    popover.className = 'ant-popover'
+    document.body.appendChild(popover)
+    const trigger = getByRole('button', { name: 'plain' })
+    trigger.classList.add('ant-popover-open')
+    trigger.focus()
+    fireEvent.keyDown(trigger, { key: 'j' })
+    expect(onNext).not.toHaveBeenCalled()
+    trigger.classList.remove('ant-popover-open')
+    fireEvent.keyDown(trigger, { key: 'j' })
+    expect(onNext).toHaveBeenCalledTimes(1)
+    popover.remove()
   })
 
   it('does nothing while disabled', () => {

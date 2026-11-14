@@ -15,6 +15,7 @@ import {
   activeGroup as groupOf,
   buildMenuItems,
   firstPageOfGroup,
+  homePage,
   selectedMenuKey
 } from './app-shell/menuItems'
 import { useSidebarPinned } from './app-shell/useSidebarPinned'
@@ -155,6 +156,7 @@ export function WorkspaceLayout() {
           user={user}
           role={role}
           onSignout={signout}
+          home={homePage(userPermissions, loadingPermissions, workspaceId, i18n)}
         />
         <main
           data-page-layout={pageLayout}

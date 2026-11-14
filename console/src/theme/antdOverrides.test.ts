@@ -98,6 +98,31 @@ describe('global antd rules', () => {
     ])
   })
 
+  it('give a sorted fixed column an opaque fill, on both sides', () => {
+    const css = stripComments(read('theme/antd-overrides.css'))
+    expect(css).toMatch(
+      /\.ant-table-wrapper td\.ant-table-cell-fix\.ant-table-column-sort\s*\{\s*background: var\(--ant-color-bg-container\);/
+    )
+  })
+
+  it('keep the hover of an open row in the Table\'s own hover colour', () => {
+    const css = stripComments(read('theme/antd-overrides.css'))
+    expect(css).toMatch(/\.ant-table-tbody > tr\.is-hover > td\s*\{\s*background: var\(--ant-table-row-hover-bg\);/)
+  })
+
+  it('take the right border off the sidebar menu only', () => {
+    const css = stripComments(read('theme/antd-overrides.css'))
+    expect(css).toMatch(/\.app-sidebar-nav \.ant-menu-root\.ant-menu-inline\s*\{\s*border-inline-end: 0;/)
+  })
+
+  it('hand a plain link\'s colour back to its classes, and mark the live page\'s back link plain', () => {
+    const css = stripComments(read('theme/antd-overrides.css'))
+    expect(css).toMatch(
+      /a\[data-plain-link\],\s*a\[data-plain-link\]:hover,\s*a\[data-plain-link\]:active\s*\{\s*color: revert-layer;/
+    )
+    expect(read('pages/WebAnalyticsLivePage.tsx')).toMatch(/data-plain-link\s+className="[^"]*text-ink-3/)
+  })
+
   it('put the full-width drawers on the canvas', () => {
     const css = stripComments(read('theme/antd-overrides.css'))
     expect(css).toMatch(

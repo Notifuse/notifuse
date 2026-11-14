@@ -13,7 +13,8 @@ const seconds = (ms: number) => `${ms / 1000}s`
 export const antdTheme: ThemeConfig = {
   token: {
     colorPrimary: c.primary[500],
-    colorPrimaryHover: c.primary[600],
+    // One step darker than the button: a filled primary button's hover has to read as a change.
+    colorPrimaryHover: c.primary[700],
     colorPrimaryActive: c.primary[700],
     colorPrimaryBorder: c.primary[300],
     colorLink: c.primary[600],
@@ -87,9 +88,7 @@ export const antdTheme: ThemeConfig = {
       itemSelectedColor: c.primary[700],
       groupTitleFontSize: t.size.overline,
       groupTitleColor: c.ink3,
-      collapsedWidth: layout.sidebarCollapsed,
-      // No right border on an inline menu: the sidebar draws its own edge.
-      activeBarBorderWidth: 0
+      collapsedWidth: layout.sidebarCollapsed
     },
     Card: {
       // antd draws the card border (and its header divider) with colorBorderSecondary.
@@ -104,8 +103,9 @@ export const antdTheme: ThemeConfig = {
       headerColor: c.ink3,
       headerSplitColor: 'transparent',
       borderColor: c.lineSoft,
-      // Subtle rather than fill: a neutral tag (fill) must stay visible on a hovered row.
-      rowHoverBg: c.subtle,
+      // A faint primary tint: apart from the header (subtle), and lighter than a neutral tag (fill),
+      // which must stay visible on a hovered row.
+      rowHoverBg: alpha(c.primary[500], 0.03),
       rowSelectedBg: c.primary[50],
       rowSelectedHoverBg: c.primary[100],
       cellFontSize: t.size.sm,

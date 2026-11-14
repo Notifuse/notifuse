@@ -7,6 +7,7 @@ import {
   buildMenuItems,
   firstAccessiblePage,
   firstPageOfGroup,
+  homePage,
   selectedMenuKey,
   type HasAccess,
   type MenuItem
@@ -216,6 +217,35 @@ describe('firstAccessiblePage', () => {
     expect(firstAccessiblePage(() => false, 'ws1')).toEqual({
       key: 'settings',
       target: { to: '/console/workspace/$workspaceId/settings', params: { workspaceId: 'ws1' } }
+    })
+  })
+})
+
+describe('homePage', () => {
+  const grant = (grants: Partial<Record<keyof UserPermissions, { read: boolean; write: boolean }>>) =>
+    grants as unknown as UserPermissions
+
+  it('leads to the dashboard for a member who reads the messages, and while the rights load', () => {
+    const dashboard = {
+      target: { to: '/console/workspace/$workspaceId', params: { workspaceId: 'ws1' } },
+      label: 'Dashboard'
+    }
+    expect(homePage(grant({ message_history: { read: true, write: false } }), false, 'ws1', i18n)).toEqual(dashboard)
+    expect(homePage(undefined, true, 'ws1', i18n)).toEqual(dashboard)
+  })
+
+  it('leads where the dashboard would send a member who cannot read it, under that page\'s name', () => {
+    const contactsOnly = grant({
+      contacts: { read: true, write: false },
+      message_history: { read: false, write: true }
+    })
+    expect(homePage(contactsOnly, false, 'ws1', i18n)).toEqual({
+      target: { to: '/console/workspace/$workspaceId/contacts', params: { workspaceId: 'ws1' } },
+      label: 'Contacts'
+    })
+    expect(homePage(grant({}), false, 'ws1', i18n)).toEqual({
+      target: { to: '/console/workspace/$workspaceId/settings', params: { workspaceId: 'ws1' } },
+      label: 'Settings'
     })
   })
 })

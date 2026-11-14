@@ -802,7 +802,7 @@ msgstr "{LAST_SENT_DAYS, plural, one {Cap enviament correcte l'últim # dia} oth
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
 msgstr "{leafCount, plural, one {# condició} other {# condicions}}"
 
-#: src/pages/WebAnalyticsLivePage.tsx:136
+#: src/pages/WebAnalyticsLivePage.tsx:137
 msgid "{liveSessions} live now"
 msgstr "{liveSessions} en directe ara"
 
@@ -1235,7 +1235,7 @@ msgid "3. Translations"
 msgstr "3. Traduccions"
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:94
-#: src/pages/AnalyticsPage.tsx:112
+#: src/pages/AnalyticsPage.tsx:106
 msgid "30 d"
 msgstr "30 d"
 
@@ -1278,7 +1278,7 @@ msgid "60d"
 msgstr "60 d"
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:93
-#: src/pages/AnalyticsPage.tsx:111
+#: src/pages/AnalyticsPage.tsx:105
 msgid "7 d"
 msgstr "7 d"
 
@@ -1300,7 +1300,7 @@ msgstr "7 d"
 msgid "800 - Extra Bold"
 msgstr "800 - Extra negreta"
 
-#: src/pages/AnalyticsPage.tsx:113
+#: src/pages/AnalyticsPage.tsx:107
 msgid "90 d"
 msgstr "90 d"
 
@@ -1357,7 +1357,7 @@ msgstr "Un bloc Liquid no pot anar dins d'un bloc amb una condició de visualitz
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "Un bloc Liquid no pot anar dins d'un bloc amb una condició de visualització: suprimeix primer la condició o col·loca el bloc Liquid fora."
 
-#: src/components/blog/ThemeEditorDrawer.tsx:459
+#: src/components/blog/ThemeEditorDrawer.tsx:460
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
 msgstr "S'ha trobat un esborrany més nou a l'emmagatzematge local. Voleu restaurar-lo o descartar-lo?"
 
@@ -1736,7 +1736,7 @@ msgstr "Afegir paraules clau..."
 msgid "Add node"
 msgstr "Afegir node"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:479
+#: src/components/blog/ThemeEditorDrawer.tsx:480
 msgid "Add notes about this version..."
 msgstr "Afegir notes sobre aquesta versió..."
 
@@ -2220,7 +2220,7 @@ msgstr "Anotació actualitzada"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:349
-#: src/layouts/app-shell/menuItems.ts:187
+#: src/layouts/app-shell/menuItems.ts:223
 #: src/pages/WebAnalyticsPage.tsx:99
 msgid "Annotations"
 msgstr "Anotacions"
@@ -2824,7 +2824,7 @@ msgstr "Automatització:"
 #: src/components/logs/MessagesTab.tsx:258
 #: src/components/settings/permissionLabels.ts:15
 #: src/components/templates/DeleteTemplateModal.tsx:43
-#: src/layouts/app-shell/menuItems.ts:190
+#: src/layouts/app-shell/menuItems.ts:226
 #: src/pages/AutomationsPage.tsx:198
 #: src/services/api/errors.ts:90
 msgid "Automations"
@@ -3148,7 +3148,7 @@ msgstr "Blocs"
 #: src/components/settings/permissionLabels.ts:14
 #: src/components/settings/SettingsSidebar.tsx:67
 #: src/components/templates/templateCategories.ts:28
-#: src/layouts/app-shell/menuItems.ts:194
+#: src/layouts/app-shell/menuItems.ts:230
 #: src/pages/BlogPage.tsx:136
 #: src/services/api/errors.ts:89
 msgid "Blog"
@@ -3524,7 +3524,7 @@ msgstr "Difusió: {0}"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:88
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:427
 #: src/components/settings/permissionLabels.ts:10
-#: src/layouts/app-shell/menuItems.ts:189
+#: src/layouts/app-shell/menuItems.ts:225
 #: src/pages/BroadcastsPage.tsx:236
 #: src/pages/BroadcastsPage.tsx:333
 #: src/services/api/errors.ts:85
@@ -3639,14 +3639,14 @@ msgstr ""
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "Crideu identify() un cop sapigueu qui és el visitant. La signatura s'ha de calcular al vostre servidor amb la clau secreta del vostre espai de treball — l'endpoint de seguiment és públic, de manera que una adreça sense signar s'ignora."
 
-#: src/pages/WebAnalyticsLivePage.tsx:203
+#: src/pages/WebAnalyticsLivePage.tsx:204
 msgid "Campaign"
 msgstr "Campanya"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:196
 #: src/components/web_analytics/tabs/DashboardTab.tsx:190
-#: src/pages/WebAnalyticsLivePage.tsx:195
-#: src/pages/WebAnalyticsLivePage.tsx:202
+#: src/pages/WebAnalyticsLivePage.tsx:196
+#: src/pages/WebAnalyticsLivePage.tsx:203
 msgid "Campaigns"
 msgstr "Campanyes"
 
@@ -3668,9 +3668,9 @@ msgstr "Campanyes"
 #: src/components/blog/PostsTable.tsx:213
 #: src/components/blog/PublishModal.tsx:205
 #: src/components/blog/RecentThemesTable.tsx:95
-#: src/components/blog/ThemeEditorDrawer.tsx:280
-#: src/components/blog/ThemeEditorDrawer.tsx:310
-#: src/components/blog/ThemeEditorDrawer.tsx:469
+#: src/components/blog/ThemeEditorDrawer.tsx:283
+#: src/components/blog/ThemeEditorDrawer.tsx:313
+#: src/components/blog/ThemeEditorDrawer.tsx:470
 #: src/components/broadcasts/BroadcastsTable.tsx:188
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:360
@@ -3840,8 +3840,7 @@ msgstr "Categories"
 
 #: src/components/blog/PostDrawer.tsx:871
 #: src/components/blog/PostsTable.tsx:312
-#: src/components/blog/ThemeEditorDrawer.tsx:428
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:75
+#: src/components/blog/ThemeEditorDrawer.tsx:429
 #: src/components/templates/CreateTemplateDrawer.tsx:1016
 #: src/pages/TemplatesPage.tsx:403
 msgid "Category"
@@ -3982,7 +3981,7 @@ msgstr "Canal"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
 #: src/components/web_analytics/tabs/DashboardTab.tsx:176
-#: src/pages/WebAnalyticsLivePage.tsx:220
+#: src/pages/WebAnalyticsLivePage.tsx:221
 msgid "Channel group"
 msgstr "Grup de canals"
 
@@ -3994,8 +3993,8 @@ msgstr "Grups de canals"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:178
 #: src/components/web_analytics/tabs/DashboardTab.tsx:169
-#: src/pages/WebAnalyticsLivePage.tsx:212
-#: src/pages/WebAnalyticsLivePage.tsx:219
+#: src/pages/WebAnalyticsLivePage.tsx:213
+#: src/pages/WebAnalyticsLivePage.tsx:220
 msgid "Channels"
 msgstr "Canals"
 
@@ -4042,8 +4041,8 @@ msgstr "Tria un bloc desat"
 #~ msgstr "Trieu un bloc desat per actualitzar"
 
 #: src/components/blog/ThemeSelectionModal.tsx:50
-msgid "Choose a starting point for your new theme. You can customize everything later."
-msgstr "Trieu un punt de partida per al vostre nou tema. Podeu personalitzar-ho tot més tard."
+#~ msgid "Choose a starting point for your new theme. You can customize everything later."
+#~ msgstr "Trieu un punt de partida per al vostre nou tema. Podeu personalitzar-ho tot més tard."
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:395
 msgid "Choose a template first"
@@ -4075,11 +4074,11 @@ msgstr "Trieu quan publicar \"{0}\""
 msgid "chosen on the broadcast"
 msgstr "triat al broadcast"
 
-#: src/pages/WebAnalyticsLivePage.tsx:165
+#: src/pages/WebAnalyticsLivePage.tsx:166
 msgid "Cities"
 msgstr "Ciutats"
 
-#: src/pages/WebAnalyticsLivePage.tsx:165
+#: src/pages/WebAnalyticsLivePage.tsx:166
 msgid "City"
 msgstr "Ciutat"
 
@@ -4319,8 +4318,7 @@ msgid "Clone Template"
 msgstr "Clonar plantilla"
 
 #: src/components/automations/NodeConfigPanel.tsx:254
-#: src/components/blog/ThemeEditorDrawer.tsx:279
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:40
+#: src/components/blog/ThemeEditorDrawer.tsx:282
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:230
 #: src/components/broadcasts/GlobalFeedSettings.tsx:142
 #: src/components/contacts/BulkActionProgressModal.tsx:65
@@ -4826,7 +4824,7 @@ msgstr "Contacte actualitzat correctament"
 #: src/components/contacts/ContactsViewHeader.tsx:201
 #: src/components/logs/labels.ts:21
 #: src/components/settings/permissionLabels.ts:7
-#: src/layouts/app-shell/menuItems.ts:188
+#: src/layouts/app-shell/menuItems.ts:224
 #: src/pages/ContactsPage.tsx:589
 #: src/services/api/errors.ts:82
 msgid "Contacts"
@@ -4888,7 +4886,7 @@ msgstr "conté"
 #: src/components/broadcasts/compose/ContentCard.tsx:115
 #: src/components/email_builder/panels/LibraryPanel.tsx:253
 #: src/components/settings/SettingsSidebar.tsx:28
-#: src/layouts/app-shell/menuItems.ts:192
+#: src/layouts/app-shell/menuItems.ts:228
 msgid "Content"
 msgstr "Contingut"
 
@@ -4936,14 +4934,14 @@ msgid "Coordinates precision"
 msgstr "Precisió de les coordenades"
 
 #: src/components/common/CodeSnippet.tsx:46
-#: src/components/layout/Mono.tsx:21
+#: src/components/layout/Mono.tsx:23
 #: src/components/logs/CodeBlock.tsx:21
 msgid "Copied"
 msgstr "Copiat"
 
 #: src/components/common/CodeSnippet.tsx:46
-#: src/components/layout/Mono.tsx:33
-#: src/components/layout/Mono.tsx:34
+#: src/components/layout/Mono.tsx:35
+#: src/components/layout/Mono.tsx:36
 #: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:379
 #: src/components/settings/ZapierSettings.tsx:193
@@ -5388,13 +5386,12 @@ msgstr "Crear nova publicació"
 msgid "Create New Template"
 msgstr "Crear nova plantilla"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:305
-#: src/components/blog/ThemeSelectionModal.tsx:42
+#: src/components/blog/ThemeEditorDrawer.tsx:308
 msgid "Create New Theme"
 msgstr "Crear nou tema"
 
 #. placeholder {0}: presetData.name
-#: src/components/blog/ThemeEditorDrawer.tsx:304
+#: src/components/blog/ThemeEditorDrawer.tsx:307
 msgid "Create New Theme - {0}"
 msgstr "Crear nou tema - {0}"
 
@@ -5503,7 +5500,7 @@ msgid "Created by Zapier"
 msgstr "Creat per Zapier"
 
 #. placeholder {0}: data.theme.version
-#: src/components/blog/ThemeEditorDrawer.tsx:246
+#: src/components/blog/ThemeEditorDrawer.tsx:249
 msgid "Created new version v{0}"
 msgstr "Creada nova versió v{0}"
 
@@ -6519,7 +6516,7 @@ msgstr "Detecta des del lloc web"
 #: src/components/web_analytics/FilterBuilder.tsx:59
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:232
-#: src/pages/WebAnalyticsLivePage.tsx:191
+#: src/pages/WebAnalyticsLivePage.tsx:192
 msgid "Device"
 msgstr "Dispositiu"
 
@@ -6527,8 +6524,8 @@ msgstr "Dispositiu"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
 #: src/components/web_analytics/tabs/DashboardTab.tsx:232
-#: src/pages/WebAnalyticsLivePage.tsx:186
-#: src/pages/WebAnalyticsLivePage.tsx:191
+#: src/pages/WebAnalyticsLivePage.tsx:187
+#: src/pages/WebAnalyticsLivePage.tsx:192
 msgid "Devices"
 msgstr "Dispositius"
 
@@ -6607,7 +6604,7 @@ msgstr "Descartar"
 msgid "Discard changes"
 msgstr "Descartar els canvis"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:457
+#: src/components/blog/ThemeEditorDrawer.tsx:458
 msgid "Discard Draft"
 msgstr "Descartar esborrany"
 
@@ -6791,7 +6788,7 @@ msgstr "Descarrega com a zip"
 msgid "Draft"
 msgstr "Esborrany"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:147
+#: src/components/blog/ThemeEditorDrawer.tsx:150
 msgid "Draft restored from local storage"
 msgstr "Esborrany restaurat des de l'emmagatzematge local"
 
@@ -7149,7 +7146,7 @@ msgid "Edit theme"
 msgstr "Editar tema"
 
 #. placeholder {0}: theme.version
-#: src/components/blog/ThemeEditorDrawer.tsx:302
+#: src/components/blog/ThemeEditorDrawer.tsx:305
 msgid "Edit Theme v{0}"
 msgstr "Editar tema v{0}"
 
@@ -8070,7 +8067,7 @@ msgid "Expires:"
 msgstr "Caduca:"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:346
-#: src/layouts/app-shell/menuItems.ts:184
+#: src/layouts/app-shell/menuItems.ts:220
 #: src/pages/WebAnalyticsPage.tsx:96
 msgid "Explore"
 msgstr "Explorar"
@@ -8231,7 +8228,7 @@ msgstr "No s'ha pogut connectar Zapier"
 #: src/components/common/CodeSnippet.tsx:35
 #: src/components/file_manager/FileExplorer.tsx:293
 #: src/components/layout/DrawerControls.tsx:77
-#: src/components/layout/Mono.tsx:22
+#: src/components/layout/Mono.tsx:24
 #: src/components/logs/CodeBlock.tsx:22
 #: src/components/settings/WebhookDetail.tsx:214
 #: src/components/transactional/ApiCallPanel.tsx:39
@@ -8580,7 +8577,7 @@ msgstr "No s'ha pogut desar el bloc de plantilla"
 msgid "Failed to save the retention"
 msgstr "No s'ha pogut desar la retenció"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:259
+#: src/components/blog/ThemeEditorDrawer.tsx:262
 msgid "Failed to save theme"
 msgstr "No s'ha pogut desar el tema"
 
@@ -8815,7 +8812,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "El fitxer és massa gran. La mida màxima és d'1 MB."
 
 #: src/components/file_manager/FileExplorer.tsx:986
-#: src/layouts/app-shell/menuItems.ts:195
+#: src/layouts/app-shell/menuItems.ts:231
 msgid "File Manager"
 msgstr "Gestor de fitxers"
 
@@ -8879,7 +8876,7 @@ msgid "Filter on an event property"
 msgstr "Filtrar per una propietat de l'esdeveniment"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
-#: src/layouts/app-shell/menuItems.ts:186
+#: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
 msgid "Filters"
 msgstr "Filtres"
@@ -9185,7 +9182,7 @@ msgstr "Amplada completa"
 msgid "Full width on mobile"
 msgstr "Amplada completa al mòbil"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:411
+#: src/components/blog/ThemeEditorDrawer.tsx:412
 msgid "Fullscreen"
 msgstr "Pantalla completa"
 
@@ -9334,7 +9331,7 @@ msgstr "Objectiu:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:347
-#: src/layouts/app-shell/menuItems.ts:185
+#: src/layouts/app-shell/menuItems.ts:221
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Goals"
 msgstr "Objectius"
@@ -9528,8 +9525,7 @@ msgstr "Mantenir una conversa en temps real amb el proveïdor LLM configurat a l
 msgid "Hold for drag"
 msgstr "Manteniu premut per arrossegar"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:419
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:62
+#: src/components/blog/ThemeEditorDrawer.tsx:420
 msgid "Home"
 msgstr "Inici"
 
@@ -10446,7 +10442,7 @@ msgstr "L'etiqueta ha de tenir com a màxim 100 caràcters"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
 #: src/components/web_analytics/tabs/DashboardTab.tsx:145
-#: src/pages/WebAnalyticsLivePage.tsx:153
+#: src/pages/WebAnalyticsLivePage.tsx:154
 msgid "Landing pages"
 msgstr "Pàgines d'aterratge"
 
@@ -11002,7 +10998,7 @@ msgstr "L'escriptura de Llistes també concedeix l'escriptura de contactes. Subs
 #: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
 #: src/components/web_analytics/LiveButton.tsx:48
-#: src/layouts/app-shell/menuItems.ts:183
+#: src/layouts/app-shell/menuItems.ts:219
 #: src/pages/AutomationsPage.tsx:135
 #: src/pages/WebAnalyticsLivePage.tsx:122
 msgid "Live"
@@ -11134,7 +11130,7 @@ msgstr "URL del logotip"
 msgid "Logout"
 msgstr "Tancar sessió"
 
-#: src/layouts/app-shell/menuItems.ts:196
+#: src/layouts/app-shell/menuItems.ts:232
 #: src/pages/LogsPage.tsx:59
 msgid "Logs"
 msgstr "Registres"
@@ -12069,7 +12065,7 @@ msgstr "Encara no hi ha difusions"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:193
 #: src/components/web_analytics/tabs/DashboardTab.tsx:187
-#: src/pages/WebAnalyticsLivePage.tsx:198
+#: src/pages/WebAnalyticsLivePage.tsx:199
 msgid "No campaign data"
 msgstr "No hi ha dades de campanya"
 
@@ -12082,7 +12078,7 @@ msgstr "Encara no hi ha categories"
 msgid "No category"
 msgstr "Sense categoria"
 
-#: src/pages/WebAnalyticsLivePage.tsx:215
+#: src/pages/WebAnalyticsLivePage.tsx:216
 msgid "No channel data"
 msgstr "No hi ha dades de canal"
 
@@ -12090,7 +12086,7 @@ msgstr "No hi ha dades de canal"
 msgid "No chart data"
 msgstr "No hi ha dades per al gràfic"
 
-#: src/pages/WebAnalyticsLivePage.tsx:163
+#: src/pages/WebAnalyticsLivePage.tsx:164
 msgid "No city data"
 msgstr "No hi ha dades de ciutat"
 
@@ -12180,7 +12176,7 @@ msgid "No delivery events"
 msgstr "Cap esdeveniment de lliurament"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
-#: src/pages/WebAnalyticsLivePage.tsx:189
+#: src/pages/WebAnalyticsLivePage.tsx:190
 msgid "No device data"
 msgstr "No hi ha dades de dispositiu"
 
@@ -12359,7 +12355,7 @@ msgstr "Sense seguiment d'obertures ni clics, conservar UTM"
 msgid "No operations defined"
 msgstr "No hi ha operacions definides"
 
-#: src/pages/WebAnalyticsLivePage.tsx:149
+#: src/pages/WebAnalyticsLivePage.tsx:150
 msgid "No pages"
 msgstr "No hi ha pàgines"
 
@@ -12403,7 +12399,7 @@ msgstr "No hi ha publicacions publicades"
 msgid "No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies."
 msgstr "Cap destinatari rep el píxel d'obertura ni enllaços amb seguiment; es conserven els paràmetres UTM. Altrament, s'aplica el consentiment de cada contacte."
 
-#: src/pages/WebAnalyticsLivePage.tsx:172
+#: src/pages/WebAnalyticsLivePage.tsx:173
 msgid "No referrers"
 msgstr "No hi ha referents"
 
@@ -13448,7 +13444,7 @@ msgid "Padding Settings"
 msgstr "Configuració de farciment"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:146
-#: src/pages/WebAnalyticsLivePage.tsx:154
+#: src/pages/WebAnalyticsLivePage.tsx:155
 msgid "Page"
 msgstr "Pàgina"
 
@@ -14093,8 +14089,7 @@ msgid "Port must be 1-65535"
 msgstr "El port ha de ser entre 1 i 65535"
 
 #: src/components/blog/PostsTable.tsx:277
-#: src/components/blog/ThemeEditorDrawer.tsx:437
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:88
+#: src/components/blog/ThemeEditorDrawer.tsx:438
 msgid "Post"
 msgstr "Publicació"
 
@@ -14182,8 +14177,6 @@ msgstr "Premeu Enter per confirmar, Escape per cancel·lar"
 #~ msgstr "Previsualitzar"
 
 #: src/components/automations/stats/EmailStepPreview.tsx:67
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:37
-#: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:69
 #: src/components/common/ImageURLInput.tsx:52
@@ -14204,8 +14197,8 @@ msgid "Preview accepts any definition sent to it, not just a saved segment, so a
 msgstr "La vista prèvia accepta qualsevol definició que se li enviï, no només un segment desat, de manera que qualsevol que la tingui juntament amb la lectura de Contactes pot fer preguntes de recompte sobre atributs de contacte, pertinença a llistes, esdeveniments personalitzats i cronologia — un recompte cada vegada, sobre qualsevol condició que vulgui. La lectura de Segments per si sola no hi pot arribar. Els permisos de Segments també decideixen discretament qui pot executar tres tipus de tasca en segon pla als endpoints compartits /api/tasks.*."
 
 #: src/components/blog/ThemeSelectionModal.tsx:77
-msgid "Preview Coming Soon"
-msgstr "Vista prèvia properament"
+#~ msgid "Preview Coming Soon"
+#~ msgstr "Vista prèvia properament"
 
 #: src/components/timeline/ContactTimeline.tsx:697
 msgid "Preview email"
@@ -14896,7 +14889,7 @@ msgstr "Trànsit de referència"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:173
 #: src/components/web_analytics/tabs/DashboardTab.tsx:164
-#: src/pages/WebAnalyticsLivePage.tsx:177
+#: src/pages/WebAnalyticsLivePage.tsx:178
 msgid "Referrer domain"
 msgstr "Domini del referent"
 
@@ -14906,7 +14899,7 @@ msgstr "Referent:"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:172
 #: src/components/web_analytics/tabs/DashboardTab.tsx:163
-#: src/pages/WebAnalyticsLivePage.tsx:176
+#: src/pages/WebAnalyticsLivePage.tsx:177
 msgid "Referrers"
 msgstr "Referents"
 
@@ -15403,12 +15396,12 @@ msgstr "Voleu reiniciar el servidor?"
 msgid "Restore"
 msgstr "Restaurar"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:456
+#: src/components/blog/ThemeEditorDrawer.tsx:457
 msgid "Restore Draft"
 msgstr "Restaurar esborrany"
 
 #: src/components/blog/PostDrawer.tsx:293
-#: src/components/blog/ThemeEditorDrawer.tsx:452
+#: src/components/blog/ThemeEditorDrawer.tsx:453
 msgid "Restore Draft?"
 msgstr "Restaurar esborrany?"
 
@@ -15738,8 +15731,8 @@ msgstr "Mode de caixa de proves"
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/blog/CategoryDrawer.tsx:116
 #: src/components/blog/PostDrawer.tsx:692
-#: src/components/blog/ThemeEditorDrawer.tsx:318
-#: src/components/blog/ThemeEditorDrawer.tsx:468
+#: src/components/blog/ThemeEditorDrawer.tsx:321
+#: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:137
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:311
@@ -15828,7 +15821,7 @@ msgstr "Primer deseu la difusió"
 msgid "Save the selected block"
 msgstr "Desa el bloc seleccionat"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:464
+#: src/components/blog/ThemeEditorDrawer.tsx:465
 msgid "Save Theme"
 msgstr "Desar tema"
 
@@ -17097,7 +17090,7 @@ msgid "Setting up..."
 msgstr "Configurant..."
 
 #: src/components/transactional/TransactionalDetail.tsx:478
-#: src/layouts/app-shell/menuItems.ts:197
+#: src/layouts/app-shell/menuItems.ts:233
 #: src/pages/WorkspaceSettingsPage.tsx:269
 msgid "Settings"
 msgstr "Configuració"
@@ -17565,7 +17558,7 @@ msgstr "SparkPost"
 msgid "SparkPost API Key"
 msgstr "Clau API de SparkPost"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:410
+#: src/components/blog/ThemeEditorDrawer.tsx:411
 msgid "Split"
 msgstr "Dividir"
 
@@ -18245,7 +18238,7 @@ msgstr "Remitent de la plantilla ({0})"
 
 #: src/components/logs/labels.ts:14
 #: src/components/settings/permissionLabels.ts:9
-#: src/layouts/app-shell/menuItems.ts:193
+#: src/layouts/app-shell/menuItems.ts:229
 #: src/pages/TemplatesPage.tsx:570
 #: src/services/api/errors.ts:84
 msgid "Templates"
@@ -18735,7 +18728,7 @@ msgstr "Remitent predeterminat del proveïdor: aquesta notificació no té plant
 msgid "The provider's default sender: you need access to templates to see the template's own."
 msgstr "Remitent predeterminat del proveïdor: cal accés a les plantilles per veure el de la plantilla."
 
-#: src/pages/AnalyticsPage.tsx:89
+#: src/pages/AnalyticsPage.tsx:88
 msgid "The requested workspace could not be found."
 msgstr "No s'ha pogut trobar l'espai de treball sol·licitat."
 
@@ -18881,7 +18874,7 @@ msgstr "El registre d'auditoria del workspace: qui ha canviat què, des d'on, i 
 msgid "Theme"
 msgstr "Tema"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:250
+#: src/components/blog/ThemeEditorDrawer.tsx:253
 msgid "Theme created successfully"
 msgstr "Tema creat correctament"
 
@@ -18889,7 +18882,7 @@ msgstr "Tema creat correctament"
 msgid "Theme published successfully"
 msgstr "Tema publicat correctament"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:248
+#: src/components/blog/ThemeEditorDrawer.tsx:251
 msgid "Theme updated successfully"
 msgstr "Tema actualitzat correctament"
 
@@ -19596,7 +19589,7 @@ msgstr "Campanyes principals"
 msgid "Top Center"
 msgstr "Centre superior"
 
-#: src/pages/WebAnalyticsLivePage.tsx:160
+#: src/pages/WebAnalyticsLivePage.tsx:161
 msgid "Top Cities"
 msgstr "Ciutats principals"
 
@@ -19609,11 +19602,11 @@ msgid "Top Left"
 msgstr "Superior esquerra"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:140
-#: src/pages/WebAnalyticsLivePage.tsx:146
+#: src/pages/WebAnalyticsLivePage.tsx:147
 msgid "Top Pages"
 msgstr "Pàgines principals"
 
-#: src/pages/WebAnalyticsLivePage.tsx:169
+#: src/pages/WebAnalyticsLivePage.tsx:170
 msgid "Top Referrers"
 msgstr "Referents principals"
 
@@ -19720,7 +19713,7 @@ msgstr "Trànsit que cap regla de filtre no ha classificat"
 #: src/components/templates/DeleteTemplateModal.tsx:42
 #: src/components/templates/templateCategories.ts:21
 #: src/components/transactional/TransactionalDetail.tsx:82
-#: src/layouts/app-shell/menuItems.ts:191
+#: src/layouts/app-shell/menuItems.ts:227
 #: src/pages/TransactionalNotificationsPage.tsx:168
 #: src/pages/TransactionalNotificationsPage.tsx:204
 #: src/services/api/errors.ts:86
@@ -20033,7 +20026,7 @@ msgstr "Canvis no desats"
 
 #: src/components/automations/AutomationEditor.tsx:265
 #: src/components/automations/AutomationEditor.tsx:288
-#: src/components/blog/ThemeEditorDrawer.tsx:275
+#: src/components/blog/ThemeEditorDrawer.tsx:278
 msgid "Unsaved Changes"
 msgstr "Canvis no desats"
 
@@ -20404,8 +20397,8 @@ msgid "Use this curl command to send a transactional notification via API:"
 msgstr "Utilitzeu aquesta comanda curl per enviar una notificació transaccional via API:"
 
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:43
-msgid "Use This Theme"
-msgstr "Utilitzar aquest tema"
+#~ msgid "Use This Theme"
+#~ msgstr "Utilitzar aquest tema"
 
 #: src/components/settings/Integrations.tsx:1429
 #: src/components/settings/SystemSettingsDrawer.tsx:360
@@ -20611,7 +20604,7 @@ msgstr "Verificant invitació..."
 msgid "Version"
 msgstr "Versió"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:474
+#: src/components/blog/ThemeEditorDrawer.tsx:475
 msgid "VERSION NOTES (OPTIONAL)"
 msgstr "NOTES DE VERSIÓ (OPCIONAL)"
 
@@ -20801,7 +20794,7 @@ msgstr "Analítica web"
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:244
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:345
-#: src/layouts/app-shell/menuItems.ts:182
+#: src/layouts/app-shell/menuItems.ts:218
 #: src/pages/WebAnalyticsPage.tsx:95
 #: src/services/api/errors.ts:92
 msgid "Web Analytics"
@@ -21211,6 +21204,7 @@ msgstr "Sense text propi, aquest idioma rep la versió automàtica."
 #: src/components/settings/GeneralSettings.tsx:323
 #: src/components/settings/permissionLabels.ts:12
 #: src/components/settings/SettingsSidebar.tsx:26
+#: src/layouts/app-shell/WorkspaceSwitcher.tsx:74
 #: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "Espai de treball"
@@ -21508,7 +21502,7 @@ msgstr "Teniu canvis no desats. Esteu segur que voleu tancar aquest panell?"
 msgid "You have unsaved changes. Are you sure you want to close?"
 msgstr "Teniu canvis no desats. Esteu segur que voleu tancar?"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:278
+#: src/components/blog/ThemeEditorDrawer.tsx:281
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "Teniu canvis no desats. Esteu segur que voleu tancar? Els vostres canvis es perdran."
 

@@ -802,7 +802,7 @@ msgstr "{LAST_SENT_DAYS, plural, one {Kein erfolgreicher Versand am letzten # Ta
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
 msgstr "{leafCount, plural, one {# Bedingung} other {# Bedingungen}}"
 
-#: src/pages/WebAnalyticsLivePage.tsx:136
+#: src/pages/WebAnalyticsLivePage.tsx:137
 msgid "{liveSessions} live now"
 msgstr "{liveSessions} jetzt live"
 
@@ -1235,7 +1235,7 @@ msgid "3. Translations"
 msgstr "3. Übersetzungen"
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:94
-#: src/pages/AnalyticsPage.tsx:112
+#: src/pages/AnalyticsPage.tsx:106
 msgid "30 d"
 msgstr "30 T"
 
@@ -1278,7 +1278,7 @@ msgid "60d"
 msgstr "60 T"
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:93
-#: src/pages/AnalyticsPage.tsx:111
+#: src/pages/AnalyticsPage.tsx:105
 msgid "7 d"
 msgstr "7 T"
 
@@ -1300,7 +1300,7 @@ msgstr "7 T"
 msgid "800 - Extra Bold"
 msgstr "800 - Extra fett"
 
-#: src/pages/AnalyticsPage.tsx:113
+#: src/pages/AnalyticsPage.tsx:107
 msgid "90 d"
 msgstr "90 T"
 
@@ -1357,7 +1357,7 @@ msgstr "Ein Liquid-Block kann nicht in einen Block mit Anzeigebedingung"
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "Ein Liquid-Block kann nicht in einen Block mit Anzeigebedingung: Entfernen Sie zuerst die Bedingung oder platzieren Sie den Liquid-Block außerhalb."
 
-#: src/components/blog/ThemeEditorDrawer.tsx:459
+#: src/components/blog/ThemeEditorDrawer.tsx:460
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
 msgstr "Ein neuerer Entwurf wurde im lokalen Speicher gefunden. Möchten Sie ihn wiederherstellen oder verwerfen?"
 
@@ -1736,7 +1736,7 @@ msgstr "Schlüsselwörter hinzufügen..."
 msgid "Add node"
 msgstr "Knoten hinzufügen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:479
+#: src/components/blog/ThemeEditorDrawer.tsx:480
 msgid "Add notes about this version..."
 msgstr "Notizen zu dieser Version hinzufügen..."
 
@@ -2220,7 +2220,7 @@ msgstr "Anmerkung aktualisiert"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:349
-#: src/layouts/app-shell/menuItems.ts:187
+#: src/layouts/app-shell/menuItems.ts:223
 #: src/pages/WebAnalyticsPage.tsx:99
 msgid "Annotations"
 msgstr "Anmerkungen"
@@ -2824,7 +2824,7 @@ msgstr "Automatisierung:"
 #: src/components/logs/MessagesTab.tsx:258
 #: src/components/settings/permissionLabels.ts:15
 #: src/components/templates/DeleteTemplateModal.tsx:43
-#: src/layouts/app-shell/menuItems.ts:190
+#: src/layouts/app-shell/menuItems.ts:226
 #: src/pages/AutomationsPage.tsx:198
 #: src/services/api/errors.ts:90
 msgid "Automations"
@@ -3148,7 +3148,7 @@ msgstr "Blöcke"
 #: src/components/settings/permissionLabels.ts:14
 #: src/components/settings/SettingsSidebar.tsx:67
 #: src/components/templates/templateCategories.ts:28
-#: src/layouts/app-shell/menuItems.ts:194
+#: src/layouts/app-shell/menuItems.ts:230
 #: src/pages/BlogPage.tsx:136
 #: src/services/api/errors.ts:89
 msgid "Blog"
@@ -3524,7 +3524,7 @@ msgstr "Kampagne: {0}"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:88
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:427
 #: src/components/settings/permissionLabels.ts:10
-#: src/layouts/app-shell/menuItems.ts:189
+#: src/layouts/app-shell/menuItems.ts:225
 #: src/pages/BroadcastsPage.tsx:236
 #: src/pages/BroadcastsPage.tsx:333
 #: src/services/api/errors.ts:85
@@ -3639,14 +3639,14 @@ msgstr ""
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "Rufen Sie identify() auf, sobald Sie wissen, wer der Besucher ist. Die Signatur muss auf Ihrem Server mit dem geheimen Schlüssel Ihres Arbeitsbereichs berechnet werden — der Tracking-Endpunkt ist öffentlich, daher wird eine unsignierte Adresse ignoriert."
 
-#: src/pages/WebAnalyticsLivePage.tsx:203
+#: src/pages/WebAnalyticsLivePage.tsx:204
 msgid "Campaign"
 msgstr "Kampagne"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:196
 #: src/components/web_analytics/tabs/DashboardTab.tsx:190
-#: src/pages/WebAnalyticsLivePage.tsx:195
-#: src/pages/WebAnalyticsLivePage.tsx:202
+#: src/pages/WebAnalyticsLivePage.tsx:196
+#: src/pages/WebAnalyticsLivePage.tsx:203
 msgid "Campaigns"
 msgstr "Kampagnen"
 
@@ -3668,9 +3668,9 @@ msgstr "Kampagnen"
 #: src/components/blog/PostsTable.tsx:213
 #: src/components/blog/PublishModal.tsx:205
 #: src/components/blog/RecentThemesTable.tsx:95
-#: src/components/blog/ThemeEditorDrawer.tsx:280
-#: src/components/blog/ThemeEditorDrawer.tsx:310
-#: src/components/blog/ThemeEditorDrawer.tsx:469
+#: src/components/blog/ThemeEditorDrawer.tsx:283
+#: src/components/blog/ThemeEditorDrawer.tsx:313
+#: src/components/blog/ThemeEditorDrawer.tsx:470
 #: src/components/broadcasts/BroadcastsTable.tsx:188
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:360
@@ -3840,8 +3840,7 @@ msgstr "Kategorien"
 
 #: src/components/blog/PostDrawer.tsx:871
 #: src/components/blog/PostsTable.tsx:312
-#: src/components/blog/ThemeEditorDrawer.tsx:428
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:75
+#: src/components/blog/ThemeEditorDrawer.tsx:429
 #: src/components/templates/CreateTemplateDrawer.tsx:1016
 #: src/pages/TemplatesPage.tsx:403
 msgid "Category"
@@ -3982,7 +3981,7 @@ msgstr "Kanal"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
 #: src/components/web_analytics/tabs/DashboardTab.tsx:176
-#: src/pages/WebAnalyticsLivePage.tsx:220
+#: src/pages/WebAnalyticsLivePage.tsx:221
 msgid "Channel group"
 msgstr "Kanalgruppe"
 
@@ -3994,8 +3993,8 @@ msgstr "Kanalgruppen"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:178
 #: src/components/web_analytics/tabs/DashboardTab.tsx:169
-#: src/pages/WebAnalyticsLivePage.tsx:212
-#: src/pages/WebAnalyticsLivePage.tsx:219
+#: src/pages/WebAnalyticsLivePage.tsx:213
+#: src/pages/WebAnalyticsLivePage.tsx:220
 msgid "Channels"
 msgstr "Kanäle"
 
@@ -4042,8 +4041,8 @@ msgstr "Gespeicherten Block auswählen"
 #~ msgstr "Gespeicherten Block zum Aktualisieren auswählen"
 
 #: src/components/blog/ThemeSelectionModal.tsx:50
-msgid "Choose a starting point for your new theme. You can customize everything later."
-msgstr "Wählen Sie einen Ausgangspunkt für Ihr neues Theme. Sie können alles später anpassen."
+#~ msgid "Choose a starting point for your new theme. You can customize everything later."
+#~ msgstr "Wählen Sie einen Ausgangspunkt für Ihr neues Theme. Sie können alles später anpassen."
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:395
 msgid "Choose a template first"
@@ -4075,11 +4074,11 @@ msgstr "Wählen Sie, wann \\\"{0}\\\" veröffentlicht werden soll"
 msgid "chosen on the broadcast"
 msgstr "im Broadcast gewählt"
 
-#: src/pages/WebAnalyticsLivePage.tsx:165
+#: src/pages/WebAnalyticsLivePage.tsx:166
 msgid "Cities"
 msgstr "Städte"
 
-#: src/pages/WebAnalyticsLivePage.tsx:165
+#: src/pages/WebAnalyticsLivePage.tsx:166
 msgid "City"
 msgstr "Stadt"
 
@@ -4319,8 +4318,7 @@ msgid "Clone Template"
 msgstr "Vorlage klonen"
 
 #: src/components/automations/NodeConfigPanel.tsx:254
-#: src/components/blog/ThemeEditorDrawer.tsx:279
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:40
+#: src/components/blog/ThemeEditorDrawer.tsx:282
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:230
 #: src/components/broadcasts/GlobalFeedSettings.tsx:142
 #: src/components/contacts/BulkActionProgressModal.tsx:65
@@ -4826,7 +4824,7 @@ msgstr "Kontakt erfolgreich aktualisiert"
 #: src/components/contacts/ContactsViewHeader.tsx:201
 #: src/components/logs/labels.ts:21
 #: src/components/settings/permissionLabels.ts:7
-#: src/layouts/app-shell/menuItems.ts:188
+#: src/layouts/app-shell/menuItems.ts:224
 #: src/pages/ContactsPage.tsx:589
 #: src/services/api/errors.ts:82
 msgid "Contacts"
@@ -4888,7 +4886,7 @@ msgstr "enthält"
 #: src/components/broadcasts/compose/ContentCard.tsx:115
 #: src/components/email_builder/panels/LibraryPanel.tsx:253
 #: src/components/settings/SettingsSidebar.tsx:28
-#: src/layouts/app-shell/menuItems.ts:192
+#: src/layouts/app-shell/menuItems.ts:228
 msgid "Content"
 msgstr "Inhalt"
 
@@ -4936,14 +4934,14 @@ msgid "Coordinates precision"
 msgstr "Genauigkeit der Koordinaten"
 
 #: src/components/common/CodeSnippet.tsx:46
-#: src/components/layout/Mono.tsx:21
+#: src/components/layout/Mono.tsx:23
 #: src/components/logs/CodeBlock.tsx:21
 msgid "Copied"
 msgstr "Kopiert"
 
 #: src/components/common/CodeSnippet.tsx:46
-#: src/components/layout/Mono.tsx:33
-#: src/components/layout/Mono.tsx:34
+#: src/components/layout/Mono.tsx:35
+#: src/components/layout/Mono.tsx:36
 #: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:379
 #: src/components/settings/ZapierSettings.tsx:193
@@ -5388,13 +5386,12 @@ msgstr "Neuen Beitrag erstellen"
 msgid "Create New Template"
 msgstr "Neue Vorlage erstellen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:305
-#: src/components/blog/ThemeSelectionModal.tsx:42
+#: src/components/blog/ThemeEditorDrawer.tsx:308
 msgid "Create New Theme"
 msgstr "Neues Theme erstellen"
 
 #. placeholder {0}: presetData.name
-#: src/components/blog/ThemeEditorDrawer.tsx:304
+#: src/components/blog/ThemeEditorDrawer.tsx:307
 msgid "Create New Theme - {0}"
 msgstr "Neues Theme erstellen - {0}"
 
@@ -5503,7 +5500,7 @@ msgid "Created by Zapier"
 msgstr "Von Zapier erstellt"
 
 #. placeholder {0}: data.theme.version
-#: src/components/blog/ThemeEditorDrawer.tsx:246
+#: src/components/blog/ThemeEditorDrawer.tsx:249
 msgid "Created new version v{0}"
 msgstr "Neue Version v{0} erstellt"
 
@@ -6519,7 +6516,7 @@ msgstr "Von der Website erkennen"
 #: src/components/web_analytics/FilterBuilder.tsx:59
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:232
-#: src/pages/WebAnalyticsLivePage.tsx:191
+#: src/pages/WebAnalyticsLivePage.tsx:192
 msgid "Device"
 msgstr "Gerät"
 
@@ -6527,8 +6524,8 @@ msgstr "Gerät"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
 #: src/components/web_analytics/tabs/DashboardTab.tsx:232
-#: src/pages/WebAnalyticsLivePage.tsx:186
-#: src/pages/WebAnalyticsLivePage.tsx:191
+#: src/pages/WebAnalyticsLivePage.tsx:187
+#: src/pages/WebAnalyticsLivePage.tsx:192
 msgid "Devices"
 msgstr "Geräte"
 
@@ -6607,7 +6604,7 @@ msgstr "Verwerfen"
 msgid "Discard changes"
 msgstr "Änderungen verwerfen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:457
+#: src/components/blog/ThemeEditorDrawer.tsx:458
 msgid "Discard Draft"
 msgstr "Entwurf verwerfen"
 
@@ -6791,7 +6788,7 @@ msgstr "Als ZIP herunterladen"
 msgid "Draft"
 msgstr "Entwurf"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:147
+#: src/components/blog/ThemeEditorDrawer.tsx:150
 msgid "Draft restored from local storage"
 msgstr "Entwurf aus lokalem Speicher wiederhergestellt"
 
@@ -7149,7 +7146,7 @@ msgid "Edit theme"
 msgstr "Theme bearbeiten"
 
 #. placeholder {0}: theme.version
-#: src/components/blog/ThemeEditorDrawer.tsx:302
+#: src/components/blog/ThemeEditorDrawer.tsx:305
 msgid "Edit Theme v{0}"
 msgstr "Theme v{0} bearbeiten"
 
@@ -8070,7 +8067,7 @@ msgid "Expires:"
 msgstr "Läuft ab:"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:346
-#: src/layouts/app-shell/menuItems.ts:184
+#: src/layouts/app-shell/menuItems.ts:220
 #: src/pages/WebAnalyticsPage.tsx:96
 msgid "Explore"
 msgstr "Erkunden"
@@ -8231,7 +8228,7 @@ msgstr "Verbindung mit Zapier fehlgeschlagen"
 #: src/components/common/CodeSnippet.tsx:35
 #: src/components/file_manager/FileExplorer.tsx:293
 #: src/components/layout/DrawerControls.tsx:77
-#: src/components/layout/Mono.tsx:22
+#: src/components/layout/Mono.tsx:24
 #: src/components/logs/CodeBlock.tsx:22
 #: src/components/settings/WebhookDetail.tsx:214
 #: src/components/transactional/ApiCallPanel.tsx:39
@@ -8580,7 +8577,7 @@ msgstr "Speichern des Vorlagenblocks fehlgeschlagen"
 msgid "Failed to save the retention"
 msgstr "Die Aufbewahrung konnte nicht gespeichert werden"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:259
+#: src/components/blog/ThemeEditorDrawer.tsx:262
 msgid "Failed to save theme"
 msgstr "Speichern des Themes fehlgeschlagen"
 
@@ -8815,7 +8812,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "Die Datei ist zu groß. Die maximale Größe beträgt 1 MB."
 
 #: src/components/file_manager/FileExplorer.tsx:986
-#: src/layouts/app-shell/menuItems.ts:195
+#: src/layouts/app-shell/menuItems.ts:231
 msgid "File Manager"
 msgstr "Dateimanager"
 
@@ -8879,7 +8876,7 @@ msgid "Filter on an event property"
 msgstr "Nach einer Ereigniseigenschaft filtern"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
-#: src/layouts/app-shell/menuItems.ts:186
+#: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
 msgid "Filters"
 msgstr "Filter"
@@ -9185,7 +9182,7 @@ msgstr "Volle Breite"
 msgid "Full width on mobile"
 msgstr "Volle Breite auf Mobilgeräten"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:411
+#: src/components/blog/ThemeEditorDrawer.tsx:412
 msgid "Fullscreen"
 msgstr "Vollbild"
 
@@ -9334,7 +9331,7 @@ msgstr "Ziel:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:347
-#: src/layouts/app-shell/menuItems.ts:185
+#: src/layouts/app-shell/menuItems.ts:221
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Goals"
 msgstr "Ziele"
@@ -9528,8 +9525,7 @@ msgstr "Eine Streaming-Unterhaltung mit dem konfigurierten LLM-Anbieter des Arbe
 msgid "Hold for drag"
 msgstr "Halten zum Ziehen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:419
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:62
+#: src/components/blog/ThemeEditorDrawer.tsx:420
 msgid "Home"
 msgstr "Startseite"
 
@@ -10446,7 +10442,7 @@ msgstr "Label darf höchstens 100 Zeichen haben"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
 #: src/components/web_analytics/tabs/DashboardTab.tsx:145
-#: src/pages/WebAnalyticsLivePage.tsx:153
+#: src/pages/WebAnalyticsLivePage.tsx:154
 msgid "Landing pages"
 msgstr "Landingpages"
 
@@ -11002,7 +10998,7 @@ msgstr "Schreibrecht für Listen gewährt auch das Schreiben von Kontakten. Wer 
 #: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
 #: src/components/web_analytics/LiveButton.tsx:48
-#: src/layouts/app-shell/menuItems.ts:183
+#: src/layouts/app-shell/menuItems.ts:219
 #: src/pages/AutomationsPage.tsx:135
 #: src/pages/WebAnalyticsLivePage.tsx:122
 msgid "Live"
@@ -11134,7 +11130,7 @@ msgstr "Logo-URL"
 msgid "Logout"
 msgstr "Abmelden"
 
-#: src/layouts/app-shell/menuItems.ts:196
+#: src/layouts/app-shell/menuItems.ts:232
 #: src/pages/LogsPage.tsx:59
 msgid "Logs"
 msgstr "Protokolle"
@@ -12069,7 +12065,7 @@ msgstr "Noch keine Kampagnen"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:193
 #: src/components/web_analytics/tabs/DashboardTab.tsx:187
-#: src/pages/WebAnalyticsLivePage.tsx:198
+#: src/pages/WebAnalyticsLivePage.tsx:199
 msgid "No campaign data"
 msgstr "Keine Kampagnendaten"
 
@@ -12082,7 +12078,7 @@ msgstr "Noch keine Kategorien"
 msgid "No category"
 msgstr "Keine Kategorie"
 
-#: src/pages/WebAnalyticsLivePage.tsx:215
+#: src/pages/WebAnalyticsLivePage.tsx:216
 msgid "No channel data"
 msgstr "Keine Kanaldaten"
 
@@ -12090,7 +12086,7 @@ msgstr "Keine Kanaldaten"
 msgid "No chart data"
 msgstr "Keine Diagrammdaten"
 
-#: src/pages/WebAnalyticsLivePage.tsx:163
+#: src/pages/WebAnalyticsLivePage.tsx:164
 msgid "No city data"
 msgstr "Keine Stadtdaten"
 
@@ -12180,7 +12176,7 @@ msgid "No delivery events"
 msgstr "Keine Zustellungsereignisse"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
-#: src/pages/WebAnalyticsLivePage.tsx:189
+#: src/pages/WebAnalyticsLivePage.tsx:190
 msgid "No device data"
 msgstr "Keine Gerätedaten"
 
@@ -12359,7 +12355,7 @@ msgstr "Kein Öffnungs- oder Klick-Tracking, UTM-Parameter behalten"
 msgid "No operations defined"
 msgstr "Keine Operationen definiert"
 
-#: src/pages/WebAnalyticsLivePage.tsx:149
+#: src/pages/WebAnalyticsLivePage.tsx:150
 msgid "No pages"
 msgstr "Keine Seiten"
 
@@ -12403,7 +12399,7 @@ msgstr "Keine veröffentlichten Beiträge"
 msgid "No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies."
 msgstr "Kein Empfänger erhält das Öffnungspixel oder getrackte Links; UTM-Parameter bleiben erhalten. Andernfalls gilt die Einwilligung jedes Kontakts."
 
-#: src/pages/WebAnalyticsLivePage.tsx:172
+#: src/pages/WebAnalyticsLivePage.tsx:173
 msgid "No referrers"
 msgstr "Keine Verweisquellen"
 
@@ -13448,7 +13444,7 @@ msgid "Padding Settings"
 msgstr "Innenabstand-Einstellungen"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:146
-#: src/pages/WebAnalyticsLivePage.tsx:154
+#: src/pages/WebAnalyticsLivePage.tsx:155
 msgid "Page"
 msgstr "Seite"
 
@@ -14093,8 +14089,7 @@ msgid "Port must be 1-65535"
 msgstr "Der Port muss zwischen 1 und 65535 liegen"
 
 #: src/components/blog/PostsTable.tsx:277
-#: src/components/blog/ThemeEditorDrawer.tsx:437
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:88
+#: src/components/blog/ThemeEditorDrawer.tsx:438
 msgid "Post"
 msgstr "Beitrag"
 
@@ -14182,8 +14177,6 @@ msgstr "Drücken Sie Enter zum Bestätigen, Escape zum Abbrechen"
 #~ msgstr "Vorschau"
 
 #: src/components/automations/stats/EmailStepPreview.tsx:67
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:37
-#: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:69
 #: src/components/common/ImageURLInput.tsx:52
@@ -14204,8 +14197,8 @@ msgid "Preview accepts any definition sent to it, not just a saved segment, so a
 msgstr "Die Vorschau akzeptiert jede an sie gesendete Definition, nicht nur ein gespeichertes Segment. Wer sie zusammen mit dem Leserecht für Kontakte besitzt, kann daher Zählfragen zu Kontaktattributen, Listenmitgliedschaften, benutzerdefinierten Ereignissen und der Zeitleiste stellen — eine Zählung nach der anderen, zu jeder beliebigen Bedingung. Leserecht für Segmente allein erreicht sie nicht. Die Segment-Berechtigungen entscheiden außerdem stillschweigend darüber, wer drei Arten von Hintergrundaufgaben über die gemeinsamen /api/tasks.*-Endpunkte ausführen darf."
 
 #: src/components/blog/ThemeSelectionModal.tsx:77
-msgid "Preview Coming Soon"
-msgstr "Vorschau demnächst verfügbar"
+#~ msgid "Preview Coming Soon"
+#~ msgstr "Vorschau demnächst verfügbar"
 
 #: src/components/timeline/ContactTimeline.tsx:697
 msgid "Preview email"
@@ -14896,7 +14889,7 @@ msgstr "Verweis-Traffic"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:173
 #: src/components/web_analytics/tabs/DashboardTab.tsx:164
-#: src/pages/WebAnalyticsLivePage.tsx:177
+#: src/pages/WebAnalyticsLivePage.tsx:178
 msgid "Referrer domain"
 msgstr "Verweis-Domain"
 
@@ -14906,7 +14899,7 @@ msgstr "Verweisquelle:"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:172
 #: src/components/web_analytics/tabs/DashboardTab.tsx:163
-#: src/pages/WebAnalyticsLivePage.tsx:176
+#: src/pages/WebAnalyticsLivePage.tsx:177
 msgid "Referrers"
 msgstr "Verweisquellen"
 
@@ -15403,12 +15396,12 @@ msgstr "Server neu starten?"
 msgid "Restore"
 msgstr "Wiederherstellen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:456
+#: src/components/blog/ThemeEditorDrawer.tsx:457
 msgid "Restore Draft"
 msgstr "Entwurf wiederherstellen"
 
 #: src/components/blog/PostDrawer.tsx:293
-#: src/components/blog/ThemeEditorDrawer.tsx:452
+#: src/components/blog/ThemeEditorDrawer.tsx:453
 msgid "Restore Draft?"
 msgstr "Entwurf wiederherstellen?"
 
@@ -15738,8 +15731,8 @@ msgstr "Sandbox-Modus"
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/blog/CategoryDrawer.tsx:116
 #: src/components/blog/PostDrawer.tsx:692
-#: src/components/blog/ThemeEditorDrawer.tsx:318
-#: src/components/blog/ThemeEditorDrawer.tsx:468
+#: src/components/blog/ThemeEditorDrawer.tsx:321
+#: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:137
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:311
@@ -15828,7 +15821,7 @@ msgstr "Speichern Sie zuerst die Kampagne"
 msgid "Save the selected block"
 msgstr "Ausgewählten Block speichern"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:464
+#: src/components/blog/ThemeEditorDrawer.tsx:465
 msgid "Save Theme"
 msgstr "Theme speichern"
 
@@ -17097,7 +17090,7 @@ msgid "Setting up..."
 msgstr "Wird eingerichtet..."
 
 #: src/components/transactional/TransactionalDetail.tsx:478
-#: src/layouts/app-shell/menuItems.ts:197
+#: src/layouts/app-shell/menuItems.ts:233
 #: src/pages/WorkspaceSettingsPage.tsx:269
 msgid "Settings"
 msgstr "Einstellungen"
@@ -17565,7 +17558,7 @@ msgstr "SparkPost"
 msgid "SparkPost API Key"
 msgstr "SparkPost-API-Schlüssel"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:410
+#: src/components/blog/ThemeEditorDrawer.tsx:411
 msgid "Split"
 msgstr "Aufteilen"
 
@@ -18245,7 +18238,7 @@ msgstr "Absender der Vorlage ({0})"
 
 #: src/components/logs/labels.ts:14
 #: src/components/settings/permissionLabels.ts:9
-#: src/layouts/app-shell/menuItems.ts:193
+#: src/layouts/app-shell/menuItems.ts:229
 #: src/pages/TemplatesPage.tsx:570
 #: src/services/api/errors.ts:84
 msgid "Templates"
@@ -18735,7 +18728,7 @@ msgstr "Standardabsender des Anbieters: Diese Benachrichtigung hat keine E-Mail-
 msgid "The provider's default sender: you need access to templates to see the template's own."
 msgstr "Standardabsender des Anbieters: Sie benötigen Zugriff auf Vorlagen, um den der Vorlage zu sehen."
 
-#: src/pages/AnalyticsPage.tsx:89
+#: src/pages/AnalyticsPage.tsx:88
 msgid "The requested workspace could not be found."
 msgstr "Der angeforderte Arbeitsbereich konnte nicht gefunden werden."
 
@@ -18881,7 +18874,7 @@ msgstr "Das Audit-Log des Workspace: wer was wann von wo geändert hat und ob es
 msgid "Theme"
 msgstr "Design"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:250
+#: src/components/blog/ThemeEditorDrawer.tsx:253
 msgid "Theme created successfully"
 msgstr "Theme erfolgreich erstellt"
 
@@ -18889,7 +18882,7 @@ msgstr "Theme erfolgreich erstellt"
 msgid "Theme published successfully"
 msgstr "Theme erfolgreich veröffentlicht"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:248
+#: src/components/blog/ThemeEditorDrawer.tsx:251
 msgid "Theme updated successfully"
 msgstr "Theme erfolgreich aktualisiert"
 
@@ -19596,7 +19589,7 @@ msgstr "Top-Kampagnen"
 msgid "Top Center"
 msgstr "Oben Mitte"
 
-#: src/pages/WebAnalyticsLivePage.tsx:160
+#: src/pages/WebAnalyticsLivePage.tsx:161
 msgid "Top Cities"
 msgstr "Top-Städte"
 
@@ -19609,11 +19602,11 @@ msgid "Top Left"
 msgstr "Oben Links"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:140
-#: src/pages/WebAnalyticsLivePage.tsx:146
+#: src/pages/WebAnalyticsLivePage.tsx:147
 msgid "Top Pages"
 msgstr "Top-Seiten"
 
-#: src/pages/WebAnalyticsLivePage.tsx:169
+#: src/pages/WebAnalyticsLivePage.tsx:170
 msgid "Top Referrers"
 msgstr "Top-Verweisquellen"
 
@@ -19720,7 +19713,7 @@ msgstr "Traffic, den keine Filterregel klassifiziert hat"
 #: src/components/templates/DeleteTemplateModal.tsx:42
 #: src/components/templates/templateCategories.ts:21
 #: src/components/transactional/TransactionalDetail.tsx:82
-#: src/layouts/app-shell/menuItems.ts:191
+#: src/layouts/app-shell/menuItems.ts:227
 #: src/pages/TransactionalNotificationsPage.tsx:168
 #: src/pages/TransactionalNotificationsPage.tsx:204
 #: src/services/api/errors.ts:86
@@ -20033,7 +20026,7 @@ msgstr "Nicht gespeicherte Änderungen"
 
 #: src/components/automations/AutomationEditor.tsx:265
 #: src/components/automations/AutomationEditor.tsx:288
-#: src/components/blog/ThemeEditorDrawer.tsx:275
+#: src/components/blog/ThemeEditorDrawer.tsx:278
 msgid "Unsaved Changes"
 msgstr "Nicht gespeicherte Änderungen"
 
@@ -20404,8 +20397,8 @@ msgid "Use this curl command to send a transactional notification via API:"
 msgstr "Verwenden Sie diesen curl-Befehl, um eine transaktionale Benachrichtigung über die API zu senden:"
 
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:43
-msgid "Use This Theme"
-msgstr "Dieses Theme verwenden"
+#~ msgid "Use This Theme"
+#~ msgstr "Dieses Theme verwenden"
 
 #: src/components/settings/Integrations.tsx:1429
 #: src/components/settings/SystemSettingsDrawer.tsx:360
@@ -20611,7 +20604,7 @@ msgstr "Einladung wird überprüft..."
 msgid "Version"
 msgstr "Version"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:474
+#: src/components/blog/ThemeEditorDrawer.tsx:475
 msgid "VERSION NOTES (OPTIONAL)"
 msgstr "VERSIONSHINWEISE (OPTIONAL)"
 
@@ -20801,7 +20794,7 @@ msgstr "Web-Analyse"
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:244
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:345
-#: src/layouts/app-shell/menuItems.ts:182
+#: src/layouts/app-shell/menuItems.ts:218
 #: src/pages/WebAnalyticsPage.tsx:95
 #: src/services/api/errors.ts:92
 msgid "Web Analytics"
@@ -21211,6 +21204,7 @@ msgstr "Ohne eigenen Text erhält diese Sprache die automatische Version."
 #: src/components/settings/GeneralSettings.tsx:323
 #: src/components/settings/permissionLabels.ts:12
 #: src/components/settings/SettingsSidebar.tsx:26
+#: src/layouts/app-shell/WorkspaceSwitcher.tsx:74
 #: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "Arbeitsbereich"
@@ -21508,7 +21502,7 @@ msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie dies
 msgid "You have unsaved changes. Are you sure you want to close?"
 msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie schließen möchten?"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:278
+#: src/components/blog/ThemeEditorDrawer.tsx:281
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie schließen möchten? Ihre Änderungen gehen verloren."
 

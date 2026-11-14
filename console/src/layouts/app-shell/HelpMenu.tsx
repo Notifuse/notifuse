@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Dropdown, Tooltip } from 'antd'
 import { BookOpen, Bug, CircleHelp } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { useFocusBack } from './useFocusBack'
 
 export interface HelpMenuProps {
   collapsed: boolean
@@ -14,9 +15,13 @@ export interface HelpMenuProps {
 export function HelpMenu({ collapsed, onMenuOpenChange, getPopupContainer }: HelpMenuProps) {
   const { t } = useLingui()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { ref, focusBack } = useFocusBack<HTMLButtonElement>()
   const button = (
     <button
+      ref={ref}
       type="button"
+      aria-haspopup="menu"
+      aria-expanded={menuOpen}
       aria-label={collapsed ? t`Help` : undefined}
       className={`flex h-8.5 cursor-pointer items-center gap-2.5 rounded-md border-0 bg-transparent text-sm text-ink-2 hover:bg-line-soft focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none ${
         collapsed ? 'mx-auto w-9 justify-center' : 'w-full px-2.5 text-left'
@@ -32,6 +37,7 @@ export function HelpMenu({ collapsed, onMenuOpenChange, getPopupContainer }: Hel
       onOpenChange={(open) => {
         setMenuOpen(open)
         onMenuOpenChange?.(open)
+        if (!open) focusBack()
       }}
       placement={collapsed ? 'rightBottom' : 'topLeft'}
       getPopupContainer={getPopupContainer}

@@ -802,7 +802,7 @@ msgstr "{LAST_SENT_DAYS, plural, other {過去 # 日間に成功した送信は�
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
 msgstr "{leafCount, plural, one {#件の条件} other {#件の条件}}"
 
-#: src/pages/WebAnalyticsLivePage.tsx:136
+#: src/pages/WebAnalyticsLivePage.tsx:137
 msgid "{liveSessions} live now"
 msgstr "現在{liveSessions}件がライブ"
 
@@ -1235,7 +1235,7 @@ msgid "3. Translations"
 msgstr "3. 翻訳"
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:94
-#: src/pages/AnalyticsPage.tsx:112
+#: src/pages/AnalyticsPage.tsx:106
 msgid "30 d"
 msgstr "30日"
 
@@ -1278,7 +1278,7 @@ msgid "60d"
 msgstr "60日"
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:93
-#: src/pages/AnalyticsPage.tsx:111
+#: src/pages/AnalyticsPage.tsx:105
 msgid "7 d"
 msgstr "7日"
 
@@ -1300,7 +1300,7 @@ msgstr "7日"
 msgid "800 - Extra Bold"
 msgstr "800 - 極太"
 
-#: src/pages/AnalyticsPage.tsx:113
+#: src/pages/AnalyticsPage.tsx:107
 msgid "90 d"
 msgstr "90日"
 
@@ -1357,7 +1357,7 @@ msgstr "表示条件のあるブロックの中に Liquid ブロックは配置�
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "表示条件のあるブロックの中に Liquid ブロックは配置できません。先に条件を削除するか、Liquid ブロックを外側に配置してください。"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:459
+#: src/components/blog/ThemeEditorDrawer.tsx:460
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
 msgstr "ローカルストレージに新しい下書きが見つかりました。復元しますか、それとも破棄しますか?"
 
@@ -1736,7 +1736,7 @@ msgstr "キーワードを追加..."
 msgid "Add node"
 msgstr "ノードを追加"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:479
+#: src/components/blog/ThemeEditorDrawer.tsx:480
 msgid "Add notes about this version..."
 msgstr "このバージョンについてメモを追加..."
 
@@ -2220,7 +2220,7 @@ msgstr "注釈を更新しました"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:109
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:349
-#: src/layouts/app-shell/menuItems.ts:187
+#: src/layouts/app-shell/menuItems.ts:223
 #: src/pages/WebAnalyticsPage.tsx:99
 msgid "Annotations"
 msgstr "注釈"
@@ -2824,7 +2824,7 @@ msgstr "オートメーション:"
 #: src/components/logs/MessagesTab.tsx:258
 #: src/components/settings/permissionLabels.ts:15
 #: src/components/templates/DeleteTemplateModal.tsx:43
-#: src/layouts/app-shell/menuItems.ts:190
+#: src/layouts/app-shell/menuItems.ts:226
 #: src/pages/AutomationsPage.tsx:198
 #: src/services/api/errors.ts:90
 msgid "Automations"
@@ -3148,7 +3148,7 @@ msgstr "ブロック"
 #: src/components/settings/permissionLabels.ts:14
 #: src/components/settings/SettingsSidebar.tsx:67
 #: src/components/templates/templateCategories.ts:28
-#: src/layouts/app-shell/menuItems.ts:194
+#: src/layouts/app-shell/menuItems.ts:230
 #: src/pages/BlogPage.tsx:136
 #: src/services/api/errors.ts:89
 msgid "Blog"
@@ -3524,7 +3524,7 @@ msgstr "ブロードキャスト: {0}"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:88
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:427
 #: src/components/settings/permissionLabels.ts:10
-#: src/layouts/app-shell/menuItems.ts:189
+#: src/layouts/app-shell/menuItems.ts:225
 #: src/pages/BroadcastsPage.tsx:236
 #: src/pages/BroadcastsPage.tsx:333
 #: src/services/api/errors.ts:85
@@ -3639,14 +3639,14 @@ msgstr ""
 msgid "Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored."
 msgstr "訪問者が誰かわかったら identify() を呼び出します。署名はワークスペースのシークレットキーを使ってサーバー側で計算する必要があります — トラッキングエンドポイントは公開されているため、署名のないアドレスは無視されます。"
 
-#: src/pages/WebAnalyticsLivePage.tsx:203
+#: src/pages/WebAnalyticsLivePage.tsx:204
 msgid "Campaign"
 msgstr "キャンペーン"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:196
 #: src/components/web_analytics/tabs/DashboardTab.tsx:190
-#: src/pages/WebAnalyticsLivePage.tsx:195
-#: src/pages/WebAnalyticsLivePage.tsx:202
+#: src/pages/WebAnalyticsLivePage.tsx:196
+#: src/pages/WebAnalyticsLivePage.tsx:203
 msgid "Campaigns"
 msgstr "キャンペーン"
 
@@ -3668,9 +3668,9 @@ msgstr "キャンペーン"
 #: src/components/blog/PostsTable.tsx:213
 #: src/components/blog/PublishModal.tsx:205
 #: src/components/blog/RecentThemesTable.tsx:95
-#: src/components/blog/ThemeEditorDrawer.tsx:280
-#: src/components/blog/ThemeEditorDrawer.tsx:310
-#: src/components/blog/ThemeEditorDrawer.tsx:469
+#: src/components/blog/ThemeEditorDrawer.tsx:283
+#: src/components/blog/ThemeEditorDrawer.tsx:313
+#: src/components/blog/ThemeEditorDrawer.tsx:470
 #: src/components/broadcasts/BroadcastsTable.tsx:188
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:360
@@ -3840,8 +3840,7 @@ msgstr "カテゴリ"
 
 #: src/components/blog/PostDrawer.tsx:871
 #: src/components/blog/PostsTable.tsx:312
-#: src/components/blog/ThemeEditorDrawer.tsx:428
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:75
+#: src/components/blog/ThemeEditorDrawer.tsx:429
 #: src/components/templates/CreateTemplateDrawer.tsx:1016
 #: src/pages/TemplatesPage.tsx:403
 msgid "Category"
@@ -3982,7 +3981,7 @@ msgstr "チャネル"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
 #: src/components/web_analytics/tabs/DashboardTab.tsx:176
-#: src/pages/WebAnalyticsLivePage.tsx:220
+#: src/pages/WebAnalyticsLivePage.tsx:221
 msgid "Channel group"
 msgstr "チャネルグループ"
 
@@ -3994,8 +3993,8 @@ msgstr "チャネルグループ"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:178
 #: src/components/web_analytics/tabs/DashboardTab.tsx:169
-#: src/pages/WebAnalyticsLivePage.tsx:212
-#: src/pages/WebAnalyticsLivePage.tsx:219
+#: src/pages/WebAnalyticsLivePage.tsx:213
+#: src/pages/WebAnalyticsLivePage.tsx:220
 msgid "Channels"
 msgstr "チャネル"
 
@@ -4042,8 +4041,8 @@ msgstr "保存済みブロックを選択"
 #~ msgstr "更新する保存済みブロックを選択"
 
 #: src/components/blog/ThemeSelectionModal.tsx:50
-msgid "Choose a starting point for your new theme. You can customize everything later."
-msgstr "新しいテーマの出発点を選択してください。後ですべてカスタマイズできます。"
+#~ msgid "Choose a starting point for your new theme. You can customize everything later."
+#~ msgstr "新しいテーマの出発点を選択してください。後ですべてカスタマイズできます。"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:395
 msgid "Choose a template first"
@@ -4075,11 +4074,11 @@ msgstr "\"{0}\"の公開日時を選択"
 msgid "chosen on the broadcast"
 msgstr "ブロードキャストで選択"
 
-#: src/pages/WebAnalyticsLivePage.tsx:165
+#: src/pages/WebAnalyticsLivePage.tsx:166
 msgid "Cities"
 msgstr "都市"
 
-#: src/pages/WebAnalyticsLivePage.tsx:165
+#: src/pages/WebAnalyticsLivePage.tsx:166
 msgid "City"
 msgstr "都市"
 
@@ -4319,8 +4318,7 @@ msgid "Clone Template"
 msgstr "テンプレートを複製"
 
 #: src/components/automations/NodeConfigPanel.tsx:254
-#: src/components/blog/ThemeEditorDrawer.tsx:279
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:40
+#: src/components/blog/ThemeEditorDrawer.tsx:282
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:230
 #: src/components/broadcasts/GlobalFeedSettings.tsx:142
 #: src/components/contacts/BulkActionProgressModal.tsx:65
@@ -4826,7 +4824,7 @@ msgstr "コンタクトを更新しました"
 #: src/components/contacts/ContactsViewHeader.tsx:201
 #: src/components/logs/labels.ts:21
 #: src/components/settings/permissionLabels.ts:7
-#: src/layouts/app-shell/menuItems.ts:188
+#: src/layouts/app-shell/menuItems.ts:224
 #: src/pages/ContactsPage.tsx:589
 #: src/services/api/errors.ts:82
 msgid "Contacts"
@@ -4888,7 +4886,7 @@ msgstr "含む"
 #: src/components/broadcasts/compose/ContentCard.tsx:115
 #: src/components/email_builder/panels/LibraryPanel.tsx:253
 #: src/components/settings/SettingsSidebar.tsx:28
-#: src/layouts/app-shell/menuItems.ts:192
+#: src/layouts/app-shell/menuItems.ts:228
 msgid "Content"
 msgstr "コンテンツ"
 
@@ -4936,14 +4934,14 @@ msgid "Coordinates precision"
 msgstr "座標の精度"
 
 #: src/components/common/CodeSnippet.tsx:46
-#: src/components/layout/Mono.tsx:21
+#: src/components/layout/Mono.tsx:23
 #: src/components/logs/CodeBlock.tsx:21
 msgid "Copied"
 msgstr "コピーしました"
 
 #: src/components/common/CodeSnippet.tsx:46
-#: src/components/layout/Mono.tsx:33
-#: src/components/layout/Mono.tsx:34
+#: src/components/layout/Mono.tsx:35
+#: src/components/layout/Mono.tsx:36
 #: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:379
 #: src/components/settings/ZapierSettings.tsx:193
@@ -5388,13 +5386,12 @@ msgstr "新規投稿を作成"
 msgid "Create New Template"
 msgstr "新規テンプレートを作成"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:305
-#: src/components/blog/ThemeSelectionModal.tsx:42
+#: src/components/blog/ThemeEditorDrawer.tsx:308
 msgid "Create New Theme"
 msgstr "新規テーマを作成"
 
 #. placeholder {0}: presetData.name
-#: src/components/blog/ThemeEditorDrawer.tsx:304
+#: src/components/blog/ThemeEditorDrawer.tsx:307
 msgid "Create New Theme - {0}"
 msgstr "新規テーマを作成 - {0}"
 
@@ -5503,7 +5500,7 @@ msgid "Created by Zapier"
 msgstr "Zapierが作成"
 
 #. placeholder {0}: data.theme.version
-#: src/components/blog/ThemeEditorDrawer.tsx:246
+#: src/components/blog/ThemeEditorDrawer.tsx:249
 msgid "Created new version v{0}"
 msgstr "新しいバージョン v{0} を作成しました"
 
@@ -6519,7 +6516,7 @@ msgstr "ウェブサイトから検出"
 #: src/components/web_analytics/FilterBuilder.tsx:59
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:232
-#: src/pages/WebAnalyticsLivePage.tsx:191
+#: src/pages/WebAnalyticsLivePage.tsx:192
 msgid "Device"
 msgstr "デバイス"
 
@@ -6527,8 +6524,8 @@ msgstr "デバイス"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
 #: src/components/web_analytics/tabs/DashboardTab.tsx:232
-#: src/pages/WebAnalyticsLivePage.tsx:186
-#: src/pages/WebAnalyticsLivePage.tsx:191
+#: src/pages/WebAnalyticsLivePage.tsx:187
+#: src/pages/WebAnalyticsLivePage.tsx:192
 msgid "Devices"
 msgstr "デバイス"
 
@@ -6607,7 +6604,7 @@ msgstr "破棄"
 msgid "Discard changes"
 msgstr "変更を破棄"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:457
+#: src/components/blog/ThemeEditorDrawer.tsx:458
 msgid "Discard Draft"
 msgstr "下書きを破棄"
 
@@ -6791,7 +6788,7 @@ msgstr "ZIP でダウンロード"
 msgid "Draft"
 msgstr "下書き"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:147
+#: src/components/blog/ThemeEditorDrawer.tsx:150
 msgid "Draft restored from local storage"
 msgstr "ローカルストレージから下書きを復元しました"
 
@@ -7149,7 +7146,7 @@ msgid "Edit theme"
 msgstr "テーマを編集"
 
 #. placeholder {0}: theme.version
-#: src/components/blog/ThemeEditorDrawer.tsx:302
+#: src/components/blog/ThemeEditorDrawer.tsx:305
 msgid "Edit Theme v{0}"
 msgstr "テーマ v{0} を編集"
 
@@ -8070,7 +8067,7 @@ msgid "Expires:"
 msgstr "有効期限:"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:346
-#: src/layouts/app-shell/menuItems.ts:184
+#: src/layouts/app-shell/menuItems.ts:220
 #: src/pages/WebAnalyticsPage.tsx:96
 msgid "Explore"
 msgstr "探索"
@@ -8231,7 +8228,7 @@ msgstr "Zapierの接続に失敗しました"
 #: src/components/common/CodeSnippet.tsx:35
 #: src/components/file_manager/FileExplorer.tsx:293
 #: src/components/layout/DrawerControls.tsx:77
-#: src/components/layout/Mono.tsx:22
+#: src/components/layout/Mono.tsx:24
 #: src/components/logs/CodeBlock.tsx:22
 #: src/components/settings/WebhookDetail.tsx:214
 #: src/components/transactional/ApiCallPanel.tsx:39
@@ -8580,7 +8577,7 @@ msgstr "テンプレートブロックの保存に失敗しました"
 msgid "Failed to save the retention"
 msgstr "保持期間を保存できませんでした"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:259
+#: src/components/blog/ThemeEditorDrawer.tsx:262
 msgid "Failed to save theme"
 msgstr "テーマの保存に失敗しました"
 
@@ -8815,7 +8812,7 @@ msgid "File is too large. Maximum size is 1MB."
 msgstr "ファイルが大きすぎます。最大サイズは1MBです。"
 
 #: src/components/file_manager/FileExplorer.tsx:986
-#: src/layouts/app-shell/menuItems.ts:195
+#: src/layouts/app-shell/menuItems.ts:231
 msgid "File Manager"
 msgstr "ファイルマネージャー"
 
@@ -8879,7 +8876,7 @@ msgid "Filter on an event property"
 msgstr "イベントプロパティでフィルター"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
-#: src/layouts/app-shell/menuItems.ts:186
+#: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
 msgid "Filters"
 msgstr "フィルター"
@@ -9185,7 +9182,7 @@ msgstr "全幅"
 msgid "Full width on mobile"
 msgstr "モバイルで全幅"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:411
+#: src/components/blog/ThemeEditorDrawer.tsx:412
 msgid "Fullscreen"
 msgstr "フルスクリーン"
 
@@ -9334,7 +9331,7 @@ msgstr "ゴール:"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:347
-#: src/layouts/app-shell/menuItems.ts:185
+#: src/layouts/app-shell/menuItems.ts:221
 #: src/pages/WebAnalyticsPage.tsx:97
 msgid "Goals"
 msgstr "ゴール"
@@ -9528,8 +9525,7 @@ msgstr "ワークスペースに設定されたLLMプロバイダーとストリ
 msgid "Hold for drag"
 msgstr "ドラッグするには長押し"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:419
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:62
+#: src/components/blog/ThemeEditorDrawer.tsx:420
 msgid "Home"
 msgstr "ホーム"
 
@@ -10446,7 +10442,7 @@ msgstr "ラベルは100文字以下である必要があります"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
 #: src/components/web_analytics/tabs/DashboardTab.tsx:145
-#: src/pages/WebAnalyticsLivePage.tsx:153
+#: src/pages/WebAnalyticsLivePage.tsx:154
 msgid "Landing pages"
 msgstr "ランディングページ"
 
@@ -11002,7 +10998,7 @@ msgstr "リストの書き込みは、コンタクトの書き込みも付与し
 #: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
 #: src/components/web_analytics/LiveButton.tsx:48
-#: src/layouts/app-shell/menuItems.ts:183
+#: src/layouts/app-shell/menuItems.ts:219
 #: src/pages/AutomationsPage.tsx:135
 #: src/pages/WebAnalyticsLivePage.tsx:122
 msgid "Live"
@@ -11134,7 +11130,7 @@ msgstr "ロゴURL"
 msgid "Logout"
 msgstr "ログアウト"
 
-#: src/layouts/app-shell/menuItems.ts:196
+#: src/layouts/app-shell/menuItems.ts:232
 #: src/pages/LogsPage.tsx:59
 msgid "Logs"
 msgstr "ログ"
@@ -12069,7 +12065,7 @@ msgstr "ブロードキャストはまだありません"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:193
 #: src/components/web_analytics/tabs/DashboardTab.tsx:187
-#: src/pages/WebAnalyticsLivePage.tsx:198
+#: src/pages/WebAnalyticsLivePage.tsx:199
 msgid "No campaign data"
 msgstr "キャンペーンのデータがありません"
 
@@ -12082,7 +12078,7 @@ msgstr "カテゴリがまだありません"
 msgid "No category"
 msgstr "カテゴリなし"
 
-#: src/pages/WebAnalyticsLivePage.tsx:215
+#: src/pages/WebAnalyticsLivePage.tsx:216
 msgid "No channel data"
 msgstr "チャネルのデータがありません"
 
@@ -12090,7 +12086,7 @@ msgstr "チャネルのデータがありません"
 msgid "No chart data"
 msgstr "チャートのデータがありません"
 
-#: src/pages/WebAnalyticsLivePage.tsx:163
+#: src/pages/WebAnalyticsLivePage.tsx:164
 msgid "No city data"
 msgstr "都市のデータがありません"
 
@@ -12180,7 +12176,7 @@ msgid "No delivery events"
 msgstr "配信イベントはありません"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
-#: src/pages/WebAnalyticsLivePage.tsx:189
+#: src/pages/WebAnalyticsLivePage.tsx:190
 msgid "No device data"
 msgstr "デバイスのデータがありません"
 
@@ -12359,7 +12355,7 @@ msgstr "開封・クリックをトラッキングしない（UTM は保持）"
 msgid "No operations defined"
 msgstr "操作が定義されていません"
 
-#: src/pages/WebAnalyticsLivePage.tsx:149
+#: src/pages/WebAnalyticsLivePage.tsx:150
 msgid "No pages"
 msgstr "ページがありません"
 
@@ -12403,7 +12399,7 @@ msgstr "公開済みの投稿がありません"
 msgid "No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies."
 msgstr "どの受信者にも開封ピクセルやトラッキングリンクは含まれず、UTM パラメータは保持されます。それ以外の場合は各連絡先のトラッキング同意が適用されます。"
 
-#: src/pages/WebAnalyticsLivePage.tsx:172
+#: src/pages/WebAnalyticsLivePage.tsx:173
 msgid "No referrers"
 msgstr "リファラーがありません"
 
@@ -13448,7 +13444,7 @@ msgid "Padding Settings"
 msgstr "パディング設定"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:146
-#: src/pages/WebAnalyticsLivePage.tsx:154
+#: src/pages/WebAnalyticsLivePage.tsx:155
 msgid "Page"
 msgstr "ページ"
 
@@ -14093,8 +14089,7 @@ msgid "Port must be 1-65535"
 msgstr "ポートは1〜65535である必要があります"
 
 #: src/components/blog/PostsTable.tsx:277
-#: src/components/blog/ThemeEditorDrawer.tsx:437
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:88
+#: src/components/blog/ThemeEditorDrawer.tsx:438
 msgid "Post"
 msgstr "投稿"
 
@@ -14182,8 +14177,6 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #~ msgstr "プレビュー"
 
 #: src/components/automations/stats/EmailStepPreview.tsx:67
-#: src/components/blog/ThemePresetPreviewDrawer.tsx:37
-#: src/components/blog/ThemeSelectionModal.tsx:89
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:69
 #: src/components/common/ImageURLInput.tsx:52
@@ -14204,8 +14197,8 @@ msgid "Preview accepts any definition sent to it, not just a saved segment, so a
 msgstr "プレビューは保存済みのセグメントに限らず、送られてきた任意の定義を受け付けます。そのため、これをコンタクトの読み取りと併せて持つ人は、コンタクトの属性、リストのメンバーシップ、カスタムイベント、タイムラインについて、好きな条件で1件ずつ件数を問い合わせることができます。セグメントの読み取りだけではここに到達できません。セグメントの権限は、共有の /api/tasks.* エンドポイントで3種類のバックグラウンドタスクを実行できる人も、目立たない形で決定しています。"
 
 #: src/components/blog/ThemeSelectionModal.tsx:77
-msgid "Preview Coming Soon"
-msgstr "プレビューは近日公開"
+#~ msgid "Preview Coming Soon"
+#~ msgstr "プレビューは近日公開"
 
 #: src/components/timeline/ContactTimeline.tsx:697
 msgid "Preview email"
@@ -14896,7 +14889,7 @@ msgstr "リファラルトラフィック"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:173
 #: src/components/web_analytics/tabs/DashboardTab.tsx:164
-#: src/pages/WebAnalyticsLivePage.tsx:177
+#: src/pages/WebAnalyticsLivePage.tsx:178
 msgid "Referrer domain"
 msgstr "リファラーのドメイン"
 
@@ -14906,7 +14899,7 @@ msgstr "リファラー:"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:172
 #: src/components/web_analytics/tabs/DashboardTab.tsx:163
-#: src/pages/WebAnalyticsLivePage.tsx:176
+#: src/pages/WebAnalyticsLivePage.tsx:177
 msgid "Referrers"
 msgstr "リファラー"
 
@@ -15403,12 +15396,12 @@ msgstr "サーバーを再起動しますか？"
 msgid "Restore"
 msgstr "復元"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:456
+#: src/components/blog/ThemeEditorDrawer.tsx:457
 msgid "Restore Draft"
 msgstr "下書きを復元"
 
 #: src/components/blog/PostDrawer.tsx:293
-#: src/components/blog/ThemeEditorDrawer.tsx:452
+#: src/components/blog/ThemeEditorDrawer.tsx:453
 msgid "Restore Draft?"
 msgstr "下書きを復元しますか？"
 
@@ -15738,8 +15731,8 @@ msgstr "サンドボックスモード"
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/blog/CategoryDrawer.tsx:116
 #: src/components/blog/PostDrawer.tsx:692
-#: src/components/blog/ThemeEditorDrawer.tsx:318
-#: src/components/blog/ThemeEditorDrawer.tsx:468
+#: src/components/blog/ThemeEditorDrawer.tsx:321
+#: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:137
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:311
@@ -15828,7 +15821,7 @@ msgstr "先にブロードキャストを保存してください"
 msgid "Save the selected block"
 msgstr "選択したブロックを保存"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:464
+#: src/components/blog/ThemeEditorDrawer.tsx:465
 msgid "Save Theme"
 msgstr "テーマを保存"
 
@@ -17097,7 +17090,7 @@ msgid "Setting up..."
 msgstr "セットアップ中..."
 
 #: src/components/transactional/TransactionalDetail.tsx:478
-#: src/layouts/app-shell/menuItems.ts:197
+#: src/layouts/app-shell/menuItems.ts:233
 #: src/pages/WorkspaceSettingsPage.tsx:269
 msgid "Settings"
 msgstr "設定"
@@ -17565,7 +17558,7 @@ msgstr "SparkPost"
 msgid "SparkPost API Key"
 msgstr "SparkPost APIキー"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:410
+#: src/components/blog/ThemeEditorDrawer.tsx:411
 msgid "Split"
 msgstr "分割"
 
@@ -18245,7 +18238,7 @@ msgstr "テンプレートの送信者（{0}）"
 
 #: src/components/logs/labels.ts:14
 #: src/components/settings/permissionLabels.ts:9
-#: src/layouts/app-shell/menuItems.ts:193
+#: src/layouts/app-shell/menuItems.ts:229
 #: src/pages/TemplatesPage.tsx:570
 #: src/services/api/errors.ts:84
 msgid "Templates"
@@ -18735,7 +18728,7 @@ msgstr "プロバイダーのデフォルト送信者：この通知にはメー
 msgid "The provider's default sender: you need access to templates to see the template's own."
 msgstr "プロバイダーのデフォルト送信者：テンプレートの送信者を見るにはテンプレートへのアクセスが必要です。"
 
-#: src/pages/AnalyticsPage.tsx:89
+#: src/pages/AnalyticsPage.tsx:88
 msgid "The requested workspace could not be found."
 msgstr "リクエストされたワークスペースが見つかりませんでした。"
 
@@ -18881,7 +18874,7 @@ msgstr "ワークスペースの監査ログ：誰が何をどこから変更し
 msgid "Theme"
 msgstr "テーマ"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:250
+#: src/components/blog/ThemeEditorDrawer.tsx:253
 msgid "Theme created successfully"
 msgstr "テーマが正常に作成されました"
 
@@ -18889,7 +18882,7 @@ msgstr "テーマが正常に作成されました"
 msgid "Theme published successfully"
 msgstr "テーマが正常に公開されました"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:248
+#: src/components/blog/ThemeEditorDrawer.tsx:251
 msgid "Theme updated successfully"
 msgstr "テーマが正常に更新されました"
 
@@ -19596,7 +19589,7 @@ msgstr "上位キャンペーン"
 msgid "Top Center"
 msgstr "上中央"
 
-#: src/pages/WebAnalyticsLivePage.tsx:160
+#: src/pages/WebAnalyticsLivePage.tsx:161
 msgid "Top Cities"
 msgstr "上位都市"
 
@@ -19609,11 +19602,11 @@ msgid "Top Left"
 msgstr "左上"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:140
-#: src/pages/WebAnalyticsLivePage.tsx:146
+#: src/pages/WebAnalyticsLivePage.tsx:147
 msgid "Top Pages"
 msgstr "上位ページ"
 
-#: src/pages/WebAnalyticsLivePage.tsx:169
+#: src/pages/WebAnalyticsLivePage.tsx:170
 msgid "Top Referrers"
 msgstr "上位リファラー"
 
@@ -19720,7 +19713,7 @@ msgstr "どのフィルタールールも分類していないトラフィック
 #: src/components/templates/DeleteTemplateModal.tsx:42
 #: src/components/templates/templateCategories.ts:21
 #: src/components/transactional/TransactionalDetail.tsx:82
-#: src/layouts/app-shell/menuItems.ts:191
+#: src/layouts/app-shell/menuItems.ts:227
 #: src/pages/TransactionalNotificationsPage.tsx:168
 #: src/pages/TransactionalNotificationsPage.tsx:204
 #: src/services/api/errors.ts:86
@@ -20033,7 +20026,7 @@ msgstr "未保存の変更"
 
 #: src/components/automations/AutomationEditor.tsx:265
 #: src/components/automations/AutomationEditor.tsx:288
-#: src/components/blog/ThemeEditorDrawer.tsx:275
+#: src/components/blog/ThemeEditorDrawer.tsx:278
 msgid "Unsaved Changes"
 msgstr "未保存の変更"
 
@@ -20404,8 +20397,8 @@ msgid "Use this curl command to send a transactional notification via API:"
 msgstr "このcurlコマンドを使用してAPI経由でトランザクション通知を送信します:"
 
 #: src/components/blog/ThemePresetPreviewDrawer.tsx:43
-msgid "Use This Theme"
-msgstr "このテーマを使用"
+#~ msgid "Use This Theme"
+#~ msgstr "このテーマを使用"
 
 #: src/components/settings/Integrations.tsx:1429
 #: src/components/settings/SystemSettingsDrawer.tsx:360
@@ -20611,7 +20604,7 @@ msgstr "招待を確認中..."
 msgid "Version"
 msgstr "バージョン"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:474
+#: src/components/blog/ThemeEditorDrawer.tsx:475
 msgid "VERSION NOTES (OPTIONAL)"
 msgstr "バージョンノート（任意）"
 
@@ -20801,7 +20794,7 @@ msgstr "ウェブ解析"
 #: src/components/settings/permissionLabels.ts:17
 #: src/components/settings/WebAnalyticsSettings.tsx:244
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:345
-#: src/layouts/app-shell/menuItems.ts:182
+#: src/layouts/app-shell/menuItems.ts:218
 #: src/pages/WebAnalyticsPage.tsx:95
 #: src/services/api/errors.ts:92
 msgid "Web Analytics"
@@ -21211,6 +21204,7 @@ msgstr "独自のテキストがない場合、この言語には自動版が送
 #: src/components/settings/GeneralSettings.tsx:323
 #: src/components/settings/permissionLabels.ts:12
 #: src/components/settings/SettingsSidebar.tsx:26
+#: src/layouts/app-shell/WorkspaceSwitcher.tsx:74
 #: src/services/api/errors.ts:87
 msgid "Workspace"
 msgstr "ワークスペース"
@@ -21508,7 +21502,7 @@ msgstr "未保存の変更があります。このドロワーを閉じてもよ
 msgid "You have unsaved changes. Are you sure you want to close?"
 msgstr "未保存の変更があります。閉じてもよろしいですか？"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:278
+#: src/components/blog/ThemeEditorDrawer.tsx:281
 msgid "You have unsaved changes. Are you sure you want to close? Your changes will be lost."
 msgstr "未保存の変更があります。閉じてもよろしいですか？変更は失われます。"
 

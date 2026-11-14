@@ -7,6 +7,9 @@ import { useDrawerNavKeys } from './useDrawerNavKeys'
 
 type TabItem = NonNullable<TabsProps['items']>[number]
 
+/** The panel's side padding (px-4), which the tab bar repeats as a margin. */
+const PANEL_GUTTER = 16
+
 export interface SidePanelTabs {
   /** antd tab items; the `children` of the active one fill the scrolling body. */
   items: TabItem[]
@@ -53,10 +56,22 @@ export function SidePanel({
   const headerRef = useRef<HTMLDivElement>(null)
   useDrawerNavKeys({ enabled: open, onPrev: nav?.onPrev, onNext: nav?.onNext, anchorRef: headerRef })
 
-  const [ownTab, setOwnTab] = useState(tabs?.defaultActiveKey ?? tabs?.items[0]?.key)
+  const firstTab = tabs?.defaultActiveKey ?? tabs?.items[0]?.key
+  const [ownTab, setOwnTab] = useState(firstTab)
   const activeKey = tabs?.activeKey ?? ownTab
-  const activeTab = tabs?.items.find((item) => item.key === activeKey)
-  const body = activeTab?.children ?? children
+
+  // A panel opened again starts on its first tab, as one opened for the first time does
+  const [wasOpen, setWasOpen] = useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    if (!open) setOwnTab(firstTab)
+  }
+
+  const scrollingBody = (content: ReactNode) => (
+    <div key={bodyKey} data-sidepanel-body className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
+      {content}
+    </div>
+  )
 
   const handleTabChange = (key: string) => {
     setOwnTab(key)
@@ -99,24 +114,30 @@ export function SidePanel({
         </div>
       </div>
       {tabs ? (
-        // The padding sits on a wrapper: Tailwind classes on an antd component lose to its styles.
-        <div className="shrink-0 px-4">
-          <Tabs
-            tabBarStyle={{ margin: 0 }}
-            activeKey={activeKey}
-            onChange={handleTabChange}
-            items={tabs.items.map((item) => ({
-              key: item.key,
-              label: item.label,
-              icon: item.icon,
-              disabled: item.disabled
-            }))}
-          />
-        </div>
-      ) : null}
-      <div key={bodyKey} data-sidepanel-body className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
-        {body}
-      </div>
+        // The active tab's content sits in its own tabpanel, which aria-controls names; the panel
+        // fills what the header leaves, and only the body inside it scrolls.
+        <Tabs
+          activeKey={activeKey}
+          onChange={handleTabChange}
+          destroyOnHidden
+          styles={{
+            root: { flex: 1, minHeight: 0 },
+            // In line with the title and the body, the tab bar's line included
+            header: { margin: `0 ${PANEL_GUTTER}px` },
+            body: { height: '100%' },
+            content: { height: '100%', display: 'flex', flexDirection: 'column' }
+          }}
+          items={tabs.items.map((item) => ({
+            key: item.key,
+            label: item.label,
+            icon: item.icon,
+            disabled: item.disabled,
+            children: scrollingBody(item.children ?? children)
+          }))}
+        />
+      ) : (
+        scrollingBody(children)
+      )}
       {footer ? (
         <div
           data-sidepanel-footer

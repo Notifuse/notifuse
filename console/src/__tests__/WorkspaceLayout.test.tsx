@@ -25,7 +25,11 @@ let currentWorkspaceId = 'ws1'
 
 vi.mock('@tanstack/react-router', () => ({
   Outlet: () => <div data-testid="outlet" />,
-  Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
+  Link: ({ children, to, 'aria-label': label }: { children: ReactNode; to?: string; 'aria-label'?: string }) => (
+    <a href={to} aria-label={label}>
+      {children}
+    </a>
+  ),
   useParams: () => ({ workspaceId: currentWorkspaceId }),
   // The workspace route declares no layout; the leaf may.
   useMatches: () => [
@@ -569,5 +573,38 @@ describe('WorkspaceLayout Logs entry', () => {
   it('stays hidden without any logs right', async () => {
     memberWith(workspace)
     expect(await logsShown()).toBe(false)
+  })
+})
+
+describe('WorkspaceLayout logo', () => {
+  beforeEach(signInAsRoot)
+
+  const logo = () => screen.getByRole('img', { name: 'Notifuse' }).closest('a')!
+
+  it('leads a member who cannot read the messages where the dashboard would send them', async () => {
+    vi.mocked(isRootUser).mockReturnValue(false)
+    vi.mocked(workspaceService.getMembers).mockResolvedValue({
+      members: [
+        {
+          user_id: 'u1',
+          permissions: {
+            ...grantAll(false),
+            contacts: { read: true, write: false },
+            message_history: { read: false, write: true }
+          }
+        }
+      ]
+    } as never)
+    renderLayout()
+    await screen.findByText('Contacts')
+    expect(logo()).toHaveAttribute('aria-label', 'Contacts')
+    expect(logo()).toHaveAttribute('href', '/console/workspace/$workspaceId/contacts')
+  })
+
+  it('leads a member who reads the messages to the dashboard', async () => {
+    renderLayout()
+    await screen.findByText('Settings')
+    expect(logo()).toHaveAttribute('aria-label', 'Dashboard')
+    expect(logo()).toHaveAttribute('href', '/console/workspace/$workspaceId')
   })
 })

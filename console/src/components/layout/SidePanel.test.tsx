@@ -73,14 +73,54 @@ describe('SidePanel', () => {
       }
     })
     expect(screen.getByRole('tab', { name: 'Profile' })).toBeInTheDocument()
-    // In line with the title and the body: the padding is on a wrapper, where antd cannot override it.
-    expect(document.querySelector('.ant-tabs')!.parentElement!.className).toContain('px-4')
+    // In line with the title and the body, set through the tab bar's own style.
+    expect(document.querySelector<HTMLElement>('.ant-tabs-nav')!.style.margin).toBe('0px 16px')
     expect(screen.getByText('Profile body')).toBeInTheDocument()
     expect(screen.queryByText('Panel body')).toBeNull()
     fireEvent.click(screen.getByRole('tab', { name: 'Timeline' }))
     expect(onChange).toHaveBeenCalledWith('timeline')
     expect(screen.getByText('Timeline body')).toBeInTheDocument()
     expect(screen.queryByText('Profile body')).toBeNull()
+  })
+
+  it('puts the active tab\'s content in the tabpanel its tab controls', () => {
+    renderPanel({
+      tabs: {
+        items: [
+          { key: 'profile', label: 'Profile', children: <p>Profile body</p> },
+          { key: 'timeline', label: 'Timeline' }
+        ]
+      }
+    })
+    const tab = screen.getByRole('tab', { name: 'Profile' })
+    const panel = document.getElementById(tab.getAttribute('aria-controls')!)!
+    expect(panel).toHaveAttribute('role', 'tabpanel')
+    expect(panel.querySelector('[data-sidepanel-body]')).toHaveTextContent('Profile body')
+    // A tab without content of its own shows the panel's children
+    fireEvent.click(screen.getByRole('tab', { name: 'Timeline' }))
+    const timeline = screen.getByRole('tab', { name: 'Timeline' })
+    expect(document.getElementById(timeline.getAttribute('aria-controls')!)).toHaveTextContent('Panel body')
+  })
+
+  it('opens again on its first tab', () => {
+    const tabs = {
+      items: [
+        { key: 'profile', label: 'Profile', children: <p>Profile body</p> },
+        { key: 'timeline', label: 'Timeline', children: <p>Timeline body</p> }
+      ]
+    }
+    const panel = (open: boolean) => (
+      <App>
+        <SidePanel open={open} onClose={vi.fn()} title="jane@example.com" tabs={tabs} />
+      </App>
+    )
+    const { rerender } = render(panel(true))
+    fireEvent.click(screen.getByRole('tab', { name: 'Timeline' }))
+    expect(screen.getByText('Timeline body')).toBeInTheDocument()
+    rerender(panel(false))
+    rerender(panel(true))
+    expect(screen.getByRole('tab', { name: 'Profile' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Profile body')).toBeInTheDocument()
   })
 
   it('disables previous and next without their handler, and answers J and K', () => {

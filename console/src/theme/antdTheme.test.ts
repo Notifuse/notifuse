@@ -3,9 +3,33 @@ import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { theme } from 'antd'
 import { antdTheme } from './antdTheme'
+import { colors } from './tokens'
 
 const token = antdTheme.token!
 const components = antdTheme.components!
+
+/** An opaque or translucent colour as the RGB it shows over the white surface. */
+function onSurface(color: string): [number, number, number] {
+  const hex = color.match(/^#([0-9a-f]{6})$/i)
+  if (hex) return [0, 2, 4].map((i) => parseInt(hex[1].slice(i, i + 2), 16)) as [number, number, number]
+  const rgba = color.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/)
+  if (!rgba) throw new Error(`Unreadable colour ${color}`)
+  const a = Number(rgba[4])
+  return [1, 2, 3].map((i) => Math.round(255 - a * (255 - Number(rgba[i])))) as [number, number, number]
+}
+
+/** The WCAG contrast ratio between two colours, each shown over the surface. */
+function contrast(a: string, b: string): number {
+  const luminance = (rgb: [number, number, number]) => {
+    const [r, g, bl] = rgb.map((v) => {
+      const c = v / 255
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+    })
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl
+  }
+  const [hi, lo] = [luminance(onSurface(a)), luminance(onSurface(b))].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
 
 describe('antd theme', () => {
   it('derives 20px small lines, so a tag is as tall as a 22px small control', () => {
@@ -14,14 +38,31 @@ describe('antd theme', () => {
     expect(derived.controlHeightSM).toBe(22)
   })
 
-  it('hovers table rows in a colour a neutral tag stays visible on', () => {
-    expect(components.Table?.rowHoverBg).not.toBe(components.Tag?.defaultBg)
+  it('hovers table rows apart from the header, in a colour a neutral tag stays visible on', () => {
+    const table = components.Table!
+    const tag = components.Tag!.defaultBg as string
+    const hover = table.rowHoverBg as string
+    // Both present, so the comparisons below compare colours
+    expect(hover).toBeTruthy()
+    expect(tag).toBeTruthy()
+    expect(onSurface(hover)).not.toBe(onSurface(table.headerBg as string))
+    // A tag stands out on a hovered row at least as much as on the header
+    expect(contrast(tag, hover)).toBeGreaterThanOrEqual(contrast(tag, table.headerBg as string))
+  })
+
+  it('makes the hover of a primary button one step darker than the button', () => {
+    expect(token.colorPrimaryHover).toBe(colors.primary[700])
+    expect(token.colorPrimaryHover).not.toBe(token.colorPrimary)
+  })
+
+  it('leaves the right border of the menus to antd: the sidebar takes its own off in the overrides', () => {
+    expect(components.Menu).not.toHaveProperty('activeBarBorderWidth')
   })
 
   it('takes its colours from the Nuit claire tokens', () => {
     expect(token).toMatchObject({
       colorPrimary: '#6a5af9',
-      colorPrimaryHover: '#5b4beb',
+      colorPrimaryHover: '#4b3fd6',
       colorPrimaryActive: '#4b3fd6',
       colorPrimaryBorder: '#c9c4ff',
       colorLink: '#5b4beb',
@@ -75,7 +116,7 @@ describe('antd theme', () => {
       headerBg: '#f8f9fb',
       headerColor: '#666c81',
       borderColor: '#eceef3',
-      rowHoverBg: '#f8f9fb',
+      rowHoverBg: 'rgba(106, 90, 249, 0.03)',
       rowSelectedBg: '#f5f4ff',
       rowSelectedHoverBg: '#efedff',
       cellFontSize: 12.5,
@@ -98,7 +139,7 @@ describe('antd theme', () => {
     expect(components.Layout).not.toHaveProperty('headerPadding')
     expect(components.Layout).not.toHaveProperty('siderBg')
     // The collapsed sidebar is 56px wide, and its menu as wide as it.
-    expect(components.Menu).toMatchObject({ collapsedWidth: 56, activeBarBorderWidth: 0 })
+    expect(components.Menu).toMatchObject({ collapsedWidth: 56 })
     expect(components.Modal).toMatchObject({ contentBg: '#ffffff', headerBg: '#ffffff', footerBg: '#ffffff' })
     expect(components.Timeline).toMatchObject({ dotBg: '#ffffff' })
   })

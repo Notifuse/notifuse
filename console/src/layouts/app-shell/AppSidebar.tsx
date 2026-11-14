@@ -18,6 +18,7 @@ import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { HelpMenu } from './HelpMenu'
 import { AccountMenu, type AccountRole } from './AccountMenu'
 import type { MenuItem } from './menuItems'
+import type { MenuTarget } from './MenuLink'
 
 export interface AppSidebarProps {
   /** Pinned, the sidebar is open in the page flow; unpinned, it is the folded rail. */
@@ -37,6 +38,8 @@ export interface AppSidebarProps {
   user: { email: string; name?: string } | null
   role?: AccountRole
   onSignout: () => void
+  /** Where the logo leads, and its name; the workspace dashboard without one. */
+  home?: { target: MenuTarget; label: string }
 }
 
 type SidebarMenu = 'workspace' | 'help' | 'account'
@@ -63,7 +66,8 @@ export function AppSidebar({
   onCreateWorkspace,
   user,
   role,
-  onSignout
+  onSignout,
+  home
 }: AppSidebarProps) {
   const { t } = useLingui()
   const asideRef = useRef<HTMLElement>(null)
@@ -242,9 +246,8 @@ export function AppSidebar({
       >
         <Link
           ref={logoRef}
-          to="/console/workspace/$workspaceId"
-          params={{ workspaceId }}
-          aria-label={t`Dashboard`}
+          {...(home?.target ?? { to: '/console/workspace/$workspaceId', params: { workspaceId } })}
+          aria-label={home?.label ?? t`Dashboard`}
           className={`rounded-sm ${focusRing}`}
         >
           {expanded ? <NotifuseLogo height={22} /> : <NotifuseMark height={24} />}
