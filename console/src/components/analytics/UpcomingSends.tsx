@@ -10,7 +10,7 @@ import { BlockError } from './BlockError'
 import { DASHBOARD_REFRESH_MS } from './dashboardClient'
 import { formatDayAndTime } from './dashboardFormat'
 import { openableRow } from './dashboardTable'
-import { sortUpcoming, timeZoneAbbreviation, type UpcomingSend } from './upcomingSends'
+import { sortUpcoming, timeZoneAbbreviation, type UpcomingSend } from './upcomingSendsModel'
 
 interface UpcomingSendsProps {
   workspaceId: string

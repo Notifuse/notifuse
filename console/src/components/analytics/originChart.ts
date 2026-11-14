@@ -1,5 +1,5 @@
 import type { DashboardMetric } from './dashboardSearch'
-import type { MessageOrigin, MessageTotals, SeriesPoint } from './dashboardKpis'
+import type { MessageOrigin, MessageTotals, SeriesPoint } from './dashboardKpisModel'
 
 const METRIC_FIELD: Record<DashboardMetric, keyof MessageTotals> = {
   sent: 'sent',

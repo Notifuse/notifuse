@@ -8,7 +8,7 @@ import { BlockError } from './BlockError'
 import { buildOriginChart } from './originChart'
 import type { DashboardMetric } from './dashboardSearch'
 import type { OriginSeries } from './useOriginSeries'
-import type { MessageOrigin } from './dashboardKpis'
+import type { MessageOrigin } from './dashboardKpisModel'
 
 interface OriginVolumeChartProps {
   data: OriginSeries

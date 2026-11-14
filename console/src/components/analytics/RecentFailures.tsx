@@ -16,7 +16,7 @@ import {
   type FailureKind,
   type FailureLists,
   type FailureRow
-} from './recentFailures'
+} from './recentFailuresModel'
 
 interface RecentFailuresProps {
   workspaceId: string

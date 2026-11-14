@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeDashboardKpis, emptyTotals, parseSeries, sumSeries, type MessageTotals } from './dashboardKpis'
+import { computeDashboardKpis, emptyTotals, parseSeries, sumSeries, type MessageTotals } from './dashboardKpisModel'
 
 const totals = (values: Partial<MessageTotals>): MessageTotals => ({
   ...emptyTotals(),

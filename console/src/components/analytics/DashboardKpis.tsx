@@ -18,7 +18,7 @@ import {
   toNumber,
   type MessageOrigin,
   type MessageTotals
-} from './dashboardKpis'
+} from './dashboardKpisModel'
 import type { DashboardPeriods } from './dashboardPeriods'
 
 interface DashboardKpisProps {
