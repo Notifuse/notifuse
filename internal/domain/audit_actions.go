@@ -192,9 +192,11 @@ var AuditedActions = map[string]AuditActionSpec{
 	"blogCategories.create": {Category: AuditCategoryBlog, TargetType: AuditTargetBlogCategory, ResponseKey: "category.id"},
 	"blogCategories.update": {Category: AuditCategoryBlog, TargetType: AuditTargetBlogCategory, TargetKey: "id"},
 	"blogCategories.delete": {Category: AuditCategoryBlog, TargetType: AuditTargetBlogCategory, TargetKey: "id"},
-	"blogThemes.create":     {Category: AuditCategoryBlog, TargetType: AuditTargetBlogTheme, ResponseKey: "theme.version"},
-	"blogThemes.update":     {Category: AuditCategoryBlog, TargetType: AuditTargetBlogTheme, TargetKey: "version"},
-	"blogThemes.publish":    {Category: AuditCategoryBlog, TargetType: AuditTargetBlogTheme, TargetKey: "version"},
+	// Named by its handler: the response carries the theme's files, past what the
+	// middleware keeps of a response.
+	"blogThemes.create":  {Category: AuditCategoryBlog, TargetType: AuditTargetBlogTheme},
+	"blogThemes.update":  {Category: AuditCategoryBlog, TargetType: AuditTargetBlogTheme, TargetKey: "version"},
+	"blogThemes.publish": {Category: AuditCategoryBlog, TargetType: AuditTargetBlogTheme, TargetKey: "version"},
 
 	// contacts: only the destructive and the bulk operations
 	"contacts.delete":             {Category: AuditCategoryContacts, TargetType: AuditTargetContact, TargetKey: "email"},

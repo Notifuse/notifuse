@@ -192,6 +192,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `timeline.list` answers an empty list instead of `null` for a contact without entries.
 
+- **Fix**: The audit log names the theme version a `blogThemes.create` saved, also when the theme's files are large.
+
 - **Feature**: The console has a new, denser look: the Inter typeface, new colors and tighter spacing.
 
 - **Feature**: The console has a new navigation: a lighter sidebar, which folds to icons and opens over the page when you point at it, or stays open once pinned (Contacts and Broadcasts open with it unpinned, for room), now holds the workspace switcher, the help and the account menus, and the top bar is gone. The sign-in page has a new background photo, by Sean Oulashin.

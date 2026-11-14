@@ -75,6 +75,10 @@ func (h *BlogThemeHandler) HandleCreate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// The new version is the target. The middleware cannot read it off a response that
+	// carries the theme's files, which can pass what it keeps of a response.
+	domain.AuditFromContext(ctx).SetTarget(domain.AuditTargetBlogTheme, strconv.Itoa(theme.Version), "")
+
 	writeJSON(w, http.StatusCreated, map[string]interface{}{
 		"theme": theme,
 	})

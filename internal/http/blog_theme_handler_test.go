@@ -7,12 +7,14 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	http_handler "github.com/Notifuse/notifuse/internal/http"
+	"github.com/Notifuse/notifuse/internal/http/middleware"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -586,4 +588,36 @@ func TestBlogThemeHandler_RegisterRoutes(t *testing.T) {
 
 	// Verify that routes are registered by checking if mux is not nil after registration
 	assert.NotNil(t, mux, "mux should not be nil after RegisterRoutes")
+}
+
+type blogThemeAuditRecorder struct{ rows []*domain.AuditLog }
+
+func (c *blogThemeAuditRecorder) Record(_ context.Context, log *domain.AuditLog) {
+	c.rows = append(c.rows, log)
+}
+
+// The audit row of a theme create names the new version, even when the theme's files make
+// the response longer than what the audit middleware keeps of it.
+func TestBlogThemeHandler_HandleCreate_AuditTarget(t *testing.T) {
+	handler, mockService, _, ctrl := setupBlogThemeHandler(t)
+	defer ctrl.Finish()
+
+	large := strings.Repeat("x", 100<<10)
+	mockService.EXPECT().CreateTheme(gomock.Any(), gomock.Any()).
+		Return(&domain.BlogTheme{Version: 3, Files: domain.BlogThemeFiles{HomeLiquid: large}}, nil)
+
+	recorder := &blogThemeAuditRecorder{}
+	served := middleware.NewAuditMiddleware(recorder)(http.HandlerFunc(handler.HandleCreate))
+	req := httptest.NewRequest(http.MethodPost, "/api/blogThemes.create?workspace_id=ws-123",
+		strings.NewReader(`{"workspace_id":"ws-123","files":{}}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	served.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+	require.Greater(t, w.Body.Len(), 100<<10, "the response is past what the middleware keeps")
+	require.Len(t, recorder.rows, 1)
+	assert.Equal(t, "blogThemes.create", recorder.rows[0].Action)
+	assert.Equal(t, domain.AuditTargetBlogTheme, recorder.rows[0].TargetType)
+	assert.Equal(t, "3", recorder.rows[0].TargetID)
 }
