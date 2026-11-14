@@ -158,7 +158,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console. Each notification's name links to its detail view, a disabled action says why in its menu, and the sends per day can be read as a table by screen readers.
 
-- **Fix**: The upgrade to 44.0 removes the segment memberships still held by contacts deleted before 38.0, without any segment exit in the timeline, webhooks or automations, so segment counts and member lists no longer include them.
+- **Fix**: The upgrade to 44.0 removes the segment memberships left behind by deleted contacts, mostly by deletions before 38.0, without any segment exit in the timeline, webhooks or automations, so segment counts and member lists no longer include them.
 
 ## [43.0] - 2026-11-07
 

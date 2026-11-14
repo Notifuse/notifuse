@@ -58,11 +58,13 @@ import (
 //
 // Between the builds and the recount, the segment memberships whose contact no longer exists
 // are deleted (v44OrphanMembershipsSQL), with the two membership triggers of contact_segments
-// disabled around the delete. Until 38.0 deleting a contact left its memberships in place, and
-// contact_segments has no foreign key to contacts, so they stayed until a rebuild at a higher
-// version removed them, each delete writing a segment.left timeline entry and webhook delivery
-// with the erased address. From 44.0 relative-date segments are rebuilt daily at a new version,
-// so the first daily rebuild would do this for every such segment. The disabled state is a
+// disabled around the delete. Until 38.0 deleting a contact left its memberships in place (since
+// then, only a deletion failing between the contact row and its memberships does), and
+// contact_segments has no foreign key to contacts, so they stay until a rebuild at a higher
+// version (an edit, a manual rebuild) or a recomputation of the address by the segment queue
+// removes them, each delete writing a segment.left timeline entry and webhook delivery with the
+// erased address. A daily rebuild of relative-date segments at a new version would do this for
+// every such segment at once. The disabled state is a
 // catalog change seen by no other session before commit, and ALTER TABLE ... DISABLE TRIGGER
 // holds a SHARE ROW EXCLUSIVE lock on contact_segments until commit: it lets reads through
 // and makes every membership write wait, so none runs without its triggers; a rollback
@@ -72,7 +74,8 @@ import (
 // automations: taking contact_segments while holding automations rows could deadlock with it.
 // No membership write touches message_history or broadcasts, so waiting for contact_segments
 // while holding the builds' SHARE lock and the backfill's locks forms no cycle; the wait is
-// bounded by the same lock_timeout. Enabling a trigger sets it to fire normally, whatever its
+// bounded by the same lock_timeout. Writes to message_history, already waiting behind the
+// builds' SHARE lock, also wait for the delete. Enabling a trigger sets it to fire normally, whatever its
 // state before the migration. A rerun takes the lock again and deletes only the memberships
 // orphaned since the previous run, without events either.
 //

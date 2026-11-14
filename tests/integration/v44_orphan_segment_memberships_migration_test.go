@@ -62,6 +62,8 @@ func TestV44OrphanSegmentMembershipsMigration(t *testing.T) {
 		t.Helper()
 		tx, err := db.BeginTx(ctx, nil)
 		require.NoError(t, err)
+		// Rolled back if the test fails before its commit, so no lock outlives it (a no-op after it).
+		t.Cleanup(func() { _ = tx.Rollback() })
 		require.NoError(t, (&migrations.V44Migration{}).UpdateWorkspace(ctx, &config.Config{}, workspace, tx))
 		return tx
 	}
@@ -77,6 +79,7 @@ func TestV44OrphanSegmentMembershipsMigration(t *testing.T) {
 
 		tx, err := db.BeginTx(ctx, nil)
 		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
 		err = (&migrations.V44Migration{}).UpdateWorkspace(ctx, &config.Config{}, workspace, tx)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "remove the segment memberships of deleted contacts")
@@ -96,6 +99,7 @@ func TestV44OrphanSegmentMembershipsMigration(t *testing.T) {
 		// no write runs while the triggers are disabled.
 		other, err := db.BeginTx(ctx, nil)
 		require.NoError(t, err)
+		defer func() { _ = other.Rollback() }()
 		_, err = other.ExecContext(ctx, `SET LOCAL lock_timeout = '200ms'`)
 		require.NoError(t, err)
 		_, err = other.ExecContext(ctx, `
@@ -105,10 +109,17 @@ func TestV44OrphanSegmentMembershipsMigration(t *testing.T) {
 		require.ErrorAs(t, err, &pqErr)
 		assert.Equal(t, pq.ErrorCode("55P03"), pqErr.Code, "the write waits for the migration's lock")
 		require.NoError(t, other.Rollback())
+		reader, err := db.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		defer func() { _ = reader.Rollback() }()
+		_, err = reader.ExecContext(ctx, `SET LOCAL lock_timeout = '200ms'`)
+		require.NoError(t, err)
 		var members int
-		require.NoError(t, db.QueryRowContext(ctx,
-			`SELECT count(*) FROM contact_segments WHERE segment_id = $1`, segment.ID).Scan(&members))
+		require.NoError(t, reader.QueryRowContext(ctx,
+			`SELECT count(*) FROM contact_segments WHERE segment_id = $1`, segment.ID).Scan(&members),
+			"a read does not wait for the migration")
 		assert.Equal(t, 2, members, "a read sees the rows as they were before the migration")
+		require.NoError(t, reader.Rollback())
 		require.NoError(t, tx.Commit())
 
 		require.NoError(t, runV44(t).Commit())
