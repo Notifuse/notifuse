@@ -27,6 +27,13 @@ const (
 	templateUsageNodes      = `jsonb_array_elements(CASE WHEN jsonb_typeof(a.nodes) = 'array' THEN a.nodes ELSE '[]'::jsonb END)`
 )
 
+// templateUsageSendable keeps the variations a broadcast can still send, as
+// domain.Broadcast.VariationsToSend does: the winning one once a winner is chosen, every
+// one before (and every one when the winner is not among them).
+const templateUsageSendable = `(COALESCE(b.winning_template, '') = ''
+	OR v.elem->>'template_id' = b.winning_template
+	OR NOT EXISTS (SELECT 1 FROM ` + templateUsageVariations + ` AS w(elem) WHERE w.elem->>'template_id' = b.winning_template))`
+
 // templateUsageSource holds the two queries of one object type. countSQL returns
 // (template_id, count) for every template used; refsSQL takes the template ID as $1 and
 // returns (id, name, status, total), total being the count before the limit.
@@ -49,12 +56,12 @@ func templateUsageSources() map[domain.TemplateUsageType]templateUsageSource {
 			ref: domain.TemplateUsageReferenceBroadcast,
 			countSQL: `SELECT v.elem->>'template_id', COUNT(DISTINCT b.id)
 				FROM broadcasts b CROSS JOIN LATERAL ` + templateUsageVariations + ` AS v(elem)
-				WHERE ` + broadcastStatus + ` AND v.elem->>'template_id' <> ''
+				WHERE ` + broadcastStatus + ` AND v.elem->>'template_id' <> '' AND ` + templateUsageSendable + `
 				GROUP BY 1`,
 			refsSQL: `SELECT b.id, b.name, b.status, COUNT(*) OVER ()
 				FROM broadcasts b
 				WHERE ` + broadcastStatus + `
-				  AND EXISTS (SELECT 1 FROM ` + templateUsageVariations + ` AS v(elem) WHERE v.elem->>'template_id' = $1)
+				  AND EXISTS (SELECT 1 FROM ` + templateUsageVariations + ` AS v(elem) WHERE v.elem->>'template_id' = $1 AND ` + templateUsageSendable + `)
 				ORDER BY b.name, b.id ` + limit,
 		},
 		domain.TemplateUsageTypeTransactionalNotifications: {

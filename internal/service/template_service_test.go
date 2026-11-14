@@ -2637,6 +2637,51 @@ func TestTemplateService_UpdateTemplate_AbsentFields(t *testing.T) {
 		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, newIncoming()))
 	})
 
+	// A stored translation that a later rule refuses (here, a text version whose Liquid does
+	// not parse) is carried over by an edit that does not send translations.
+	t.Run("a stored translation is not validated again when the edit does not send it", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		stored := newStored(nil, "fr")
+		fr := stored.Translations["fr"]
+		broken := "{% if vip %}VIP"
+		fr.Email.Text = &broken
+		stored.Translations["fr"] = fr
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(stored, nil)
+		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, tmpl *domain.Template, _ int64) error {
+				require.Contains(t, tmpl.Translations, "fr", "the stored translation is kept")
+				assert.Equal(t, &broken, tmpl.Translations["fr"].Email.Text)
+				return nil
+			},
+		)
+
+		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, newIncoming()))
+	})
+
+	t.Run("a translation the edit sends is validated, and its refusal names it", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		incoming := newIncoming()
+		fr := newTranslation("Nouveau sujet")
+		broken := "{% if vip %}VIP"
+		fr.Email.Text = &broken
+		incoming.Translations = map[string]domain.TemplateTranslation{"fr": fr}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(nil, "fr"), nil)
+		// No UpdateTemplate: the strict mock refuses it.
+
+		err := svc.UpdateTemplate(ctx, workspaceID, incoming)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "translation 'fr'")
+	})
+
 	t.Run("preserved translations are not re-checked against workspace languages", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()

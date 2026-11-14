@@ -150,6 +150,42 @@ func TestTemplatesUsage(t *testing.T) {
 		assert.Equal(t, float64(1), counts["automations"])
 	})
 
+	t.Run("an A/B broadcast counts the variations it can still send", func(t *testing.T) {
+		a, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+		b, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+		winner := func(id string) testutil.BroadcastOption {
+			return func(bc *domain.Broadcast) { bc.WinningTemplate = &id }
+		}
+		inTest, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusTesting, "A/B testing", a.ID, b.ID))
+		require.NoError(t, err)
+		won, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusWinnerSelected, "A/B won by A", a.ID, b.ID), winner(a.ID))
+		require.NoError(t, err)
+		// A winner that is none of the variations: every variation may still send, as the sender reads it.
+		strayWinner, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusWinnerSelected, "A/B stray winner", a.ID, b.ID), winner(tid))
+		require.NoError(t, err)
+
+		all := usage(t, map[string]string{})["usage"].(map[string]interface{})
+		assert.Equal(t, float64(3), all[a.ID].(map[string]interface{})["broadcasts"], "the winner, and both A/B tests still open")
+		assert.Equal(t, float64(2), all[b.ID].(map[string]interface{})["broadcasts"], "not the broadcast A won")
+
+		refs := func(id string) []string {
+			var names []string
+			for _, ref := range usage(t, map[string]string{"template_id": id})["references"].([]interface{}) {
+				if ref.(map[string]interface{})["type"] == "broadcast" {
+					names = append(names, ref.(map[string]interface{})["id"].(string))
+				}
+			}
+			return names
+		}
+		assert.ElementsMatch(t, []string{inTest.ID, won.ID, strayWinner.ID}, refs(a.ID))
+		assert.ElementsMatch(t, []string{inTest.ID, strayWinner.ID}, refs(b.ID))
+
+		// The template the stray winner names counts that broadcast only through its variations.
+		assert.Equal(t, float64(1), all[tid].(map[string]interface{})["broadcasts"])
+	})
+
 	t.Run("an unused template has no entry and no reference", func(t *testing.T) {
 		unused, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)

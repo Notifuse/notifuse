@@ -33,6 +33,12 @@ func newTemplateUsageRepo(t *testing.T) (*templateRepository, sqlmock.Sqlmock, *
 	return &templateRepository{workspaceRepo: workspaceRepo}, sqlMock, rec
 }
 
+// sendableVariation is the condition both broadcast queries put on a variation: no winner,
+// the winner itself, or a winner that is none of the variations.
+const sendableVariation = "(COALESCE(b.winning_template, '') = '' OR v.elem->>'template_id' = b.winning_template " +
+	"OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(b.test_settings->'variations') = 'array' " +
+	"THEN b.test_settings->'variations' ELSE '[]'::jsonb END) AS w(elem) WHERE w.elem->>'template_id' = b.winning_template))"
+
 func TestTemplateRepository_GetTemplateUsage_Counts(t *testing.T) {
 	repo, sqlMock, rec := newTemplateUsageRepo(t)
 	cols := []string{"template_id", "count"}
@@ -63,6 +69,7 @@ func TestTemplateRepository_GetTemplateUsage_Counts(t *testing.T) {
 	for _, done := range []string{"'processed'", "'cancelled'", "'failed'"} {
 		assert.NotContains(t, broadcasts, done)
 	}
+	assert.Contains(t, broadcasts, sendableVariation, "only the variations the broadcast can still send")
 
 	assert.Contains(t, transactional, "FROM transactional_notifications")
 	assert.Contains(t, transactional, "channels->'email'->>'template_id'")
@@ -132,6 +139,8 @@ func TestTemplateRepository_GetTemplateUsage_OneTemplate(t *testing.T) {
 	}
 	assert.Contains(t, rec.issued[0], "EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(b.test_settings->'variations') = 'array'")
 	assert.Contains(t, rec.issued[0], "ORDER BY b.name, b.id")
+	assert.Contains(t, rec.issued[0], "v.elem->>'template_id' = $1 AND "+sendableVariation,
+		"a broadcast is listed only when a variation it can still send uses the template")
 	assert.Contains(t, rec.issued[1], "deleted_at IS NULL")
 	assert.Contains(t, rec.issued[1], "ORDER BY name, id")
 	assert.Contains(t, rec.issued[2], "a.trigger_config->>'template_id' = $1 OR EXISTS")
