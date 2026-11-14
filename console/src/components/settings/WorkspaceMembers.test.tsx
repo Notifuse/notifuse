@@ -591,6 +591,22 @@ describe('create API key drawer', () => {
     expect(Object.keys(request.permissions).sort()).toEqual([...ALL_PERMISSION_RESOURCES, ...OPT_IN_PERMISSION_RESOURCES].sort())
   })
 
+  it('keeps the hyphens of the name the owner types, as the server accepts them', async () => {
+    const drawer = await openCreateApiKey()
+
+    const input = within(drawer).getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'Website-Signup' } })
+    expect(input).toHaveValue('website-signup')
+    fireEvent.click(
+      within(footerOf(drawer)).getByRole('button', {
+        name: 'Create API Key'
+      })
+    )
+
+    await waitFor(() => expect(api.createAPIKey).toHaveBeenCalled())
+    expect(api.createAPIKey.mock.calls[0][0].email_prefix).toBe('website-signup')
+  })
+
   it('offers a switch for every resource in the canonical list', async () => {
     const drawer = await openCreateApiKey()
 
