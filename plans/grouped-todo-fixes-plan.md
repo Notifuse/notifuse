@@ -534,6 +534,14 @@ the run"; the nothing-left-to-queue test asserts the send ends processed. Known,
 schedule answers 500 like any error, the schedule's lock is held across the global feed fetch, and
 `PauseBroadcast` writes back a stale `completed_at`.
 
+### After the delta review (lot 2, round 2)
+
+The review (`grouped-pr-lot2-round2-review.md`) found no blocking problem. A comment and a test name said a
+paused broadcast's lost task needs a second instance; a shutdown that releases the task while the run saves is
+a third way, and they now say so. Tests now pin the settle's context (it outlives a cancelled run, bounded by
+its deadline), its failed locked read, and the Warn of a failed task read in `ResumeBroadcast`. No change to
+the code's behaviour, so no third round of review.
+
 ## Test commands for lot 2
 
 ```

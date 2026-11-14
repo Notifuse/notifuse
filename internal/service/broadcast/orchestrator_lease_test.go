@@ -105,18 +105,21 @@ func TestSaveProgressState_WritesOnTheRunsLease(t *testing.T) {
 // it failed) stops after the batch it was queuing. That batch may have committed after the
 // cancel cleared the queue: under the broadcast's lock, a cancelled broadcast's queued emails
 // are deleted, and another status leaves them to be sent. A paused one's are paused: a pause
-// leaves a held task alone, so this needs a second instance that took the task past its lease.
+// leaves a held task alone, so the run lost its task another way first (a second instance took
+// it past its lease, or a shutdown released it while the run was still saving).
 func TestProcess_StopsWhenTheTaskIsNoLongerItsOwn(t *testing.T) {
 	cases := []struct {
 		name   string
 		status domain.BroadcastStatus
 		expect func(q *domainmocks.MockEmailQueueRepository)
 	}{
+		// The locked read fails: the queued emails stay as they are, and the run still stops.
+		{"the broadcast cannot be read", "", func(*domainmocks.MockEmailQueueRepository) {}},
 		{"another execution holds the task", domain.BroadcastStatusProcessing, func(*domainmocks.MockEmailQueueRepository) {}},
 		{"cancelled during the batch", domain.BroadcastStatusCancelled, func(q *domainmocks.MockEmailQueueRepository) {
 			q.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(10), nil)
 		}},
-		{"paused, the task taken by another instance", domain.BroadcastStatusPaused, func(q *domainmocks.MockEmailQueueRepository) {
+		{"paused, the task lost first", domain.BroadcastStatusPaused, func(q *domainmocks.MockEmailQueueRepository) {
 			q.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "broadcast-123").Return(int64(10), nil)
 		}},
 	}
@@ -191,10 +194,23 @@ func stopsWhenTheTaskIsNoLongerItsOwn(t *testing.T, statusAfterBatch domain.Broa
 		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(10, 0, nil).Times(1)
 	// The queued emails are settled from the broadcast read with its lock, inside one
 	// transaction (the queue writes are the Tx ones).
+	// The run's context is cancelled meanwhile too (a shutdown): the settle runs on a context
+	// that outlives it, bounded by the run's deadline.
+	deadline := time.Now().Add(5 * time.Minute)
+	runCtx, cancelRun := context.WithDeadline(context.Background(), deadline)
+	defer cancelRun()
 	broadcasts.EXPECT().WithTransaction(gomock.Any(), "workspace-123", gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) }).Times(1)
+		DoAndReturn(func(ctx context.Context, _ string, fn func(*sql.Tx) error) error {
+			assert.NoError(t, ctx.Err(), "the settle outlives the run's cancellation")
+			got, ok := ctx.Deadline()
+			assert.True(t, ok && got.Equal(deadline), "the settle is bounded by the run's deadline")
+			return fn(nil)
+		}).Times(1)
 	broadcasts.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "workspace-123", broadcastID).
 		DoAndReturn(func(context.Context, *sql.Tx, string, string) (*domain.Broadcast, error) {
+			if statusAfterBatch == "" {
+				return nil, errors.New("pq: connection refused")
+			}
 			return &domain.Broadcast{ID: broadcastID, Status: statusAfterBatch}, nil
 		}).Times(1)
 	// The cancel committed while the batch was queued: it marked the task failed, so the run's
@@ -202,6 +218,7 @@ func stopsWhenTheTaskIsNoLongerItsOwn(t *testing.T, statusAfterBatch domain.Broa
 	taskRepo.EXPECT().SaveState(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(context.Context, string, string, float64, *domain.TaskState) error {
 			batchQueued = true
+			cancelRun()
 			return domain.ErrTaskNotRunning
 		})
 
@@ -211,7 +228,7 @@ func stopsWhenTheTaskIsNoLongerItsOwn(t *testing.T, statusAfterBatch domain.Broa
 			BroadcastID: broadcastID, TotalRecipients: 30, Phase: "single", ChannelType: "email",
 		}},
 	}
-	done, err := o.Process(context.Background(), task, time.Now().Add(5*time.Minute))
+	done, err := o.Process(runCtx, task, deadline)
 
 	assert.False(t, done)
 	assert.True(t, errors.Is(err, domain.ErrTaskNotRunning), "got %v", err)

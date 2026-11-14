@@ -1526,8 +1526,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			startTime,
 		)
 		if errors.Is(saveErr, domain.ErrTaskNotRunning) {
-			// The task is no longer this run's: another execution holds it, or a cancel marked
-			// it failed (a pause leaves a held task to its run). The next batch would go to
+			// The task is no longer this run's: another execution holds it, a shutdown released
+			// it while this save was under way, or a cancel marked it failed (a pause leaves a
+			// held task to its run). The next batch would go to
 			// recipients that are not this run's to send, so the run stops and writes nothing
 			// more to the task. The batch it just queued may have committed after the cancel
 			// cleared the queue: it is settled as the broadcast now stands.

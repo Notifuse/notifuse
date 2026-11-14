@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -286,6 +287,14 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 			paused.TestSettings.Variations[0].SenderID = "sender-since-deleted"
 			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
 			d.taskRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), "w1", "b1").Return(tc.task, tc.readErr)
+			if tc.readErr != nil {
+				// The failed read is logged at Warn once (the strict mock refuses anything else).
+				log := pkgmocks.NewMockLogger(gomock.NewController(t))
+				log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+				log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+				log.EXPECT().Warn("Failed to read the task of the broadcast to resume").Times(1)
+				d.svc.logger = log
+			}
 
 			if tc.checked {
 				d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
