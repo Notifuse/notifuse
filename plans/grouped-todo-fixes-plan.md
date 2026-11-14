@@ -457,10 +457,68 @@ Released behaviour, so Fix lines, short and client-facing:
   keeps to its 70 seconds; a recipient feed retry stops with the run.
 (The integration test of 2.9 decides the first half of the Exit on reply line.)
 
+### Corrections after the plan review
+
+The plan review (`/mnt/project-files/reviews/grouped-pr-lot2-plan-review.md`, Opus, xhigh) confirmed problems in
+ten points. They replace what the points above say where the two differ.
+
+- **2.1** The requeue does not go through `MarkAsPending`, which resets `retry_count`. A new repository method
+  `RequeueTask(ctx, workspace, id, status, nextRunAfter, progress, state)` writes the status (pending, or
+  paused for 2.2), progress, state and next run, clears the lease, keeps `retry_count`, and matches only
+  `status = running` (else `ErrTaskNotRunning`, logged at Info: a cancel marked the task failed meanwhile, and
+  that decision stands). `TaskRequeueError` gains `Park bool` (requeue as paused) and `AfterRequeue
+  func(context.Context)`, run once the requeue is written. Tests: sqlmock cases for the method,
+  `task_lease_test.go` case (a running task requeued keeps its retry count; a failed one is left failed).
+- **2.2** The run that finds its broadcast paused pauses the queue entries, then breaks out of the loop (so the
+  progress block after the loop runs) and returns a requeue with `Park: true`, 24 hours, and an `AfterRequeue`
+  that reads the broadcast again and wakes the task (`WakeTask`, now) when it is no longer paused. The resume's
+  wake moves from `handleBroadcastResumed` to `BroadcastService.ResumeBroadcast`, after its commit: either the
+  resume's wake finds the parked task, or the run's second read sees the resume. Existing tests that change:
+  `orchestrator_pause_test.go:170-172`, `:372-374`, the paused row of `:542-550`.
+- **2.3** In the final write, the paused case also calls `pauseQueueEntries` and the cancelled case
+  `deleteQueueEntries`, so the last batch's rows committed after the pause's or cancel's own statement are not
+  sent. The draft check of 2.6 runs before the no-recipient path. Existing tests move from `UpdateBroadcast`
+  to `WithTransaction` + `GetBroadcastForUpdateTx` + `UpdateBroadcastTx`.
+- **2.4** `ExecuteTask` already bounds the processor's context by the lease. Added: the lease fence. `ExecuteTask`
+  truncates the lease to microseconds, stores it, and puts it in the processor's context
+  (`domain.WithTaskLease`); `SaveStateTx` adds `timeout_after = lease` when the context carries one and returns
+  `ErrTaskNotRunning` when no row matches. No signature change, no schema change. `leaseContext` keeps the
+  context values, so the fence holds on it too.
+- **2.5** The finalizer requeues (keeping the retry count, so the next run is still the last attempt) only when
+  no status write committed and the broadcast still exists: `ErrBroadcastNotFound` keeps the original error, and
+  the path where `failed` was written and the pause write failed keeps it too. A write that keeps failing is
+  retried once per retry interval.
+- **2.6** `ScheduleBroadcastTask` runs in one system-DB transaction: `GetTaskByBroadcastIDTx` (`FOR UPDATE`),
+  then `CreateTx`, or a conditional reset (`ResetBroadcastTask`, one `UPDATE` guarded by `notHeld`, which sets
+  `created_at = now`, state, `retry_count = 0`, pending, next run). A task held by a live lease is refused.
+  `GetTaskByBroadcastIDTx` wraps `domain.ErrTaskNotFound` (same text) so "no task" is told from a failed read.
+  The draft refusal is the first thing `Process` does on every run. A send-now task is created with
+  `next_run_after = now + 30 s` so the scheduler and cron cannot pick it before the broadcast commits;
+  `RunTaskNow` ignores `next_run_after`. The resume and `SelectWinner` call `RunTaskNow(task.ID)` after their
+  commit instead of `ExecutePendingTasks(…, 1)`. `RunTaskNow` logs `ErrTaskAlreadyRunning` at Debug. The
+  integration test goes into `broadcast_scheduled_task_test.go`, with `TaskScheduler.Enabled = true` in the
+  suite's config, no ticker, the queue worker started, and the other task with a NULL `next_run_after` and an
+  older `created_at`. Existing tests to rewrite: `task_service_test.go:869`, `:882-930`, `:2084-2410`,
+  `qb_task_gap_test.go:1079`, and the `ScheduleBroadcast` cases that mock `PublishWithAck`.
+- **2.10** (commit `10b7fea`) Both guards (`exclude_unsubscribed` and `tracking_mode`) also refuse the change
+  when `StartedAt` is set: a broadcast scheduled for later keeps `scheduled` while it sends.
+- **2.12** No extra sender check: the batch's `SendBatch` already checks the senders of the provider it is
+  given. The fix is the refreshed provider; a refresh that finds no marketing provider keeps the run's copy
+  (logged at Warn), so the batch fails as it would have. The 44.0 sender bullet (CHANGELOG.md:83) is amended.
+- **2.13** The feed pause reason no longer carries the sentinel's text (done in `af05284`).
+- **2.14** The three guards at `:1260`, `:1304`, `:1381` cannot be reached and are removed; only the `:1021`
+  test is written.
+- **2.15** As the review's table says: F-33 and F-08 as one Improvement, the Exit on reply line split, the
+  Improvement line split per change, the 44.0 web version bullet names the test send.
+
+Known, not handled (lot 2): the terminal writes of `ExecuteTask` have no lease fence; the pause handler parks the
+task before the pause commits; `RunTaskNow` runs on `context.Background()` and is not released at shutdown;
+the sending-started annotation of a resume during a paused run; the small gaps left by #566.
+
 ## Test commands for lot 2
 
 ```
 go test ./internal/domain/ ./internal/service/... ./internal/repository/ ./internal/http/ ./internal/app/ ./cmd/api/
-INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestBroadcast|TestAutomation|TestTask' -count=1
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestBroadcast|TestAutomation|TestTask|TestScheduledBroadcast|TestDataFeed|TestRecipientFeed|TestSendTimeSender|TestCircuitBreaker|TestCron|TestRecurringTask|TestV44' -count=1
 make test-integration  # the full suite once before the code review
 ```
