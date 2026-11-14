@@ -23,6 +23,8 @@ type AutomationExecutor struct {
 	nodeExecutors   map[domain.NodeType]NodeExecutor
 	logger          logger.Logger
 	apiEndpoint     string
+	// shutdownDrain overrides automationShutdownDrain when positive (tests).
+	shutdownDrain time.Duration
 }
 
 // NewAutomationExecutor creates a new AutomationExecutor
@@ -75,9 +77,38 @@ func NewAutomationExecutor(
 // The claim of a batch (ProcessBatch) uses the same lease, renewed before each journey.
 const inTickResumeLease = 5 * time.Minute
 
+// automationShutdownDrain is how long, once the app starts stopping, the node under way in a
+// batch keeps its context to finish and record itself. Cutting it would leave the journey on
+// that node, and the node would run again once the claim ends: the same email sent twice.
+const automationShutdownDrain = 20 * time.Second
+
+func (e *AutomationExecutor) drainTimeout() time.Duration {
+	if e != nil && e.shutdownDrain > 0 {
+		return e.shutdownDrain
+	}
+	return automationShutdownDrain
+}
+
 // Execute processes a contact through their automation nodes until a delay or completion.
 // It loops through multiple nodes in a single tick for efficiency, persisting state after each node.
 func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, contactAutomation *domain.ContactAutomation) error {
+	return e.execute(ctx, nil, workspaceID, contactAutomation)
+}
+
+// execute is Execute with a stop signal: once stop is closed, no further node starts. A journey
+// still active with no time from the node that finished after the stop is handed back due now
+// (a delay or a retry keeps its own time); a journey stopped before its next node keeps the time
+// of its last write. A nil stop never fires.
+func (e *AutomationExecutor) execute(ctx context.Context, stop <-chan struct{}, workspaceID string, contactAutomation *domain.ContactAutomation) error {
+	stopping := func() bool {
+		select {
+		case <-stop:
+			return true
+		default:
+			return false
+		}
+	}
+
 	// Get automation once (outside loop)
 	automation, err := e.automationRepo.GetByID(ctx, workspaceID, contactAutomation.AutomationID)
 	if err != nil {
@@ -104,6 +135,11 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 	// LOOP: Process nodes until delay, completion, or max iterations
 	const maxNodesPerTick = 10
 	for iterations := 0; iterations < maxNodesPerTick; iterations++ {
+		// Stopping: start no node. The journey keeps the time of its last write (its claim or
+		// the hand-back below) and resumes then.
+		if stopping() {
+			return nil
+		}
 
 		// Get current node from embedded nodes
 		node := automation.GetNodeByID(*contactAutomation.CurrentNodeID)
@@ -171,10 +207,10 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 		// be persisted with scheduled_at NULL: the scheduler never selects NULL, so a tick that
 		// stops before its next persist would strand the journey. The last iteration hands the
 		// contact to the next tick, due now; earlier ones hold it with a lease while this tick
-		// carries on.
+		// carries on. Once stopping, the tick does not carry on: it hands the contact back due now.
 		if contactAutomation.Status == domain.ContactAutomationStatusActive && result.ScheduledAt == nil {
 			resumeAt := time.Now().UTC()
-			if iterations < maxNodesPerTick-1 {
+			if iterations < maxNodesPerTick-1 && !stopping() {
 				resumeAt = resumeAt.Add(inTickResumeLease)
 			}
 			contactAutomation.ScheduledAt = &resumeAt
@@ -239,6 +275,12 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 // a journey again, so each journey's claim is renewed right before it runs, against the token
 // the claim returned: a journey whose claim was lost meanwhile is left to the instance that
 // holds it.
+//
+// ctx is the app's shutdown context. It bounds the claim and stops the batch between two
+// journeys, but the journeys run on a context detached from it: a node under way when the stop
+// begins finishes, and the write that moves the journey past it lands, within
+// drainTimeout of the stop. Cutting the node instead would leave the journey on it, and the node
+// would run again once the claim ends.
 func (e *AutomationExecutor) ProcessBatch(ctx context.Context, limit int) (int, error) {
 	contacts, err := e.automationRepo.ClaimScheduledContactAutomationsGlobal(ctx, limit, inTickResumeLease)
 	if err != nil {
@@ -252,6 +294,23 @@ func (e *AutomationExecutor) ProcessBatch(ctx context.Context, limit int) (int, 
 	if len(contacts) == 0 {
 		return 0, nil
 	}
+
+	runCtx, cancelRun := context.WithCancel(context.WithoutCancel(ctx))
+	defer cancelRun()
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-runCtx.Done():
+			return
+		}
+		timer := time.NewTimer(e.drainTimeout())
+		defer timer.Stop()
+		select {
+		case <-timer.C:
+			cancelRun()
+		case <-runCtx.Done():
+		}
+	}()
 
 	processed := 0
 	for _, ca := range contacts {
@@ -278,7 +337,7 @@ func (e *AutomationExecutor) ProcessBatch(ctx context.Context, limit int) (int, 
 			e.logger.WithFields(fields).Debug("Contact automation claimed by another instance or ended; skipping")
 			continue
 		}
-		if err := e.Execute(ctx, ca.WorkspaceID, &ca.ContactAutomation); err != nil {
+		if err := e.execute(runCtx, ctx.Done(), ca.WorkspaceID, &ca.ContactAutomation); err != nil {
 			fields["error"] = err.Error()
 			e.logger.WithFields(fields).Error("Failed to execute automation for contact")
 			// Continue with other contacts

@@ -28,6 +28,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: With the internal scheduler off, `tasks.execute` answers 500 when the database fails while reading the task, without the internal error in the response, and 404 only for a task that does not exist.
 
+- **Improvement**: When Notifuse stops normally, during an upgrade for example, an automation step already under way finishes and is recorded before the server exits (for up to 20 seconds), so it does not run again after the restart and its email is not sent twice.
+
 - **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
