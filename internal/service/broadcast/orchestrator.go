@@ -369,7 +369,15 @@ func (o *BroadcastOrchestrator) GetTotalRecipientCount(ctx context.Context, work
 		// codecov:ignore:end
 	}()
 
-	// Get the broadcast to access audience settings
+	broadcast, err := o.getBroadcastForCount(ctx, workspaceID, broadcastID)
+	if err != nil {
+		return 0, err
+	}
+	return o.countRecipients(ctx, workspaceID, broadcast)
+}
+
+// getBroadcastForCount reads the broadcast whose recipients are about to be counted.
+func (o *BroadcastOrchestrator) getBroadcastForCount(ctx context.Context, workspaceID, broadcastID string) (*domain.Broadcast, error) {
 	broadcast, err := o.broadcastRepo.GetBroadcast(ctx, workspaceID, broadcastID)
 	if err != nil {
 		// codecov:ignore:start
@@ -380,12 +388,16 @@ func (o *BroadcastOrchestrator) GetTotalRecipientCount(ctx context.Context, work
 		}).Error("Failed to get broadcast for recipient count")
 		// codecov:ignore:end
 		if interrupted, ok := wrapIfInterrupted(err); ok {
-			return 0, interrupted
+			return nil, interrupted
 		}
-		return 0, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, err)
+		return nil, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, err)
 	}
+	return broadcast, nil
+}
 
-	// Use the contact repository to count recipients
+// countRecipients counts the recipients of the broadcast's audience.
+func (o *BroadcastOrchestrator) countRecipients(ctx context.Context, workspaceID string, broadcast *domain.Broadcast) (int, error) {
+	broadcastID := broadcast.ID
 	count, err := o.contactRepo.CountContactsForBroadcast(ctx, workspaceID, broadcast.Audience)
 	if err != nil {
 		// codecov:ignore:start
@@ -879,7 +891,16 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 	// Phase 1: Get recipient count if not already set
 	if broadcastState.TotalRecipients == 0 {
-		count, countErr := o.GetTotalRecipientCount(ctx, task.WorkspaceID, broadcastState.BroadcastID)
+		counted, readErr := o.getBroadcastForCount(ctx, task.WorkspaceID, broadcastState.BroadcastID)
+		if readErr != nil {
+			err = readErr
+			return false, err
+		}
+		if refused, done, draftErr := o.refuseDraft(task, counted); refused {
+			err = draftErr
+			return done, err
+		}
+		count, countErr := o.countRecipients(ctx, task.WorkspaceID, counted)
 		if countErr != nil {
 			// codecov:ignore:start
 			o.logger.WithFields(map[string]interface{}{
@@ -962,6 +983,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	broadcast, err := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID)
 	if err != nil {
 		return false, err
+	}
+	if refused, done, draftErr := o.refuseDraft(task, broadcast); refused {
+		err = draftErr
+		return done, err
 	}
 
 	// Check if we should perform auto winner evaluation
@@ -1622,6 +1647,32 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	}).Info("Broadcast processing cycle completed")
 	// codecov:ignore:end
 	return allDone, err
+}
+
+// A task is created in the schedule request before the broadcast's own write commits, so
+// the scheduler can pick it while the broadcast still reads as a draft, and a schedule whose
+// broadcast write rolled back leaves a task for a draft. A draft is never sent: while the
+// task is young it is handed back for draftRecheckInterval (the schedule is committing),
+// and once it is older than orphanTaskAge it is completed without sending. A later
+// schedule of the broadcast resets the task.
+const (
+	draftRecheckInterval = 30 * time.Second
+	orphanTaskAge        = 10 * time.Minute
+)
+
+// refuseDraft reports whether the run stops because its broadcast is a draft, and with what.
+func (o *BroadcastOrchestrator) refuseDraft(task *domain.Task, broadcast *domain.Broadcast) (refused bool, done bool, err error) {
+	if broadcast.Status != domain.BroadcastStatusDraft {
+		return false, false, nil
+	}
+	if time.Since(task.CreatedAt) < orphanTaskAge {
+		return true, false, &domain.TaskRequeueError{After: draftRecheckInterval, Reason: "broadcast is still a draft"}
+	}
+	o.logger.WithFields(map[string]interface{}{
+		"task_id":      task.ID,
+		"broadcast_id": broadcast.ID,
+	}).Warn("Task of a broadcast that is still a draft - completing it without sending")
+	return true, true, nil
 }
 
 // finishRun writes the end of a run that queued every recipient: setFinal sets the final

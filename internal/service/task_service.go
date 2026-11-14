@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime/debug"
@@ -1101,7 +1100,6 @@ func (s *TaskService) GetLastCronRun(ctx context.Context) (*time.Time, error) {
 // SubscribeToBroadcastEvents registers handlers for broadcast-related events
 func (s *TaskService) SubscribeToBroadcastEvents(eventBus domain.EventBus) {
 	// Subscribe to broadcast events
-	eventBus.Subscribe(domain.EventBroadcastScheduled, s.handleBroadcastScheduled)
 	eventBus.Subscribe(domain.EventBroadcastPaused, s.handleBroadcastPaused)
 	eventBus.Subscribe(domain.EventBroadcastResumed, s.handleBroadcastResumed)
 	eventBus.Subscribe(domain.EventBroadcastSent, s.handleBroadcastSent)
@@ -1111,176 +1109,113 @@ func (s *TaskService) SubscribeToBroadcastEvents(eventBus domain.EventBus) {
 	s.logger.Info("TaskService subscribed to broadcast events")
 }
 
-// Event handlers for broadcast events
-func (s *TaskService) handleBroadcastScheduled(ctx context.Context, payload domain.EventPayload) {
-	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "handleBroadcastScheduled")
+// sendNowTaskDelay is how far ahead a send-now task is due when it is created: the
+// scheduler and the cron leave it to RunTaskNow, which the schedule request calls once the
+// broadcast has committed, and pick it up only if that execution never started.
+const sendNowTaskDelay = 30 * time.Second
+
+// ScheduleBroadcastTask creates or resets the task of a broadcast being scheduled; see
+// domain.TaskService. It runs in the request, before the broadcast's own write commits, so a
+// task that cannot be written fails the request instead of leaving a scheduled broadcast
+// that nothing sends.
+func (s *TaskService) ScheduleBroadcastTask(ctx context.Context, workspaceID, broadcastID string, sendNow bool, scheduledAt *time.Time) (string, error) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "ScheduleBroadcastTask")
 	defer tracing.EndSpan(span, nil)
-
-	broadcastID := payload.EntityID
+	tracing.AddAttribute(ctx, "workspace_id", workspaceID)
 	tracing.AddAttribute(ctx, "broadcast_id", broadcastID)
-	tracing.AddAttribute(ctx, "workspace_id", payload.WorkspaceID)
-	tracing.AddAttribute(ctx, "event_type", payload.Type)
+	tracing.AddAttribute(ctx, "send_now", sendNow)
 
-	s.logger.WithFields(map[string]interface{}{
-		"broadcast_id": broadcastID,
-		"workspace_id": payload.WorkspaceID,
-	}).Info("Handling broadcast scheduled event")
+	nextRunAfter := time.Now().UTC().Add(sendNowTaskDelay)
+	if !sendNow && scheduledAt != nil {
+		nextRunAfter = scheduledAt.UTC()
+	}
+	state := &domain.TaskState{
+		Progress: 0,
+		Message:  "Starting broadcast",
+		SendBroadcast: &domain.SendBroadcastState{
+			BroadcastID: broadcastID,
+			ChannelType: "email",
+		},
+	}
 
-	// Extract payload data before transaction (needed after commit for immediate execution)
-	sendNow, _ := payload.Data["send_now"].(bool)
-	status, _ := payload.Data["status"].(string)
-
-	// Track whether we should trigger immediate execution after commit
-	shouldExecuteImmediately := false
-
-	// Use a transaction for checking and potentially updating/creating task
-	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		txCtx, txSpan := tracing.StartServiceSpan(ctx, "TaskService", "BroadcastScheduledTransaction")
-		defer tracing.EndSpan(txSpan, nil)
-
-		tracing.AddAttribute(txCtx, "send_now", sendNow)
-		tracing.AddAttribute(txCtx, "broadcast_status", status)
-
-		// Try to find the task for this broadcast ID directly
-		existingTask, err := s.repo.GetTaskByBroadcastID(txCtx, payload.WorkspaceID, broadcastID)
-		if err != nil {
-			// If no task exists, we'll create one later
-			tracing.AddAttribute(txCtx, "task_exists", false)
-			s.logger.WithField("broadcast_id", broadcastID).
-				WithField("error", err.Error()).
-				Debug("No existing task found for broadcast, will create new one")
-		}
-
-		// Update existing task if found
-		if existingTask != nil {
-			tracing.AddAttribute(txCtx, "task_exists", true)
-			tracing.AddAttribute(txCtx, "task_id", existingTask.ID)
-			tracing.AddAttribute(txCtx, "current_status", string(existingTask.Status))
-
-			s.logger.WithFields(map[string]interface{}{
-				"broadcast_id": broadcastID,
-				"task_id":      existingTask.ID,
-			}).Info("Task already exists for broadcast, updating status")
-
-			if sendNow && status == string(domain.BroadcastStatusProcessing) {
-				// If broadcast is being sent immediately, mark task as pending and set next run to now
-				nextRunAfter := time.Now()
-				existingTask.NextRunAfter = &nextRunAfter
-				existingTask.Status = domain.TaskStatusPending
-
-				// Ensure BroadcastID is set
-				if existingTask.BroadcastID == nil {
-					broadcastIDCopy := broadcastID
-					existingTask.BroadcastID = &broadcastIDCopy
-				}
-
-				if updateErr := s.repo.Update(txCtx, payload.WorkspaceID, existingTask); updateErr != nil {
-					tracing.MarkSpanError(txCtx, updateErr)
-					s.logger.WithFields(map[string]interface{}{
-						"broadcast_id": broadcastID,
-						"task_id":      existingTask.ID,
-						"error":        updateErr.Error(),
-					}).Error("Failed to update task for scheduled broadcast")
-					return updateErr
-				}
-
-				// Flag for immediate execution after transaction commits
-				shouldExecuteImmediately = true
+	var taskID string
+	err := s.repo.WithTransaction(ctx, func(tx *sql.Tx) error {
+		existing, err := s.repo.GetTaskByBroadcastIDTx(ctx, tx, workspaceID, broadcastID)
+		switch {
+		case err == nil:
+			// Only a draft can be scheduled, so an existing task is left by a schedule whose
+			// broadcast write rolled back: it starts over.
+			taskID = existing.ID
+			return s.repo.ResetBroadcastTaskTx(ctx, tx, workspaceID, existing.ID, state, nextRunAfter)
+		case errors.Is(err, domain.ErrTaskNotFound):
+			broadcastIDCopy := broadcastID
+			task := &domain.Task{
+				WorkspaceID:   workspaceID,
+				Type:          "send_broadcast",
+				Status:        domain.TaskStatusPending,
+				BroadcastID:   &broadcastIDCopy,
+				State:         state,
+				MaxRuntime:    50,
+				MaxRetries:    3,
+				RetryInterval: 300,
+				NextRunAfter:  &nextRunAfter,
 			}
-
+			if err := s.repo.CreateTx(ctx, tx, workspaceID, task); err != nil {
+				return err
+			}
+			taskID = task.ID
 			return nil
+		default:
+			return err
 		}
-
-		// If no task exists, create one
-		s.logger.WithField("broadcast_id", broadcastID).Info("Creating new task for scheduled broadcast")
-
-		tracing.AddAttribute(txCtx, "creating_new_task", true)
-
-		// Create a copy of the broadcast ID for the pointer
-		broadcastIDCopy := broadcastID
-
-		task := &domain.Task{
-			WorkspaceID: payload.WorkspaceID,
-			Type:        "send_broadcast",
-			Status:      domain.TaskStatusPending,
-			BroadcastID: &broadcastIDCopy,
-			State: &domain.TaskState{
-				Progress: 0,
-				Message:  "Starting broadcast",
-				SendBroadcast: &domain.SendBroadcastState{
-					BroadcastID:     broadcastID,
-					ChannelType:     "email",
-					EnqueuedCount:   0,
-					FailedCount:     0,
-					RecipientOffset: 0,
-				},
-			},
-			MaxRuntime:    50, // 50 seconds
-			MaxRetries:    3,
-			RetryInterval: 300, // 5 minutes
-		}
-
-		// If the broadcast is set to send immediately, we don't need to set NextRunAfter
-		// If it's scheduled for the future, we should set NextRunAfter based on the schedule
-		if !sendNow && status == string(domain.BroadcastStatusScheduled) {
-
-			// Get broadcast schedule info from payload
-			if scheduledTimeStr, hasTime := payload.Data["scheduled_time"].(string); hasTime {
-
-				// Parse the scheduled time string
-				if scheduledTime, parseErr := time.Parse(time.RFC3339, scheduledTimeStr); parseErr == nil {
-					// Use the actual scheduled time from the broadcast
-					task.NextRunAfter = &scheduledTime
-					tracing.AddAttribute(txCtx, "next_run_after", scheduledTime.Format(time.RFC3339))
-					tracing.AddAttribute(txCtx, "scheduled_time_source", "payload")
-				} else {
-					log.Printf("Failed to parse scheduled_time: %v", parseErr)
-				}
-			}
-		}
-
-		if createErr := s.CreateTask(txCtx, payload.WorkspaceID, task); createErr != nil {
-			tracing.MarkSpanError(txCtx, createErr)
-			s.logger.WithFields(map[string]interface{}{
-				"broadcast_id": broadcastID,
-				"error":        createErr.Error(),
-			}).Error("Failed to create task for scheduled broadcast")
-			return createErr
-		}
-
-		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id": broadcastID,
-			"workspace_id": payload.WorkspaceID,
-		}).Info("Successfully created task for scheduled broadcast")
-
-		// Flag for immediate execution if this is a send-now broadcast
-		if sendNow && status == string(domain.BroadcastStatusProcessing) {
-			shouldExecuteImmediately = true
-		}
-
-		return nil
 	})
-
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
-			"workspace_id": payload.WorkspaceID,
+			"workspace_id": workspaceID,
 			"error":        err.Error(),
-		}).Error("Failed to handle broadcast scheduled event")
-		return
+		}).Error("Failed to schedule the broadcast's task")
+		return "", fmt.Errorf("failed to schedule the broadcast's task: %w", err)
 	}
 
-	// Trigger immediate task execution after transaction commits (no sleep needed)
-	if shouldExecuteImmediately && s.autoExecuteImmediate {
-		go func() {
-			if execErr := s.ExecutePendingTasks(context.Background(), 1); execErr != nil {
-				s.logger.WithFields(map[string]interface{}{
-					"broadcast_id": broadcastID,
-					"error":        execErr.Error(),
-				}).Error("Failed to trigger immediate task execution")
-			}
-		}()
+	s.logger.WithFields(map[string]interface{}{
+		"broadcast_id": broadcastID,
+		"workspace_id": workspaceID,
+		"task_id":      taskID,
+	}).Info("Scheduled the broadcast's task")
+	return taskID, nil
+}
+
+// RunTaskNow starts an execution of the task in the background; see domain.TaskService.
+func (s *TaskService) RunTaskNow(workspaceID, taskID string) {
+	if !s.autoExecuteImmediate {
+		return
+	}
+	go s.runTaskNow(workspaceID, taskID)
+}
+
+// runTaskNow executes the given task, and that task only, for its own runtime.
+func (s *TaskService) runTaskNow(workspaceID, taskID string) {
+	ctx := context.Background()
+	logger := s.logger.WithFields(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"task_id":      taskID,
+	})
+	task, err := s.repo.Get(ctx, workspaceID, taskID)
+	if err != nil {
+		logger.WithField("error", err.Error()).Error("Failed to read the task to run now")
+		return
+	}
+	timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)
+	if err := s.ExecuteTask(ctx, workspaceID, taskID, timeoutAt); err != nil {
+		var running *domain.ErrTaskAlreadyRunning
+		if errors.As(err, &running) {
+			// The scheduler or the cron took it first.
+			logger.Debug("Task to run now is already running")
+			return
+		}
+		logger.WithField("error", err.Error()).Error("Failed to run the task now")
 	}
 }
 
@@ -1447,20 +1382,10 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 		}).Info("Successfully resumed task for resumed broadcast")
 
 		// Check if broadcast should start immediately
-		startNow, _ := payload.Data["start_now"].(bool)
-		if startNow && s.autoExecuteImmediate {
-			// Immediately trigger task execution
-			go func() {
-				// Small delay to ensure transaction is committed
-				time.Sleep(100 * time.Millisecond)
-				if execErr := s.ExecutePendingTasks(context.Background(), 1); execErr != nil {
-					s.logger.WithFields(map[string]interface{}{
-						"broadcast_id": broadcastID,
-						"task_id":      task.ID,
-						"error":        execErr.Error(),
-					}).Error("Failed to trigger immediate task execution for resumed broadcast")
-				}
-			}()
+		// The resume has committed (the event follows it): its task, and no other due
+		// one, runs now.
+		if startNow, _ := payload.Data["start_now"].(bool); startNow {
+			s.RunTaskNow(payload.WorkspaceID, task.ID)
 		}
 	}
 }

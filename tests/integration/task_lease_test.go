@@ -4,6 +4,8 @@ package integration
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
@@ -423,4 +425,57 @@ func TestTaskLease_SaveStateMatchesTheRunsLease(t *testing.T) {
 	err = h.repo.SaveState(domain.WithTaskLease(ctx, lease), h.workspaceID, id, 20, state("stale@example.com"))
 	assert.ErrorIs(t, err, domain.ErrTaskNotRunning)
 	assert.Equal(t, "mine@example.com", h.get(t, id).State.SendBroadcast.LastProcessedEmail)
+}
+
+// A new schedule starts the broadcast's task over, unless an execution holds it.
+func TestTaskLease_ResetBroadcastTask(t *testing.T) {
+	h := setupTaskLease(t)
+	next := time.Now().UTC().Add(time.Hour).Truncate(time.Microsecond)
+	fresh := &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: "b1"}}
+	reset := func(id string) error {
+		return h.repo.WithTransaction(context.Background(), func(tx *sql.Tx) error {
+			return h.repo.ResetBroadcastTaskTx(context.Background(), tx, h.workspaceID, id, fresh, next)
+		})
+	}
+
+	t.Run("a completed task starts over, as new", func(t *testing.T) {
+		id := h.newTask(t)
+		_, err := h.suite.DBManager.GetDB().Exec(
+			`UPDATE tasks SET status = 'completed', retry_count = 2, progress = 100, error_message = 'old',
+				completed_at = NOW(), created_at = NOW() - INTERVAL '1 day' WHERE id = $1`, id)
+		require.NoError(t, err)
+
+		require.NoError(t, reset(id))
+		task := h.get(t, id)
+		assert.Equal(t, domain.TaskStatusPending, task.Status)
+		assert.Zero(t, task.RetryCount)
+		assert.Zero(t, task.Progress)
+		assert.Nil(t, task.ErrorMessage)
+		assert.Nil(t, task.CompletedAt)
+		require.NotNil(t, task.NextRunAfter)
+		assert.True(t, task.NextRunAfter.Equal(next))
+		assert.WithinDuration(t, time.Now(), task.CreatedAt, time.Minute, "its age counts from the new schedule")
+		require.NotNil(t, task.State.SendBroadcast)
+		assert.Empty(t, task.State.SendBroadcast.LastProcessedEmail, "the cursor of the old run is gone")
+	})
+
+	t.Run("a task an execution holds is refused and kept", func(t *testing.T) {
+		id := h.newTask(t)
+		h.set(t, id, domain.TaskStatusRunning, liveLease())
+
+		err := reset(id)
+		var running *domain.ErrTaskAlreadyRunning
+		assert.True(t, errors.As(err, &running), "got %v", err)
+		task := h.get(t, id)
+		assert.Equal(t, domain.TaskStatusRunning, task.Status)
+		assert.Equal(t, "start@example.com", task.State.SendBroadcast.LastProcessedEmail)
+	})
+
+	t.Run("a task whose lease expired can start over", func(t *testing.T) {
+		id := h.newTask(t)
+		h.set(t, id, domain.TaskStatusRunning, expiredLease())
+
+		require.NoError(t, reset(id))
+		assert.Equal(t, domain.TaskStatusPending, h.get(t, id).Status)
+	})
 }

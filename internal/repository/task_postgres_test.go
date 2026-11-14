@@ -2440,3 +2440,49 @@ func TestTaskRepository_RequeueTask(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
+
+func TestTaskRepository_ResetBroadcastTaskTx(t *testing.T) {
+	ctx := context.Background()
+	next := time.Now().UTC().Add(time.Minute)
+	state := &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: "b1"}}
+
+	begin := func(t *testing.T, executed *[]string) (sqlmock.Sqlmock, *TaskRepository, *sql.Tx) {
+		db, mock, repo := setupTaskMockCapturingSQL(t, executed)
+		t.Cleanup(func() { _ = db.Close() })
+		mock.ExpectBegin()
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		return mock, repo, tx
+	}
+
+	t.Run("starts the task over unless an execution holds it", func(t *testing.T) {
+		var executed []string
+		mock, repo, tx := begin(t, &executed)
+		mock.ExpectExec("UPDATE tasks SET").WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.ResetBroadcastTaskTx(ctx, tx, "ws-1", "task-1", state, next))
+		require.NoError(t, mock.ExpectationsWereMet())
+		require.Len(t, executed, 1)
+		for _, column := range []string{"status = ", "retry_count = ", "created_at = ", "next_run_after = ", "timeout_after = "} {
+			assert.Contains(t, executed[0], column)
+		}
+		assert.Contains(t, executed[0], "timeout_after <=", "a held task is left alone")
+	})
+
+	t.Run("a held task is refused", func(t *testing.T) {
+		mock, repo, tx := begin(t, &[]string{})
+		mock.ExpectExec("UPDATE tasks SET").WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := repo.ResetBroadcastTaskTx(ctx, tx, "ws-1", "task-1", state, next)
+		var running *domain.ErrTaskAlreadyRunning
+		assert.True(t, errors.As(err, &running), "got %v", err)
+	})
+
+	t.Run("a database failure is wrapped", func(t *testing.T) {
+		mock, repo, tx := begin(t, &[]string{})
+		mock.ExpectExec("UPDATE tasks SET").WillReturnError(errors.New("connection reset"))
+
+		err := repo.ResetBroadcastTaskTx(ctx, tx, "ws-1", "task-1", state, next)
+		assert.EqualError(t, err, "failed to reset task: connection reset")
+	})
+}

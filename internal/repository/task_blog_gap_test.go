@@ -243,6 +243,7 @@ func TestTaskBlogGap_TaskGetByBroadcastIDTx_Branches(t *testing.T) {
 		task, err := repo.GetTaskByBroadcastIDTx(ctx, tx, "ws-1", "b-42")
 		assert.Nil(t, task)
 		require.EqualError(t, err, "task not found for broadcast ID b-42")
+		assert.ErrorIs(t, err, domain.ErrTaskNotFound, "a missing task is told from a failed read")
 	})
 
 	t.Run("corrupt state is an unmarshal error", func(t *testing.T) {

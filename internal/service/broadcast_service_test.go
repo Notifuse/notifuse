@@ -198,22 +198,27 @@ func TestBroadcastService_ScheduleBroadcast_SendNow_Success(t *testing.T) {
 	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
 
 	// Transaction flow
+	committed := false
 	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
-			return fn(nil)
+			err := fn(nil)
+			committed = err == nil
+			return err
 		},
 	)
 
-	// Inside tx: get -> update -> publish ack -> wait
+	// Inside tx: get -> update -> the broadcast's task; after the commit, that task runs
 	draft := testBroadcast(req.WorkspaceID, req.ID)
 	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-
-	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
-			ack(nil)
-		},
-	)
+	d.taskService.EXPECT().ScheduleBroadcastTask(gomock.Any(), "w1", "b1", true, (*time.Time)(nil)).DoAndReturn(
+		func(context.Context, string, string, bool, *time.Time) (string, error) {
+			assert.False(t, committed, "the task is written before the broadcast commits")
+			return "task-1", nil
+		})
+	d.taskService.EXPECT().RunTaskNow("w1", "task-1").Do(func(string, string) {
+		assert.True(t, committed, "this broadcast's task runs once the broadcast has committed")
+	})
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
 	require.NoError(t, err)
@@ -570,20 +575,13 @@ func TestBroadcastService_SelectWinner_SetsWinnerAndResumesTask(t *testing.T) {
 			return true, nil
 		})
 
-	// A woken task is run straight away when auto-execution is on.
-	executed := make(chan struct{})
-	d.taskService.EXPECT().IsAutoExecuteEnabled().Return(true).AnyTimes()
-	d.taskService.EXPECT().ExecutePendingTasks(gomock.Any(), 1).DoAndReturn(
-		func(context.Context, int) error { close(executed); return nil })
+	// A woken task is run straight away: this broadcast's task, by its ID.
+	d.taskService.EXPECT().RunTaskNow(workspaceID, task.ID).Do(func(string, string) {
+		assert.True(t, committed, "the task runs after the winner is committed")
+	})
 
 	err := d.svc.SelectWinner(ctx, workspaceID, broadcastID, winner)
 	require.NoError(t, err)
-
-	select {
-	case <-executed:
-	case <-time.After(2 * time.Second):
-		t.Fatal("a woken task must be executed straight away")
-	}
 }
 
 // TestBroadcastService_SelectWinner_LeavesAHeldTaskToItsRun covers a pick made
@@ -623,15 +621,10 @@ func TestBroadcastService_SelectWinner_LeavesAHeldTaskToItsRun(t *testing.T) {
 	d.taskRepo.EXPECT().GetTaskByBroadcastID(ctx, workspaceID, broadcastID).Return(task, nil)
 	d.taskRepo.EXPECT().WakeTask(ctx, workspaceID, task.ID, gomock.Any()).Return(false, nil)
 
-	d.taskService.EXPECT().IsAutoExecuteEnabled().Return(true).AnyTimes()
-	d.taskService.EXPECT().ExecutePendingTasks(gomock.Any(), gomock.Any()).Times(0)
+	d.taskService.EXPECT().RunTaskNow(gomock.Any(), gomock.Any()).Times(0)
 
 	err := d.svc.SelectWinner(ctx, workspaceID, broadcastID, winner)
 	require.NoError(t, err)
-
-	// Leave room for the delayed execution a woken task would get, so the
-	// Times(0) above has something to catch.
-	time.Sleep(300 * time.Millisecond)
 }
 
 // TestBroadcastService_SelectWinner_TaskGoneBeforeWake keeps the "no task"
@@ -723,7 +716,7 @@ func TestBroadcastService_SelectWinner_RepeatingTheRecordedPickWakesTheTask(t *t
 	task := &domain.Task{ID: "task1", WorkspaceID: workspaceID, Status: domain.TaskStatusPaused}
 	d.taskRepo.EXPECT().GetTaskByBroadcastID(ctx, workspaceID, broadcastID).Return(task, nil)
 	d.taskRepo.EXPECT().WakeTask(ctx, workspaceID, task.ID, gomock.Any()).Return(true, nil)
-	d.taskService.EXPECT().IsAutoExecuteEnabled().Return(false).AnyTimes()
+	d.taskService.EXPECT().RunTaskNow(workspaceID, task.ID)
 
 	require.NoError(t, d.svc.SelectWinner(ctx, workspaceID, broadcastID, templateID))
 }
@@ -1285,13 +1278,14 @@ func TestBroadcastService_ScheduleBroadcast_InvalidStatus(t *testing.T) {
 	assert.Contains(t, err.Error(), "only broadcasts with draft status can be scheduled")
 }
 
-func TestBroadcastService_ScheduleBroadcast_EventProcessingFailure(t *testing.T) {
+func TestBroadcastService_ScheduleBroadcast_TaskSchedulingFailure(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()
 
 	ctx := context.Background()
 	req := &domain.ScheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1", SendNow: true}
 	authOK(d.authService, ctx, req.WorkspaceID)
+	taskWriteErr := errors.New("system database unavailable")
 
 	workspace := &domain.Workspace{
 		ID:       "w1",
@@ -1308,19 +1302,19 @@ func TestBroadcastService_ScheduleBroadcast_EventProcessingFailure(t *testing.T)
 			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-			// Event processing fails
-			d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
-					ack(errors.New("event processing failed"))
-				},
-			)
-			return fn(nil)
+			// The task cannot be written: the transaction returns the error, so the
+			// broadcast rolls back, and nothing runs.
+			d.taskService.EXPECT().ScheduleBroadcastTask(gomock.Any(), "w1", "b1", true, gomock.Any()).
+				Return("", taskWriteErr)
+			err := fn(nil)
+			assert.ErrorIs(t, err, taskWriteErr, "the transaction rolls back on the task's error")
+			return err
 		},
 	)
+	d.taskService.EXPECT().RunTaskNow(gomock.Any(), gomock.Any()).Times(0)
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to process schedule event")
+	assert.ErrorIs(t, err, taskWriteErr)
 }
 
 // Global Feed Integration Tests
@@ -1398,11 +1392,8 @@ func TestBroadcastService_ScheduleWithGlobalFeed_Success(t *testing.T) {
 		},
 	)
 
-	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
-			ack(nil)
-		},
-	)
+	d.taskService.EXPECT().ScheduleBroadcastTask(gomock.Any(), req.WorkspaceID, req.ID, req.SendNow, gomock.Any()).Return("task-1", nil)
+	d.taskService.EXPECT().RunTaskNow(req.WorkspaceID, "task-1").AnyTimes()
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
 	require.NoError(t, err)
@@ -1491,11 +1482,8 @@ func TestBroadcastService_ScheduleWithoutGlobalFeed(t *testing.T) {
 
 	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
-			ack(nil)
-		},
-	)
+	d.taskService.EXPECT().ScheduleBroadcastTask(gomock.Any(), req.WorkspaceID, req.ID, req.SendNow, gomock.Any()).Return("task-1", nil)
+	d.taskService.EXPECT().RunTaskNow(req.WorkspaceID, "task-1").AnyTimes()
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
 	require.NoError(t, err)
@@ -1542,11 +1530,8 @@ func TestBroadcastService_ScheduleWithGlobalFeed_Disabled(t *testing.T) {
 
 	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
-			ack(nil)
-		},
-	)
+	d.taskService.EXPECT().ScheduleBroadcastTask(gomock.Any(), req.WorkspaceID, req.ID, req.SendNow, gomock.Any()).Return("task-1", nil)
+	d.taskService.EXPECT().RunTaskNow(req.WorkspaceID, "task-1").AnyTimes()
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
 	require.NoError(t, err)
@@ -1603,11 +1588,8 @@ func TestBroadcastService_ScheduleWithGlobalFeed_ListNotFound(t *testing.T) {
 
 	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-		func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
-			ack(nil)
-		},
-	)
+	d.taskService.EXPECT().ScheduleBroadcastTask(gomock.Any(), req.WorkspaceID, req.ID, req.SendNow, gomock.Any()).Return("task-1", nil)
+	d.taskService.EXPECT().RunTaskNow(req.WorkspaceID, "task-1").AnyTimes()
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
 	require.NoError(t, err)
@@ -2597,46 +2579,6 @@ func TestBroadcastService_SelectWinner_NoTask(t *testing.T) {
 
 // Context cancellation tests
 
-func TestBroadcastService_ScheduleBroadcast_ContextCancellation(t *testing.T) {
-	d := setupBroadcastSvc(t)
-	defer d.ctrl.Finish()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	req := &domain.ScheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1", SendNow: true}
-	authOK(d.authService, ctx, req.WorkspaceID)
-
-	workspace := &domain.Workspace{
-		ID:       "w1",
-		Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "mkt"},
-		Integrations: domain.Integrations{
-			{ID: "mkt", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSMTP}},
-		},
-	}
-	d.workspaceRepo.EXPECT().GetByID(ctx, req.WorkspaceID).Return(workspace, nil)
-
-	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
-		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
-			draft := testBroadcast(req.WorkspaceID, req.ID)
-			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
-			d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-
-			d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
-					// Cancel context before callback
-					cancel()
-					// Simulate delay to allow context cancellation to take effect
-					time.Sleep(10 * time.Millisecond)
-				},
-			)
-			return fn(nil)
-		},
-	)
-
-	err := d.svc.ScheduleBroadcast(ctx, req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "context canceled")
-}
-
 // Additional edge case tests
 
 func TestBroadcastService_CreateBroadcast_AlwaysCreatesInDraftStatus(t *testing.T) {
@@ -3031,19 +2973,18 @@ func TestBroadcastService_ScheduleBroadcast_ScheduledTimeInPayload(t *testing.T)
 			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(draft, nil)
 			d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-			// Verify event payload includes scheduled_time
-			d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(_ context.Context, payload domain.EventPayload, ack domain.EventAckCallback) {
-					// Check that scheduled_time is included in the payload
-					scheduledTime, exists := payload.Data["scheduled_time"]
-					assert.True(t, exists)
-					assert.NotNil(t, scheduledTime)
-					ack(nil)
-				},
-			)
+			// The task is due at the broadcast's scheduled time
+			d.taskService.EXPECT().ScheduleBroadcastTask(gomock.Any(), "w1", "b1", false, gomock.Any()).DoAndReturn(
+				func(_ context.Context, _, _ string, _ bool, scheduledAt *time.Time) (string, error) {
+					require.NotNil(t, scheduledAt)
+					assert.True(t, scheduledAt.Equal(time.Date(2024, 12, 25, 10, 0, 0, 0, time.UTC)), "got %v", scheduledAt)
+					return "task-1", nil
+				})
 			return fn(nil)
 		},
 	)
+	// A later schedule runs nothing now.
+	d.taskService.EXPECT().RunTaskNow(gomock.Any(), gomock.Any()).Times(0)
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
 	require.NoError(t, err)

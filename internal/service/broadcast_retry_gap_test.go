@@ -451,7 +451,9 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").Return(int64(1), nil)
 		d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).
-			Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(errors.New("evt boom")) })
+			Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) {
+				ack(errors.New("evt boom"))
+			})
 		assert.NoError(t, d.svc.ResumeBroadcast(ctx, req))
 	})
 

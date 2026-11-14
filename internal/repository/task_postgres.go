@@ -1117,7 +1117,7 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("task not found for broadcast ID %s", broadcastID)
+			return nil, fmt.Errorf("%w for broadcast ID %s", domain.ErrTaskNotFound, broadcastID)
 		}
 		return nil, fmt.Errorf("failed to get task by broadcast ID: %w", err)
 	}
@@ -1271,6 +1271,51 @@ func (r *TaskRepository) RequeueTask(ctx context.Context, workspace, id string, 
 	}
 	if rowsAffected == 0 {
 		return domain.ErrTaskNotRunning
+	}
+	return nil
+}
+
+// ResetBroadcastTaskTx starts a broadcast's task over for a new schedule; see
+// domain.TaskRepository.
+func (r *TaskRepository) ResetBroadcastTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, state *domain.TaskState, nextRunAfter time.Time) error {
+	stateJSON, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	now := time.Now().UTC()
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	sqlQuery, args, err := psql.Update("tasks").
+		Set("status", domain.TaskStatusPending).
+		Set("progress", 0).
+		Set("state", stateJSON).
+		Set("error_message", nil).
+		Set("retry_count", 0).
+		Set("next_run_after", nextRunAfter.UTC()).
+		Set("timeout_after", nil).
+		Set("completed_at", nil).
+		Set("created_at", now).
+		Set("updated_at", now).
+		Where(sq.And{
+			sq.Eq{"id": id},
+			sq.Eq{"workspace_id": workspace},
+			notHeld(now, sq.NotEq{"status": string(domain.TaskStatusRunning)}),
+		}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build reset query: %w", err)
+	}
+
+	result, err := tx.ExecContext(ctx, sqlQuery, args...)
+	if err != nil {
+		return fmt.Errorf("failed to reset task: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return &domain.ErrTaskAlreadyRunning{TaskID: id}
 	}
 	return nil
 }

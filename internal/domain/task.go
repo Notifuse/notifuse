@@ -205,6 +205,16 @@ type TaskService interface {
 	SubscribeToBroadcastEvents(eventBus EventBus)
 	IsAutoExecuteEnabled() bool
 
+	// ScheduleBroadcastTask creates the task of a broadcast being scheduled, or starts its
+	// existing task over, and returns the task's ID. A send-now task is due shortly after
+	// the call (RunTaskNow starts it at once); a scheduled one at scheduledAt. It fails, and
+	// writes nothing, when an execution holds the broadcast's task.
+	ScheduleBroadcastTask(ctx context.Context, workspaceID, broadcastID string, sendNow bool, scheduledAt *time.Time) (string, error)
+	// RunTaskNow starts an execution of the given task in the background, whatever its next
+	// run, when this instance executes its tasks itself; otherwise the scheduler or the
+	// cron dispatches it.
+	RunTaskNow(workspaceID, taskID string)
+
 	// Recurring task operations
 	ResetTask(ctx context.Context, workspace, taskID string) error
 	TriggerTask(ctx context.Context, workspace, taskID string) error
@@ -286,6 +296,13 @@ type TaskRepository interface {
 	// and changes nothing, when the task is no longer running: a cancel marked it failed
 	// meanwhile, and that decision stands.
 	RequeueTask(ctx context.Context, workspace, id string, status TaskStatus, nextRunAfter time.Time, progress float64, state *TaskState) error
+
+	// ResetBroadcastTaskTx starts a broadcast's task over for a new schedule: pending, due at
+	// nextRunAfter, with the given state, no progress, a fresh retry budget, no error and
+	// a creation date of now (the age the orchestrator reads to tell a task waiting for its
+	// schedule's commit from an orphan). It returns ErrTaskAlreadyRunning, and changes
+	// nothing, for a task an execution holds.
+	ResetBroadcastTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, state *TaskState, nextRunAfter time.Time) error
 
 	// WakeTask puts a waiting task back in the queue: pending, due at nextRunAfter,
 	// with a fresh retry budget and no error message. It returns false, and changes

@@ -1054,48 +1054,6 @@ func TestGapTask_ResetTaskWriteFailure(t *testing.T) {
 	assert.ErrorIs(t, err, sentinel)
 }
 
-func TestGapTask_BroadcastScheduledUnparseableTime(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	repo := mocks.NewMockTaskRepository(ctrl)
-	svc := NewTaskService(repo, mocks.NewMockSettingRepository(ctrl),
-		gapTaskLogger(ctrl), nil, "http://localhost:8080")
-	svc.SetAutoExecuteImmediate(false)
-	repo.EXPECT().WithTransaction(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, fn func(*sql.Tx) error) error {
-			return fn(nil)
-		}).AnyTimes()
-	repo.EXPECT().GetTaskByBroadcastID(gomock.Any(), "ws-gap", "bc-gap-sched").
-		Return(nil, errors.New("sql: no rows in result set"))
-
-	var created *domain.Task
-	repo.EXPECT().Create(gomock.Any(), "ws-gap", gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ string, task *domain.Task) error {
-			created = task
-			return nil
-		})
-
-	svc.handleBroadcastScheduled(context.Background(), domain.EventPayload{
-		Type: domain.EventBroadcastScheduled, WorkspaceID: "ws-gap", EntityID: "bc-gap-sched",
-		Data: map[string]interface{}{
-			"send_now": false, "status": string(domain.BroadcastStatusScheduled),
-			"scheduled_time": "not-a-time",
-		},
-	})
-
-	require.NotNil(t, created, "a scheduled broadcast with no task must create one")
-	assert.Equal(t, "send_broadcast", created.Type)
-	assert.Equal(t, domain.TaskStatusPending, created.Status)
-	require.NotNil(t, created.BroadcastID)
-	assert.Equal(t, "bc-gap-sched", *created.BroadcastID)
-	assert.Nil(t, created.NextRunAfter,
-		"an unparseable scheduled_time must leave the task unscheduled, not invent a time")
-	require.NotNil(t, created.State)
-	require.NotNil(t, created.State.SendBroadcast)
-	assert.Equal(t, "bc-gap-sched", created.State.SendBroadcast.BroadcastID)
-}
-
 func TestGapTask_ExecutePendingTasksConflictDispatch(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

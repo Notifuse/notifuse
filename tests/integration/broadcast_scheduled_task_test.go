@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -401,4 +402,127 @@ func TestScheduledBroadcast_TaskCreation(t *testing.T) {
 			"Immediate send should complete successfully")
 		t.Logf("Broadcast completed with status: %s", finalStatus)
 	})
+}
+
+// TestScheduledBroadcast_SendNowRunsItsOwnTask is a send-now on a workspace where another
+// broadcast's task is already due: the request writes this broadcast's task itself and,
+// once the broadcast has committed, runs that task by its ID. The other task, which the
+// first due task picked by the scheduler would have been, is left as it was.
+func TestScheduledBroadcast_SendNowRunsItsOwnTask(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	// This instance executes its tasks itself (auto-execute on), with no scheduler ticker:
+	// only RunTaskNow can start a task here.
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		cfg.TaskScheduler.Enabled = true
+		cfg.TaskScheduler.Interval = 500 * time.Millisecond // for the ticker started at the end
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+	workerCtx, stopWorkers := context.WithCancel(context.Background())
+	defer stopWorkers()
+	require.NoError(t, suite.ServerManager.StartBackgroundWorkers(workerCtx))
+
+	client, factory := suite.APIClient, suite.DataFactory
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
+	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID,
+		testutil.WithIntegrationEmailProvider(domain.EmailProvider{
+			Kind:               domain.EmailProviderKindSMTP,
+			Senders:            []domain.EmailSender{domain.NewEmailSender("noreply@notifuse.test", "Send now")},
+			SMTP:               &domain.SMTPSettings{Host: "localhost", Port: 1025, UseTLS: false},
+			RateLimitPerMinute: 60000,
+		}))
+	require.NoError(t, err)
+	require.NoError(t, client.Login(user.Email, "password"))
+	client.SetWorkspaceID(workspace.ID)
+
+	list, err := factory.CreateList(workspace.ID, testutil.WithListName("Send now list"))
+	require.NoError(t, err)
+	tag := uuid.New().String()[:8]
+	recipients := []string{"a-" + tag + "@example.com", "b-" + tag + "@example.com", "c-" + tag + "@example.com"}
+	for _, email := range recipients {
+		contact, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
+		require.NoError(t, err)
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(contact.Email),
+			testutil.WithContactListListID(list.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+	}
+	template, err := factory.CreateTemplate(workspace.ID)
+	require.NoError(t, err)
+	broadcast, err := factory.CreateBroadcast(workspace.ID,
+		testutil.WithBroadcastName("Send now"),
+		testutil.WithBroadcastAudience(domain.AudienceSettings{List: list.ID}))
+	require.NoError(t, err)
+	broadcast.TestSettings.Variations[0].TemplateID = template.ID
+	updateResp, err := client.UpdateBroadcast(map[string]interface{}{
+		"workspace_id":  workspace.ID,
+		"id":            broadcast.ID,
+		"name":          broadcast.Name,
+		"audience":      broadcast.Audience,
+		"schedule":      broadcast.Schedule,
+		"test_settings": broadcast.TestSettings,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, updateResp.StatusCode)
+	_ = updateResp.Body.Close()
+
+	// Another broadcast's task, due now and older: the first one the scheduler would pick.
+	taskRepo := suite.ServerManager.GetApp().GetTaskRepository()
+	otherBroadcastID := "other-" + tag
+	other := &domain.Task{
+		WorkspaceID: workspace.ID, Type: "send_broadcast", Status: domain.TaskStatusPending,
+		BroadcastID: &otherBroadcastID, MaxRuntime: 50, MaxRetries: 3, RetryInterval: 300,
+		State: &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: otherBroadcastID}},
+	}
+	require.NoError(t, taskRepo.Create(context.Background(), workspace.ID, other))
+	_, err = suite.DBManager.GetDB().Exec(`UPDATE tasks SET created_at = NOW() - INTERVAL '1 hour', next_run_after = NULL WHERE id = $1`, other.ID)
+	require.NoError(t, err)
+
+	scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
+		"workspace_id": workspace.ID,
+		"id":           broadcast.ID,
+		"send_now":     true,
+	})
+	require.NoError(t, err)
+	body, _ := client.ReadBody(scheduleResp)
+	require.Equal(t, http.StatusOK, scheduleResp.StatusCode, body)
+
+	// Nothing but RunTaskNow starts a task here: the first run of this broadcast's task
+	// (it counts the recipients) is RunTaskNow's.
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	var own *domain.Task
+	require.NoError(t, testutil.WaitForConditionWithContext(ctx, t, func() bool {
+		own, err = taskRepo.GetTaskByBroadcastID(context.Background(), workspace.ID, broadcast.ID)
+		return err == nil && own.State != nil && own.State.SendBroadcast != nil &&
+			own.State.SendBroadcast.TotalRecipients == len(recipients) && own.Status != domain.TaskStatusRunning
+	}, 100*time.Millisecond, "this broadcast's task to run"))
+
+	left, err := taskRepo.Get(context.Background(), workspace.ID, other.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TaskStatusPending, left.Status, "the other broadcast's task is left as it was")
+	assert.Nil(t, left.NextRunAfter)
+	assert.Nil(t, left.LastRunAt, "it never ran")
+
+	// The scheduler's later runs send the emails. The other task goes first, so that
+	// the scheduler, started now, runs this broadcast's task.
+	require.NoError(t, taskRepo.Delete(context.Background(), workspace.ID, other.ID))
+	suite.ServerManager.GetApp().GetTaskScheduler().Start(workerCtx)
+	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+	require.NoError(t, testutil.WaitForConditionWithContext(ctx, t, func() bool {
+		var sent int
+		if err := workspaceDB.QueryRow(`SELECT count(*) FROM message_history WHERE broadcast_id = $1`, broadcast.ID).Scan(&sent); err != nil {
+			return false
+		}
+		return sent == len(recipients)
+	}, 200*time.Millisecond, "this broadcast's emails to be sent"))
 }

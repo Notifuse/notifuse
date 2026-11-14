@@ -396,6 +396,20 @@ func (mr *MockTaskRepositoryMockRecorder) RequeueTask(arg0, arg1, arg2, arg3, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequeueTask", reflect.TypeOf((*MockTaskRepository)(nil).RequeueTask), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 }
 
+// ResetBroadcastTaskTx mocks base method.
+func (m *MockTaskRepository) ResetBroadcastTaskTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string, arg4 *domain.TaskState, arg5 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetBroadcastTaskTx", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetBroadcastTaskTx indicates an expected call of ResetBroadcastTaskTx.
+func (mr *MockTaskRepositoryMockRecorder) ResetBroadcastTaskTx(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetBroadcastTaskTx", reflect.TypeOf((*MockTaskRepository)(nil).ResetBroadcastTaskTx), arg0, arg1, arg2, arg3, arg4, arg5)
+}
+
 // ResetRetryBudget mocks base method.
 func (m *MockTaskRepository) ResetRetryBudget(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()

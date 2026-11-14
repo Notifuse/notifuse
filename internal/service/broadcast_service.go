@@ -377,10 +377,11 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 		return fmt.Errorf("no marketing email provider configured for this workspace")
 	}
 
-	// Using a channel to wait for the event callback
-	done := make(chan error, 1)
-
-	// Use transaction to retrieve, update the broadcast, and publish the event
+	// The task is written in the request, before the broadcast commits: a task that cannot
+	// be written fails the request and rolls the broadcast back, instead of leaving a
+	// scheduled broadcast nothing sends. A task left by a broadcast write that then rolls
+	// back finds a draft, which the orchestrator never sends.
+	var taskID string
 	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
 		// Retrieve the broadcast
 		bcast, err := s.repo.GetBroadcastTx(ctx, tx, request.WorkspaceID, request.ID)
@@ -478,64 +479,24 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 			return err
 		}
 
-		// Create event payload with schedule information
-		payloadData := map[string]interface{}{
-			"broadcast_id": request.ID,
-			"send_now":     request.SendNow,
-			"status":       string(bcast.Status),
-		}
-
-		// Include actual scheduled time if broadcast is scheduled
+		var scheduledAt *time.Time
 		if !request.SendNow && bcast.Schedule.IsScheduled {
-			scheduledTime, parseErr := bcast.Schedule.ParseScheduledDateTime()
-			if parseErr == nil && !scheduledTime.IsZero() {
-				payloadData["scheduled_time"] = scheduledTime.Format(time.RFC3339)
+			if scheduledTime, parseErr := bcast.Schedule.ParseScheduledDateTime(); parseErr == nil && !scheduledTime.IsZero() {
+				scheduledAt = &scheduledTime
 			}
 		}
-
-		eventPayload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: request.WorkspaceID,
-			EntityID:    request.ID,
-			Data:        payloadData,
-		}
-
-		// Publish the event with callback within the transaction
-		s.eventBus.PublishWithAck(ctx, eventPayload, func(eventErr error) {
-			if eventErr != nil {
-				// Event processing failed, log the error
-				s.logger.WithFields(map[string]interface{}{
-					"broadcast_id": request.ID,
-					"workspace_id": request.WorkspaceID,
-					"error":        eventErr.Error(),
-				}).Error("Failed to process schedule broadcast event")
-
-				// Since we're still in the same transaction, we don't need to rollback explicitly
-				// The outer transaction will be rolled back when we return an error
-
-				done <- fmt.Errorf("failed to process schedule event: %w", eventErr)
-			} else {
-				s.logger.WithField("broadcast_id", request.ID).Info("Schedule broadcast event processed successfully")
-				done <- nil
-			}
-		})
-
-		// Wait for the event processing to complete
-		select {
-		case eventErr := <-done:
-			if eventErr != nil {
-				// If the event processing failed, roll back the transaction by returning an error
-				return eventErr
-			}
-			// If event processing succeeded, commit the transaction
-			return nil
-		case <-ctx.Done():
-			// If context is cancelled, roll back transaction by returning an error
-			return ctx.Err()
-		}
+		taskID, err = s.taskService.ScheduleBroadcastTask(ctx, request.WorkspaceID, request.ID, request.SendNow, scheduledAt)
+		return err
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	// Sent now: this broadcast's task runs once the broadcast has committed.
+	if request.SendNow {
+		s.taskService.RunTaskNow(request.WorkspaceID, taskID)
+	}
+	return nil
 }
 
 // PauseBroadcast pauses a sending broadcast
@@ -1660,20 +1621,8 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 		return nil
 	}
 
-	// Immediately trigger task execution after winner selection (if auto-execution is enabled)
-	// Note: We always trigger here since winner selection should immediately resume sending
-	// In tests, this is disabled to prevent race conditions
-	if s.taskService.IsAutoExecuteEnabled() {
-		go func() {
-			if execErr := s.taskService.ExecutePendingTasks(context.Background(), 1); execErr != nil {
-				s.logger.WithFields(map[string]interface{}{
-					"broadcast_id": broadcastID,
-					"task_id":      task.ID,
-					"error":        execErr.Error(),
-				}).Error("Failed to trigger immediate task execution after winner selection")
-			}
-		}()
-	}
+	// The winner phase starts now, on this broadcast's task and no other due one.
+	s.taskService.RunTaskNow(workspaceID, task.ID)
 
 	return nil
 }
