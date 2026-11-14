@@ -188,11 +188,10 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 			time.Sleep(100 * time.Millisecond)
 			timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)
 			if execErr := s.taskService.ExecuteTask(context.Background(), workspaceID, task.ID, timeoutAt); execErr != nil {
-				s.logger.WithFields(map[string]interface{}{
+				logExecutionFailure(s.logger.WithFields(map[string]interface{}{
 					"segment_id": segment.ID,
 					"task_id":    task.ID,
-					"error":      execErr.Error(),
-				}).Error("Failed to trigger immediate task execution after segment creation")
+				}), execErr, "Failed to trigger immediate task execution after segment creation")
 			}
 		}()
 	}
@@ -375,11 +374,10 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 				time.Sleep(100 * time.Millisecond)
 				timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)
 				if execErr := s.taskService.ExecuteTask(context.Background(), workspaceID, task.ID, timeoutAt); execErr != nil {
-					s.logger.WithFields(map[string]interface{}{
+					logExecutionFailure(s.logger.WithFields(map[string]interface{}{
 						"segment_id": existing.ID,
 						"task_id":    task.ID,
-						"error":      execErr.Error(),
-					}).Error("Failed to trigger immediate task execution after segment update")
+					}), execErr, "Failed to trigger immediate task execution after segment update")
 				}
 			}()
 		}
@@ -478,11 +476,10 @@ func (s *SegmentService) RebuildSegment(ctx context.Context, workspaceID, segmen
 		time.Sleep(100 * time.Millisecond)
 		timeoutAt := time.Now().Add(time.Duration(task.MaxRuntime) * time.Second)
 		if execErr := s.taskService.ExecuteTask(context.Background(), workspaceID, task.ID, timeoutAt); execErr != nil {
-			s.logger.WithFields(map[string]interface{}{
+			logExecutionFailure(s.logger.WithFields(map[string]interface{}{
 				"segment_id": segmentID,
 				"task_id":    task.ID,
-				"error":      execErr.Error(),
-			}).Error("Failed to trigger immediate task execution after segment rebuild")
+			}), execErr, "Failed to trigger immediate task execution after segment rebuild")
 		}
 	}()
 

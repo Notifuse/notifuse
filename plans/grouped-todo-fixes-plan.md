@@ -1351,7 +1351,7 @@ cd console && npm run lingui:extract   # then the eight catalogues are complete
 
 ## Lot 9: brand, CHANGELOG and plans; the other repositories
 
-Reviewed before code (to be filled in after the review).
+Reviewed before code with lots 7 and 8; the corrections follow lot 9.
 
 ### 9.1 notifuse: brand files
 
@@ -1398,13 +1398,8 @@ query takes `listTenants`'s LATERAL join and the e2e spec pins it (the request s
 
 ### 9.5 architecture (one PR to main)
 
-The eight points: `IsAncestor` tells exit code 1 from other git errors; files read with `git show sha:path`
-(export-ignore and symlinks); `flows/broadcast.md` and `findings/pilot.md` brought to the current dev, which
-this PR changes again (F-04, F-08, F-15, F-26, F-27, F-29, F-31, F-33, F-03, F-14 set `fixed` once the notifuse
-PR is merged, with its merge commit); the unverified facts of F-07, F-11, F-14, F-19, F-25, F-28 checked where
-the code or provider documentation shows them; package-level field resolution; the nightly report cut at a
-line with a count; malformed IDs and `(Retired)` reported; the refcheck rule for D-01's scope. Commits as
-Pierre, checks of `CLAUDE.md` step 3 before pushing.
+The points of the TODO's architecture section, planned in that private repository, not here. Commits as
+Pierre, checks of its `CLAUDE.md` step 3 before pushing.
 
 ### 9.6 website and liquidgo
 
@@ -1412,3 +1407,54 @@ Pierre, checks of `CLAUDE.md` step 3 before pushing.
 - liquidgo: `StrainerTemplate.Invoke` checks each argument's type against the parameter before
   `reflect.Call` and returns an `ArgumentError`; keyword arguments are evaluated in sorted key order; the
   skipped keyword argument test runs and asserts the HTML; the stale TODOs and commented cases go.
+
+### Corrections after the plan review (lots 7 to 9)
+
+Blocking remarks, each taken:
+
+- 7.9 contact search: it came with #529, after 43.0. It extends the 44.0 Feature line of the search
+  instead of a Fix line.
+- 7.1 ordering by a measure: the ORDER BY uses the aggregate expression, as HAVING does, not the output
+  alias, so a measure that is not selected can order. The integration query orders by an unselected
+  measure; the sqlmock test only pins the expression.
+- 7.2 visit emails: the UTF-8 check stays before `FromQuery` lowercases (`strings.ToLower` turns invalid
+  bytes into U+FFFD) and is added in `Validate` as well.
+- 7.3 timeline: the key is `timeline`. The fix lives in the repository, so its test is a repository test
+  (sqlmock) and an integration test, not a handler test on a mocked service.
+- 7.4 demo A/B counts: written where `generateMessagesPerContact` draws the recipients. The message types
+  move to a package-level variable that the notification-ID test walks.
+- 7.7 webhook worker flake: 5ad16b9 already has the 1200 ms lease and the 300 ms delay, and CI failed
+  with them. The cause is looked for with `-count=50 -race`; without a reproduction the point goes to the
+  "known, not handled" list, with no claimed fix.
+- 8.6 permissions reset: the reset invalidates the permissions query; the test mounts over a cached list
+  and asserts the refetch.
+- 8.6 table hover: the tint and the test's threshold are chosen together, from the computed contrast
+  ratios against the header and the tag colour; the plan records both values when they are chosen.
+- 9.4 cloud: `default_source` is out (Pierre: nothing to do), so nineteen points.
+- Lot 9 test commands: added below.
+
+Minor remarks taken: gap filling names each measure type's empty value (`count_distinct` 0) and the
+console builds the missing series of a dimension query with no data; the visits sqlmock test pins the
+extra row with `WithArgs(..., 201)`; the audit middleware test is rewritten so it fails without the fix
+and the `theme.version` ResponseKey goes; the lot 7 command is `TestTemplatesUsage` plus the `-count=20`
+run; the docs' "entered" line of the trigger card (features/automations.mdx) joins 9.3; the drag
+announcements are in `dnd/LibraryDnd.tsx`; primary hover takes a step that is not the active colour; the
+console defects shipped in 43.0 (fr.po apostrophes, AI assistant strings, "Type:", template preview and
+PostDrawer reads without Templates read, API key name underscore) get Fix lines; lot 8 runs the e2e
+specs it changes and `vitest run`, not bare `vitest`.
+
+Already done: 9.1 (67e5931) and 9.6 (liquidgo aa973db, website 94541ed). 9.2: the reverse-proxy line was
+extended by 7040a35, its blog-links condition is checked against the code; the sender line is
+`CHANGELOG.md:153`, the send-time plan rows `:135, 140`, and nine plans cite the shared folder. 9.3: the
+twelve doc points are committed on the docs branch (d5c8f65); what remains is the Conditional blocks size
+limit, the `failed` status note, the "entered" line and the `openapi.json` resync.
+
+## Test commands for lot 9
+
+- notifuse: `cd console && npx vitest run src/components/brand`.
+- docs: `npx --yes mint broken-links` and the `openapi.json` diff against
+  `npx --yes @redocly/cli@1 bundle openapi/openapi.yaml -o openapi.json --ext json` in notifuse.
+- cloud: `make test` and `make lint` in `billing-api`, `billing-app` and `billing-admin`, then `make test-int`
+  in `billing-api` for the Owner e2e spec.
+- architecture: the four refcheck commands of its `CLAUDE.md` step 3.
+- liquidgo: `go test ./...`; website: its build.

@@ -568,10 +568,8 @@ func (s *TaskService) executeTasksDirectly(ctx context.Context, tasks []*domain.
 
 			if err := s.ExecuteTask(execCtx, t.WorkspaceID, t.ID, timeout); err != nil {
 				tracing.MarkSpanError(execCtx, err)
-				s.logger.WithField("task_id", t.ID).
-					WithField("workspace_id", t.WorkspaceID).
-					WithField("error", err.Error()).
-					Error("Failed to execute task")
+				logExecutionFailure(s.logger.WithField("task_id", t.ID).
+					WithField("workspace_id", t.WorkspaceID), err, "Failed to execute task")
 			}
 		}(task, timeoutAt)
 	}
@@ -580,6 +578,18 @@ func (s *TaskService) executeTasksDirectly(ctx context.Context, tasks []*domain.
 	wg.Wait()
 
 	return nil
+}
+
+// logExecutionFailure logs an error ExecuteTask returned: at Warn for a task that no longer
+// exists (deleted since it was picked or named), at Error otherwise.
+func logExecutionFailure(entry logger.Logger, err error, message string) {
+	entry = entry.WithField("error", err.Error())
+	var notFound *domain.ErrNotFound
+	if errors.As(err, &notFound) {
+		entry.Warn(message + ": the task no longer exists")
+		return
+	}
+	entry.Error(message)
 }
 
 // requeueTask hands a task back as its processor asked (domain.TaskRequeueError): pending,
@@ -655,12 +665,9 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		var taskErr error
 		task, taskErr = s.repo.GetTx(txCtx, tx, workspace, taskID)
 		if taskErr != nil {
+			// Not logged here: each caller logs the error it gets once, a missing task
+			// at Warn (logExecutionFailure).
 			tracing.MarkSpanError(txCtx, taskErr)
-			s.logger.WithFields(map[string]interface{}{
-				"task_id":      taskID,
-				"workspace_id": workspace,
-				"error":        taskErr.Error(),
-			}).Error("Failed to get task for execution")
 			if errors.Is(taskErr, domain.ErrTaskNotFound) {
 				return &domain.ErrNotFound{
 					Entity: "task",
@@ -1220,7 +1227,7 @@ func (s *TaskService) runTaskNow(workspaceID, taskID string) {
 			logger.Debug("Task to run now is already running")
 			return
 		}
-		logger.WithField("error", err.Error()).Error("Failed to run the task now")
+		logExecutionFailure(logger, err, "Failed to run the task now")
 	}
 }
 

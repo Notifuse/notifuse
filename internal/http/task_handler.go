@@ -591,6 +591,10 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 		// Handle different error types with appropriate status codes
 		switch e := err.(type) {
 		case *domain.ErrNotFound:
+			h.logger.WithFields(map[string]interface{}{
+				"task_id":      executeRequest.ID,
+				"workspace_id": executeRequest.WorkspaceID,
+			}).Warn("Task to execute not found")
 			WriteJSONError(w, e.Error(), http.StatusNotFound)
 		case *domain.ErrTaskAlreadyRunning:
 			// Task is already being executed by another worker - this is expected in concurrent scenarios
