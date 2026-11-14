@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	svcmocks "github.com/Notifuse/notifuse/internal/service/mocks"
 )
 
 // A custom domain belongs to one workspace: one that saved another workspace's domain
@@ -77,30 +77,53 @@ func TestWorkspaceService_UpdateWorkspace_CustomDomainIsNotShared(t *testing.T) 
 
 	t.Run("lets a workspace edit the URL of a domain it shares, the host unchanged", func(t *testing.T) {
 		// Workspaces that shared a domain before the rule keep it; rewriting its URL
-		// is not taking another workspace's domain.
+		// is not taking another workspace's domain. The new URL is still checked in DNS.
 		ctrl := gomock.NewController(t)
 		svc, deps := covWorkspaceService(ctrl, nil, nil, nil)
-		quiet := pkgmocks.NewMockLogger(ctrl)
-		quiet.EXPECT().WithFields(gomock.Any()).Return(quiet).AnyTimes()
-		quiet.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(quiet).AnyTimes()
-		quiet.EXPECT().Debug(gomock.Any()).AnyTimes()
-		quiet.EXPECT().Warn(gomock.Any()).AnyTimes()
-		quiet.EXPECT().Error(gomock.Any()).AnyTimes()
-		svc.dnsVerificationService = NewDNSVerificationService(quiet, "api.example.com")
+		verifier := svcmocks.NewMockCustomDomainVerifier(ctrl)
+		svc.dnsVerificationService = verifier
 		deps.expectOwner(ctx, "ws1", "user-1")
 		existing := existingWorkspaceForUpdate()
-		previous := "http://mail.shared.invalid"
+		previous := "http://mail.shared.example"
 		existing.Settings.CustomEndpointURL = &previous
 		deps.repo.EXPECT().GetByID(gomock.Any(), "ws1").Return(existing, nil)
 		deps.repo.EXPECT().ListCustomEndpoints(gomock.Any()).Times(0)
-		deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		verifier.EXPECT().VerifyDomainOwnership(gomock.Any(), "https://MAIL.shared.example/").Return(nil).Times(1)
+		deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-		// Whatever this resolver answers for the DNS check, the other workspaces'
-		// domains are not read.
-		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith("https://MAIL.shared.invalid/"))
-		if err != nil {
-			assert.NotContains(t, err.Error(), "another workspace")
-		}
+		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith("https://MAIL.shared.example/"))
+		require.NoError(t, err)
+	})
+
+	t.Run("a URL edit that keeps the host still has to pass the DNS check in production", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		svc, deps := covWorkspaceService(ctrl, nil, nil, nil)
+		svc.config.Environment = "production"
+		verifier := svcmocks.NewMockCustomDomainVerifier(ctrl)
+		svc.dnsVerificationService = verifier
+		deps.expectOwner(ctx, "ws1", "user-1")
+		existing := existingWorkspaceForUpdate()
+		previous := "https://mail.brand-a.example"
+		existing.Settings.CustomEndpointURL = &previous
+		deps.repo.EXPECT().GetByID(gomock.Any(), "ws1").Return(existing, nil)
+		refused := domain.ValidationError{Message: "the domain does not point to this instance"}
+		verifier.EXPECT().VerifyDomainOwnership(gomock.Any(), "https://mail.brand-a.example/links").Return(refused)
+		deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+
+		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith("https://mail.brand-a.example/links"))
+		assert.ErrorIs(t, err, refused)
+	})
+
+	t.Run("refuses a new custom endpoint whose host cannot be read", func(t *testing.T) {
+		svc, deps := covWorkspaceService(gomock.NewController(t), nil, nil, nil)
+		deps.expectOwner(ctx, "ws1", "user-1")
+		deps.repo.EXPECT().GetByID(gomock.Any(), "ws1").Return(existingWorkspaceForUpdate(), nil)
+		deps.repo.EXPECT().ListCustomEndpoints(gomock.Any()).Times(0)
+		deps.repo.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+
+		_, err := svc.UpdateWorkspace(ctx, "ws1", "Old Name", settingsWith("https://%FF.example"))
+		var validation domain.ValidationError
+		require.ErrorAs(t, err, &validation)
 	})
 
 	t.Run("a failure to read the other domains refuses the save", func(t *testing.T) {

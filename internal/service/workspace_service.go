@@ -36,9 +36,17 @@ type WorkspaceService struct {
 	webhookRegService      domain.WebhookRegistrationService
 	supabaseService        *SupabaseService
 	secretKey              string
-	dnsVerificationService *DNSVerificationService
+	dnsVerificationService CustomDomainVerifier
 	blogService            *BlogService
 	entitlements           domain.EntitlementProvider
+}
+
+// CustomDomainVerifier checks that a custom endpoint's domain points to this instance.
+// *DNSVerificationService is the production one.
+//
+//go:generate mockgen -destination=./mocks/mock_custom_domain_verifier.go -package=mocks github.com/Notifuse/notifuse/internal/service CustomDomainVerifier
+type CustomDomainVerifier interface {
+	VerifyDomainOwnership(ctx context.Context, url string) error
 }
 
 // NewWorkspaceService builds the service. The entitlement provider is a REQUIRED positional
@@ -65,7 +73,7 @@ func NewWorkspaceService(
 	webhookRegService domain.WebhookRegistrationService,
 	secretKey string,
 	supabaseService *SupabaseService,
-	dnsVerificationService *DNSVerificationService,
+	dnsVerificationService CustomDomainVerifier,
 	blogService *BlogService,
 	entitlements domain.EntitlementProvider,
 ) *WorkspaceService {
@@ -524,11 +532,16 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 			// A domain belongs to one workspace: another workspace that saved it could show
 			// its own pages and emails under this one's brand. Workspaces that shared one
 			// before the rule may still edit its URL, as long as the host stays the same.
+			// A host that cannot be read would pass the uniqueness check unseen.
+			newHost := trackingtoken.HostOf(*settings.CustomEndpointURL)
+			if newHost == "" {
+				return nil, domain.ValidationError{Message: "the custom endpoint URL has no valid domain"}
+			}
 			previousHost := ""
 			if existingWorkspace.Settings.CustomEndpointURL != nil {
 				previousHost = trackingtoken.HostOf(*existingWorkspace.Settings.CustomEndpointURL)
 			}
-			if !trackingtoken.SameHostname(previousHost, trackingtoken.HostOf(*settings.CustomEndpointURL)) {
+			if !trackingtoken.SameHostname(previousHost, newHost) {
 				if err := s.ensureCustomDomainIsFree(ctx, id, *settings.CustomEndpointURL); err != nil {
 					return nil, err
 				}
