@@ -546,7 +546,7 @@ the code's behaviour, so no third round of review.
 
 ```
 go test ./internal/domain/ ./internal/service/... ./internal/repository/ ./internal/http/ ./internal/app/ ./cmd/api/
-INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestBroadcast|TestAutomation|TestTask|TestScheduledBroadcast|TestDataFeed|TestRecipientFeed|TestSendTimeSender|TestCircuitBreaker|TestCron|TestRecurringTask|TestV44' -count=1
+INTEGRATION_TESTS=true go test -race -timeout 45m -tags integration,licdev ./tests/integration/ -run 'TestBroadcast|TestAutomation|TestTask|TestScheduledBroadcast|TestDataFeed|TestRecipientFeed|TestSendTimeSender|TestCircuitBreaker|TestCron|TestRecurringTask|TestV44' -count=1
 make test-integration  # the full suite once before the code review
 ```
 
@@ -1247,7 +1247,7 @@ Review: `/mnt/project-files/reviews/grouped-pr-lot6-code-review.md`, of 6c590c7.
 
 ```
 go test ./pkg/... ./internal/domain/ ./internal/service/... ./internal/repository/ ./internal/http/
-INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestTemplate|TestPlainText|TestSMTPBridge|TestBroadcast' -count=1
+INTEGRATION_TESTS=true go test -race -timeout 45m -tags integration,licdev ./tests/integration/ -run 'TestTemplate|TestPlainText|TestSMTPBridge|TestBroadcast' -count=1
 ```
 
 ## Lot 7: analytics, contacts and visits, the timeline, the demo, the audit log, the test helpers
@@ -1384,15 +1384,26 @@ limit extend the 44.0 lines of those endpoints, which are unreleased.
 ### Corrections after the delta review (lot 7, round 2)
 
 - B1: the integration command gets `-timeout 45m`: `TestBroadcast` alone runs past the default 10 minutes with
-  `-race`, and the tests after it never started. It also names `TestTask`, so every caller of the changed
-  Mailpit helper runs.
+  `-race`, and the tests after it never started. It also names `TestTask` and `TestScheduled`, so every caller
+  of the changed Mailpit helper runs.
 - B2: the `templates.compile` line says what 43.0 did: the `mj-liquid` Liquid stayed raw, and the preview text
   override was dropped from a tree without an `mj-preview` block (a tree with one rendered it).
 - B3: the 7.7 note says which callers reach the search; the helper's comments describe the listing as the
   usual path.
-- Minors taken: the ordering line says a time series with a date range stays in period order; the bound's
+- Minors taken: the ordering line says a time series with a date range stays in period order while its periods
+  are filled; the bound's
   sentence covers a series without a dimension; the `templates.compile` line moves out of the analytics lines;
   lot 7 gets its own "known, not handled" line.
+
+### Corrections after the delta review (lot 7, round 3)
+
+Pierre was asked before this third round (decision card); the review supplied the corrected text.
+
+- B1: the ordering line holds only while the periods are filled: past the 50,000-row bound the rows come in the
+  query's order, and the bound's line says so.
+- B2: the lot 2 and lot 6 commands, which also select `TestBroadcast` with `-race`, get `-timeout 45m`.
+- Minors taken: round 2's B1 note names `TestScheduled` beside `TestTask`; it is `TestScheduled` that reaches
+  the `TestScheduledBroadcast_*` caller reading the search count.
 
 ## Test commands for lot 7
 

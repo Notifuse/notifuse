@@ -186,9 +186,9 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The `count_transactional_messages` measure of message history counts only the messages sent by a transactional notification. It counted every message outside a broadcast, automation emails, template tests and double opt-in confirmations included.
 
-- **Fix**: An analytics query can be ordered by any of its schema's measures, selected or not; a time series with a date range stays in period order. Ordering by a measure whose SQL is a column or `*` rather than an aggregate failed before.
+- **Fix**: An analytics query can be ordered by any of its schema's measures, selected or not. A time series with a date range stays in period order as long as its periods are filled (see the next line). Ordering by a measure whose SQL is a column or `*` rather than an aggregate failed before.
 
-- **Fix**: An analytics time series split by a dimension keeps every value of each period: the periods filled because they had no data get a row for each value, and two values of the same period no longer overwrite each other. In a filled period, a `max`, `min` or `avg` measure is empty instead of 0. A series that would fill more than 50,000 rows, split by a dimension or not, is returned without the filled periods.
+- **Fix**: An analytics time series split by a dimension keeps every value of each period: the periods filled because they had no data get a row for each value, and two values of the same period no longer overwrite each other. In a filled period, a `max`, `min` or `avg` measure is empty instead of 0. A series that would fill more than 50,000 rows, split by a dimension or not, is returned without the filled periods, in the order the query asks for, if it asks for one.
 
 - **Fix**: `templates.compile` with an empty `mjml_source` and a visual tree renders the Liquid of the tree's `mj-liquid` blocks, and applies the preview text override to a tree without an `mj-preview` block; it left the first as raw Liquid and dropped the second.
 
