@@ -293,6 +293,16 @@ describe('TransactionalDetail', () => {
     expect(screen.getByRole('link', { name: 'Failed: 4, view in the message log' })).toBeInTheDocument()
   })
 
+  it('names a rate link without data as such, not by its dash', async () => {
+    const none = { ...stats, sent: 0, delivered: 0, bounced: 0, opened: 0, opensTracked: 0 }
+    renderDetail(props({ stats: new Map([['reset', none]]) }))
+    await screen.findByText('Name reset')
+
+    expect(screen.getByRole('link', { name: 'Delivered: no data, view in the message log' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Bounced: no data, view in the message log' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /: —, view/ })).not.toBeInTheDocument()
+  })
+
   it("reads the figures of a notification the list's statistics do not cover", async () => {
     const daily = query.getMockImplementation()
     query.mockImplementation((q: AnalyticsQuery) =>
@@ -425,6 +435,10 @@ describe('TransactionalDetail', () => {
     )
     expect(getTemplate).not.toHaveBeenCalled()
     expect(screen.getByText('You need access to templates')).toBeInTheDocument()
+    // The reason is in the text too, read without hovering
+    expect(
+      within(sender).getByText("The provider's default sender: you need access to templates to see the template's own.")
+    ).toHaveClass('sr-only')
   })
 
   it('shows the chart loading on a period switch rather than the old days', async () => {
@@ -495,6 +509,10 @@ describe('TransactionalDetail', () => {
     const name = await screen.findByText('Reset email')
     expect(within(name.parentElement as HTMLElement).getByText('Deleted template')).toBeInTheDocument()
     expect(screen.getAllByText('Deleted template')).toHaveLength(1)
+    // Its tooltip's sentence is in the text too, read without hovering
+    expect(within(name.parentElement as HTMLElement).getByText('This notification still sends with it')).toHaveClass(
+      'sr-only'
+    )
   })
 
   it('says in the menu itself why its entries are disabled', async () => {
@@ -512,10 +530,14 @@ describe('TransactionalDetail', () => {
     const menu = await screen.findByRole('menu')
 
     const logs = within(menu).getByRole('menuitem', { name: /View in logs/ })
-    expect(logs).toHaveAttribute('aria-disabled', 'true')
+    // Drawn disabled, and still on the keyboard's path
+    expect(logs).toHaveClass('ant-dropdown-menu-item-disabled')
+    expect(logs).toHaveAttribute('tabindex', '-1')
     expect(within(logs).getByText('You need access to message history')).toBeInTheDocument()
     const remove = within(menu).getByRole('menuitem', { name: /Delete/ })
-    expect(remove).toHaveAttribute('aria-disabled', 'true')
+    // Drawn disabled, and still on the keyboard's path
+    expect(remove).toHaveClass('ant-dropdown-menu-item-disabled')
+    expect(remove).toHaveAttribute('tabindex', '-1')
     expect(within(remove).getByText('You need Transactional write permission')).toBeInTheDocument()
   })
 
@@ -621,6 +643,31 @@ describe('TransactionalDetail', () => {
 
     expect(await screen.findByText('Managed by an integration')).toBeInTheDocument()
     expect(screen.getByText('an integration')).toBeInTheDocument()
+  })
+
+  it('keeps a refused Send test and Edit on the keyboard path, says why, and does nothing on a click', async () => {
+    const p = props({
+      permissions: { ...full, transactional: { read: true, write: false } } as UserPermissions
+    })
+    renderDetail(p)
+    await screen.findByText('Name reset')
+
+    const test = screen.getByRole('button', { name: 'Send test' })
+    const edit = screen.getByRole('button', { name: 'Edit' })
+    for (const button of [test, edit]) {
+      expect(button).not.toBeDisabled()
+      expect(button).toHaveAttribute('aria-disabled', 'true')
+    }
+    expect(test).toHaveAccessibleDescription(
+      'You need Templates read and Transactional write permissions to send test emails'
+    )
+    expect(edit).toHaveAccessibleDescription('You need Transactional write permission')
+    test.focus()
+    expect(test).toHaveFocus()
+    fireEvent.click(test)
+    fireEvent.click(edit)
+    expect(p.onTest).not.toHaveBeenCalled()
+    expect(p.onEdit).not.toHaveBeenCalled()
   })
 
   it('hands the delete, the test and the edit to the page', async () => {

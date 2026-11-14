@@ -95,6 +95,7 @@ const counts: BlogPostCounts = {
 
 interface Props {
   canWritePosts?: boolean
+  editRefusal?: string
   showViews?: boolean
   counts?: BlogPostCounts
 }
@@ -109,6 +110,7 @@ const tree = (client: QueryClient, props: Props) => (
             categories={categories}
             counts={props.counts}
             canWritePosts={props.canWritePosts ?? true}
+            editRefusal={props.editRefusal}
             showViews={props.showViews ?? false}
           />
         </QueryClientProvider>
@@ -379,7 +381,21 @@ describe('PostsTable', () => {
     expect(screen.queryByTestId('post-drawer')).not.toBeInTheDocument()
   })
 
-  it('without Workspace write, has no menu, no row click, and disables New post and Theme', async () => {
+  it("without Templates read or write, opens no post but still publishes and deletes from the menu", async () => {
+    renderTable({ editRefusal: 'Needs Templates' })
+    fireEvent.click(await screen.findByText('Post 3'))
+    expect(screen.queryByTestId('post-drawer')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /New post/ })).toBeDisabled()
+
+    const menu = await openMenu('Post 3')
+    const edit = within(menu).getByRole('menuitem', { name: /Edit/ })
+    expect(edit).toHaveAttribute('aria-disabled', 'true')
+    expect(edit).toHaveTextContent('Needs Templates')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Publish' }))
+    expect(screen.getByTestId('publish-post')).toHaveAttribute('data-post', 'post-3')
+  })
+
+  it('without Blog write, has no menu, no row click, and disables New post and Theme', async () => {
     renderTable({ canWritePosts: false })
     fireEvent.click(await screen.findByText('Post 1'))
     expect(screen.queryByTestId('post-drawer')).not.toBeInTheDocument()

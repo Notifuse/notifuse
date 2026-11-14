@@ -76,6 +76,8 @@ export function DeletedTemplatePill() {
     <Tooltip title={t`This notification still sends with it`}>
       <span className="shrink-0">
         <Pill tone="warning">{t`Deleted template`}</Pill>
+        {/* The tooltip's sentence, read without it */}
+        <span className="sr-only"> {t`This notification still sends with it`}</span>
       </span>
     </Tooltip>
   )

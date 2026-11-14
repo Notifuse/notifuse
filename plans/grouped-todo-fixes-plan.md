@@ -1625,6 +1625,20 @@ deleted."
   integration whatever the selected one.
 - 8.2, colours: the walk excludes tests and two files whose colours are not the console's (the blog themes and
   the broadcast annotation colour), each checked to still hold an old colour.
+- 8.3, broadcast sender in the preview: the broadcast is read by a child of the drawer's From line, mounted
+  only when the drawer opens on a broadcast email and only with Broadcasts read, so the message history does not
+  read a broadcast per row. A variation's `sender_id` that is no longer among the marketing senders falls back to
+  the template's.
+- 8.3, message history: without Templates read the preview button is not rendered; the Template column already
+  shows the ID.
+- 8.3, blog: the refusal is placed where an edit starts (the posts table's Edit entry and row click, the "New
+  post" and first-post buttons), so `PostDrawer` is never opened for an edit the rights refuse.
+- 8.3, transactional menus: rc-menu derives `aria-disabled` from `disabled` alone and gives a disabled entry no
+  `tabindex`, so a refused entry is left enabled, drawn with antd's `ant-dropdown-menu-item-disabled` class,
+  says why in its label (`MenuEntryLabel`) and does nothing when chosen; it carries no `aria-disabled`.
+- 8.3, refused buttons: `common/RefusedButton.tsx` keeps Send test and Edit focusable (`aria-disabled`, antd's
+  `ant-btn-disabled` class for the look, the reason in an `sr-only` element named by `aria-describedby`). The
+  tooltip wraps a span, because antd's tooltip sets its own `aria-describedby` on its child.
 
 ## Test commands for lot 8
 

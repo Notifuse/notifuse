@@ -32,10 +32,11 @@ vi.mock('../services/api/blog', () => ({
 
 // The table and the drawers are tested on their own; here they only say what the page gave them.
 vi.mock('../components/blog/PostsTable', () => ({
-  PostsTable: (props: { canWritePosts: boolean; showViews: boolean; counts?: BlogPostCounts }) => (
+  PostsTable: (props: { canWritePosts: boolean; editRefusal?: string; showViews: boolean; counts?: BlogPostCounts }) => (
     <div
       data-testid="posts-table"
       data-can-write={String(props.canWritePosts)}
+      data-edit-refusal={props.editRefusal ?? ''}
       data-views={String(props.showViews)}
       data-total={props.counts?.total ?? ''}
     />
@@ -84,7 +85,8 @@ describe('BlogPage', () => {
     state.search = {}
     state.permissions = {
       workspace: { read: true, write: true },
-      blog: { read: true, write: true }
+      blog: { read: true, write: true },
+      templates: { read: true, write: true }
     }
     state.webAnalytics = false
     vi.mocked(blogCategoriesApi.list).mockResolvedValue({ categories } as never)
@@ -114,13 +116,45 @@ describe('BlogPage', () => {
     expect(screen.queryByRole('button', { name: 'Actions for News' })).not.toBeInTheDocument()
   })
 
-  it('lets posts follow Workspace write, as before', async () => {
+  it('lets posts follow Blog write, as the server does, whatever Workspace write', async () => {
     state.permissions = {
       workspace: { read: true, write: false },
-      blog: { read: true, write: true }
+      blog: { read: true, write: true },
+      templates: { read: true, write: true }
+    }
+    const { unmount } = renderPage()
+    expect(await screen.findByTestId('posts-table')).toHaveAttribute('data-can-write', 'true')
+    unmount()
+
+    state.permissions = {
+      workspace: { read: true, write: true },
+      blog: { read: true, write: false },
+      templates: { read: true, write: true }
     }
     renderPage()
     expect(await screen.findByTestId('posts-table')).toHaveAttribute('data-can-write', 'false')
+  })
+
+  it("says why a post's content cannot be edited without Templates read or write", async () => {
+    state.permissions = {
+      workspace: { read: true, write: true },
+      blog: { read: true, write: true },
+      templates: { read: true, write: false }
+    }
+    const { unmount } = renderPage()
+    expect(await screen.findByTestId('posts-table')).toHaveAttribute(
+      'data-edit-refusal',
+      'Writing or editing a post also needs Templates read and write: its content is a template.'
+    )
+    unmount()
+
+    state.permissions = {
+      workspace: { read: true, write: true },
+      blog: { read: true, write: true },
+      templates: { read: true, write: true }
+    }
+    renderPage()
+    expect(await screen.findByTestId('posts-table')).toHaveAttribute('data-edit-refusal', '')
   })
 
   it('shows the first-category state, its button with Blog write only', async () => {

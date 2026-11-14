@@ -10,7 +10,8 @@ import {
 } from './transactionalApiSnippets'
 
 // The fixture was copied from the API command modal before its generators moved here, for the
-// notification password_reset of workspace ws_123 against https://api.example.test.
+// notification password_reset of workspace ws_123 against https://api.example.test. It has since gained the
+// email_options.sender_id option.
 const GENERATORS = {
   curl: curlSnippet,
   typescript: typeScriptSnippet,
@@ -25,9 +26,16 @@ beforeEach(() => {
 })
 
 describe('transactionalApiSnippets', () => {
-  it.each(Object.entries(GENERATORS))('writes the %s sample exactly as the modal did', (key, generate) => {
+  it.each(Object.entries(GENERATORS))('writes the %s sample as the fixture holds it', (key, generate) => {
     expect(generate({ id: 'password_reset' }, 'ws_123')).toBe(captured[key as keyof typeof captured])
   })
+
+  it.each(Object.entries(GENERATORS).filter(([key]) => key !== 'smtp'))(
+    'shows the email_options sender_id option in the %s sample',
+    (_, generate) => {
+      expect(generate({ id: 'order_shipped' }, 'ws_other')).toMatch(/sender_id/)
+    }
+  )
 
   it.each(Object.entries(GENERATORS))('puts the notification and the workspace in the %s sample', (_, generate) => {
     const code = generate({ id: 'order_shipped' }, 'ws_other')

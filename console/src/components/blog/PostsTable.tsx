@@ -51,8 +51,13 @@ interface PostsTableProps {
   categories: BlogCategory[]
   /** Posts by status in the current category; absent while loading or after an error. */
   counts?: BlogPostCounts
-  /** Workspace write, the right the post buttons have always followed. */
+  /** Blog write, which the server asks to create, change, publish or delete a post. */
   canWritePosts: boolean
+  /**
+   * Why a post cannot be written or edited although the member may change posts: its content is a template, read
+   * and saved with Templates read and write. Publishing and deleting stay open.
+   */
+  editRefusal?: string
   /** Web analytics on in the workspace and readable by the member: the Views 30d column. */
   showViews: boolean
 }
@@ -63,6 +68,7 @@ export function PostsTable({
   categories,
   counts,
   canWritePosts,
+  editRefusal,
   showViews
 }: PostsTableProps) {
   const { t } = useLingui()
@@ -211,7 +217,19 @@ export function PostsTable({
   const rowMenu = (post: BlogPost): MenuProps['items'] => {
     const state = postState(post)
     return [
-      { key: 'edit', label: t`Edit`, onClick: () => setDrawer({ post }) },
+      {
+        key: 'edit',
+        disabled: !!editRefusal,
+        label: editRefusal ? (
+          <div>
+            <div>{t`Edit`}</div>
+            <div className="text-2xs text-ink-3">{editRefusal}</div>
+          </div>
+        ) : (
+          t`Edit`
+        ),
+        onClick: () => setDrawer({ post })
+      },
       ...(state === 'published'
         ? [
             {
@@ -445,9 +463,9 @@ export function PostsTable({
         dataSource={posts}
         rowKey="id"
         pagination={false}
-        rowClassName={() => (canWritePosts ? 'cursor-pointer' : '')}
+        rowClassName={() => (canWritePosts && !editRefusal ? 'cursor-pointer' : '')}
         onRow={(post) => ({
-          onClick: canWritePosts ? () => setDrawer({ post }) : undefined
+          onClick: canWritePosts && !editRefusal ? () => setDrawer({ post }) : undefined
         })}
       />
     )
@@ -503,14 +521,19 @@ export function PostsTable({
             >
               {t`Theme`}
             </Button>
-            <Button
-              type="primary"
-              icon={<Plus size={14} aria-hidden="true" />}
-              disabled={!canWritePosts}
-              onClick={() => setDrawer({ post: null })}
-            >
-              {t`New post`}
-            </Button>
+            {/* A disabled button gets no pointer events: the tooltip listens on its wrapper */}
+            <Tooltip title={canWritePosts ? editRefusal : undefined}>
+              <span className="inline-block">
+                <Button
+                  type="primary"
+                  icon={<Plus size={14} aria-hidden="true" />}
+                  disabled={!canWritePosts || !!editRefusal}
+                  onClick={() => setDrawer({ post: null })}
+                >
+                  {t`New post`}
+                </Button>
+              </span>
+            </Tooltip>
           </>
         }
       />

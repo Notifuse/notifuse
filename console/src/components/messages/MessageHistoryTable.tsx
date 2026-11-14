@@ -18,6 +18,7 @@ import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
 import { templatesApi } from '../../services/api/template'
 import { Workspace } from '../../services/api/types'
 import { useQuery } from '@tanstack/react-query'
+import { useWorkspacePermissions } from '../../contexts/AuthContext'
 import type { Broadcast } from '../../services/api/broadcast'
 import type { List } from '../../services/api/list'
 import { MessageColumnsSelector } from './MessageColumnsSelector'
@@ -58,6 +59,9 @@ const TemplatePreviewButton: React.FC<TemplatePreviewButtonProps> = ({
   messageHistory
 }) => {
   const { t } = useLingui()
+  // Without Templates read, templates.get answers 403: no preview, the Template column showing the template's ID
+  const { permissions } = useWorkspacePermissions(workspace.id)
+  const canReadTemplates = !!permissions?.templates?.read
 
   // Use React Query to fetch the template data
   const { data, isLoading } = useQuery({
@@ -75,7 +79,7 @@ const TemplatePreviewButton: React.FC<TemplatePreviewButtonProps> = ({
 
       return response.template
     },
-    enabled: !!workspace.id && !!templateId,
+    enabled: !!workspace.id && !!templateId && canReadTemplates,
     staleTime: 60 * 60 * 1000, // 1 hour
     retry: 1
   })

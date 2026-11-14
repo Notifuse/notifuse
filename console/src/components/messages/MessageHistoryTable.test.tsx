@@ -1,5 +1,6 @@
 import '../../__tests__/resizeObserverMock'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { templatesApi } from '../../services/api/template'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App, ConfigProvider } from 'antd'
@@ -12,6 +13,10 @@ import type { Workspace } from '../../services/api/types'
 // asserts on it, and letting it run would put an unmocked request in every test.
 vi.mock('../../services/api/template', () => ({
   templatesApi: { get: vi.fn().mockResolvedValue({ template: null }) }
+}))
+const access = vi.hoisted(() => ({ templatesRead: true }))
+vi.mock('../../contexts/AuthContext', () => ({
+  useWorkspacePermissions: () => ({ permissions: { templates: { read: access.templatesRead } }, loading: false })
 }))
 
 const workspace = {
@@ -203,5 +208,26 @@ describe('MessageHistoryTable dates', () => {
     fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
 
     expect(await screen.findByText('Aug 1, 2026 10:00 AM in UTC')).toBeInTheDocument()
+  })
+})
+
+describe('MessageHistoryTable template preview and Templates read', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("requests no template without Templates read, the row showing the template's ID", async () => {
+    access.templatesRead = false
+    renderTable([message('m1', { data: {} })])
+    expect(await screen.findByText('tpl-1')).toBeInTheDocument()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(templatesApi.get).not.toHaveBeenCalled()
+    access.templatesRead = true
+  })
+
+  it('requests the template to preview with Templates read', async () => {
+    access.templatesRead = true
+    renderTable([message('m1', { data: {} })])
+    await waitFor(() => expect(templatesApi.get).toHaveBeenCalledWith({ workspace_id: 'ws-1', id: 'tpl-1', version: 1 }))
   })
 })

@@ -407,6 +407,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           endpoint: "/api/transactional.update",
           action: msg`Read the template of a transactional notification when creating it, or when editing it with its channels, which the console sends unless an integration manages the notification (also needs Transactional write)`,
         },
+        {
+          endpoint: "/api/broadcasts.sendToIndividual",
+          action: msg`Read the template a broadcast sends to one named address (also needs Broadcasts write)`,
+        },
       ],
     },
     write: {
