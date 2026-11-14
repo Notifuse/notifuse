@@ -203,11 +203,8 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 	if status != trackingtoken.WorkspaceUnknown {
 		ts, _ := strconv.ParseInt(r.URL.Query().Get("ts"), 10, 64)
 		if h.passesBotChecks(r, ts, messageID, "click") {
-			endpointHost := ""
-			if status == trackingtoken.WorkspaceKnown {
-				endpointHost = ws.EndpointHost
-			}
-			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", clickOwnHosts(r, h.apiHost, endpointHost), false)
+			// No URL is recorded, so there are no own hosts to compare it with.
+			_ = h.emailService.VisitLink(r.Context(), messageID, workspaceID, "", nil, false)
 		}
 	}
 
@@ -215,22 +212,20 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 }
 
 // clickOwnHosts returns the instance's hosts as a click knows them: the request's Host,
-// every X-Forwarded-Host entry (webVersionRequestHost reads the first), the API
-// endpoint's host and the workspace's custom endpoint host, the ones
-// classifyTrackedDestination redirects to. A link back to any of them is the email's own
-// (unsubscribe, notification center, web version) and is not recorded per link. All of
-// them: behind a proxy that forwards its upstream name as Host, the email's links use
-// the forwarded host or, with no forwarded header, one of the endpoint hosts, and a
-// direct request keeps its own Host whatever forwarded value a client adds.
+// the last maxForwardedHosts forwarded hosts (X-Forwarded-Host entries, then the host
+// parameters of Forwarded), the API endpoint's host and the workspace's custom endpoint
+// host, the ones classifyTrackedDestination redirects to. A link back to any of them is
+// the email's own (unsubscribe, notification center, web version) and is not recorded
+// per link. All of them: behind a proxy that forwards its upstream name as Host, the
+// email's links use the forwarded host or, with no forwarded header, one of the endpoint
+// hosts, and a direct request keeps its own Host whatever forwarded value a client adds.
 func clickOwnHosts(r *http.Request, apiHost, endpointHost string) []string {
 	hosts := []string{r.Host}
-	for _, value := range r.Header.Values("X-Forwarded-Host") {
-		for _, entry := range strings.Split(value, ",") {
-			if entry = strings.TrimSpace(entry); entry != "" {
-				hosts = append(hosts, entry)
-			}
-		}
+	forwarded := forwardedHosts(r.Header)
+	if len(forwarded) > maxForwardedHosts {
+		forwarded = forwarded[len(forwarded)-maxForwardedHosts:]
 	}
+	hosts = append(hosts, forwarded...)
 	for _, host := range []string{apiHost, endpointHost} {
 		if host == "" {
 			continue

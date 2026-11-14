@@ -1442,3 +1442,23 @@ func TestDemoService_TransactionalMessagesCarryTheirNotification(t *testing.T) {
 		assert.Nil(t, message.AutomationID, messageType)
 	}
 }
+
+// A click that cannot be recorded does not stop the others: the demo data is filled in
+// as far as it can be.
+func TestDemoService_UpdateClickedMessagesForBatch_ContinuesAfterAFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.Background()
+	repo := domainmocks.NewMockMessageHistoryRepository(ctrl)
+	svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled"), messageHistoryRepo: repo}
+	clickedAt := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	batch := []messageEngagementData{
+		{message: &domain.MessageHistory{ID: "m1"}, engagement: messageEngagement{shouldClick: true, clickedTime: clickedAt}},
+		{message: &domain.MessageHistory{ID: "m2"}, engagement: messageEngagement{shouldClick: false}},
+		{message: &domain.MessageHistory{ID: "m3"}, engagement: messageEngagement{shouldClick: true, clickedTime: clickedAt}},
+	}
+	gomock.InOrder(
+		repo.EXPECT().SetClicked(ctx, "demo", "m1", clickedAt, demoClickedURLs[0], true).Return(errors.New("db down")),
+		repo.EXPECT().SetClicked(ctx, "demo", "m3", clickedAt, demoClickedURLs[2], true).Return(nil),
+	)
+	assert.NoError(t, svc.updateClickedMessagesForBatch(ctx, "demo", batch))
+}
