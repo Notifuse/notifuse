@@ -65,11 +65,14 @@ const (
 	// with them; a failed attempt's rows are 'failed'), or not passed yet, which
 	// nodeStatsNotPassedSQL adds. No COUNT(DISTINCT): its sort was most of the cost.
 	// A failed attempt is counted on the row handleError writes (no completed_at); the
-	// processing row it marks failed carries a completed_at and is not counted again.
-	// Known limits: a process killed in the middle of a step (crash, deploy, cancelled
-	// context) or an attempt whose failure was not written leaves a 'processing' row behind,
-	// and the step run again counts one more pass; two instances running one journey count
-	// both runs, since the step did run twice.
+	// processing row it marks failed carries a completed_at and is not counted again. A step
+	// cut short by a shutdown closes its row the same way and writes no failed row, so it
+	// counts nothing until the step runs again; a save that failed after its step ran
+	// completes the step's row and writes no failed row either.
+	// Known limits: a process killed in the middle of a step (crash, deploy) or an attempt
+	// whose failure was not written (a write that failed, or that outlasted the shutdown)
+	// leaves a 'processing' row behind, and the step run again counts one more pass; two
+	// instances running one journey count both runs, since the step did run twice.
 	nodeStatsVisitsSQL = `SELECT node_id,
 		COUNT(*) FILTER (WHERE action IN ('processing', 'completed', 'skipped')),
 		COUNT(*) FILTER (WHERE action = 'completed' AND NOT COALESCE(output ? 'error', false)),

@@ -2296,6 +2296,26 @@ func TestTimelineTriggerConfig_Validate_LinkClicked(t *testing.T) {
 		assert.Error(t, c.Validate())
 	})
 
+	t.Run("broadcast_id and template_id are bounded", func(t *testing.T) {
+		for _, field := range []string{"broadcast_id", "template_id"} {
+			set := func(c *TimelineTriggerConfig, v string) {
+				if field == "broadcast_id" {
+					c.BroadcastID = &v
+				} else {
+					c.TemplateID = &v
+				}
+			}
+			c := base()
+			set(c, strings.Repeat("a", MaxTriggerIDFilterLength))
+			assert.NoError(t, c.Validate(), field)
+			c = base()
+			set(c, strings.Repeat("a", MaxTriggerIDFilterLength+1))
+			err := c.Validate()
+			require.Error(t, err, field)
+			assert.Contains(t, err.Error(), field)
+		}
+	})
+
 	t.Run("link_url refuses a NUL byte and surrounding whitespace", func(t *testing.T) {
 		for _, bad := range []string{"pri\x00cing", " pricing", "pricing\n", "\tpricing"} {
 			c := base()

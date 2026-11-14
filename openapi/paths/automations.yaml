@@ -81,7 +81,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
             example:
-              error: 'invalid with_journey_counts parameter: must be true or false'
+              error: 'invalid with_journey_counts parameter: must be a boolean'
       '401':
         description: Unauthorized - missing or invalid authentication
         content:

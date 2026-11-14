@@ -732,6 +732,13 @@ the two differ.
   The 404 Fix line names update, delete, activate and pause. 3.3, 3.7 and 3.11 fold into their 44.0 lines,
   worded as behaviour ("a shutdown hands back the journeys it has not run"), never "no longer".
 
+### Implementation notes (lot 3)
+
+- `TestAutomation/LongChainWithoutDelay` passed ten runs in a row (`-count=10`): not reproduced, no wait changed.
+- No caller passes a transaction to `DeleteTx`; its exit statement runs on it anyway when one is given.
+- 3.11's OpenAPI message also changes in the docs repository's `openapi.json`.
+- The 3.2 unit tests check that each write after a step gets a context that is not done and has a deadline.
+
 ## Test commands for lot 3
 
 ```

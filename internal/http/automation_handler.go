@@ -250,6 +250,9 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 			WriteJSONError(w, conflictErr.Error(), http.StatusConflict)
 			return
 		}
+		if writeAutomationNotFound(w, err) {
+			return
+		}
 		writeUpdateFailure(w, err, "Failed to update automation", http.StatusInternalServerError)
 		return
 	}
@@ -257,6 +260,17 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"automation": req.Automation,
 	})
+}
+
+// writeAutomationNotFound answers 404 for an automation that does not exist (or was deleted),
+// reporting whether it wrote the response.
+func writeAutomationNotFound(w http.ResponseWriter, err error) bool {
+	var notFound *domain.ErrNotFound
+	if !errors.As(err, &notFound) {
+		return false
+	}
+	WriteJSONError(w, "Automation not found", http.StatusNotFound)
+	return true
 }
 
 // writeUpdateFailure answers an update that failed with message and status. An update that
@@ -311,6 +325,9 @@ func (h *AutomationHandler) handleDelete(w http.ResponseWriter, r *http.Request)
 		if writePermissionError(w, err) {
 			return
 		}
+		if writeAutomationNotFound(w, err) {
+			return
+		}
 		WriteJSONError(w, "Failed to delete automation", http.StatusInternalServerError)
 		return
 	}
@@ -362,6 +379,9 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 		var conflictErr *domain.AutomationConflictError
 		if errors.As(err, &conflictErr) {
 			WriteJSONError(w, conflictErr.Error(), http.StatusConflict)
+			return
+		}
+		if writeAutomationNotFound(w, err) {
 			return
 		}
 		WriteJSONError(w, "Failed to activate automation", http.StatusInternalServerError)
@@ -418,6 +438,9 @@ func (h *AutomationHandler) handlePause(w http.ResponseWriter, r *http.Request) 
 		var conflictErr *domain.AutomationConflictError
 		if errors.As(err, &conflictErr) {
 			WriteJSONError(w, conflictErr.Error(), http.StatusConflict)
+			return
+		}
+		if writeAutomationNotFound(w, err) {
 			return
 		}
 		WriteJSONError(w, "Failed to pause automation", http.StatusInternalServerError)

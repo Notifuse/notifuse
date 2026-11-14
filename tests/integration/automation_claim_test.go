@@ -127,9 +127,9 @@ func TestAutomationClaim(t *testing.T) {
 		return emails
 	}
 	// Safe to call from the executors' goroutines: it reports, it does not stop the test.
-	activeJourneys := func(automationID string) (int, error) {
+	activeJourneys := func(queryCtx context.Context, automationID string) (int, error) {
 		var count int
-		err := db.QueryRowContext(ctx,
+		err := db.QueryRowContext(queryCtx,
 			`SELECT COUNT(*) FROM contact_automations WHERE automation_id = $1 AND status = 'active'`, automationID).Scan(&count)
 		return count, err
 	}
@@ -162,7 +162,10 @@ func TestAutomationClaim(t *testing.T) {
 		defer cancel()
 		run := func(executor *service.AutomationExecutor) {
 			for runCtx.Err() == nil {
-				active, err := activeJourneys(automationID)
+				active, err := activeJourneys(runCtx, automationID)
+				if runCtx.Err() != nil {
+					return
+				}
 				if !assert.NoError(t, err) || active == 0 {
 					return
 				}
@@ -187,7 +190,7 @@ func TestAutomationClaim(t *testing.T) {
 			run(newExecutor())
 		}()
 		wg.Wait()
-		active, err := activeJourneys(automationID)
+		active, err := activeJourneys(ctx, automationID)
 		require.NoError(t, err)
 		require.Equal(t, 0, active, "every journey ran to its end")
 
@@ -270,6 +273,52 @@ func TestAutomationClaim(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 0, processed)
 		assert.Equal(t, int32(1), calls.Load(), "one webhook call")
+	})
+
+	t.Run("a shutdown hands back the journeys it had not run", func(t *testing.T) {
+		runCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		var mu sync.Mutex
+		var called []string
+		// The shutdown lands while the batch's first journey runs its webhook.
+		receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var payload struct {
+				Email string `json:"email"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			mu.Lock()
+			called = append(called, payload.Email)
+			mu.Unlock()
+			cancel()
+			_, _ = w.Write([]byte(`{}`))
+		}))
+		defer receiver.Close()
+
+		automationID, _ := createAutomation(t, "claim_shutdown", receiver.URL)
+		emails := enrol(t, automationID, "claim_shutdown", 3)
+
+		_, err := newExecutor().ProcessBatch(runCtx, 50)
+		require.NoError(t, err)
+
+		mu.Lock()
+		require.Len(t, called, 1, "the batch stops after the journey the shutdown landed in")
+		first := called[0]
+		mu.Unlock()
+		for _, email := range emails {
+			var status string
+			var due bool
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT status, scheduled_at IS NOT NULL AND scheduled_at <= NOW()
+				FROM contact_automations WHERE automation_id = $1 AND contact_email = $2`, automationID, email).Scan(&status, &due))
+			if email == first {
+				assert.False(t, status == "active" && due, "the journey that was running is held by its claim, or has ended")
+				continue
+			}
+			assert.Equal(t, "active", status, email)
+			assert.True(t, due, "%s is handed back, due now rather than when its claim ends", email)
+		}
+		// The next sub-tests claim every due journey of the workspace.
+		_, err = db.ExecContext(ctx, `UPDATE contact_automations SET status = 'exited', scheduled_at = NULL WHERE automation_id = $1`, automationID)
+		require.NoError(t, err)
 	})
 
 	t.Run("two claims at once get disjoint journeys", func(t *testing.T) {

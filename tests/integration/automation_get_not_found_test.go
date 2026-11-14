@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestAutomationGetNotFound: automations.get on an automation that does not exist answers
-// 404, not the 500 it used to.
+// TestAutomationGetNotFound: automations.get, update, delete, activate and pause on an
+// automation that does not exist answer 404, not the 500 they used to.
 func TestAutomationGetNotFound(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -39,8 +39,41 @@ func TestAutomationGetNotFound(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
-	var body map[string]interface{}
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, "Automation not found", body["error"])
+	assertNotFound := func(t *testing.T, resp *http.Response) {
+		t.Helper()
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		assert.Equal(t, "Automation not found", body["error"])
+	}
+	assertNotFound(t, resp)
+
+	list, err := factory.CreateList(workspace.ID)
+	require.NoError(t, err)
+	unknown := map[string]interface{}{"workspace_id": workspace.ID, "automation_id": "does-not-exist"}
+	for name, call := range map[string]func() (*http.Response, error){
+		"update": func() (*http.Response, error) {
+			return client.UpdateAutomation(map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"automation": map[string]interface{}{
+					"id": "does-not-exist", "workspace_id": workspace.ID, "name": "Unknown", "status": "draft",
+					"list_id":      list.ID,
+					"trigger":      map[string]interface{}{"event_kind": "custom_event", "custom_event_name": "unknown", "frequency": "once"},
+					"root_node_id": "root",
+					"nodes": []map[string]interface{}{{"id": "root", "automation_id": "does-not-exist", "type": "trigger",
+						"config": map[string]interface{}{}, "position": map[string]interface{}{"x": 0, "y": 0}}},
+				},
+			})
+		},
+		"delete":   func() (*http.Response, error) { return client.DeleteAutomation(unknown) },
+		"activate": func() (*http.Response, error) { return client.ActivateAutomation(unknown) },
+		"pause":    func() (*http.Response, error) { return client.PauseAutomation(unknown) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			resp, err := call()
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			assertNotFound(t, resp)
+		})
+	}
 }
