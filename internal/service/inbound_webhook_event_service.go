@@ -295,11 +295,19 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		return fmt.Errorf("failed to get workspace: %w", err)
 	}
 	var integration domain.Integration
+	found := false
 	for _, i := range workspace.Integrations {
 		if i.ID == integrationID {
 			integration = i
+			found = true
 			break
 		}
+	}
+	if !found {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, domain.ErrInboundIntegrationNotFound)
+		// codecov:ignore:end
+		return fmt.Errorf("integration %s: %w", integrationID, domain.ErrInboundIntegrationNotFound)
 	}
 	var events []*domain.InboundWebhookEvent
 
@@ -319,17 +327,24 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 	case domain.EmailProviderKindSendGrid:
 		events, err = s.processSendGridWebhook(integration.ID, rawPayload)
 	default:
+		err := fmt.Errorf("unsupported email provider kind %q: %w", integration.EmailProvider.Kind, domain.ErrWebhookProviderUnsupported)
 		// codecov:ignore:start
-		tracing.MarkSpanError(ctx, fmt.Errorf("unsupported email provider kind: %s", integration.EmailProvider.Kind))
+		tracing.MarkSpanError(ctx, err)
 		// codecov:ignore:end
-		return fmt.Errorf("unsupported email provider kind: %s", integration.EmailProvider.Kind)
+		return err
 	}
 
 	if err != nil {
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, err)
 		// codecov:ignore:end
-		return fmt.Errorf("failed to process webhook: %w", err)
+		// A parser refuses the payload, unless the failure is ours (webhookServerError):
+		// the provider then retries.
+		var ours *webhookServerError
+		if errors.As(err, &ours) {
+			return fmt.Errorf("failed to process webhook: %w", err)
+		}
+		return fmt.Errorf("failed to process webhook: %w: %w", domain.ErrWebhookPayloadInvalid, err)
 	}
 
 	// Only the events of emails sent to their address go further, so everything below,
@@ -698,6 +713,13 @@ func extractXMessageIDFromHeaders(headers []domain.SESHeader) string {
 	return ""
 }
 
+// webhookServerError marks a parser failure that is not about the payload (the SNS
+// subscription confirmation's call to AWS): the webhook answers 500, so the provider retries.
+type webhookServerError struct{ err error }
+
+func (e *webhookServerError) Error() string { return e.err.Error() }
+func (e *webhookServerError) Unwrap() error { return e.err }
+
 // confirmSNSSubscription fetches an SNS SubscribeURL to complete a topic subscription.
 //
 // The URL is attacker-supplied — it arrives in the body of a public webhook endpoint
@@ -724,7 +746,17 @@ func (s *InboundWebhookEventService) confirmSNSSubscription(subscribeURL string)
 	if client == nil {
 		client = safehttpclient.New()
 	}
-	return client.Do(req)
+	// The URL passed its checks: a failed call, or an answer other than 2xx, is ours, and
+	// SNS sends the confirmation again.
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, &webhookServerError{err: err}
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		_ = resp.Body.Close()
+		return nil, &webhookServerError{err: fmt.Errorf("the subscription confirmation answered %d", resp.StatusCode)}
+	}
+	return resp, nil
 }
 
 // processSESWebhook processes a webhook event from Amazon SES

@@ -125,29 +125,56 @@ func TestInboundWebhookEventHandler_handleIncomingWebhook_BodyReadError(t *testi
 	assert.Equal(t, "Failed to read request body", response["error"])
 }
 
+// The status tells the provider whether to send the event again: 404 and 400 for a request
+// that will never succeed, logged at Warn; 500 for a failure on our side, logged at Error, which
+// the provider retries.
 func TestInboundWebhookEventHandler_handleIncomingWebhook_ProcessError(t *testing.T) {
-	handler, mockService, _ := setupInboundWebhookEventHandlerTest(t)
+	cases := []struct {
+		name       string
+		err        error
+		wantStatus int
+		wantError  string
+		wantLevel  string
+	}{
+		{"an unknown workspace", fmt.Errorf("failed to get workspace: %w", &domain.ErrWorkspaceNotFound{WorkspaceID: "ws123"}),
+			http.StatusNotFound, "Workspace or integration not found", "warn"},
+		{"an unknown integration", fmt.Errorf("integration int123: %w", domain.ErrInboundIntegrationNotFound),
+			http.StatusNotFound, "Workspace or integration not found", "warn"},
+		{"an integration that is not an email provider", fmt.Errorf("unsupported email provider kind \"\": %w", domain.ErrWebhookProviderUnsupported),
+			http.StatusBadRequest, "The integration is not an email provider", "warn"},
+		{"a payload the parser refuses", fmt.Errorf("failed to process webhook: %w: %w", domain.ErrWebhookPayloadInvalid, errors.New("unexpected end of JSON input")),
+			http.StatusBadRequest, "Invalid webhook payload", "warn"},
+		{"a failure on our side", fmt.Errorf("failed to store inbound webhook events: %w", errors.New("pq: connection refused")),
+			http.StatusInternalServerError, "Failed to process webhook", "error"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockService := mocks.NewMockInboundWebhookEventServiceInterface(ctrl)
+			mockLogger := pkgmocks.NewMockLogger(ctrl)
+			mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+			mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+			if tc.wantLevel == "warn" {
+				mockLogger.EXPECT().Warn(gomock.Any()).Times(1)
+			} else {
+				mockLogger.EXPECT().Error("Failed to process webhook").Times(1)
+			}
+			handler := NewInboundWebhookEventHandler(mockService,
+				func() ([]byte, error) { return []byte("test-jwt-secret-key-for-testing-32bytes"), nil }, nil, mockLogger)
 
-	// Create a valid request
-	payload := []byte(`{"event": "test"}`)
-	req := httptest.NewRequest(http.MethodPost, "/webhooks/email?provider=ses&workspace_id=ws123&integration_id=int123", bytes.NewReader(payload))
-	w := httptest.NewRecorder()
+			payload := []byte(`{"event": "test"}`)
+			req := httptest.NewRequest(http.MethodPost, "/webhooks/email?provider=ses&workspace_id=ws123&integration_id=int123", bytes.NewReader(payload))
+			w := httptest.NewRecorder()
+			mockService.EXPECT().ProcessWebhook(gomock.Any(), "ws123", "int123", payload).Return(tc.err)
 
-	// Mock service to return an error
-	mockService.EXPECT().
-		ProcessWebhook(gomock.Any(), "ws123", "int123", payload).
-		Return(errors.New("processing error"))
+			handler.handleIncomingWebhook(w, req)
 
-	// Call the handler
-	handler.handleIncomingWebhook(w, req)
-
-	// Check response
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	var response map[string]string
-	err := json.NewDecoder(w.Body).Decode(&response)
-	require.NoError(t, err)
-	assert.Equal(t, "Failed to process webhook", response["error"])
+			assert.Equal(t, tc.wantStatus, w.Code)
+			var response map[string]string
+			require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+			assert.Equal(t, tc.wantError, response["error"])
+		})
+	}
 }
 
 func TestInboundWebhookEventHandler_handleIncomingWebhook_Success(t *testing.T) {

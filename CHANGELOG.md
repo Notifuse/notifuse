@@ -78,6 +78,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The status filter of outgoing webhook deliveries now filters them. `webhookSubscriptions.deliveries` takes `status`.
 
+- **Fix**: The email provider webhook (`/webhooks/email`) answers 400 only for a payload it cannot read or an integration that is not an email provider, 404 for an unknown workspace or integration, and 500 for a failure on our side, so providers send those events again instead of dropping them. An SES subscription confirmation that AWS does not accept answers 500 too, so SNS sends it again.
+
 - **Fix**: Filtering incoming webhooks by Auth email or User created no longer fails.
 
 - **Fix**: A link to a webhooks tab, filtered or not, opens that tab again, not the messages.
