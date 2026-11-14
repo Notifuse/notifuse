@@ -51,7 +51,8 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // delivery carries an erased address, and both triggers are enabled again. The exited recount
 // runs last, after the builds and the delete, so it never holds automations rows while waiting
 // for the message_history or contact_segments lock. No column is renamed or
-// dropped, so no automation trigger function needs regenerating.
+// dropped, so no automation trigger function needs regenerating. Without any own host, as
+// here, the purge of the own links is not run (see the purge test below).
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
 	`SET LOCAL statement_timeout = 0`,
@@ -134,6 +135,73 @@ func TestV44Migration_UpdateWorkspaceStopsOnTheFirstError(t *testing.T) {
 			assert.Contains(t, err.Error(), "ws1")
 			assert.Contains(t, err.Error(), "boom")
 			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+// The purge of the instance's own links runs after the three index builds, under their
+// SHARE lock, and before the exited recount, with the hosts of the API endpoint and of the
+// workspace's current custom endpoint.
+func TestV44Migration_UpdateWorkspacePurgesTheOwnLinksAfterTheBuilds(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	last := len(v44ExpectedWorkspaceStatements) - 1
+	for _, stmt := range v44ExpectedWorkspaceStatements[:last] {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec("^" + regexp.QuoteMeta(v44OwnLinksPurgeSQL) + "$").
+		WithArgs(`{"api.notifuse.test","mail.brand.example"}`).
+		WillReturnResult(sqlmock.NewResult(0, 3))
+	mock.ExpectExec("^" + regexp.QuoteMeta(v44ExpectedWorkspaceStatements[last]) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+
+	endpoint := "https://Mail.Brand.example./"
+	workspace := &domain.Workspace{ID: "ws1", Settings: domain.WorkspaceSettings{CustomEndpointURL: &endpoint}}
+	cfg := &config.Config{APIEndpoint: "https://api.notifuse.test:8443"}
+	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), cfg, workspace, db))
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestV44Migration_ThePurgeErrorNamesItsStep(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	last := len(v44ExpectedWorkspaceStatements) - 1
+	for _, stmt := range v44ExpectedWorkspaceStatements[:last] {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec("^" + regexp.QuoteMeta(v44OwnLinksPurgeSQL) + "$").WillReturnError(errors.New("boom"))
+
+	err = (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{APIEndpoint: "https://api.notifuse.test"}, &domain.Workspace{ID: "ws1"}, db)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "remove the instance's own links")
+	assert.Contains(t, err.Error(), "ws1")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestV44OwnHosts(t *testing.T) {
+	endpoint := func(s string) *domain.Workspace {
+		return &domain.Workspace{Settings: domain.WorkspaceSettings{CustomEndpointURL: &s}}
+	}
+	cases := map[string]struct {
+		api       string
+		workspace *domain.Workspace
+		want      []string
+	}{
+		"none": {workspace: &domain.Workspace{}},
+		"the API endpoint, port and case dropped":   {api: "https://API.Notifuse.test:8443/", workspace: &domain.Workspace{}, want: []string{"api.notifuse.test"}},
+		"a scheme-less API endpoint":                {api: "api.notifuse.test", workspace: &domain.Workspace{}, want: []string{"api.notifuse.test"}},
+		"both, a trailing dot dropped":              {api: "https://api.notifuse.test", workspace: endpoint("https://mail.brand.example."), want: []string{"api.notifuse.test", "mail.brand.example"}},
+		"the same host once":                        {api: "https://mail.brand.example", workspace: endpoint("http://MAIL.brand.example:8080"), want: []string{"mail.brand.example"}},
+		"an IPv6 literal, canonical and as written": {api: "http://[2001:0DB8::1]:8080", workspace: &domain.Workspace{}, want: []string{"2001:db8::1", "2001:0db8::1"}},
+		"an empty custom endpoint":                  {api: "https://api.notifuse.test", workspace: endpoint(""), want: []string{"api.notifuse.test"}},
+		"an unreadable host is dropped":             {workspace: endpoint("https://%FF.example"), want: nil},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, v44OwnHosts(&config.Config{APIEndpoint: tc.api}, tc.workspace))
 		})
 	}
 }
