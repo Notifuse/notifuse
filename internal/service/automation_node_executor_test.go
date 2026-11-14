@@ -4422,3 +4422,43 @@ func TestEmailNodeExecutor_Execute_RecordsTheRenderedLanguage(t *testing.T) {
 		})
 	}
 }
+
+// A list step whose write a shutdown cut short fails, so the journey stays on it and runs it
+// again after the restart; a failed write on a live run is still logged in the output only.
+func TestListNodeExecutors_CancelledRunFailsTheStep(t *testing.T) {
+	params := func(nodeType domain.NodeType) NodeExecutionParams {
+		return NodeExecutionParams{
+			WorkspaceID: "ws1",
+			Node: &domain.AutomationNode{ID: "n1", Type: nodeType, NextNodeID: strPtr("next_node"),
+				Config: map[string]interface{}{"list_id": "list123", "status": "active"}},
+			Contact: &domain.ContactAutomation{ID: "ca1", ContactEmail: "test@example.com"},
+		}
+	}
+	steps := map[string]struct {
+		nodeType domain.NodeType
+		run      func(repo *mocks.MockContactListRepository, ctx context.Context, cancel context.CancelFunc, p NodeExecutionParams) (*NodeExecutionResult, error)
+	}{
+		"add_to_list": {domain.NodeTypeAddToList, func(repo *mocks.MockContactListRepository, ctx context.Context, cancel context.CancelFunc, p NodeExecutionParams) (*NodeExecutionResult, error) {
+			repo.EXPECT().AddContactToList(gomock.Any(), "ws1", gomock.Any()).DoAndReturn(
+				func(context.Context, string, *domain.ContactList) error { cancel(); return context.Canceled })
+			return NewAddToListNodeExecutor(repo).Execute(ctx, p)
+		}},
+		"remove_from_list": {domain.NodeTypeRemoveFromList, func(repo *mocks.MockContactListRepository, ctx context.Context, cancel context.CancelFunc, p NodeExecutionParams) (*NodeExecutionResult, error) {
+			repo.EXPECT().RemoveContactFromList(gomock.Any(), "ws1", "test@example.com", "list123").DoAndReturn(
+				func(context.Context, string, string, string) error { cancel(); return context.Canceled })
+			return NewRemoveFromListNodeExecutor(repo).Execute(ctx, p)
+		}},
+	}
+	for name, step := range steps {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			repo := mocks.NewMockContactListRepository(ctrl)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			result, err := step.run(repo, ctx, cancel, params(step.nodeType))
+			assert.Nil(t, result)
+			require.Error(t, err)
+			assert.ErrorIs(t, err, context.Canceled)
+		})
+	}
+}

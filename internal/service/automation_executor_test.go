@@ -2396,9 +2396,9 @@ func TestAutomationExecutor_ProcessBatch_RenewsEachClaim(t *testing.T) {
 				cancel()
 				return paused, nil
 			}),
-			repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, "ca-2", token2).Return(true, nil),
 			// A failed release is logged; the next one is still tried.
-			repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, "ca-3", token3).Return(false, errors.New("db down")),
+			repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, "ca-2", token2).Return(false, errors.New("db down")),
+			repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, "ca-3", token3).Return(true, nil),
 		)
 
 		processed, err := executor.ProcessBatch(ctx, 50)

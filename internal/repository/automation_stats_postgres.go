@@ -66,9 +66,10 @@ const (
 	// nodeStatsNotPassedSQL adds. No COUNT(DISTINCT): its sort was most of the cost.
 	// A failed attempt is counted on the row handleError writes (no completed_at); the
 	// processing row it marks failed carries a completed_at and is not counted again. A step
-	// cut short by a shutdown closes its row the same way and writes no failed row, so it
-	// counts nothing until the step runs again; a save that failed after its step ran
-	// completes the step's row and writes no failed row either.
+	// cut short by a shutdown closes its row the same way and writes no failed row: until the
+	// step runs again, that row counts as a visit not passed and the journey as retrying, with
+	// no failed attempt; once it has run, the step counts one pass. A save that failed after
+	// its step ran completes the step's row and writes no failed row either.
 	// Known limits: a process killed in the middle of a step (crash, deploy) or an attempt
 	// whose failure was not written (a write that failed, or that outlasted the shutdown)
 	// leaves a 'processing' row behind, and the step run again counts one more pass; two

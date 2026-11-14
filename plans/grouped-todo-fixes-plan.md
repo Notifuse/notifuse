@@ -701,7 +701,7 @@ the two differ.
 - **3.2, claims narrowed.** A shutdown can still leave a `processing` row: write errors stay ignored, and the
   write bounds can outlast `AutomationScheduler.Stop`'s 5 s wait, after which the pools close. The comment of
   `nodeStatsVisitsSQL` keeps "an attempt whose failure was not written". The concurrent-exit path (`!updated`)
-  marks the step completed, since the step ran. Bounds: 5 s per after-step write, 3 s for all the releases of
+  marks the step completed, since the step ran. Bounds: no deadline on the after-step writes while the run is live, 5 s for them once it is cancelled, 3 s for all the releases of
   3.3. Known, not handled: the scheduler goroutine is not awaited by `cleanupResources`.
 - **3.3, tests.** The integration test cancels `runCtx` from the first journey's webhook receiver; journeys 2 and
   3 are due now, journey 1 is not due (held) or has ended. The unit test "on shutdown the journeys left keep
@@ -738,6 +738,23 @@ the two differ.
 - No caller passes a transaction to `DeleteTx`; its exit statement runs on it anyway when one is given.
 - 3.11's OpenAPI message also changes in the docs repository's `openapi.json`.
 - The 3.2 unit tests check that each write after a step gets a context that is not done and has a deadline.
+
+### Corrections after the code review (lot 3, round 1)
+
+The code review (`/mnt/project-files/reviews/grouped-pr-lot3-code-review.md`, Fable, high) confirmed three bugs,
+three tests that could not fail and four overstated claims. Each fix has a test, and a mutation of each fix
+fails it.
+
+- The add-to-list and remove-from-list steps fail when the run's context is done, so a step a shutdown cut
+  short runs again instead of being saved as done.
+- The after-step writes have no deadline while the run is live; once it is cancelled they go on for 5 s
+  (`writeContext`, `context.AfterFunc`).
+- A run cancelled while the processing row is written runs no step and closes the row.
+- The tests: the failing release is not the last; `expectProcessingRow` asserts; a failed save on a cancelled
+  run is retried on a live context.
+- The claims: the last-step Fix line holds while a retry is left; the stats comment says what the SQL counts for
+  a step cut short; the repeated-error log is per call site (`repeatedErrorLog` no longer compares texts); the
+  no-current-node branch also ends a journey whose last step was a delay.
 
 ## Test commands for lot 3
 

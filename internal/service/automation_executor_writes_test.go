@@ -66,22 +66,63 @@ func newWritesHarness(t *testing.T, step stepFunc, xNext *string) *writesHarness
 	}
 }
 
-// expectProcessingRow expects the processing row a step's run creates.
-func (h *writesHarness) expectProcessingRow(nodeID string) *gomock.Call {
+// expectProcessingRow expects the processing row a step's run creates. Execute drops this
+// write's error, so the row is checked by assertions.
+func (h *writesHarness) expectProcessingRow(t *testing.T, nodeID string) *gomock.Call {
 	return h.repo.EXPECT().CreateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ string, ne *domain.NodeExecution) error {
-			if ne.NodeID != nodeID || ne.Action != domain.NodeActionProcessing {
-				return errors.New("unexpected execution row " + ne.NodeID + " " + string(ne.Action))
-			}
+			assert.Equal(t, nodeID, ne.NodeID)
+			assert.Equal(t, domain.NodeActionProcessing, ne.Action)
 			return nil
 		})
 }
 
+// live checks that a write runs on a context the run's cancellation did not end. Its bound
+// once the run is cancelled is TestWriteContext's.
 func live(t *testing.T, ctx context.Context) {
 	t.Helper()
 	assert.NoError(t, ctx.Err(), "the write outlives the cancelled run")
-	_, bounded := ctx.Deadline()
-	assert.True(t, bounded, "the write is bounded")
+	_, hasDeadline := ctx.Deadline()
+	assert.False(t, hasDeadline, "the write has no deadline of its own")
+}
+
+// The writes that record a step have no deadline while the run is live: a slow save waits as
+// the run's other writes do. Once the run is cancelled they go on for afterStepWriteTimeout.
+func TestWriteContext(t *testing.T) {
+	t.Run("a live run puts no deadline on the writes", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		writeCtx, done := writeContext(ctx)
+		defer done()
+		_, hasDeadline := writeCtx.Deadline()
+		assert.False(t, hasDeadline)
+		select {
+		case <-writeCtx.Done():
+			t.Fatal("the write context ended while the run is live")
+		case <-time.After(50 * time.Millisecond):
+		}
+	})
+
+	t.Run("a cancelled run ends the writes afterStepWriteTimeout later", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		writeCtx, done := writeContext(ctx)
+		defer done()
+		cancelledAt := time.Now()
+		cancel()
+		assert.NoError(t, writeCtx.Err(), "the writes outlive the cancellation")
+		select {
+		case <-writeCtx.Done():
+			assert.GreaterOrEqual(t, time.Since(cancelledAt), afterStepWriteTimeout)
+		case <-time.After(afterStepWriteTimeout + 2*time.Second):
+			t.Fatal("the write context outlived its bound")
+		}
+	})
+
+	t.Run("done releases the context", func(t *testing.T) {
+		writeCtx, done := writeContext(context.Background())
+		done()
+		assert.Error(t, writeCtx.Err())
+	})
 }
 
 func TestAutomationExecutor_Execute_StepCancelledByTheRunIsNotAFailedAttempt(t *testing.T) {
@@ -91,7 +132,7 @@ func TestAutomationExecutor_Execute_StepCancelledByTheRunIsNotAFailedAttempt(t *
 		return nil, context.Canceled
 	}, nil)
 
-	h.expectProcessingRow("x")
+	h.expectProcessingRow(t, "x")
 	h.repo.EXPECT().UpdateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).
 		DoAndReturn(func(wctx context.Context, _ string, ne *domain.NodeExecution) error {
 			live(t, wctx)
@@ -114,7 +155,7 @@ func TestAutomationExecutor_Execute_StepThatRanIsSavedWhenTheRunIsCancelled(t *t
 		return &NodeExecutionResult{Status: domain.ContactAutomationStatusActive}, nil
 	}, nil)
 
-	h.expectProcessingRow("x")
+	h.expectProcessingRow(t, "x")
 	h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).
 		DoAndReturn(func(wctx context.Context, _ string, ca *domain.ContactAutomation) (bool, error) {
 			live(t, wctx)
@@ -143,7 +184,7 @@ func TestAutomationExecutor_Execute_CancelledRunStartsNoOtherStep(t *testing.T) 
 		return &NodeExecutionResult{NextNodeID: &y, Status: domain.ContactAutomationStatusActive}, nil
 	}, &y)
 
-	h.expectProcessingRow("x")
+	h.expectProcessingRow(t, "x")
 	h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ string, ca *domain.ContactAutomation) (bool, error) {
 			cancel() // the shutdown lands during X's save
@@ -182,7 +223,7 @@ func TestAutomationExecutor_Execute_FailedSaveAfterAStep(t *testing.T) {
 			return &NodeExecutionResult{NextNodeID: &y, Status: domain.ContactAutomationStatusActive}, nil
 		}, &y)
 
-		h.expectProcessingRow("x") // and no failed row: no step failed
+		h.expectProcessingRow(t, "x") // and no failed row: no step failed
 		gomock.InOrder(
 			h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).Return(false, saveErr),
 			h.repo.EXPECT().UpdateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).
@@ -212,7 +253,7 @@ func TestAutomationExecutor_Execute_FailedSaveAfterAStep(t *testing.T) {
 			return &NodeExecutionResult{NextNodeID: &y, Status: domain.ContactAutomationStatusActive, ScheduledAt: &resume}, nil
 		}, &y)
 
-		h.expectProcessingRow("x")
+		h.expectProcessingRow(t, "x")
 		gomock.InOrder(
 			h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).Return(false, saveErr),
 			h.repo.EXPECT().UpdateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).Return(nil),
@@ -231,7 +272,7 @@ func TestAutomationExecutor_Execute_FailedSaveAfterAStep(t *testing.T) {
 			return &NodeExecutionResult{Status: domain.ContactAutomationStatusActive}, nil
 		}, nil)
 
-		h.expectProcessingRow("x")
+		h.expectProcessingRow(t, "x")
 		gomock.InOrder(
 			h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).Return(false, saveErr),
 			h.repo.EXPECT().UpdateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).Return(nil),
@@ -268,7 +309,7 @@ func TestAutomationExecutor_Execute_FailedSaveAfterAStep(t *testing.T) {
 			return &NodeExecutionResult{Status: domain.ContactAutomationStatusExited, ExitReason: &reason}, nil
 		}, nil)
 
-		h.expectProcessingRow("x")
+		h.expectProcessingRow(t, "x")
 		gomock.InOrder(
 			h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).Return(false, saveErr),
 			h.repo.EXPECT().UpdateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).Return(nil),
@@ -342,4 +383,69 @@ func TestAutomationExecutor_EndsCountedOnlyWhenTheRowChanged(t *testing.T) {
 			})
 		}
 	}
+}
+
+// A run cancelled while the processing row of a step is written runs no step: a delay or an
+// A/B split, which do not read the context, would be saved with no row of their own. The row
+// is closed as a step cut short, and no retry is spent.
+func TestAutomationExecutor_Execute_CancelledDuringTheProcessingRowRunsNoStep(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	h := newWritesHarness(t, func(context.Context, NodeExecutionParams) (*NodeExecutionResult, error) {
+		t.Error("the step ran on a cancelled run")
+		return nil, errors.New("ran")
+	}, nil)
+
+	h.repo.EXPECT().CreateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).
+		DoAndReturn(func(context.Context, string, *domain.NodeExecution) error {
+			cancel()
+			return context.Canceled
+		})
+	h.repo.EXPECT().UpdateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).
+		DoAndReturn(func(wctx context.Context, _ string, ne *domain.NodeExecution) error {
+			live(t, wctx)
+			assert.Equal(t, domain.NodeActionFailed, ne.Action)
+			assert.NotNil(t, ne.CompletedAt)
+			return nil
+		})
+	// No journey write: it stays on X, due when its claim ends.
+
+	require.NoError(t, h.executor.Execute(ctx, writesWorkspace, h.ca))
+	assert.Equal(t, 0, h.ca.RetryCount)
+}
+
+// A save that fails after a step a shutdown let finish is retried on a context the
+// cancellation did not end, as the step's other writes are.
+func TestAutomationExecutor_Execute_FailedSaveOnACancelledRun(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	y := "y"
+	h := newWritesHarness(t, func(context.Context, NodeExecutionParams) (*NodeExecutionResult, error) {
+		cancel() // the shutdown lands while the step runs; its work is done
+		return &NodeExecutionResult{NextNodeID: &y, Status: domain.ContactAutomationStatusActive}, nil
+	}, &y)
+
+	h.expectProcessingRow(t, "x")
+	gomock.InOrder(
+		h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).
+			DoAndReturn(func(wctx context.Context, _ string, _ *domain.ContactAutomation) (bool, error) {
+				live(t, wctx)
+				return false, errors.New("db down")
+			}),
+		h.repo.EXPECT().UpdateNodeExecution(gomock.Any(), writesWorkspace, gomock.Any()).
+			DoAndReturn(func(wctx context.Context, _ string, ne *domain.NodeExecution) error {
+				live(t, wctx)
+				assert.Equal(t, domain.NodeActionCompleted, ne.Action)
+				return nil
+			}),
+		h.repo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), writesWorkspace, gomock.Any()).
+			DoAndReturn(func(wctx context.Context, _ string, ca *domain.ContactAutomation) (bool, error) {
+				live(t, wctx)
+				assert.Equal(t, "y", *ca.CurrentNodeID)
+				assert.Equal(t, 1, ca.RetryCount)
+				return true, nil
+			}),
+	)
+
+	require.NoError(t, h.executor.Execute(ctx, writesWorkspace, h.ca))
 }

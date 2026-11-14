@@ -140,7 +140,7 @@ func (s *AutomationScheduler) processBatch(ctx context.Context) {
 
 	if err != nil {
 		s.batchErrors.log(s.logger.WithField("error", err.Error()).WithField("elapsed", elapsed),
-			err.Error(), "Failed to process automation batch")
+			"Failed to process automation batch")
 	} else if processed > 0 {
 		s.logger.WithField("processed", processed).
 			WithField("elapsed", elapsed).

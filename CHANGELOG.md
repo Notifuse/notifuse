@@ -30,7 +30,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: A journey whose saved context is not a JSON object no longer stops the automations of its workspace.
 
-- **Fix**: When saving a journey's last step fails, the journey now ends as that step decided, counted in the automation's completed or exited total, with its end in the contact's activity.
+- **Fix**: When saving a journey's last step fails and the journey has a retry left, it ends as that step decided, counted in the automation's completed or exited total, with its end in the contact's activity.
 
 - **Fix**: A journey ended by a reply or by its automation's deletion while one of its steps runs is no longer counted as completed or failed, nor shown as such in the contact's activity.
 
@@ -40,7 +40,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The Docker Compose files give Notifuse 75 seconds to stop instead of Docker's default 10, so the work under way (an automation step, emails being sent, web analytics visits) finishes before the container exits. It applies once the container is recreated, for example by `docker compose up -d`. With your own Compose file, `docker run` or Kubernetes, set `stop_grace_period: 75s`, `--stop-timeout 75` or `terminationGracePeriodSeconds: 75` on the Notifuse container.
 
-- **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone. A shutdown hands back the journeys it has not run yet, due at once, and a claim that keeps failing is logged once every 5 minutes.
+- **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone. A shutdown hands back the journeys it has not run yet, due at once, and a claim that keeps failing is logged as an error once every 5 minutes.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 

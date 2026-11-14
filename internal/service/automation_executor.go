@@ -90,18 +90,26 @@ func (e *AutomationExecutor) drainTimeout() time.Duration {
 	return automationShutdownDrain
 }
 
-// afterStepWriteTimeout bounds each write that records a step once it has run. These writes
-// outlive a cancelled run (a shutdown), since the step's work is done and a journey left on the
-// step would run it again after the restart.
+// afterStepWriteTimeout is how long the writes that record a step go on once the run is
+// cancelled (a shutdown): the step's work is done, and a journey left on the step would run it
+// again after the restart. While the run is live they have no deadline of their own, as the
+// run's other writes.
 const afterStepWriteTimeout = 5 * time.Second
 
 // releaseClaimsTimeout bounds the release of the claims a cancelled batch did not run.
 const releaseClaimsTimeout = 3 * time.Second
 
-// writeContext returns a context for a write that records what a step did: it is not cancelled
-// with the run, and is bounded by afterStepWriteTimeout.
+// writeContext returns a context for the writes that record what a step did: it is not
+// cancelled with the run, but afterStepWriteTimeout after the run's context is done.
 func writeContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.WithoutCancel(ctx), afterStepWriteTimeout)
+	writeCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	stop := context.AfterFunc(ctx, func() {
+		time.AfterFunc(afterStepWriteTimeout, cancel)
+	})
+	return writeCtx, func() {
+		stop()
+		cancel()
+	}
 }
 
 // Execute processes a contact through their automation nodes until a delay or completion.
@@ -136,8 +144,9 @@ func (e *AutomationExecutor) execute(ctx context.Context, stop <-chan struct{}, 
 		return nil
 	}
 
-	// No current node: the journey's last step ran (its save failed and was retried). It ends
-	// as that step decided: exited with the reason it gave, else completed.
+	// No current node: the journey's last step ran and the journey was left active, because
+	// its save failed and was retried, or because that step was a delay that has now ended.
+	// It ends as that step decided: exited with the reason it gave, else completed.
 	if contactAutomation.CurrentNodeID == nil {
 		if contactAutomation.ExitReason != nil {
 			return e.markAsExited(ctx, workspaceID, contactAutomation, *contactAutomation.ExitReason)
@@ -177,6 +186,13 @@ func (e *AutomationExecutor) execute(ctx context.Context, stop <-chan struct{}, 
 		nodeExecution := e.createNodeExecution(contactAutomation, node, domain.NodeActionProcessing)
 		nodeStartTime := time.Now()
 		_ = e.automationRepo.CreateNodeExecution(ctx, workspaceID, nodeExecution)
+		// A run cancelled while the row was written runs no step: a step that does not read
+		// the context (trigger, delay, A/B split) would otherwise be saved with no row of its
+		// own. The row, if written, is closed as a step cut short.
+		if ctx.Err() != nil {
+			e.recordStepFailure(ctx, workspaceID, nodeExecution, ctx.Err())
+			return nil
+		}
 
 		// Build context from previous node executions
 		executionContext, err := e.buildContextFromNodeExecutions(ctx, workspaceID, contactAutomation.ID)
@@ -333,8 +349,9 @@ func (e *AutomationExecutor) recordStep(
 // retryAfterFailedSave schedules a retry when the journey's save failed after its step ran. The
 // retry goes on from the step that comes next, so the step is not run again. A journey that the
 // step ended stays active with no current node, so the retry ends it the way the step decided
-// (Execute: exited with its reason, else completed). No failed execution is written: no step
-// failed, and retry_count and last_error record the failure.
+// (Execute: exited with its reason, else completed). The save failure spends a retry like any
+// other (recordFailure): a journey with no retry left fails. No failed execution is written: no
+// step failed, and retry_count and last_error record the failure.
 func (e *AutomationExecutor) retryAfterFailedSave(ctx context.Context, workspaceID string, ca *domain.ContactAutomation, stepScheduledAt *time.Time, saveErr error) error {
 	if ca.Status == domain.ContactAutomationStatusExited && ca.ExitReason == nil {
 		reason := "exited"
@@ -362,7 +379,7 @@ func (e *AutomationExecutor) ProcessBatch(ctx context.Context, limit int) (int, 
 			return 0, fmt.Errorf("failed to get scheduled contacts: %w", err)
 		}
 		// Some workspaces failed; run what the others gave.
-		e.claimErrors.log(e.logger.WithField("error", err.Error()), err.Error(),
+		e.claimErrors.log(e.logger.WithField("error", err.Error()),
 			"Failed to claim scheduled contacts in some workspaces")
 	}
 

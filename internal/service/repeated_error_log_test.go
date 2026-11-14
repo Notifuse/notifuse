@@ -10,6 +10,8 @@ import (
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
+// Within the window every failure goes to Debug, whatever its text (the caller's entry carries
+// the error); the first one after the window is logged at Error and opens a new window.
 func TestRepeatedErrorLog(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	log := pkgmocks.NewMockLogger(ctrl)
@@ -21,21 +23,20 @@ func TestRepeatedErrorLog(t *testing.T) {
 	gomock.InOrder(
 		log.EXPECT().Error("first"),
 		log.EXPECT().Debug("again within the window"),
-		log.EXPECT().Error("another text"),
-		log.EXPECT().Error("the first text again"),
-		log.EXPECT().Debug("still within the new window"),
+		log.EXPECT().Debug("still within the window"),
 		log.EXPECT().Error("after the window"),
+		log.EXPECT().Debug("within the new window"),
 	)
 
-	l.log(log, "boom", "first")
-	clock = clock.Add(repeatedErrorWindow - time.Second)
-	l.log(log, "boom", "again within the window")
-	l.log(log, "other", "another text")
-	l.log(log, "boom", "the first text again")
-	clock = clock.Add(repeatedErrorWindow - time.Second)
-	l.log(log, "boom", "still within the new window")
+	l.log(log, "first")
+	clock = clock.Add(repeatedErrorWindow / 2)
+	l.log(log, "again within the window")
+	clock = clock.Add(repeatedErrorWindow/2 - time.Second)
+	l.log(log, "still within the window")
 	clock = clock.Add(time.Second)
-	l.log(log, "boom", "after the window")
+	l.log(log, "after the window")
+	clock = clock.Add(repeatedErrorWindow - time.Second)
+	l.log(log, "within the new window")
 }
 
 func TestRepeatedErrorLog_ZeroValueUsesTheWallClock(t *testing.T) {
@@ -47,8 +48,8 @@ func TestRepeatedErrorLog_ZeroValueUsesTheWallClock(t *testing.T) {
 	)
 
 	var l repeatedErrorLog
-	l.log(log, "boom", "first")
-	l.log(log, "boom", "second")
+	l.log(log, "first")
+	l.log(log, "second")
 }
 
 var _ logger.Logger = (*pkgmocks.MockLogger)(nil)
