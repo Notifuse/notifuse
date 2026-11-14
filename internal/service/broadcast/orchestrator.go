@@ -984,7 +984,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			case domain.BroadcastStatusProcessing:
 				if broadcast.WinningTemplate != nil {
 					// Winner already selected, proceed to winner phase
-					broadcastState.Phase = "winner"
+					enterWinnerPhase(broadcastState)
 				} else {
 					// Start test phase
 					broadcastState.Phase = "test"
@@ -1018,7 +1018,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				broadcastState.Phase = "test"
 			case domain.BroadcastStatusWinnerSelected:
 				// Winner has been selected, proceed to winner phase
-				broadcastState.Phase = "winner"
+				enterWinnerPhase(broadcastState)
 			}
 		}
 	} else {
@@ -1048,7 +1048,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// not loaded: the queue sender picks at random among the templates it holds.
 	if broadcastState.Phase == "test" {
 		if broadcast.WinningTemplate != nil || broadcast.Status == domain.BroadcastStatusWinnerSelected {
-			broadcastState.Phase = "winner"
+			enterWinnerPhase(broadcastState)
 		}
 	}
 
@@ -1237,7 +1237,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 			// If currently in test phase and a winner was selected meanwhile, transition to winner phase
 			if broadcastState.Phase == "test" && (broadcast.WinningTemplate != nil || broadcast.Status == domain.BroadcastStatusWinnerSelected) {
-				broadcastState.Phase = "winner"
+				enterWinnerPhase(broadcastState)
 				recipientLimit = broadcastState.TotalRecipients
 				o.logger.WithFields(map[string]interface{}{
 					"broadcast_id": broadcast.ID,
@@ -1257,7 +1257,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			// IMPORTANT: Check if winner has already been selected to avoid race condition
 			if broadcast.WinningTemplate != nil || broadcast.Status == domain.BroadcastStatusWinnerSelected {
 				// Winner already selected - don't overwrite status, transition to winner phase
-				broadcastState.Phase = "winner"
+				enterWinnerPhase(broadcastState)
 				// Update phase-specific variables after phase transition
 				recipientLimit = broadcastState.TotalRecipients
 				// Get winning template as string for logging
@@ -1301,7 +1301,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				// Check if winner has already been selected to avoid race condition
 				if broadcast.WinningTemplate != nil || broadcast.Status == domain.BroadcastStatusWinnerSelected {
 					// Winner already selected - transition to winner phase
-					broadcastState.Phase = "winner"
+					enterWinnerPhase(broadcastState)
 					// Update phase-specific variables after phase transition
 					recipientLimit = broadcastState.TotalRecipients
 					// Get winning template as string for logging
@@ -1378,7 +1378,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				// Check if winner has already been selected to avoid race condition
 				if broadcast.WinningTemplate != nil || broadcast.Status == domain.BroadcastStatusWinnerSelected {
 					// Winner already selected - transition to winner phase
-					broadcastState.Phase = "winner"
+					enterWinnerPhase(broadcastState)
 					// Update phase-specific variables after phase transition
 					recipientLimit = broadcastState.TotalRecipients
 					// Get winning template as string for logging
@@ -1672,6 +1672,8 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 		// Set final enqueued count on the broadcast (included in atomic update)
 		broadcast.EnqueuedCount = broadcastState.EnqueuedCount
+		// A copy SelectWinner wrote may still hold no phase counts
+		setPhaseRecipientCounts(broadcast, broadcastState)
 
 		// Save the updated broadcast (includes enqueued_count atomically)
 		updateErr := o.broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
@@ -1710,6 +1712,34 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	}).Info("Broadcast processing cycle completed")
 	// codecov:ignore:end
 	return allDone, err
+}
+
+// enterWinnerPhase moves the run to the winner phase and records, the first time,
+// the offset it starts from: what the test phase actually sent, which a winner
+// picked early cuts short of the planned sample.
+func enterWinnerPhase(state *domain.SendBroadcastState) {
+	state.Phase = "winner"
+	if state.WinnerPhaseStartOffset == nil {
+		start := state.RecipientOffset
+		state.WinnerPhaseStartOffset = &start
+	}
+}
+
+// setPhaseRecipientCounts puts the A/B test and winner recipient counts on the
+// broadcast the run is about to write. The run reads the broadcast again before
+// each batch, so counts set when they were worked out would not reach the copy
+// written. In the winner phase they are what each phase sent; before it, or for a
+// state saved before the winner phase start was recorded, the planned split. A
+// broadcast with one template keeps 0 for both.
+func setPhaseRecipientCounts(broadcast *domain.Broadcast, state *domain.SendBroadcastState) {
+	if state.Phase == "winner" && state.WinnerPhaseStartOffset != nil {
+		start := *state.WinnerPhaseStartOffset
+		broadcast.TestPhaseRecipientCount = int(start)
+		broadcast.WinnerPhaseRecipientCount = int(state.RecipientOffset - start)
+		return
+	}
+	broadcast.TestPhaseRecipientCount = state.TestPhaseRecipientCount
+	broadcast.WinnerPhaseRecipientCount = state.WinnerPhaseRecipientCount
 }
 
 // handleTestPhaseCompletion handles the transition from test phase to test_completed status
@@ -1756,6 +1786,7 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 		if broadcast.TestSentAt == nil {
 			broadcast.TestSentAt = &now
 		}
+		setPhaseRecipientCounts(broadcast, broadcastState)
 		return o.broadcastRepo.UpdateBroadcastTx(context.Background(), tx, broadcast)
 	})
 	if err != nil {
@@ -1780,7 +1811,7 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 
 	if concurrent != nil {
 		// Winner was selected concurrently; transition to winner phase instead of marking test_completed
-		broadcastState.Phase = "winner"
+		enterWinnerPhase(broadcastState)
 		winningTemplate := ""
 		if concurrent.WinningTemplate != nil {
 			winningTemplate = *concurrent.WinningTemplate
@@ -1854,7 +1885,7 @@ func (o *BroadcastOrchestrator) evaluateWinner(ctx context.Context, broadcast *d
 	}
 
 	// Update task state to proceed to winner phase
-	broadcastState.Phase = "winner"
+	enterWinnerPhase(broadcastState)
 
 	o.logger.WithFields(map[string]interface{}{
 		"broadcast_id":    broadcast.ID,

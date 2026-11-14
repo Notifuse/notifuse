@@ -197,6 +197,14 @@ func testCompleteABTestingFlow(t *testing.T, client *testutil.APIClient, factory
 		assert.Contains(t, []string{"processed", "completed", "winner_selected"}, finalStatus,
 			"Broadcast should reach processed, completed, or winner_selected state")
 
+		// Step 11: once the winner phase is sent, the broadcast gives the size of
+		// each phase: half of the 20 contacts for the test, the other half after.
+		// winner_selected comes before the run's final save, so wait for processed.
+		processedStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
+			[]string{"processed"}, 60*time.Second)
+		require.NoError(t, err)
+		require.Equal(t, "processed", processedStatus)
+
 		// Verify winning template is set
 		finalBroadcastResp, err := client.GetBroadcast(broadcastID)
 		require.NoError(t, err)
@@ -210,6 +218,8 @@ func testCompleteABTestingFlow(t *testing.T, client *testutil.APIClient, factory
 		if winningTemplate, ok := finalBroadcastData["winning_template"]; ok && winningTemplate != nil {
 			assert.Equal(t, template1.ID, winningTemplate.(string))
 		}
+		assert.EqualValues(t, 10, finalBroadcastData["test_phase_recipient_count"])
+		assert.EqualValues(t, 10, finalBroadcastData["winner_phase_recipient_count"])
 	})
 }
 

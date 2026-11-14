@@ -46,7 +46,7 @@ import { listsApi } from '../../services/api/list'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { emailProviders } from '../integrations/EmailProviders'
+import { emailProviders, getProviderName } from '../integrations/EmailProviders'
 import { SupabaseIntegration } from '../integrations/SupabaseIntegration'
 import { LLMIntegration } from '../integrations/LLMIntegration'
 import { llmProviders, getLLMProviderIcon, getLLMProviderName } from '../integrations/LLMProviders'
@@ -140,6 +140,9 @@ const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailPr
 // Main Integrations component
 export function Integrations({ workspace, onSave, loading, isOwner }: IntegrationsProps) {
   const { t } = useLingui()
+  // The title of every integration drawer, with the provider's name as the catalogue writes it.
+  const drawerTitle = (editing: boolean, name: string) =>
+    editing ? t`Edit ${name} integration` : t`Add ${name} integration`
   const { int } = useNumberFormat()
   const { modal } = App.useApp()
   // Advisory only; EnsureTenantIsolation is the gate. A tenant that already exists keeps
@@ -1951,11 +1954,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
     return (
       <Drawer
-        title={
-          editingIntegrationId
-            ? `Edit ${selectedProviderType?.toUpperCase() || ''} Integration`
-            : `Add New ${selectedProviderType?.toUpperCase() || ''} Integration`
-        }
+        title={drawerTitle(Boolean(editingIntegrationId), getProviderName(selectedProviderType ?? ''))}
         size={600}
         open={providerDrawerVisible}
         onClose={closeProviderDrawer}
@@ -2150,9 +2149,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
       {/* Supabase Integration Drawer */}
       <Drawer
-        title={
-          editingSupabaseIntegration ? 'Edit SUPABASE Integration' : 'Add New SUPABASE Integration'
-        }
+        title={drawerTitle(Boolean(editingSupabaseIntegration), getProviderName('supabase'))}
         size={600}
         open={supabaseDrawerVisible}
         onClose={() => {
@@ -2194,11 +2191,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
       {/* LLM Integration Drawer */}
       <Drawer
-        title={
-          editingLLMIntegration
-            ? `Edit ${getLLMProviderName(selectedLLMProvider || 'anthropic').toUpperCase()} Integration`
-            : `Add New ${getLLMProviderName(selectedLLMProvider || 'anthropic').toUpperCase()} Integration`
-        }
+        title={drawerTitle(Boolean(editingLLMIntegration), getLLMProviderName(selectedLLMProvider || 'anthropic'))}
         size={600}
         open={llmDrawerVisible}
         onClose={() => {
@@ -2245,9 +2238,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
       {/* Firecrawl Integration Drawer */}
       <Drawer
-        title={
-          editingFirecrawlIntegration ? 'Edit Firecrawl Integration' : 'Add Firecrawl Integration'
-        }
+        title={drawerTitle(Boolean(editingFirecrawlIntegration), 'Firecrawl')}
         size={600}
         open={firecrawlDrawerVisible}
         onClose={() => {
