@@ -932,7 +932,7 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 
 ## Lot 5: the public blog (robots, sitemap, feeds, cache) and the blog API
 
-Reviewed before code (to be filled in after the review). No schema change.
+Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot5-6-plan-review.md`; corrections in "Corrections after the plan review (lot 5)"). No schema change.
 
 ### 5.1 robots.txt and the sitemap answer as the feeds do
 
@@ -1095,7 +1095,7 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 
 ## Lot 6: templates, the plain-text version, the visual editor's MJML, system emails
 
-Reviewed before code (to be filled in after the review). No schema change.
+Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot5-6-plan-review.md`; corrections in "Corrections after the plan review (lot 6)"). No schema change.
 
 ### 6.1 The automatic plain-text version (`pkg/plaintext`)
 
@@ -1166,8 +1166,9 @@ the parts' order.
 
 - `email_service_test.go:2831`: the translation's sender is not the integration's default, so a fall back to
   the default fails the From assertion.
-- The translation's own sender wins on the broadcast queue sender, the automation email node and the template
-  test send: one sub-test each.
+- The translation's own sender wins on the broadcast queue sender and the automation email node: one sub-test
+  each. The template test send takes the sender chosen in the dialog, not the translation's (code review: the
+  endpoint sends from the address the dialog shows), and its sub-test pins that.
 - An integration test sends a message through the SMTP bridge with a `Reply-To` to a template that has its own
   reply-to, and reads which one Mailpit received.
 - The List-Unsubscribe header tests get a row with tracking off (`tracking_mode = no_tracking`).
@@ -1213,6 +1214,24 @@ read, without a lookup per variation."
 - **6.8** `templates.usage` and the stored translation's text fold into their 44.0 lines; no `broadcasts.get`
   line.
 
+### Corrections after the code review (lot 6, round 1)
+
+Review: `/mnt/project-files/reviews/grouped-pr-lot6-code-review.md`, of 6c590c7.
+
+- B1: the stray-winner comments of `templates.usage` (repository and integration test) now say what the code
+  does: a winner that is none of the variations counts the variations, as `VariationsToSend` reads them, while
+  the orchestrator sends the winner's own template. That gap goes to "known, not handled".
+- B2: `UpdateTemplate` validates the merged translations when the edit changes the channel, so a `web` template
+  carrying email translations is refused as in 43.0. Test: "a change of channel checks the translations it
+  carries over".
+- B3, B4, B5: the comments of `plainTextVersion`, of the hand-written gomjml attributes (both places, now
+  wrapped) and of `trailingPunctuation` (and this repository's plain-text plan) are corrected.
+- Minors taken: the OpenAPI `text_error` and `templates.usage` descriptions; the `MjmlSource` check matches
+  `CompileTemplate` (an empty source compiles the tree), with a test; the unreadable template is no longer the
+  last variation in the `GetBroadcast` test; the cut CHANGELOG sentence. Left in "known, not handled": the
+  `socialLabelLink` hidden checks and untested guards, `liquidAmongBlocks` on an `mj-raw` in a section, the
+  `HandleUpdate` options matched with `gomock.Any()`, and the console notice prefix (lot 8 looks at it).
+
 ## Test commands for lot 6
 
 ```
@@ -1222,7 +1241,7 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 
 ## Lot 7: analytics, contacts and visits, the timeline, the demo, the audit log, the test helpers
 
-Reviewed before code (to be filled in after the review). No schema change.
+Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot7-9-plan-review.md`; corrections after lot 9). No schema change.
 
 ### 7.1 Analytics
 
@@ -1320,7 +1339,7 @@ INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integratio
 
 ## Lot 8: console
 
-Reviewed before code (to be filled in after the review). Every user-facing string goes through Lingui and is
+Reviewed before code (Opus xhigh, `/mnt/project-files/reviews/grouped-pr-lot7-9-plan-review.md`; corrections after lot 9). Every user-facing string goes through Lingui and is
 translated in the eight catalogues (`console/CLAUDE.md`). Each point gets a vitest test next to its component
 (created when the component has none), written first. Paths are under `console/src/`.
 

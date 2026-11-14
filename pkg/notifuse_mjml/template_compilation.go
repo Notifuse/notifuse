@@ -109,8 +109,10 @@ func preprocessMjmlForXML(mjmlString string) string {
 	// rich-text link saved as href="…?q=&quot;exact&quot;" reached the HTML as
 	// href="…?q="exact"", which ends the URL at "q=". v0.14.1 leaves entities
 	// inside quoted attribute values to its XML parser and escapes most of the
-	// attributes it writes, not those it builds by hand (the section's bgcolor,
-	// mj-font's href, the carousel's href, src and alt) nor inline style values.
+	// attributes it writes, not those it builds by hand (among them the
+	// section's bgcolor, mj-font's href, the carousel image's href, src, alt and
+	// title, the thumbnail link's target and class, <html lang dir>) nor inline
+	// style values.
 	// The doubling below (&amp;quot;, the way escapeAttributeValue does for
 	// visual-editor attributes) still comes back as &quot; through
 	// decodeHTMLEntitiesInURLAttributes after the render, so the output is the
@@ -744,8 +746,9 @@ func NormalizeCustomText(text *string) *string {
 
 // plainTextVersion decides the plain-text version of an email compile from its final
 // HTML. A custom text is rendered with the same rules as the subject; when that fails,
-// renders blank or too large, the email keeps the automatic text and TextError says why
-// (blank is not an error: a condition chose to say nothing). The automatic text is only
+// renders blank or too large, the email keeps the automatic text and TextError says why.
+// Blank sets TextError only when the request asks for the text, as the preview does: on a
+// send it is no error, a condition chose to say nothing. The automatic text is only
 // generated here when the request asked for it; a send leaves it to SendEmail.
 func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *string, source string, textErr string) {
 	if custom := NormalizeCustomText(req.Text); custom != nil {
@@ -772,7 +775,7 @@ func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *str
 	if req.PreserveLiquid && textErr == "" {
 		if err := ValidateLiquidSyntax(auto); err != nil {
 			textErr = err.Error()
-		} else if req.MjmlSource == nil && liquidAmongBlocks(req.VisualEditorTree) {
+		} else if (req.MjmlSource == nil || *req.MjmlSource == "") && liquidAmongBlocks(req.VisualEditorTree) {
 			textErr = "Liquid placed between the blocks of a section or a column may not land where it applies in the text version: check it before saving"
 		}
 	}

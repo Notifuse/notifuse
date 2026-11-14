@@ -476,9 +476,12 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 
 	// Validate the template with the translations this edit sends: the stored ones it carries
 	// over were valid when saved, and checking them again would refuse a save that never
-	// touched them (a later rule, other test data).
+	// touched them (a later rule, other test data). A change of channel is the exception: the
+	// carried translations were valid for the old channel only, so the merged map is checked.
 	merged := template.Translations
-	template.Translations = requestedTranslations
+	if template.Channel == existingTemplate.Channel {
+		template.Translations = requestedTranslations
+	}
 	err = template.Validate()
 	template.Translations = merged
 	if err != nil {

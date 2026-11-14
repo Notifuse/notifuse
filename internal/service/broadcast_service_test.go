@@ -801,9 +801,13 @@ func TestBroadcastService_GetBroadcast_WithTemplates(t *testing.T) {
 		log := pkgmocks.NewMockLogger(d.ctrl)
 		d.svc.logger = log
 		authAs(d.authService, ctx, workspaceID, "member", broadcastsAndTemplatesRead)
-		d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(withVariations(), nil)
+		// The unreadable template is not the last: the variation after it still gets its own.
+		broadcast := withVariations()
+		broadcast.TestSettings.Variations = append(broadcast.TestSettings.Variations, domain.BroadcastVariation{VariationName: "C", TemplateID: "tplC"})
+		d.repo.EXPECT().GetBroadcast(ctx, workspaceID, broadcastID).Return(broadcast, nil)
 		d.templateSvc.EXPECT().GetTemplateByID(ctx, workspaceID, "tplA", int64(0)).Return(&domain.Template{ID: "tplA"}, nil)
 		d.templateSvc.EXPECT().GetTemplateByID(ctx, workspaceID, "tplB", int64(0)).Return(nil, errors.New("template error"))
+		d.templateSvc.EXPECT().GetTemplateByID(ctx, workspaceID, "tplC", int64(0)).Return(&domain.Template{ID: "tplC"}, nil)
 		log.EXPECT().WithFields(map[string]interface{}{
 			"error": "template error", "broadcast_id": broadcastID, "template_id": "tplB",
 		}).Return(log)
@@ -815,6 +819,8 @@ func TestBroadcastService_GetBroadcast_WithTemplates(t *testing.T) {
 		require.NotNil(t, b.TestSettings.Variations[0].Template)
 		assert.Equal(t, "tplA", b.TestSettings.Variations[0].Template.ID)
 		assert.Nil(t, b.TestSettings.Variations[1].Template)
+		require.NotNil(t, b.TestSettings.Variations[2].Template)
+		assert.Equal(t, "tplC", b.TestSettings.Variations[2].Template.ID)
 	})
 
 	// The strict mocks refuse any template lookup and any log.

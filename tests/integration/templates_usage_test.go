@@ -162,12 +162,14 @@ func TestTemplatesUsage(t *testing.T) {
 		require.NoError(t, err)
 		won, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusWinnerSelected, "A/B won by A", a.ID, b.ID), winner(a.ID))
 		require.NoError(t, err)
-		// A winner that is none of the variations: every variation may still send, as the sender reads it.
+		// A winner that is none of the variations counts every variation, as VariationsToSend
+		// reads it. The orchestrator would send the winner's own template, which this does not
+		// count (known, not handled).
 		strayWinner, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusWinnerSelected, "A/B stray winner", a.ID, b.ID), winner(tid))
 		require.NoError(t, err)
 
 		all := usage(t, map[string]string{})["usage"].(map[string]interface{})
-		assert.Equal(t, float64(3), all[a.ID].(map[string]interface{})["broadcasts"], "the winner, and both A/B tests still open")
+		assert.Equal(t, float64(3), all[a.ID].(map[string]interface{})["broadcasts"], "the broadcast A won, the open A/B test and the one with a stray winner")
 		assert.Equal(t, float64(2), all[b.ID].(map[string]interface{})["broadcasts"], "not the broadcast A won")
 
 		refs := func(id string) []string {
@@ -182,7 +184,8 @@ func TestTemplatesUsage(t *testing.T) {
 		assert.ElementsMatch(t, []string{inTest.ID, won.ID, strayWinner.ID}, refs(a.ID))
 		assert.ElementsMatch(t, []string{inTest.ID, strayWinner.ID}, refs(b.ID))
 
-		// The template the stray winner names counts that broadcast only through its variations.
+		// The template the stray winner names is not counted for that broadcast: only its
+		// variations are.
 		assert.Equal(t, float64(1), all[tid].(map[string]interface{})["broadcasts"])
 	})
 

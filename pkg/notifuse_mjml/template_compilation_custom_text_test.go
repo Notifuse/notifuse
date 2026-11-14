@@ -328,6 +328,17 @@ func TestCompileTemplate_CustomTextSeed(t *testing.T) {
 		assert.Equal(t, amongBlocks, resp.TextError)
 	})
 
+	t.Run("an empty mjml_source compiles the tree, which is checked", func(t *testing.T) {
+		empty := ""
+		resp := seed(t, CompileTemplateRequest{MjmlSource: &empty, VisualEditorTree: columnTree(
+			rawBlock("open", "{% for item in order.items %}"),
+			textBlock("item", "<p>{{ item.name }}</p>"),
+			rawBlock("close", "{% endfor %}"),
+		)})
+		require.True(t, resp.Success, "%+v", resp.Error)
+		assert.Equal(t, amongBlocks, resp.TextError)
+	})
+
 	t.Run("an mj-liquid block in a column is flagged", func(t *testing.T) {
 		resp := seed(t, CompileTemplateRequest{VisualEditorTree: columnTree(
 			textBlock("intro", "<p>Intro</p>"),

@@ -28,8 +28,11 @@ const (
 )
 
 // templateUsageSendable keeps the variations a broadcast can still send, as
-// domain.Broadcast.VariationsToSend does: the winning one once a winner is chosen, every
-// one before (and every one when the winner is not among them).
+// domain.Broadcast.VariationsToSend reads them: the winning one once a winner is chosen,
+// every one before, and every one when the winner is not among them. The orchestrator's
+// winner phase sends winning_template itself, so a winner that is none of the variations is
+// sent while this counts the variations instead (known, not handled: a paused broadcast whose
+// variations were replaced after its winner was chosen).
 const templateUsageSendable = `(COALESCE(b.winning_template, '') = ''
 	OR v.elem->>'template_id' = b.winning_template
 	OR NOT EXISTS (SELECT 1 FROM ` + templateUsageVariations + ` AS w(elem) WHERE w.elem->>'template_id' = b.winning_template))`

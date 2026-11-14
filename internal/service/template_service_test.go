@@ -2662,6 +2662,25 @@ func TestTemplateService_UpdateTemplate_AbsentFields(t *testing.T) {
 		require.NoError(t, svc.UpdateTemplate(ctx, workspaceID, newIncoming()))
 	})
 
+	t.Run("a change of channel checks the translations it carries over", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		svc, mockRepo, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		incoming := newIncoming()
+		incoming.Channel = "web"
+		incoming.Email = nil
+		incoming.Web = &domain.WebTemplate{Content: domain.MapOfAny{"type": "doc"}, HTML: "<p>New</p>"}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, writePerms, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(newStored(nil, "fr"), nil)
+		// No UpdateTemplate: a web template carrying email translations is not saved.
+
+		err := svc.UpdateTemplate(ctx, workspaceID, incoming)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "email content not allowed for web channel")
+	})
+
 	t.Run("a translation the edit sends is validated, and its refusal names it", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
