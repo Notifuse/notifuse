@@ -3,7 +3,7 @@ import ReactECharts from 'echarts-for-react'
 import { Empty, Segmented, Skeleton } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Panel, useNumberFormat } from '../layout'
-import { colors } from '../../theme/tokens'
+import { colors, typography } from '../../theme/tokens'
 import { BlockError } from './BlockError'
 import { buildOriginChart } from './originChart'
 import type { DashboardMetric } from './dashboardSearch'
@@ -82,7 +82,7 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
         itemWidth: 9,
         itemHeight: 9,
         icon: 'roundRect',
-        textStyle: { fontSize: 11.5, color: colors.ink2 }
+        textStyle: { fontSize: typography.size['2xs'], color: colors.ink2 }
       },
       tooltip: {
         trigger: 'axis',
@@ -104,14 +104,14 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
         data: labels,
         axisTick: { show: false },
         axisLine: { lineStyle: { color: colors.line } },
-        axisLabel: { fontSize: 10.5, color: colors.ink3, hideOverlap: true }
+        axisLabel: { fontSize: typography.size.overline, color: colors.ink3, hideOverlap: true }
       },
       yAxis: {
         type: chart.log ? 'log' : 'value',
         minInterval: 1,
         splitLine: { lineStyle: { color: colors.gray[100] } },
         axisLabel: {
-          fontSize: 10.5,
+          fontSize: typography.size.overline,
           color: colors.ink3,
           formatter: (value: number) => compact(value)
         }

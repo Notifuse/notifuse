@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 import type { AnalyticsQuery } from '../../services/api/analytics'
 import type { StoredPermissions } from '../../services/api/permissions'
 import type { Workspace } from '../../services/api/types'
+import { queryPlan } from '../../__tests__/queryPlan'
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }))
 vi.mock('./dashboardClient', () => ({
@@ -204,6 +205,109 @@ describe('DashboardKpis', () => {
     expect(screen.queryByText(/over \d+ d/)).not.toBeInTheDocument()
     // The figures of the period before stay on screen meanwhile.
     expect(screen.getByText('18,342')).toBeInTheDocument()
+  })
+
+  describe('each guard on its own', () => {
+    const strip = (client: QueryClient, shown: DashboardPeriods, seriesPlaceholder = false) => (
+      <QueryClientProvider client={client}>
+        <I18nProvider i18n={i18n}>
+          <DashboardKpis
+            workspace={workspace(true)}
+            permissions={fullPermissions}
+            periods={shown}
+            timezone="Europe/Paris"
+            totals={totals()}
+            seriesError={false}
+            seriesPlaceholder={seriesPlaceholder}
+            onRetrySeries={() => {}}
+          />
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    const newClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    // Everything answers but the visits of the bounds given, which never arrive
+    const visitsPendingFrom = (startUtc: string) =>
+      query.mockImplementation(async (q: AnalyticsQuery) => {
+        const range = q.filters?.find((f) => f.operator === 'inDateRange')?.values
+        if (q.schema === 'web_sessions' && range?.[0] === startUtc) return new Promise(() => {})
+        return answer(q)
+      })
+
+    it('shows no rate change while only the series is the period before', async () => {
+      render(strip(newClient(), periods, true))
+      expect(await screen.findByText('+17.5% vs prev. 30 d')).toBeInTheDocument()
+      expect(screen.queryByText(/pts vs prev\./)).not.toBeInTheDocument()
+    })
+
+    it('shows no visits change while only the current visits are the period before', async () => {
+      const client = newClient()
+      const { rerender } = render(strip(client, periods))
+      expect(await screen.findByText('+17.5% vs prev. 30 d')).toBeInTheDocument()
+      const shifted: DashboardPeriods = {
+        ...periods,
+        current: { ...periods.current, startUtc: '2026-10-12T22:00:00.000Z' }
+      }
+      visitsPendingFrom(shifted.current.startUtc)
+      rerender(strip(client, shifted))
+      await waitFor(() => expect(screen.queryByText('+17.5% vs prev. 30 d')).not.toBeInTheDocument())
+      expect(screen.queryByText(/% vs prev\. 30 d$/)).not.toBeInTheDocument()
+    })
+
+    it('shows no visits change while only the previous visits are the period before', async () => {
+      const client = newClient()
+      const { rerender } = render(strip(client, periods))
+      expect(await screen.findByText('+17.5% vs prev. 30 d')).toBeInTheDocument()
+      const shifted: DashboardPeriods = {
+        ...periods,
+        previous: { ...periods.previous, startUtc: '2026-09-12T22:00:00.000Z' }
+      }
+      visitsPendingFrom(shifted.previous.startUtc)
+      rerender(strip(client, shifted))
+      await waitFor(() => expect(screen.queryByText('+17.5% vs prev. 30 d')).not.toBeInTheDocument())
+    })
+  })
+
+  it('refreshes every block each minute but the previous period, under its own key', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <I18nProvider i18n={i18n}>
+          <DashboardKpis
+            workspace={workspace(true)}
+            permissions={fullPermissions}
+            periods={periods}
+            timezone="Europe/Paris"
+            totals={totals()}
+            seriesError={false}
+            onRetrySeries={() => {}}
+          />
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    await screen.findByText('+17.5% vs prev. 30 d')
+    const { current, previous } = periods
+    expect(queryPlan(client)).toEqual(
+      expect.arrayContaining([
+        {
+          key: ['dashboard', 'previous-rates', 'ws1', 'Europe/Paris', previous.startUtc, previous.endUtc],
+          refetchInterval: false
+        },
+        { key: ['contacts', 'ws1', 'dashboard-total'], refetchInterval: 60_000 },
+        {
+          key: ['contacts', 'ws1', 'dashboard-new', 'Europe/Paris', current.startUtc, current.endUtc],
+          refetchInterval: 60_000
+        },
+        {
+          key: ['dashboard', 'visits', 'ws1', 'Europe/Paris', current.startUtc, current.endUtc],
+          refetchInterval: 60_000
+        },
+        {
+          key: ['dashboard', 'visits', 'ws1', 'Europe/Paris', previous.startUtc, previous.endUtc],
+          refetchInterval: false
+        }
+      ])
+    )
+    expect(queryPlan(client)).toHaveLength(5)
   })
 
   it('asks counts within the period bounds, emails only for the previous rates', async () => {

@@ -7,7 +7,11 @@ const METRIC_FIELD: Record<DashboardMetric, keyof MessageTotals> = {
   clicks: 'clicked'
 }
 
-/** A peak above this many times the median of the non-zero daily values (all origins pooled) calls for a log axis. */
+/**
+ * A peak above this many times the median of the non-zero daily values calls for a log axis. The median pools
+ * every origin but "other" (template tests and double opt-in confirmations), whose few small values would pull it
+ * down; the peak is taken over all of them.
+ */
 const LOG_RATIO = 10
 
 export interface OriginChartData {
@@ -43,11 +47,14 @@ export function buildOriginChart(
     raw[origin] = days.map((day) => byDay.get(day) ?? 0)
   }
 
-  const all = Object.values(raw).flat()
-  const nonZero = all.filter((value) => value > 0)
+  const positive = (values: number[]) => values.filter((value) => value > 0)
+  const nonZero = positive(Object.values(raw).flat())
+  const sends = positive(
+    (Object.keys(raw) as MessageOrigin[]).filter((origin) => origin !== 'other').flatMap((origin) => raw[origin])
+  )
   // Empty when no email left: a period with sends but no click still draws its zeros.
   const empty = Object.values(series).every((points) => points.every((point) => point.sent === 0))
-  const log = nonZero.length > 0 && Math.max(...nonZero) > LOG_RATIO * median(nonZero)
+  const log = nonZero.length > 0 && Math.max(...nonZero) > LOG_RATIO * median(sends.length > 0 ? sends : nonZero)
 
   const values = {} as Record<MessageOrigin, (number | null)[]>
   for (const origin of Object.keys(raw) as MessageOrigin[]) {

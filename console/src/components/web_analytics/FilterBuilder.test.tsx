@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { FilterBuilder } from './FilterBuilder'
 import { WebMetricFilter } from './lib/types'
 
@@ -30,5 +30,31 @@ describe('FilterBuilder metric filter tags', () => {
     expect(screen.getByText(/0\.07%/)).toBeTruthy()
     expect(screen.getByText(/50%/)).toBeTruthy()
     expect(document.body.textContent).not.toMatch(/0000|9999/)
+  })
+})
+
+describe('FilterBuilder metric threshold', () => {
+  const openMetric = async (label: string) => {
+    context.metricFilters = []
+    render(<FilterBuilder allowMetricFilters />)
+    fireEvent.click(screen.getByRole('button', { name: /Add filter/ }))
+    fireEvent.click(await screen.findByRole('button', { name: label }))
+    return screen.getByRole('spinbutton')
+  }
+
+  it('bounds a rate to 100 with one decimal', async () => {
+    const input = await openMetric('Bounce Rate (%)')
+    expect(input).toHaveAttribute('aria-valuemax', '100')
+    fireEvent.change(input, { target: { value: '12.345' } })
+    fireEvent.blur(input)
+    expect(input).toHaveValue('12.3')
+  })
+
+  it('counts a duration in whole seconds, without an upper bound', async () => {
+    const input = await openMetric('TimeScore (seconds)')
+    expect(input).not.toHaveAttribute('aria-valuemax')
+    fireEvent.change(input, { target: { value: '12.6' } })
+    fireEvent.blur(input)
+    expect(input).toHaveValue('13')
   })
 })

@@ -444,7 +444,7 @@ msgstr "{0} oberts"
 #~ msgstr "{0} destinataris a la cua per a un altre intent"
 
 #. placeholder {0}: int(state.rows_updated)
-#: src/components/web_analytics/filters/BackfillStatus.tsx:106
+#: src/components/web_analytics/filters/BackfillStatus.tsx:109
 msgid "{0} rows rewritten"
 msgstr "{0} files reescrites"
 
@@ -753,12 +753,12 @@ msgstr "{goalCount} objectius"
 msgid "{hiddenBlockCount} blocks hidden by their condition with this test data."
 msgstr "{hiddenBlockCount} blocs ocults per la seva condició amb aquestes dades de prova."
 
-#: src/components/web_analytics/lib/format.ts:75
+#: src/components/web_analytics/lib/format.ts:76
 msgid "{hours} h"
 msgstr "{hours} h"
 
 #: src/components/contacts/visits/duration.ts:12
-#: src/components/web_analytics/lib/format.ts:77
+#: src/components/web_analytics/lib/format.ts:78
 msgid "{hours} h {mm} min"
 msgstr "{hours} h {mm} min"
 
@@ -818,13 +818,13 @@ msgstr "{median} de temps mitjà al lloc"
 msgid "{minutes, plural, one {# min read} other {# min read}}"
 msgstr "{minutes, plural, one {# min de lectura} other {# min de lectura}}"
 
-#: src/components/web_analytics/lib/format.ts:69
-#: src/components/web_analytics/lib/format.ts:129
+#: src/components/web_analytics/lib/format.ts:70
+#: src/components/web_analytics/lib/format.ts:141
 msgid "{minutes} min"
 msgstr "{minutes} min"
 
 #: src/components/contacts/visits/duration.ts:14
-#: src/components/web_analytics/lib/format.ts:69
+#: src/components/web_analytics/lib/format.ts:70
 msgid "{minutes} min {seconds} s"
 msgstr "{minutes} min {seconds} s"
 
@@ -935,8 +935,8 @@ msgid "{sampleContacts, plural, one {# contact} other {# contacts}}"
 msgstr "{sampleContacts, plural, one {# contacte} other {# contactes}}"
 
 #: src/components/contacts/visits/duration.ts:15
-#: src/components/web_analytics/lib/format.ts:64
-#: src/components/web_analytics/lib/format.ts:126
+#: src/components/web_analytics/lib/format.ts:65
+#: src/components/web_analytics/lib/format.ts:138
 msgid "{seconds} s"
 msgstr "{seconds} s"
 
@@ -1079,9 +1079,9 @@ msgstr "{what} per setmana"
 msgid "{what} per year"
 msgstr "{what} per any"
 
-#: src/components/messages/MessageHistoryTable.tsx:145
+#: src/components/messages/MessageHistoryTable.tsx:147
 #: src/components/timeline/ContactTimeline.tsx:114
-#: src/utils/formatters.tsx:43
+#: src/utils/formatters.tsx:45
 msgid "{when} in {zone}"
 msgstr "{when} ({zone})"
 
@@ -1247,7 +1247,7 @@ msgstr "30 dies"
 msgid "300 - Light"
 msgstr "300 - Lleuger"
 
-#: src/components/transactional/SendsPerDayChart.tsx:227
+#: src/components/transactional/SendsPerDayChart.tsx:231
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "30d"
 msgstr "30 d"
@@ -1272,7 +1272,7 @@ msgstr "500 - Mitjà"
 msgid "600 - Semi Bold"
 msgstr "600 - Semi negreta"
 
-#: src/components/transactional/SendsPerDayChart.tsx:228
+#: src/components/transactional/SendsPerDayChart.tsx:232
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "60d"
 msgstr "60 d"
@@ -1291,7 +1291,7 @@ msgstr "7 dies"
 msgid "700 - Bold"
 msgstr "700 - Negreta"
 
-#: src/components/transactional/SendsPerDayChart.tsx:226
+#: src/components/transactional/SendsPerDayChart.tsx:230
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "7d"
 msgstr "7 d"
@@ -2406,7 +2406,7 @@ msgstr "S'aplica a cada workspace que no ha definit la seva pròpia retenció i 
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:293
 #: src/components/logs/TextFilter.tsx:28
-#: src/components/web_analytics/explore/MinSessionsInput.tsx:47
+#: src/components/web_analytics/explore/MinSessionsInput.tsx:49
 #: src/components/web_analytics/toolbar.tsx:93
 msgid "Apply"
 msgstr "Aplicar"
@@ -2416,7 +2416,7 @@ msgid "Apply & Recompile"
 msgstr "Aplicar i recompilar"
 
 #: src/components/web_analytics/FilterBuilder.tsx:287
-#: src/components/web_analytics/FilterBuilder.tsx:323
+#: src/components/web_analytics/FilterBuilder.tsx:326
 msgid "Apply filter"
 msgstr "Aplicar filtre"
 
@@ -2903,15 +2903,15 @@ msgstr "Torna a les difusions"
 msgid "Back to Transactional"
 msgstr "Tornar a Transaccional"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:59
+#: src/components/web_analytics/filters/BackfillStatus.tsx:60
 msgid "Backfill cancelled"
 msgstr "Reompliment cancel·lat"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:78
+#: src/components/web_analytics/filters/BackfillStatus.tsx:79
 msgid "Backfill in progress"
 msgstr "Reompliment en curs"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:50
+#: src/components/web_analytics/filters/BackfillStatus.tsx:51
 msgid "Backfill started"
 msgstr "Reompliment iniciat"
 
@@ -3337,7 +3337,7 @@ msgstr "Tipus de rebot"
 #: src/components/logs/MessagesTab.tsx:267
 #: src/components/logs/MessagesTab.tsx:276
 #: src/components/logs/MessagesTab.tsx:926
-#: src/components/messages/MessageHistoryTable.tsx:366
+#: src/components/messages/MessageHistoryTable.tsx:368
 #: src/components/transactional/RecentSends.tsx:40
 #: src/components/transactional/SendsPerDayChart.tsx:50
 #: src/components/transactional/TransactionalDetail.tsx:219
@@ -3426,8 +3426,8 @@ msgstr "difusió"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:366
 #: src/components/broadcasts/BroadcastsTable.tsx:222
-#: src/components/messages/MessageHistoryTable.tsx:155
-#: src/components/messages/MessageHistoryTable.tsx:253
+#: src/components/messages/MessageHistoryTable.tsx:157
+#: src/components/messages/MessageHistoryTable.tsx:255
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:63
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:123
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:126
@@ -3745,7 +3745,7 @@ msgstr "Campanyes"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:210
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
-#: src/components/web_analytics/filters/BackfillStatus.tsx:89
+#: src/components/web_analytics/filters/BackfillStatus.tsx:90
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:99
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:107
 #: src/components/web_analytics/filters/FilterTable.tsx:133
@@ -3763,7 +3763,7 @@ msgstr "Cancel·lar una difusió"
 msgid "Cancel a running backfill"
 msgstr "Cancel·lar un reompliment en curs"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:82
+#: src/components/web_analytics/filters/BackfillStatus.tsx:83
 msgid "Cancel backfill?"
 msgstr "Cancel·lar el reompliment?"
 
@@ -4201,7 +4201,7 @@ msgstr "Clicat"
 #: src/components/logs/MessagesTab.tsx:266
 #: src/components/logs/MessagesTab.tsx:275
 #: src/components/logs/MessagesTab.tsx:942
-#: src/components/messages/MessageHistoryTable.tsx:358
+#: src/components/messages/MessageHistoryTable.tsx:360
 #: src/components/transactional/RecentSends.tsx:42
 #: src/components/transactional/TransactionalDetail.tsx:218
 msgid "Clicked"
@@ -4462,7 +4462,7 @@ msgstr "Correu de queixa"
 #: src/components/contacts/contactDisplay.ts:39
 #: src/components/lists/ListHeader.tsx:44
 #: src/components/logs/MessagesTab.tsx:268
-#: src/components/messages/MessageHistoryTable.tsx:374
+#: src/components/messages/MessageHistoryTable.tsx:376
 #: src/pages/ContactsPage.tsx:543
 msgid "Complained"
 msgstr "Queixa"
@@ -4750,8 +4750,8 @@ msgstr "Contacte eliminat correctament"
 #~ msgid "Contact Details"
 #~ msgstr "Detalls del contacte"
 
-#: src/components/messages/MessageHistoryTable.tsx:153
-#: src/components/messages/MessageHistoryTable.tsx:420
+#: src/components/messages/MessageHistoryTable.tsx:155
+#: src/components/messages/MessageHistoryTable.tsx:422
 msgid "Contact Email"
 msgstr "Correu del contacte"
 
@@ -4820,8 +4820,8 @@ msgstr "Contacte actualitzat"
 msgid "Contact updated successfully"
 msgstr "Contacte actualitzat correctament"
 
-#: src/components/analytics/DashboardKpis.tsx:221
-#: src/components/analytics/DashboardKpis.tsx:229
+#: src/components/analytics/DashboardKpis.tsx:222
+#: src/components/analytics/DashboardKpis.tsx:230
 #: src/components/contacts/ContactDetailsDrawer.tsx:125
 #: src/components/contacts/ContactsViewHeader.tsx:201
 #: src/components/logs/labels.ts:21
@@ -5492,8 +5492,8 @@ msgstr "Creada {0} · Actualitzada {1} a {2}"
 #: src/components/contacts/contactColumns.ts:71
 #: src/components/contacts/ContactsTable.tsx:233
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:298
-#: src/components/messages/MessageHistoryTable.tsx:159
-#: src/components/messages/MessageHistoryTable.tsx:408
+#: src/components/messages/MessageHistoryTable.tsx:161
+#: src/components/messages/MessageHistoryTable.tsx:410
 #: src/components/segment/segmentSummary.ts:42
 msgid "Created At"
 msgstr "Creat el"
@@ -5894,7 +5894,7 @@ msgstr "La data és obligatòria"
 #~ msgid "Date range"
 #~ msgstr "Interval de dates"
 
-#: src/components/transactional/SendsPerDayChart.tsx:191
+#: src/components/transactional/SendsPerDayChart.tsx:195
 msgid "Day"
 msgstr "Dia"
 
@@ -6420,7 +6420,7 @@ msgstr "Lliurat"
 #: src/components/logs/MessagesTab.tsx:273
 #: src/components/logs/MessagesTab.tsx:926
 #: src/components/logs/OutgoingWebhooksTab.tsx:402
-#: src/components/messages/MessageHistoryTable.tsx:334
+#: src/components/messages/MessageHistoryTable.tsx:336
 #: src/components/settings/WebhookDetail.tsx:534
 #: src/components/timeline/ContactTimeline.tsx:747
 #: src/components/transactional/RecentSends.tsx:44
@@ -7806,8 +7806,8 @@ msgstr "igual a"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:253
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:943
 #: src/components/logs/MessagesTab.tsx:469
-#: src/components/messages/MessageHistoryTable.tsx:158
-#: src/components/messages/MessageHistoryTable.tsx:390
+#: src/components/messages/MessageHistoryTable.tsx:160
+#: src/components/messages/MessageHistoryTable.tsx:392
 msgid "Error"
 msgstr "Error"
 
@@ -7912,8 +7912,8 @@ msgstr "Tipus d'esdeveniments"
 #: src/components/contacts/sheet/ContactActivityTab.tsx:39
 #: src/components/logs/MessageDetail.tsx:238
 #: src/components/logs/MessageDetail.tsx:447
-#: src/components/messages/MessageHistoryTable.tsx:157
-#: src/components/messages/MessageHistoryTable.tsx:317
+#: src/components/messages/MessageHistoryTable.tsx:159
+#: src/components/messages/MessageHistoryTable.tsx:319
 #: src/components/settings/WebhookDetail.tsx:478
 #: src/components/settings/WebhooksSettings.tsx:317
 msgid "Events"
@@ -8136,8 +8136,8 @@ msgstr "Exportant tots els contactes"
 #: src/components/logs/MessageDetail.tsx:639
 #: src/components/logs/MessagesTab.tsx:471
 #: src/components/logs/MessagesTab.tsx:486
-#: src/components/messages/MessageHistoryTable.tsx:151
-#: src/components/messages/MessageHistoryTable.tsx:178
+#: src/components/messages/MessageHistoryTable.tsx:153
+#: src/components/messages/MessageHistoryTable.tsx:180
 #: src/components/segment/segmentSummary.ts:29
 #: src/components/transactional/RecentSends.tsx:118
 msgid "External ID"
@@ -8170,7 +8170,7 @@ msgstr "Fallat"
 #: src/components/logs/MessagesTab.tsx:264
 #: src/components/logs/MessagesTab.tsx:277
 #: src/components/logs/MessagesTab.tsx:918
-#: src/components/messages/MessageHistoryTable.tsx:342
+#: src/components/messages/MessageHistoryTable.tsx:344
 #: src/components/settings/WebhookDetail.tsx:539
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
@@ -9428,8 +9428,8 @@ msgstr "té"
 msgid "has not"
 msgstr "no té"
 
-#. placeholder {0}: context.minSessions
-#: src/components/web_analytics/explore/MinSessionsInput.tsx:54
+#. placeholder {0}: int(context.minSessions)
+#: src/components/web_analytics/explore/MinSessionsInput.tsx:56
 msgid "Having at least <0>{0}</0> sessions"
 msgstr "Que tinguin com a mínim <0>{0}</0> sessions"
 
@@ -9512,7 +9512,7 @@ msgstr "Les regles amb més prioritat s'avaluen primer (0-1000)"
 #~ msgid "Higher rules win (0-1000)."
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:156
+#: src/components/web_analytics/filters/BackfillStatus.tsx:159
 msgid "Historical sessions and goals were written with a different rule set."
 msgstr "Les sessions i els objectius històrics es van escriure amb un conjunt de regles diferent."
 
@@ -9637,7 +9637,7 @@ msgid "Icon/Favicon URL"
 msgstr "URL d'icona/favicon"
 
 #: src/components/lists/ListHeader.tsx:91
-#: src/components/messages/MessageHistoryTable.tsx:279
+#: src/components/messages/MessageHistoryTable.tsx:281
 msgid "ID"
 msgstr "ID"
 
@@ -10825,9 +10825,9 @@ msgstr "El Liquid col·locat entre els blocs d’una secció o d’una columna p
 #: src/components/logs/MessageDetail.tsx:654
 #: src/components/logs/MessagesTab.tsx:282
 #: src/components/logs/MessagesTab.tsx:474
-#: src/components/messages/MessageHistoryTable.tsx:156
-#: src/components/messages/MessageHistoryTable.tsx:283
-#: src/components/messages/MessageHistoryTable.tsx:297
+#: src/components/messages/MessageHistoryTable.tsx:158
+#: src/components/messages/MessageHistoryTable.tsx:285
+#: src/components/messages/MessageHistoryTable.tsx:299
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
 msgid "List"
@@ -11001,7 +11001,7 @@ msgstr "L'escriptura de Llistes també concedeix l'escriptura de contactes. Subs
 #: src/components/automations/AutomationStatusPill.tsx:11
 #: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
-#: src/components/web_analytics/LiveButton.tsx:46
+#: src/components/web_analytics/LiveButton.tsx:48
 #: src/layouts/app-shell/menuItems.ts:183
 #: src/pages/AutomationsPage.tsx:135
 #: src/pages/WebAnalyticsLivePage.tsx:122
@@ -11034,7 +11034,7 @@ msgstr "Carrega'n {PAGE_SIZE} més"
 msgid "Load more"
 msgstr "Carrega'n més"
 
-#: src/components/messages/MessageHistoryTable.tsx:517
+#: src/components/messages/MessageHistoryTable.tsx:519
 msgid "Load More"
 msgstr "Carregar més"
 
@@ -11063,7 +11063,7 @@ msgstr "Carregant"
 #~ msgid "Loading automations..."
 #~ msgstr "Carregant automatitzacions..."
 
-#: src/components/messages/MessageHistoryTable.tsx:488
+#: src/components/messages/MessageHistoryTable.tsx:490
 msgid "Loading message history..."
 msgstr "Carregant historial de missatges..."
 
@@ -11448,8 +11448,8 @@ msgstr "L'historial de missatges i els esdeveniments de webhook s'anonimitzaran 
 #: src/components/logs/MessageDetail.tsx:637
 #: src/components/logs/MessagesTab.tsx:470
 #: src/components/logs/MessagesTab.tsx:485
-#: src/components/messages/MessageHistoryTable.tsx:150
-#: src/components/messages/MessageHistoryTable.tsx:165
+#: src/components/messages/MessageHistoryTable.tsx:152
+#: src/components/messages/MessageHistoryTable.tsx:167
 msgid "Message ID"
 msgstr "ID de missatge"
 
@@ -11491,13 +11491,13 @@ msgstr "metadades"
 #: src/components/logs/AuditEntryDetail.tsx:211
 #: src/components/logs/MessageDetail.tsx:818
 #: src/components/logs/MessagesTab.tsx:472
-#: src/components/messages/MessageHistoryTable.tsx:152
-#: src/components/messages/MessageHistoryTable.tsx:196
+#: src/components/messages/MessageHistoryTable.tsx:154
+#: src/components/messages/MessageHistoryTable.tsx:198
 #: src/components/templates/TemplatePreviewDrawer.tsx:284
 msgid "Metadata"
 msgstr "Metadades"
 
-#: src/components/web_analytics/FilterBuilder.tsx:363
+#: src/components/web_analytics/FilterBuilder.tsx:366
 msgid "Metrics"
 msgstr "Mètriques"
 
@@ -11531,7 +11531,7 @@ msgstr "Minimapa"
 msgid "Minimize YouTube branding"
 msgstr "Minimitzar marca de YouTube"
 
-#: src/components/web_analytics/explore/MinSessionsInput.tsx:30
+#: src/components/web_analytics/explore/MinSessionsInput.tsx:32
 msgid "Minimum sessions"
 msgstr "Sessions mínimes"
 
@@ -11988,7 +11988,7 @@ msgstr "Propera execució"
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:393
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:185
-#: src/components/web_analytics/filters/BackfillStatus.tsx:86
+#: src/components/web_analytics/filters/BackfillStatus.tsx:87
 #: src/components/web_analytics/filters/FilterTable.tsx:272
 msgid "No"
 msgstr "No"
@@ -12043,7 +12043,7 @@ msgstr "Cap automatització no coincideix"
 msgid "No automations yet"
 msgstr "Encara no hi ha automatitzacions"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:155
+#: src/components/web_analytics/filters/BackfillStatus.tsx:158
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "Encara no s'ha executat cap reompliment. Executeu-ne un per aplicar aquestes regles a les sessions i els objectius històrics."
 
@@ -12213,7 +12213,7 @@ msgstr "Encara no hi ha cap proveïdor de correu"
 msgid "No email sent in this period"
 msgstr "Cap correu enviat en aquest període"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:123
+#: src/components/web_analytics/filters/BackfillStatus.tsx:126
 msgid "No error message was recorded."
 msgstr "No s'ha registrat cap missatge d'error."
 
@@ -12314,7 +12314,7 @@ msgstr "Cap coincidència"
 msgid "No members found"
 msgstr "No s'han trobat membres"
 
-#: src/components/messages/MessageHistoryTable.tsx:497
+#: src/components/messages/MessageHistoryTable.tsx:499
 msgid "No messages found"
 msgstr "No s'han trobat missatges"
 
@@ -12415,7 +12415,7 @@ msgstr "Sense repetició"
 msgid "No response"
 msgstr "Sense resposta"
 
-#: src/components/web_analytics/FilterBuilder.tsx:383
+#: src/components/web_analytics/FilterBuilder.tsx:386
 msgid "No results found"
 msgstr "No s'han trobat resultats"
 
@@ -12464,7 +12464,7 @@ msgstr "Sense remitent"
 msgid "No senders configured"
 msgstr "No s'han configurat remitents"
 
-#: src/components/transactional/SendsPerDayChart.tsx:166
+#: src/components/transactional/SendsPerDayChart.tsx:170
 msgid "No sends in this period"
 msgstr "Cap enviament en aquest període"
 
@@ -13209,7 +13209,7 @@ msgstr "Obert"
 #: src/components/logs/MessagesTab.tsx:265
 #: src/components/logs/MessagesTab.tsx:274
 #: src/components/logs/MessagesTab.tsx:934
-#: src/components/messages/MessageHistoryTable.tsx:350
+#: src/components/messages/MessageHistoryTable.tsx:352
 #: src/components/transactional/RecentSends.tsx:43
 #: src/components/transactional/TransactionalDetail.tsx:217
 msgid "Opened"
@@ -13500,11 +13500,11 @@ msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any l
 msgstr "Part de l'URL de l'enllaç, sense distingir majúscules i minúscules. Deixeu-ho buit per començar amb qualsevol enllaç."
 
 #. placeholder {0}: state.partition_index
-#: src/components/web_analytics/filters/BackfillStatus.tsx:104
+#: src/components/web_analytics/filters/BackfillStatus.tsx:107
 msgid "Partition {0} of {partitionTotal}"
 msgstr "Partició {0} de {partitionTotal}"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:83
+#: src/components/web_analytics/filters/BackfillStatus.tsx:84
 msgid "Partitions already rewritten keep their new values."
 msgstr "Les particions ja reescrites mantenen els seus valors nous."
 
@@ -14155,7 +14155,7 @@ msgstr "Publicacions a la pàgina d'inici"
 msgid "Preferred URL for this content (advanced)"
 msgstr "URL preferida per a aquest contingut (avançat)"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:78
+#: src/components/web_analytics/filters/BackfillStatus.tsx:79
 msgid "Preparing backfill..."
 msgstr "Preparant el reompliment..."
 
@@ -14211,7 +14211,7 @@ msgstr "Vista prèvia properament"
 msgid "Preview email"
 msgstr "Previsualitzar correu"
 
-#: src/components/messages/MessageHistoryTable.tsx:98
+#: src/components/messages/MessageHistoryTable.tsx:99
 msgid "Preview message"
 msgstr "Vista prèvia del missatge"
 
@@ -14919,7 +14919,7 @@ msgstr "Referents"
 #: src/components/logs/MessagesTab.tsx:526
 #: src/components/logs/OutgoingWebhooksTab.tsx:146
 #: src/components/logs/OutgoingWebhooksTab.tsx:150
-#: src/components/messages/MessageHistoryTable.tsx:432
+#: src/components/messages/MessageHistoryTable.tsx:434
 #: src/components/settings/LicenseSettings.tsx:157
 #: src/components/settings/WebhooksSettings.tsx:454
 #: src/components/settings/WebhooksSettings.tsx:458
@@ -15593,7 +15593,7 @@ msgstr "RSS / Feeds"
 #~ msgid "Rule changes apply to new traffic immediately"
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:150
+#: src/components/web_analytics/filters/BackfillStatus.tsx:153
 msgid "Rule changes only apply to new traffic"
 msgstr "Els canvis de regles només s'apliquen al trànsit nou"
 
@@ -15653,11 +15653,11 @@ msgstr "Executar consultes agregades sobre l'esquema `webhook_deliveries`"
 msgid "Run an integration sync task immediately"
 msgstr "Executar una tasca de sincronització d'integració immediatament"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:165
+#: src/components/web_analytics/filters/BackfillStatus.tsx:168
 msgid "Run backfill"
 msgstr "Executar el reompliment"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:130
+#: src/components/web_analytics/filters/BackfillStatus.tsx:133
 msgid "Run backfill again"
 msgstr "Tornar a executar el reompliment"
 
@@ -15958,7 +15958,7 @@ msgid "Screen width below which mobile layout is activated. Common values: 480px
 msgstr "Amplada de pantalla per sota de la qual s'activa el disseny mòbil. Valors comuns: 480px, 600px, 768px"
 
 #: src/components/contacts/ExportContactsModal.tsx:60
-#: src/components/web_analytics/FilterBuilder.tsx:334
+#: src/components/web_analytics/FilterBuilder.tsx:337
 msgid "Search"
 msgstr "Cercar"
 
@@ -16733,8 +16733,8 @@ msgstr "Enviant webhook de prova..."
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 msgstr ""
 
-#: src/components/transactional/SendsPerDayChart.tsx:188
-#: src/components/transactional/SendsPerDayChart.tsx:219
+#: src/components/transactional/SendsPerDayChart.tsx:192
+#: src/components/transactional/SendsPerDayChart.tsx:223
 msgid "Sends per day"
 msgstr "Enviaments per dia"
 
@@ -16754,7 +16754,7 @@ msgstr "Enviat"
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
 #: src/components/logs/labels.ts:110
 #: src/components/logs/MessagesTab.tsx:918
-#: src/components/messages/MessageHistoryTable.tsx:326
+#: src/components/messages/MessageHistoryTable.tsx:328
 #: src/components/transactional/RecentSends.tsx:45
 #: src/components/transactional/SendsPerDayChart.tsx:48
 #: src/components/transactional/TransactionalDetail.tsx:215
@@ -18087,8 +18087,8 @@ msgstr "plantilla"
 #: src/components/lists/ListHeader.tsx:79
 #: src/components/logs/MessageDetail.tsx:642
 #: src/components/logs/MessagesTab.tsx:473
-#: src/components/messages/MessageHistoryTable.tsx:154
-#: src/components/messages/MessageHistoryTable.tsx:240
+#: src/components/messages/MessageHistoryTable.tsx:156
+#: src/components/messages/MessageHistoryTable.tsx:242
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:161
 #: src/pages/TemplatesPage.tsx:360
@@ -18653,7 +18653,7 @@ msgstr "La clau apareix a Configuració → Equip i claus API com a {0}, on pode
 #~ msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
 #~ msgstr "La clau apareix a Configuració → Equip com a {0}, on podeu ampliar-ne els permisos."
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:120
+#: src/components/web_analytics/filters/BackfillStatus.tsx:123
 msgid "The last backfill failed"
 msgstr "El darrer reompliment ha fallat"
 
@@ -18768,7 +18768,7 @@ msgid "the sender of variant {variant} no longer exists"
 msgstr "el remitent de la variant {variant} ja no existeix"
 
 #: src/components/logs/MessageDetail.tsx:158
-#: src/components/messages/MessageHistoryTable.tsx:77
+#: src/components/messages/MessageHistoryTable.tsx:78
 msgid "The server returned no template"
 msgstr "El servidor no ha retornat cap plantilla"
 
@@ -19953,7 +19953,7 @@ msgstr "Els clics únics compten cada destinatari una vegada per enllaç — alg
 #: src/components/contacts/trackingConsentOptions.ts:16
 #: src/components/timeline/ContactTimeline.tsx:1066
 #: src/components/transactional/TransactionalDetail.tsx:420
-#: src/components/web_analytics/LiveSessionMap.tsx:49
+#: src/components/web_analytics/LiveSessionMap.tsx:52
 msgid "Unknown"
 msgstr "Desconegut"
 
@@ -20081,7 +20081,7 @@ msgstr "Donar de baixa de la llista"
 #: src/components/logs/labels.ts:106
 #: src/components/logs/MessageDetail.tsx:433
 #: src/components/logs/MessagesTab.tsx:269
-#: src/components/messages/MessageHistoryTable.tsx:382
+#: src/components/messages/MessageHistoryTable.tsx:384
 #: src/components/timeline/ContactTimeline.tsx:750
 #: src/components/transactional/RecentSends.tsx:41
 #: src/pages/ContactsPage.tsx:541
@@ -21372,7 +21372,7 @@ msgid "Yes, activate"
 msgstr "Sí, activar"
 
 #: src/components/broadcasts/useBroadcastActions.ts:106
-#: src/components/web_analytics/filters/BackfillStatus.tsx:85
+#: src/components/web_analytics/filters/BackfillStatus.tsx:86
 msgid "Yes, cancel"
 msgstr "Sí, cancel·la"
 

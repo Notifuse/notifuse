@@ -1,5 +1,5 @@
 import '../../__tests__/resizeObserverMock'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { templatesApi } from '../../services/api/template'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -190,14 +190,31 @@ describe('MessageHistoryTable error column', () => {
 })
 
 describe('MessageHistoryTable dates', () => {
+  // A browser clock other than Tokyo's, so a label read on it would show another hour
+  const browserZone = process.env.TZ
+  beforeEach(() => {
+    process.env.TZ = 'America/Los_Angeles'
+  })
+  afterEach(() => {
+    process.env.TZ = browserZone
+  })
+
+  it('reads the date in UTC, and says so, when the browser does not know the workspace timezone', async () => {
+    const unknown = { ...workspace, settings: { timezone: 'Mars/Olympus_Mons' } } as unknown as Workspace
+    renderTable([message('m1', { data: {} })], undefined, unknown)
+
+    fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
+
+    expect(await screen.findByText('Aug 1, 2026 10:00 AM in UTC')).toBeInTheDocument()
+  })
+
   it('gives the full date on the clock of the workspace timezone it names', async () => {
     const tokyo = { ...workspace, settings: { timezone: 'Asia/Tokyo' } } as unknown as Workspace
     renderTable([message('m1', { data: {} })], undefined, tokyo)
 
     fireEvent.mouseEnter(screen.getByText(dayjs('2026-08-01T10:00:00Z').fromNow()))
 
-    // 10:00 UTC is 19:00 in Tokyo. The browser's clock, which the old label used, shows another
-    // hour on every runner not on UTC+9.
+    // 10:00 UTC is 19:00 in Tokyo; the browser's clock, which the old label used, says 3:00 AM.
     expect(await screen.findByText('Aug 1, 2026 7:00 PM in Asia/Tokyo')).toBeInTheDocument()
   })
 

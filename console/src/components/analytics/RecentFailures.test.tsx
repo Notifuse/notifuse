@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { queryPlan } from '../../__tests__/queryPlan'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
@@ -45,9 +46,9 @@ const lists = (complained: MessageHistory[], bounced: MessageHistory[], failed: 
     messages: params.is_complained ? complained : params.is_bounced ? bounced : failed
   }))
 
-const renderCard = () =>
+const renderCard = (client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={client}>
       <I18nProvider i18n={i18n}>
         <RecentFailures workspaceId="ws1" timezone="Europe/Paris" />
       </I18nProvider>
@@ -60,6 +61,19 @@ beforeEach(() => {
 })
 
 describe('RecentFailures', () => {
+  it('reads each list of failures under its own key, each minute', async () => {
+    listMessages.mockResolvedValue({ messages: [], has_more: false })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    renderCard(client)
+    await waitFor(() => expect(listMessages).toHaveBeenCalledTimes(3))
+    expect(queryPlan(client)).toEqual(
+      ['complained', 'bounced', 'failed'].map((list) => ({
+        key: ['dashboard', 'failures', 'ws1', list],
+        refetchInterval: 60_000
+      }))
+    )
+  })
+
   it('asks the five latest complaints, bounces and failures', async () => {
     lists([], [], [])
     renderCard()

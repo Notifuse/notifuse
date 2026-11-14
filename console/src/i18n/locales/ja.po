@@ -444,7 +444,7 @@ msgstr "{0} 件開封"
 #~ msgstr "{0} 件の宛先を再送のためキューに追加しました"
 
 #. placeholder {0}: int(state.rows_updated)
-#: src/components/web_analytics/filters/BackfillStatus.tsx:106
+#: src/components/web_analytics/filters/BackfillStatus.tsx:109
 msgid "{0} rows rewritten"
 msgstr "{0}行を書き換えました"
 
@@ -753,12 +753,12 @@ msgstr "{goalCount}件のゴール"
 msgid "{hiddenBlockCount} blocks hidden by their condition with this test data."
 msgstr "このテストデータでは {hiddenBlockCount} 個のブロックが条件により非表示です。"
 
-#: src/components/web_analytics/lib/format.ts:75
+#: src/components/web_analytics/lib/format.ts:76
 msgid "{hours} h"
 msgstr "{hours} 時間"
 
 #: src/components/contacts/visits/duration.ts:12
-#: src/components/web_analytics/lib/format.ts:77
+#: src/components/web_analytics/lib/format.ts:78
 msgid "{hours} h {mm} min"
 msgstr "{hours} 時間 {mm} 分"
 
@@ -818,13 +818,13 @@ msgstr "サイト滞在時間の中央値 {median}"
 msgid "{minutes, plural, one {# min read} other {# min read}}"
 msgstr "{minutes, plural, other {# 分で読めます}}"
 
-#: src/components/web_analytics/lib/format.ts:69
-#: src/components/web_analytics/lib/format.ts:129
+#: src/components/web_analytics/lib/format.ts:70
+#: src/components/web_analytics/lib/format.ts:141
 msgid "{minutes} min"
 msgstr "{minutes} 分"
 
 #: src/components/contacts/visits/duration.ts:14
-#: src/components/web_analytics/lib/format.ts:69
+#: src/components/web_analytics/lib/format.ts:70
 msgid "{minutes} min {seconds} s"
 msgstr "{minutes} 分 {seconds} 秒"
 
@@ -935,8 +935,8 @@ msgid "{sampleContacts, plural, one {# contact} other {# contacts}}"
 msgstr "{sampleContacts, plural, one {# 件のコンタクト} other {# 件のコンタクト}}"
 
 #: src/components/contacts/visits/duration.ts:15
-#: src/components/web_analytics/lib/format.ts:64
-#: src/components/web_analytics/lib/format.ts:126
+#: src/components/web_analytics/lib/format.ts:65
+#: src/components/web_analytics/lib/format.ts:138
 msgid "{seconds} s"
 msgstr "{seconds} 秒"
 
@@ -1079,9 +1079,9 @@ msgstr "1週間あたりの{what}"
 msgid "{what} per year"
 msgstr "1年あたりの{what}"
 
-#: src/components/messages/MessageHistoryTable.tsx:145
+#: src/components/messages/MessageHistoryTable.tsx:147
 #: src/components/timeline/ContactTimeline.tsx:114
-#: src/utils/formatters.tsx:43
+#: src/utils/formatters.tsx:45
 msgid "{when} in {zone}"
 msgstr "{when}（{zone}）"
 
@@ -1247,7 +1247,7 @@ msgstr "30 日間"
 msgid "300 - Light"
 msgstr "300 - 細"
 
-#: src/components/transactional/SendsPerDayChart.tsx:227
+#: src/components/transactional/SendsPerDayChart.tsx:231
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "30d"
 msgstr "30日"
@@ -1272,7 +1272,7 @@ msgstr "500 - 中太"
 msgid "600 - Semi Bold"
 msgstr "600 - やや太"
 
-#: src/components/transactional/SendsPerDayChart.tsx:228
+#: src/components/transactional/SendsPerDayChart.tsx:232
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "60d"
 msgstr "60日"
@@ -1291,7 +1291,7 @@ msgstr "7 日間"
 msgid "700 - Bold"
 msgstr "700 - 太字"
 
-#: src/components/transactional/SendsPerDayChart.tsx:226
+#: src/components/transactional/SendsPerDayChart.tsx:230
 #: src/pages/TransactionalNotificationsPage.tsx:319
 msgid "7d"
 msgstr "7日"
@@ -2406,7 +2406,7 @@ msgstr "独自の保持期間を設定していないすべてのワークスペ
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:293
 #: src/components/logs/TextFilter.tsx:28
-#: src/components/web_analytics/explore/MinSessionsInput.tsx:47
+#: src/components/web_analytics/explore/MinSessionsInput.tsx:49
 #: src/components/web_analytics/toolbar.tsx:93
 msgid "Apply"
 msgstr "適用"
@@ -2416,7 +2416,7 @@ msgid "Apply & Recompile"
 msgstr "適用して再コンパイル"
 
 #: src/components/web_analytics/FilterBuilder.tsx:287
-#: src/components/web_analytics/FilterBuilder.tsx:323
+#: src/components/web_analytics/FilterBuilder.tsx:326
 msgid "Apply filter"
 msgstr "フィルターを適用"
 
@@ -2903,15 +2903,15 @@ msgstr "ブロードキャスト一覧に戻る"
 msgid "Back to Transactional"
 msgstr "トランザクションに戻る"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:59
+#: src/components/web_analytics/filters/BackfillStatus.tsx:60
 msgid "Backfill cancelled"
 msgstr "バックフィルをキャンセルしました"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:78
+#: src/components/web_analytics/filters/BackfillStatus.tsx:79
 msgid "Backfill in progress"
 msgstr "バックフィルを実行中"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:50
+#: src/components/web_analytics/filters/BackfillStatus.tsx:51
 msgid "Backfill started"
 msgstr "バックフィルを開始しました"
 
@@ -3337,7 +3337,7 @@ msgstr "バウンスの種類"
 #: src/components/logs/MessagesTab.tsx:267
 #: src/components/logs/MessagesTab.tsx:276
 #: src/components/logs/MessagesTab.tsx:926
-#: src/components/messages/MessageHistoryTable.tsx:366
+#: src/components/messages/MessageHistoryTable.tsx:368
 #: src/components/transactional/RecentSends.tsx:40
 #: src/components/transactional/SendsPerDayChart.tsx:50
 #: src/components/transactional/TransactionalDetail.tsx:219
@@ -3426,8 +3426,8 @@ msgstr "ブロードキャスト"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:366
 #: src/components/broadcasts/BroadcastsTable.tsx:222
-#: src/components/messages/MessageHistoryTable.tsx:155
-#: src/components/messages/MessageHistoryTable.tsx:253
+#: src/components/messages/MessageHistoryTable.tsx:157
+#: src/components/messages/MessageHistoryTable.tsx:255
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:63
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:123
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:126
@@ -3745,7 +3745,7 @@ msgstr "キャンペーン"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:210
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
-#: src/components/web_analytics/filters/BackfillStatus.tsx:89
+#: src/components/web_analytics/filters/BackfillStatus.tsx:90
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:99
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:107
 #: src/components/web_analytics/filters/FilterTable.tsx:133
@@ -3763,7 +3763,7 @@ msgstr "ブロードキャストをキャンセルする"
 msgid "Cancel a running backfill"
 msgstr "実行中のバックフィルをキャンセルする"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:82
+#: src/components/web_analytics/filters/BackfillStatus.tsx:83
 msgid "Cancel backfill?"
 msgstr "バックフィルをキャンセルしますか？"
 
@@ -4201,7 +4201,7 @@ msgstr "クリック"
 #: src/components/logs/MessagesTab.tsx:266
 #: src/components/logs/MessagesTab.tsx:275
 #: src/components/logs/MessagesTab.tsx:942
-#: src/components/messages/MessageHistoryTable.tsx:358
+#: src/components/messages/MessageHistoryTable.tsx:360
 #: src/components/transactional/RecentSends.tsx:42
 #: src/components/transactional/TransactionalDetail.tsx:218
 msgid "Clicked"
@@ -4462,7 +4462,7 @@ msgstr "苦情メール"
 #: src/components/contacts/contactDisplay.ts:39
 #: src/components/lists/ListHeader.tsx:44
 #: src/components/logs/MessagesTab.tsx:268
-#: src/components/messages/MessageHistoryTable.tsx:374
+#: src/components/messages/MessageHistoryTable.tsx:376
 #: src/pages/ContactsPage.tsx:543
 msgid "Complained"
 msgstr "苦情報告済み"
@@ -4750,8 +4750,8 @@ msgstr "コンタクトを削除しました"
 #~ msgid "Contact Details"
 #~ msgstr "コンタクト詳細"
 
-#: src/components/messages/MessageHistoryTable.tsx:153
-#: src/components/messages/MessageHistoryTable.tsx:420
+#: src/components/messages/MessageHistoryTable.tsx:155
+#: src/components/messages/MessageHistoryTable.tsx:422
 msgid "Contact Email"
 msgstr "コンタクトメール"
 
@@ -4820,8 +4820,8 @@ msgstr "連絡先を更新"
 msgid "Contact updated successfully"
 msgstr "コンタクトを更新しました"
 
-#: src/components/analytics/DashboardKpis.tsx:221
-#: src/components/analytics/DashboardKpis.tsx:229
+#: src/components/analytics/DashboardKpis.tsx:222
+#: src/components/analytics/DashboardKpis.tsx:230
 #: src/components/contacts/ContactDetailsDrawer.tsx:125
 #: src/components/contacts/ContactsViewHeader.tsx:201
 #: src/components/logs/labels.ts:21
@@ -5492,8 +5492,8 @@ msgstr "作成 {0} · 更新 {1}（{2}）"
 #: src/components/contacts/contactColumns.ts:71
 #: src/components/contacts/ContactsTable.tsx:233
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:298
-#: src/components/messages/MessageHistoryTable.tsx:159
-#: src/components/messages/MessageHistoryTable.tsx:408
+#: src/components/messages/MessageHistoryTable.tsx:161
+#: src/components/messages/MessageHistoryTable.tsx:410
 #: src/components/segment/segmentSummary.ts:42
 msgid "Created At"
 msgstr "作成日時"
@@ -5894,7 +5894,7 @@ msgstr "日付は必須です"
 #~ msgid "Date range"
 #~ msgstr "期間"
 
-#: src/components/transactional/SendsPerDayChart.tsx:191
+#: src/components/transactional/SendsPerDayChart.tsx:195
 msgid "Day"
 msgstr "日"
 
@@ -6420,7 +6420,7 @@ msgstr "配信済み"
 #: src/components/logs/MessagesTab.tsx:273
 #: src/components/logs/MessagesTab.tsx:926
 #: src/components/logs/OutgoingWebhooksTab.tsx:402
-#: src/components/messages/MessageHistoryTable.tsx:334
+#: src/components/messages/MessageHistoryTable.tsx:336
 #: src/components/settings/WebhookDetail.tsx:534
 #: src/components/timeline/ContactTimeline.tsx:747
 #: src/components/transactional/RecentSends.tsx:44
@@ -7806,8 +7806,8 @@ msgstr "等しい"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:253
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:943
 #: src/components/logs/MessagesTab.tsx:469
-#: src/components/messages/MessageHistoryTable.tsx:158
-#: src/components/messages/MessageHistoryTable.tsx:390
+#: src/components/messages/MessageHistoryTable.tsx:160
+#: src/components/messages/MessageHistoryTable.tsx:392
 msgid "Error"
 msgstr "エラー"
 
@@ -7912,8 +7912,8 @@ msgstr "イベントタイプ"
 #: src/components/contacts/sheet/ContactActivityTab.tsx:39
 #: src/components/logs/MessageDetail.tsx:238
 #: src/components/logs/MessageDetail.tsx:447
-#: src/components/messages/MessageHistoryTable.tsx:157
-#: src/components/messages/MessageHistoryTable.tsx:317
+#: src/components/messages/MessageHistoryTable.tsx:159
+#: src/components/messages/MessageHistoryTable.tsx:319
 #: src/components/settings/WebhookDetail.tsx:478
 #: src/components/settings/WebhooksSettings.tsx:317
 msgid "Events"
@@ -8136,8 +8136,8 @@ msgstr "すべてのコンタクトをエクスポート中"
 #: src/components/logs/MessageDetail.tsx:639
 #: src/components/logs/MessagesTab.tsx:471
 #: src/components/logs/MessagesTab.tsx:486
-#: src/components/messages/MessageHistoryTable.tsx:151
-#: src/components/messages/MessageHistoryTable.tsx:178
+#: src/components/messages/MessageHistoryTable.tsx:153
+#: src/components/messages/MessageHistoryTable.tsx:180
 #: src/components/segment/segmentSummary.ts:29
 #: src/components/transactional/RecentSends.tsx:118
 msgid "External ID"
@@ -8170,7 +8170,7 @@ msgstr "失敗"
 #: src/components/logs/MessagesTab.tsx:264
 #: src/components/logs/MessagesTab.tsx:277
 #: src/components/logs/MessagesTab.tsx:918
-#: src/components/messages/MessageHistoryTable.tsx:342
+#: src/components/messages/MessageHistoryTable.tsx:344
 #: src/components/settings/WebhookDetail.tsx:539
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
@@ -9428,8 +9428,8 @@ msgstr "あり"
 msgid "has not"
 msgstr "なし"
 
-#. placeholder {0}: context.minSessions
-#: src/components/web_analytics/explore/MinSessionsInput.tsx:54
+#. placeholder {0}: int(context.minSessions)
+#: src/components/web_analytics/explore/MinSessionsInput.tsx:56
 msgid "Having at least <0>{0}</0> sessions"
 msgstr "<0>{0}</0>セッション以上"
 
@@ -9512,7 +9512,7 @@ msgstr "優先度の高いルールが先に評価されます (0〜1000)"
 #~ msgid "Higher rules win (0-1000)."
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:156
+#: src/components/web_analytics/filters/BackfillStatus.tsx:159
 msgid "Historical sessions and goals were written with a different rule set."
 msgstr "過去のセッションとゴールは、異なるルールセットで記録されています。"
 
@@ -9637,7 +9637,7 @@ msgid "Icon/Favicon URL"
 msgstr "アイコン/ファビコンURL"
 
 #: src/components/lists/ListHeader.tsx:91
-#: src/components/messages/MessageHistoryTable.tsx:279
+#: src/components/messages/MessageHistoryTable.tsx:281
 msgid "ID"
 msgstr "ID"
 
@@ -10825,9 +10825,9 @@ msgstr "セクションやカラムのブロック間に置かれた Liquid は�
 #: src/components/logs/MessageDetail.tsx:654
 #: src/components/logs/MessagesTab.tsx:282
 #: src/components/logs/MessagesTab.tsx:474
-#: src/components/messages/MessageHistoryTable.tsx:156
-#: src/components/messages/MessageHistoryTable.tsx:283
-#: src/components/messages/MessageHistoryTable.tsx:297
+#: src/components/messages/MessageHistoryTable.tsx:158
+#: src/components/messages/MessageHistoryTable.tsx:285
+#: src/components/messages/MessageHistoryTable.tsx:299
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
 msgid "List"
@@ -11001,7 +11001,7 @@ msgstr "リストの書き込みは、コンタクトの書き込みも付与し
 #: src/components/automations/AutomationStatusPill.tsx:11
 #: src/components/blog/RecentThemesTable.tsx:121
 #: src/components/templates/templateUsage.ts:88
-#: src/components/web_analytics/LiveButton.tsx:46
+#: src/components/web_analytics/LiveButton.tsx:48
 #: src/layouts/app-shell/menuItems.ts:183
 #: src/pages/AutomationsPage.tsx:135
 #: src/pages/WebAnalyticsLivePage.tsx:122
@@ -11034,7 +11034,7 @@ msgstr "さらに {PAGE_SIZE} 件読み込む"
 msgid "Load more"
 msgstr "さらに読み込む"
 
-#: src/components/messages/MessageHistoryTable.tsx:517
+#: src/components/messages/MessageHistoryTable.tsx:519
 msgid "Load More"
 msgstr "もっと読み込む"
 
@@ -11063,7 +11063,7 @@ msgstr "読み込み中"
 #~ msgid "Loading automations..."
 #~ msgstr "オートメーションを読み込み中..."
 
-#: src/components/messages/MessageHistoryTable.tsx:488
+#: src/components/messages/MessageHistoryTable.tsx:490
 msgid "Loading message history..."
 msgstr "メッセージ履歴を読み込み中..."
 
@@ -11448,8 +11448,8 @@ msgstr "メッセージ履歴とWebhookイベントは匿名化（メールア�
 #: src/components/logs/MessageDetail.tsx:637
 #: src/components/logs/MessagesTab.tsx:470
 #: src/components/logs/MessagesTab.tsx:485
-#: src/components/messages/MessageHistoryTable.tsx:150
-#: src/components/messages/MessageHistoryTable.tsx:165
+#: src/components/messages/MessageHistoryTable.tsx:152
+#: src/components/messages/MessageHistoryTable.tsx:167
 msgid "Message ID"
 msgstr "メッセージID"
 
@@ -11491,13 +11491,13 @@ msgstr "メタデータ"
 #: src/components/logs/AuditEntryDetail.tsx:211
 #: src/components/logs/MessageDetail.tsx:818
 #: src/components/logs/MessagesTab.tsx:472
-#: src/components/messages/MessageHistoryTable.tsx:152
-#: src/components/messages/MessageHistoryTable.tsx:196
+#: src/components/messages/MessageHistoryTable.tsx:154
+#: src/components/messages/MessageHistoryTable.tsx:198
 #: src/components/templates/TemplatePreviewDrawer.tsx:284
 msgid "Metadata"
 msgstr "メタデータ"
 
-#: src/components/web_analytics/FilterBuilder.tsx:363
+#: src/components/web_analytics/FilterBuilder.tsx:366
 msgid "Metrics"
 msgstr "指標"
 
@@ -11531,7 +11531,7 @@ msgstr "ミニマップ"
 msgid "Minimize YouTube branding"
 msgstr "YouTubeブランディングを最小化"
 
-#: src/components/web_analytics/explore/MinSessionsInput.tsx:30
+#: src/components/web_analytics/explore/MinSessionsInput.tsx:32
 msgid "Minimum sessions"
 msgstr "最小セッション数"
 
@@ -11988,7 +11988,7 @@ msgstr "次回実行"
 #: src/components/settings/WebhookDetail.tsx:346
 #: src/components/settings/WebhookDetail.tsx:393
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:185
-#: src/components/web_analytics/filters/BackfillStatus.tsx:86
+#: src/components/web_analytics/filters/BackfillStatus.tsx:87
 #: src/components/web_analytics/filters/FilterTable.tsx:272
 msgid "No"
 msgstr "いいえ"
@@ -12043,7 +12043,7 @@ msgstr "一致するオートメーションはありません"
 msgid "No automations yet"
 msgstr "オートメーションがまだありません"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:155
+#: src/components/web_analytics/filters/BackfillStatus.tsx:158
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "バックフィルはまだ実行されていません。過去のセッションとゴールにこれらのルールを適用するには、バックフィルを実行してください。"
 
@@ -12213,7 +12213,7 @@ msgstr "メールプロバイダーはまだありません"
 msgid "No email sent in this period"
 msgstr "この期間に送信されたメールはありません"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:123
+#: src/components/web_analytics/filters/BackfillStatus.tsx:126
 msgid "No error message was recorded."
 msgstr "エラーメッセージは記録されませんでした。"
 
@@ -12314,7 +12314,7 @@ msgstr "一致なし"
 msgid "No members found"
 msgstr "メンバーが見つかりません"
 
-#: src/components/messages/MessageHistoryTable.tsx:497
+#: src/components/messages/MessageHistoryTable.tsx:499
 msgid "No messages found"
 msgstr "メッセージが見つかりません"
 
@@ -12415,7 +12415,7 @@ msgstr "繰り返しなし"
 msgid "No response"
 msgstr "レスポンスなし"
 
-#: src/components/web_analytics/FilterBuilder.tsx:383
+#: src/components/web_analytics/FilterBuilder.tsx:386
 msgid "No results found"
 msgstr "結果が見つかりません"
 
@@ -12464,7 +12464,7 @@ msgstr "送信者なし"
 msgid "No senders configured"
 msgstr "差出人が設定されていません"
 
-#: src/components/transactional/SendsPerDayChart.tsx:166
+#: src/components/transactional/SendsPerDayChart.tsx:170
 msgid "No sends in this period"
 msgstr "この期間に送信はありません"
 
@@ -13209,7 +13209,7 @@ msgstr "開封"
 #: src/components/logs/MessagesTab.tsx:265
 #: src/components/logs/MessagesTab.tsx:274
 #: src/components/logs/MessagesTab.tsx:934
-#: src/components/messages/MessageHistoryTable.tsx:350
+#: src/components/messages/MessageHistoryTable.tsx:352
 #: src/components/transactional/RecentSends.tsx:43
 #: src/components/transactional/TransactionalDetail.tsx:217
 msgid "Opened"
@@ -13500,11 +13500,11 @@ msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any l
 msgstr "リンクURLの一部（大文字と小文字は区別しません）。空欄にすると、どのリンクでも開始します。"
 
 #. placeholder {0}: state.partition_index
-#: src/components/web_analytics/filters/BackfillStatus.tsx:104
+#: src/components/web_analytics/filters/BackfillStatus.tsx:107
 msgid "Partition {0} of {partitionTotal}"
 msgstr "パーティション {partitionTotal} 件中 {0} 件目"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:83
+#: src/components/web_analytics/filters/BackfillStatus.tsx:84
 msgid "Partitions already rewritten keep their new values."
 msgstr "すでに書き換えられたパーティションは、新しい値を保持します。"
 
@@ -14155,7 +14155,7 @@ msgstr "ホームページの投稿数"
 msgid "Preferred URL for this content (advanced)"
 msgstr "このコンテンツの優先URL（上級）"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:78
+#: src/components/web_analytics/filters/BackfillStatus.tsx:79
 msgid "Preparing backfill..."
 msgstr "バックフィルを準備中..."
 
@@ -14211,7 +14211,7 @@ msgstr "プレビューは近日公開"
 msgid "Preview email"
 msgstr "メールをプレビュー"
 
-#: src/components/messages/MessageHistoryTable.tsx:98
+#: src/components/messages/MessageHistoryTable.tsx:99
 msgid "Preview message"
 msgstr "メッセージをプレビュー"
 
@@ -14919,7 +14919,7 @@ msgstr "リファラー"
 #: src/components/logs/MessagesTab.tsx:526
 #: src/components/logs/OutgoingWebhooksTab.tsx:146
 #: src/components/logs/OutgoingWebhooksTab.tsx:150
-#: src/components/messages/MessageHistoryTable.tsx:432
+#: src/components/messages/MessageHistoryTable.tsx:434
 #: src/components/settings/LicenseSettings.tsx:157
 #: src/components/settings/WebhooksSettings.tsx:454
 #: src/components/settings/WebhooksSettings.tsx:458
@@ -15593,7 +15593,7 @@ msgstr "RSS / フィード"
 #~ msgid "Rule changes apply to new traffic immediately"
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:150
+#: src/components/web_analytics/filters/BackfillStatus.tsx:153
 msgid "Rule changes only apply to new traffic"
 msgstr "ルールの変更は新しいトラフィックにのみ適用されます"
 
@@ -15653,11 +15653,11 @@ msgstr "`webhook_deliveries` スキーマに対して集計クエリを実行す
 msgid "Run an integration sync task immediately"
 msgstr "インテグレーションの同期タスクを直ちに実行する"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:165
+#: src/components/web_analytics/filters/BackfillStatus.tsx:168
 msgid "Run backfill"
 msgstr "バックフィルを実行"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:130
+#: src/components/web_analytics/filters/BackfillStatus.tsx:133
 msgid "Run backfill again"
 msgstr "バックフィルを再実行"
 
@@ -15958,7 +15958,7 @@ msgid "Screen width below which mobile layout is activated. Common values: 480px
 msgstr "モバイルレイアウトが有効になる画面幅。一般的な値: 480px、600px、768px"
 
 #: src/components/contacts/ExportContactsModal.tsx:60
-#: src/components/web_analytics/FilterBuilder.tsx:334
+#: src/components/web_analytics/FilterBuilder.tsx:337
 msgid "Search"
 msgstr "検索"
 
@@ -16733,8 +16733,8 @@ msgstr "テストWebhookを送信中..."
 msgid "Sending through this integration is unaffected, and a tenant that already exists keeps being used. Switching isolation on needs a licence."
 msgstr ""
 
-#: src/components/transactional/SendsPerDayChart.tsx:188
-#: src/components/transactional/SendsPerDayChart.tsx:219
+#: src/components/transactional/SendsPerDayChart.tsx:192
+#: src/components/transactional/SendsPerDayChart.tsx:223
 msgid "Sends per day"
 msgstr "1 日あたりの送信数"
 
@@ -16754,7 +16754,7 @@ msgstr "送信済み"
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
 #: src/components/logs/labels.ts:110
 #: src/components/logs/MessagesTab.tsx:918
-#: src/components/messages/MessageHistoryTable.tsx:326
+#: src/components/messages/MessageHistoryTable.tsx:328
 #: src/components/transactional/RecentSends.tsx:45
 #: src/components/transactional/SendsPerDayChart.tsx:48
 #: src/components/transactional/TransactionalDetail.tsx:215
@@ -18087,8 +18087,8 @@ msgstr "テンプレート"
 #: src/components/lists/ListHeader.tsx:79
 #: src/components/logs/MessageDetail.tsx:642
 #: src/components/logs/MessagesTab.tsx:473
-#: src/components/messages/MessageHistoryTable.tsx:154
-#: src/components/messages/MessageHistoryTable.tsx:240
+#: src/components/messages/MessageHistoryTable.tsx:156
+#: src/components/messages/MessageHistoryTable.tsx:242
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:161
 #: src/pages/TemplatesPage.tsx:360
@@ -18653,7 +18653,7 @@ msgstr "このキーは設定 → チームと APIキー に {0} として表示
 #~ msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
 #~ msgstr "このキーは設定 → チームに {0} として表示され、そこで権限を広げられます。"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:120
+#: src/components/web_analytics/filters/BackfillStatus.tsx:123
 msgid "The last backfill failed"
 msgstr "前回のバックフィルは失敗しました"
 
@@ -18768,7 +18768,7 @@ msgid "the sender of variant {variant} no longer exists"
 msgstr "パターン {variant} の送信者は存在しません"
 
 #: src/components/logs/MessageDetail.tsx:158
-#: src/components/messages/MessageHistoryTable.tsx:77
+#: src/components/messages/MessageHistoryTable.tsx:78
 msgid "The server returned no template"
 msgstr "サーバーからテンプレートが返されませんでした"
 
@@ -19953,7 +19953,7 @@ msgstr "ユニーククリックは、リンクごとに各受信者を1回だ�
 #: src/components/contacts/trackingConsentOptions.ts:16
 #: src/components/timeline/ContactTimeline.tsx:1066
 #: src/components/transactional/TransactionalDetail.tsx:420
-#: src/components/web_analytics/LiveSessionMap.tsx:49
+#: src/components/web_analytics/LiveSessionMap.tsx:52
 msgid "Unknown"
 msgstr "不明"
 
@@ -20081,7 +20081,7 @@ msgstr "リストから購読解除"
 #: src/components/logs/labels.ts:106
 #: src/components/logs/MessageDetail.tsx:433
 #: src/components/logs/MessagesTab.tsx:269
-#: src/components/messages/MessageHistoryTable.tsx:382
+#: src/components/messages/MessageHistoryTable.tsx:384
 #: src/components/timeline/ContactTimeline.tsx:750
 #: src/components/transactional/RecentSends.tsx:41
 #: src/pages/ContactsPage.tsx:541
@@ -21372,7 +21372,7 @@ msgid "Yes, activate"
 msgstr "はい、有効化"
 
 #: src/components/broadcasts/useBroadcastActions.ts:106
-#: src/components/web_analytics/filters/BackfillStatus.tsx:85
+#: src/components/web_analytics/filters/BackfillStatus.tsx:86
 msgid "Yes, cancel"
 msgstr "はい、キャンセルします"
 

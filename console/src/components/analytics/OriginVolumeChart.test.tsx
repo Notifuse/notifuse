@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { queryPlan } from '../../__tests__/queryPlan'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
@@ -46,24 +47,28 @@ function Harness() {
   return <OriginVolumeChart data={data} metric={metric} onMetricChange={setMetric} />
 }
 
-const renderChart = () =>
+const renderChart = (client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={client}>
       <I18nProvider i18n={i18n}>
         <Harness />
       </I18nProvider>
     </QueryClientProvider>
   )
 
-const rows = (perDay: (day: string) => Record<string, number>) => ({
-  data: days.map((day) => ({
-    created_at_day: `${day}T00:00:00Z`,
-    ...perDay(day)
-  })),
-  meta: { total: 3, query: '', params: [] }
-})
+const ORIGINS = ['broadcast', 'transactional', 'automation', 'other']
 
-const originOf = (q: AnalyticsQuery) => q.filters?.find((f) => f.member === 'origin')?.values[0]
+/** The answer split by origin: a row for each origin and day, as the gap filler gives them. */
+const rows = (perDay: (day: string, origin: string) => Record<string, number>) => ({
+  data: ORIGINS.flatMap((origin) =>
+    days.map((day) => ({
+      origin,
+      created_at_day: `${day}T00:00:00Z`,
+      ...perDay(day, origin)
+    }))
+  ),
+  meta: { total: ORIGINS.length * days.length, query: '', params: [] }
+})
 
 beforeEach(() => {
   captured = null
@@ -71,37 +76,38 @@ beforeEach(() => {
 })
 
 describe('OriginVolumeChart', () => {
-  it('asks one series per origin, emails only, in the workspace timezone', async () => {
+  it('reads the series under one key, each minute', async () => {
+    query.mockImplementation(async () => rows(() => ({ count_sent: 1 })))
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    renderChart(client)
+    await screen.findByTestId('echart')
+    expect(queryPlan(client)).toEqual([
+      {
+        key: ['dashboard', 'series', 'ws1', 'Europe/Paris', range.startDay, range.endDay],
+        refetchInterval: 60_000
+      }
+    ])
+  })
+
+  it('asks one series split by origin, emails only, in the workspace timezone', async () => {
     const sent: Record<string, number> = { broadcast: 10, transactional: 5, automation: 4, other: 1 }
-    query.mockImplementation(async (q: AnalyticsQuery) =>
-      rows(() => ({
-        count_sent: sent[originOf(q) ?? ''] ?? 0,
-        count_opened: 2
-      }))
-    )
+    query.mockImplementation(async () => rows((_, origin) => ({ count_sent: sent[origin], count_opened: 2 })))
     renderChart()
     await screen.findByTestId('echart')
 
-    expect(query).toHaveBeenCalledTimes(4)
-    const queries = query.mock.calls.map(([q]) => q as AnalyticsQuery)
-    expect(queries.map(originOf).sort()).toEqual(['automation', 'broadcast', 'other', 'transactional'])
-    for (const q of queries) {
-      expect(q.schema).toBe('message_history')
-      expect(q.dimensions).toEqual([])
-      expect(q.timezone).toBe('Europe/Paris')
-      expect(q.timeDimensions).toEqual([
-        {
-          dimension: 'created_at',
-          granularity: 'day',
-          dateRange: ['2026-11-08', '2026-11-10']
-        }
-      ])
-      expect(q.filters).toContainEqual({
-        member: 'channel',
-        operator: 'equals',
-        values: ['email']
-      })
-    }
+    expect(query).toHaveBeenCalledTimes(1)
+    const q = query.mock.calls[0][0] as AnalyticsQuery
+    expect(q.schema).toBe('message_history')
+    expect(q.dimensions).toEqual(['origin'])
+    expect(q.timezone).toBe('Europe/Paris')
+    expect(q.timeDimensions).toEqual([
+      {
+        dimension: 'created_at',
+        granularity: 'day',
+        dateRange: ['2026-11-08', '2026-11-10']
+      }
+    ])
+    expect(q.filters).toEqual([{ member: 'channel', operator: 'equals', values: ['email'] }])
     expect(captured?.series.map((s) => [s.name, s.type, s.data])).toEqual([
       ['Broadcasts', 'bar', [10, 10, 10]],
       ['Transactional', 'line', [5, 5, 5]],
@@ -118,13 +124,24 @@ describe('OriginVolumeChart', () => {
     await waitFor(() => expect(captured?.series[0].data).toEqual([3, 3, 3]))
     fireEvent.click(screen.getByText('Clicks'))
     await waitFor(() => expect(captured?.series[0].data).toEqual([1, 1, 1]))
-    expect(query).toHaveBeenCalledTimes(4)
+    expect(query).toHaveBeenCalledTimes(1)
+  })
+
+  it('counts an origin the answer leaves out as zero every day', async () => {
+    query.mockImplementation(async () => {
+      const answer = rows((_, origin) => ({ count_sent: origin === 'broadcast' ? 3 : 0 }))
+      return { ...answer, data: answer.data.filter((row) => row.origin !== 'automation') }
+    })
+    renderChart()
+    await screen.findByTestId('echart')
+    expect(captured?.series.find((s) => s.name === 'Automations')?.data).toEqual([0, 0, 0])
+    expect(captured?.series.find((s) => s.name === 'Broadcasts')?.data).toEqual([3, 3, 3])
   })
 
   it('uses a log axis when a broadcast dwarfs the daily sends', async () => {
-    query.mockImplementation(async (q: AnalyticsQuery) =>
-      rows((day) => ({
-        count_sent: originOf(q) === 'broadcast' ? (day === '2026-11-09' ? 20000 : 0) : 400
+    query.mockImplementation(async () =>
+      rows((day, origin) => ({
+        count_sent: origin === 'broadcast' ? (day === '2026-11-09' ? 20000 : 0) : 400
       }))
     )
     renderChart()

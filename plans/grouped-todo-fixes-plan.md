@@ -1657,6 +1657,19 @@ deleted."
   the explorer still moves to the parent.
 - 8.4, integration type: SMS, WhatsApp and a record missing its settings reach the generic card; product names
   are not translated.
+- 8.5, contacts tone: the tone only colours the sub-line, which is hidden while the count loads, so its guard
+  has no effect in the DOM and no test pins it. The placeholder guards have a test each: the rate change while
+  the series is the period before, the visits change while either visits query is.
+- 8.5, query plans: `__tests__/queryPlan.ts` lists each cached query with its key and `refetchInterval`, so
+  the dashboard tests pin both.
+- 8.5, origin chart: one query split by `origin`, under one key; an origin the answer leaves out counts as
+  zero every day. The log axis median is taken over broadcast, transactional and automation sends (all values
+  when they are all zero), the peak over every origin.
+- 8.5, unknown zone: `lib/zoneClock.ts` (`onZoneClock`) reads a date on a zone's clock and falls back to UTC,
+  for the message log and `utils/formatters.tsx`.
+- 8.5, chart fonts: the axis and legend sizes are the `2xs` and `overline` tokens.
+- 8.5, French renders: one file, `web_analytics/frenchRendering.test.tsx`, renders each component with French
+  active, plus the three counts. The CSV keeps dot decimals in French; its readable duration is in words.
 
 ## Test commands for lot 8
 

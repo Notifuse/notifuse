@@ -4,6 +4,7 @@ import { PlayCircleOutlined, StopOutlined, SyncOutlined } from '@ant-design/icon
 import { useLingui } from '@lingui/react/macro'
 import { webAnalyticsService } from '../../../services/api/web_analytics'
 import { useNumberFormat } from '../../layout'
+import { formatPercent } from '../lib/format'
 
 const { Text } = Typography
 
@@ -93,6 +94,8 @@ export function BackfillStatus(props: BackfillStatusProps) {
 
         <Progress
           percent={Math.round(status.progress ?? 0)}
+          // antd writes "42%" in English otherwise
+          format={(percent) => formatPercent(percent ?? 0, 0)}
           status="active"
           strokeColor={{ from: '#1890ff', to: '#52c41a' }}
         />

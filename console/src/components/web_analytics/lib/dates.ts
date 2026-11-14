@@ -89,7 +89,8 @@ export function computeDateRange(
     case 'custom':
       if (!customRange) return lastNDays(7)
       return {
-        start: dayjs.tz(customRange.start, timezone).startOf('day'),
+        // Already the local midnight: startOf('day') would shift it by the browser's offset on a DST day
+        start: dayjs.tz(customRange.start, timezone),
         end: dayjs.tz(customRange.end, timezone).endOf('day')
       }
     default:
@@ -108,7 +109,8 @@ export function resolveRange(range: DayjsRange, timezone: string): ResolvedRange
   return {
     startDay,
     endDay,
-    startUtc: dayjs.tz(startDay, timezone).startOf('day').toISOString(),
+    // dayjs.tz of a day is its local midnight; startOf('day') would read the browser's zone on a DST day
+    startUtc: dayjs.tz(startDay, timezone).toISOString(),
     endUtc: dayjs.tz(endDay, timezone).endOf('day').toISOString()
   }
 }

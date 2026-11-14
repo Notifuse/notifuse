@@ -13,6 +13,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faEye, faFaceFrown } from '@fortawesome/free-regular-svg-icons'
 import dayjs from '../../lib/dayjs'
+import { onZoneClock } from '../../lib/zoneClock'
 import { MessageHistory } from '../../services/api/messages_history'
 import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
 import { templatesApi } from '../../services/api/template'
@@ -140,8 +141,9 @@ export function MessageHistoryTable({
   // The full date, in the console's language, on the clock of the workspace timezone it names.
   const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-'
-    const zone = workspace.settings.timezone || 'UTC'
-    const when = dayjs(dateString).tz(zone).format('lll')
+    const clock = onZoneClock(dayjs(dateString), workspace.settings.timezone || 'UTC')
+    const when = clock.when.format('lll')
+    const zone = clock.zone
     return t`${when} in ${zone}`
   }
 
