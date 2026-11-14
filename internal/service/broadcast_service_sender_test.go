@@ -206,6 +206,7 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 		f := newSenderFixture()
 		ctx := context.Background()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		expectTx(d, ctx)
 		paused := testBroadcast("w1", "b1")
 		paused.Status = domain.BroadcastStatusPaused
@@ -247,12 +248,62 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 		}}
 		winner := "tplA"
 		paused.WinningTemplate = &winner
+		noTaskStateYet(d)
 		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
 		expectResumed(d)
 
 		require.NoError(t, d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}))
 	})
+
+	// A pause can come after the run queued the last recipient and before it wrote the
+	// completion date: the task's cursor then tells that nothing is left to queue.
+	taskAt := func(phase string, offset int64, total int) *domain.Task {
+		return &domain.Task{ID: "task-1", State: &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{
+			Phase: phase, RecipientOffset: offset, TotalRecipients: total,
+		}}}
+	}
+	for _, tc := range []struct {
+		name    string
+		task    *domain.Task
+		readErr error
+		checked bool
+	}{
+		{"every recipient queued: no sender to resolve", taskAt("single", 40, 40), nil, false},
+		{"every recipient of the winner phase queued: no sender to resolve", taskAt("winner", 40, 40), nil, false},
+		{"recipients left: their sender is resolved", taskAt("single", 20, 40), nil, true},
+		{"the test phase: the winner's recipients are still to queue", taskAt("test", 40, 40), nil, true},
+		{"a task that cannot be read keeps the check", nil, errors.New("connection reset"), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			f := newSenderFixture()
+			ctx := context.Background()
+			authOK(d.authService, ctx, "w1")
+			expectTx(d, ctx)
+			paused := testBroadcast("w1", "b1")
+			paused.Status = domain.BroadcastStatusPaused
+			paused.TestSettings.Variations[0].SenderID = "sender-since-deleted"
+			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
+			d.taskRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), "w1", "b1").Return(tc.task, tc.readErr)
+
+			if tc.checked {
+				d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
+				err := d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"})
+				requireValidationError(t, err, "sender-since-deleted")
+				return
+			}
+			expectResumed(d)
+			require.NoError(t, d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}))
+		})
+	}
+}
+
+// noTaskStateYet answers the resume's read of the broadcast's task with no task, so the
+// sender check runs as it does for a broadcast whose run has not started.
+func noTaskStateYet(d *broadcastSvcDeps) {
+	d.taskRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil, domain.ErrTaskNotFound).AnyTimes()
 }
 
 func TestBroadcastService_SendToIndividual_VariationSender(t *testing.T) {

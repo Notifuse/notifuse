@@ -663,8 +663,10 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 
 		// A broadcast with recipients still to enqueue resolves their sender again, which
 		// may have left the integration during the pause. One whose recipients are all
-		// queued only releases emails that already carry their sender.
-		if broadcast.CompletedAt == nil {
+		// queued only releases emails that already carry their sender: its completion
+		// date, or its task's cursor at the end of the list when the pause came before
+		// the run wrote that date.
+		if broadcast.CompletedAt == nil && !s.allRecipientsQueued(ctx, request.WorkspaceID, broadcast.ID) {
 			if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, broadcast.VariationsToSend()); err != nil {
 				return err
 			}
@@ -769,6 +771,19 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		}).Error("Failed to process resume broadcast event after the resume committed")
 	}
 	return nil
+}
+
+// allRecipientsQueued reports whether the broadcast's task has queued every recipient: its
+// state is past the test phase and its cursor at the end of the list. A task that cannot be
+// read answers false, so the caller keeps its check.
+func (s *BroadcastService) allRecipientsQueued(ctx context.Context, workspaceID, broadcastID string) bool {
+	task, err := s.taskRepo.GetTaskByBroadcastID(ctx, workspaceID, broadcastID)
+	if err != nil || task == nil || task.State == nil || task.State.SendBroadcast == nil {
+		return false
+	}
+	state := task.State.SendBroadcast
+	return (state.Phase == "single" || state.Phase == "winner") &&
+		state.TotalRecipients > 0 && state.RecipientOffset >= int64(state.TotalRecipients)
 }
 
 // CancelBroadcast cancels a scheduled broadcast

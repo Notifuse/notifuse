@@ -1438,6 +1438,11 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			break
 		}
 
+		// Each batch is sent with the provider as it is now: a sender removed from the
+		// integration since the run began is then refused by SendBatch, which pauses the
+		// broadcast, instead of the run sending from it until its end.
+		workspace, emailProvider, integrationID = o.refreshProvider(ctx, task, workspace, emailProvider, integrationID)
+
 		// Resolve the tracking/base endpoint: custom endpoint if set, else the API endpoint.
 		endpoint := workspace.Settings.ResolveEndpoint(o.apiEndpoint)
 
@@ -1647,6 +1652,28 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	}).Info("Broadcast processing cycle completed")
 	// codecov:ignore:end
 	return allDone, err
+}
+
+// refreshProvider reads the workspace again for the next batch. A read that fails, or that
+// finds no marketing provider, keeps the run's copy (logged at Warn): the batch then goes as
+// it would have, and a provider that is really gone fails it there.
+func (o *BroadcastOrchestrator) refreshProvider(ctx context.Context, task *domain.Task, workspace *domain.Workspace,
+	provider *domain.EmailProvider, integrationID string) (*domain.Workspace, *domain.EmailProvider, string) {
+	fresh, err := o.workspaceRepo.GetByID(ctx, task.WorkspaceID)
+	if err != nil {
+		o.logger.WithFields(map[string]interface{}{
+			"task_id": task.ID,
+			"error":   err.Error(),
+		}).Warn("Failed to read the workspace again for the next batch - keeping the run's email provider")
+		return workspace, provider, integrationID
+	}
+	freshProvider, freshID, err := fresh.GetEmailProviderWithIntegrationID(true)
+	if err != nil || freshProvider == nil || freshProvider.Kind == "" {
+		o.logger.WithField("task_id", task.ID).
+			Warn("No marketing email provider found for the next batch - keeping the run's email provider")
+		return workspace, provider, integrationID
+	}
+	return fresh, freshProvider, freshID
 }
 
 // A task is created in the schedule request before the broadcast's own write commits, so

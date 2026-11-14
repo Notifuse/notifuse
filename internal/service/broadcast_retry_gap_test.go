@@ -301,6 +301,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		} {
 			d := setupBroadcastSvc(t)
 			authOK(d.authService, ctx, "w1")
+			noTaskStateYet(d)
 			inTx(d, ctx)
 			b := testBroadcast("w1", "b1")
 			b.Status = status
@@ -315,6 +316,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		d := setupBroadcastSvc(t)
 		defer d.ctrl.Finish()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
@@ -347,6 +349,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		d := setupBroadcastSvc(t)
 		defer d.ctrl.Finish()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
@@ -374,6 +377,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		d := setupBroadcastSvc(t)
 		defer d.ctrl.Finish()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
@@ -401,6 +405,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		d := setupBroadcastSvc(t)
 		defer d.ctrl.Finish()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
@@ -417,6 +422,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		d := setupBroadcastSvc(t)
 		defer d.ctrl.Finish()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		var order []string
 		d.repo.EXPECT().WithTransaction(ctx, "w1", gomock.Any()).DoAndReturn(
 			func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
@@ -444,6 +450,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		d := setupBroadcastSvc(t)
 		defer d.ctrl.Finish()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		inTx(d, ctx)
 		b := testBroadcast("w1", "b1")
 		b.Status = domain.BroadcastStatusPaused
@@ -461,6 +468,7 @@ func TestBroadcastGap_ResumeBranchesAndFailures(t *testing.T) {
 		d := setupBroadcastSvc(t)
 		defer d.ctrl.Finish()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		commitErr := errors.New("commit failed")
 		d.repo.EXPECT().WithTransaction(ctx, "w1", gomock.Any()).DoAndReturn(
 			func(_ context.Context, _ string, fn func(*sql.Tx) error) error {

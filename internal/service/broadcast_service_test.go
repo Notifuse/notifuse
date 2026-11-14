@@ -254,6 +254,7 @@ func TestBroadcastService_ResumeBroadcast_ToScheduled_Success(t *testing.T) {
 	ctx := context.Background()
 	req := &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 	authOK(d.authService, ctx, req.WorkspaceID)
+	noTaskStateYet(d)
 
 	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
@@ -1676,6 +1677,7 @@ func TestBroadcastService_ResumeBroadcast_ToSending_Success(t *testing.T) {
 	ctx := context.Background()
 	req := &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 	authOK(d.authService, ctx, req.WorkspaceID)
+	noTaskStateYet(d)
 
 	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
@@ -2997,6 +2999,7 @@ func TestBroadcastService_ResumeBroadcast_ScheduleParseError(t *testing.T) {
 	ctx := context.Background()
 	req := &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 	authOK(d.authService, ctx, req.WorkspaceID)
+	noTaskStateYet(d)
 
 	d.repo.EXPECT().WithTransaction(ctx, req.WorkspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
