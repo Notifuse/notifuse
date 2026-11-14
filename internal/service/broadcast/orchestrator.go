@@ -528,6 +528,19 @@ func FormatProgressMessage(processed, total int, elapsed time.Duration) string {
 		processed, total, progress, eta)
 }
 
+// leaseContext returns a context for a write the run must make even when its context is
+// cancelled (a shutdown keeps the cursor of the last batch), still bounded by that context's
+// deadline, which ExecuteTask sets to the run's lease: past it another execution may hold
+// the task. It keeps the context's values, among them the lease SaveState matches
+// (domain.WithTaskLease).
+func leaseContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	detached := context.WithoutCancel(ctx)
+	if deadline, ok := ctx.Deadline(); ok {
+		return context.WithDeadline(detached, deadline)
+	}
+	return detached, func() {}
+}
+
 // SaveProgressState saves the current task progress to the repository
 func (o *BroadcastOrchestrator) SaveProgressState(
 	ctx context.Context,
@@ -557,7 +570,9 @@ func (o *BroadcastOrchestrator) SaveProgressState(
 	}
 
 	// Save state
-	err := o.taskRepo.SaveState(context.Background(), workspaceID, taskID, progress, state)
+	saveCtx, cancel := leaseContext(ctx)
+	defer cancel()
+	err := o.taskRepo.SaveState(saveCtx, workspaceID, taskID, progress, state)
 	if err != nil {
 		// codecov:ignore:start
 		o.logger.WithFields(map[string]interface{}{
@@ -634,6 +649,29 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Defer function to mark broadcast as failed if we're returning an error on the last attempt
 	defer func() {
 		if err != nil && isLastAttempt && broadcastID != "" {
+			// A run handing its task back, or one that lost its lease, decides nothing
+			// about the broadcast.
+			var requeue *domain.TaskRequeueError
+			if errors.As(err, &requeue) || errors.Is(err, domain.ErrTaskNotRunning) {
+				return
+			}
+
+			// retryFinalization hands the task back for its retry interval when the outcome
+			// could not be recorded and nothing was written, keeping its retry count: the
+			// next run is the last attempt again and finalizes again. Failing the task here
+			// left the broadcast in its sending status for good.
+			runErr := err
+			retryFinalization := func(cause error) {
+				after := time.Duration(task.RetryInterval) * time.Second
+				if after <= 0 {
+					after = time.Minute
+				}
+				err = &domain.TaskRequeueError{
+					After:  after,
+					Reason: fmt.Sprintf("the last attempt's outcome could not be recorded (%v) after: %v", cause, runErr),
+				}
+			}
+
 			// Skip if the broadcast was paused for a failed data feed or a chosen
 			// sender that left the integration
 			if errors.Is(err, ErrBroadcastShouldPause) {
@@ -676,6 +714,11 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"broadcast_id": broadcastID,
 					"error":        getBroadcastErr.Error(),
 				}).Error("Failed to get broadcast for status update on last retry")
+				// A deleted broadcast has nothing to finalize: its task fails, not loops.
+				var notFound *domain.ErrBroadcastNotFound
+				if !errors.As(getBroadcastErr, &notFound) {
+					retryFinalization(getBroadcastErr)
+				}
 				return
 			}
 
@@ -749,6 +792,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			}
 			written, updateErr := writeStatus(interrupted)
 			logWrite(written, updateErr)
+			if updateErr != nil {
+				retryFinalization(updateErr)
+				return
+			}
 			// A cancellation landing while that write ran, or waited on the row
 			// lock, makes the task service release the task too: the broadcast
 			// written failed is then paused. Failed is not a kept status, so
@@ -1503,6 +1550,16 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			lastSaveTime,
 			startTime,
 		)
+		if errors.Is(saveErr, domain.ErrTaskNotRunning) {
+			// Another execution holds the task now: the next batch would go to the
+			// recipients that execution sends to. Stop, and write nothing more.
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"broadcast_id": broadcastState.BroadcastID,
+			}).Warn("Task is held by another execution - stopping this run")
+			err = saveErr
+			return false, err
+		}
 		if saveErr != nil {
 			// codecov:ignore:start
 			o.logger.WithFields(map[string]interface{}{

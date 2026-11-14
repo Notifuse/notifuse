@@ -583,6 +583,38 @@ func (s *TaskService) executeTasksDirectly(ctx context.Context, tasks []*domain.
 	return nil
 }
 
+// requeueTask hands a task back as its processor asked (domain.TaskRequeueError): pending,
+// or paused when parked, due req.After from now, with its retry count, progress and state.
+// A task another decision moved on meanwhile (a cancel marked it failed) is left as it is.
+func (s *TaskService) requeueTask(ctx context.Context, task *domain.Task, req *domain.TaskRequeueError) error {
+	status := domain.TaskStatusPending
+	if req.Park {
+		status = domain.TaskStatusPaused
+	}
+	nextRun := time.Now().UTC().Add(req.After)
+	fields := map[string]interface{}{
+		"task_id":      task.ID,
+		"workspace_id": task.WorkspaceID,
+		"status":       string(status),
+		"next_run":     nextRun,
+		"reason":       req.Reason,
+	}
+	if err := s.repo.RequeueTask(ctx, task.WorkspaceID, task.ID, status, nextRun, task.Progress, task.State); err != nil {
+		if errors.Is(err, domain.ErrTaskNotRunning) {
+			s.logger.WithFields(fields).Info("Task to requeue was already finalized elsewhere - leaving it alone")
+			return nil
+		}
+		fields["error"] = err.Error()
+		s.logger.WithFields(fields).Error("Failed to requeue task")
+		return &domain.ErrTaskExecution{TaskID: task.ID, Reason: "failed to requeue task", Err: err}
+	}
+	s.logger.WithFields(fields).Info("Task handed back for a later run")
+	if req.AfterRequeue != nil {
+		req.AfterRequeue(ctx)
+	}
+	return nil
+}
+
 // ExecuteTask executes a specific task
 func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string, timeoutAt time.Time) error {
 	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "ExecuteTask")
@@ -605,7 +637,11 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 	// get the same bound. If the caller's context carries an earlier deadline,
 	// the earlier one wins. Terminal status writes below use a detached bgCtx
 	// and are unaffected by this cancellation.
-	ctx, cancelExec := context.WithDeadline(ctx, timeoutAt.Add(taskExecutionGrace))
+	//
+	// The lease is truncated to the microsecond the timeout_after column keeps, so the
+	// value the run holds is exactly the stored one: SaveState matches it (WithTaskLease).
+	lease := timeoutAt.Add(taskExecutionGrace).UTC().Truncate(time.Microsecond)
+	ctx, cancelExec := context.WithDeadline(ctx, lease)
 	defer cancelExec()
 
 	// Get the task
@@ -671,7 +707,7 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		// the graced one would then write terminal state over the row the new
 		// execution owns. With the grace included, the first execution is
 		// hard-cancelled at or before the moment it becomes reapable.
-		if markErr := s.repo.MarkAsRunningTx(txCtx, tx, workspace, taskID, timeoutAt.Add(taskExecutionGrace)); markErr != nil {
+		if markErr := s.repo.MarkAsRunningTx(txCtx, tx, workspace, taskID, lease); markErr != nil {
 			tracing.MarkSpanError(txCtx, markErr)
 			s.logger.WithFields(map[string]interface{}{
 				"task_id":      taskID,
@@ -719,7 +755,7 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 			}
 		}()
 
-		procCtx, procSpan := tracing.StartServiceSpan(ctx, "TaskService", "ProcessTask")
+		procCtx, procSpan := tracing.StartServiceSpan(domain.WithTaskLease(ctx, lease), "TaskService", "ProcessTask")
 		defer tracing.EndSpan(procSpan, nil)
 
 		tracing.AddAttribute(procCtx, "task_id", taskID)
@@ -747,6 +783,12 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		tracing.AddAttribute(procCtx, "elapsed_time_ms", elapsed.Milliseconds())
 		tracing.AddAttribute(procCtx, "task_completed", completed)
 
+		var requeue *domain.TaskRequeueError
+		if err != nil && (errors.As(err, &requeue) || errors.Is(err, domain.ErrTaskNotRunning)) {
+			// Not a failure: handed back below without consuming a retry, or no longer ours.
+			processErr <- err
+			return
+		}
 		if err != nil {
 			tracing.MarkSpanError(procCtx, err)
 			s.logger.WithFields(map[string]interface{}{
@@ -965,6 +1007,20 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 			}).Info("Task pending and will continue in next run")
 		}
 	case err := <-processErr:
+		var requeue *domain.TaskRequeueError
+		if errors.As(err, &requeue) {
+			return s.requeueTask(bgCtx, task, requeue)
+		}
+		// The processor found its lease gone (TaskRepository.SaveState): another execution
+		// holds the task, and every write from here would land on that execution's row.
+		if errors.Is(err, domain.ErrTaskNotRunning) {
+			s.logger.WithFields(map[string]interface{}{
+				"task_id":      taskID,
+				"workspace_id": workspace,
+			}).Info("Task is held by another execution - this run stops without writing")
+			return nil
+		}
+
 		// An error that carries a cancellation is an interruption, not a
 		// failure: the processor was cut short by its context going away rather
 		// than by anything wrong with the task. Re-queue it immediately —

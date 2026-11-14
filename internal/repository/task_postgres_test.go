@@ -1049,7 +1049,7 @@ func TestTaskRepository_SaveState(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
-	// Test save state for non-existent task (no rows affected, but no error expected)
+	// A task that is no longer running is not written, and the run is told.
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
@@ -1061,9 +1061,29 @@ func TestTaskRepository_SaveState(t *testing.T) {
 			workspace,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectCommit()
+	mock.ExpectRollback()
 
 	err = repo.SaveState(ctx, workspace, taskID, progress, state)
+	assert.ErrorIs(t, err, domain.ErrTaskNotRunning)
+	assert.NoError(t, mock.ExpectationsWereMet())
+
+	// With the run's lease in the context, only the execution holding that lease writes.
+	lease := time.Date(2026, 11, 14, 10, 0, 0, 123456000, time.UTC)
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE tasks SET .* AND timeout_after = \$7`).
+		WithArgs(
+			progress,
+			sqlmock.AnyArg(), // state JSON
+			sqlmock.AnyArg(), // updated_at
+			taskID,
+			string(domain.TaskStatusRunning),
+			workspace,
+			lease,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	err = repo.SaveState(domain.WithTaskLease(ctx, lease), workspace, taskID, progress, state)
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
@@ -2370,4 +2390,53 @@ func TestTaskRepository_GetNextBatch_SkipsWaitingTasksWithALiveLease(t *testing.
 	require.Len(t, executed, 1)
 	assert.Equal(t, 2, strings.Count(executed[0], "timeout_after IS NULL"),
 		"both the pending and the paused branch must require an empty or expired lease")
+}
+
+func TestTaskRepository_RequeueTask(t *testing.T) {
+	ctx := context.Background()
+	next := time.Now().UTC().Add(time.Minute)
+	state := &domain.TaskState{Progress: 10}
+
+	t.Run("writes the hand-back without touching retry_count, only on a running task", func(t *testing.T) {
+		var executed []string
+		db, mock, repo := setupTaskMockCapturingSQL(t, &executed)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(string(domain.TaskStatusPaused), 10.0, sqlmock.AnyArg(), sqlmock.AnyArg(), next, nil,
+				"task-1", "ws-1", string(domain.TaskStatusRunning)).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		require.NoError(t, repo.RequeueTask(ctx, "ws-1", "task-1", domain.TaskStatusPaused, next, 10, state))
+		require.NoError(t, mock.ExpectationsWereMet())
+		require.Len(t, executed, 1)
+		assert.NotContains(t, executed[0], "retry_count")
+	})
+
+	t.Run("a task no longer running is not ours", func(t *testing.T) {
+		db, mock, repo := setupTaskMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec("UPDATE tasks SET").WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := repo.RequeueTask(ctx, "ws-1", "task-1", domain.TaskStatusPending, next, 0, nil)
+		assert.ErrorIs(t, err, domain.ErrTaskNotRunning)
+	})
+
+	t.Run("a database failure is wrapped", func(t *testing.T) {
+		db, mock, repo := setupTaskMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec("UPDATE tasks SET").WillReturnError(errors.New("connection reset"))
+
+		err := repo.RequeueTask(ctx, "ws-1", "task-1", domain.TaskStatusPending, next, 0, nil)
+		assert.EqualError(t, err, "failed to requeue task: connection reset")
+	})
+
+	t.Run("a terminal status is refused before any write", func(t *testing.T) {
+		db, mock, repo := setupTaskMock(t)
+		defer func() { _ = db.Close() }()
+
+		err := repo.RequeueTask(ctx, "ws-1", "task-1", domain.TaskStatusCompleted, next, 0, nil)
+		assert.Error(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
 }

@@ -245,7 +245,10 @@ type TaskRepository interface {
 	MarkAsRunning(ctx context.Context, workspace, id string, timeoutAfter time.Time) error
 	MarkAsRunningTx(ctx context.Context, tx *sql.Tx, workspace, id string, timeoutAfter time.Time) error
 
-	// SaveState saves the current state of a running task
+	// SaveState saves the current state of a running task. When ctx carries the run's lease
+	// (WithTaskLease), only the execution that holds that lease writes: once the task was
+	// handed to another execution, nothing is written. It returns ErrTaskNotRunning when no
+	// row was written.
 	SaveState(ctx context.Context, workspace, id string, progress float64, state *TaskState) error
 	SaveStateTx(ctx context.Context, tx *sql.Tx, workspace, id string, progress float64, state *TaskState) error
 
@@ -275,6 +278,14 @@ type TaskRepository interface {
 	// its retry budget or touching its saved progress.
 	ReleaseTask(ctx context.Context, workspace, id string, reason string, nextRunAfter time.Time) error
 	ReleaseTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, reason string, nextRunAfter time.Time) error
+
+	// RequeueTask hands a running task back for a later run without counting a failed
+	// attempt: status (pending, or paused to park it), progress, state and next run are
+	// written, the lease is cleared, and the retry count is kept, so a run that was the
+	// last attempt leaves its successor the last attempt too. It returns ErrTaskNotRunning,
+	// and changes nothing, when the task is no longer running: a cancel marked it failed
+	// meanwhile, and that decision stands.
+	RequeueTask(ctx context.Context, workspace, id string, status TaskStatus, nextRunAfter time.Time, progress float64, state *TaskState) error
 
 	// WakeTask puts a waiting task back in the queue: pending, due at nextRunAfter,
 	// with a fresh retry budget and no error message. It returns false, and changes
@@ -627,4 +638,19 @@ func (r *TriggerTaskRequest) Validate() error {
 	}
 
 	return nil
+}
+
+type taskLeaseKey struct{}
+
+// WithTaskLease returns ctx carrying the lease (timeout_after) that the execution running a
+// task stored when it claimed it. A write that must come from that execution only, such as
+// TaskRepository.SaveState, matches it.
+func WithTaskLease(ctx context.Context, lease time.Time) context.Context {
+	return context.WithValue(ctx, taskLeaseKey{}, lease)
+}
+
+// TaskLeaseFrom returns the lease WithTaskLease put in ctx.
+func TaskLeaseFrom(ctx context.Context) (time.Time, bool) {
+	lease, ok := ctx.Value(taskLeaseKey{}).(time.Time)
+	return lease, ok
 }

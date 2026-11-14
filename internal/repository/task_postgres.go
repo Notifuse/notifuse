@@ -703,26 +703,39 @@ func (r *TaskRepository) SaveStateTx(ctx context.Context, tx *sql.Tx, workspace,
 	now := time.Now().UTC()
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+	where := sq.And{
+		sq.Eq{
+			"id":           id,
+			"workspace_id": workspace,
+			"status":       domain.TaskStatusRunning,
+		},
+	}
+	// The run's own lease: a run that outlived it, whose task another execution now holds,
+	// writes nothing over that execution's state.
+	if lease, ok := domain.TaskLeaseFrom(ctx); ok {
+		where = append(where, sq.Eq{"timeout_after": lease.UTC()})
+	}
 	query := psql.Update("tasks").
 		Set("progress", progress).
 		Set("state", stateJSON).
 		Set("updated_at", now).
-		Where(sq.And{
-			sq.Eq{
-				"id":           id,
-				"workspace_id": workspace,
-				"status":       domain.TaskStatusRunning,
-			},
-		})
+		Where(where)
 
 	sqlQuery, args, err := query.ToSql()
 	if err != nil {
 		return fmt.Errorf("failed to build update query: %w", err)
 	}
 
-	_, err = tx.ExecContext(ctx, sqlQuery, args...)
+	result, err := tx.ExecContext(ctx, sqlQuery, args...)
 	if err != nil {
 		return fmt.Errorf("failed to save task state: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return domain.ErrTaskNotRunning
 	}
 
 	return nil
@@ -1216,6 +1229,49 @@ func (r *TaskRepository) ReleaseTaskTx(ctx context.Context, tx *sql.Tx, workspac
 		return domain.ErrTaskNotRunning
 	}
 
+	return nil
+}
+
+// RequeueTask hands a running task back for a later run; see domain.TaskRepository.
+func (r *TaskRepository) RequeueTask(ctx context.Context, workspace, id string, status domain.TaskStatus, nextRunAfter time.Time, progress float64, state *domain.TaskState) error {
+	if status != domain.TaskStatusPending && status != domain.TaskStatusPaused {
+		return fmt.Errorf("a task can only be requeued as pending or paused, not %s", status)
+	}
+	stateJSON, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	sqlQuery, args, err := psql.Update("tasks").
+		Set("status", status).
+		Set("progress", progress).
+		Set("state", stateJSON).
+		Set("updated_at", time.Now().UTC()).
+		Set("next_run_after", nextRunAfter.UTC()).
+		Set("timeout_after", nil).
+		Where(sq.And{
+			sq.Eq{"id": id},
+			sq.Eq{"workspace_id": workspace},
+			// Only the execution that holds the task hands it back, as in ReleaseTaskTx.
+			sq.Eq{"status": string(domain.TaskStatusRunning)},
+		}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build requeue query: %w", err)
+	}
+
+	result, err := r.systemDB.ExecContext(ctx, sqlQuery, args...)
+	if err != nil {
+		return fmt.Errorf("failed to requeue task: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return domain.ErrTaskNotRunning
+	}
 	return nil
 }
 

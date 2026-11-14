@@ -611,7 +611,7 @@ func TestSaveProgressState(t *testing.T) {
 
 	// Setup expectations
 	mockTaskRepo.EXPECT().
-		SaveState(ctx, workspaceID, taskID, gomock.Any(), gomock.Any()).
+		SaveState(gomock.Any(), workspaceID, taskID, gomock.Any(), gomock.Any()).
 		Return(nil)
 
 	// Create broadcast state
