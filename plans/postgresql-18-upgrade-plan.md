@@ -125,13 +125,14 @@ It also runs `reindexdb --all --concurrently` and a per-database `VACUUM (ANALYZ
 
 ### W1 — Compose files and the runtime image
 
+(`stop_grace_period: 75s` on the api service shipped separately, with `plans/compose-stop-grace-period-plan.md`.)
+
 | File | Change |
 |---|---|
 | `compose.yaml:74` | `postgres:17-alpine` → `postgres:18-alpine` |
 | `compose.yaml:82` | `postgres-data:/var/lib/postgresql/data` → `postgres-data:/var/lib/postgresql` |
 | `compose.yaml:66-73` | Rewrite the pin comment. It is now false in two ways: it says the volume "would no longer receive the data at all" (the current image hard-errors instead — that wording predates [#3b6b5fca](https://github.com/docker-library/postgres/commit/3b6b5fca)), and the pin itself is gone. New comment states: the mount is the parent by design; **never set `PGDATA`**; existing installs must run the upgrade profile first |
 | `compose.yaml:50-51` | `depends_on: - postgres` → `depends_on: postgres: condition: service_healthy` (matches `deploy/coolify/notifuse.yaml:34-36`, and stops the api racing a freshly-initdb'd cluster) |
-| `compose.yaml` api service | Add `stop_grace_period: 75s`. `cmd/api/main.go:61-67` asks for 65 s of graceful shutdown inside a 70 s context; Compose's default is 10 s then SIGKILL, which drops up to `SessionFlushInterval = 60s` of un-persisted web-analytics session state (`web_analytics_buffer.go:54`) |
 | `compose.yaml` **new** | `pg-upgrade` service under `profiles: ["pg-upgrade"]` — see below |
 | `compose.alloydb.yaml:64` | `google/alloydbomni:17.5.0` → `17.9.0` |
 | `compose.alloydb.yaml:11-12` | Reword: PG18 Omni exists (18.3.0 GA) but its images require a Google access-registration form, so the public compose path stays on 17 — and **that is why no PG18-only DDL is allowed anywhere in the repo** |

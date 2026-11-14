@@ -16,6 +16,11 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
+// gracefulShutdownTimeout bounds the graceful shutdown that a SIGTERM starts. A container
+// runtime must wait longer than this before it kills the process: compose.yaml sets the api
+// service's stop_grace_period accordingly.
+const gracefulShutdownTimeout = 70 * time.Second
+
 // osExit is a variable to allow mocking os.Exit in tests
 var osExit = os.Exit
 
@@ -64,7 +69,7 @@ func runServer(cfg *config.Config, appLogger logger.Logger) error {
 
 		// Create a context with timeout for graceful shutdown
 		// Use 70 seconds to give 5 seconds buffer beyond app's internal timeout
-		ctx, cancel := context.WithTimeout(context.Background(), 70*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
 		defer cancel()
 
 		// Log current active requests
