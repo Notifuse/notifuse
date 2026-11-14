@@ -416,9 +416,9 @@ and the suggestions were checked against the code and integrated:
   as adjacent anchors in an `mj-text`, which is what the navbar compiles to.
 - Punctuation right after a link (`.,;:!?)` and ASCII quotes) stays attached when a
   space or the end of the text follows: `label (url).`, not `label (url) .`. GitHub's
-  autolinker (GFM) leaves a trailing `.,:!?` and an unmatched `)` out of the link, a
-  trailing `;` only when it ends an entity, and has no rule for quotes; Gmail's and
-  linkify's were not checked. Typographic closing quotes and `]` are kept apart:
-  Markdown-style autolinkers (marked) take `]`.
+  autolinker (cmark-gfm, `autolink_delim`) leaves each of `.,;:!?"'` and an unmatched `)`
+  out of the link; the GFM spec's prose lists fewer, and Gmail's and linkify's were not
+  checked. Typographic closing quotes and `]` are kept apart: Markdown-style autolinkers
+  (marked) take `]`.
 - A link with a relative `href` keeps its label only: there is no base to resolve it
   against. Tracked links are absolute whenever `API_ENDPOINT` or a custom endpoint is set.

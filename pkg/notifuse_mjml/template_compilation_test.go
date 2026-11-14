@@ -2897,6 +2897,33 @@ func TestCompileTemplateWithMJLiquidForLoop(t *testing.T) {
 	assert.Contains(t, *resp.HTML, "Product B")
 }
 
+// An empty mjml_source compiles the tree, its mj-liquid blocks and preview override included.
+func TestCompileTemplate_EmptyMjmlSourceRendersTheTreesLiquid(t *testing.T) {
+	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
+	liqBase.Content = stringPtr(`<mj-section><mj-column><mj-text>Hello {{ first_name }}</mj-text></mj-column></mj-section>`)
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{&MJLiquidBlock{BaseBlock: liqBase}}
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("mjml", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	empty := ""
+	override := "Preview for {{ first_name }}"
+	resp, err := CompileTemplate(CompileTemplateRequest{
+		WorkspaceID:            "ws",
+		MessageID:              "msg",
+		MjmlSource:             &empty,
+		VisualEditorTree:       root,
+		TemplateData:           MapOfAny{"first_name": "Ann"},
+		SubjectPreviewOverride: &override,
+		TrackingSettings:       TrackingSettings{EnableTracking: false},
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success, "error: %v", resp.Error)
+	assert.Contains(t, *resp.HTML, "Hello Ann")
+	assert.NotContains(t, *resp.HTML, "{{ first_name }}")
+	assert.Contains(t, *resp.HTML, "Preview for Ann")
+}
+
 func TestCompileTemplateWithMJLiquidConditional(t *testing.T) {
 	liqBase := NewBaseBlock("liq", MJMLComponentMjLiquid)
 	liqBase.Content = stringPtr(

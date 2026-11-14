@@ -107,11 +107,11 @@ func (w *writer) write(s string) {
 }
 
 // trailingPunctuation may follow a URL without a space when a space or the end of the
-// text comes next, where a space before it would read oddly. GitHub's autolinker (GFM)
-// leaves a trailing . , : ! ? and an unmatched ) out of the link, a trailing ; only when it
-// ends an entity, and has no rule for quotes, so a reader whose client links "url;" or
-// "url'" whole gets the character in the link. Typographic closing quotes and ] are kept
-// apart like a word: Markdown-style autolinkers (marked) take ] into the link.
+// text comes next, where a space before it would read oddly. GitHub's autolinker
+// (cmark-gfm, autolink_delim) leaves each of them out of the link: . , ; : ! ? " ' and an
+// unmatched ). The GFM spec's prose lists fewer; Gmail's and linkify's were not checked.
+// Typographic closing quotes and ] are kept apart like a word: Markdown-style autolinkers
+// (marked) take ] into the link.
 const trailingPunctuation = ".,;:!?)\"'"
 
 // writeURL appends a URL and remembers that the next word must be separated from it,

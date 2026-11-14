@@ -1199,7 +1199,8 @@ read, without a lookup per variation."
 - **6.2** The 100 KB limit: the scenario is far over it whatever the names (measured 239 KB to 1.5 MB), so the
   lot keeps the doc note of the limit and the shortening is "known, not handled". The seed notice is detected
   on the request's visual tree (a `mj-liquid` or `mj-raw` placed among rows or columns), not on the parsed HTML.
-  Tests: a 400 for a condition on a block holding `mj-liquid`; a code-mode compile whose data carries
+  Tests: a condition on a block holding `mj-liquid` refused by the compile request's `Validate` (which the
+  handlers answer with 400); a code-mode compile whose data carries
   `__dc_<id>`; a blank custom text with and without `IncludeText`.
 - **6.3** `templates.usage` counts `VariationsToSend()`: the winning variation once set, every stored variation
   otherwise (the random pick among stale variations with A/B off is "known, not handled"). `broadcasts.get`:
@@ -1230,7 +1231,17 @@ Review: `/mnt/project-files/reviews/grouped-pr-lot6-code-review.md`, of 6c590c7.
   `CompileTemplate` (an empty source compiles the tree), with a test; the unreadable template is no longer the
   last variation in the `GetBroadcast` test; the cut CHANGELOG sentence. Left in "known, not handled": the
   `socialLabelLink` hidden checks and untested guards, `liquidAmongBlocks` on an `mj-raw` in a section, the
-  `HandleUpdate` options matched with `gomock.Any()`, and the console notice prefix (lot 8 looks at it).
+  `HandleUpdate` options matched with `gomock.Any()`. The console notice prefix is a lot 8 point (8.2).
+
+### Corrections after the delta review (lot 6, round 2)
+
+- The `trailingPunctuation` comment and the plain-text plan's note now follow cmark-gfm's `autolink_delim`,
+  which leaves each of `.,;:!?"'` and an unmatched `)` out of the link; the GFM spec's prose lists fewer.
+- `CompileTemplate`: the whole-string Liquid pass and the preview override fallback test an empty
+  `mjml_source` as the code-mode branch does (`codeMode`), so an empty source with a tree renders its
+  `mj-liquid` blocks. Test: `TestCompileTemplate_EmptyMjmlSourceRendersTheTreesLiquid`, which fails with
+  either condition put back.
+- OpenAPI `text_error`: the blank custom text no longer depends on a request option the API does not have.
 
 ## Test commands for lot 6
 
@@ -1414,7 +1425,9 @@ translated in the eight catalogues (`console/CLAUDE.md`). Each point gets a vite
   squeezed, Liquid-made columns, `mj-class` widths) stay (known, not handled).
 - `MjmlCodeEditor.tsx`: an empty source sets the text output to '' without compiling.
 - `textVersionSeed.ts`: Liquid counted outside attributes, `mj-preview` and comments; the "Liquid lost" notice
-  names display conditions. `TextVersionPanel.tsx`: an email with no text shows "The email holds no text yet".
+  names display conditions. `TextVersionPanel.tsx`: an email with no text shows "The email holds no text yet";
+  the seed's `text_error` is shown without the "would not be accepted" prefix when it is the placement notice
+  (markup that is accepted and may land elsewhere).
 - `EmailAIAssistant.tsx`: its messages, title and placeholder go through `t`; `AIAssistantChat.tsx`: the
   markdown headings take the theme's sizes.
 - The old violet `#7763F1` becomes the `primary-500` tokens in the files the TODO lists, with their tests; and

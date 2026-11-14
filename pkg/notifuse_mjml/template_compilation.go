@@ -914,10 +914,11 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		return &CompileTemplateResponse{Success: false, Subject: renderedSubject, Error: previewErr}, nil
 	}
 
-	// If MjmlSource is provided (code mode), use it directly.
+	// If MjmlSource is provided (code mode), use it directly; an empty one compiles the tree.
 	// Note: Channel filtering is not applied in code mode — code mode users
 	// control their own MJML structure directly.
-	if req.MjmlSource != nil && *req.MjmlSource != "" {
+	codeMode := req.MjmlSource != nil && *req.MjmlSource != ""
+	if codeMode {
 		mjmlString = *req.MjmlSource
 
 		// Process Liquid templates if template data is provided and PreserveLiquid is false
@@ -1021,7 +1022,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// Whole-string Liquid pass for visual editor mode.
 	// Processes raw Liquid from mj-liquid blocks. Existing block content was already
 	// Liquid-processed per-block during tree walk, so the second pass is a no-op for them.
-	if req.MjmlSource == nil && !req.PreserveLiquid && len(req.TemplateData) > 0 && req.Channel != "web" {
+	if !codeMode && !req.PreserveLiquid && len(req.TemplateData) > 0 && req.Channel != "web" {
 		processed, liquidErr := ProcessLiquidTemplate(mjmlString, req.TemplateData, "visual-editor-whole")
 		if liquidErr != nil {
 			return &CompileTemplateResponse{
@@ -1046,7 +1047,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// <mj-preview /> means it did not — an mj-liquid block can emit a bare tag the
 	// walk never sees — so it falls through here and overrideMjPreviewInSource fills
 	// it rather than injecting a second element.
-	if req.MjmlSource == nil && req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
+	if !codeMode && req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
 		if !mjPreviewTagRegexp.MatchString(mjmlString) {
 			renderedOverride, overrideErr := renderSubjectField(req.SubjectPreviewOverride, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview_override")
 			if overrideErr != nil {

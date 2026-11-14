@@ -474,8 +474,8 @@ CompileTemplateResponse:
       type: string
       description: |
         Why the custom `text` of the request could not be used (a Liquid
-        error, a rendered text over 256 KiB, or, when the request asks for
-        the text, a custom text that renders blank for this data); `text` is
+        error, a rendered text over 256 KiB, or a custom text that renders
+        blank for this data); `text` is
         then the automatic version, as a send would be. With
         `preserve_liquid`, also flags an automatic text whose Liquid tags
         would not parse, or a visual template that places Liquid between the
