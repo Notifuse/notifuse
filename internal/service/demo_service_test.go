@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -783,25 +784,46 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockMessageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
 
 	svc := &DemoService{
 		logger:                  logger.NewLoggerWithLevel("disabled"),
 		messageHistoryRepo:      mockMessageHistoryRepo,
+		broadcastRepo:           mockBroadcastRepo,
 		inboundWebhookEventRepo: nil, // Won't be called in this test
 		workspaceService:        nil, // Won't be called in this test
 	}
 
 	ctx := context.Background()
-	contacts := []*domain.Contact{
-		{Email: "test1@example.com", FirstName: &domain.NullableString{String: "John", IsNull: false}},
-		{Email: "test2@example.com", FirstName: &domain.NullableString{String: "Jane", IsNull: false}},
+	contacts := []*domain.Contact{}
+	for i := 0; i < 60; i++ {
+		contacts = append(contacts, &domain.Contact{Email: fmt.Sprintf("test%d@example.com", i),
+			FirstName: &domain.NullableString{String: "John", IsNull: false}})
 	}
 
-	// Provide sample broadcast IDs
+	// Provide sample broadcast IDs; the last one is the A/B test, as in the demo.
 	broadcastIDs := []string{"broadcast-1", "broadcast-2", "broadcast-3", "broadcast-4"}
 
 	// Mock message history creation - each contact gets 2-4 messages
-	mockMessageHistoryRepo.EXPECT().Create(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	recipients := map[string]int{}
+	mockMessageHistoryRepo.EXPECT().Create(ctx, "demo", gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, _, _ string, message *domain.MessageHistory) error {
+			if message.BroadcastID != nil {
+				recipients[*message.BroadcastID]++
+			}
+			return nil
+		}).AnyTimes()
+	mockBroadcastRepo.EXPECT().GetBroadcast(ctx, "demo", gomock.Any()).DoAndReturn(
+		func(_ context.Context, _, id string) (*domain.Broadcast, error) {
+			return &domain.Broadcast{ID: id, TestSettings: domain.BroadcastTestSettings{
+				Enabled: id == "broadcast-4", SamplePercentage: 10}}, nil
+		}).AnyTimes()
+	var updated []*domain.Broadcast
+	mockBroadcastRepo.EXPECT().UpdateBroadcast(ctx, gomock.Any()).DoAndReturn(
+		func(_ context.Context, b *domain.Broadcast) error {
+			updated = append(updated, b)
+			return nil
+		}).AnyTimes()
 	// Mock SetOpened and SetClicked for message_history updates (triggers timeline entries)
 	mockMessageHistoryRepo.EXPECT().SetOpened(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockMessageHistoryRepo.EXPECT().SetClicked(ctx, "demo", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
@@ -816,8 +838,17 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 	count, err := svc.generateMessagesPerContact(ctx, "demo", "test-secret-key", contacts, broadcastIDs)
 	// No error expected - webhook generation errors are logged but don't fail the operation
 	assert.NoError(t, err)
-	// With 2 contacts getting 2-4 messages each, expect at least 4 messages
-	assert.GreaterOrEqual(t, count, 4)
+	// With 60 contacts getting 2-4 messages each, expect at least 120 messages
+	assert.GreaterOrEqual(t, count, 120)
+
+	// Only the A/B broadcast is updated, with its sample of the recipients drawn for it as the
+	// test phase and the rest as the winner's.
+	require.Len(t, updated, 1)
+	ab := updated[0]
+	assert.Equal(t, "broadcast-4", ab.ID)
+	require.Positive(t, recipients["broadcast-4"])
+	assert.Equal(t, recipients["broadcast-4"], ab.TestPhaseRecipientCount+ab.WinnerPhaseRecipientCount)
+	assert.Equal(t, recipients["broadcast-4"]*10/100, ab.TestPhaseRecipientCount)
 }
 
 func TestDemoService_GenerateMessagesPerContact_EmptyContacts(t *testing.T) {
@@ -1440,6 +1471,15 @@ func TestDemoService_TransactionalMessagesCarryTheirNotification(t *testing.T) {
 		assert.Equal(t, want, *message.TransactionalNotificationID, messageType)
 		assert.Nil(t, message.BroadcastID, messageType)
 		assert.Nil(t, message.AutomationID, messageType)
+	}
+
+	// Every transactional email the demo sends has its notification, so a type added there
+	// fails here until it gets one.
+	require.NotEmpty(t, demoTransactionalCampaigns)
+	for _, campaign := range demoTransactionalCampaigns {
+		assert.Nil(t, campaign.broadcastID, campaign.messageType)
+		message, _ := svc.generateTransactionalMessageHistoryForContact(contact, campaign.templateID, campaign.templateVersion, campaign.messageType, time.Now())
+		assert.NotNil(t, message.TransactionalNotificationID, "%s has no demo notification", campaign.messageType)
 	}
 }
 
