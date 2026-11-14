@@ -63,4 +63,23 @@ describe('MessageJourneySteps', () => {
     expect(screen.getByText('Marked as spam')).toBeInTheDocument()
     expect(screen.getByText('Unsubscribed')).toBeInTheDocument()
   })
+
+  it('says whether each step happened in words, not only in colour', () => {
+    const { container } = renderSteps({ delivered_at: '2026-11-10T09:01:00Z', opens_tracked: false })
+    const spoken = [...container.querySelectorAll('[data-step] .sr-only')].map((node) => node.textContent)
+    expect(spoken).toEqual(['Delivered: Nov 10, 2026 9:01 AM', 'Not opened: Opens were not tracked', 'Not clicked'])
+    // Each step can be reached from the keyboard, for its tooltip.
+    container.querySelectorAll('[data-step]').forEach((step) => expect(step.getAttribute('tabindex')).toBe('0'))
+  })
+
+  it('keeps the failure reason readable and shows a complaint after a bounce', () => {
+    const { container } = renderSteps({
+      bounced_at: '2026-11-10T09:01:00Z',
+      status_info: 'Mailbox full',
+      complained_at: '2026-11-10T09:05:00Z'
+    })
+    expect(container.querySelector('.sr-only')?.textContent).toBe('Mailbox full')
+    expect(screen.getByText('Bounced')).toBeInTheDocument()
+    expect(screen.getByText('Marked as spam')).toBeInTheDocument()
+  })
 })

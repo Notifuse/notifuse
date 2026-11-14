@@ -21,6 +21,7 @@ import { ContactListsCard, ContactSegmentsCard } from './ContactListsCard'
 import { ContactMessagesTab } from './ContactMessagesTab'
 import { ContactProfileFields } from './ContactProfileFields'
 import { SHEET_LABEL_WIDTH, SheetSection } from './SheetSection'
+import { sheetTimezone } from './sheetDates'
 import { useContactMessageStats, useContactVisits } from './useContactSheetQueries'
 import { contactKey } from './contactKey'
 
@@ -75,6 +76,22 @@ export interface ContactDetailsBodyProps {
   onDelete: (email: string) => void
 }
 
+// The sheet's columns, as whole class strings (Tailwind only generates the classes it finds whole).
+// The centre column holds tables: three columns only from 1400px, where it keeps room for them.
+const THREE_COLUMNS = {
+  columns: 3,
+  grid: 'grid grid-cols-1 items-start gap-4 min-[900px]:grid-cols-[280px_minmax(0,1fr)] min-[1400px]:grid-cols-[300px_minmax(0,1fr)_320px]',
+  aside:
+    'overflow-hidden rounded-lg border border-line bg-surface shadow-card min-[900px]:row-span-2 min-[1400px]:row-span-1',
+  main: 'min-w-0 rounded-lg border border-line bg-surface px-4 pb-4 shadow-card min-[900px]:col-start-2 min-[900px]:row-start-2 min-[1400px]:row-start-1'
+}
+const TWO_COLUMNS = {
+  columns: 2,
+  grid: 'grid grid-cols-1 items-start gap-4 min-[900px]:grid-cols-[280px_minmax(0,1fr)] min-[1400px]:grid-cols-[300px_minmax(0,1fr)]',
+  aside: 'overflow-hidden rounded-lg border border-line bg-surface shadow-card',
+  main: 'min-w-0 rounded-lg border border-line bg-surface px-4 pb-4 shadow-card'
+}
+
 /** The sheet of one contact. Mounted per email, so its pages and cursors never mix two contacts. */
 export function ContactDetailsBody({
   workspace,
@@ -94,6 +111,8 @@ export function ContactDetailsBody({
   const canWriteContacts = !!permissions?.contacts?.write
   const canReadLists = !!permissions?.lists?.read
   const canReadSegments = !!permissions?.segments?.read
+  const hasMemberships = canReadLists || canReadSegments
+  const layout = hasMemberships ? THREE_COLUMNS : TWO_COLUMNS
   const canReadMessages = !!permissions?.message_history?.read
   const canReadVisits = !!workspace.settings?.web_analytics?.enabled && !!permissions?.web_analytics?.read
 
@@ -166,8 +185,8 @@ export function ContactDetailsBody({
   if (!contact) return <Skeleton active avatar paragraph={{ rows: 8 }} />
 
   const name = contactDisplayName(contact)
-  const timezone = contact.timezone || workspace.settings?.timezone || 'UTC'
   const workspaceTimezone = workspace.settings?.timezone || 'UTC'
+  const timezone = sheetTimezone(contact.timezone, workspaceTimezone)
   const place = [contact.country, contact.state].filter(Boolean).join(', ')
   const messagesCount = stats.data?.messages
   const visitsCount = visits.data?.pages[0]?.summary?.sessions
@@ -253,13 +272,11 @@ export function ContactDetailsBody({
         canReadVisits={canReadVisits}
       />
 
-      {/* Three columns from 1200px: attributes, activity, memberships. Below, the memberships go
-          above the activity; under 900px everything stacks. */}
-      <div className="grid grid-cols-1 items-start gap-4 min-[900px]:grid-cols-[280px_minmax(0,1fr)] min-[1200px]:grid-cols-[300px_minmax(0,1fr)_320px]">
-        <aside
-          data-contact-aside
-          className="overflow-hidden rounded-lg border border-line bg-surface shadow-card min-[900px]:row-span-2 min-[1200px]:row-span-1"
-        >
+      {/* Three columns from 1400px: attributes, activity, memberships. Below, the memberships go
+          above the activity; under 900px everything stacks. Without lists or segments to read, two
+          columns. */}
+      <div data-columns={layout.columns} className={layout.grid}>
+        <aside data-contact-aside className={layout.aside}>
           <ContactProfileFields
             workspace={workspace}
             contact={contact}
@@ -293,10 +310,7 @@ export function ContactDetailsBody({
           </SheetSection>
         </aside>
 
-        <div
-          data-contact-main
-          className="min-w-0 rounded-lg border border-line bg-surface px-4 pb-4 shadow-card min-[900px]:col-start-2 min-[900px]:row-start-2 min-[1200px]:row-start-1"
-        >
+        <div data-contact-main className={layout.main}>
           <Tabs
             items={[
               {
@@ -343,10 +357,10 @@ export function ContactDetailsBody({
           />
         </div>
 
-        {canReadLists || canReadSegments ? (
+        {hasMemberships ? (
           <div
             data-contact-memberships
-            className="flex min-w-0 flex-col gap-3 min-[900px]:col-start-2 min-[900px]:row-start-1 min-[1200px]:col-start-3"
+            className="flex min-w-0 flex-col gap-3 min-[900px]:col-start-2 min-[900px]:row-start-1 min-[1400px]:col-start-3"
           >
             {canReadLists ? (
               <ContactListsCard

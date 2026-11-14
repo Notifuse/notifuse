@@ -14,6 +14,8 @@ interface Step {
   key: string
   label: string
   on: boolean
+  /** The step as read aloud: its name and whether it happened, not only its colour. */
+  spoken: string
   tip: string
 }
 
@@ -38,22 +40,32 @@ export function MessageJourneySteps({ message, smtp, timezone }: MessageJourneyS
   const { t } = useLingui()
   const when = (value?: string) => (value ? dayjs(value).tz(timezone).format('lll') : '')
 
-  if (message.failed_at) {
+  // A complaint or an unsubscribe is shown whatever came before it, a bounce included.
+  const after = (
+    <>
+      {message.complained_at ? <Badge tone="red">{t`Marked as spam`}</Badge> : null}
+      {message.unsubscribed_at ? <Badge tone="gray">{t`Unsubscribed`}</Badge> : null}
+    </>
+  )
+
+  const failure = message.failed_at
+    ? { label: t`Failed`, at: message.failed_at }
+    : message.bounced_at
+      ? { label: t`Bounced`, at: message.bounced_at }
+      : null
+  if (failure) {
+    const reason = message.status_info || when(failure.at)
     return (
-      <Tooltip title={message.status_info || when(message.failed_at)}>
-        <span className="inline-flex">
-          <Badge tone="red">{t`Failed`}</Badge>
-        </span>
-      </Tooltip>
-    )
-  }
-  if (message.bounced_at) {
-    return (
-      <Tooltip title={message.status_info || when(message.bounced_at)}>
-        <span className="inline-flex">
-          <Badge tone="red">{t`Bounced`}</Badge>
-        </span>
-      </Tooltip>
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        <Tooltip title={reason}>
+          {/* Focusable, so the reason is reachable from the keyboard too. */}
+          <span tabIndex={0} className="inline-flex">
+            <Badge tone="red">{failure.label}</Badge>
+            <span className="sr-only">{reason}</span>
+          </span>
+        </Tooltip>
+        {after}
+      </span>
     )
   }
 
@@ -65,17 +77,25 @@ export function MessageJourneySteps({ message, smtp, timezone }: MessageJourneyS
   const sentOnly = !delivered && smtp
   const steps: Step[] = [
     sentOnly
-      ? { key: 'sent', label: t`Sent`, on: true, tip: t`Delivery isn't reported by SMTP providers` }
+      ? {
+          key: 'sent',
+          label: t`Sent`,
+          on: true,
+          spoken: t`Sent`,
+          tip: t`Delivery isn't reported by SMTP providers`
+        }
       : {
           key: 'delivered',
           label: t`Delivered`,
           on: delivered,
+          spoken: delivered ? t`Delivered` : t`Not delivered`,
           tip: message.delivered_at ? when(message.delivered_at) : delivered ? t`Delivered` : t`Not delivered`
         },
     {
       key: 'opened',
       label: t`Opened`,
       on: opened,
+      spoken: opened ? t`Opened` : t`Not opened`,
       tip: message.opened_at
         ? when(message.opened_at)
         : message.opens_tracked === false
@@ -88,6 +108,7 @@ export function MessageJourneySteps({ message, smtp, timezone }: MessageJourneyS
       key: 'clicked',
       label: t`Clicked`,
       on: clicked,
+      spoken: clicked ? t`Clicked` : t`Not clicked`,
       tip: message.clicked_at
         ? when(message.clicked_at)
         : message.clicks_tracked === false
@@ -103,20 +124,24 @@ export function MessageJourneySteps({ message, smtp, timezone }: MessageJourneyS
           <span
             data-step={step.key}
             data-on={step.on}
+            tabIndex={0}
             className={`inline-flex items-center gap-1.5 text-xs ${step.on ? 'text-ink-2' : 'text-ink-4'}`}
           >
             <span
               aria-hidden="true"
-              className={`size-1.5 rounded-full border-[1.5px] ${
+              className={`size-1.5 rounded-full border ${
                 step.on ? 'border-success-fg bg-success-fg' : 'border-gray-300'
               }`}
             />
-            {step.label}
+            <span aria-hidden="true">{step.label}</span>
+            {/* What a screen reader reads: whether the step happened, and its date or reason. */}
+            <span className="sr-only">
+              {step.tip && step.tip !== step.spoken ? `${step.spoken}: ${step.tip}` : step.spoken}
+            </span>
           </span>
         </Tooltip>
       ))}
-      {message.complained_at ? <Badge tone="red">{t`Marked as spam`}</Badge> : null}
-      {message.unsubscribed_at ? <Badge tone="gray">{t`Unsubscribed`}</Badge> : null}
+      {after}
     </span>
   )
 }

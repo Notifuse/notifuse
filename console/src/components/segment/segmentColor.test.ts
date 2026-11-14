@@ -12,8 +12,8 @@ describe('segmentDotColor', () => {
     expect(segmentDotColor('#123456')).toBe('#123456')
   })
 
-  it('falls back to the default preset without a colour', () => {
-    expect(segmentDotColor(undefined)).toBe('#2f54eb')
-    expect(segmentDotColor('')).toBe('#2f54eb')
+  it("falls back to the form's default preset, blue, without a colour", () => {
+    expect(segmentDotColor(undefined)).toBe('#1677ff')
+    expect(segmentDotColor('')).toBe('#1677ff')
   })
 })

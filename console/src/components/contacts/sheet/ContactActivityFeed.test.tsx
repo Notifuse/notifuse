@@ -4,7 +4,9 @@ import type { ContactTimelineEntry } from '../../../services/api/contact_timelin
 import type { Workspace } from '../../../services/api/types'
 
 vi.mock('../../templates/TemplatePreviewDrawer', () => ({
-  default: () => <div>preview drawer</div>
+  default: ({ templateData }: { templateData?: Record<string, unknown> }) => (
+    <div>preview drawer {JSON.stringify(templateData)}</div>
+  )
 }))
 vi.mock('../../timeline/WebPageDrawer', () => ({
   WebPageDrawer: ({ open, url }: { open: boolean; url: string | null }) => (open ? <div>page {url}</div> : null)
@@ -51,17 +53,40 @@ describe('ContactActivityFeed', () => {
   })
 
   it('groups the entries by day in the timezone, each with its time and source', () => {
-    const { container } = renderFeed([
-      entry('1', '2025-03-08T23:30:00Z'),
-      entry('2', '2025-03-08T08:00:00Z', { operation: 'delete' }),
-      entry('3', '2025-03-07T10:15:00Z')
-    ])
-    const days = container.querySelectorAll('[data-activity-day]')
-    expect(days).toHaveLength(2)
-    expect(days[0].querySelectorAll('[data-activity-entry]')).toHaveLength(2)
-    expect(within(days[0] as HTMLElement).getByText('Contact deleted')).toBeInTheDocument()
-    expect(within(days[1] as HTMLElement).getByText('Contact created')).toBeInTheDocument()
-    expect(screen.getAllByText('Profile')).toHaveLength(3)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    // 21:00 on 14 Nov in Tokyo (UTC+9).
+    vi.setSystemTime(new Date('2026-11-14T12:00:00Z'))
+    try {
+      const { container } = render(
+        <ContactActivityFeed
+          entries={[
+            entry('1', '2026-11-14T10:00:00Z'),
+            // 13 Nov in UTC, 14 Nov in Tokyo: today there.
+            entry('2', '2026-11-13T16:00:00Z', { operation: 'delete' }),
+            entry('3', '2026-11-13T12:00:00Z'),
+            entry('4', '2026-11-01T00:00:00Z')
+          ]}
+          loading={false}
+          timezone="Asia/Tokyo"
+          workspace={workspace}
+          segments={[]}
+          hasMore={false}
+          isLoadingMore={false}
+          onLoadMore={vi.fn()}
+        />
+      )
+      const days = [...container.querySelectorAll('[data-activity-day]')]
+      expect(days.map((day) => day.getAttribute('aria-label'))).toEqual(['Today', 'Yesterday', 'Nov 1'])
+      expect(days[0].querySelectorAll('[data-activity-entry]')).toHaveLength(2)
+      expect(within(days[0] as HTMLElement).getByText('Contact deleted')).toBeInTheDocument()
+      // Each entry's time, read in Tokyo.
+      expect(within(days[0] as HTMLElement).getByText('7:00 PM')).toBeInTheDocument()
+      expect(within(days[0] as HTMLElement).getByText('1:00 AM')).toBeInTheDocument()
+      expect(within(days[1] as HTMLElement).getByText('9:00 PM')).toBeInTheDocument()
+      expect(screen.getAllByText('Profile')).toHaveLength(4)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('loads more activity when there is more', () => {
@@ -83,11 +108,13 @@ describe('ContactActivityFeed', () => {
           template_id: 't1',
           template_name: 'Welcome',
           template_email: {},
-          channel: 'email'
+          channel: 'email',
+          message_data: { data: { contact: { first_name: 'Ann' } }, metadata: {} }
         } as never
       })
     ])
     fireEvent.click(screen.getByRole('button', { name: 'Welcome' }))
-    expect(screen.getByText('preview drawer')).toBeInTheDocument()
+    // Compiled with the template data, not with the stored envelope around it.
+    expect(screen.getByText('preview drawer {"contact":{"first_name":"Ann"}}')).toBeInTheDocument()
   })
 })

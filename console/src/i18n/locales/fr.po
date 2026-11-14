@@ -315,6 +315,13 @@ msgstr "{0, plural, one {Le fournisseur a refusé # destinataire et toutes les t
 msgid "{0} · deleted"
 msgstr "{0} · supprimé"
 
+#. placeholder {0}: at.format('LLLL')
+#. placeholder {0}: dayjs(message.sent_at || message.created_at).tz(timezone).format('LLLL')
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:126
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:270
+msgid "{0} ({timezone})"
+msgstr "{0} ({timezone})"
+
 #. placeholder {0}: list.name
 #: src/components/templates/SendTemplateModal.tsx:383
 msgid "{0} (broadcast audience)"
@@ -402,13 +409,13 @@ msgstr "{0} ne s'applique pas à cet événement"
 
 #. placeholder {0}: at.format('LLLL')
 #: src/components/contacts/sheet/ContactActivityFeed.tsx:125
-msgid "{0} in {timezone}"
-msgstr "{0} à {timezone}"
+#~ msgid "{0} in {timezone}"
+#~ msgstr "{0} à {timezone}"
 
 #. placeholder {0}: int(shown)
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:256
-msgid "{0} messages"
-msgstr "{0} messages"
+#~ msgid "{0} messages"
+#~ msgstr "{0} messages"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:180
 #~ msgid "{0} months"
@@ -423,8 +430,8 @@ msgstr "{0} sur {1}"
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(total)
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:255
-msgid "{0} of {1} messages"
-msgstr "{0} messages sur {1}"
+#~ msgid "{0} of {1} messages"
+#~ msgstr "{0} messages sur {1}"
 
 #. placeholder {0}: matchingRules.length
 #. placeholder {1}: multiResults.length
@@ -753,7 +760,7 @@ msgstr "{field} commence par {value}"
 #~ msgid "{goalCount} goals"
 #~ msgstr "{goalCount} objectifs"
 
-#: src/components/contacts/sheet/describeActivity.tsx:348
+#: src/components/contacts/sheet/describeActivity.tsx:353
 msgid "{goals, plural, one {# goal} other {# goals}}"
 msgstr "{goals, plural, one {# objectif} other {# objectifs}}"
 
@@ -787,8 +794,8 @@ msgid "{label} copied to clipboard"
 msgstr "{label} copié dans le presse-papiers"
 
 #: src/components/contacts/sheet/describeActivity.tsx:171
-msgid "{label} in {name}"
-msgstr "{label} dans {name}"
+#~ msgid "{label} in {name}"
+#~ msgstr "{label} dans {name}"
 
 #: src/components/transactional/TransactionalDetail.tsx:185
 msgid "{label}: {value}, view in the message log"
@@ -898,7 +905,7 @@ msgstr "{named} emplacements nommés sur {total}"
 #~ msgid "{opens} opens out of {tracked} tracked recipients ({recipients} sent)"
 #~ msgstr "{opens} ouvertures sur {tracked} destinataires trackés ({recipients} envoyés)"
 
-#: src/components/contacts/sheet/describeActivity.tsx:324
+#: src/components/contacts/sheet/describeActivity.tsx:329
 msgid "{pageviews, plural, one {# page} other {# pages}}"
 msgstr "{pageviews, plural, one {# page} other {# pages}}"
 
@@ -930,7 +937,7 @@ msgstr "{retentionDays, plural, one {Conservé # jour} other {Conservé # jours}
 msgid "{sampleContacts, plural, one {# contact} other {# contacts}}"
 msgstr "{sampleContacts, plural, one {# contact} other {# contacts}}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:372
+#: src/components/contacts/sheet/describeActivity.tsx:383
 msgid "{scroll}% scrolled"
 msgstr "{scroll} % parcouru"
 
@@ -975,6 +982,10 @@ msgstr "{share} % trackés"
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, one {{0} entrée} other {{1} entrées}}"
 
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:288
+msgid "{shown, plural, one {# message} other {# messages}}"
+msgstr "{shown, plural, one {# message} other {# messages}}"
+
 #: src/components/settings/CustomFieldsConfiguration.tsx:268
 msgid "{textFree}, {numberFree}, {dateFree}, {jsonFree} free"
 msgstr "Libres : {textFree}, {numberFree}, {dateFree}, {jsonFree}"
@@ -982,6 +993,12 @@ msgstr "Libres : {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 #: src/components/analytics/UpcomingSends.tsx:70
 msgid "{time} local time"
 msgstr "{time} heure locale"
+
+#. placeholder {0}: int(shown)
+#. placeholder {1}: int(shown)
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:287
+msgid "{total, plural, one {{0} of # message} other {{1} of # messages}}"
+msgstr "{total, plural, one {{0} message sur #} other {{1} messages sur #}}"
 
 #: src/components/transactional/notificationRules.ts:118
 msgid "{total, plural, one {{all} notification} other {{all} notifications}}"
@@ -1133,8 +1150,8 @@ msgstr "+ Filtre"
 #. placeholder {0}: session.pageview_count - 1
 #. placeholder {0}: summary.more
 #: src/components/contacts/SegmentDefinedBy.tsx:40
-#: src/components/contacts/visits/ContactWebVisits.tsx:268
-#: src/components/contacts/visits/ContactWebVisits.tsx:304
+#: src/components/contacts/visits/ContactWebVisits.tsx:276
+#: src/components/contacts/visits/ContactWebVisits.tsx:317
 msgid "+{0}"
 msgstr "+{0}"
 
@@ -1356,7 +1373,7 @@ msgstr "Un bloc Liquid ne peut pas aller dans un bloc qui a une condition d'affi
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "Un bloc Liquid ne peut pas aller dans un bloc qui a une condition d'affichage : supprimez d'abord la condition, ou placez le bloc Liquid à l'extérieur."
 
-#: src/components/contacts/sheet/describeActivity.tsx:147
+#: src/components/contacts/sheet/describeActivity.tsx:146
 msgid "a list"
 msgstr "une liste"
 
@@ -1542,14 +1559,14 @@ msgstr "Filtres actifs"
 #~ msgid "Active subscriber"
 #~ msgstr "Abonné actif"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:304
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:318
 #: src/components/segment/form_leaf.tsx:337
 #: src/components/segment/input.tsx:781
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
 msgstr "Activité"
 
-#: src/components/contacts/sheet/describeActivity.tsx:422
+#: src/components/contacts/sheet/describeActivity.tsx:433
 msgid "Activity {kind}"
 msgstr "Activité {kind}"
 
@@ -1811,7 +1828,7 @@ msgid "Added"
 msgstr "Ajouté"
 
 #. placeholder {0}: dayjs(contact.created_at).tz(workspaceTimezone).format('ll')
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:239
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:258
 msgid "Added on {0}"
 msgstr "Ajouté le {0}"
 
@@ -1823,9 +1840,9 @@ msgstr "A ajouté l'annotation <0>{target}</0>"
 msgid "Added the integration <0>{target}</0>"
 msgstr "A ajouté l'intégration <0>{target}</0>"
 
-#: src/components/contacts/sheet/describeActivity.tsx:164
+#: src/components/contacts/sheet/describeActivity.tsx:170
 msgid "Added to {name}, awaiting confirmation"
-msgstr "Ajouté à {name}, en attente de confirmation"
+msgstr "Ajout à {name}, en attente de confirmation"
 
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:199
 msgid "Additional context about this event"
@@ -1958,7 +1975,7 @@ msgstr "Alignement"
 #: src/components/blog/PostsTable.tsx:402
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:104
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
-#: src/components/contacts/visits/ContactWebVisits.tsx:320
+#: src/components/contacts/visits/ContactWebVisits.tsx:333
 #: src/components/email_builder/panels/LibraryPanel.tsx:210
 #: src/components/logs/AuditLogTab.tsx:227
 #: src/components/logs/AuditLogTab.tsx:249
@@ -2148,11 +2165,11 @@ msgstr "Un appel API peut choisir un autre expéditeur avec email_options.sender
 msgid "An API call can set email_options.reply_to. A translation can use another one."
 msgstr "Un appel API peut définir email_options.reply_to. Une traduction peut en utiliser un autre."
 
-#: src/components/contacts/sheet/describeActivity.tsx:387
+#: src/components/contacts/sheet/describeActivity.tsx:398
 msgid "an automation"
 msgstr "une automation"
 
-#: src/components/contacts/sheet/describeActivity.tsx:103
+#: src/components/contacts/sheet/describeActivity.tsx:102
 msgid "an email"
 msgstr "un email"
 
@@ -2177,7 +2194,7 @@ msgstr "Une image invisible dans chaque e-mail enregistre le moment de l'ouvertu
 msgid "An IP address and a target ID must match exactly; an actor email matches any part of it."
 msgstr "Une adresse IP et un ID de cible doivent correspondre exactement ; un email d'acteur correspond à n'importe quelle partie."
 
-#: src/components/contacts/sheet/describeActivity.tsx:361
+#: src/components/contacts/sheet/describeActivity.tsx:372
 msgid "an unknown page"
 msgstr "une page inconnue"
 
@@ -2692,7 +2709,7 @@ msgstr "Secret du hook d email d authentification"
 msgid "Authentication"
 msgstr "Authentification"
 
-#: src/components/contacts/sheet/describeActivity.tsx:308
+#: src/components/contacts/sheet/describeActivity.tsx:313
 msgid "Authentication email sent via Supabase"
 msgstr "Email d authentification envoyé via Supabase"
 
@@ -2746,11 +2763,11 @@ msgstr "Désactivé automatiquement"
 msgid "Auto-reply"
 msgstr "Réponse automatique"
 
-#: src/components/contacts/sheet/describeActivity.tsx:306
+#: src/components/contacts/sheet/describeActivity.tsx:311
 msgid "Auto-reply to {name}"
 msgstr "Réponse automatique à {name}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:306
+#: src/components/contacts/sheet/describeActivity.tsx:311
 msgid "Auto-reply to an email"
 msgstr "Réponse automatique à un email"
 
@@ -2777,7 +2794,7 @@ msgstr "Ajouter automatiquement les nouveaux utilisateurs aux listes sélectionn
 
 #: src/components/automations/list/AutomationsTable.tsx:120
 #: src/components/contacts/sheet/activityLabel.ts:27
-#: src/components/contacts/sheet/describeActivity.tsx:388
+#: src/components/contacts/sheet/describeActivity.tsx:399
 #: src/components/logs/labels.ts:86
 #: src/components/logs/MessagesTab.tsx:285
 msgid "Automation"
@@ -3347,6 +3364,10 @@ msgstr "Rejeté"
 #: src/components/analytics/DashboardKpis.tsx:269
 msgid "Bounced {0} · Spam {1}"
 msgstr "Rejets {0} · Spam {1}"
+
+#: src/components/contacts/sheet/describeActivity.tsx:174
+msgid "Bounced in {name}"
+msgstr "Rejet dans {name}"
 
 #: src/components/automations/describeTrigger.ts:81
 msgid "Bounced on {list}"
@@ -4186,7 +4207,8 @@ msgstr "Cliquez pour réessayer"
 #: src/components/automations/stats/EmailStepStats.tsx:78
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:67
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:70
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:89
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:109
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:111
 #: src/components/logs/labels.ts:107
 #: src/components/logs/MessageDetail.tsx:425
 #: src/components/logs/MessagesTab.tsx:266
@@ -4215,7 +4237,7 @@ msgstr "A cliqué sur {url} dans {source}"
 msgid "Clicked a link"
 msgstr "A cliqué sur un lien"
 
-#: src/components/contacts/sheet/describeActivity.tsx:121
+#: src/components/contacts/sheet/describeActivity.tsx:120
 msgid "Clicked a link in {name}"
 msgstr "A cliqué sur un lien dans {name}"
 
@@ -4223,7 +4245,7 @@ msgstr "A cliqué sur un lien dans {name}"
 msgid "Clicked a link in {source}"
 msgstr "A cliqué sur un lien dans {source}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:137
+#: src/components/contacts/sheet/describeActivity.tsx:136
 msgid "Clicked in {name}"
 msgstr "A cliqué dans {name}"
 
@@ -4264,6 +4286,7 @@ msgstr "Clics"
 
 #: src/components/contacts/contactFilterFields.ts:30
 #: src/components/contacts/ExportContactsModal.tsx:110
+#: src/components/contacts/sheet/contactFieldLabels.ts:49
 #: src/components/segment/segmentSummary.ts:45
 msgid "Clicks tracking consent"
 msgstr "Consentement au tracking des clics"
@@ -4276,7 +4299,7 @@ msgstr "Consentement au tracking des clics"
 msgid "Clicks tracking consent (granted or denied)"
 msgstr "Consentement au tracking des clics (granted ou denied)"
 
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:94
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:115
 msgid "Clicks were not tracked"
 msgstr "Les clics n’étaient pas suivis"
 
@@ -4328,7 +4351,7 @@ msgstr "Cloner le modèle"
 #: src/components/broadcasts/GlobalFeedSettings.tsx:142
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:838
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:159
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:178
 #: src/components/layout/DrawerControls.tsx:98
 #: src/components/logs/MessageDetail.tsx:96
 #: src/components/settings/WebhookDetail.tsx:591
@@ -4470,6 +4493,10 @@ msgstr "Plainte email"
 msgid "Complained"
 msgstr "A porté plainte"
 
+#: src/components/contacts/sheet/describeActivity.tsx:176
+msgid "Complained in {name}"
+msgstr "Plainte dans {name}"
+
 #: src/components/automations/describeTrigger.ts:83
 msgid "Complained on {list}"
 msgstr "Plainte sur {list}"
@@ -4523,7 +4550,7 @@ msgstr "Terminé"
 #~ msgid "Completed — {0} failed"
 #~ msgstr "Terminé — {0} en échec"
 
-#: src/components/contacts/sheet/describeActivity.tsx:397
+#: src/components/contacts/sheet/describeActivity.tsx:408
 msgid "Completed the automation {name}"
 msgstr "A terminé l’automation {name}"
 
@@ -4658,6 +4685,7 @@ msgid "Confirmed on {list}"
 msgstr "Confirmé sur {list}"
 
 #: src/components/contacts/sheet/describeActivity.tsx:161
+#: src/components/contacts/sheet/describeActivity.tsx:167
 msgid "Confirmed their subscription to {name}"
 msgstr "A confirmé son abonnement à {name}"
 
@@ -4739,7 +4767,7 @@ msgstr "Contact ajouté à la liste avec succès"
 
 #: src/components/automations/describeTrigger.ts:115
 #: src/components/contacts/sheet/activityLabel.ts:20
-#: src/components/contacts/sheet/describeActivity.tsx:197
+#: src/components/contacts/sheet/describeActivity.tsx:205
 msgid "Contact created"
 msgstr "Contact créé"
 
@@ -4748,7 +4776,7 @@ msgid "Contact created successfully"
 msgstr "Contact créé avec succès"
 
 #: src/components/automations/describeTrigger.ts:119
-#: src/components/contacts/sheet/describeActivity.tsx:198
+#: src/components/contacts/sheet/describeActivity.tsx:206
 msgid "Contact deleted"
 msgstr "Contact supprimé"
 
@@ -4796,7 +4824,7 @@ msgstr "Identification des contacts"
 msgid "Contact is not subscribed to this list"
 msgstr "Le contact n est pas abonné à cette liste"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:158
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:177
 msgid "Contact not found"
 msgstr "Contact introuvable"
 
@@ -4975,7 +5003,7 @@ msgstr "Copier {label}"
 #~ msgid "Copy code"
 #~ msgstr ""
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:197
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:216
 msgid "Copy external ID"
 msgstr "Copier l’ID externe"
 
@@ -5018,7 +5046,7 @@ msgstr "Champs principaux"
 msgid "Cost"
 msgstr "Coût"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:203
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:222
 msgid "Could not copy the external ID"
 msgstr "Impossible de copier l’ID externe"
 
@@ -5039,6 +5067,10 @@ msgstr "Impossible de charger les annotations"
 #: src/components/web_analytics/tabs/DashboardTab.tsx:103
 msgid "Could not load the dashboard"
 msgstr "Impossible de charger le tableau de bord"
+
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:133
+msgid "Could not load the email sent"
+msgstr "Impossible de charger l’email envoyé"
 
 #: src/components/web_analytics/tabs/GoalsTab.tsx:120
 msgid "Could not load the goals"
@@ -5508,7 +5540,7 @@ msgstr "Créé le {0} · Modifié le {1} ({2})"
 
 #: src/components/contacts/contactColumns.ts:71
 #: src/components/contacts/ContactsTable.tsx:234
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:284
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:301
 #: src/components/messages/MessageHistoryTable.tsx:155
 #: src/components/messages/MessageHistoryTable.tsx:404
 #: src/components/segment/segmentSummary.ts:42
@@ -6187,7 +6219,7 @@ msgstr "Supprimer la diffusion"
 msgid "Delete Category"
 msgstr "Supprimer la catégorie"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:215
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:234
 msgid "Delete contact"
 msgstr "Supprimer le contact"
 
@@ -6429,8 +6461,9 @@ msgstr "Supprimer ce webhook casse le Zap qui l'a créé. Le Zap reste activé d
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:46
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:49
 #: src/components/contacts/sheet/activityLabel.ts:15
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:71
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:73
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:89
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:91
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:92
 #: src/components/logs/labels.ts:38
 #: src/components/logs/labels.ts:70
 #: src/components/logs/labels.ts:109
@@ -6474,7 +6507,7 @@ msgstr "ID d'envoi"
 #~ msgid "Delivery ID:"
 #~ msgstr "ID de livraison :"
 
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:68
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:85
 #: src/components/logs/MessagesTab.tsx:542
 #: src/components/logs/MessagesTab.tsx:929
 msgid "Delivery isn't reported by SMTP providers"
@@ -6532,7 +6565,7 @@ msgstr "Détecter depuis le site web"
 #~ msgid "Detect from website URL"
 #~ msgstr "Détecter depuis l URL du site web"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:282
+#: src/components/contacts/visits/ContactWebVisits.tsx:291
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
 #: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
@@ -6836,7 +6869,7 @@ msgstr "Déposez les fichiers ici pour les envoyer"
 msgid "Duplicate"
 msgstr "Dupliquer"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:274
+#: src/components/contacts/visits/ContactWebVisits.tsx:282
 msgid "Duration"
 msgstr "Durée"
 
@@ -7234,7 +7267,7 @@ msgstr "Espacement de l élément"
 #: src/components/contacts/ContactUpsertDrawer.tsx:530
 #: src/components/contacts/ExportContactsModal.tsx:63
 #: src/components/contacts/sheet/activityLabel.ts:16
-#: src/components/contacts/sheet/describeActivity.tsx:114
+#: src/components/contacts/sheet/describeActivity.tsx:113
 #: src/components/contacts/visits/webVisitSource.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:326
 #: src/components/logs/InboundWebhooksTab.tsx:181
@@ -7271,12 +7304,12 @@ msgid "Email Body Payload"
 msgstr "Contenu du corps de l email"
 
 #: src/components/automations/describeTrigger.ts:133
-#: src/components/contacts/sheet/describeActivity.tsx:284
+#: src/components/contacts/sheet/describeActivity.tsx:285
 msgid "Email bounced"
 msgstr "Email rejeté"
 
-#: src/components/contacts/sheet/describeActivity.tsx:131
-#: src/components/contacts/sheet/describeActivity.tsx:284
+#: src/components/contacts/sheet/describeActivity.tsx:130
+#: src/components/contacts/sheet/describeActivity.tsx:285
 msgid "Email bounced: {name}"
 msgstr "Email rejeté : {name}"
 
@@ -7293,16 +7326,16 @@ msgstr "E-mail cliqué"
 msgid "Email complained"
 msgstr "Plainte sur l’e-mail"
 
-#: src/components/contacts/sheet/describeActivity.tsx:277
+#: src/components/contacts/sheet/describeActivity.tsx:278
 msgid "Email delivered"
 msgstr "Email livré"
 
-#: src/components/contacts/sheet/describeActivity.tsx:140
-#: src/components/contacts/sheet/describeActivity.tsx:277
+#: src/components/contacts/sheet/describeActivity.tsx:139
+#: src/components/contacts/sheet/describeActivity.tsx:278
 msgid "Email delivered: {name}"
 msgstr "Email livré : {name}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:130
+#: src/components/contacts/sheet/describeActivity.tsx:129
 msgid "Email failed: {name}"
 msgstr "Échec de l’email : {name}"
 
@@ -7386,7 +7419,7 @@ msgstr "Fournisseurs d'e-mail"
 msgid "Email providers and connected services"
 msgstr "Fournisseurs d'e-mail et services connectés"
 
-#: src/components/contacts/sheet/describeActivity.tsx:141
+#: src/components/contacts/sheet/describeActivity.tsx:140
 msgid "Email sent: {name}"
 msgstr "Email envoyé : {name}"
 
@@ -7427,7 +7460,7 @@ msgstr "Suivi des e-mails"
 msgid "Email Tracking Consent"
 msgstr "Consentement au tracking des emails"
 
-#: src/components/contacts/sheet/describeActivity.tsx:142
+#: src/components/contacts/sheet/describeActivity.tsx:141
 msgid "Email updated: {name}"
 msgstr "Email mis à jour : {name}"
 
@@ -7797,9 +7830,9 @@ msgstr "Entrez le nom de l espace de travail"
 msgid "Entered"
 msgstr "Entrés"
 
-#: src/components/contacts/sheet/describeActivity.tsx:390
+#: src/components/contacts/sheet/describeActivity.tsx:401
 msgid "Entered the automation {name}"
-msgstr "Est entré dans l’automation {name}"
+msgstr "Entrée dans l’automation {name}"
 
 #: src/components/timeline/ContactTimeline.tsx:1082
 #~ msgid "Entity ID:"
@@ -7809,7 +7842,7 @@ msgstr "Est entré dans l’automation {name}"
 msgid "Entries older than this are deleted once a day. Leave it empty for the deployment default ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} days unless a root user changed it); 0 keeps every entry forever."
 msgstr "Les entrées plus anciennes sont supprimées une fois par jour. Laissez vide pour la valeur par défaut du déploiement ({AUDIT_LOG_DEFAULT_RETENTION_DAYS} jours sauf si un utilisateur root l'a modifiée) ; 0 conserve chaque entrée pour toujours."
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:262
+#: src/components/contacts/visits/ContactWebVisits.tsx:270
 msgid "Entry"
 msgstr "Entrée"
 
@@ -7817,7 +7850,7 @@ msgstr "Entrée"
 msgid "Entry conditions"
 msgstr "Conditions d'entrée"
 
-#: src/components/contacts/sheet/describeActivity.tsx:373
+#: src/components/contacts/sheet/describeActivity.tsx:384
 msgid "entry page"
 msgstr "page d'entrée"
 
@@ -7908,11 +7941,11 @@ msgstr "événement"
 msgid "Event"
 msgstr "Événement"
 
-#: src/components/contacts/sheet/describeActivity.tsx:256
+#: src/components/contacts/sheet/describeActivity.tsx:260
 msgid "Event {code}"
 msgstr "Événement {code}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:256
+#: src/components/contacts/sheet/describeActivity.tsx:260
 msgid "Event {code} updated"
 msgstr "Événement {code} mis à jour"
 
@@ -8056,7 +8089,7 @@ msgstr "Exclus"
 msgid "Exit on reply"
 msgstr "Sortie à la réponse"
 
-#: src/components/contacts/sheet/describeActivity.tsx:374
+#: src/components/contacts/sheet/describeActivity.tsx:385
 msgid "exit page"
 msgstr "page de sortie"
 
@@ -8187,7 +8220,7 @@ msgstr "Export de tous les contacts"
 msgid "External ID"
 msgstr "ID externe"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:201
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:220
 msgid "External ID copied"
 msgstr "ID externe copié"
 
@@ -8211,7 +8244,7 @@ msgstr "Très élevé"
 #: src/components/contacts/BulkActionProgressModal.tsx:146
 #: src/components/contacts/BulkUpdateDrawer.tsx:710
 #: src/components/contacts/BulkUpdateDrawer.tsx:749
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:45
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:52
 #: src/components/logs/labels.ts:27
 #: src/components/logs/labels.ts:40
 #: src/components/logs/labels.ts:103
@@ -8230,7 +8263,7 @@ msgstr "Très élevé"
 msgid "Failed"
 msgstr "Échoué"
 
-#: src/components/contacts/sheet/describeActivity.tsx:393
+#: src/components/contacts/sheet/describeActivity.tsx:404
 msgid "Failed in the automation {name}"
 msgstr "A échoué dans l’automation {name}"
 
@@ -8720,7 +8753,7 @@ msgstr "Échec de la mise à jour de la catégorie : {0}"
 msgid "Failed to update custom field label"
 msgstr "Échec de la mise à jour de l étiquette de champ personnalisé"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:131
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:150
 #: src/components/contacts/TrackingConsent.tsx:140
 msgid "Failed to update field"
 msgstr "Échec de la mise à jour du champ"
@@ -9182,11 +9215,11 @@ msgstr "Fréquence"
 msgid "From"
 msgstr "De"
 
-#: src/components/contacts/sheet/describeActivity.tsx:346
+#: src/components/contacts/sheet/describeActivity.tsx:351
 msgid "from {referrer}"
 msgstr "depuis {referrer}"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:322
+#: src/components/contacts/visits/ContactWebVisits.tsx:335
 msgid "From an email"
 msgstr "Depuis un e-mail"
 
@@ -9345,7 +9378,7 @@ msgstr "URL du flux global"
 msgid "Go to Sign In"
 msgstr "Aller à la connexion"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:296
+#: src/components/contacts/visits/ContactWebVisits.tsx:306
 #: src/components/segment/form_leaf.tsx:724
 #: src/components/segment/input.tsx:634
 #: src/components/web_analytics/explore/BreakdownModal.tsx:71
@@ -9355,7 +9388,7 @@ msgstr "Aller à la connexion"
 msgid "Goal"
 msgstr "Objectif"
 
-#: src/components/contacts/sheet/describeActivity.tsx:249
+#: src/components/contacts/sheet/describeActivity.tsx:254
 msgid "Goal {goalName}"
 msgstr "Objectif {goalName}"
 
@@ -9840,7 +9873,6 @@ msgid "Implicit TLS (SMTPS)"
 msgstr "TLS implicite (SMTPS)"
 
 #: src/components/contacts/ContactsViewHeader.tsx:206
-#: src/components/contacts/sheet/describeActivity.tsx:252
 #: src/components/contacts/TrackingConsent.tsx:48
 #: src/components/email_builder/MjmlCodeEditor.tsx:628
 #: src/components/templates/ImportExportButton.tsx:204
@@ -10112,8 +10144,8 @@ msgid "Install the tracking snippet"
 msgstr "Installer le snippet de suivi"
 
 #: src/components/contacts/sheet/describeActivity.tsx:252
-msgid "Integration"
-msgstr "Intégration"
+#~ msgid "Integration"
+#~ msgstr "Intégration"
 
 #: src/components/settings/Integrations.tsx:756
 msgid "Integration created successfully"
@@ -10413,7 +10445,7 @@ msgstr "A rejoint"
 msgid "Joined segment"
 msgstr "Entrée dans le segment"
 
-#: src/components/contacts/sheet/describeActivity.tsx:192
+#: src/components/contacts/sheet/describeActivity.tsx:200
 msgid "Joined segment {chip}"
 msgstr "A rejoint le segment {chip}"
 
@@ -10425,7 +10457,7 @@ msgstr "A rejoint le segment {segment}"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "A rejoint via l'invitation <0>{target}</0>"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:225
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:257
 #: src/components/logs/MessagesTab.tsx:680
 msgid "Journey"
 msgstr "Parcours"
@@ -10721,7 +10753,7 @@ msgstr "Gauche"
 msgid "Left segment"
 msgstr "Sortie du segment"
 
-#: src/components/contacts/sheet/describeActivity.tsx:191
+#: src/components/contacts/sheet/describeActivity.tsx:199
 msgid "Left segment {chip}"
 msgstr "A quitté le segment {chip}"
 
@@ -10729,7 +10761,7 @@ msgstr "A quitté le segment {chip}"
 msgid "Left segment {segment}"
 msgstr "A quitté le segment {segment}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:395
+#: src/components/contacts/sheet/describeActivity.tsx:406
 msgid "Left the automation {name}"
 msgstr "A quitté l’automation {name}"
 
@@ -10890,7 +10922,7 @@ msgstr "Bloc Liquid - Cliquez pour ajouter du contenu MJML + Liquid"
 #: src/components/contacts/BulkUpdateDrawer.tsx:617
 #: src/components/contacts/ExportContactsModal.tsx:89
 #: src/components/contacts/sheet/activityLabel.ts:17
-#: src/components/contacts/sheet/describeActivity.tsx:148
+#: src/components/contacts/sheet/describeActivity.tsx:147
 #: src/components/file_manager/FileExplorer.tsx:679
 #: src/components/file_manager/FileExplorer.tsx:680
 #: src/components/logs/MessageDetail.tsx:665
@@ -11097,8 +11129,8 @@ msgid "Load {PAGE_SIZE} more"
 msgstr "Charger {PAGE_SIZE} de plus"
 
 #: src/components/blog/PostsTable.tsx:467
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:275
-#: src/components/contacts/visits/ContactWebVisits.tsx:350
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:307
+#: src/components/contacts/visits/ContactWebVisits.tsx:366
 #: src/components/logs/AuditLogTab.tsx:682
 #: src/components/logs/InboundWebhooksTab.tsx:354
 #: src/components/logs/MessagesTab.tsx:857
@@ -11110,7 +11142,7 @@ msgstr "Charger plus"
 msgid "Load More"
 msgstr "Charger plus"
 
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:162
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:173
 msgid "Load more activity"
 msgstr "Charger plus d’activité"
 
@@ -11352,18 +11384,18 @@ msgid "Mark the dates that explain a chart — a launch, a campaign, an outage �
 msgstr "Marquez les dates qui expliquent un graphique — un lancement, une campagne, une panne — et elles apparaissent sous forme de repères verticaux étiquetés sur le tableau de bord et les graphiques d'objectifs."
 
 #: src/components/analytics/RecentFailures.tsx:57
-#: src/components/contacts/sheet/describeActivity.tsx:292
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:118
+#: src/components/contacts/sheet/describeActivity.tsx:297
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:46
 #: src/components/logs/MessageDetail.tsx:410
 #: src/components/logs/MessagesTab.tsx:698
 #: src/components/logs/MessagesTab.tsx:934
 msgid "Marked as spam"
 msgstr "Marqué comme spam"
 
-#: src/components/contacts/sheet/describeActivity.tsx:133
-#: src/components/contacts/sheet/describeActivity.tsx:292
+#: src/components/contacts/sheet/describeActivity.tsx:132
+#: src/components/contacts/sheet/describeActivity.tsx:297
 msgid "Marked as spam: {name}"
-msgstr "Signalé comme spam : {name}"
+msgstr "Marqué comme spam : {name}"
 
 #: src/components/analytics/SendingCard.tsx:25
 #: src/components/templates/templateCategories.ts:20
@@ -11509,7 +11541,7 @@ msgid "Members"
 msgstr "Membres"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:251
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:202
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:234
 #: src/components/logs/MessageDetail.tsx:83
 #: src/components/logs/MessageDetail.tsx:644
 #: src/components/logs/MessagesTab.tsx:657
@@ -11547,7 +11579,7 @@ msgstr "Flux de messages"
 msgid "Message Stream"
 msgstr "Message Stream"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:320
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:334
 #: src/pages/LogsPage.tsx:91
 msgid "Messages"
 msgstr "Messages"
@@ -11762,7 +11794,7 @@ msgstr "Mensuel"
 #: src/components/contacts/ContactsViewHeader.tsx:109
 #: src/components/contacts/ContactsViewHeader.tsx:179
 #: src/components/contacts/ContactsViewHeader.tsx:217
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:245
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:264
 #: src/components/file_manager/FileExplorer.tsx:1066
 #: src/components/settings/Integrations.tsx:966
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
@@ -12092,7 +12124,7 @@ msgstr "Aucun accès"
 msgid "No activity of this kind"
 msgstr "Aucune activité de ce type"
 
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:86
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:94
 msgid "No activity yet"
 msgstr "Aucune activité pour l’instant"
 
@@ -12400,7 +12432,7 @@ msgstr "Aucune correspondance"
 msgid "No members found"
 msgstr "Aucun membre trouvé"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:268
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:300
 msgid "No message sent to this contact yet"
 msgstr "Aucun message envoyé à ce contact pour l’instant"
 
@@ -12562,7 +12594,7 @@ msgstr "Aucun envoi sur cette période"
 msgid "No sends yet"
 msgstr "Aucun envoi pour l'instant"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:328
+#: src/components/contacts/visits/ContactWebVisits.tsx:341
 msgid "No sessions match this filter"
 msgstr "Aucune session ne correspond à ce filtre"
 
@@ -12752,7 +12784,8 @@ msgstr "Non attribué"
 msgid "Not available here"
 msgstr "Non disponible ici"
 
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:95
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:111
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:116
 #: src/components/logs/MessagesTab.tsx:945
 msgid "Not clicked"
 msgstr "Non cliqué"
@@ -12776,7 +12809,8 @@ msgstr "ne contient pas"
 msgid "not created yet — register webhooks"
 msgstr "pas encore créé — enregistrez les webhooks"
 
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:73
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:91
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:92
 #: src/components/logs/MessagesTab.tsx:929
 msgid "Not delivered"
 msgstr "Non livré"
@@ -12815,7 +12849,8 @@ msgstr "Absente des données de test : la règle est évaluée comme si la varia
 msgid "Not now"
 msgstr "Pas maintenant"
 
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:85
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:98
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:105
 #: src/components/logs/MessagesTab.tsx:937
 msgid "Not opened"
 msgstr "Non ouvert"
@@ -13293,8 +13328,9 @@ msgstr "Ouvrir les paramètres d'analyse web"
 #: src/components/automations/stats/EmailStepStats.tsx:77
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:55
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:58
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:77
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:84
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:96
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:98
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:104
 #: src/components/logs/labels.ts:108
 #: src/components/logs/MessageDetail.tsx:417
 #: src/components/logs/MessagesTab.tsx:265
@@ -13306,7 +13342,7 @@ msgstr "Ouvrir les paramètres d'analyse web"
 msgid "Opened"
 msgstr "Ouvert"
 
-#: src/components/contacts/sheet/describeActivity.tsx:138
+#: src/components/contacts/sheet/describeActivity.tsx:137
 msgid "Opened {name}"
 msgstr "A ouvert {name}"
 
@@ -13360,6 +13396,7 @@ msgstr "Ouvre cet email dans le navigateur. Le lien est renseigné pour les news
 
 #: src/components/contacts/contactFilterFields.ts:24
 #: src/components/contacts/ExportContactsModal.tsx:103
+#: src/components/contacts/sheet/contactFieldLabels.ts:48
 #: src/components/segment/segmentSummary.ts:44
 msgid "Opens tracking consent"
 msgstr "Consentement au tracking des ouvertures"
@@ -13372,7 +13409,7 @@ msgstr "Consentement au tracking des ouvertures"
 msgid "Opens tracking consent (granted or denied)"
 msgstr "Consentement au tracking des ouvertures (granted ou denied)"
 
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:82
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:102
 msgid "Opens were not tracked"
 msgstr "Les ouvertures n’étaient pas suivies"
 
@@ -14503,16 +14540,16 @@ msgstr "Le traitement a été interrompu avant la fin."
 
 #: src/components/contacts/sheet/ContactActivityTab.tsx:38
 #: src/components/contacts/sheet/ContactProfileFields.tsx:144
-#: src/components/contacts/sheet/describeActivity.tsx:196
+#: src/components/contacts/sheet/describeActivity.tsx:204
 msgid "Profile"
 msgstr "Profil"
 
 #: src/components/contacts/sheet/activityLabel.ts:21
-#: src/components/contacts/sheet/describeActivity.tsx:229
+#: src/components/contacts/sheet/describeActivity.tsx:237
 msgid "Profile updated"
 msgstr "Profil mis à jour"
 
-#: src/components/contacts/sheet/describeActivity.tsx:229
+#: src/components/contacts/sheet/describeActivity.tsx:237
 msgid "Profile updated: {diffs}"
 msgstr "Profil mis à jour : {diffs}"
 
@@ -14628,7 +14665,7 @@ msgstr "l'entrée brute"
 msgid "Raw entry"
 msgstr "Entrée brute"
 
-#: src/components/contacts/sheet/ContactActivityFeed.tsx:131
+#: src/components/contacts/sheet/ContactActivityFeed.tsx:141
 msgid "Raw Entry Data"
 msgstr "Données brutes de l entrée"
 
@@ -15006,7 +15043,7 @@ msgstr "Domaine référent"
 msgid "Referrers"
 msgstr "Référents"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:188
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:207
 #: src/components/logs/AuditLogTab.tsx:513
 #: src/components/logs/AuditLogTab.tsx:517
 #: src/components/logs/InboundWebhooksTab.tsx:203
@@ -15234,9 +15271,9 @@ msgstr "Retiré"
 msgid "Removed from {list}"
 msgstr "Retiré de {list}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:149
+#: src/components/contacts/sheet/describeActivity.tsx:153
 msgid "Removed from {name}"
-msgstr "Retiré de {name}"
+msgstr "Retrait de {name}"
 
 #: src/components/logs/auditPhrases.ts:89
 msgid "Removed the integration <0>{target}</0>"
@@ -15323,11 +15360,11 @@ msgstr "Remplacer par le bloc sélectionné"
 #~ msgid "Replied"
 #~ msgstr "A répondu"
 
-#: src/components/contacts/sheet/describeActivity.tsx:304
+#: src/components/contacts/sheet/describeActivity.tsx:309
 msgid "Replied to {name}"
 msgstr "A répondu à {name}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:304
+#: src/components/contacts/sheet/describeActivity.tsx:309
 msgid "Replied to an email"
 msgstr "A répondu à un email"
 
@@ -16238,8 +16275,8 @@ msgstr "Voir qui a cliqué"
 #: src/components/automations/config/TriggerConfigForm.tsx:295
 #: src/components/automations/describeTrigger.ts:46
 #: src/components/contacts/ExportContactsModal.tsx:119
-#: src/components/contacts/sheet/describeActivity.tsx:191
-#: src/components/contacts/sheet/describeActivity.tsx:192
+#: src/components/contacts/sheet/describeActivity.tsx:199
+#: src/components/contacts/sheet/describeActivity.tsx:200
 #: src/components/segment/button_upsert.tsx:76
 msgid "Segment"
 msgstr "Segment"
@@ -16860,8 +16897,9 @@ msgstr "Envois refusés par le fournisseur. Les requêtes rejetées avant l'envo
 #: src/components/broadcasts/BroadcastStatusPill.tsx:55
 #: src/components/broadcasts/detail/AbTestPanel.tsx:159
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:233
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:68
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:265
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:82
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:84
 #: src/components/logs/labels.ts:110
 #: src/components/logs/MessagesTab.tsx:918
 #: src/components/messages/MessageHistoryTable.tsx:322
@@ -17642,7 +17680,7 @@ msgstr "Quelqu'un a enregistré la version {0} pendant que vous l'éditiez (vous
 msgid "Something went wrong"
 msgstr "Une erreur s'est produite"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:260
+#: src/components/contacts/visits/ContactWebVisits.tsx:268
 #: src/components/logs/InboundWebhooksTab.tsx:191
 #: src/components/logs/InboundWebhooksTab.tsx:260
 #: src/components/logs/InboundWebhooksTab.tsx:392
@@ -17954,6 +17992,10 @@ msgstr "Abonner les utilisateurs à ces listes (Optionnel)"
 msgid "Subscribed"
 msgstr "Abonné"
 
+#: src/components/contacts/sheet/describeActivity.tsx:163
+msgid "Subscribed again to {name}"
+msgstr "Réabonnement à {name}"
+
 #: src/components/contacts/ContactDetailsDrawer.tsx:1007
 #~ msgid "Subscribed on"
 #~ msgstr "Abonné le"
@@ -17971,9 +18013,9 @@ msgstr "Abonné le : {0}"
 msgid "Subscribed to {list}"
 msgstr "Abonné à {list}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:162
+#: src/components/contacts/sheet/describeActivity.tsx:168
 msgid "Subscribed to {name}"
-msgstr "Abonné à {name}"
+msgstr "Abonnement à {name}"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:633
 msgid "Subscript"
@@ -18010,7 +18052,11 @@ msgstr "Statut d'abonnement"
 msgid "Subscription status updated successfully"
 msgstr "Statut d'abonnement mis à jour avec succès"
 
-#: src/components/contacts/sheet/describeActivity.tsx:168
+#: src/components/contacts/sheet/describeActivity.tsx:179
+msgid "Subscription to {name} changed"
+msgstr "Abonnement à {name} modifié"
+
+#: src/components/contacts/sheet/describeActivity.tsx:180
 msgid "Subscription to {name} updated"
 msgstr "Abonnement à {name} mis à jour"
 
@@ -18108,7 +18154,7 @@ msgstr "Passez en mode Aperçu pour voir à quoi ressemblera votre email pour le
 msgid "Switch to Preview mode to see the breakpoint effects. The edit mode shows the raw structure, but only preview mode compiles the MJML template and renders the responsive behavior properly."
 msgstr "Passez en mode Aperçu pour voir les effets du point de rupture. Le mode édition affiche la structure brute, mais seul le mode aperçu compile le modèle MJML et affiche correctement le comportement responsive."
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:279
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:296
 #: src/components/logs/auditDisplay.ts:24
 #: src/components/logs/AuditLogTab.tsx:217
 #: src/components/logs/labels.ts:8
@@ -18871,6 +18917,7 @@ msgstr "L'expéditeur choisi pour cette diffusion ne fait plus partie des expéd
 msgid "the sender of variant {variant} no longer exists"
 msgstr "l'expéditeur de la variante {variant} n'existe plus"
 
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:48
 #: src/components/logs/MessageDetail.tsx:158
 #: src/components/messages/MessageHistoryTable.tsx:73
 msgid "The server returned no template"
@@ -19788,9 +19835,13 @@ msgstr "Le tracking (ouvertures et clics) doit être activé dans les paramètre
 
 #: src/components/contacts/contactColumns.ts:72
 #: src/components/contacts/ContactsTable.tsx:213
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:269
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:286
 msgid "Tracking consent"
 msgstr "Consentement au tracking"
+
+#: src/components/contacts/sheet/contactFieldLabels.ts:50
+msgid "Tracking consent source"
+msgstr "Source du consentement au suivi"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:65
 #: src/components/web_analytics/explore/DimensionSelector.tsx:99
@@ -19808,7 +19859,7 @@ msgstr "Trafic qu'aucune règle de filtrage n'a classé"
 
 #: src/components/analytics/OriginVolumeChart.tsx:44
 #: src/components/analytics/SendingCard.tsx:30
-#: src/components/contacts/sheet/describeActivity.tsx:114
+#: src/components/contacts/sheet/describeActivity.tsx:113
 #: src/components/logs/labels.ts:19
 #: src/components/logs/labels.ts:87
 #: src/components/logs/MessagesTab.tsx:259
@@ -19954,7 +20005,7 @@ msgstr "A activé ou désactivé le webhook <0>{target}</0>"
 msgid "type"
 msgstr "type"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:215
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:247
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/logs/InboundWebhooksTab.tsx:196
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
@@ -20049,7 +20100,7 @@ msgstr "Inconnu"
 msgid "Unknown date"
 msgstr "Date inconnue"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:289
+#: src/components/contacts/visits/ContactWebVisits.tsx:299
 msgid "Unknown device"
 msgstr "Appareil inconnu"
 
@@ -20164,7 +20215,7 @@ msgstr "Désabonner de la liste"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:159
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:123
 #: src/components/contacts/contactDisplay.ts:37
-#: src/components/contacts/sheet/MessageJourneySteps.tsx:119
+#: src/components/contacts/sheet/MessageJourneySteps.tsx:47
 #: src/components/lists/ListHeader.tsx:42
 #: src/components/logs/labels.ts:106
 #: src/components/logs/MessageDetail.tsx:433
@@ -20179,11 +20230,11 @@ msgstr "Désabonné"
 msgid "Unsubscribed from {list}"
 msgstr "Désabonné de {list}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:135
-#: src/components/contacts/sheet/describeActivity.tsx:166
-#: src/components/contacts/sheet/describeActivity.tsx:300
+#: src/components/contacts/sheet/describeActivity.tsx:134
+#: src/components/contacts/sheet/describeActivity.tsx:172
+#: src/components/contacts/sheet/describeActivity.tsx:305
 msgid "Unsubscribed from {name}"
-msgstr "Désabonné de {name}"
+msgstr "Désabonnement de {name}"
 
 #: src/components/automations/describeTrigger.ts:137
 msgid "Unsubscribed from an email"
@@ -20193,7 +20244,7 @@ msgstr "S’est désabonné depuis un e-mail"
 #~ msgid "Unsubscribed from list"
 #~ msgstr "Désabonné de la liste"
 
-#: src/components/contacts/sheet/describeActivity.tsx:300
+#: src/components/contacts/sheet/describeActivity.tsx:305
 msgid "Unsubscribed through the email provider"
 msgstr "Désabonné via le fournisseur d’email"
 
@@ -20266,7 +20317,7 @@ msgstr "Mis à jour {updatedAgo}"
 msgid "Updated {updatedAt} in {timezone}"
 msgstr "Mis à jour {updatedAt} ({timezone})"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:288
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:305
 #: src/components/segment/segmentSummary.ts:43
 msgid "Updated At"
 msgstr "Mis à jour le"
@@ -20532,7 +20583,7 @@ msgstr "Utilisateur créé"
 #~ msgid "User Created"
 #~ msgstr "Utilisateur créé"
 
-#: src/components/contacts/sheet/describeActivity.tsx:310
+#: src/components/contacts/sheet/describeActivity.tsx:315
 msgid "User created and synced from Supabase"
 msgstr "Utilisateur créé et synchronisé depuis Supabase"
 
@@ -20630,7 +20681,7 @@ msgstr "Erreur de validation"
 msgid "Value"
 msgstr "Valeur"
 
-#: src/components/contacts/sheet/describeActivity.tsx:250
+#: src/components/contacts/sheet/describeActivity.tsx:255
 msgid "Value {value}"
 msgstr "Valeur {value}"
 
@@ -20655,7 +20706,7 @@ msgstr "Variable"
 msgid "Variant"
 msgstr "Variante"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:90
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:111
 msgid "Variant {variant}"
 msgstr "Variante {variant}"
 
@@ -20788,8 +20839,8 @@ msgstr "Voir la documentation et le guide de configuration du relais SMTP"
 msgid "View snippet"
 msgstr "Voir le snippet"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:105
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:109
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:137
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:141
 msgid "View the sent email"
 msgstr "Voir l’email envoyé"
 
@@ -20806,7 +20857,7 @@ msgstr "Voir le site web"
 #~ msgid "viewed"
 #~ msgstr ""
 
-#: src/components/contacts/sheet/describeActivity.tsx:379
+#: src/components/contacts/sheet/describeActivity.tsx:390
 msgid "Viewed {page}"
 msgstr "A consulté {page}"
 
@@ -20892,8 +20943,8 @@ msgstr "Nous détecterons et utiliserons automatiquement le favicon de votre sit
 msgid "Web"
 msgstr "Web"
 
-#: src/components/contacts/sheet/describeActivity.tsx:356
-#: src/components/contacts/sheet/describeActivity.tsx:381
+#: src/components/contacts/sheet/describeActivity.tsx:367
+#: src/components/contacts/sheet/describeActivity.tsx:392
 #: src/components/settings/SettingsSidebar.tsx:68
 #: src/components/settings/WebAnalyticsSettings.tsx:233
 #: src/components/settings/WebAnalyticsSettings.tsx:294
@@ -20954,12 +21005,12 @@ msgstr "Suivi web"
 msgid "Web version of the email"
 msgstr "Version web de l'email"
 
-#: src/components/contacts/sheet/ContactDetailsBody.tsx:337
+#: src/components/contacts/sheet/ContactDetailsBody.tsx:351
 msgid "Web visits"
 msgstr "Visites web"
 
 #: src/components/automations/nodeTypes.ts:32
-#: src/components/contacts/sheet/describeActivity.tsx:270
+#: src/components/contacts/sheet/describeActivity.tsx:271
 msgid "Webhook"
 msgstr "Webhook"
 
@@ -20981,7 +21032,7 @@ msgstr "Webhook activé"
 #~ msgid "Webhook endpoint:"
 #~ msgstr "Endpoint du webhook :"
 
-#: src/components/contacts/sheet/describeActivity.tsx:313
+#: src/components/contacts/sheet/describeActivity.tsx:318
 msgid "Webhook event {kind}"
 msgstr "Événement webhook {kind}"
 
@@ -21081,15 +21132,15 @@ msgstr "Paramètres de suivi du trafic du site web"
 msgid "Website URL"
 msgstr "URL du site web"
 
-#: src/components/contacts/sheet/describeActivity.tsx:335
+#: src/components/contacts/sheet/describeActivity.tsx:340
 msgid "Website visit"
 msgstr "Visite du site"
 
-#: src/components/contacts/sheet/describeActivity.tsx:333
+#: src/components/contacts/sheet/describeActivity.tsx:338
 msgid "Website visit: {pages}"
 msgstr "Visite du site : {pages}"
 
-#: src/components/contacts/sheet/describeActivity.tsx:329
+#: src/components/contacts/sheet/describeActivity.tsx:334
 msgid "Website visit: {pages}, {duration}"
 msgstr "Visite du site : {pages}, {duration}"
 
@@ -21278,7 +21329,7 @@ msgstr "gagnant envoyé à {time}"
 #~ msgid "Winning metric"
 #~ msgstr "Métrique gagnante"
 
-#: src/components/contacts/visits/ContactWebVisits.tsx:321
+#: src/components/contacts/visits/ContactWebVisits.tsx:334
 msgid "With a goal"
 msgstr "Avec un objectif"
 

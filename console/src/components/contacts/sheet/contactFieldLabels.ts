@@ -37,12 +37,21 @@ export function useStandardFieldLabels(): Record<StandardField, string> {
   }
 }
 
-/** The name of any contact field: a standard one, or a custom one with the workspace's label. */
+/**
+ * The name of any contact field: a standard one, a tracking consent field the contact trigger also
+ * records, or a custom one with the workspace's label.
+ */
 export function useContactFieldLabel(workspace: Workspace): (key: string) => string {
-  const labels = useStandardFieldLabels()
+  const { t } = useLingui()
+  const labels: Record<string, string> = {
+    ...useStandardFieldLabels(),
+    tracking_opens_consent: t`Opens tracking consent`,
+    tracking_clicks_consent: t`Clicks tracking consent`,
+    tracking_consent_source: t`Tracking consent source`
+  }
   return (key) =>
     key in labels
-      ? labels[key as keyof typeof labels]
+      ? labels[key]
       : key.startsWith('custom_')
         ? computeCustomFieldLabel(key, workspace).displayLabel
         : key

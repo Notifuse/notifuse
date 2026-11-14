@@ -16,14 +16,14 @@ no subscription source (« via ») under a list.
 
 1. **Three columns** (`ContactDetailsBody`): attributes on the left (Profile, Custom fields,
    Tracking consent, System as sections of one card), the tabs in the centre, Lists and Segments on
-   the right. From 900 px to 1200 px the right column goes above the tabs, as in the drawer mockup;
+   the right. From 900 px to 1400 px the right column goes above the tabs, as in the drawer mockup;
    under 900 px everything stacks.
 2. **Header without action buttons**: Refresh moves into the « … » menu, which also gets « Copy
    external ID » when the contact has one; Delete stays there, with contacts write.
 3. **Activity feed** (`ContactActivityFeed`, replaces `components/timeline/ContactTimeline`): entries
    grouped by day (Today, Yesterday, date), a time column, a toned icon, a one-line sentence with the
    names in bold, an optional meta line and the source on the right; « Load more activity » at the
-   bottom. Each entry kind is described by a pure function (`describeActivity`) so the wording is
+   bottom. Each entry kind is described by a hook (`useActivityDescriber`) so the wording is
    unit-tested. The email preview (template name as a link) and the web page preview are kept. Fixes
    the « → undefined » of a list entry without its status in `changes`.
 4. **Messages tab** (`ContactMessagesTab`): Message (name of the newsletter, automation,
@@ -42,25 +42,38 @@ no subscription source (« via ») under a list.
 
 | Implementation | Test file | Cases |
 |---|---|---|
-| `components/contacts/sheet/ContactDetailsBody.tsx` | `ContactDetailsBody.test.tsx` | three columns hold the left sections, tabs and the right cards; no Refresh button in the header; Refresh, Copy external ID and Delete in « … »; Delete only with contacts write |
-| `components/contacts/sheet/describeActivity.tsx` (new) | `describeActivity.test.tsx` (new) | sentence, tone and source for each entity type: email sent/delivered/opened/clicked/link click, list subscribed/pending/unsubscribed/removed and a status missing from `changes`, segment joined/left, contact created/updated with old → new, custom event with properties, inbound webhook bounce/complaint, web session, web page, automation start/end/failed |
-| `components/contacts/sheet/activityParts.tsx` (new) | `describeActivity.test.tsx` | the name of an email opens its preview, by click (the link is a theme link, not a native button whose colour the antd reset overrides) |
-| `components/contacts/sheet/ContactActivityFeed.tsx` (new) | `ContactActivityFeed.test.tsx` (new) | groups by day in the timezone (Today, Yesterday, date), time column, Load more calls the next page, empty state |
-| `components/contacts/sheet/ContactActivityTab.tsx` | `ContactActivityTab.test.tsx` | renders the feed instead of the old timeline (existing filter cases kept) |
-| `components/contacts/sheet/ContactMessagesTab.tsx` | `ContactMessagesTab.test.tsx` | name by origin, A/B variant badge, rendered subject, journey dots and badges, SMTP « Sent », « N of M », Load more |
-| `components/contacts/sheet/MessageJourneySteps.tsx` (new) | `MessageJourneySteps.test.tsx` (new) | lit steps, failed/bounced/spam/unsubscribed badges, SMTP sent |
-| `components/contacts/sheet/ContactListsCard.tsx` | `ContactListsCard.test.tsx` | count badge, two-line row with « Since », subscribe icon button, segments one per line with « since » |
-| `components/contacts/sheet/ContactProfileFields.tsx` | `ContactProfileFields.test.tsx` | sections instead of panels (existing cases kept) |
-| `components/segment/segmentColor.ts` (new) | `segmentColor.test.ts` (new) | preset names to colours, a CSS colour kept, unknown to the default |
-| `components/contacts/ContactsTable.tsx`, `ContactsRail.tsx` | existing tests | dots use `segmentDotColor` |
-| `components/timeline/ContactTimeline.tsx` (removed) | `ContactTimeline.test.tsx` (removed) | replaced by the feed |
-| `i18n/locales/*.po` | — | `npm run lingui:extract`, French translations |
+| `components/contacts/sheet/ContactDetailsBody.tsx` | `ContactDetailsBody.test.tsx` | Refresh and Delete in « … », Delete only with contacts write; three columns with lists or segments to read, two without (`data-columns`); tabs and their counts by permission |
+| `components/contacts/sheet/sheetDates.ts` | `sheetDates.test.ts`, `ContactActivityFeed.test.tsx` | `sheetTimezone` keeps a known contact timezone and falls back to the workspace's for a missing or unknown one; Today, Yesterday and the date in the feed |
+| `components/contacts/sheet/describeActivity.tsx` (`useActivityDescriber`, a hook) | `describeActivity.test.tsx` (new) | fixtures are the rows the triggers write: email sent, delivered, opened, clicked, link clicked (with and without envelope), failed, bounced, complained, unsubscribed; list subscribed, pending, unsubscribed, bounced, resubscribed, confirmed, removed (never read from the current status), a row without status; segment joined and left; profile update with old → new, +N, consent fields; custom event from its kind, goal and value; numbers in French; inbound webhook bounce from its own changes, provider unsubscribe; web session (never 0 s, exit without entry, no envelope); web page link; automation start, completed, failed; unknown entity |
+| `components/contacts/sheet/activityParts.tsx` (new) | `describeActivity.test.tsx` | a linked name is a button by role and opens its email or page |
+| `components/contacts/sheet/contactFieldLabels.ts` | `describeActivity.test.tsx` | tracking consent fields have a label |
+| `components/contacts/sheet/ContactActivityFeed.tsx` (new) | `ContactActivityFeed.test.tsx` (new) | groups by day in a non-UTC timezone with each time, Load more, empty state, the email preview gets the message's template data, not its envelope |
+| `components/contacts/sheet/ContactActivityTab.tsx` | `ContactActivityTab.test.tsx` | renders the feed (existing filter cases kept) |
+| `components/contacts/sheet/ContactMessagesTab.tsx` | `ContactMessagesTab.test.tsx` | name by origin, A/B variant, subject in the language sent and rendered, subject forced at send time, the preview opens the email in the language sent, a template that fails to load says so, « N of M message(s) » in the singular and plural, Load more, no names nor preview without the rights |
+| `components/contacts/sheet/MessageJourneySteps.tsx` (new) | `MessageJourneySteps.test.tsx` (new) | lit steps, a click implies open and delivery, SMTP « Sent », failed and bounced with their reason for screen readers, complaint after a bounce, each step's state in words and focusable |
+| `components/contacts/sheet/ContactListsCard.tsx`, `SheetSection.tsx` | `ContactListsCard.test.tsx` | count badges, « Since » on the list row, « since » on a segment, remove after confirmation, rights |
+| `components/contacts/sheet/ContactProfileFields.tsx` | `ContactProfileFields.test.tsx` | existing cases kept |
+| `components/contacts/visits/ContactWebVisits.tsx` | `ContactWebVisits.test.tsx` | the session day above its time; fixed widths so the table fits the centre column (checked by capture) |
+| `components/segment/segmentColor.ts` (new) | `segmentColor.test.ts` (new) | preset names to colours, a CSS colour kept, the form's default preset without a colour |
+| `components/contacts/ContactsTable.tsx`, `ContactsRail.tsx` | `segmentColor.test.ts` | dots use `segmentDotColor` |
+| `components/timeline/webPageUrl.ts` (moved out of `ContactTimeline.tsx`) | `webPageUrl.test.ts` | the page URL cases of the old timeline tests |
+| `components/timeline/ContactTimeline.tsx`, `index.ts` | removed | replaced by the feed; its description cases moved to `describeActivity.test.tsx` |
+| `services/api/contact_timeline.ts` | type only | `message_data` typed as the stored envelope |
+| `utils/formatters.tsx` | `formatters.test.tsx` | dead `formatEventName` and `getSourceBadge` removed |
+| `CHANGELOG.md` | — | feature bullet, and a Fix line for « → undefined », which shipped in 43.0 |
+| `i18n/locales/*.po` | `catalogues.test.ts` | extracted, translated in every locale |
+
+## Known deviations from the mockups
+
+- The source chip on an activity entry is the entry's type (Email, List, Segment, Web analytics, the provider of a webhook), not the mockup's origin (API, Webhook Stripe, Automatisation): the timeline does not record where a change came from.
+- Custom event properties are not shown: the timeline query joins no custom event data.
+- At 1440 px the Messages and Web visits tables are narrower than in the mockup; three columns start at 1400 px, below which the Lists and Segments cards go above the tabs.
 
 ## Last step: checks
 
 ```
 cd console
-npm run lingui:extract
+npm run lingui:extract && git diff --exit-code src/i18n   # catalogues already up to date
 npx vitest run src/components/contacts src/components/segment src/components/timeline
 npx tsc -b
 npm run lint

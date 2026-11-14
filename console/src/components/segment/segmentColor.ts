@@ -15,9 +15,9 @@ const PRESETS: Record<string, string> = {
   purple: '#722ed1'
 }
 
-/** The colour of a segment's dot: its preset's shade, a CSS colour as it is, else the default. */
+/** The colour of a segment's dot: its preset's shade, a CSS colour as it is, else the form's default preset. */
 export function segmentDotColor(color?: string | null): string {
   const value = color?.trim().toLowerCase()
-  if (!value) return PRESETS.geekblue
+  if (!value) return PRESETS.blue
   return PRESETS[value] ?? color!.trim()
 }

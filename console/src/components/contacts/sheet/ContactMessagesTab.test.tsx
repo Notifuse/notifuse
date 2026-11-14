@@ -2,6 +2,7 @@ import '../../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { App } from 'antd'
 import type { UserPermissions, Workspace } from '../../../services/api/types'
 
 const state = vi.hoisted(() => ({
@@ -60,12 +61,19 @@ vi.mock('../../../services/api/transactional_notifications', () => ({
 vi.mock('../../../services/api/template', () => ({
   templatesApi: {
     get: vi.fn(async () => ({
-      template: { id: 't2', name: 'BF template', email: { subject: 'Hi' } }
+      template: {
+        id: 't2',
+        name: 'BF template',
+        email: { subject: 'Hi {{ contact.first_name }}' },
+        translations: { fr: { email: { subject: 'Bonjour {{ contact.first_name }}' } } }
+      }
     }))
   }
 }))
 vi.mock('../../templates/TemplatePreviewDrawer', () => ({
-  default: () => <div>preview drawer</div>
+  default: ({ record }: { record: { email?: { subject?: string } } }) => (
+    <div>preview drawer: {record.email?.subject}</div>
+  )
 }))
 vi.mock('./MessageJourneySteps', () => ({
   MessageJourneySteps: () => <span>journey</span>
@@ -79,8 +87,10 @@ import { ContactMessagesTab } from './ContactMessagesTab'
 const workspace = {
   id: 'ws',
   integrations: [],
-  settings: { timezone: 'UTC' }
+  settings: { timezone: 'UTC', default_language: 'en' }
 } as unknown as Workspace
+// The message data a send stores: the contact, with the language it was sent in.
+const sentTo = (language: string) => ({ data: { contact: { first_name: 'Ann', language } } })
 const read = { read: true, write: false }
 const allRights = {
   broadcasts: read,
@@ -161,12 +171,14 @@ describe('ContactMessagesTab', () => {
   })
 
   it('opens the sent email with its template', async () => {
+    state.pages = [{ messages: [message('m1', { broadcast_id: 'b1', message_data: sentTo('fr') })], has_more: false }]
     renderTab()
     const [first] = await screen.findAllByRole('button', {
       name: 'View the sent email'
     })
     fireEvent.click(first)
-    expect(await screen.findByText('preview drawer')).toBeInTheDocument()
+    // The email in the language it was sent in.
+    expect(await screen.findByText('preview drawer: Bonjour {{ contact.first_name }}')).toBeInTheDocument()
     await waitFor(() =>
       expect(templatesApi.get).toHaveBeenCalledWith({
         workspace_id: 'ws',
@@ -174,5 +186,43 @@ describe('ContactMessagesTab', () => {
         version: 1
       })
     )
+  })
+
+  it('shows the subject sent: in the contact language, rendered with the message data', async () => {
+    state.pages = [
+      {
+        messages: [
+          message('m1', { broadcast_id: 'b1', message_data: sentTo('fr') }),
+          message('m2', { automation_id: 'a1', message_data: sentTo('en') }),
+          message('m3', { automation_id: 'a1', channel_options: { subject: 'Forced at send time' } })
+        ],
+        has_more: false
+      }
+    ]
+    renderTab()
+    expect(await screen.findByText('Bonjour Ann')).toBeInTheDocument()
+    expect(await screen.findByText('Hi Ann')).toBeInTheDocument()
+    expect(await screen.findByText('Forced at send time')).toBeInTheDocument()
+  })
+
+  it('says so when the email sent cannot be loaded', async () => {
+    vi.mocked(templatesApi.get).mockRejectedValue(new Error('gone'))
+    state.pages = [{ messages: [message('m1', { broadcast_id: 'b1' })], has_more: false }]
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <App>
+          <ContactMessagesTab workspace={workspace} email="ann@x.com" permissions={allRights} timezone="UTC" />
+        </App>
+      </QueryClientProvider>
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'View the sent email' }))
+    expect(await screen.findByText('Could not load the email sent')).toBeInTheDocument()
+    expect(screen.queryByText(/preview drawer/)).toBeNull()
+  })
+
+  it('counts a single message in the singular', async () => {
+    state.pages = [{ messages: [message('m1', { broadcast_id: 'b1' })], has_more: false }]
+    renderTab(allRights, 1)
+    expect(await screen.findByText('1 of 1 message')).toBeInTheDocument()
   })
 })

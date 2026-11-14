@@ -31,6 +31,8 @@ export const SHEET_LABEL_WIDTH = 104
 /** The number next to a card's title: « Lists 4 ». */
 export function CountBadge({ count }: { count: string }) {
   return (
-    <span className="rounded-sm bg-fill px-1.5 text-2xs font-medium text-ink-3 tabular-nums">{count}</span>
+    <span data-count className="rounded-sm bg-fill px-1.5 text-2xs font-medium text-ink-3 tabular-nums">
+      {count}
+    </span>
   )
 }

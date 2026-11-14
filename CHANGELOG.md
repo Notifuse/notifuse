@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, the web analytics charts, ranges and annotations, the licence and invitation expiry dates, the day an integration was connected, and the dates in the prompts to restore a blog draft or resume a contact import. Counts and amounts use its separators too ("12 345" in French): contact imports and exports, sending progress, analytics amounts, rate limits and the values in a contact's activity and fields. So do the web analytics counts, percentages and durations ("1,5 k", "12,5 %", "5 min 12 s"). Weeks start on Monday in French, Spanish, German, Catalan and Italian.
 
+- **Fix**: In a contact's activity, a removal from a list reads "Removed from Newsletter" instead of a status change ending in "undefined".
 - **Fix**: Web analytics durations and counts no longer read "4m 60s", "1h 60m" or "1000.0K" at a rounding boundary.
 - **Fix**: Negative web analytics amounts, such as refunded goal values, drop their cents from a thousand like positive ones: "-1,235", not "-1,234.57".
 - **Fix**: In a contact's activity and fields and in the message history, the full date shown on hover is the time in the timezone it names (the contact's or the workspace's), in the console's language, not in your browser's.

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Button, Table, Tooltip } from 'antd'
+import { App, Button, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { Mail } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 import dayjs from '../../../lib/dayjs'
 import { automationApi } from '../../../services/api/automation'
 import { broadcastApi, type Broadcast } from '../../../services/api/broadcast'
@@ -13,6 +14,7 @@ import { transactionalNotificationsApi } from '../../../services/api/transaction
 import type { UserPermissions, Workspace } from '../../../services/api/types'
 import { useNumberFormat } from '../../layout'
 import { MESSAGE_ORIGIN_LABELS } from '../../logs/labels'
+import { messageLanguage, resolveEmail } from '../../logs/messageTemplate'
 import { messageOrigin, rowIsSmtp } from '../../logs/messageProvider'
 import TemplatePreviewDrawer from '../../templates/TemplatePreviewDrawer'
 import { BlockError } from '../BlockError'
@@ -34,6 +36,7 @@ export interface ContactMessagesTabProps {
 
 /** The template a message was sent with, at its version; shared with the other previews. */
 function useMessageTemplate(workspace: Workspace, message: MessageHistory, enabled: boolean) {
+  const { t } = useLingui()
   return useQuery({
     queryKey: ['template', workspace.id, message.template_id, message.template_version],
     queryFn: async () => {
@@ -42,7 +45,7 @@ function useMessageTemplate(workspace: Workspace, message: MessageHistory, enabl
         id: message.template_id,
         version: message.template_version
       })
-      if (!response.template) throw new Error('The server returned no template')
+      if (!response.template) throw new Error(t`The server returned no template`)
       return response.template
     },
     enabled: enabled && !!message.template_id,
@@ -51,12 +54,30 @@ function useMessageTemplate(workspace: Workspace, message: MessageHistory, enabl
   })
 }
 
-/** The subject the contact received: the template's, rendered with the message's data. */
-function useRenderedSubject(message: MessageHistory, template?: Template) {
-  const subject = template?.email?.subject
+/**
+ * The email a message was sent with: the template's content in the language the contact received
+ * it in, as the server picked it (the translation, else the default).
+ */
+function sentEmail(workspace: Workspace, message: MessageHistory, template: Template) {
+  const email = resolveEmail(
+    template,
+    messageLanguage(message.message_data?.data),
+    workspace.settings?.default_language ?? ''
+  )
+  return email ? { ...template, email } : template
+}
+
+/**
+ * The subject the contact received: the one the send forced, else the template's in the language
+ * sent, rendered with the message's data.
+ */
+function useRenderedSubject(workspace: Workspace, message: MessageHistory, template?: Template) {
+  const forced = message.channel_options?.subject
+  const subject = forced || (template ? sentEmail(workspace, message, template).email?.subject : undefined)
   return useQuery({
     queryKey: ['message-subject', message.id, subject],
     queryFn: async () => {
+      if (forced) return forced
       if (!subject || !subject.includes('{')) return subject ?? ''
       // Loaded on demand: the Liquid engine is only needed here and in the editors.
       const { renderSecureLiquid } = await import('../../../utils/liquidConfig')
@@ -79,7 +100,7 @@ interface MessageCellProps {
 function MessageCell({ workspace, message, name, variant, canReadTemplates }: MessageCellProps) {
   const { t } = useLingui()
   const template = useMessageTemplate(workspace, message, canReadTemplates)
-  const subject = useRenderedSubject(message, template.data)
+  const subject = useRenderedSubject(workspace, message, template.data)
   const title = name || template.data?.name || message.template_id
   return (
     <div className="flex min-w-0 flex-col leading-tight">
@@ -98,8 +119,19 @@ function MessageCell({ workspace, message, name, variant, canReadTemplates }: Me
 
 function PreviewButton({ workspace, message }: { workspace: Workspace; message: MessageHistory }) {
   const { t } = useLingui()
+  const { message: toast } = App.useApp()
   const [open, setOpen] = useState(false)
-  const template = useMessageTemplate(workspace, message, open)
+  const template = useMessageTemplate(workspace, message, false)
+  // Loaded on click when the row has not loaded it; a template that cannot be loaded (deleted
+  // version, server error) says so instead of opening nothing.
+  const [loading, setLoading] = useState(false)
+  const show = async () => {
+    setLoading(true)
+    const loaded = template.data ?? (await template.refetch()).data
+    setLoading(false)
+    if (loaded) setOpen(true)
+    else toast.error(t`Could not load the email sent`)
+  }
   return (
     <>
       <Tooltip title={t`View the sent email`}>
@@ -107,16 +139,16 @@ function PreviewButton({ workspace, message }: { workspace: Workspace; message: 
           type="text"
           size="small"
           aria-label={t`View the sent email`}
-          loading={open && template.isLoading}
+          loading={loading}
           icon={<Mail size={14} aria-hidden="true" />}
-          onClick={() => setOpen(true)}
+          onClick={show}
         />
       </Tooltip>
       {open && template.data ? (
         <TemplatePreviewDrawer
           open
           onClose={() => setOpen(false)}
-          record={template.data}
+          record={sentEmail(workspace, message, template.data)}
           workspace={workspace}
           templateData={message.message_data?.data ?? {}}
           messageHistory={message}
@@ -214,7 +246,7 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
     {
       title: t`Type`,
       key: 'type',
-      width: 118,
+      width: 112,
       render: (_, message) => (
         <span className="text-xs whitespace-nowrap text-ink-2">
           {i18n._(MESSAGE_ORIGIN_LABELS[messageOrigin(message)])}
@@ -224,7 +256,7 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
     {
       title: t`Journey`,
       key: 'journey',
-      width: 256,
+      width: 236,
       render: (_, message) => (
         <MessageJourneySteps message={message} smtp={rowIsSmtp(message, workspace)} timezone={timezone} />
       )
@@ -232,10 +264,10 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
     {
       title: t`Sent`,
       key: 'sent',
-      width: 128,
+      width: 116,
       align: 'right',
       render: (_, message) => (
-        <Tooltip title={dayjs(message.sent_at || message.created_at).tz(timezone).format('LLLL')}>
+        <Tooltip title={t`${dayjs(message.sent_at || message.created_at).tz(timezone).format('LLLL')} (${timezone})`}>
           <span className="text-xs whitespace-nowrap text-ink-3 tabular-nums">{sentLabel(message)}</span>
         </Tooltip>
       )
@@ -252,8 +284,8 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
   const shown = rows.length
   const footer =
     total !== undefined && total >= shown
-      ? t`${int(shown)} of ${int(total)} messages`
-      : t`${int(shown)} messages`
+      ? plural(total, { one: `${int(shown)} of # message`, other: `${int(shown)} of # messages` })
+      : plural(shown, { one: '# message', other: '# messages' })
 
   return (
     <div className="flex flex-col">

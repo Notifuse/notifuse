@@ -30,7 +30,6 @@ import type {
   AutomationEventEntityData,
   ContactListEntityData,
   ContactTimelineEntry,
-  CustomEventEntityData,
   InboundWebhookEventEntityData,
   MessageHistoryEntityData
 } from '../../../services/api/contact_timeline'
@@ -146,16 +145,23 @@ export function useActivityDescriber({
     const data = entry.entity_data as ContactListEntityData | undefined
     const name = <Strong>{data?.name || changeNew<string>(entry, 'list_id') || entry.entity_id || t`a list`}</Strong>
     const source = t`List`
-    if (entry.operation === 'delete') return { icon: ListMinus, tone: 'gray', title: <Trans>Removed from {name}</Trans>, source }
-    // The status the entry recorded; a row that recorded none falls back to the current one.
+    // What the entry recorded, never the subscription's current status (entity_data.status): a
+    // removal keeps its status on the row, and a later change would rewrite every past entry.
+    // The kind the trigger writes says it; rows without one fall back to their changes.
+    const removed =
+      entry.kind === 'list.removed' || entry.operation === 'delete' || !!changeNew<string>(entry, 'deleted_at')
+    if (removed) return { icon: ListMinus, tone: 'gray', title: <Trans>Removed from {name}</Trans>, source }
     const raw = entry.changes?.status
-    const status = changeNew<string>(entry, 'status') ?? (typeof raw === 'string' ? raw : undefined) ?? data?.status
+    const status = changeNew<string>(entry, 'status') ?? (typeof raw === 'string' ? raw : undefined)
     const old = changeOld<string>(entry, 'status')
-    const meta =
-      entry.operation === 'update' && old && status && old !== status
-        ? `${statusLabel(old)} → ${statusLabel(status)}`
-        : undefined
-    switch (status) {
+    const meta = old && status && old !== status ? `${statusLabel(old)} → ${statusLabel(status)}` : undefined
+    const kind = entry.kind.startsWith('list.') ? entry.kind.slice('list.'.length) : undefined
+    switch (kind ?? status) {
+      case 'confirmed':
+        return { icon: ShieldCheck, tone: 'green', title: <Trans>Confirmed their subscription to {name}</Trans>, meta, source }
+      case 'resubscribed':
+        return { icon: ListPlus, tone: 'green', title: <Trans>Subscribed again to {name}</Trans>, meta, source }
+      case 'subscribed':
       case 'active':
         return old === 'pending'
           ? { icon: ShieldCheck, tone: 'green', title: <Trans>Confirmed their subscription to {name}</Trans>, meta, source }
@@ -164,12 +170,14 @@ export function useActivityDescriber({
         return { icon: ListPlus, tone: 'amber', title: <Trans>Added to {name}, awaiting confirmation</Trans>, meta, source }
       case 'unsubscribed':
         return { icon: MailX, tone: 'red', title: <Trans>Unsubscribed from {name}</Trans>, meta, source }
-      case undefined:
-        return { icon: ListPlus, tone: 'gray', title: <Trans>Subscription to {name} updated</Trans>, source }
-      default: {
-        const label = statusLabel(status)
-        return { icon: ListMinus, tone: 'red', title: <Trans>{label} in {name}</Trans>, meta, source }
-      }
+      case 'bounced':
+        return { icon: MailX, tone: 'red', title: <Trans>Bounced in {name}</Trans>, meta, source }
+      case 'complained':
+        return { icon: MailX, tone: 'red', title: <Trans>Complained in {name}</Trans>, meta, source }
+      default:
+        return meta
+          ? { icon: ListPlus, tone: 'gray', title: <Trans>Subscription to {name} changed</Trans>, meta, source }
+          : { icon: ListPlus, tone: 'gray', title: <Trans>Subscription to {name} updated</Trans>, source }
     }
   }
 
@@ -232,14 +240,11 @@ export function useActivityDescriber({
   }
 
   const customEvent = (entry: ContactTimelineEntry): ActivityDescription => {
-    const data = entry.entity_data as CustomEventEntityData | undefined
     // The kind the trigger writes is 'custom_event.<name>'; the timeline joins no entity data for
     // custom events, so the name and the goal come from the kind and the changes.
-    const eventName =
-      data?.event_name || changeNew<string>(entry, 'event_name') || entry.kind.replace(/^custom_event\./, '')
-    const goalName = data?.goal_name || changeNew<string>(entry, 'goal_name')
-    const goalValue = data?.goal_value ?? changeNew<number>(entry, 'goal_value')
-    const properties = data?.properties && Object.keys(data.properties).length > 0 ? data.properties : undefined
+    const eventName = changeNew<string>(entry, 'event_name') || entry.kind.replace(/^custom_event\./, '')
+    const goalName = changeNew<string>(entry, 'goal_name')
+    const goalValue = changeNew<number>(entry, 'goal_value')
     const value =
       goalValue !== undefined && goalValue !== null
         ? goalValue.toLocaleString(i18n.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -249,24 +254,20 @@ export function useActivityDescriber({
       goalName && goalName !== eventName ? t`Goal ${goalName}` : null,
       value ? t`Value ${value}` : null
     ].filter(Boolean)
-    const sources: Record<string, string> = { api: 'API', integration: t`Integration`, import: t`Import` }
     return {
       icon: Zap,
       tone: 'amber',
       title: entry.operation === 'update' ? <Trans>Event {code} updated</Trans> : <Trans>Event {code}</Trans>,
-      meta: properties ? (
-        <span className="block truncate font-mono text-2xs">{JSON.stringify(properties)}</span>
-      ) : metaParts.length > 0 ? (
-        metaParts.join(' · ')
-      ) : undefined,
-      source: (data?.source && sources[data.source]) || data?.source || t`Event`
+      meta: metaParts.length > 0 ? metaParts.join(' · ') : undefined,
+      source: t`Event`
     }
   }
 
   const webhook = (entry: ContactTimelineEntry): ActivityDescription => {
     const data = entry.entity_data as InboundWebhookEventEntityData | undefined
-    const type = data?.type || changeNew<string>(entry, 'type') || ''
-    const provider = data?.source || changeNew<string>(entry, 'source')
+    // The entry's own changes first: the join can match another webhook event of the same message.
+    const type = changeNew<string>(entry, 'type') || data?.type || ''
+    const provider = changeNew<string>(entry, 'source') || data?.source
     const source = provider ? getProviderName(provider) : t`Webhook`
     const name = data?.template_name ? <Strong>{data.template_name}</Strong> : null
     switch (type) {
@@ -282,7 +283,11 @@ export function useActivityDescriber({
           icon: MailX,
           tone: 'red',
           title: name ? <Trans>Email bounced: {name}</Trans> : t`Email bounced`,
-          meta: [data?.bounce_type, data?.bounce_category, data?.bounce_diagnostic].filter(Boolean).join(' · ') || undefined,
+          meta:
+            ['bounce_type', 'bounce_category', 'bounce_diagnostic']
+              .map((key) => changeNew<string>(entry, key) || data?.[key as 'bounce_type'])
+              .filter(Boolean)
+              .join(' · ') || undefined,
           source
         }
       case 'complaint':
@@ -290,7 +295,7 @@ export function useActivityDescriber({
           icon: MailX,
           tone: 'red',
           title: name ? <Trans>Marked as spam: {name}</Trans> : t`Marked as spam`,
-          meta: data?.complaint_feedback_type || undefined,
+          meta: changeNew<string>(entry, 'complaint_feedback_type') || data?.complaint_feedback_type || undefined,
           source
         }
       case 'unsubscribe':
@@ -352,7 +357,13 @@ export function useActivityDescriber({
       icon: Globe,
       tone: 'blue',
       title,
-      meta: meta.length > 0 ? <span className="block truncate">{meta.join(' · ')}</span> : undefined,
+      // Truncated to one line, whole on hover.
+      meta:
+        meta.length > 0 ? (
+          <span className="block truncate" title={meta.join(' · ')}>
+            {meta.join(' · ')}
+          </span>
+        ) : undefined,
       source: t`Web analytics`
     }
   }

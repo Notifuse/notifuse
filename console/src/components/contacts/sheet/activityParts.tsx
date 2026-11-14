@@ -18,7 +18,7 @@ export function ActivityLink({ label, onClick }: { label: ReactNode; onClick: ()
     }
   }
   return (
-    <Typography.Link role="button" tabIndex={0} onClick={onClick} onKeyDown={onKeyDown} className="font-medium">
+    <Typography.Link role="button" tabIndex={0} onClick={onClick} onKeyDown={onKeyDown}>
       {label}
     </Typography.Link>
   )

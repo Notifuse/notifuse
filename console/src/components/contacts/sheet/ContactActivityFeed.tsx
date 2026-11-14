@@ -20,6 +20,14 @@ const TONES: Record<ActivityTone, string> = {
   blue: 'bg-info-bg text-info-fg'
 }
 
+// Where the thread runs in a row: from the first icon's centre down, through, or down to the last
+// icon's centre (the rows' padding is 1.5, the icon's centre 3 from the cell's top).
+const THREAD = {
+  first: 'top-3 -bottom-1.5',
+  middle: '-top-1.5 -bottom-1.5',
+  last: '-top-1.5 h-4.5'
+}
+
 export interface ContactActivityFeedProps {
   entries: ContactTimelineEntry[]
   loading: boolean
@@ -49,7 +57,7 @@ function previewRecord(data: MessageHistoryEntityData): PreviewRecord {
     category: data.template_category || 'transactional',
     channel: data.channel as 'email' | 'web',
     email: data.template_email as unknown as PreviewRecord['email'],
-    test_data: data.message_data || {},
+    test_data: data.message_data?.data ?? {},
     created_at: '',
     updated_at: ''
   }
@@ -113,36 +121,39 @@ export function ContactActivityFeed({
                 <li
                   key={entry.id}
                   data-activity-entry
-                  className="relative grid grid-cols-[3.5rem_1.375rem_minmax(0,1fr)_auto] items-start gap-x-2.5 py-1.5"
+                  className="grid grid-cols-[3.5rem_1.375rem_minmax(0,1fr)_auto] items-start gap-x-2.5 py-1.5"
                 >
-                  {/* The thread that links the day's icons, from the first icon to the last. */}
-                  <span
-                    aria-hidden="true"
-                    className={`absolute left-[calc(3.5rem+0.625rem+10.5px)] w-px bg-line ${first ? 'top-3.5' : 'top-0'} ${
-                      last ? 'bottom-[calc(100%-0.875rem)]' : 'bottom-0'
-                    }`}
-                  />
-                  <Tooltip title={t`${at.format('LLLL')} in ${timezone}`}>
+                  <Tooltip title={t`${at.format('LLLL')} (${timezone})`}>
                     <time dateTime={entry.created_at} className="text-xs leading-5.5 text-ink-3 tabular-nums">
                       {at.format('LT')}
                     </time>
                   </Tooltip>
-                  <Popover
-                    title={t`Raw Entry Data`}
-                    placement="right"
-                    content={
-                      <pre className="m-0 max-h-96 max-w-lg overflow-auto rounded-sm bg-subtle p-2 text-xs">
-                        {JSON.stringify(entry, null, 2)}
-                      </pre>
-                    }
-                  >
-                    <span
-                      data-tone={item.tone}
-                      className={`relative z-1 flex size-5.5 items-center justify-center rounded-md ${TONES[item.tone]}`}
+                  <span className="relative flex justify-center self-stretch">
+                    {/* The thread that links the day's icons, from the first icon to the last,
+                        across the rows' padding. */}
+                    {first && last ? null : (
+                      <span
+                        aria-hidden="true"
+                        className={`absolute w-px bg-line ${THREAD[first ? 'first' : last ? 'last' : 'middle']}`}
+                      />
+                    )}
+                    <Popover
+                      title={t`Raw Entry Data`}
+                      placement="right"
+                      content={
+                        <pre className="m-0 max-h-96 max-w-lg overflow-auto rounded-sm bg-subtle p-2 text-xs">
+                          {JSON.stringify(entry, null, 2)}
+                        </pre>
+                      }
                     >
-                      <Icon size={13} aria-hidden="true" />
-                    </span>
-                  </Popover>
+                      <span
+                        data-tone={item.tone}
+                        className={`relative z-1 flex size-5.5 items-center justify-center rounded-md ${TONES[item.tone]}`}
+                      >
+                        <Icon size={13} aria-hidden="true" />
+                      </span>
+                    </Popover>
+                  </span>
                   <div className="min-w-0 pt-0.5">
                     <div className="text-base leading-4.5 text-ink">{item.title}</div>
                     {item.meta ? <div className="mt-0.5 text-xs text-ink-3">{item.meta}</div> : null}
@@ -170,7 +181,7 @@ export function ContactActivityFeed({
           onClose={() => setEmail(null)}
           record={previewRecord(email)}
           workspace={workspace}
-          templateData={email.message_data}
+          templateData={email.message_data?.data ?? {}}
         />
       ) : null}
       <WebPageDrawer open={page !== null} url={page} onClose={() => setPage(null)} />

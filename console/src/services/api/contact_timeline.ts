@@ -1,3 +1,4 @@
+import type { MessageData } from './messages_history'
 import { api } from './client'
 
 // Entity data types for each entity type
@@ -26,7 +27,8 @@ export interface MessageHistoryEntityData {
   delivered_at?: string
   opened_at?: string
   clicked_at?: string
-  message_data?: Record<string, unknown>
+  /** The stored envelope: the template data under `data`. */
+  message_data?: MessageData
 }
 
 export interface InboundWebhookEventEntityData {

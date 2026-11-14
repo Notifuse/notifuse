@@ -22,3 +22,17 @@ export function useDayLabel(timezone: string): (at: string | Date) => string {
     }).format(new Date(at.year(), at.month(), at.date()))
   }
 }
+
+/**
+ * The timezone to read a contact's dates in: theirs when the browser knows it, else the workspace's.
+ * The server does not check a contact's timezone, and dayjs throws on one Intl does not know.
+ */
+export function sheetTimezone(contactTimezone: string | null | undefined, workspaceTimezone: string): string {
+  if (!contactTimezone) return workspaceTimezone
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: contactTimezone })
+    return contactTimezone
+  } catch {
+    return workspaceTimezone
+  }
+}

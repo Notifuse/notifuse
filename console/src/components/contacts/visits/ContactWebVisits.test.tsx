@@ -119,7 +119,8 @@ describe('ContactWebVisits', () => {
     expect(document.querySelector('[data-device="tablet"]')).not.toBeNull()
     expect(document.querySelector('[data-device="other"]')).not.toBeNull()
     expect(screen.getByText('Direct')).toBeInTheDocument()
-    expect(screen.getAllByText(/^Today · /).length).toBe(2)
+    const days = [...document.querySelectorAll('[data-session-day]')].map((cell) => cell.firstChild?.textContent)
+    expect(days.filter((day) => day === 'Today')).toHaveLength(2)
   })
 
   it('loads a session journey once when expanded, with its goal at its time', async () => {

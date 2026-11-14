@@ -75,6 +75,7 @@ describe('ContactListsCard', () => {
     expect(within(row('Newsletter')).getByText('Active')).toBeInTheDocument()
     expect(within(row('Beta')).getByText('Bounced')).toBeInTheDocument()
     expect(within(row('Newsletter')).getByText(/^Since /)).toBeInTheDocument()
+    expect(document.querySelector('[data-count]')?.textContent).toBe('2')
   })
 
   it('removes the contact from a list after confirmation', async () => {
@@ -119,5 +120,7 @@ describe('ContactSegmentsCard', () => {
       />
     )
     expect(screen.getByText('Plan Pro')).toBeInTheDocument()
+    expect(screen.getByText('since Jan 2, 2026')).toBeInTheDocument()
+    expect(document.querySelector('[data-count]')?.textContent).toBe('1')
   })
 })
