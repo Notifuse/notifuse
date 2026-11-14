@@ -1,38 +1,177 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import '../../../__tests__/resizeObserverMock'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { Workspace } from '../../../services/api/types'
+import type { UserPermissions, Workspace } from '../../../services/api/types'
 
-vi.mock('../../../services/api/analytics', () => ({ analyticsService: { query: vi.fn() } }))
-vi.mock('../../../services/api/web_analytics', () => ({ webAnalyticsService: {} }))
-vi.mock('../../../services/api/contact_timeline', () => ({ contactTimelineApi: { list: vi.fn() } }))
-vi.mock('../../../services/api/messages_history', () => ({
-  listMessages: vi.fn(async () => ({ messages: [{ id: 'm1' }], next_cursor: 'next', has_more: true }))
+const state = vi.hoisted(() => ({
+  pages: [] as {
+    messages: unknown[]
+    next_cursor?: string
+    has_more: boolean
+  }[]
 }))
-vi.mock('../../messages/MessageHistoryTable', () => ({
-  MessageHistoryTable: ({ messages, nextCursor }: { messages: unknown[]; nextCursor?: string }) => (
-    <div>
-      {messages.length} messages, more: {String(!!nextCursor)}
-    </div>
-  )
+
+// The sheet's other calls: their real modules pull the API client, hence the router.
+vi.mock('../../../services/api/analytics', () => ({
+  analyticsService: { query: vi.fn() },
+  AnalyticsService: vi.fn()
+}))
+vi.mock('../../../services/api/web_analytics', () => ({
+  webAnalyticsService: {}
+}))
+vi.mock('../../../services/api/contact_timeline', () => ({
+  contactTimelineApi: { list: vi.fn() }
+}))
+vi.mock('../../../services/api/messages_history', () => ({
+  listMessages: vi.fn(async (_ws: string, { cursor }: { cursor?: string }) => state.pages[cursor ? 1 : 0])
+}))
+vi.mock('../../../services/api/broadcast', () => ({
+  broadcastApi: {
+    list: vi.fn(async () => ({
+      broadcasts: [
+        {
+          id: 'b1',
+          name: 'Black Friday',
+          test_settings: {
+            enabled: true,
+            variations: [
+              { variation_name: 'A', template_id: 't1' },
+              { variation_name: 'B', template_id: 't2' }
+            ]
+          }
+        }
+      ]
+    }))
+  }
+}))
+vi.mock('../../../services/api/automation', () => ({
+  automationApi: {
+    list: vi.fn(async () => ({
+      automations: [{ id: 'a1', name: 'Welcome series' }]
+    }))
+  }
+}))
+vi.mock('../../../services/api/transactional_notifications', () => ({
+  transactionalNotificationsApi: {
+    list: vi.fn(async () => ({ notifications: [] }))
+  }
+}))
+vi.mock('../../../services/api/template', () => ({
+  templatesApi: {
+    get: vi.fn(async () => ({
+      template: { id: 't2', name: 'BF template', email: { subject: 'Hi' } }
+    }))
+  }
+}))
+vi.mock('../../templates/TemplatePreviewDrawer', () => ({
+  default: () => <div>preview drawer</div>
+}))
+vi.mock('./MessageJourneySteps', () => ({
+  MessageJourneySteps: () => <span>journey</span>
 }))
 
 import { listMessages } from '../../../services/api/messages_history'
+import { broadcastApi } from '../../../services/api/broadcast'
+import { templatesApi } from '../../../services/api/template'
 import { ContactMessagesTab } from './ContactMessagesTab'
 
+const workspace = {
+  id: 'ws',
+  integrations: [],
+  settings: { timezone: 'UTC' }
+} as unknown as Workspace
+const read = { read: true, write: false }
+const allRights = {
+  broadcasts: read,
+  automations: read,
+  transactional: read,
+  templates: read
+} as unknown as UserPermissions
+
+const message = (id: string, extra: Record<string, unknown>) => ({
+  id,
+  contact_email: 'ann@x.com',
+  template_id: 't2',
+  template_version: 1,
+  channel: 'email',
+  sent_at: '2026-11-10T09:00:00Z',
+  created_at: '2026-11-10T09:00:00Z',
+  ...extra
+})
+
+function renderTab(permissions: UserPermissions | null = allRights, total?: number) {
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <ContactMessagesTab
+        workspace={workspace}
+        email="ann@x.com"
+        permissions={permissions}
+        timezone="UTC"
+        total={total}
+      />
+    </QueryClientProvider>
+  )
+}
+
 describe('ContactMessagesTab', () => {
-  it('lists the contact messages page by page', async () => {
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <ContactMessagesTab workspace={{ id: 'ws' } as Workspace} email="ann@x.com" />
-      </QueryClientProvider>
-    )
-    expect(await screen.findByText('1 messages, more: true')).toBeInTheDocument()
+  beforeEach(() => {
+    vi.clearAllMocks()
+    state.pages = [
+      {
+        messages: [message('m1', { broadcast_id: 'b1' }), message('m2', { automation_id: 'a1' })],
+        next_cursor: 'next',
+        has_more: true
+      },
+      { messages: [message('m3', { automation_id: 'a1' })], has_more: false }
+    ]
+  })
+
+  it('names each message by what sent it, with its A/B variant', async () => {
+    renderTab()
+    expect(await screen.findByText('Black Friday')).toBeInTheDocument()
+    expect(screen.getByText('Variant B')).toBeInTheDocument()
+    expect(screen.getByText('Welcome series')).toBeInTheDocument()
+    expect(listMessages).toHaveBeenCalledWith('ws', {
+      contact_email: 'ann@x.com',
+      limit: 10,
+      cursor: undefined
+    })
+  })
+
+  it('counts the shown messages against the total and loads the next page', async () => {
+    renderTab(allRights, 48)
+    expect(await screen.findByText('2 of 48 messages')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+    expect(await screen.findByText('3 of 48 messages')).toBeInTheDocument()
+    expect(listMessages).toHaveBeenLastCalledWith('ws', {
+      contact_email: 'ann@x.com',
+      limit: 10,
+      cursor: 'next'
+    })
+    expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull()
+  })
+
+  it('reads no names nor templates without the rights, and offers no preview', async () => {
+    renderTab({} as UserPermissions)
+    expect(await screen.findByText('2 messages')).toBeInTheDocument()
+    expect(broadcastApi.list).not.toHaveBeenCalled()
+    expect(templatesApi.get).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'View the sent email' })).toBeNull()
+  })
+
+  it('opens the sent email with its template', async () => {
+    renderTab()
+    const [first] = await screen.findAllByRole('button', {
+      name: 'View the sent email'
+    })
+    fireEvent.click(first)
+    expect(await screen.findByText('preview drawer')).toBeInTheDocument()
     await waitFor(() =>
-      expect(listMessages).toHaveBeenCalledWith('ws', {
-        contact_email: 'ann@x.com',
-        limit: 10,
-        cursor: undefined
+      expect(templatesApi.get).toHaveBeenCalledWith({
+        workspace_id: 'ws',
+        id: 't2',
+        version: 1
       })
     )
   })

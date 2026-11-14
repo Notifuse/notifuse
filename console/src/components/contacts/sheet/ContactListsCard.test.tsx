@@ -74,7 +74,7 @@ describe('ContactListsCard', () => {
     renderCard()
     expect(within(row('Newsletter')).getByText('Active')).toBeInTheDocument()
     expect(within(row('Beta')).getByText('Bounced')).toBeInTheDocument()
-    expect(within(row('Newsletter')).getByText(/^since /)).toBeInTheDocument()
+    expect(within(row('Newsletter')).getByText(/^Since /)).toBeInTheDocument()
   })
 
   it('removes the contact from a list after confirmation', async () => {

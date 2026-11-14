@@ -10,8 +10,10 @@ import { contactListApi } from '../../../services/api/contact_list'
 import { listsApi } from '../../../services/api/list'
 import type { Segment } from '../../../services/api/segment'
 import type { List, UserPermissions, Workspace } from '../../../services/api/types'
-import { Panel, Pill } from '../../layout'
+import { Panel, Pill, useNumberFormat } from '../../layout'
+import { segmentDotColor } from '../../segment/segmentColor'
 import { LIST_STATUS_LABEL, LIST_STATUS_TONE } from '../contactDisplay'
+import { CountBadge } from './SheetSection'
 
 type Subscription = Contact['contact_lists'][number]
 
@@ -35,6 +37,7 @@ export function ContactListsCard({
   onChanged
 }: ContactListsCardProps) {
   const { t, i18n } = useLingui()
+  const { int } = useNumberFormat()
   const { message, modal } = App.useApp()
   const [subscribeOpen, setSubscribeOpen] = useState(false)
   const [statusOf, setStatusOf] = useState<Subscription | null>(null)
@@ -117,53 +120,68 @@ export function ContactListsCard({
 
   return (
     <Panel
-      title={t`Lists`}
+      flush
+      title={
+        <span className="flex items-center gap-1.5">
+          {t`Lists`}
+          <CountBadge count={int(subscriptions.length)} />
+        </span>
+      }
       extra={
         canWriteLists ? (
-          <Button
-            type="link"
-            size="small"
-            icon={<Plus size={13} aria-hidden="true" />}
-            disabled={available.length === 0}
-            onClick={() => {
-              subscribeForm.resetFields()
-              setSubscribeOpen(true)
-            }}
-          >
-            {t`Subscribe to list`}
-          </Button>
+          <Tooltip title={t`Subscribe to list`}>
+            <Button
+              type="text"
+              size="small"
+              aria-label={t`Subscribe to list`}
+              icon={<Plus size={14} aria-hidden="true" />}
+              disabled={available.length === 0}
+              onClick={() => {
+                subscribeForm.resetFields()
+                setSubscribeOpen(true)
+              }}
+            />
+          </Tooltip>
         ) : undefined
       }
     >
       {subscriptions.length === 0 ? (
-        <div className="text-sm text-ink-3">{t`This contact is not subscribed to any lists`}</div>
+        <div className="px-3.5 py-3 text-sm text-ink-3">{t`This contact is not subscribed to any lists`}</div>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        <ul className="m-0 list-none p-0">
           {subscriptions.map((subscription) => (
-            <li key={subscription.list_id} data-contact-list className="flex items-center gap-2 text-sm">
-              <Square size={12} aria-hidden="true" className="shrink-0 text-ink-4" />
-              <span className="min-w-0 flex-1 truncate text-ink">{listName(subscription.list_id)}</span>
-              <Pill tone={LIST_STATUS_TONE[subscription.status] ?? 'neutral'}>
-                {LIST_STATUS_LABEL[subscription.status]
-                  ? i18n._(LIST_STATUS_LABEL[subscription.status])
-                  : subscription.status}
-              </Pill>
+            <li
+              key={subscription.list_id}
+              data-contact-list
+              className="flex flex-col gap-0.5 border-b border-line-soft py-2 pr-2 pl-3.5 last:border-b-0"
+            >
+              <div className="flex min-h-6 items-center gap-2 text-sm">
+                <Square size={12} aria-hidden="true" className="shrink-0 text-ink-4" />
+                <span className="min-w-0 flex-1 truncate font-medium text-ink">
+                  {listName(subscription.list_id)}
+                </span>
+                <Pill tone={LIST_STATUS_TONE[subscription.status] ?? 'neutral'}>
+                  {LIST_STATUS_LABEL[subscription.status]
+                    ? i18n._(LIST_STATUS_LABEL[subscription.status])
+                    : subscription.status}
+                </Pill>
+                {canEditSubscriptions ? (
+                  <Dropdown menu={{ items: menu(subscription) }} trigger={['click']} placement="bottomRight">
+                    <Button
+                      type="text"
+                      size="small"
+                      aria-label={t`Actions for ${listName(subscription.list_id)}`}
+                      icon={<MoreHorizontal size={14} aria-hidden="true" />}
+                    />
+                  </Dropdown>
+                ) : null}
+              </div>
               {subscription.created_at ? (
-                <Tooltip title={dayjs(subscription.created_at).tz(timezone).format('LLL')}>
-                  <span className="text-xs whitespace-nowrap text-ink-3">
-                    {t`since ${dayjs(subscription.created_at).tz(timezone).format('ll')}`}
+                <Tooltip title={dayjs(subscription.created_at).tz(timezone).format('LLL')} placement="bottomLeft">
+                  <span className="self-start pl-5 text-xs text-ink-3">
+                    {t`Since ${dayjs(subscription.created_at).tz(timezone).format('ll')}`}
                   </span>
                 </Tooltip>
-              ) : null}
-              {canEditSubscriptions ? (
-                <Dropdown menu={{ items: menu(subscription) }} trigger={['click']} placement="bottomRight">
-                  <Button
-                    type="text"
-                    size="small"
-                    aria-label={t`Actions for ${listName(subscription.list_id)}`}
-                    icon={<MoreHorizontal size={14} aria-hidden="true" />}
-                  />
-                </Dropdown>
               ) : null}
             </li>
           ))}
@@ -226,49 +244,53 @@ export interface ContactSegmentsCardProps {
   segments: Segment[]
 }
 
-/** The segments the contact matches, each with when it matched. */
+/** The segments the contact matches, one per line with when it matched. */
 export function ContactSegmentsCard({ workspace, contact, segments }: ContactSegmentsCardProps) {
   const { t } = useLingui()
+  const { int } = useNumberFormat()
   const timezone = workspace.settings?.timezone || 'UTC'
   const memberships = contact.contact_segments ?? []
   return (
-    <Panel title={t`Segments`}>
+    <Panel
+      flush
+      title={
+        <span className="flex items-center gap-1.5">
+          {t`Segments`}
+          <CountBadge count={int(memberships.length)} />
+        </span>
+      }
+    >
       {memberships.length === 0 ? (
-        <div className="text-sm text-ink-3">{t`This contact is in no segment`}</div>
+        <div className="px-3.5 py-3 text-sm text-ink-3">{t`This contact is in no segment`}</div>
       ) : (
-        <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+        <ul className="m-0 list-none py-1 pl-0">
           {memberships.map((membership) => {
             const segment = segments.find((s) => s.id === membership.segment_id)
+            const matched = membership.matched_at ? dayjs(membership.matched_at).tz(timezone) : null
             return (
-              <Tooltip
+              <li
                 key={membership.segment_id}
-                title={
-                  <>
-                    <div>
-                      {t`Matched on:`}{' '}
-                      {membership.matched_at
-                        ? dayjs(membership.matched_at).tz(timezone).format('LLL')
-                        : t`Unknown date`}
-                    </div>
-                    <div className="text-xs">
-                      {t`Timezone:`} {timezone}
-                    </div>
-                  </>
-                }
+                data-contact-segment
+                className="flex items-center justify-between gap-2 px-3.5 py-1"
               >
-                <span className="flex items-center gap-1.5 text-sm text-ink-2">
+                <span className="inline-flex h-5.5 min-w-0 items-center gap-1.5 rounded-full border border-line bg-surface px-2 text-xs text-ink-2">
                   <span
                     aria-hidden="true"
-                    className="size-2 rounded-full"
+                    className="size-1.5 shrink-0 rounded-full"
                     // The segment's own colour, chosen by the user: not a theme token.
-                    style={{ backgroundColor: segment?.color }}
+                    style={{ backgroundColor: segmentDotColor(segment?.color) }}
                   />
-                  {segment?.name ?? membership.segment_id}
+                  <span className="truncate">{segment?.name ?? membership.segment_id}</span>
                 </span>
-              </Tooltip>
+                {matched ? (
+                  <Tooltip title={`${matched.format('LLL')} (${timezone})`}>
+                    <span className="shrink-0 text-xs text-ink-3">{t`since ${matched.format('ll')}`}</span>
+                  </Tooltip>
+                ) : null}
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
     </Panel>
   )
