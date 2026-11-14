@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -40 560 560" width="560" height="560" role="img">
+  <title>Notifuse</title>
+  <path d="M308 70H55A40 40 0 0 0 15 110V425A40 40 0 0 0 55 465H370A40 40 0 0 0 410 425V172" fill="none" stroke="#444C60" stroke-width="30"/>
+  <path d="M283.6 354.94H247.58L177.43 239.88V354.94H141.4V180.06H177.43L247.69 295.37V180.06H283.6Z" fill="#444C60"/>
+  <circle cx="410" cy="70" r="70" fill="#E91E63"/>
+</svg>
