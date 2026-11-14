@@ -41,7 +41,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => ({
 }))
 
 import { DashboardKpis } from './DashboardKpis'
-import { emptyTotals, type MessageOrigin, type MessageTotals } from './dashboardKpis'
+import { emptyTotals, type MessageOrigin, type MessageTotals } from './dashboardKpisModel'
 import type { DashboardPeriods } from './dashboardPeriods'
 
 const periods: DashboardPeriods = {

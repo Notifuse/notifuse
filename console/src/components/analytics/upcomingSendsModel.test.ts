@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { scheduleInstant, sortUpcoming, timeZoneAbbreviation } from './upcomingSends'
+import { scheduleInstant, sortUpcoming, timeZoneAbbreviation } from './upcomingSendsModel'
 import type { Broadcast, ScheduleSettings } from '../../services/api/broadcast'
 
 const schedule = (values: Partial<ScheduleSettings>): ScheduleSettings => ({

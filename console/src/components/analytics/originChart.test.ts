@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildOriginChart } from './originChart'
-import { emptyTotals, type SeriesPoint } from './dashboardKpis'
+import { emptyTotals, type SeriesPoint } from './dashboardKpisModel'
 
 const point = (day: string, values: Partial<SeriesPoint>): SeriesPoint => ({
   ...emptyTotals(),

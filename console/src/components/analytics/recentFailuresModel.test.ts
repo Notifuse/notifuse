@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mergeFailures } from './recentFailures'
+import { mergeFailures } from './recentFailuresModel'
 import type { MessageHistory } from '../../services/api/messages_history'
 
 const message = (id: string, values: Partial<MessageHistory>): MessageHistory =>

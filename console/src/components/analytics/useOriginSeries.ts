@@ -10,7 +10,7 @@ import {
   type MessageOrigin,
   type MessageTotals,
   type SeriesPoint
-} from './dashboardKpis'
+} from './dashboardKpisModel'
 
 interface UseOriginSeriesOptions {
   workspaceId: string
