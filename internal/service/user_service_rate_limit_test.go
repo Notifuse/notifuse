@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -30,16 +31,19 @@ func TestUserService_SignIn_RateLimitedBeforeLookup(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "too many sign-in attempts")
 	assert.Empty(t, code)
-	assertAuditReason(t, record, "rate_limited")
+	// users.signin answers this refusal 500 (UserHandler.SignIn).
+	assertAuditReason(t, record, "rate_limited", http.StatusInternalServerError)
 }
 
 // assertAuditReason checks the request is audited as a failure for reason.
-func assertAuditReason(t *testing.T, record *domain.AuditRecord, reason string) {
+func assertAuditReason(t *testing.T, record *domain.AuditRecord, reason string, status int) {
 	t.Helper()
 	assert.True(t, record.Failed(), "the refusal is audited as a failure")
-	event, skipped := record.Finalize(429)
+	event, skipped := record.Finalize(status)
 	require.False(t, skipped)
 	assert.Equal(t, reason, event.Metadata["reason"])
+	assert.Equal(t, status, event.StatusCode)
+	assert.Equal(t, domain.AuditOutcomeFromStatus(status), event.Outcome)
 }
 
 func TestUserService_RootSignin_RateLimitedBeforeSignatureCheck(t *testing.T) {
@@ -53,5 +57,6 @@ func TestUserService_RootSignin_RateLimitedBeforeSignatureCheck(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "too many sign-in attempts")
 	assert.Nil(t, resp)
-	assertAuditReason(t, record, "rate_limited")
+	// The root sign-in answers every refusal 401 (UserHandler.RootSignin).
+	assertAuditReason(t, record, "rate_limited", http.StatusUnauthorized)
 }

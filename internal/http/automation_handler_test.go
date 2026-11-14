@@ -1084,13 +1084,15 @@ func TestAutomationHandler_NodeStats(t *testing.T) {
 		}
 	})
 
-	t.Run("service errors: 403, 404, 500", func(t *testing.T) {
+	t.Run("service errors: 401, 403, 404, 500", func(t *testing.T) {
 		_, automationSvc, mux, secretKey := setupAutomationTest(t)
 		cases := []struct {
 			err  error
 			want int
 		}{
+			{fmt.Errorf("failed to authenticate user: %w", domain.ErrAPIKeyRevoked), http.StatusUnauthorized},
 			{domain.NewPermissionError(domain.PermissionResourceAutomations, domain.PermissionTypeRead, "no"), http.StatusForbidden},
+			{fmt.Errorf("get node stats: %w", domain.NewPermissionError(domain.PermissionResourceAutomations, domain.PermissionTypeRead, "no")), http.StatusForbidden},
 			{fmt.Errorf("get automation: %w", &domain.ErrNotFound{Entity: "automation", ID: "auto-1"}), http.StatusNotFound},
 			{errors.New("db down"), http.StatusInternalServerError},
 		}
