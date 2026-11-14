@@ -266,7 +266,8 @@ real task service: `service.EnsureSegmentRecomputeTask` with the app's task repo
   contacts deleted before deletions cleaned memberships: those get a `segment.left` timeline row
   and webhook delivery again. Manual rebuilds and tree edits already did this; the daily rebuild
   now does it once at upgrade for every segment with relative dates. Not deleting them silently
-  needs a trigger or data migration, out of scope here.
+  needs a trigger or data migration, out of scope here; the v44 migration does it
+  (`plans/segment-orphan-memberships-migration-plan.md`).
 - A permanent membership write failure in the queue is retried on every pass (15 s debounce), as
   evaluation errors already are.
 - Stale rows are deleted in one statement; section 8 gives it a full time slice but does not

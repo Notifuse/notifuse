@@ -11,8 +11,8 @@ import (
 
 // V44Migration, on workspaces that already exist, makes a click on a link write its own
 // timeline entry, adds the partial indexes of the dashboard's recent failures, dates the
-// broadcasts that started without a start date and recounts the exited journeys of each
-// automation.
+// broadcasts that started without a start date, removes the segment memberships of deleted
+// contacts and recounts the exited journeys of each automation.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -56,6 +56,33 @@ import (
 // only ever raised; any other value counts as 0. An automation whose stats are not a JSON
 // object, or a deleted one, is left as it is. A rerun writes nothing.
 //
+// Between the builds and the recount, the segment memberships whose contact no longer exists
+// are deleted (v44OrphanMembershipsSQL), with the two membership triggers of contact_segments
+// disabled around the delete. Until 38.0 deleting a contact left its memberships in place.
+// Since then a deletion failing between the contact row and its memberships still leaves
+// some, as does a segment build or queue recomputation that matches a contact and adds its
+// membership just after a deletion removed it. contact_segments has no foreign key to
+// contacts, so these rows stay until a rebuild at a higher version, a recomputation of the
+// address by the segment queue or the deletion of the segment removes them, each delete
+// writing a segment.left timeline entry and webhook delivery with the erased address. A
+// daily rebuild of relative-date segments at a new version would do this for every such
+// segment at once.
+//
+// The disabled state is a catalog change seen by no other session before commit, and
+// ALTER TABLE ... DISABLE TRIGGER holds a SHARE ROW EXCLUSIVE lock on contact_segments until
+// commit: it lets reads through and makes every membership write wait, so none runs without
+// its triggers; a rollback restores them. The lock is taken after the builds so membership
+// writes (segment builds, the segment queue, contact deletions) do not wait for their
+// duration, and before the recount because a membership write locks contact_segments and
+// then, through the timeline trigger, automations: taking contact_segments while holding
+// automations rows could deadlock with it. No membership write touches message_history or
+// broadcasts, so waiting for contact_segments while holding the builds' SHARE lock and the
+// backfill's locks forms no cycle; the wait is bounded by the same lock_timeout. Writes to
+// message_history, already waiting behind the builds' SHARE lock, also wait for the delete.
+// Enabling a trigger sets it to fire normally, whatever its state before the migration. A
+// rerun takes the lock again and deletes only the memberships orphaned since the previous
+// run, without events either.
+//
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}
 
@@ -68,6 +95,10 @@ FROM (SELECT mh.broadcast_id, MIN(mh.created_at) AS first_at
                                 WHERE started_at IS NULL AND status NOT IN ('draft', 'scheduled'))
       GROUP BY mh.broadcast_id) m
 WHERE b.id = m.broadcast_id AND b.started_at IS NULL AND b.status NOT IN ('draft', 'scheduled')`
+
+// v44OrphanMembershipsSQL removes the segment memberships whose contact no longer exists.
+const v44OrphanMembershipsSQL = `DELETE FROM contact_segments cs
+WHERE NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = cs.email)`
 
 // v44ExitedRecountSQL raises stats.exited to the number of exited journeys of the automation.
 // A stored value that is not a whole number below 10^18 counts as 0, so it is replaced.
@@ -110,6 +141,11 @@ func v44WorkspaceStatements() []v44WorkspaceStatement {
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, "create idx_message_history_failed_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, "create idx_message_history_bounced_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, "create idx_message_history_complained_recent"},
+		{`ALTER TABLE contact_segments DISABLE TRIGGER contact_segment_changes_trigger`, "disable contact_segment_changes_trigger"},
+		{`ALTER TABLE contact_segments DISABLE TRIGGER webhook_contact_segments`, "disable webhook_contact_segments"},
+		{v44OrphanMembershipsSQL, "remove the segment memberships of deleted contacts"},
+		{`ALTER TABLE contact_segments ENABLE TRIGGER webhook_contact_segments`, "enable webhook_contact_segments"},
+		{`ALTER TABLE contact_segments ENABLE TRIGGER contact_segment_changes_trigger`, "enable contact_segment_changes_trigger"},
 		{v44ExitedRecountSQL, "recount the exited journeys of each automation"},
 	}
 }
