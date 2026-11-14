@@ -30,7 +30,9 @@ conditional on the task's version) and, for a segment with `recompute_after`, mo
 next 5 AM, so the next daily rebuild tries again instead of a rebuild every scheduler tick. This
 covers every error once the state is valid, including a last attempt that cannot read the segment
 (the daily check marked it building before the task ran; nothing is rescheduled then), and runs on
-a context detached from the task's, which is dead after a timeout or a shutdown.
+a context detached from the task's, which is past its deadline when the attempt ran out of time.
+An attempt cancelled by a shutdown is not a final failure (the task service re-queues it without
+using a retry), so it releases nothing.
 
 **Unit tests** (`internal/service/segment_build_processor_reliability_test.go`, existing ones in
 `segment_build_processor_test.go`):
@@ -116,8 +118,9 @@ nothing and returns an error, so the task retries 60 s later. If the bump then l
 proceeds; if not, the segment is still `active` and due, and the next check creates a fresh task
 and bumps to the same version. The earlier task's next retry then passes the guard too, so both
 tasks build at that version: a duplicate scan of the same stored query, which converges. A tree
-edit or a manual rebuild made just before the check bumps by one as well, so the check's task
-runs beside the edit's own task in the same way.
+edit or a manual rebuild that lands between the check's read of the due segments and its
+`StartRecompute` bumps by one as well, so the check's task runs beside the edit's own task in the
+same way (an edit made before the read takes the segment out of the due set).
 
 Setting `building` in the compare-and-set keeps the next check from creating a second task while
 this one is pending.

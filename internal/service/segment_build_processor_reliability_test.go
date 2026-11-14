@@ -194,23 +194,43 @@ func TestSegmentBuildProcessor_Process_LastAttemptFailsBeforeTheBuild(t *testing
 
 func TestSegmentBuildProcessor_Process_LastAttemptReleaseOutlivesTheTaskContext(t *testing.T) {
 	h := newBuildProcessorHarness(t)
+	// The last attempt runs out of time: its context is past its deadline, which the task
+	// service records as a failure.
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+	task := buildTask(1, true)
+	segment := createTestSegmentWithSQL("segment1", "S", 1, string(domain.SegmentStatusBuilding))
+
+	h.segmentRepo.EXPECT().GetSegmentByID(gomock.Any(), "workspace1", "segment1").Return(segment, nil).AnyTimes()
+	h.contactRepo.EXPECT().Count(gomock.Any(), "workspace1").Return(1, nil)
+	h.contactRepo.EXPECT().GetBatchForSegmentAfter(gomock.Any(), "workspace1", "", 100).
+		Return(nil, context.DeadlineExceeded)
+	// The reactivation still gets a live context.
+	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+		DoAndReturn(func(c context.Context, _, _ string, _ int64, _ string) (bool, error) {
+			assert.NoError(t, c.Err(), "the release must not run on the dead task context")
+			return true, nil
+		})
+
+	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
+	require.Error(t, err)
+	assert.False(t, completed)
+}
+
+func TestSegmentBuildProcessor_Process_InterruptedLastAttemptIsNotReleased(t *testing.T) {
+	h := newBuildProcessorHarness(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	task := buildTask(1, true)
 	segment := createTestSegmentWithSQL("segment1", "S", 1, string(domain.SegmentStatusBuilding))
 
 	h.segmentRepo.EXPECT().GetSegmentByID(gomock.Any(), "workspace1", "segment1").Return(segment, nil).AnyTimes()
 	h.contactRepo.EXPECT().Count(gomock.Any(), "workspace1").Return(1, nil)
-	// The task's context dies with its slice (timeout or shutdown)...
+	// A shutdown cancels the attempt: the task service re-queues it without using a retry, so
+	// this is not a final failure and the segment stays building for the resumed build.
 	h.contactRepo.EXPECT().GetBatchForSegmentAfter(gomock.Any(), "workspace1", "", 100).
 		DoAndReturn(func(context.Context, string, string, int) ([]string, error) {
 			cancel()
 			return nil, context.Canceled
-		})
-	// ...and the reactivation still gets a live one.
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
-		DoAndReturn(func(c context.Context, _, _ string, _ int64, _ string) (bool, error) {
-			assert.NoError(t, c.Err(), "the release must not run on the dead task context")
-			return true, nil
 		})
 
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))

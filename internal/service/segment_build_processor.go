@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -82,11 +83,18 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 	// A build that fails with no retry left must not leave the segment building: the contact
 	// queue and the daily check skip building segments, and the daily check may have marked it
 	// building before this task ever ran.
+	//
+	// An attempt cut short by cancellation (a shutdown) is not one: the task service re-queues it
+	// without using a retry, and the resumed build needs the segment still building.
 	var segment *domain.Segment
 	defer func() {
-		if err != nil && !task.HasRetriesLeft() {
-			p.releaseAfterFinalFailure(ctx, task, state, segment)
+		if err == nil || task.HasRetriesLeft() {
+			return
 		}
+		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+			return
+		}
+		p.releaseAfterFinalFailure(ctx, task, state, segment)
 	}()
 
 	// Fetch the segment
@@ -349,7 +357,7 @@ const releaseSegmentTimeout = 10 * time.Second
 // active (with the members written so far) and, for a segment with relative dates, its next
 // rebuild moves to the next day rather than to every scheduler tick. The write is conditional on
 // the task's version, so it never touches a segment that moved on. It runs on a context detached
-// from the task's, which is dead when the last attempt ended by timeout or shutdown. segment is
+// from the task's, which is past its deadline when the last attempt ran out of time. segment is
 // nil when the last attempt could not read it; nothing is rescheduled then.
 func (p *SegmentBuildProcessor) releaseAfterFinalFailure(ctx context.Context, task *domain.Task, state *domain.BuildSegmentState, segment *domain.Segment) {
 	releaseCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), releaseSegmentTimeout)
