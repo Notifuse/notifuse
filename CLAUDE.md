@@ -54,7 +54,7 @@ GET  /api/contact.list
 ## Design decisions (don't relitigate)
 
 - Standard library HTTP mux — deliberately no web framework.
-- JWT for stateless auth; bcrypt for password hashing.
+- JWT for stateless auth. No user passwords: people sign in with a magic code or OIDC SSO, and a root email can also sign in programmatically with an HMAC signature (`user.rootSignin`).
 - Console UI: Ant Design for complex components, Tailwind for utility styling; TanStack Query for all server state; TanStack Router for routing.
 - Emails: MJML (Notifuse/safe-mjml) rendering + Liquid templating (Notifuse/liquidgo).
 

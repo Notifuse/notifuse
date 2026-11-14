@@ -48,9 +48,11 @@ const (
 	// resolving forever after.
 	FeatureSESTenant Feature = "ses_tenant"
 
-	// FeatureSSO gates the console's *write* access while OIDC is enabled. It never gates
-	// signing in: SSO login and magic-code login both keep working in every state, and an
-	// unlicensed instance can always turn OIDC back off to lift the restriction.
+	// FeatureSSO gates single sign-on itself. Without it, OIDCService.IsEnabled answers false
+	// even when OIDC is configured: the sign-in page stops offering the SSO button and the
+	// OIDC routes refuse. Nothing else is gated — no write access, no route, no session.
+	// Magic-code login works in every state, every SSO account carries a verified email
+	// address it can use, and a session already minted is unaffected.
 	FeatureSSO Feature = "sso"
 
 	// FeatureAuditLogs is minted into Enterprise keys from day one although the capability
