@@ -130,6 +130,14 @@ func TestCompileTemplate_CustomText(t *testing.T) {
 		assert.Empty(t, resp.TextSource)
 	})
 
+	t.Run("with Liquid kept, a custom text that does not parse falls back with its error", func(t *testing.T) {
+		resp := compilePlainText(t, CompileTemplateRequest{MjmlSource: plainTextSource(), TemplateData: data, Text: customText("{% if vip %}VIP"), PreserveLiquid: true, IncludeText: true})
+		require.True(t, resp.Success)
+		assert.Equal(t, TextSourceAuto, resp.TextSource)
+		assert.Contains(t, resp.TextError, "if")
+		assert.Empty(t, resp.CustomText())
+	})
+
 	t.Run("PreserveLiquid keeps a custom text raw", func(t *testing.T) {
 		resp := compilePlainText(t, CompileTemplateRequest{MjmlSource: plainTextSource(), TemplateData: data, Text: customText("Hi {{ name }}"), PreserveLiquid: true, IncludeText: true})
 		assert.Equal(t, "Hi {{ name }}", resp.CustomText())
@@ -439,4 +447,19 @@ func TestCompileTemplate_CodeModeIgnoresConditionNamesInData(t *testing.T) {
 	require.NotNil(t, resp.HTML)
 	assert.NotContains(t, *resp.HTML, conditionMarker, "a regular contact does not see the VIP block")
 	assert.Contains(t, *resp.HTML, "always")
+}
+
+// liquidAmongBlocks skips nil blocks: a nil tree, and a typed-nil child of a column next to
+// the block it flags.
+func TestLiquidAmongBlocks_NilBlocks(t *testing.T) {
+	assert.False(t, liquidAmongBlocks(nil))
+	var typedNil *MJRawBlock
+	assert.False(t, liquidAmongBlocks(typedNil))
+
+	raw := &MJRawBlock{BaseBlock: &BaseBlock{ID: "open", Type: MJMLComponentMjRaw, Content: stringPtr("{% for i in items %}")}}
+	column := &MJColumnBlock{BaseBlock: &BaseBlock{ID: "col", Type: MJMLComponentMjColumn}}
+	column.SetChildren([]EmailBlock{typedNil, raw})
+	assert.True(t, liquidAmongBlocks(column))
+	column.SetChildren([]EmailBlock{typedNil})
+	assert.False(t, liquidAmongBlocks(column))
 }

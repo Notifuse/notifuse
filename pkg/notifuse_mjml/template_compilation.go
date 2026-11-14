@@ -109,10 +109,12 @@ func preprocessMjmlForXML(mjmlString string) string {
 	// rich-text link saved as href="…?q=&quot;exact&quot;" reached the HTML as
 	// href="…?q="exact"", which ends the URL at "q=". v0.14.1 leaves entities
 	// inside quoted attribute values to its XML parser and escapes most of the
-	// attributes it writes (not the carousel's hand-built href and src). The doubling below (&amp;quot;, the way
-	// escapeAttributeValue does for visual-editor attributes) still comes back
-	// as &quot; through decodeHTMLEntitiesInURLAttributes after the render, so
-	// the output is the same with both releases.
+	// attributes it writes, not those it builds by hand (the section's bgcolor,
+	// mj-font's href, the carousel's href, src and alt) nor inline style values.
+	// The doubling below (&amp;quot;, the way escapeAttributeValue does for
+	// visual-editor attributes) still comes back as &quot; through
+	// decodeHTMLEntitiesInURLAttributes after the render, so the output is the
+	// same with both releases.
 	//
 	// The numeric forms &#34; and &#x22; (Go's html.EscapeString writes the
 	// former) get the same treatment, and so does a " in a single-quoted value

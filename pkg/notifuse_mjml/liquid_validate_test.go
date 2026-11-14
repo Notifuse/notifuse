@@ -17,6 +17,9 @@ func TestValidateLiquidSyntax(t *testing.T) {
 		{"include inside raw is text", "{% raw %}{% include 'x' %}{% endraw %}"},
 		{"include inside a comment renders nothing", "{% comment %}{% include 'x' %}{% endcomment %}"},
 		{"include as a word of the text", "Please include your order number."},
+		// The same tags as the refused ones below, without the partial.
+		{"a multi-line liquid tag", "{% liquid\nassign greeting = 'Hi'\necho greeting\n%}"},
+		{"a multi-line liquid tag with a block", "{%- liquid\n  if vip\n    echo 'badge'\n  endif\n-%}"},
 		// Only parses once cleaned the way the renderer cleans it: the zero-width space
 		// inside "if" makes an unknown tag otherwise.
 		{"markup cleaned like at render", "{% i​f x %}a{% endif %}"},
@@ -35,6 +38,8 @@ func TestValidateLiquidSyntax(t *testing.T) {
 		{"render", "{%- render 'footer' -%}"},
 		{"include in a liquid tag", "{% liquid include 'footer' %}"},
 		{"include in a nested liquid tag", "{% liquid liquid include 'footer' %}"},
+		{"include on a later line of a liquid tag", "{% liquid\nassign greeting = 'Hi'\necho greeting\ninclude 'footer'\n%}"},
+		{"render on a later line of a liquid tag", "{%- liquid\n  if vip\n    render 'badge'\n  endif\n-%}"},
 		{"include with no space before its name", "{% include'footer' %}"},
 		{"render with no space before its name", "{% render'footer' %}"},
 	}
