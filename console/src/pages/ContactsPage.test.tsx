@@ -678,6 +678,22 @@ describe('ContactsPage', () => {
       )
     })
 
+    it('removes the row while the delete runs, when more rows are loading', async () => {
+      const { rerender } = renderPage()
+      await screen.findByRole('button', { name: 'delete alice@example.com' })
+      // Load more: the next page size is still loading, so the table shows the rows it had
+      vi.mocked(contactsApi.list).mockImplementationOnce(() => new Promise(() => {}))
+      rerender({ limit: 100 })
+      await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(2))
+      vi.mocked(contactsApi.delete).mockImplementationOnce(() => new Promise(() => {}))
+      fireEvent.click(screen.getByRole('button', { name: 'delete alice@example.com' }))
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'delete alice@example.com' })).not.toBeInTheDocument()
+      )
+      expect(screen.getByRole('button', { name: 'delete bob@example.com' })).toBeInTheDocument()
+    })
+
     it('closes the sheet of a contact deleted from it', async () => {
       renderPage({ contact: 'alice@example.com' })
       fireEvent.click(await screen.findByRole('button', { name: 'delete from sheet' }))

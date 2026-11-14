@@ -367,9 +367,14 @@ export function ContactsPage() {
   // ---- Row edit and delete
   const [contactToEdit, setContactToEdit] = React.useState<Contact | null>(null)
   const [contactToDelete, setContactToDelete] = React.useState<string | null>(null)
+  // Deleted contacts and when the delete started. During a load more, the table shows the rows the
+  // previous page size kept (placeholder data), which the cache update below cannot reach, so the
+  // rows are filtered here too, until a fetch that started after the delete answers.
+  const [deletedAt, setDeletedAt] = React.useState<ReadonlyMap<string, number>>(new Map())
   const deleteMutation = useMutation({
     mutationFn: (email: string) => contactsApi.delete({ workspace_id: workspaceId, email }),
     onMutate: async (email) => {
+      setDeletedAt((prev) => new Map(prev).set(email, Date.now()))
       // Every page size of every view: while more rows load, the table still shows the key before
       const tables = { queryKey: ['contacts', workspaceId] }
       await queryClient.cancelQueries(tables)
@@ -390,7 +395,12 @@ export function ContactsPage() {
         go((prev) => ({ ...prev, contact: undefined }), true)
       }
     },
-    onError: (error: Error, _email, context) => {
+    onError: (error: Error, email, context) => {
+      setDeletedAt((prev) => {
+        const next = new Map(prev)
+        next.delete(email)
+        return next
+      })
       for (const [key, data] of context?.previous ?? []) queryClient.setQueryData(key, data)
       message.error(error?.message || t`Failed to delete contact`)
     },
@@ -447,7 +457,10 @@ export function ContactsPage() {
     return <div className="px-5 pt-6 text-sm text-ink-3">{t`You don't have access to contacts`}</div>
   }
 
-  const rows = table.data?.contacts ?? []
+  const rows = (table.data?.contacts ?? []).filter((c) => {
+    const at = deletedAt.get(c.email)
+    return at === undefined || (!table.isPlaceholderData && table.dataUpdatedAt > at)
+  })
   const hasMore = !!table.data?.next_cursor
   const rowFilters = hasRowFilters(tableSearch)
   const filtered = rowFilters || (view.kind === 'list' && !!tableSearch.contact_list_status)

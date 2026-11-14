@@ -112,7 +112,9 @@ describe('resolveRange', () => {
       expect(resolved.startUtc).toBe('2026-03-28T23:00:00.000Z')
       expect(resolved.endUtc).toBe('2026-03-29T21:59:59.999Z')
     } finally {
-      process.env.TZ = browser
+      // An unset TZ must stay unset: assigning undefined stores the string "undefined"
+      if (browser === undefined) delete process.env.TZ
+      else process.env.TZ = browser
     }
   })
 

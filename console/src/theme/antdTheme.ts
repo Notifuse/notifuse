@@ -1,5 +1,5 @@
 import type { ThemeConfig } from 'antd'
-import { alpha, colors as c, typography as t, radii, shadows as s, motion, layout } from './tokens'
+import { alpha, over, colors as c, typography as t, radii, shadows as s, motion, layout } from './tokens'
 
 const seconds = (ms: number) => `${ms / 1000}s`
 
@@ -13,8 +13,9 @@ const seconds = (ms: number) => `${ms / 1000}s`
 export const antdTheme: ThemeConfig = {
   token: {
     colorPrimary: c.primary[500],
-    // One step darker than the button: a filled primary button's hover has to read as a change.
-    colorPrimaryHover: c.primary[700],
+    // One step darker than the button: a filled primary button's hover has to read as a change. The
+    // press is one step darker again.
+    colorPrimaryHover: c.primary[600],
     colorPrimaryActive: c.primary[700],
     colorPrimaryBorder: c.primary[300],
     colorLink: c.primary[600],
@@ -104,8 +105,9 @@ export const antdTheme: ThemeConfig = {
       headerSplitColor: 'transparent',
       borderColor: c.lineSoft,
       // A faint primary tint: apart from the header (subtle), and lighter than a neutral tag (fill),
-      // which must stay visible on a hovered row.
-      rowHoverBg: alpha(c.primary[500], 0.03),
+      // which must stay visible on a hovered row. Opaque, because antd paints it on the cells of
+      // fixed columns too, which must hide the columns scrolling under them.
+      rowHoverBg: over(c.primary[500], 0.03),
       rowSelectedBg: c.primary[50],
       rowSelectedHoverBg: c.primary[100],
       cellFontSize: t.size.sm,

@@ -16,9 +16,11 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, the web analytics charts, ranges and annotations, the licence and invitation expiry dates, the day an integration was connected, and the dates in the prompts to restore a blog draft or resume a contact import. Counts and amounts use its separators too ("12 345" in French): contact imports and exports, sending progress, analytics amounts, rate limits and the values in a contact's activity and fields. So do the web analytics counts, percentages and durations ("1,5 k", "12,5 %", "5 min 12 s"). Weeks start on Monday in French, Spanish, German, Catalan and Italian.
 
-- **Fix**: The French console has its apostrophes back: many of its translations had lost them ("d un contact", "l email").
+- **Fix**: The French console has its apostrophes back: many of its translations had lost them ("Accepter l invitation", "Clé d accès").
 
-- **Fix**: Web analytics durations and counts no longer read "4m 60s", "1h 60m" or "1000.0K" at a rounding boundary.
+- **Fix**: Web analytics durations and counts no longer read "4m 60s", "1h 60m" or "1000.0K" at a rounding boundary, and a small negative value reads "0", not "-0".
+- **Fix**: A custom web analytics range starts at midnight in the workspace's timezone on a daylight saving day too, instead of an hour off when the browser is in another timezone.
+- **Fix**: The blog theme preview in the console uses pictures bundled with the console, instead of photos of people loaded from Unsplash.
 - **Fix**: Negative web analytics amounts, such as refunded goal values, drop their cents from a thousand like positive ones: "-1,235", not "-1,234.57".
 - **Fix**: In a contact's activity and fields and in the message history, the full date shown on hover is the time in the timezone it names (the contact's or the workspace's), in the console's language, not in your browser's.
 
@@ -55,6 +57,7 @@ All notable changes to this project will be documented in this file.
 - **Fix**: `broadcasts.get` and `broadcasts.list` give the number of recipients of an A/B test and of its winner (`test_phase_recipient_count`, `winner_phase_recipient_count`) instead of 0, and so do the `test_recipients`, `winner_recipients` and `avg_test_recipients` broadcast analytics measures, while `count_with_ab_test` counts them, for A/B broadcasts sent from 44.0 on.
 
 - **Fix**: In the console, an API key name keeps its hyphens ("website-signup"), as the API accepts them, and the integration drawers are titled with the provider's name, in the console's language: "Add Mailgun integration", not "Add New MAILGUN Integration".
+- **Fix**: An API key named with a trailing space, such as "website ", is created as `website@…`, not `website_@…`: the name loses its leading and trailing underscores and hyphens when the key is created.
 
 - **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits (each time a journey reached the step, a loop counting each time round), results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`. In the console, automations get a list with status tabs, a search and their journeys, completion and open rates, and the editor becomes a full-screen canvas: read-only while live, warning before you leave unsaved changes, with a "With stats" view that shows each step's results on the canvas and in its panel, with the email's preview.
 
@@ -132,7 +135,7 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: The blog's post list in the console now shows every post, not only the first 100.
 
-- **Fix**: On the blog page in the console, a member without Blog write no longer gets post and category buttons that fail: they are disabled. Writing or editing a post is disabled, with its reason, for a member without Templates read or write, since a post's content is a template.
+- **Fix**: On the blog page in the console, a member without Blog write no longer gets buttons that fail: New post, Create Your First Post and Theme are disabled, and the category buttons and the post menus are not shown. Writing or editing a post is disabled, with its reason, for a member without Templates read or write, since a post's content is a template.
 
 - **Fix**: The email builder's AI assistant is in the console's language: its title, its placeholder and its messages were in English whatever the language.
 

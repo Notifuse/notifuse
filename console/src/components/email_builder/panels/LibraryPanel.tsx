@@ -179,13 +179,15 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     return null
   }
 
-  // After a delete, the focus goes to the next card's menu button, else to the list
+  // After a delete, the focus goes to the next card's menu button, else to the previous one, else to
+  // the list. Whether the block is gone is read from the library itself, not from the cards shown: a
+  // search or a filter that hides the card is not a delete.
   const focusAfterDelete = useRef<{ deleted: string; next: string | null } | null>(null)
   useEffect(() => {
     const pending = focusAfterDelete.current
     if (!pending) return
-    if (items.some((saved) => saved.id === pending.deleted)) {
-      // Still listed once the change is over: not deleted (cancelled or failed)
+    if (savedBlocks.some((saved) => saved.id === pending.deleted)) {
+      // Still in the library once the change is over: not deleted (cancelled or failed)
       if (!manage?.busy) focusAfterDelete.current = null
       return
     }
@@ -194,7 +196,13 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
       ? rootRef.current?.querySelector<HTMLElement>(`[data-library-card=${JSON.stringify(pending.next)}] [data-library-more]`)
       : null
     ;(next ?? rootRef.current?.querySelector<HTMLElement>('[data-testid="library-saved-blocks"]'))?.focus()
-  }, [items, manage?.busy])
+  }, [savedBlocks, manage?.busy])
+
+  // A delete cancelled in its confirmation changes neither the library nor busy: the pending focus is
+  // dropped when the cards shown change for another reason.
+  useEffect(() => {
+    focusAfterDelete.current = null
+  }, [search, filter])
 
   const actionsFor = (saved: SavedBlock): CardActions | undefined =>
     manage && {

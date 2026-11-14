@@ -99,6 +99,11 @@ interface AddBlockPopoverProps {
   hiddenBlocks?: string[]
 }
 
+const NO_ROWS: { available: SavedBlockRow[]; unavailable: SavedBlockRow[] } = {
+  available: [],
+  unavailable: []
+}
+
 export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
   mode,
   parentId,
@@ -157,7 +162,8 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
   }
 
   // Worked out only while the popover is open: the Liquid check walks the email for each saved block.
-  // The last rows are kept while it closes, so the tab does not empty during the animation.
+  // The tab does not empty while it closes: antd keeps a closed popover's content as it last rendered
+  // it (the trigger's popup content is cached while closed).
   const openRows = useMemo((): { available: SavedBlockRow[]; unavailable: SavedBlockRow[] } | null => {
     const rows = { available: [] as SavedBlockRow[], unavailable: [] as SavedBlockRow[] }
     if (!visible) return null
@@ -178,11 +184,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
     // reasonText and t follow the language, which i18n.locale stands for
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, contentMode, parentType, parentId, emailTree, bodySavedBlocks, i18n.locale])
-  const [savedRows, setSavedRows] = useState<{ available: SavedBlockRow[]; unavailable: SavedBlockRow[] }>({
-    available: [],
-    unavailable: []
-  })
-  if (openRows && openRows !== savedRows) setSavedRows(openRows)
+  const savedRows = openRows ?? NO_ROWS
 
   const headKey = useMemo(
     () => (visible && contentMode && emailTree ? headKeyOf(emailTree) : ''),

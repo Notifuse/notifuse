@@ -1602,8 +1602,10 @@ deleted."
   since a cached copy's flow would be saved over a newer one. The drawer no longer slides twice either way.
 - 8.1, "+" under 1200 px: the step panel is a column at every width and the canvas is clipped, rather than a
   panel over the canvas whose width the canvas reserves.
-- 8.1, context identity: the macro's `t` is a new function on every render, so the two callbacks that used it
-  take their strings from the render instead; the mutations give their stable `mutateAsync`.
+- 8.1, context identity: the two callbacks that used `t` take their strings from the render instead; the
+  mutations give their stable `mutateAsync`. (Compiled by the build's macro transform, `t` in a dependency
+  array becomes `@lingui/react`'s `_`, rebuilt only on a locale change: it was the test mock's `t` that
+  changed on each render, fixed in 8.7.)
 - 8.2, rename: the block is read with `templateBlocks.get` just before the update, rather than the whole
   workspace; a block gone between the two reads (404 on either call) refreshes the library as before.
 - 8.2, column widths: the rebalance takes `{ bodyWidth }` (the `mj-body` width, 600 px by default) and, on
@@ -1677,9 +1679,10 @@ deleted."
   (the lint refuses a state set in an effect). The tab bar keeps its 16px inset as a margin.
 - 8.6, J and K: a popconfirm and a dropdown always take them; a popover takes them when it, or its trigger
   (`ant-popover-open`), holds the focus.
-- 8.6, theme: the row hover is `alpha(primary[500], 0.03)`; the test computes the contrast of the neutral tag
-  on it and on the header, and requires at least the header's. `colorPrimaryHover` is `primary[700]`, the
-  same as `colorPrimaryActive`: the palette has no darker step. The sidebar's menu border is removed by a rule
+- 8.6, theme: the row hover is `primary[500]` at 3 % over the surface, made opaque (`over()`, `#fbfaff`) so
+  that a fixed column hides what scrolls under it; the test computes the contrast of the neutral tag on it
+  (1.059) and on the header (1.044), and requires more than the header's. `colorPrimaryHover` is
+  `primary[600]`, one step darker than the button and one lighter than `colorPrimaryActive` (`primary[700]`). The sidebar's menu border is removed by a rule
   scoped to `.app-sidebar-nav` in `antd-overrides.css`, not a local `ConfigProvider` (the theme rules forbid a
   local theme). `data-plain-link` uses `color: revert-layer`, which hands the colour back to the link's
   Tailwind classes; `inherit` would beat them too. The open-row hover reads `--ant-table-row-hover-bg`.

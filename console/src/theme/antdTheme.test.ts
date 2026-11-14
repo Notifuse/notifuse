@@ -45,14 +45,20 @@ describe('antd theme', () => {
     // Both present, so the comparisons below compare colours
     expect(hover).toBeTruthy()
     expect(tag).toBeTruthy()
-    expect(onSurface(hover)).not.toBe(onSurface(table.headerBg as string))
-    // A tag stands out on a hovered row at least as much as on the header
-    expect(contrast(tag, hover)).toBeGreaterThanOrEqual(contrast(tag, table.headerBg as string))
+    expect(onSurface(hover)).not.toEqual(onSurface(table.headerBg as string))
+    // A tag stands out more on a hovered row than on the header
+    expect(contrast(tag, hover)).toBeGreaterThan(contrast(tag, table.headerBg as string))
+  })
+
+  it('hovers table rows in an opaque colour, so a fixed column hides what scrolls under it', () => {
+    expect(components.Table!.rowHoverBg).toMatch(/^#[0-9a-f]{6}$/i)
   })
 
   it('makes the hover of a primary button one step darker than the button', () => {
-    expect(token.colorPrimaryHover).toBe(colors.primary[700])
+    expect(token.colorPrimaryHover).toBe(colors.primary[600])
     expect(token.colorPrimaryHover).not.toBe(token.colorPrimary)
+    // and apart from a pressed one
+    expect(token.colorPrimaryHover).not.toBe(token.colorPrimaryActive)
   })
 
   it('leaves the right border of the menus to antd: the sidebar takes its own off in the overrides', () => {
@@ -62,7 +68,7 @@ describe('antd theme', () => {
   it('takes its colours from the Nuit claire tokens', () => {
     expect(token).toMatchObject({
       colorPrimary: '#6a5af9',
-      colorPrimaryHover: '#4b3fd6',
+      colorPrimaryHover: '#5b4beb',
       colorPrimaryActive: '#4b3fd6',
       colorPrimaryBorder: '#c9c4ff',
       colorLink: '#5b4beb',
@@ -116,7 +122,7 @@ describe('antd theme', () => {
       headerBg: '#f8f9fb',
       headerColor: '#666c81',
       borderColor: '#eceef3',
-      rowHoverBg: 'rgba(106, 90, 249, 0.03)',
+      rowHoverBg: '#fbfaff',
       rowSelectedBg: '#f5f4ff',
       rowSelectedHoverBg: '#efedff',
       cellFontSize: 12.5,

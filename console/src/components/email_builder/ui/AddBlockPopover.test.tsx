@@ -174,7 +174,8 @@ describe('AddBlockPopover saved blocks', () => {
     await openSaved()
     fireEvent.click(row('cta'))
     expect(onAddSavedBlock).toHaveBeenCalled()
-    // Closed, still in the document for its animation: the rows are still there
+    // Closed, still in the document for its animation: the rows are still there (antd keeps the
+    // content of a closed popover; this pins it across antd upgrades)
     expect(rowIds('[data-testid="saved-available"]')).toEqual(['intro', 'cta'])
   })
 

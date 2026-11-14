@@ -215,7 +215,7 @@ describe('web analytics in French', () => {
     expect(values).toEqual(['desktop', '1234', '25.00', '5 min 13 s', '312.50', '45.68', '50.00'])
   })
 
-  it('GoalCard writes its four tiles in French', () => {
+  it('GoalCard writes its tiles in French', () => {
     context.showComparison = true
     renderFr(
       <GoalCard

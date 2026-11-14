@@ -11,7 +11,9 @@ describe('formatValue dates', () => {
     process.env.TZ = 'America/Los_Angeles'
   })
   afterEach(() => {
-    process.env.TZ = browserZone
+    // An unset TZ must stay unset: assigning undefined stores the string "undefined"
+    if (browserZone === undefined) delete process.env.TZ
+    else process.env.TZ = browserZone
   })
 
   it('reads the date in UTC, and says so, for a timezone the browser does not know', async () => {

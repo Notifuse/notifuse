@@ -179,25 +179,51 @@ describe('LibraryPanel', () => {
       expect(cardNames()).toEqual([])
     })
 
-    it('moves the focus to the next card after a delete, else to the list', async () => {
+    it('moves the focus to the next card after a delete, else to the previous one, else to the list', async () => {
       const onDelete = vi.fn()
       const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn(), onOpenSaveDialog: vi.fn(), manage: manage({ onDelete }) }
       const { rerender } = render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
-      // Newest first: footer, cta, header
-      await menuOf('cta', 'Élan CTA')
-      await userEvent.click(item('Delete'))
-      expect(onDelete).toHaveBeenCalledWith(cta)
-      rerender(<LibraryPanel {...props} savedBlocks={[header, footer]} />)
-      const headerCard = document.querySelector('[data-library-card="header"]') as HTMLElement
-      expect(within(headerCard).getByRole('button', { name: 'More actions for Header' })).toHaveFocus()
+      // Newest first
+      expect(cardNames()).toEqual(['footer', 'header', 'cta'])
+      const moreOf = (id: string, name: string) =>
+        within(document.querySelector(`[data-library-card="${id}"]`) as HTMLElement).getByRole('button', {
+          name: `More actions for ${name}`
+        })
 
+      // In the middle: the next card
       await menuOf('header', 'Header')
       await userEvent.click(item('Delete'))
-      await menuOf('footer', 'Pied de page')
-      rerender(<LibraryPanel {...props} savedBlocks={[footer]} />)
+      expect(onDelete).toHaveBeenCalledWith(header)
+      rerender(<LibraryPanel {...props} savedBlocks={[cta, footer]} />)
+      expect(moreOf('cta', 'Élan CTA')).toHaveFocus()
+
+      // The last card: the one before it
+      await menuOf('cta', 'Élan CTA')
       await userEvent.click(item('Delete'))
-      rerender(<LibraryPanel {...props} savedBlocks={[]} />)
-      expect(document.activeElement).toBe(document.body)
+      rerender(<LibraryPanel {...props} savedBlocks={[footer]} />)
+      expect(moreOf('footer', 'Pied de page')).toHaveFocus()
+
+      // The only card shown, others hidden by the search: the list
+      rerender(<LibraryPanel {...props} savedBlocks={[header, footer]} />)
+      await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'pied')
+      expect(cardNames()).toEqual(['footer'])
+      await menuOf('footer', 'Pied de page')
+      await userEvent.click(item('Delete'))
+      rerender(<LibraryPanel {...props} savedBlocks={[header]} />)
+      expect(screen.getByTestId('library-saved-blocks')).toHaveFocus()
+    })
+
+    it('leaves the focus where it is after a delete cancelled in its confirmation', async () => {
+      const onDelete = vi.fn()
+      const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn(), onOpenSaveDialog: vi.fn(), manage: manage({ onDelete }) }
+      render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
+      await menuOf('cta', 'Élan CTA')
+      await userEvent.click(item('Delete'))
+      // The confirmation is cancelled: the library does not change
+      const searchBox = screen.getByPlaceholderText('Search saved blocks')
+      await userEvent.type(searchBox, 'head')
+      expect(cardNames()).toEqual(['header'])
+      expect(searchBox).toHaveFocus()
     })
 
     it('shows no menu without the right to change the library', () => {

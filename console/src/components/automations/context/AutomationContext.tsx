@@ -70,8 +70,8 @@ export function AutomationProvider({
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const { message } = App.useApp()
-  // The macro's t is a new function on each render: the callbacks below take their strings, so
-  // that they, and the context value, keep their identity.
+  // The callbacks below take their strings from the render rather than calling t, so that they, and
+  // the context value, depend on nothing but their own inputs.
   const listInUseMessage = t`Cannot remove list while email nodes exist. Delete email nodes first.`
   const nameRequiredMessage = t`Please enter an automation name`
 

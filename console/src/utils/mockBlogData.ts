@@ -215,7 +215,7 @@ console.log(message); // Output: Hello, World!</code></pre>
 <p>Images are crucial for visual storytelling. Here's an example:</p>
 
 <img src="${PREVIEW_IMAGE}" alt="Hills under a sky" data-caption="Hills under a sky" data-show-caption="true" />
-<p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 8px;">Caption: A developer working on a laptop</p>
+<p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 8px;">Caption: Hills under a sky</p>
 
 <p>Notice how images should have proper spacing above and below, and captions should be visually distinct from body text.</p>
 
