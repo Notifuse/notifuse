@@ -748,13 +748,16 @@ the two differ.
 - `TestAutomation/LongChainWithoutDelay` passed ten runs in a row (`-count=10`): not reproduced, no wait changed.
 - No caller passes a transaction to `DeleteTx`; its exit statement runs on it anyway when one is given.
 - 3.11's OpenAPI message also changes in the docs repository's `openapi.json`.
-- The 3.2 unit tests check that each write after a step gets a context that is not done and has a deadline.
+- The 3.2 unit tests check that each write after a step gets a context that is not done, with no deadline
+  while the run is live.
 
 ### Corrections after the code review (lot 3, round 1)
 
 The code review (`/mnt/project-files/reviews/grouped-pr-lot3-code-review.md`, Fable, high) confirmed three bugs,
-three tests that could not fail and four overstated claims. Each fix has a test, and a mutation of each fix
-fails it.
+three tests that could not fail and four overstated claims. Each fix has a test, and reverting a fix fails it.
+The delta review (`grouped-pr-lot3-fix-review.md`) found three mutations short of a revert that pass: the timer
+armed at creation, the `AfterFunc` not unregistered, and the row-written-then-cancelled case; they stay as they
+are (known, not handled).
 
 - The add-to-list and remove-from-list steps fail when the run's context is done, so a step a shutdown cut
   short runs again instead of being saved as done.
@@ -980,6 +983,30 @@ pages when it is due, not up to 5 minutes later.", "Improvement: a blog category
 route already answers (`api`, `track`, `unsubscribe`, …).", "Fix: `blogPosts.list` answers 400 for an
 unreadable search or category ID, and `templates.usage` for an unreadable template ID, instead of 500."
 
+### Corrections after the plan review (lot 5)
+
+The plan review (`/mnt/project-files/reviews/grouped-pr-lot5-6-plan-review.md`, Opus, xhigh) confirmed blocking
+and minor problems in lots 5 and 6. These replace what the points above say where the two differ.
+
+- **5.2** The sitemap cache is keyed on the workspace ID and the normalised host, not `r.Host`. The integration
+  test publishes a blog theme. The body is built in memory once (no extra `[]byte` copy). The sitemap entry is
+  bounded by the next scheduled publication, as 5.5 bounds the pages. `writeBlogSitemap` skips a category whose
+  slug is reserved (5.3), so its posts and page are not listed.
+- **5.3** A slug is refused only when it changes (`UpdateBlogCategory` already tells a changed slug), so an
+  existing `health` category keeps being editable. The 44.0 line on `v` says a new category cannot take it.
+- **5.4** The ETag comparison uses `etagMatches` (weak comparison, lists, `*`). The feed's Last-Modified takes
+  `GREATEST(p.published_at, p.updated_at, c.updated_at)`.
+- **5.5** A `BlogService` method (with its mock and test) reads the next publication; the instant is taken
+  before the render.
+- **5.6** `category_id` is canonicalised in `parseListBlogPostsParams` (`uuid.Parse(...).String()`, refusing
+  what does not parse), not in `Validate`, which the public render paths share.
+- **5.7** One sub-test with CategoryID, `status=scheduled`, PublishedBefore and Search pins every placeholder
+  and LIMIT/OFFSET.
+- **5.8** No Fix line for the scheduled post (fold into the 44.0 scheduled-post line) nor for `search` and
+  `templates.usage` (fold into their 44.0 Feature line); `category_id` joins the 44.0 "invalid status" line;
+  5.4 gets its own Fix line (a reader that sent both headers got 304 for a changed feed); robots.txt and the
+  sitemap join the 44.0 sitemap Fix line.
+
 ## Test commands for lot 5
 
 ```
@@ -1083,6 +1110,29 @@ mail clients expect.", "Fix: updating a template without its translations no lon
 translation.", "Fix: `templates.usage` counts only the templates a broadcast will send.", and
 "Improvement: `broadcasts.get` with `with_templates` leaves the templates out for a caller without Templates
 read, without a lookup per variation."
+
+### Corrections after the plan review (lot 6)
+
+- **6.1** The social element: detected on structure alone (an `inline-table` holding an icon link and a
+  sibling text link) or by the destinations decoded from the `/r/` tokens; if neither fits in the lot, the
+  point goes to "known, not handled".
+- **6.2** The 100 KB limit: the scenario is far over it whatever the names (measured 239 KB to 1.5 MB), so the
+  lot keeps the doc note of the limit and the shortening is "known, not handled". The seed notice is detected
+  on the request's visual tree (a `mj-liquid` or `mj-raw` placed among rows or columns), not on the parsed HTML.
+  Tests: a 400 for a condition on a block holding `mj-liquid`; a code-mode compile whose data carries
+  `__dc_<id>`; a blank custom text with and without `IncludeText`.
+- **6.3** `templates.usage` counts `VariationsToSend()`: the winning variation once set, every stored variation
+  otherwise (the random pick among stale variations with A/B off is "known, not handled"). `broadcasts.get`:
+  `GetBroadcast` gains an options argument for the templates; no CHANGELOG line beyond the 44.0 line on members
+  without Templates read.
+- **6.4** A function builds each system email's message; the tests write it with `msg.WriteTo` and read the
+  parts' order.
+- **6.5** The comments name what v0.14.1 writes by hand (section `bgcolor`, mj-font `href`, the carousel's
+  `href`, `src` and `alt`, inline style values); the evaluation error gets a case with data and one without.
+- **6.6** The sending-started annotation is asserted for a first run in `testing` (in
+  `orchestrator_sending_started_test.go`). The SMTP bridge test asserts the header's Reply-To wins.
+- **6.8** `templates.usage` and the stored translation's text fold into their 44.0 lines; no `broadcasts.get`
+  line.
 
 ## Test commands for lot 6
 

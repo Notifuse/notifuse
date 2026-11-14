@@ -157,12 +157,16 @@ func TestTaskHandler_CancelledByTheClient(t *testing.T) {
 		expect func(svc *mocks.MockTaskService, err error)
 	}{
 		"reset": {
-			serve:  func(h *TaskHandler, w http.ResponseWriter, r *http.Request) { h.ResetTask(w, r) },
-			expect: func(svc *mocks.MockTaskService, err error) { svc.EXPECT().ResetTask(gomock.Any(), "ws-1", idsTaskID).Return(err) },
+			serve: func(h *TaskHandler, w http.ResponseWriter, r *http.Request) { h.ResetTask(w, r) },
+			expect: func(svc *mocks.MockTaskService, err error) {
+				svc.EXPECT().ResetTask(gomock.Any(), "ws-1", idsTaskID).Return(err)
+			},
 		},
 		"trigger": {
-			serve:  func(h *TaskHandler, w http.ResponseWriter, r *http.Request) { h.TriggerTask(w, r) },
-			expect: func(svc *mocks.MockTaskService, err error) { svc.EXPECT().TriggerTask(gomock.Any(), "ws-1", idsTaskID).Return(err) },
+			serve: func(h *TaskHandler, w http.ResponseWriter, r *http.Request) { h.TriggerTask(w, r) },
+			expect: func(svc *mocks.MockTaskService, err error) {
+				svc.EXPECT().TriggerTask(gomock.Any(), "ws-1", idsTaskID).Return(err)
+			},
 		},
 	}
 	for name, c := range calls {
