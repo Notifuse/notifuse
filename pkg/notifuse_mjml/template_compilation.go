@@ -682,6 +682,10 @@ func (r *CompileTemplateRequest) Validate() error {
 	if r.VisualEditorTree.GetChildren() == nil {
 		return fmt.Errorf("invalid compile template request: visual_editor_tree root block must have children")
 	}
+	// An invalid display condition answers its own error, not the Liquid error it would cause.
+	if err := ValidateDisplayConditions(r.VisualEditorTree); err != nil {
+		return fmt.Errorf("invalid compile template request: %w", err)
+	}
 
 	return nil
 }
@@ -751,6 +755,10 @@ func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *str
 			textErr = fmt.Sprintf("the text version renders to more than %d bytes", MaxRenderedCustomTextSize)
 		case strings.TrimSpace(rendered) != "":
 			return &rendered, TextSourceCustom, ""
+		case req.IncludeText:
+			// Blank is what a send wants (a condition chose to say nothing), but the
+			// preview must say why it shows the automatic text.
+			textErr = "the custom text renders blank for this data"
 		}
 	}
 	if !req.IncludeText {
@@ -762,9 +770,40 @@ func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *str
 	if req.PreserveLiquid && textErr == "" {
 		if err := ValidateLiquidSyntax(auto); err != nil {
 			textErr = err.Error()
+		} else if req.MjmlSource == nil && liquidAmongBlocks(req.VisualEditorTree) {
+			textErr = "Liquid placed between the blocks of a section or a column may not land where it applies in the text version: check it before saving"
 		}
 	}
 	return &auto, TextSourceAuto, textErr
+}
+
+// liquidAmongBlocks reports whether a visual tree places Liquid tags in an mj-raw or an
+// mj-liquid block among the blocks of a section, a group or a column. Those blocks become
+// table rows and cells, and a tag written between them lands outside the content it wraps
+// in the starting point of a custom text.
+func liquidAmongBlocks(block EmailBlock) bool {
+	if isNilBlock(block) {
+		return false
+	}
+	switch block.GetType() {
+	case MJMLComponentMjSection, MJMLComponentMjGroup, MJMLComponentMjColumn:
+		for _, child := range block.GetChildren() {
+			if isNilBlock(child) {
+				continue
+			}
+			if t := child.GetType(); t == MJMLComponentMjRaw || t == MJMLComponentMjLiquid {
+				if content := child.GetContent(); content != nil && strings.Contains(*content, "{%") {
+					return true
+				}
+			}
+		}
+	}
+	for _, child := range block.GetChildren() {
+		if liquidAmongBlocks(child) {
+			return true
+		}
+	}
+	return false
 }
 
 // renderCustomText renders a custom text like the subject (see renderSubjectField); kept
@@ -878,7 +917,9 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 
 		// Process Liquid templates if template data is provided and PreserveLiquid is false
 		if !req.PreserveLiquid && len(req.TemplateData) > 0 {
-			processed, err := ProcessLiquidTemplate(mjmlString, req.TemplateData, "mjml-source")
+			// The exported code of a visual template holds its display conditions, whose
+			// variables a "__dc" key of the data would otherwise decide.
+			processed, err := ProcessLiquidTemplate(mjmlString, withoutConditionNames(req.TemplateData), "mjml-source")
 			if err != nil {
 				return &CompileTemplateResponse{
 					Success:        false,

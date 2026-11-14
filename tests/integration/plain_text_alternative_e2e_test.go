@@ -25,6 +25,7 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
 
@@ -174,7 +175,7 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
-	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID, smtpToMailpit("Plain Text E2E"))
+	integration, err := factory.SetupWorkspaceWithSMTPProvider(workspace.ID, smtpToMailpit("Plain Text E2E"))
 	require.NoError(t, err)
 
 	workerCtx, cancelWorker := context.WithCancel(context.Background())
@@ -265,6 +266,53 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		assertTextMirrorsHTML(t, refusedParts)
 		assert.NotContains(t, refusedParts.text, "/r/", "a refusing recipient's text links go straight to their destination")
 		assert.Contains(t, refusedParts.text, "https://shop.example.com/sale?")
+	})
+
+	t.Run("a list's test email carries the list's links in its text", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID, testutil.WithListName("Plain Text Test List"))
+		require.NoError(t, err)
+		withUnsubscribe, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateName("Plain Text List Test"),
+			testutil.WithTemplateSubject("Plain text list test "+tag),
+			testutil.WithCodeModeTemplate(`<mjml><mj-body><mj-section><mj-column>
+	<mj-text><p>Our news.</p><p><a href="{{ unsubscribe_url }}">Unsubscribe</a></p></mj-text>
+</mj-column></mj-section></mj-body></mjml>`))
+		require.NoError(t, err)
+
+		recipient := fmt.Sprintf("list-test-%s@example.com", tag)
+		status, body := postStatus(t, client, "/api/transactional.testTemplate", map[string]interface{}{
+			"workspace_id":    workspace.ID,
+			"template_id":     withUnsubscribe.ID,
+			"integration_id":  integration.ID,
+			"sender_id":       integration.EmailProvider.Senders[0].ID,
+			"recipient_email": recipient,
+			"list_id":         list.ID,
+		})
+		require.Equal(t, http.StatusOK, status, body)
+
+		email, err := waitForEmailByRecipientAddr(t, recipient, 30*time.Second)
+		require.NoError(t, err)
+		parts := readDeliveredParts(t, email.ID)
+
+		assertTextMirrorsHTML(t, parts)
+		require.Contains(t, parts.text, "Unsubscribe (")
+		// The text's unsubscribe link, tracked or not, leads to this list's unsubscribe page.
+		var destinations []string
+		for _, u := range plainTextURLRe.FindAllString(parts.text, -1) {
+			if m := regexp.MustCompile(`/r/([A-Za-z0-9_-]+)`).FindStringSubmatch(u); m != nil {
+				tok, err := trackingtoken.Parse(m[1], trackingtoken.PurposeClick)
+				require.NoError(t, err)
+				u = tok.URL
+			}
+			destinations = append(destinations, u)
+		}
+		found := false
+		for _, d := range destinations {
+			if strings.Contains(d, "lid="+list.ID) && strings.Contains(d, "action=unsubscribe") {
+				found = true
+			}
+		}
+		assert.True(t, found, "the text links to the list's unsubscribe page: %v", destinations)
 	})
 
 	t.Run("templates.compile returns the text version", func(t *testing.T) {

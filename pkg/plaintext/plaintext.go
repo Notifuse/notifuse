@@ -8,6 +8,8 @@ package plaintext
 import (
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -91,14 +93,7 @@ func (w *writer) write(s string) {
 	if s == "" {
 		return
 	}
-	if w.line.Len() == 0 {
-		if w.marker != "" {
-			w.line.WriteString(w.marker)
-			w.marker = ""
-		} else {
-			w.line.WriteString(w.continuation)
-		}
-	}
+	w.startLine()
 	punctuation := len(s) - len(strings.TrimLeft(s, trailingPunctuation))
 	attached := w.afterURL && punctuation > 0 && (punctuation == len(s) || isSpace(s[punctuation]))
 	separate := w.pendingSpace || (w.afterURL && !attached)
@@ -112,16 +107,36 @@ func (w *writer) write(s string) {
 }
 
 // trailingPunctuation may follow a URL without a space when a space or the end of the
-// text comes next: autolinkers leave it out of the link, and a space before it would
-// read oddly. Typographic closing quotes are not in it: autolinkers take them into the
-// link, so they are kept apart like a word.
-const trailingPunctuation = ".,;:!?)]\"'"
+// text comes next: the common autolinkers (GitHub's, linkify, Gmail's) leave it out of the
+// link, and a space before it would read oddly. Typographic closing quotes and ] are not in
+// it: autolinkers take quotes into the link, and Markdown-style ones (marked) take ], so they
+// are kept apart like a word.
+const trailingPunctuation = ".,;:!?)\"'"
 
 // writeURL appends a URL and remembers that the next word must be separated from it,
 // so that a client's autolinker never reads two links, or a link and a word, as one.
 func (w *writer) writeURL(s string) {
+	if w.preDepth > 0 && w.line.Len() > 0 && !strings.HasSuffix(w.line.String(), " ") {
+		// Preformatted text keeps its own spacing, so nothing else separates the URL from
+		// the text before it.
+		w.line.WriteByte(' ')
+	}
 	w.write(s)
 	w.afterURL = true
+}
+
+// startLine writes, on an empty line, the list marker waiting for its item's first content,
+// or the indent of the item's other lines.
+func (w *writer) startLine() {
+	if w.line.Len() > 0 {
+		return
+	}
+	if w.marker != "" {
+		w.line.WriteString(w.marker)
+		w.marker = ""
+	} else {
+		w.line.WriteString(w.continuation)
+	}
 }
 
 // newline ends the current line, if it has anything on it.
@@ -227,6 +242,22 @@ func (w *writer) text(data string) {
 		for i, l := range lines {
 			if i > 0 {
 				w.flushLine()
+				w.afterURL = false
+			}
+			if l == "" {
+				continue
+			}
+			// An item that starts with preformatted text keeps its marker, and its other
+			// lines its indent.
+			w.startLine()
+			if w.afterURL {
+				// As outside <pre>: punctuation that ends the sentence stays attached.
+				punctuation := len(l) - len(strings.TrimLeft(l, trailingPunctuation))
+				attached := punctuation > 0 && (punctuation == len(l) || isSpace(l[punctuation]))
+				if r, _ := utf8.DecodeRuneInString(l); !unicode.IsSpace(r) && !attached {
+					w.line.WriteByte(' ')
+				}
+				w.afterURL = false
 			}
 			w.line.WriteString(l)
 		}
@@ -238,17 +269,37 @@ func (w *writer) text(data string) {
 		}
 		return
 	}
-	if isSpace(data[0]) {
+	// Any Unicode space at the edge separates the words, as strings.Fields does inside.
+	if first, _ := utf8.DecodeRuneInString(data); unicode.IsSpace(first) {
 		w.pendingSpace = true
 	}
 	w.write(strings.Join(strings.Fields(data), " "))
-	if isSpace(data[len(data)-1]) {
+	if last, _ := utf8.DecodeLastRuneInString(data); unicode.IsSpace(last) {
 		w.pendingSpace = true
 	}
 }
 
 func isSpace(c byte) bool {
 	return c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == '\f'
+}
+
+// leadingInt reads the integer an attribute starts with, as browsers read a list's start
+// ("3px" is 3).
+func leadingInt(s string) (int, bool) {
+	s = strings.TrimSpace(s)
+	end := 0
+	if end < len(s) && (s[end] == '-' || s[end] == '+') {
+		end++
+	}
+	digits := end
+	for end < len(s) && s[end] >= '0' && s[end] <= '9' {
+		end++
+	}
+	if end == digits {
+		return 0, false
+	}
+	n, err := strconv.Atoi(s[:end])
+	return n, err == nil
 }
 
 func (w *writer) element(n *html.Node) {
@@ -277,9 +328,13 @@ func (w *writer) element(n *html.Node) {
 		w.link(n)
 		return
 	case atom.Ul, atom.Ol:
+		if w.marker != "" {
+			// An item that opens with a list keeps its own marker, on a line of its own.
+			w.startLine()
+		}
 		w.newline()
 		l := list{ordered: n.DataAtom == atom.Ol}
-		if start, err := strconv.Atoi(strings.TrimSpace(attr(n, "start"))); err == nil && l.ordered {
+		if start, ok := leadingInt(attr(n, "start")); ok && l.ordered {
 			l.count = start - 1
 		}
 		w.lists = append(w.lists, l)
@@ -330,6 +385,15 @@ func (w *writer) element(n *html.Node) {
 		return
 	}
 
+	if n.DataAtom == atom.Table {
+		if label := socialLabelLink(n); label != nil {
+			w.newline()
+			w.link(label)
+			w.blankLine()
+			return
+		}
+	}
+
 	if blocks[n.DataAtom] {
 		w.newline()
 	}
@@ -355,7 +419,7 @@ func (w *writer) link(n *html.Node) {
 	switch {
 	case strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") ||
 		strings.HasPrefix(href, "{{") || strings.HasPrefix(href, "{%"):
-		if label == "" || label == href || isWebURL(label) {
+		if label == "" || label == href || (isWebURL(label) && !strings.Contains(label, " ")) {
 			w.writeURL(href)
 			return
 		}
@@ -367,6 +431,11 @@ func (w *writer) link(n *html.Node) {
 		if i := strings.IndexByte(target, '?'); i >= 0 {
 			target = target[:i]
 		}
+		if target == "" {
+			// mailto:?subject=… names no address: the label is all a reader can use.
+			w.write(label)
+			return
+		}
 		if label == "" || strings.EqualFold(label, target) {
 			w.writeURL(target)
 			return
@@ -377,6 +446,99 @@ func (w *writer) link(n *html.Node) {
 	default:
 		w.write(label)
 	}
+}
+
+// socialLabelLink returns the label link of a social element as gomjml writes it: an
+// inline-table whose one row holds a cell with an icon link and a cell with a text link,
+// both to the element's destination. With click tracking each link gets its own address,
+// so nothing else tells them apart from two destinations: the pair is written once, as the
+// label's link. Any other layout returns nil and keeps every destination.
+func socialLabelLink(table *html.Node) *html.Node {
+	style := strings.ToLower(strings.Join(strings.Fields(attr(table, "style")), ""))
+	if !strings.Contains(style, "display:inline-table") {
+		return nil
+	}
+	rows := elementChildren(table, atom.Tr)
+	if body := elementChildren(table, atom.Tbody); len(rows) == 0 && len(body) == 1 {
+		rows = elementChildren(body[0], atom.Tr)
+	}
+	if len(rows) != 1 {
+		return nil
+	}
+	cells := elementChildren(rows[0], atom.Td)
+	if len(cells) != 2 {
+		return nil
+	}
+	icon, label := onlyLink(cells[0]), onlyLink(cells[1])
+	if icon == nil || label == nil || !hasDescendant(icon, atom.Img) || textOf(icon) != "" ||
+		hasDescendant(label, atom.Img) || textOf(label) == "" {
+		return nil
+	}
+	return label
+}
+
+// elementChildren returns the children of n that are elements of the given kind, and nil
+// when n has an element child of another kind.
+func elementChildren(n *html.Node, kind atom.Atom) []*html.Node {
+	var found []*html.Node
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if c.Type != html.ElementNode {
+			continue
+		}
+		if c.DataAtom != kind {
+			return nil
+		}
+		found = append(found, c)
+	}
+	return found
+}
+
+// onlyLink returns the one anchor under n, or nil when there is none or more than one.
+func onlyLink(n *html.Node) *html.Node {
+	var found *html.Node
+	count := 0
+	var visit func(*html.Node)
+	visit = func(x *html.Node) {
+		for c := x.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type == html.ElementNode && c.DataAtom == atom.A {
+				found = c
+				count++
+				continue
+			}
+			visit(c)
+		}
+	}
+	visit(n)
+	if count != 1 {
+		return nil
+	}
+	return found
+}
+
+func hasDescendant(n *html.Node, kind atom.Atom) bool {
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if (c.Type == html.ElementNode && c.DataAtom == kind) || hasDescendant(c, kind) {
+			return true
+		}
+	}
+	return false
+}
+
+// textOf is the text under n, collapsed.
+func textOf(n *html.Node) string {
+	var b strings.Builder
+	var visit func(*html.Node)
+	visit = func(x *html.Node) {
+		for c := x.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type == html.TextNode {
+				b.WriteString(c.Data)
+				b.WriteByte(' ')
+			}
+			visit(c)
+		}
+	}
+	visit(n)
+	return collapse(invisible.Replace(b.String()))
 }
 
 // linkLabel is the text a reader sees for a link: its text, or the alt text of the

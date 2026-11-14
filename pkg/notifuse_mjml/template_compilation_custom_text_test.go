@@ -1,6 +1,7 @@
 package notifuse_mjml
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -70,7 +71,7 @@ func TestCompileTemplate_CustomText(t *testing.T) {
 		assert.Empty(t, resp.CustomText())
 	})
 
-	t.Run("a text that renders blank falls back to the automatic text without an error", func(t *testing.T) {
+	t.Run("a text that renders blank falls back to the automatic text, which the preview explains", func(t *testing.T) {
 		resp := compilePlainText(t, CompileTemplateRequest{
 			MjmlSource:   plainTextSource(),
 			TemplateData: data,
@@ -79,8 +80,21 @@ func TestCompileTemplate_CustomText(t *testing.T) {
 		})
 		require.True(t, resp.Success)
 		assert.Equal(t, TextSourceAuto, resp.TextSource)
-		assert.Empty(t, resp.TextError)
+		assert.Equal(t, "the custom text renders blank for this data", resp.TextError)
 		assert.Contains(t, *resp.Text, "Hello Ada")
+		assert.Empty(t, resp.CustomText())
+	})
+
+	t.Run("a text that renders blank in a send is not an error", func(t *testing.T) {
+		// Send paths read TextError; a condition that chose to say nothing is wanted there.
+		resp := compilePlainText(t, CompileTemplateRequest{
+			MjmlSource:   plainTextSource(),
+			TemplateData: data,
+			Text:         customText("{% if vip %}VIP offer{% endif %}"),
+		})
+		require.True(t, resp.Success)
+		assert.Nil(t, resp.Text)
+		assert.Empty(t, resp.TextError)
 		assert.Empty(t, resp.CustomText())
 	})
 
@@ -271,6 +285,59 @@ func TestCompileTemplate_CustomTextSeed(t *testing.T) {
 		assert.Contains(t, *resp.MJML, open, "the MJML still shows the condition, which the console checks")
 	})
 
+	// A visual column whose blocks are wrapped by Liquid in mj-raw or mj-liquid blocks: the
+	// blocks become table rows, and the tags land outside them in the starting point.
+	columnTree := func(children ...EmailBlock) EmailBlock {
+		column := &MJColumnBlock{BaseBlock: NewBaseBlock("col", MJMLComponentMjColumn)}
+		column.Children = children
+		section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+		section.Children = []EmailBlock{column}
+		body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+		body.Children = []EmailBlock{section}
+		root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
+		root.Children = []EmailBlock{body}
+		return root
+	}
+	textBlock := func(id, content string) EmailBlock {
+		return &MJTextBlock{BaseBlock: &BaseBlock{ID: id, Type: MJMLComponentMjText, Content: stringPtr(content)}}
+	}
+	rawBlock := func(id, content string) EmailBlock {
+		return &MJRawBlock{BaseBlock: &BaseBlock{ID: id, Type: MJMLComponentMjRaw, Content: stringPtr(content)}}
+	}
+	liquidBlock := func(id, content string) EmailBlock {
+		return &MJLiquidBlock{BaseBlock: &BaseBlock{ID: id, Type: MJMLComponentMjLiquid, Content: stringPtr(content)}}
+	}
+	const amongBlocks = "Liquid placed between the blocks of a section or a column may not land where it applies in the text version: check it before saving"
+
+	t.Run("a loop in mj-raw blocks around a column's rows is flagged", func(t *testing.T) {
+		resp := seed(t, CompileTemplateRequest{VisualEditorTree: columnTree(
+			rawBlock("open", "{% for item in order.items %}"),
+			textBlock("item", "<p>{{ item.name }}</p>"),
+			rawBlock("close", "{% endfor %}"),
+		)})
+		require.True(t, resp.Success, "%+v", resp.Error)
+		require.NotNil(t, resp.Text)
+		assert.Equal(t, amongBlocks, resp.TextError)
+	})
+
+	t.Run("an mj-liquid block in a column is flagged", func(t *testing.T) {
+		resp := seed(t, CompileTemplateRequest{VisualEditorTree: columnTree(
+			textBlock("intro", "<p>Intro</p>"),
+			liquidBlock("loop", "{% for p in products %}<mj-text>{{ p.name }}</mj-text>{% endfor %}"),
+		)})
+		require.True(t, resp.Success, "%+v", resp.Error)
+		assert.Equal(t, amongBlocks, resp.TextError)
+	})
+
+	t.Run("an mj-raw block in a column without Liquid tags is not flagged", func(t *testing.T) {
+		resp := seed(t, CompileTemplateRequest{VisualEditorTree: columnTree(
+			textBlock("intro", "<p>Intro {{ contact.first_name }}</p>"),
+			rawBlock("spacer", "<div>&nbsp;</div>"),
+		)})
+		require.True(t, resp.Success, "%+v", resp.Error)
+		assert.Empty(t, resp.TextError)
+	})
+
 	t.Run("a pair split across blocks is flagged", func(t *testing.T) {
 		resp := seed(t, CompileTemplateRequest{MjmlSource: wrap(`<mj-section><mj-column><mj-text>{% if vip %}VIP</mj-text></mj-column></mj-section>{% endif %}`)})
 		require.True(t, resp.Success)
@@ -325,4 +392,51 @@ func TestCompileTemplateRequest_Validate_TextSize(t *testing.T) {
 			require.NoError(t, crlf.Validate(), "the limit counts the normalised text, \\n line endings")
 		})
 	}
+}
+
+// A visual tree's invalid display condition answers its own error, before any compile.
+func TestCompileTemplateRequest_Validate_DisplayConditions(t *testing.T) {
+	liquid := &MJLiquidBlock{BaseBlock: &BaseBlock{ID: "loop", Type: MJMLComponentMjLiquid, Content: stringPtr("{% if vip %}")}}
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("col", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{liquid}
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+	section.DisplayCondition = &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{
+		{Variable: "contact.custom_string_1", Operator: DisplayConditionEq, Value: stringPtr("vip")},
+	}}
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
+
+	err := (&CompileTemplateRequest{WorkspaceID: "ws", MessageID: "msg", VisualEditorTree: root}).Validate()
+
+	require.Error(t, err)
+	assert.Equal(t, "invalid compile template request: block sec (mj-section) holds an mj-liquid block and cannot have a display condition", err.Error())
+
+	section.DisplayCondition = nil
+	assert.NoError(t, (&CompileTemplateRequest{WorkspaceID: "ws", MessageID: "msg", VisualEditorTree: root}).Validate())
+}
+
+// In code mode, a "__dc" key of the data does not decide the display conditions the
+// exported code holds.
+func TestCompileTemplate_CodeModeIgnoresConditionNamesInData(t *testing.T) {
+	condition := &DisplayCondition{Match: "all", Rules: []DisplayConditionRule{
+		{Variable: "contact.custom_string_1", Operator: DisplayConditionEq, Value: stringPtr("vip")},
+	}}
+	open, close := condition.ToLiquid("cond-text")
+	source := `<mjml><mj-body><mj-section><mj-column>` + open + `<mj-text>` + conditionMarker + `</mj-text>` + close +
+		`<mj-text>always</mj-text></mj-column></mj-section></mj-body></mjml>`
+	// Every top-level name the generated Liquid could read, forced to a truthy value.
+	data := MapOfAny{"contact": MapOfAny{"custom_string_1": "regular"}}
+	for _, name := range regexp.MustCompile(`__dc[A-Za-z0-9_]*`).FindAllString(open, -1) {
+		data[name] = "1"
+	}
+	require.Greater(t, len(data), 1, "the generated Liquid names its variables __dc…")
+
+	resp := compileOK(t, CompileTemplateRequest{MjmlSource: &source, TemplateData: data})
+
+	require.NotNil(t, resp.HTML)
+	assert.NotContains(t, *resp.HTML, conditionMarker, "a regular contact does not see the VIP block")
+	assert.Contains(t, *resp.HTML, "always")
 }
