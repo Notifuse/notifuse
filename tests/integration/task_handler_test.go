@@ -402,8 +402,9 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 		})
 
 		t.Run("should handle default max_tasks parameter", func(t *testing.T) {
-			// When max_tasks=0 is passed, the HTTP response echoes the request value
-			// The service internally applies the default (100) for actual task processing
+			// max_tasks=0 runs the default number of tasks (100), which the response reports
+			// unless a run is already in progress; TestTaskHandler_ExecutePendingTasks_MaxTasksCeiling
+			// pins the value.
 			resp, err := client.ExecutePendingTasks(0)
 			require.NoError(t, err)
 			defer func() { _ = resp.Body.Close() }()

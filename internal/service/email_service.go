@@ -239,9 +239,9 @@ func (s *EmailService) getProviderService(providerKind domain.EmailProviderKind)
 const maxRecordedClickedURLLength = domain.MaxClickedURLLength
 
 // VisitLink records a click on a tracked link. ownHosts are the instance's hosts as the
-// click route knows them, each a host[:port] value: the request's Host, each
-// X-Forwarded-Host entry, the API endpoint's host and the workspace's custom endpoint
-// host. verified says the token was signed by the workspace, so the email really
+// click route knows them, each a host[:port] value: the request's Host, the last
+// forwarded hosts of each of X-Forwarded-Host and Forwarded, the API endpoint's host and
+// the workspace's custom endpoint host. verified says the token was signed by the workspace, so the email really
 // carried clickedURL; see MessageHistoryRepository.SetClicked.
 func (s *EmailService) VisitLink(ctx context.Context, messageID string, workspaceID string, clickedURL string, ownHosts []string, verified bool) error {
 	// find the message by id

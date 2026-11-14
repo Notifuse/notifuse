@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"database/sql"
+	"sort"
 	"testing"
 
 	"github.com/Notifuse/notifuse/config"
@@ -140,5 +141,106 @@ func TestV44MigrationRemovesTheInstanceOwnLinks(t *testing.T) {
 	var after string
 	require.NoError(t, db.QueryRowContext(ctx, `SELECT string_agg(id || clicked_links::text || updated_at::text, ',' ORDER BY id) FROM message_history`).Scan(&after))
 	assert.Equal(t, before, after)
+}
 
+// TestV44MigrationPurgeEdgeCases pins what the purge leaves alone and what it writes: a key
+// on another domain that only a misread host would match, also with standard_conforming_strings
+// off, an IPv6 key, two trailing dots, clicked_links values that are not objects, and the
+// updated_at of a purged row.
+func TestV44MigrationPurgeEdgeCases(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	factory := suite.DataFactory
+	ctx := context.Background()
+	link := `{"count": 1, "verified": true}`
+
+	for _, conforming := range []bool{true, false} {
+		name := "standard_conforming_strings on"
+		if !conforming {
+			name = "standard_conforming_strings off"
+		}
+		t.Run(name, func(t *testing.T) {
+			workspace, err := factory.CreateWorkspace()
+			require.NoError(t, err)
+			db, err := factory.GetWorkspaceDB(workspace.ID)
+			require.NoError(t, err)
+			template, err := factory.CreateTemplate(workspace.ID)
+			require.NoError(t, err)
+
+			seed := func(links string) string {
+				t.Helper()
+				m, err := factory.CreateMessageHistory(workspace.ID, testutil.WithMessageTemplate(template.ID))
+				require.NoError(t, err)
+				_, err = db.ExecContext(ctx, `UPDATE message_history SET clicked_links = $2::jsonb, updated_at = '2026-01-02T03:04:05Z' WHERE id = $1`, m.ID, links)
+				require.NoError(t, err)
+				return m.ID
+			}
+			mixed := seed(`{
+				"https://brand.co/unsubscribe?email=a@b.c": ` + link + `,
+				"https://brand.com/x": ` + link + `,
+				"https://brand.c/x": ` + link + `,
+				"https://brand.co../x": ` + link + `,
+				"https://[2001:db8::1]:8443/notification-center": ` + link + `,
+				"https://[2001:db8::2]/x": ` + link + `
+			}`)
+			notObjects := map[string]string{}
+			for _, v := range []string{`["https://brand.co/x"]`, `"https://brand.co/x"`, `null`, `42`} {
+				notObjects[seed(v)] = v
+			}
+
+			var mixedUpdatedAt string
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT updated_at::text FROM message_history WHERE id = $1`, mixed).Scan(&mixedUpdatedAt))
+
+			cfg := &config.Config{APIEndpoint: "https://brand.co"}
+			endpoint := "https://[2001:db8::1]:8443"
+			workspace.Settings.CustomEndpointURL = &endpoint
+
+			tx, err := db.BeginTx(ctx, nil)
+			require.NoError(t, err)
+			if !conforming {
+				_, err = tx.ExecContext(ctx, `SET LOCAL standard_conforming_strings = off`)
+				require.NoError(t, err)
+			}
+			if err := (&migrations.V44Migration{}).UpdateWorkspace(ctx, cfg, workspace, tx); err != nil {
+				_ = tx.Rollback()
+				require.NoError(t, err)
+			}
+			require.NoError(t, tx.Commit())
+
+			var keys []string
+			rows, err := db.QueryContext(ctx, `SELECT jsonb_object_keys(clicked_links) FROM message_history WHERE id = $1`, mixed)
+			require.NoError(t, err)
+			for rows.Next() {
+				var k string
+				require.NoError(t, rows.Scan(&k))
+				keys = append(keys, k)
+			}
+			require.NoError(t, rows.Err())
+			_ = rows.Close()
+			sort.Strings(keys)
+			assert.Equal(t, []string{
+				"https://[2001:db8::2]/x",
+				"https://brand.c/x",
+				"https://brand.co../x",
+				"https://brand.com/x",
+			}, keys, "only the keys on the own hosts go")
+
+			var updatedAt string
+			require.NoError(t, db.QueryRowContext(ctx, `SELECT updated_at::text FROM message_history WHERE id = $1`, mixed).Scan(&updatedAt))
+			assert.Equal(t, mixedUpdatedAt, updatedAt, "a purged row keeps its updated_at")
+
+			for id, want := range notObjects {
+				var got sql.NullString
+				require.NoError(t, db.QueryRowContext(ctx, `SELECT clicked_links::text FROM message_history WHERE id = $1`, id).Scan(&got))
+				assert.Equal(t, want, got.String, "a value that is not an object is left as it is")
+			}
+		})
+	}
 }

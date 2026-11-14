@@ -56,25 +56,51 @@ func TestForwardedHosts(t *testing.T) {
 }
 
 func TestClickOwnHosts_KeepsTheLastForwardedHosts(t *testing.T) {
-	// The proxies nearest the server append last, so a client sending many entries
-	// cannot push theirs out.
-	req := httptest.NewRequest(http.MethodGet, "/r/x", nil)
-	req.Host = "notifuse:8080"
-	var first, second []string
-	for i := 0; i < 12; i++ {
-		first = append(first, "c"+string(rune('a'+i))+".example")
+	names := func(prefix string, n int) []string {
+		var out []string
+		for i := 0; i < n; i++ {
+			out = append(out, prefix+string(rune('a'+i))+".example")
+		}
+		return out
 	}
-	for i := 0; i < 8; i++ {
-		second = append(second, "p"+string(rune('a'+i))+".example")
-	}
-	req.Header.Add("X-Forwarded-Host", strings.Join(first, ", ")+", ,")
-	req.Header.Add("X-Forwarded-Host", strings.Join(second[:5], ","))
-	req.Header.Add("Forwarded", "host="+strings.Join(second[5:], ", host="))
 
-	got := clickOwnHosts(req, "api.notifuse.test", "links.brand.com")
-	want := append(append([]string{"notifuse:8080"}, second...), "api.notifuse.test", "links.brand.com")
-	assert.Equal(t, want, got)
-	assert.Len(t, got, 1+maxForwardedHosts+2)
+	t.Run("in one header, a client sending many entries cannot push the proxies' out", func(t *testing.T) {
+		// The proxies nearest the server append last.
+		req := httptest.NewRequest(http.MethodGet, "/r/x", nil)
+		req.Host = "notifuse:8080"
+		client, proxies := names("c", 12), names("p", 8)
+		req.Header.Add("X-Forwarded-Host", strings.Join(client, ", ")+", ,")
+		req.Header.Add("X-Forwarded-Host", strings.Join(proxies, ","))
+
+		got := clickOwnHosts(req, "api.notifuse.test", "links.brand.com")
+		want := append(append([]string{"notifuse:8080"}, proxies...), "api.notifuse.test", "links.brand.com")
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("Forwarded values cannot push the proxy's X-Forwarded-Host out", func(t *testing.T) {
+		// A proxy sets X-Forwarded-Host and passes the client's Forwarded through.
+		req := httptest.NewRequest(http.MethodGet, "/r/x", nil)
+		req.Host = "notifuse:8080"
+		req.Header.Set("X-Forwarded-Host", "old.brand.example")
+		client := names("c", 12)
+		req.Header.Set("Forwarded", "host="+strings.Join(client, ", host="))
+
+		got := clickOwnHosts(req, "api.notifuse.test", "")
+		want := append(append([]string{"notifuse:8080", "old.brand.example"}, client[4:]...), "api.notifuse.test")
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("X-Forwarded-Host values cannot push the proxy's Forwarded out", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/r/x", nil)
+		req.Host = "notifuse:8080"
+		client := names("c", 12)
+		req.Header.Set("X-Forwarded-Host", strings.Join(client, ","))
+		req.Header.Set("Forwarded", "for=1.2.3.4;host=old.brand.example")
+
+		got := clickOwnHosts(req, "api.notifuse.test", "")
+		want := append(append([]string{"notifuse:8080"}, client[4:]...), "old.brand.example", "api.notifuse.test")
+		assert.Equal(t, want, got)
+	})
 }
 
 func TestWebVersionRequestHost(t *testing.T) {

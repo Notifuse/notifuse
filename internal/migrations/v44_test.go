@@ -205,3 +205,9 @@ func TestV44OwnHosts(t *testing.T) {
 		})
 	}
 }
+
+// A backslash in a plain SQL literal is read as an escape when standard_conforming_strings
+// is off, which would change what the purge's patterns match.
+func TestV44OwnLinksPurgeSQL_HoldsNoBackslash(t *testing.T) {
+	assert.NotContains(t, v44OwnLinksPurgeSQL, `\`)
+}

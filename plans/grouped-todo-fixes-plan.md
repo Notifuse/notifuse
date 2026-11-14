@@ -206,7 +206,7 @@ so the value is clamped: `TaskHandler.SetCronTaskCeiling(n)` (called in `interna
 argument keeps the open PRs that construct the handler unchanged.
 
 Tests: `internal/http/task_handler_test.go`: `?max_tasks=1000` runs with 100 and answers `max_tasks: 100`; with a
-ceiling of 250, 250; `max_tasks=0` keeps 0 (the service default); `tests/integration/task_handler_test.go:403-420`
+ceiling of 250, 250; `max_tasks=0` runs and reports the default 100; `tests/integration/task_handler_test.go:403-420`
 (`max_tasks=0`, 202) stays green.
 
 ### 1.16 CHANGELOG (44.0)

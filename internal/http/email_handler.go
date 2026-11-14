@@ -212,20 +212,15 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 }
 
 // clickOwnHosts returns the instance's hosts as a click knows them: the request's Host,
-// the last maxForwardedHosts forwarded hosts (X-Forwarded-Host entries, then the host
-// parameters of Forwarded), the API endpoint's host and the workspace's custom endpoint
+// the last maxForwardedHosts hosts of each forwarded header (X-Forwarded-Host, then the
+// host parameters of Forwarded, see forwardedHosts), the API endpoint's host and the workspace's custom endpoint
 // host, the ones classifyTrackedDestination redirects to. A link back to any of them is
 // the email's own (unsubscribe, notification center, web version) and is not recorded
 // per link. All of them: behind a proxy that forwards its upstream name as Host, the
 // email's links use the forwarded host or, with no forwarded header, one of the endpoint
 // hosts, and a direct request keeps its own Host whatever forwarded value a client adds.
 func clickOwnHosts(r *http.Request, apiHost, endpointHost string) []string {
-	hosts := []string{r.Host}
-	forwarded := forwardedHosts(r.Header)
-	if len(forwarded) > maxForwardedHosts {
-		forwarded = forwarded[len(forwarded)-maxForwardedHosts:]
-	}
-	hosts = append(hosts, forwarded...)
+	hosts := append([]string{r.Host}, forwardedHosts(r.Header)...)
 	for _, host := range []string{apiHost, endpointHost} {
 		if host == "" {
 			continue

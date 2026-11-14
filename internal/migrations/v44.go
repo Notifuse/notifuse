@@ -53,8 +53,9 @@ import (
 // current custom endpoint, on any port, in any case, with or without one trailing dot, as
 // the click recorder leaves them out since 44. Before, behind a reverse proxy, unsubscribe
 // and notification center links were recorded with the contact's address. The lock is held
-// already, so no other transaction holds a row lock on message_history and the purge cannot
-// deadlock with a writer; it writes no timeline entry, so it does not touch automations. It
+// already, so no other transaction writing message_history holds a row lock on it, and as
+// no statement takes SELECT ... FOR UPDATE or FOR SHARE on message_history, the purge cannot
+// deadlock with another transaction; it writes no timeline entry, so it does not touch automations. It
 // reads every row holding clicked links while writes to message_history wait, so sending and
 // tracking wait for it too. clicked_at, the other keys and updated_at stay. A rerun matches
 // no row. Without any readable own host the statement is skipped.
@@ -117,8 +118,10 @@ const v44OrphanMembershipsSQL = `DELETE FROM contact_segments cs
 WHERE NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = cs.email)`
 
 // v44KeyHostSQL is the hostname of a clicked_links key k: lowercase, without userinfo, port,
-// IPv6 brackets or one trailing dot. NULL when k is not an http(s) URL with a host.
-const v44KeyHostSQL = `NULLIF(regexp_replace(btrim(lower(substring(%s from '(?i)^\s*https?://(?:[^/?#]*@)?(\[[^]]*\]|[^/?#:]*)')), '[]'), '\.$', ''), '')`
+// IPv6 brackets or one trailing dot. NULL when k is not an http(s) URL with a host. Its
+// patterns hold no backslash, so they read the same whether standard_conforming_strings is
+// on or off.
+const v44KeyHostSQL = `NULLIF(regexp_replace(btrim(lower(substring(%s from '(?i)^[[:space:]]*https?://(?:[^/?#]*@)?([[][^]]*[]]|[^/?#:]*)')), '[]'), '[.]$', ''), '')`
 
 // v44OwnLinksPurgeSQL removes from clicked_links the keys whose host is one of $1. A key
 // whose host cannot be read is kept.
@@ -133,7 +136,8 @@ WHERE CASE WHEN jsonb_typeof(mh.clicked_links) = 'object'
 
 // v44OwnHosts returns the hostnames v44OwnLinksPurgeSQL removes: for the API endpoint and
 // the workspace's current custom endpoint, the host as trackingtoken.HostOf writes it and as
-// it is written, lowercase. The two differ for an IPv6 literal not written canonical. An
+// it is written, lowercase. The two differ for an IPv6 literal not written canonical, and
+// for a hostname written in Unicode (Punycode, and as written). An
 // endpoint whose host cannot be read gives none.
 func v44OwnHosts(cfg *config.Config, workspace *domain.Workspace) []string {
 	endpoints := []string{cfg.APIEndpoint}

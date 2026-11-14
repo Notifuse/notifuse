@@ -113,8 +113,9 @@ type TaskHandler struct {
 	cronTaskCeiling int
 }
 
-// defaultCronTaskCeiling is the most tasks one /api/cron run executes, and the number it
-// executes when max_tasks is missing, zero or negative.
+// defaultCronTaskCeiling is the default ceiling of the tasks one /api/cron run executes
+// (SetCronTaskCeiling can raise it), and the number it executes when max_tasks is missing,
+// zero or negative.
 const defaultCronTaskCeiling = 100
 
 // SetCronTaskCeiling sets the most tasks one /api/cron run executes, never below

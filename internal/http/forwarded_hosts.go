@@ -5,25 +5,35 @@ import (
 	"strings"
 )
 
-// maxForwardedHosts caps the forwarded hosts a click compares its link with. Proxies
-// append their entry, so the last ones are those of the proxies nearest the server,
-// which a client cannot push out by sending more.
+// maxForwardedHosts caps the hosts a click takes from each forwarded header. Proxies
+// append their entry to the header they set, so its last entries are those of the proxies
+// nearest the server, which a client cannot push out by sending more. The cap applies to
+// each header on its own: a proxy setting X-Forwarded-Host and passing Forwarded through
+// keeps its entry whatever Forwarded values the client sends, and the reverse.
 const maxForwardedHosts = 8
 
-// forwardedHosts returns the hosts a reverse proxy forwarded: every X-Forwarded-Host
-// entry, then the host parameter of every Forwarded element (RFC 7239), in header order,
-// trimmed and without empty values.
+// forwardedHosts returns the hosts a reverse proxy forwarded: the last maxForwardedHosts
+// X-Forwarded-Host entries, then the host parameters of the last maxForwardedHosts
+// Forwarded elements (RFC 7239), in header order, trimmed and without empty values.
 func forwardedHosts(h http.Header) []string {
-	var hosts []string
+	var xfh, fwd []string
 	for _, value := range h.Values("X-Forwarded-Host") {
 		for _, entry := range strings.Split(value, ",") {
 			if entry = strings.TrimSpace(entry); entry != "" {
-				hosts = append(hosts, entry)
+				xfh = append(xfh, entry)
 			}
 		}
 	}
 	for _, value := range h.Values("Forwarded") {
-		hosts = append(hosts, forwardedHeaderHosts(value)...)
+		fwd = append(fwd, forwardedHeaderHosts(value)...)
+	}
+	return append(lastHosts(xfh), lastHosts(fwd)...)
+}
+
+// lastHosts returns the last maxForwardedHosts of hosts.
+func lastHosts(hosts []string) []string {
+	if len(hosts) > maxForwardedHosts {
+		return hosts[len(hosts)-maxForwardedHosts:]
 	}
 	return hosts
 }

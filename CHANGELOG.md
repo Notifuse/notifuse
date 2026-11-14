@@ -54,7 +54,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The new `messages.count` API endpoint counts messages by status for the same filters as `messages.list`, which also takes `origin`, `created_after` and `created_before`; `inboundWebhookEvents.list` filters by `source`.
 
-- **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build and while the instance's own links are removed from the click statistics, about a second per 2 million messages when the table fits in memory, longer otherwise.
+- **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise, and then while the instance's own links are removed from the click statistics, which takes longer the more clicked links the workspace has recorded.
 
 - **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
 
@@ -66,7 +66,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. The public host is read from `X-Forwarded-Host` or `Forwarded`, and links to the instance on another port, or to blog posts on the workspace's custom domain, are not recorded either. Behind a proxy that forwards neither the public host nor one of these headers, links on a custom domain the workspace no longer uses are still recorded. Upgrading to 44 removes from the per-link statistics the links recorded on the API endpoint and on the workspace's current custom domain.
 
-- **Improvement**: A tracked link to the instance's own host written with a trailing dot, or to its IP address written another way, now opens directly instead of showing the confirmation page.
+- **Improvement**: A tracked link to the instance's own host written with a trailing dot, or to its IPv6 address written another way, now opens directly instead of showing the confirmation page.
 
 - **Improvement**: `/api/cron` runs at most 100 tasks per call, or `TASK_SCHEDULER_MAX_TASKS` when it is higher; a larger `max_tasks` is lowered to that limit, and the response gives the number used.
 
