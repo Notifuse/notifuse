@@ -868,6 +868,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 	// Track if broadcast was cancelled during processing
 	broadcastCancelledDuringProcessing := false
+	pausedDuringProcessing := false
 
 	// A run that has neither moved the cursor nor enqueued anything is the run that
 	// begins sending. Captured here because it is about to stop being true: the send
@@ -1268,8 +1269,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				// Pause any rows we enqueued between the service-layer PauseBySourceTx
 				// commit and this poll — closes the late-enqueue race window.
 				o.pauseQueueEntries(ctx, task.WorkspaceID, broadcast.ID)
-				// Task should stop processing as broadcast is paused
-				allDone = false // Task is not complete, it should be resumed later
+				// The task is parked once the progress below is recorded: a resume wakes it.
+				pausedDuringProcessing = true
+				allDone = false
 				break
 			}
 
@@ -1588,6 +1590,11 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	task.State.Message = message
 	task.Progress = progress
 
+	if pausedDuringProcessing {
+		err = o.parkPausedTask(task, broadcastState.BroadcastID)
+		return false, err
+	}
+
 	// If the task is complete, update the broadcast status appropriately
 	if allDone {
 		// Don't update status if broadcast was cancelled during processing
@@ -1666,6 +1673,50 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	}).Info("Broadcast processing cycle completed")
 	// codecov:ignore:end
 	return allDone, err
+}
+
+// pausedParkInterval is how long a run that found its broadcast paused parks the task, as
+// the pause handler does: a resume wakes it before then.
+const pausedParkInterval = 24 * time.Hour
+
+// parkPausedTask is what a run that found its broadcast paused returns: its task is parked
+// (paused, pausedParkInterval ahead) instead of left due at once, where every scheduler tick
+// ran it again for nothing. Once the task is parked, the broadcast is read again: a resume
+// committed while this run still held the task could not wake it, so the run wakes it.
+// Either the resume's wake finds the task parked, or this read sees the resume.
+func (o *BroadcastOrchestrator) parkPausedTask(task *domain.Task, broadcastID string) error {
+	return &domain.TaskRequeueError{
+		After:  pausedParkInterval,
+		Park:   true,
+		Reason: "broadcast paused",
+		AfterRequeue: func(ctx context.Context) {
+			current, err := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastID)
+			if err != nil {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastID,
+					"error":        err.Error(),
+				}).Warn("Failed to read the broadcast again after parking its task - a resume wakes it")
+				return
+			}
+			if current.Status == domain.BroadcastStatusPaused {
+				return
+			}
+			if _, err := o.taskRepo.WakeTask(ctx, task.WorkspaceID, task.ID, time.Now().UTC()); err != nil {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastID,
+					"error":        err.Error(),
+				}).Warn("Failed to wake the task of a broadcast resumed while its run held it")
+				return
+			}
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"broadcast_id": broadcastID,
+				"status":       string(current.Status),
+			}).Info("Broadcast was resumed while its run held the task - task woken")
+		},
+	}
 }
 
 // enterWinnerPhase moves the run to the winner phase and records, the first time,

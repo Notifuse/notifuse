@@ -1408,7 +1408,8 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 	// was paused after burning retries on transient failures came back one
 	// failure from being marked failed for good — and the console offers no
 	// other way to clear it. A task its run still holds is left to that run,
-	// which sees the resume on its next refresh: handing the task to a second
+	// which sees the resume on its next refresh, or on the read that follows
+	// its park when it found the broadcast paused: handing the task to a second
 	// execution enqueued everyone past the cursor it read a second time. The
 	// budget is reset before the wake, so that whichever comes first, the
 	// resume or that run's failure, the task ends up queued: a run that

@@ -682,10 +682,9 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		return err
 	}
 
-	// Using a channel to wait for the event callback
-	done := make(chan error, 1)
+	// Determined in the transaction, published once it commits.
+	startNow := false
 
-	// Use transaction to retrieve, update the broadcast, and publish the event
 	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
 		// Retrieve the broadcast
 		broadcast, err := s.repo.GetBroadcastTx(ctx, tx, request.WorkspaceID, request.ID)
@@ -715,7 +714,7 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 		broadcast.UpdatedAt = now
 
 		// Determine the new status based on pause phase and scheduling.
-		startNow := false
+		startNow = false
 
 		if broadcast.CompletedAt != nil {
 			// Phase-2 pause: orchestrator already finished enqueueing. Restore to processed
@@ -773,53 +772,42 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 			"resumed_queue_count": resumedCount,
 		}).Info("Broadcast resumed successfully")
 
-		// Create an event with acknowledgment callback
-		eventPayload := domain.EventPayload{
-			Type:        domain.EventBroadcastResumed,
-			WorkspaceID: request.WorkspaceID,
-			EntityID:    request.ID,
-			Data: map[string]interface{}{
-				"broadcast_id": request.ID,
-				"start_now":    startNow,
-			},
-		}
-
-		// Publish the event with callback within the transaction
-		s.eventBus.PublishWithAck(ctx, eventPayload, func(eventErr error) {
-			if eventErr != nil {
-				// Event processing failed, log the error
-				s.logger.WithFields(map[string]interface{}{
-					"broadcast_id": request.ID,
-					"workspace_id": request.WorkspaceID,
-					"error":        eventErr.Error(),
-				}).Error("Failed to process resume broadcast event")
-
-				// Since we're still in the same transaction, we don't need to rollback explicitly
-				// The outer transaction will be rolled back when we return an error
-
-				done <- fmt.Errorf("failed to process resume event: %w", eventErr)
-			} else {
-				s.logger.WithField("broadcast_id", request.ID).Info("Resume broadcast event processed successfully")
-				done <- nil
-			}
-		})
-
-		// Wait for the event processing to complete
-		select {
-		case eventErr := <-done:
-			if eventErr != nil {
-				// If the event processing failed, roll back the transaction by returning an error
-				return eventErr
-			}
-			// If event processing succeeded, commit the transaction
-			return nil
-		case <-ctx.Done():
-			// If context is cancelled, roll back transaction by returning an error
-			return ctx.Err()
-		}
+		return nil
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	// The wake of the broadcast's task follows the commit: a run that found the broadcast
+	// paused parks its task, and either this wake finds the parked task or the run's own
+	// read after its park sees the resume. Published inside the transaction, the wake could
+	// find the task before the resume was visible to that read, and the task stayed parked.
+	// The resume is committed by now, so a failed acknowledgment is logged, not returned.
+	eventPayload := domain.EventPayload{
+		Type:        domain.EventBroadcastResumed,
+		WorkspaceID: request.WorkspaceID,
+		EntityID:    request.ID,
+		Data: map[string]interface{}{
+			"broadcast_id": request.ID,
+			"start_now":    startNow,
+		},
+	}
+	done := make(chan error, 1)
+	s.eventBus.PublishWithAck(ctx, eventPayload, func(eventErr error) { done <- eventErr })
+	var eventErr error
+	select {
+	case eventErr = <-done:
+	case <-ctx.Done():
+		eventErr = ctx.Err()
+	}
+	if eventErr != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": request.ID,
+			"workspace_id": request.WorkspaceID,
+			"error":        eventErr.Error(),
+		}).Error("Failed to process resume broadcast event after the resume committed")
+	}
+	return nil
 }
 
 // CancelBroadcast cancels a scheduled broadcast

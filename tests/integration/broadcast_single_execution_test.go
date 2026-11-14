@@ -420,6 +420,50 @@ func TestBroadcastSingleExecution_PauseAndResumeMidBatch(t *testing.T) {
 	assert.Zero(t, h.pausedRows(broadcastID), "no email of the broadcast stays paused")
 }
 
+// TestBroadcastSingleExecution_RunThatFindsItsBroadcastPausedParksTheTask is a
+// pause that lands while a run holds the task: the run parks the task for the
+// resume instead of handing it back due at once, and the resume wakes it.
+func TestBroadcastSingleExecution_RunThatFindsItsBroadcastPausedParksTheTask(t *testing.T) {
+	h := setupSingleExecution(t, false)
+	const contacts = 300
+	listID := h.seed("park", contacts)
+	tpl := h.template("P", 0)
+	broadcastID := h.createBroadcast(listID, map[string]interface{}{
+		"enabled":    false,
+		"variations": []map[string]interface{}{{"variation_name": "P", "template_id": tpl.ID}},
+	})
+	h.sendNow(broadcastID)
+	task := h.task(broadcastID)
+	require.Equal(t, http.StatusOK, h.execute(task.ID), "the counting run")
+	retries := h.task(broadcastID).RetryCount
+
+	const fetchLike = "SELECT c.email%FROM contacts c%"
+	release := h.holdLock(`LOCK TABLE contacts IN ACCESS EXCLUSIVE MODE`)
+	first := h.start(task.ID)
+	h.waitUntil("the run to block in its page fetch", func() bool { return h.blockedOn(fetchLike) == 1 })
+	h.post(h.client.PauseBroadcast, map[string]interface{}{"workspace_id": h.workspaceID, "id": broadcastID})
+	release()
+	require.Equal(t, http.StatusOK, h.answer(first))
+
+	parked := h.task(broadcastID)
+	assert.Equal(t, domain.TaskStatusPaused, parked.Status, "the run parks the task")
+	require.NotNil(t, parked.NextRunAfter)
+	assert.True(t, parked.NextRunAfter.After(time.Now().Add(23*time.Hour)), "no scheduler tick runs it again before the resume")
+	assert.Nil(t, parked.TimeoutAfter, "the run gave its lease back")
+	assert.Equal(t, retries, parked.RetryCount, "a park is not a failure")
+	assert.Equal(t, domain.BroadcastStatusPaused, h.status(broadcastID))
+
+	h.post(h.client.ResumeBroadcast, map[string]interface{}{"workspace_id": h.workspaceID, "id": broadcastID})
+	woken := h.task(broadcastID)
+	assert.Equal(t, domain.TaskStatusPending, woken.Status, "the resume wakes the parked task")
+	require.NotNil(t, woken.NextRunAfter)
+	assert.False(t, woken.NextRunAfter.After(time.Now()), "due at once")
+
+	h.executeUntil(task.ID, broadcastID, domain.BroadcastStatusProcessed)
+	assertEachContactOnce(t, h.enqueued(broadcastID, map[string]string{tpl.ID: "P"}), contacts)
+	assert.Zero(t, h.pausedRows(broadcastID), "no email of the broadcast stays paused")
+}
+
 // TestBroadcastSingleExecution_WinnerPickedAfterTheTestPhase is the console
 // flow: the test phase ends, a waiting run passes, the winner is picked, and
 // the rest of the list is sent.
