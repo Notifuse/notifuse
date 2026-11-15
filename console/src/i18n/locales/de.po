@@ -71,9 +71,9 @@ msgstr "(Standard)"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:350
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:41
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:87
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:156
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:159
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:88
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:157
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:160
 #: src/components/web_analytics/explore/CsvExportModal.tsx:98
 #: src/components/web_analytics/explore/ExploreSummary.tsx:75
 #: src/components/web_analytics/explore/ExploreTable.tsx:62
@@ -629,7 +629,7 @@ msgstr "{count, plural, one {# Benachrichtigung} other {# Benachrichtigungen}}"
 msgid "{count, plural, one {# recipient} other {# recipients}}"
 msgstr "{count, plural, one {# Empfänger} other {# Empfänger}}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:253
+#: src/components/broadcasts/BroadcastsTable.tsx:310
 msgid "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
 msgstr "{count, plural, one {A/B · # Variante} other {A/B · # Varianten}}"
 
@@ -845,7 +845,7 @@ msgstr "{label}: {value}, im Nachrichtenprotokoll ansehen"
 msgid "{label}: no data, view in the message log"
 msgstr "{label}: keine Daten, im Nachrichtenprotokoll ansehen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:827
+#: src/components/templates/CreateTemplateDrawer.tsx:828
 msgid "{langName} translation is missing required fields (subject and preview)"
 msgstr "Der Übersetzung {langName} fehlen erforderliche Felder (Betreff und Vorschau)"
 
@@ -1309,7 +1309,7 @@ msgstr "1 Vorlage"
 #~ msgid "1. Audience"
 #~ msgstr "1. Zielgruppe"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:917
+#: src/components/templates/CreateTemplateDrawer.tsx:918
 msgid "1. Settings"
 msgstr "1. Einstellungen"
 
@@ -1317,12 +1317,12 @@ msgstr "1. Einstellungen"
 msgid "100 - Thin"
 msgstr "100 - Dünn"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:923
+#: src/components/templates/CreateTemplateDrawer.tsx:924
 msgid "2. Template"
 msgstr "2. Vorlage"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:922
+#: src/components/templates/CreateTemplateDrawer.tsx:923
 msgid "2. Template ({0})"
 msgstr "2. Vorlage ({0})"
 
@@ -1343,7 +1343,7 @@ msgstr "24 Stunden"
 #~ msgid "3. Data Feeds"
 #~ msgstr "3. Daten-Feeds"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:929
+#: src/components/templates/CreateTemplateDrawer.tsx:930
 msgid "3. Translations"
 msgstr "3. Übersetzungen"
 
@@ -1476,7 +1476,7 @@ msgstr "Ein Liquid-Block kann nicht in einen Block mit Anzeigebedingung: Entfern
 msgid "a list"
 msgstr "eine Liste"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:460
+#: src/components/blog/ThemeEditorDrawer.tsx:461
 msgid "A newer draft was found in local storage. Would you like to restore it or discard it?"
 msgstr "Ein neuerer Entwurf wurde im lokalen Speicher gefunden. Möchten Sie ihn wiederherstellen oder verwerfen?"
 
@@ -1525,11 +1525,13 @@ msgid "A winner has been selected. Emails are being sent to the remaining recipi
 msgstr "Ein Gewinner wurde ausgewählt. E-Mails werden an die verbleibenden Empfänger gesendet."
 
 #: src/components/analytics/UpcomingSends.tsx:120
+#: src/components/broadcasts/BroadcastsTable.tsx:302
+#: src/components/broadcasts/BroadcastsTable.tsx:307
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:367
 msgid "A/B"
 msgstr "A/B"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:249
+#: src/components/broadcasts/BroadcastsTable.tsx:303
 msgid "A/B · {winnerName}"
 msgstr "A/B · {winnerName}"
 
@@ -1876,7 +1878,7 @@ msgstr "Schlüsselwörter hinzufügen..."
 msgid "Add node"
 msgstr "Knoten hinzufügen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:480
+#: src/components/blog/ThemeEditorDrawer.tsx:481
 msgid "Add notes about this version..."
 msgstr "Notizen zu dieser Version hinzufügen..."
 
@@ -2805,7 +2807,7 @@ msgstr "Attributionsregeln"
 #~ msgid "Attribution rules saved. Run a backfill to rewrite historical data."
 #~ msgstr ""
 
-#: src/components/broadcasts/BroadcastsTable.tsx:280
+#: src/components/broadcasts/BroadcastsTable.tsx:338
 #: src/components/broadcasts/compose/AudienceCard.tsx:61
 #: src/components/broadcasts/detail/BroadcastAside.tsx:136
 msgid "Audience"
@@ -2887,7 +2889,7 @@ msgstr "Autorenname ist erforderlich"
 msgid "Authorization Secret"
 msgstr "Autorisierungsgeheimnis"
 
-#: src/components/blog/PostDrawer.tsx:896
+#: src/components/blog/PostDrawer.tsx:897
 msgid "Authors"
 msgstr "Autoren"
 
@@ -3311,7 +3313,7 @@ msgstr "Block ersetzt. Laden Sie die Seite neu, um seinen neuen Inhalt in Ihren 
 msgid "Block saved. Reload the page to see it in your saved blocks."
 msgstr "Block gespeichert. Laden Sie die Seite neu, um ihn in Ihren gespeicherten Blöcken zu sehen."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1442
+#: src/components/templates/CreateTemplateDrawer.tsx:1443
 msgid "Block Settings Panel"
 msgstr "Block-Einstellungen"
 
@@ -3463,7 +3465,7 @@ msgstr "Unten Rechts"
 #: src/components/contacts/sheet/activityLabel.ts:23
 #: src/components/logs/labels.ts:71
 #: src/components/templates/templateCategories.ts:25
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:186
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:187
 msgid "Bounce"
 msgstr "Rückläufer"
 
@@ -3564,7 +3566,7 @@ msgid "Bounced or failed"
 msgstr "Zurückgewiesen oder fehlgeschlagen"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:150
-#: src/components/broadcasts/BroadcastsTable.tsx:327
+#: src/components/broadcasts/BroadcastsTable.tsx:385
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:109
 #: src/components/transactional/TransactionalTable.tsx:228
 msgid "Bounces"
@@ -3586,7 +3588,7 @@ msgstr "Brotkrümelnavigation"
 msgid "Breakdown by"
 msgstr "Aufschlüsselung nach"
 
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:94
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:95
 msgid "Breaking down by:"
 msgstr "Aufschlüsselung nach:"
 
@@ -3614,11 +3616,11 @@ msgstr "Kurze Beschreibung für Suchergebnisse"
 msgid "Brief description of this category"
 msgstr "Kurze Beschreibung dieser Kategorie"
 
-#: src/components/blog/PostDrawer.tsx:917
+#: src/components/blog/PostDrawer.tsx:918
 msgid "Brief summary of the post"
 msgstr "Kurze Zusammenfassung des Beitrags"
 
-#: src/components/blog/PostDrawer.tsx:913
+#: src/components/blog/PostDrawer.tsx:914
 msgid "Brief summary shown in post listings and previews"
 msgstr "Kurze Zusammenfassung in Beitragslisten und Vorschauen"
 
@@ -3627,7 +3629,7 @@ msgid "broadcast"
 msgstr "Kampagne"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:366
-#: src/components/broadcasts/BroadcastsTable.tsx:235
+#: src/components/broadcasts/BroadcastsTable.tsx:236
 #: src/components/messages/MessageHistoryTable.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:255
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:63
@@ -3767,12 +3769,12 @@ msgstr "Durchsuchen, filtern und exportieren Sie das Log unter Logs → Audit-Lo
 #~ msgid "Browse, filter and export the log under Logs → Audit."
 #~ msgstr "Durchsuchen, filtern und exportieren Sie das Log unter Logs → Audit."
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:252
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
 #: src/components/web_analytics/tabs/DashboardTab.tsx:236
 msgid "Browser"
 msgstr "Browser"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:251
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:252
 #: src/components/web_analytics/tabs/DashboardTab.tsx:235
 msgid "Browsers"
 msgstr "Browser"
@@ -3846,7 +3848,7 @@ msgstr "Rufen Sie identify() auf, sobald Sie wissen, wer der Besucher ist. Die S
 msgid "Campaign"
 msgstr "Kampagne"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:196
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:197
 #: src/components/web_analytics/tabs/DashboardTab.tsx:190
 #: src/pages/WebAnalyticsLivePage.tsx:196
 #: src/pages/WebAnalyticsLivePage.tsx:203
@@ -3866,14 +3868,14 @@ msgstr "Kampagnen"
 #: src/components/automations/list/AutomationsTable.tsx:86
 #: src/components/automations/nodes/BaseNode.tsx:59
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:115
-#: src/components/blog/PostDrawer.tsx:683
+#: src/components/blog/PostDrawer.tsx:684
 #: src/components/blog/PostsTable.tsx:213
 #: src/components/blog/PublishModal.tsx:205
 #: src/components/blog/RecentThemesTable.tsx:95
 #: src/components/blog/ThemeEditorDrawer.tsx:283
 #: src/components/blog/ThemeEditorDrawer.tsx:313
-#: src/components/blog/ThemeEditorDrawer.tsx:470
-#: src/components/broadcasts/BroadcastsTable.tsx:200
+#: src/components/blog/ThemeEditorDrawer.tsx:471
+#: src/components/broadcasts/BroadcastsTable.tsx:201
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:360
 #: src/components/broadcasts/compose/ContentCard.tsx:84
@@ -3940,7 +3942,7 @@ msgstr "Kampagnen"
 #: src/components/settings/WorkspaceMembers.tsx:204
 #: src/components/settings/WorkspaceMembers.tsx:551
 #: src/components/settings/WorkspaceMembers.tsx:613
-#: src/components/templates/CreateTemplateDrawer.tsx:740
+#: src/components/templates/CreateTemplateDrawer.tsx:741
 #: src/components/templates/DeleteTemplateModal.tsx:115
 #: src/components/templates/SendTemplateModal.tsx:319
 #: src/components/templates/TemplateTranslationsTab.tsx:344
@@ -4045,10 +4047,10 @@ msgstr "Großschreiben"
 msgid "Categories"
 msgstr "Kategorien"
 
-#: src/components/blog/PostDrawer.tsx:871
+#: src/components/blog/PostDrawer.tsx:872
 #: src/components/blog/PostsTable.tsx:312
-#: src/components/blog/ThemeEditorDrawer.tsx:429
-#: src/components/templates/CreateTemplateDrawer.tsx:1016
+#: src/components/blog/ThemeEditorDrawer.tsx:430
+#: src/components/templates/CreateTemplateDrawer.tsx:1017
 #: src/pages/TemplatesPage.tsx:410
 msgid "Category"
 msgstr "Kategorie"
@@ -4181,24 +4183,24 @@ msgstr "Domain ändern"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
 #: src/components/web_analytics/explore/DimensionSelector.tsx:97
 #: src/components/web_analytics/FilterBuilder.tsx:55
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:180
 #: src/components/web_analytics/tabs/DashboardTab.tsx:170
 msgid "Channel"
 msgstr "Kanal"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:186
 #: src/components/web_analytics/tabs/DashboardTab.tsx:176
 #: src/pages/WebAnalyticsLivePage.tsx:221
 msgid "Channel group"
 msgstr "Kanalgruppe"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:184
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
 #: src/components/web_analytics/tabs/DashboardTab.tsx:175
 msgid "Channel groups"
 msgstr "Kanalgruppen"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:178
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:179
 #: src/components/web_analytics/tabs/DashboardTab.tsx:169
 #: src/pages/WebAnalyticsLivePage.tsx:213
 #: src/pages/WebAnalyticsLivePage.tsx:220
@@ -4365,6 +4367,7 @@ msgstr "Klickrate"
 
 #: src/components/analytics/DashboardKpis.tsx:277
 #: src/components/broadcasts/BroadcastKpis.tsx:141
+#: src/components/broadcasts/BroadcastsTable.tsx:283
 #: src/components/broadcasts/compose/ContentCard.tsx:319
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:74
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:150
@@ -4477,7 +4480,7 @@ msgstr "Geklickte Links"
 #~ msgstr "Klicks"
 
 #: src/components/analytics/OriginVolumeChart.tsx:164
-#: src/components/broadcasts/BroadcastsTable.tsx:298
+#: src/components/broadcasts/BroadcastsTable.tsx:356
 #: src/components/broadcasts/detail/AbTestPanel.tsx:169
 #: src/components/broadcasts/detail/EngagementChart.tsx:86
 #: src/components/contacts/TrackingConsent.tsx:32
@@ -4585,7 +4588,7 @@ msgstr "Untertitel (CC)"
 msgid "Code"
 msgstr "Code"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1067
+#: src/components/templates/CreateTemplateDrawer.tsx:1068
 msgid "Code (MJML)"
 msgstr "Code (MJML)"
 
@@ -5139,7 +5142,7 @@ msgstr "Inhalt"
 msgid "Content quality by traffic source"
 msgstr "Inhaltsqualität nach Traffic-Quelle"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1428
+#: src/components/templates/CreateTemplateDrawer.tsx:1429
 msgid "Content Structure Tree"
 msgstr "Inhaltsstrukturbaum"
 
@@ -5286,11 +5289,11 @@ msgstr "Die Ziele konnten nicht geladen werden"
 msgid "Could not load the latest version. Please try again."
 msgstr "Die neueste Version konnte nicht geladen werden. Bitte versuchen Sie es erneut."
 
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:138
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:139
 msgid "Could not load this breakdown"
 msgstr "Diese Aufschlüsselung konnte nicht geladen werden"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:133
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:134
 msgid "Could not load this goal"
 msgstr "Dieses Ziel konnte nicht geladen werden"
 
@@ -5464,7 +5467,7 @@ msgstr "Gezählt aus den Zustellungs-Webhooks Ihrer Anbieter"
 msgid "Counting…"
 msgstr "Wird gezählt…"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:216
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:217
 #: src/components/web_analytics/tabs/DashboardTab.tsx:207
 msgid "Countries"
 msgstr "Länder"
@@ -5477,8 +5480,8 @@ msgstr "Länder"
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
 #: src/components/segment/segmentSummary.ts:40
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:224
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:232
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:225
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:233
 #: src/components/web_analytics/tabs/DashboardTab.tsx:215
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
 msgid "Country"
@@ -5510,7 +5513,7 @@ msgstr "Deckt mehr ab als Vorlagen: Wiederverwendbare Blöcke unterstehen demsel
 
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/blog/CategoryDrawer.tsx:116
-#: src/components/blog/PostDrawer.tsx:692
+#: src/components/blog/PostDrawer.tsx:693
 #: src/components/file_manager/FileExplorer.tsx:911
 #: src/components/lists/ListDrawer.tsx:198
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -6066,11 +6069,11 @@ msgstr "Benutzerdefinierter Zeitraum"
 msgid "Custom report"
 msgstr "Benutzerdefinierter Bericht"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1127
+#: src/components/templates/CreateTemplateDrawer.tsx:1128
 msgid "Custom sender (marketing email provider)"
 msgstr "Benutzerdefinierter Absender (Marketing-E-Mail-Anbieter)"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1127
+#: src/components/templates/CreateTemplateDrawer.tsx:1128
 msgid "Custom sender (transactional email provider)"
 msgstr "Benutzerdefinierter Absender (Transaktions-E-Mail-Anbieter)"
 
@@ -6283,7 +6286,7 @@ msgstr "Verzögerung"
 #: src/components/blog/DeleteCategoryModal.tsx:29
 #: src/components/blog/DeletePostModal.tsx:29
 #: src/components/blog/PostsTable.tsx:246
-#: src/components/broadcasts/BroadcastsTable.tsx:204
+#: src/components/broadcasts/BroadcastsTable.tsx:205
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:58
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:283
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:283
@@ -6798,14 +6801,14 @@ msgstr "Von der Website erkennen"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:67
 #: src/components/web_analytics/explore/DimensionSelector.tsx:101
 #: src/components/web_analytics/FilterBuilder.tsx:59
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:246
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:247
 #: src/components/web_analytics/tabs/DashboardTab.tsx:232
 #: src/pages/WebAnalyticsLivePage.tsx:192
 msgid "Device"
 msgstr "Gerät"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:238
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:239
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
 #: src/components/web_analytics/tabs/DashboardTab.tsx:232
 #: src/pages/WebAnalyticsLivePage.tsx:187
@@ -6887,7 +6890,7 @@ msgstr "Verwerfen"
 msgid "Discard changes"
 msgstr "Änderungen verwerfen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:458
+#: src/components/blog/ThemeEditorDrawer.tsx:459
 msgid "Discard Draft"
 msgstr "Entwurf verwerfen"
 
@@ -7026,7 +7029,7 @@ msgstr "Öffnungen und Klicks für diesen Broadcast nicht tracken"
 
 #: src/components/automations/config/ConditionsField.tsx:142
 #: src/components/settings/ZapierSettings.tsx:270
-#: src/components/templates/TemplateTranslationsTab.tsx:476
+#: src/components/templates/TemplateTranslationsTab.tsx:477
 msgid "Done"
 msgstr "Fertig"
 
@@ -7258,7 +7261,7 @@ msgstr "Jede Variante behält den Absender ihrer Vorlage, es sei denn, Sie wähl
 #: src/components/blog/BlogSidebar.tsx:86
 #: src/components/blog/PostsTable.tsx:225
 #: src/components/blog/PostsTable.tsx:229
-#: src/components/broadcasts/BroadcastsTable.tsx:197
+#: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:311
 #: src/components/contacts/ContactsTable.tsx:315
 #: src/components/email_builder/EmailBuilder.tsx:1054
@@ -7481,12 +7484,12 @@ msgstr "Bearbeitet {0}"
 #~ msgid "Edited {ago}"
 #~ msgstr "Bearbeitet {ago}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:119
+#: src/components/broadcasts/BroadcastsTable.tsx:120
 msgctxt "newsletter status"
 msgid "Edited {ago}"
 msgstr "Bearbeitet {ago}"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1057
+#: src/components/templates/CreateTemplateDrawer.tsx:1058
 msgid "Editor mode"
 msgstr "Editor-Modus"
 
@@ -7684,18 +7687,18 @@ msgstr "E-Mail gesendet: {name}"
 msgid "Email structure not applied"
 msgstr "E-Mail-Struktur nicht übernommen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1079
+#: src/components/templates/CreateTemplateDrawer.tsx:1080
 #: src/components/templates/TemplateTranslationsTab.tsx:366
 msgid "Email subject"
 msgstr "E-Mail-Betreff"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1145
+#: src/components/templates/CreateTemplateDrawer.tsx:1146
 #: src/components/templates/TemplateTranslationsTab.tsx:392
 msgid "Email Subject"
 msgstr "E-Mail-Betreff"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:1079
+#: src/components/templates/CreateTemplateDrawer.tsx:1080
 msgid "Email subject ({0})"
 msgstr "E-Mail-Betreff ({0})"
 
@@ -8336,7 +8339,7 @@ msgstr "Exakter Wert"
 msgid "exactly"
 msgstr "genau"
 
-#: src/components/blog/PostDrawer.tsx:912
+#: src/components/blog/PostDrawer.tsx:913
 msgid "Excerpt"
 msgstr "Auszug"
 
@@ -9123,7 +9126,7 @@ msgstr "falsch"
 msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 msgstr "Favicon für Ihren Blog. Empfohlen: 32x32px oder 192x192px PNG"
 
-#: src/components/blog/PostDrawer.tsx:923
+#: src/components/blog/PostDrawer.tsx:924
 msgid "Featured Image URL"
 msgstr "Beitragsbild-URL"
 
@@ -9289,7 +9292,7 @@ msgstr "Filter — zurückgesetzt"
 #~ msgid "Filters cleared"
 #~ msgstr ""
 
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:79
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:80
 msgid "Filters:"
 msgstr "Filter:"
 
@@ -9577,7 +9580,7 @@ msgstr "Volle Breite"
 msgid "Full width on mobile"
 msgstr "Volle Breite auf Mobilgeräten"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:412
+#: src/components/blog/ThemeEditorDrawer.tsx:413
 msgid "Fullscreen"
 msgstr "Vollbild"
 
@@ -9703,7 +9706,7 @@ msgstr "Ziel {goalName}"
 msgid "Goal conversions and their total value"
 msgstr "Zielkonversionen und ihr Gesamtwert"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:127
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:128
 msgid "Goal dashboard"
 msgstr "Ziel-Dashboard"
 
@@ -9731,7 +9734,7 @@ msgstr "Zieltypen: {0}"
 #~ msgstr "Ziel:"
 
 #: src/components/web_analytics/CountryMapView.tsx:69
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:266
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:267
 #: src/components/web_analytics/tabs/DashboardTab.tsx:246
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:347
@@ -9744,7 +9747,7 @@ msgstr "Ziele"
 #~ msgid "Goals by Channel"
 #~ msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:262
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:263
 msgid "Goals by day and hour"
 msgstr "Ziele nach Tag und Stunde"
 
@@ -9933,7 +9936,7 @@ msgstr "Eine Streaming-Unterhaltung mit dem konfigurierten LLM-Anbieter des Arbe
 msgid "Hold for drag"
 msgstr "Halten zum Ziehen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:420
+#: src/components/blog/ThemeEditorDrawer.tsx:421
 msgid "Home"
 msgstr "Startseite"
 
@@ -10012,11 +10015,11 @@ msgstr "Ich habe {maxRounds} Runden mit Tool-Aufrufen durchlaufen, ohne zu einer
 msgid "i.e: Big spenders..."
 msgstr "z.B.: Großkunden..."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:953
+#: src/components/templates/CreateTemplateDrawer.tsx:954
 msgid "i.e: Welcome Email"
 msgstr "z.B.: Willkommens-E-Mail"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1007
+#: src/components/templates/CreateTemplateDrawer.tsx:1008
 msgid "i.e: welcome-email"
 msgstr "z.B.: willkommens-email"
 
@@ -10090,7 +10093,7 @@ msgstr "ID muss alphanumerisch sein"
 msgid "ID must be less than 32 characters"
 msgstr "ID muss weniger als 32 Zeichen haben"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:977
+#: src/components/templates/CreateTemplateDrawer.tsx:978
 msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 msgstr "ID darf nur Kleinbuchstaben, Zahlen, Unterstriche und Bindestriche enthalten"
 
@@ -10200,7 +10203,7 @@ msgstr "Importieren"
 msgid "Import / Export"
 msgstr "Import / Export"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1471
+#: src/components/templates/CreateTemplateDrawer.tsx:1472
 msgid "Import & Export Templates"
 msgstr "Vorlagen importieren & exportieren"
 
@@ -11098,7 +11101,7 @@ msgstr "Links nach rechts"
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
 msgstr "Ermöglicht Benutzern die Anmeldung über einen externen Identitätsanbieter (Google Workspace, Keycloak, Okta, …) zusätzlich zu Magic Codes."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1424
+#: src/components/templates/CreateTemplateDrawer.tsx:1425
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 msgstr "Machen wir eine kurze Tour, um Ihnen den Einstieg in die Erstellung schöner E-Mails mit MJML zu erleichtern."
 
@@ -11259,7 +11262,7 @@ msgstr "Liquid zwischen den Blöcken eines Abschnitts oder einer Spalte landet m
 #: src/components/messages/MessageHistoryTable.tsx:158
 #: src/components/messages/MessageHistoryTable.tsx:285
 #: src/components/messages/MessageHistoryTable.tsx:299
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:231
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:232
 #: src/components/web_analytics/tabs/DashboardTab.tsx:220
 msgid "List"
 msgstr "Liste"
@@ -11511,7 +11514,7 @@ msgstr "Einrichtung wird geladen..."
 #~ msgid "Loading stats..."
 #~ msgstr "Statistiken werden geladen..."
 
-#: src/components/blog/PostDrawer.tsx:815
+#: src/components/blog/PostDrawer.tsx:816
 msgid "Loading template..."
 msgstr "Vorlage wird geladen..."
 
@@ -11704,7 +11707,7 @@ msgstr "Von Zapier verwaltet"
 msgid "Manual"
 msgstr "Manuell"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:223
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:224
 #: src/components/web_analytics/tabs/DashboardTab.tsx:214
 msgid "Map"
 msgstr "Karte"
@@ -11866,7 +11869,7 @@ msgstr "Medianwert"
 msgid "Medium"
 msgstr "Mittel"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:198
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:199
 #: src/components/web_analytics/tabs/DashboardTab.tsx:192
 msgid "Mediums"
 msgstr "Medien"
@@ -11975,7 +11978,7 @@ msgstr "Microsoft 365 / Office 365"
 msgid "Middle"
 msgstr "Mitte"
 
-#: src/components/blog/PostDrawer.tsx:889
+#: src/components/blog/PostDrawer.tsx:890
 msgid "min"
 msgstr "min"
 
@@ -12088,7 +12091,7 @@ msgstr "MJML-Validierung fehlgeschlagen"
 msgid "Mobile"
 msgstr "Mobil"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1456
+#: src/components/templates/CreateTemplateDrawer.tsx:1457
 msgid "Mobile & Desktop Preview"
 msgstr "Mobile & Desktop-Vorschau"
 
@@ -12139,7 +12142,7 @@ msgstr "Monatlich"
 #: src/components/automations/AutomationEditor.tsx:518
 #: src/components/automations/list/AutomationsTable.tsx:294
 #: src/components/blog/PostsTable.tsx:408
-#: src/components/broadcasts/BroadcastsTable.tsx:407
+#: src/components/broadcasts/BroadcastsTable.tsx:465
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:347
 #: src/components/contacts/ContactsViewHeader.tsx:137
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
@@ -12405,8 +12408,8 @@ msgid "Newsletters that may still send, transactional notifications, automations
 msgstr "Newsletter, die noch gesendet werden können, Transaktionsbenachrichtigungen, Automatisierungen und Double-Opt-in-Listen. Segmentfilter auf eine Vorlage werden nicht gezählt."
 
 #: src/components/layout/DrawerControls.tsx:50
-#: src/components/templates/CreateTemplateDrawer.tsx:745
-#: src/components/templates/CreateTemplateDrawer.tsx:766
+#: src/components/templates/CreateTemplateDrawer.tsx:746
+#: src/components/templates/CreateTemplateDrawer.tsx:767
 msgid "Next"
 msgstr "Weiter"
 
@@ -12532,7 +12535,7 @@ msgstr "Keine passenden Kampagnen"
 msgid "No broadcasts yet"
 msgstr "Noch keine Kampagnen"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:193
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:194
 #: src/components/web_analytics/tabs/DashboardTab.tsx:187
 #: src/pages/WebAnalyticsLivePage.tsx:199
 msgid "No campaign data"
@@ -12602,7 +12605,7 @@ msgid "No content yet"
 msgstr "Noch kein Inhalt"
 
 #: src/components/web_analytics/CountryMapView.tsx:165
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:218
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:219
 #: src/components/web_analytics/tabs/DashboardTab.tsx:209
 msgid "No country data"
 msgstr "Keine Länderdaten"
@@ -12644,7 +12647,7 @@ msgstr "Kein Standard-Absender konfiguriert"
 msgid "No delivery events"
 msgstr "Keine Zustellungsereignisse"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:241
 #: src/pages/WebAnalyticsLivePage.tsx:190
 msgid "No device data"
 msgstr "Keine Gerätedaten"
@@ -12706,7 +12709,7 @@ msgstr "Keine Dateien entsprechen Ihrer Suche"
 #~ msgid "No files selected"
 #~ msgstr "Keine Dateien ausgewählt"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:264
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:265
 msgid "No goal data"
 msgstr "Keine Zieldaten"
 
@@ -12957,7 +12960,7 @@ msgstr "Keine Einstellungen für den Attribut-Container verfügbar."
 msgid "No settings available for the head element."
 msgstr "Keine Einstellungen für das Head-Element verfügbar."
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:168
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:169
 msgid "No source data"
 msgstr "Keine Quellendaten"
 
@@ -12982,7 +12985,7 @@ msgstr "Keine erfolgreiche Zustellung"
 msgid "No template chosen"
 msgstr "Keine Vorlage gewählt"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:260
+#: src/components/broadcasts/BroadcastsTable.tsx:320
 #: src/components/broadcasts/detail/BroadcastAside.tsx:90
 msgid "No template yet"
 msgstr "Noch keine Vorlage"
@@ -13095,7 +13098,7 @@ msgstr "Nicht aktiv"
 #: src/components/email_builder/ui/FontStyleInput.tsx:136
 #: src/components/integrations/LLMIntegration.tsx:229
 #: src/components/transactional/TransactionalDetail.tsx:383
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:81
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:82
 msgid "None"
 msgstr "Keine"
 
@@ -13343,7 +13346,7 @@ msgstr "notifuse-…"
 #: src/components/broadcasts/compose/SendingCard.tsx:88
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:165
 #: src/components/broadcasts/detail/EngagementChart.tsx:74
-#: src/components/templates/CreateTemplateDrawer.tsx:1147
+#: src/components/templates/CreateTemplateDrawer.tsx:1148
 #: src/components/templates/TemplateTranslationsTab.tsx:394
 msgid "Now"
 msgstr "Jetzt"
@@ -13647,6 +13650,7 @@ msgstr "Öffnungsrate"
 #: src/components/analytics/DashboardKpis.tsx:276
 #: src/components/automations/list/AutomationsTable.tsx:246
 #: src/components/broadcasts/BroadcastKpis.tsx:140
+#: src/components/broadcasts/BroadcastsTable.tsx:283
 #: src/components/broadcasts/compose/ContentCard.tsx:318
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:62
 #: src/components/contacts/sheet/ContactKpis.tsx:43
@@ -13721,7 +13725,7 @@ msgstr "Hat eine E-Mail geöffnet"
 #~ msgstr "Öffnungen"
 
 #: src/components/analytics/OriginVolumeChart.tsx:163
-#: src/components/broadcasts/BroadcastsTable.tsx:285
+#: src/components/broadcasts/BroadcastsTable.tsx:343
 #: src/components/broadcasts/detail/AbTestPanel.tsx:168
 #: src/components/broadcasts/detail/EngagementChart.tsx:86
 #: src/components/contacts/TrackingConsent.tsx:29
@@ -13881,8 +13885,8 @@ msgstr "Organisches Social"
 msgid "Origin"
 msgstr "Herkunft"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
 #: src/components/web_analytics/tabs/DashboardTab.tsx:239
 #: src/components/web_analytics/tabs/DashboardTab.tsx:239
 msgid "OS"
@@ -14065,9 +14069,9 @@ msgstr "Pfadstil-Zugriff"
 
 #: src/components/automations/AutomationEditor.tsx:495
 #: src/components/automations/AutomationEditor.tsx:537
-#: src/components/broadcasts/BroadcastsTable.tsx:198
-#: src/components/broadcasts/BroadcastsTable.tsx:395
-#: src/components/broadcasts/BroadcastsTable.tsx:399
+#: src/components/broadcasts/BroadcastsTable.tsx:199
+#: src/components/broadcasts/BroadcastsTable.tsx:453
+#: src/components/broadcasts/BroadcastsTable.tsx:457
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:315
 #: src/components/contacts/BulkActionProgressModal.tsx:50
 #: src/components/contacts/BulkUpdateDrawer.tsx:586
@@ -14343,7 +14347,7 @@ msgstr "Wiedergabeoptionen"
 msgid "Playback Options"
 msgstr "Wiedergabeoptionen"
 
-#: src/components/blog/PostDrawer.tsx:901
+#: src/components/blog/PostDrawer.tsx:902
 msgid "Please add at least one author"
 msgstr "Bitte fügen Sie mindestens einen Autor hinzu"
 
@@ -14355,7 +14359,7 @@ msgstr "Bitte fügen Sie mindestens einen Absender hinzu, bevor Sie speichern"
 #~ msgid "Please check the form for errors"
 #~ msgstr "Bitte überprüfen Sie das Formular auf Fehler"
 
-#: src/components/blog/PostDrawer.tsx:704
+#: src/components/blog/PostDrawer.tsx:705
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:287
 msgid "Please check the form for errors."
 msgstr "Bitte überprüfen Sie das Formular auf Fehler."
@@ -14412,7 +14416,7 @@ msgstr "Bitte geben Sie einen Namen ein"
 msgid "Please enter a notification name"
 msgstr "Bitte geben Sie einen Benachrichtigungsnamen ein"
 
-#: src/components/blog/PostDrawer.tsx:804
+#: src/components/blog/PostDrawer.tsx:805
 msgid "Please enter a post title"
 msgstr "Bitte geben Sie einen Beitragstitel ein"
 
@@ -14425,7 +14429,7 @@ msgstr "Bitte geben Sie einen Eigenschaftsnamen ein"
 #~ msgstr ""
 
 #: src/components/blog/CategoryDrawer.tsx:145
-#: src/components/blog/PostDrawer.tsx:855
+#: src/components/blog/PostDrawer.tsx:856
 msgid "Please enter a slug"
 msgstr "Bitte geben Sie einen Slug ein"
 
@@ -14494,7 +14498,7 @@ msgstr "Bitte geben Sie eine E-Mail-Adresse ein"
 msgid "Please enter integration name"
 msgstr "Bitte geben Sie den Integrationsnamen ein"
 
-#: src/components/blog/PostDrawer.tsx:887
+#: src/components/blog/PostDrawer.tsx:888
 msgid "Please enter reading time"
 msgstr "Bitte geben Sie die Lesezeit ein"
 
@@ -14515,7 +14519,7 @@ msgstr "Bitte geben Sie den Magic-Code ein!"
 msgid "Please input your email!"
 msgstr "Bitte geben Sie Ihre E-Mail-Adresse ein!"
 
-#: src/components/blog/PostDrawer.tsx:872
+#: src/components/blog/PostDrawer.tsx:873
 msgid "Please select a category"
 msgstr "Bitte wählen Sie eine Kategorie"
 
@@ -14634,7 +14638,7 @@ msgid "Port must be 1-65535"
 msgstr "Der Port muss zwischen 1 und 65535 liegen"
 
 #: src/components/blog/PostsTable.tsx:277
-#: src/components/blog/ThemeEditorDrawer.tsx:438
+#: src/components/blog/ThemeEditorDrawer.tsx:439
 msgid "Post"
 msgstr "Beitrag"
 
@@ -14650,7 +14654,7 @@ msgstr "Beitrag erfolgreich gelöscht"
 msgid "Post published successfully"
 msgstr "Beitrag erfolgreich veröffentlicht"
 
-#: src/components/blog/PostDrawer.tsx:809
+#: src/components/blog/PostDrawer.tsx:810
 msgid "Post title"
 msgstr "Beitragstitel"
 
@@ -14788,7 +14792,7 @@ msgstr "Vorschautext"
 msgid "Preview Text Settings"
 msgstr "Vorschautext-Einstellungen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1146
+#: src/components/templates/CreateTemplateDrawer.tsx:1147
 #: src/components/templates/TemplateTranslationsTab.tsx:393
 msgid "Preview text will appear here..."
 msgstr "Vorschautext erscheint hier..."
@@ -14809,13 +14813,13 @@ msgstr "Die Vorschau erscheint hier nach der Kompilierung"
 msgid "Preview with test data"
 msgstr "Vorschau mit Testdaten"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1449
+#: src/components/templates/CreateTemplateDrawer.tsx:1450
 msgid "Preview Your Email"
 msgstr "Ihre E-Mail vorschauen"
 
 #: src/components/layout/DrawerControls.tsx:40
-#: src/components/templates/CreateTemplateDrawer.tsx:750
-#: src/components/templates/CreateTemplateDrawer.tsx:771
+#: src/components/templates/CreateTemplateDrawer.tsx:751
+#: src/components/templates/CreateTemplateDrawer.tsx:772
 msgid "Previous"
 msgstr "Vorherige"
 
@@ -15271,7 +15275,7 @@ msgstr "Zapier-Einrichtungsanleitung lesen"
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:886
+#: src/components/blog/PostDrawer.tsx:887
 msgid "Reading Time"
 msgstr "Lesezeit"
 
@@ -15355,7 +15359,7 @@ msgstr "Feed-Test für Empfänger erfolgreich abgeschlossen"
 msgid "recipient@example.com"
 msgstr "empfaenger@beispiel.de"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:282
+#: src/components/broadcasts/BroadcastsTable.tsx:340
 msgid "Recipients"
 msgstr "Empfänger"
 
@@ -15424,7 +15428,7 @@ msgstr "Redirect-URI"
 
 #: src/components/automations/AutomationEditor.tsx:481
 #: src/components/blog_editor/components/EditorHeader.tsx:69
-#: src/components/blog/PostDrawer.tsx:678
+#: src/components/blog/PostDrawer.tsx:679
 #: src/components/email_builder/EmailBuilder.tsx:1041
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
 msgid "Redo"
@@ -15442,7 +15446,7 @@ msgstr "Wiederholen ({redoKeys})"
 msgid "Referral traffic"
 msgstr "Verweis-Traffic"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:173
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:174
 #: src/components/web_analytics/tabs/DashboardTab.tsx:164
 #: src/pages/WebAnalyticsLivePage.tsx:178
 msgid "Referrer domain"
@@ -15452,7 +15456,7 @@ msgstr "Verweis-Domain"
 #~ msgid "Referrer:"
 #~ msgstr "Verweisquelle:"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:172
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:173
 #: src/components/web_analytics/tabs/DashboardTab.tsx:163
 #: src/pages/WebAnalyticsLivePage.tsx:177
 msgid "Referrers"
@@ -15812,7 +15816,7 @@ msgstr "Die Antwortweiterleitung ist eingerichtet. Für eingehende Antworten mü
 #~ msgid "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
 #~ msgstr ""
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1118
+#: src/components/templates/CreateTemplateDrawer.tsx:1119
 #: src/components/templates/TemplatePreviewDrawer.tsx:335
 msgid "Reply to"
 msgstr "Antwort an"
@@ -15980,12 +15984,12 @@ msgstr "Server neu starten?"
 msgid "Restore"
 msgstr "Wiederherstellen"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:457
+#: src/components/blog/ThemeEditorDrawer.tsx:458
 msgid "Restore Draft"
 msgstr "Entwurf wiederherstellen"
 
 #: src/components/blog/PostDrawer.tsx:293
-#: src/components/blog/ThemeEditorDrawer.tsx:453
+#: src/components/blog/ThemeEditorDrawer.tsx:454
 msgid "Restore Draft?"
 msgstr "Entwurf wiederherstellen?"
 
@@ -16018,7 +16022,7 @@ msgstr "Ergebnisse"
 msgid "Results:"
 msgstr "Ergebnisse:"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:199
+#: src/components/broadcasts/BroadcastsTable.tsx:200
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:322
 #: src/components/contacts/BulkActionProgressModal.tsx:55
 #: src/components/contacts/BulkUpdateDrawer.tsx:414
@@ -16095,12 +16099,12 @@ msgstr "Hat die fehlgeschlagenen Sendungen des Newsletters <0>{target}</0> erneu
 msgid "Retry"
 msgstr "Erneut versuchen"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:201
+#: src/components/broadcasts/BroadcastsTable.tsx:202
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:335
 msgid "Retry failed"
 msgstr "Fehlgeschlagene wiederholen"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:203
+#: src/components/broadcasts/BroadcastsTable.tsx:204
 msgid "Retry failed…"
 msgstr "Fehlgeschlagene wiederholen…"
 
@@ -16332,9 +16336,9 @@ msgstr "Sandbox-Modus"
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/blog/CategoryDrawer.tsx:116
-#: src/components/blog/PostDrawer.tsx:692
+#: src/components/blog/PostDrawer.tsx:693
 #: src/components/blog/ThemeEditorDrawer.tsx:321
-#: src/components/blog/ThemeEditorDrawer.tsx:469
+#: src/components/blog/ThemeEditorDrawer.tsx:470
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:137
 #: src/components/contacts/ContactUpsertDrawer.tsx:517
 #: src/components/contacts/InlineEditableField.tsx:311
@@ -16355,8 +16359,8 @@ msgstr "Sandbox-Modus"
 #: src/components/settings/Integrations.tsx:2311
 #: src/components/settings/SystemSettingsDrawer.tsx:245
 #: src/components/settings/WebhooksSettings.tsx:501
-#: src/components/templates/CreateTemplateDrawer.tsx:761
-#: src/components/templates/CreateTemplateDrawer.tsx:782
+#: src/components/templates/CreateTemplateDrawer.tsx:762
+#: src/components/templates/CreateTemplateDrawer.tsx:783
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:219
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -16423,7 +16427,7 @@ msgstr "Speichern Sie zuerst die Kampagne"
 msgid "Save the selected block"
 msgstr "Ausgewählten Block speichern"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:465
+#: src/components/blog/ThemeEditorDrawer.tsx:466
 msgid "Save Theme"
 msgstr "Theme speichern"
 
@@ -16814,7 +16818,7 @@ msgstr "Block auswählen, um seine Attribute zu bearbeiten"
 msgid "Select a broadcast"
 msgstr "Kampagne auswählen"
 
-#: src/components/blog/PostDrawer.tsx:875
+#: src/components/blog/PostDrawer.tsx:876
 msgid "Select a category"
 msgstr "Kategorie auswählen"
 
@@ -16919,7 +16923,7 @@ msgstr "AWS-Region auswählen"
 #~ msgid "Select Block to Update"
 #~ msgstr "Block zum Aktualisieren auswählen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1020
+#: src/components/templates/CreateTemplateDrawer.tsx:1021
 msgid "Select category"
 msgstr "Kategorie auswählen"
 
@@ -17142,8 +17146,8 @@ msgstr "Ausgewählte Dimensionen, in dieser Reihenfolge:"
 msgid "Selected: {0}"
 msgstr "Ausgewählt: {0}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:384
-#: src/components/broadcasts/BroadcastsTable.tsx:388
+#: src/components/broadcasts/BroadcastsTable.tsx:442
+#: src/components/broadcasts/BroadcastsTable.tsx:446
 msgid "Send"
 msgstr "Senden"
 
@@ -17272,7 +17276,7 @@ msgstr "Senden Sie Ihren ersten Newsletter an eine Liste"
 
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:56
 #: src/components/broadcasts/compose/ContentCard.tsx:128
-#: src/components/templates/CreateTemplateDrawer.tsx:1074
+#: src/components/templates/CreateTemplateDrawer.tsx:1075
 #: src/components/templates/SendTemplateModal.tsx:354
 #: src/pages/TemplatesPage.tsx:437
 msgid "Sender"
@@ -17287,7 +17291,7 @@ msgstr "Absender"
 msgid "Sender changed. You can now resume the broadcast."
 msgstr "Absender geändert. Sie können die Kampagne jetzt fortsetzen."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1144
+#: src/components/templates/CreateTemplateDrawer.tsx:1145
 #: src/components/templates/TemplateTranslationsTab.tsx:391
 msgid "Sender Name"
 msgstr "Absendername"
@@ -17332,7 +17336,7 @@ msgid "Sending"
 msgstr "Wird gesendet"
 
 #: src/components/analytics/SendingCard.tsx:39
-#: src/components/broadcasts/BroadcastsTable.tsx:281
+#: src/components/broadcasts/BroadcastsTable.tsx:339
 #: src/components/broadcasts/compose/SendingCard.tsx:47
 #: src/components/broadcasts/compose/SendingCard.tsx:85
 #: src/components/settings/SettingsSidebar.tsx:27
@@ -17556,7 +17560,7 @@ msgstr "Sitzung"
 
 #: src/components/web_analytics/CountryMapView.tsx:66
 #: src/components/web_analytics/DimensionTableWidget.tsx:90
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:165
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:166
 #: src/components/web_analytics/explore/CsvExportModal.tsx:45
 #: src/components/web_analytics/explore/ExploreSummary.tsx:49
 #: src/components/web_analytics/explore/ExploreTable.tsx:89
@@ -17579,7 +17583,7 @@ msgstr "Sitzungen (Änderung %)"
 msgid "Sessions (previous)"
 msgstr "Sitzungen (vorheriger Zeitraum)"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:347
+#: src/components/broadcasts/BroadcastsTable.tsx:405
 msgid "Sessions from the broadcast's UTM campaign, from the day it was sent to 7 days after it completed."
 msgstr "Sitzungen aus der UTM-Kampagne der Kampagne, vom Versandtag bis 7 Tage nach Abschluss."
 
@@ -17975,7 +17979,7 @@ msgstr "Website-Besuch"
 msgid "Site visits"
 msgstr "Website-Besuche"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:348
+#: src/components/broadcasts/BroadcastsTable.tsx:406
 msgctxt "table column"
 msgid "Site visits"
 msgstr "Besuche"
@@ -18002,17 +18006,17 @@ msgid "Slots"
 msgstr "Plätze"
 
 #: src/components/blog/CategoryDrawer.tsx:143
-#: src/components/blog/PostDrawer.tsx:853
+#: src/components/blog/PostDrawer.tsx:854
 msgid "Slug"
 msgstr "Slug"
 
 #: src/components/blog/CategoryDrawer.tsx:150
-#: src/components/blog/PostDrawer.tsx:860
+#: src/components/blog/PostDrawer.tsx:861
 msgid "Slug must be less than 100 characters"
 msgstr "Slug muss weniger als 100 Zeichen haben"
 
 #: src/components/blog/CategoryDrawer.tsx:148
-#: src/components/blog/PostDrawer.tsx:858
+#: src/components/blog/PostDrawer.tsx:859
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "Slug darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten"
 
@@ -18220,7 +18224,7 @@ msgstr "Quelle {0} nicht gefunden"
 #~ msgid "Source:"
 #~ msgstr "Quelle:"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:197
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:198
 #: src/components/web_analytics/tabs/DashboardTab.tsx:191
 msgid "Sources"
 msgstr "Quellen"
@@ -18241,7 +18245,7 @@ msgstr "SparkPost"
 msgid "SparkPost API Key"
 msgstr "SparkPost-API-Schlüssel"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:411
+#: src/components/blog/ThemeEditorDrawer.tsx:412
 msgid "Split"
 msgstr "Aufteilen"
 
@@ -18302,7 +18306,7 @@ msgstr "Beginnen Sie zu tippen..."
 msgid "Start Upload"
 msgstr "Upload starten"
 
-#: src/components/blog/PostDrawer.tsx:822
+#: src/components/blog/PostDrawer.tsx:823
 msgid "Start writing your blog post..."
 msgstr "Beginnen Sie, Ihren Blog-Beitrag zu schreiben..."
 
@@ -18357,7 +18361,7 @@ msgstr "Statistiken erscheinen, sobald der Versand der Kampagne beginnt"
 #: src/components/automations/list/AutomationsTable.tsx:114
 #: src/components/blog/PostsTable.tsx:324
 #: src/components/blog/RecentThemesTable.tsx:115
-#: src/components/broadcasts/BroadcastsTable.tsx:222
+#: src/components/broadcasts/BroadcastsTable.tsx:223
 #: src/components/broadcasts/detail/BroadcastAside.tsx:234
 #: src/components/logs/MessagesTab.tsx:672
 #: src/components/logs/OutgoingWebhooksTab.tsx:139
@@ -18466,7 +18470,7 @@ msgstr "Betreff · {defaultName}"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
 #: src/components/logs/MessageDetail.tsx:645
-#: src/components/templates/CreateTemplateDrawer.tsx:1097
+#: src/components/templates/CreateTemplateDrawer.tsx:1098
 #: src/components/templates/TemplatePreviewDrawer.tsx:394
 #: src/components/templates/TemplateTranslationsTab.tsx:375
 msgid "Subject preview"
@@ -18477,7 +18481,7 @@ msgid "Subject preview · {defaultName}"
 msgstr "Vorschautext · {defaultName}"
 
 #. placeholder {0}: workspace.settings.default_language
-#: src/components/templates/CreateTemplateDrawer.tsx:1097
+#: src/components/templates/CreateTemplateDrawer.tsx:1098
 msgid "Subject preview ({0})"
 msgstr "Betreff-Vorschau ({0})"
 
@@ -18683,7 +18687,7 @@ msgstr "Unterstützte Sprachen"
 msgid "Supports reply_to, cc, bcc, and attachments"
 msgstr "Unterstützt reply_to, cc, bcc und Anhänge"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1451
+#: src/components/templates/CreateTemplateDrawer.tsx:1452
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "Wechseln Sie in den Vorschaumodus, um zu sehen, wie Ihre E-Mail für Empfänger aussehen wird. Dies zeigt die endgültige gerenderte Version mit allen angewendeten Stilen."
 
@@ -18711,7 +18715,7 @@ msgstr "Systemeinstellungen"
 msgid "System SMTP"
 msgstr "System-SMTP"
 
-#: src/components/blog/PostDrawer.tsx:745
+#: src/components/blog/PostDrawer.tsx:746
 msgid "Table of Contents"
 msgstr "Inhaltsverzeichnis"
 
@@ -18846,7 +18850,7 @@ msgstr "Vorlagendaten"
 msgid "Template Data"
 msgstr "Vorlagendaten"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1463
+#: src/components/templates/CreateTemplateDrawer.tsx:1464
 msgid "Template Data & Liquid Templating"
 msgstr "Vorlagendaten & Liquid-Templating"
 
@@ -18862,15 +18866,15 @@ msgstr "Vorlagenfehler"
 msgid "Template ID"
 msgstr "Vorlagen-ID"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:969
+#: src/components/templates/CreateTemplateDrawer.tsx:970
 msgid "Template ID (utm_content)"
 msgstr "Vorlagen-ID (utm_content)"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:997
+#: src/components/templates/CreateTemplateDrawer.tsx:998
 msgid "Template ID already exists"
 msgstr "Vorlagen-ID existiert bereits"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:981
+#: src/components/templates/CreateTemplateDrawer.tsx:982
 msgid "Template ID must be at most {TEMPLATE_ID_MAX_LENGTH} characters long"
 msgstr "Vorlagen-ID darf höchstens {TEMPLATE_ID_MAX_LENGTH} Zeichen lang sein"
 
@@ -18882,11 +18886,11 @@ msgstr "Vorlagen-ID jeder Variante"
 msgid "Template imported successfully"
 msgstr "Vorlage erfolgreich importiert"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:943
+#: src/components/templates/CreateTemplateDrawer.tsx:944
 msgid "Template name"
 msgstr "Vorlagenname"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:948
+#: src/components/templates/CreateTemplateDrawer.tsx:949
 msgid "Template name must be at most {TEMPLATE_NAME_MAX_LENGTH} characters long"
 msgstr "Vorlagenname darf höchstens {TEMPLATE_NAME_MAX_LENGTH} Zeichen lang sein"
 
@@ -18961,8 +18965,8 @@ msgstr "Vorlagen, die diesen Block bereits enthalten, ändern sich nicht."
 msgid "Templates using this sender will need to be updated to use a different sender."
 msgstr "Vorlagen, die diesen Absender verwenden, müssen aktualisiert werden, um einen anderen Absender zu verwenden."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1093
-#: src/components/templates/CreateTemplateDrawer.tsx:1111
+#: src/components/templates/CreateTemplateDrawer.tsx:1094
+#: src/components/templates/CreateTemplateDrawer.tsx:1112
 msgid "Templating markup allowed"
 msgstr "Templating-Markup erlaubt"
 
@@ -19026,6 +19030,7 @@ msgstr "Testdaten erfolgreich aktualisiert"
 msgid "Test deliveries are unavailable here: Zapier's hook URLs always answer with success, so a test would report a green tick even for a Zap that no longer exists."
 msgstr "Testzustellungen sind hier nicht verfügbar: Die Hook-URLs von Zapier antworten immer mit Erfolg, sodass ein Test selbst für einen nicht mehr existierenden Zap ein grünes Häkchen melden würde."
 
+#: src/components/broadcasts/BroadcastsTable.tsx:288
 #: src/components/broadcasts/compose/ContentCard.tsx:324
 #: src/components/broadcasts/compose/ContentCard.tsx:326
 msgid "Test duration (hours)"
@@ -19040,7 +19045,7 @@ msgstr "E-Mail-Anbieter testen"
 msgid "Test email sent successfully"
 msgstr "Test-E-Mail erfolgreich gesendet"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:140
+#: src/components/broadcasts/BroadcastsTable.tsx:141
 msgid "Test ends in {duration}"
 msgstr "Test endet in {duration}"
 
@@ -19073,6 +19078,7 @@ msgstr "Empfänger-Feed testen"
 msgid "Test rule"
 msgstr "Regel testen"
 
+#: src/components/broadcasts/BroadcastsTable.tsx:275
 #: src/components/broadcasts/compose/ContentCard.tsx:278
 #: src/components/broadcasts/compose/ContentCard.tsx:285
 msgid "Test sample"
@@ -19283,15 +19289,15 @@ msgstr "Das derzeit veröffentlichte Theme wird automatisch zurückgezogen."
 msgid "The custom text could not be used, the automatic version is sent instead: {previewTextError}"
 msgstr "Der eigene Text konnte nicht verwendet werden, stattdessen wird die automatische Version gesendet: {previewTextError}"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:865
+#: src/components/templates/CreateTemplateDrawer.tsx:866
 msgid "The custom text version ({languages}) has no confirmation link. Add {CONFIRM_VARIABLE} so recipients can confirm their subscription."
 msgstr "Die eigene Textversion ({languages}) hat keinen Bestätigungslink. Fügen Sie {CONFIRM_VARIABLE} hinzu, damit Empfänger ihr Abonnement bestätigen können."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:866
+#: src/components/templates/CreateTemplateDrawer.tsx:867
 msgid "The custom text version ({languages}) has no unsubscribe link. Add {UNSUBSCRIBE_VARIABLE} so recipients can unsubscribe."
 msgstr "Die eigene Textversion ({languages}) hat keinen Abmeldelink. Fügen Sie {UNSUBSCRIBE_VARIABLE} hinzu, damit Empfänger sich abmelden können."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1058
+#: src/components/templates/CreateTemplateDrawer.tsx:1059
 msgid "The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML."
 msgstr "Der Editor-Modus kann nach dem Erstellen der Vorlage nicht mehr geändert werden. Um den anderen Editor zu verwenden, erstellen Sie eine neue Vorlage und übernehmen Sie den Inhalt mit „MJML importieren“ oder „MJML exportieren“."
 
@@ -19707,7 +19713,7 @@ msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "Diese Kampagne ist aufgrund eines Fehlers fehlgeschlagen. Einzelheiten finden Sie in den Protokollen."
 
 #: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:79
-#: src/components/broadcasts/BroadcastsTable.tsx:357
+#: src/components/broadcasts/BroadcastsTable.tsx:415
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:194
 msgid "This broadcast has no UTM campaign, so its website traffic can't be identified"
 msgstr "Diese Kampagne hat keine UTM-Kampagne, daher kann ihr Website-Traffic nicht identifiziert werden"
@@ -19790,7 +19796,7 @@ msgstr "Dieser Dateityp kann hier nicht verwendet werden"
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
 msgstr "Dieser Hook blockiert niemals die Supabase-Benutzererstellung bei Fehlern. Wenn jedoch 'Wegwerf-E-Mail-Adressen ablehnen' aktiviert ist und eine Wegwerf-E-Mail erkannt wird, wird die Benutzeranmeldung von Supabase abgelehnt."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:996
+#: src/components/templates/CreateTemplateDrawer.tsx:997
 msgid "This ID belongs to a deleted template and can't be reused"
 msgstr "Diese ID gehört zu einer gelöschten Vorlage und kann nicht wiederverwendet werden"
 
@@ -19811,7 +19817,7 @@ msgstr "Dieses Bild konnte nicht geladen werden"
 msgid "This invitation link is invalid or has expired."
 msgstr "Dieser Einladungslink ist ungültig oder abgelaufen."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:970
+#: src/components/templates/CreateTemplateDrawer.tsx:971
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "Dies ist die ID, die als utm_content-Parameter in der Link-URL verwendet wird, um die Vorlage zu verfolgen"
 
@@ -19819,11 +19825,11 @@ msgstr "Dies ist die ID, die als utm_content-Parameter in der Link-URL verwendet
 msgid "This is where delivery statistics live, not under Broadcasts: a key that may create and send a broadcast still cannot read its open, click or bounce numbers without Message History read. The log carries recipient addresses and the rendered message data, so it is contact data by another name."
 msgstr "Hier liegen die Zustellstatistiken, nicht unter Kampagnen: Ein Schlüssel, der eine Kampagne erstellen und senden darf, kann deren Öffnungs-, Klick- oder Rückläuferzahlen dennoch nicht lesen, ohne Leserecht für Nachrichtenverlauf. Das Protokoll enthält Empfängeradressen und die gerenderten Nachrichtendaten — es sind also Kontaktdaten unter anderem Namen."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1430
+#: src/components/templates/CreateTemplateDrawer.tsx:1431
 msgid "This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another."
 msgstr "Dies ist Ihr Inhaltsstrukturbaum. Sie können Blöcke per Drag & Drop ziehen, um Ihr E-Mail-Layout neu zu organisieren. Klicken Sie auf die +-Schaltflächen, um neue Blöcke hinzuzufügen, oder ziehen Sie Blöcke von einem Abschnitt in einen anderen."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1437
+#: src/components/templates/CreateTemplateDrawer.tsx:1438
 msgid "This is your visual email editor. Click on any element in your email to select it. Selected elements will be highlighted with a blue border and show editing options."
 msgstr "Dies ist Ihr visueller E-Mail-Editor. Klicken Sie auf ein beliebiges Element in Ihrer E-Mail, um es auszuwählen. Ausgewählte Elemente werden mit einem blauen Rahmen hervorgehoben und zeigen Bearbeitungsoptionen."
 
@@ -20089,7 +20095,7 @@ msgid "Times in {timezone}"
 msgstr "Zeiten in {timezone}"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:91
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:172
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:173
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
 #: src/components/web_analytics/explore/ExploreTable.tsx:122
 #: src/components/web_analytics/FilterBuilder.tsx:82
@@ -20160,7 +20166,7 @@ msgstr "Tipps für effektiven Vorschautext:"
 #~ msgid "Tips for fixing these errors:"
 #~ msgstr "Tipps zur Behebung dieser Fehler:"
 
-#: src/components/blog/PostDrawer.tsx:802
+#: src/components/blog/PostDrawer.tsx:803
 #: src/components/blog/PostsTable.tsx:548
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:409
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
@@ -20177,7 +20183,7 @@ msgstr "Titel ist erforderlich"
 msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
 msgstr "Der Titel darf höchstens {MAX_TITLE_LENGTH} Zeichen lang sein"
 
-#: src/components/blog/PostDrawer.tsx:805
+#: src/components/blog/PostDrawer.tsx:806
 msgid "Title must be less than 500 characters"
 msgstr "Titel muss weniger als 500 Zeichen haben"
 
@@ -20271,7 +20277,7 @@ msgstr "Heute, bisher"
 msgid "TODO"
 msgstr "TODO"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1458
+#: src/components/templates/CreateTemplateDrawer.tsx:1459
 msgid "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
 msgstr "Wechseln Sie zwischen mobiler und Desktop-Ansicht, um zu sehen, wie Ihre E-Mail auf verschiedenen Geräten aussieht. Die mobile Ansicht zeigt eine Breite von 400px, während die Desktop-Ansicht die volle Breite zeigt."
 
@@ -20301,7 +20307,7 @@ msgstr "Tooltip-Text"
 msgid "Top"
 msgstr "Oben"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:191
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
 #: src/components/web_analytics/tabs/DashboardTab.tsx:185
 msgid "Top Campaigns"
 msgstr "Top-Kampagnen"
@@ -20335,7 +20341,7 @@ msgstr "Top-Verweisquellen"
 msgid "Top Right"
 msgstr "Oben Rechts"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:166
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:167
 #: src/components/web_analytics/tabs/DashboardTab.tsx:158
 msgid "Top Sources"
 msgstr "Top-Quellen"
@@ -20638,7 +20644,7 @@ msgstr "Die Qualität der Verweise verstehen"
 
 #: src/components/automations/AutomationEditor.tsx:478
 #: src/components/blog_editor/components/EditorHeader.tsx:55
-#: src/components/blog/PostDrawer.tsx:671
+#: src/components/blog/PostDrawer.tsx:672
 #: src/components/email_builder/EmailBuilder.tsx:982
 #: src/components/email_builder/EmailBuilder.tsx:1033
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
@@ -20781,7 +20787,7 @@ msgstr "nicht gesetzt"
 #~ msgid "Unsub"
 #~ msgstr "Abm."
 
-#: src/components/broadcasts/BroadcastsTable.tsx:311
+#: src/components/broadcasts/BroadcastsTable.tsx:369
 msgid "Unsub."
 msgstr "Abm."
 
@@ -21133,11 +21139,11 @@ msgstr "Den Schriftnamen in Textelementen verwenden:"
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "Verwenden Sie die Speichern-Schaltfläche in der Block-Werkzeugleiste, um Blöcke zu speichern"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1465
+#: src/components/templates/CreateTemplateDrawer.tsx:1466
 msgid "Use the Template Data tab to define dynamic content for your emails. Add variables like {{ name }} or {{ company }} in your email content, then define their values here. The Liquid templating engine supports conditionals, loops, and filters for powerful personalization."
 msgstr "Verwenden Sie die Registerkarte Vorlagendaten, um dynamische Inhalte für Ihre E-Mails zu definieren. Fügen Sie Variablen wie {{ name }} oder {{ company }} in Ihren E-Mail-Inhalt ein und definieren Sie dann hier deren Werte. Die Liquid-Template-Engine unterstützt Bedingungen, Schleifen und Filter für leistungsstarke Personalisierung."
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1473
+#: src/components/templates/CreateTemplateDrawer.tsx:1474
 msgid "Use this button to import saved email templates or export your finished emails. You can import JSON/MJML templates or export as HTML, MJML, or JSON for future use."
 msgstr "Verwenden Sie diese Schaltfläche, um gespeicherte E-Mail-Vorlagen zu importieren oder Ihre fertigen E-Mails zu exportieren. Sie können JSON/MJML-Vorlagen importieren oder als HTML, MJML oder JSON für zukünftige Verwendung exportieren."
 
@@ -21340,6 +21346,7 @@ msgstr "Variante {variant}: Absender {senderId} existiert nicht mehr"
 msgid "Variant name"
 msgstr "Variantenname"
 
+#: src/components/broadcasts/BroadcastsTable.tsx:253
 #: src/components/broadcasts/compose/ContentCard.tsx:120
 msgid "Variants"
 msgstr "Varianten"
@@ -21365,7 +21372,7 @@ msgstr "Einladung wird überprüft..."
 msgid "Version"
 msgstr "Version"
 
-#: src/components/blog/ThemeEditorDrawer.tsx:475
+#: src/components/blog/ThemeEditorDrawer.tsx:476
 msgid "VERSION NOTES (OPTIONAL)"
 msgstr "VERSIONSHINWEISE (OPTIONAL)"
 
@@ -21526,11 +21533,11 @@ msgstr "Besucher werden von mehr als einer SDK-Version erfasst ({0} neben {newes
 msgid "Visits show up once the visitor is identified"
 msgstr "Besuche erscheinen, sobald der Besucher identifiziert ist"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1066
+#: src/components/templates/CreateTemplateDrawer.tsx:1067
 msgid "Visual"
 msgstr "Visuell"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1435
+#: src/components/templates/CreateTemplateDrawer.tsx:1436
 msgid "Visual Email Editor"
 msgstr "Visueller E-Mail-Editor"
 
@@ -21738,7 +21745,7 @@ msgid "Website preview"
 msgstr "Website-Vorschau"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:168
-#: src/components/broadcasts/BroadcastsTable.tsx:211
+#: src/components/broadcasts/BroadcastsTable.tsx:212
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:297
 msgid "Website traffic"
 msgstr "Website-Traffic"
@@ -21795,7 +21802,7 @@ msgstr "Gewicht"
 msgid "Welcome"
 msgstr "Willkommen"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1422
+#: src/components/templates/CreateTemplateDrawer.tsx:1423
 msgid "Welcome to Email Builder!"
 msgstr "Willkommen im E-Mail-Builder!"
 
@@ -21872,7 +21879,7 @@ msgstr "Wenn deaktiviert (empfohlen), können sich nur bereits eingeladene Benut
 msgid "When to send"
 msgstr "Versandzeitpunkt"
 
-#: src/components/templates/CreateTemplateDrawer.tsx:1444
+#: src/components/templates/CreateTemplateDrawer.tsx:1445
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Wenn Sie einen Block auswählen, erscheinen seine Einstellungen hier. Ändern Sie Farben, Text, Abstände, Ausrichtung und andere Eigenschaften, um Ihr E-Mail-Design anzupassen."
 
@@ -21926,11 +21933,13 @@ msgstr "Wird ab Zeile {0} fortgesetzt"
 #~ msgid "Winner"
 #~ msgstr "Gewinner"
 
+#: src/components/broadcasts/BroadcastsTable.tsx:267
 #: src/components/broadcasts/detail/AbTestPanel.tsx:143
 msgctxt "newsletter A/B"
 msgid "Winner"
 msgstr "Gewinner"
 
+#: src/components/broadcasts/BroadcastsTable.tsx:281
 #: src/components/broadcasts/compose/ContentCard.tsx:314
 msgid "Winner metric"
 msgstr "Gewinnerkennzahl"
@@ -22290,7 +22299,7 @@ msgstr "Sie haben keine Berechtigung, Webhooks anzusehen"
 msgid "You don't have write permission for automations"
 msgstr "Sie haben keine Schreibberechtigung für Automatisierungen"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:90
+#: src/components/broadcasts/BroadcastsTable.tsx:91
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:366
 #: src/components/broadcasts/detail/AbTestPanel.tsx:200
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:177
