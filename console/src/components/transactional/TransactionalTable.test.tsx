@@ -195,8 +195,11 @@ describe('TransactionalTable', () => {
 
     expectRefused(entry(menu, 'Delete'))
     expect(within(entry(menu, 'Delete')).getByText("Managed by Supabase: it can't be deleted")).toBeInTheDocument()
-    // The label of the integration stands next to the name.
-    expect(screen.getAllByText('Supabase').length).toBeGreaterThan(0)
+    // The integration's icon stands next to the name, in place of a label
+    const row = screen.getByText('Name managed').closest('tr') as HTMLElement
+    const icon = within(row).getByRole('img', { name: 'Managed by Supabase (supabase integration)' })
+    expect(icon.querySelector('img')).toHaveAttribute('src', '/console/supabase.png')
+    expect(within(row).queryByText('Supabase')).not.toBeInTheDocument()
   })
 
   it('keeps the template preview disabled until the template is read', async () => {
@@ -272,9 +275,64 @@ describe('TransactionalTable', () => {
 
     fireEvent.click(within(row).getByRole('button', { name: 'API command' }))
     expect(actions.onOpen).not.toHaveBeenCalled()
+    // Nor from the padding around the buttons
+    fireEvent.click(within(row).getByRole('button', { name: 'API command' }).closest('td') as HTMLElement)
+    expect(actions.onOpen).not.toHaveBeenCalled()
     fireEvent.click(within(row).getByText('Tpl'))
     expect(actions.onOpen).toHaveBeenCalledTimes(1)
     // The link is the row's keyboard stop, not the row itself.
     expect(row).not.toHaveAttribute('tabindex')
+  })
+
+  it('shows the row buttons on every row, hidden by no class of their own', () => {
+    renderTable([notification('welcome'), notification('reset')])
+    for (const name of ['Name welcome', 'Name reset']) {
+      const row = screen.getByText(name).closest('tr') as HTMLElement
+      const buttons = ['Send test', 'API command', 'More actions'].map((label) =>
+        within(row).getByRole('button', { name: label })
+      )
+      // jsdom applies no Tailwind: the classes and styles, from each button up to its row, are what would
+      // hide them, a variant such as max-sm:hidden included
+      for (const button of buttons) {
+        for (let node: HTMLElement | null = button; node && node !== row.parentElement; node = node.parentElement) {
+          expect(node.getAttribute('class') ?? '').not.toMatch(/opacity-|invisible|(^|\s|:)hidden/)
+          expect(node.style.opacity).not.toBe('0')
+          expect(node.style.visibility).not.toBe('hidden')
+          expect(node.style.display).not.toBe('none')
+        }
+      }
+    }
+  })
+
+  it('puts the pill of a deleted template under its name, which keeps the column to itself', () => {
+    const deleted: TemplateState = {
+      status: 'ok',
+      template: { id: 'tpl', name: 'Tpl', deleted_at: '2026-11-01T00:00:00Z' } as never
+    }
+    renderTable([notification('welcome')], full, handlers(), new Map([['tpl', deleted]]))
+    const name = screen.getByText('Tpl')
+    const stack = name.parentElement as HTMLElement
+    expect(stack).toHaveClass('flex-col')
+    // Short in the list, « Deleted template » in its tooltip and for screen readers
+    expect(within(stack).getByText('Deleted')).toHaveAttribute('aria-hidden', 'true')
+    expect(within(stack).getByText('Deleted template. This notification still sends with it')).toHaveClass('sr-only')
+    // The name first, the pill after it
+    expect(stack.firstElementChild).toBe(name)
+  })
+
+  it('fixes the widths of the template and figure columns and leaves the rest to the name', () => {
+    renderTable([notification('welcome')])
+    const widths = [...document.querySelectorAll('table colgroup col')].map((col) => (col as HTMLElement).style.width)
+    expect(widths).toEqual(['', '120px', '84px', '110px', '106px', '106px', '62px', '70px', '120px', '96px'])
+    // Fixed, so a long name truncates rather than widen its column
+    const table = document.querySelector('table') as HTMLElement
+    expect(table.style.tableLayout).toBe('fixed')
+    // Scrolls rather than squeeze the name: the fixed widths above plus the name's 120 px minimum
+    expect(table.style.width).toBe('994px')
+    // The actions stay pinned to the right edge while it scrolls
+    const actions = within(screen.getByText('Name welcome').closest('tr') as HTMLElement)
+      .getByRole('button', { name: 'More actions' })
+      .closest('td')
+    expect(actions).toHaveClass('ant-table-cell-fix-end')
   })
 })

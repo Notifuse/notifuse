@@ -16,16 +16,24 @@ const EDIT_DRAWER = 'Edit notification'
 const notificationRow = (page: Page, notificationName: string): Locator =>
   page.locator('tr').filter({ has: page.getByText(notificationName, { exact: true }) })
 
-// A button of a row, shown when the row is hovered.
-const rowAction = async (page: Page, notificationName: string, label: string): Promise<Locator> => {
-  const row = notificationRow(page, notificationName)
-  await row.hover()
-  return row.getByRole('button', { name: label, exact: true })
-}
+// A button of a row, shown on every row without hovering it.
+const rowAction = (page: Page, notificationName: string, label: string): Locator =>
+  notificationRow(page, notificationName).getByRole('button', { name: label, exact: true })
+
+// The opacity an element is drawn with: its own times every ancestor's, since opacity is not inherited
+// and toBeVisible() counts an element at opacity 0 as visible.
+const drawnOpacity = (locator: Locator): Promise<number> =>
+  locator.evaluate((element) => {
+    let opacity = 1
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      opacity *= Number(getComputedStyle(node).opacity)
+    }
+    return opacity
+  })
 
 // Opens the edit drawer of an existing notification from its row menu and returns it.
 const openEditDrawer = async (page: Page, notificationName: string): Promise<Locator> => {
-  await (await rowAction(page, notificationName, 'More actions')).click()
+  await rowAction(page, notificationName, 'More actions').click()
   await page.getByRole('menuitem', { name: 'Edit', exact: true }).click()
   const drawer = page.getByRole('dialog', { name: EDIT_DRAWER })
   await expect(drawer).toBeVisible()
@@ -67,6 +75,23 @@ test.describe('Transactional Notifications Feature', () => {
       await expect(notificationRow(page, 'Order Confirmation')).toBeVisible()
       await expect(notificationRow(page, 'Account Verification')).toBeVisible()
       await expect(page.getByText('3 notifications', { exact: true })).toBeVisible()
+    })
+
+    test('shows the row actions without hovering the row', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+      // The pointer on the empty page below the table, away from the rows and from the sidebar's hover
+      const viewport = page.viewportSize()
+      if (viewport) await page.mouse.move(viewport.width - 10, viewport.height - 10)
+
+      for (const label of ['Send test', 'API command', 'More actions']) {
+        const button = rowAction(page, 'Password Reset', label)
+        await expect(button).toBeVisible()
+        // Polled, in case a fade of the table is still running when the page settles
+        await expect.poll(() => drawnOpacity(button)).toBe(1)
+      }
     })
   })
 
@@ -224,7 +249,7 @@ test.describe('Transactional Notifications Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
       await waitForLoading(page)
 
-      await (await rowAction(page, 'Password Reset', 'API command')).click()
+      await rowAction(page, 'Password Reset', 'API command').click()
 
       const modal = page.getByRole('dialog', { name: 'API Command' })
       await expect(modal).toBeVisible()
