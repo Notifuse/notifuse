@@ -93,6 +93,21 @@ func (mr *MockTaskRepositoryMockRecorder) DeleteAll(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAll", reflect.TypeOf((*MockTaskRepository)(nil).DeleteAll), arg0, arg1)
 }
 
+// DeleteBroadcastTasksTx mocks base method.
+func (m *MockTaskRepository) DeleteBroadcastTasksTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBroadcastTasksTx", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteBroadcastTasksTx indicates an expected call of DeleteBroadcastTasksTx.
+func (mr *MockTaskRepositoryMockRecorder) DeleteBroadcastTasksTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBroadcastTasksTx", reflect.TypeOf((*MockTaskRepository)(nil).DeleteBroadcastTasksTx), arg0, arg1, arg2, arg3)
+}
+
 // Get mocks base method.
 func (m *MockTaskRepository) Get(arg0 context.Context, arg1, arg2 string) (*domain.Task, error) {
 	m.ctrl.T.Helper()

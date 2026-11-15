@@ -157,6 +157,7 @@ var AuditedActions = map[string]AuditActionSpec{
 	"broadcasts.pause":            {Category: AuditCategoryBroadcasts, TargetType: AuditTargetBroadcast, TargetKey: "id"},
 	"broadcasts.resume":           {Category: AuditCategoryBroadcasts, TargetType: AuditTargetBroadcast, TargetKey: "id"},
 	"broadcasts.cancel":           {Category: AuditCategoryBroadcasts, TargetType: AuditTargetBroadcast, TargetKey: "id"},
+	"broadcasts.unschedule":       {Category: AuditCategoryBroadcasts, TargetType: AuditTargetBroadcast, TargetKey: "id"},
 	"broadcasts.delete":           {Category: AuditCategoryBroadcasts, TargetType: AuditTargetBroadcast, TargetKey: "id"},
 	"broadcasts.retryFailed":      {Category: AuditCategoryBroadcasts, TargetType: AuditTargetBroadcast, TargetKey: "id"},
 	"broadcasts.selectWinner":     {Category: AuditCategoryBroadcasts, TargetType: AuditTargetBroadcast, TargetKey: "id"},

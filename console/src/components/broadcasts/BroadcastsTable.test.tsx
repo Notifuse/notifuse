@@ -77,6 +77,18 @@ const renderTable = (over: Partial<BroadcastsTableProps>) =>
   )
 
 describe('BroadcastsTable', () => {
+  it('offers Back to draft before Cancel in the menu of a scheduled broadcast not yet sending', async () => {
+    const onAction = vi.fn()
+    const scheduled = broadcast({ status: 'scheduled' } as Partial<Broadcast>)
+    renderTable({ rows: [scheduled], onAction, permissions: { broadcasts: { read: true, write: true } } as never })
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    const back = await screen.findByText('Back to draft')
+    const cancel = screen.getByText('Cancel')
+    expect(back.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(back)
+    expect(onAction).toHaveBeenCalledWith('unschedule', scheduled)
+  })
+
   it('scrolls below the width that leaves the Broadcast column its minimum', () => {
     expect(BROADCAST_NAME_MIN_WIDTH).toBe(200)
     expect(tableWidth(renderTable({}).container)).toBe('1094px')

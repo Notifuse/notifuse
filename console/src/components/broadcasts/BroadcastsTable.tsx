@@ -197,6 +197,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     if (actions.edit) guarded('edit', t`Edit`, () => onCompose(b))
     if (actions.pause) guarded('pause', t`Pause`, () => onAction('pause', b))
     if (actions.resume) guarded('resume', t`Resume`, () => onAction('resume', b))
+    if (actions.unschedule) guarded('unschedule', t`Back to draft`, () => onAction('unschedule', b))
     if (actions.cancel) guarded('cancel', t`Cancel`, () => onAction('cancel', b))
     if (actions.retryFailed) guarded('retry', t`Retry failed`, () => onAction('retryFailed', b))
     else if ((b.status === 'processed' || b.status === 'failed') && !verdict && l2Failed > 0)

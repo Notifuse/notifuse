@@ -2123,3 +2123,51 @@ func TestBroadcastRepository_UpdatesKeepTheStoredStartedAt(t *testing.T) {
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
+
+// TestBroadcastRepository_HasSendActivityTx reads the queue and the message history of the
+// broadcast, within the caller's transaction.
+func TestBroadcastRepository_HasSendActivityTx(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	repo := NewBroadcastRepository(mocks.NewMockWorkspaceRepository(ctrl))
+
+	const query = `SELECT\s+EXISTS \(SELECT 1 FROM email_queue WHERE source_type = \$1 AND source_id = \$2\)\s+OR EXISTS \(SELECT 1 FROM message_history WHERE broadcast_id = \$2\)`
+
+	for _, tc := range []struct {
+		name   string
+		active bool
+	}{
+		{"a broadcast with emails queued or sent", true},
+		{"a broadcast with none", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+			mock.ExpectBegin()
+			mock.ExpectQuery(query).
+				WithArgs("broadcast", "bc123").
+				WillReturnRows(sqlmock.NewRows([]string{"active"}).AddRow(tc.active))
+			tx, err := db.Begin()
+			require.NoError(t, err)
+
+			active, err := repo.HasSendActivityTx(context.Background(), tx, "bc123")
+			require.NoError(t, err)
+			assert.Equal(t, tc.active, active)
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("a failed read", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mock.ExpectBegin()
+		mock.ExpectQuery(query).WithArgs("broadcast", "bc123").WillReturnError(errors.New("db down"))
+		tx, err := db.Begin()
+		require.NoError(t, err)
+
+		_, err = repo.HasSendActivityTx(context.Background(), tx, "bc123")
+		require.ErrorContains(t, err, "db down")
+	})
+}

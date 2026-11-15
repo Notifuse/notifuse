@@ -39,6 +39,7 @@ export const AUDIT_PHRASES: Record<string, MessageDescriptor> = {
   'broadcasts.schedule': msg({ message: 'Scheduled the newsletter <0>{target}</0>' }),
   'broadcasts.selectWinner': msg({ message: 'Picked the winning version of the newsletter <0>{target}</0>' }),
   'broadcasts.sendToIndividual': msg({ message: 'Sent the newsletter <0>{target}</0> to one recipient' }),
+  'broadcasts.unschedule': msg({ message: 'Sent the newsletter <0>{target}</0> back to draft' }),
   'broadcasts.update': msg({ message: 'Updated the newsletter <0>{target}</0>' }),
   'contacts.delete': msg({ message: 'Deleted the contact <0>{target}</0>' }),
   'contacts.export': msg({ message: 'Exported contacts' }),

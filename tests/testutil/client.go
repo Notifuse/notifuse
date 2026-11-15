@@ -402,6 +402,11 @@ func (c *APIClient) CancelBroadcast(request map[string]interface{}) (*http.Respo
 	return c.Post("/api/broadcasts.cancel", request)
 }
 
+// UnscheduleBroadcast sends a scheduled broadcast back to draft
+func (c *APIClient) UnscheduleBroadcast(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/broadcasts.unschedule", request)
+}
+
 // DeleteBroadcast deletes a broadcast
 func (c *APIClient) DeleteBroadcast(request map[string]interface{}) (*http.Response, error) {
 	return c.Post("/api/broadcasts.delete", request)

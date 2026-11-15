@@ -18,7 +18,14 @@ vi.mock('../../../services/api/broadcast', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../services/api/broadcast')>()
   return {
     ...actual,
-    broadcastApi: { get: vi.fn(), getTestResults: vi.fn(), delete: vi.fn(), pause: vi.fn(), selectWinner: vi.fn() }
+    broadcastApi: {
+      get: vi.fn(),
+      getTestResults: vi.fn(),
+      delete: vi.fn(),
+      pause: vi.fn(),
+      selectWinner: vi.fn(),
+      unschedule: vi.fn()
+    }
   }
 })
 vi.mock('../../../services/api/client', async () => ({
@@ -251,6 +258,29 @@ describe('BroadcastDetail', () => {
     expect(await screen.findByRole('button', { name: /Pause/ })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('offers Back to draft beside Cancel on a scheduled broadcast not yet sending, and confirms it', async () => {
+    ;(broadcastApi.get as Mock).mockResolvedValue({
+      broadcast: broadcastOf({ status: 'scheduled', started_at: undefined, completed_at: undefined })
+    })
+    ;(broadcastApi.unschedule as Mock).mockResolvedValue({ success: true })
+    renderDetail()
+    // Cancel stays: the server may still refuse going back to draft.
+    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Back to draft' }))
+    expect(broadcastApi.unschedule).not.toHaveBeenCalled()
+    await userEvent.click(await screen.findByRole('button', { name: 'Yes, back to draft' }))
+    await waitFor(() => expect(broadcastApi.unschedule).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'bc1' }))
+  })
+
+  it('offers Cancel, not Back to draft, on a scheduled broadcast that has started sending', async () => {
+    ;(broadcastApi.get as Mock).mockResolvedValue({
+      broadcast: broadcastOf({ status: 'scheduled', started_at: '2026-11-15T09:00:00Z', completed_at: undefined })
+    })
+    renderDetail()
+    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Back to draft' })).not.toBeInTheDocument()
   })
 
   it('opens the test modal on the single template', async () => {

@@ -70,6 +70,14 @@ type broadcastSvcDeps struct {
 	svc                *BroadcastService
 }
 
+// runsInTx lets the repository's transaction wrapper run its function, with no real
+// transaction: the Tx methods are mocked.
+func runsInTx(d *broadcastSvcDeps, workspaceID string) {
+	d.repo.EXPECT().WithTransaction(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+	)
+}
+
 func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -875,8 +883,10 @@ func TestBroadcastService_UpdateBroadcast_Success(t *testing.T) {
 	existing := testBroadcast(req.WorkspaceID, req.ID)
 	existing.Status = domain.BroadcastStatusDraft
 
-	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(existing, nil)
-	d.repo.EXPECT().UpdateBroadcast(ctx, gomock.Any()).Return(nil)
+	runsInTx(d, req.WorkspaceID)
+
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(existing, nil)
+	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	updated, err := d.svc.UpdateBroadcast(ctx, req)
 	require.NoError(t, err)
@@ -1087,7 +1097,9 @@ func TestBroadcastService_UpdateBroadcast_GetBroadcastFailure(t *testing.T) {
 	req := &domain.UpdateBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 	authOK(d.authService, ctx, req.WorkspaceID)
 
-	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(nil, errors.New("not found"))
+	runsInTx(d, req.WorkspaceID)
+
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(nil, errors.New("not found"))
 
 	_, err := d.svc.UpdateBroadcast(ctx, req)
 	require.Error(t, err)
@@ -1107,7 +1119,8 @@ func TestBroadcastService_UpdateBroadcast_ValidationFailure(t *testing.T) {
 	authOK(d.authService, ctx, req.WorkspaceID)
 
 	existing := testBroadcast(req.WorkspaceID, req.ID)
-	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(existing, nil)
+	runsInTx(d, req.WorkspaceID)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(existing, nil)
 
 	_, err := d.svc.UpdateBroadcast(ctx, req)
 	require.Error(t, err)
@@ -1132,8 +1145,9 @@ func TestBroadcastService_UpdateBroadcast_RepositoryFailure(t *testing.T) {
 	authOK(d.authService, ctx, req.WorkspaceID)
 
 	existing := testBroadcast(req.WorkspaceID, req.ID)
-	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(existing, nil)
-	d.repo.EXPECT().UpdateBroadcast(ctx, gomock.Any()).Return(errors.New("db error"))
+	runsInTx(d, req.WorkspaceID)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(existing, nil)
+	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("db error"))
 
 	_, err := d.svc.UpdateBroadcast(ctx, req)
 	require.Error(t, err)

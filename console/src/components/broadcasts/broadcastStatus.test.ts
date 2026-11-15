@@ -250,8 +250,26 @@ describe('availableActions', () => {
   it('offers edit and delete on a draft', () => {
     expect(on(availableActions({ status: 'draft' }))).toEqual(['edit', 'delete'])
   })
-  it('offers edit and cancel on a scheduled broadcast', () => {
-    expect(on(availableActions({ status: 'scheduled' }))).toEqual(['edit', 'cancel'])
+  it('offers edit, cancel and back to draft on a scheduled broadcast that has not started', () => {
+    expect(on(availableActions({ status: 'scheduled' }))).toEqual(['edit', 'cancel', 'unschedule'])
+  })
+  it('offers cancel, not back to draft, on a scheduled broadcast that has started sending', () => {
+    expect(on(availableActions({ status: 'scheduled', started_at: '2026-11-15T09:00:00Z' }))).toEqual(['edit', 'cancel'])
+  })
+  it('offers cancel, not back to draft, on a scheduled broadcast with emails out but no start date', () => {
+    const out = { remaining: 9, processed: 0, enqueuedCount: 10, sentCount: 0, failedCount: 0, inFlight: 10 }
+    expect(on(availableActions({ status: 'scheduled' }, undefined, out))).toEqual(['edit', 'cancel'])
+    const sent = { remaining: 0, processed: 1, enqueuedCount: 0, sentCount: 1, failedCount: 0 }
+    expect(on(availableActions({ status: 'scheduled' }, undefined, sent))).toEqual(['edit', 'cancel'])
+  })
+  it('keeps back to draft with an empty progress', () => {
+    const none = { remaining: 0, processed: 0, enqueuedCount: 0, sentCount: 0, failedCount: 0, inFlight: 0 }
+    expect(on(availableActions({ status: 'scheduled' }, undefined, none))).toEqual(['edit', 'cancel', 'unschedule'])
+  })
+  it('offers back to draft on no other status', () => {
+    for (const status of ['draft', 'processing', 'paused', 'processed', 'failed', 'cancelled'] as const) {
+      expect(availableActions({ status }).unschedule).toBe(false)
+    }
   })
   it('offers pause and cancel while sending, whether processing or draining', () => {
     expect(on(availableActions({ status: 'processing' }))).toEqual(['pause', 'cancel'])

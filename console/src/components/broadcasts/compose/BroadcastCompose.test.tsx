@@ -19,7 +19,7 @@ vi.mock('../../../services/api/client', async () => ({
 }))
 vi.mock('../../../services/api/broadcast', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../services/api/broadcast')>()),
-  broadcastApi: { get: vi.fn(), create: vi.fn(), update: vi.fn(), schedule: vi.fn(), estimateAudience: vi.fn() }
+  broadcastApi: { get: vi.fn(), create: vi.fn(), update: vi.fn(), schedule: vi.fn(), estimateAudience: vi.fn(), unschedule: vi.fn() }
 }))
 vi.mock('../../../services/api/template', () => ({ templatesApi: { get: vi.fn() } }))
 vi.mock('../../../services/api/list', () => ({ listsApi: { list: vi.fn() } }))
@@ -258,6 +258,27 @@ describe('BroadcastCompose', () => {
     const payload = (broadcastApi.update as Mock).mock.calls[0][0]
     expect(payload).toMatchObject({ id: 'bc1', name: 'News fixed' })
     expect(payload).not.toHaveProperty('schedule')
+  })
+
+  it('sends a scheduled broadcast back to draft once confirmed, and not while it has unsaved changes', async () => {
+    ;(broadcastApi.get as Mock).mockResolvedValue({
+      broadcast: stored({ status: 'scheduled', schedule: { is_scheduled: true, scheduled_date: '2030-01-02', scheduled_time: '09:00', timezone: 'UTC', use_recipient_timezone: false } })
+    })
+    ;(broadcastApi.unschedule as Mock).mockResolvedValue({ success: true })
+    renderCompose()
+    const name = await screen.findByRole('textbox', { name: 'Broadcast name' })
+    const back = await screen.findByRole('button', { name: 'Back to draft' })
+    expect(back).toBeEnabled()
+
+    // An unsaved change first: going back to draft reads the broadcast again and would drop it.
+    fireEvent.change(name, { target: { value: 'News fixed' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Back to draft' })).toBeDisabled())
+    fireEvent.change(name, { target: { value: 'News' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Back to draft' })).toBeEnabled())
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to draft' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Yes, back to draft' }))
+    await waitFor(() => expect(broadcastApi.unschedule).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'bc1' }))
   })
 
   it('shows the refusal of Save changes on a scheduled broadcast', async () => {
