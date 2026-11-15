@@ -4119,12 +4119,15 @@ func TestWebhookNodeExecutor_Execute_BoundedByItsTimeout(t *testing.T) {
 
 		executor := NewWebhookNodeExecutor(setupMockLoggerForNodeExecutor(ctrl), &http.Client{})
 		executor.timeout = 50 * time.Millisecond
-		start := time.Now()
-		result, err := executor.Execute(context.Background(), webhookNodeTestParams(map[string]interface{}{"url": server.URL}))
+		var result *NodeExecutionResult
+		err := sendWithin(t, 5*time.Second, func() error {
+			var err error
+			result, err = executor.Execute(context.Background(), webhookNodeTestParams(map[string]interface{}{"url": server.URL}))
+			return err
+		})
 		assert.Nil(t, result)
 		require.Error(t, err)
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
-		assert.Less(t, time.Since(start), 2*time.Second)
 	})
 }
 

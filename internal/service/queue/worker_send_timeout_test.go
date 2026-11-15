@@ -12,8 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Every claimed row has SendTimeout from its claim to the provider's answer, so a send in flight
-// when a stop begins ends within the stop's grace, and is never cut by it.
+// Every claimed row has SendTimeout from its claim to the provider's answer, so its send ends
+// before the row could be reclaimed and sent again. A stop cancels the sends still running at
+// the end of its grace.
 func TestEmailQueueWorker_SendTimeout(t *testing.T) {
 	const sendTimeout = 100 * time.Millisecond
 	newTest := func(t *testing.T, rows ...*domain.EmailQueueEntry) *laneTest {

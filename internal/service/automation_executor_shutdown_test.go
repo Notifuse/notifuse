@@ -279,8 +279,9 @@ func TestAutomationExecutor_ProcessBatch_ShutdownLetsAWebhookNodeUseItsTimeout(t
 		if atomic.AddInt32(&hits, 1) == 1 {
 			close(arrived)
 		}
-		// Answers just under the node's timeout, counted from the stop.
-		time.Sleep(timeout - 20*time.Millisecond)
+		// Answers within the node's timeout, counted from the stop, and after the drain this
+		// change replaces (20 s, a fifth of a second here).
+		time.Sleep(timeout - 50*time.Millisecond)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()

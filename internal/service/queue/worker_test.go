@@ -2830,7 +2830,7 @@ func TestEmailQueueWorker_Stop(t *testing.T) {
 		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
 			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
 				close(started)
-				time.Sleep(300 * time.Millisecond) // like SMTP, deaf to its context
+				time.Sleep(300 * time.Millisecond) // a provider that does not answer to its context
 				return nil
 			})
 

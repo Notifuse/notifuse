@@ -51,6 +51,19 @@ func TestTaskService_RunsOutsideTheScheduler(t *testing.T) {
 		assert.ErrorIs(t, ctx.Err(), context.Canceled)
 	})
 
+	t.Run("a run's end leaves its context to the work it handed off", func(t *testing.T) {
+		svc, _ := newRunsTestService(t)
+		stopCtx, stop := context.WithCancel(context.Background())
+		defer stop()
+		svc.SetShutdownContext(stopCtx)
+
+		ctx, done, ok := svc.BeginRun(context.Background())
+		require.True(t, ok)
+		done()
+		assert.NoError(t, ctx.Err(), "the HTTP dispatches a cron run started outlive it")
+		assert.True(t, svc.WaitRuns(time.Millisecond), "an ended run is not waited for")
+	})
+
 	t.Run("the stop waits for a run in flight", func(t *testing.T) {
 		svc, _ := newRunsTestService(t)
 		stopCtx, stop := context.WithCancel(context.Background())

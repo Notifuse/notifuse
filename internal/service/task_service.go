@@ -177,6 +177,8 @@ func (s *TaskService) SetShutdownContext(ctx context.Context) {
 // BeginRun starts a task run outside the task scheduler ("send now", a cron call). Its context
 // keeps parent's values but not its cancellation, since a caller that gives up must not cut a
 // run mid-batch, and is cancelled when the app stops; the stop then waits for done (WaitRuns).
+// done does not cancel the context: work the run handed off before it ended, such as the HTTP
+// dispatches of a cron call, keeps it, and is no longer cancelled by the stop either.
 // It reports false, and starts nothing, once the stop has begun.
 func (s *TaskService) BeginRun(parent context.Context) (context.Context, func(), bool) {
 	s.runs.mu.Lock()
@@ -186,16 +188,17 @@ func (s *TaskService) BeginRun(parent context.Context) (context.Context, func(),
 		return nil, nil, false
 	}
 	s.runs.n++
-	ctx, cancel := context.WithCancel(context.WithoutCancel(parent))
+	ctx := context.WithoutCancel(parent)
 	stopCancelling := func() bool { return false }
 	if stopCtx != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
 		stopCancelling = context.AfterFunc(stopCtx, cancel)
 	}
 	var once sync.Once
 	return ctx, func() {
 		once.Do(func() {
 			stopCancelling()
-			cancel()
 			s.runs.mu.Lock()
 			defer s.runs.mu.Unlock()
 			s.runs.n--
@@ -916,7 +919,9 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		// — as does our own timeout+grace backstop firing on a stuck processor,
 		// handled below.
 		if errors.Is(ctx.Err(), context.Canceled) {
-			// Let the processor record where it got to while the lease is still ours.
+			// Let the processor record where it got to while the lease is still ours. What it
+			// returns in this wait is not used: the task is released as pending all the same,
+			// and a broadcast run that finds its broadcast already processed simply ends.
 			wait := interruptedProcessorWait
 			if s.interruptedWait > 0 {
 				wait = s.interruptedWait

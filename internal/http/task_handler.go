@@ -591,9 +591,8 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 	// task's own timeout+grace deadline, applied in ExecuteTask; tying it to
 	// the caller's connection instead meant the dispatcher's HTTP client
 	// timeout cancelled a running task mid-batch — aborting the enqueue
-	// transaction and stranding the recipients it was writing. The 60s
-	// graceful-shutdown window covers an in-flight run. The app's stop cancels
-	// the run and waits for it.
+	// transaction and stranding the recipients it was writing. The app's stop
+	// cancels the run and waits for it.
 	execCtx, runDone, ok := h.beginRun(r)
 	if !ok {
 		WriteJSONError(w, "The server is stopping", http.StatusServiceUnavailable)

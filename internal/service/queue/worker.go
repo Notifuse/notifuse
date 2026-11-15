@@ -717,8 +717,8 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 		return nil
 	}
 
-	// The row's own deadline, counted from its claim. A send in flight when a stop begins
-	// therefore ends within the stop's grace, unless the provider is slower than the grace.
+	// The row's own deadline, counted from its claim, so the send ends before the row could be
+	// reclaimed and sent again. A stop cancels the sends still running at the end of its grace.
 	sendCtx, cancelSend := context.WithTimeout(w.sendCtx, w.config.SendTimeout)
 	defer cancelSend()
 

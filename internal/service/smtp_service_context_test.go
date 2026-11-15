@@ -221,7 +221,7 @@ func TestSendRawEmailWithSettings_HonoursItsContext(t *testing.T) {
 		assert.NoError(t, err, "the 250 after the message is what makes it sent")
 	})
 
-	t.Run("a server that stops answering after the TLS handshake is given up at the context's deadline", func(t *testing.T) {
+	t.Run("a server that stops answering after an implicit TLS handshake is given up at the context's deadline", func(t *testing.T) {
 		cert, pool := generateTestCert(t)
 		trustTestCert(t, pool)
 		inner, err := net.Listen("tcp", "127.0.0.1:0")
@@ -237,7 +237,7 @@ func TestSendRawEmailWithSettings_HonoursItsContext(t *testing.T) {
 				[]string{"recipient@example.com"}, contextTestMessage, nil)
 		})
 		require.Error(t, err)
-		assert.ErrorIs(t, err, context.DeadlineExceeded, "the handshake's deadline gives way to the context's, not to none")
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
 	})
 }
 
