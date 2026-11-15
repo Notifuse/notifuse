@@ -3,7 +3,7 @@ import { Button, Tooltip, type ButtonProps } from 'antd'
 import { createLink } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
-import { RateBar, useNumberFormat } from '../../layout'
+import { FillBar, useNumberFormat } from '../../layout'
 import type { NodeEmailStats } from '../../../services/api/automation'
 
 interface EmailStepStatsProps {
@@ -25,7 +25,7 @@ const ratio = (part: number, whole: number) => (whole > 0 ? part / whole : null)
 /** An email step's results: sent, delivered, opened, clicked, then what went wrong. */
 export function EmailStepStats({ email, canReadHistory, smtp, messages }: EmailStepStatsProps) {
   const { t } = useLingui()
-  const { int } = useNumberFormat()
+  const { int, percent } = useNumberFormat()
 
   if (!canReadHistory) {
     return <p data-unreset className="m-0 text-sm text-ink-3">{t`You need access to the message history to see this step's emails.`}</p>
@@ -46,12 +46,19 @@ export function EmailStepStats({ email, canReadHistory, smtp, messages }: EmailS
     unsubscribed: 0
   }
 
-  const row = (key: string, label: string, value: ReactNode) => (
-    <div key={key} data-email-row={key} className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-ink-2">{label}</span>
+  // A result per row, as the mockup draws it: its name, a bar across the room left, its value.
+  // `fill` is the bar's ratio, null for none.
+  const row = (key: string, label: string, value: ReactNode, fill: number | null) => (
+    <div key={key} data-email-row={key} className="flex items-center gap-3 text-sm">
+      <span className="w-20 shrink-0 truncate text-ink-2">{label}</span>
+      {/* No ratio: an empty track. */}
+      <FillBar ratio={fill ?? 0} className="min-w-0 flex-1" />
       {value}
     </div>
   )
+  const valueClass = 'w-14 shrink-0 text-right font-semibold text-ink tabular-nums'
+  const rate = (key: string, label: string, r: number | null) =>
+    row(key, label, <span className={valueClass}>{r === null || Number.isNaN(r) ? '—' : percent(r)}</span>, r)
 
   const problems = [
     plural(e.failed, { one: '# failed', other: '# failed' }),
@@ -61,27 +68,19 @@ export function EmailStepStats({ email, canReadHistory, smtp, messages }: EmailS
 
   return (
     <div className="flex flex-col gap-2" data-email-stats>
-      {row(
-        'sent',
-        t`Sent`,
-        <span className="flex items-center gap-3">
-          <span className="text-ink-3 tabular-nums">{int(e.sent)}</span>
-          <RateBar rate={e.sent > 0 ? 1 : null} />
-        </span>
-      )}
-      {row(
-        'delivered',
-        t`Delivered`,
-        smtp ? (
-          <Tooltip title={t`SMTP does not report deliveries`}>
-            <span className="text-sm text-ink-3">—</span>
-          </Tooltip>
-        ) : (
-          <RateBar rate={ratio(e.delivered, e.sent)} />
-        )
-      )}
-      {row('opened', t`Opened`, <RateBar rate={ratio(e.opened, e.opens_tracked)} />)}
-      {row('clicked', t`Clicked`, <RateBar rate={ratio(e.clicked, e.clicks_tracked)} />)}
+      {row('sent', t`Sent`, <span className={valueClass}>{int(e.sent)}</span>, e.sent > 0 ? 1 : 0)}
+      {smtp
+        ? row(
+            'delivered',
+            t`Delivered`,
+            <Tooltip title={t`SMTP does not report deliveries`}>
+              <span className={valueClass}>—</span>
+            </Tooltip>,
+            null
+          )
+        : rate('delivered', t`Delivered`, ratio(e.delivered, e.sent))}
+      {rate('opened', t`Opened`, ratio(e.opened, e.opens_tracked))}
+      {rate('clicked', t`Clicked`, ratio(e.clicked, e.clicks_tracked))}
       <div className="text-xs text-ink-3 tabular-nums">{problems}</div>
       {e.queued > 0 ? <div className="text-xs text-ink-3">{plural(e.queued, { one: '# queued', other: '# queued' })}</div> : null}
       {e.not_sent > 0 ? (

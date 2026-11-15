@@ -35,6 +35,28 @@ describe('EditorSettings', () => {
     }
   })
 
+  it('heads its rows with Settings, each label naming its field', () => {
+    renderSettings()
+    const region = screen.getByRole('region', { name: 'Settings' })
+    expect(within(region).getByRole('combobox', { name: 'List' })).toBeInTheDocument()
+    expect(within(region).getByRole('combobox', { name: 'Frequency' })).toBeInTheDocument()
+    expect(within(region).getByRole('switch', { name: 'Exit on reply' })).toBeInTheDocument()
+  })
+
+  it('lets a long translated label wrap rather than cutting it', () => {
+    renderSettings()
+    expect(document.querySelector('[data-editor-settings] .ant-form-item-label-wrap')).toBeInTheDocument()
+  })
+
+  it('says the frequency short in the field and in full in the menu', () => {
+    renderSettings()
+    const field = screen.getByRole('combobox', { name: 'Frequency' }).closest('.ant-select')!
+    expect(within(field as HTMLElement).getByText('Once')).toBeInTheDocument()
+    expect(within(field as HTMLElement).queryByText('Once per contact')).not.toBeInTheDocument()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Frequency' }))
+    expect(document.querySelector('.ant-select-item-option[title="Once per contact"]')).toBeInTheDocument()
+  })
+
   it('writes the frequency through the context', () => {
     renderSettings()
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Frequency' }))
@@ -87,6 +109,16 @@ describe('NodePalette', () => {
       )
     expect(items('Actions')).toEqual(['Email', 'Add to list', 'Remove from list', 'Webhook'])
     expect(items('Logic')).toEqual(['Delay', 'Filter', 'List status', 'A/B test'])
+  })
+
+  it('draws its steps as flat rows, draggable when enabled', () => {
+    renderPalette(true)
+    const items = Array.from(document.querySelectorAll('[data-palette-item]'))
+    expect(items.length).toBeGreaterThan(0)
+    for (const item of items) {
+      expect(item.className).not.toMatch(/\bborder\b/)
+      expect(item.getAttribute('draggable')).toBe('true')
+    }
   })
 
   it('disables email without a list, with its reason', async () => {

@@ -16,6 +16,7 @@ import { AutomationsTable } from '../components/automations/list/AutomationsTabl
 import { automationsCountLabel } from '../components/automations/list/countLabel'
 import { useAutomationActions } from '../components/automations/list/useAutomationActions'
 import { useAutomationOpenRates } from '../components/automations/list/useAutomationOpenRates'
+import { paramFromPeriod, periodFromParam } from '../components/automations/stats/periodParam'
 import { AutomationEditor } from '../components/automations/AutomationEditor'
 import { describeTrigger, type TriggerNames } from '../components/automations/describeTrigger'
 
@@ -52,7 +53,10 @@ export function AutomationsPage() {
   // A new automation needs write: the URL forgets it rather than opening an editor that cannot save.
   useEffect(() => {
     if (search.automation === 'new' && permissions && !canWrite) {
-      navigate({ replace: true, search: (prev) => ({ ...prev, automation: undefined, stats: undefined }) })
+      navigate({
+        replace: true,
+        search: (prev) => ({ ...prev, automation: undefined, stats: undefined, period: undefined })
+      })
     }
   }, [search.automation, permissions, canWrite, navigate])
 
@@ -153,8 +157,9 @@ export function AutomationsPage() {
   const actions = useAutomationActions(workspaceId)
 
   const open = (a: Automation, withStats: boolean) =>
-    navigate({ search: (prev) => ({ ...prev, automation: a.id, stats: withStats ? 1 : undefined }) })
-  const openNew = () => navigate({ search: (prev) => ({ ...prev, automation: 'new', stats: undefined }) })
+    navigate({ search: (prev) => ({ ...prev, automation: a.id, stats: withStats ? 1 : undefined, period: undefined }) })
+  const openNew = () =>
+    navigate({ search: (prev) => ({ ...prev, automation: 'new', stats: undefined, period: undefined }) })
   const viewMessages = (id: string) =>
     navigate({ to: '/console/workspace/$workspaceId/logs', params: { workspaceId }, search: { automation_id: id } })
 
@@ -283,6 +288,8 @@ export function AutomationsPage() {
           workspace={workspace}
           automationParam={editorId}
           withStats={search.stats === 1}
+          // The period is read with stats on only: off, its control is hidden.
+          period={search.stats === 1 ? periodFromParam(search.period) : 'last30'}
           canWrite={canWrite}
           canReadHistory={canReadHistory}
           canReadTemplates={canReadTemplates}
@@ -291,12 +298,26 @@ export function AutomationsPage() {
           templates={templates}
           journeyTotal={editorId !== 'new' ? counts?.[editorId]?.total : undefined}
           // The editor has already asked: the route's blocker must not ask again.
-          onClose={() => navigate({ ignoreBlocker: true, search: (prev) => ({ ...prev, automation: undefined, stats: undefined }) })}
+          onClose={() =>
+            navigate({
+              ignoreBlocker: true,
+              search: (prev) => ({ ...prev, automation: undefined, stats: undefined, period: undefined })
+            })
+          }
           onCreated={(id) => {
             setCreated(id)
             navigate({ replace: true, ignoreBlocker: true, search: (prev) => ({ ...prev, automation: id }) })
           }}
-          onToggleStats={(on) => navigate({ replace: true, search: (prev) => ({ ...prev, stats: on ? 1 : undefined }) })}
+          // Off, the period goes too: its control is hidden, so it must not keep steering the step panel.
+          onToggleStats={(on) =>
+            navigate({
+              replace: true,
+              search: (prev) => ({ ...prev, stats: on ? 1 : undefined, period: on ? prev.period : undefined })
+            })
+          }
+          onPeriodChange={(period) =>
+            navigate({ replace: true, search: (prev) => ({ ...prev, period: paramFromPeriod(period) }) })
+          }
           onViewMessages={viewMessages}
         />
       ) : null}

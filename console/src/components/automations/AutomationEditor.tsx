@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Alert, App, Button, ConfigProvider, Dropdown, Input, Result, Segmented, Skeleton, Tooltip, type MenuProps } from 'antd'
+import { Alert, App, Button, ConfigProvider, Dropdown, Input, Result, Skeleton, Tooltip, type MenuProps } from 'antd'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useBlocker } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
@@ -23,13 +23,16 @@ import { hasEmailStep } from './journeyRates'
 import { useAutomationActions } from './list/useAutomationActions'
 import { useNodeStats } from './useNodeStats'
 import { NodeStatsContext, type NodeStatsState, type StatsPeriod } from './stats/nodeStatsState'
+import { StatsControl } from './stats/StatsControl'
 
 export interface AutomationEditorProps {
   workspace: Workspace
   /** `new`, or the id of the automation to open. */
   automationParam: string
-  /** "With stats" (the URL's `stats=1`). */
+  /** The stats switch is on (the URL's `stats=1`). */
   withStats: boolean
+  /** The period the results cover (the URL's `period`, 30 days without it). */
+  period: StatsPeriod
   canWrite: boolean
   canReadHistory: boolean
   canReadTemplates: boolean
@@ -42,6 +45,7 @@ export interface AutomationEditorProps {
   /** A new automation was created: the URL moves to its id. */
   onCreated: (id: string) => void
   onToggleStats: (on: boolean) => void
+  onPeriodChange: (period: StatsPeriod) => void
   onViewMessages: (id: string) => void
 }
 
@@ -191,6 +195,8 @@ function EditorScreen({
   loaded,
   onClose,
   onToggleStats,
+  period,
+  onPeriodChange,
   onViewMessages,
   onReload,
   barSlot,
@@ -223,7 +229,6 @@ function EditorScreen({
   const actions = useAutomationActions(workspace.id)
   const queryClient = useQueryClient()
   const anchorRef = useRef<HTMLDivElement>(null)
-  const [period, setPeriod] = useState<StatsPeriod>('last30')
   const [savedThisSession, setSavedThisSession] = useState(false)
   const [busy, setBusy] = useState<'activate' | 'pause' | null>(null)
 
@@ -477,33 +482,6 @@ function EditorScreen({
           </Tooltip>
         </span>
       ) : null}
-      <Tooltip title={statsDisabledReason}>
-        <span>
-          <Segmented<'edit' | 'stats'>
-            size="small"
-            aria-label={t`View`}
-            disabled={!!statsDisabledReason}
-            value={statsOn ? 'stats' : 'edit'}
-            onChange={(value) => onToggleStats(value === 'stats')}
-            options={[
-              { value: 'edit', label: t`Edit` },
-              { value: 'stats', label: t`With stats` }
-            ]}
-          />
-        </span>
-      </Tooltip>
-      {statsOn ? (
-        <Segmented<StatsPeriod>
-          size="small"
-          aria-label={t`Period`}
-          value={period}
-          onChange={setPeriod}
-          options={[
-            { value: 'last30', label: t`Last 30 days` },
-            { value: 'all', label: t`All time` }
-          ]}
-        />
-      ) : null}
       {isEditing ? (
         live ? (
           <Tooltip title={canWrite ? undefined : noWrite}>
@@ -595,13 +573,24 @@ function EditorScreen({
       {actionsSlot ? createPortal(topActions, actionsSlot) : null}
       <NodeStatsContext.Provider value={statsState}>
         <div ref={anchorRef} className="flex min-h-0 min-w-0 flex-1" data-automation-editor>
-          <div className="flex w-rail shrink-0 flex-col gap-4 overflow-y-auto border-r border-line bg-surface px-3.5 py-3">
+          <div className="flex w-rail shrink-0 flex-col gap-7 overflow-y-auto border-r border-line bg-surface px-3.5 py-3">
             <ConfigProvider componentDisabled={readOnly}>
               <EditorSettings />
             </ConfigProvider>
             {!readOnly ? <NodePalette hasListSelected={!!listId} /> : null}
           </div>
-          <AutomationFlowEditor overlay={overlay} />
+          <AutomationFlowEditor
+            overlay={overlay}
+            statsControl={
+              <StatsControl
+                on={statsOn}
+                onToggle={onToggleStats}
+                period={period}
+                onPeriodChange={onPeriodChange}
+                disabledReason={statsDisabledReason}
+              />
+            }
+          />
         </div>
       </NodeStatsContext.Provider>
     </>

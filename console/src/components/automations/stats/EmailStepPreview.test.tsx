@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -10,8 +9,9 @@ import { EmailStepPreview } from './EmailStepPreview'
 import { ApiError } from '../../../services/api/errors'
 
 vi.mock('../../../services/api/template', () => ({ templatesApi: { get: vi.fn() } }))
-vi.mock('../../broadcasts/detail/TemplatePreviewFrame', () => ({ TemplatePreviewFrame: () => <div data-testid="frame" /> }))
-vi.mock('../../templates', () => ({ TemplatePreviewPopover: ({ children }: { children: ReactNode }) => <>{children}</> }))
+vi.mock('../../broadcasts/detail/TemplatePreviewFrame', () => ({
+  TemplatePreviewFrame: () => <div data-testid="frame" />
+}))
 
 const workspace = {
   id: 'ws1',
@@ -53,8 +53,9 @@ describe('EmailStepPreview', () => {
     expect(await screen.findByText('Acme News <news@acme.io>')).toBeInTheDocument()
     expect(screen.getByText('Hello there')).toBeInTheDocument()
     expect(screen.getByTestId('frame')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Preview/ })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Open template/ })).toHaveAttribute('href', '/console/workspace/ws1/templates?preview=tpl-1')
+    // The panel shows the top of the email only: no Preview or Open template buttons.
+    expect(screen.queryByRole('button', { name: /Preview/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Open template/ })).not.toBeInTheDocument()
     expect(templatesApi.get).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'tpl-1' })
   })
 

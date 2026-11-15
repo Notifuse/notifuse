@@ -53,6 +53,22 @@ describe('EmailStepStats', () => {
     expect(screen.getByRole('link', { name: 'View messages' })).toHaveAttribute('href', '/console/workspace/ws1/logs?automation_id=auto-1&template_id=tpl-1')
   })
 
+  it('draws each result as its name, a bar across the room and its value, Sent as a count', () => {
+    renderEmail({})
+    const fill = (key: string) => (row(key).querySelector('[data-rate-fill]') as HTMLElement | null)?.style.width
+    expect(row('sent').textContent).toBe('Sent100')
+    expect(fill('sent')).toBe('100%')
+    expect(fill('delivered')).toBe('90%')
+    expect(fill('opened')).toBe('50%')
+    expect(fill('clicked')).toBe('10%')
+  })
+
+  it('leaves the bar empty when a rate has no base', () => {
+    renderEmail({ opens_tracked: 0 })
+    expect(row('opened')).toHaveTextContent('—')
+    expect((row('opened').querySelector('[data-rate-fill]') as HTMLElement).style.width).toBe('0%')
+  })
+
   it('shows queued and not sent only when there are any', () => {
     const { unmount } = renderEmail({})
     expect(screen.queryByText(/queued/)).not.toBeInTheDocument()
@@ -66,7 +82,7 @@ describe('EmailStepStats', () => {
   it('reads no delivery from SMTP, and says why', async () => {
     renderEmail({}, { smtp: true })
     expect(row('delivered')).toHaveTextContent('—')
-    fireEvent.mouseOver(row('delivered').querySelector('span:last-child')!)
+    fireEvent.mouseOver(row('delivered').lastElementChild!)
     expect(await screen.findByText('SMTP does not report deliveries')).toBeInTheDocument()
   })
 

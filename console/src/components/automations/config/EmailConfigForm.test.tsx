@@ -1,5 +1,6 @@
+import type React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { EmailConfigForm } from './EmailConfigForm'
@@ -41,5 +42,53 @@ describe('EmailConfigForm template', () => {
     const selector = screen.getByTestId('template-selector')
     expect(selector).toHaveTextContent('template:tpl-welcome')
     expect(selector.getAttribute('data-can-read-templates')).toBe(passed)
+  })
+})
+
+describe('EmailConfigForm layout', () => {
+  const smtp = { id: 'int-smtp', name: 'Demo SMTP', type: 'email', email_provider: { kind: 'smtp' } }
+  const renderWith = (ws: Workspace, preview?: React.ReactNode) =>
+    render(
+      <I18nProvider i18n={i18n}>
+        <EmailConfigForm
+          config={{ template_id: 'tpl-welcome' }}
+          onChange={vi.fn()}
+          workspaceId="ws1"
+          workspace={ws}
+          preview={preview}
+        />
+      </I18nProvider>
+    )
+
+  it('shows the preview between the template field and the integration field', () => {
+    renderWith({ id: 'ws1', integrations: [smtp] } as unknown as Workspace, <div data-testid="preview" />)
+    const selector = screen.getByTestId('template-selector')
+    const preview = screen.getByTestId('preview')
+    const integration = screen.getByText('Email Integration')
+    expect(selector.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(preview.compareDocumentPosition(integration) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('names the provider the workspace default falls back to', () => {
+    renderWith({
+      id: 'ws1',
+      integrations: [smtp],
+      settings: { marketing_email_provider_id: 'int-smtp' }
+    } as unknown as Workspace)
+    expect(screen.getByText('Use workspace default · Demo SMTP')).toBeInTheDocument()
+  })
+
+  it('says only "Use workspace default" without a marketing provider', () => {
+    renderWith({ id: 'ws1', integrations: [smtp], settings: {} } as unknown as Workspace)
+    expect(screen.getByText('Use workspace default')).toBeInTheDocument()
+  })
+
+  it('keeps the help of each field in its label tooltip', async () => {
+    renderWith({ id: 'ws1', integrations: [smtp] } as unknown as Workspace)
+    expect(screen.queryByText('Select the email template to send')).not.toBeInTheDocument()
+    const icons = document.querySelectorAll('.ant-form-item-tooltip')
+    expect(icons).toHaveLength(2)
+    fireEvent.mouseEnter(icons[0])
+    expect(await screen.findByText('Select the email template to send')).toBeInTheDocument()
   })
 })

@@ -8,7 +8,7 @@ import { NodeStatsFooter } from '../stats/NodeStatsFooter'
 
 interface BaseNodeProps {
   type: NodeType
-  /** The step's id: its results come under the card with "With stats" on. */
+  /** The step's id: its results come under the card with the stats switch on. */
   nodeId?: string
   /** Optional author-written note, the card's title so the flow reads without opening nodes. */
   description?: string
@@ -16,15 +16,31 @@ interface BaseNodeProps {
   isOrphan?: boolean
   /** The step's detail line: what it does, as configured. */
   children?: React.ReactNode
+  /** The last row of a multi-output step: its outputs' names, above their points. */
+  outputs?: React.ReactNode
   onDelete?: () => void
 }
 
 /** A step on the canvas: icon chip and type, the author's title, the detail, then the results. */
-export const BaseNode: React.FC<BaseNodeProps> = ({ type, nodeId, description, selected, isOrphan, children, onDelete }) => {
+export const BaseNode: React.FC<BaseNodeProps> = ({
+  type,
+  nodeId,
+  description,
+  selected,
+  isOrphan,
+  children,
+  outputs,
+  onDelete
+}) => {
   const { t, i18n } = useLingui()
   const meta = NODE_TYPES[type]
   const Icon = meta.icon
-  const border = selected ? 'border-primary-500 shadow-md' : isOrphan ? 'border-warning-fg' : 'border-line'
+  // Selected: the primary border and a soft 3px halo around it, as the mockup draws it.
+  const border = selected
+    ? 'border-primary-500 ring-3 ring-primary-500/16'
+    : isOrphan
+      ? 'border-warning-fg'
+      : 'border-line'
 
   return (
     <div className="relative">
@@ -73,6 +89,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({ type, nodeId, description, s
         )}
         {children && <div className={`text-sm text-ink-2 ${description ? 'mt-0.5' : 'mt-1.5'}`}>{children}</div>}
         {nodeId ? <NodeStatsFooter nodeId={nodeId} nodeType={type} /> : null}
+        {outputs}
       </div>
     </div>
   )

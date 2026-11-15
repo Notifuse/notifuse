@@ -6,7 +6,7 @@ import { toNumber } from '../../web_analytics/lib/format'
 import { runBroadcastQuery } from '../../broadcasts/broadcastQueryClient'
 import { workspaceTimezone } from '../../broadcasts/access'
 import { hasEmailStep } from '../journeyRates'
-import { last30Days } from '../last30Days'
+import { last30Days } from '../lastDays'
 
 const TEN_MINUTES = 10 * 60_000
 

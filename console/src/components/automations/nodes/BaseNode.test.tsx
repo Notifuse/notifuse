@@ -50,3 +50,27 @@ describe('BaseNode description', () => {
     expect(container.querySelector('[title]')).toBeNull()
   })
 })
+
+describe('BaseNode selection', () => {
+  const card = (selected: boolean) => {
+    const { container, unmount } = render(
+      <I18nProvider i18n={i18n}>
+        <BaseNode type="delay" selected={selected} />
+      </I18nProvider>
+    )
+    const className = container.querySelector('[data-automation-node]')!.className
+    unmount()
+    return className
+  }
+
+  it('rings a selected step with the primary border and a soft halo', () => {
+    expect(card(true)).toMatch(/\bborder-primary-500\b/)
+    expect(card(true)).toMatch(/\bring-3\b/)
+    expect(card(true)).toMatch(/\bring-primary-500\/16\b/)
+  })
+
+  it('leaves an unselected step with its plain border', () => {
+    expect(card(false)).toMatch(/\bborder-line\b/)
+    expect(card(false)).not.toMatch(/\bring-/)
+  })
+})

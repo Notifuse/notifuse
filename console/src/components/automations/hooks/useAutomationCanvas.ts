@@ -23,16 +23,19 @@ import {
 import { layoutNodes } from '../utils/layoutNodes'
 import { textEditCoalesceKey } from '../utils/historyCoalescing'
 import { clearHandleTarget } from '../utils/clearHandleTarget'
+import { DEFAULT_NODE_HEIGHT, NODE_WIDTH, outputLeft, outputSpacing, STUB_GAP } from '../nodes/outputLayout'
+import { freeOutputPlus } from '../utils/freeOutputPlus'
 import type { NodeType, ABTestNodeConfig, FilterNodeConfig, ListStatusBranchNodeConfig } from '../../../services/api/automation'
 import { colors } from '../../../theme/tokens'
 
 // Editor uses larger nodes
-const EDITOR_NODE_WIDTH = 300
+const EDITOR_NODE_WIDTH = NODE_WIDTH
 
 // A placeholder "+" sits under its node's measured bottom: a node grows with its stats footer.
-const DEFAULT_NODE_HEIGHT = 86
-const STUB_GAP = 34
 const stubOffset = (node: Node<AutomationNodeData>) => (node.measured?.height ?? DEFAULT_NODE_HEIGHT) + STUB_GAP
+// A free output of a filter, A/B test or list status: its "+" steps aside, out of its neighbours' way.
+const freePlus = (node: Node<AutomationNodeData>, left: number, total: number) =>
+  freeOutputPlus(node, left, outputSpacing(node.data.nodeType, total))
 
 // layoutNodes accepts a minimal structural edge whose sourceHandle is `string | undefined`,
 // while ReactFlow's Edge declares it `string | null`. Everything downstream reads it as
@@ -51,7 +54,6 @@ export interface UnconnectedOutput {
   nodeId: string
   handleId: string | null  // null for default single output
   position: { x: number; y: number }  // placeholder position in flow coords
-  label?: string  // "Yes", "No", or variant name
   color?: string  // a status colour of the theme tokens
 }
 
@@ -651,14 +653,11 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         const hasYesEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'continue')
         const hasNoEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'exit')
 
-        // Use measured width if available, fallback to 300px
-        const nodeWidth = node.measured?.width || 300
         if (!hasYesEdge) {
           outputs.push({
             nodeId: node.id,
             handleId: 'continue',
-            position: { x: node.position.x + (nodeWidth * 0.3), y: node.position.y + stubOffset(node) },
-            label: 'Yes',
+            position: freePlus(node, outputLeft('filter', 0, 2), 2),
             color: colors.status.success
           })
         }
@@ -666,30 +665,24 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           outputs.push({
             nodeId: node.id,
             handleId: 'exit',
-            position: { x: node.position.x + (nodeWidth * 0.7), y: node.position.y + stubOffset(node) },
-            label: 'No',
-            color: colors.status.danger
+            position: freePlus(node, outputLeft('filter', 1, 2), 2),
+            // The tone of the "No" name and of its link's share.
+            color: colors.status.warning
           })
         }
       } else if (node.data.nodeType === 'ab_test') {
         const config = node.data.config as Structural<ABTestNodeConfig>
         const variants = config?.variants || []
-        // Use measured width if available, fallback to 300px
-        const nodeWidth = node.measured?.width || 300
         const totalVariants = variants.length
         variants.forEach((variant, originalIndex) => {
           const hasEdge = edges.some(e => e.source === node.id && e.sourceHandle === variant.id)
           if (!hasEdge) {
-            // Match ABTestNode handle positioning: spread from 20% to 80% of width
-            // Uses originalIndex (not filtered index) to align with actual handles
-            const start = 20
-            const end = 80
-            const handlePercent = totalVariants === 1 ? 50 : start + (originalIndex * (end - start)) / (totalVariants - 1)
+            // Where ABTestNode puts the variant's handle: the original index, not the filtered one
+            const handlePercent = outputLeft('ab_test', originalIndex, totalVariants)
             outputs.push({
               nodeId: node.id,
               handleId: variant.id,
-              position: { x: node.position.x + (nodeWidth * handlePercent / 100), y: node.position.y + stubOffset(node) },
-              label: variant.name
+              position: freePlus(node, handlePercent, totalVariants)
             })
           }
         })
@@ -699,12 +692,11 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         const hasActiveEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'active')
         const hasNonActiveEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'non_active')
 
-        const nodeWidth = node.measured?.width || 300
         if (!hasNotInListEdge) {
           outputs.push({
             nodeId: node.id,
             handleId: 'not_in_list',
-            position: { x: node.position.x + (nodeWidth * 0.2), y: node.position.y + stubOffset(node) },
+            position: freePlus(node, outputLeft('list_status_branch', 0, 3), 3),
             color: colors.gray[400]
           })
         }
@@ -712,7 +704,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           outputs.push({
             nodeId: node.id,
             handleId: 'active',
-            position: { x: node.position.x + (nodeWidth * 0.5), y: node.position.y + stubOffset(node) },
+            position: freePlus(node, outputLeft('list_status_branch', 1, 3), 3),
             color: colors.status.success
           })
         }
@@ -720,7 +712,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           outputs.push({
             nodeId: node.id,
             handleId: 'non_active',
-            position: { x: node.position.x + (nodeWidth * 0.8), y: node.position.y + stubOffset(node) },
+            position: freePlus(node, outputLeft('list_status_branch', 2, 3), 3),
             color: colors.status.warning
           })
         }

@@ -130,7 +130,7 @@ msgid "{0, plural, one {# added} other {# added}}"
 msgstr "{0, plural, one {# aggiunto} other {# aggiunti}}"
 
 #. placeholder {0}: e.bounced
-#: src/components/automations/stats/EmailStepStats.tsx:59
+#: src/components/automations/stats/EmailStepStats.tsx:66
 msgid "{0, plural, one {# bounce} other {# bounces}}"
 msgstr "{0, plural, one {# rimbalzo} other {# rimbalzi}}"
 
@@ -172,7 +172,7 @@ msgstr "{0, plural, one {# errore} other {# errori}}"
 
 #. placeholder {0}: e.failed
 #. placeholder {0}: stats.failed_journeys
-#: src/components/automations/stats/EmailStepStats.tsx:57
+#: src/components/automations/stats/EmailStepStats.tsx:64
 #: src/components/automations/stats/NodeStatsFooter.tsx:91
 msgid "{0, plural, one {# failed} other {# failed}}"
 msgstr "{0, plural, one {# non riuscito} other {# non riusciti}}"
@@ -183,7 +183,7 @@ msgid "{0, plural, one {# in progress} other {# in progress}}"
 msgstr "{0, plural, one {# in corso} other {# in corso}}"
 
 #. placeholder {0}: share.count
-#: src/components/automations/edges/AutomationEdge.tsx:76
+#: src/components/automations/edges/AutomationEdge.tsx:75
 msgid "{0, plural, one {# journey} other {# journeys}}"
 msgstr "{0, plural, one {# percorso} other {# percorsi}}"
 
@@ -193,7 +193,7 @@ msgid "{0, plural, one {# JSON} other {# JSON}}"
 msgstr "{0, plural, one {# JSON} other {# JSON}}"
 
 #. placeholder {0}: e.not_sent
-#: src/components/automations/stats/EmailStepStats.tsx:88
+#: src/components/automations/stats/EmailStepStats.tsx:87
 msgid "{0, plural, one {# not sent} other {# not sent}}"
 msgstr "{0, plural, one {# non inviato} other {# non inviati}}"
 
@@ -218,7 +218,7 @@ msgid "{0, plural, one {# path} other {# paths}}"
 msgstr "{0, plural, one {# percorso} other {# percorsi}}"
 
 #. placeholder {0}: e.queued
-#: src/components/automations/stats/EmailStepStats.tsx:86
+#: src/components/automations/stats/EmailStepStats.tsx:85
 msgid "{0, plural, one {# queued} other {# queued}}"
 msgstr "{0, plural, one {# in coda} other {# in coda}}"
 
@@ -264,7 +264,7 @@ msgid "{0, plural, one {# text} other {# text}}"
 msgstr "{0, plural, one {# testo} other {# testi}}"
 
 #. placeholder {0}: e.unsubscribed
-#: src/components/automations/stats/EmailStepStats.tsx:58
+#: src/components/automations/stats/EmailStepStats.tsx:65
 msgid "{0, plural, one {# unsubscribe} other {# unsubscribes}}"
 msgstr "{0, plural, one {# disiscrizione} other {# disiscrizioni}}"
 
@@ -304,7 +304,7 @@ msgid "{0, plural, one {Last # day} other {Last # days}}"
 msgstr "{0, plural, one {Ultimo # giorno} other {Ultimi # giorni}}"
 
 #. placeholder {0}: Math.min(rest, PAGE_STEP)
-#: src/pages/AutomationsPage.tsx:189
+#: src/pages/AutomationsPage.tsx:194
 msgid "{0, plural, one {Show # more} other {Show # more}}"
 msgstr "{0, plural, one {Mostra altri #} other {Mostra altri #}}"
 
@@ -1343,6 +1343,7 @@ msgstr "24 ore"
 msgid "3. Translations"
 msgstr "3. Traduzioni"
 
+#: src/components/automations/stats/StatsControl.tsx:43
 #: src/components/broadcasts/detail/EngagementChart.tsx:114
 #: src/pages/AnalyticsPage.tsx:106
 msgid "30 d"
@@ -1386,6 +1387,7 @@ msgstr "600 - Semi grassetto"
 msgid "60d"
 msgstr "60 g"
 
+#: src/components/automations/stats/StatsControl.tsx:42
 #: src/components/broadcasts/detail/EngagementChart.tsx:113
 #: src/pages/AnalyticsPage.tsx:105
 msgid "7 d"
@@ -1562,7 +1564,7 @@ msgstr "Il test A/B è in corso. Le email sono in fase di invio al gruppo di tes
 msgid "About consent"
 msgstr "Informazioni sul consenso"
 
-#: src/components/automations/EditorSettings.tsx:56
+#: src/components/automations/EditorSettings.tsx:74
 msgid "About exit on reply"
 msgstr "Informazioni sull'uscita alla risposta"
 
@@ -1626,7 +1628,7 @@ msgstr "Azioni per {0}"
 msgid "Actions for {name}"
 msgstr "Azioni per {name}"
 
-#: src/components/automations/AutomationEditor.tsx:529
+#: src/components/automations/AutomationEditor.tsx:507
 msgid "Activate"
 msgstr "Attiva"
 
@@ -1635,7 +1637,7 @@ msgstr "Attiva"
 msgid "Activate Automation"
 msgstr "Attiva automazione"
 
-#: src/components/automations/AutomationEditor.tsx:373
+#: src/components/automations/AutomationEditor.tsx:378
 #: src/components/automations/list/AutomationsTable.tsx:65
 msgid "Activate automation?"
 msgstr "Attivare l'automazione?"
@@ -1648,9 +1650,8 @@ msgstr "Ha attivato l'automazione <0>{target}</0>"
 msgid "active"
 msgstr "attivo"
 
-#: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
+#: src/components/automations/config/ListStatusBranchConfigForm.tsx:47
 #: src/components/automations/edges/edgeLabel.ts:17
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:40
 #: src/components/contacts/contactDisplay.ts:35
 #: src/components/lists/ListHeader.tsx:40
 #: src/components/settings/LicenseSettings.tsx:110
@@ -2129,7 +2130,7 @@ msgstr "Allineamento"
 #: src/components/logs/OutgoingWebhooksTab.tsx:140
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:124
 #: src/components/web_analytics/tabs/FiltersTab.tsx:152
-#: src/pages/AutomationsPage.tsx:134
+#: src/pages/AutomationsPage.tsx:138
 #: src/pages/ContactsPage.tsx:570
 #: src/pages/TemplatesPage.tsx:151
 msgid "All"
@@ -2209,8 +2210,8 @@ msgstr "Tutti gli articoli"
 msgid "All sides"
 msgstr "Tutti i lati"
 
-#: src/components/automations/AutomationEditor.tsx:503
-#: src/components/automations/NodeConfigPanel.tsx:191
+#: src/components/automations/NodeConfigPanel.tsx:203
+#: src/components/automations/stats/StatsControl.tsx:44
 #: src/components/logs/AuditLogTab.tsx:188
 #: src/components/logs/InboundWebhooksTab.tsx:132
 #: src/components/logs/MessagesTab.tsx:254
@@ -2644,8 +2645,7 @@ msgstr "Sei sicuro di voler eliminare questo blocco?"
 msgid "Are you sure you want to delete this header?"
 msgstr "Sei sicuro di voler eliminare questo header?"
 
-#: src/components/automations/NodeConfigPanel.tsx:299
-#: src/components/automations/nodes/BaseNode.tsx:40
+#: src/components/automations/nodes/BaseNode.tsx:56
 msgid "Are you sure you want to delete this node?"
 msgstr "Sei sicuro di voler eliminare questo nodo?"
 
@@ -2976,12 +2976,12 @@ msgstr "I flussi di automazione — i loro trigger, i nodi e la cronologia di es
 #~ msgid "Automation ID"
 #~ msgstr "ID automazione"
 
-#: src/components/automations/AutomationEditor.tsx:447
-#: src/components/automations/AutomationEditor.tsx:448
+#: src/components/automations/AutomationEditor.tsx:452
+#: src/components/automations/AutomationEditor.tsx:453
 msgid "Automation name"
 msgstr "Nome dell'automazione"
 
-#: src/components/automations/AutomationEditor.tsx:86
+#: src/components/automations/AutomationEditor.tsx:90
 msgid "Automation not found"
 msgstr "Automazione non trovata"
 
@@ -3002,13 +3002,13 @@ msgstr "Automazione aggiornata con successo"
 #~ msgstr "Automazione:"
 
 #: src/components/analytics/OriginVolumeChart.tsx:45
-#: src/components/automations/AutomationEditor.tsx:142
+#: src/components/automations/AutomationEditor.tsx:146
 #: src/components/logs/labels.ts:16
 #: src/components/logs/MessagesTab.tsx:258
 #: src/components/settings/permissionLabels.ts:15
 #: src/components/templates/DeleteTemplateModal.tsx:43
 #: src/layouts/app-shell/menuItems.ts:226
-#: src/pages/AutomationsPage.tsx:198
+#: src/pages/AutomationsPage.tsx:203
 #: src/services/api/errors.ts:90
 msgid "Automations"
 msgstr "Automazioni"
@@ -3029,7 +3029,7 @@ msgstr "Integrazioni disponibili"
 #~ msgid "Available once you connect an email provider that supports inbound replies (currently Mailgun — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
 #~ msgstr ""
 
-#: src/components/automations/EditorSettings.tsx:53
+#: src/components/automations/EditorSettings.tsx:71
 msgid "Available once you connect an email provider that supports inbound replies (currently Mailgun and Amazon SES — more providers coming soon). It stops this automation for a contact as soon as they reply to one of its emails."
 msgstr "Disponibile una volta connesso un provider email che supporta le risposte in entrata (attualmente Mailgun e Amazon SES — altri provider in arrivo). Interrompe questa automazione per un contatto non appena questi risponde a una delle sue email."
 
@@ -3074,7 +3074,7 @@ msgstr "AWS Secret Key"
 msgid "Back"
 msgstr "Indietro"
 
-#: src/components/automations/AutomationEditor.tsx:91
+#: src/components/automations/AutomationEditor.tsx:95
 msgid "Back to automations"
 msgstr "Torna alle automazioni"
 
@@ -3573,7 +3573,7 @@ msgstr "Rimbalzi"
 msgid "Branch"
 msgstr "Diramazione"
 
-#: src/components/automations/config/ListStatusBranchConfigForm.tsx:41
+#: src/components/automations/config/ListStatusBranchConfigForm.tsx:40
 msgid "Branch Logic"
 msgstr "Logica di diramazione"
 
@@ -3711,7 +3711,7 @@ msgstr "Nome broadcast"
 msgid "Broadcast not found"
 msgstr "Broadcast non trovato"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:481
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:483
 msgid "Broadcast updated successfully"
 msgstr "Broadcast aggiornato con successo"
 
@@ -3723,11 +3723,11 @@ msgstr "Broadcast: {0}"
 #: src/components/analytics/OriginVolumeChart.tsx:43
 #: src/components/analytics/UpcomingSends.tsx:77
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:88
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:427
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:428
 #: src/components/settings/permissionLabels.ts:10
 #: src/layouts/app-shell/menuItems.ts:225
 #: src/pages/BroadcastsPage.tsx:251
-#: src/pages/BroadcastsPage.tsx:348
+#: src/pages/BroadcastsPage.tsx:352
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "Broadcast"
@@ -3851,19 +3851,18 @@ msgstr "Campagna"
 msgid "Campaigns"
 msgstr "Campagne"
 
-#: src/components/automations/AutomationEditor.tsx:268
-#: src/components/automations/AutomationEditor.tsx:291
-#: src/components/automations/AutomationEditor.tsx:325
-#: src/components/automations/AutomationEditor.tsx:376
-#: src/components/automations/AutomationEditor.tsx:383
-#: src/components/automations/AutomationEditor.tsx:393
-#: src/components/automations/AutomationEditor.tsx:407
+#: src/components/automations/AutomationEditor.tsx:273
+#: src/components/automations/AutomationEditor.tsx:296
+#: src/components/automations/AutomationEditor.tsx:330
+#: src/components/automations/AutomationEditor.tsx:381
+#: src/components/automations/AutomationEditor.tsx:388
+#: src/components/automations/AutomationEditor.tsx:398
+#: src/components/automations/AutomationEditor.tsx:412
 #: src/components/automations/config/ConditionsField.tsx:124
 #: src/components/automations/list/AutomationsTable.tsx:68
 #: src/components/automations/list/AutomationsTable.tsx:75
 #: src/components/automations/list/AutomationsTable.tsx:86
-#: src/components/automations/NodeConfigPanel.tsx:302
-#: src/components/automations/nodes/BaseNode.tsx:43
+#: src/components/automations/nodes/BaseNode.tsx:59
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:115
 #: src/components/blog/PostDrawer.tsx:683
 #: src/components/blog/PostsTable.tsx:213
@@ -4203,7 +4202,7 @@ msgstr "Gruppi di canali"
 msgid "Channels"
 msgstr "Canali"
 
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:34
+#: src/components/automations/nodes/ListStatusBranchNode.tsx:37
 msgid "Check"
 msgstr "Verifica"
 
@@ -4316,7 +4315,7 @@ msgstr "Cancella campo"
 #: src/components/logs/InboundWebhooksTab.tsx:297
 #: src/components/logs/MessagesTab.tsx:800
 #: src/components/logs/OutgoingWebhooksTab.tsx:233
-#: src/pages/AutomationsPage.tsx:259
+#: src/pages/AutomationsPage.tsx:264
 #: src/pages/BroadcastsPage.tsx:321
 #: src/pages/ContactsPage.tsx:517
 msgid "Clear filters"
@@ -4400,7 +4399,7 @@ msgstr "Clicca per riprovare"
 #~ msgstr "cliccato"
 
 #: src/components/automations/describeTrigger.ts:57
-#: src/components/automations/stats/EmailStepStats.tsx:84
+#: src/components/automations/stats/EmailStepStats.tsx:83
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:67
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:70
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:109
@@ -4545,7 +4544,7 @@ msgstr "Clona template email"
 msgid "Clone Template"
 msgstr "Clona template"
 
-#: src/components/automations/NodeConfigPanel.tsx:254
+#: src/components/automations/NodeConfigPanel.tsx:266
 #: src/components/blog/ThemeEditorDrawer.tsx:282
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:230
 #: src/components/broadcasts/GlobalFeedSettings.tsx:142
@@ -4560,8 +4559,8 @@ msgstr "Clona template"
 msgid "Close"
 msgstr "Chiudi"
 
-#: src/components/automations/AutomationEditor.tsx:267
-#: src/components/automations/AutomationEditor.tsx:290
+#: src/components/automations/AutomationEditor.tsx:272
+#: src/components/automations/AutomationEditor.tsx:295
 msgid "Close without saving"
 msgstr "Chiudi senza salvare"
 
@@ -4760,7 +4759,7 @@ msgstr "Ha completato l’automazione {name}"
 msgid "Computing this segment…"
 msgstr "Calcolo del segmento in corso…"
 
-#: src/components/automations/nodes/FilterNode.tsx:46
+#: src/components/automations/nodes/FilterNode.tsx:49
 msgid "condition"
 msgstr "condizione"
 
@@ -4769,7 +4768,7 @@ msgstr "condizione"
 msgid "Condition"
 msgstr "Condizione"
 
-#: src/components/automations/nodes/FilterNode.tsx:46
+#: src/components/automations/nodes/FilterNode.tsx:49
 msgid "conditions"
 msgstr "condizioni"
 
@@ -4799,7 +4798,7 @@ msgid "Configuration set"
 msgstr "Configuration set"
 
 #: src/components/analytics/SendingCard.tsx:67
-#: src/components/automations/nodes/ABTestNode.tsx:38
+#: src/components/automations/nodes/ABTestNode.tsx:31
 #: src/components/automations/nodes/AddToListNode.tsx:33
 #: src/components/automations/nodes/BranchNode.tsx:34
 #: src/components/automations/nodes/DelayNode.tsx:19
@@ -5006,11 +5005,11 @@ msgstr "Email contatto:"
 msgid "Contact erased"
 msgstr "Contatto cancellato"
 
-#: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
+#: src/components/automations/config/ListStatusBranchConfigForm.tsx:47
 msgid "Contact has \"active\" subscription status"
 msgstr "Il contatto ha stato subscription \"active\""
 
-#: src/components/automations/config/ListStatusBranchConfigForm.tsx:51
+#: src/components/automations/config/ListStatusBranchConfigForm.tsx:50
 msgid "Contact has pending, unsubscribed, bounced, or complained status"
 msgstr "Il contatto ha stato pending, unsubscribed, bounced o complained"
 
@@ -5018,7 +5017,7 @@ msgstr "Il contatto ha stato pending, unsubscribed, bounced o complained"
 msgid "Contact identification"
 msgstr "Identificazione dei contatti"
 
-#: src/components/automations/config/ListStatusBranchConfigForm.tsx:45
+#: src/components/automations/config/ListStatusBranchConfigForm.tsx:44
 msgid "Contact is not subscribed to this list"
 msgstr "Il contatto non è iscritto a questa lista"
 
@@ -5205,7 +5204,7 @@ msgstr "Copia {label}"
 msgid "Copy external ID"
 msgstr "Copia ID esterno"
 
-#: src/components/automations/AutomationEditor.tsx:418
+#: src/components/automations/AutomationEditor.tsx:423
 #: src/components/transactional/TransactionalDetail.tsx:324
 #: src/components/transactional/TransactionalTable.tsx:296
 #: src/pages/TemplatesPage.tsx:307
@@ -5314,8 +5313,8 @@ msgstr "Impossibile caricare"
 msgid "Couldn't load more posts"
 msgstr "Impossibile caricare altri articoli"
 
-#: src/components/automations/AutomationEditor.tsx:581
-#: src/components/automations/NodeConfigPanel.tsx:198
+#: src/components/automations/AutomationEditor.tsx:559
+#: src/components/automations/NodeConfigPanel.tsx:210
 msgid "Couldn't load stats"
 msgstr "Impossibile caricare le statistiche"
 
@@ -5323,11 +5322,11 @@ msgstr "Impossibile caricare le statistiche"
 msgid "Couldn't load the audit log"
 msgstr "Impossibile caricare il registro di audit"
 
-#: src/components/automations/AutomationEditor.tsx:86
+#: src/components/automations/AutomationEditor.tsx:90
 msgid "Couldn't load the automation"
 msgstr "Impossibile caricare l'automazione"
 
-#: src/pages/AutomationsPage.tsx:203
+#: src/pages/AutomationsPage.tsx:208
 msgid "Couldn't load the automations"
 msgstr "Impossibile caricare le automazioni"
 
@@ -5371,7 +5370,7 @@ msgstr "Impossibile caricare le statistiche di questo broadcast"
 msgid "Couldn't load the success rate"
 msgstr "Impossibile caricare il tasso di successo"
 
-#: src/components/automations/stats/EmailStepPreview.tsx:39
+#: src/components/automations/stats/EmailStepPreview.tsx:40
 #: src/components/logs/MessageDetail.tsx:739
 #: src/components/transactional/notificationRules.ts:67
 msgid "Couldn't load the template"
@@ -5402,7 +5401,7 @@ msgstr "Impossibile caricare questo modello"
 msgid "Couldn't load this webhook"
 msgstr "Impossibile caricare questo webhook"
 
-#: src/components/broadcasts/detail/TemplatePreviewFrame.tsx:44
+#: src/components/broadcasts/detail/TemplatePreviewFrame.tsx:52
 msgid "Couldn't render the preview"
 msgstr "Impossibile generare l'anteprima"
 
@@ -5501,7 +5500,7 @@ msgstr "Cover"
 msgid "Covers more than templates: reusable blocks answer to the same switch, and editing a block edits every template that embeds it. Blocks are kept with the workspace's own settings, so their content also comes back from /api/workspaces.get and from /api/workspaces.list, which needs no permission at all — Templates read is not the only way to see block content. And /api/templates.compile only checks this grant for calls arriving over the API; when the workspace compiles a template for itself, nothing is checked."
 msgstr "Copre più dei soli template: i blocchi riutilizzabili rispondono allo stesso interruttore, e modificare un blocco modifica ogni template che lo incorpora. I blocchi sono conservati insieme alle impostazioni del workspace, quindi il loro contenuto viene restituito anche da /api/workspaces.get e da /api/workspaces.list, che non richiede alcun permesso — la lettura Template non è l'unico modo per vedere il contenuto dei blocchi. Inoltre /api/templates.compile controlla questa concessione solo per le chiamate che arrivano tramite API; quando il workspace compila un template per sé stesso, non viene controllato nulla."
 
-#: src/components/automations/AutomationEditor.tsx:536
+#: src/components/automations/AutomationEditor.tsx:514
 #: src/components/blog/CategoryDrawer.tsx:116
 #: src/components/blog/PostDrawer.tsx:692
 #: src/components/file_manager/FileExplorer.tsx:911
@@ -5682,7 +5681,7 @@ msgstr "Crea webhook"
 msgid "Create Workspace"
 msgstr "Crea workspace"
 
-#: src/pages/AutomationsPage.tsx:220
+#: src/pages/AutomationsPage.tsx:225
 msgid "Create your first automation"
 msgstr "Crea la tua prima automation"
 
@@ -6218,7 +6217,7 @@ msgstr "Marketing predefinito"
 msgid "Default retention (days)"
 msgstr "Conservazione predefinita (giorni)"
 
-#: src/components/automations/stats/EmailStepPreview.tsx:59
+#: src/components/automations/stats/EmailStepPreview.tsx:60
 #: src/components/broadcasts/detail/senderText.ts:33
 msgid "Default sender"
 msgstr "Mittente predefinito"
@@ -6266,8 +6265,7 @@ msgstr "Definito da"
 msgid "Delay"
 msgstr "Ritardo"
 
-#: src/components/automations/NodeConfigPanel.tsx:301
-#: src/components/automations/nodes/BaseNode.tsx:42
+#: src/components/automations/nodes/BaseNode.tsx:58
 #: src/components/blog/BlogSidebar.tsx:89
 #: src/components/blog/DeleteCategoryModal.tsx:29
 #: src/components/blog/DeletePostModal.tsx:29
@@ -6399,12 +6397,12 @@ msgstr "Eliminare l'annotazione?"
 msgid "Delete anyway"
 msgstr "Elimina comunque"
 
-#: src/components/automations/AutomationEditor.tsx:431
+#: src/components/automations/AutomationEditor.tsx:436
 #: src/components/automations/list/AutomationsTable.tsx:104
 msgid "Delete Automation"
 msgstr "Elimina automation"
 
-#: src/components/automations/AutomationEditor.tsx:390
+#: src/components/automations/AutomationEditor.tsx:395
 #: src/components/automations/list/AutomationsTable.tsx:83
 msgid "Delete automation?"
 msgstr "Eliminare automation?"
@@ -6439,8 +6437,8 @@ msgstr "Elimina contatto"
 msgid "Delete contacts"
 msgstr "Elimina contatti"
 
-#: src/components/automations/edges/AutomationEdge.tsx:95
-#: src/components/automations/edges/AutomationEdge.tsx:98
+#: src/components/automations/edges/AutomationEdge.tsx:126
+#: src/components/automations/edges/AutomationEdge.tsx:129
 msgid "Delete edge"
 msgstr "Elimina edge"
 
@@ -6483,10 +6481,9 @@ msgstr "Elimina lista"
 msgid "Delete List"
 msgstr "Elimina lista"
 
-#: src/components/automations/NodeConfigPanel.tsx:298
-#: src/components/automations/nodes/BaseNode.tsx:39
-#: src/components/automations/nodes/BaseNode.tsx:46
-#: src/components/automations/nodes/BaseNode.tsx:49
+#: src/components/automations/nodes/BaseNode.tsx:55
+#: src/components/automations/nodes/BaseNode.tsx:62
+#: src/components/automations/nodes/BaseNode.tsx:65
 msgid "Delete node"
 msgstr "Elimina nodo"
 
@@ -6504,8 +6501,8 @@ msgid "Delete segment"
 msgstr "Elimina segment"
 
 #: src/components/automations/NodeConfigPanel.tsx:306
-msgid "Delete step"
-msgstr "Elimina passaggio"
+#~ msgid "Delete step"
+#~ msgstr "Elimina passaggio"
 
 #: src/pages/TemplatesPage.tsx:348
 #~ msgid "Delete Template"
@@ -6672,7 +6669,8 @@ msgstr "Eliminando questo webhook, lo Zap che lo ha creato smette di funzionare.
 
 #: src/components/analytics/DashboardKpis.tsx:259
 #: src/components/analytics/DashboardKpis.tsx:262
-#: src/components/automations/stats/EmailStepStats.tsx:74
+#: src/components/automations/stats/EmailStepStats.tsx:75
+#: src/components/automations/stats/EmailStepStats.tsx:81
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:46
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:49
 #: src/components/contacts/sheet/activityLabel.ts:15
@@ -6744,7 +6742,7 @@ msgstr "Deployment"
 msgid "Describe this image..."
 msgstr "Descrivi questa immagine..."
 
-#: src/components/automations/NodeConfigPanel.tsx:268
+#: src/components/automations/NodeConfigPanel.tsx:280
 #: src/components/blog/CategoryDrawer.tsx:157
 #: src/components/lists/ListDrawer.tsx:234
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:368
@@ -7074,7 +7072,7 @@ msgid "Draft restored from local storage"
 msgstr "Bozza ripristinata dalla memoria locale"
 
 #: src/components/blog/PostsTable.tsx:423
-#: src/pages/AutomationsPage.tsx:137
+#: src/pages/AutomationsPage.tsx:141
 #: src/pages/BroadcastsPage.tsx:184
 msgid "Drafts"
 msgstr "Bozze"
@@ -7205,7 +7203,7 @@ msgstr "es. purchase"
 msgid "e.g., Raleway, Open Sans"
 msgstr "es. Raleway, Open Sans"
 
-#: src/components/automations/NodeConfigPanel.tsx:281
+#: src/components/automations/NodeConfigPanel.tsx:293
 msgid "e.g., Welcome — day 1"
 msgstr "es. Benvenuto — giorno 1"
 
@@ -7241,7 +7239,6 @@ msgstr "Ogni variante mantiene il mittente del suo template, a meno che tu non n
 #~ msgid "edit"
 #~ msgstr "modifica"
 
-#: src/components/automations/AutomationEditor.tsx:489
 #: src/components/automations/config/ConditionsField.tsx:112
 #: src/components/blog/BlogSidebar.tsx:86
 #: src/components/blog/PostsTable.tsx:225
@@ -7588,7 +7585,7 @@ msgstr "Email non riuscita: {name}"
 msgid "Email field mapping is required"
 msgstr "Mappatura campo email richiesta"
 
-#: src/components/automations/config/EmailConfigForm.tsx:88
+#: src/components/automations/config/EmailConfigForm.tsx:95
 #: src/components/templates/SendTemplateModal.tsx:338
 msgid "Email Integration"
 msgstr "Integrazione email"
@@ -7687,7 +7684,7 @@ msgstr "Subject email"
 msgid "Email subject ({0})"
 msgstr "Oggetto email ({0})"
 
-#: src/components/automations/config/EmailConfigForm.tsx:72
+#: src/components/automations/config/EmailConfigForm.tsx:80
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:346
 msgid "Email Template"
 msgstr "Template email"
@@ -8270,7 +8267,8 @@ msgstr ""
 msgid "Every sub-item has fewer than {0} sessions. Lower the threshold to see them."
 msgstr "Ogni sotto-elemento ha meno di {0} sessioni. Abbassa la soglia per vederli."
 
-#: src/components/automations/EditorSettings.tsx:41
+#: src/components/automations/EditorSettings.tsx:56
+#: src/components/automations/EditorSettings.tsx:59
 #: src/components/automations/list/AutomationsTable.tsx:132
 #: src/components/automations/nodes/TriggerNode.tsx:37
 msgid "Every time"
@@ -8336,8 +8334,8 @@ msgstr "Escludi i destinatari disiscritti"
 msgid "Excluded"
 msgstr "Esclusi"
 
-#: src/components/automations/EditorSettings.tsx:48
-#: src/components/automations/EditorSettings.tsx:61
+#: src/components/automations/EditorSettings.tsx:66
+#: src/components/automations/EditorSettings.tsx:79
 msgid "Exit on reply"
 msgstr "Uscita alla risposta"
 
@@ -8581,7 +8579,7 @@ msgstr "Impossibile completare la configurazione"
 msgid "Failed to connect Zapier"
 msgstr "Impossibile collegare Zapier"
 
-#: src/components/automations/AutomationEditor.tsx:422
+#: src/components/automations/AutomationEditor.tsx:427
 #: src/components/common/CodeSnippet.tsx:35
 #: src/components/file_manager/FileExplorer.tsx:293
 #: src/components/layout/DrawerControls.tsx:77
@@ -9324,8 +9322,8 @@ msgstr "Prima apertura"
 #~ msgid "First opens counts the messages opened or clicked, once each; first clicks, the messages clicked once each."
 #~ msgstr "Prime aperture conta i messaggi aperti o cliccati, una volta ciascuno; primi clic, i messaggi cliccati, una volta ciascuno."
 
-#: src/components/automations/AutomationFlowEditor.tsx:128
-#: src/components/automations/AutomationFlowEditor.tsx:132
+#: src/components/automations/AutomationFlowEditor.tsx:135
+#: src/components/automations/AutomationFlowEditor.tsx:139
 msgid "Fit to screen"
 msgstr "Adatta allo schermo"
 
@@ -9476,11 +9474,11 @@ msgstr "Trovati {0} indirizzi email"
 msgid "Found unsaved changes from {0}"
 msgstr "Trovate modifiche non salvate del {0}"
 
-#: src/components/automations/EditorSettings.tsx:34
+#: src/components/automations/EditorSettings.tsx:49
 msgid "Frequency"
 msgstr "Frequenza"
 
-#: src/components/automations/stats/EmailStepPreview.tsx:59
+#: src/components/automations/stats/EmailStepPreview.tsx:60
 #: src/components/broadcasts/compose/PreviewPanel.tsx:92
 #: src/components/broadcasts/detail/BroadcastAside.tsx:98
 #: src/components/logs/MessageDetail.tsx:643
@@ -10024,7 +10022,7 @@ msgstr "L'ID può contenere solo lettere minuscole e numeri"
 msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID può contenere solo lettere minuscole, numeri e underscore"
 
-#: src/components/automations/AutomationEditor.tsx:421
+#: src/components/automations/AutomationEditor.tsx:426
 #: src/pages/TemplatesPage.tsx:309
 #: src/pages/TransactionalNotificationsPage.tsx:153
 msgid "ID copied"
@@ -10334,7 +10332,7 @@ msgstr "Webhook in entrata"
 #~ msgid "Incoming Webhooks"
 #~ msgstr "Webhook in Entrata"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:539
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:541
 msgid "Incomplete: {reason}"
 msgstr "Incompleto: {reason}"
 
@@ -10747,7 +10745,7 @@ msgstr "Si è unito con l'invito <0>{target}</0>"
 msgid "Journey"
 msgstr "Percorso"
 
-#: src/pages/AutomationsPage.tsx:238
+#: src/pages/AutomationsPage.tsx:243
 msgid "Journeys since creation · open rate last 30 days"
 msgstr "Percorsi dalla creazione · tasso di apertura ultimi 30 giorni"
 
@@ -10880,8 +10878,7 @@ msgstr "Le immagini grandi possono rallentare significativamente i tempi di cari
 msgid "Last 24 hours"
 msgstr "Ultime 24 ore"
 
-#: src/components/automations/AutomationEditor.tsx:502
-#: src/components/automations/NodeConfigPanel.tsx:191
+#: src/components/automations/NodeConfigPanel.tsx:203
 #: src/components/broadcasts/BroadcastKpis.tsx:138
 #: src/components/logs/AuditLogTab.tsx:186
 #: src/components/logs/InboundWebhooksTab.tsx:131
@@ -10898,6 +10895,7 @@ msgstr "Ultimi 30 giorni: {0}"
 #~ msgid "last 30 minutes"
 #~ msgstr ""
 
+#: src/components/automations/NodeConfigPanel.tsx:203
 #: src/components/logs/AuditLogTab.tsx:185
 #: src/components/logs/InboundWebhooksTab.tsx:130
 #: src/components/logs/MessagesTab.tsx:252
@@ -11204,7 +11202,7 @@ msgstr "Il Liquid posto tra i blocchi di una sezione o di una colonna potrebbe n
 #: src/components/automations/config/RemoveFromListConfigForm.tsx:26
 #: src/components/automations/config/TriggerConfigForm.tsx:274
 #: src/components/automations/describeTrigger.ts:32
-#: src/components/automations/EditorSettings.tsx:24
+#: src/components/automations/EditorSettings.tsx:38
 #: src/components/automations/list/AutomationsTable.tsx:180
 #: src/components/broadcasts/compose/AudienceCard.tsx:68
 #: src/components/broadcasts/compose/AudienceCard.tsx:70
@@ -11396,7 +11394,7 @@ msgstr "La scrittura Liste concede anche la scrittura dei contatti. Iscrivere un
 #: src/components/templates/templateUsage.ts:90
 #: src/components/web_analytics/LiveButton.tsx:48
 #: src/layouts/app-shell/menuItems.ts:219
-#: src/pages/AutomationsPage.tsx:135
+#: src/pages/AutomationsPage.tsx:139
 #: src/pages/WebAnalyticsLivePage.tsx:122
 msgid "Live"
 msgstr "Attivo"
@@ -11946,8 +11944,8 @@ msgid "Minimal"
 msgstr "Minimo"
 
 #: src/components/automations/AutomationFlowEditor.tsx:509
-msgid "Minimap"
-msgstr "Minimappa"
+#~ msgid "Minimap"
+#~ msgstr "Minimappa"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:475
 msgid "Minimize YouTube branding"
@@ -12098,7 +12096,7 @@ msgstr "Mensile"
 #~ msgid "Monthly partitions older than this are dropped. 0 keeps data forever."
 #~ msgstr ""
 
-#: src/components/automations/AutomationEditor.tsx:540
+#: src/components/automations/AutomationEditor.tsx:518
 #: src/components/automations/list/AutomationsTable.tsx:294
 #: src/components/blog/PostsTable.tsx:408
 #: src/components/broadcasts/BroadcastsTable.tsx:407
@@ -12242,7 +12240,7 @@ msgstr "Richiede questi permessi IAM aggiuntivi: ses:CreateTenant, ses:CreateTen
 msgid "New"
 msgstr "Nuovo"
 
-#: src/pages/AutomationsPage.tsx:165
+#: src/pages/AutomationsPage.tsx:170
 msgid "New automation"
 msgstr "Nuova automazione"
 
@@ -12389,7 +12387,6 @@ msgstr "Prossima esecuzione"
 #~ msgstr "Prossima Esecuzione"
 
 #: src/components/automations/edges/edgeLabel.ts:34
-#: src/components/automations/nodes/FilterNode.tsx:52
 #: src/components/blog/AuthorsTable.tsx:107
 #: src/components/blog/PostDrawer.tsx:296
 #: src/components/blog/PostDrawer.tsx:562
@@ -12463,11 +12460,11 @@ msgstr "Ancora nessuna regola di attribuzione. Crea la prima per iniziare a mode
 msgid "No audit entries yet"
 msgstr "Ancora nessuna voce di audit"
 
-#: src/pages/AutomationsPage.tsx:258
+#: src/pages/AutomationsPage.tsx:263
 msgid "No automations match"
 msgstr "Nessuna automazione corrisponde"
 
-#: src/pages/AutomationsPage.tsx:212
+#: src/pages/AutomationsPage.tsx:217
 msgid "No automations yet"
 msgstr "Nessuna automation ancora"
 
@@ -12528,7 +12525,7 @@ msgid "No comparison"
 msgstr "Nessun confronto"
 
 #: src/components/automations/config/ConditionsField.tsx:92
-#: src/components/automations/nodes/FilterNode.tsx:41
+#: src/components/automations/nodes/FilterNode.tsx:44
 msgid "No conditions"
 msgstr "Nessuna condizione"
 
@@ -12560,7 +12557,7 @@ msgstr "Nessun contatto corrisponde ai filtri"
 msgid "No contacts yet"
 msgstr "Ancora nessun contatto"
 
-#: src/components/broadcasts/detail/TemplatePreviewFrame.tsx:43
+#: src/components/broadcasts/detail/TemplatePreviewFrame.tsx:51
 msgid "No content yet"
 msgstr "Ancora nessun contenuto"
 
@@ -12701,7 +12698,7 @@ msgstr "Nessun Problema"
 #~ msgid "No items selected"
 #~ msgstr "Nessun elemento selezionato"
 
-#: src/components/automations/AutomationEditor.tsx:434
+#: src/components/automations/AutomationEditor.tsx:439
 msgid "No journeys yet"
 msgstr "Ancora nessun percorso"
 
@@ -13041,8 +13038,7 @@ msgstr "Nessuno spazio di lavoro"
 msgid "Non-active"
 msgstr "Non attivo"
 
-#: src/components/automations/config/ListStatusBranchConfigForm.tsx:51
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:41
+#: src/components/automations/config/ListStatusBranchConfigForm.tsx:50
 msgid "Non-Active"
 msgstr "Non Attivo"
 
@@ -13118,7 +13114,7 @@ msgstr "Non cliccato"
 msgid "Not configured"
 msgstr "Non configurato"
 
-#: src/components/automations/nodes/BaseNode.tsx:33
+#: src/components/automations/nodes/BaseNode.tsx:49
 msgid "Not connected"
 msgstr "Non connesso"
 
@@ -13154,8 +13150,7 @@ msgstr "non in"
 msgid "Not in list"
 msgstr "Non nella lista"
 
-#: src/components/automations/config/ListStatusBranchConfigForm.tsx:45
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:39
+#: src/components/automations/config/ListStatusBranchConfigForm.tsx:44
 msgid "Not in List"
 msgstr "Non nella Lista"
 
@@ -13181,7 +13176,7 @@ msgstr "Non aperto"
 msgid "Not resolved"
 msgstr "Non risolto"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:545
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:547
 msgid "Not saved"
 msgstr "Non salvato"
 
@@ -13443,12 +13438,13 @@ msgstr "Attivo (predefinito)"
 msgid "On tracked emails"
 msgstr "Sulle email tracciate"
 
+#: src/components/automations/EditorSettings.tsx:56
 #: src/components/automations/list/AutomationsTable.tsx:132
 #: src/components/automations/nodes/TriggerNode.tsx:37
 msgid "Once"
 msgstr "Una volta"
 
-#: src/components/automations/EditorSettings.tsx:40
+#: src/components/automations/EditorSettings.tsx:58
 msgid "Once per contact"
 msgstr "Una volta per contatto"
 
@@ -13592,7 +13588,7 @@ msgstr "Apri in web analytics"
 msgid "Open integrations"
 msgstr "Apri integrazioni"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:442
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:444
 msgid "Open its page"
 msgstr "Apri la pagina"
 
@@ -13627,8 +13623,8 @@ msgid "Open subscription"
 msgstr "Apri subscription"
 
 #: src/components/automations/stats/EmailStepPreview.tsx:77
-msgid "Open template"
-msgstr "Apri modello"
+#~ msgid "Open template"
+#~ msgstr "Apri modello"
 
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:42
 msgid "Open the audit log"
@@ -13651,7 +13647,7 @@ msgstr "Apri le impostazioni delle web analytics"
 #~ msgstr "aperto"
 
 #: src/components/automations/describeTrigger.ts:56
-#: src/components/automations/stats/EmailStepStats.tsx:83
+#: src/components/automations/stats/EmailStepStats.tsx:82
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:55
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:58
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:96
@@ -13902,7 +13898,7 @@ msgstr "Sopralineato"
 msgid "Override the default sender name for this test email"
 msgstr "Sostituisci il nome mittente predefinito per questa email di test"
 
-#: src/components/automations/config/EmailConfigForm.tsx:89
+#: src/components/automations/config/EmailConfigForm.tsx:96
 msgid "Override the workspace default email provider for this node"
 msgstr "Sovrascrivi il provider email predefinito del workspace per questo nodo"
 
@@ -14023,8 +14019,8 @@ msgstr "Incolla URL YouTube..."
 msgid "Path-style access"
 msgstr "Accesso path-style"
 
-#: src/components/automations/AutomationEditor.tsx:517
-#: src/components/automations/AutomationEditor.tsx:559
+#: src/components/automations/AutomationEditor.tsx:495
+#: src/components/automations/AutomationEditor.tsx:537
 #: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/BroadcastsTable.tsx:395
 #: src/components/broadcasts/BroadcastsTable.tsx:399
@@ -14048,7 +14044,7 @@ msgstr "Metti in pausa un'automazione attiva"
 msgid "Pause Automation"
 msgstr "Metti in Pausa Automation"
 
-#: src/components/automations/AutomationEditor.tsx:380
+#: src/components/automations/AutomationEditor.tsx:385
 #: src/components/automations/list/AutomationsTable.tsx:72
 msgid "Pause automation?"
 msgstr "Mettere in pausa l'automation?"
@@ -14070,7 +14066,7 @@ msgstr "Metti prima in pausa l'automazione"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:274
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:212
 #: src/components/templates/templateUsage.ts:86
-#: src/pages/AutomationsPage.tsx:136
+#: src/pages/AutomationsPage.tsx:140
 msgid "Paused"
 msgstr "In Pausa"
 
@@ -14161,7 +14157,7 @@ msgstr "URL del feed per destinatario"
 #~ msgid "Per-recipient feed URL is required when enabled"
 #~ msgstr "L'URL del feed per destinatario è richiesto quando abilitato"
 
-#: src/components/automations/AutomationEditor.tsx:498
+#: src/components/automations/stats/StatsControl.tsx:38
 #: src/components/logs/AuditLogTab.tsx:443
 #: src/components/logs/InboundWebhooksTab.tsx:189
 #: src/components/logs/MessagesTab.tsx:493
@@ -14434,7 +14430,7 @@ msgstr "Inserisci un identificatore API"
 msgid "Please enter an API key name"
 msgstr "Inserisci un nome per la chiave API"
 
-#: src/components/automations/AutomationEditor.tsx:313
+#: src/components/automations/AutomationEditor.tsx:318
 #: src/components/automations/context/AutomationContext.tsx:76
 msgid "Please enter an automation name"
 msgstr "Inserisci un nome automation"
@@ -14677,7 +14673,6 @@ msgstr "Premi Invio per confermare, Esc per annullare"
 #~ msgid "preview"
 #~ msgstr "anteprima"
 
-#: src/components/automations/stats/EmailStepPreview.tsx:67
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:69
 #: src/components/common/ImageURLInput.tsx:52
@@ -14718,7 +14713,7 @@ msgstr "Modalità Anteprima Richiesta"
 msgid "Preview of {0}"
 msgstr "Anteprima di {0}"
 
-#: src/components/broadcasts/detail/TemplatePreviewFrame.tsx:61
+#: src/components/broadcasts/detail/TemplatePreviewFrame.tsx:69
 msgid "Preview of {templateName}"
 msgstr "Anteprima di {templateName}"
 
@@ -15379,7 +15374,7 @@ msgstr "Registrazione interrotta: nessuna licenza valida"
 msgid "Redirect URI"
 msgstr "URI di reindirizzamento"
 
-#: src/components/automations/AutomationEditor.tsx:476
+#: src/components/automations/AutomationEditor.tsx:481
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:678
 #: src/components/email_builder/EmailBuilder.tsx:1041
@@ -15387,7 +15382,7 @@ msgstr "URI di reindirizzamento"
 msgid "Redo"
 msgstr "Ripeti"
 
-#: src/components/automations/AutomationEditor.tsx:475
+#: src/components/automations/AutomationEditor.tsx:480
 msgid "Redo ({redoKeys})"
 msgstr "Ripeti ({redoKeys})"
 
@@ -15516,8 +15511,8 @@ msgstr "Rifiuta Indirizzi Email Temporanei"
 msgid "Rel"
 msgstr "Rel"
 
-#: src/components/automations/AutomationEditor.tsx:406
-#: src/components/automations/AutomationEditor.tsx:572
+#: src/components/automations/AutomationEditor.tsx:411
+#: src/components/automations/AutomationEditor.tsx:550
 msgid "Reload"
 msgstr "Ricarica"
 
@@ -15525,7 +15520,7 @@ msgstr "Ricarica"
 msgid "Reload latest"
 msgstr "Ricarica l'ultima versione"
 
-#: src/components/automations/AutomationEditor.tsx:404
+#: src/components/automations/AutomationEditor.tsx:409
 msgid "Reload the automation?"
 msgstr "Ricaricare l'automazione?"
 
@@ -15696,8 +15691,8 @@ msgstr "Rendering anteprima..."
 msgid "Renew licence"
 msgstr ""
 
-#: src/components/automations/AutomationFlowEditor.tsx:489
-#: src/components/automations/AutomationFlowEditor.tsx:492
+#: src/components/automations/AutomationFlowEditor.tsx:583
+#: src/components/automations/AutomationFlowEditor.tsx:586
 msgid "Reorganize layout"
 msgstr "Riorganizza layout"
 
@@ -16018,12 +16013,12 @@ msgstr "Ha ritentato gli invii non riusciti della newsletter <0>{target}</0>"
 
 #: src/components/analytics/BlockError.tsx:22
 #: src/components/analytics/DashboardKpis.tsx:184
-#: src/components/automations/AutomationEditor.tsx:89
-#: src/components/automations/AutomationEditor.tsx:584
-#: src/components/automations/stats/EmailStepPreview.tsx:41
+#: src/components/automations/AutomationEditor.tsx:93
+#: src/components/automations/AutomationEditor.tsx:562
+#: src/components/automations/stats/EmailStepPreview.tsx:42
 #: src/components/blog/PostsTable.tsx:449
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:93
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:548
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:550
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:171
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:782
@@ -16036,7 +16031,7 @@ msgstr "Ha ritentato gli invii non riusciti della newsletter <0>{target}</0>"
 #: src/components/settings/WebhooksSettings.tsx:387
 #: src/components/settings/WorkspaceMembers.tsx:490
 #: src/components/transactional/LoadError.tsx:22
-#: src/pages/AutomationsPage.tsx:204
+#: src/pages/AutomationsPage.tsx:209
 #: src/pages/BroadcastsPage.tsx:239
 #: src/pages/TemplatesPage.tsx:493
 #: src/pages/TransactionalNotificationsPage.tsx:173
@@ -16273,7 +16268,7 @@ msgstr "Modalità sandbox"
 msgid "Sandbox Mode"
 msgstr "Modalità Sandbox"
 
-#: src/components/automations/AutomationEditor.tsx:536
+#: src/components/automations/AutomationEditor.tsx:514
 #: src/components/blog/AuthorsTable.tsx:138
 #: src/components/blog/CategoryDrawer.tsx:116
 #: src/components/blog/PostDrawer.tsx:692
@@ -16315,7 +16310,7 @@ msgstr "Salva e riavvia"
 msgid "Save a block from its toolbar to reuse it in every template."
 msgstr "Salva un blocco dalla sua barra degli strumenti per riutilizzarlo in tutti i template."
 
-#: src/components/automations/AutomationEditor.tsx:324
+#: src/components/automations/AutomationEditor.tsx:329
 msgid "Save Anyway"
 msgstr "Salva Comunque"
 
@@ -16328,7 +16323,7 @@ msgstr "Salva Comunque"
 #~ msgid "Save Block"
 #~ msgstr "Salva Blocco"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:486
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:488
 msgid "Save changes"
 msgstr "Salva modifiche"
 
@@ -16354,7 +16349,7 @@ msgstr "Salva Permessi"
 msgid "Save Segment (Console Log)"
 msgstr "Salva Segmento (Log Console)"
 
-#: src/components/automations/AutomationEditor.tsx:434
+#: src/components/automations/AutomationEditor.tsx:439
 msgid "Save the automation first"
 msgstr "Salva prima l'automazione"
 
@@ -16376,7 +16371,7 @@ msgstr "Salva Tema"
 msgid "Save to library"
 msgstr "Salva nella libreria"
 
-#: src/components/automations/NodeConfigPanel.tsx:194
+#: src/components/automations/NodeConfigPanel.tsx:206
 msgid "Save to start counting this step"
 msgstr "Salva per iniziare a contare questo passaggio"
 
@@ -16384,11 +16379,11 @@ msgstr "Salva per iniziare a contare questo passaggio"
 msgid "Save user metadata to this custom JSON field (Optional)"
 msgstr "Salva i metadati utente in questo campo JSON personalizzato (Opzionale)"
 
-#: src/components/automations/AutomationEditor.tsx:521
+#: src/components/automations/AutomationEditor.tsx:499
 msgid "Save your changes first"
 msgstr "Salva prima le modifiche"
 
-#: src/components/automations/AutomationEditor.tsx:460
+#: src/components/automations/AutomationEditor.tsx:465
 msgid "Saved"
 msgstr "Salvato"
 
@@ -16397,7 +16392,7 @@ msgstr "Salvato"
 msgid "Saved ({0})"
 msgstr "Salvati ({0})"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:535
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:537
 msgid "Saved {ago}"
 msgstr "Salvato {ago}"
 
@@ -16426,7 +16421,7 @@ msgstr "Ha salvato il blocco <0>{target}</0>"
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Il salvataggio delle impostazioni riavvierà il server. Dovrai accedere di nuovo."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:532
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:534
 msgid "Saving…"
 msgstr "Salvataggio…"
 
@@ -16518,8 +16513,8 @@ msgstr "Cerca per"
 msgid "Search by name"
 msgstr "Cerca per nome"
 
-#: src/pages/AutomationsPage.tsx:243
-#: src/pages/AutomationsPage.tsx:244
+#: src/pages/AutomationsPage.tsx:248
+#: src/pages/AutomationsPage.tsx:249
 msgid "Search by name or trigger"
 msgstr "Cerca per nome o trigger"
 
@@ -16774,7 +16769,7 @@ msgstr "Seleziona un campo"
 msgid "Select a file"
 msgstr "Seleziona un file"
 
-#: src/components/automations/nodes/ListStatusBranchNode.tsx:31
+#: src/components/automations/nodes/ListStatusBranchNode.tsx:34
 #: src/components/broadcasts/compose/AudienceCard.tsx:71
 #: src/components/contacts/BulkActionsBar.tsx:191
 #: src/components/contacts/sheet/ContactListsCard.tsx:207
@@ -16905,7 +16900,7 @@ msgstr "Seleziona dimensione"
 msgid "Select email template"
 msgstr "Seleziona template email"
 
-#: src/components/automations/config/EmailConfigForm.tsx:80
+#: src/components/automations/config/EmailConfigForm.tsx:85
 msgid "Select email template..."
 msgstr "Seleziona template email..."
 
@@ -16958,7 +16953,7 @@ msgstr "Seleziona lingua"
 msgid "Select language..."
 msgstr "Seleziona lingua..."
 
-#: src/components/automations/EditorSettings.tsx:27
+#: src/components/automations/EditorSettings.tsx:42
 #: src/components/contacts/BulkUpdateDrawer.tsx:619
 msgid "Select list"
 msgstr "Seleziona lista"
@@ -17008,7 +17003,7 @@ msgstr "Seleziona template"
 msgid "Select Template"
 msgstr "Seleziona template"
 
-#: src/components/automations/config/EmailConfigForm.tsx:74
+#: src/components/automations/config/EmailConfigForm.tsx:80
 msgid "Select the email template to send"
 msgstr "Seleziona il template email da inviare"
 
@@ -17138,7 +17133,7 @@ msgstr "Invia una notifica transazionale utilizzando Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Invia una notifica transazionale utilizzando TypeScript/JavaScript:"
 
-#: src/pages/AutomationsPage.tsx:213
+#: src/pages/AutomationsPage.tsx:218
 msgid "Send emails and update lists when contacts do something"
 msgstr "Invia email e aggiorna liste quando i contatti fanno qualcosa"
 
@@ -17324,7 +17319,7 @@ msgstr "Invii rifiutati dal provider. Le richieste rifiutate prima dell'invio no
 #~ msgstr "inviato"
 
 #: src/components/analytics/OriginVolumeChart.tsx:162
-#: src/components/automations/stats/EmailStepStats.tsx:66
+#: src/components/automations/stats/EmailStepStats.tsx:71
 #: src/components/broadcasts/detail/AbTestPanel.tsx:160
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:269
@@ -17691,6 +17686,8 @@ msgstr "Imposta la larghezza schermo sotto la quale l'email passerà al layout m
 msgid "Setting up..."
 msgstr "Configurazione in corso..."
 
+#: src/components/automations/EditorSettings.tsx:22
+#: src/components/automations/EditorSettings.tsx:24
 #: src/components/transactional/TransactionalDetail.tsx:482
 #: src/layouts/app-shell/menuItems.ts:233
 #: src/pages/WorkspaceSettingsPage.tsx:269
@@ -17759,6 +17756,10 @@ msgstr "Mostra meno"
 #: src/components/blog/RecentThemesTable.tsx:257
 msgid "Show More ({0} remaining)"
 msgstr "Mostra altro ({0} rimanenti)"
+
+#: src/components/automations/stats/StatsControl.tsx:28
+msgid "Show stats"
+msgstr "Mostra statistiche"
 
 #: src/components/settings/PermissionsMatrix.tsx:202
 #~ msgid "Show the endpoints this permission gates"
@@ -18279,6 +18280,10 @@ msgstr "STARTTLS richiesto"
 msgid "State"
 msgstr "Stato"
 
+#: src/components/automations/stats/StatsControl.tsx:25
+msgid "Stats"
+msgstr "Statistiche"
+
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:389
 msgid "Stats appear once the broadcast starts sending"
 msgstr "Le statistiche compaiono quando il broadcast inizia l'invio"
@@ -18309,7 +18314,7 @@ msgstr "Stato nella lista"
 #~ msgid "Status unknown"
 #~ msgstr "Stato sconosciuto"
 
-#: src/components/automations/AutomationFlowEditor.tsx:537
+#: src/components/automations/AutomationFlowEditor.tsx:632
 msgid "Step"
 msgstr "Passaggio"
 
@@ -18321,7 +18326,7 @@ msgstr "Stato del passaggio"
 msgid "Steps"
 msgstr "Passaggi"
 
-#: src/components/automations/EditorSettings.tsx:52
+#: src/components/automations/EditorSettings.tsx:70
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
 msgstr "Interrompe questa automazione per un contatto non appena questi risponde a una delle sue email. Ciò richiede che l'inoltro delle risposte in entrata sia configurato presso il tuo provider email (ESP): le risposte al tuo dominio di invio devono essere instradate al provider, che le inoltra a Notifuse. Senza questa configurazione, le risposte non vengono rilevate e la sequenza non si interrompe."
 
@@ -18378,7 +18383,7 @@ msgstr "Stile"
 msgid "Style Attributes"
 msgstr "Attributi stile"
 
-#: src/components/automations/stats/EmailStepPreview.tsx:60
+#: src/components/automations/stats/EmailStepPreview.tsx:61
 #: src/components/broadcasts/compose/ContentCard.tsx:124
 #: src/components/broadcasts/compose/PreviewPanel.tsx:93
 #: src/components/broadcasts/detail/AbTestPanel.tsx:133
@@ -19134,12 +19139,12 @@ msgstr "L'endpoint API è cambiato. Dopo il riavvio, la console sarà disponibil
 msgid "The automatic version could not be generated: {0}"
 msgstr "Impossibile generare la versione automatica: {0}"
 
-#: src/components/automations/AutomationEditor.tsx:374
+#: src/components/automations/AutomationEditor.tsx:379
 #: src/components/automations/list/AutomationsTable.tsx:66
 msgid "The automation will start processing contacts that match the trigger."
 msgstr "L'automazione inizierà a elaborare i contatti che corrispondono al trigger."
 
-#: src/components/automations/AutomationEditor.tsx:381
+#: src/components/automations/AutomationEditor.tsx:386
 #: src/components/automations/list/AutomationsTable.tsx:73
 msgid "The automation will stop processing new contacts."
 msgstr "L'automazione smetterà di elaborare nuovi contatti."
@@ -19568,7 +19573,7 @@ msgstr "Ragionamento"
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "Questo account è già collegato a un'identità single sign-on diversa."
 
-#: src/components/automations/AutomationEditor.tsx:391
+#: src/components/automations/AutomationEditor.tsx:396
 #: src/components/automations/list/AutomationsTable.tsx:84
 #: src/components/blog/DeletePostModal.tsx:36
 #: src/components/contacts/DeleteContactModal.tsx:54
@@ -19610,11 +19615,11 @@ msgstr "Questo appare nelle schede del browser quando si visualizza l'email in u
 msgid "This audit entry could not be found"
 msgstr "Voce di audit non trovata"
 
-#: src/components/automations/AutomationEditor.tsx:552
+#: src/components/automations/AutomationEditor.tsx:530
 msgid "This automation is live. Pause it to edit."
 msgstr "Questa automazione è attiva. Mettila in pausa per modificarla."
 
-#: src/components/automations/AutomationEditor.tsx:569
+#: src/components/automations/AutomationEditor.tsx:547
 #: src/components/automations/context/AutomationContext.tsx:376
 msgid "This automation was changed elsewhere"
 msgstr "Questa automazione è stata modificata altrove"
@@ -19637,7 +19642,7 @@ msgstr "Questo broadcast non ha una campagna UTM, quindi il suo traffico sul sit
 msgid "This broadcast is a draft and has not been scheduled or sent yet."
 msgstr "Questo broadcast è una bozza e non è ancora stato pianificato né inviato."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:441
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:443
 msgid "This broadcast is no longer a draft, so it can't be edited here."
 msgstr "Questo broadcast non è più una bozza, quindi non può essere modificato qui."
 
@@ -19842,7 +19847,7 @@ msgstr "Questo mittente non fa più parte dell'integrazione email di marketing. 
 msgid "This session is too long to show in full: only its first pages and goals are listed."
 msgstr "Questa sessione è troppo lunga per essere mostrata per intero: sono elencate solo le sue prime pagine e i primi obiettivi."
 
-#: src/components/automations/NodeConfigPanel.tsx:182
+#: src/components/automations/NodeConfigPanel.tsx:189
 msgid "This step is edited through the API."
 msgstr "Questo passaggio si modifica tramite l'API."
 
@@ -19862,7 +19867,7 @@ msgstr "Questo template è gestito da un'integrazione e non può essere eliminat
 msgid "This template is still used"
 msgstr "Questo modello è ancora in uso"
 
-#: src/components/automations/stats/EmailStepPreview.tsx:47
+#: src/components/automations/stats/EmailStepPreview.tsx:48
 #: src/components/broadcasts/detail/BroadcastAside.tsx:85
 #: src/pages/TemplatesPage.tsx:201
 msgid "This template no longer exists"
@@ -20552,7 +20557,7 @@ msgstr "Sottolineato"
 msgid "Understand the quality of referrals"
 msgstr "Comprendi la qualità dei referral"
 
-#: src/components/automations/AutomationEditor.tsx:473
+#: src/components/automations/AutomationEditor.tsx:478
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:671
 #: src/components/email_builder/EmailBuilder.tsx:982
@@ -20561,7 +20566,7 @@ msgstr "Comprendi la qualità dei referral"
 msgid "Undo"
 msgstr "Annulla"
 
-#: src/components/automations/AutomationEditor.tsx:472
+#: src/components/automations/AutomationEditor.tsx:477
 msgid "Undo ({undoKeys})"
 msgstr "Annulla ({undoKeys})"
 
@@ -20672,15 +20677,15 @@ msgstr "Rimuovi pubblicazione articolo"
 msgid "Unpublished the blog post <0>{target}</0>"
 msgstr "Ha ritirato l'articolo del blog <0>{target}</0>"
 
-#: src/components/automations/AutomationEditor.tsx:457
+#: src/components/automations/AutomationEditor.tsx:462
 #: src/components/blog/PostDrawer.tsx:559
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:182
 msgid "Unsaved changes"
 msgstr "Modifiche non salvate"
 
-#: src/components/automations/AutomationEditor.tsx:265
-#: src/components/automations/AutomationEditor.tsx:288
+#: src/components/automations/AutomationEditor.tsx:270
+#: src/components/automations/AutomationEditor.tsx:293
 #: src/components/blog/ThemeEditorDrawer.tsx:278
 msgid "Unsaved Changes"
 msgstr "Modifiche non salvate"
@@ -20767,7 +20772,7 @@ msgstr "Disiscrizioni"
 msgid "Untitled"
 msgstr "Senza titolo"
 
-#: src/components/automations/AutomationEditor.tsx:440
+#: src/components/automations/AutomationEditor.tsx:445
 msgid "Untitled automation"
 msgstr "Automazione senza titolo"
 
@@ -21072,9 +21077,13 @@ msgstr "Usa questo comando curl per inviare una notifica transazionale tramite A
 msgid "Use TLS"
 msgstr "Usa TLS"
 
-#: src/components/automations/config/EmailConfigForm.tsx:96
+#: src/components/automations/config/EmailConfigForm.tsx:104
 msgid "Use workspace default"
 msgstr "Usa il valore predefinito del workspace"
+
+#: src/components/automations/config/EmailConfigForm.tsx:104
+msgid "Use workspace default · {defaultIntegrationName}"
+msgstr "Predefinito del workspace · {defaultIntegrationName}"
 
 #: src/components/settings/Integrations.tsx:408
 #~ msgid "Used for"
@@ -21186,7 +21195,7 @@ msgstr "Campagne UTM"
 #~ msgid "UTM Term"
 #~ msgstr "UTM Term"
 
-#: src/components/automations/AutomationEditor.tsx:313
+#: src/components/automations/AutomationEditor.tsx:318
 msgid "Validation Error"
 msgstr "Errore di validazione"
 
@@ -21300,8 +21309,8 @@ msgid "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
 msgstr "Il video inizia a questo timestamp (MM:SS, HH:MM:SS, o secondi)"
 
 #: src/components/automations/AutomationEditor.tsx:484
-msgid "View"
-msgstr "Vista"
+#~ msgid "View"
+#~ msgstr "Vista"
 
 #: src/components/logs/AuditLogTab.tsx:487
 msgctxt "audit log scope"
@@ -21340,9 +21349,9 @@ msgstr "Vedi nei log"
 #~ msgid "View Logs"
 #~ msgstr "Visualizza log"
 
-#: src/components/automations/AutomationEditor.tsx:427
+#: src/components/automations/AutomationEditor.tsx:432
 #: src/components/automations/list/AutomationsTable.tsx:96
-#: src/components/automations/stats/EmailStepStats.tsx:100
+#: src/components/automations/stats/EmailStepStats.tsx:99
 msgid "View messages"
 msgstr "Visualizza messaggi"
 
@@ -21463,7 +21472,7 @@ msgstr "In attesa"
 msgid "Waiting for server restart..."
 msgstr "In attesa del riavvio del server..."
 
-#: src/components/automations/AutomationEditor.tsx:322
+#: src/components/automations/AutomationEditor.tsx:327
 msgid "Warning"
 msgstr "Attenzione"
 
@@ -21912,8 +21921,8 @@ msgid "with properties"
 msgstr "con proprietà"
 
 #: src/components/automations/AutomationEditor.tsx:490
-msgid "With stats"
-msgstr "Con statistiche"
+#~ msgid "With stats"
+#~ msgstr "Con statistiche"
 
 #: src/components/segment/form_leaf.tsx:263
 #: src/components/segment/input.tsx:594
@@ -22075,7 +22084,6 @@ msgid "Yearly"
 msgstr "Annuale"
 
 #: src/components/automations/edges/edgeLabel.ts:33
-#: src/components/automations/nodes/FilterNode.tsx:51
 #: src/components/blog/AuthorsTable.tsx:106
 #: src/components/blog/PostDrawer.tsx:295
 #: src/components/blog/PostDrawer.tsx:561
@@ -22100,7 +22108,7 @@ msgstr "Annuale"
 msgid "Yes"
 msgstr "Si"
 
-#: src/components/automations/AutomationEditor.tsx:375
+#: src/components/automations/AutomationEditor.tsx:380
 #: src/components/automations/list/AutomationsTable.tsx:67
 msgid "Yes, activate"
 msgstr "Si, attiva"
@@ -22114,7 +22122,7 @@ msgstr "Si, annulla"
 msgid "Yes, clear it"
 msgstr "Si, cancella"
 
-#: src/components/automations/AutomationEditor.tsx:392
+#: src/components/automations/AutomationEditor.tsx:397
 #: src/components/automations/list/AutomationsTable.tsx:85
 msgid "Yes, delete"
 msgstr "Si, elimina"
@@ -22124,7 +22132,7 @@ msgstr "Si, elimina"
 msgid "Yes, Delete"
 msgstr "Si, elimina"
 
-#: src/components/automations/AutomationEditor.tsx:382
+#: src/components/automations/AutomationEditor.tsx:387
 #: src/components/automations/list/AutomationsTable.tsx:74
 #: src/components/broadcasts/useBroadcastActions.ts:94
 msgid "Yes, pause"
@@ -22194,9 +22202,9 @@ msgstr "Non hai il permesso di gestire i webhook"
 msgid "You don't have permission to view webhooks"
 msgstr "Non hai il permesso di vedere i webhook"
 
-#: src/components/automations/AutomationEditor.tsx:414
+#: src/components/automations/AutomationEditor.tsx:419
 #: src/components/automations/list/AutomationsTable.tsx:52
-#: src/pages/AutomationsPage.tsx:47
+#: src/pages/AutomationsPage.tsx:48
 msgid "You don't have write permission for automations"
 msgstr "Non hai i permessi di scrittura per le automazioni"
 
@@ -22239,7 +22247,7 @@ msgstr "Hai modifiche non salvate."
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Hai modifiche non salvate. Sei sicuro di voler chiudere questo pannello?"
 
-#: src/components/automations/AutomationEditor.tsx:262
+#: src/components/automations/AutomationEditor.tsx:267
 msgid "You have unsaved changes. Are you sure you want to close?"
 msgstr "Hai modifiche non salvate. Sei sicuro di voler chiudere?"
 
@@ -22278,7 +22286,7 @@ msgstr "Hai bisogno dell'accesso alla cronologia dei messaggi per vedere gli inv
 msgid "You need access to templates"
 msgstr "Hai bisogno dell'accesso ai template"
 
-#: src/components/automations/stats/EmailStepPreview.tsx:32
+#: src/components/automations/stats/EmailStepPreview.tsx:33
 msgid "You need access to templates to preview this email."
 msgstr "Ti serve l'accesso ai modelli per l'anteprima di questa email."
 
@@ -22344,11 +22352,11 @@ msgstr "Le tue credenziali AWS non possono creare tenant SES. Concedi i permessi
 msgid "Your blog settings have not been saved. Leaving this page discards them."
 msgstr "Le impostazioni del blog non sono state salvate. Lasciando questa pagina verranno scartate."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:485
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:487
 msgid "Your changes to this scheduled broadcast will be lost."
 msgstr "Le modifiche a questo broadcast pianificato andranno perse."
 
-#: src/components/automations/AutomationEditor.tsx:405
+#: src/components/automations/AutomationEditor.tsx:410
 msgid "Your changes will be lost."
 msgstr "Le modifiche andranno perse."
 
@@ -22376,7 +22384,7 @@ msgstr ""
 msgid "Your Notifuse licence has expired and is in its grace period."
 msgstr ""
 
-#: src/components/automations/AutomationEditor.tsx:555
+#: src/components/automations/AutomationEditor.tsx:533
 msgid "Your unsaved changes can't be saved until the automation is paused."
 msgstr "Le modifiche non salvate potranno essere salvate solo dopo aver messo in pausa l'automazione."
 
@@ -22429,10 +22437,10 @@ msgstr "L'URL endpoint di questo webhook appartiene a Zapier, quindi non può es
 #~ msgid "Zip"
 #~ msgstr "Zip"
 
-#: src/components/automations/AutomationFlowEditor.tsx:127
+#: src/components/automations/AutomationFlowEditor.tsx:134
 msgid "Zoom in"
 msgstr "Ingrandisci"
 
-#: src/components/automations/AutomationFlowEditor.tsx:125
+#: src/components/automations/AutomationFlowEditor.tsx:132
 msgid "Zoom out"
 msgstr "Riduci"

@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import type { Automation, AutomationNode } from '../../../services/api/automation'
 import type { Workspace } from '../../../services/api/types'
 import { runBroadcastQuery } from '../../broadcasts/broadcastQueryClient'
-import { last30Days } from '../last30Days'
+import { last30Days } from '../lastDays'
 import { useAutomationOpenRates } from './useAutomationOpenRates'
 
 vi.mock('../../broadcasts/broadcastQueryClient', () => ({ runBroadcastQuery: vi.fn() }))

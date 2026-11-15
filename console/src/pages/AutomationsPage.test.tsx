@@ -65,8 +65,11 @@ vi.mock('../components/automations/AutomationEditor', () => ({
     withStats: boolean
     canReadTemplates: boolean
     journeyTotal?: number
+    period: string
     onClose: () => void
     onCreated: (id: string) => void
+    onToggleStats: (on: boolean) => void
+    onPeriodChange: (period: string) => void
   }) => (
     <div
       data-testid="editor"
@@ -74,8 +77,13 @@ vi.mock('../components/automations/AutomationEditor', () => ({
       data-stats={String(props.withStats)}
       data-can-read-templates={String(props.canReadTemplates)}
       data-journey-total={String(props.journeyTotal)}
+      data-period={props.period}
     >
       <button onClick={props.onClose}>close editor</button>
+      <button onClick={() => props.onToggleStats(false)}>stats off</button>
+      <button onClick={() => props.onPeriodChange('last7')}>period 7</button>
+      <button onClick={() => props.onPeriodChange('all')}>period all</button>
+      <button onClick={() => props.onPeriodChange('last30')}>period 30</button>
       <button onClick={() => props.onCreated('created-1')}>created</button>
     </div>
   )
@@ -395,6 +403,53 @@ describe('AutomationsPage list', () => {
     fireEvent.click(screen.getByText('Bienvenue été'))
     expect(url.get()).toMatchObject({ automation: 'draft' })
     expect(url.get().stats).toBeUndefined()
+  })
+
+  it('writes the period to the URL and gives it to the editor', async () => {
+    fixtures()
+    renderPage()
+    await screen.findByText('Welcome series')
+    fireEvent.click(screen.getByText('Welcome series'))
+    const editor = () => screen.getByTestId('editor')
+    expect(editor().dataset.period).toBe('last30')
+
+    fireEvent.click(screen.getByText('period 7'))
+    expect(url.get().period).toBe('7d')
+    expect(editor().dataset.period).toBe('last7')
+    fireEvent.click(screen.getByText('period all'))
+    expect(url.get().period).toBe('all')
+    expect(editor().dataset.period).toBe('all')
+    fireEvent.click(screen.getByText('period 30'))
+    expect(url.get().period).toBeUndefined()
+  })
+
+  it('ignores a period in the URL while the stats are off', async () => {
+    fixtures()
+    renderPage()
+    await screen.findByText('Welcome series')
+    act(() => url.set({ automation: 'live', period: '7d' }))
+    expect(screen.getByTestId('editor').dataset.period).toBe('last30')
+    act(() => url.set({ automation: 'live', stats: 1, period: '7d' }))
+    expect(screen.getByTestId('editor').dataset.period).toBe('last7')
+  })
+
+  it('forgets the period when the stats go off, the editor closes or another automation opens', async () => {
+    fixtures()
+    renderPage()
+    await screen.findByText('Welcome series')
+    fireEvent.click(screen.getByText('Welcome series'))
+
+    fireEvent.click(screen.getByText('period 7'))
+    fireEvent.click(screen.getByText('stats off'))
+    expect(url.get()).toMatchObject({ automation: 'live', stats: undefined, period: undefined })
+
+    fireEvent.click(screen.getByText('period 7'))
+    fireEvent.click(screen.getByText('close editor'))
+    expect(url.get().period).toBeUndefined()
+
+    url.set({ ...url.get(), period: '7d' })
+    fireEvent.click(screen.getByText('Bienvenue été'))
+    expect(url.get()).toMatchObject({ automation: 'draft', period: undefined })
   })
 
   it('opens View messages on the logs filtered by the automation', async () => {

@@ -17,6 +17,8 @@ interface EmailConfigFormProps {
   canReadTemplates?: boolean
   /** Read-only: a field that sets its own `disabled` ignores the panel's ConfigProvider. */
   readOnly?: boolean
+  /** Shown under the template field: what the chosen template looks like. */
+  preview?: React.ReactNode
 }
 
 export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
@@ -25,7 +27,8 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
   workspaceId,
   workspace,
   canReadTemplates = true,
-  readOnly = false
+  readOnly = false,
+  preview
 }) => {
   const { t } = useLingui()
 
@@ -52,6 +55,12 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
     [workspace?.integrations]
   )
 
+  // The integration the step falls back to: the workspace's marketing provider.
+  const defaultIntegration = workspace?.integrations?.find(
+    (i) => i.id === workspace.settings?.marketing_email_provider_id
+  )
+  const defaultIntegrationName = defaultIntegration?.name
+
   const renderIntegrationOption = (integration: (typeof emailIntegrations)[number]) => {
     const providerKind = integration.email_provider?.kind
     const providerInfo = emailProviders.find((p) => p.kind === providerKind)
@@ -68,11 +77,7 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
 
   return (
     <Form layout="vertical" className="nodrag">
-      <Form.Item
-        label={t`Email Template`}
-        required
-        extra={t`Select the email template to send`}
-      >
+      <Form.Item label={t`Email Template`} required tooltip={t`Select the email template to send`}>
         <TemplateSelectorInput
           value={config.template_id || null}
           onChange={handleTemplateChange}
@@ -83,17 +88,21 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
         />
       </Form.Item>
 
+      {preview ? <div className="mb-6">{preview}</div> : null}
+
       {emailIntegrations.length > 0 && (
         <Form.Item
           label={t`Email Integration`}
-          extra={t`Override the workspace default email provider for this node`}
+          tooltip={t`Override the workspace default email provider for this node`}
         >
           <Select
             className="w-full"
             value={config.integration_id || ''}
             onChange={handleIntegrationChange}
           >
-            <Option value="">{t`Use workspace default`}</Option>
+            <Option value="">
+              {defaultIntegrationName ? t`Use workspace default · ${defaultIntegrationName}` : t`Use workspace default`}
+            </Option>
             {emailIntegrations.map(renderIntegrationOption)}
           </Select>
         </Form.Item>
