@@ -256,6 +256,7 @@ var AuditExcludedRoutes = map[string]struct{}{
 	"user.updateLanguage":          {},
 	"user.oidc.start":              {},
 	"demo.reset":                   {},
+	"demo.seed":                    {},
 	"detect-favicon":               {},
 	// task plumbing and the cron endpoint
 	"cron":          {},

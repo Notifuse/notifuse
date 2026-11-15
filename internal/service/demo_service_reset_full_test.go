@@ -21,11 +21,35 @@ import (
 // Full ResetDemo over the real service graph (real UserService,
 // WorkspaceService, TemplateService, ListService, WebhookSubscriptionService
 // on mock repositories): the old workspace is wiped, the demo workspace is
-// created with its SMTP integration wired as both email providers, a sample
-// -data failure (lists) degrades instead of aborting, and the webhook
-// subscription ends up disabled.
+// created and marked as the fixtures workspace, its SMTP integration is wired as
+// both email providers, and a sample-data failure (lists) fails the reset
+// instead of being reported as a success.
 
 func TestDemoService_ResetDemo_FullGraph(t *testing.T) {
+	t.Run("sample-data failure fails the reset", func(t *testing.T) {
+		stored, markerSetBeforeSampleData, err := runResetFullGraph(t)
+
+		require.Error(t, err, "a half-built demo must not be reported as a success")
+		assert.ErrorContains(t, err, "failed to add sample data to the demo workspace")
+		assert.ErrorContains(t, err, "lists table unavailable")
+
+		require.NotNil(t, stored, "the demo workspace was created")
+		assert.Equal(t, "demo", stored.ID)
+		assert.True(t, markerSetBeforeSampleData,
+			"marked before the sample data, so the next seed may replace the half-built workspace")
+		require.Len(t, stored.Integrations, 1, "the SMTP integration was added")
+		assert.Equal(t, stored.Integrations[0].ID, stored.Settings.TransactionalEmailProviderID,
+			"the demo integration sends transactional mail")
+		assert.Equal(t, stored.Integrations[0].ID, stored.Settings.MarketingEmailProviderID,
+			"and marketing mail")
+	})
+}
+
+// runResetFullGraph runs ResetDemo. It returns the stored demo workspace and
+// whether the final marker was written before the first sample-data write (a
+// template).
+func runResetFullGraph(t *testing.T) (*domain.Workspace, bool, error) {
+	t.Helper()
 	ctrl := gomock.NewController(t)
 	log := logger.NewLoggerWithLevel("disabled")
 	ctx := context.Background()
@@ -70,6 +94,27 @@ func TestDemoService_ResetDemo_FullGraph(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
+	// --- system settings: the fixtures marker ---
+	settingRepo := mocks.NewMockSettingRepository(ctrl)
+	markerSet := false
+	readMarker := settingRepo.EXPECT().Get(gomock.Any(), demoFixturesSettingKey).
+		Return(nil, &domain.ErrSettingNotFound{Key: demoFixturesSettingKey}).Times(1)
+	pendingMarker := settingRepo.EXPECT().Set(gomock.Any(), demoFixturesSettingKey, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, _ string) error {
+			assert.Nil(t, stored, "the pending marker goes in before the workspace row")
+			return nil
+		}).Times(1)
+	finalMarker := settingRepo.EXPECT().Set(gomock.Any(), demoFixturesSettingKey, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _, value string) error {
+			// The marker is the stored workspace's creation time, as SeedFixtures reads it back.
+			if assert.NotNil(t, stored) {
+				assert.Equal(t, demoFixturesMarkerTime(stored.CreatedAt).Format(time.RFC3339Nano), value)
+			}
+			markerSet = true
+			return nil
+		}).Times(1)
+	gomock.InOrder(readMarker, pendingMarker, finalMarker)
+
 	// --- task repository: permanent tasks already exist and are healthy ---
 	taskRepo := mocks.NewMockTaskRepository(ctrl)
 	taskRepo.EXPECT().DeleteAll(gomock.Any(), "oldws").Return(nil).Times(1)
@@ -112,11 +157,20 @@ func TestDemoService_ResetDemo_FullGraph(t *testing.T) {
 
 	// --- template service (real): sample templates are created ---
 	templateRepo := mocks.NewMockTemplateRepository(ctrl)
-	templateRepo.EXPECT().CreateTemplate(gomock.Any(), "demo", gomock.Any()).Return(nil).AnyTimes()
+	markerSetBeforeSampleData := false
+	firstTemplate := true
+	templateRepo.EXPECT().CreateTemplate(gomock.Any(), "demo", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, _ *domain.Template) error {
+			if firstTemplate {
+				markerSetBeforeSampleData = markerSet
+				firstTemplate = false
+			}
+			return nil
+		}).AnyTimes()
 	templateService := NewTemplateService(templateRepo, workspaceRepo, authService, log, "", nil)
 
 	// --- list service (real): the newsletter list creation fails, which
-	// aborts addSampleData — a degradation the reset must survive. ---
+	// aborts addSampleData and, with it, the reset. ---
 	listRepo := mocks.NewMockListRepository(ctrl)
 	listRepo.EXPECT().CreateList(gomock.Any(), "demo", gomock.Any()).
 		Return(errors.New("lists table unavailable")).Times(1)
@@ -128,50 +182,19 @@ func TestDemoService_ResetDemo_FullGraph(t *testing.T) {
 		authService, nil, log, "", cache.NewInMemoryCache(time.Hour),
 	)
 
-	// --- webhook subscription service (real) ---
-	subscriptionRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
-	var subscription *domain.WebhookSubscription
-	subscriptionRepo.EXPECT().Create(gomock.Any(), "demo", gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
-			subscription = sub
-			return nil
-		}).Times(1)
-	subscriptionRepo.EXPECT().GetByID(gomock.Any(), "demo", gomock.Any()).
-		DoAndReturn(func(_ context.Context, _, _ string) (*domain.WebhookSubscription, error) {
-			return subscription, nil
-		}).AnyTimes()
-	subscriptionRepo.EXPECT().Update(gomock.Any(), "demo", gomock.Any()).
-		DoAndReturn(func(_ context.Context, _ string, sub *domain.WebhookSubscription) error {
-			subscription = sub
-			return nil
-		}).Times(1)
-	webhookSubscriptionService := NewWebhookSubscriptionService(
-		subscriptionRepo, nil, authService, log, false)
-
 	svc := &DemoService{
-		logger:                     log,
-		config:                     cfg,
-		workspaceService:           workspaceService,
-		userService:                userService,
-		templateService:            templateService,
-		listService:                listService,
-		workspaceRepo:              workspaceRepo,
-		taskRepo:                   taskRepo,
-		webhookSubscriptionService: webhookSubscriptionService,
-		authService:                authService,
+		logger:           log,
+		config:           cfg,
+		workspaceService: workspaceService,
+		userService:      userService,
+		templateService:  templateService,
+		listService:      listService,
+		workspaceRepo:    workspaceRepo,
+		taskRepo:         taskRepo,
+		authService:      authService,
+		settingRepo:      settingRepo,
 	}
 
-	require.NoError(t, svc.ResetDemo(ctx),
-		"a sample-data failure degrades the demo, it must not fail the reset")
-
-	require.NotNil(t, stored, "the demo workspace was created")
-	assert.Equal(t, "demo", stored.ID)
-	require.Len(t, stored.Integrations, 1, "the SMTP integration was added")
-	assert.Equal(t, stored.Integrations[0].ID, stored.Settings.TransactionalEmailProviderID,
-		"the demo integration sends transactional mail")
-	assert.Equal(t, stored.Integrations[0].ID, stored.Settings.MarketingEmailProviderID,
-		"and marketing mail")
-
-	require.NotNil(t, subscription, "the demo webhook subscription was created")
-	assert.False(t, subscription.Enabled, "and immediately disabled so it cannot firehose")
+	err = svc.ResetDemo(ctx)
+	return stored, markerSetBeforeSampleData, err
 }

@@ -178,6 +178,7 @@ func TestNewDemoService_Constructs(t *testing.T) {
 		nil, // webhookSubscriptionService
 		nil, // automationService
 		nil, // authService
+		nil, // settingRepo
 	)
 	assert.NotNil(t, svc)
 }
@@ -868,7 +869,9 @@ func TestDemoService_GenerateMessagesPerContact_EmptyContacts(t *testing.T) {
 func TestNewDemoService_AllFields(t *testing.T) {
 	logger := logger.NewLoggerWithLevel("disabled")
 	config := &config.Config{}
-	authService := domainmocks.NewMockAuthService(gomock.NewController(t))
+	ctrl := gomock.NewController(t)
+	authService := domainmocks.NewMockAuthService(ctrl)
+	settingRepo := domainmocks.NewMockSettingRepository(ctrl)
 
 	svc := NewDemoService(
 		logger,
@@ -899,12 +902,14 @@ func TestNewDemoService_AllFields(t *testing.T) {
 		nil, // webhookSubscriptionService
 		nil, // automationService
 		authService,
+		settingRepo,
 	)
 
 	assert.NotNil(t, svc)
 	assert.Equal(t, logger, svc.logger)
 	assert.Equal(t, config, svc.config)
 	assert.Equal(t, authService, svc.authService, "the seed authenticates through it")
+	assert.Equal(t, settingRepo, svc.settingRepo, "the fixtures marker is kept through it")
 }
 
 func TestDemoService_GenerateWebhookEvents_ErrorGettingWorkspace(t *testing.T) {
