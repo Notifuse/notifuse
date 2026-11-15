@@ -1,4 +1,4 @@
-import { Alert, App, Button, Form, InputNumber, Segmented, Slider, Switch, Tooltip } from 'antd'
+import { Alert, App, Button, ConfigProvider, Form, InputNumber, Segmented, Slider, Switch, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import { Mail, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -11,6 +11,9 @@ import { VariationSenderSelect } from '../VariationSenderSelect'
 import { getMarketingSenders } from '../variationSender'
 import { MAX_VARIANTS, VARIANT_LETTERS, type ComposeValues, type ComposeVariant, type WinnerMetric } from './composeValues'
 import type { ComposeUpdate } from './types'
+
+// The card's padding ends it: its fields drop the bottom margin antd gives stacked labelled fields.
+const FLUSH_FORM_THEME = { components: { Form: { itemMarginBottom: 0 } } }
 
 /** Defaults of the automatic winner, which the server requires once it is on. */
 export const DEFAULT_WINNER_METRIC: WinnerMetric = 'open_rate'
@@ -254,8 +257,9 @@ export function ContentCard({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-1 text-xs text-ink-3">
-          <span>{t`Subject, preview text and reply-to come from each template.`}</span>
+        {/* One paragraph: the two sentences follow each other on the same line. */}
+        <div className="text-xs text-ink-3">
+          <span>{t`Subject, preview text and reply-to come from each template.`}</span>{' '}
           <span>
             {values.abEnabled
               ? t`Each variation keeps its template's sender unless you choose another one, which then becomes part of what is tested.`
@@ -265,64 +269,72 @@ export function ContentCard({
 
         {values.abEnabled ? (
           <div className="flex flex-col gap-3 border-t border-line-soft pt-3">
-            <Form layout="vertical" component="div">
-              <Form.Item label={t`Test sample`}>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <Slider
-                      min={1}
-                      max={100}
-                      value={sample}
-                      aria-label={t`Test sample`}
-                      onChange={(samplePercentage: number) => onChange((v) => ({ ...v, samplePercentage }))}
-                    />
+            <ConfigProvider theme={FLUSH_FORM_THEME}>
+              <Form layout="vertical" component="div">
+                {/* The rows space themselves, their fields having no bottom margin. */}
+                <div className="flex flex-col gap-3">
+                  {/* The sample and the automatic winner side by side, half the width each. */}
+                  <div className="grid grid-cols-2 gap-6">
+                    <Form.Item label={t`Test sample`}>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <Slider
+                            min={1}
+                            max={100}
+                            value={sample}
+                            aria-label={t`Test sample`}
+                            onChange={(samplePercentage: number) => onChange((v) => ({ ...v, samplePercentage }))}
+                          />
+                        </div>
+                        <span className="shrink-0 text-sm text-ink-2 tabular-nums" data-testid="sample-size">
+                          {sampleContacts === null
+                            ? `${sample} %`
+                            : `${sample} % · ${t`${plural(sampleContacts, { one: '# contact', other: '# contacts' })}`}`}
+                        </span>
+                      </div>
+                    </Form.Item>
+                    <Form.Item label={t`Send the winner automatically`}>
+                      <Switch
+                        aria-label={t`Send the winner automatically`}
+                        checked={values.autoSendWinner && !values.noTracking}
+                        disabled={!workspaceTracks || values.noTracking}
+                        onChange={(autoSendWinner) =>
+                          onChange((v) => ({
+                            ...v,
+                            autoSendWinner,
+                            winnerMetric: v.winnerMetric ?? DEFAULT_WINNER_METRIC,
+                            testDurationHours: v.testDurationHours ?? DEFAULT_TEST_DURATION_HOURS
+                          }))
+                        }
+                      />
+                    </Form.Item>
                   </div>
-                  <span className="shrink-0 text-sm text-ink-2 tabular-nums" data-testid="sample-size">
-                    {sampleContacts === null
-                      ? `${sample} %`
-                      : `${sample} % · ${t`${plural(sampleContacts, { one: '# contact', other: '# contacts' })}`}`}
-                  </span>
+                  {values.autoSendWinner && !values.noTracking ? (
+                    <div className="flex flex-wrap gap-6">
+                      <Form.Item label={t`Winner metric`}>
+                        <Segmented<WinnerMetric>
+                          value={values.winnerMetric ?? DEFAULT_WINNER_METRIC}
+                          options={[
+                            { value: 'open_rate', label: t`Open rate` },
+                            { value: 'click_rate', label: t`Click rate` }
+                          ]}
+                          onChange={(winnerMetric) => onChange((v) => ({ ...v, winnerMetric }))}
+                        />
+                      </Form.Item>
+                      <Form.Item label={t`Test duration (hours)`}>
+                        <InputNumber
+                          aria-label={t`Test duration (hours)`}
+                          min={1}
+                          max={168}
+                          value={values.testDurationHours}
+                          onChange={(hours) => onChange((v) => ({ ...v, testDurationHours: hours ?? undefined }))}
+                        />
+                      </Form.Item>
+                    </div>
+                  ) : null}
                 </div>
-              </Form.Item>
-              <Form.Item label={t`Send the winner automatically`}>
-                <Switch
-                  aria-label={t`Send the winner automatically`}
-                  checked={values.autoSendWinner && !values.noTracking}
-                  disabled={!workspaceTracks || values.noTracking}
-                  onChange={(autoSendWinner) =>
-                    onChange((v) => ({
-                      ...v,
-                      autoSendWinner,
-                      winnerMetric: v.winnerMetric ?? DEFAULT_WINNER_METRIC,
-                      testDurationHours: v.testDurationHours ?? DEFAULT_TEST_DURATION_HOURS
-                    }))
-                  }
-                />
-              </Form.Item>
-              {values.autoSendWinner && !values.noTracking ? (
-                <div className="flex flex-wrap gap-6">
-                  <Form.Item label={t`Winner metric`}>
-                    <Segmented<WinnerMetric>
-                      value={values.winnerMetric ?? DEFAULT_WINNER_METRIC}
-                      options={[
-                        { value: 'open_rate', label: t`Open rate` },
-                        { value: 'click_rate', label: t`Click rate` }
-                      ]}
-                      onChange={(winnerMetric) => onChange((v) => ({ ...v, winnerMetric }))}
-                    />
-                  </Form.Item>
-                  <Form.Item label={t`Test duration (hours)`}>
-                    <InputNumber
-                      aria-label={t`Test duration (hours)`}
-                      min={1}
-                      max={168}
-                      value={values.testDurationHours}
-                      onChange={(hours) => onChange((v) => ({ ...v, testDurationHours: hours ?? undefined }))}
-                    />
-                  </Form.Item>
-                </div>
-              ) : null}
-            </Form>
+              </Form>
+            </ConfigProvider>
             {values.noTracking ? (
               <Alert
                 type="info"

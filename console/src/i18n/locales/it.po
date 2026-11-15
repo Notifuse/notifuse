@@ -993,7 +993,7 @@ msgstr "{requeued, plural, one {# destinatario in coda per un altro tentativo} o
 msgid "{retentionDays, plural, one {Kept # day} other {Kept # days}}"
 msgstr "{retentionDays, plural, one {Conservato # giorno} other {Conservato # giorni}}"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:283
+#: src/components/broadcasts/compose/ContentCard.tsx:292
 msgid "{sampleContacts, plural, one {# contact} other {# contacts}}"
 msgstr "{sampleContacts, plural, one {# contatto} other {# contatti}}"
 
@@ -1015,7 +1015,7 @@ msgstr "{seconds} secondo"
 msgid "{seconds} seconds"
 msgstr "{seconds} secondi"
 
-#: src/pages/ContactsPage.tsx:670
+#: src/pages/ContactsPage.tsx:668
 msgid "{selectedCount, plural, one {# contact selected} other {# contacts selected}}"
 msgstr "{selectedCount, plural, one {# contatto selezionato} other {# contatti selezionati}}"
 
@@ -1237,7 +1237,7 @@ msgstr "+ Filtro"
 #. placeholder {0}: session.goal_count - 1
 #. placeholder {0}: session.pageview_count - 1
 #. placeholder {0}: summary.more
-#: src/components/contacts/SegmentDefinedBy.tsx:66
+#: src/components/contacts/SegmentDefinedBy.tsx:98
 #: src/components/contacts/visits/ContactWebVisits.tsx:281
 #: src/components/contacts/visits/ContactWebVisits.tsx:322
 msgid "+{0}"
@@ -1344,7 +1344,7 @@ msgid "3. Translations"
 msgstr "3. Traduzioni"
 
 #: src/components/automations/stats/StatsControl.tsx:43
-#: src/components/broadcasts/detail/EngagementChart.tsx:114
+#: src/components/broadcasts/detail/EngagementChart.tsx:117
 #: src/pages/AnalyticsPage.tsx:106
 msgid "30 d"
 msgstr "30 g"
@@ -1370,7 +1370,7 @@ msgstr "30 g"
 msgid "400 - Normal"
 msgstr "400 - Normale"
 
-#: src/components/broadcasts/detail/EngagementChart.tsx:112
+#: src/components/broadcasts/detail/EngagementChart.tsx:115
 msgid "48 h"
 msgstr "48 h"
 
@@ -1388,7 +1388,7 @@ msgid "60d"
 msgstr "60 g"
 
 #: src/components/automations/stats/StatsControl.tsx:42
-#: src/components/broadcasts/detail/EngagementChart.tsx:113
+#: src/components/broadcasts/detail/EngagementChart.tsx:116
 #: src/pages/AnalyticsPage.tsx:105
 msgid "7 d"
 msgstr "7 g"
@@ -1530,8 +1530,8 @@ msgid "A/B · {winnerName}"
 msgstr "A/B · {winnerName}"
 
 #: src/components/automations/nodeTypes.ts:36
-#: src/components/broadcasts/compose/ContentCard.tsx:102
 #: src/components/broadcasts/compose/ContentCard.tsx:105
+#: src/components/broadcasts/compose/ContentCard.tsx:108
 #: src/components/broadcasts/detail/AbTestPanel.tsx:219
 msgid "A/B test"
 msgstr "Test A/B"
@@ -1572,7 +1572,7 @@ msgstr "Informazioni sull'uscita alla risposta"
 msgid "About segments"
 msgstr "Informazioni sui segmenti"
 
-#: src/components/broadcasts/detail/EngagementChart.tsx:99
+#: src/components/broadcasts/detail/EngagementChart.tsx:102
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:88
 msgid "About these numbers"
 msgstr "Informazioni su questi numeri"
@@ -1927,7 +1927,7 @@ msgstr "Aggiungi alla lista"
 msgid "Add to Lists"
 msgstr "Aggiungi alle liste"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:252
+#: src/components/broadcasts/compose/ContentCard.tsx:255
 msgid "Add variant"
 msgstr "Aggiungi variante"
 
@@ -2005,8 +2005,8 @@ msgid "Admin email is required"
 msgstr "Email amministratore richiesta"
 
 #: src/components/broadcasts/compose/AdvancedRow.tsx:56
-msgid "Advanced"
-msgstr "Avanzate"
+#~ msgid "Advanced"
+#~ msgstr "Avanzate"
 
 #: src/components/contacts/ContactsFilters.tsx:195
 msgid "Advanced conditions: create a segment"
@@ -2171,7 +2171,7 @@ msgstr "Tutti i campi del contatto sono opzionali tranne l'email."
 
 #: src/components/analytics/NewContactsTable.tsx:52
 #: src/components/contacts/ContactsRail.tsx:65
-#: src/components/contacts/ContactsViewHeader.tsx:222
+#: src/components/contacts/ContactsViewHeader.tsx:230
 #: src/pages/ContactsPage.tsx:509
 #: src/pages/ContactsPage.tsx:619
 msgid "All contacts"
@@ -2603,7 +2603,7 @@ msgid "Are you sure you want to delete"
 msgstr "Sei sicuro di voler eliminare"
 
 #. placeholder {0}: segment.name
-#: src/components/contacts/ContactsViewHeader.tsx:120
+#: src/components/contacts/ContactsViewHeader.tsx:121
 msgid "Are you sure you want to delete \"{0}\"?"
 msgstr "Sei sicuro di voler eliminare \"{0}\"?"
 
@@ -2662,8 +2662,8 @@ msgstr "Sei sicuro di voler pubblicare il tema v{0}? Questo lo renderà attivo s
 
 #. placeholder {0}: segment.name
 #: src/components/contacts/SegmentDefinedBy.tsx:79
-msgid "Are you sure you want to rebuild \"{0}\"? This will recalculate segment membership."
-msgstr "Sei sicuro di voler ricostruire \"{0}\"? Questo ricalcolerà l'appartenenza al segmento."
+#~ msgid "Are you sure you want to rebuild \"{0}\"? This will recalculate segment membership."
+#~ msgstr "Sei sicuro di voler ricostruire \"{0}\"? Questo ricalcolerà l'appartenenza al segmento."
 
 #. placeholder {0}: record.email
 #. placeholder {1}: record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''
@@ -2745,7 +2745,7 @@ msgstr "Chiedimi di aiutarti a scrivere il tuo blog..."
 msgid "Asked for a sign-in code for <0>{target}</0>"
 msgstr "Ha richiesto un codice di accesso per <0>{target}</0>"
 
-#: src/components/broadcasts/compose/SendingCard.tsx:86
+#: src/components/broadcasts/compose/SendingCard.tsx:89
 msgid "At a date and time you choose"
 msgstr "Alla data e all'ora che scegli"
 
@@ -3699,7 +3699,8 @@ msgstr "ID broadcast"
 #~ msgid "Broadcast ID copied to clipboard"
 #~ msgstr "ID broadcast copiato negli appunti"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:411
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:412
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:413
 msgid "Broadcast name"
 msgstr "Nome broadcast"
 
@@ -3800,7 +3801,7 @@ msgstr "Registra eventi personalizzati in blocco sui contatti"
 #~ msgid "Bulk Update"
 #~ msgstr "Aggiornamento di massa"
 
-#: src/components/contacts/ContactsViewHeader.tsx:88
+#: src/components/contacts/ContactsViewHeader.tsx:89
 msgid "Bulk update (CSV)"
 msgstr "Aggiornamento in blocco (CSV)"
 
@@ -3871,7 +3872,7 @@ msgstr "Campagne"
 #: src/components/broadcasts/BroadcastsTable.tsx:200
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:360
-#: src/components/broadcasts/compose/ContentCard.tsx:81
+#: src/components/broadcasts/compose/ContentCard.tsx:84
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:48
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:342
 #: src/components/broadcasts/HeadersEditor.tsx:103
@@ -4356,7 +4357,7 @@ msgstr "tasso di clic"
 
 #: src/components/analytics/DashboardKpis.tsx:277
 #: src/components/broadcasts/BroadcastKpis.tsx:141
-#: src/components/broadcasts/compose/ContentCard.tsx:309
+#: src/components/broadcasts/compose/ContentCard.tsx:319
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:74
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:150
 #: src/components/contacts/sheet/ContactKpis.tsx:49
@@ -4470,7 +4471,7 @@ msgstr "Link cliccati"
 #: src/components/analytics/OriginVolumeChart.tsx:164
 #: src/components/broadcasts/BroadcastsTable.tsx:298
 #: src/components/broadcasts/detail/AbTestPanel.tsx:169
-#: src/components/broadcasts/detail/EngagementChart.tsx:83
+#: src/components/broadcasts/detail/EngagementChart.tsx:86
 #: src/components/contacts/TrackingConsent.tsx:32
 #: src/components/contacts/TrackingConsent.tsx:174
 #: src/components/contacts/TrackingConsent.tsx:177
@@ -4545,7 +4546,7 @@ msgstr "Clona template"
 #: src/components/automations/NodeConfigPanel.tsx:266
 #: src/components/blog/ThemeEditorDrawer.tsx:282
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:230
-#: src/components/broadcasts/GlobalFeedSettings.tsx:142
+#: src/components/broadcasts/GlobalFeedSettings.tsx:133
 #: src/components/contacts/BulkActionProgressModal.tsx:65
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:838
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:173
@@ -4987,7 +4988,7 @@ msgstr "Contatto eliminato con successo"
 msgid "Contact Email"
 msgstr "Email contatto"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:159
+#: src/components/broadcasts/RecipientFeedSettings.tsx:149
 msgid "Contact email (leave empty for random)"
 msgstr "Email del contatto (lascia vuoto per uno casuale)"
 
@@ -5117,7 +5118,7 @@ msgstr "Padding contenitore"
 msgid "contains"
 msgstr "contiene"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:115
+#: src/components/broadcasts/compose/ContentCard.tsx:118
 #: src/components/email_builder/panels/LibraryPanel.tsx:261
 #: src/components/settings/SettingsSidebar.tsx:28
 #: src/layouts/app-shell/menuItems.ts:228
@@ -6124,13 +6125,17 @@ msgstr "Tratteggiato"
 msgid "Data"
 msgstr "Dati"
 
-#: src/components/broadcasts/compose/AdvancedRow.tsx:62
+#: src/components/broadcasts/compose/AdvancedRow.tsx:54
+msgid "Data feeds"
+msgstr "Feed di dati"
+
+#: src/components/broadcasts/compose/AdvancedRow.tsx:59
 msgid "Data shared by every recipient, in the global_feed variable"
 msgstr "Dati comuni a tutti i destinatari, nella variabile global_feed"
 
 #: src/components/blog/PublishModal.tsx:131
-#: src/components/broadcasts/compose/SendingCard.tsx:91
-#: src/components/broadcasts/compose/SendingCard.tsx:93
+#: src/components/broadcasts/compose/SendingCard.tsx:95
+#: src/components/broadcasts/compose/SendingCard.tsx:97
 #: src/components/segment/input_event_property_filters.tsx:182
 #: src/components/settings/CustomFieldsConfiguration.tsx:60
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:145
@@ -6254,7 +6259,7 @@ msgstr "Di default, l'ID del template"
 msgid "Define UTM parameters for links in your email for better campaign tracking."
 msgstr "Definisci parametri UTM per i link nella tua email per un migliore tracciamento delle campagne."
 
-#: src/components/contacts/SegmentDefinedBy.tsx:57
+#: src/components/contacts/SegmentDefinedBy.tsx:89
 msgid "Defined by"
 msgstr "Definito da"
 
@@ -6473,7 +6478,7 @@ msgstr "Elimina invito"
 msgid "Delete key"
 msgstr "Elimina chiave"
 
-#: src/components/contacts/ContactsViewHeader.tsx:109
+#: src/components/contacts/ContactsViewHeader.tsx:110
 msgid "Delete list"
 msgstr "Elimina lista"
 
@@ -6495,8 +6500,8 @@ msgstr "Elimina post"
 msgid "Delete rule"
 msgstr "Elimina regola"
 
-#: src/components/contacts/ContactsViewHeader.tsx:115
-#: src/components/contacts/ContactsViewHeader.tsx:119
+#: src/components/contacts/ContactsViewHeader.tsx:116
+#: src/components/contacts/ContactsViewHeader.tsx:120
 msgid "Delete segment"
 msgstr "Elimina segment"
 
@@ -7211,11 +7216,11 @@ msgstr "es. Benvenuto — giorno 1"
 #~ msgid "Each contact enters the automation only once"
 #~ msgstr "Ogni contatto entra nell'automation una sola volta"
 
-#: src/components/broadcasts/detail/EngagementChart.tsx:102
+#: src/components/broadcasts/detail/EngagementChart.tsx:105
 msgid "Each message counts once, in the hour of its first open or click; clicks count each message clicked once."
 msgstr "Ogni messaggio conta una volta, nell’ora della sua prima apertura o del suo primo clic; i clic contano una volta ogni messaggio cliccato."
 
-#: src/components/broadcasts/detail/EngagementChart.tsx:103
+#: src/components/broadcasts/detail/EngagementChart.tsx:106
 msgid "Each message counts once, on the day of its first open or click; clicks count each message clicked once."
 msgstr "Ogni messaggio conta una volta, nel giorno della sua prima apertura o del suo primo clic; i clic contano una volta ogni messaggio cliccato."
 
@@ -7223,7 +7228,7 @@ msgstr "Ogni messaggio conta una volta, nel giorno della sua prima apertura o de
 msgid "Each recipient's timezone"
 msgstr "Fuso orario di ogni destinatario"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:261
+#: src/components/broadcasts/compose/ContentCard.tsx:265
 msgid "Each variation keeps its template's sender unless you choose another one, which then becomes part of what is tested."
 msgstr "Ogni variante mantiene il mittente del suo template, a meno che tu non ne scelga un altro, che allora diventa parte di ciò che viene testato."
 
@@ -7359,7 +7364,7 @@ msgstr "Modifica contenuto HTML"
 msgid "Edit Liquid Content"
 msgstr "Modifica contenuto Liquid"
 
-#: src/components/contacts/ContactsViewHeader.tsx:184
+#: src/components/contacts/ContactsViewHeader.tsx:185
 msgid "Edit list"
 msgstr "Modifica lista"
 
@@ -7394,7 +7399,7 @@ msgstr "Modifica post"
 msgid "Edit rule"
 msgstr "Modifica regola"
 
-#: src/components/contacts/SegmentDefinedBy.tsx:94
+#: src/components/contacts/SegmentDefinedBy.tsx:61
 #: src/components/segment/button_upsert.tsx:76
 msgid "Edit segment"
 msgstr "Modifica segment"
@@ -7419,11 +7424,11 @@ msgstr "Modifica dati di test"
 msgid "Edit Test Data (JSON)"
 msgstr "Modifica dati di test (JSON)"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:181
+#: src/components/broadcasts/compose/ContentCard.tsx:184
 msgid "Edit the subject in the template"
 msgstr "Modifica l'oggetto nel modello"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:186
+#: src/components/broadcasts/compose/ContentCard.tsx:189
 msgid "Edit the template"
 msgstr "Modifica il modello"
 
@@ -7718,7 +7723,7 @@ msgstr "Email aggiornata: {name}"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "Larghezze email superiori a 650px potrebbero non essere visualizzate correttamente in alcuni client email"
 
-#: src/pages/ContactsPage.tsx:698
+#: src/pages/ContactsPage.tsx:696
 msgid "Email, name or external ID"
 msgstr "Email, nome o ID esterno"
 
@@ -7821,12 +7826,12 @@ msgid "Enable TLS encryption for SMTP connection"
 msgstr "Abilita crittografia TLS per connessione SMTP"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:191
-msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"global_feed\" variable."
-msgstr "Abilita per recuperare dati globali che saranno disponibili per tutti i destinatari di questo broadcast. I dati saranno accessibili nei tuoi template tramite la variabile \"global_feed\"."
+#~ msgid "Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the \"global_feed\" variable."
+#~ msgstr "Abilita per recuperare dati globali che saranno disponibili per tutti i destinatari di questo broadcast. I dati saranno accessibili nei tuoi template tramite la variabile \"global_feed\"."
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:234
-msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
-msgstr "Abilita per recuperare dati personalizzati per ogni destinatario prima di inviare la sua email. I dati saranno accessibili nei tuoi template tramite la variabile \"recipient_feed\"."
+#~ msgid "Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the \"recipient_feed\" variable."
+#~ msgstr "Abilita per recuperare dati personalizzati per ogni destinatario prima di inviare la sua email. I dati saranno accessibili nei tuoi template tramite la variabile \"recipient_feed\"."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:310
 msgid "Enable web analytics"
@@ -8402,7 +8407,7 @@ msgstr "Scade:"
 msgid "Explore"
 msgstr "Esplora"
 
-#: src/components/contacts/ContactsViewHeader.tsx:86
+#: src/components/contacts/ContactsViewHeader.tsx:87
 #: src/components/contacts/ExportContactsModal.tsx:367
 #: src/components/email_builder/MjmlCodeEditor.tsx:649
 #: src/components/logs/AuditLogTab.tsx:517
@@ -8691,7 +8696,7 @@ msgstr "Impossibile eliminare la notifica"
 msgid "Failed to delete post"
 msgstr "Impossibile eliminare il post"
 
-#: src/components/contacts/ContactsViewHeader.tsx:80
+#: src/components/contacts/ContactsViewHeader.tsx:81
 msgid "Failed to delete segment"
 msgstr "Impossibile eliminare il segmento"
 
@@ -8840,7 +8845,7 @@ msgstr "Impossibile pubblicare il tema"
 msgid "Failed to read the file"
 msgstr "Impossibile leggere il file"
 
-#: src/components/contacts/SegmentDefinedBy.tsx:44
+#: src/components/contacts/SegmentDefinedBy.tsx:40
 msgid "Failed to rebuild segment"
 msgstr "Impossibile ricostruire il segmento"
 
@@ -8985,7 +8990,7 @@ msgid "Failed to test email provider"
 msgstr "Impossibile testare il provider email"
 
 #. placeholder {0}: error.message
-#: src/components/broadcasts/RecipientFeedSettings.tsx:76
+#: src/components/broadcasts/RecipientFeedSettings.tsx:75
 msgid "Failed to test recipient feed: {0}"
 msgstr "Impossibile testare il feed destinatario: {0}"
 
@@ -9105,6 +9110,11 @@ msgstr "URL Immagine in Evidenza"
 msgid "Features"
 msgstr "Funzionalità"
 
+#: src/components/broadcasts/GlobalFeedSettings.tsx:89
+#: src/components/broadcasts/RecipientFeedSettings.tsx:91
+msgid "Feed URL"
+msgstr "URL del feed"
+
 #: src/components/logs/InboundWebhooksTab.tsx:404
 msgid "Feedback type"
 msgstr "Tipo di segnalazione"
@@ -9122,7 +9132,7 @@ msgstr "Tipo di segnalazione"
 msgid "Fetched {0} contacts..."
 msgstr "Recuperati {0} contatti..."
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:150
+#: src/components/broadcasts/GlobalFeedSettings.tsx:141
 msgid "Fetching data..."
 msgstr "Recupero dati in corso..."
 
@@ -9624,21 +9634,26 @@ msgstr "Geografia"
 msgid "Gives this integration its own SES reputation profile and its own suppression list, so another workspace's bounces can't pause or suppress this one. AWS bills per tenant per month, based on volume."
 msgstr "Assegna a questa integrazione un proprio profilo di reputazione SES e una propria suppression list, così i bounce di un altro workspace non possono mettere in pausa o sopprimere questo. AWS fattura per tenant al mese, in base al volume."
 
-#: src/components/broadcasts/compose/AdvancedRow.tsx:61
-msgid "Global data feed"
-msgstr "Feed di dati globale"
+#: src/components/broadcasts/compose/AdvancedRow.tsx:58
+msgctxt "data feed"
+msgid "Global"
+msgstr "Globale"
+
+#: src/components/broadcasts/compose/AdvancedRow.tsx:58
+#~ msgid "Global data feed"
+#~ msgstr "Feed di dati globale"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:85
-msgid "Global Data Feed"
-msgstr "Data feed globale"
+#~ msgid "Global Data Feed"
+#~ msgstr "Data feed globale"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:139
+#: src/components/broadcasts/GlobalFeedSettings.tsx:130
 msgid "Global Feed Response"
 msgstr "Risposta del feed globale"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:98
-msgid "Global feed URL"
-msgstr "URL del feed globale"
+#: src/components/broadcasts/GlobalFeedSettings.tsx:89
+#~ msgid "Global feed URL"
+#~ msgstr "URL del feed globale"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:423
 #~ msgid "Global feed URL is required when enabled"
@@ -10004,7 +10019,7 @@ msgstr "Stile Icona"
 msgid "Icon/Favicon URL"
 msgstr "URL Icona/Favicon"
 
-#: src/components/contacts/ContactsViewHeader.tsx:154
+#: src/components/contacts/ContactsViewHeader.tsx:155
 #: src/components/messages/MessageHistoryTable.tsx:281
 msgid "ID"
 msgstr "ID"
@@ -10150,7 +10165,7 @@ msgstr "TLS implicito"
 msgid "Implicit TLS (SMTPS)"
 msgstr "TLS implicito (SMTPS)"
 
-#: src/components/contacts/ContactsViewHeader.tsx:228
+#: src/components/contacts/ContactsViewHeader.tsx:236
 #: src/components/contacts/TrackingConsent.tsx:48
 #: src/components/email_builder/MjmlCodeEditor.tsx:637
 #: src/components/templates/ImportExportButton.tsx:204
@@ -10211,7 +10226,7 @@ msgstr "Importa MJML"
 msgid "Import MJML markup"
 msgstr "Importa markup MJML"
 
-#: src/components/contacts/ContactsViewHeader.tsx:178
+#: src/components/contacts/ContactsViewHeader.tsx:179
 #: src/pages/ContactsPage.tsx:527
 msgid "Import to list"
 msgstr "Importa nella lista"
@@ -10332,7 +10347,7 @@ msgstr "Webhook in entrata"
 #~ msgid "Incoming Webhooks"
 #~ msgstr "Webhook in Entrata"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:541
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:542
 msgid "Incomplete: {reason}"
 msgstr "Incompleto: {reason}"
 
@@ -10930,7 +10945,7 @@ msgstr "Ultima modifica {changedAt} da {changedFrom}"
 msgid "Last Edited"
 msgstr "Ultima Modifica"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:158
+#: src/components/broadcasts/GlobalFeedSettings.tsx:149
 msgid "Last fetched:"
 msgstr "Ultimo recupero:"
 
@@ -11002,7 +11017,7 @@ msgstr "Lascia vuoto per la larghezza completa del contenitore"
 msgid "Leave empty to derive it from the API endpoint. Set it when the callback is reached through a proxy or a vanity domain."
 msgstr "Lascia vuoto per derivarla dall'API Endpoint. Impostala quando il callback passa da un proxy o da un dominio personalizzato."
 
-#: src/components/broadcasts/compose/ContentCard.tsx:262
+#: src/components/broadcasts/compose/ContentCard.tsx:266
 msgid "Leave empty to keep the template's sender. Only the senders of the marketing email integration are offered."
 msgstr "Lascia vuoto per mantenere il mittente del template. Sono proposti solo i mittenti dell'integrazione email di marketing."
 
@@ -11010,7 +11025,7 @@ msgstr "Lascia vuoto per mantenere il mittente del template. Sono proposti solo 
 msgid "Leave empty to trigger on any field change"
 msgstr "Lascia vuoto per attivare su qualsiasi modifica del campo"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:173
+#: src/components/broadcasts/RecipientFeedSettings.tsx:163
 msgid "Leave empty to use a random contact from the broadcast audience."
 msgstr "Lascia vuoto per usare un contatto casuale del pubblico del broadcast."
 
@@ -11408,7 +11423,7 @@ msgstr "LLM"
 msgid "LLM integration saved successfully"
 msgstr "Integrazione LLM salvata con successo"
 
-#: src/pages/ContactsPage.tsx:745
+#: src/pages/ContactsPage.tsx:743
 msgid "Load {CONTACTS_PAGE_SIZE} more"
 msgstr "Carica altri {CONTACTS_PAGE_SIZE}"
 
@@ -11618,7 +11633,7 @@ msgstr "Fa sì che il wrapper si estenda su tutta la larghezza del viewport dell
 msgid "Manage"
 msgstr "Gestisci"
 
-#: src/components/contacts/ContactsViewHeader.tsx:97
+#: src/components/contacts/ContactsViewHeader.tsx:98
 msgid "Manage custom fields"
 msgstr "Gestisci campi personalizzati"
 
@@ -12101,7 +12116,7 @@ msgstr "Mensile"
 #: src/components/blog/PostsTable.tsx:408
 #: src/components/broadcasts/BroadcastsTable.tsx:407
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:347
-#: src/components/contacts/ContactsViewHeader.tsx:136
+#: src/components/contacts/ContactsViewHeader.tsx:137
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
 #: src/components/file_manager/FileExplorer.tsx:1068
 #: src/components/settings/Integrations.tsx:966
@@ -12261,7 +12276,7 @@ msgstr "Nuova categoria"
 #~ msgid "New Category"
 #~ msgstr "Nuova Categoria"
 
-#: src/components/contacts/ContactsViewHeader.tsx:236
+#: src/components/contacts/ContactsViewHeader.tsx:244
 #: src/pages/ContactsPage.tsx:547
 msgid "New contact"
 msgstr "Nuovo contatto"
@@ -12393,9 +12408,9 @@ msgstr "Prossima esecuzione"
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/useBroadcastActions.ts:107
 #: src/components/broadcasts/useBroadcastActions.ts:127
-#: src/components/contacts/ContactsViewHeader.tsx:122
+#: src/components/contacts/ContactsViewHeader.tsx:123
 #: src/components/contacts/ContactUpsertDrawer.tsx:555
-#: src/components/contacts/SegmentDefinedBy.tsx:81
+#: src/components/contacts/SegmentDefinedBy.tsx:53
 #: src/components/logs/MessagesTab.tsx:369
 #: src/components/logs/MessagesTab.tsx:373
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
@@ -12592,7 +12607,7 @@ msgstr "Nessun dato per questo periodo"
 msgid "No data found"
 msgstr "Nessun dato trovato"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:184
+#: src/components/broadcasts/GlobalFeedSettings.tsx:175
 msgid "No data returned"
 msgstr "Nessun dato restituito"
 
@@ -12925,7 +12940,7 @@ msgstr "Nessun dato sulle sorgenti"
 msgid "No specific details provided."
 msgstr "Nessun dettaglio specifico fornito."
 
-#: src/components/broadcasts/compose/ContentCard.tsx:176
+#: src/components/broadcasts/compose/ContentCard.tsx:179
 msgid "No subject"
 msgstr "Nessun oggetto"
 
@@ -13176,7 +13191,7 @@ msgstr "Non aperto"
 msgid "Not resolved"
 msgstr "Non risolto"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:547
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:548
 msgid "Not saved"
 msgstr "Non salvato"
 
@@ -13300,8 +13315,9 @@ msgid "notifuse-…"
 msgstr "notifuse-…"
 
 #: src/components/broadcasts/compose/PreviewPanel.tsx:102
-#: src/components/broadcasts/compose/SendingCard.tsx:85
+#: src/components/broadcasts/compose/SendingCard.tsx:88
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:165
+#: src/components/broadcasts/detail/EngagementChart.tsx:74
 #: src/components/templates/CreateTemplateDrawer.tsx:1147
 #: src/components/templates/TemplateTranslationsTab.tsx:360
 msgid "Now"
@@ -13401,7 +13417,6 @@ msgstr "delle seguenti condizioni corrispondono:"
 msgid "off"
 msgstr "disattivati"
 
-#: src/components/broadcasts/compose/AdvancedRow.tsx:54
 #: src/components/settings/GeneralSettings.tsx:215
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
@@ -13452,7 +13467,7 @@ msgstr "Una volta per contatto"
 msgid "One endpoint, but it is the whole assistant: /api/llm.chat streams through the workspace's own provider integration, on the workspace's own billing. When a Firecrawl integration is configured it also lets the assistant run the scrape and search tools from the server, so this grant reaches the open web through your credentials."
 msgstr "Un solo endpoint, ma è l'intero assistente: /api/llm.chat trasmette in streaming attraverso l'integrazione del provider configurata nel workspace, sulla fatturazione del workspace stesso. Quando è configurata un'integrazione Firecrawl, permette inoltre all'assistente di eseguire dal server gli strumenti di scraping e di ricerca, quindi questa concessione raggiunge il web aperto tramite le tue credenziali."
 
-#: src/components/broadcasts/compose/AdvancedRow.tsx:82
+#: src/components/broadcasts/compose/AdvancedRow.tsx:74
 msgid "One HTTPS call per contact before sending, in the recipient_feed variable"
 msgstr "Una chiamata HTTPS per contatto prima dell’invio, nella variabile recipient_feed"
 
@@ -13513,7 +13528,7 @@ msgstr "Sono consentiti solo caratteri alfanumerici minuscoli, underscore e trat
 msgid "Only one breakpoint per email template is allowed"
 msgstr "È consentito solo un breakpoint per template email"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:79
+#: src/components/broadcasts/compose/ContentCard.tsx:82
 msgid "Only variant A is kept. The other variants and their templates are removed from the broadcast."
 msgstr "Viene mantenuta solo la variante A. Le altre varianti e i loro modelli vengono rimossi dal broadcast."
 
@@ -13607,7 +13622,7 @@ msgstr "tasso di apertura"
 #: src/components/analytics/DashboardKpis.tsx:276
 #: src/components/automations/list/AutomationsTable.tsx:246
 #: src/components/broadcasts/BroadcastKpis.tsx:140
-#: src/components/broadcasts/compose/ContentCard.tsx:308
+#: src/components/broadcasts/compose/ContentCard.tsx:318
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:62
 #: src/components/contacts/sheet/ContactKpis.tsx:43
 #: src/pages/TransactionalNotificationsPage.tsx:278
@@ -13683,7 +13698,7 @@ msgstr "Ha aperto un’email"
 #: src/components/analytics/OriginVolumeChart.tsx:163
 #: src/components/broadcasts/BroadcastsTable.tsx:285
 #: src/components/broadcasts/detail/AbTestPanel.tsx:168
-#: src/components/broadcasts/detail/EngagementChart.tsx:83
+#: src/components/broadcasts/detail/EngagementChart.tsx:86
 #: src/components/contacts/TrackingConsent.tsx:29
 #: src/components/contacts/TrackingConsent.tsx:165
 #: src/components/contacts/TrackingConsent.tsx:168
@@ -13705,7 +13720,7 @@ msgstr "Aperture {0} · clic {1}"
 msgid "Opens and clicks"
 msgstr "Aperture e clic"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:330
+#: src/components/broadcasts/compose/ContentCard.tsx:342
 msgid "Opens and clicks are not tracked for this broadcast: pick the winning variation yourself."
 msgstr "Aperture e clic non sono tracciati per questo broadcast: scegli tu la variante vincente."
 
@@ -13717,11 +13732,11 @@ msgstr "Aperture e clic non tracciati"
 #~ msgid "Opens and clicks over time"
 #~ msgstr "Aperture e clic nel tempo"
 
-#: src/components/broadcasts/detail/EngagementChart.tsx:98
+#: src/components/broadcasts/detail/EngagementChart.tsx:101
 msgid "Opens and clicks per day"
 msgstr "Aperture e clic al giorno"
 
-#: src/components/broadcasts/detail/EngagementChart.tsx:98
+#: src/components/broadcasts/detail/EngagementChart.tsx:101
 msgid "Opens and clicks per hour"
 msgstr "Aperture e clic all’ora"
 
@@ -14140,17 +14155,22 @@ msgstr "I dati dei click per singolo link non sono disponibili."
 #~ msgid "Per-link tracking only covers clicks recorded after this feature was enabled. Older clicks are counted in the aggregate Clicks stat only. Each message records up to 50 distinct URLs."
 #~ msgstr ""
 
-#: src/components/broadcasts/compose/AdvancedRow.tsx:81
-msgid "Per-recipient data feed"
-msgstr "Feed di dati per destinatario"
+#: src/components/broadcasts/compose/AdvancedRow.tsx:73
+msgctxt "data feed"
+msgid "Per-recipient"
+msgstr "Per destinatario"
+
+#: src/components/broadcasts/compose/AdvancedRow.tsx:73
+#~ msgid "Per-recipient data feed"
+#~ msgstr "Feed di dati per destinatario"
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:88
-msgid "Per-Recipient Data Feed"
-msgstr "Feed dati per destinatario"
+#~ msgid "Per-Recipient Data Feed"
+#~ msgstr "Feed dati per destinatario"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:107
-msgid "Per-recipient feed URL"
-msgstr "URL del feed per destinatario"
+#: src/components/broadcasts/RecipientFeedSettings.tsx:97
+#~ msgid "Per-recipient feed URL"
+#~ msgstr "URL del feed per destinatario"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:428
 #~ msgid "Per-recipient feed URL is required when enabled"
@@ -14748,7 +14768,7 @@ msgstr "Il testo di anteprima apparirà qui..."
 msgid "Preview this theme in a new tab"
 msgstr "Visualizza in anteprima questo tema in una nuova scheda"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:145
+#: src/components/broadcasts/compose/ContentCard.tsx:148
 msgid "Preview variant {letter}"
 msgstr "Anteprima della variante {letter}"
 
@@ -14844,7 +14864,7 @@ msgstr "La priorità è obbligatoria"
 msgid "Priority:"
 msgstr "Priorità:"
 
-#: src/components/contacts/ContactsViewHeader.tsx:165
+#: src/components/contacts/ContactsViewHeader.tsx:166
 msgid "Private"
 msgstr "Privato"
 
@@ -14918,7 +14938,7 @@ msgstr "Nome proprietà"
 msgid "Provider"
 msgstr "Provider"
 
-#: src/components/contacts/ContactsViewHeader.tsx:165
+#: src/components/contacts/ContactsViewHeader.tsx:166
 #: src/components/lists/ListDrawer.tsx:242
 msgid "Public"
 msgstr "Pubblico"
@@ -15246,7 +15266,7 @@ msgstr "Sforzo di reasoning"
 #~ msgid "Rebuild"
 #~ msgstr "Ricostruisci"
 
-#: src/components/contacts/SegmentDefinedBy.tsx:78
+#: src/components/contacts/SegmentDefinedBy.tsx:46
 msgid "Rebuild segment"
 msgstr "Ricostruisci segmento"
 
@@ -15298,7 +15318,7 @@ msgstr "Destinatario"
 msgid "Recipient Email"
 msgstr "Email Destinatario"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:71
+#: src/components/broadcasts/RecipientFeedSettings.tsx:70
 msgid "Recipient feed test completed successfully"
 msgstr "Test del feed destinatario completato con successo"
 
@@ -15333,7 +15353,7 @@ msgstr "Consigliato: 150-160 caratteri"
 msgid "Recommended: 50-60 characters"
 msgstr "Consigliato: 50-60 caratteri"
 
-#: src/components/contacts/SegmentDefinedBy.tsx:90
+#: src/components/contacts/SegmentDefinedBy.tsx:57
 msgid "Recompute"
 msgstr "Ricalcola"
 
@@ -15423,8 +15443,8 @@ msgstr "Referrer"
 #: src/components/settings/LicenseSettings.tsx:157
 #: src/components/settings/WebhooksSettings.tsx:454
 #: src/components/settings/WebhooksSettings.tsx:458
-#: src/pages/ContactsPage.tsx:715
-#: src/pages/ContactsPage.tsx:718
+#: src/pages/ContactsPage.tsx:713
+#: src/pages/ContactsPage.tsx:716
 msgid "Refresh"
 msgstr "Aggiorna"
 
@@ -15625,8 +15645,8 @@ msgstr "Rimuovere la condizione di visualizzazione?"
 msgid "Remove this author?"
 msgstr "Rimuovere questo autore?"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:227
-#: src/components/broadcasts/compose/ContentCard.tsx:231
+#: src/components/broadcasts/compose/ContentCard.tsx:230
+#: src/components/broadcasts/compose/ContentCard.tsx:234
 msgid "Remove variant {letter}"
 msgstr "Rimuovi la variante {letter}"
 
@@ -16018,7 +16038,7 @@ msgstr "Ha ritentato gli invii non riusciti della newsletter <0>{target}</0>"
 #: src/components/automations/stats/EmailStepPreview.tsx:42
 #: src/components/blog/PostsTable.tsx:449
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:93
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:550
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:551
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:171
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:782
@@ -16189,7 +16209,7 @@ msgstr "Esegui di nuovo il backfill"
 msgid "Run test"
 msgstr "Esegui test"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:169
+#: src/components/broadcasts/RecipientFeedSettings.tsx:159
 msgid "Run Test"
 msgstr "Esegui test"
 
@@ -16353,8 +16373,8 @@ msgstr "Salva Segmento (Log Console)"
 msgid "Save the automation first"
 msgstr "Salva prima l'automazione"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:116
-#: src/components/broadcasts/RecipientFeedSettings.tsx:125
+#: src/components/broadcasts/GlobalFeedSettings.tsx:107
+#: src/components/broadcasts/RecipientFeedSettings.tsx:109
 msgid "Save the broadcast first"
 msgstr "Salva prima il broadcast"
 
@@ -16392,7 +16412,7 @@ msgstr "Salvato"
 msgid "Saved ({0})"
 msgstr "Salvati ({0})"
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:537
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:538
 msgid "Saved {ago}"
 msgstr "Salvato {ago}"
 
@@ -16421,12 +16441,12 @@ msgstr "Ha salvato il blocco <0>{target}</0>"
 msgid "Saving settings will restart the server. You will need to sign in again."
 msgstr "Il salvataggio delle impostazioni riavvierà il server. Dovrai accedere di nuovo."
 
-#: src/components/broadcasts/compose/BroadcastCompose.tsx:534
+#: src/components/broadcasts/compose/BroadcastCompose.tsx:535
 msgid "Saving…"
 msgstr "Salvataggio…"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:384
-#: src/components/broadcasts/compose/SendingCard.tsx:86
+#: src/components/broadcasts/compose/SendingCard.tsx:89
 msgid "Schedule"
 msgstr "Pianifica"
 
@@ -16444,7 +16464,7 @@ msgstr "Fuso orario della pianificazione"
 
 #: src/components/blog/PostsTable.tsx:333
 #: src/components/blog/PostsTable.tsx:422
-#: src/components/broadcasts/compose/SendingCard.tsx:36
+#: src/components/broadcasts/compose/SendingCard.tsx:39
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:203
 msgid "Scheduled"
 msgstr "Pianificato"
@@ -16464,7 +16484,7 @@ msgstr "Pianificato"
 msgid "Scheduled for {date}"
 msgstr "Pianificato per il {date}"
 
-#: src/components/broadcasts/compose/SendingCard.tsx:41
+#: src/components/broadcasts/compose/SendingCard.tsx:44
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:208
 msgid "Scheduled for {date} at {time} {zone}"
 msgstr "Pianificato per il {date} alle {time} {zone}"
@@ -16687,11 +16707,11 @@ msgstr "Segmento"
 msgid "Segment Conditions"
 msgstr "Condizioni segmento"
 
-#: src/components/contacts/ContactsViewHeader.tsx:76
+#: src/components/contacts/ContactsViewHeader.tsx:77
 msgid "Segment deleted successfully"
 msgstr "Segmento eliminato con successo"
 
-#: src/components/contacts/SegmentDefinedBy.tsx:41
+#: src/components/contacts/SegmentDefinedBy.tsx:37
 msgid "Segment rebuild started successfully"
 msgstr "Ricostruzione segmento avviata con successo"
 
@@ -16714,6 +16734,11 @@ msgstr "Albero segmento reimpostato"
 #: src/services/api/errors.ts:93
 msgid "Segments"
 msgstr "Segmenti"
+
+#. placeholder {0}: segment.name
+#: src/components/contacts/SegmentDefinedBy.tsx:49
+msgid "Segments update automatically as contacts change. Recompute \"{0}\" now? This recalculates all of its members."
+msgstr "I segmenti si aggiornano automaticamente quando i contatti cambiano. Ricalcolare \"{0}\" ora? Verranno ricalcolati tutti i suoi membri."
 
 #: src/components/automations/nodes/EmailNode.tsx:35
 #: src/components/settings/BlogSettings.tsx:357
@@ -16995,7 +17020,7 @@ msgstr "Seleziona provider storage"
 msgid "Select supported languages"
 msgstr "Seleziona le lingue supportate"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:166
+#: src/components/broadcasts/compose/ContentCard.tsx:169
 msgid "Select template"
 msgstr "Seleziona template"
 
@@ -17183,8 +17208,8 @@ msgstr "Invia test"
 msgid "Send Test Email"
 msgstr "Invia email di test"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:287
-#: src/components/broadcasts/compose/ContentCard.tsx:289
+#: src/components/broadcasts/compose/ContentCard.tsx:296
+#: src/components/broadcasts/compose/ContentCard.tsx:298
 msgid "Send the winner automatically"
 msgstr "Invia automaticamente il vincitore"
 
@@ -17205,7 +17230,7 @@ msgid "Send your first newsletter to a list"
 msgstr "Invia la tua prima newsletter a una lista"
 
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:56
-#: src/components/broadcasts/compose/ContentCard.tsx:125
+#: src/components/broadcasts/compose/ContentCard.tsx:128
 #: src/components/templates/CreateTemplateDrawer.tsx:1074
 #: src/components/templates/SendTemplateModal.tsx:355
 #: src/pages/TemplatesPage.tsx:430
@@ -17267,8 +17292,8 @@ msgstr "Invio in corso"
 
 #: src/components/analytics/SendingCard.tsx:39
 #: src/components/broadcasts/BroadcastsTable.tsx:281
-#: src/components/broadcasts/compose/SendingCard.tsx:44
-#: src/components/broadcasts/compose/SendingCard.tsx:82
+#: src/components/broadcasts/compose/SendingCard.tsx:47
+#: src/components/broadcasts/compose/SendingCard.tsx:85
 #: src/components/settings/SettingsSidebar.tsx:27
 msgctxt "section"
 msgid "Sending"
@@ -17744,7 +17769,7 @@ msgstr "Mostra controlli"
 msgid "Show evolution"
 msgstr "Mostra l'evoluzione"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:142
+#: src/components/broadcasts/compose/ContentCard.tsx:145
 msgid "Show in the preview"
 msgstr "Mostra nell'anteprima"
 
@@ -17770,7 +17795,7 @@ msgid "Show this block if"
 msgstr "Mostra questo blocco se"
 
 #. placeholder {0}: int(MAX_CONTACT_ROWS)
-#: src/pages/ContactsPage.tsx:735
+#: src/pages/ContactsPage.tsx:733
 msgid "Showing the first {0} contacts. Refine your filters to see more."
 msgstr "Vengono mostrati i primi {0} contatti. Affina i filtri per vederne altri."
 
@@ -18257,7 +18282,7 @@ msgstr "Iniziato"
 msgid "Started the web analytics backfill"
 msgstr "Ha avviato il recupero dell'analisi web"
 
-#: src/components/broadcasts/compose/SendingCard.tsx:85
+#: src/components/broadcasts/compose/SendingCard.tsx:88
 msgid "Starts as soon as you send it"
 msgstr "Parte non appena lo invii"
 
@@ -18384,7 +18409,7 @@ msgid "Style Attributes"
 msgstr "Attributi stile"
 
 #: src/components/automations/stats/EmailStepPreview.tsx:61
-#: src/components/broadcasts/compose/ContentCard.tsx:124
+#: src/components/broadcasts/compose/ContentCard.tsx:127
 #: src/components/broadcasts/compose/PreviewPanel.tsx:93
 #: src/components/broadcasts/detail/AbTestPanel.tsx:133
 #: src/components/broadcasts/detail/BroadcastAside.tsx:107
@@ -18407,7 +18432,7 @@ msgstr "Anteprima oggetto"
 msgid "Subject preview ({0})"
 msgstr "Anteprima dell'oggetto ({0})"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:258
+#: src/components/broadcasts/compose/ContentCard.tsx:262
 msgid "Subject, preview text and reply-to come from each template."
 msgstr "Oggetto, testo di anteprima e indirizzo di risposta provengono da ogni modello."
 
@@ -18711,7 +18736,7 @@ msgid "template"
 msgstr "template"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:375
-#: src/components/broadcasts/compose/ContentCard.tsx:123
+#: src/components/broadcasts/compose/ContentCard.tsx:126
 #: src/components/lists/ListHeader.tsx:70
 #: src/components/logs/MessageDetail.tsx:642
 #: src/components/logs/MessagesTab.tsx:473
@@ -18907,8 +18932,8 @@ msgstr "Il tenant {0} è stato creato ma il suo configuration set non è associa
 msgid "Terms"
 msgstr "Termini"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:125
-#: src/components/broadcasts/RecipientFeedSettings.tsx:133
+#: src/components/broadcasts/GlobalFeedSettings.tsx:116
+#: src/components/broadcasts/RecipientFeedSettings.tsx:117
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:104
 #: src/components/web_analytics/tabs/FiltersTab.tsx:127
 msgid "Test"
@@ -18952,8 +18977,8 @@ msgstr "Dati di test aggiornati con successo"
 msgid "Test deliveries are unavailable here: Zapier's hook URLs always answer with success, so a test would report a green tick even for a Zap that no longer exists."
 msgstr "Le consegne di prova non sono disponibili qui: gli URL di hook di Zapier rispondono sempre con successo, quindi un test mostrerebbe un segno di spunta verde anche per uno Zap che non esiste più."
 
-#: src/components/broadcasts/compose/ContentCard.tsx:314
-#: src/components/broadcasts/compose/ContentCard.tsx:316
+#: src/components/broadcasts/compose/ContentCard.tsx:324
+#: src/components/broadcasts/compose/ContentCard.tsx:326
 msgid "Test duration (hours)"
 msgstr "Durata test (ore)"
 
@@ -18974,12 +18999,12 @@ msgstr "Il test termina tra {duration}"
 msgid "Test ends in {left}"
 msgstr "Il test termina tra {left}"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:187
+#: src/components/broadcasts/RecipientFeedSettings.tsx:177
 msgid "Test Failed"
 msgstr "Test fallito"
 
 #. placeholder {0}: response.error
-#: src/components/broadcasts/RecipientFeedSettings.tsx:68
+#: src/components/broadcasts/RecipientFeedSettings.tsx:67
 msgid "Test failed: {0}"
 msgstr "Test fallito: {0}"
 
@@ -18991,7 +19016,7 @@ msgstr "Testa in diversi client email poiché il supporto varia"
 msgid "Test Integration"
 msgstr "Testa integrazione"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:147
+#: src/components/broadcasts/RecipientFeedSettings.tsx:137
 msgid "Test Recipient Feed"
 msgstr "Testa il feed destinatario"
 
@@ -18999,8 +19024,8 @@ msgstr "Testa il feed destinatario"
 msgid "Test rule"
 msgstr "Testa regola"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:269
-#: src/components/broadcasts/compose/ContentCard.tsx:276
+#: src/components/broadcasts/compose/ContentCard.tsx:278
+#: src/components/broadcasts/compose/ContentCard.tsx:285
 msgid "Test sample"
 msgstr "Campione di test"
 
@@ -19009,7 +19034,7 @@ msgstr "Campione di test"
 #~ msgstr "Dimensione campione test (%)"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:271
-#: src/components/broadcasts/detail/EngagementChart.tsx:72
+#: src/components/broadcasts/detail/EngagementChart.tsx:75
 msgid "Test sent"
 msgstr "Test inviato"
 
@@ -19021,7 +19046,7 @@ msgstr "Varianti di test"
 msgid "Test Webhook"
 msgstr "Testa webhook"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:196
+#: src/components/broadcasts/RecipientFeedSettings.tsx:186
 msgid "Tested with:"
 msgstr "Testato con:"
 
@@ -19036,7 +19061,7 @@ msgctxt "newsletter status"
 msgid "Testing"
 msgstr "Test in corso"
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:180
+#: src/components/broadcasts/RecipientFeedSettings.tsx:170
 msgid "Testing feed..."
 msgstr "Test del feed in corso..."
 
@@ -19460,11 +19485,11 @@ msgstr "Il testo che hai scritto verrà sostituito."
 msgid "The top {MAX_ROWS} rows by session count"
 msgstr "Le prime {MAX_ROWS} righe per numero di sessioni"
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:99
+#: src/components/broadcasts/GlobalFeedSettings.tsx:90
 msgid "The URL must be publicly accessible. A POST request will be sent with broadcast and list information."
 msgstr "L'URL deve essere accessibile pubblicamente. Verrà inviata una richiesta POST con le informazioni del broadcast e della lista."
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:108
+#: src/components/broadcasts/RecipientFeedSettings.tsx:92
 msgid "The URL must use HTTPS. A POST request will be sent with contact information for each recipient."
 msgstr "L'URL deve utilizzare HTTPS. Verrà inviata una richiesta POST con le informazioni del contatto per ogni destinatario."
 
@@ -19699,7 +19724,7 @@ msgstr "Questa email sarà utilizzata per l'account amministratore root"
 msgid "This event fires often. These conditions are evaluated for every matching event."
 msgstr "Questo evento si attiva spesso. Queste condizioni vengono valutate per ogni evento corrispondente."
 
-#: src/components/broadcasts/RecipientFeedSettings.tsx:99
+#: src/components/broadcasts/RecipientFeedSettings.tsx:126
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Questa funzionalità effettua una richiesta HTTP per ogni destinatario prima di inviare la sua email. Questo può rallentare significativamente l'elaborazione del broadcast. Se la richiesta del feed fallisce dopo i tentativi, il broadcast verrà messo in pausa automaticamente."
 
@@ -19839,7 +19864,7 @@ msgid "This segment uses relative date filters and will be automatically recompu
 msgstr "Questo segmento utilizza filtri di date relative e verrà ricalcolato automaticamente ogni giorno alle 5:00 ({timezone})"
 
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:68
-#: src/components/broadcasts/compose/ContentCard.tsx:202
+#: src/components/broadcasts/compose/ContentCard.tsx:205
 msgid "This sender is no longer one of the marketing email integration's. Choose another one or clear the field to use the template's."
 msgstr "Questo mittente non fa più parte dell'integrazione email di marketing. Scegline un altro o svuota il campo per usare quello del template."
 
@@ -19855,7 +19880,7 @@ msgstr "Questo passaggio si modifica tramite l'API."
 msgid "This template has no content to preview yet"
 msgstr "Questo template non ha ancora contenuto da visualizzare in anteprima"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:159
+#: src/components/broadcasts/compose/ContentCard.tsx:162
 msgid "This template is already used in another variation"
 msgstr "Questo template è già utilizzato in un'altra variante"
 
@@ -19963,7 +19988,7 @@ msgstr "Questo imposterà il valore su NULL. Sei sicuro?"
 msgid "This workspace"
 msgstr "Questo workspace"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:336
+#: src/components/broadcasts/compose/ContentCard.tsx:348
 msgid "This workspace does not track contacts whose consent is unknown, so only recipients who agreed to tracking count in the test results."
 msgstr "Questo workspace non traccia i contatti con consenso sconosciuto, quindi nei risultati del test contano solo i destinatari che hanno accettato il tracciamento."
 
@@ -19972,8 +19997,8 @@ msgid "This wrapper has no sections. Add a section to display content."
 msgstr "Questo wrapper non ha sezioni. Aggiungi una sezione per visualizzare il contenuto."
 
 #: src/components/blog/PublishModal.tsx:149
-#: src/components/broadcasts/compose/SendingCard.tsx:100
-#: src/components/broadcasts/compose/SendingCard.tsx:102
+#: src/components/broadcasts/compose/SendingCard.tsx:106
+#: src/components/broadcasts/compose/SendingCard.tsx:108
 #: src/components/logs/AuditLogTab.tsx:538
 #: src/components/logs/InboundWebhooksTab.tsx:249
 #: src/components/logs/MessagesTab.tsx:634
@@ -20048,8 +20073,8 @@ msgstr "Il TimeScore è il tempo di interazione mediano su tutte le sessioni"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:100
 #: src/components/blog/PublishModal.tsx:184
-#: src/components/broadcasts/compose/SendingCard.tsx:110
-#: src/components/broadcasts/compose/SendingCard.tsx:112
+#: src/components/broadcasts/compose/SendingCard.tsx:116
+#: src/components/broadcasts/compose/SendingCard.tsx:118
 #: src/components/contacts/contactColumns.ts:68
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
 #: src/components/contacts/ContactsTable.tsx:267
@@ -20328,7 +20353,7 @@ msgstr "Tracciato su {tracked} di {total} email"
 msgid "Tracking"
 msgstr "Tracciamento"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:100
+#: src/components/broadcasts/compose/ContentCard.tsx:103
 msgid "Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
 msgstr "Il tracciamento (aperture e click) deve essere abilitato nelle impostazioni del workspace per usare le funzionalità di A/B testing."
 
@@ -20468,7 +20493,7 @@ msgstr "Trasforma in"
 msgid "Turn Into"
 msgstr "Trasforma in"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:80
+#: src/components/broadcasts/compose/ContentCard.tsx:83
 msgid "Turn off"
 msgstr "Disattiva"
 
@@ -20484,7 +20509,7 @@ msgstr "Disattivare solo per un avviso che tutti devono ricevere (sicurezza, not
 msgid "Turn off SES tenant isolation to use your own tenant, or clear this field."
 msgstr "Disattiva l'isolamento del tenant SES per usare un tuo tenant, oppure svuota questo campo."
 
-#: src/components/broadcasts/compose/ContentCard.tsx:78
+#: src/components/broadcasts/compose/ContentCard.tsx:81
 msgid "Turn the A/B test off?"
 msgstr "Disattivare il test A/B?"
 
@@ -20825,7 +20850,7 @@ msgstr "Aggiornato"
 msgid "Updated {0}"
 msgstr "Aggiornata il {0}"
 
-#: src/components/contacts/SegmentDefinedBy.tsx:72
+#: src/components/contacts/SegmentDefinedBy.tsx:104
 msgid "Updated {updatedAgo}"
 msgstr "Aggiornato {updatedAgo}"
 
@@ -20966,8 +20991,8 @@ msgstr "URL"
 msgid "URL copied to clipboard."
 msgstr "URL copiato negli appunti."
 
-#: src/components/broadcasts/GlobalFeedSettings.tsx:106
-#: src/components/broadcasts/RecipientFeedSettings.tsx:115
+#: src/components/broadcasts/GlobalFeedSettings.tsx:97
+#: src/components/broadcasts/RecipientFeedSettings.tsx:99
 msgid "URL is required"
 msgstr "L'URL è richiesto"
 
@@ -21262,7 +21287,7 @@ msgstr "Variante {variant}: il mittente {senderId} non esiste più"
 msgid "Variant name"
 msgstr "Nome variante"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:117
+#: src/components/broadcasts/compose/ContentCard.tsx:120
 msgid "Variants"
 msgstr "Varianti"
 
@@ -21418,7 +21443,7 @@ msgstr "Visite 30 g"
 #~ msgid "Visibility"
 #~ msgstr "Visibilità"
 
-#: src/components/contacts/ContactsViewHeader.tsx:163
+#: src/components/contacts/ContactsViewHeader.tsx:164
 msgid "Visible in the notification center"
 msgstr "Visibile nel centro notifiche"
 
@@ -21790,7 +21815,7 @@ msgstr "In caso di corrispondenza, esegui queste operazioni:"
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "Quando è disattivato (scelta consigliata), solo gli utenti già invitati possono accedere tramite SSO. Quando è attivato, un'email verificata in un dominio consentito crea automaticamente un account."
 
-#: src/components/broadcasts/compose/SendingCard.tsx:84
+#: src/components/broadcasts/compose/SendingCard.tsx:87
 msgid "When to send"
 msgstr "Quando inviare"
 
@@ -21853,7 +21878,7 @@ msgctxt "newsletter A/B"
 msgid "Winner"
 msgstr "Vincitore"
 
-#: src/components/broadcasts/compose/ContentCard.tsx:304
+#: src/components/broadcasts/compose/ContentCard.tsx:314
 msgid "Winner metric"
 msgstr "Metrica del vincitore"
 
@@ -21885,7 +21910,7 @@ msgstr "Vincitore selezionato con successo! Il broadcast verrà inviato ai desti
 #~ msgstr "Vincitore inviato"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:272
-#: src/components/broadcasts/detail/EngagementChart.tsx:76
+#: src/components/broadcasts/detail/EngagementChart.tsx:79
 msgctxt "newsletter A/B"
 msgid "Winner sent"
 msgstr "Vincitore inviato"
@@ -22089,9 +22114,9 @@ msgstr "Annuale"
 #: src/components/blog/PostDrawer.tsx:561
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/useBroadcastActions.ts:126
-#: src/components/contacts/ContactsViewHeader.tsx:121
+#: src/components/contacts/ContactsViewHeader.tsx:122
 #: src/components/contacts/ContactUpsertDrawer.tsx:554
-#: src/components/contacts/SegmentDefinedBy.tsx:80
+#: src/components/contacts/SegmentDefinedBy.tsx:52
 #: src/components/logs/MessagesTab.tsx:369
 #: src/components/logs/MessagesTab.tsx:372
 #: src/components/settings/CustomFieldsConfiguration.tsx:170
@@ -22221,7 +22246,7 @@ msgid "You don't have write permission for contacts"
 msgstr "Non hai i permessi di scrittura per i contatti"
 
 #: src/components/contacts/BulkActionsBar.tsx:46
-#: src/components/contacts/ContactsViewHeader.tsx:182
+#: src/components/contacts/ContactsViewHeader.tsx:183
 msgid "You don't have write permission for lists"
 msgstr "Non hai i permessi di scrittura per le liste"
 

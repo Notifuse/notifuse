@@ -58,7 +58,7 @@ export function FullDrawer({
       size="100%"
       closable={false}
       destroyOnHidden
-      rootClassName="app-full-drawer"
+      rootClassName="app-full-drawer app-drawer-instant"
       push={push}
       styles={{ body: { padding: 0 } }}
     >

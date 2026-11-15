@@ -74,6 +74,17 @@ describe('global antd rules', () => {
     expect(offenders).toEqual([])
   })
 
+  it('open and close the full-width drawers without their slide, ending on a transition', () => {
+    const css = stripComments(read('theme/antd-overrides.css'))
+    expect(css).toMatch(
+      /\.app-drawer-instant \.ant-drawer-mask,\s*\.app-drawer-instant \.ant-drawer-content-wrapper\s*\{\s*transition-duration: 1ms;/
+    )
+    // Every full-width drawer opts in.
+    const fullWidth = sourceFiles(SRC).filter((file) => /size=(\{'100%'\}|"100%")/.test(read(file)))
+    expect(fullWidth.filter((file) => !read(file).includes('app-drawer-instant'))).toEqual([])
+    expect(sourceFiles(SRC).filter((file) => read(file).includes('drawer-no-transition'))).toEqual([])
+  })
+
   it('fold the sidebar without the active bar, and colour its icons from the theme', () => {
     const css = stripComments(read('theme/antd-overrides.css'))
     expect(css).toMatch(/\.ant-menu-inline-collapsed \.ant-menu-item-selected\s*\{\s*box-shadow: none;/)

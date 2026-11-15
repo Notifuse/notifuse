@@ -65,6 +65,7 @@ export function BreakdownDrawer(props: BreakdownDrawerProps) {
       onClose={props.onClose}
       placement="right"
       size="100%"
+      rootClassName="app-drawer-instant"
       title={
         <div className="flex items-center gap-2">
           <span className="text-gray-400">

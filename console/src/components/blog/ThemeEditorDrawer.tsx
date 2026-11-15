@@ -326,6 +326,7 @@ export function ThemeEditorDrawer({
         open={open}
         onClose={handleCancel}
         size="100%"
+        rootClassName="app-drawer-instant"
         closable={false}
         // A flex column down to the editor and the preview, so they fill what the header leaves
         // whatever its height, with no band under them

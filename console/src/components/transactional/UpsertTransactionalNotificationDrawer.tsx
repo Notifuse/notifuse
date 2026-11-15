@@ -239,7 +239,7 @@ export function UpsertTransactionalNotificationDrawer({
           mask={{ closable: false }}
           open={isOpen}
           onClose={handleClose}
-          className="drawer-no-transition drawer-body-no-padding"
+          className="drawer-body-no-padding"
           extra={renderDrawerFooter()}
         >
           <Form

@@ -730,9 +730,10 @@ export function CreateTemplateDrawer({
           keyboard={false}
           mask={{ closable: false }}
           size={'100%'}
+          rootClassName="app-drawer-instant"
           open={isOpen}
           onClose={() => handleClose()}
-          className="drawer-no-transition drawer-body-no-padding"
+          className="drawer-body-no-padding"
           extra={
             <div className="text-right">
               <Space>

@@ -145,9 +145,10 @@ export function buildChartOption({
         const list = Array.isArray(params) ? params : [params]
         const key = list[0]?.axisValue
         const heading = key ? tooltipHeading(key, granularity, locale) : ''
-        const lines = list.map(
-          (p) => `${p.marker ?? ''}${escapeHtml(p.seriesName ?? '')} <b>${formatCount(Number(p.value ?? 0))}</b>`
-        )
+        // A bucket still to come has no value: a dash, not a 0.
+        const count = (value: unknown) =>
+          typeof value === 'number' && Number.isFinite(value) ? formatCount(value) : '—'
+        const lines = list.map((p) => `${p.marker ?? ''}${escapeHtml(p.seriesName ?? '')} <b>${count(p.value)}</b>`)
         return [heading, ...lines].join('<br/>')
       }
     },

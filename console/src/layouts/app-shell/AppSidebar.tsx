@@ -292,6 +292,10 @@ export function AppSidebar({
           mode="inline"
           inlineIndent={14}
           inlineCollapsed={!expanded}
+          // No title tooltip on the folded entries: the pointer that would show it unfolds the
+          // sidebar, labels included. antd still started one as the sidebar folded under a
+          // leaving pointer, drawn at the top left, never placed, through its leave animation.
+          tooltip={false}
           selectedKeys={[selectedKey]}
           // Folded, antd keeps the groups' state itself. It also reports an empty set on folding,
           // through the onOpenChange of that render: none is passed there, so the groups opened by

@@ -659,8 +659,6 @@ export function ContactsPage() {
               segment={segment}
               lists={lists}
               customFieldLabels={workspace.settings?.custom_field_labels ?? {}}
-              canWrite={canWriteSegments}
-              canReadTemplates={!!permissions?.templates?.read}
             />
           ) : null}
 

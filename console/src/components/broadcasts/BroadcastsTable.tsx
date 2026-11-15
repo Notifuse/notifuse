@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Button, Dropdown, Table, Tooltip, type MenuProps } from 'antd'
+import { Button, Dropdown, Popover, Table, Tooltip, type MenuProps } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
@@ -13,6 +13,7 @@ import type { Workspace } from '../../services/api/types'
 import type { UserPermissions } from '../../services/api/workspace'
 import { buildBroadcastAnalyticsLinks } from '../web_analytics/lib/broadcastLinks'
 import { BroadcastStatusPill } from './BroadcastStatusPill'
+import { VARIANT_LETTERS } from './compose/composeValues'
 import { availableActions, getRemainingTestTime } from './broadcastStatus'
 import { SendingProgress } from './SendingProgress'
 import { CouldntLoad } from './CouldntLoad'
@@ -202,8 +203,8 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     else if ((b.status === 'processed' || b.status === 'failed') && !verdict && l2Failed > 0)
       items.push({ key: 'retry-detail', label: t`Retry failed…`, onClick: () => onOpenDetail(b) })
     if (actions.delete) guarded('delete', t`Delete`, () => onDelete(b), true)
+    // No divider: a sent broadcast has no action above the link, which would leave it alone on top.
     if (traffic) {
-      items.push({ type: 'divider' })
       items.push({
         key: 'traffic',
         label: (
@@ -240,19 +241,78 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
         const winner = b.winning_template
           ? b.test_settings.variations.find((v) => v.template_id === b.winning_template)
           : undefined
-        const count = b.test_settings?.variations?.length ?? 0
-        // The A/B pill opens the second line, so the name keeps the column's width.
+        const variations = b.test_settings?.variations ?? []
+        const count = variations.length
         const winnerName = winner ? winner.template?.name || winner.variation_name : ''
+        // « A/B » after the name, its details in a popover. The pill keeps its former summary for
+        // screen readers, the popover opening on hover only.
+        const settings = b.test_settings
+        const details = ab ? (
+          <div data-ab-popover className="flex max-w-72 flex-col gap-2 text-sm">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-ink-3">{t`Variants`}</span>
+              {variations.map((v, index) => (
+                <div key={`${index}-${v.template_id}`} className="flex min-w-0 items-center gap-2">
+                  {/* A letter by position, as the composer and the detail name them: variation_name
+                      is an internal name ("variation-a"). */}
+                  <span
+                    className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-fill text-xs font-medium text-ink-2"
+                  >
+                    {VARIANT_LETTERS[index] ?? String(index + 1)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-ink">{v.template?.name || v.template_id || '—'}</span>
+                  {winner && v.template_id === winner.template_id ? (
+                    <span className="flex shrink-0 items-center gap-1 text-xs text-success-fg">
+                      <Trophy size={12} aria-hidden="true" />
+                      {t({ message: 'Winner', context: 'newsletter A/B' })}
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col gap-1 border-t border-line-soft pt-2 text-xs">
+              <span className="flex justify-between gap-3">
+                <span className="text-ink-3">{t`Test sample`}</span>
+                <span className="text-ink-2 tabular-nums">{`${settings.sample_percentage} %`}</span>
+              </span>
+              {settings.auto_send_winner ? (
+                <>
+                  <span className="flex justify-between gap-3">
+                    <span className="text-ink-3">{t`Winner metric`}</span>
+                    <span className="text-ink-2">
+                      {settings.auto_send_winner_metric === 'click_rate' ? t`Click rate` : t`Open rate`}
+                    </span>
+                  </span>
+                  {settings.test_duration_hours ? (
+                    <span className="flex justify-between gap-3">
+                      <span className="text-ink-3">{t`Test duration (hours)`}</span>
+                      <span className="text-ink-2 tabular-nums">{settings.test_duration_hours}</span>
+                    </span>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
+          </div>
+        ) : null
         const pill = ab ? (
-          winner ? (
-            <Pill tone="success" icon={<Trophy aria-hidden="true" />}>
-              {t`A/B · ${winnerName}`}
-            </Pill>
-          ) : (
-            <Pill tone="neutral" dot={false}>
-              {t`${plural(count, { one: 'A/B · # variant', other: 'A/B · # variants' })}`}
-            </Pill>
-          )
+          <Popover content={details}>
+            <span data-ab-pill className="flex shrink-0">
+              {winner ? (
+                <Pill tone="success" icon={<Trophy aria-hidden="true" />}>
+                  {t`A/B`}
+                  <span className="sr-only"> {t`A/B · ${winnerName}`}</span>
+                </Pill>
+              ) : (
+                <Pill tone="neutral" dot={false}>
+                  {t`A/B`}
+                  <span className="sr-only">
+                    {' '}
+                    {t`${plural(count, { one: 'A/B · # variant', other: 'A/B · # variants' })}`}
+                  </span>
+                </Pill>
+              )}
+            </span>
+          </Popover>
         ) : null
         const second = subject ? (
           <span className="truncate text-xs text-ink-3">{subject}</span>
@@ -264,15 +324,13 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
         ) : null
         return (
           <div className="flex min-w-0 flex-col">
-            <span className="truncate font-medium text-ink" title={b.name}>
-              {b.name}
-            </span>
-            {pill || second ? (
-              <span className="flex min-w-0 items-center gap-1.5">
-                {pill ? <span className="shrink-0">{pill}</span> : null}
-                {second}
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate font-medium text-ink" title={b.name}>
+                {b.name}
               </span>
-            ) : null}
+              {pill}
+            </span>
+            {second}
           </div>
         )
       }

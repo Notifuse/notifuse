@@ -18,7 +18,8 @@ vi.mock('./BulkUpdateDrawer', () => ({
 vi.mock('./ContactUpsertDrawer', () => ({ ContactUpsertDrawer: () => <button type="button">New contact</button> }))
 vi.mock('./SegmentProgress', () => ({ SegmentBuildingIndicator: () => <span>Computing</span> }))
 vi.mock('../lists/DeleteListModal', () => ({ DeleteListModal: () => null }))
-vi.mock('../../services/api/segment', () => ({ deleteSegment: vi.fn() }))
+vi.mock('../../services/api/segment', () => ({ deleteSegment: vi.fn(), rebuildSegment: vi.fn() }))
+vi.mock('../segment/button_upsert', () => ({ DrawerSegment: () => null }))
 
 import { ContactsViewHeader, type ContactsViewHeaderProps } from './ContactsViewHeader'
 
@@ -105,8 +106,19 @@ describe('ContactsViewHeader', () => {
     expect(badge()).toBeFalsy()
   })
 
-  it('leaves Recompute and Edit segment to the Defined by bar', () => {
+  it('puts Recompute then Edit segment after the menu of a segment view', () => {
     renderHeader({ view: { kind: 'segment', segmentId: 'eu' }, segment })
+    const more = screen.getByRole('button', { name: 'More actions' })
+    const recompute = screen.getByRole('button', { name: /Recompute/ })
+    const edit = screen.getByRole('button', { name: /Edit segment/ })
+    expect(more.compareDocumentPosition(recompute) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(recompute.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('has no Recompute nor Edit segment without segments write', () => {
+    const permissions = createFullPermissions()
+    permissions.segments = { read: true, write: false }
+    renderHeader({ view: { kind: 'segment', segmentId: 'eu' }, segment, permissions })
     expect(screen.queryByRole('button', { name: /Recompute/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /Edit segment/ })).toBeNull()
   })

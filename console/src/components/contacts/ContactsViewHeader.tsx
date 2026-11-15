@@ -14,6 +14,7 @@ import { BulkUpdateDrawer } from './BulkUpdateDrawer'
 import { ContactUpsertDrawer } from './ContactUpsertDrawer'
 import { useContactsCsvUpload } from './ContactsCsvUploadProvider'
 import type { ContactsView } from './contactsView'
+import { SegmentActions } from './SegmentDefinedBy'
 import { SegmentBuildingIndicator } from './SegmentProgress'
 
 export interface ContactsViewHeaderProps {
@@ -212,6 +213,13 @@ export function ContactsViewHeader({
         actions={
           <>
             {moreMenu}
+            {canWriteSegments && segment ? (
+              <SegmentActions
+                workspaceId={workspaceId}
+                segment={segment}
+                canReadTemplates={!!permissions?.templates?.read}
+              />
+            ) : null}
           </>
         }
       />
