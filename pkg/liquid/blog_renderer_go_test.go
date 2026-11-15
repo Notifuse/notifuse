@@ -591,3 +591,51 @@ func TestBlogRendererGo_RenderTakesAQuotedName(t *testing.T) {
 		}
 	}
 }
+
+// A theme is written by users: its render is bounded by liquidgo's resource limits,
+// partials included, and a reached limit is an error, never a page holding
+// "Liquid error: Memory limits exceeded". Each error is the limit's, not the
+// timeout's: the limit stops the render first.
+func TestBlogTemplateRenderer_ResourceLimits(t *testing.T) {
+	cases := []struct {
+		name     string
+		template string
+		partials map[string]string
+		data     map[string]interface{}
+	}{
+		{
+			name:     "output written in few steps",
+			template: `{% for i in (1..2000) %}{{ big }}{% endfor %}`,
+			data:     map[string]interface{}{"big": strings.Repeat("x", 10_000)},
+		},
+		{name: "output", template: `{% for i in (1..1000000) %}{% for j in (1..1000000) %}<div>{{ i }} - {{ j }}</div>{% endfor %}{% endfor %}`},
+		{name: "work of a loop that writes nothing", template: `{% for i in (1..200000000) %}{% endfor %}done`},
+		{name: "a capture", template: `{% capture x %}{% for i in (1..3000000) %}aaaa{% endfor %}{% endcapture %}{{ x | size }}`},
+		{
+			name:     "a partial rendered in a loop",
+			template: `{% for i in (1..100000) %}{% render 'card' %}{% endfor %}`,
+			partials: map[string]string{"card": `{% for j in (1..1000) %}<p>{{ j }}</p>{% endfor %}`},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := tc.data
+			if data == nil {
+				data = map[string]interface{}{}
+			}
+			out, err := RenderBlogTemplateGo(tc.template, data, tc.partials)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "resource limits")
+			assert.NotContains(t, err.Error(), "timeout")
+			assert.Empty(t, out)
+		})
+	}
+}
+
+// A theme well within the limits renders in full.
+func TestBlogTemplateRenderer_UnderLimits(t *testing.T) {
+	out, err := RenderBlogTemplateGo(`{% for i in (1..1000) %}{% render 'card', n: i %}{% endfor %}`, map[string]interface{}{}, map[string]string{"card": `<p>{{ n }}</p>`})
+	require.NoError(t, err)
+	assert.Contains(t, out, "<p>1000</p>")
+	assert.NotContains(t, out, "Liquid error")
+}
