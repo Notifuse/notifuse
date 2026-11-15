@@ -522,10 +522,10 @@ func TestBlogRendererGo_DateFilter(t *testing.T) {
 
 		html, err := renderer.Render(template, data, nil)
 		require.NoError(t, err)
-		// When ToDate returns nil, Date filter returns original input (nil pointer)
-		// which gets stringified. This is expected behavior - the filter handles nil gracefully
-		// by returning the original value rather than crashing
-		assert.Contains(t, html, "<nil>")
+		// The date filter returns its input, a nil pointer, which renders as
+		// nothing: an unpublished post shows no date, and no "<nil>"
+		assert.NotContains(t, html, "<nil>")
+		assert.Empty(t, strings.TrimSpace(html))
 	})
 }
 
