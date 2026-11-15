@@ -17,12 +17,15 @@ const (
 	DefaultMaxMemory       = 10 * 1024 * 1024 // 10MB (informational, not enforced by Go Liquid)
 	// DefaultMaxRenderLength caps the cumulative OUTPUT of a single Liquid render at
 	// 10MB (a real email body is well under 1MB). It bounds a render that expands to an
-	// enormous size — an output-producing runaway loop or a hostile feed — since the
-	// timeout below cannot interrupt the render goroutine once it is running. It does
-	// NOT bound a loop that emits little or no output (an empty-bodied or {% capture %}
-	// loop): liquidgo tracks only output length here, so the 5s timeout remains the only
-	// backstop for those.
+	// enormous size — an output-producing runaway loop or a hostile feed.
 	DefaultMaxRenderLength = 10_000_000 // 10MB
+	// DefaultMaxRenderScore caps the work of a render: liquidgo counts each node rendered
+	// and each loop iteration, so it bounds a loop that writes nothing. 10 million is
+	// about 0.2 s of work, thousands of times a real email.
+	DefaultMaxRenderScore = 10_000_000
+	// DefaultMaxAssignScore caps what assign and capture build during a render (about
+	// their size in bytes), which the output cap does not see.
+	DefaultMaxAssignScore = 10_000_000
 )
 
 // SecureLiquidEngine wraps the liquidgo engine with security protections
@@ -39,12 +42,16 @@ type SecureLiquidEngine struct {
 // maxParsedTemplates bounds an engine's parse cache; past it the cache starts over.
 const maxParsedTemplates = 256
 
-// newSecureLiquidEnv builds a liquidgo environment with the standard tags and a
-// render-length cap, shared by every engine constructor.
+// newSecureLiquidEnv builds a liquidgo environment with the standard tags and the
+// resource limits (output length, work, assigns), shared by every engine constructor.
 func newSecureLiquidEnv(renderLength int) *liquid.Environment {
 	env := liquid.NewEnvironment()
 	tags.RegisterStandardTags(env)
-	env.SetDefaultResourceLimits(map[string]interface{}{"render_length_limit": renderLength})
+	env.SetDefaultResourceLimits(map[string]interface{}{
+		"render_length_limit": renderLength,
+		"render_score_limit":  DefaultMaxRenderScore,
+		"assign_score_limit":  DefaultMaxAssignScore,
+	})
 	return env
 }
 
@@ -133,8 +140,15 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 			}
 		}
 
-		// Render the template (second parameter is 'assigns', pass nil)
-		rendered := tmpl.Render(data, nil)
+		// The context stops the render at its next node once the timeout is reached,
+		// so a runaway template does not keep its goroutine running.
+		rendered := tmpl.Render(data, &liquid.RenderOptions{Context: ctx})
+		// A render over its limits ends with "Liquid error: Memory limits exceeded" in
+		// its output: it is an error, never the text of an email.
+		if limits := tmpl.ResourceLimits(); limits != nil && limits.Reached() {
+			errorChan <- fmt.Errorf("liquid rendering exceeded its resource limits (output size, work or assigns)")
+			return
+		}
 		resultChan <- rendered
 	}()
 
