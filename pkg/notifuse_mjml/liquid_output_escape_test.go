@@ -223,3 +223,23 @@ func TestLiquidOutputInAVisualAltIsText(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, `5 &lt; 6 & "seven"`, alt)
 }
+
+// Escaped data placed between components stays text: safe-mjml v1.0.1 no longer
+// turns &lt; and &gt; there back into markup, so it cannot become a component.
+func TestEscapedDataBetweenComponentsIsNotMJML(t *testing.T) {
+	button := `<mj-button href="https://phishing.example">Click</mj-button>`
+	cases := map[string]CompileTemplateRequest{
+		"code, in a column": {MjmlSource: codeSource(`<mj-text>a</mj-text>{{ contact.first_name }}`)},
+		"code, in the body": {MjmlSource: &[]string{`<mjml><mj-body>{{ contact.first_name }}<mj-section><mj-column><mj-text>a</mj-text></mj-column></mj-section></mj-body></mjml>`}[0]},
+		"mj-liquid block":   {VisualEditorTree: editorTree(editorLiquid(`<mj-text>a</mj-text>{{ contact.first_name }}`))},
+	}
+	for name, req := range cases {
+		t.Run(name, func(t *testing.T) {
+			req.WorkspaceID, req.MessageID, req.TemplateData = "ws", "m", contactData(button)
+			resp, err := CompileTemplate(req)
+			require.NoError(t, err)
+			require.True(t, resp.Success, "error: %v", resp.Error)
+			assert.NotContains(t, *resp.HTML, "phishing.example")
+		})
+	}
+}
