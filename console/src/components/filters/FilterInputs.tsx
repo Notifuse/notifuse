@@ -2,19 +2,21 @@ import { Input, DatePicker, Select, Switch } from 'antd'
 import type { FilterInputProps } from './types'
 import { useLingui } from '@lingui/react/macro'
 
-export function StringFilterInput({ field, value, onChange, className }: FilterInputProps) {
+export function StringFilterInput({ field, value, onChange, onPressEnter, className, autoFocus }: FilterInputProps) {
   const { t } = useLingui()
   return (
     <Input
       placeholder={t`Filter by ${field.label}`}
       value={value as string}
       onChange={(e) => onChange(e.target.value)}
+      onPressEnter={onPressEnter}
       className={className}
+      autoFocus={autoFocus}
     />
   )
 }
 
-export function NumberFilterInput({ field, value, onChange, className }: FilterInputProps) {
+export function NumberFilterInput({ field, value, onChange, onPressEnter, className, autoFocus }: FilterInputProps) {
   const { t } = useLingui()
   return (
     <Input
@@ -22,7 +24,9 @@ export function NumberFilterInput({ field, value, onChange, className }: FilterI
       placeholder={t`Filter by ${field.label}`}
       value={value as number}
       onChange={(e) => onChange(Number(e.target.value))}
+      onPressEnter={onPressEnter}
       className={className}
+      autoFocus={autoFocus}
     />
   )
 }
@@ -45,7 +49,7 @@ export function BooleanFilterInput({ value, onChange, className }: FilterInputPr
   return <Switch checked={value as boolean} onChange={onChange} className={className} />
 }
 
-export function SelectFilterInput({ field, value, onChange, className }: FilterInputProps) {
+export function SelectFilterInput({ field, value, onChange, className, autoFocus }: FilterInputProps) {
   const { t } = useLingui()
   if (!field.options) return null
 
@@ -56,11 +60,10 @@ export function SelectFilterInput({ field, value, onChange, className }: FilterI
       onChange={onChange}
       options={field.options}
       className={className}
+      autoFocus={autoFocus}
       style={{ width: '100%' }}
       showSearch
-      filterOption={(input, option) =>
-        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-      }
+      filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
     />
   )
 }

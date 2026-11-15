@@ -1,9 +1,12 @@
-import { Fragment } from 'react'
-import { Tooltip } from 'antd'
+import { Fragment, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { App, Button, Popconfirm, Tooltip } from 'antd'
+import { Pencil, RefreshCw } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import dayjs from '../../lib/dayjs'
-import type { Segment } from '../../services/api/segment'
+import { rebuildSegment, type Segment } from '../../services/api/segment'
 import type { List } from '../../services/api/types'
+import { DrawerSegment } from '../segment/button_upsert'
 import { segmentSummary } from '../segment/segmentSummary'
 import { SegmentBuildingIndicator } from './SegmentProgress'
 
@@ -12,11 +15,34 @@ export interface SegmentDefinedByProps {
   segment: Segment
   lists: List[]
   customFieldLabels: Record<string, string>
+  /** Segments write: Recompute and Edit segment. */
+  canWrite: boolean
+  /** Templates read, which the segment drawer needs to list the templates. */
+  canReadTemplates: boolean
 }
 
-/** The first conditions of a segment, and when it last changed. */
-export function SegmentDefinedBy({ workspaceId, segment, lists, customFieldLabels }: SegmentDefinedByProps) {
+/** The first conditions of a segment, when it last changed, and with segments write Recompute and Edit. */
+export function SegmentDefinedBy({
+  workspaceId,
+  segment,
+  lists,
+  customFieldLabels,
+  canWrite,
+  canReadTemplates
+}: SegmentDefinedByProps) {
   const { t, i18n } = useLingui()
+  const { message } = App.useApp()
+  const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const invalidateSegments = () => queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
+  const rebuild = useMutation({
+    mutationFn: () => rebuildSegment({ workspace_id: workspaceId, segment_id: segment.id }),
+    onSuccess: (data) => {
+      message.success(data.message || t`Segment rebuild started successfully`)
+      invalidateSegments()
+    },
+    onError: (error: Error) => message.error(error?.message || t`Failed to rebuild segment`)
+  })
   const summary = segmentSummary(segment.tree, i18n, {
     listName: (id) => lists.find((list) => list.id === id)?.name ?? id,
     customFieldLabels
@@ -46,6 +72,37 @@ export function SegmentDefinedBy({ workspaceId, segment, lists, customFieldLabel
           <span>{t`Updated ${updatedAgo}`}</span>
         </Tooltip>
       </span>
+      {canWrite ? (
+        <span className="flex items-center gap-1">
+          <Popconfirm
+            title={t`Rebuild segment`}
+            description={t`Are you sure you want to rebuild "${segment.name}"? This will recalculate segment membership.`}
+            okText={t`Yes`}
+            cancelText={t`No`}
+            onConfirm={() => rebuild.mutate()}
+          >
+            <Button
+              size="small"
+              type="text"
+              icon={<RefreshCw size={13} aria-hidden="true" />}
+              loading={rebuild.isPending}
+            >
+              {t`Recompute`}
+            </Button>
+          </Popconfirm>
+          <Button size="small" icon={<Pencil size={13} aria-hidden="true" />} onClick={() => setEditing(true)}>
+            {t`Edit segment`}
+          </Button>
+        </span>
+      ) : null}
+      {editing ? (
+        <DrawerSegment
+          segment={segment}
+          canReadTemplates={canReadTemplates}
+          setDrawserVisible={setEditing}
+          onSuccess={invalidateSegments}
+        />
+      ) : null}
     </div>
   )
 }
