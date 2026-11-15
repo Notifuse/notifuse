@@ -37,8 +37,7 @@ func (f *fakeRunStarter) BeginRun(parent context.Context) (context.Context, func
 	ctx, cancel := context.WithCancel(context.WithoutCancel(parent))
 	stop := context.AfterFunc(f.stopCtx, cancel)
 	return ctx, func() {
-		stop()
-		cancel()
+		stop() // like BeginRun, done leaves the context to what the run handed off
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		f.inFlight--
