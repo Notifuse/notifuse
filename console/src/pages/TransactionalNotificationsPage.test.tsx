@@ -60,13 +60,14 @@ vi.mock('../components/transactional/UpsertTransactionalNotificationDrawer', () 
     open
   }: {
     notification?: { id: string }
-    buttonProps?: { disabled?: boolean }
+    buttonProps?: { disabled?: boolean; icon?: ReactNode }
     open?: boolean
   }) =>
     open ? (
       <div data-testid={`edit-drawer-${notification?.id}`} />
     ) : (
       <button data-testid="create" disabled={!!buttonProps?.disabled}>
+        {buttonProps?.icon}
         New notification
       </button>
     )
@@ -391,7 +392,11 @@ describe('TransactionalNotificationsPage list', () => {
     await screen.findByText('Welcome')
 
     expect(await within(row('Password reset')).findByText('Template tpl-password_reset')).toBeInTheDocument()
-    expect(within(row('Welcome')).getByText('Deleted template')).toBeInTheDocument()
+    // The list's short pill, its whole sentence read by screen readers
+    expect(within(row('Welcome')).getByText('Deleted')).toHaveAttribute('aria-hidden', 'true')
+    expect(within(row('Welcome')).getByText('Deleted template. This notification still sends with it')).toHaveClass(
+      'sr-only'
+    )
     expect(await within(row('Managed')).findByText('tpl-managed')).toBeInTheDocument()
   })
 
@@ -436,10 +441,20 @@ describe('TransactionalNotificationsPage list', () => {
     expect(screen.queryByTestId('create')).not.toBeInTheDocument()
   })
 
-  it('names the provider and its default sender', async () => {
+  it('names the provider, in bold, and its default sender', async () => {
     renderPage()
-    expect(await screen.findByText('Sent via Main SES · hello@acme.test')).toBeInTheDocument()
+    const name = await screen.findByText('Main SES')
+    expect(name).toHaveClass('font-medium', 'text-ink')
+    expect(name.parentElement).toHaveTextContent(/^Sent via Main SES · hello@acme\.test$/)
     expect(screen.queryByText(/No transactional email provider/)).not.toBeInTheDocument()
+  })
+
+  it('names the provider alone, in bold, when it has no default sender', async () => {
+    state.settings = { timezone: 'Europe/Paris', transactional_email_provider_id: 'relay' }
+    renderPage()
+    const name = await screen.findByText('Relay')
+    expect(name).toHaveClass('font-medium', 'text-ink')
+    expect(name.parentElement).toHaveTextContent(/^Sent via Relay$/)
   })
 
   it('warns when no transactional provider is set', async () => {
@@ -598,6 +613,7 @@ describe('TransactionalNotificationsPage rights', () => {
   it('enables creation with transactional write and templates read', async () => {
     renderPage()
     expect(await screen.findByTestId('create')).toBeEnabled()
+    expect(screen.getByTestId('create').querySelector('svg.lucide-plus')).not.toBeNull()
   })
 })
 
@@ -660,6 +676,7 @@ describe('TransactionalNotificationsPage states', () => {
 
     expect(await screen.findByText('No transactional notifications found')).toBeInTheDocument()
     expect(screen.getAllByTestId('create')).toHaveLength(1)
+    expect(screen.getByTestId('create').querySelector('svg.lucide-plus')).not.toBeNull()
     expect(screen.getByText('API documentation')).toBeInTheDocument()
     expect(document.querySelector('[data-kpi-strip]')).toBeNull()
   })
