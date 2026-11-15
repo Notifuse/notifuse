@@ -978,7 +978,7 @@ msgstr "{position} sur {total}"
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# destinataire remis en file pour une nouvelle tentative} other {# destinataires remis en file pour une nouvelle tentative}}"
 
-#: src/components/logs/AuditLogTab.tsx:679
+#: src/components/logs/AuditLogTab.tsx:676
 msgid "{retentionDays, plural, one {Kept # day} other {Kept # days}}"
 msgstr "{retentionDays, plural, one {Conservé # jour} other {Conservé # jours}}"
 
@@ -1031,7 +1031,7 @@ msgstr "{share} % trackés"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/logs/AuditLogTab.tsx:689
+#: src/components/logs/AuditLogTab.tsx:686
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, one {{0} entrée} other {{1} entrées}}"
 
@@ -1569,7 +1569,7 @@ msgstr "Clé d'accès"
 #: src/components/contacts/BulkUpdateDrawer.tsx:604
 #: src/components/logs/AuditEntryDetail.tsx:128
 #: src/components/logs/AuditLogTab.tsx:295
-#: src/components/logs/AuditLogTab.tsx:559
+#: src/components/logs/AuditLogTab.tsx:556
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
 msgid "Action"
 msgstr "Action"
@@ -1657,8 +1657,8 @@ msgid "Activity {kind}"
 msgstr "Activité {kind}"
 
 #: src/components/logs/AuditEntryDetail.tsx:141
-#: src/components/logs/AuditLogTab.tsx:439
-#: src/components/logs/AuditLogTab.tsx:553
+#: src/components/logs/AuditLogTab.tsx:440
+#: src/components/logs/AuditLogTab.tsx:550
 msgid "Actor"
 msgstr "Acteur"
 
@@ -4081,7 +4081,7 @@ msgstr "Modifier un abonnement, y compris l'URL vers laquelle il poste et les é
 msgid "Change a template's content, in any language"
 msgstr "Modifier le contenu d'un modèle, dans n'importe quelle langue"
 
-#: src/components/logs/AuditLogTab.tsx:712
+#: src/components/logs/AuditLogTab.tsx:709
 msgid "Change in Settings"
 msgstr "Modifier dans les paramètres"
 
@@ -4269,7 +4269,7 @@ msgstr "Tout effacer"
 msgid "Clear field"
 msgstr "Effacer le champ"
 
-#: src/components/logs/AuditLogTab.tsx:638
+#: src/components/logs/AuditLogTab.tsx:635
 #: src/components/logs/InboundWebhooksTab.tsx:297
 #: src/components/logs/MessagesTab.tsx:800
 #: src/components/logs/OutgoingWebhooksTab.tsx:233
@@ -5275,7 +5275,7 @@ msgstr "Impossible de charger plus d'articles"
 msgid "Couldn't load stats"
 msgstr "Impossible de charger les statistiques"
 
-#: src/components/logs/AuditLogTab.tsx:623
+#: src/components/logs/AuditLogTab.tsx:620
 msgid "Couldn't load the audit log"
 msgstr "Impossible de charger le journal d'audit"
 
@@ -6688,7 +6688,7 @@ msgid "Denied"
 msgstr "Refusé"
 
 #: src/components/logs/AuditEntryDetail.tsx:176
-#: src/components/logs/AuditLogTab.tsx:598
+#: src/components/logs/AuditLogTab.tsx:595
 msgid "Deployment"
 msgstr "Déploiement"
 
@@ -8344,7 +8344,7 @@ msgstr "Explorer"
 #: src/components/contacts/ContactsViewHeader.tsx:86
 #: src/components/contacts/ExportContactsModal.tsx:367
 #: src/components/email_builder/MjmlCodeEditor.tsx:649
-#: src/components/logs/AuditLogTab.tsx:520
+#: src/components/logs/AuditLogTab.tsx:517
 #: src/components/templates/ImportExportButton.tsx:233
 msgid "Export"
 msgstr "Exporter"
@@ -10725,11 +10725,11 @@ msgstr "Gardez le lien de confirmation : {CONFIRM_VARIABLE}."
 msgid "Keep the unsubscribe link: {UNSUBSCRIBE_VARIABLE}."
 msgstr "Gardez le lien de désabonnement : {UNSUBSCRIBE_VARIABLE}."
 
-#: src/components/logs/AuditLogTab.tsx:680
+#: src/components/logs/AuditLogTab.tsx:677
 msgid "Kept for the deployment default"
 msgstr "Conservé selon la valeur par défaut du déploiement"
 
-#: src/components/logs/AuditLogTab.tsx:677
+#: src/components/logs/AuditLogTab.tsx:674
 msgid "Kept forever"
 msgstr "Conservé indéfiniment"
 
@@ -11346,7 +11346,7 @@ msgstr "Charger {PAGE_SIZE} de plus"
 #: src/components/blog/PostsTable.tsx:485
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:318
 #: src/components/contacts/visits/ContactWebVisits.tsx:371
-#: src/components/logs/AuditLogTab.tsx:698
+#: src/components/logs/AuditLogTab.tsx:695
 #: src/components/logs/InboundWebhooksTab.tsx:354
 #: src/components/logs/MessagesTab.tsx:857
 #: src/components/logs/OutgoingWebhooksTab.tsx:286
@@ -12384,7 +12384,7 @@ msgstr "Aucune règle d'attribution pour le moment. Créez la première pour com
 #~ msgid "No audit entries match"
 #~ msgstr "Aucune entrée d'audit ne correspond"
 
-#: src/components/logs/AuditLogTab.tsx:641
+#: src/components/logs/AuditLogTab.tsx:638
 msgid "No audit entries yet"
 msgstr "Aucune entrée d'audit pour l'instant"
 
@@ -12780,7 +12780,7 @@ msgstr "Aucune réponse"
 msgid "No results found"
 msgstr "Aucun résultat trouvé"
 
-#: src/components/logs/AuditLogTab.tsx:637
+#: src/components/logs/AuditLogTab.tsx:634
 #: src/components/logs/InboundWebhooksTab.tsx:296
 #: src/components/logs/MessagesTab.tsx:799
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
@@ -13171,11 +13171,11 @@ msgstr "Rien n'a été enregistré au cours des dernières 24 heures. Vérifiez 
 msgid "Nothing in the last 24 hours"
 msgstr "Rien sur les dernières 24 heures"
 
-#: src/components/logs/AuditLogTab.tsx:643
+#: src/components/logs/AuditLogTab.tsx:640
 msgid "Nothing in the last 7 days"
 msgstr "Rien ces 7 derniers jours"
 
-#: src/components/logs/AuditLogTab.tsx:645
+#: src/components/logs/AuditLogTab.tsx:642
 #: src/components/logs/InboundWebhooksTab.tsx:315
 #: src/components/logs/MessagesTab.tsx:807
 msgid "Nothing in this period"
@@ -13744,7 +13744,7 @@ msgstr "Recherche organique"
 msgid "Organic social"
 msgstr "Réseaux sociaux organiques"
 
-#: src/components/logs/AuditLogTab.tsx:583
+#: src/components/logs/AuditLogTab.tsx:580
 #: src/components/logs/MessagesTab.tsx:495
 msgid "Origin"
 msgstr "Origine"
@@ -15305,8 +15305,8 @@ msgid "Referrers"
 msgstr "Référents"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:212
-#: src/components/logs/AuditLogTab.tsx:525
-#: src/components/logs/AuditLogTab.tsx:529
+#: src/components/logs/AuditLogTab.tsx:522
+#: src/components/logs/AuditLogTab.tsx:526
 #: src/components/logs/InboundWebhooksTab.tsx:203
 #: src/components/logs/InboundWebhooksTab.tsx:207
 #: src/components/logs/MessagesTab.tsx:522
@@ -15790,8 +15790,8 @@ msgid "Resolved"
 msgstr "Résolu"
 
 #: src/components/logs/AuditEntryDetail.tsx:129
-#: src/components/logs/AuditLogTab.tsx:440
-#: src/components/logs/AuditLogTab.tsx:573
+#: src/components/logs/AuditLogTab.tsx:441
+#: src/components/logs/AuditLogTab.tsx:570
 #: src/components/settings/PermissionsMatrix.tsx:237
 msgid "Resource"
 msgstr "Ressource"
@@ -15916,7 +15916,7 @@ msgstr "A relancé les envois échoués de la newsletter <0>{target}</0>"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:171
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:782
-#: src/components/logs/AuditLogTab.tsx:625
+#: src/components/logs/AuditLogTab.tsx:622
 #: src/components/logs/InboundWebhooksTab.tsx:288
 #: src/components/logs/MessageDetail.tsx:91
 #: src/components/logs/MessagesTab.tsx:791
@@ -17565,7 +17565,7 @@ msgstr "partagé avec le reste de ce compte AWS"
 msgid "Show"
 msgstr "Afficher"
 
-#: src/components/logs/AuditLogTab.tsx:632
+#: src/components/logs/AuditLogTab.tsx:629
 #: src/components/logs/InboundWebhooksTab.tsx:292
 #: src/components/logs/MessagesTab.tsx:795
 msgid "Show all time"
@@ -19793,7 +19793,7 @@ msgstr "Ce wrapper n'a pas de sections. Ajoutez une section pour afficher du con
 #: src/components/blog/PublishModal.tsx:149
 #: src/components/broadcasts/compose/SendingCard.tsx:100
 #: src/components/broadcasts/compose/SendingCard.tsx:102
-#: src/components/logs/AuditLogTab.tsx:541
+#: src/components/logs/AuditLogTab.tsx:538
 #: src/components/logs/InboundWebhooksTab.tsx:249
 #: src/components/logs/MessagesTab.tsx:634
 #: src/components/logs/OutgoingWebhooksTab.tsx:161
@@ -21734,7 +21734,7 @@ msgid "Without its own text, this language receives the automatic version."
 msgstr "Sans texte propre, cette langue reçoit la version automatique."
 
 #: src/components/logs/AuditEntryDetail.tsx:175
-#: src/components/logs/AuditLogTab.tsx:592
+#: src/components/logs/AuditLogTab.tsx:589
 #: src/components/logs/labels.ts:9
 #: src/components/settings/GeneralSettings.tsx:225
 #: src/components/settings/GeneralSettings.tsx:323
