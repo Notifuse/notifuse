@@ -135,7 +135,8 @@ test.describe('Templates Feature', () => {
       // The row's preview action opens the template's own drawer, titled after it
       await rowAction(page, 'Preview')
 
-      const preview = templateDrawer(page, 'Welcome Email')
+      // Its title also names the version and category after the name: « Welcome Email v1 · … »
+      const preview = page.getByRole('dialog', { name: /^Welcome Email/ })
       await expect(preview).toBeVisible()
       await expect(preview.getByText('From', { exact: true })).toBeVisible()
       // The compile mock returns no rendered subject, so the drawer falls back to the
