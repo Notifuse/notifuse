@@ -17,122 +17,6 @@ import (
 	"github.com/Notifuse/safe-mjml/mjml"
 )
 
-// htmlVoidElements are HTML elements that must be self-closing in XML
-var htmlVoidElements = []string{
-	"area", "base", "br", "col", "embed", "hr", "img", "input",
-	"link", "meta", "param", "source", "track", "wbr",
-}
-
-// htmlEntityToCodepoint maps HTML named entities to their Unicode code points
-// Only entities not predefined in XML (amp, lt, gt, quot, apos) need conversion
-var htmlEntityToCodepoint = map[string]int{
-	// Whitespace and formatting
-	"nbsp": 160, "ensp": 8194, "emsp": 8195, "thinsp": 8201,
-	// Punctuation
-	"bull": 8226, "hellip": 8230, "mdash": 8212, "ndash": 8211,
-	"lsquo": 8216, "rsquo": 8217, "ldquo": 8220, "rdquo": 8221,
-	"laquo": 171, "raquo": 187,
-	// Symbols
-	"copy": 169, "reg": 174, "trade": 8482, "sect": 167, "para": 182,
-	"deg": 176, "plusmn": 177, "times": 215, "divide": 247,
-	"micro": 181, "middot": 183,
-	// Currency
-	"euro": 8364, "pound": 163, "yen": 165, "cent": 162,
-	// Arrows
-	"larr": 8592, "rarr": 8594, "uarr": 8593, "darr": 8595, "harr": 8596,
-	// Spanish/French punctuation
-	"iexcl": 161, "iquest": 191,
-}
-
-// preprocessMjmlForXML preprocesses MJML string to fix common HTML vs XML incompatibilities
-// It was needed by gomjml, whose strict XML parser refused HTML void tags (<br>)
-// and HTML entities (&nbsp;). safe-mjml accepts both in content tags and
-// attributes; the preprocessing is kept as it was.
-func preprocessMjmlForXML(mjmlString string) string {
-	processed := mjmlString
-
-	// Step 1: Convert HTML void tags to self-closing XML format
-	// HTML allows <br>, <hr>, <img>, etc. without closing slash
-	// XML requires self-closing: <br/>, <hr/>, <img/>
-	// Match: <br>, <br >, <hr>, <img src="...">, etc.
-	// Don't match: <br/>, <br />
-	voidTagPattern := regexp.MustCompile(
-		`(?i)<(` + strings.Join(htmlVoidElements, "|") + `)(\s[^>]*)?>`,
-	)
-	processed = voidTagPattern.ReplaceAllStringFunc(processed, func(match string) string {
-		// Check if already self-closing (ends with /> or / >)
-		trimmed := strings.TrimSpace(match)
-		if strings.HasSuffix(trimmed, "/>") {
-			return match
-		}
-
-		// Extract tag name and attributes using submatch
-		parts := voidTagPattern.FindStringSubmatch(match)
-		if len(parts) < 2 {
-			return match
-		}
-		tagName := parts[1]
-		attrs := ""
-		if len(parts) > 2 && parts[2] != "" {
-			attrs = strings.TrimRight(parts[2], " ")
-		}
-		return "<" + tagName + attrs + "/>"
-	})
-
-	// Step 2: Convert HTML named entities to XML numeric entities
-	// XML only predefines: &amp; &lt; &gt; &quot; &apos;
-	// HTML entities like &nbsp; must be converted to &#160;
-	entityPattern := regexp.MustCompile(`&([a-zA-Z]+);`)
-	processed = entityPattern.ReplaceAllStringFunc(processed, func(match string) string {
-		// Extract entity name (without & and ;)
-		entityName := strings.ToLower(match[1 : len(match)-1])
-
-		// Preserve XML predefined entities
-		if entityName == "amp" || entityName == "lt" || entityName == "gt" ||
-			entityName == "quot" || entityName == "apos" {
-			return match
-		}
-
-		// Convert known HTML entities to numeric
-		if codepoint, ok := htmlEntityToCodepoint[entityName]; ok {
-			return fmt.Sprintf("&#%d;", codepoint)
-		}
-
-		// Unknown entity - leave as-is
-		return match
-	})
-
-	// Step 3: Keep quote entities inside URL attributes from turning into the
-	// quote that delimits them. gomjml releases before v0.14.1 decoded &quot;
-	// and &apos; to raw quotes before their XML parse, everywhere, including the
-	// raw HTML of an mj-text, and wrote MJML attributes back unescaped: a
-	// rich-text link saved as href="…?q=&quot;exact&quot;" reached the HTML as
-	// href="…?q="exact"", which ends the URL at "q=". v0.14.1 leaves entities
-	// inside quoted attribute values to its XML parser and escapes most of the
-	// attributes it writes (not the carousel's hand-built href and src). The doubling below (&amp;quot;) still comes back
-	// as &quot; through decodeHTMLEntitiesInURLAttributes after the render, so
-	// the output is the same with both releases.
-	//
-	// The numeric forms &#34; and &#x22; (Go's html.EscapeString writes the
-	// former) get the same treatment, and so does a " in a single-quoted value
-	// such as <mj-button href='…?q="exact"'>, raw or as an entity. Its &apos;
-	// becomes &#39;.
-	//
-	// A hexadecimal reference written with an upper-case X, valid HTML, fails
-	// the whole compile when it sits in an MJML element's attribute, such as an
-	// mj-button's href: the XML parser only reads &#x. It is lower-cased.
-	processed = replaceQuotedValues(processed, urlAttrRegexp, func(value string, quote byte) string {
-		value = doubleQuoteEntityRegexp.ReplaceAllString(value, "&amp;quot;")
-		value = upperCaseHexReferenceRegexp.ReplaceAllString(value, "&#x$1;")
-		if quote == '\'' {
-			value = singleQuotedURLAttrForGomjml.Replace(value)
-		}
-		return value
-	})
-
-	return processed
-}
-
 // MapOfAny represents a map of string to any value, used for template data
 type MapOfAny map[string]any
 
@@ -1058,16 +942,15 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		}
 	}
 
-	// Preprocess MJML to fix HTML vs XML incompatibilities (see preprocessMjmlForXML)
 	// Restore the Liquid delimiters neutralized during the per-block render (see
 	// ConvertJSONToMJMLWithDataProtected). After this point data-borne Liquid is literal
 	// text; no-op when nothing was protected (code mode, no data).
 	mjmlString = restoreLiquidDelimiters(mjmlString)
 
-	preprocessedMjml := preprocessMjmlForXML(mjmlString)
-
-	// Compile MJML to HTML with safe-mjml
-	htmlResult, err := mjml.Render(preprocessedMjml)
+	// Compile MJML to HTML with safe-mjml, which reads HTML void tags (<br>), HTML
+	// entities (&nbsp;) and the quotes of a URL as MJML does: the MJML is compiled
+	// as written.
+	htmlResult, err := mjml.Render(mjmlString)
 	if err != nil {
 		// Return the response struct with Success=false and the Error details
 		return &CompileTemplateResponse{
@@ -1170,17 +1053,6 @@ func decodeHTMLEntitiesInURLAttributes(html string) string {
 // single-quoted value: group 1 is a double-quoted value, group 2 a
 // single-quoted one.
 var urlAttrRegexp = regexp.MustCompile(`(?i)(?:href|src|action)\s*=\s*(?:"([^"]*)"|'([^']*)')`)
-
-// doubleQuoteEntityRegexp matches the references to " that gomjml turns into a
-// raw quote before its XML parse (&quot;) or during it (&#34;, &#x22;), or that
-// its XML parser refuses (&#X22;).
-var doubleQuoteEntityRegexp = regexp.MustCompile(`&(?:quot|#0*34|#[xX]0*22);`)
-
-// upperCaseHexReferenceRegexp matches a hexadecimal character reference written
-// &#X…;, which gomjml's XML parser refuses; group 1 is its digits.
-var upperCaseHexReferenceRegexp = regexp.MustCompile(`&#X([0-9a-fA-F]+);`)
-
-var singleQuotedURLAttrForGomjml = strings.NewReplacer(`"`, "&amp;quot;", "&apos;", "&#39;")
 
 var (
 	urlAttrDoubleQuotedDecoder = strings.NewReplacer("&amp;", "&", "&#39;", "'", "&lt;", "<", "&gt;", ">")
