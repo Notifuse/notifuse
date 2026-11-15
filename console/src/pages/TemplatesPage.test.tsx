@@ -442,6 +442,33 @@ describe('TemplatesPage', () => {
     expect(drawer).toHaveAttribute('data-tree', 'yes')
   })
 
+  it('shows the faulty lines of an invalid MJML file, and opens the same picker again to retry', async () => {
+    const { container } = renderPage()
+    await screen.findByText('Newsletter')
+    const input = container.querySelector('input[accept^=".mjml"]') as HTMLInputElement
+    const pick = vi.spyOn(input, 'click')
+    const broken = [
+      '<mjml>',
+      '  <mj-body>',
+      '    <mj-section>',
+      '      <mj-column>',
+      '        <mj-text>Hi',
+      '      </mj-column>',
+      '</mjml>'
+    ].join('\n')
+    fireEvent.change(input, { target: { files: [new File([broken], 'broken.mjml', { type: 'text/plain' })] } })
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('MJML Syntax Error')).toBeInTheDocument()
+    expect(within(dialog).getByTestId('import-excerpt').querySelector('[data-faulty]')?.textContent).toBe(
+      '6      </mj-column>'
+    )
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Retry with a corrected file' }))
+    expect(pick).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
   it('lists the uses of a template in its delete confirmation', async () => {
     vi.mocked(templatesApi.usage).mockImplementation(async ({ template_id }) =>
       template_id

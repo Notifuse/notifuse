@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { i18n } from '@lingui/core'
-import { importTemplateFile } from './importTemplateFile'
+import { importTemplateFile, syntaxErrorLine } from './importTemplateFile'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
@@ -117,5 +117,51 @@ describe('importTemplateFile, MJML', () => {
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.title).toBe('MJML Syntax Error')
+  })
+
+  it('returns the file and the line of an MJML syntax error, for the excerpt', async () => {
+    const broken = [
+      '<mjml>',
+      '  <mj-body>',
+      '    <mj-section>',
+      '      <mj-column>',
+      '        <mj-text>Hi',
+      '      </mj-column>',
+      '    </mj-section>',
+      '  </mj-body>',
+      '</mjml>',
+      ''
+    ].join('\n')
+    const result = await importTemplateFile(file(broken, 'broken.mjml'), 'mjml', i18n)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.title).toBe('MJML Syntax Error')
+    expect(result.source).toBe(broken)
+    // The parser names the line where </mj-column> closes the unclosed <mj-text>
+    expect(result.line).toBe(6)
+  })
+})
+
+describe('syntaxErrorLine', () => {
+  it('reads the first line libxml2 names, not the opening tag it names after it', () => {
+    expect(
+      syntaxErrorLine(
+        'Invalid MJML syntax: This page contains the following errors:error on line 6 at column 19: Opening and ending tag mismatch: mj-text line 5 and mj-column'
+      )
+    ).toBe(6)
+  })
+
+  it('reads the line Firefox names', () => {
+    expect(syntaxErrorLine('Invalid MJML syntax: XML Parsing Error: mismatched tag\nLine Number 6, Column 3:')).toBe(6)
+  })
+
+  it('reads the line jsdom puts first', () => {
+    expect(
+      syntaxErrorLine('Failed to convert MJML to JSON: Error: Invalid MJML syntax: 6:12: unexpected close tag.')
+    ).toBe(6)
+  })
+
+  it('finds no line in an error that names none', () => {
+    expect(syntaxErrorLine('Invalid MJML syntax: Root element must be <mjml>')).toBeUndefined()
   })
 })

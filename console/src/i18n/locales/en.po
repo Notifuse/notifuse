@@ -86,7 +86,7 @@ msgstr "(empty)"
 #~ msgstr "(none)"
 
 #. placeholder {0}: record.email.reply_to
-#: src/components/templates/TemplatePreviewDrawer.tsx:328
+#: src/components/templates/TemplatePreviewDrawer.tsx:341
 msgid "(original: {0})"
 msgstr "(original: {0})"
 
@@ -330,7 +330,7 @@ msgid "{0} ({timezone})"
 msgstr "{0} ({timezone})"
 
 #. placeholder {0}: list.name
-#: src/components/templates/SendTemplateModal.tsx:398
+#: src/components/templates/SendTemplateModal.tsx:396
 msgid "{0} (broadcast audience)"
 msgstr "{0} (broadcast audience)"
 
@@ -937,6 +937,10 @@ msgstr "{name} could not be inserted there."
 #~ msgid "{name} is being dragged over the email."
 #~ msgstr "{name} is being dragged over the email."
 
+#: src/components/templates/TemplateTranslationsTab.tsx:315
+msgid "{name} translation"
+msgstr "{name} translation"
+
 #: src/components/email_builder/dnd/LibraryDnd.tsx:142
 #~ msgid "{name} was dropped."
 #~ msgstr "{name} was dropped."
@@ -1194,32 +1198,32 @@ msgid "// No test data yet..."
 msgstr "// No test data yet..."
 
 #: src/components/templates/ImportErrorsModal.tsx:49
-msgid "• Check that your MJML structure follows the proper hierarchy"
-msgstr "• Check that your MJML structure follows the proper hierarchy"
+#~ msgid "• Check that your MJML structure follows the proper hierarchy"
+#~ msgstr "• Check that your MJML structure follows the proper hierarchy"
 
 #: src/components/templates/ImportErrorsModal.tsx:50
-msgid "• Ensure all required components are properly nested"
-msgstr "• Ensure all required components are properly nested"
+#~ msgid "• Ensure all required components are properly nested"
+#~ msgstr "• Ensure all required components are properly nested"
 
 #: src/components/templates/ImportErrorsModal.tsx:52
-msgid "• Make sure all XML tags are properly closed"
-msgstr "• Make sure all XML tags are properly closed"
+#~ msgid "• Make sure all XML tags are properly closed"
+#~ msgstr "• Make sure all XML tags are properly closed"
 
 #: src/components/templates/ImportErrorsModal.tsx:51
-msgid "• Verify that component attributes are valid"
-msgstr "• Verify that component attributes are valid"
+#~ msgid "• Verify that component attributes are valid"
+#~ msgstr "• Verify that component attributes are valid"
 
 #: src/components/segment/input_dimension_filters.tsx:170
 msgid "+ Add filter"
 msgstr "+ Add filter"
 
 #: src/components/templates/SendTemplateModal.tsx:420
-msgid "+ add from name, CC, BCC, reply-to, attachments"
-msgstr "+ add from name, CC, BCC, reply-to, attachments"
+#~ msgid "+ add from name, CC, BCC, reply-to, attachments"
+#~ msgstr "+ add from name, CC, BCC, reply-to, attachments"
 
 #: src/components/templates/SendTemplateModal.tsx:421
-msgid "+ add from name, reply-to, attachments"
-msgstr "+ add from name, reply-to, attachments"
+#~ msgid "+ add from name, reply-to, attachments"
+#~ msgstr "+ add from name, reply-to, attachments"
 
 #: src/components/segment/input_event_property_filters.tsx:122
 msgid "+ Add property filter"
@@ -2782,7 +2786,7 @@ msgid "at most"
 msgstr "at most"
 
 #: src/components/logs/MessageDetail.tsx:659
-#: src/components/templates/SendTemplateModal.tsx:474
+#: src/components/templates/SendTemplateModal.tsx:465
 msgid "Attachments"
 msgstr "Attachments"
 
@@ -2936,7 +2940,7 @@ msgid "Auto-subscribe to Lists"
 msgstr "Auto-subscribe to Lists"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:157
-#: src/components/templates/TemplatePreviewDrawer.tsx:219
+#: src/components/templates/TemplatePreviewDrawer.tsx:234
 msgid "Automatic"
 msgstr "Automatic"
 
@@ -3188,11 +3192,11 @@ msgid "Basic Information"
 msgstr "Basic Information"
 
 #: src/components/logs/MessageDetail.tsx:651
-#: src/components/templates/TemplatePreviewDrawer.tsx:362
+#: src/components/templates/TemplatePreviewDrawer.tsx:372
 msgid "BCC"
 msgstr "BCC"
 
-#: src/components/templates/SendTemplateModal.tsx:452
+#: src/components/templates/SendTemplateModal.tsx:443
 msgid "BCC Recipients"
 msgstr "BCC Recipients"
 
@@ -3939,8 +3943,8 @@ msgstr "Campaigns"
 #: src/components/settings/WorkspaceMembers.tsx:613
 #: src/components/templates/CreateTemplateDrawer.tsx:740
 #: src/components/templates/DeleteTemplateModal.tsx:115
-#: src/components/templates/SendTemplateModal.tsx:318
-#: src/components/templates/TemplateTranslationsTab.tsx:333
+#: src/components/templates/SendTemplateModal.tsx:319
+#: src/components/templates/TemplateTranslationsTab.tsx:344
 #: src/components/transactional/notificationRules.ts:94
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:210
 #: src/components/web_analytics/explore/BreakdownModal.tsx:108
@@ -4046,7 +4050,7 @@ msgstr "Categories"
 #: src/components/blog/PostsTable.tsx:312
 #: src/components/blog/ThemeEditorDrawer.tsx:429
 #: src/components/templates/CreateTemplateDrawer.tsx:1016
-#: src/pages/TemplatesPage.tsx:403
+#: src/pages/TemplatesPage.tsx:410
 msgid "Category"
 msgstr "Category"
 
@@ -4067,11 +4071,11 @@ msgstr "Category updated successfully"
 #~ msgstr "Category:"
 
 #: src/components/logs/MessageDetail.tsx:650
-#: src/components/templates/TemplatePreviewDrawer.tsx:350
+#: src/components/templates/TemplatePreviewDrawer.tsx:355
 msgid "CC"
 msgstr "CC"
 
-#: src/components/templates/SendTemplateModal.tsx:441
+#: src/components/templates/SendTemplateModal.tsx:432
 msgid "CC Recipients"
 msgstr "CC Recipients"
 
@@ -4210,6 +4214,10 @@ msgstr "Check"
 #: src/pages/SetupWizard.tsx:566
 msgid "Check for Updates"
 msgstr "Check for Updates"
+
+#: src/components/templates/ImportErrorsModal.tsx:76
+msgid "Check the MJML hierarchy and that every tag is closed."
+msgstr "Check the MJML hierarchy and that every tag is closed."
 
 #: src/components/settings/integrations/EmailProviderCard.tsx:127
 msgid "Checking webhooks…"
@@ -4528,7 +4536,7 @@ msgstr "Client Secret Value"
 
 #: src/components/templates/TemplateSelectorInput.tsx:254
 #: src/components/templates/TemplateSelectorInput.tsx:256
-#: src/pages/TemplatesPage.tsx:301
+#: src/pages/TemplatesPage.tsx:308
 msgid "Clone"
 msgstr "Clone"
 
@@ -4555,6 +4563,7 @@ msgstr "Clone Template"
 #: src/components/logs/MessageDetail.tsx:96
 #: src/components/settings/WebhookDetail.tsx:591
 #: src/components/settings/WorkspaceMembers.tsx:609
+#: src/components/templates/ImportErrorsModal.tsx:36
 #: src/components/transactional/ApiCommandModal.tsx:276
 msgid "Close"
 msgstr "Close"
@@ -4573,7 +4582,7 @@ msgid "Closed Captions (CC)"
 msgstr "Closed Captions (CC)"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:684
-#: src/pages/TemplatesPage.tsx:385
+#: src/pages/TemplatesPage.tsx:392
 msgid "Code"
 msgstr "Code"
 
@@ -5123,6 +5132,7 @@ msgstr "contains"
 #: src/components/broadcasts/compose/ContentCard.tsx:115
 #: src/components/email_builder/panels/LibraryPanel.tsx:261
 #: src/components/settings/SettingsSidebar.tsx:28
+#: src/components/templates/TemplateTranslationsTab.tsx:400
 #: src/layouts/app-shell/menuItems.ts:228
 msgid "Content"
 msgstr "Content"
@@ -5207,7 +5217,7 @@ msgstr "Copy external ID"
 #: src/components/automations/AutomationEditor.tsx:423
 #: src/components/transactional/TransactionalDetail.tsx:324
 #: src/components/transactional/TransactionalTable.tsx:296
-#: src/pages/TemplatesPage.tsx:307
+#: src/pages/TemplatesPage.tsx:314
 msgid "Copy ID"
 msgstr "Copy ID"
 
@@ -5304,7 +5314,7 @@ msgstr "Couldn't check where this template is used"
 #: src/components/transactional/LoadError.tsx:20
 #: src/components/transactional/notificationParts.tsx:82
 #: src/components/transactional/TransactionalDetail.tsx:267
-#: src/pages/TemplatesPage.tsx:334
+#: src/pages/TemplatesPage.tsx:341
 #: src/pages/TransactionalNotificationsPage.tsx:302
 msgid "Couldn't load"
 msgstr "Couldn't load"
@@ -5376,7 +5386,7 @@ msgstr "Couldn't load the success rate"
 msgid "Couldn't load the template"
 msgstr "Couldn't load the template"
 
-#: src/pages/TemplatesPage.tsx:491
+#: src/pages/TemplatesPage.tsx:498
 msgid "Couldn't load the templates"
 msgstr "Couldn't load the templates"
 
@@ -5713,7 +5723,7 @@ msgstr "Create your first notification to get started"
 msgid "Create Your First Post"
 msgstr "Create Your First Post"
 
-#: src/pages/TemplatesPage.tsx:504
+#: src/pages/TemplatesPage.tsx:511
 msgid "Create your first template to get started"
 msgstr "Create your first template to get started"
 
@@ -5735,7 +5745,7 @@ msgstr "Created"
 #. placeholder {0}: fullDate(template.created_at)
 #. placeholder {1}: fullDate(template.updated_at)
 #. placeholder {2}: timezone ?? 'UTC'
-#: src/pages/TemplatesPage.tsx:449
+#: src/pages/TemplatesPage.tsx:456
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "Created {0} · Updated {1} in {2}"
 
@@ -5861,7 +5871,7 @@ msgstr "custom"
 #: src/components/email_builder/panels/TextVersionPanel.tsx:168
 #: src/components/email_builder/panels/TextVersionPanel.tsx:326
 #: src/components/email_builder/ui/BackgroundInput.tsx:113
-#: src/components/templates/TemplatePreviewDrawer.tsx:217
+#: src/components/templates/TemplatePreviewDrawer.tsx:232
 msgid "Custom"
 msgstr "Custom"
 
@@ -6066,7 +6076,7 @@ msgstr "Custom sender (marketing email provider)"
 msgid "Custom sender (transactional email provider)"
 msgstr "Custom sender (transactional email provider)"
 
-#: src/components/templates/SendTemplateModal.tsx:429
+#: src/components/templates/SendTemplateModal.tsx:420
 msgid "Custom sender name (optional)"
 msgstr "Custom sender name (optional)"
 
@@ -6183,12 +6193,13 @@ msgstr "Deduplication:"
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
 #: src/components/settings/integrations/EmailProviderCard.tsx:284
 #: src/components/templates/SendTemplateModal.tsx:99
-#: src/pages/TemplatesPage.tsx:441
+#: src/pages/TemplatesPage.tsx:448
 msgid "default"
 msgstr "default"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:232
 #: src/components/integrations/LLMIntegration.tsx:228
+#: src/components/templates/TemplateTranslationsTab.tsx:429
 msgid "Default"
 msgstr "Default"
 
@@ -6306,8 +6317,8 @@ msgstr "Delay"
 #: src/components/web_analytics/filters/FilterTable.tsx:136
 #: src/components/web_analytics/filters/FilterTable.tsx:291
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:104
-#: src/pages/TemplatesPage.tsx:317
-#: src/pages/TemplatesPage.tsx:320
+#: src/pages/TemplatesPage.tsx:324
+#: src/pages/TemplatesPage.tsx:327
 msgid "Delete"
 msgstr "Delete"
 
@@ -6851,7 +6862,6 @@ msgstr "Disable webhook"
 #: src/components/settings/WebAnalyticsSettings.tsx:253
 #: src/components/settings/WebhookDetail.tsx:267
 #: src/components/settings/WebhooksSettings.tsx:303
-#: src/components/templates/TemplateTranslationsTab.tsx:274
 msgid "Disabled"
 msgstr "Disabled"
 
@@ -6893,7 +6903,7 @@ msgstr "Display"
 msgid "Display condition"
 msgstr "Display condition"
 
-#: src/components/templates/importTemplateFile.ts:131
+#: src/components/templates/importTemplateFile.ts:149
 msgid "Display conditions not imported"
 msgstr "Display conditions not imported"
 
@@ -7011,7 +7021,7 @@ msgstr "Don't track opens and clicks for this broadcast"
 
 #: src/components/automations/config/ConditionsField.tsx:142
 #: src/components/settings/ZapierSettings.tsx:270
-#: src/components/templates/TemplateTranslationsTab.tsx:383
+#: src/components/templates/TemplateTranslationsTab.tsx:476
 msgid "Done"
 msgstr "Done"
 
@@ -7257,12 +7267,12 @@ msgstr "Each variation keeps its template's sender unless you choose another one
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/pages/TemplatesPage.tsx:288
+#: src/pages/TemplatesPage.tsx:295
 msgid "Edit"
 msgstr "Edit"
 
-#. placeholder {0}: SUPPORTED_LANGUAGES[editorDrawerLang] || editorDrawerLang
-#: src/components/templates/TemplateTranslationsTab.tsx:374
+#. placeholder {0}: languageName(editorDrawerLang)
+#: src/components/templates/TemplateTranslationsTab.tsx:467
 msgid "Edit {0} translation"
 msgstr "Edit {0} translation"
 
@@ -7586,7 +7596,7 @@ msgid "Email field mapping is required"
 msgstr "Email field mapping is required"
 
 #: src/components/automations/config/EmailConfigForm.tsx:95
-#: src/components/templates/SendTemplateModal.tsx:338
+#: src/components/templates/SendTemplateModal.tsx:337
 msgid "Email Integration"
 msgstr "Email Integration"
 
@@ -7670,12 +7680,12 @@ msgid "Email structure not applied"
 msgstr "Email structure not applied"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1079
-#: src/components/templates/TemplateTranslationsTab.tsx:287
+#: src/components/templates/TemplateTranslationsTab.tsx:366
 msgid "Email subject"
 msgstr "Email subject"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1145
-#: src/components/templates/TemplateTranslationsTab.tsx:358
+#: src/components/templates/TemplateTranslationsTab.tsx:392
 msgid "Email Subject"
 msgstr "Email Subject"
 
@@ -7774,6 +7784,10 @@ msgstr "Emoji Suggestions"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Empty column. Add text, button, or image content."
 
+#: src/components/templates/TemplateTranslationsTab.tsx:327
+msgid "Enable"
+msgstr "Enable"
+
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:723
 #~ msgid "Enable A/B Testing"
 #~ msgstr "Enable A/B Testing"
@@ -7815,6 +7829,10 @@ msgstr "Enable the blog feature to publish articles and content on your custom d
 msgid "Enable this rule?"
 msgstr "Enable this rule?"
 
+#: src/components/templates/TemplateTranslationsTab.tsx:324
+msgid "Enable this translation to edit it."
+msgstr "Enable this translation to edit it."
+
 #: src/components/settings/SystemSettingsDrawer.tsx:361
 #: src/pages/SetupWizard.tsx:481
 msgid "Enable TLS encryption for SMTP connection"
@@ -7843,7 +7861,6 @@ msgstr "Enable webhook"
 #: src/components/settings/SystemSettingsDrawer.tsx:465
 #: src/components/settings/SystemSettingsDrawer.tsx:550
 #: src/components/settings/WebAnalyticsSettings.tsx:248
-#: src/components/templates/TemplateTranslationsTab.tsx:273
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
 msgid "Enabled"
 msgstr "Enabled"
@@ -7940,7 +7957,7 @@ msgstr "Enter avatar URL (optional)"
 msgid "Enter background image URL"
 msgstr "Enter background image URL"
 
-#: src/components/templates/SendTemplateModal.tsx:455
+#: src/components/templates/SendTemplateModal.tsx:446
 msgid "Enter BCC email addresses"
 msgstr "Enter BCC email addresses"
 
@@ -7956,7 +7973,7 @@ msgstr "Enter button link URL or {{ url }}"
 msgid "Enter button text..."
 msgstr "Enter button text..."
 
-#: src/components/templates/SendTemplateModal.tsx:444
+#: src/components/templates/SendTemplateModal.tsx:435
 msgid "Enter CC email addresses"
 msgstr "Enter CC email addresses"
 
@@ -8044,7 +8061,7 @@ msgstr "Enter number..."
 msgid "Enter preview text that appears in email clients..."
 msgstr "Enter preview text that appears in email clients..."
 
-#: src/components/templates/SendTemplateModal.tsx:467
+#: src/components/templates/SendTemplateModal.tsx:458
 msgid "Enter Reply-To email address"
 msgstr "Enter Reply-To email address"
 
@@ -8139,7 +8156,7 @@ msgstr "Error"
 #~ msgid "Error loading data"
 #~ msgstr "Error loading data"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:394
+#: src/components/templates/TemplatePreviewDrawer.tsx:421
 msgid "Error loading preview"
 msgstr "Error loading preview"
 
@@ -8165,7 +8182,7 @@ msgstr "Error:"
 msgid "Error: {0}"
 msgstr "Error: {0}"
 
-#: src/components/templates/SendTemplateModal.tsx:201
+#: src/components/templates/SendTemplateModal.tsx:200
 msgid "Error: {errorMessage}"
 msgstr "Error: {errorMessage}"
 
@@ -8317,6 +8334,10 @@ msgstr "exactly"
 #: src/components/blog/PostDrawer.tsx:912
 msgid "Excerpt"
 msgstr "Excerpt"
+
+#: src/components/templates/ImportErrorsModal.tsx:64
+msgid "Excerpt of the file around line {line}"
+msgstr "Excerpt of the file around line {line}"
 
 #: src/components/settings/BlogSettings.tsx:443
 msgid "Excerpt only"
@@ -8567,7 +8588,7 @@ msgstr "Failed to change the sender: {0}"
 msgid "Failed to clear field"
 msgstr "Failed to clear field"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:159
+#: src/components/templates/TemplatePreviewDrawer.tsx:162
 msgid "Failed to compile template preview."
 msgstr "Failed to compile template preview."
 
@@ -8769,11 +8790,11 @@ msgstr "Failed to fetch setup status"
 msgid "Failed to fetch workspace members"
 msgstr "Failed to fetch workspace members"
 
-#: src/components/templates/importTemplateFile.ts:144
+#: src/components/templates/importTemplateFile.ts:162
 msgid "Failed to import MJML template. Please check the MJML syntax."
 msgstr "Failed to import MJML template. Please check the MJML syntax."
 
-#: src/components/templates/importTemplateFile.ts:117
+#: src/components/templates/importTemplateFile.ts:120
 msgid "Failed to import template. Please check the file format."
 msgstr "Failed to import template. Please check the file format."
 
@@ -8823,7 +8844,7 @@ msgid "Failed to process all {0} contacts"
 msgstr "Failed to process all {0} contacts"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:275
+#: src/components/templates/SendTemplateModal.tsx:274
 msgid "Failed to process file {0}"
 msgstr "Failed to process file {0}"
 
@@ -8836,7 +8857,7 @@ msgid "Failed to publish theme"
 msgstr "Failed to publish theme"
 
 #: src/components/email_builder/MjmlCodeEditor.tsx:575
-#: src/components/templates/importTemplateFile.ts:183
+#: src/components/templates/importTemplateFile.ts:207
 msgid "Failed to read the file"
 msgstr "Failed to read the file"
 
@@ -8968,7 +8989,7 @@ msgstr "Failed to send magic code"
 #. placeholder {0}: response.error
 #. placeholder {0}: response.error || 'Unknown error'
 #: src/components/settings/Integrations.tsx:835
-#: src/components/templates/SendTemplateModal.tsx:190
+#: src/components/templates/SendTemplateModal.tsx:189
 msgid "Failed to send test email: {0}"
 msgstr "Failed to send test email: {0}"
 
@@ -9154,12 +9175,12 @@ msgid "File"
 msgstr "File"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:272
+#: src/components/templates/SendTemplateModal.tsx:271
 msgid "File {0} added"
 msgstr "File {0} added"
 
 #. placeholder {0}: file.name
-#: src/components/templates/SendTemplateModal.tsx:228
+#: src/components/templates/SendTemplateModal.tsx:227
 msgid "File {0} exceeds 3MB limit"
 msgstr "File {0} exceeds 3MB limit"
 
@@ -9482,7 +9503,7 @@ msgstr "Frequency"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:92
 #: src/components/broadcasts/detail/BroadcastAside.tsx:98
 #: src/components/logs/MessageDetail.tsx:643
-#: src/components/templates/TemplatePreviewDrawer.tsx:306
+#: src/components/templates/TemplatePreviewDrawer.tsx:319
 msgid "From"
 msgstr "From"
 
@@ -9508,7 +9529,7 @@ msgstr "From email is required"
 msgid "From Name"
 msgstr "From Name"
 
-#: src/components/templates/SendTemplateModal.tsx:427
+#: src/components/templates/SendTemplateModal.tsx:418
 msgid "From Name (override)"
 msgstr "From Name (override)"
 
@@ -9951,12 +9972,12 @@ msgstr "HTML Export Failed"
 msgid "HTML exported successfully"
 msgstr "HTML exported successfully"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:196
+#: src/components/templates/TemplatePreviewDrawer.tsx:199
 msgid "HTML Preview"
 msgstr "HTML Preview"
 
 #. placeholder {0}: record.name
-#: src/components/templates/TemplatePreviewDrawer.tsx:202
+#: src/components/templates/TemplatePreviewDrawer.tsx:207
 msgid "HTML Preview of {0}"
 msgstr "HTML Preview of {0}"
 
@@ -10023,7 +10044,7 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID can only contain lowercase letters, numbers, and underscores"
 
 #: src/components/automations/AutomationEditor.tsx:426
-#: src/pages/TemplatesPage.tsx:309
+#: src/pages/TemplatesPage.tsx:316
 #: src/pages/TransactionalNotificationsPage.tsx:153
 msgid "ID copied"
 msgstr "ID copied"
@@ -10038,7 +10059,7 @@ msgstr "ID doesn't match"
 #~ msgstr "ID for API:"
 
 #. placeholder {0}: template.id
-#: src/pages/TemplatesPage.tsx:380
+#: src/pages/TemplatesPage.tsx:387
 msgid "ID for API: {0}"
 msgstr "ID for API: {0}"
 
@@ -10155,7 +10176,7 @@ msgstr "Implicit TLS (SMTPS)"
 #: src/components/email_builder/MjmlCodeEditor.tsx:637
 #: src/components/templates/ImportExportButton.tsx:204
 #: src/pages/ContactsPage.tsx:543
-#: src/pages/TemplatesPage.tsx:578
+#: src/pages/TemplatesPage.tsx:585
 msgid "Import"
 msgstr "Import"
 
@@ -10216,8 +10237,8 @@ msgstr "Import MJML markup"
 msgid "Import to list"
 msgstr "Import to list"
 
-#: src/components/templates/importTemplateFile.ts:109
-#: src/components/templates/importTemplateFile.ts:114
+#: src/components/templates/importTemplateFile.ts:112
+#: src/components/templates/importTemplateFile.ts:117
 msgid "Import Validation Failed"
 msgstr "Import Validation Failed"
 
@@ -10510,7 +10531,7 @@ msgstr "Invalid JSON in field {field}"
 msgid "Invalid or expired invitation token"
 msgstr "Invalid or expired invitation token"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:120
+#: src/components/templates/TemplatePreviewDrawer.tsx:123
 msgid "Invalid template structure data."
 msgstr "Invalid template structure data."
 
@@ -10518,20 +10539,20 @@ msgstr "Invalid template structure data."
 msgid "Invalid tree structure"
 msgstr "Invalid tree structure"
 
-#: src/components/templates/importTemplateFile.ts:55
+#: src/components/templates/importTemplateFile.ts:58
 msgid "Invalid tree structure: children must be an array"
 msgstr "Invalid tree structure: children must be an array"
 
-#: src/components/templates/importTemplateFile.ts:45
-#: src/components/templates/importTemplateFile.ts:49
+#: src/components/templates/importTemplateFile.ts:48
+#: src/components/templates/importTemplateFile.ts:52
 msgid "Invalid tree structure: missing id or type"
 msgstr "Invalid tree structure: missing id or type"
 
-#: src/components/templates/importTemplateFile.ts:42
+#: src/components/templates/importTemplateFile.ts:45
 msgid "Invalid tree structure: not an object"
 msgstr "Invalid tree structure: not an object"
 
-#: src/components/templates/importTemplateFile.ts:52
+#: src/components/templates/importTemplateFile.ts:55
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Invalid tree structure: root must be mjml type"
 
@@ -10845,8 +10866,8 @@ msgstr "Landing pages"
 #: src/components/contacts/sheet/contactFieldLabels.ts:35
 #: src/components/logs/MessageDetail.tsx:647
 #: src/components/segment/segmentSummary.ts:41
-#: src/components/templates/SendTemplateModal.tsx:407
-#: src/components/templates/TemplatePreviewDrawer.tsx:373
+#: src/components/templates/SendTemplateModal.tsx:404
+#: src/components/templates/TemplatePreviewDrawer.tsx:496
 #: src/layouts/app-shell/AccountMenu.tsx:86
 msgid "Language"
 msgstr "Language"
@@ -10859,6 +10880,10 @@ msgstr "Language & timezone"
 #: src/components/settings/GeneralSettings.tsx:260
 #~ msgid "Languages available for template translations in this workspace"
 #~ msgstr "Languages available for template translations in this workspace"
+
+#: src/components/templates/TemplateTranslationsTab.tsx:460
+msgid "Languages come from the workspace settings."
+msgstr "Languages come from the workspace settings."
 
 #: src/components/file_manager/context.tsx:207
 msgid "Large File Warning"
@@ -11110,7 +11135,7 @@ msgstr "Line"
 #. placeholder {0}: detail.line
 #. placeholder {1}: detail.tagName
 #. placeholder {2}: detail.message
-#: src/components/templates/TemplatePreviewDrawer.tsx:409
+#: src/components/templates/TemplatePreviewDrawer.tsx:436
 msgid "Line {0} ({1}): {2}"
 msgstr "Line {0} ({1}): {2}"
 
@@ -11638,7 +11663,7 @@ msgstr "Managed by"
 #. placeholder {1}: integration.type
 #: src/components/transactional/notificationParts.tsx:21
 #: src/components/transactional/notificationParts.tsx:46
-#: src/pages/TemplatesPage.tsx:372
+#: src/pages/TemplatesPage.tsx:379
 msgid "Managed by {0} ({1} integration)"
 msgstr "Managed by {0} ({1} integration)"
 
@@ -11752,7 +11777,7 @@ msgstr "matches regex"
 msgid "Matching contacts:"
 msgstr "Matching contacts:"
 
-#: src/components/templates/SendTemplateModal.tsx:481
+#: src/components/templates/SendTemplateModal.tsx:472
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "Max 3MB per file, 10MB total, 20 files maximum"
 
@@ -11760,7 +11785,7 @@ msgstr "Max 3MB per file, 10MB total, 20 files maximum"
 msgid "maximum"
 msgstr "maximum"
 
-#: src/components/templates/SendTemplateModal.tsx:249
+#: src/components/templates/SendTemplateModal.tsx:248
 msgid "Maximum 20 attachments allowed"
 msgstr "Maximum 20 attachments allowed"
 
@@ -11913,7 +11938,7 @@ msgstr "metadata"
 #: src/components/logs/MessagesTab.tsx:472
 #: src/components/messages/MessageHistoryTable.tsx:154
 #: src/components/messages/MessageHistoryTable.tsx:198
-#: src/components/templates/TemplatePreviewDrawer.tsx:284
+#: src/components/templates/TemplatePreviewDrawer.tsx:291
 msgid "Metadata"
 msgstr "Metadata"
 
@@ -11967,7 +11992,7 @@ msgstr "Minutes"
 msgid "Missing Tags"
 msgstr "Missing Tags"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:97
+#: src/components/templates/TemplatePreviewDrawer.tsx:100
 msgid "Missing workspace ID or template data."
 msgstr "Missing workspace ID or template data."
 
@@ -11991,7 +12016,7 @@ msgid "MJML compilation completed successfully with no warnings or errors."
 msgstr "MJML compilation completed successfully with no warnings or errors."
 
 #. placeholder {0}: mjmlError.message
-#: src/components/templates/TemplatePreviewDrawer.tsx:401
+#: src/components/templates/TemplatePreviewDrawer.tsx:428
 msgid "MJML Compilation Error: {0}"
 msgstr "MJML Compilation Error: {0}"
 
@@ -12011,7 +12036,7 @@ msgstr "MJML Export Failed"
 msgid "MJML exported successfully"
 msgstr "MJML exported successfully"
 
-#: src/pages/TemplatesPage.tsx:564
+#: src/pages/TemplatesPage.tsx:571
 msgid "MJML file (.mjml)"
 msgstr "MJML file (.mjml)"
 
@@ -12019,20 +12044,20 @@ msgstr "MJML file (.mjml)"
 msgid "MJML file imported"
 msgstr "MJML file imported"
 
-#: src/components/templates/importTemplateFile.ts:155
+#: src/components/templates/importTemplateFile.ts:179
 msgid "MJML Import Error"
 msgstr "MJML Import Error"
 
-#: src/components/templates/importTemplateFile.ts:127
+#: src/components/templates/importTemplateFile.ts:145
 msgid "MJML Import Validation Failed"
 msgstr "MJML Import Validation Failed"
 
 #: src/components/logs/MessageDetail.tsx:769
-#: src/components/templates/TemplatePreviewDrawer.tsx:261
+#: src/components/templates/TemplatePreviewDrawer.tsx:219
 msgid "MJML Source"
 msgstr "MJML Source"
 
-#: src/components/templates/importTemplateFile.ts:151
+#: src/components/templates/importTemplateFile.ts:171
 msgid "MJML Syntax Error"
 msgstr "MJML Syntax Error"
 
@@ -12040,7 +12065,7 @@ msgstr "MJML Syntax Error"
 msgid "MJML template imported and converted successfully"
 msgstr "MJML template imported and converted successfully"
 
-#: src/components/templates/importTemplateFile.ts:154
+#: src/components/templates/importTemplateFile.ts:178
 msgid "MJML Validation Failed"
 msgstr "MJML Validation Failed"
 
@@ -12108,7 +12133,7 @@ msgstr "Monthly"
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:350
-#: src/pages/TemplatesPage.tsx:470
+#: src/pages/TemplatesPage.tsx:477
 msgid "More actions"
 msgstr "More actions"
 
@@ -12208,7 +12233,7 @@ msgstr "Name must be less than 255 characters"
 msgid "Name or ID"
 msgstr "Name or ID"
 
-#: src/pages/TemplatesPage.tsx:612
+#: src/pages/TemplatesPage.tsx:619
 msgid "Name or subject"
 msgstr "Name or subject"
 
@@ -12331,8 +12356,8 @@ msgstr "New segment"
 msgid "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 msgstr "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 
-#: src/pages/TemplatesPage.tsx:516
-#: src/pages/TemplatesPage.tsx:591
+#: src/pages/TemplatesPage.tsx:523
+#: src/pages/TemplatesPage.tsx:598
 msgid "New template"
 msgstr "New template"
 
@@ -12360,7 +12385,7 @@ msgstr "Newsletter"
 msgid "Newsletters"
 msgstr "Newsletters"
 
-#: src/pages/TemplatesPage.tsx:418
+#: src/pages/TemplatesPage.tsx:425
 msgid "Newsletters that may still send, transactional notifications, automations and double opt-in lists. Segment filters on a template aren't counted."
 msgstr "Newsletters that may still send, transactional notifications, automations and double opt-in lists. Segment filters on a template aren't counted."
 
@@ -12626,7 +12651,7 @@ msgstr "no email"
 msgid "No email column found. Please ensure your CSV has a column with \"email\" in the name"
 msgstr "No email column found. Please ensure your CSV has a column with \"email\" in the name"
 
-#: src/components/templates/SendTemplateModal.tsx:350
+#: src/components/templates/SendTemplateModal.tsx:349
 msgid "No email integrations available. Please configure one in Settings."
 msgstr "No email integrations available. Please configure one in Settings."
 
@@ -12812,7 +12837,7 @@ msgstr "No posts match your search"
 msgid "No posts yet"
 msgstr "No posts yet"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:438
+#: src/components/templates/TemplatePreviewDrawer.tsx:473
 msgid "No preview available or template is empty."
 msgstr "No preview available or template is empty."
 
@@ -12921,7 +12946,7 @@ msgstr "No settings available for the head element."
 msgid "No source data"
 msgstr "No source data"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:414
+#: src/components/templates/TemplatePreviewDrawer.tsx:441
 msgid "No specific details provided."
 msgstr "No specific details provided."
 
@@ -12948,7 +12973,7 @@ msgid "No template yet"
 msgstr "No template yet"
 
 #: src/components/templates/TemplateSelectorInput.tsx:281
-#: src/pages/TemplatesPage.tsx:503
+#: src/pages/TemplatesPage.tsx:510
 msgid "No templates found"
 msgstr "No templates found"
 
@@ -12957,7 +12982,7 @@ msgstr "No templates found"
 msgid "No templates found for {0} category"
 msgstr "No templates found for {0} category"
 
-#: src/pages/TemplatesPage.tsx:532
+#: src/pages/TemplatesPage.tsx:539
 msgid "No templates found for category \"{label}\""
 msgstr "No templates found for category \"{label}\""
 
@@ -12965,12 +12990,12 @@ msgstr "No templates found for category \"{label}\""
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "No templates found for category \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:552
+#: src/pages/TemplatesPage.tsx:559
 msgid "No templates match your search"
 msgstr "No templates match your search"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:313
-#: src/components/templates/TemplatePreviewDrawer.tsx:251
+#: src/components/templates/TemplatePreviewDrawer.tsx:266
 msgid "No text version: this email will be sent as HTML only."
 msgstr "No text version: this email will be sent as HTML only."
 
@@ -13191,7 +13216,7 @@ msgstr "Not sent"
 #: src/components/settings/GeneralSettings.tsx:235
 #: src/components/settings/SMTPBridgeSettings.tsx:41
 #: src/components/settings/SMTPBridgeSettings.tsx:45
-#: src/components/templates/TemplatePreviewDrawer.tsx:333
+#: src/components/templates/TemplatePreviewDrawer.tsx:348
 msgid "Not set"
 msgstr "Not set"
 
@@ -13208,7 +13233,7 @@ msgstr "Not set up"
 msgid "Not tracked"
 msgstr "Not tracked"
 
-#: src/pages/TemplatesPage.tsx:340
+#: src/pages/TemplatesPage.tsx:347
 msgid "Not used"
 msgstr "Not used"
 
@@ -13216,7 +13241,7 @@ msgstr "Not used"
 msgid "Not-mapped channels"
 msgstr "Not-mapped channels"
 
-#: src/components/templates/importTemplateFile.ts:62
+#: src/components/templates/importTemplateFile.ts:65
 msgid "Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components."
 msgstr "Note: mj-raw components can only be placed directly in mj-body or mj-head, not inside mj-wrapper. Consider moving the mj-raw content outside the wrapper or converting it to appropriate MJML components."
 
@@ -13224,7 +13249,7 @@ msgstr "Note: mj-raw components can only be placed directly in mj-body or mj-hea
 msgid "Note: The template will be hidden from your workspace but preserved to maintain the ability to preview previously sent broadcasts and messages that used this template."
 msgstr "Note: The template will be hidden from your workspace but preserved to maintain the ability to preview previously sent broadcasts and messages that used this template."
 
-#: src/components/templates/importTemplateFile.ts:65
+#: src/components/templates/importTemplateFile.ts:68
 msgid "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 msgstr "Note: This might be caused by an incorrectly structured MJML file. HTML content inside mj-raw should be stored as text content, not as child elements."
 
@@ -13287,7 +13312,7 @@ msgstr "Notification updated successfully"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse disabled this webhook automatically"
 
-#: src/pages/TemplatesPage.tsx:563
+#: src/pages/TemplatesPage.tsx:570
 msgid "Notifuse export (.json)"
 msgstr "Notifuse export (.json)"
 
@@ -13303,7 +13328,7 @@ msgstr "notifuse-…"
 #: src/components/broadcasts/compose/SendingCard.tsx:85
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:165
 #: src/components/templates/CreateTemplateDrawer.tsx:1147
-#: src/components/templates/TemplateTranslationsTab.tsx:360
+#: src/components/templates/TemplateTranslationsTab.tsx:394
 msgid "Now"
 msgstr "Now"
 
@@ -13418,8 +13443,8 @@ msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid
 msgstr "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
 
 #: src/components/templates/ImportErrorsModal.tsx:27
-msgid "OK"
-msgstr "OK"
+#~ msgid "OK"
+#~ msgstr "OK"
 
 #: src/components/logs/MessageDetail.tsx:571
 msgid "on"
@@ -13547,7 +13572,7 @@ msgstr "Open contact"
 msgid "Open email"
 msgstr "Open email"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:309
+#: src/components/templates/TemplateTranslationsTab.tsx:408
 msgid "Open email editor"
 msgstr "Open email editor"
 
@@ -13809,6 +13834,10 @@ msgstr "Optional. If provided, sent as Authorization: Bearer <secret>"
 #~ msgid "Optionally filter contacts by segments within the selected lists"
 #~ msgstr "Optionally filter contacts by segments within the selected lists"
 
+#: src/components/templates/SendTemplateModal.tsx:415
+msgid "Options"
+msgstr "Options"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
 #: src/components/segment/segmentSummary.ts:277
@@ -13894,7 +13923,7 @@ msgstr "Outset"
 msgid "Overline"
 msgstr "Overline"
 
-#: src/components/templates/SendTemplateModal.tsx:435
+#: src/components/templates/SendTemplateModal.tsx:426
 msgid "Override the default sender name for this test email"
 msgstr "Override the default sender name for this test email"
 
@@ -14487,7 +14516,7 @@ msgstr "Please select a field"
 msgid "Please select a goal type"
 msgstr "Please select a goal type"
 
-#: src/components/templates/importTemplateFile.ts:174
+#: src/components/templates/importTemplateFile.ts:198
 msgid "Please select a JSON file"
 msgstr "Please select a JSON file"
 
@@ -14543,7 +14572,7 @@ msgstr "Please select an email template"
 msgid "Please select an event type"
 msgstr "Please select an event type"
 
-#: src/components/templates/importTemplateFile.ts:175
+#: src/components/templates/importTemplateFile.ts:199
 msgid "Please select an MJML file"
 msgstr "Please select an MJML file"
 
@@ -14680,7 +14709,7 @@ msgstr "Press Enter to confirm, Escape to cancel"
 #: src/components/file_manager/FileExplorer.tsx:1084
 #: src/components/segment/button_upsert.tsx:664
 #: src/components/transactional/PreviewPanel.tsx:120
-#: src/pages/TemplatesPage.tsx:292
+#: src/pages/TemplatesPage.tsx:299
 msgid "Preview"
 msgstr "Preview"
 
@@ -14732,7 +14761,7 @@ msgstr "Preview template"
 #~ msgstr "Preview Template"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:108
-#: src/components/templates/TemplateTranslationsTab.tsx:298
+#: src/components/templates/TemplateTranslationsTab.tsx:382
 msgid "Preview text"
 msgstr "Preview text"
 
@@ -14741,7 +14770,7 @@ msgid "Preview Text Settings"
 msgstr "Preview Text Settings"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1146
-#: src/components/templates/TemplateTranslationsTab.tsx:359
+#: src/components/templates/TemplateTranslationsTab.tsx:393
 msgid "Preview text will appear here..."
 msgstr "Preview text will appear here..."
 
@@ -15544,6 +15573,10 @@ msgstr "Remove"
 msgid "Remove {0} from {1}?"
 msgstr "Remove {0} from {1}?"
 
+#: src/components/templates/SendTemplateModal.tsx:490
+msgid "Remove {filename}"
+msgstr "Remove {filename}"
+
 #: src/components/logs/FilterChip.tsx:89
 msgid "Remove {name} filter"
 msgstr "Remove {name} filter"
@@ -15760,7 +15793,7 @@ msgstr "Reply forwarding is set up. Inbound replies also require your domain's M
 #~ msgstr "Reply forwarding route is set up. Inbound replies also require your domain's MX records to point at Mailgun."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1118
-#: src/components/templates/TemplatePreviewDrawer.tsx:322
+#: src/components/templates/TemplatePreviewDrawer.tsx:335
 msgid "Reply to"
 msgstr "Reply to"
 
@@ -15770,7 +15803,7 @@ msgstr "Reply to"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:106
 #: src/components/logs/MessageDetail.tsx:649
-#: src/components/templates/SendTemplateModal.tsx:465
+#: src/components/templates/SendTemplateModal.tsx:456
 #: src/components/transactional/TransactionalDetail.tsx:420
 msgid "Reply-To"
 msgstr "Reply-To"
@@ -15853,8 +15886,8 @@ msgstr "Resend code"
 msgid "Resend invitation"
 msgstr "Resend invitation"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:332
-#: src/components/templates/TemplateTranslationsTab.tsx:335
+#: src/components/templates/TemplateTranslationsTab.tsx:343
+#: src/components/templates/TemplateTranslationsTab.tsx:348
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "Reset"
@@ -15879,11 +15912,15 @@ msgstr "Reset an integration sync task so it re-runs from the start"
 msgid "Reset formatting"
 msgstr "Reset formatting"
 
-#: src/pages/TemplatesPage.tsx:537
+#: src/components/templates/TemplateTranslationsTab.tsx:406
+msgid "Reset replaces all the content with the default language's."
+msgstr "Reset replaces all the content with the default language's."
+
+#: src/pages/TemplatesPage.tsx:544
 msgid "reset the filter"
 msgstr "reset the filter"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:318
+#: src/components/templates/TemplateTranslationsTab.tsx:340
 msgid "Reset translation"
 msgstr "Reset translation"
 
@@ -16033,7 +16070,7 @@ msgstr "Retried the failed sends of the newsletter <0>{target}</0>"
 #: src/components/transactional/LoadError.tsx:22
 #: src/pages/AutomationsPage.tsx:209
 #: src/pages/BroadcastsPage.tsx:239
-#: src/pages/TemplatesPage.tsx:493
+#: src/pages/TemplatesPage.tsx:500
 #: src/pages/TransactionalNotificationsPage.tsx:173
 msgid "Retry"
 msgstr "Retry"
@@ -16054,6 +16091,10 @@ msgstr "Retry the failed recipients?"
 #: src/pages/BroadcastsPage.tsx:648
 #~ msgid "Retry the recipients the provider refused"
 #~ msgstr "Retry the recipients the provider refused"
+
+#: src/components/templates/ImportErrorsModal.tsx:41
+msgid "Retry with a corrected file"
+msgstr "Retry with a corrected file"
 
 #: src/components/automations/stats/StepStats.tsx:25
 #: src/components/logs/labels.ts:39
@@ -16805,7 +16846,7 @@ msgstr "Select a section"
 msgid "Select a segment..."
 msgstr "Select a segment..."
 
-#: src/components/templates/SendTemplateModal.tsx:358
+#: src/components/templates/SendTemplateModal.tsx:357
 msgid "Select a sender"
 msgstr "Select a sender"
 
@@ -16825,7 +16866,7 @@ msgstr "Select a time zone"
 msgid "Select all"
 msgstr "Select all"
 
-#: src/components/templates/SendTemplateModal.tsx:341
+#: src/components/templates/SendTemplateModal.tsx:340
 msgid "Select an email integration"
 msgstr "Select an email integration"
 
@@ -17109,7 +17150,7 @@ msgstr "Send a test email"
 msgid "Send a test email for a list, with that list's working unsubscribe links (also needs Transactional write)"
 msgstr "Send a test email for a list, with that list's working unsubscribe links (also needs Transactional write)"
 
-#: src/components/templates/SendTemplateModal.tsx:336
+#: src/components/templates/SendTemplateModal.tsx:334
 msgid "Send a test email using this template to verify how it will look."
 msgstr "Send a test email using this template to verify how it will look."
 
@@ -17168,7 +17209,7 @@ msgstr "Send now"
 #: src/components/transactional/TransactionalDetail.tsx:352
 #: src/components/transactional/TransactionalTable.tsx:331
 #: src/components/transactional/TransactionalTable.tsx:332
-#: src/pages/TemplatesPage.tsx:295
+#: src/pages/TemplatesPage.tsx:302
 msgid "Send test"
 msgstr "Send test"
 
@@ -17177,8 +17218,8 @@ msgid "Send Test"
 msgstr "Send Test"
 
 #: src/components/settings/Integrations.tsx:2142
-#: src/components/templates/SendTemplateModal.tsx:313
-#: src/components/templates/SendTemplateModal.tsx:329
+#: src/components/templates/SendTemplateModal.tsx:315
+#: src/components/templates/SendTemplateModal.tsx:327
 #: src/components/templates/SendTestEmailButton.tsx:24
 msgid "Send Test Email"
 msgstr "Send Test Email"
@@ -17207,8 +17248,8 @@ msgstr "Send your first newsletter to a list"
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:56
 #: src/components/broadcasts/compose/ContentCard.tsx:125
 #: src/components/templates/CreateTemplateDrawer.tsx:1074
-#: src/components/templates/SendTemplateModal.tsx:355
-#: src/pages/TemplatesPage.tsx:430
+#: src/components/templates/SendTemplateModal.tsx:354
+#: src/pages/TemplatesPage.tsx:437
 msgid "Sender"
 msgstr "Sender"
 
@@ -17222,7 +17263,7 @@ msgid "Sender changed. You can now resume the broadcast."
 msgstr "Sender changed. You can now resume the broadcast."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1144
-#: src/components/templates/TemplateTranslationsTab.tsx:357
+#: src/components/templates/TemplateTranslationsTab.tsx:391
 msgid "Sender Name"
 msgstr "Sender Name"
 
@@ -17404,7 +17445,7 @@ msgstr "Sent via <0>{providerName}</0>"
 msgid "Sent via <0>{providerName}</0> · {senderEmail}"
 msgstr "Sent via <0>{providerName}</0> · {senderEmail}"
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:224
+#: src/components/templates/TemplatePreviewDrawer.tsx:239
 msgid "Sent with the HTML version and generated from it. Its links are tracked like the links of the HTML."
 msgstr "Sent with the HTML version and generated from it. Its links are tracked like the links of the HTML."
 
@@ -18134,7 +18175,7 @@ msgstr "Someone changed this template while you were editing. Reload the latest 
 msgid "Someone saved version {0} while you were editing (you started from {1}). Reload the latest version — your unsaved changes will be lost — or overwrite it with yours."
 msgstr "Someone saved version {0} while you were editing (you started from {1}). Reload the latest version — your unsaved changes will be lost — or overwrite it with yours."
 
-#: src/components/templates/SendTemplateModal.tsx:200
+#: src/components/templates/SendTemplateModal.tsx:199
 msgid "Something went wrong"
 msgstr "Something went wrong"
 
@@ -18389,18 +18430,26 @@ msgstr "Style Attributes"
 #: src/components/broadcasts/detail/AbTestPanel.tsx:133
 #: src/components/broadcasts/detail/BroadcastAside.tsx:107
 #: src/components/logs/MessageDetail.tsx:644
-#: src/components/templates/TemplatePreviewDrawer.tsx:338
-#: src/components/templates/TemplateTranslationsTab.tsx:282
+#: src/components/templates/TemplatePreviewDrawer.tsx:387
+#: src/components/templates/TemplateTranslationsTab.tsx:359
 msgid "Subject"
 msgstr "Subject"
+
+#: src/components/templates/TemplateTranslationsTab.tsx:355
+msgid "Subject · {defaultName}"
+msgstr "Subject · {defaultName}"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
 #: src/components/logs/MessageDetail.tsx:645
 #: src/components/templates/CreateTemplateDrawer.tsx:1097
-#: src/components/templates/TemplatePreviewDrawer.tsx:343
-#: src/components/templates/TemplateTranslationsTab.tsx:291
+#: src/components/templates/TemplatePreviewDrawer.tsx:394
+#: src/components/templates/TemplateTranslationsTab.tsx:375
 msgid "Subject preview"
 msgstr "Subject preview"
+
+#: src/components/templates/TemplateTranslationsTab.tsx:371
+msgid "Subject preview · {defaultName}"
+msgstr "Subject preview · {defaultName}"
 
 #. placeholder {0}: workspace.settings.default_language
 #: src/components/templates/CreateTemplateDrawer.tsx:1097
@@ -18719,7 +18768,7 @@ msgstr "template"
 #: src/components/messages/MessageHistoryTable.tsx:242
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
-#: src/pages/TemplatesPage.tsx:360
+#: src/pages/TemplatesPage.tsx:367
 msgid "Template"
 msgstr "Template"
 
@@ -18768,7 +18817,7 @@ msgid "Template data"
 msgstr "Template data"
 
 #: src/components/email_builder/panels/Preview.tsx:361
-#: src/components/templates/TemplatePreviewDrawer.tsx:272
+#: src/components/templates/TemplatePreviewDrawer.tsx:279
 msgid "Template Data"
 msgstr "Template Data"
 
@@ -18874,7 +18923,7 @@ msgstr "Template's sender ({0})"
 #: src/components/logs/labels.ts:14
 #: src/components/settings/permissionLabels.ts:9
 #: src/layouts/app-shell/menuItems.ts:229
-#: src/pages/TemplatesPage.tsx:570
+#: src/pages/TemplatesPage.tsx:577
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Templates"
@@ -18962,7 +19011,7 @@ msgid "Test Email Provider"
 msgstr "Test Email Provider"
 
 #: src/components/settings/Integrations.tsx:832
-#: src/components/templates/SendTemplateModal.tsx:187
+#: src/components/templates/SendTemplateModal.tsx:186
 msgid "Test email sent successfully"
 msgstr "Test email sent successfully"
 
@@ -19106,15 +19155,15 @@ msgstr "Text Transform"
 #: src/components/email_builder/MjmlCodeEditor.tsx:698
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
 #: src/components/logs/MessageDetail.tsx:768
-#: src/components/templates/TemplatePreviewDrawer.tsx:212
+#: src/components/templates/TemplatePreviewDrawer.tsx:227
 msgid "Text version"
 msgstr "Text version"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:350
+#: src/components/templates/TemplateTranslationsTab.tsx:404
 msgid "Text version: Automatic"
 msgstr "Text version: Automatic"
 
-#: src/components/templates/TemplateTranslationsTab.tsx:348
+#: src/components/templates/TemplateTranslationsTab.tsx:402
 msgid "Text version: Custom"
 msgstr "Text version: Custom"
 
@@ -19205,7 +19254,7 @@ msgstr "The current date range, filters and session threshold"
 msgid "The currently published theme will be unpublished automatically."
 msgstr "The currently published theme will be unpublished automatically."
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:232
+#: src/components/templates/TemplatePreviewDrawer.tsx:247
 msgid "The custom text could not be used, the automatic version is sent instead: {previewTextError}"
 msgstr "The custom text could not be used, the automatic version is sent instead: {previewTextError}"
 
@@ -19254,8 +19303,8 @@ msgid "The folder held nothing to delete."
 msgstr "The folder held nothing to delete."
 
 #: src/components/templates/ImportErrorsModal.tsx:33
-msgid "The following validation errors were found in your import:"
-msgstr "The following validation errors were found in your import:"
+#~ msgid "The following validation errors were found in your import:"
+#~ msgstr "The following validation errors were found in your import:"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:896
 msgid "The generated email has issues that prevent it from rendering:"
@@ -19703,7 +19752,7 @@ msgstr "This event fires often. These conditions are evaluated for every matchin
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 
-#: src/components/templates/importTemplateFile.ts:133
+#: src/components/templates/importTemplateFile.ts:151
 msgid "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
 msgstr "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
 
@@ -19859,7 +19908,7 @@ msgstr "This template has no content to preview yet"
 msgid "This template is already used in another variation"
 msgstr "This template is already used in another variation"
 
-#: src/pages/TemplatesPage.tsx:316
+#: src/pages/TemplatesPage.tsx:323
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "This template is managed by an integration and cannot be deleted"
 
@@ -19946,7 +19995,7 @@ msgstr "This will permanently remove the contact and their subscriptions."
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "This will register or update webhook endpoints for this email provider."
 
-#: src/components/templates/TemplateTranslationsTab.tsx:319
+#: src/components/templates/TemplateTranslationsTab.tsx:341
 msgid "This will replace all content with the default language template. Continue?"
 msgstr "This will replace all content with the default language template. Continue?"
 
@@ -20082,8 +20131,8 @@ msgid "Tips for effective preview text:"
 msgstr "Tips for effective preview text:"
 
 #: src/components/templates/ImportErrorsModal.tsx:47
-msgid "Tips for fixing these errors:"
-msgstr "Tips for fixing these errors:"
+#~ msgid "Tips for fixing these errors:"
+#~ msgstr "Tips for fixing these errors:"
 
 #: src/components/blog/PostDrawer.tsx:802
 #: src/components/blog/PostsTable.tsx:548
@@ -20283,7 +20332,7 @@ msgstr "Total"
 #~ msgid "Total {total} posts"
 #~ msgstr "Total {total} posts"
 
-#: src/components/templates/SendTemplateModal.tsx:242
+#: src/components/templates/SendTemplateModal.tsx:241
 msgid "Total attachments size exceeds 10MB limit"
 msgstr "Total attachments size exceeds 10MB limit"
 
@@ -20416,6 +20465,10 @@ msgstr "Transactional: {transactionalName}"
 msgid "Transactional: not set"
 msgstr "Transactional: not set"
 
+#: src/components/templates/TemplateTranslationsTab.tsx:452
+msgid "Translate into {name}"
+msgstr "Translate into {name}"
+
 #: src/components/license/LicenceGateNotice.tsx:68
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
 msgstr "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
@@ -20454,7 +20507,7 @@ msgstr "true"
 #~ msgid "Try adjusting your search or status filter"
 #~ msgstr "Try adjusting your search or status filter"
 
-#: src/pages/TemplatesPage.tsx:535
+#: src/pages/TemplatesPage.tsx:542
 msgid "Try selecting a different category or"
 msgstr "Try selecting a different category or"
 
@@ -20816,7 +20869,7 @@ msgstr "Update Status"
 #~ msgstr "updated"
 
 #: src/components/automations/describeTrigger.ts:26
-#: src/pages/TemplatesPage.tsx:445
+#: src/pages/TemplatesPage.tsx:452
 msgid "Updated"
 msgstr "Updated"
 
@@ -20945,7 +20998,7 @@ msgstr "Upload failed. Please try again."
 msgid "Upload file (Read-only mode)"
 msgstr "Upload file (Read-only mode)"
 
-#: src/components/templates/SendTemplateModal.tsx:477
+#: src/components/templates/SendTemplateModal.tsx:468
 msgid "Upload Files"
 msgstr "Upload Files"
 
@@ -21089,7 +21142,7 @@ msgstr "Use workspace default · {defaultIntegrationName}"
 #~ msgid "Used for"
 #~ msgstr "Used for"
 
-#: src/pages/TemplatesPage.tsx:423
+#: src/pages/TemplatesPage.tsx:430
 msgid "Used in"
 msgstr "Used in"
 
@@ -21139,7 +21192,7 @@ msgstr "Username"
 msgid "Users"
 msgstr "Users"
 
-#: src/pages/TemplatesPage.tsx:419
+#: src/pages/TemplatesPage.tsx:426
 msgid "Uses you can't see aren't counted."
 msgstr "Uses you can't see aren't counted."
 
@@ -21992,6 +22045,10 @@ msgstr "Workspace identity, languages and email tracking"
 msgid "Workspace Invitation"
 msgstr "Workspace Invitation"
 
+#: src/components/templates/TemplateTranslationsTab.tsx:424
+msgid "Workspace languages"
+msgstr "Workspace languages"
+
 #: src/pages/CreateWorkspacePage.tsx:93
 msgid "Workspace limit reached. Please upgrade your plan to create more workspaces."
 msgstr "Workspace limit reached. Please upgrade your plan to create more workspaces."
@@ -22067,7 +22124,7 @@ msgstr "Write MJML markup with Liquid template tags. This content is injected di
 msgid "Writing or editing a post also needs Templates read and write: its content is a template."
 msgstr "Writing or editing a post also needs Templates read and write: its content is a template."
 
-#: src/components/templates/TemplatePreviewDrawer.tsx:223
+#: src/components/templates/TemplatePreviewDrawer.tsx:238
 msgid "Written by hand for this template and sent with the HTML version. Its links are not tracked."
 msgstr "Written by hand for this template and sent with the HTML version. Its links are not tracked."
 
@@ -22225,7 +22282,7 @@ msgstr "You don't have write permission for contacts"
 msgid "You don't have write permission for lists"
 msgstr "You don't have write permission for lists"
 
-#: src/pages/TemplatesPage.tsx:261
+#: src/pages/TemplatesPage.tsx:268
 msgid "You don't have write permission for templates"
 msgstr "You don't have write permission for templates"
 
@@ -22371,6 +22428,10 @@ msgstr "Your files can be uploaded to any S3 compatible storage."
 #: src/pages/SignInPage.tsx:131
 msgid "Your identity provider has not verified your email address."
 msgstr "Your identity provider has not verified your email address."
+
+#: src/components/templates/TemplateTranslationsTab.tsx:323
+msgid "Your licence does not cover translations: see the notice above."
+msgstr "Your licence does not cover translations: see the notice above."
 
 #: src/pages/SetupWizard.tsx:323
 msgid "Your Notifuse instance has been successfully configured."

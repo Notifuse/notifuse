@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Button, Card, Col, Drawer, Dropdown, Input, Popconfirm, Row, Space, Switch, Tag } from 'antd'
-import { DownOutlined } from '@ant-design/icons'
+import { Button, Drawer, Input, Popconfirm, Switch, Tag } from 'antd'
+import { Languages, RotateCcw } from 'lucide-react'
+import { Panel } from '../layout'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import type { Workspace } from '../../services/api/types'
 import type { EmailBlock } from '../email_builder/types'
@@ -74,8 +75,16 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   category,
   templateName
 }) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [editorDrawerLang, setEditorDrawerLang] = useState<string | null>(null)
+  // The language the detail shows: the first switched on when the tab opens, else the first, then the member's
+  // pick. Kept, so switching another language on or off does not move the detail.
+  const [chosenLang, setChosenLang] = useState<string | null>(() => {
+    const languages = (workspace.settings.languages || []).filter(
+      (l) => l !== (workspace.settings.default_language || 'en')
+    )
+    return languages.find((lang) => translationsState[lang]?.enabled) ?? languages[0] ?? null
+  })
   // Advisory only; the server's TranslationsWiden check is the gate. What is locked here
   // mirrors what that check refuses: switching a language ON and editing what a translation
   // says. Switching one OFF stays open, because removing a translation never needs a licence
@@ -83,9 +92,27 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   const { has } = useLicense()
   const locked = !has('template_i18n')
 
-  const translationLanguages = (workspace.settings.languages || []).filter(
-    (l) => l !== workspace.settings.default_language
-  )
+  const defaultLanguage = workspace.settings.default_language || 'en'
+  // Filtered on the same default the list shows, so a workspace without one does not list it twice
+  const translationLanguages = (workspace.settings.languages || []).filter((l) => l !== defaultLanguage)
+
+  /** A language's name in the console's language (« français » → « Français »), else its English name. */
+  const displayNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames([i18n.locale], { type: 'language' })
+    } catch {
+      return undefined
+    }
+  }, [i18n.locale])
+  const languageName = (code: string): string => {
+    try {
+      const name = displayNames?.of(code)
+      if (name && name !== code) return name.charAt(0).toLocaleUpperCase(i18n.locale) + name.slice(1)
+    } catch {
+      // An unknown locale or code: the English name below
+    }
+    return SUPPORTED_LANGUAGES[code] || code
+  }
 
   // The latest state, so a change sent by a handler of an earlier render (a seed answering
   // late) merges into the edits made since instead of reverting them.
@@ -226,6 +253,23 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
     [workspace.id, workspace.settings?.email_tracking_enabled, workspace.settings?.custom_endpoint_url]
   )
 
+  const resetLanguage = (lang: string) =>
+    updateLangState(lang, {
+      subject: defaultSubject || '',
+      subjectPreview: defaultSubjectPreview || '',
+      visualEditorTree:
+        editorMode === 'visual' ? (JSON.parse(JSON.stringify(defaultVisualEditorTree)) as EmailBlock) : undefined,
+      mjmlSource: editorMode === 'code' ? defaultMjmlSource : undefined,
+      text: undefined
+    })
+
+  // The language shown: the one picked while it is still a translation language, else the first switched on,
+  // else the first
+  const selectedLang =
+    chosenLang && translationLanguages.includes(chosenLang)
+      ? chosenLang
+      : (translationLanguages.find((lang) => translationsState[lang]?.enabled) ?? translationLanguages[0])
+
   const activeLangState = editorDrawerLang ? translationsState[editorDrawerLang] : null
 
   const activeCustomText: CustomTextVersion | undefined =
@@ -246,132 +290,181 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
         }
       : undefined
 
-  return (
-    <div className="p-8">
-      <div className="flex flex-col gap-6 items-center">
-        <LicenceGateNotice
-          feature="template_i18n"
-          workspaceId={workspace.id}
-          className="mb-0 w-[900px]"
-        />
-        {translationLanguages.map((lang) => {
-          const langState = translationsState[lang]
-          const enabled = langState?.enabled || false
-          const langName = SUPPORTED_LANGUAGES[lang] || lang
+  const languageCode = (code: string) => (
+    <span className="w-8 shrink-0 rounded-sm bg-fill py-0.5 text-center font-mono text-xs text-ink-3 uppercase">
+      {code}
+    </span>
+  )
 
-          return (
-            <Card
-              key={lang}
-              title={`${langName} (${lang})`}
-              style={{ backgroundColor: '#fff', width: 900 }}
-              styles={{ body: enabled && langState ? undefined : { display: 'none' } }}
-              extra={
+  /** The default language's text beside the field that translates it. */
+  const sourcePair = (sourceLabel: string, sourceText: string, field: React.ReactNode) => (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="flex flex-col gap-1 rounded-md bg-subtle px-3 py-2">
+        <span className="text-xs text-ink-3">{sourceLabel}</span>
+        <span className="text-sm break-words text-ink-2">{sourceText || '—'}</span>
+      </div>
+      <div className="flex flex-col gap-1">{field}</div>
+    </div>
+  )
+
+  const detail = (lang: string) => {
+    const langState = translationsState[lang]
+    const enabled = langState?.enabled || false
+    const name = languageName(lang)
+    const defaultName = languageName(defaultLanguage)
+    const title = t`${name} translation`
+
+    if (!enabled || !langState) {
+      return (
+        <Panel icon={<Languages size={14} aria-hidden="true" />} title={title}>
+          <div className="flex flex-col items-start gap-3">
+            <p className="m-0 text-sm text-ink-3">
+              {locked
+                ? t`Your licence does not cover translations: see the notice above.`
+                : t`Enable this translation to edit it.`}
+            </p>
+            <Button type="primary" disabled={locked} onClick={() => handleToggle(lang, true)}>
+              {t`Enable`}
+            </Button>
+          </div>
+        </Panel>
+      )
+    }
+
+    return (
+      <Panel
+        icon={<Languages size={14} aria-hidden="true" />}
+        title={title}
+        extra={
+          <Popconfirm
+            title={t`Reset translation`}
+            description={t`This will replace all content with the default language template. Continue?`}
+            onConfirm={() => resetLanguage(lang)}
+            okText={t`Reset`}
+            cancelText={t`Cancel`}
+            disabled={locked}
+          >
+            <Button size="small" icon={<RotateCcw size={13} aria-hidden="true" />} disabled={locked}>
+              {t`Reset`}
+            </Button>
+          </Popconfirm>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          {sourcePair(
+            t`Subject · ${defaultName}`,
+            defaultSubject,
+            <>
+              <label htmlFor={`translation-subject-${lang}`} className="text-sm font-medium">
+                {t`Subject`}
+              </label>
+              <Input
+                id={`translation-subject-${lang}`}
+                value={langState.subject}
+                disabled={locked}
+                onChange={(e) => updateLangState(lang, { subject: e.target.value })}
+                placeholder={t`Email subject`}
+              />
+            </>
+          )}
+          {sourcePair(
+            t`Subject preview · ${defaultName}`,
+            defaultSubjectPreview,
+            <>
+              <label htmlFor={`translation-preview-${lang}`} className="text-sm font-medium">
+                {t`Subject preview`}
+              </label>
+              <Input
+                id={`translation-preview-${lang}`}
+                value={langState.subjectPreview}
+                disabled={locked}
+                onChange={(e) => updateLangState(lang, { subjectPreview: e.target.value })}
+                placeholder={t`Preview text`}
+              />
+            </>
+          )}
+          <div className="flex gap-4 border-t border-line-soft pt-4">
+            {/* The inbox line of this language, where the mockup has a thumbnail of the content */}
+            <div className="w-80 shrink-0 overflow-hidden">
+              <div style={{ transform: 'scale(0.8)', transformOrigin: 'top left', height: 208 }}>
+                <IphoneEmailPreview
+                  sender={t`Sender Name`}
+                  subject={langState.subject || t`Email Subject`}
+                  previewText={langState.subjectPreview || t`Preview text will appear here...`}
+                  timestamp={t`Now`}
+                  currentTime="12:12"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-2">
+              <span className="text-sm font-medium text-ink">{t`Content`}</span>
+              {customTextOrUndefined(langState.text) !== undefined ? (
+                <Tag color="purple">{t`Text version: Custom`}</Tag>
+              ) : (
+                <Tag>{t`Text version: Automatic`}</Tag>
+              )}
+              <span className="text-xs text-ink-3">{t`Reset replaces all the content with the default language's.`}</span>
+              <Button type="primary" disabled={locked} onClick={() => setEditorDrawerLang(lang)}>
+                {t`Open email editor`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Panel>
+    )
+  }
+
+  return (
+    <div className="p-6">
+      <LicenceGateNotice feature="template_i18n" workspaceId={workspace.id} className="mb-4" />
+      <div className="flex items-start gap-4">
+        {/* The workspace's languages, each switched on or off; a click shows one in the detail */}
+        <aside className="flex w-72 shrink-0 flex-col gap-0.5 rounded-lg border border-line bg-surface p-3">
+          <div className="px-2 pb-2 text-xs font-medium tracking-wide text-ink-3 uppercase">
+            {t`Workspace languages`}
+          </div>
+          <div className="flex items-center gap-2 px-2 py-1.5">
+            {languageCode(defaultLanguage)}
+            <span className="min-w-0 flex-1 truncate text-sm text-ink">{languageName(defaultLanguage)}</span>
+            <span className="text-xs text-ink-3">{t`Default`}</span>
+          </div>
+          {translationLanguages.map((lang) => {
+            const enabled = translationsState[lang]?.enabled || false
+            const name = languageName(lang)
+            const isSelected = lang === selectedLang
+            return (
+              <div
+                key={lang}
+                data-language={lang}
+                className={`flex items-center gap-2 rounded-md pr-2 ${isSelected ? 'bg-primary-50' : 'hover:bg-fill'}`}
+              >
+                <button
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setChosenLang(lang)}
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-2 py-1.5 text-left"
+                >
+                  {languageCode(lang)}
+                  <span className="truncate text-sm text-ink">{name}</span>
+                </button>
                 <Switch
+                  size="small"
+                  aria-label={t`Translate into ${name}`}
                   checked={enabled}
                   disabled={locked && !enabled}
                   onChange={(checked) => handleToggle(lang, checked)}
-                  checkedChildren={t`Enabled`}
-                  unCheckedChildren={t`Disabled`}
                 />
-              }
-            >
-              {enabled && langState ? (
-                <Row gutter={24}>
-                  <Col span={12}>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium mb-1">{t`Subject`}</label>
-                      <Input
-                        value={langState.subject}
-                        disabled={locked}
-                        onChange={(e) => updateLangState(lang, { subject: e.target.value })}
-                        placeholder={t`Email subject`}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium mb-1">{t`Subject preview`}</label>
-                      <Input
-                        value={langState.subjectPreview}
-                        disabled={locked}
-                        onChange={(e) =>
-                          updateLangState(lang, { subjectPreview: e.target.value })
-                        }
-                        placeholder={t`Preview text`}
-                      />
-                    </div>
-                    {/* display:flex overrides the compact default inline-flex so the block button can fill the row */}
-                    <Space.Compact style={{ display: 'flex' }}>
-                      <Button
-                        type="primary"
-                        block
-                        disabled={locked}
-                        onClick={() => setEditorDrawerLang(lang)}
-                      >
-                        {t`Open email editor`}
-                      </Button>
-                      <Dropdown
-                        menu={{
-                          items: [
-                            {
-                              key: 'reset',
-                              label: (
-                                <Popconfirm
-                                  title={t`Reset translation`}
-                                  description={t`This will replace all content with the default language template. Continue?`}
-                                  onConfirm={() => {
-                                    updateLangState(lang, {
-                                      subject: defaultSubject || '',
-                                      subjectPreview: defaultSubjectPreview || '',
-                                      visualEditorTree:
-                                        editorMode === 'visual'
-                                          ? (JSON.parse(JSON.stringify(defaultVisualEditorTree)) as EmailBlock)
-                                          : undefined,
-                                      mjmlSource: editorMode === 'code' ? defaultMjmlSource : undefined,
-                                      text: undefined
-                                    })
-                                  }}
-                                  okText={t`Reset`}
-                                  cancelText={t`Cancel`}
-                                >
-                                  <span style={{ display: 'block' }}>{t`Reset`}</span>
-                                </Popconfirm>
-                              )
-                            }
-                          ]
-                        }}
-                        trigger={['click']}
-                      >
-                        <Button type="primary" icon={<DownOutlined />} disabled={locked} />
-                      </Dropdown>
-                    </Space.Compact>
-                    <div className="mt-3">
-                      {customTextOrUndefined(langState.text) !== undefined ? (
-                        <Tag color="purple">{t`Text version: Custom`}</Tag>
-                      ) : (
-                        <Tag>{t`Text version: Automatic`}</Tag>
-                      )}
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className="flex justify-center" style={{ transform: 'scale(0.8)', transformOrigin: 'top center', height: 208 }}>
-                      <IphoneEmailPreview
-                        sender={t`Sender Name`}
-                        subject={langState.subject || t`Email Subject`}
-                        previewText={langState.subjectPreview || t`Preview text will appear here...`}
-                        timestamp={t`Now`}
-                        currentTime="12:12"
-                      />
-                    </div>
-                  </Col>
-                </Row>
-              ) : null}
-            </Card>
-          )
-        })}
+              </div>
+            )
+          })}
+          <p className="m-0 mt-2 px-2 text-xs text-ink-3">{t`Languages come from the workspace settings.`}</p>
+        </aside>
+        <div className="min-w-0 flex-1">{selectedLang ? detail(selectedLang) : null}</div>
       </div>
 
       {editorDrawerLang && activeLangState && (
         <Drawer
-          title={t`Edit ${SUPPORTED_LANGUAGES[editorDrawerLang] || editorDrawerLang} translation`}
+          title={t`Edit ${languageName(editorDrawerLang)} translation`}
           size="100%"
           open={!!editorDrawerLang}
           onClose={() => setEditorDrawerLang(null)}
