@@ -1405,9 +1405,9 @@ func (a *App) InitServices() error {
 		a.logger,
 		a.config.APIEndpoint,
 		// Webhook nodes post to a URL whoever holds automations:write typed, so they
-		// take the same guard and opt-out as subscriptions. 30s is the node's
-		// timeout from before it had a guard.
-		newOutgoingWebhookClient(a.config.Webhook.AllowPrivateDeliveryHosts, a.config.Tracing.Enabled, 30*time.Second),
+		// take the same guard and opt-out as subscriptions. The node also bounds the
+		// call itself; a normal stop's drain is longer, so the call is not cut.
+		newOutgoingWebhookClient(a.config.Webhook.AllowPrivateDeliveryHosts, a.config.Tracing.Enabled, service.WebhookNodeTimeout),
 	)
 	a.automationScheduler = service.NewAutomationScheduler(
 		automationExecutor,
