@@ -26,8 +26,10 @@ on:
       - '.github/workflows/console.yml'
 
 jobs:
+  # Type-check, lint and build run beside the unit tests rather than before them:
+  # none depends on another, and the tests are most of the time.
   checks:
-    name: Type-check, unit tests, lint, build
+    name: Type-check, lint, build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -55,9 +57,6 @@ jobs:
       - name: Type-check
         run: npx tsc -b
 
-      - name: Unit tests
-        run: npx vitest run
-
       # `npm run lint` passes --max-warnings 0: a warning fails the job like an error.
       - name: Lint
         run: npm run lint
@@ -68,3 +67,52 @@ jobs:
       # not compile (failOnCompileError in vite.config.ts).
       - name: Production build
         run: npm run build
+
+  # The unit tests run as four jobs. Each test file re-imports the app and antd in
+  # its own isolated worker, so the suite's time is mostly a per-file cost that a
+  # 4-vCPU runner can only run a few at a time; vitest's --shard splits the files
+  # between jobs, every file in exactly one.
+  unit-tests:
+    name: Unit tests (shard ${{ matrix.shard }}/${{ strategy.job-total }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./console
+    strategy:
+      fail-fast: false
+      matrix:
+        # Must count 1..N: the shard total is taken from the number of entries, so
+        # adding or removing one re-splits the files instead of skipping some.
+        shard: [1, 2, 3, 4]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: console/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+  # One check to read and to require, whatever the number of shards. Named after
+  # the workflow: the single job's old name is also a job in notification-center.yml,
+  # and two checks with one name cannot be told apart by a required-check rule.
+  result:
+    name: Console checks
+    runs-on: ubuntu-latest
+    needs: [checks, unit-tests]
+    if: always()
+    steps:
+      - name: Every job passed
+        run: |
+          echo "checks: ${{ needs.checks.result }}, unit tests: ${{ needs.unit-tests.result }}"
+          test "${{ needs.checks.result }}" = "success"
+          test "${{ needs.unit-tests.result }}" = "success"
