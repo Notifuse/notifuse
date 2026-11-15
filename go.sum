@@ -67,6 +67,8 @@ github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
 github.com/Notifuse/liquidgo/v5 v5.11.3 h1:qWPWEr5894Pi8lZLFm9b1jPc4ORntM/d/1GYY/Vs1Xo=
 github.com/Notifuse/liquidgo/v5 v5.11.3/go.mod h1:gIlrQxE+iP6VgJcT0YH7ECMOcUVFh8ZIVzsYl3Yc7Nc=
+github.com/Notifuse/liquidgo/v5 v5.11.4-0.20261115114828-903e7f62d679 h1:aYrRB0VLoKRNHhi+23oD/0ldFVPrifVylz3zw7Z6vYI=
+github.com/Notifuse/liquidgo/v5 v5.11.4-0.20261115114828-903e7f62d679/go.mod h1:gIlrQxE+iP6VgJcT0YH7ECMOcUVFh8ZIVzsYl3Yc7Nc=
 github.com/Notifuse/safe-mjml v1.0.0 h1:mYtZRZgIbsLkD5rRQnp+JPGJp9FExi9EZyF6OsRMpyw=
 github.com/Notifuse/safe-mjml v1.0.0/go.mod h1:r13xNkJI0+KR3wN5JQL8fOhWSUkJO8usFAR1+W50Cj4=
 github.com/PuerkitoBio/goquery v1.10.3 h1:pFYcNSqHxBD06Fpj/KsbStFRsgRATgnf3LeXiUkhzPo=

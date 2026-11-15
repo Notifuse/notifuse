@@ -805,7 +805,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		if !req.PreserveLiquid && len(req.TemplateData) > 0 {
 			// The exported code of a visual template holds its display conditions, whose
 			// variables a "__dc" key of the data would otherwise decide.
-			processed, err := ProcessLiquidTemplate(mjmlString, withoutConditionNames(req.TemplateData), "mjml-source")
+			processed, err := processLiquidHTML(mjmlString, withoutConditionNames(req.TemplateData), "mjml-source")
 			if err != nil {
 				return &CompileTemplateResponse{
 					Success:        false,
@@ -903,7 +903,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// Processes raw Liquid from mj-liquid blocks. Existing block content was already
 	// Liquid-processed per-block during tree walk, so the second pass is a no-op for them.
 	if !codeMode && !req.PreserveLiquid && len(req.TemplateData) > 0 && req.Channel != "web" {
-		processed, liquidErr := ProcessLiquidTemplate(mjmlString, req.TemplateData, "visual-editor-whole")
+		processed, liquidErr := processLiquidHTML(mjmlString, req.TemplateData, "visual-editor-whole")
 		if liquidErr != nil {
 			return &CompileTemplateResponse{
 				Success:        false,
