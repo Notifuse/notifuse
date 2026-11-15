@@ -129,6 +129,28 @@ describe('ContactsTable', () => {
     ])
   })
 
+  it('shows the open segment first in a segment view', () => {
+    renderTable({
+      view: { kind: 'segment', segmentId: 'zz' },
+      segments: [
+        { id: 'pro', name: 'Plan Pro', color: 'volcano' },
+        { id: 'zz', name: 'Zero opens', color: 'gold' }
+      ] as Segment[],
+      contacts: [
+        contact({
+          email: 'bo@example.com',
+          contact_segments: [
+            { segment_id: 'pro', matched_at: '2026-01-02T00:00:00Z' },
+            { segment_id: 'zz', matched_at: '2026-01-02T00:00:00Z' }
+          ]
+        } as Partial<Contact> & { email: string })
+      ]
+    })
+    const r = row('bo@example.com')
+    expect(within(r).getByText('Zero opens')).toBeInTheDocument()
+    expect(within(r).queryByText('Plan Pro')).toBeNull()
+  })
+
   it('uses the dense table size', () => {
     renderTable()
     expect(document.querySelector('.ant-table-small')).not.toBeNull()

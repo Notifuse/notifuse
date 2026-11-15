@@ -1577,7 +1577,7 @@ msgstr "Aktionen"
 #. placeholder {0}: item.name
 #. placeholder {0}: listName(subscription.list_id)
 #. placeholder {0}: record.email
-#: src/components/contacts/ContactsTable.tsx:302
+#: src/components/contacts/ContactsTable.tsx:306
 #: src/components/contacts/sheet/ContactListsCard.tsx:173
 #: src/components/file_manager/FileGrid.tsx:105
 #: src/components/file_manager/FileTable.tsx:148
@@ -1901,7 +1901,7 @@ msgstr "Variante hinzufügen"
 #~ msgid "Add Webhook"
 #~ msgstr "Webhook hinzufügen"
 
-#: src/components/contacts/ContactsTable.tsx:271
+#: src/components/contacts/ContactsTable.tsx:275
 msgid "Added"
 msgstr "Hinzugefügt"
 
@@ -1932,7 +1932,7 @@ msgstr "Zusätzlicher Kontext zu diesem Ereignis"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:105
 #: src/components/contacts/contactColumns.ts:69
-#: src/components/contacts/ContactsTable.tsx:256
+#: src/components/contacts/ContactsTable.tsx:260
 msgid "Address"
 msgstr "Adresse"
 
@@ -5419,7 +5419,7 @@ msgstr "Länder"
 #: src/components/contacts/contactColumns.ts:66
 #: src/components/contacts/contactFilterFields.ts:32
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:97
-#: src/components/contacts/ContactsTable.tsx:244
+#: src/components/contacts/ContactsTable.tsx:248
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
 #: src/components/segment/segmentSummary.ts:40
@@ -5694,7 +5694,7 @@ msgid "Created {0} · Updated {1} in {2}"
 msgstr "Erstellt {0} · Aktualisiert {1} in {2}"
 
 #: src/components/contacts/contactColumns.ts:71
-#: src/components/contacts/ContactsTable.tsx:264
+#: src/components/contacts/ContactsTable.tsx:268
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:306
 #: src/components/messages/MessageHistoryTable.tsx:161
 #: src/components/messages/MessageHistoryTable.tsx:410
@@ -6227,7 +6227,7 @@ msgstr "Verzögerung"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:283
 #: src/components/contacts/BulkActionsBar.tsx:155
 #: src/components/contacts/BulkActionsBar.tsx:205
-#: src/components/contacts/ContactsTable.tsx:295
+#: src/components/contacts/ContactsTable.tsx:299
 #: src/components/contacts/DeleteContactModal.tsx:40
 #: src/components/email_builder/EmailBuilder.tsx:937
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
@@ -7177,7 +7177,7 @@ msgstr "Jede Variante behält den Absender ihrer Vorlage, es sei denn, Sie wähl
 #: src/components/blog/PostsTable.tsx:229
 #: src/components/broadcasts/BroadcastsTable.tsx:185
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:311
-#: src/components/contacts/ContactsTable.tsx:294
+#: src/components/contacts/ContactsTable.tsx:298
 #: src/components/email_builder/EmailBuilder.tsx:1054
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
@@ -9213,7 +9213,7 @@ msgstr "Erster identifizierter Besuch"
 #: src/components/contacts/contactColumns.ts:62
 #: src/components/contacts/contactFilterFields.ts:24
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
-#: src/components/contacts/ContactsTable.tsx:240
+#: src/components/contacts/ContactsTable.tsx:244
 #: src/components/contacts/ExportContactsModal.tsx:69
 #: src/components/contacts/sheet/contactFieldLabels.ts:24
 #: src/components/segment/segmentSummary.ts:36
@@ -9441,7 +9441,7 @@ msgstr "Vollständiger Inhalt"
 
 #: src/components/contacts/contactColumns.ts:64
 #: src/components/contacts/contactFilterFields.ts:26
-#: src/components/contacts/ContactsTable.tsx:242
+#: src/components/contacts/ContactsTable.tsx:246
 #: src/components/contacts/ExportContactsModal.tsx:75
 #: src/components/contacts/sheet/contactFieldLabels.ts:26
 #: src/components/segment/segmentSummary.ts:38
@@ -10612,7 +10612,7 @@ msgstr "Einträge pro Feed"
 
 #: src/components/contacts/contactColumns.ts:70
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:104
-#: src/components/contacts/ContactsTable.tsx:262
+#: src/components/contacts/ContactsTable.tsx:266
 #: src/components/contacts/sheet/contactFieldLabels.ts:33
 #: src/components/segment/segmentSummary.ts:47
 msgid "Job Title"
@@ -10747,7 +10747,7 @@ msgstr "Landingpages"
 #: src/components/contacts/contactColumns.ts:67
 #: src/components/contacts/contactFilterFields.ts:28
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:99
-#: src/components/contacts/ContactsTable.tsx:245
+#: src/components/contacts/ContactsTable.tsx:249
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/contactFieldLabels.ts:35
 #: src/components/logs/MessageDetail.tsx:647
@@ -10854,7 +10854,7 @@ msgstr "Letzte Stunde"
 #: src/components/contacts/contactColumns.ts:63
 #: src/components/contacts/contactFilterFields.ts:25
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
-#: src/components/contacts/ContactsTable.tsx:241
+#: src/components/contacts/ContactsTable.tsx:245
 #: src/components/contacts/ExportContactsModal.tsx:72
 #: src/components/contacts/sheet/contactFieldLabels.ts:25
 #: src/components/segment/segmentSummary.ts:37
@@ -11641,7 +11641,7 @@ msgstr "Übereinstimmung"
 msgid "Matched"
 msgstr "Übereinstimmend"
 
-#: src/components/contacts/ContactsTable.tsx:213
+#: src/components/contacts/ContactsTable.tsx:217
 msgid "Matched on:"
 msgstr "Übereinstimmung bei:"
 
@@ -14089,7 +14089,7 @@ msgstr "Berechtigungen erfolgreich aktualisiert"
 #: src/components/contacts/contactColumns.ts:65
 #: src/components/contacts/contactFilterFields.ts:27
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
-#: src/components/contacts/ContactsTable.tsx:243
+#: src/components/contacts/ContactsTable.tsx:247
 #: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/contacts/sheet/contactFieldLabels.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:327
@@ -19846,7 +19846,7 @@ msgstr "TimeScore ist die mediane aktive Verweildauer über alle Sitzungen hinwe
 #: src/components/broadcasts/compose/SendingCard.tsx:112
 #: src/components/contacts/contactColumns.ts:68
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
-#: src/components/contacts/ContactsTable.tsx:246
+#: src/components/contacts/ContactsTable.tsx:250
 #: src/components/contacts/sheet/contactFieldLabels.ts:34
 #: src/components/segment/segmentSummary.ts:42
 #: src/components/settings/GeneralSettings.tsx:254
@@ -19868,7 +19868,7 @@ msgstr "Zeitzone ist erforderlich"
 msgid "Timezone used for dates"
 msgstr "Zeitzone für Datumsangaben"
 
-#: src/components/contacts/ContactsTable.tsx:216
+#: src/components/contacts/ContactsTable.tsx:220
 msgid "Timezone:"
 msgstr "Zeitzone:"
 
@@ -20131,7 +20131,7 @@ msgstr "Tracking (Öffnungen & Klicks) muss in den Arbeitsbereich-Einstellungen 
 #~ msgstr "Tracking (Öffnungen & Klicks) sollte in Ihren Arbeitsbereich-Einstellungen aktiviert sein, um diese Funktion zu nutzen"
 
 #: src/components/contacts/contactColumns.ts:72
-#: src/components/contacts/ContactsTable.tsx:248
+#: src/components/contacts/ContactsTable.tsx:252
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:291
 msgid "Tracking consent"
 msgstr "Tracking-Einwilligung"
@@ -20402,7 +20402,7 @@ msgstr "Eindeutige Klicks zählen jeden Empfänger einmal pro Link — wer mehre
 msgid "Unknown"
 msgstr "Unbekannt"
 
-#: src/components/contacts/ContactsTable.tsx:213
+#: src/components/contacts/ContactsTable.tsx:217
 msgid "Unknown date"
 msgstr "Unbekanntes Datum"
 

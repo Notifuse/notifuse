@@ -546,6 +546,37 @@ describe('ContactsPage', () => {
       await waitFor(() => expect(footer()).toBe('50+ contacts'))
     })
 
+    it('says « + » when a segment count lags behind the rows, and the singular for one contact', async () => {
+      state.contacts = Array.from({ length: 10 }, (_, i) => state.contact(`c${i}@x.com`))
+      state.nextCursor = 'next'
+      const { rerender } = renderPage({ segment_id: 'fr' })
+      const footer = () => document.querySelector('[data-contacts-footer] span')?.textContent
+      // The segment counts 5 contacts and a page of rows is already loaded: its count cannot be trusted.
+      await waitFor(() => expect(footer()).toBe('50+ contacts'))
+      state.contacts = [state.contact('alice@example.com')]
+      state.nextCursor = undefined
+      state.segments = [{ ...state.segments[1], users_count: 1 }]
+      queryClient.clear()
+      rerender({ segment_id: 'fr', search: 'alice' })
+      await waitFor(() => expect(footer()).toBe('1 contact'))
+    })
+
+    it('keeps the view total next to the title whatever the status tab or the search', async () => {
+      const heading = () => screen.getByRole('heading', { level: 1 })
+      const badge = () => heading().nextElementSibling?.textContent
+      const { rerender } = renderPage({ list_id: 'news' })
+      await waitFor(() => expect(heading()).toHaveTextContent('Newsletter'))
+      await waitFor(() => expect(badge()).toBe('100'))
+      rerender({ list_id: 'news', contact_list_status: 'bounced' })
+      await waitFor(() => expect(screen.getByRole('radio', { name: /Bounced/ })).toBeChecked())
+      expect(badge()).toBe('100')
+      rerender({ list_id: 'news', search: 'ann' })
+      await waitFor(() => expect(listCall(vi.mocked(contactsApi.list).mock.calls.length - 1).search).toBe('ann'))
+      expect(badge()).toBe('100')
+      rerender({ segment_id: 'pro', country: 'FR' })
+      await waitFor(() => expect(badge()).toBe('42'))
+    })
+
     it('loads 50 more rows in place while a cursor remains', async () => {
       state.nextCursor = 'next'
       renderPage()

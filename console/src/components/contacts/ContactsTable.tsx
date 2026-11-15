@@ -196,8 +196,12 @@ export function ContactsTable({
       hidden: !canReadSegments || hidden('segments'),
       render: (_: unknown, record: Contact) => {
         const segmentName = (id: string) => segments.find((s) => s.id === id)?.name ?? id
-        const memberships = [...(record.contact_segments ?? [])].sort((a, b) =>
-          segmentName(a.segment_id).localeCompare(segmentName(b.segment_id))
+        // In a segment view that segment comes first, as every row belongs to it; then by name.
+        const openSegment = view.kind === 'segment' ? view.segmentId : undefined
+        const memberships = [...(record.contact_segments ?? [])].sort(
+          (a, b) =>
+            Number(b.segment_id === openSegment) - Number(a.segment_id === openSegment) ||
+            segmentName(a.segment_id).localeCompare(segmentName(b.segment_id))
         )
         return (
           <span className="flex items-center gap-1.5 whitespace-nowrap">

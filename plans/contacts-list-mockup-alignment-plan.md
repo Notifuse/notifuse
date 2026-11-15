@@ -32,11 +32,12 @@ PR, and none adds an input or a button that would do nothing:
 
 1. **Denser rows** (`ContactsTable`): small table size, 24 px avatar, name and email on two tight
    lines (about 44 px a row instead of 60). Lists show the first two memberships and « +N »,
-   segments the first one and « +N », in the server's order. « +N » names the rest in a tooltip and
+   segments the first one and « +N », sorted by name (the server loads them with no `ORDER BY`). « +N » names the rest in a tooltip and
    in visually hidden text. Long names are truncated with an ellipsis.
 2. **Count next to the title** (`ContactsViewHeader`, through `PageHeader`'s `count`): the same
-   number the sheet already trusts, `exactViewTotal` (workspace total, list statuses summed,
-   `users_count`). No badge while it is unknown, nor while the segment is being computed (as the rail
+   the view's own total, without the row filters nor the status tab (workspace total, list
+   statuses summed, `users_count`): it stays the same while a search, a filter or a tab applies.
+   `exactViewTotal` keeps feeding the footer and the sheet. No badge while it is unknown, nor while the segment is being computed (as the rail
    does). The all-contacts title reads « All contacts », as the rail and the mockup.
 3. **Open segment** (`ContactsViewHeader`, `SegmentDefinedBy`):
    - the title gets the segment's colour dot;
@@ -48,7 +49,7 @@ PR, and none adds an input or a button that would do nothing:
      - an activity: « Opened an email », « … at least 3 times », « · in the last 30 days » (own
        wording, in the contact's past tense; the form's « Open email » labels are imperative);
        « (filtered) » when it also narrows by template, broadcast, link or properties;
-     - a goal: « Purchase: total ≥ 800 », the goal or event name in quotes after the type when set
+     - a goal: « Purchase: total ≥ 800 », the goal name and the event name in quotes after the type, both when both are set (the server ANDs them)
        (« Any goal » for `*`), « Not (…) » when negated, « (filtered) » with property filters, and
        the timeframe;
      - a list condition with a status: « In list Newsletter (Unsubscribed) »;
@@ -95,14 +96,15 @@ PR, and none adds an input or a button that would do nothing:
 | `components/contacts/ContactsTable.tsx` | §1 | `ContactsTable.test.tsx`: 3 lists show 2 and « +1 » naming the third; 2 segments show 1 and « +1 »; small size |
 | `components/segment/segmentSummary.ts` | §3 | `segmentSummary.test.ts`: multi-filter leaf; activity counts, timeframe, « (filtered) »; goal with name, negation, between, filters; list status; nested group; JSON still « 1 condition » |
 | `components/contacts/SegmentDefinedBy.tsx` | §3 buttons | `SegmentDefinedBy.test.tsx`: buttons with segments write only; Recompute confirms then rebuilds; Edit opens the drawer with the segment |
-| `components/contacts/ContactsViewHeader.tsx` | §2, §3, §7 | new `ContactsViewHeader.test.tsx`: badge for all, list and segment, none while unknown or building; dot in a segment title; no Recompute in the header; menu items gated by rights (owner without explicit workspace write sees Manage custom fields); Bulk update in a list view; Delete last; Displayed columns opens the chooser |
+| `components/contacts/ContactsViewHeader.tsx` | §2, §3, §7 (`role` is a required prop, so the page cannot forget it) | new `ContactsViewHeader.test.tsx`: badge for all, list and segment, none while unknown or building; dot in a segment title; no Recompute in the header; menu items gated by rights (owner without explicit workspace write sees Manage custom fields); Bulk update in a list view; Delete last; Displayed columns opens the chooser |
 | `components/contacts/ContactsFilters.tsx` | §4, §5 | new `ContactsFilters.test.tsx`: search narrows the fields; Country then a value then Apply calls `onApply('country', …)`; Apply disabled when empty; Enter applies; Back; reopening a pill prefills; « Email contains acme », « Opens tracking consent is Granted »; ✕ removes; legacy segments pill; Advanced conditions only with segments write |
 | `components/filters/Filter.tsx` | removed (only this page used it) | — |
 | `components/filters/FilterInputs.tsx` | `onPressEnter` on the text and number inputs | covered by `ContactsFilters.test.tsx` |
 | `components/contacts/BulkActionsBar.tsx` | §6 and the fix | new `BulkActionsBar.test.tsx`: count singular/plural; picker then Confirm calls the right handler; Delete needs the typed count; Remove and Unsubscribe disabled without lists write; all disabled while running; ✕ clears |
 | `components/contacts/ContactColumnsSelector.tsx` | §8 | `ContactsViewHeader.test.tsx` (modal) and `ContactsPage.test.tsx` (toolbar) |
-| `pages/ContactsPage.tsx` | §6, §9, filters through the router | `ContactsPage.test.tsx`: updated cases (« 1 selected », the filter flow); applying pushes with `limit` reset and keeps `list_id` and `search`; ✕ brings back the toolbar and the status tabs; « 50+ contacts »; the cap message |
+| `pages/ContactsPage.tsx` | §6, §9, filters through the router | `ContactsPage.test.tsx`: updated cases (« 1 selected », the filter flow); applying pushes with `limit` reset and keeps `list_id` and `search`; ✕ brings back the toolbar and the status tabs; « 50+ contacts », also when a segment count lags behind the rows; the singular; the title badge unchanged by a status tab or a search; the cap message |
 | `e2e/features/contacts.spec.ts` | the new filter flow | the two « Filtering & Search » cases |
+| `e2e/features/segments.spec.ts` | « Edit segment » moves to the Defined by bar | the comment of `openSegmentEditor` |
 | `CHANGELOG.md` | the 44.0 contacts bullet extended; one `Fix` line for §6 | — |
 | `i18n/locales/*.po` | new strings in the 7 locales | `catalogues.test.ts` |
 
@@ -112,5 +114,5 @@ PR, and none adds an input or a button that would do nothing:
 2. The changed test files with `npx vitest run <files>`, then `npx vitest run` once.
 3. `npx lingui extract` (without `--clean`), every new string translated in the 7 locales, a second
    extract leaves `src/i18n` unchanged.
-4. `npm run build`, the contacts e2e if the environment allows it, then screenshots at 1440 and
+4. `npm run build`, the contacts e2e if the environment allows it (the e2e do not run in CI: the PR says whether they ran), then screenshots at 1440 and
    1280 px with the demo data, compared with mockups 41 to 45; the deviations go in the PR.

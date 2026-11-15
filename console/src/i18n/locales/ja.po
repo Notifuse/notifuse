@@ -1577,7 +1577,7 @@ msgstr "アクション"
 #. placeholder {0}: item.name
 #. placeholder {0}: listName(subscription.list_id)
 #. placeholder {0}: record.email
-#: src/components/contacts/ContactsTable.tsx:302
+#: src/components/contacts/ContactsTable.tsx:306
 #: src/components/contacts/sheet/ContactListsCard.tsx:173
 #: src/components/file_manager/FileGrid.tsx:105
 #: src/components/file_manager/FileTable.tsx:148
@@ -1901,7 +1901,7 @@ msgstr "バリアントを追加"
 #~ msgid "Add Webhook"
 #~ msgstr "Webhookを追加"
 
-#: src/components/contacts/ContactsTable.tsx:271
+#: src/components/contacts/ContactsTable.tsx:275
 msgid "Added"
 msgstr "追加日"
 
@@ -1932,7 +1932,7 @@ msgstr "このイベントに関する追加のコンテキスト"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:105
 #: src/components/contacts/contactColumns.ts:69
-#: src/components/contacts/ContactsTable.tsx:256
+#: src/components/contacts/ContactsTable.tsx:260
 msgid "Address"
 msgstr "住所"
 
@@ -5419,7 +5419,7 @@ msgstr "国"
 #: src/components/contacts/contactColumns.ts:66
 #: src/components/contacts/contactFilterFields.ts:32
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:97
-#: src/components/contacts/ContactsTable.tsx:244
+#: src/components/contacts/ContactsTable.tsx:248
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
 #: src/components/segment/segmentSummary.ts:40
@@ -5694,7 +5694,7 @@ msgid "Created {0} · Updated {1} in {2}"
 msgstr "作成 {0} · 更新 {1}（{2}）"
 
 #: src/components/contacts/contactColumns.ts:71
-#: src/components/contacts/ContactsTable.tsx:264
+#: src/components/contacts/ContactsTable.tsx:268
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:306
 #: src/components/messages/MessageHistoryTable.tsx:161
 #: src/components/messages/MessageHistoryTable.tsx:410
@@ -6227,7 +6227,7 @@ msgstr "遅延"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:283
 #: src/components/contacts/BulkActionsBar.tsx:155
 #: src/components/contacts/BulkActionsBar.tsx:205
-#: src/components/contacts/ContactsTable.tsx:295
+#: src/components/contacts/ContactsTable.tsx:299
 #: src/components/contacts/DeleteContactModal.tsx:40
 #: src/components/email_builder/EmailBuilder.tsx:937
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
@@ -7177,7 +7177,7 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #: src/components/blog/PostsTable.tsx:229
 #: src/components/broadcasts/BroadcastsTable.tsx:185
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:311
-#: src/components/contacts/ContactsTable.tsx:294
+#: src/components/contacts/ContactsTable.tsx:298
 #: src/components/email_builder/EmailBuilder.tsx:1054
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
@@ -9213,7 +9213,7 @@ msgstr "最初の識別済み訪問"
 #: src/components/contacts/contactColumns.ts:62
 #: src/components/contacts/contactFilterFields.ts:24
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
-#: src/components/contacts/ContactsTable.tsx:240
+#: src/components/contacts/ContactsTable.tsx:244
 #: src/components/contacts/ExportContactsModal.tsx:69
 #: src/components/contacts/sheet/contactFieldLabels.ts:24
 #: src/components/segment/segmentSummary.ts:36
@@ -9441,7 +9441,7 @@ msgstr "全文"
 
 #: src/components/contacts/contactColumns.ts:64
 #: src/components/contacts/contactFilterFields.ts:26
-#: src/components/contacts/ContactsTable.tsx:242
+#: src/components/contacts/ContactsTable.tsx:246
 #: src/components/contacts/ExportContactsModal.tsx:75
 #: src/components/contacts/sheet/contactFieldLabels.ts:26
 #: src/components/segment/segmentSummary.ts:38
@@ -10612,7 +10612,7 @@ msgstr "フィードあたりの件数"
 
 #: src/components/contacts/contactColumns.ts:70
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:104
-#: src/components/contacts/ContactsTable.tsx:262
+#: src/components/contacts/ContactsTable.tsx:266
 #: src/components/contacts/sheet/contactFieldLabels.ts:33
 #: src/components/segment/segmentSummary.ts:47
 msgid "Job Title"
@@ -10747,7 +10747,7 @@ msgstr "ランディングページ"
 #: src/components/contacts/contactColumns.ts:67
 #: src/components/contacts/contactFilterFields.ts:28
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:99
-#: src/components/contacts/ContactsTable.tsx:245
+#: src/components/contacts/ContactsTable.tsx:249
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/contactFieldLabels.ts:35
 #: src/components/logs/MessageDetail.tsx:647
@@ -10854,7 +10854,7 @@ msgstr "過去1時間"
 #: src/components/contacts/contactColumns.ts:63
 #: src/components/contacts/contactFilterFields.ts:25
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
-#: src/components/contacts/ContactsTable.tsx:241
+#: src/components/contacts/ContactsTable.tsx:245
 #: src/components/contacts/ExportContactsModal.tsx:72
 #: src/components/contacts/sheet/contactFieldLabels.ts:25
 #: src/components/segment/segmentSummary.ts:37
@@ -11641,7 +11641,7 @@ msgstr "一致条件"
 msgid "Matched"
 msgstr "一致"
 
-#: src/components/contacts/ContactsTable.tsx:213
+#: src/components/contacts/ContactsTable.tsx:217
 msgid "Matched on:"
 msgstr "一致した項目:"
 
@@ -14089,7 +14089,7 @@ msgstr "権限を更新しました"
 #: src/components/contacts/contactColumns.ts:65
 #: src/components/contacts/contactFilterFields.ts:27
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
-#: src/components/contacts/ContactsTable.tsx:243
+#: src/components/contacts/ContactsTable.tsx:247
 #: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/contacts/sheet/contactFieldLabels.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:327
@@ -19846,7 +19846,7 @@ msgstr "TimeScoreは、全セッションのエンゲージメント時間の中
 #: src/components/broadcasts/compose/SendingCard.tsx:112
 #: src/components/contacts/contactColumns.ts:68
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
-#: src/components/contacts/ContactsTable.tsx:246
+#: src/components/contacts/ContactsTable.tsx:250
 #: src/components/contacts/sheet/contactFieldLabels.ts:34
 #: src/components/segment/segmentSummary.ts:42
 #: src/components/settings/GeneralSettings.tsx:254
@@ -19868,7 +19868,7 @@ msgstr "タイムゾーンは必須です"
 msgid "Timezone used for dates"
 msgstr "日付に使用されるタイムゾーン"
 
-#: src/components/contacts/ContactsTable.tsx:216
+#: src/components/contacts/ContactsTable.tsx:220
 msgid "Timezone:"
 msgstr "タイムゾーン:"
 
@@ -20131,7 +20131,7 @@ msgstr "A/Bテスト機能を使用するには、ワークスペース設定で
 #~ msgstr "この機能を使用するには、ワークスペース設定でトラッキング（開封＆クリック）を有効にする必要があります"
 
 #: src/components/contacts/contactColumns.ts:72
-#: src/components/contacts/ContactsTable.tsx:248
+#: src/components/contacts/ContactsTable.tsx:252
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:291
 msgid "Tracking consent"
 msgstr "トラッキングへの同意"
@@ -20402,7 +20402,7 @@ msgstr "ユニーククリックは、リンクごとに各受信者を1回だ�
 msgid "Unknown"
 msgstr "不明"
 
-#: src/components/contacts/ContactsTable.tsx:213
+#: src/components/contacts/ContactsTable.tsx:217
 msgid "Unknown date"
 msgstr "日付不明"
 

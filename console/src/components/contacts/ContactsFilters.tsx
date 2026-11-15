@@ -104,7 +104,7 @@ export function ContactsFilters({
   const shown = fields.filter((field) => field.label.toLowerCase().includes(query.trim().toLowerCase()))
 
   const picker = editing ? (
-    <div data-filter-editor className="flex w-64 flex-col gap-2 p-2">
+    <div data-filter-editor className="flex w-72 flex-col gap-2 p-2">
       <div className="flex items-center gap-1">
         <Button
           size="small"
@@ -137,7 +137,7 @@ export function ContactsFilters({
       </Button>
     </div>
   ) : (
-    <div ref={listRef} data-filter-picker className="flex w-64 flex-col">
+    <div ref={listRef} data-filter-picker className="flex w-72 flex-col">
       <div className="border-b border-line-soft p-1.5">
         <Input
           size="small"
