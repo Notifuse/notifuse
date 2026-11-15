@@ -37,6 +37,12 @@ const defaultMaxTaskRuntime = 50 // 50 seconds
 // inside its grace window.
 const taskExecutionGrace = 30 * time.Second
 
+// interruptedProcessorWait is how long an execution cancelled from outside (a stop) waits for
+// its processor before it hands the task back. The processor saves where it got to (a
+// broadcast's cursor) on its lease, which the hand-back ends: released first, that save matches
+// no row, and the next run queues the batch just queued again.
+const interruptedProcessorWait = 3 * time.Second
+
 // dispatchResponseMargin is the slack added on top of a task's own execution
 // bound before the dispatcher stops waiting for the handler's reply.
 const dispatchResponseMargin = 10 * time.Second
@@ -144,6 +150,84 @@ type TaskService struct {
 	// secretKey signs HTTP dispatches to /api/tasks.execute. Set through
 	// SetSecretKey rather than taken by the constructor, which has 37 call sites.
 	secretKey string
+	// interruptedWait overrides interruptedProcessorWait when positive (tests).
+	interruptedWait time.Duration
+
+	// stopCtx is the app's shutdown context (SetShutdownContext): the runs started outside
+	// the task scheduler stop with it, and runs counts them so the stop can wait for them.
+	stopCtx context.Context
+	runs    runCounter
+}
+
+// runCounter counts the runs in flight, and lets a stop wait until there are none.
+type runCounter struct {
+	mu   sync.Mutex
+	n    int
+	idle chan struct{} // closed when n falls to zero while a wait is under way
+}
+
+// SetShutdownContext gives the service the app's shutdown context: the runs BeginRun starts
+// are cancelled with it.
+func (s *TaskService) SetShutdownContext(ctx context.Context) {
+	s.runs.mu.Lock()
+	defer s.runs.mu.Unlock()
+	s.stopCtx = ctx
+}
+
+// BeginRun starts a task run outside the task scheduler ("send now", a cron call). Its context
+// keeps parent's values but not its cancellation, since a caller that gives up must not cut a
+// run mid-batch, and is cancelled when the app stops; the stop then waits for done (WaitRuns).
+// It reports false, and starts nothing, once the stop has begun.
+func (s *TaskService) BeginRun(parent context.Context) (context.Context, func(), bool) {
+	s.runs.mu.Lock()
+	defer s.runs.mu.Unlock()
+	stopCtx := s.stopCtx
+	if stopCtx != nil && stopCtx.Err() != nil {
+		return nil, nil, false
+	}
+	s.runs.n++
+	ctx, cancel := context.WithCancel(context.WithoutCancel(parent))
+	stopCancelling := func() bool { return false }
+	if stopCtx != nil {
+		stopCancelling = context.AfterFunc(stopCtx, cancel)
+	}
+	var once sync.Once
+	return ctx, func() {
+		once.Do(func() {
+			stopCancelling()
+			cancel()
+			s.runs.mu.Lock()
+			defer s.runs.mu.Unlock()
+			s.runs.n--
+			if s.runs.n == 0 && s.runs.idle != nil {
+				close(s.runs.idle)
+				s.runs.idle = nil
+			}
+		})
+	}, true
+}
+
+// WaitRuns waits, at most timeout, for the runs BeginRun started to end. It reports whether
+// they did.
+func (s *TaskService) WaitRuns(timeout time.Duration) bool {
+	s.runs.mu.Lock()
+	if s.runs.n == 0 {
+		s.runs.mu.Unlock()
+		return true
+	}
+	if s.runs.idle == nil {
+		s.runs.idle = make(chan struct{})
+	}
+	idle := s.runs.idle
+	s.runs.mu.Unlock()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case <-idle:
+		return true
+	case <-timer.C:
+		return false
+	}
 }
 
 // WithTransaction executes a function within a transaction
@@ -745,7 +829,9 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 	bgCtx := context.Background()
 
 	// Process the task in a goroutine
+	processorDone := make(chan struct{})
 	go func() {
+		defer close(processorDone)
 		// A panicking processor must fail its task, not kill the server: this
 		// goroutine has no other recover, so without this a panic in any
 		// processor (broadcast send, import, sync, ...) crashes the whole
@@ -830,7 +916,19 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 		// — as does our own timeout+grace backstop firing on a stuck processor,
 		// handled below.
 		if errors.Is(ctx.Err(), context.Canceled) {
-			// The processor goroutine is still unwinding. Leave a gap before the
+			// Let the processor record where it got to while the lease is still ours.
+			wait := interruptedProcessorWait
+			if s.interruptedWait > 0 {
+				wait = s.interruptedWait
+			}
+			waitTimer := time.NewTimer(wait)
+			select {
+			case <-processorDone:
+			case <-waitTimer.C:
+			}
+			waitTimer.Stop()
+
+			// The processor goroutine may still be unwinding. Leave a gap before the
 			// task becomes re-dispatchable (GetNextBatch takes any pending task
 			// whose next_run_after has elapsed) so a second execution cannot
 			// start alongside the first.
@@ -1204,12 +1302,24 @@ func (s *TaskService) RunTaskNow(workspaceID, taskID string) {
 	if !s.autoExecuteImmediate {
 		return
 	}
-	go s.runTaskNow(workspaceID, taskID)
+	ctx, done, ok := s.BeginRun(context.Background())
+	if !ok {
+		// Stopping: the task stays due, and the scheduler or the cron runs it after the restart.
+		s.logger.WithFields(map[string]interface{}{
+			"workspace_id": workspaceID,
+			"task_id":      taskID,
+		}).Info("Not running the task now: the server is stopping")
+		return
+	}
+	go func() {
+		defer done()
+		s.runTaskNow(ctx, workspaceID, taskID)
+	}()
 }
 
-// runTaskNow executes the given task, and that task only, for its own runtime.
-func (s *TaskService) runTaskNow(workspaceID, taskID string) {
-	ctx := context.Background()
+// runTaskNow executes the given task, and that task only, for its own runtime. ctx is
+// cancelled when the app stops.
+func (s *TaskService) runTaskNow(ctx context.Context, workspaceID, taskID string) {
 	logger := s.logger.WithFields(map[string]interface{}{
 		"workspace_id": workspaceID,
 		"task_id":      taskID,

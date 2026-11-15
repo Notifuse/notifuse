@@ -23,8 +23,11 @@ already have reached its receiver. Three places still do:
   `context.WithoutCancel(r.Context())` (`task_handler.go:424`, `:564`). The stop neither cancels nor waits for
   them. One cut between the commit of `Enqueue` and the `SaveState` that follows leaves the cursor behind, and
   the next run enqueues that batch again with new message IDs: those recipients get the broadcast twice.
-  Scheduler-started runs are safe already: their context is cancelled at the stop, so `Enqueue` fails or rolls
-  back, and the save runs on `leaseContext` (`orchestrator.go:572-583`).
+  Scheduler-started runs are exposed too: on a cancel, `ExecuteTask` releases the task at once
+  (`task_service.go:832-843`, `ReleaseTask` sets it pending, `task_postgres.go:1197-1209`) without waiting for
+  the processor, whose save runs on `leaseContext` (`orchestrator.go:572-583`) but still checks the lease
+  (`task_postgres.go:706-717`): once the release has won it matches no row, and a batch committed just before
+  the stop is enqueued again by the next run.
 
 Today the stops run one after the other in `App.Shutdown` (`app.go:1974-2030`): web analytics (10 s), task
 scheduler (5 s), automation scheduler (29 s), queue (10 + 5 s), SMTP bridge (10 s), 69 s of the 70 s
@@ -34,8 +37,8 @@ their wait clocks start at their `Stop`.
 
 Decided with Pierre (15/11): fix the webhook node and the queue, **without an idempotency key**. A crash stays
 tolerated (D-01, D-03); a normal stop does not. No SQL, no schema change, no new environment variable.
-**To decide (card in the thread):** the send bound of §2 (option A below is the one implemented unless Pierre
-picks B).
+Pierre picked option A of §2 on 15/11, knowing it leaves one normal-stop case (an SMTP or SES send still
+running 40 s after the stop began).
 
 ## Design
 
@@ -60,27 +63,29 @@ The webhook keeps its 30 s (no change for users). The drain grows to cover it:
 
 ### 2. Email queue: every send bounded, the stop waiting longer
 
-**Option A (recommended, implemented unless Pierre picks B): a long bound in normal running, a long wait at the
-stop.**
+**Option A (picked by Pierre on 15/11): a long bound in normal running, a long wait at the stop.**
 
 - `EmailQueueWorkerConfig.SendTimeout`, default **100 s**: the deadline of one claimed row, from its claim
   (`MarkAsProcessing`) to the provider's answer, below the 2-minute reclaim of a `processing` row
   (`email_queue_postgres.go:154`). Today an SMTP or SES send has no bound, and one over 2 minutes is already
   sent again by the reclaim (first half of F-07); with the bound it is cut before and retried once. Only a send
-  between 100 s and 2 minutes, sent once today, may now be sent again: that is a provider 10 times slower than
-  the HTTP providers' own 10 s.
+  between 100 s and 2 minutes, sent once today, may now be sent again (retried up to the row's
+  `max_attempts`): that is a provider 10 times slower than the HTTP providers' own 10 s.
 - `ShutdownGrace` default 10 s → **40 s**, `AbortWait` stays 5 s. A send still running 40 s after the stop began
-  is cut, as today one running 10 s after is: no HTTP provider send (10 s), only an SMTP or SES send slower than
-  40 s. F-16 stays open for that case, with its severity reconsidered.
-- **Option B (not recommended): a short bound always.** `SendTimeout` 35 s and `ShutdownGrace` 40 s: a normal
+  is cut (today: one still running 10 s after the queue's `Stop`, which can come up to 44 s after the stop
+  began): no HTTP provider send (10 s), only an SMTP or SES send slower than 40 s. F-16 stays open for that
+  case, with its severity reconsidered.
+- **Option B (not picked): a short bound always.** `SendTimeout` 35 s and `ShutdownGrace` 40 s: a normal
   stop never cuts a send, but every SMTP or SES send between 35 s and 2 minutes, sent once today, is cut and may
   be sent again, stop or not. Same code, other numbers.
 - `processEntry` derives `sendCtx, cancel := context.WithTimeout(w.sendCtx, w.config.SendTimeout)` right after
   the claim, for the stop-on-reply guard, the pre-send upsert and `SendEmail`; the post-send writes stay on
   `writeCtx`. `withSendDefaults` fills a zero `SendTimeout`.
 - Before `SendEmail`, a `sendCtx` already done (the guard or the upsert used the budget, a slow database) does
-  not call the provider: the row is released as `retryAfterGuardError` does, not counted by the breaker
-  (`worker.go:774-778`, `:834`).
+  not call the provider: the row is released for a retry without counting against the breaker, through a
+  helper factored out of `retryAfterGuardError` that takes the reason (`retryAfterGuardError` itself reads
+  `ContactAutomationID`, absent on broadcast and transactional rows, `worker.go:921`; the lanes have no
+  `recover`).
 - A send cut by its own `SendTimeout` (not by the worker's abort, still told apart by `w.sendCtx.Err()`) is
   classified and retried like an HTTP timeout today. **Classification fix:** `classifySMTPError` matches recipient
   codes ("5.1.1", "5.7.1"…) by substring on the whole message before "timeout" (`pkg/emailerror/smtp.go:25-65`,
@@ -110,22 +115,29 @@ stop.**
   its own goroutine, beside the web analytics flush and the task scheduler's stop; `Shutdown` waits for both
   before the rate limiter and the SMTP bridge, where it called them before. Rows the schedulers enqueue meanwhile
   stay `queued` and go out after the restart.
-- Worst case before the bridge: max(10 + 5, 35 + 9, 40 + 5) = 45 s, so 55 s with the bridge, against 69 s today,
+- Worst case before the bridge: max(10 + 5 + 5, 35 + 9, 40 + 5) = 45 s, so 55 s with the bridge, against 69 s today,
   inside the 70 s; the HTTP server keeps what is left, as today.
 - A small helper (`runBeside(beside []func(), sequence ...func())`) or inline channels; a nil worker or
   scheduler, and the demo mode, behave as today.
 
-### 4. Broadcast runs outside the scheduler: cancelled and waited for at the stop
+### 4. Broadcast runs: the cursor of the last batch lands, and runs outside the scheduler stop with the app
 
+- **Every run (scheduler, immediate, cron, dispatched):** in `ExecuteTask`'s `context.Canceled` branch, wait for
+  the processor goroutine to end, bounded by `interruptedProcessorWait` (3 s), before `ReleaseTask`, so its save
+  on `leaseContext` lands while the lease is still held. A processor that takes longer is released as today.
+  Both stops that wait for runs (the task scheduler's 5 s, and `WaitImmediateRuns` below) contain that wait.
 - `TaskService` gets the app's shutdown context (constructor option or `SetShutdownContext`) and a
-  `sync.WaitGroup`. `runTaskNow` runs on a context cancelled with it (instead of `context.Background()`) and is
-  counted in the group; a `WaitImmediateRuns(timeout)` lets `Shutdown` wait for them, bounded (5 s, as the task
-  scheduler's stop), after the task scheduler's stop and before `cleanupResources`. A run cancelled at the stop
-  behaves as a scheduler run: `Enqueue` fails or rolls back, and the save runs on `leaseContext`.
-- `TaskHandler` gets the same shutdown context (constructor parameter): `/api/cron` and `tasks.execute` keep
+  `sync.WaitGroup`. `runTaskNow` is counted in the group (`Add` before checking the shutdown context, so a run
+  cannot slip past the wait) and runs on a context cancelled with it, instead of `context.Background()`.
+  `WaitImmediateRuns(timeout)` waits for the group, bounded (5 s); `Shutdown` calls it right after
+  `taskScheduler.Stop()` (`app.go:1999`), inside the budget and before the restart after a settings save can
+  return (`main.go:63-69`). A run cancelled at the stop then behaves as a scheduler run with the wait above.
+- `TaskHandler` gets the same shutdown context: `/api/cron` and `tasks.execute` keep
   `WithoutCancel(r.Context())` (a client that gives up must not cut a run) but are also cancelled when the
-  shutdown context is (`context.AfterFunc`). The HTTP server's shutdown already waits for the handler, which now
-  returns soon after T0.
+  shutdown context is (`context.AfterFunc`). `tasks.execute` runs inside the request, which the HTTP shutdown
+  waits for. `/api/cron` answers 202 and runs in a goroutine (`task_handler.go:424-450`): that goroutine is
+  counted in the task service's group (a `TrackRun()`/done pair the handler calls), so `WaitImmediateRuns`
+  waits for it too.
 - The rest of F-30 (event handlers, telemetry, the webhook delivery worker) is not about duplicates and stays out.
 
 ### 5. Cloud: tenant pods get the time the app asks for
@@ -148,12 +160,14 @@ durations. No docs PR unless the code review finds a page that does.
 - The unreleased 44.0 bullet at `CHANGELOG.md:63` ("for up to 20 seconds") becomes: an automation step already
   under way finishes and is recorded before the server exits, for up to 35 seconds, so a webhook step whose
   endpoint takes its full 30 seconds is not posted twice either. (The drain is not in 43.0: no `Fix` line.)
-- **Fix** (43.0 shipped the 10 s grace and an SMTP send that ignored cancellation): an email being sent when
-  Notifuse stops normally is waited for up to 40 seconds instead of 10, so it is no longer sent again after the
-  restart. SMTP and SES sends are now cut after 100 seconds and retried (they had no limit, and one over 2 minutes
-  was already sent again).
-- **Fix**: a broadcast sent with "Send now", a winner selection, a resume, or a run started by `/api/cron`, is
-  stopped cleanly when Notifuse stops, so no batch of it is sent twice after the restart.
+- **Fix** (43.0 shipped the 10 s grace and an SMTP send that ignored cancellation): a queued email being sent
+  when Notifuse stops normally (a broadcast or automation email) is waited for up to 40 seconds after the stop
+  begins instead of 10, so one that ends within that time, as every send through an HTTP provider does, is no
+  longer sent again after the restart. SMTP and SES sends are now cut after 100 seconds and retried (they had no
+  limit, and one over 2 minutes was already sent again).
+- **Fix**: when Notifuse stops normally, a broadcast being sent records the batch it just queued before its
+  task is handed back, and one sent with "Send now", a winner selection, a resume, or a run started by
+  `/api/cron` is stopped and waited for: no batch of it is sent twice after the restart.
 
 ### 8. After the merge (architecture repository, separate PR)
 
@@ -174,9 +188,9 @@ Tick F-16 in TODO "Trop gros" if it is fixed.
 | `pkg/emailerror/classifier.go` | `pkg/emailerror/classifier_test.go` | For each provider kind, a `context.DeadlineExceeded` and a `net.Error` timeout are retryable provider errors; an SMTP read timeout whose addresses contain "5.1.1" is a retryable timeout, not a recipient error. |
 | `internal/service/smtp_service.go` | `internal/service/smtp_service_test.go`, `internal/service/smtp_service_tls_test.go` | Under `within(...)` so that the old code fails instead of hanging: a server that accepts and never greets returns at the context's deadline; a server that stalls after `DATA` returns at the deadline; cancelling mid-exchange closes the connection and returns at once; a cancelled context fails before connecting; a cancel after the final 250 still returns success; with no deadline the exchange behaves as today (existing tests); TLS (implicit and STARTTLS): the handshake deadline is reset to the context's deadline, not cleared. |
 | `internal/service/oauth2_token_service.go` | `internal/service/oauth2_token_service_test.go`, `oauth2_cache_invalidation_test.go`, `smtp_service_test.go` | The token request is cancelled with its context; the SMTP send passes its context to the provider. |
-| `internal/service/task_service.go` | `internal/service/task_service_test.go` | `runTaskNow` runs on a context cancelled at the shutdown context's cancel; `WaitImmediateRuns` waits for a run in flight and returns at its timeout when the run outlasts it; a run started after the stop does not start. |
-| `internal/http/task_handler.go` | `internal/http/task_handler_test.go` | `/api/cron` and `tasks.execute`: the execution context is not cancelled by the client going away, and is cancelled by the shutdown context. |
-| `internal/app/app.go` | `internal/app/app_test.go` | `runBeside` runs the side functions concurrently with the sequence and returns once all ended (blocking funcs released in turn); `Shutdown` with a running queue worker leaves it stopped and waits for the immediate runs. |
+| `internal/service/task_service.go` | `internal/service/task_service_test.go` | On a cancel, a processor that commits a batch and then saves its state on its lease context: the save lands before `ReleaseTask` (fails today, the release comes first); a processor that does not return is released after `interruptedProcessorWait`; `runTaskNow` runs on a context cancelled at the shutdown context's cancel; `WaitImmediateRuns` waits for a run in flight and returns at its timeout when the run outlasts it; a run asked for after the stop does not start; a tracked cron run is waited for. |
+| `internal/http/task_handler.go` | `internal/http/task_handler_test.go` | `/api/cron` and `tasks.execute`: the execution context is not cancelled by the client going away, and is cancelled by the shutdown context; the `/api/cron` goroutine is tracked until it ends. |
+| `internal/app/app.go` | `internal/app/app_test.go` | `runBeside` runs the side functions concurrently with the sequence and returns once all ended (blocking funcs released in turn); `Shutdown` with a running queue worker leaves it stopped and waits for the immediate runs right after the task scheduler's stop. |
 | `CHANGELOG.md` | n/a | n/a |
 | `cloud/manager/internal/k8s/app.go` | `cloud/manager/internal/k8s/app_test.go` | The created Deployment's pod spec has `terminationGracePeriodSeconds` 75; `UpdateApp` sets it on a Deployment that had none. |
 
