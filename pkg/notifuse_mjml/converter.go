@@ -25,6 +25,15 @@ var liquidEnginePool = sync.Pool{
 	},
 }
 
+// liquidHTMLEnginePool holds the engines that render Liquid into the HTML of an
+// email, whose outputs are HTML-escaped (see newSecureHTMLLiquidEngine). Text
+// that is not HTML (a subject, the text version) uses liquidEnginePool.
+var liquidHTMLEnginePool = sync.Pool{
+	New: func() interface{} {
+		return newSecureHTMLLiquidEngine()
+	},
+}
+
 // ConvertJSONToMJML converts an EmailBlock JSON tree to MJML string
 func ConvertJSONToMJML(tree EmailBlock) string {
 	return convertBlockToMJML(tree, 0, "")
@@ -89,7 +98,7 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 				// Only process Liquid when we have actual template data.
 				// When parsedData is nil or empty, preserve Liquid syntax for MJML export (issue #226).
 				if len(parsedData) > 0 {
-					processedContent, err := processLiquidContent(content, parsedData, block.GetID())
+					processedContent, err := processBlockLiquid(blockType, content, parsedData, block.GetID())
 					if err != nil {
 						// Return error instead of just logging
 						return "", fmt.Errorf("liquid processing failed for block %s: %v", block.GetID(), err)
@@ -197,7 +206,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 				// Only process Liquid when we have actual template data.
 				// When parsedData is nil or empty, preserve Liquid syntax for MJML export (issue #226).
 				if len(parsedData) > 0 {
-					processedContent, err := processLiquidContent(content, parsedData, block.GetID())
+					processedContent, err := processBlockLiquid(blockType, content, parsedData, block.GetID())
 					if err != nil {
 						// Log error but continue with original content
 						fmt.Printf("Warning: Liquid processing failed for block %s: %v\n", block.GetID(), err)
@@ -338,8 +347,28 @@ func parseTemplateDataString(templateData string) (map[string]interface{}, error
 	return jsonData, nil
 }
 
-// processLiquidContent processes Liquid templating in content with security protections
+// processBlockLiquid renders the Liquid of a block's content: mj-title and mj-preview
+// hold text, which the converter escapes itself; the others hold HTML.
+func processBlockLiquid(blockType MJMLComponentType, content string, templateData map[string]interface{}, blockID string) (string, error) {
+	if blockType == MJMLComponentMjTitle || blockType == MJMLComponentMjPreview {
+		return processLiquidContent(content, templateData, blockID)
+	}
+	return processLiquidHTML(content, templateData, blockID)
+}
+
+// processLiquidContent processes Liquid templating in text that is not HTML (a
+// subject, the text version), with security protections.
 func processLiquidContent(content string, templateData map[string]interface{}, blockID string) (string, error) {
+	return processLiquidWith(&liquidEnginePool, cleanLiquidTemplate, content, templateData, blockID)
+}
+
+// processLiquidHTML processes Liquid templating in the HTML or MJML of an email:
+// its outputs are HTML-escaped (see newSecureHTMLLiquidEngine).
+func processLiquidHTML(content string, templateData map[string]interface{}, blockID string) (string, error) {
+	return processLiquidWith(&liquidHTMLEnginePool, cleanLiquidTemplateHTML, content, templateData, blockID)
+}
+
+func processLiquidWith(pool *sync.Pool, clean func(string) string, content string, templateData map[string]interface{}, blockID string) (string, error) {
 	// Check if content contains Liquid templating markup
 	if !strings.Contains(content, "{{") && !strings.Contains(content, "{%") {
 		return content, nil // No Liquid markup found, return original content
@@ -347,10 +376,10 @@ func processLiquidContent(content string, templateData map[string]interface{}, b
 
 	// Undo what rich text editors do to Liquid markup: invisible characters,
 	// curly or encoded quotes, encoded operators (see cleanLiquidTemplate)
-	content = cleanLiquidTemplate(content)
+	content = clean(content)
 
 	// Get a secure Liquid engine (timeout and size protections) from the pool
-	engine := liquidEnginePool.Get().(*SecureLiquidEngine)
+	engine := pool.Get().(*SecureLiquidEngine)
 
 	// Use provided template data or initialize empty map if nil
 	var jsonData map[string]interface{}
@@ -370,7 +399,7 @@ func processLiquidContent(content string, templateData map[string]interface{}, b
 		return content, fmt.Errorf("liquid rendering error in block (ID: %s): %w", blockID, err)
 	}
 
-	liquidEnginePool.Put(engine)
+	pool.Put(engine)
 	return renderedContent, nil
 }
 
@@ -436,6 +465,89 @@ func isLiquidEndRawTag(markup string) bool {
 // into them (see cleanLiquidMarkup). The body of a {% raw %} block is copied
 // unchanged, since Liquid outputs it verbatim.
 func cleanLiquidTemplate(content string) string {
+	return cleanLiquidTemplateWith(content, cleanLiquidMarkup)
+}
+
+// cleanLiquidTemplateHTML is cleanLiquidTemplate for Liquid rendered into HTML,
+// whose outputs are escaped: it also decodes the entities of the string literals
+// of the markup, which the editors wrote encoded (an attribute value is escaped
+// before the whole-document pass renders its Liquid, a rich text editor encodes
+// "&"), so that the literal is the text the author typed and is escaped once.
+func cleanLiquidTemplateHTML(content string) string {
+	return cleanLiquidTemplateWith(content, func(markup string) string {
+		return decodeLiquidLiteralEntities(cleanLiquidMarkup(markup))
+	})
+}
+
+// decodeLiquidLiteralEntities decodes the entities inside the string literals of a
+// cleaned markup (see decodeLiteralEntity for which). A literal holding its own quote
+// as an entity is rewritten with the other quote when it holds none of that one:
+// Liquid has no escape for a quote, and keeping the entity would show it escaped.
+func decodeLiquidLiteralEntities(markup string) string {
+	if !strings.Contains(markup, "&") {
+		return markup
+	}
+	var b strings.Builder
+	b.Grow(len(markup))
+	for i := 0; i < len(markup); {
+		c := markup[i]
+		if c != '\'' && c != '"' {
+			b.WriteByte(c)
+			i++
+			continue
+		}
+		end := strings.IndexByte(markup[i+1:], c)
+		if end < 0 {
+			b.WriteString(markup[i:])
+			break
+		}
+		literal := markup[i+1 : i+1+end]
+		quote := c
+		decoded, ownQuote := decodeLiteralEntities(literal, quote)
+		if ownQuote {
+			other := byte('"')
+			if quote == '"' {
+				other = '\''
+			}
+			if all, _ := decodeLiteralEntities(literal, 0); !strings.ContainsRune(all, rune(other)) {
+				quote, decoded = other, all
+			}
+		}
+		b.WriteByte(quote)
+		b.WriteString(decoded)
+		b.WriteByte(quote)
+		i += end + 2
+	}
+	return b.String()
+}
+
+// literalEntityRegexp matches the entities a literal is decoded from: the XML ones,
+// &nbsp; and numeric references, each with its semicolon. A name without one, as
+// in a query string (?a=1&copy=2), is not an entity here.
+var literalEntityRegexp = regexp.MustCompile(`&(?:amp|lt|gt|quot|apos|nbsp|#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6});`)
+
+// decodeLiteralEntities decodes the entities of a literal, except one that stands
+// for quote (0: none), and those that would give {, } or %, which would change
+// the Liquid markup around the literal. ownQuote reports a kept entity of quote.
+func decodeLiteralEntities(literal string, quote byte) (decoded string, ownQuote bool) {
+	if !strings.Contains(literal, "&") {
+		return literal, false
+	}
+	decoded = literalEntityRegexp.ReplaceAllStringFunc(literal, func(entity string) string {
+		text := html.UnescapeString(entity)
+		switch {
+		case quote != 0 && text == string(quote):
+			ownQuote = true
+			return entity
+		case text == "{" || text == "}" || text == "%":
+			return entity
+		}
+		return text
+	})
+	return decoded, ownQuote
+}
+
+func cleanLiquidTemplateWith(content string, clean func(string) string) string {
 	locs := liquidMarkupRegex.FindAllStringIndex(content, -1)
 	if len(locs) == 0 {
 		return content
@@ -453,7 +565,7 @@ func cleanLiquidTemplate(content string) string {
 				start += i
 			}
 		}
-		cleaned := cleanLiquidMarkup(content[start:loc[1]])
+		cleaned := clean(content[start:loc[1]])
 		if inRaw {
 			if !isLiquidEndRawTag(cleaned) {
 				continue
@@ -831,7 +943,7 @@ func processAttributeValue(value, attributeKey string, templateData map[string]i
 	hasLiquidSyntax := strings.Contains(value, "{{") || strings.Contains(value, "{%")
 
 	// Process liquid content for URL attributes
-	processedValue, err := processLiquidContent(value, templateData, fmt.Sprintf("%s.%s", blockID, attributeKey))
+	processedValue, err := processLiquidHTML(value, templateData, fmt.Sprintf("%s.%s", blockID, attributeKey))
 	if err != nil {
 		// If liquid processing fails, return original value and log warning
 		fmt.Printf("Warning: Liquid processing failed for attribute %s in block %s: %v\n", attributeKey, blockID, err)
