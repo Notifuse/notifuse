@@ -1,6 +1,15 @@
 import { useId, type ReactNode } from 'react'
-import { Switch } from 'antd'
+import { ConfigProvider, Switch } from 'antd'
 import { HelpTip } from '../../layout'
+
+// The fields above a switch row keep half of antd's margin: the row's rule and padding space
+// them from it, as in the mockup.
+const FIELDS_THEME = { components: { Form: { itemMarginBottom: 12 } } }
+
+/** The fields of a card that ends with a SwitchRow. */
+export function FieldsAboveSwitchRow({ children }: { children: ReactNode }) {
+  return <ConfigProvider theme={FIELDS_THEME}>{children}</ConfigProvider>
+}
 
 export interface SwitchRowProps {
   /** The title beside the switch, and the switch's name. */

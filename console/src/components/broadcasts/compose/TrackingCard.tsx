@@ -5,7 +5,7 @@ import { Panel } from '../../layout'
 import { TRACKING_DOCS_URL } from '../../../lib/emailTracking'
 import type { ComposeValues } from './composeValues'
 import type { ComposeUpdate } from './types'
-import { SwitchRow } from './SwitchRow'
+import { FieldsAboveSwitchRow, SwitchRow } from './SwitchRow'
 
 export interface TrackingCardProps {
   values: ComposeValues
@@ -17,33 +17,35 @@ export function TrackingCard({ values, onChange }: TrackingCardProps) {
   const { t } = useLingui()
   return (
     <Panel title={t`Web tracking`} icon={<Globe size={14} />}>
-      <Form layout="vertical" component="div">
-        <div className="grid grid-cols-3 gap-3">
-          <Form.Item label="utm_source">
-            <Input
-              aria-label="utm_source"
-              placeholder={t`Your website or company name`}
-              value={values.utmSource ?? ''}
-              onChange={(e) => onChange((v) => ({ ...v, utmSource: e.target.value }))}
-            />
-          </Form.Item>
-          <Form.Item label="utm_medium">
-            <Input
-              aria-label="utm_medium"
-              placeholder="email"
-              value={values.utmMedium ?? ''}
-              onChange={(e) => onChange((v) => ({ ...v, utmMedium: e.target.value }))}
-            />
-          </Form.Item>
-          <Form.Item label="utm_campaign" extra={values.utmCampaignEdited ? undefined : t`Generated from the name until you edit it`}>
-            <Input
-              aria-label="utm_campaign"
-              value={values.utmCampaign ?? ''}
-              onChange={(e) => onChange((v) => ({ ...v, utmCampaign: e.target.value, utmCampaignEdited: true }))}
-            />
-          </Form.Item>
-        </div>
-      </Form>
+      <FieldsAboveSwitchRow>
+        <Form layout="vertical" component="div">
+          <div className="grid grid-cols-3 gap-3">
+            <Form.Item label="utm_source">
+              <Input
+                aria-label="utm_source"
+                placeholder={t`Your website or company name`}
+                value={values.utmSource ?? ''}
+                onChange={(e) => onChange((v) => ({ ...v, utmSource: e.target.value }))}
+              />
+            </Form.Item>
+            <Form.Item label="utm_medium">
+              <Input
+                aria-label="utm_medium"
+                placeholder="email"
+                value={values.utmMedium ?? ''}
+                onChange={(e) => onChange((v) => ({ ...v, utmMedium: e.target.value }))}
+              />
+            </Form.Item>
+            <Form.Item label="utm_campaign" extra={values.utmCampaignEdited ? undefined : t`Generated from the name until you edit it`}>
+              <Input
+                aria-label="utm_campaign"
+                value={values.utmCampaign ?? ''}
+                onChange={(e) => onChange((v) => ({ ...v, utmCampaign: e.target.value, utmCampaignEdited: true }))}
+              />
+            </Form.Item>
+          </div>
+        </Form>
+      </FieldsAboveSwitchRow>
       <SwitchRow
         title={t`Don't track opens and clicks for this broadcast`}
         hint={

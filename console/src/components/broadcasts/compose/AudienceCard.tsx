@@ -9,7 +9,7 @@ import type { Segment } from '../../../services/api/segment'
 import type { ComposeEstimate } from '../useAudienceEstimates'
 import type { ComposeValues } from './composeValues'
 import type { ComposeUpdate } from './types'
-import { SwitchRow } from './SwitchRow'
+import { FieldsAboveSwitchRow, SwitchRow } from './SwitchRow'
 
 export interface AudienceCardProps {
   values: ComposeValues
@@ -62,55 +62,57 @@ export function AudienceCard({ values, onChange, lists, segments, canReadLists, 
       icon={<Users size={14} />}
       extra={<span className="text-sm text-ink-2 tabular-nums" data-testid="audience-estimate">{recipients}</span>}
     >
-      <Form layout="vertical" component="div">
-        <div className="grid grid-cols-2 gap-3">
-          <Form.Item label={t`List`} required>
-            <Select
-              aria-label={t`List`}
-              placeholder={t`Select a list`}
-              value={values.list}
-              disabled={!canReadLists}
-              options={listOptions}
-              showSearch={{ optionFilterProp: 'label' }}
-              onChange={(list: string) => onChange((v) => ({ ...v, list }))}
-            />
-          </Form.Item>
-          <Form.Item
-            // The label points at the select, not at the "?" it holds.
-            htmlFor={segmentsSelectId}
-            label={
-              <HelpTip title={t`And in at least one segment`} label={t`About segments`} id={segmentsHelpId}>
-                {t`Contacts of the list who belong to any of these segments. Leave empty for the whole list.`}
-              </HelpTip>
-            }
-            extra={t`Optional. Empty means the whole list.`}
-          >
-            <Select
-              id={segmentsSelectId}
-              aria-label={t`Segments`}
-              aria-describedby={segmentsHelpId}
-              mode="multiple"
-              placeholder={t`Select segments (optional)`}
-              value={values.segments}
-              disabled={!canReadSegments}
-              options={(canReadSegments ? segments.map((s) => s.id) : values.segments).map((segmentId) => ({
-                value: segmentId,
-                label: segmentLabel(segmentId)
-              }))}
-              showSearch={{ optionFilterProp: 'label' }}
-              tagRender={(props) => {
-                const segment = segments.find((s) => s.id === props.value)
-                return (
-                  <Tag color={segment?.color} variant="filled" closable={props.closable} onClose={props.onClose}>
-                    {props.label}
-                  </Tag>
-                )
-              }}
-              onChange={(chosen: string[]) => onChange((v) => ({ ...v, segments: chosen }))}
-            />
-          </Form.Item>
-        </div>
-      </Form>
+      <FieldsAboveSwitchRow>
+        <Form layout="vertical" component="div">
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item label={t`List`} required>
+              <Select
+                aria-label={t`List`}
+                placeholder={t`Select a list`}
+                value={values.list}
+                disabled={!canReadLists}
+                options={listOptions}
+                showSearch={{ optionFilterProp: 'label' }}
+                onChange={(list: string) => onChange((v) => ({ ...v, list }))}
+              />
+            </Form.Item>
+            <Form.Item
+              // The label points at the select, not at the "?" it holds.
+              htmlFor={segmentsSelectId}
+              label={
+                <HelpTip title={t`And in at least one segment`} label={t`About segments`} id={segmentsHelpId}>
+                  {t`Contacts of the list who belong to any of these segments. Leave empty for the whole list.`}
+                </HelpTip>
+              }
+              extra={t`Optional. Empty means the whole list.`}
+            >
+              <Select
+                id={segmentsSelectId}
+                aria-label={t`Segments`}
+                aria-describedby={segmentsHelpId}
+                mode="multiple"
+                placeholder={t`Select segments (optional)`}
+                value={values.segments}
+                disabled={!canReadSegments}
+                options={(canReadSegments ? segments.map((s) => s.id) : values.segments).map((segmentId) => ({
+                  value: segmentId,
+                  label: segmentLabel(segmentId)
+                }))}
+                showSearch={{ optionFilterProp: 'label' }}
+                tagRender={(props) => {
+                  const segment = segments.find((s) => s.id === props.value)
+                  return (
+                    <Tag color={segment?.color} variant="filled" closable={props.closable} onClose={props.onClose}>
+                      {props.label}
+                    </Tag>
+                  )
+                }}
+                onChange={(chosen: string[]) => onChange((v) => ({ ...v, segments: chosen }))}
+              />
+            </Form.Item>
+          </div>
+        </Form>
+      </FieldsAboveSwitchRow>
       {/* Its consequences under a "?": the form keeps one line for it. */}
       <SwitchRow
         title={t`Exclude unsubscribed recipients`}
