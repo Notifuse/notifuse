@@ -72,6 +72,31 @@ describe('segmentSummary', () => {
     expect(
       segmentSummary(contactLeaf({ field_name: 'custom_json_1', field_type: 'json' }), englishI18n).conditions
     ).toEqual(['1 condition'])
+    // As the form saves a JSON key: the key's type and its path. Shown as the column, it would read broader.
+    const jsonKey = contactLeaf({
+      field_name: 'custom_json_1',
+      field_type: 'string',
+      json_path: ['tier'],
+      operator: 'equals',
+      string_values: ['gold']
+    })
+    expect(segmentSummary(jsonKey, englishI18n).conditions).toEqual(['1 condition'])
+  })
+
+  it('names a contact condition "1 condition" when one of its filters cannot be described', () => {
+    const tree: TreeNode = {
+      kind: 'leaf',
+      leaf: {
+        source: 'contacts',
+        contact: {
+          filters: [
+            { field_name: 'country', field_type: 'string', operator: 'equals', string_values: ['FR'] },
+            { field_name: 'custom_json_1', field_type: 'string', json_path: ['tier'], operator: 'is_set' }
+          ]
+        }
+      }
+    }
+    expect(segmentSummary(tree, englishI18n).conditions).toEqual(['1 condition'])
   })
 
   it('joins the filters of one contact condition', () => {
@@ -103,15 +128,23 @@ describe('segmentSummary', () => {
     expect(describe(timeline({ count_value: 3, timeframe_operator: 'anytime' }))).toBe(
       'Opened an email at least 3 times'
     )
-    expect(describe(timeline({ kind: 'email.clicked' }))).toBe('Clicked an email')
+    expect(describe(timeline({ kind: 'email.clicked' }))).toBe('Clicked in an email')
     expect(describe(timeline({ timeframe_operator: 'in_the_last_days', timeframe_values: ['30'] }))).toBe(
       'Opened an email · in the last 30 days'
     )
     expect(describe(timeline({ count_operator: 'at_most', count_value: 2 }))).toBe('Opened an email at most 2 times')
+    expect(describe(timeline({ kind: 'email.sent' }))).toBe('Was sent an email')
+    expect(describe(timeline({ kind: 'email.bounced', count_value: 2 }))).toBe('Had an email bounce at least 2 times')
+    // A date reads as a date, not as the ISO string the condition stores.
+    expect(describe(timeline({ timeframe_operator: 'before_date', timeframe_values: ['2026-01-15T00:00:00Z'] }))).toBe(
+      'Opened an email · before Jan 15, 2026'
+    )
     expect(describe(timeline({ kind: 'custom.kind' }))).toBe('1 condition')
     // A template, a broadcast, a link or property filters narrow it: never shown broader.
     expect(describe(timeline({ template_id: 'welcome' }))).toBe('Opened an email (filtered)')
-    expect(describe(timeline({ kind: 'email.clicked', link_url: 'https://x.com' }))).toBe('Clicked an email (filtered)')
+    expect(describe(timeline({ kind: 'email.clicked', link_url: 'https://x.com' }))).toBe(
+      'Clicked in an email (filtered)'
+    )
   })
 
   it('describes a goal, negated or within a timeframe', () => {
@@ -147,6 +180,10 @@ describe('segmentSummary', () => {
     expect(describe(goal({ aggregate_operator: 'count', value: 1, negate: true }))).toBe('Not (Purchase: count ≥ 1)')
     expect(describe(goal({ operator: 'between', value: 10, value_2: 20 }))).toBe('Purchase: total between 10 and 20')
     expect(describe(goal({ goal_name: 'Pro plan' }))).toBe('Purchase “Pro plan”: total ≥ 800')
+    // The server ANDs the goal name and the event name: both are shown.
+    expect(describe(goal({ goal_name: 'Pro plan', event_name: 'checkout' }))).toBe(
+      'Purchase “Pro plan” “checkout”: total ≥ 800'
+    )
     expect(describe(goal({ goal_type: '*' }))).toBe('Any goal: total ≥ 800')
     expect(
       describe(

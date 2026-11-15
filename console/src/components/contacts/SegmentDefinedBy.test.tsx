@@ -8,7 +8,11 @@ import type { Segment, TreeNode } from '../../services/api/segment'
 vi.mock('../../services/api/task', () => ({ taskApi: { findBySegmentId: vi.fn(async () => null) } }))
 vi.mock('../../services/api/segment', () => ({ rebuildSegment: vi.fn(async () => ({ message: 'Rebuild started' })) }))
 vi.mock('../segment/button_upsert', () => ({
-  DrawerSegment: ({ segment }: { segment: Segment }) => <div data-testid="segment-drawer">{segment.name}</div>
+  DrawerSegment: ({ segment, canReadTemplates }: { segment: Segment; canReadTemplates: boolean }) => (
+    <div data-testid="segment-drawer" data-can-read-templates={String(canReadTemplates)}>
+      {segment.name}
+    </div>
+  )
 }))
 
 import { rebuildSegment } from '../../services/api/segment'
@@ -38,11 +42,18 @@ const segment = (tree: TreeNode, patch: Partial<Segment> = {}): Segment =>
     ...patch
   }) as Segment
 
-function renderBar(value: Segment, canWrite = false) {
+function renderBar(value: Segment, canWrite = false, canReadTemplates = true) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <App>
-        <SegmentDefinedBy workspaceId="ws" segment={value} lists={[]} customFieldLabels={{}} canWrite={canWrite} />
+        <SegmentDefinedBy
+          workspaceId="ws"
+          segment={value}
+          lists={[]}
+          customFieldLabels={{}}
+          canWrite={canWrite}
+          canReadTemplates={canReadTemplates}
+        />
       </App>
     </QueryClientProvider>
   )
@@ -79,10 +90,11 @@ describe('SegmentDefinedBy', () => {
     await waitFor(() => expect(rebuildSegment).toHaveBeenCalledWith({ workspace_id: 'ws', segment_id: 'eu' }))
   })
 
-  it('opens the segment drawer on Edit segment', () => {
-    renderBar(segment(leaf('FR')), true)
+  it.each([true, false])('opens the segment drawer on Edit segment, with Templates read %s', (read) => {
+    renderBar(segment(leaf('FR')), true, read)
     expect(screen.queryByTestId('segment-drawer')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /Edit segment/ }))
     expect(screen.getByTestId('segment-drawer')).toHaveTextContent('Europe')
+    expect(screen.getByTestId('segment-drawer')).toHaveAttribute('data-can-read-templates', String(read))
   })
 })

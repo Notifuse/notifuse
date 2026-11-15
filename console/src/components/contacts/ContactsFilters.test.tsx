@@ -76,7 +76,7 @@ describe('ContactsFilters', () => {
     expect(onApply).toHaveBeenCalledWith('email', '@acme')
   })
 
-  it('applies a text filter with Enter', () => {
+  it('applies a text filter with Enter, then gives the focus back to Filter', async () => {
     const { onApply } = renderFilters()
     openPicker()
     fireEvent.click(within(picker()).getByRole('button', { name: 'First Name' }))
@@ -84,6 +84,18 @@ describe('ContactsFilters', () => {
     fireEvent.change(input, { target: { value: 'Ann' } })
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
     expect(onApply).toHaveBeenCalledWith('first_name', 'Ann')
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: /Filter/ })))
+  })
+
+  it('applies a field with options, Country, by its value', async () => {
+    const { onApply } = renderFilters()
+    openPicker()
+    fireEvent.click(within(picker()).getByRole('button', { name: 'Country' }))
+    expect(within(editor()).getByText('contains')).toBeInTheDocument()
+    fireEvent.mouseDown(within(editor()).getByRole('combobox'))
+    fireEvent.click(await screen.findByTitle('FR - France'))
+    fireEvent.click(within(editor()).getByRole('button', { name: 'Apply' }))
+    expect(onApply).toHaveBeenCalledWith('country', 'FR')
   })
 
   it('goes back to the fields and gives them the focus', async () => {

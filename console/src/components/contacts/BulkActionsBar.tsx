@@ -127,9 +127,11 @@ export function BulkActionsBar({
         data-bulk-bar
         className="flex flex-wrap items-center gap-1 border-b border-line-soft bg-primary-50 px-3 py-2"
       >
-        <Text strong className="mr-2">
-          <Plural value={selectedCount} one="# selected" other="# selected" />
-        </Text>
+        <span className="mr-2">
+          <Text strong>
+            <Plural value={selectedCount} one="# selected" other="# selected" />
+          </Text>
+        </span>
         {action(
           t`Add to list`,
           <ListPlus size={14} aria-hidden="true" />,

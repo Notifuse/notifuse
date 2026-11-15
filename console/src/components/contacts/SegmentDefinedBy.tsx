@@ -16,8 +16,9 @@ export interface SegmentDefinedByProps {
   lists: List[]
   customFieldLabels: Record<string, string>
   /** Segments write: Recompute and Edit segment. */
-  canWrite?: boolean
-  canReadTemplates?: boolean
+  canWrite: boolean
+  /** Templates read, which the segment drawer needs to list the templates. */
+  canReadTemplates: boolean
 }
 
 /** The first conditions of a segment, when it last changed, and with segments write Recompute and Edit. */
@@ -26,8 +27,8 @@ export function SegmentDefinedBy({
   segment,
   lists,
   customFieldLabels,
-  canWrite = false,
-  canReadTemplates = false
+  canWrite,
+  canReadTemplates
 }: SegmentDefinedByProps) {
   const { t, i18n } = useLingui()
   const { message } = App.useApp()

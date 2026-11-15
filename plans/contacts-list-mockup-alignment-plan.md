@@ -24,9 +24,8 @@ PR, and none adds an input or a button that would do nothing:
   view, and the e2e pins it). The « Custom fields » group: `contacts.list` has no custom-field filter.
 - A pill with several values (« Country is France, Belgium »): each filter takes one value.
 - The Company, Plan and MRR columns: custom fields the demo does not name.
-- « Copy the emails of the view »: pending Pierre's decision (no audit trail, unlike the export). It
-  is left out unless he decides otherwise; if he does, it copies the rows loaded, says how many, uses
-  `lib/copyToClipboard` and handles its failure.
+- « Copy the emails of the view »: left out, Pierre's decision of 15/11. The mockup added it with no
+  spec, and the CSV export already does it with an audit trail, which a copy would not leave.
 
 ## Changes
 

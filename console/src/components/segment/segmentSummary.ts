@@ -57,10 +57,22 @@ function fieldLabel(fieldName: string, i18n: I18n, options: SegmentSummaryOption
   return options.customFieldLabels?.[fieldName] ?? ContactsTableSchema.fields[fieldName]?.title ?? fieldName
 }
 
+/** An ISO date as a date in the console language; any other value as it is. */
+function formatDate(value: string, i18n: I18n): string {
+  const date = /^\d{4}-\d{2}-\d{2}/.test(value) ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date)
+}
+
+const DATE_OPERATORS = new Set(['before_date', 'after_date', 'in_date_range', 'not_in_date_range'])
+
 function describeFilter(filter: DimensionFilter, i18n: I18n, options: SegmentSummaryOptions): string | null {
-  if (filter.field_type === 'json') return null
+  // A filter on a key inside a JSON field narrows more than its column: not described. The form
+  // saves it with the type of the key (string, number, time) and a path, not as « json ».
+  if (filter.field_type === 'json' || filter.json_path?.length) return null
   const field = fieldLabel(filter.field_name, i18n, options)
-  const values = filter.field_type === 'number' ? filter.number_values : filter.string_values
+  const raw = filter.field_type === 'number' ? filter.number_values : filter.string_values
+  const values = DATE_OPERATORS.has(filter.operator) ? raw?.map((v) => formatDate(String(v), i18n)) : raw
   const value = (values ?? []).join(', ')
   const first = values?.[0] ?? ''
   const second = values?.[1] ?? ''
@@ -109,12 +121,13 @@ function describeFilter(filter: DimensionFilter, i18n: I18n, options: SegmentSum
 
 // What each activity a timeline condition counts reads as, in the past tense of the contact.
 const TIMELINE_ACTIONS: Record<string, MessageDescriptor> = {
-  'email.sent': msg`Received an email`,
+  // Written when the email is sent, not when it is delivered.
+  'email.sent': msg`Was sent an email`,
   'email.opened': msg`Opened an email`,
-  'email.clicked': msg`Clicked an email`,
-  'email.bounced': msg`Bounced`,
+  'email.clicked': msg`Clicked in an email`,
+  'email.bounced': msg`Had an email bounce`,
   'email.complained': msg`Marked an email as spam`,
-  'email.unsubscribed': msg`Unsubscribed`,
+  'email.unsubscribed': msg`Unsubscribed from an email`,
   'web.pageview': msg`Viewed a page`,
   'web.session': msg`Visited the website`
 }
@@ -140,11 +153,12 @@ const AGGREGATE_LABELS: Record<string, MessageDescriptor> = {
 
 /** « in the last 30 days », « before 2026-01-01 »…, or nothing for any time. */
 function describeTimeframe(operator: string | undefined, values: string[] | undefined, i18n: I18n): string | null {
-  const first = values?.[0] ?? ''
-  const second = values?.[1] ?? ''
+  const days = values?.[0] ?? ''
+  const first = formatDate(values?.[0] ?? '', i18n)
+  const second = formatDate(values?.[1] ?? '', i18n)
   switch (operator) {
     case 'in_the_last_days':
-      return i18n._(msg`in the last ${{ days: first }} days`)
+      return i18n._(msg`in the last ${{ days }} days`)
     case 'before_date':
       return i18n._(msg`before ${{ date: first }}`)
     case 'after_date':
@@ -181,7 +195,9 @@ function describeGoal(condition: CustomEventsGoalCondition, i18n: I18n): string 
   const goal = GOAL_LABELS[condition.goal_type]
   const type = goal ? i18n._(goal) : condition.goal_type
   // The type, the goal name and the event name all narrow the events: each one set is shown.
-  const names = [condition.goal_name, condition.event_name].filter(Boolean).map((name) => `“${name}”`)
+  const names = [condition.goal_name, condition.event_name]
+    .filter((name): name is string => !!name)
+    .map((name) => i18n._(msg`“${{ name }}”`))
   const subject = condition.goal_type === '*' && names.length > 0 ? names.join(' ') : [type, ...names].join(' ')
   const aggregateLabel = AGGREGATE_LABELS[condition.aggregate_operator]
   const aggregate = aggregateLabel ? i18n._(aggregateLabel) : condition.aggregate_operator

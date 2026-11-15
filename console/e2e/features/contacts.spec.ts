@@ -47,8 +47,8 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Should show Contacts heading
-      await expect(page.getByText('Contacts', { exact: true }).first()).toBeVisible()
+      // The page title names the view
+      await expect(page.getByRole('heading', { name: 'All contacts', level: 1 })).toBeVisible()
 
       // The table renders its own empty text when the list endpoint returns no contacts
       await expect(page.getByText('No contacts yet')).toBeVisible()

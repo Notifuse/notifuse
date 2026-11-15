@@ -3,6 +3,7 @@ import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
 import { MoreHorizontal } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 import dayjs from '../../lib/dayjs'
 import type { Contact } from '../../services/api/contacts'
 import type { Segment } from '../../services/api/segment'
@@ -32,7 +33,9 @@ function MoreCount({ names }: { names: string[] }) {
     <Tooltip title={joined}>
       <span data-more-count className="shrink-0 text-xs text-ink-3 tabular-nums">
         <span aria-hidden="true">{t`+${count}`}</span>
-        <span className="sr-only">{t`and ${count} more: ${joined}`}</span>
+        <span className="sr-only">
+          {plural(count, { one: `and # more: ${joined}`, other: `and # more: ${joined}` })}
+        </span>
       </span>
     </Tooltip>
   )

@@ -61,6 +61,7 @@ export function ContactsFilters({
   const [draft, setDraft] = useState('')
   const [query, setQuery] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   const legacySegments = search.segments ?? []
   const segmentNames = legacySegments.map((id) => segments.find((segment) => segment.id === id)?.name ?? id).join(', ')
@@ -99,6 +100,8 @@ export function ContactsFilters({
     onApply(editing.key as keyof ContactsSearch, value)
     setOpen(false)
     setEditing(null)
+    // The popover goes: focus returns to « Filter », not to the page.
+    window.setTimeout(() => triggerRef.current?.focus(), 0)
   }
 
   const shown = fields.filter((field) => field.label.toLowerCase().includes(query.trim().toLowerCase()))
@@ -223,7 +226,7 @@ export function ContactsFilters({
         styles={{ container: { padding: 0 } }}
         destroyOnHidden
       >
-        <Button size="small" type="dashed" icon={<FilterIcon size={13} aria-hidden="true" />}>
+        <Button ref={triggerRef} size="small" type="dashed" icon={<FilterIcon size={13} aria-hidden="true" />}>
           {t`Filter`}
         </Button>
       </Popover>

@@ -491,17 +491,16 @@ export function ContactsPage() {
         ? segment?.users_count
         : totalQuery.data?.total_contacts
 
-  // « 10 of 1,288 contacts » when the total is known (and not below the rows shown, as a segment's
-  // count can lag); « 50+ contacts » when more rows remain and the total is unknown.
+  // With every row loaded, the rows are the count. While more remain: « 10 of 1,288 contacts » when
+  // the total is known and above the rows (a segment's count can lag), else « 50+ contacts ».
   const shown = rows.length
   const shownCount = int(shown)
   const selectedCount = selectedEmails.length
-  const footerCount =
-    exactTotal !== undefined && exactTotal >= shown
+  const footerCount = !hasMore
+    ? plural(shown, { one: '# contact', other: '# contacts' })
+    : exactTotal !== undefined && exactTotal > shown
       ? plural(exactTotal, { one: `${shownCount} of # contact`, other: `${shownCount} of # contacts` })
-      : hasMore
-        ? plural(shown, { one: '#+ contact', other: '#+ contacts' })
-        : plural(shown, { one: '# contact', other: '# contacts' })
+      : plural(shown, { one: '#+ contact', other: '#+ contacts' })
   const viewName =
     view.kind === 'list'
       ? (list?.name ?? view.listId)

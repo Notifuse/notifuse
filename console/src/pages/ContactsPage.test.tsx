@@ -552,6 +552,7 @@ describe('ContactsPage', () => {
       const { rerender } = renderPage({ segment_id: 'fr' })
       const footer = () => document.querySelector('[data-contacts-footer] span')?.textContent
       // The segment counts 5 contacts and a page of rows is already loaded: its count cannot be trusted.
+      expect(state.segments[1]).toMatchObject({ id: 'fr', users_count: 5 })
       await waitFor(() => expect(footer()).toBe('50+ contacts'))
       state.contacts = [state.contact('alice@example.com')]
       state.nextCursor = undefined
@@ -559,6 +560,20 @@ describe('ContactsPage', () => {
       queryClient.clear()
       rerender({ segment_id: 'fr', search: 'alice' })
       await waitFor(() => expect(footer()).toBe('1 contact'))
+    })
+
+    it('says « + » when the total equals the rows but more remain, and the rows once all are loaded', async () => {
+      state.nextCursor = 'next'
+      state.segments = [{ ...state.segments[1], users_count: 50 }]
+      const { rerender } = renderPage({ segment_id: 'fr' })
+      const footer = () => document.querySelector('[data-contacts-footer] span')?.textContent
+      await waitFor(() => expect(footer()).toBe('50+ contacts'))
+      // Every row loaded: the rows are the count, whatever a cached total says.
+      state.contacts = Array.from({ length: 10 }, (_, i) => state.contact(`c${i}@x.com`))
+      state.nextCursor = undefined
+      queryClient.clear()
+      rerender({ segment_id: 'fr', search: 'c' })
+      await waitFor(() => expect(footer()).toBe('10 contacts'))
     })
 
     it('keeps the view total next to the title whatever the status tab or the search', async () => {
@@ -604,7 +619,7 @@ describe('ContactsPage', () => {
       renderPage({ segments: ['pro', 'fr'] })
       expect(await screen.findByText('In any of: Plan Pro, France')).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'Remove filter Segments' }))
-      expect(lastNavigation().search).toMatchObject({ segments: undefined })
+      expect(lastNavigation()).toEqual({ search: expect.objectContaining({ segments: undefined }), replace: true })
     })
 
     it('offers the contact fields, not the list, its status or the segments', async () => {
@@ -640,7 +655,10 @@ describe('ContactsPage', () => {
       // The server matches the country as a substring, as every text field.
       expect(await screen.findByText('Country contains FR - France')).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
-      expect(lastNavigation().search).toMatchObject({ country: undefined, search: undefined })
+      expect(lastNavigation()).toEqual({
+        search: expect.objectContaining({ country: undefined, search: undefined }),
+        replace: true
+      })
     })
   })
 
