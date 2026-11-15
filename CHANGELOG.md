@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
-- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, its activity day by day in sentences, each message with its journey (delivered, opened, clicked) and the email sent, and its web visits, each with its pages and goals (a very long one says it shows only its first).
+- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, its activity day by day in sentences, each message with its journey (delivered, opened, clicked) and the email sent, and its web visits, each visit with its pages and goals (a very long one says it shows only its first). The contacts table is denser, keeps each row on one line (its first lists and segment, then « +N » naming the others) and counts the contacts it shows at its foot. « Filter » picks a field by group and shows each filter as a pill that says how it matches (« Country contains FR », « Opens tracking consent is Granted »). A selection replaces the toolbar with its actions. A segment view says what defines it, its goals and activity conditions included, with Recompute and Edit segment beside it; the ⋯ menu of every view gathers Bulk update, Displayed columns and Manage custom fields.
 
 - **Feature**: The blog page in the console lists posts with a tab per status, scheduled posts included, and their counts, a title search, and each post's views over 30 days once the web analytics script is in the blog's theme. Categories show their post counts in the side rail, with a menu to edit or delete them.
 
@@ -64,7 +64,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: `tasks.get`, `tasks.delete`, `tasks.reset`, `tasks.trigger` and `tasks.execute` (with the internal scheduler off) answer 500 when the database fails, without the internal error in the response, 404 only for a task that does not exist, and 400 for a task ID that is not a UUID. A refusal of a reset or a trigger because of the task's state (not recurring, not failed, already completed) still answers 400, its message now starting with "validation error: ".
 
-- **Improvement**: When Notifuse stops normally, during an upgrade for example, an automation step already under way finishes and is recorded before the server exits (for up to 20 seconds), so it does not run again after the restart and its email is not sent twice.
+- **Improvement**: When Notifuse stops normally, during an upgrade for example, an automation step already under way finishes and is recorded before the server exits (for up to 35 seconds, so a webhook step whose endpoint takes its full 30 seconds finishes too), so it does not run again after the restart and its email or webhook is not sent twice.
 
 - **Improvement**: The Docker Compose files give Notifuse 75 seconds to stop instead of Docker's default 10, so the work under way (an automation step, emails being sent, web analytics visits) finishes before the container exits. It applies once the container is recreated, for example by `docker compose up -d`. With your own Compose file, `docker run` or Kubernetes, set `stop_grace_period: 75s`, `--stop-timeout 75` or `terminationGracePeriodSeconds: 75` on the Notifuse container.
 
@@ -106,7 +106,12 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: A temporary database error while updating segment members, or in an automation's "Add to list" or "Remove from list" step, is now retried instead of leaving the contact out of the segment or the list.
 
+- **Fix**: Liquid's `url_decode` filter keeps a value that holds a lone `%` (as in `50%`) instead of rendering nothing, and `escape` writes quotes as `&quot;`. Notifuse renders Liquid with liquidgo v5.11.3.
+- **Fix**: A blog theme whose Liquid would loop or build without end is refused with an error, within a fraction of a second, instead of running past the 5-second timeout and using the server's CPU after it.
 - **Fix**: A Liquid template that would loop or build without end in an email is refused with an error, within a fraction of a second, instead of running until the 5-second timeout and, past its output limit, sending "Liquid error: Memory limits exceeded" as the email's text. Notifuse renders Liquid with liquidgo v5.11.2.
+
+- **Fix**: In the contacts table, Remove from list and Unsubscribe from list on a selection are offered only to members who may write lists as well as contacts, as the server requires and as Add to list already was: a member without lists write had them refused.
+
 - **Fix**: The French console has its apostrophes back: many of its translations had lost them ("Accepter l invitation", "Clé d accès").
 
 - **Fix**: Web analytics durations and counts no longer read "4m 60s", "1h 60m" or "1000.0K" at a rounding boundary, and a small negative value reads "0", not "-0".
@@ -238,6 +243,10 @@ All notable changes to this project will be documented in this file.
 - **Fix**: Segments with relative dates, such as "opened in the last 7 days", now drop the contacts that no longer match at their daily update, and a segment updated to match nobody is emptied. The first daily update after the upgrade removes the contacts that stopped matching earlier, so automations and webhooks on leaving a segment receive those exits at once.
 
 - **Fix**: The upgrade to 44.0 removes the segment memberships left behind by deleted contacts, mostly by deletions before 38.0, without any segment exit in the timeline, webhooks or automations, so segment counts and member lists no longer include them.
+
+- **Fix**: A broadcast or automation email being sent when Notifuse stops normally is waited for up to 40 seconds after the stop begins, instead of 10, so one that ends within that time, as every send through an HTTP provider (Postmark, Mailgun, Mailjet, SparkPost, SendGrid) does, is no longer sent again after the restart. An SMTP or SES send now gives up after 100 seconds and is retried: it had no limit, and one over 2 minutes was already sent again. A send that times out is retried, never failed for good as a refused recipient. A transactional, test, double opt-in or SMTP bridge email sent through an SMTP integration now also ends with its request: when the caller disconnects, or after the SMTP bridge's 30 seconds, the SMTP exchange is closed.
+
+- **Fix**: When Notifuse stops normally, a broadcast being sent records the batch it has just queued before its task is handed back, and one started by "Send now", a winner selection, a resume, `/api/cron` or `tasks.execute` is stopped and waited for: no batch of it is sent twice after the restart.
 
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again. A custom domain URL whose domain cannot be read is refused.
 

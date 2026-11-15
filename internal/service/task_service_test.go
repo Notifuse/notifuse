@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2880,6 +2881,59 @@ func TestTaskService_ExecuteTask_InterruptionDoesNotConsumeRetryBudget(t *testin
 		}
 	})
 
+	t.Run("the processor's last save lands before the task is handed back", func(t *testing.T) {
+		svc, mockRepo, _ := setup(t, nil)
+		var mu sync.Mutex
+		var events []string
+		record := func(e string) {
+			mu.Lock()
+			defer mu.Unlock()
+			events = append(events, e)
+		}
+		started := make(chan struct{})
+		svc.RegisterProcessor(&savingOnCancelProcessor{taskType: "generate_report", started: started, save: func() {
+			time.Sleep(50 * time.Millisecond) // the cursor write of the batch just queued
+			record("saved")
+		}})
+		mockRepo.EXPECT().ReleaseTask(gomock.Any(), "ws-1", "task-1", gomock.Any(), gomock.Any()).
+			DoAndReturn(func(context.Context, string, string, string, time.Time) error {
+				record("released")
+				return nil
+			})
+
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			<-started
+			cancel()
+		}()
+		err := svc.ExecuteTask(ctx, "ws-1", "task-1", time.Now().Add(50*time.Second))
+		assert.ErrorIs(t, err, context.Canceled)
+		mu.Lock()
+		defer mu.Unlock()
+		assert.Equal(t, []string{"saved", "released"}, events,
+			"released first, the save would match no lease and the batch would be queued again")
+	})
+
+	t.Run("a processor that does not return is handed back after the wait", func(t *testing.T) {
+		svc, mockRepo, _ := setup(t, nil)
+		svc.interruptedWait = 100 * time.Millisecond
+		started, stuck := make(chan struct{}), make(chan struct{})
+		defer close(stuck)
+		svc.RegisterProcessor(&savingOnCancelProcessor{taskType: "generate_report", started: started, save: func() { <-stuck }})
+		mockRepo.EXPECT().ReleaseTask(gomock.Any(), "ws-1", "task-1", gomock.Any(), gomock.Any()).Return(nil)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			<-started
+			cancel()
+		}()
+		start := time.Now()
+		err := svc.ExecuteTask(ctx, "ws-1", "task-1", time.Now().Add(50*time.Second))
+		assert.ErrorIs(t, err, context.Canceled)
+		assert.GreaterOrEqual(t, time.Since(start), 100*time.Millisecond)
+		assert.Less(t, time.Since(start), 2*time.Second)
+	})
+
 	t.Run("still fails on a genuine processor error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -2914,6 +2968,23 @@ func TestTaskService_ExecuteTask_InterruptionDoesNotConsumeRetryBudget(t *testin
 		err := svc.ExecuteTask(context.Background(), "ws-1", "task-2", time.Now().Add(50*time.Second))
 		require.Error(t, err)
 	})
+}
+
+// savingOnCancelProcessor runs until its context is cancelled, then saves its state (a
+// broadcast's cursor) before it returns, as the broadcast orchestrator does on its lease context.
+type savingOnCancelProcessor struct {
+	taskType string
+	started  chan struct{}
+	save     func()
+}
+
+func (p *savingOnCancelProcessor) CanProcess(taskType string) bool { return taskType == p.taskType }
+
+func (p *savingOnCancelProcessor) Process(ctx context.Context, _ *domain.Task, _ time.Time) (bool, error) {
+	close(p.started)
+	<-ctx.Done()
+	p.save()
+	return false, ctx.Err()
 }
 
 // failingProcessor returns an ordinary error, which must still consume a retry.

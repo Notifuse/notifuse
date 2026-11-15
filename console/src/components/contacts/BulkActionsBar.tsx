@@ -1,12 +1,6 @@
-import { useState } from 'react'
-import { Button, Select, Space, Typography, Modal, Input, Alert, Tooltip } from 'antd'
-import {
-  DeleteOutlined,
-  UserAddOutlined,
-  UserDeleteOutlined,
-  StopOutlined,
-  CloseOutlined
-} from '@ant-design/icons'
+import { useState, type ReactNode } from 'react'
+import { Button, Select, Typography, Modal, Input, Alert, Tooltip } from 'antd'
+import { ListMinus, ListPlus, MailX, Trash2, X } from 'lucide-react'
 import { useLingui, Plural } from '@lingui/react/macro'
 import type { List } from '../../services/api/list'
 
@@ -48,9 +42,7 @@ export function BulkActionsBar({
 
   if (selectedCount === 0) return null
 
-  const contactsWriteTooltip = !canWriteContacts
-    ? t`You don't have write permission for contacts`
-    : undefined
+  const contactsWriteTooltip = !canWriteContacts ? t`You don't have write permission for contacts` : undefined
   const listsWriteTooltip = !canWriteLists ? t`You don't have write permission for lists` : undefined
 
   const openListPicker = (action: ListPickerAction) => {
@@ -105,84 +97,80 @@ export function BulkActionsBar({
           ? t`These contacts will be marked as unsubscribed from the selected list. They stay in the list with status "unsubscribed".`
           : ''
 
-  const addDisabled = disabled || !canWriteContacts || !canWriteLists
+  // Adding, removing and unsubscribing change list memberships: the server asks for lists write
+  // as well as contacts write. Deleting only needs contacts write.
+  const listDisabled = disabled || !canWriteContacts || !canWriteLists
   const writeDisabled = disabled || !canWriteContacts
   const runningTooltip = disabled ? t`A bulk action is already running` : undefined
+  const listTooltip = runningTooltip || contactsWriteTooltip || listsWriteTooltip
+
+  const action = (
+    label: string,
+    icon: ReactNode,
+    onClick: () => void,
+    off: boolean,
+    tooltip?: string,
+    danger = false
+  ) => (
+    <Tooltip title={tooltip}>
+      <span>
+        <Button type="text" size="small" danger={danger} icon={icon} disabled={off} onClick={onClick}>
+          {label}
+        </Button>
+      </span>
+    </Tooltip>
+  )
 
   return (
     <>
-      <div className="mb-4 rounded-md bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500 p-[1px]">
-        <div className="flex items-center gap-3 rounded-md bg-white px-3 py-2">
-        <Text strong>
-          <Plural
-            value={selectedCount}
-            one="# contact selected"
-            other="# contacts selected"
+      <div
+        data-bulk-bar
+        className="flex flex-wrap items-center gap-1 border-b border-line-soft bg-primary-50 px-3 py-2"
+      >
+        <span className="mr-2">
+          <Text strong>
+            <Plural value={selectedCount} one="# selected" other="# selected" />
+          </Text>
+        </span>
+        {action(
+          t`Add to list`,
+          <ListPlus size={14} aria-hidden="true" />,
+          () => openListPicker('add'),
+          listDisabled,
+          listTooltip
+        )}
+        {action(
+          t`Remove from list`,
+          <ListMinus size={14} aria-hidden="true" />,
+          () => openListPicker('remove'),
+          listDisabled,
+          listTooltip
+        )}
+        {action(
+          t`Unsubscribe from list`,
+          <MailX size={14} aria-hidden="true" />,
+          () => openListPicker('unsubscribe'),
+          listDisabled,
+          listTooltip
+        )}
+        {action(
+          t`Delete`,
+          <Trash2 size={14} aria-hidden="true" />,
+          openDelete,
+          writeDisabled,
+          runningTooltip || contactsWriteTooltip,
+          true
+        )}
+        <span className="flex-1" />
+        <Tooltip title={t`Clear selection`}>
+          <Button
+            type="text"
+            size="small"
+            aria-label={t`Clear selection`}
+            icon={<X size={14} aria-hidden="true" />}
+            onClick={onClear}
           />
-        </Text>
-        <Space wrap>
-          <Tooltip title={runningTooltip || listsWriteTooltip || contactsWriteTooltip}>
-            <span>
-              <Button
-                type="primary"
-                ghost
-                size="small"
-                icon={<UserAddOutlined />}
-                disabled={addDisabled}
-                onClick={() => openListPicker('add')}
-              >
-                {t`Add to list`}
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title={runningTooltip || contactsWriteTooltip}>
-            <span>
-              <Button
-                type="primary"
-                ghost
-                size="small"
-                icon={<UserDeleteOutlined />}
-                disabled={writeDisabled}
-                onClick={() => openListPicker('remove')}
-              >
-                {t`Remove from list`}
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title={runningTooltip || contactsWriteTooltip}>
-            <span>
-              <Button
-                type="primary"
-                ghost
-                size="small"
-                icon={<StopOutlined />}
-                disabled={writeDisabled}
-                onClick={() => openListPicker('unsubscribe')}
-              >
-                {t`Unsubscribe from list`}
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title={runningTooltip || contactsWriteTooltip}>
-            <span>
-              <Button
-                type="primary"
-                ghost
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                disabled={writeDisabled}
-                onClick={openDelete}
-              >
-                {t`Delete`}
-              </Button>
-            </span>
-          </Tooltip>
-        </Space>
-          <Button type="text" icon={<CloseOutlined />} onClick={onClear} className="ml-auto">
-            {t`Clear`}
-          </Button>
-        </div>
+        </Tooltip>
       </div>
 
       <Modal

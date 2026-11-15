@@ -1,6 +1,10 @@
 package emailerror
 
 import (
+	"context"
+	"errors"
+	"net"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,6 +24,13 @@ func NewClassifier() *Classifier {
 func (c *Classifier) Classify(err error, provider domain.EmailProviderKind) *ClassifiedError {
 	if err == nil {
 		return nil
+	}
+
+	// A send cut by its deadline is a provider timeout whatever its text says: the text of a
+	// network timeout carries addresses, and one with "5.1.1" in it would read as a recipient's
+	// mailbox refused, failing the email for good.
+	if isTimeout(err) {
+		return &ClassifiedError{Original: err, Type: ErrorTypeProvider, Provider: timeoutProviderName(provider), Retryable: true}
 	}
 
 	errStr := err.Error()
@@ -42,6 +53,27 @@ func (c *Classifier) Classify(err error, provider domain.EmailProviderKind) *Cla
 		return c.classifySendGridError(err, errStr, httpStatus)
 	default:
 		return c.classifyUnknownProvider(err, errStr, httpStatus)
+	}
+}
+
+// isTimeout reports whether err is a context deadline or a network timeout.
+func isTimeout(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, os.ErrDeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
+}
+
+// timeoutProviderName is the provider name the provider's own classification gives.
+func timeoutProviderName(provider domain.EmailProviderKind) string {
+	switch provider {
+	case domain.EmailProviderKindSES, domain.EmailProviderKindPostmark, domain.EmailProviderKindMailgun,
+		domain.EmailProviderKindMailjet, domain.EmailProviderKindSparkPost, domain.EmailProviderKindSMTP,
+		domain.EmailProviderKindSendGrid:
+		return string(provider)
+	default:
+		return "unknown"
 	}
 }
 

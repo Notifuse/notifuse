@@ -21,12 +21,15 @@ interface ToolbarSearchProps {
   value: string
   onChange: (value: string) => void
   placeholder?: string
+  /** Lets the page hand focus back to the search box. */
+  id?: string
 }
 
 /** The search box of a toolbar: an antd Input with the search icon, 300px wide. */
-function ToolbarSearch({ value, onChange, placeholder }: ToolbarSearchProps) {
+function ToolbarSearch({ value, onChange, placeholder, id }: ToolbarSearchProps) {
   return (
     <Input
+      id={id}
       allowClear
       value={value}
       placeholder={placeholder}

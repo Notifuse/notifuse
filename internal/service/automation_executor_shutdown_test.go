@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -261,6 +264,63 @@ func TestAutomationExecutor_ProcessBatch_Shutdown(t *testing.T) {
 		assert.Equal(t, 1, processed)
 		require.Len(t, h.landedWrites(), 1)
 	})
+}
+
+// A webhook node under way when the stop begins is not cut by the drain, whatever its endpoint
+// takes within the node's own timeout: cut, the journey would stay on the node and the endpoint
+// would be posted to again once the claim ends. Run at a hundredth of the production durations.
+func TestAutomationExecutor_ProcessBatch_ShutdownLetsAWebhookNodeUseItsTimeout(t *testing.T) {
+	const scale = 100
+	drain, timeout := automationShutdownDrain/scale, WebhookNodeTimeout/scale
+
+	var hits int32
+	arrived := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&hits, 1) == 1 {
+			close(arrived)
+		}
+		// Answers within the node's timeout, counted from the stop, and after the drain this
+		// change replaces (20 s, a fifth of a second here).
+		time.Sleep(timeout - 50*time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	webhook := NewWebhookNodeExecutor(setupMockLoggerForNodeExecutor(gomock.NewController(t)), &http.Client{})
+	webhook.timeout = timeout
+	h := newShutdownHarness(t, func(ctx context.Context, _ NodeExecutionParams) (*NodeExecutionResult, error) {
+		return webhook.Execute(ctx, webhookNodeTestParams(map[string]interface{}{"url": server.URL}))
+	}, nil)
+	h.executor.shutdownDrain = drain
+	journeys := h.claim("ca-1")
+	h.expectRenewal(journeys[0])
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		<-arrived
+		cancel()
+	}()
+	processed, err := h.executor.ProcessBatch(ctx, 50)
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&hits), "the endpoint is posted to once")
+	writes := h.landedWrites()
+	require.NotEmpty(t, writes, "the journey write after the webhook lands")
+	require.NotNil(t, writes[0].CurrentNodeID)
+	assert.Equal(t, "next_node", *writes[0].CurrentNodeID, "the journey moved past the webhook node")
+	executions := h.landedNodeExecutions()
+	require.NotEmpty(t, executions)
+	assert.Equal(t, domain.NodeActionCompleted, executions[0].Action)
+}
+
+// The webhook node's call ends before the drain does, with room for the writes that start the
+// node after the stop (its execution row and its context).
+func TestAutomationShutdownDrainCoversTheWebhookNode(t *testing.T) {
+	assert.Equal(t, 35*time.Second, automationShutdownDrain)
+	assert.Equal(t, 30*time.Second, WebhookNodeTimeout)
+	assert.GreaterOrEqual(t, automationShutdownDrain-WebhookNodeTimeout, 5*time.Second)
 }
 
 // Execute called directly (not through ProcessBatch) has no stop signal and behaves as before:
