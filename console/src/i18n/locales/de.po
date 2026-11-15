@@ -754,7 +754,7 @@ msgstr "{field} nicht in den letzten {days} Tagen"
 msgid "{field} starts with {value}"
 msgstr "{field} beginnt mit {value}"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:276
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:278
 msgid "{full} ({timezone})"
 msgstr "{full} ({timezone})"
 
@@ -984,7 +984,7 @@ msgstr "{share} % erfasst"
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, one {{0} Eintrag} other {{1} Einträge}}"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:295
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:297
 msgid "{shown, plural, one {# message} other {# messages}}"
 msgstr "{shown, plural, one {# Nachricht} other {# Nachrichten}}"
 
@@ -998,7 +998,7 @@ msgstr "{time} Ortszeit"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:294
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:296
 msgid "{total, plural, one {{0} of # message} other {{1} of # messages}}"
 msgstr "{total, plural, one {{0} von # Nachricht} other {{1} von # Nachrichten}}"
 
@@ -10459,7 +10459,7 @@ msgstr "Segment {segment} beigetreten"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "Ist über die Einladung <0>{target}</0> beigetreten"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:259
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:261
 #: src/components/logs/MessagesTab.tsx:680
 msgid "Journey"
 msgstr "Verlauf"
@@ -11131,7 +11131,7 @@ msgid "Load {PAGE_SIZE} more"
 msgstr "{PAGE_SIZE} weitere laden"
 
 #: src/components/blog/PostsTable.tsx:467
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:316
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:318
 #: src/components/contacts/visits/ContactWebVisits.tsx:366
 #: src/components/logs/AuditLogTab.tsx:682
 #: src/components/logs/InboundWebhooksTab.tsx:354
@@ -11543,7 +11543,7 @@ msgid "Members"
 msgstr "Mitglieder"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:251
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:236
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:238
 #: src/components/logs/MessageDetail.tsx:83
 #: src/components/logs/MessageDetail.tsx:644
 #: src/components/logs/MessagesTab.tsx:657
@@ -12434,7 +12434,7 @@ msgstr "Kein Treffer"
 msgid "No members found"
 msgstr "Keine Mitglieder gefunden"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:309
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:311
 msgid "No message sent to this contact yet"
 msgstr "Diesem Kontakt wurde noch keine Nachricht gesendet"
 
@@ -16899,7 +16899,7 @@ msgstr "Vom Anbieter abgelehnte Versände. Vor dem Versand abgelehnte Anfragen w
 #: src/components/broadcasts/BroadcastStatusPill.tsx:55
 #: src/components/broadcasts/detail/AbTestPanel.tsx:159
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:267
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:269
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:82
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:84
 #: src/components/logs/labels.ts:110
@@ -20007,7 +20007,7 @@ msgstr "Hat den Webhook <0>{target}</0> ein- oder ausgeschaltet"
 msgid "type"
 msgstr "Typ"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:249
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:251
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/logs/InboundWebhooksTab.tsx:196
 #: src/components/settings/CustomFieldsConfiguration.tsx:189

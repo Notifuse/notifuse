@@ -230,16 +230,28 @@ describe('ContactMessagesTab', () => {
     expect(screen.queryByText(/preview drawer/)).toBeNull()
   })
 
-  it('dates a message of an earlier year by its day only, the time being in the tooltip', async () => {
+  it('dates a message by its day and time, or by its day and year for an earlier year', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2027-01-01T10:00:00Z'))
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
     state.pages = [
       {
-        messages: [message('m1', { broadcast_id: 'b1', sent_at: '2025-03-01T09:00:00Z' })],
+        messages: [
+          message('m1', { broadcast_id: 'b1', sent_at: '2026-03-01T09:00:00Z' }),
+          // Yesterday names no year: the time stays.
+          message('m2', { automation_id: 'a1', sent_at: '2026-12-31T20:00:00Z' }),
+          message('m3', { automation_id: 'a1', sent_at: '2027-01-01T08:00:00Z' })
+        ],
         has_more: false
       }
     ]
     renderTab()
-    const label = await screen.findByText(/2025/)
-    expect(label.textContent).not.toMatch(/9:00/)
+    const earlier = await screen.findByText(/2026/)
+    expect(earlier.textContent).not.toMatch(/9:00/)
+    expect(screen.getByText('Yesterday, 8:00 PM')).toBeInTheDocument()
+    expect(screen.getByText('Today, 8:00 AM')).toBeInTheDocument()
   })
 
   it('counts a single message in the singular', async () => {
