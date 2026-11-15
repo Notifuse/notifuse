@@ -223,9 +223,12 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
     return undefined
   }
 
+  // The day and time, or only the day with its year for an earlier year: the tooltip has the time.
   const sentLabel = (message: MessageHistory) => {
     const at = message.sent_at || message.created_at
-    return `${dayLabel(at)}, ${dayjs(at).tz(timezone).format('LT')}`
+    const local = dayjs(at).tz(timezone)
+    if (local.year() !== dayjs().tz(timezone).year()) return dayLabel(at)
+    return `${dayLabel(at)}, ${local.format('LT')}`
   }
 
   const columns: ColumnsType<MessageHistory> = [
@@ -255,7 +258,7 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
     {
       title: t`Journey`,
       key: 'journey',
-      width: 236,
+      width: 252,
       render: (_, message) => (
         <MessageJourneySteps message={message} smtp={rowIsSmtp(message, workspace)} timezone={timezone} />
       )
@@ -298,7 +301,7 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
         size="small"
         tableLayout="fixed"
         // Below this width the table scrolls in its column rather than squeezing the message to nothing.
-        scroll={{ x: 680 }}
+        scroll={{ x: 660 }}
         columns={columns}
         dataSource={rows}
         loading={messages.isLoading}

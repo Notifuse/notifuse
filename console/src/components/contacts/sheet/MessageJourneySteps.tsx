@@ -23,7 +23,7 @@ function Badge({ tone, children }: { tone: 'red' | 'gray'; children: string }) {
   return (
     <span
       data-journey-badge
-      className={`rounded-sm px-1.5 text-2xs leading-4.5 font-medium ${
+      className={`rounded-sm px-1.5 text-2xs whitespace-nowrap leading-4.5 font-medium ${
         tone === 'red' ? 'bg-danger-bg text-danger-fg' : 'bg-fill text-ink-3'
       }`}
     >
@@ -56,7 +56,7 @@ export function MessageJourneySteps({ message, smtp, timezone }: MessageJourneyS
   if (failure) {
     const reason = message.status_info || when(failure.at)
     return (
-      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1">
         <Tooltip title={reason} trigger={['hover', 'focus']}>
           {/* Focusable, so the reason is reachable from the keyboard too. */}
           <span tabIndex={0} className="inline-flex">

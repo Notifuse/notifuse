@@ -77,6 +77,12 @@ describe('MessageJourneySteps', () => {
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Opens were not tracked')
   })
 
+  it('opens the failure reason from the keyboard', async () => {
+    const { container } = renderSteps({ bounced_at: '2026-11-10T09:01:00Z', status_info: 'Mailbox full' })
+    fireEvent.focus(container.querySelector('[tabindex="0"]') as HTMLElement)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Mailbox full')
+  })
+
   it('keeps the failure reason readable and shows a complaint after a bounce', () => {
     const { container } = renderSteps({
       bounced_at: '2026-11-10T09:01:00Z',

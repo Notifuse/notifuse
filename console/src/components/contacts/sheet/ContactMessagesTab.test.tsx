@@ -230,6 +230,18 @@ describe('ContactMessagesTab', () => {
     expect(screen.queryByText(/preview drawer/)).toBeNull()
   })
 
+  it('dates a message of an earlier year by its day only, the time being in the tooltip', async () => {
+    state.pages = [
+      {
+        messages: [message('m1', { broadcast_id: 'b1', sent_at: '2025-03-01T09:00:00Z' })],
+        has_more: false
+      }
+    ]
+    renderTab()
+    const label = await screen.findByText(/2025/)
+    expect(label.textContent).not.toMatch(/9:00/)
+  })
+
   it('counts a single message in the singular', async () => {
     state.pages = [{ messages: [message('m1', { broadcast_id: 'b1' })], has_more: false }]
     renderTab(allRights, 1)

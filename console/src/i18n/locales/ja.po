@@ -754,9 +754,9 @@ msgstr "{field} が過去 {days} 日以内ではない"
 msgid "{field} starts with {value}"
 msgstr "{field} が {value} で始まる"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:273
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:276
 msgid "{full} ({timezone})"
-msgstr "{full} ({timezone})"
+msgstr "{full}（{timezone}）"
 
 #: src/components/timeline/ContactTimeline.tsx:941
 #~ msgid "{goalCount} goals"
@@ -984,7 +984,7 @@ msgstr "{share}% をトラッキング"
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, other {{1} 件のエントリ}}"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:292
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:295
 msgid "{shown, plural, one {# message} other {# messages}}"
 msgstr "{shown, plural, other {# 件のメッセージ}}"
 
@@ -998,7 +998,7 @@ msgstr "現地時間 {time}"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:291
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:294
 msgid "{total, plural, one {{0} of # message} other {{1} of # messages}}"
 msgstr "{total, plural, other {# 件中 {1} 件のメッセージ}}"
 
@@ -10459,7 +10459,7 @@ msgstr "セグメント {segment} に参加"
 msgid "Joined with the invitation <0>{target}</0>"
 msgstr "招待 <0>{target}</0> で参加しました"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:256
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:259
 #: src/components/logs/MessagesTab.tsx:680
 msgid "Journey"
 msgstr "経過"
@@ -11131,7 +11131,7 @@ msgid "Load {PAGE_SIZE} more"
 msgstr "さらに {PAGE_SIZE} 件読み込む"
 
 #: src/components/blog/PostsTable.tsx:467
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:313
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:316
 #: src/components/contacts/visits/ContactWebVisits.tsx:366
 #: src/components/logs/AuditLogTab.tsx:682
 #: src/components/logs/InboundWebhooksTab.tsx:354
@@ -11543,7 +11543,7 @@ msgid "Members"
 msgstr "メンバー"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:251
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:233
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:236
 #: src/components/logs/MessageDetail.tsx:83
 #: src/components/logs/MessageDetail.tsx:644
 #: src/components/logs/MessagesTab.tsx:657
@@ -12434,7 +12434,7 @@ msgstr "一致なし"
 msgid "No members found"
 msgstr "メンバーが見つかりません"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:306
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:309
 msgid "No message sent to this contact yet"
 msgstr "この連絡先にはまだメッセージが送信されていません"
 
@@ -16899,7 +16899,7 @@ msgstr "プロバイダーに拒否された送信。送信前に拒否された
 #: src/components/broadcasts/BroadcastStatusPill.tsx:55
 #: src/components/broadcasts/detail/AbTestPanel.tsx:159
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:44
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:264
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:267
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:82
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:84
 #: src/components/logs/labels.ts:110
@@ -20007,7 +20007,7 @@ msgstr "Webhook <0>{target}</0> をオンまたはオフにしました"
 msgid "type"
 msgstr "タイプ"
 
-#: src/components/contacts/sheet/ContactMessagesTab.tsx:246
+#: src/components/contacts/sheet/ContactMessagesTab.tsx:249
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/logs/InboundWebhooksTab.tsx:196
 #: src/components/settings/CustomFieldsConfiguration.tsx:189
