@@ -53,6 +53,19 @@ describe('TemplatePreviewFrame', () => {
     expect(screen.getByTestId('template-preview-frame').style.height).toBe('450px')
   })
 
+  it('shows only the top of the email with a shorter frame height', async () => {
+    compile.mockResolvedValue({ html: '<p>Hello Ada</p>', mjml: '' })
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <TemplatePreviewFrame workspace={workspace} template={template} frameHeight={420} />
+      </QueryClientProvider>
+    )
+    const frame = (await screen.findByTitle('Preview of Alpha')) as HTMLIFrameElement
+    // 420 at the 600px width, scaled to the 300px box.
+    expect(screen.getByTestId('template-preview-frame').style.height).toBe('210px')
+    expect(frame.style.height).toBe('420px')
+  })
+
   it('says so when the template has no content', async () => {
     compile.mockRejectedValue(new TemplatePreviewError('missing_content'))
     renderFrame()

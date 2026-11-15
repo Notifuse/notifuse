@@ -53,14 +53,15 @@ vi.mock('../../services/api/automation', async (importOriginal) => ({
   }
 }))
 
-// The canvas has its own tests: this one shows the overlay and edits through the context.
+// The canvas has its own tests: this one shows the overlay and the stats control, and edits
+// through the context.
 const statsSeen = vi.hoisted(() => [] as unknown[])
 vi.mock('./AutomationFlowEditor', async () => {
   const { useAutomation } = await vi.importActual<typeof import('./context')>('./context')
   const { useContext } = await vi.importActual<typeof import('react')>('react')
   const { NodeStatsContext } = await vi.importActual<typeof import('./stats/nodeStatsState')>('./stats/nodeStatsState')
   return {
-    AutomationFlowEditor: ({ overlay }: { overlay?: ReactNode }) => {
+    AutomationFlowEditor: ({ overlay, statsControl }: { overlay?: ReactNode; statsControl?: ReactNode }) => {
       const { canvasState, pushHistory, automationId } = useAutomation()
       statsSeen.push(useContext(NodeStatsContext))
       const dropEdges = () => {
@@ -76,6 +77,7 @@ vi.mock('./AutomationFlowEditor', async () => {
       return (
         <div data-testid="canvas" data-session-id={automationId}>
           {overlay}
+          <div data-testid="canvas-stats">{statsControl}</div>
           <button onClick={dropEdges}>probe: drop edges</button>
           <button onClick={configureTrigger}>probe: configure trigger</button>
         </div>
@@ -134,6 +136,7 @@ function Harness(initial: Overrides) {
     <AutomationEditor
       workspace={workspace}
       withStats={false}
+      period="last30"
       canWrite
       canReadHistory
       canReadTemplates
@@ -145,6 +148,7 @@ function Harness(initial: Overrides) {
       templates={[]}
       onClose={vi.fn()}
       onToggleStats={vi.fn()}
+      onPeriodChange={vi.fn()}
       onViewMessages={vi.fn()}
       {...initial}
       automationParam={param}
@@ -221,7 +225,7 @@ describe('AutomationEditor, creating', () => {
   it('offers no stats before the first save', async () => {
     renderEditor({ automationParam: 'new' })
     await loaded()
-    expect(screen.getByRole('radio', { name: 'With stats' })).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Show stats' })).toBeDisabled()
   })
 })
 
@@ -314,26 +318,59 @@ describe('AutomationEditor, unsaved changes', () => {
 })
 
 describe('AutomationEditor, stats', () => {
-  it('writes the stats toggle through onToggleStats', async () => {
+  it('puts the stats switch on the canvas, not in the header', async () => {
+    renderEditor({ journeyTotal: 12 })
+    await loaded()
+    expect(within(screen.getByTestId('canvas-stats')).getByRole('switch', { name: 'Show stats' })).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'With stats' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Last 30 days' })).not.toBeInTheDocument()
+  })
+
+  it('writes the stats switch through onToggleStats', async () => {
     const onToggleStats = vi.fn()
     renderEditor({ journeyTotal: 12, onToggleStats })
     await loaded()
-    fireEvent.click(screen.getByRole('radio', { name: 'With stats' }))
-    expect(onToggleStats).toHaveBeenCalledWith(true)
+    fireEvent.click(screen.getByRole('switch', { name: 'Show stats' }))
+    expect(onToggleStats).toHaveBeenCalledWith(true, expect.anything())
   })
 
   it('offers no stats for a draft without journeys', async () => {
     get.mockResolvedValue({ automation: automationOf({ status: 'draft' }) })
     renderEditor({ journeyTotal: 0 })
     await loaded()
-    expect(screen.getByRole('radio', { name: 'With stats' })).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Show stats' })).toBeDisabled()
   })
 
   it('shows the period and reads the results with stats on', async () => {
     renderEditor({ journeyTotal: 12, withStats: true })
     await loaded()
-    expect(screen.getByRole('radio', { name: 'Last 30 days' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: '30 d' })).toBeChecked()
     await waitFor(() => expect(automationApi.nodeStats).toHaveBeenCalled())
+  })
+
+  it('writes the period through onPeriodChange', async () => {
+    const onPeriodChange = vi.fn()
+    renderEditor({ journeyTotal: 12, withStats: true, onPeriodChange })
+    await loaded()
+    fireEvent.click(screen.getByRole('radio', { name: '7 d' }))
+    expect(onPeriodChange).toHaveBeenCalledWith('last7')
+  })
+
+  it('reads the results over the period it is given', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-15T12:00:00Z'))
+    try {
+      renderEditor({ journeyTotal: 12, withStats: true, period: 'last7' })
+      await loaded()
+      expect(screen.getByRole('radio', { name: '7 d' })).toBeChecked()
+      await waitFor(() =>
+        expect(automationApi.nodeStats).toHaveBeenCalledWith(
+          expect.objectContaining({ since: '2026-11-09T00:00:00.000Z' })
+        )
+      )
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('says the results could not load, with Retry', async () => {

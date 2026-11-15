@@ -54,9 +54,63 @@ test.describe('Automations Feature', () => {
       await expect(page).toHaveURL(/automation=auto-welcome/)
       await expect(page).toHaveURL(/stats=1/)
       await expect(page.getByText('This automation is live. Pause it to edit.')).toBeVisible()
+      // The banner sits over the canvas: the trigger is placed under it, not behind it.
+      const banner = editor(page).locator('[data-canvas-overlay]')
+      const trigger = editor(page).locator('[data-automation-node]').first()
+      await expect
+        .poll(async () => {
+          const [b, t] = await Promise.all([banner.boundingBox(), trigger.boundingBox()])
+          return t!.y - (b!.y + b!.height)
+        })
+        .toBeGreaterThan(0)
       await expect(page.getByRole('textbox', { name: 'Automation name' })).toHaveCount(0)
       await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
-      await expect(editor(page).locator('[data-edge-label]').filter({ hasText: /^Yes · / })).toBeVisible()
+      // The filter names its outputs in its card; its links carry only their share.
+      await expect(editor(page).locator('[data-output-name="continue"]')).toHaveText('Yes')
+      await expect(
+        editor(page)
+          .locator('[data-edge-label]')
+          .filter({ hasText: /^\d+(\.\d)?%$/ })
+          .first()
+      ).toBeVisible()
+    })
+
+    test('opens an editable automation at 100 %, its trigger centred at the top', async ({
+      authenticatedPageWithData
+    }) => {
+      const page = authenticatedPageWithData
+      await page.goto(AUTOMATIONS)
+      await waitForLoading(page)
+
+      // Paused, so editable, with a free output under its last step.
+      await row(page, 'Tag trial users').click()
+      await expect(editor(page).locator('[data-zoom-control]')).toContainText('100%')
+      // Measured together at each try: the editor's drawer slides in.
+      const offsets = async () => {
+        const canvas = (await editor(page).locator('[data-canvas]').boundingBox())!
+        const box = (await editor(page).locator('[data-automation-node]').first().boundingBox())!
+        return {
+          across: Math.abs(Math.round(box.x + box.width / 2 - (canvas.x + canvas.width / 2))),
+          top: box.y - canvas.y
+        }
+      }
+      await expect.poll(async () => (await offsets()).across).toBeLessThanOrEqual(2)
+      const { top } = await offsets()
+      expect(top).toBeGreaterThan(20)
+      expect(top).toBeLessThan(80)
+    })
+
+    test('opens at 100 %, with the stats switch on the canvas', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+      await page.goto(AUTOMATIONS)
+      await waitForLoading(page)
+
+      await row(page, 'Welcome series').click()
+      await expect(editor(page).locator('[data-zoom-control]')).toContainText('100%')
+      await expect(editor(page).getByRole('switch', { name: 'Show stats' })).toBeChecked()
+      await expect(editor(page).getByRole('radio', { name: '30 d' })).toBeChecked()
+      await editor(page).locator('[data-stats-control]').getByText('7 d', { exact: true }).click()
+      await expect(page).toHaveURL(/period=7d/)
     })
 
     test('saves a renamed paused automation under its id', async ({ authenticatedPageWithData }) => {

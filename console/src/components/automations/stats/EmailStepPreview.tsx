@@ -1,7 +1,6 @@
 import { Button, Skeleton } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
-import { ExternalLink, Eye } from 'lucide-react'
 import { KeyValueList } from '../../layout'
 import { templatesApi } from '../../../services/api/template'
 import { ApiError } from '../../../services/api/errors'
@@ -9,7 +8,9 @@ import type { EmailNodeConfig } from '../../../services/api/automation'
 import type { Workspace } from '../../../services/api/types'
 import { TemplatePreviewFrame } from '../../broadcasts/detail/TemplatePreviewFrame'
 import { formatSender, resolveVariationSender } from '../../broadcasts/variationSender'
-import { TemplatePreviewPopover } from '../../templates'
+
+/** The height of email shown in the step panel, at its 600px width: about 200px once scaled. */
+export const STEP_PREVIEW_HEIGHT = 420
 
 interface EmailStepPreviewProps {
   workspace: Workspace
@@ -17,7 +18,7 @@ interface EmailStepPreviewProps {
   canReadTemplates: boolean
 }
 
-/** The sender, the subject and a render of the step's template, with links to preview and open it. */
+/** The sender, the subject and a render of the top of the step's template. */
 export function EmailStepPreview({ workspace, config, canReadTemplates }: EmailStepPreviewProps) {
   const { t } = useLingui()
   const templateId = config.template_id
@@ -60,23 +61,8 @@ export function EmailStepPreview({ workspace, config, canReadTemplates }: EmailS
           { key: 'subject', label: t`Subject`, value: config.subject_override || template.email?.subject }
         ]}
       />
-      <TemplatePreviewFrame workspace={workspace} template={template} />
-      <div className="flex items-center gap-2">
-        <TemplatePreviewPopover record={template} workspace={workspace}>
-          <Button size="small" icon={<Eye size={14} aria-hidden="true" />}>
-            {t`Preview`}
-          </Button>
-        </TemplatePreviewPopover>
-        <Button
-          size="small"
-          icon={<ExternalLink size={14} aria-hidden="true" />}
-          href={`/console/workspace/${workspace.id}/templates?preview=${encodeURIComponent(template.id)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t`Open template`}
-        </Button>
-      </div>
+      {/* The top of the email, as a thumbnail: the panel's results stay in view under it. */}
+      <TemplatePreviewFrame workspace={workspace} template={template} frameHeight={STEP_PREVIEW_HEIGHT} />
     </div>
   )
 }

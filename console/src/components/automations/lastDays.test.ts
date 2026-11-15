@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { last30Days } from './last30Days'
+import { last30Days, lastDays } from './lastDays'
 
 afterEach(() => vi.useRealTimers())
 
-describe('last30Days', () => {
+describe('lastDays', () => {
   it('covers the 30 local days that end today, today included', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-11-12T10:00:00Z'))
@@ -13,6 +13,15 @@ describe('last30Days', () => {
     // Paris is UTC+2 until 25 October, UTC+1 after.
     expect(range.startUtc).toBe('2026-10-13T22:00:00.000Z')
     expect(range.endUtc).toBe('2026-11-12T22:59:59.999Z')
+  })
+
+  it('covers the 7 local days that end today with lastDays', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-12T10:00:00Z'))
+    const range = lastDays('Europe/Paris', 7)
+    expect(range.startDay).toBe('2026-11-06')
+    expect(range.endDay).toBe('2026-11-12')
+    expect(range.startUtc).toBe('2026-11-05T23:00:00.000Z')
   })
 
   it('takes the day of the workspace, not the browser', () => {

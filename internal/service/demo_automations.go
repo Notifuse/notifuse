@@ -83,13 +83,19 @@ func demoIntendedStatus(automationID string) domain.AutomationStatus {
 // Node layout geometry. The Flow Stats drawer re-runs layoutNodes so it looks right whatever is
 // stored, but the editor renders stored positions verbatim — automationToFlow maps them straight
 // through and only the user's explicit "reorganize" action re-layouts. Identical or zero positions
-// therefore open the three editable flows as a pile of overlapping boxes. These values mirror
-// layoutNodes' own defaults so the two views agree.
+// therefore open the three editable flows as a pile of overlapping boxes. These values follow
+// layoutNodes (console/src/components/automations/utils/layoutNodes.ts) so the two views agree:
+// steps of one level 80px apart, and more room under a step that branches, for the shares on its
+// links.
 const (
-	demoNodeStartX     = 400.0
-	demoNodeStartY     = 50.0
-	demoNodeRowHeight  = 200.0
-	demoNodeSiblingGap = 150.0
+	demoNodeStartX    = 400.0
+	demoNodeStartY    = 50.0
+	demoNodeRowHeight = 200.0
+	// Half a 300px card plus half of the 80px between two steps of a level: each sibling's offset
+	// from the spine.
+	demoNodeSiblingGap = 190.0
+	// Added under each branching step (filter, A/B test, list status) above a row.
+	demoNodeBranchExtra = 60.0
 )
 
 // demoNodeRow returns the position of a node at the given depth on the main spine.
@@ -97,9 +103,11 @@ func demoNodeRow(depth int) domain.NodePosition {
 	return domain.NodePosition{X: demoNodeStartX, Y: demoNodeStartY + demoNodeRowHeight*float64(depth)}
 }
 
-// demoNodeRowOffset returns the position of a sibling at the given depth, offset horizontally.
-func demoNodeRowOffset(depth int, offset float64) domain.NodePosition {
+// demoNodeRowBelow returns the position of a node at the given depth with `branches` branching
+// steps above it, offset horizontally from the spine.
+func demoNodeRowBelow(depth, branches int, offset float64) domain.NodePosition {
 	pos := demoNodeRow(depth)
+	pos.Y += demoNodeBranchExtra * float64(branches)
 	pos.X += offset
 	return pos
 }
@@ -194,10 +202,10 @@ func demoWelcomeAutomation(workspaceID string) *domain.Automation {
 			}, nil, demoNodeRow(4)),
 			demoNode(id, "ws-email-digest", domain.NodeTypeEmail, map[string]interface{}{
 				"template_id": "newsletter-weekly",
-			}, nil, demoNodeRowOffset(5, -demoNodeSiblingGap)),
+			}, nil, demoNodeRowBelow(5, 1, -demoNodeSiblingGap)),
 			demoNode(id, "ws-email-reengage", domain.NodeTypeEmail, map[string]interface{}{
 				"template_id": demoTemplateWinbackOffer,
-			}, nil, demoNodeRowOffset(5, demoNodeSiblingGap)),
+			}, nil, demoNodeRowBelow(5, 1, demoNodeSiblingGap)),
 		},
 	}
 }
@@ -238,13 +246,13 @@ func demoCartRecoveryAutomation(workspaceID string) *domain.Automation {
 					{ID: "a", Name: "Product-led", Weight: 50, NextNodeID: "cr-email-a"},
 					{ID: "b", Name: "Discount-led", Weight: 50, NextNodeID: "cr-email-b"},
 				},
-			}, nil, demoNodeRow(3)),
+			}, nil, demoNodeRowBelow(3, 1, 0)),
 			demoNode(id, "cr-email-a", domain.NodeTypeEmail, map[string]interface{}{
 				"template_id": demoTemplateCartRecoveryA,
-			}, nil, demoNodeRowOffset(4, -demoNodeSiblingGap)),
+			}, nil, demoNodeRowBelow(4, 2, -demoNodeSiblingGap)),
 			demoNode(id, "cr-email-b", domain.NodeTypeEmail, map[string]interface{}{
 				"template_id": demoTemplateCartRecoveryB,
-			}, nil, demoNodeRowOffset(4, demoNodeSiblingGap)),
+			}, nil, demoNodeRowBelow(4, 2, demoNodeSiblingGap)),
 		},
 	}
 }
@@ -367,7 +375,7 @@ func demoWinbackAutomation(workspaceID string) *domain.Automation {
 			}, nil, demoNodeRow(3)),
 			demoNode(id, "wb-remove", domain.NodeTypeRemoveFromList, map[string]interface{}{
 				"list_id": demoListNewsletter,
-			}, nil, demoNodeRowOffset(4, demoNodeSiblingGap)),
+			}, nil, demoNodeRowBelow(4, 1, demoNodeSiblingGap)),
 		},
 	}
 }

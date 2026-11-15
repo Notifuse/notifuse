@@ -2,7 +2,6 @@ import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
-  MiniMap,
   Panel,
   useReactFlow,
   useViewport,
@@ -40,7 +39,15 @@ import { colors } from '../../theme/tokens'
 import { useAutomation } from './context'
 import { useAutomationCanvas } from './hooks'
 import type { AutomationFlowNode, AutomationNodeData } from './utils/flowConverter'
+import { anchorOnTrigger, revealDelta, revealDeltaY, TOP_GAP } from './utils/anchorViewport'
 import type { NodeType } from '../../services/api/automation'
+
+// Space between the canvas's banner and the trigger placed under it.
+const BANNER_GAP = 16
+// How many times, and how far apart, the opening placement is tried again while the canvas has no
+// width yet or ReactFlow is not ready to move the view.
+const PLACE_TRIES = 10
+const PLACE_RETRY_MS = 100
 
 // Placeholder nodes are render-only anchors that give the "add node" edges a target. They are
 // derived from the canvas state rather than part of it and carry no automation data, so the array
@@ -141,22 +148,31 @@ const ZoomControl: React.FC = () => {
 export interface AutomationFlowEditorProps {
   /** Shown over the top of the canvas: the live banner, a stats error. */
   overlay?: React.ReactNode
+  /** The stats switch and period, at the top right of the canvas. */
+  statsControl?: React.ReactNode
 }
 
+// The step the editor opens on: the trigger, else the topmost step (a flow made through the API may
+// start on another step).
+const openingStep = <T extends { position: { y: number }; data: { nodeType: string } }>(nodes: T[]): T | undefined =>
+  nodes.find((n) => n.data.nodeType === 'trigger') ??
+  nodes.reduce<T | undefined>((top, n) => (!top || n.position.y < top.position.y ? n : top), undefined)
+
 // Inner component that uses useReactFlow hook
-const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overlay }) => {
+const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overlay, statsControl }) => {
   const { t } = useLingui()
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [buttonPositions, setButtonPositions] = useState<Map<string, { x: number; y: number }>>(new Map())
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null)
-  const fitViewCalledRef = useRef(false)
+  // Set once the view is placed on the trigger, so a later edit never moves it.
+  const anchoredRef = useRef(false)
   const pendingReorganizeRef = useRef(false)
   const reorganizeNodesRef = useRef<() => void>(() => {})
 
   const { getViewport, setViewport, fitView, screenToFlowPosition } = useReactFlow()
 
   // Get context and hook
-  const { listId, workspace, isEditing, readOnly } = useAutomation()
+  const { listId, workspace, readOnly } = useAutomation()
   const {
     nodes,
     edges,
@@ -185,6 +201,47 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
   // Read-only, no "+" to add a step under an open output.
   const unconnectedOutputs = useMemo(() => (readOnly ? [] : allUnconnectedOutputs), [readOnly, allUnconnectedOutputs])
 
+  // Puts the trigger at the top of the canvas, centred, at `zoom`. Resolves false when there is
+  // nothing to anchor on yet, or when ReactFlow's pan-zoom is not ready and ignores the call.
+  const anchorRef = useRef<(zoom: number) => Promise<boolean>>(async () => false)
+  useEffect(() => {
+    anchorRef.current = async (zoom: number) => {
+      // The trigger, or for a flow made through the API without one, its topmost step.
+      const trigger = openingStep(nodes)
+      const box = reactFlowWrapper.current?.getBoundingClientRect()
+      if (!trigger || !box || box.width === 0) return false
+      // Under the banner (live, changed elsewhere, stats error) when one shows: it would cover the
+      // trigger's top otherwise.
+      const banner = reactFlowWrapper.current?.querySelector('[data-canvas-overlay]')?.getBoundingClientRect()
+      const top =
+        banner && Number.isFinite(banner.bottom) ? Math.max(TOP_GAP, banner.bottom - box.top + BANNER_GAP) : TOP_GAP
+      return setViewport(anchorOnTrigger(trigger, box.width, zoom, top))
+    }
+  }, [nodes, setViewport])
+
+  // Pans just enough to show the selected step, when it is out of view (behind the step panel that
+  // just opened, or moved by the layout); the zoom never changes. Read from a ref, so dragging the
+  // selected step does not pan the canvas under it.
+  const selectedRef = useRef(selectedNode)
+  useEffect(() => {
+    selectedRef.current = selectedNode
+  }, [selectedNode])
+  const revealSelectedRef = useRef(() => {})
+  const draggingRef = useRef(false)
+  useEffect(() => {
+    revealSelectedRef.current = () => {
+      // Never under the pointer: a drag selects the step it starts on.
+      if (draggingRef.current) return
+      const step = selectedRef.current
+      const box = reactFlowWrapper.current?.getBoundingClientRect()
+      if (!step || !box || box.width === 0) return
+      const view = getViewport()
+      const dx = revealDelta(step, view, box.width)
+      const dy = revealDeltaY(step, view, box.height)
+      if (dx !== 0 || dy !== 0) void setViewport({ ...view, x: view.x + dx, y: view.y + dy }, { duration: 200 })
+    }
+  }, [getViewport, setViewport])
+
   // Keep ref updated with latest reorganizeNodes to avoid stale closure issues
   useEffect(() => {
     reorganizeNodesRef.current = reorganizeNodes
@@ -201,12 +258,13 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
       // Use ref to call the LATEST reorganizeNodes (with current edges)
       setTimeout(() => {
         reorganizeNodesRef.current()
-        setTimeout(() => {
-          fitView({ padding: 0.4, maxZoom: 0.9, duration: 200 })
-        }, 50)
+        // The view stays where the author has it (no zoom out to fit the whole flow after each
+        // branch); only the step they are on, the one just added, is brought back if the layout
+        // moved it out of view.
+        setTimeout(() => revealSelectedRef.current(), 50)
       }, 50)
     }
-  }, [nodes, needsReorganize, fitView, clearReorganizeFlag])
+  }, [nodes, needsReorganize, clearReorganizeFlag])
 
   // Handler for adding node via plus button
   const handleAddNodeFromTerminal = useCallback(
@@ -298,9 +356,7 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
         sourceNodeId: output.nodeId,
         sourceHandle: output.handleId,
         label: output.label,
-        color: output.color,
-        sourceType: byId.get(output.nodeId)?.data.nodeType,
-        sourceConfig: byId.get(output.nodeId)?.data.config
+        color: output.color
       } as AddNodeEdgeData
     }))
 
@@ -362,18 +418,57 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
     updateButtonPositions()
   }, [updateButtonPositions, nodes, edges])
 
-  // Position trigger at top-center on new automation
+  // When a step's panel opens, the canvas narrows: a selected step it now hides slides back into
+  // view, once the panel has taken its room.
+  const selectedId = selectedNode?.id
   useEffect(() => {
-    if (!isEditing && !fitViewCalledRef.current && nodes.length === 1 && nodes[0].data.nodeType === 'trigger' && reactFlowWrapper.current) {
-      fitViewCalledRef.current = true
-      const wrapperRect = reactFlowWrapper.current.getBoundingClientRect()
-      const triggerNode = nodes[0]
-      // Center horizontally, position near top with padding
-      const viewportX = (wrapperRect.width / 2) - triggerNode.position.x - 150 // 150 = half node width approx
-      const viewportY = 80 - triggerNode.position.y // 80px from top
-      setTimeout(() => setViewport({ x: viewportX, y: viewportY, zoom: 1 }), 100)
+    if (!selectedId) return
+    const timer = window.setTimeout(() => revealSelectedRef.current(), 0)
+    return () => window.clearTimeout(timer)
+  }, [selectedId])
+
+  // The editor opens at 100 % on the trigger, new automation or existing one, once ReactFlow is
+  // ready to move the view and the trigger is measured (its width centres it). Not on
+  // useNodesInitialized: the "+" placeholders are rebuilt unmeasured at every change, so it never
+  // turns true. The guard is set once the view did move, or once the author moved it first: a late
+  // placement must not pull the view away from their work.
+  const [flowReady, setFlowReady] = useState(false)
+  const triggerMeasured = !!openingStep(nodes)?.measured?.width
+  useEffect(() => {
+    if (anchoredRef.current || !flowReady || !triggerMeasured) return
+    let timer: number | undefined
+    let cancelled = false
+    // Checked again before each try: the author may have moved the view, or closed the editor.
+    const attempt = (left: number) => {
+      if (cancelled || anchoredRef.current) return
+      void anchorRef.current(1).then((placed) => {
+        if (placed) anchoredRef.current = true
+        else if (left > 0 && !cancelled) timer = window.setTimeout(() => attempt(left - 1), PLACE_RETRY_MS)
+      })
     }
-  }, [isEditing, nodes, setViewport])
+    attempt(PLACE_TRIES)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [flowReady, triggerMeasured, nodes])
+
+  const handleNodeDragStart = useCallback(() => {
+    draggingRef.current = true
+  }, [])
+  const handleNodeDragStop = useCallback<NonNullable<typeof onNodeDragStop>>(
+    (...args) => {
+      draggingRef.current = false
+      onNodeDragStop(...args)
+    },
+    [onNodeDragStop]
+  )
+
+  // A pan or zoom of the author's own (an event; a programmatic move has none) ends the opening
+  // placement's retries.
+  const handleMoveStart = useCallback((event: MouseEvent | TouchEvent | null) => {
+    if (event) anchoredRef.current = true
+  }, [])
 
   // Update button positions when viewport changes
   const handleMove = useCallback(() => {
@@ -461,7 +556,10 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
           onMove={handleMove}
-          onNodeDragStop={onNodeDragStop}
+          onMoveStart={handleMoveStart}
+          onInit={() => setFlowReady(true)}
+          onNodeDragStart={handleNodeDragStart}
+          onNodeDragStop={handleNodeDragStop}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           isValidConnection={handleIsValidConnection}
@@ -471,43 +569,41 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
           minZoom={0.2}
           maxZoom={1.5}
           defaultViewport={{ x: 50, y: 50, zoom: 1 }}
-          // An existing automation opens on its whole flow; a new one is placed by the effect above.
-          fitView={isEditing}
-          fitViewOptions={{ padding: 0.3, maxZoom: 0.9 }}
           deleteKeyCode={readOnly ? null : ['Backspace', 'Delete']}
           className="bg-subtle"
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={16} size={1} color={colors.gray[300]} />
-          {overlay ? (
-            <Panel position="top-center" className="w-full max-w-xl">
-              {overlay}
-            </Panel>
-          ) : null}
-          {!readOnly ? (
-            <Panel position="top-left">
-              <Tooltip title={t`Reorganize layout`} placement="right">
-                <Button
-                  size="small"
-                  aria-label={t`Reorganize layout`}
-                  icon={<LayoutGrid size={14} aria-hidden="true" />}
-                  onClick={handleReorganize}
-                />
-              </Tooltip>
-            </Panel>
-          ) : null}
+          {/* One row across the top: Reorganize, the banner (it shrinks first), the stats control. A
+              banner of its own would run under the control in a narrow canvas. The row lets clicks
+              through to the canvas; only its items take them. */}
+          <Panel position="top-left" className="pointer-events-none right-0">
+            <div className="flex items-start gap-3" data-canvas-top>
+              <div className="pointer-events-auto shrink-0">
+                {!readOnly ? (
+                  <Tooltip title={t`Reorganize layout`} placement="right">
+                    <Button
+                      size="small"
+                      aria-label={t`Reorganize layout`}
+                      icon={<LayoutGrid size={14} aria-hidden="true" />}
+                      onClick={handleReorganize}
+                    />
+                  </Tooltip>
+                ) : null}
+              </div>
+              <div className="flex min-w-0 flex-1 justify-center">
+                {overlay ? (
+                  <div className="pointer-events-auto w-full max-w-xl min-w-0" data-canvas-overlay>
+                    {overlay}
+                  </div>
+                ) : null}
+              </div>
+              {statsControl ? <div className="pointer-events-auto shrink-0">{statsControl}</div> : null}
+            </div>
+          </Panel>
           <Panel position="bottom-left">
             <ZoomControl />
           </Panel>
-          <MiniMap
-            position="bottom-right"
-            pannable
-            zoomable
-            bgColor={colors.surface}
-            maskColor={colors.fill}
-            nodeColor={colors.gray[300]}
-            ariaLabel={t`Minimap`}
-          />
         </ReactFlow>
 
         {/* Floating Add Buttons - OUTSIDE ReactFlow */}
@@ -540,7 +636,6 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
             onNodeUpdate={handleNodeUpdateFromPanel}
             workspaceId={workspace.id}
             onClose={unselectNode}
-            onDelete={readOnly ? undefined : removeNode}
           />
         </aside>
       )}

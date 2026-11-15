@@ -1,6 +1,6 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
@@ -22,13 +22,20 @@ interface CapturedFlow {
   edgesReconnectable: boolean
   deleteKeyCode: string[] | null
   onDrop: (event: unknown) => void
+  onNodeClick: (event: unknown, node: Node) => void
+  onMoveStart: (event: unknown) => void
+  onInit: () => void
+  onNodeDragStart: () => void
+  onNodeDragStop: (...args: unknown[]) => void
+  onNodesChange: (changes: unknown[]) => void
 }
 const flow = vi.hoisted(() => ({
   captured: null as CapturedFlow | null,
   instance: {
-    getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
-    setViewport: () => {},
-    fitView: () => {},
+    getViewport: vi.fn(() => ({ x: 0, y: 0, zoom: 1 })),
+    // Resolves true like the real one once its pan-zoom is ready.
+    setViewport: vi.fn(async () => true),
+    fitView: vi.fn(),
     zoomIn: () => {},
     zoomOut: () => {},
     screenToFlowPosition: (p: { x: number; y: number }) => p
@@ -43,7 +50,6 @@ vi.mock('@xyflow/react', async (importOriginal) => ({
   },
   ReactFlowProvider: ({ children }: { children: ReactNode }) => children,
   Background: () => null,
-  MiniMap: () => null,
   Panel: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   // Stable like the real one: the editor's effects depend on these functions.
   useReactFlow: () => flow.instance,
@@ -56,6 +62,8 @@ vi.mock('@xyflow/react', async (importOriginal) => ({
 
 import { AutomationProvider } from './context'
 import { AutomationFlowEditor } from './AutomationFlowEditor'
+import { REVEAL_MARGIN, TOP_GAP } from './utils/anchorViewport'
+import type { AutomationEdgeData } from './edges/AutomationEdge'
 
 const workspace = { id: 'ws1', integrations: [], settings: { timezone: 'UTC' } } as unknown as Workspace
 
@@ -149,6 +157,267 @@ const dropOf = (type: string) => ({ preventDefault() {}, clientX: 0, clientY: 0,
 
 beforeEach(() => {
   flow.captured = null
+  flow.instance.getViewport.mockReset().mockReturnValue({ x: 0, y: 0, zoom: 1 })
+  flow.instance.setViewport.mockReset().mockResolvedValue(true)
+  flow.instance.fitView.mockReset()
+  // jsdom lays nothing out: the canvas gets a width so the view can be centred.
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 900, height: 700 } as DOMRect)
+})
+
+// ReactFlow is ready (onInit) and has measured the trigger, as the real canvas reports them.
+const ready = (measured = true) =>
+  act(() => {
+    flow.captured!.onInit()
+    if (measured)
+      flow.captured!.onNodesChange([
+        { type: 'dimensions', id: 't', dimensions: { width: 300, height: 80 }, setAttributes: true }
+      ])
+  })
+
+const triggerAndDelay = () =>
+  makeAutomation([
+    makeNode('t', 'trigger', { event_kind: 'contact.created' }, 'd'),
+    makeNode('d', 'delay', { duration: 1, unit: 'days' })
+  ])
+
+describe('AutomationFlowEditor, the view', () => {
+  it('opens at 100 % with the trigger centred at the top, once', async () => {
+    const captured = renderEditor(triggerAndDelay())
+    ready()
+    const trigger = captured.nodes.find((n) => n.id === 't')!
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    // Its middle (measured 300px wide) lands on the canvas's middle.
+    expect(flow.instance.setViewport).toHaveBeenCalledWith({
+      x: 450 - (trigger.position.x + 150),
+      y: TOP_GAP - trigger.position.y,
+      zoom: 1
+    })
+    // A later edit does not move the view.
+    act(() => captured.onDrop(dropOf('delay')))
+    await act(async () => {})
+    expect(flow.instance.setViewport).toHaveBeenCalledTimes(1)
+    expect(flow.instance.fitView).not.toHaveBeenCalled()
+  })
+
+  it('waits for ReactFlow to be ready and the trigger to be measured', async () => {
+    renderEditor(triggerAndDelay())
+    await act(async () => {})
+    expect(flow.instance.setViewport).not.toHaveBeenCalled()
+    ready(false)
+    await act(async () => {})
+    expect(flow.instance.setViewport).not.toHaveBeenCalled()
+    act(() =>
+      flow.captured!.onNodesChange([
+        { type: 'dimensions', id: 't', dimensions: { width: 300, height: 80 }, setAttributes: true }
+      ])
+    )
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+  })
+
+  it('places the view again when ReactFlow was not ready for the first try', async () => {
+    flow.instance.setViewport.mockResolvedValueOnce(false)
+    const captured = renderEditor(triggerAndDelay())
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    act(() => captured.onDrop(dropOf('delay')))
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(2))
+    expect(flow.instance.setViewport).toHaveBeenLastCalledWith(expect.objectContaining({ zoom: 1 }))
+  })
+
+  it('stops placing the view once the author moved it first', async () => {
+    flow.instance.setViewport.mockResolvedValue(false)
+    const captured = renderEditor(triggerAndDelay())
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    // A pan by the author (an event), then an edit: no late jump to the trigger, from a retry
+    // already scheduled or from the edit.
+    act(() => captured.onMoveStart({ type: 'mousedown' }))
+    flow.instance.setViewport.mockResolvedValue(true)
+    act(() => captured.onDrop(dropOf('delay')))
+    await act(() => new Promise((resolve) => setTimeout(resolve, 250)))
+    expect(flow.instance.setViewport).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops trying to place the view once the editor is closed', async () => {
+    flow.instance.setViewport.mockResolvedValue(false)
+    const { unmount } = render(
+      <Providers automation={triggerAndDelay()}>
+        <AutomationFlowEditor />
+      </Providers>
+    )
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    unmount()
+    await act(() => new Promise((resolve) => setTimeout(resolve, 250)))
+    expect(flow.instance.setViewport).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens a flow without a trigger on its topmost step', async () => {
+    // Made through the API, rooted on a delay.
+    const automation = makeAutomation([
+      makeNode('d1', 'delay', { duration: 1, unit: 'days' }, 'd2'),
+      makeNode('d2', 'delay', { duration: 2, unit: 'days' })
+    ])
+    const captured = renderEditor(automation)
+    act(() => {
+      flow.captured!.onInit()
+      flow.captured!.onNodesChange(
+        ['d1', 'd2'].map((id) => ({
+          type: 'dimensions',
+          id,
+          dimensions: { width: 300, height: 80 },
+          setAttributes: true
+        }))
+      )
+    })
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    const top = captured.nodes
+      .filter((n) => n.type !== 'placeholder')
+      .reduce((a, b) => (b.position.y < a.position.y ? b : a))
+    expect(flow.instance.setViewport).toHaveBeenCalledWith({
+      x: 450 - (top.position.x + 150),
+      y: TOP_GAP - top.position.y,
+      zoom: 1
+    })
+  })
+
+  it('keeps retrying after a programmatic move', async () => {
+    flow.instance.setViewport.mockResolvedValueOnce(false)
+    const captured = renderEditor(triggerAndDelay())
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    act(() => captured.onMoveStart(null))
+    act(() => captured.onDrop(dropOf('delay')))
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(2))
+  })
+
+  it('keeps the view after the automatic layout while the selected step is in view', async () => {
+    const captured = renderEditor(triggerAndDelay())
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    // A view that shows every place the steps can take, before and after the layout.
+    flow.instance.getViewport.mockReturnValue({ x: 100, y: 100, zoom: 0.1 })
+    // Inserting a filter on a link lays the steps out again.
+    const link = captured.edges.find((e) => e.source === 't' && e.target === 'd')!
+    act(() => (link.data as AutomationEdgeData).onInsert?.('filter'))
+    await act(() => new Promise((resolve) => setTimeout(resolve, 200)))
+    expect(flow.instance.setViewport).toHaveBeenCalledTimes(1)
+    expect(flow.instance.fitView).not.toHaveBeenCalled()
+  })
+
+  it('brings the selected step back when the automatic layout moved it out of view', async () => {
+    const captured = renderEditor(triggerAndDelay())
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    act(() =>
+      captured.onNodeClick(
+        {},
+        captured.nodes.find((n) => n.id === 'd')!
+      )
+    )
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
+    const calls = flow.instance.setViewport.mock.calls.length
+    // The author scrolled far down: the delay, laid out again, ends above the canvas.
+    flow.instance.getViewport.mockReturnValue({ x: 0, y: -2000, zoom: 1 })
+    const link = flow.captured!.edges.find((e) => e.source === 't' && e.target === 'd')!
+    act(() => (link.data as AutomationEdgeData).onInsert?.('filter'))
+    await waitFor(() => expect(flow.instance.setViewport.mock.calls.length).toBe(calls + 1))
+    const [view, options] = flow.instance.setViewport.mock.calls.at(-1)! as unknown as [
+      { x: number; y: number; zoom: number },
+      unknown
+    ]
+    // Brought back down, at the same zoom, animated; never fitted.
+    expect(view.zoom).toBe(1)
+    expect(view.y).toBeGreaterThan(-2000)
+    expect(options).toEqual({ duration: 200 })
+    expect(flow.instance.fitView).not.toHaveBeenCalled()
+  })
+
+  it('puts Reorganize, the banner and the stats control in one row across the top', () => {
+    render(
+      <Providers automation={triggerAndDelay()}>
+        <AutomationFlowEditor overlay={<div data-testid="banner" />} statsControl={<div data-testid="stats" />} />
+      </Providers>
+    )
+    const row = document.querySelector('[data-canvas-top]')!
+    const reorganize = screen.getByRole('button', { name: 'Reorganize layout' })
+    const banner = screen.getByTestId('banner')
+    const stats = screen.getByTestId('stats')
+    for (const el of [reorganize, banner, stats]) expect(row).toContainElement(el)
+    expect(reorganize.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(banner.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('places the trigger under the banner when one shows', async () => {
+    // The canvas at the top of the page, the banner 15 to 95px down.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return (
+        this.hasAttribute('data-canvas-overlay')
+          ? { top: 15, bottom: 95, width: 576, height: 80 }
+          : { top: 0, bottom: 700, width: 900, height: 700 }
+      ) as DOMRect
+    })
+    render(
+      <Providers automation={triggerAndDelay()}>
+        <AutomationFlowEditor overlay={<div>live</div>} />
+      </Providers>
+    )
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    const trigger = flow.captured!.nodes.find((n) => n.id === 't')!
+    expect(flow.instance.setViewport).toHaveBeenCalledWith(expect.objectContaining({ y: 95 + 16 - trigger.position.y }))
+  })
+
+  it('tries the opening placement again while ReactFlow cannot move the view', async () => {
+    flow.instance.setViewport.mockResolvedValueOnce(false).mockResolvedValueOnce(false)
+    renderEditor(triggerAndDelay())
+    ready()
+    // No edit in between: the retries alone place it.
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(3))
+    await act(() => new Promise((resolve) => setTimeout(resolve, 250)))
+    expect(flow.instance.setViewport).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not pan under the pointer when a drag selects a step', async () => {
+    const captured = renderEditor(triggerAndDelay())
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    const delay = captured.nodes.find((n) => n.id === 'd')!
+    // Hidden behind the panel, but selected by the drag that starts on it.
+    flow.instance.getViewport.mockReturnValue({ x: 800 - delay.position.x, y: 100 - delay.position.y, zoom: 1 })
+    act(() => captured.onNodeDragStart())
+    act(() => captured.onNodeClick({}, delay))
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
+    expect(flow.instance.setViewport).toHaveBeenCalledTimes(1)
+    act(() => flow.captured!.onNodeDragStop({}, delay, [delay]))
+  })
+
+  it('slides a step the opening panel hides back into view', async () => {
+    const captured = renderEditor(triggerAndDelay())
+    ready()
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(1))
+    const delay = captured.nodes.find((n) => n.id === 'd')!
+    // The canvas is 900px wide: a view that puts the delay at 800px hides most of it (its top at
+    // 100px is in view).
+    const y = 100 - delay.position.y
+    flow.instance.getViewport.mockReturnValue({ x: 800 - delay.position.x, y, zoom: 1 })
+    act(() => captured.onNodeClick({}, delay))
+    await waitFor(() => expect(flow.instance.setViewport).toHaveBeenCalledTimes(2))
+    // Unmeasured, the step counts 300px wide: its right edge comes back to 900 - REVEAL_MARGIN.
+    expect(flow.instance.setViewport).toHaveBeenLastCalledWith(
+      { x: 800 - delay.position.x + (900 - REVEAL_MARGIN - 1100), y, zoom: 1 },
+      { duration: 200 }
+    )
+  })
+
+  it('fits the whole flow on Reorganize layout and on Fit to screen', async () => {
+    renderEditor(triggerAndDelay())
+    ready()
+    fireEvent.click(screen.getByRole('button', { name: 'Reorganize layout' }))
+    await waitFor(() => expect(flow.instance.fitView).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Fit to screen' }))
+    expect(flow.instance.fitView).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe('AutomationFlowEditor', () => {

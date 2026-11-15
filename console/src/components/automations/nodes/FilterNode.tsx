@@ -2,6 +2,8 @@ import React from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
+import { OutputNames } from './OutputNames'
+import { outputLeft } from './outputLayout'
 import { SourceHandle, TargetHandle } from './handles'
 import { getNodeDescription } from './constants'
 import type { AutomationFlowNode, Structural } from '../utils/flowConverter'
@@ -36,6 +38,7 @@ export const FilterNode: React.FC<FilterNodeProps> = ({ id, data, selected }) =>
         selected={selected}
         isOrphan={data.isOrphan}
         onDelete={data.onDelete}
+        outputs={<OutputNames nodeType="filter" config={data.config} />}
       >
         {!hasConditions ? (
           <div className="text-warning-fg text-xs">{t`No conditions`}</div>
@@ -46,15 +49,10 @@ export const FilterNode: React.FC<FilterNodeProps> = ({ id, data, selected }) =>
             {`${conditionCount} ${conditionCount !== 1 ? t`conditions` : t`condition`}`}
           </div>
         )}
-        {/* Yes/No labels for handles */}
-        <div className="flex justify-between text-xs mt-2 px-4">
-          <span className="text-success-fg font-medium">{t`Yes`}</span>
-          <span className="text-danger-fg font-medium">{t`No`}</span>
-        </div>
       </BaseNode>
       {/* Two fixed source handles: continue (Yes) and exit (No) */}
-      <SourceHandle id="continue" left="30%" tone="yes" />
-      <SourceHandle id="exit" left="70%" tone="no" />
+      <SourceHandle id="continue" left={`${outputLeft('filter', 0, 2)}%`} tone="yes" />
+      <SourceHandle id="exit" left={`${outputLeft('filter', 1, 2)}%`} tone="no" />
     </>
   )
 }

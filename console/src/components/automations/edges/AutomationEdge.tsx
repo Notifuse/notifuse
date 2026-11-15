@@ -10,6 +10,7 @@ import { useNumberFormat } from '../../layout'
 import { branchKeysOfEdge, branchShare } from '../branchKeys'
 import { useNodeStatsState } from '../stats/nodeStatsState'
 import { EDGE_LABEL_TONES, edgeBaseLabel } from './edgeLabel'
+import { pointDownLink } from './pointDownLink'
 
 // Type alias rather than an interface: ReactFlow constrains edge data to `Record<string, unknown>`,
 // which only an object-literal type alias satisfies (an interface has no implicit index signature).
@@ -25,6 +26,9 @@ export type AutomationEdgeData = {
 // The edge type the automation editor works with. In ReactFlow v12 `EdgeProps` takes the edge type,
 // not the data type.
 export type AutomationFlowEdge = Edge<AutomationEdgeData>
+
+// Where a share sits on a link out of a multi-output step: this far under its output, on the link.
+const SHARE_DOWN = 26
 
 export const AutomationEdge: React.FC<EdgeProps<AutomationFlowEdge>> = ({
   source,
@@ -52,36 +56,63 @@ export const AutomationEdge: React.FC<EdgeProps<AutomationFlowEdge>> = ({
   })
 
   const hasButtons = data?.onInsert || data?.onDelete
-  const base = edgeBaseLabel(i18n, data?.sourceType, sourceHandleId, data?.sourceConfig)
+  const named = edgeBaseLabel(i18n, data?.sourceType, sourceHandleId, data?.sourceConfig)
   const share =
-    base && stats.enabled && !stats.loading && !stats.error && stats.savedNodeIds.has(source)
+    named && stats.enabled && !stats.loading && !stats.error && stats.savedNodeIds.has(source)
       ? branchShare(stats.nodes?.[source], branchKeysOfEdge(data!.sourceType!, sourceHandleId, data?.sourceConfig))
       : null
+  // A share sits on its link just under its own output, not halfway: a link crossing to a step on
+  // the other side would otherwise put it under a neighbour's name.
+  const { x: shareX, y: shareY } = pointDownLink({ x: sourceX, y: sourceY }, { x: targetX, y: targetY }, SHARE_DOWN, {
+    x: labelX,
+    y: labelY
+  })
+  // Only a filter, A/B test, list status or branch names its outputs, in its card above each point:
+  // their links carry the share of journeys that took them, with stats on, and nothing else.
+  const base = named && share && share.rate !== null ? { text: percent(share.rate), tone: named.tone } : null
+
+  const shareLabel = (label: { text: string; tone: keyof typeof EDGE_LABEL_TONES }) => (
+    <Tooltip title={share ? plural(share.count, { one: '# journey', other: '# journeys' }) : undefined}>
+      <span
+        data-edge-label
+        className={`rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ${EDGE_LABEL_TONES[label.tone]}`}
+      >
+        {label.text}
+      </span>
+    </Tooltip>
+  )
 
   return (
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
       {base || hasButtons ? (
         <EdgeLabelRenderer>
-          <div
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              pointerEvents: 'all',
-              zIndex: 1
-            }}
-            className="nodrag nopan flex flex-col items-center gap-1"
-          >
-            {base ? (
-              <Tooltip title={share ? plural(share.count, { one: '# journey', other: '# journeys' }) : undefined}>
-                <span data-edge-label className={`rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ${EDGE_LABEL_TONES[base.tone]}`}>
-                  {base.text}
-                  {share && share.rate !== null ? ` · ${percent(share.rate)}` : ''}
-                </span>
-              </Tooltip>
-            ) : null}
-            {hasButtons ? (
-              // Buttons, visible on hover
+          {base ? (
+            // The share of a link out of a multi-output step: just under its own output.
+            <div
+              style={{
+                position: 'absolute',
+                transform: `translate(-50%, -50%) translate(${shareX}px,${shareY}px)`,
+                pointerEvents: 'all',
+                zIndex: 1
+              }}
+              className="nodrag nopan"
+            >
+              {shareLabel(base)}
+            </div>
+          ) : null}
+          {hasButtons ? (
+            // Halfway along the link: the insert and delete buttons.
+            <div
+              style={{
+                position: 'absolute',
+                transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+                pointerEvents: 'all',
+                zIndex: 1
+              }}
+              className="nodrag nopan flex flex-col items-center gap-1"
+            >
+              {/* Visible on hover */}
               <div className="flex items-center gap-1 p-1 opacity-0 transition-opacity duration-150 hover:opacity-100">
                 {data?.onInsert && (
                   <AddNodeButton
@@ -104,8 +135,8 @@ export const AutomationEdge: React.FC<EdgeProps<AutomationFlowEdge>> = ({
                   </Tooltip>
                 )}
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </EdgeLabelRenderer>
       ) : null}
     </>

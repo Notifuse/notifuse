@@ -7,7 +7,8 @@ describe('validateAutomationsSearch', () => {
       status: 'live',
       q: 'welcome',
       automation: 'a1',
-      stats: 1
+      stats: 1,
+      period: undefined
     })
   })
 
@@ -16,8 +17,16 @@ describe('validateAutomationsSearch', () => {
       status: undefined,
       q: undefined,
       automation: undefined,
-      stats: undefined
+      stats: undefined,
+      period: undefined
     })
+  })
+
+  it('keeps the period only for 7 days or all time, 30 days being its absence', () => {
+    expect(validateAutomationsSearch({ period: '7d' }).period).toBe('7d')
+    expect(validateAutomationsSearch({ period: ['all', '7d'] }).period).toBe('all')
+    expect(validateAutomationsSearch({ period: '30d' }).period).toBeUndefined()
+    expect(validateAutomationsSearch({ period: 7 }).period).toBeUndefined()
   })
 
   it('keeps stats only when it is 1, written as a number', () => {

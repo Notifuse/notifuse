@@ -1,11 +1,11 @@
 import { createContext, useContext } from 'react'
 import type { NodeStats } from '../../../services/api/automation'
 
-export type StatsPeriod = 'last30' | 'all'
+export type StatsPeriod = 'last7' | 'last30' | 'all'
 
 /** The step results the editor holds; read by the cards and the edges, kept out of node data. */
 export interface NodeStatsState {
-  /** "With stats" is on: the cards and the edges show them. */
+  /** The stats switch is on: the cards and the edges show them. */
   enabled: boolean
   period: StatsPeriod
   loading: boolean
