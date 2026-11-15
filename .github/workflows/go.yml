@@ -62,12 +62,24 @@ jobs:
           name: codecov-unit-tests
           flags: unit
 
+
+  # The integration suite is one package whose tests run one after the other, so it
+  # runs as several jobs, each on its own Postgres and Mailpit. Tests cannot share
+  # them: many clear every Mailpit message, and some workspaces have fixed IDs.
+  # tests/shard splits the tests by their measured durations
+  # (tests/integration/testdata/durations.json, rebuilt with
+  # `make integration-durations`); every listed test runs in exactly one job,
+  # including tests the durations file does not know.
   integration-tests:
-    name: Integration Tests
+    name: Integration Tests (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
 
     services:
       postgres:
@@ -115,7 +127,32 @@ jobs:
           go mod download
           go get github.com/DATA-DOG/go-sqlmock
 
-      - name: Run integration tests and generate coverage
+      # -tags integration pulls in the scheduler/dispatch suite. Without the flag
+      # those files build out and the HTTP dispatch branch and the lease reap go
+      # completely untested.
+      #
+      # -tags licdev makes the binary trust the committed dev signing key, so the
+      # enterprise licence the harness mints (tests/testutil/license.go) verifies
+      # and the suite runs with every gate open. A release-keyed build refuses that
+      # licence, degrades to the free tier and fails seven suites on a 402 at the
+      # fourth workspace; the harness detects that build and refuses to start
+      # rather than run degraded.
+      - name: Build the integration test binary
+        run: go test -c -race -tags integration,licdev -o integ.test ./tests/integration
+
+      - name: Pick this shard's tests
+        shell: bash
+        run: |
+          go build -o shard-tool ./tests/shard
+          ./integ.test -test.list '.*' > all-tests.txt
+          ./shard-tool assign -shards 4 -index ${{ matrix.shard }} \
+            -durations tests/integration/testdata/durations.json < all-tests.txt > shard-pattern.txt
+          ./shard-tool assign -shards 4 -index ${{ matrix.shard }} -format names \
+            -durations tests/integration/testdata/durations.json < all-tests.txt > shard-tests.txt
+          echo "$(wc -l < shard-tests.txt) of $(wc -l < all-tests.txt) tests in this shard:"
+          cat shard-tests.txt
+
+      - name: Run integration tests
         env:
           # Enable integration tests
           INTEGRATION_TESTS: true
@@ -133,7 +170,11 @@ jobs:
           DB_NAME: notifuse_test_integration
           DB_PREFIX: notifuse_test
           DB_SSLMODE: disable
+        # Naming the shell is what turns on pipefail: an unnamed shell runs
+        # `bash -e {0}`, where the tee below would hide a failing test.
+        shell: bash
         run: |
+          set -o pipefail
           # Create a test .env file for integration tests
           echo "SECRET_KEY=UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw==" >> .env.test
           echo "ROOT_EMAIL=admin@example.com" >> .env.test
@@ -160,34 +201,48 @@ jobs:
             sleep 2
           done
 
-          # Run integration tests only with more timeout. The -race suite runs
-          # ~10-12m of test time on a good hosted runner but slow runners have
-          # been observed inflating identical tests by 40-125%, pushing a
-          # healthy run past 20m into Go's panic-on-timeout with nothing hung
-          # (the running test at the kill was 1s old).
+          # The binary runs from the package directory, as `go test` would: tests
+          # read testdata/ by relative path. Slow hosted runners have been seen
+          # inflating identical tests by 40-125%; 30m leaves that margin over a
+          # shard's ~8m. pipefail (above) makes a failing test fail the step
+          # through tee.
           #
-          # -tags integration pulls in the scheduler/dispatch suite. Without the
-          # flag those files build out and the HTTP dispatch branch and the lease
-          # reap go completely untested. It costs ~2m: the whole suite measures
-          # ~15.7m locally with -race, against ~14m before. At the top of the
-          # observed inflation range that lands on ~35m, so the budget goes to
-          # 45m to keep the same margin the 35m was chosen for.
-          #
-          # -tags licdev makes the binary trust the committed dev signing key,
-          # so the enterprise licence the harness mints (tests/testutil/
-          # license.go) verifies and the suite runs with every gate open. A
-          # release-keyed build refuses that licence, degrades to the free tier
-          # and fails seven suites on a 402 at the fourth workspace; the harness
-          # detects that build and refuses to start rather than run degraded.
-          go test -race -tags integration,licdev -coverprofile=coverage-integration.txt -covermode=atomic -timeout=45m ./tests/integration/... -v
+          # No coverage profile: its Codecov upload was already disabled. Turning
+          # it back on needs -test.coverprofile per shard (and -cover at build)
+          # plus a merge of the four profiles.
+          cd tests/integration
+          ../../integ.test -test.run "$(cat ../../shard-pattern.txt)" -test.v -test.timeout 30m 2>&1 | tee ../../shard-output.txt
 
-      # - name: Upload integration test coverage to Codecov
-      #   uses: codecov/codecov-action@v3
-      #   with:
-      #     token: ${{ secrets.CODECOV_TOKEN }}
-      #     slug: Notifuse/notifuse
-      #     file: coverage-integration.txt
-      #     fail_ci_if_error: true
-      #     verbose: true
-      #     name: codecov-integration-tests
-      #     flags: integration
+      # A panic or a timeout stops the binary and every test after it never runs,
+      # which the step above reports only as one failure. This names the tests the
+      # shard was given and did not start, so a run is never read as complete when
+      # it was not.
+      - name: Check every test of the shard ran
+        if: always()
+        shell: bash
+        run: |
+          test -f shard-tests.txt || { echo "the shard's test list was never built"; exit 1; }
+          test -f shard-output.txt || { echo "the tests never ran"; exit 1; }
+          # Not anchored at the start: stderr is merged into the log, and a line
+          # written without a newline can end up in front of a RUN line.
+          grep -oE '=== RUN   Test[A-Za-z0-9_]+$' shard-output.txt | sed 's/^=== RUN   //' | sort -u > ran.txt
+          sort -u shard-tests.txt > expected.txt
+          comm -23 expected.txt ran.txt > not-run.txt
+          if [ -s not-run.txt ]; then
+            echo "$(wc -l < not-run.txt) tests of this shard never started:"
+            cat not-run.txt
+            exit 1
+          fi
+          echo "All $(wc -l < expected.txt) tests of this shard started."
+
+  # One check to read and to require, whatever the number of shards.
+  integration-tests-result:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    if: always()
+    steps:
+      - name: Every shard passed
+        run: |
+          echo "shards: ${{ needs.integration-tests.result }}"
+          test "${{ needs.integration-tests.result }}" = "success"
