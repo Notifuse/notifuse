@@ -3,6 +3,7 @@ import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
 import { MoreHorizontal } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 import dayjs from '../../lib/dayjs'
 import type { Contact } from '../../services/api/contacts'
 import type { Segment } from '../../services/api/segment'
@@ -17,6 +18,28 @@ import type { ContactsView } from './contactsView'
 import { CUSTOM_DATETIME, CUSTOM_JSON, CUSTOM_NUMBER, CUSTOM_STRING } from './contactColumns'
 
 export const CONTACT_COLUMNS_STORAGE_KEY = 'contact_columns_visibility'
+
+// A row stays on one line: the first lists and segments, then « +N » naming the rest.
+const SHOWN_LISTS = 2
+const SHOWN_SEGMENTS = 1
+
+/** « +2 », with the names it stands for in a tooltip (and to screen readers). */
+function MoreCount({ names }: { names: string[] }) {
+  const { t } = useLingui()
+  if (names.length === 0) return null
+  const count = names.length
+  const joined = names.join(', ')
+  return (
+    <Tooltip title={joined}>
+      <span data-more-count className="shrink-0 text-xs text-ink-3 tabular-nums">
+        <span aria-hidden="true">{t`+${count}`}</span>
+        <span className="sr-only">
+          {plural(count, { one: `and # more: ${joined}`, other: `and # more: ${joined}` })}
+        </span>
+      </span>
+    </Tooltip>
+  )
+}
 
 export interface ContactsTableProps {
   workspace: Workspace
@@ -59,8 +82,7 @@ export function ContactsTable({
   const canReadSegments = !!permissions?.segments?.read
   const listName = (id: string) => lists.find((list) => list.id === id)?.name ?? id
   const fullDate = (value: string) => dayjs(value).tz(timezone).format('LLL')
-  const statusLabel = (status: string) =>
-    LIST_STATUS_LABEL[status] ? i18n._(LIST_STATUS_LABEL[status]) : status
+  const statusLabel = (status: string) => (LIST_STATUS_LABEL[status] ? i18n._(LIST_STATUS_LABEL[status]) : status)
 
   const hidden = (key: string) => !visibleColumns[key]
 
@@ -74,8 +96,7 @@ export function ContactsTable({
     ...CUSTOM_DATETIME.map((key) => ({
       title: getCustomFieldLabel(key, workspace),
       key,
-      render: (_: unknown, record: Contact) =>
-        record[key] ? dayjs(record[key]).tz(timezone).format('LL') : '—',
+      render: (_: unknown, record: Contact) => (record[key] ? dayjs(record[key]).tz(timezone).format('LL') : '—'),
       hidden: hidden(key)
     })),
     ...CUSTOM_JSON.map((key) => ({
@@ -99,11 +120,11 @@ export function ContactsTable({
           <div className="flex min-w-[220px] items-center gap-2.5">
             <span
               aria-hidden="true"
-              className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-50 text-2xs font-semibold text-primary-700"
+              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-50 text-2xs font-semibold text-primary-700"
             >
               {contactInitials(record)}
             </span>
-            <span className="flex min-w-0 flex-col">
+            <span className="flex min-w-0 flex-col leading-tight">
               {name ? <span className="truncate font-medium text-ink">{name}</span> : null}
               <span className={`truncate ${name ? 'text-xs text-ink-3' : 'text-ink'}`}>{record.email}</span>
             </span>
@@ -126,9 +147,7 @@ export function ContactsTable({
                 </Pill>
                 {subscription.created_at ? (
                   <Tooltip title={fullDate(subscription.created_at)}>
-                    <span className="text-xs text-ink-3">
-                      {t`for ${dayjs(subscription.created_at).fromNow(true)}`}
-                    </span>
+                    <span className="text-xs text-ink-3">{t`for ${dayjs(subscription.created_at).fromNow(true)}`}</span>
                   </Tooltip>
                 ) : null}
               </span>
@@ -139,68 +158,91 @@ export function ContactsTable({
           title: t`Lists`,
           key: 'lists',
           hidden: !canReadLists || hidden('lists'),
-          render: (_: unknown, record: Contact) => (
-            <span className="flex max-w-[320px] flex-wrap gap-1">
-              {(record.contact_lists ?? []).map((subscription) => (
-                <Tooltip
-                  key={subscription.list_id}
-                  title={
-                    <>
-                      <div>{statusLabel(subscription.status)}</div>
-                      {subscription.created_at ? (
-                        <div>{t`Subscribed on: ${fullDate(subscription.created_at)}`}</div>
-                      ) : null}
-                    </>
-                  }
-                >
-                  <span className="flex">
-                    <Pill tone={LIST_STATUS_TONE[subscription.status] ?? 'neutral'}>
-                      {listName(subscription.list_id)}
-                    </Pill>
-                  </span>
-                </Tooltip>
-              ))}
-            </span>
-          )
+          render: (_: unknown, record: Contact) => {
+            // The server gives them in no set order: by name, so « +N » always hides the same ones.
+            const subscriptions = [...(record.contact_lists ?? [])].sort((a, b) =>
+              listName(a.list_id).localeCompare(listName(b.list_id))
+            )
+            return (
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                {subscriptions.slice(0, SHOWN_LISTS).map((subscription) => (
+                  <Tooltip
+                    key={subscription.list_id}
+                    title={
+                      <>
+                        <div className="font-medium">{listName(subscription.list_id)}</div>
+                        <div>{statusLabel(subscription.status)}</div>
+                        {subscription.created_at ? (
+                          <div>{t`Subscribed on: ${fullDate(subscription.created_at)}`}</div>
+                        ) : null}
+                      </>
+                    }
+                  >
+                    <span className="flex">
+                      <Pill tone={LIST_STATUS_TONE[subscription.status] ?? 'neutral'}>
+                        {/* A long name is cut: the tooltip gives it whole. */}
+                        <span className="max-w-32 truncate">{listName(subscription.list_id)}</span>
+                      </Pill>
+                    </span>
+                  </Tooltip>
+                ))}
+                <MoreCount
+                  names={subscriptions.slice(SHOWN_LISTS).map((subscription) => listName(subscription.list_id))}
+                />
+              </span>
+            )
+          }
         },
     {
       title: t`Segments`,
       key: 'segments',
       hidden: !canReadSegments || hidden('segments'),
-      render: (_: unknown, record: Contact) => (
-        <span className="flex max-w-[280px] flex-wrap gap-x-2.5 gap-y-1">
-          {(record.contact_segments ?? []).map((membership) => {
-            const segment = segments.find((s) => s.id === membership.segment_id)
-            return (
-              <Tooltip
-                key={membership.segment_id}
-                title={
-                  <>
-                    <div className="font-medium">{segment?.name ?? membership.segment_id}</div>
-                    <div>
-                      {t`Matched on:`}{' '}
-                      {membership.matched_at ? fullDate(membership.matched_at) : t`Unknown date`}
-                    </div>
-                    <div className="text-xs">
-                      {t`Timezone:`} {timezone}
-                    </div>
-                  </>
-                }
-              >
-                <span className="flex items-center gap-1 text-sm whitespace-nowrap text-ink-2">
-                  <span
-                    aria-hidden="true"
-                    className="size-1.5 rounded-full"
-                    // The segment's own colour, chosen by the user: not a theme token.
-                    style={{ backgroundColor: segmentDotColor(segment?.color) }}
-                  />
-                  {segment?.name ?? membership.segment_id}
-                </span>
-              </Tooltip>
-            )
-          })}
-        </span>
-      )
+      render: (_: unknown, record: Contact) => {
+        const segmentName = (id: string) => segments.find((s) => s.id === id)?.name ?? id
+        // In a segment view that segment comes first, as every row belongs to it; then by name.
+        const openSegment = view.kind === 'segment' ? view.segmentId : undefined
+        const memberships = [...(record.contact_segments ?? [])].sort(
+          (a, b) =>
+            Number(b.segment_id === openSegment) - Number(a.segment_id === openSegment) ||
+            segmentName(a.segment_id).localeCompare(segmentName(b.segment_id))
+        )
+        return (
+          <span className="flex items-center gap-1.5 whitespace-nowrap">
+            {memberships.slice(0, SHOWN_SEGMENTS).map((membership) => {
+              const segment = segments.find((s) => s.id === membership.segment_id)
+              return (
+                <Tooltip
+                  key={membership.segment_id}
+                  title={
+                    <>
+                      <div className="font-medium">{segment?.name ?? membership.segment_id}</div>
+                      <div>
+                        {t`Matched on:`} {membership.matched_at ? fullDate(membership.matched_at) : t`Unknown date`}
+                      </div>
+                      <div className="text-xs">
+                        {t`Timezone:`} {timezone}
+                      </div>
+                    </>
+                  }
+                >
+                  <span className="flex items-center gap-1 text-sm text-ink-2">
+                    <span
+                      aria-hidden="true"
+                      className="size-1.5 shrink-0 rounded-full"
+                      // The segment's own colour, chosen by the user: not a theme token.
+                      style={{ backgroundColor: segmentDotColor(segment?.color) }}
+                    />
+                    <span className="max-w-40 truncate">{segment?.name ?? membership.segment_id}</span>
+                  </span>
+                </Tooltip>
+              )
+            })}
+            <MoreCount
+              names={memberships.slice(SHOWN_SEGMENTS).map((membership) => segmentName(membership.segment_id))}
+            />
+          </span>
+        )
+      }
     },
     { title: t`First Name`, dataIndex: 'first_name', key: 'first_name', hidden: hidden('first_name') },
     { title: t`Last Name`, dataIndex: 'last_name', key: 'last_name', hidden: hidden('last_name') },
@@ -213,10 +255,7 @@ export function ContactsTable({
       title: t`Tracking consent`,
       key: 'tracking_consent',
       render: (_: unknown, record: Contact) => (
-        <TrackingConsentSummary
-          opens={record.tracking_opens_consent}
-          clicks={record.tracking_clicks_consent}
-        />
+        <TrackingConsentSummary opens={record.tracking_opens_consent} clicks={record.tracking_clicks_consent} />
       ),
       hidden: hidden('tracking_consent')
     },
@@ -224,9 +263,7 @@ export function ContactsTable({
       title: t`Address`,
       key: 'address',
       render: (_: unknown, record: Contact) =>
-        [record.address_line_1, record.address_line_2, record.state, record.postcode]
-          .filter(Boolean)
-          .join(', '),
+        [record.address_line_1, record.address_line_2, record.state, record.postcode].filter(Boolean).join(', '),
       hidden: hidden('address')
     },
     { title: t`Job Title`, dataIndex: 'job_title', key: 'job_title', hidden: hidden('job_title') },
@@ -284,6 +321,7 @@ export function ContactsTable({
       dataSource={contacts}
       rowKey={(record) => record.email}
       loading={loading}
+      size="small"
       pagination={false}
       scroll={{ x: 'max-content' }}
       rowSelection={

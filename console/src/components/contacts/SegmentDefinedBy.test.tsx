@@ -1,11 +1,21 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { App } from 'antd'
 import type { Segment, TreeNode } from '../../services/api/segment'
 
 vi.mock('../../services/api/task', () => ({ taskApi: { findBySegmentId: vi.fn(async () => null) } }))
+vi.mock('../../services/api/segment', () => ({ rebuildSegment: vi.fn(async () => ({ message: 'Rebuild started' })) }))
+vi.mock('../segment/button_upsert', () => ({
+  DrawerSegment: ({ segment, canReadTemplates }: { segment: Segment; canReadTemplates: boolean }) => (
+    <div data-testid="segment-drawer" data-can-read-templates={String(canReadTemplates)}>
+      {segment.name}
+    </div>
+  )
+}))
 
+import { rebuildSegment } from '../../services/api/segment'
 import { SegmentDefinedBy } from './SegmentDefinedBy'
 
 const leaf = (value: string): TreeNode => ({
@@ -32,19 +42,26 @@ const segment = (tree: TreeNode, patch: Partial<Segment> = {}): Segment =>
     ...patch
   }) as Segment
 
-function renderBar(value: Segment) {
+function renderBar(value: Segment, canWrite = false, canReadTemplates = true) {
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <SegmentDefinedBy workspaceId="ws" segment={value} lists={[]} customFieldLabels={{}} />
+      <App>
+        <SegmentDefinedBy
+          workspaceId="ws"
+          segment={value}
+          lists={[]}
+          customFieldLabels={{}}
+          canWrite={canWrite}
+          canReadTemplates={canReadTemplates}
+        />
+      </App>
     </QueryClientProvider>
   )
 }
 
 describe('SegmentDefinedBy', () => {
   it('shows the first conditions, the joiner, the others counted and when it was updated', () => {
-    renderBar(
-      segment({ kind: 'branch', branch: { operator: 'or', leaves: ['FR', 'DE', 'ES', 'IT'].map(leaf) } })
-    )
+    renderBar(segment({ kind: 'branch', branch: { operator: 'or', leaves: ['FR', 'DE', 'ES', 'IT'].map(leaf) } }))
     expect(screen.getByText('Defined by')).toBeInTheDocument()
     expect(screen.getByText('Country is FR')).toBeInTheDocument()
     expect(screen.getByText('Country is ES')).toBeInTheDocument()
@@ -57,5 +74,27 @@ describe('SegmentDefinedBy', () => {
   it('shows the progress while the segment is computed', () => {
     renderBar(segment(leaf('FR'), { status: 'building' }))
     expect(screen.getByRole('img', { name: 'Computing this segment…' })).toBeInTheDocument()
+  })
+
+  it('offers Recompute and Edit segment only with segments write', () => {
+    renderBar(segment(leaf('FR')))
+    expect(screen.queryByRole('button', { name: /Recompute/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Edit segment/ })).toBeNull()
+  })
+
+  it('recomputes the segment once confirmed', async () => {
+    renderBar(segment(leaf('FR')), true)
+    fireEvent.click(screen.getByRole('button', { name: /Recompute/ }))
+    expect(rebuildSegment).not.toHaveBeenCalled()
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes' }))
+    await waitFor(() => expect(rebuildSegment).toHaveBeenCalledWith({ workspace_id: 'ws', segment_id: 'eu' }))
+  })
+
+  it.each([true, false])('opens the segment drawer on Edit segment, with Templates read %s', (read) => {
+    renderBar(segment(leaf('FR')), true, read)
+    expect(screen.queryByTestId('segment-drawer')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Edit segment/ }))
+    expect(screen.getByTestId('segment-drawer')).toHaveTextContent('Europe')
+    expect(screen.getByTestId('segment-drawer')).toHaveAttribute('data-can-read-templates', String(read))
   })
 })

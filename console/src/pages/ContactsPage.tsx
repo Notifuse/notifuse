@@ -1,6 +1,7 @@
 import React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Skeleton, Tooltip } from 'antd'
+import { plural } from '@lingui/core/macro'
 import { RefreshCw } from 'lucide-react'
 import { useParams, useSearch, useNavigate, useRouter } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
@@ -11,10 +12,7 @@ import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { CountTabs, Panel, RailLayout, TableToolbar, useNumberFormat } from '../components/layout'
 import { ContactsRail } from '../components/contacts/ContactsRail'
 import { ContactsTable, CONTACT_COLUMNS_STORAGE_KEY } from '../components/contacts/ContactsTable'
-import {
-  DEFAULT_VISIBLE_COLUMNS,
-  useSelectableColumns
-} from '../components/contacts/contactColumns'
+import { DEFAULT_VISIBLE_COLUMNS, useSelectableColumns } from '../components/contacts/contactColumns'
 import { ContactsViewHeader } from '../components/contacts/ContactsViewHeader'
 import { ContactsFilters } from '../components/contacts/ContactsFilters'
 import { useContactFilterFields } from '../components/contacts/contactFilterFields'
@@ -40,17 +38,13 @@ import {
 } from '../components/contacts/contactsView'
 import { exactViewTotal } from '../components/contacts/contactNavigation'
 import { ListHeader } from '../components/lists/ListHeader'
-import {
-  LIST_STATUSES,
-  LIST_STAT_KEYS,
-  useListStats,
-  type ListStatus
-} from '../components/lists/listStats'
+import { LIST_STATUSES, LIST_STAT_KEYS, useListStats, type ListStatus } from '../components/lists/listStats'
 import { CreateListDrawer } from '../components/lists/ListDrawer'
 import { DrawerSegment } from '../components/segment/button_upsert'
 import { useBulkContactAction, SkippedAction, type BulkActionResult } from '../hooks/useBulkContactAction'
 
 const SEARCH_DEBOUNCE_MS = 300
+const CONTACTS_SEARCH_ID = 'contacts-search'
 
 /** The search parameters that filter rows on top of the view; « Clear filters » empties them. */
 const ROW_FILTER_RESET: Partial<ContactsSearch> = {
@@ -88,7 +82,7 @@ export function ContactsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
-  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
+  const { permissions, role, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
   const { openDrawer: openImportDrawer, openDrawerWithSelectedList } = useContactsCsvUpload()
   const workspace = workspaces.find((w) => w.id === workspaceId)
 
@@ -97,6 +91,7 @@ export function ContactsPage() {
   const canReadLists = !!permissions?.lists?.read
   const canWriteLists = !!permissions?.lists?.write
   const canReadSegments = !!permissions?.segments?.read
+  const canWriteSegments = !!permissions?.segments?.write
 
   const listsQuery = useListsQuery(workspaceId, canReadLists)
   const segmentsQuery = useSegmentsQuery(workspaceId, canReadSegments)
@@ -182,6 +177,7 @@ export function ContactsPage() {
   // ---- Columns
   const [visibleColumns, setVisibleColumns] = React.useState<Record<string, boolean>>(readStoredColumns)
   const selectableColumns = useSelectableColumns(workspace)
+  const columnChoices = selectableColumns.map((column) => ({ ...column, visible: !!visibleColumns[column.key] }))
   const setColumnVisible = (key: string, visible: boolean) =>
     setVisibleColumns((prev) => {
       const next = { ...prev, [key]: visible }
@@ -270,9 +266,7 @@ export function ContactsPage() {
         })
       }
       // An email the server left out of operations[] is a failure, not an assumed success.
-      return batch.map(
-        (email) => results.get(email) || { email, success: false, error: 'Not acknowledged by server' }
-      )
+      return batch.map((email) => results.get(email) || { email, success: false, error: 'Not acknowledged by server' })
     })
     invalidateAfterContactChange()
     queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
@@ -312,10 +306,16 @@ export function ContactsPage() {
     invalidateAfterContactChange()
   }
 
+  // The bar goes with the selection: focus goes back to the search box rather than to the page.
+  const clearSelection = () => {
+    setSelectedEmails([])
+    window.setTimeout(() => document.getElementById(CONTACTS_SEARCH_ID)?.focus(), 0)
+  }
+
   const handleProgressModalClose = () => {
     if (bulk.running) bulk.cancel()
     setShowProgressModal(false)
-    setSelectedEmails([])
+    clearSelection()
     bulk.reset()
   }
 
@@ -443,14 +443,7 @@ export function ContactsPage() {
   }
 
   const handleRefresh = () => {
-    for (const key of [
-      'contacts',
-      'lists',
-      'lists-with-counts',
-      'total-contacts',
-      'segments',
-      'list-stats'
-    ]) {
+    for (const key of ['contacts', 'lists', 'lists-with-counts', 'total-contacts', 'segments', 'list-stats']) {
       queryClient.invalidateQueries({ queryKey: [key, workspaceId] })
     }
   }
@@ -487,6 +480,27 @@ export function ContactsPage() {
     status: tableSearch.contact_list_status,
     segmentCount: segment?.users_count
   })
+  // The view's own size next to the title, whatever the search, the filters or the status tab:
+  // the workspace's contacts, the list's statuses summed, the segment's members.
+  const viewTotal =
+    view.kind === 'list'
+      ? listStats.data
+        ? LIST_STATUSES.reduce((sum, key) => sum + listStats.data.stats[LIST_STAT_KEYS[key]], 0)
+        : undefined
+      : view.kind === 'segment'
+        ? segment?.users_count
+        : totalQuery.data?.total_contacts
+
+  // With every row loaded, the rows are the count. While more remain: « 10 of 1,288 contacts » when
+  // the total is known and above the rows (a segment's count can lag), else « 50+ contacts ».
+  const shown = rows.length
+  const shownCount = int(shown)
+  const selectedCount = selectedEmails.length
+  const footerCount = !hasMore
+    ? plural(shown, { one: '# contact', other: '# contacts' })
+    : exactTotal !== undefined && exactTotal > shown
+      ? plural(exactTotal, { one: `${shownCount} of # contact`, other: `${shownCount} of # contacts` })
+      : plural(shown, { one: '#+ contact', other: '#+ contacts' })
   const viewName =
     view.kind === 'list'
       ? (list?.name ?? view.listId)
@@ -518,9 +532,7 @@ export function ContactsPage() {
     if (view.kind === 'segment') {
       return (
         <EmptyState
-          text={
-            segment?.status === 'building' ? t`Computing this segment…` : t`No contacts match this segment`
-          }
+          text={segment?.status === 'building' ? t`Computing this segment…` : t`No contacts match this segment`}
         />
       )
     }
@@ -577,9 +589,7 @@ export function ContactsPage() {
 
   const tableArea = (() => {
     if (!canReadContacts) {
-      return (
-        <div className="px-4 py-10 text-center text-sm text-ink-3">{t`You don't have access to contacts`}</div>
-      )
+      return <div className="px-4 py-10 text-center text-sm text-ink-3">{t`You don't have access to contacts`}</div>
     }
     if (table.isError && !table.data) return <BlockError onRetry={() => table.refetch()} />
     if (table.isLoading) {
@@ -644,6 +654,10 @@ export function ContactsPage() {
             segment={segment}
             lists={lists}
             permissions={permissions}
+            role={role}
+            total={viewTotal}
+            columns={columnChoices}
+            onColumnVisibilityChange={setColumnVisible}
             onExport={() => setExportOpen(true)}
             onContactCreated={invalidateAfterContactChange}
             onViewDeleted={handleViewDeleted}
@@ -666,31 +680,38 @@ export function ContactsPage() {
               segment={segment}
               lists={lists}
               customFieldLabels={workspace.settings?.custom_field_labels ?? {}}
+              canWrite={canWriteSegments}
+              canReadTemplates={!!permissions?.templates?.read}
             />
           ) : null}
 
-          {canReadContacts ? (
-            <BulkActionsBar
-              selectedCount={selectedEmails.length}
-              lists={lists}
-              canWriteContacts={canWriteContacts}
-              canWriteLists={canWriteLists}
-              disabled={bulk.running}
-              onAddToList={handleBulkAddToList}
-              onRemoveFromList={handleBulkRemoveFromList}
-              onUnsubscribeFromList={handleBulkUnsubscribe}
-              onDelete={handleBulkDelete}
-              onClear={() => setSelectedEmails([])}
-            />
-          ) : null}
-
+          {/* Always rendered, so the selection count is announced as it changes. */}
+          <span className="sr-only" aria-live="polite">
+            {selectedCount > 0
+              ? plural(selectedCount, { one: '# contact selected', other: '# contacts selected' })
+              : ''}
+          </span>
           <Panel flush>
-            {canReadContacts ? (
+            {canReadContacts && selectedEmails.length > 0 ? (
+              <BulkActionsBar
+                selectedCount={selectedCount}
+                lists={lists}
+                canWriteContacts={canWriteContacts}
+                canWriteLists={canWriteLists}
+                disabled={bulk.running}
+                onAddToList={handleBulkAddToList}
+                onRemoveFromList={handleBulkRemoveFromList}
+                onUnsubscribeFromList={handleBulkUnsubscribe}
+                onDelete={handleBulkDelete}
+                onClear={clearSelection}
+              />
+            ) : canReadContacts ? (
               <TableToolbar
                 start={
                   <>
                     {statusTabs}
                     <TableToolbar.Search
+                      id={CONTACTS_SEARCH_ID}
                       value={searchInput}
                       onChange={setSearchInput}
                       placeholder={t`Email, name or external ID`}
@@ -699,22 +720,17 @@ export function ContactsPage() {
                       search={tableSearch}
                       fields={filterFields}
                       segments={segments}
-                      onRemove={(key) =>
-                        go((prev) => ({ ...prev, [key]: undefined, limit: undefined }), true)
-                      }
+                      canCreateSegment={canWriteSegments}
+                      onApply={(key, value) => go((prev) => ({ ...prev, [key]: value, limit: undefined }))}
+                      onCreateSegment={() => setSegmentDrawerOpen(true)}
+                      onRemove={(key) => go((prev) => ({ ...prev, [key]: undefined, limit: undefined }), true)}
                       onClear={clearFilters}
                     />
                   </>
                 }
                 end={
                   <>
-                    <ContactColumnsSelector
-                      columns={selectableColumns.map((column) => ({
-                        ...column,
-                        visible: !!visibleColumns[column.key]
-                      }))}
-                      onColumnVisibilityChange={setColumnVisible}
-                    />
+                    <ContactColumnsSelector columns={columnChoices} onColumnVisibilityChange={setColumnVisible} />
                     <Tooltip title={t`Refresh`}>
                       <Button
                         type="text"
@@ -731,25 +747,24 @@ export function ContactsPage() {
           </Panel>
 
           {canReadContacts && rows.length > 0 ? (
-            atMax && hasMore ? (
-              <div className="text-center text-sm text-ink-3">
-                {t`Showing the first ${int(MAX_CONTACT_ROWS)} contacts. Refine your filters to see more.`}
-              </div>
-            ) : hasMore ? (
-              <div className="flex justify-center">
+            <div data-contacts-footer className="flex items-center justify-between gap-3 px-1">
+              <span className="text-xs text-ink-3">{footerCount}</span>
+              {atMax && hasMore ? (
+                <span className="text-xs text-ink-3">
+                  {t`Showing the first ${int(MAX_CONTACT_ROWS)} contacts. Refine your filters to see more.`}
+                </span>
+              ) : hasMore ? (
                 <Button
+                  size="small"
                   loading={table.isFetching}
                   onClick={() =>
-                    go(
-                      (prev) => ({ ...prev, limit: (prev.limit ?? CONTACTS_PAGE_SIZE) + CONTACTS_PAGE_SIZE }),
-                      true
-                    )
+                    go((prev) => ({ ...prev, limit: (prev.limit ?? CONTACTS_PAGE_SIZE) + CONTACTS_PAGE_SIZE }), true)
                   }
                 >
                   {t`Load ${CONTACTS_PAGE_SIZE} more`}
                 </Button>
-              </div>
-            ) : null
+              ) : null}
+            </div>
           ) : null}
         </>
       )}
