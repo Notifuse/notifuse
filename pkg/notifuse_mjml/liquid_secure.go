@@ -157,7 +157,10 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 
 		// The context stops the render at its next node once the timeout is reached,
 		// so a runaway template does not keep its goroutine running.
-		res, err := tmpl.RenderContext(ctx, data)
+		// A Liquid error the render records (a filter given the wrong arguments, a
+		// partial that cannot be read...) would write "Liquid error: ..." in the email:
+		// it fails the render instead, and its message tells the author what to fix.
+		res, err := tmpl.RenderContext(ctx, data, liquid.RaiseErrors())
 		if err != nil {
 			errorChan <- renderError(err, content, s.timeout)
 			return
