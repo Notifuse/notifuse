@@ -2,7 +2,6 @@ package notifuse_mjml
 
 import (
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -171,16 +170,12 @@ func TestDisplayConditionConverter_RawPathWrapsTheBlock(t *testing.T) {
 	assert.NotContains(t, out, "R&D", "values are encoded so the MJML stays well formed")
 }
 
-// failingLiquidEngines makes every engine the pool hands out refuse any template (its size
-// limit is one byte) until the test ends. The pool is replaced, not drained, so no engine
-// from before is handed out.
+// failingLiquidEngines makes the shared engine refuse any template (its size limit is
+// one byte) until the test ends.
 func failingLiquidEngines(t *testing.T) {
-	liquidEnginePool = sync.Pool{New: func() interface{} {
-		return NewSecureLiquidEngineWithOptions(DefaultRenderTimeout, 1)
-	}}
-	t.Cleanup(func() {
-		liquidEnginePool = sync.Pool{New: func() interface{} { return NewSecureLiquidEngine() }}
-	})
+	saved := liquidEngine
+	liquidEngine = NewSecureLiquidEngineWithOptions(DefaultRenderTimeout, 1)
+	t.Cleanup(func() { liquidEngine = saved })
 }
 
 // The engine's own failure (timeout, size) is not the condition's result: with data the send
