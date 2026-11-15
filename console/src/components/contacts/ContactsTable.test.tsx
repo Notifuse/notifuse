@@ -77,6 +77,83 @@ describe('ContactsTable', () => {
     expect(within(r).getByText('AL')).toBeInTheDocument()
     expect(within(r).getByText('Newsletter')).toBeInTheDocument()
     expect(within(r).getByText('Plan Pro')).toBeInTheDocument()
+    // A long name is cut rather than widening the row.
+    expect(within(r).getByText('Newsletter')).toHaveClass('truncate')
+    expect(within(r).getByText('Plan Pro')).toHaveClass('truncate')
+  })
+
+  it('keeps a row on one line: two lists and one segment by name, then +N naming the rest', () => {
+    const membership = (list_id: string) => ({
+      email: 'bo@example.com',
+      list_id,
+      status: 'active',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z'
+    })
+    renderTable({
+      lists: [
+        { id: 'news', name: 'Newsletter' },
+        { id: 'beta', name: 'Beta testers' },
+        { id: 'vip', name: 'VIP Club' }
+      ] as List[],
+      segments: [
+        { id: 'pro', name: 'Plan Pro', color: 'volcano' },
+        { id: 'eu', name: 'European Market', color: 'geekblue' },
+        { id: 'zz', name: 'Zero opens', color: 'gold' }
+      ] as Segment[],
+      contacts: [
+        contact({
+          email: 'bo@example.com',
+          contact_lists: [membership('vip'), membership('news'), membership('beta')],
+          contact_segments: [
+            { segment_id: 'pro', matched_at: '2026-01-02T00:00:00Z' },
+            { segment_id: 'zz', matched_at: '2026-01-02T00:00:00Z' },
+            { segment_id: 'eu', matched_at: '2026-01-02T00:00:00Z' }
+          ]
+        } as Partial<Contact> & { email: string })
+      ]
+    })
+    const r = row('bo@example.com')
+    expect(within(r).getByText('Newsletter')).toBeInTheDocument()
+    expect(within(r).getByText('Beta testers')).toBeInTheDocument()
+    expect(within(r).queryByText('VIP Club')).toBeNull()
+    expect(within(r).getByText('European Market')).toBeInTheDocument()
+    expect(within(r).queryByText('Plan Pro')).toBeNull()
+    const more = [...r.querySelectorAll('[data-more-count]')].map((node) => [
+      node.querySelector('[aria-hidden]')?.textContent,
+      node.querySelector('.sr-only')?.textContent
+    ])
+    expect(more).toEqual([
+      ['+1', 'and 1 more: VIP Club'],
+      ['+2', 'and 2 more: Plan Pro, Zero opens']
+    ])
+  })
+
+  it('shows the open segment first in a segment view', () => {
+    renderTable({
+      view: { kind: 'segment', segmentId: 'zz' },
+      segments: [
+        { id: 'pro', name: 'Plan Pro', color: 'volcano' },
+        { id: 'zz', name: 'Zero opens', color: 'gold' }
+      ] as Segment[],
+      contacts: [
+        contact({
+          email: 'bo@example.com',
+          contact_segments: [
+            { segment_id: 'pro', matched_at: '2026-01-02T00:00:00Z' },
+            { segment_id: 'zz', matched_at: '2026-01-02T00:00:00Z' }
+          ]
+        } as Partial<Contact> & { email: string })
+      ]
+    })
+    const r = row('bo@example.com')
+    expect(within(r).getByText('Zero opens')).toBeInTheDocument()
+    expect(within(r).queryByText('Plan Pro')).toBeNull()
+  })
+
+  it('uses the dense table size', () => {
+    renderTable()
+    expect(document.querySelector('.ant-table-small')).not.toBeNull()
   })
 
   it('opens the contact on a row click, and only selects from the checkbox', () => {
@@ -139,10 +216,7 @@ describe('ContactsTable with an empty contact_lists join', () => {
   const loose = (value: Record<string, unknown>) => value as unknown as Contact
 
   it.each([
-    [
-      'null',
-      loose({ email: 'nulljoin@example.com', contact_lists: null, first_name: 'Nina', country: 'FR' })
-    ],
+    ['null', loose({ email: 'nulljoin@example.com', contact_lists: null, first_name: 'Nina', country: 'FR' })],
     ['absent', loose({ email: 'absentjoin@example.com', first_name: 'Abe', country: 'BE' })]
   ])('renders the row and its other columns when contact_lists is %s', (_, record) => {
     renderTable({ contacts: [record] })

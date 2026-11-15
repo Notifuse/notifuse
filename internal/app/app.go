@@ -968,6 +968,10 @@ func (a *App) InitServices() error {
 	// verifies with the same key — the endpoint has no session to authenticate.
 	a.taskService.SetSecretKey(a.config.Security.SecretKey)
 
+	// Runs started outside the task scheduler ("send now", a winner selection, a resume,
+	// /api/cron, tasks.execute) stop with the app, and Shutdown waits for them.
+	a.taskService.SetShutdownContext(a.shutdownCtx)
+
 	// Initialize transactional notification service
 	a.transactionalNotificationService = service.NewTransactionalNotificationService(
 		a.transactionalNotificationRepo,
@@ -1405,9 +1409,9 @@ func (a *App) InitServices() error {
 		a.logger,
 		a.config.APIEndpoint,
 		// Webhook nodes post to a URL whoever holds automations:write typed, so they
-		// take the same guard and opt-out as subscriptions. 30s is the node's
-		// timeout from before it had a guard.
-		newOutgoingWebhookClient(a.config.Webhook.AllowPrivateDeliveryHosts, a.config.Tracing.Enabled, 30*time.Second),
+		// take the same guard and opt-out as subscriptions. The node also bounds the
+		// call itself; a normal stop's drain is longer, so the call is not cut.
+		newOutgoingWebhookClient(a.config.Webhook.AllowPrivateDeliveryHosts, a.config.Tracing.Enabled, service.WebhookNodeTimeout),
 	)
 	a.automationScheduler = service.NewAutomationScheduler(
 		automationExecutor,
@@ -1476,6 +1480,49 @@ func (a *App) InitServices() error {
 	}
 
 	return nil
+}
+
+// immediateRunsStopTimeout bounds Shutdown's wait for the task runs started outside the
+// scheduler; it covers the wait an interrupted run gives its processor before handing the
+// task back.
+const immediateRunsStopTimeout = 5 * time.Second
+
+// startLongStops stops the automation scheduler and the email queue worker side by side, and
+// returns a channel closed once both stopped. Each claims nothing new from the start of the
+// shutdown (the shutdown context is cancelled first), and lets what is in flight finish.
+func (a *App) startLongStops() <-chan struct{} {
+	var stops []func()
+	if a.automationScheduler != nil {
+		stops = append(stops, func() {
+			a.logger.Info("Stopping automation scheduler...")
+			a.automationScheduler.Stop()
+		})
+	}
+	if a.emailQueueWorker != nil {
+		stops = append(stops, func() {
+			a.logger.Info("Stopping email queue worker...")
+			a.emailQueueWorker.Stop()
+		})
+	}
+	return runAll(stops...)
+}
+
+// runAll runs each function in its own goroutine and returns a channel closed once all ended.
+func runAll(fns ...func()) <-chan struct{} {
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+	for _, fn := range fns {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			fn()
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+	return done
 }
 
 // newEmailQueueWorkerConfig is the email queue worker's default configuration with the
@@ -1623,6 +1670,7 @@ func (a *App) InitHandlers() error {
 		!a.config.TaskScheduler.Enabled,
 	)
 	taskHandler.SetCronTaskCeiling(a.config.TaskScheduler.MaxTasks)
+	taskHandler.SetRunStarter(a.taskService)
 	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
 	inboundWebhookEventHandler := httpHandler.NewInboundWebhookEventHandler(a.inboundWebhookEventService, getJWTSecret, a.rateLimiter, a.logger)
 	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getJWTSecret, a.logger)
@@ -1987,6 +2035,11 @@ func (a *App) Shutdown(ctx context.Context) error {
 		a.oidcExchangeCache.Stop()
 	}
 
+	// The automation scheduler and the email queue worker wait longest for their work in flight
+	// (a step, a send): they stop beside the rest instead of after it, so both waits fit in the
+	// shutdown's budget.
+	longStopsDone := a.startLongStops()
+
 	// Drain the web analytics buffer before connections start closing; Stop
 	// is synchronous and idempotent (Start's own shutdown path also flushes).
 	if a.webAnalyticsBuffer != nil {
@@ -1999,17 +2052,15 @@ func (a *App) Shutdown(ctx context.Context) error {
 		a.taskScheduler.Stop()
 	}
 
-	// Stop automation scheduler
-	if a.automationScheduler != nil {
-		a.logger.Info("Stopping automation scheduler...")
-		a.automationScheduler.Stop()
+	// The runs started outside the scheduler were cancelled with the shutdown context; their
+	// last writes (a broadcast's cursor) land before the databases close.
+	if a.taskService != nil && !a.taskService.WaitRuns(immediateRunsStopTimeout) {
+		a.logger.Warn("Task runs started outside the scheduler still running after the stop's wait")
 	}
 
-	// Stop email queue worker
-	if a.emailQueueWorker != nil {
-		a.logger.Info("Stopping email queue worker...")
-		a.emailQueueWorker.Stop()
-	}
+	// The automation scheduler and the email queue worker have the longest waits (see
+	// startLongStops); they end here at the latest.
+	<-longStopsDone
 
 	// Stop global rate limiter
 	if a.rateLimiter != nil {

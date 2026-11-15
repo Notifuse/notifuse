@@ -138,7 +138,7 @@ func TestTaskService_RunTaskNow(t *testing.T) {
 		// The execution reads the task it was given; the strict mock refuses GetNextBatch.
 		repo.EXPECT().GetTx(gomock.Any(), gomock.Any(), "w1", "task-1").Return(nil, domain.ErrTaskNotFound)
 
-		svc.runTaskNow("w1", "task-1")
+		svc.runTaskNow(context.Background(), "w1", "task-1")
 	})
 
 	// A task deleted before it runs is logged at Warn, by either read; any other failure at Error.
@@ -179,7 +179,7 @@ func TestTaskService_RunTaskNow(t *testing.T) {
 				svc := NewTaskService(repo, mocks.NewMockSettingRepository(ctrl), log, nil, "http://localhost:8080")
 				tc.setup(repo)
 
-				svc.runTaskNow("w1", "task-1")
+				svc.runTaskNow(context.Background(), "w1", "task-1")
 			})
 		}
 	})

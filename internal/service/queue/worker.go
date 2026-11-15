@@ -41,9 +41,17 @@ type EmailQueueWorkerConfig struct {
 	// poll tick.
 	RoundWindow time.Duration // default: 2s
 
-	// Stop lets the sends in flight finish for ShutdownGrace, then cancels them and
-	// waits at most AbortWait more for those that ignore cancellation (SMTP).
-	ShutdownGrace time.Duration // default: 10s
+	// SendTimeout bounds one claimed row, from its claim to the provider's answer: the
+	// stop-on-reply lookup, the history row written before the send, and the send. It stays
+	// below the two minutes after which a row left processing is claimed again.
+	SendTimeout time.Duration // default: 100s
+
+	// Stop lets the sends in flight finish for ShutdownGrace, then cancels them and waits at
+	// most AbortWait more for them to return. A send still running at the end of the grace is
+	// cut and may be sent again after the restart: a send through an HTTP provider ends well
+	// within it (their client gives up after 10 s), an SMTP or SES send slower than the grace
+	// does not.
+	ShutdownGrace time.Duration // default: 40s
 	AbortWait     time.Duration // default: 5s
 
 	// OrphanCheckInterval is how often each workspace is checked for rows whose email
@@ -73,7 +81,8 @@ func DefaultWorkerConfig() *EmailQueueWorkerConfig {
 		SendConcurrency:         10,
 		SMTPSendConcurrency:     1,
 		RoundWindow:             2 * time.Second,
-		ShutdownGrace:           10 * time.Second,
+		SendTimeout:             100 * time.Second,
+		ShutdownGrace:           40 * time.Second,
 		AbortWait:               5 * time.Second,
 		OrphanCheckInterval:     time.Minute,
 		CircuitBreakerThreshold: 5,
@@ -98,6 +107,9 @@ func (c EmailQueueWorkerConfig) withSendDefaults() *EmailQueueWorkerConfig {
 	}
 	if c.RoundWindow <= 0 {
 		c.RoundWindow = d.RoundWindow
+	}
+	if c.SendTimeout <= 0 {
+		c.SendTimeout = d.SendTimeout
 	}
 	if c.ShutdownGrace <= 0 {
 		c.ShutdownGrace = d.ShutdownGrace
@@ -172,7 +184,8 @@ type EmailQueueWorker struct {
 
 	// Control. Stop cancels ctx: no new round, token or claim. A send already claimed
 	// runs on contexts the stop does not cancel. sendCtx carries what leads up to the
-	// email leaving and is cancelled only once the shutdown grace runs out; writeCtx
+	// email leaving (each row under its own SendTimeout) and is cancelled only once the
+	// shutdown grace runs out; writeCtx
 	// records the outcome and is never cancelled, since a lost MarkAsSent means the
 	// email is sent again after the restart.
 	ctx        context.Context
@@ -282,6 +295,7 @@ func (w *EmailQueueWorker) Start(ctx context.Context) error {
 		"send_concurrency":      w.config.SendConcurrency,
 		"smtp_send_concurrency": w.config.SMTPSendConcurrency,
 		"round_window":          w.config.RoundWindow.String(),
+		"send_timeout":          w.config.SendTimeout.String(),
 	}).Info("Starting email queue worker")
 
 	// Start the main processing loop
@@ -294,8 +308,8 @@ func (w *EmailQueueWorker) Start(ctx context.Context) error {
 }
 
 // Stop stops taking new work and waits for the sends in flight. Those still running
-// after ShutdownGrace are cancelled; Stop then waits at most AbortWait for them, since
-// an SMTP send cannot be interrupted, and returns.
+// after ShutdownGrace are cancelled; Stop then waits at most AbortWait for them to return
+// (and for the writes that record them), and returns.
 func (w *EmailQueueWorker) Stop() {
 	w.mu.Lock()
 	if !w.running {
@@ -703,6 +717,11 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 		return nil
 	}
 
+	// The row's own deadline, counted from its claim, so the send ends before the row could be
+	// reclaimed and sent again. A stop cancels the sends still running at the end of its grace.
+	sendCtx, cancelSend := context.WithTimeout(w.sendCtx, w.config.SendTimeout)
+	defer cancelSend()
+
 	// Build the send request
 	request := entry.Payload.ToSendEmailProviderRequest(
 		workspace.ID,
@@ -739,7 +758,7 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 	// or failed journey still sends what it queued. A journey that no longer exists has
 	// finished. One that cannot be read fails closed: the entry is retried later.
 	if w.automationRepo != nil && entry.Payload.ContactAutomationID != nil {
-		ca, lookupErr := w.automationRepo.GetContactAutomation(w.sendCtx, workspace.ID, *entry.Payload.ContactAutomationID)
+		ca, lookupErr := w.automationRepo.GetContactAutomation(sendCtx, workspace.ID, *entry.Payload.ContactAutomationID)
 		switch {
 		case lookupErr != nil && !errors.Is(lookupErr, domain.ErrContactAutomationNotFound):
 			w.retryAfterGuardError(workspace, entry, lookupErr)
@@ -771,11 +790,26 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, integration
 	// window before the post-send upsert. The post-send upsert below preserves the value
 	// (ON CONFLICT COALESCE). Only matters for automation sends where we set the Message-ID.
 	if entry.SourceType == domain.EmailQueueSourceAutomation && domain.ProviderSetsOwnMessageID(entry.ProviderKind) {
-		w.upsertMessageHistory(w.sendCtx, workspace.ID, workspace.Settings.SecretKey, entry, "", nil)
+		w.upsertMessageHistory(sendCtx, workspace.ID, workspace.Settings.SecretKey, entry, "", nil)
+	}
+
+	// The lookup and the history row above used the whole budget (a slow database): the
+	// provider is not asked at all, and the row is retried without counting against it. A
+	// stop's abort leaves the row processing, as below.
+	if w.sendCtx.Err() != nil {
+		return nil
+	}
+	if sendCtx.Err() != nil {
+		w.logger.WithFields(map[string]interface{}{
+			"entry_id":     entry.ID,
+			"send_timeout": w.config.SendTimeout.String(),
+		}).Warn("The email's send timeout ran out before it was sent; retrying it later")
+		w.retryUnsent(workspace, entry, "the send timeout ran out before the email was sent")
+		return nil
 	}
 
 	// Send the email
-	err := w.emailService.SendEmail(w.sendCtx, *request, true) // isMarketing = true
+	err := w.emailService.SendEmail(sendCtx, *request, true) // isMarketing = true
 	if err != nil {
 		if w.sendCtx.Err() != nil {
 			// Cancelled because the shutdown grace ran out: the provider did not refuse
@@ -910,18 +944,22 @@ func (w *EmailQueueWorker) releaseThrottled(workspace *domain.Workspace, entry *
 }
 
 // retryAfterGuardError puts back an entry whose journey could not be checked before
-// sending: like a failed send it is retried with backoff and fails for good after its
-// last attempt, but nothing was sent, so no message history failure is recorded and the
-// provider's circuit breaker does not count it.
+// sending, through retryUnsent.
 func (w *EmailQueueWorker) retryAfterGuardError(workspace *domain.Workspace, entry *domain.EmailQueueEntry, lookupErr error) {
-	attempts := entry.Attempts + 1 // MarkAsProcessing counted this attempt
-	reason := fmt.Sprintf("failed to check the automation journey before sending: %v", lookupErr)
 	w.logger.WithFields(map[string]interface{}{
 		"entry_id":              entry.ID,
 		"contact_automation_id": *entry.Payload.ContactAutomationID,
-		"attempts":              attempts,
+		"attempts":              entry.Attempts + 1,
 		"error":                 lookupErr.Error(),
 	}).Warn("Stop-on-reply guard could not read the journey; retrying the email later")
+	w.retryUnsent(workspace, entry, fmt.Sprintf("failed to check the automation journey before sending: %v", lookupErr))
+}
+
+// retryUnsent puts back an entry that was not sent: like a failed send it is retried with
+// backoff and fails for good after its last attempt, but nothing reached the provider, so no
+// message history failure is recorded and the provider's circuit breaker does not count it.
+func (w *EmailQueueWorker) retryUnsent(workspace *domain.Workspace, entry *domain.EmailQueueEntry, reason string) {
+	attempts := entry.Attempts + 1 // MarkAsProcessing counted this attempt
 	if attempts >= entry.MaxAttempts {
 		if err := w.queueRepo.MarkAsPermanentlyFailed(w.writeCtx, workspace.ID, entry.ID, reason); err != nil {
 			w.logger.WithFields(map[string]interface{}{"entry_id": entry.ID, "error": err.Error()}).
