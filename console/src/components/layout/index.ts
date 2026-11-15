@@ -8,6 +8,7 @@ export { KpiStrip, type KpiItem, type KpiStripProps, type KpiTone } from './KpiS
 export { Pill, type PillProps, type PillTone } from './Pill'
 export { RateBar, type RateBarProps } from './RateBar'
 export { FillBar, type FillBarProps } from './FillBar'
+export { HelpTip, type HelpTipProps } from './HelpTip'
 export { KeyValueList, type KeyValueItem, type KeyValueListProps } from './KeyValueList'
 export { CountTabs, type CountTabOption, type CountTabsProps } from './CountTabs'
 export { TableToolbar, type TableToolbarProps } from './TableToolbar'

@@ -20,14 +20,18 @@ export interface PillProps {
   pulse?: boolean
   /** Replaces the dot (a trophy for an A/B winner). */
   icon?: ReactNode
+  /** Shrinks to its container and ends its text with an ellipsis, the dot kept (a table column). */
+  truncate?: boolean
   children: ReactNode
 }
 
 /** A status pill. */
-export function Pill({ tone, dot = true, pulse, icon, children }: PillProps) {
+export function Pill({ tone, dot = true, pulse, icon, truncate, children }: PillProps) {
   return (
     <span
-      className={`inline-flex h-5 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium whitespace-nowrap ${TONE[tone]}`}
+      className={`inline-flex h-5 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium whitespace-nowrap ${
+        truncate ? 'max-w-full min-w-0' : 'shrink-0'
+      } ${TONE[tone]}`}
     >
       {icon ? (
         <span className="flex items-center [&>svg]:size-3">{icon}</span>
@@ -40,7 +44,7 @@ export function Pill({ tone, dot = true, pulse, icon, children }: PillProps) {
           }`}
         />
       ) : null}
-      {children}
+      {truncate ? <span className="min-w-0 truncate">{children}</span> : children}
     </span>
   )
 }

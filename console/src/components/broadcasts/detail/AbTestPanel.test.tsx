@@ -4,6 +4,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { AbTestPanel, type AbTestPanelProps } from './AbTestPanel'
+import { abTableWidth } from './abTableWidth'
 import type { Broadcast } from '../../../services/api/broadcast'
 import type { Workspace } from '../../../services/api/types'
 import type { UserPermissions } from '../../../services/api/workspace'
@@ -137,6 +138,30 @@ describe('AbTestPanel', () => {
     expect(within(rowOf('Long subject')).getByText('B')).toBeInTheDocument()
   })
 
+  it('keeps the counts in the panel: template under the variant, sender under the subject', () => {
+    renderPanel()
+    const headers = screen.getAllByRole('columnheader').map((h) => h.textContent)
+    expect(headers.filter(Boolean)).toEqual(['Variant', 'Subject', 'Sent', 'Opens', 'Clicks'])
+    const a = rowOf('Short subject')
+    const [variantCell, subjectCell] = within(a).getAllByRole('cell')
+    expect(within(variantCell).getByText('Alpha')).toBeInTheDocument()
+    expect(within(subjectCell).getByText('Subject Alpha')).toBeInTheDocument()
+    expect(within(subjectCell).getByText('Preview Alpha')).toBeInTheDocument()
+    expect(within(subjectCell).getByText('Acme <hello@acme.test>').className).toContain('text-xs')
+  })
+
+  it('lets an action that does not fit go to the next line, not over the Clicks column', () => {
+    renderPanel()
+    const actions = rowOf('Short subject').querySelector('[data-ab-actions]')!
+    expect(actions.className).toContain('flex-wrap')
+  })
+
+  it('scrolls only below the width of its columns, wider with the pick button', () => {
+    expect(abTableWidth({ sent: true, winnerSelectable: false })).toBe(886)
+    expect(abTableWidth({ sent: true, winnerSelectable: true })).toBe(1060)
+    expect(abTableWidth({ sent: false, winnerSelectable: false })).toBe(576)
+  })
+
   it('shows each variant’s sender: default, chosen on the broadcast with its Reply-To, or deleted', () => {
     renderPanel({
       broadcast: broadcast({
@@ -178,7 +203,7 @@ describe('AbTestPanel', () => {
         onSendTest={vi.fn()}
       />
     )
-    expect(within(rowOf('Short subject')).getByRole('cell', { name: 'tpl-a' })).toBeInTheDocument()
+    expect(within(rowOf('Short subject')).getByText('tpl-a', { selector: '[data-variant-template]' })).toBeInTheDocument()
     expect(screen.queryByText('Untitled')).not.toBeInTheDocument()
     unmount()
     renderPanel({ broadcast: noTemplates })

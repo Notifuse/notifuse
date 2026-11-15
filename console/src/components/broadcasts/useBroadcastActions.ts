@@ -118,17 +118,25 @@ export function useBroadcastActions(workspaceId: string) {
 
   const selectWinner = (broadcast: Broadcast, templateId: string, templateName: string) => {
     modal.confirm({
-      title: t`Pick as winner`,
-      content: t`Are you sure you want to select "${templateName}" as the winner? The broadcast will be sent to the remaining recipients.`,
+      title: t({ message: 'Pick as winner', context: 'newsletter A/B' }),
+      content: t({
+        message: `Are you sure you want to select "${templateName}" as the winner? The broadcast will be sent to the remaining recipients.`,
+        context: 'newsletter A/B'
+      }),
       okText: t`Yes`,
       cancelText: t`No`,
       onOk: async () => {
         try {
           await broadcastApi.selectWinner({ workspace_id: workspaceId, id: broadcast.id, template_id: templateId })
-          message.success(t`Winner selected successfully! The broadcast will be sent to remaining recipients.`)
+          message.success(
+            t({
+              message: 'Winner selected successfully! The broadcast will be sent to remaining recipients.',
+              context: 'newsletter A/B'
+            })
+          )
           invalidate(broadcast.id)
         } catch {
-          message.error(t`Failed to select winner`)
+          message.error(t({ message: 'Failed to select winner', context: 'newsletter A/B' }))
         }
       }
     })

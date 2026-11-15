@@ -85,7 +85,7 @@ export function BroadcastCompose(props: BroadcastComposeProps) {
     return <ComposeEditor {...props} broadcast={query.data} />
   }
   return (
-    <FullDrawer open onClose={onClose} backLabel={t`Broadcasts`} copyLink={false}>
+    <FullDrawer open onClose={onClose} backLabel={t`Broadcasts`} copyLink={false} push={false}>
       {query.isError ? (
         isNotFound(query.error) ? (
           <Result status="404" title={t`Broadcast not found`} extra={<Button onClick={onClose}>{t`Back to broadcasts`}</Button>} />
@@ -421,11 +421,13 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
   )
 
   return (
+    // A drawer opened inside (the test send, a template preview) must not slide the composer aside.
     <FullDrawer
       open
       onClose={handleClose}
       backLabel={t`Broadcasts`}
       copyLink={false}
+      push={false}
       barTitle={barTitle}
       topActions={
         <>

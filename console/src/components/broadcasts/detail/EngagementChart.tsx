@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import dayjs from '../../../lib/dayjs'
 import type { Broadcast } from '../../../services/api/broadcast'
-import { Panel } from '../../layout'
+import { HelpTip, Panel, useNumberFormat } from '../../layout'
 import { engagementQuery, ENGAGEMENT_COLUMNS, type EngagementGranularity, type EngagementKind } from '../broadcastAnalytics'
 import { runBroadcastQuery } from '../broadcastQueryClient'
 import { timeBucketColumn } from '../../web_analytics/lib/dates'
@@ -28,9 +28,13 @@ export interface EngagementChartProps {
   live: boolean
 }
 
-/** F7 and F8: first opens and first clicks over 48 h, 7 d or 30 d from the start. */
+/**
+ * F7 and F8: opens and clicks per hour (48 h, 7 d) or per day (30 d) from the start. History keeps
+ * a message's first open and first click only, so each message counts once, when it was first opened.
+ */
 export function EngagementChart({ workspaceId, broadcast, timezone, live }: EngagementChartProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
+  const { int } = useNumberFormat()
   const [period, setPeriod] = useState<ChartPeriod>('48h')
   const { hours, granularity } = PERIODS[period]
   const start = useMemo(
@@ -67,22 +71,38 @@ export function EngagementChart({ workspaceId, broadcast, timezone, live }: Enga
     const markers: ChartMarker[] = []
     if (broadcast.test_sent_at) markers.push({ key: bucketKey(broadcast.test_sent_at, granularity, timezone), label: t`Test sent` })
     if (broadcast.winner_sent_at)
-      markers.push({ key: bucketKey(broadcast.winner_sent_at, granularity, timezone), label: t`Winner sent` })
+      markers.push({
+        key: bucketKey(broadcast.winner_sent_at, granularity, timezone),
+        label: t({ message: 'Winner sent', context: 'newsletter A/B' })
+      })
     return buildChartOption({
       opens: fill('opens', opensQuery.data?.data ?? []),
       clicks: fill('clicks', clicksQuery.data?.data ?? []),
       granularity,
       markers,
-      labels: { opens: t`First opens`, clicks: t`First clicks` }
+      labels: { opens: t`Opens`, clicks: t`Clicks` },
+      locale: i18n.locale,
+      formatCount: int,
+      periodHours: hours
     })
+    // The language is a dependency: the axis, the tooltip and the labels are written in it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opensQuery.data, clicksQuery.data, period, timezone, broadcast.test_sent_at, broadcast.winner_sent_at, start?.valueOf()])
+  }, [opensQuery.data, clicksQuery.data, period, timezone, broadcast.test_sent_at, broadcast.winner_sent_at, start?.valueOf(), i18n.locale])
 
   if (!start) return null
 
   return (
     <Panel
-      title={t`Opens and clicks over time`}
+      title={
+        <HelpTip
+          title={granularity === 'hour' ? t`Opens and clicks per hour` : t`Opens and clicks per day`}
+          label={t`About these numbers`}
+        >
+          {granularity === 'hour'
+            ? t`Each message counts once, in the hour of its first open or click; clicks count each message clicked once.`
+            : t`Each message counts once, on the day of its first open or click; clicks count each message clicked once.`}
+        </HelpTip>
+      }
       extra={
         <Segmented<ChartPeriod>
           size="small"
@@ -96,9 +116,6 @@ export function EngagementChart({ workspaceId, broadcast, timezone, live }: Enga
         />
       }
     >
-      <p data-unreset className="m-0 mb-2 text-xs text-ink-3">
-        {t`First opens counts the messages opened or clicked, once each; first clicks, the messages clicked once each.`}
-      </p>
       {opensQuery.isError || clicksQuery.isError ? (
         <CouldntLoad />
       ) : opensQuery.isLoading || clicksQuery.isLoading || !option ? (

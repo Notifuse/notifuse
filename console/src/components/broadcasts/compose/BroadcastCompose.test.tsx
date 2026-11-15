@@ -32,9 +32,18 @@ vi.mock('../detail/useTemplatePreview', () => ({
 }))
 vi.mock('../../templates/TemplateSelectorInput', () => ({ default: () => <div data-testid="template-selector" /> }))
 vi.mock('../VariationSenderSelect', () => ({ VariationSenderSelect: () => <div data-testid="sender-select" /> }))
-vi.mock('../../templates/SendTemplateModal', () => ({
-  default: ({ isOpen, defaultListId }: { isOpen: boolean; defaultListId?: string }) => (isOpen ? <div data-testid="send-test">{defaultListId}</div> : null)
-}))
+vi.mock('../../templates/SendTemplateModal', async () => {
+  const { Drawer } = await import('antd')
+  return {
+    // A drawer, as the real one is: it would push the composer aside if the composer let it.
+    default: ({ isOpen, defaultListId }: { isOpen: boolean; defaultListId?: string }) =>
+      isOpen ? (
+        <Drawer open getContainer={false} title="Send test">
+          <div data-testid="send-test">{defaultListId}</div>
+        </Drawer>
+      ) : null
+  }
+})
 let shouldBlockFn: (args: { current: { pathname: string; search: object }; next: { pathname: string; search: object } }) => boolean | Promise<boolean>
 vi.mock('@tanstack/react-router', () => ({
   useBlocker: (opts: { shouldBlockFn: typeof shouldBlockFn }) => {
@@ -284,6 +293,18 @@ describe('BroadcastCompose', () => {
     await userEvent.click(button)
     expect(await screen.findByTestId('send-test')).toBeInTheDocument()
     expect(broadcastApi.update).not.toHaveBeenCalled()
+  })
+
+  it('keeps the composer in place when the test send opens inside it', async () => {
+    renderCompose()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Broadcast name' }), { target: { value: '' } })
+    const button = screen.getByRole('button', { name: 'Send test' })
+    await waitFor(() => expect(button).toBeEnabled())
+    await userEvent.click(button)
+    expect(await screen.findByTestId('send-test')).toBeInTheDocument()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const composer = document.querySelector<HTMLElement>('.app-full-drawer .ant-drawer-content-wrapper')!
+    expect(composer.style.transform).toBe('')
   })
 
   it('opens no test when the draft cannot be saved', async () => {

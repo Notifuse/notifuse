@@ -23,6 +23,7 @@ func TestRun_PrintsTheHMACTheResetVerifies(t *testing.T) {
 	assert.True(t, domain.VerifyEmailHMAC("root@example.com", hmac, hmacTestKey))
 	assert.Contains(t, out.String(), "HMAC: "+hmac+"\n")
 	assert.Contains(t, out.String(), "Reset URL: /api/demo.reset?hmac="+hmac+"\n")
+	assert.Contains(t, out.String(), "Seed URL: /api/demo.seed?hmac="+hmac+"\n")
 }
 
 func TestRun_SignsWithTheFirstKeyOfAList(t *testing.T) {

@@ -28,7 +28,7 @@ func createTestDemoService(cfg *config.Config, serviceLogger logger.Logger) *ser
 	return service.NewDemoService(
 		serviceLogger,
 		cfg,
-		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 }
 
@@ -42,7 +42,7 @@ func TestNewDemoHandler(t *testing.T) {
 	assert.NotNil(t, handler)
 	assert.Equal(t, svc, handler.service)
 	assert.Equal(t, mockLogger, handler.logger)
-	assert.True(t, handler.lastReset.IsZero())
+	assert.True(t, handler.lastReset.at.IsZero())
 }
 
 func TestDemoHandler_RegisterRoutes(t *testing.T) {
@@ -51,17 +51,28 @@ func TestDemoHandler_RegisterRoutes(t *testing.T) {
 	svc := createTestDemoService(cfg, mockLogger)
 	handler := NewDemoHandler(svc, mockLogger)
 
-	mux := http.NewServeMux()
-	handler.RegisterRoutes(mux)
+	// A 404 means the route is absent; a registered route answers the missing HMAC
+	// with a 400.
+	status := func(mux *http.ServeMux, path string) int {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		return w.Code
+	}
 
-	// Test that the route was registered by making a request
-	req := httptest.NewRequest(http.MethodGet, "/api/demo.reset", nil)
-	w := httptest.NewRecorder()
+	t.Run("reset enabled: both routes", func(t *testing.T) {
+		mux := http.NewServeMux()
+		handler.RegisterRoutes(mux, true)
+		assert.Equal(t, http.StatusBadRequest, status(mux, "/api/demo.reset"))
+		assert.Equal(t, http.StatusBadRequest, status(mux, "/api/demo.seed"))
+	})
 
-	mux.ServeHTTP(w, req)
-
-	// Should get a response (not 404), even if it's an error due to missing HMAC
-	assert.NotEqual(t, http.StatusNotFound, w.Code)
+	t.Run("reset disabled: seed only", func(t *testing.T) {
+		mux := http.NewServeMux()
+		handler.RegisterRoutes(mux, false)
+		assert.Equal(t, http.StatusNotFound, status(mux, "/api/demo.reset"),
+			"the reset deletes every workspace and must not exist on production")
+		assert.Equal(t, http.StatusBadRequest, status(mux, "/api/demo.seed"))
+	})
 }
 
 func TestDemoHandler_MethodNotAllowed(t *testing.T) {
@@ -147,7 +158,7 @@ func TestDemoHandler_RecentResetIsSkippedNotRejected(t *testing.T) {
 	h := NewDemoHandler(svc, mockLogger)
 
 	// Well inside the debounce window, whatever that window is set to.
-	h.lastReset = time.Now().Add(-minTimeBetweenResets / 2)
+	h.lastReset = demoRun{at: time.Now().Add(-minTimeBetweenResets / 2)}
 
 	// Generate valid HMAC
 	validHMAC := domain.ComputeEmailHMAC("test@example.com", "test-secret")
@@ -266,14 +277,14 @@ func TestDemoHandler_LastResetTimeUpdate(t *testing.T) {
 	h := NewDemoHandler(svc, mockLogger)
 
 	// Verify initial state
-	assert.True(t, h.lastReset.IsZero())
+	assert.True(t, h.lastReset.at.IsZero())
 
 	// The handler's resetMutex should be available for testing
 	h.resetMutex.Lock()
-	initialTime := h.lastReset
+	initialTime := h.lastReset.at
 	h.resetMutex.Unlock()
 
-	assert.Equal(t, initialTime, h.lastReset)
+	assert.Equal(t, initialTime, h.lastReset.at)
 }
 
 func TestDemoHandler_DirectLastResetUpdate(t *testing.T) {
@@ -284,15 +295,15 @@ func TestDemoHandler_DirectLastResetUpdate(t *testing.T) {
 	h := NewDemoHandler(svc, mockLogger)
 
 	// Test initial state
-	assert.True(t, h.lastReset.IsZero())
+	assert.True(t, h.lastReset.at.IsZero())
 
 	// Directly update lastReset to test the field (simulating what would happen on success)
 	now := time.Now()
-	h.lastReset = now
+	h.lastReset = demoRun{at: now}
 
 	// Verify the update
-	assert.Equal(t, now, h.lastReset)
-	assert.False(t, h.lastReset.IsZero())
+	assert.Equal(t, now, h.lastReset.at)
+	assert.False(t, h.lastReset.at.IsZero())
 }
 
 // TestDemoHandler_CoverageNote records what these tests deliberately leave out.

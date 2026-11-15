@@ -116,16 +116,22 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
   const sending = (b: Broadcast) => {
     if (b.status === 'draft') {
       const ago = dates.relative(b.updated_at)
-      return <span className="text-ink-3">{t`Edited ${ago}`}</span>
+      return <span className="text-ink-3">{t({ message: `Edited ${ago}`, context: 'newsletter status' })}</span>
     }
     if (b.status === 'scheduled') {
       const scheduled = scheduledInstant(b.schedule, timezone)
       if (!scheduled) return <span className="text-ink-4">—</span>
       const iso = scheduled.instant.toISOString()
+      // Date, time and zone do not fit one line of the column: the date, then the time and zone.
       return (
-        <span className="inline-flex items-center gap-1.5 text-ink">
-          <CalendarClock size={13} aria-hidden="true" className="text-ink-3" />
-          {dates.dateTime(iso, scheduled.timezone)} {dates.zone(iso, scheduled.timezone)}
+        <span className="flex items-start gap-1.5 text-ink">
+          <CalendarClock size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-3" />
+          <span className="flex min-w-0 flex-col">
+            <span>{dates.date(iso, scheduled.timezone)}</span>
+            <span className="text-xs text-ink-3">
+              {dates.time(iso, scheduled.timezone)} {dates.zone(iso, scheduled.timezone)}
+            </span>
+          </span>
         </span>
       )
     }
@@ -136,20 +142,26 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     const verdict = pageStats.verdicts.get(b.id)
     const progress = pageStats.progress.get(b.id)
     const enqueued = pageStats.tasks.get(b.id)?.state?.send_broadcast?.enqueued_count
+    const started = b.started_at ? (
+      <span className="text-ink">{dates.dateTime(b.started_at, timezone)}</span>
+    ) : (
+      <span className="text-ink-4">—</span>
+    )
     if (b.status === 'processed' && verdict?.kind === 'sending' && progress && enqueued) {
+      // Once nothing is left in flight, the start date takes the bar's place.
       return (
-        <div className="w-[180px]">
-          <SendingProgress
-            enqueuedCount={enqueued}
-            sentCount={progress.sentCount}
-            failedCount={progress.failedCount}
-            startedAt={b.started_at}
-            remainingOverride={progress.inFlight}
-          />
-        </div>
+        <SendingProgress
+          compact
+          fallback={started}
+          enqueuedCount={enqueued}
+          sentCount={progress.sentCount}
+          failedCount={progress.failedCount}
+          startedAt={b.started_at}
+          remainingOverride={progress.inFlight}
+        />
       )
     }
-    return b.started_at ? <span className="text-ink">{dates.dateTime(b.started_at, timezone)}</span> : <span className="text-ink-4">—</span>
+    return started
   }
 
   const recipients = (b: Broadcast) => {
@@ -211,6 +223,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
       width: 120,
       render: (_, b) => (
         <BroadcastStatusPill
+          truncate
           broadcast={b}
           verdict={pageStats.verdicts.get(b.id)}
           l2Failed={pageStats.stats.get(b.id)?.failed}
@@ -264,13 +277,13 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
         )
       }
     },
-    { key: 'audience', title: t`Audience`, width: 150, render: (_, b) => audience(b) },
-    { key: 'sending', title: t`Sending`, width: 190, render: (_, b) => sending(b) },
+    { key: 'audience', title: t`Audience`, width: 128, render: (_, b) => audience(b) },
+    { key: 'sending', title: t({ message: 'Sending', context: 'section' }), width: 146, render: (_, b) => sending(b) },
     { key: 'recipients', title: t`Recipients`, width: 100, align: 'right', render: (_, b) => recipients(b) },
     {
       key: 'opens',
       title: t`Opens`,
-      width: 110,
+      width: 100,
       render: (_, b) =>
         statCell(b, (s) => (
           <RateBar
@@ -283,7 +296,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     {
       key: 'clicks',
       title: t`Clicks`,
-      width: 110,
+      width: 100,
       render: (_, b) =>
         statCell(b, (s) => (
           <RateBar
@@ -296,7 +309,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     {
       key: 'unsub',
       title: t`Unsub.`,
-      width: 80,
+      width: 64,
       align: 'right',
       render: (_, b) =>
         statCell(b, (s) => {
@@ -312,7 +325,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     {
       key: 'bounces',
       title: t`Bounces`,
-      width: 80,
+      width: 72,
       align: 'right',
       render: (_, b) =>
         statCell(b, (s) => {
@@ -332,10 +345,10 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
       key: 'visits',
       title: (
         <Tooltip title={t`Sessions from the broadcast's UTM campaign, from the day it was sent to 7 days after it completed.`}>
-          <span>{t`Website visits`}</span>
+          <span>{t({ message: 'Site visits', context: 'table column' })}</span>
         </Tooltip>
       ),
-      width: 110,
+      width: 80,
       align: 'right',
       render: (_, b) => {
         if (!b.started_at) return <span className="text-ink-4">—</span>
@@ -359,7 +372,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
 
   columns.push({
     key: 'actions',
-    width: 76,
+    width: 64,
     align: 'right',
     render: (_, b) => {
       const verdict = pageStats.verdicts.get(b.id)

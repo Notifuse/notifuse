@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import {
   SettingsSidebar,
@@ -29,6 +30,10 @@ const renderSidebar = ({
 }
 
 describe('SETTINGS_GROUPS', () => {
+  it('names the Sending group as a section, not as a state in progress', () => {
+    expect(SETTINGS_GROUPS[1].title.id).toBe(generateMessageId('Sending', 'section'))
+  })
+
   // Written out rather than derived: this list is what makes a settings URL valid.
   it('groups the sections, each once, in menu order', () => {
     expect(SETTINGS_GROUPS.map((group) => [...group.sections])).toEqual([

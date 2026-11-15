@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
-import { CircleHelp, Users } from 'lucide-react'
-import { Mono, Panel, RateBar, useNumberFormat } from '../../layout'
+import { Users } from 'lucide-react'
+import { HelpTip, Mono, Panel, RateBar, useNumberFormat } from '../../layout'
 import { getBroadcastLinkStats, type LinkClickStats } from '../../../services/api/messages_history'
 
 /** The server returns the top links only. */
@@ -85,12 +85,9 @@ export function LinkStatsPanel({ workspaceId, broadcastId, clicksTracked, varian
     <Panel
       flush
       title={
-        <span className="inline-flex items-center gap-1.5">
-          {t`Clicked links`}
-          <Tooltip title={caveats} styles={{ root: { maxWidth: 360 } }}>
-            <CircleHelp size={13} aria-label={t`About these numbers`} className="text-ink-4" />
-          </Tooltip>
-        </span>
+        <HelpTip title={t`Clicked links`} label={t`About these numbers`}>
+          {caveats}
+        </HelpTip>
       }
       extra={
         variants.length > 0 ? (

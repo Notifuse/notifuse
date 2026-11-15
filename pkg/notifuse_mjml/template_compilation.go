@@ -805,7 +805,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		if !req.PreserveLiquid && len(req.TemplateData) > 0 {
 			// The exported code of a visual template holds its display conditions, whose
 			// variables a "__dc" key of the data would otherwise decide.
-			processed, err := ProcessLiquidTemplate(mjmlString, withoutConditionNames(req.TemplateData), "mjml-source")
+			processed, err := processLiquidHTML(mjmlString, withoutConditionNames(req.TemplateData), "mjml-source")
 			if err != nil {
 				return &CompileTemplateResponse{
 					Success:        false,
@@ -903,7 +903,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// Processes raw Liquid from mj-liquid blocks. Existing block content was already
 	// Liquid-processed per-block during tree walk, so the second pass is a no-op for them.
 	if !codeMode && !req.PreserveLiquid && len(req.TemplateData) > 0 && req.Channel != "web" {
-		processed, liquidErr := ProcessLiquidTemplate(mjmlString, req.TemplateData, "visual-editor-whole")
+		processed, liquidErr := processLiquidHTML(mjmlString, req.TemplateData, "visual-editor-whole")
 		if liquidErr != nil {
 			return &CompileTemplateResponse{
 				Success:        false,
@@ -1025,28 +1025,98 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 // as they are; TrackLinks decodes them in the hrefs it rewrites.
 // The MJML-to-HTML compiler doesn't always decode these entities properly in attributes,
 // which breaks URLs with query parameters (e.g., ?action=confirm&email=... becomes &amp;email=...)
+//
+// Only the attributes of real tags are decoded. Text is copied as it is: the
+// escaped Liquid output "src=" followed by a quote of the template is not an
+// attribute, and decoding the &lt; and &gt; of an escaped value there would
+// turn it back into markup. In a comment (Outlook's conditional comments, with
+// their VML), only &amp; is decoded, which can neither end the comment nor
+// start a tag.
 func decodeHTMLEntitiesInURLAttributes(html string) string {
-	// Pattern matches href="...", src="...", action="..." attributes; the
-	// double-quoted value is group 1, the single-quoted one group 2.
-	//
-	// Case-insensitive for the same reason the link rewriter is: an HREF= from
-	// pasted Word or Outlook markup is a perfectly valid attribute, and leaving
-	// it out here means its &amp; entities are never decoded, so the query
-	// string the recipient lands on is broken.
-	//
-	// Each quote style is matched on its own: a double-quoted value runs to the
-	// next ", a single-quoted one to the next '. A shared [^"'] class would end
-	// "…/what's-new" at the apostrophe.
-	//
-	// Decode in a single pass, so "&amp;quot;" becomes the entity "&quot;" and
-	// not a raw quote. The entity of the quote that delimits the value is never
-	// decoded: a raw " inside "…" closes the attribute and truncates the URL.
-	return replaceQuotedValues(html, urlAttrRegexp, func(value string, quote byte) string {
-		if quote == '\'' {
-			return urlAttrSingleQuotedDecoder.Replace(value)
+	if !strings.Contains(html, "&") {
+		return html
+	}
+	var b strings.Builder
+	b.Grow(len(html))
+	for i := 0; i < len(html); {
+		j := strings.IndexByte(html[i:], '<')
+		if j < 0 {
+			b.WriteString(html[i:])
+			break
 		}
-		return urlAttrDoubleQuotedDecoder.Replace(value)
+		b.WriteString(html[i : i+j])
+		i += j
+		switch {
+		case strings.HasPrefix(html[i:], "<!--"):
+			end := strings.Index(html[i+4:], "-->")
+			if end < 0 {
+				end = len(html) - i
+			} else {
+				end += 4 + len("-->")
+			}
+			b.WriteString(decodeURLAttributeValues(html[i:i+end], urlAttrAmpersandDecoder, urlAttrAmpersandDecoder))
+			i += end
+		case i+1 < len(html) && isASCIILetter(html[i+1]):
+			end := htmlTagEnd(html, i)
+			b.WriteString(decodeURLAttributeValues(html[i:end], urlAttrDoubleQuotedDecoder, urlAttrSingleQuotedDecoder))
+			i = end
+		default:
+			b.WriteByte('<')
+			i++
+		}
+	}
+	return b.String()
+}
+
+// decodeURLAttributeValues decodes the href, src and action values of s with
+// the decoder of their quote.
+//
+// Pattern matches href="...", src="...", action="..." attributes; the
+// double-quoted value is group 1, the single-quoted one group 2.
+//
+// Case-insensitive for the same reason the link rewriter is: an HREF= from
+// pasted Word or Outlook markup is a perfectly valid attribute, and leaving
+// it out here means its &amp; entities are never decoded, so the query
+// string the recipient lands on is broken.
+//
+// Each quote style is matched on its own: a double-quoted value runs to the
+// next ", a single-quoted one to the next '. A shared [^"'] class would end
+// "…/what's-new" at the apostrophe.
+//
+// Decode in a single pass, so "&amp;quot;" becomes the entity "&quot;" and
+// not a raw quote. The entity of the quote that delimits the value is never
+// decoded: a raw " inside "…" closes the attribute and truncates the URL.
+func decodeURLAttributeValues(s string, doubleQuoted, singleQuoted *strings.Replacer) string {
+	return replaceQuotedValues(s, urlAttrRegexp, func(value string, quote byte) string {
+		if quote == '\'' {
+			return singleQuoted.Replace(value)
+		}
+		return doubleQuoted.Replace(value)
 	})
+}
+
+// htmlTagEnd returns the index just after the > that ends the tag opening at
+// start, skipping the > of quoted attribute values, or len(s).
+func htmlTagEnd(s string, start int) int {
+	var quote byte
+	for i := start + 1; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case quote != 0:
+			if c == quote {
+				quote = 0
+			}
+		case c == '"' || c == '\'':
+			quote = c
+		case c == '>':
+			return i + 1
+		}
+	}
+	return len(s)
+}
+
+func isASCIILetter(c byte) bool {
+	return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'
 }
 
 // urlAttrRegexp matches an href, src or action attribute with a double- or
@@ -1057,6 +1127,8 @@ var urlAttrRegexp = regexp.MustCompile(`(?i)(?:href|src|action)\s*=\s*(?:"([^"]*
 var (
 	urlAttrDoubleQuotedDecoder = strings.NewReplacer("&amp;", "&", "&#39;", "'", "&lt;", "<", "&gt;", ">")
 	urlAttrSingleQuotedDecoder = strings.NewReplacer("&amp;", "&", "&quot;", "\"", "&lt;", "<", "&gt;", ">")
+	// urlAttrAmpersandDecoder is the only decoding done inside a comment.
+	urlAttrAmpersandDecoder = strings.NewReplacer("&amp;", "&")
 )
 
 // replaceQuotedValues returns s with the value of each match of re replaced by

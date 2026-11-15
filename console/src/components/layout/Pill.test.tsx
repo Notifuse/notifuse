@@ -40,4 +40,23 @@ describe('Pill', () => {
     )
     expect(container.querySelector('[data-pill-dot]')!.className).toContain('motion-safe:animate-pill-pulse')
   })
+
+  it('keeps its width by default, and shrinks with an ellipsis and its dot when truncated', () => {
+    const { container, rerender } = render(<Pill tone="warning">Pick a winner</Pill>)
+    const pill = container.firstElementChild!
+    expect(pill.className).toContain('shrink-0')
+    expect(pill.className).not.toContain('min-w-0')
+    expect(screen.getByText('Pick a winner')).toBe(pill)
+
+    rerender(
+      <Pill tone="warning" truncate>
+        Pick a winner
+      </Pill>
+    )
+    expect(pill.className).toContain('min-w-0')
+    expect(pill.className).toContain('max-w-full')
+    expect(pill.className).not.toContain('shrink-0')
+    expect(screen.getByText('Pick a winner').className).toContain('truncate')
+    expect(container.querySelector('[data-pill-dot]')).not.toBeNull()
+  })
 })

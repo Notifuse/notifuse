@@ -238,13 +238,15 @@ func TestWebVersion(t *testing.T) {
 		assert.Equal(t, http.StatusSeeOther, redirect.StatusCode)
 		assert.Equal(t, destination, redirect.Header.Get("Location"))
 
-		// A first name carrying markup reaches the page as written, under the sandbox.
+		// A first name carrying markup reaches the page escaped, as text (Liquid
+		// outputs are escaped in the HTML of emails), and the page is sandboxed too.
 		attackerMsg, err := testutil.WaitForMailpitMessageByRecipient(t, attacker, 30*time.Second)
 		require.NoError(t, err)
 		_, attackerDestination := deliveredWebVersionLink(t, attackerMsg.HTML)
 		resp, body = getWebVersion(t, attackerDestination)
 		require.Equal(t, http.StatusOK, resp.StatusCode, body)
-		assert.Contains(t, body, `<img src=x onerror=alert(1)`)
+		assert.Contains(t, body, `&lt;img src=x onerror=alert(1)`)
+		assert.NotContains(t, body, `<img src=x onerror=alert(1)`)
 		assertWebVersionSandboxed(t, resp)
 
 		// The page shows the version sent, not the template as edited since.
