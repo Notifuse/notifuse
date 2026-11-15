@@ -6,33 +6,22 @@ import (
 	"html"
 	"regexp"
 	"strings"
-	"sync"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/Notifuse/liquidgo/v5/liquid"
 )
 
-// liquidEnginePool reuses SecureLiquidEngine instances across renders.
-// Creating an engine registers all standard tags on a fresh environment,
-// which is wasteful when rendering many blocks (e.g. during a broadcast).
-// A pool is used instead of a shared instance because liquid.Environment
-// caches strainer classes in an unsynchronized map during rendering, so a
-// single engine must not be used from multiple goroutines concurrently.
-var liquidEnginePool = sync.Pool{
-	New: func() interface{} {
-		return NewSecureLiquidEngine()
-	},
-}
+// liquidEngine renders the Liquid of every email text that is not HTML (a subject,
+// the text version) and of display conditions. One engine serves every goroutine:
+// its environment is never changed after it is built, and each render has a state of
+// its own (liquid.Template.RenderContext), so a render that times out and goes on in
+// its goroutine touches no other render.
+var liquidEngine = NewSecureLiquidEngine()
 
-// liquidHTMLEnginePool holds the engines that render Liquid into the HTML of an
-// email, whose outputs are HTML-escaped (see newSecureHTMLLiquidEngine). Text
-// that is not HTML (a subject, the text version) uses liquidEnginePool.
-var liquidHTMLEnginePool = sync.Pool{
-	New: func() interface{} {
-		return newSecureHTMLLiquidEngine()
-	},
-}
+// liquidHTMLEngine renders the Liquid of the HTML of an email, whose outputs are
+// HTML-escaped (see newSecureHTMLLiquidEngine).
+var liquidHTMLEngine = newSecureHTMLLiquidEngine()
 
 // ConvertJSONToMJML converts an EmailBlock JSON tree to MJML string
 func ConvertJSONToMJML(tree EmailBlock) string {
@@ -359,16 +348,16 @@ func processBlockLiquid(blockType MJMLComponentType, content string, templateDat
 // processLiquidContent processes Liquid templating in text that is not HTML (a
 // subject, the text version), with security protections.
 func processLiquidContent(content string, templateData map[string]interface{}, blockID string) (string, error) {
-	return processLiquidWith(&liquidEnginePool, cleanLiquidTemplate, content, templateData, blockID)
+	return processLiquidWith(liquidEngine, cleanLiquidTemplate, content, templateData, blockID)
 }
 
 // processLiquidHTML processes Liquid templating in the HTML or MJML of an email:
 // its outputs are HTML-escaped (see newSecureHTMLLiquidEngine).
 func processLiquidHTML(content string, templateData map[string]interface{}, blockID string) (string, error) {
-	return processLiquidWith(&liquidHTMLEnginePool, cleanLiquidTemplateHTML, content, templateData, blockID)
+	return processLiquidWith(liquidHTMLEngine, cleanLiquidTemplateHTML, content, templateData, blockID)
 }
 
-func processLiquidWith(pool *sync.Pool, clean func(string) string, content string, templateData map[string]interface{}, blockID string) (string, error) {
+func processLiquidWith(engine *SecureLiquidEngine, clean func(string) string, content string, templateData map[string]interface{}, blockID string) (string, error) {
 	// Check if content contains Liquid templating markup
 	if !strings.Contains(content, "{{") && !strings.Contains(content, "{%") {
 		return content, nil // No Liquid markup found, return original content
@@ -377,9 +366,6 @@ func processLiquidWith(pool *sync.Pool, clean func(string) string, content strin
 	// Undo what rich text editors do to Liquid markup: invisible characters,
 	// curly or encoded quotes, encoded operators (see cleanLiquidTemplate)
 	content = clean(content)
-
-	// Get a secure Liquid engine (timeout and size protections) from the pool
-	engine := pool.Get().(*SecureLiquidEngine)
 
 	// Use provided template data or initialize empty map if nil
 	var jsonData map[string]interface{}
@@ -392,14 +378,8 @@ func processLiquidWith(pool *sync.Pool, clean func(string) string, content strin
 	// Render the content with Liquid (with security protections)
 	renderedContent, err := engine.RenderWithTimeout(content, jsonData)
 	if err != nil {
-		// Do not return the engine to the pool on error: on timeout the
-		// render goroutine is still running and still using the engine's
-		// environment, so repooling it would hand a busy engine to the next
-		// caller. Dropping the engine is cheap relative to that risk.
 		return content, fmt.Errorf("liquid rendering error in block (ID: %s): %w", blockID, err)
 	}
-
-	pool.Put(engine)
 	return renderedContent, nil
 }
 
