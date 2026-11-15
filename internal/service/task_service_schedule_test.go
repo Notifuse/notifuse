@@ -56,6 +56,61 @@ func TestTaskService_ScheduleBroadcastTask(t *testing.T) {
 			"due shortly: not before the broadcast has committed")
 	})
 
+	// The send-now delay: 5s by default, shorter when the instance configures it. The
+	// due time is bracketed by the clock read before and after the call, so the check
+	// is exact whatever the machine's speed.
+	assertSendNowDue := func(t *testing.T, configure func(*TaskService), want time.Duration) {
+		t.Helper()
+		svc, repo := setup(t)
+		configure(svc)
+		repo.EXPECT().GetTaskByBroadcastIDTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(nil, notFound)
+		var created *domain.Task
+		repo.EXPECT().CreateTx(gomock.Any(), gomock.Any(), "w1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ *sql.Tx, _ string, task *domain.Task) error {
+				created = task
+				task.ID = "task-new"
+				return nil
+			})
+		before := time.Now()
+		_, err := svc.ScheduleBroadcastTask(context.Background(), "w1", "b1", true, nil)
+		after := time.Now()
+		require.NoError(t, err)
+		require.NotNil(t, created.NextRunAfter)
+		due := *created.NextRunAfter
+		assert.False(t, due.Before(before.Add(want)), "due %v, want no earlier than %v", due, before.Add(want))
+		assert.False(t, due.After(after.Add(want)), "due %v, want no later than %v", due, after.Add(want))
+	}
+
+	t.Run("without configuration a send-now task is due 5s after it is scheduled", func(t *testing.T) {
+		assertSendNowDue(t, func(*TaskService) {}, 5*time.Second)
+	})
+
+	t.Run("a configured send-now delay replaces the default", func(t *testing.T) {
+		assertSendNowDue(t, func(s *TaskService) { s.SetSendNowDelay(time.Second) }, time.Second)
+	})
+
+	t.Run("a zero or negative send-now delay keeps the default", func(t *testing.T) {
+		for _, d := range []time.Duration{0, -time.Second} {
+			assertSendNowDue(t, func(s *TaskService) { s.SetSendNowDelay(d) }, 5*time.Second)
+		}
+	})
+
+	t.Run("the send-now delay does not move a broadcast scheduled for later", func(t *testing.T) {
+		svc, repo := setup(t)
+		svc.SetSendNowDelay(time.Second)
+		at := time.Date(2030, 1, 2, 9, 30, 0, 0, time.UTC)
+		repo.EXPECT().GetTaskByBroadcastIDTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(nil, notFound)
+		repo.EXPECT().CreateTx(gomock.Any(), gomock.Any(), "w1", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ *sql.Tx, _ string, task *domain.Task) error {
+				require.NotNil(t, task.NextRunAfter)
+				assert.True(t, task.NextRunAfter.Equal(at))
+				task.ID = "task-later"
+				return nil
+			})
+		_, err := svc.ScheduleBroadcastTask(context.Background(), "w1", "b1", false, &at)
+		require.NoError(t, err)
+	})
+
 	t.Run("a broadcast scheduled for later gets a task due at its time", func(t *testing.T) {
 		svc, repo := setup(t)
 		at := time.Date(2030, 1, 2, 9, 30, 0, 0, time.UTC)
