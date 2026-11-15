@@ -5259,7 +5259,7 @@ msgstr "このテンプレートの使用箇所を確認できませんでした
 #: src/components/broadcasts/CouldntLoad.tsx:8
 #: src/components/logs/MessagesTab.tsx:557
 #: src/components/transactional/LoadError.tsx:20
-#: src/components/transactional/notificationParts.tsx:79
+#: src/components/transactional/notificationParts.tsx:82
 #: src/components/transactional/TransactionalDetail.tsx:267
 #: src/pages/TemplatesPage.tsx:334
 #: src/pages/TransactionalNotificationsPage.tsx:302
@@ -6529,7 +6529,7 @@ msgstr "ワークスペースを削除"
 msgid "Deleted"
 msgstr "削除済み"
 
-#: src/components/transactional/notificationParts.tsx:124
+#: src/components/transactional/notificationParts.tsx:127
 msgctxt "deleted template pill"
 msgid "Deleted"
 msgstr "削除済み"
@@ -6550,11 +6550,11 @@ msgstr "削除済み"
 msgid "Deleted entries past the retention period"
 msgstr "保持期間を過ぎたエントリを削除しました"
 
-#: src/components/transactional/notificationParts.tsx:114
+#: src/components/transactional/notificationParts.tsx:117
 msgid "Deleted template"
 msgstr "削除されたテンプレート"
 
-#: src/components/transactional/notificationParts.tsx:117
+#: src/components/transactional/notificationParts.tsx:120
 msgid "Deleted template. This notification still sends with it"
 msgstr "削除されたテンプレート。この通知は引き続きこのテンプレートで送信されます"
 
@@ -17877,7 +17877,7 @@ msgid "SMTP port is required"
 msgstr "SMTPポートは必須です"
 
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:113
-#: src/components/transactional/notificationParts.tsx:95
+#: src/components/transactional/notificationParts.tsx:98
 #: src/components/transactional/TransactionalDetail.tsx:201
 #: src/pages/TransactionalNotificationsPage.tsx:292
 msgid "SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked"
@@ -17888,7 +17888,7 @@ msgid "SMTP provider doesn't support complaint webhooks, so spam complaints cann
 msgstr "SMTPプロバイダーは苦情Webhookをサポートしていないため、スパム苦情を追跡できません"
 
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:40
-#: src/components/transactional/notificationParts.tsx:94
+#: src/components/transactional/notificationParts.tsx:97
 #: src/components/transactional/TransactionalDetail.tsx:200
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
@@ -19606,7 +19606,7 @@ msgstr "この通知は連携によって管理されており、名前を変更
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "この通知は連携によって管理されており、テンプレートを変更できません"
 
-#: src/components/transactional/notificationParts.tsx:118
+#: src/components/transactional/notificationParts.tsx:121
 msgid "This notification still sends with it"
 msgstr "この通知は引き続きこのテンプレートで送信されます"
 
@@ -22054,7 +22054,7 @@ msgstr "{workspaceName} に参加しました"
 msgid "You need access to contacts"
 msgstr "連絡先へのアクセス権が必要です"
 
-#: src/components/transactional/notificationParts.tsx:73
+#: src/components/transactional/notificationParts.tsx:76
 #: src/components/transactional/notificationRules.ts:71
 msgid "You need access to message history"
 msgstr "メッセージ履歴へのアクセス権が必要です"

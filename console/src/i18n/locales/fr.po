@@ -5259,7 +5259,7 @@ msgstr "Impossible de vérifier où ce modèle est utilisé"
 #: src/components/broadcasts/CouldntLoad.tsx:8
 #: src/components/logs/MessagesTab.tsx:557
 #: src/components/transactional/LoadError.tsx:20
-#: src/components/transactional/notificationParts.tsx:79
+#: src/components/transactional/notificationParts.tsx:82
 #: src/components/transactional/TransactionalDetail.tsx:267
 #: src/pages/TemplatesPage.tsx:334
 #: src/pages/TransactionalNotificationsPage.tsx:302
@@ -6529,7 +6529,7 @@ msgstr "Supprimer l'espace de travail"
 msgid "Deleted"
 msgstr "Supprimé"
 
-#: src/components/transactional/notificationParts.tsx:124
+#: src/components/transactional/notificationParts.tsx:127
 msgctxt "deleted template pill"
 msgid "Deleted"
 msgstr "Supprimé"
@@ -6550,11 +6550,11 @@ msgstr "Supprimé"
 msgid "Deleted entries past the retention period"
 msgstr "A supprimé les entrées au-delà de la durée de conservation"
 
-#: src/components/transactional/notificationParts.tsx:114
+#: src/components/transactional/notificationParts.tsx:117
 msgid "Deleted template"
 msgstr "Modèle supprimé"
 
-#: src/components/transactional/notificationParts.tsx:117
+#: src/components/transactional/notificationParts.tsx:120
 msgid "Deleted template. This notification still sends with it"
 msgstr "Modèle supprimé. Cette notification l’utilise toujours pour ses envois"
 
@@ -17877,7 +17877,7 @@ msgid "SMTP port is required"
 msgstr "Le port SMTP est requis"
 
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:113
-#: src/components/transactional/notificationParts.tsx:95
+#: src/components/transactional/notificationParts.tsx:98
 #: src/components/transactional/TransactionalDetail.tsx:201
 #: src/pages/TransactionalNotificationsPage.tsx:292
 msgid "SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked"
@@ -17888,7 +17888,7 @@ msgid "SMTP provider doesn't support complaint webhooks, so spam complaints cann
 msgstr "Le fournisseur SMTP ne prend pas en charge les webhooks de plainte, les plaintes pour spam ne peuvent pas être suivies"
 
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:40
-#: src/components/transactional/notificationParts.tsx:94
+#: src/components/transactional/notificationParts.tsx:97
 #: src/components/transactional/TransactionalDetail.tsx:200
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
@@ -19606,7 +19606,7 @@ msgstr "Cette notification est gérée par une intégration et ne peut pas être
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "Cette notification est gérée par une intégration et le modèle ne peut pas être modifié"
 
-#: src/components/transactional/notificationParts.tsx:118
+#: src/components/transactional/notificationParts.tsx:121
 msgid "This notification still sends with it"
 msgstr "Cette notification l'utilise toujours pour ses envois"
 
@@ -22054,7 +22054,7 @@ msgstr "Vous avez rejoint {workspaceName}"
 msgid "You need access to contacts"
 msgstr "Vous devez avoir accès aux contacts"
 
-#: src/components/transactional/notificationParts.tsx:73
+#: src/components/transactional/notificationParts.tsx:76
 #: src/components/transactional/notificationRules.ts:71
 msgid "You need access to message history"
 msgstr "Vous avez besoin de l'accès à l'historique des messages"
