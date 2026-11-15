@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -48,7 +49,39 @@ type DemoService struct {
 	automationService domain.AutomationService
 	// Authenticates the seed for the demo workspace once; see seedContext.
 	authService domain.AuthService
+	// Holds the fixtures marker; see demoFixturesSettingKey.
+	settingRepo domain.SettingRepository
 }
+
+// demoFixturesWorkspaceID is the ID the fixtures workspace is always created under.
+const demoFixturesWorkspaceID = "demo"
+
+// demoFixturesSettingKey is the system setting that marks the workspace the fixtures
+// seed created, by holding that workspace's creation time. SeedFixtures runs on any
+// environment, production included, and "demo" is a plausible name for a real
+// workspace on a self-hosted instance: the seed replaces a workspace only when the
+// marker matches it, so it can never destroy one it did not create. The creation time
+// rather than the ID, because a fixtures workspace deleted by hand and a real "demo"
+// created afterwards share the ID and would otherwise inherit the marker.
+//
+// The marker is written twice. Before CreateWorkspace, with the time the creation
+// starts: CreateWorkspace inserts the row and then runs steps that can still fail
+// (owner membership, owner contact, default list) without removing it, so a marker
+// written only afterwards would leave such a workspace unmarked and every later seed
+// refused. After it, with the exact creation time. A workspace matches when its
+// creation time is within demoFixturesMarkerWindow of the marker.
+const demoFixturesSettingKey = "demo_fixtures_workspace_created_at"
+
+// demoFixturesMarkerWindow bounds how long after the pending marker the workspace row
+// may be created and still count as the seed's own. CreateWorkspace inserts within
+// seconds of being called; a minute leaves room for a slow database without letting a
+// workspace somebody creates by hand later match.
+const demoFixturesMarkerWindow = time.Minute
+
+// ErrDemoWorkspaceNotFixtures is returned by SeedFixtures when a workspace with the
+// fixtures ID exists but was not created by the seed. Nothing has been deleted.
+var ErrDemoWorkspaceNotFixtures = errors.New("a workspace with ID '" + demoFixturesWorkspaceID +
+	"' exists and was not created by the demo fixtures seed; nothing was deleted")
 
 // Sample data arrays for contact generation
 var (
@@ -127,6 +160,7 @@ func NewDemoService(
 	webhookSubscriptionService *WebhookSubscriptionService,
 	automationService domain.AutomationService,
 	authService domain.AuthService,
+	settingRepo domain.SettingRepository,
 ) *DemoService {
 	return &DemoService{
 		logger:                           logger,
@@ -157,6 +191,7 @@ func NewDemoService(
 		webhookSubscriptionService:       webhookSubscriptionService,
 		automationService:                automationService,
 		authService:                      authService,
+		settingRepo:                      settingRepo,
 	}
 }
 
@@ -189,6 +224,120 @@ func (s *DemoService) ResetDemo(ctx context.Context) error {
 
 	s.logger.Info("Demo reset completed successfully")
 	return nil
+}
+
+// SeedFixtures replaces the fixtures workspace and leaves every other workspace alone.
+//
+// Unlike ResetDemo, which empties the instance, it is safe on a working instance (a
+// preview that keeps its own workspaces) and is therefore served on every environment.
+// A workspace with the fixtures ID that the seed did not create is refused with
+// ErrDemoWorkspaceNotFixtures; see demoFixturesSettingKey.
+func (s *DemoService) SeedFixtures(ctx context.Context) error {
+	s.logger.Info("Starting demo fixtures seed")
+
+	existing, err := s.workspaceRepo.GetByID(ctx, demoFixturesWorkspaceID)
+	var notFound *domain.ErrWorkspaceNotFound
+	switch {
+	case errors.As(err, &notFound):
+		// Nothing to replace.
+	case err != nil:
+		return fmt.Errorf("failed to look up the fixtures workspace: %w", err)
+	default:
+		marked, err := s.isFixturesWorkspace(ctx, existing)
+		if err != nil {
+			return err
+		}
+		if !marked {
+			return ErrDemoWorkspaceNotFixtures
+		}
+		if err := s.deletePreviousFixtures(ctx); err != nil {
+			return fmt.Errorf("failed to delete the previous fixtures workspace: %w", err)
+		}
+	}
+
+	// createDemoWorkspace names the step that failed.
+	if err := s.createDemoWorkspace(ctx); err != nil {
+		return err
+	}
+
+	s.logger.Info("Demo fixtures seed completed successfully")
+	return nil
+}
+
+// isFixturesWorkspace reports whether the fixtures marker matches workspace.
+func (s *DemoService) isFixturesWorkspace(ctx context.Context, workspace *domain.Workspace) (bool, error) {
+	setting, err := s.settingRepo.Get(ctx, demoFixturesSettingKey)
+	var notFound *domain.ErrSettingNotFound
+	if errors.As(err, &notFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to read the demo fixtures marker: %w", err)
+	}
+	markedAt, err := time.Parse(time.RFC3339Nano, setting.Value)
+	if err != nil {
+		// Not a marker this code wrote: refuse rather than guess.
+		return false, nil
+	}
+	createdAt := demoFixturesMarkerTime(workspace.CreatedAt)
+	return !createdAt.Before(markedAt) && createdAt.Sub(markedAt) <= demoFixturesMarkerWindow, nil
+}
+
+// restoreFixturesMarker puts back the marker that was there before a failed creation,
+// or removes the pending one when there was none.
+func (s *DemoService) restoreFixturesMarker(ctx context.Context, previous *domain.Setting) {
+	var err error
+	if previous == nil {
+		err = s.settingRepo.Delete(ctx, demoFixturesSettingKey)
+	} else {
+		err = s.settingRepo.Set(ctx, demoFixturesSettingKey, previous.Value)
+	}
+	if err != nil {
+		// The creation already failed and is reported; a pending marker left behind
+		// matches only a workspace created within demoFixturesMarkerWindow of it.
+		s.logger.WithField("error", err.Error()).Error("Failed to restore the demo fixtures marker")
+	}
+}
+
+// demoFixturesMarkerTime is the creation time as the marker stores it. The repository
+// truncates created_at to the microsecond PostgreSQL keeps, so both sides of the
+// comparison are brought there.
+func demoFixturesMarkerTime(createdAt time.Time) time.Time {
+	return createdAt.UTC().Truncate(time.Microsecond)
+}
+
+// deletePreviousFixtures deletes the fixtures workspace the way an owner does, as
+// root: integrations first, then tasks, then the workspace and its database. The
+// seed runs on working instances with their task scheduler on, so tasks go before
+// the workspace, and an integration somebody connected to the fixtures workspace is
+// unregistered from its provider rather than left pointing at a dropped database.
+func (s *DemoService) deletePreviousFixtures(ctx context.Context) error {
+	rootUser, err := s.lookupRootUser(ctx)
+	if err != nil {
+		return err
+	}
+	rootCtx, endRootSession, err := s.rootContext(ctx, rootUser)
+	if err != nil {
+		return err
+	}
+	defer endRootSession()
+	return s.workspaceService.DeleteWorkspace(rootCtx, demoFixturesWorkspaceID)
+}
+
+// lookupRootUser returns the user the demo workspace is created and deleted as.
+func (s *DemoService) lookupRootUser(ctx context.Context) (*domain.User, error) {
+	// Demo mode is single-root: the primary configured root email.
+	rootEmail := s.config.PrimaryRootEmail()
+	s.logger.WithField("root_email", rootEmail).Info("Looking up root user for demo workspace creation")
+
+	rootUser, err := s.userService.GetUserByEmail(ctx, rootEmail)
+	if err != nil {
+		s.logger.WithField("root_email", rootEmail).WithField("error", err.Error()).Error("Failed to get root user")
+		return nil, fmt.Errorf("failed to get root user with email '%s': %w", rootEmail, err)
+	}
+
+	s.logger.WithField("root_user_id", rootUser.ID).WithField("root_user_type", rootUser.Type).Info("Found root user for demo workspace creation")
+	return rootUser, nil
 }
 
 // deleteAllWorkspaces deletes all workspaces from the system
@@ -264,17 +413,10 @@ func (s *DemoService) seedContext(ctx context.Context, workspaceID string) (cont
 func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	s.logger.Info("Creating demo workspace")
 
-	// Get the root user to create the workspace (demo mode is single-root)
-	rootEmail := s.config.PrimaryRootEmail()
-	s.logger.WithField("root_email", rootEmail).Info("Looking up root user for demo workspace creation")
-
-	rootUser, err := s.userService.GetUserByEmail(ctx, rootEmail)
+	rootUser, err := s.lookupRootUser(ctx)
 	if err != nil {
-		s.logger.WithField("root_email", rootEmail).WithField("error", err.Error()).Error("Failed to get root user")
-		return fmt.Errorf("failed to get root user with email '%s': %w", rootEmail, err)
+		return err
 	}
-
-	s.logger.WithField("root_user_id", rootUser.ID).WithField("root_user_type", rootUser.Type).Info("Found root user for demo workspace creation")
 
 	authenticatedCtx, endRootSession, err := s.rootContext(ctx, rootUser)
 	if err != nil {
@@ -282,8 +424,7 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	}
 	defer endRootSession()
 
-	// Use hardcoded demo workspace ID
-	workspaceID := "demo"
+	workspaceID := demoFixturesWorkspaceID
 
 	// Create workspace settings with readonly demo bucket
 	fileManagerSettings := domain.FileManagerSettings{
@@ -291,6 +432,22 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 		Bucket:    s.config.Demo.FileManagerBucket,
 		AccessKey: s.config.Demo.FileManagerAccessKey,
 		SecretKey: s.config.Demo.FileManagerSecretKey,
+	}
+
+	// The pending marker; see demoFixturesSettingKey. Detached like CreateWorkspace
+	// itself, so a caller giving up cannot leave a created workspace unmarked.
+	markCtx := context.WithoutCancel(ctx)
+	previousMarker, err := s.settingRepo.Get(markCtx, demoFixturesSettingKey)
+	var noMarker *domain.ErrSettingNotFound
+	if errors.As(err, &noMarker) {
+		previousMarker, err = nil, nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to read the demo fixtures marker: %w", err)
+	}
+	pending := demoFixturesMarkerTime(time.Now()).Format(time.RFC3339Nano)
+	if err := s.settingRepo.Set(markCtx, demoFixturesSettingKey, pending); err != nil {
+		return fmt.Errorf("failed to mark the demo workspace as fixtures: %w", err)
 	}
 
 	// Create the demo workspace
@@ -306,10 +463,22 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 		domain.DefaultLanguageCode, []string{"en", "fr", "es"},
 	)
 	if err != nil {
+		if errors.Is(err, domain.ErrWorkspaceAlreadyExists) {
+			// The workspace in the way is not the one this call started, so the
+			// pending marker must not claim it: put back what was there.
+			s.restoreFixturesMarker(markCtx, previousMarker)
+		}
 		return fmt.Errorf("failed to create demo workspace: %w", err)
 	}
 
 	s.logger.WithField("workspace_id", workspace.ID).Info("Demo workspace created successfully")
+
+	// The exact creation time, before any sample data: a seed that fails from here
+	// on leaves a workspace the next SeedFixtures may replace.
+	marker := demoFixturesMarkerTime(workspace.CreatedAt).Format(time.RFC3339Nano)
+	if err := s.settingRepo.Set(markCtx, demoFixturesSettingKey, marker); err != nil {
+		return fmt.Errorf("failed to mark the demo workspace as fixtures: %w", err)
+	}
 
 	authenticatedCtx, err = s.seedContext(authenticatedCtx, workspace.ID)
 	if err != nil {
@@ -331,9 +500,13 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	// on error. Half a demo, silently, is the worst outcome available; the reset
 	// is manually triggered, HMAC-gated and behind a five-minute rate limit, so
 	// there is nobody for cancellation to protect.
+	//
+	// A failure here fails the reset or seed. It used to be a warning with a 200,
+	// so a scheduled run that left a workspace without templates, broadcasts or
+	// history was reported as a success and nobody looked. The workspace stays
+	// as far as it got, and the next run replaces it.
 	if err := s.addSampleData(context.WithoutCancel(authenticatedCtx), workspace.ID); err != nil {
-		s.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).Warn("Failed to add sample data to demo workspace")
-		// Don't fail the entire operation if sample data creation fails
+		return fmt.Errorf("failed to add sample data to the demo workspace: %w", err)
 	}
 
 	// Create webhook subscription AFTER sample data so DB triggers don't fire

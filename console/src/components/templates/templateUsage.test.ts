@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { i18n } from '@lingui/core'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 import { summarizeUsage, groupReferences, referenceStatusLabel } from './templateUsage'
 import type { TemplateUsageReference } from '../../services/api/template'
 
@@ -82,4 +83,24 @@ describe('referenceStatusLabel', () => {
   it('shows a status it does not know as the server sent it', () => {
     expect(referenceStatusLabel('archived', i18n)).toBe('archived')
   })
+
+  it('names a newsletter state in its context, and keeps the plain message for those an automation shares', () => {
+    const status = (message: string) => generateMessageId(message, 'newsletter status')
+    i18n.load('fr', {
+      [status('Sending')]: 'En cours',
+      [status('Winner selected')]: 'Gagnante choisie',
+      Draft: 'Brouillon',
+      Paused: 'En pause'
+    })
+    i18n.activate('fr')
+    try {
+      expect(referenceStatusLabel('processing', i18n)).toBe('En cours')
+      expect(referenceStatusLabel('winner_selected', i18n)).toBe('Gagnante choisie')
+      expect(referenceStatusLabel('draft', i18n)).toBe('Brouillon')
+      expect(referenceStatusLabel('paused', i18n)).toBe('En pause')
+    } finally {
+      i18n.activate('en')
+    }
+  })
 })
+

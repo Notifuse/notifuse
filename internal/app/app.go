@@ -1241,6 +1241,7 @@ func (a *App) InitServices() error {
 		a.webhookSubscriptionService,
 		a.automationService,
 		a.authService,
+		a.settingRepo,
 	)
 
 	// Initialize telemetry service
@@ -1746,10 +1747,10 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
-	if !a.config.IsProduction() {
-		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
-		demoHandler.RegisterRoutes(a.mux)
-	}
+	// demo.seed on every environment, demo.reset (which deletes every workspace) only
+	// off production; see DemoHandler.RegisterRoutes.
+	demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
+	demoHandler.RegisterRoutes(a.mux, !a.config.IsProduction())
 
 	// Register routes
 	setupHandler.RegisterRoutes(a.mux) // Setup handler first (should be accessible without auth)

@@ -62,6 +62,17 @@ func newSecureLiquidEngineWithRenderLength(renderLength int) *SecureLiquidEngine
 	return &SecureLiquidEngine{timeout: DefaultRenderTimeout, maxSize: DefaultMaxTemplateSize, env: newSecureLiquidEnv(renderLength)}
 }
 
+// newSecureHTMLLiquidEngine builds an engine for the HTML of an email: every
+// {{ }} output is HTML-escaped (liquidgo's output escape), so a value of the data,
+// such as a contact field filled in a public form, cannot add markup or links to
+// the email. {{ value | raw }} writes HTML on purpose (a feed that holds HTML),
+// and an output escaped by escape or escape_once is not escaped again.
+func newSecureHTMLLiquidEngine() *SecureLiquidEngine {
+	engine := NewSecureLiquidEngine()
+	engine.env.SetOutputEscape(true)
+	return engine
+}
+
 // NewSecureLiquidEngine creates a new secure liquidgo engine with default settings
 func NewSecureLiquidEngine() *SecureLiquidEngine {
 	env := newSecureLiquidEnv(DefaultMaxRenderLength)

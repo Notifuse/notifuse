@@ -41,7 +41,7 @@ export function SendingCard({ values, onChange, booked, workspaceTimezone }: Sen
       sentence = t`Scheduled for ${date} at ${time} ${zone}`
     }
     return (
-      <Panel title={t`Sending`} icon={<CalendarClock size={14} />}>
+      <Panel title={t({ message: 'Sending', context: 'section' })} icon={<CalendarClock size={14} />}>
         <p data-unreset className="m-0 text-sm text-ink">
           {sentence}
         </p>
@@ -79,7 +79,7 @@ export function SendingCard({ values, onChange, booked, workspaceTimezone }: Sen
   }
 
   return (
-    <Panel title={t`Sending`} icon={<Send size={14} />}>
+    <Panel title={t({ message: 'Sending', context: 'section' })} icon={<Send size={14} />}>
       <div className="flex flex-col gap-3">
         <div role="radiogroup" aria-label={t`When to send`} className="flex gap-3">
           {choice('now', t`Now`, t`Starts as soon as you send it`, <Send size={14} />)}

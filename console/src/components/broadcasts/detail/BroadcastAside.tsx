@@ -269,7 +269,7 @@ function HistoryBlock({ broadcast, timezone }: { broadcast: Broadcast; timezone:
     row(t`Created`, broadcast.created_at),
     row(t`Started`, broadcast.started_at),
     row(t`Test sent`, broadcast.test_sent_at),
-    row(t`Winner sent`, broadcast.winner_sent_at),
+    row(t({ message: 'Winner sent', context: 'newsletter A/B' }), broadcast.winner_sent_at),
     row(t`Completed`, broadcast.completed_at),
     row(t`Paused`, broadcast.paused_at, broadcast.pause_reason),
     row(t`Cancelled`, broadcast.cancelled_at)

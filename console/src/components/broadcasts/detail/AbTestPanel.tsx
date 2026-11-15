@@ -19,6 +19,7 @@ import { useBroadcastDates } from '../useBroadcastDates'
 import { VARIANT_LETTERS } from '../compose/composeValues'
 import { VariationSender } from './VariationSender'
 import { asTemplate } from './asTemplate'
+import { RATE_WIDTH, SENT_WIDTH, VARIANT_WIDTH, abTableWidth, actionsWidth } from './abTableWidth'
 
 export interface AbTestPanelProps {
   workspace: Workspace
@@ -40,6 +41,9 @@ interface Row {
   isRecommended: boolean
   metrics?: VariationRowMetrics
 }
+
+// The winner's messages are in the 'newsletter A/B' context: French agrees them with the variant
+// (« Gagnante »), where the plain messages are shared with other screens.
 
 /** The variants of an A/B test, with their results. Shown only when the test is enabled. */
 export function AbTestPanel({
@@ -105,24 +109,25 @@ export function AbTestPanel({
     )
   }
 
+  // Template and sender sit under the variant and the subject, so the counts stay in the panel.
   const columns: ColumnsType<Row> = [
     {
       title: t`Variant`,
       key: 'variant',
-      width: 120,
+      width: VARIANT_WIDTH,
       render: (_, row) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
           <span className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-fill text-xs font-semibold text-ink-2">
             {row.letter}
           </span>
-          <span className="truncate text-sm text-ink-3">{row.variation.variation_name}</span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm text-ink">{row.variation.variation_name}</span>
+            <span data-variant-template className="truncate text-xs text-ink-3">
+              {row.templateName}
+            </span>
+          </div>
         </div>
       )
-    },
-    {
-      title: t`Template`,
-      key: 'template',
-      render: (_, row) => <span className="text-sm text-ink">{row.templateName}</span>
     },
     {
       title: t`Subject`,
@@ -131,27 +136,23 @@ export function AbTestPanel({
         const email = row.variation.template?.email
         return (
           <div className="flex min-w-0 flex-col gap-0.5">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <span className="truncate text-sm text-ink">{email?.subject || t`N/A`}</span>
               {row.isWinner ? (
                 <Pill tone="success" icon={<Trophy />}>
-                  {t`Winner`}
+                  {t({ message: 'Winner', context: 'newsletter A/B' })}
                 </Pill>
               ) : row.isRecommended ? (
-                <Pill tone="info">{t`Recommended`}</Pill>
+                <Pill tone="info">{t({ message: 'Recommended', context: 'newsletter A/B' })}</Pill>
               ) : null}
             </div>
             {email?.subject_preview ? (
               <span className="truncate text-xs text-ink-3">{email.subject_preview}</span>
             ) : null}
+            <VariationSender workspace={workspace} variation={row.variation} size="xs" />
           </div>
         )
       }
-    },
-    {
-      title: t`From`,
-      key: 'from',
-      render: (_, row) => <VariationSender workspace={workspace} variation={row.variation} />
     },
     ...(sent
       ? ([
@@ -159,22 +160,25 @@ export function AbTestPanel({
             title: t`Sent`,
             key: 'sent',
             align: 'right',
-            width: 90,
+            width: SENT_WIDTH,
             render: (_, row) => (
               <span className="text-sm tabular-nums text-ink">{row.metrics ? int(row.metrics.recipients) : '—'}</span>
             )
           },
-          { title: t`Opens`, key: 'opens', width: 110, render: (_, row) => rateCell('opens', row.metrics) },
-          { title: t`Clicks`, key: 'clicks', width: 110, render: (_, row) => rateCell('clicks', row.metrics) }
+          { title: t`Opens`, key: 'opens', width: RATE_WIDTH, render: (_, row) => rateCell('opens', row.metrics) },
+          { title: t`Clicks`, key: 'clicks', width: RATE_WIDTH, render: (_, row) => rateCell('clicks', row.metrics) }
         ] as ColumnsType<Row>)
       : []),
     {
       key: 'actions',
       align: 'right',
+      width: actionsWidth(winnerSelectable),
       render: (_, row) => {
         const template = asTemplate(row.variation)
         return (
-          <div className="flex items-center justify-end gap-1">
+          // The column has a fixed width: an action that does not fit goes to the next line rather
+          // than over the Clicks column.
+          <div data-ab-actions className="flex flex-wrap items-center justify-end gap-1">
             {template ? (
               <TemplatePreviewDrawer record={template} workspace={workspace}>
                 <Tooltip title={t`Preview template`}>
@@ -200,7 +204,7 @@ export function AbTestPanel({
                   disabled={!canWrite}
                   onClick={() => onPickWinner(row.variation.template_id, row.templateName)}
                 >
-                  {t`Pick as winner`}
+                  {t({ message: 'Pick as winner', context: 'newsletter A/B' })}
                 </Button>
               </Tooltip>
             ) : null}
@@ -223,7 +227,8 @@ export function AbTestPanel({
         columns={columns}
         dataSource={rows}
         pagination={false}
-        scroll={{ x: 'max-content' }}
+        tableLayout="fixed"
+        scroll={{ x: abTableWidth({ sent, winnerSelectable }) }}
       />
     </Panel>
   )
@@ -254,8 +259,8 @@ export function AbTestSummary({ broadcast, testResults, timezone }: AbTestSummar
   const metric = settings.auto_send_winner_metric === 'click_rate' ? t`click rate` : t`open rate`
   const parts = [
     settings.auto_send_winner
-      ? t`Sample ${sample} % · winner on ${metric} after ${hours} h`
-      : t`Sample ${sample} % · winner picked manually`
+      ? t({ message: `Sample ${sample} % · winner on ${metric} after ${hours} h`, context: 'newsletter A/B' })
+      : t({ message: `Sample ${sample} % · winner picked manually`, context: 'newsletter A/B' })
   ]
   if (broadcast.winner_sent_at) {
     const count = broadcast.winner_phase_recipient_count ?? 0
@@ -265,7 +270,7 @@ export function AbTestSummary({ broadcast, testResults, timezone }: AbTestSummar
       const remaining = int(count)
       parts.push(t`sent to the remaining ${remaining} at ${time}`)
     } else {
-      parts.push(t`winner sent at ${time}`)
+      parts.push(t({ message: `winner sent at ${time}`, context: 'newsletter A/B' }))
     }
   } else {
     const left = getRemainingTestTime(broadcast, testResults)

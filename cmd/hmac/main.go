@@ -13,7 +13,7 @@ func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 
-// run prints the HMAC /api/demo.reset verifies for args[0] under args[1], the
+// run prints the HMAC /api/demo.reset and /api/demo.seed verify for args[0] under args[1], the
 // SECRET_KEY value, and returns the exit code. A key the server refuses is reported on
 // errOut.
 func run(args []string, out, errOut io.Writer) int {
@@ -37,5 +37,6 @@ func run(args []string, out, errOut io.Writer) int {
 	fmt.Fprintf(out, "HMAC: %s\n", result)
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "Reset URL: /api/demo.reset?hmac=%s\n", result)
+	fmt.Fprintf(out, "Seed URL: /api/demo.seed?hmac=%s\n", result)
 	return 0
 }

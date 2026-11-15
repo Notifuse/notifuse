@@ -39,11 +39,20 @@ func demoGraph(t *testing.T) (*DemoService, *mocks.MockUserRepository, *mocks.Mo
 		contactService, nil, nil, nil, nil, "", nil, nil, nil, nil,
 	)
 
+	// The fixtures marker is not what these tests are about; it is covered in
+	// demo_service_seed_fixtures_test.go.
+	settingRepo := mocks.NewMockSettingRepository(ctrl)
+	settingRepo.EXPECT().Get(gomock.Any(), gomock.Any()).
+		Return(nil, &domain.ErrSettingNotFound{Key: demoFixturesSettingKey}).AnyTimes()
+	settingRepo.EXPECT().Set(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	settingRepo.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 	svc := &DemoService{
 		logger:           log,
 		config:           cfg,
 		userService:      userService,
 		workspaceService: workspaceService,
+		settingRepo:      settingRepo,
 	}
 	return svc, userRepo, workspaceRepo, authService
 }

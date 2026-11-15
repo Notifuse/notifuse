@@ -76,15 +76,17 @@ export function groupReferences(
   })
 }
 
-// The statuses templates.usage sends: broadcasts that may still send, and automations.
+// The statuses templates.usage sends: broadcasts that may still send, and automations. Those only a
+// broadcast has are in the 'newsletter status' context, as in its status pill; draft and paused
+// also name an automation's status, so they keep the plain message.
 const REFERENCE_STATUS_LABELS: Record<string, MessageDescriptor> = {
   draft: msg`Draft`,
-  scheduled: msg`Scheduled`,
-  processing: msg`Sending`,
+  scheduled: msg({ message: 'Scheduled', context: 'newsletter status' }),
+  processing: msg({ message: 'Sending', context: 'newsletter status' }),
   paused: msg`Paused`,
-  testing: msg`Testing`,
-  test_completed: msg`Test completed`,
-  winner_selected: msg`Winner selected`,
+  testing: msg({ message: 'Testing', context: 'newsletter status' }),
+  test_completed: msg({ message: 'Test completed', context: 'newsletter status' }),
+  winner_selected: msg({ message: 'Winner selected', context: 'newsletter status' }),
   live: msg`Live`
 }
 

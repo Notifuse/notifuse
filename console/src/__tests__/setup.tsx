@@ -63,11 +63,12 @@ vi.mock('@lingui/react/macro', () => ({
 // any call. The real macro turns msg`…` into a message descriptor, naming each placeholder after
 // the label in `${{ name: value }}`; reproduce enough of one that i18n._() renders it.
 vi.mock('@lingui/core/macro', () => ({
-  msg: (strings: TemplateStringsArray | { message: string }, ...placeholders: unknown[]) => {
-    // A descriptor (msg({ message })): its message is its own id here, as for the tagged form.
+  msg: (strings: TemplateStringsArray | { message: string; context?: string }, ...placeholders: unknown[]) => {
+    // A descriptor (msg({ message, context })): as for t() above, a context gives the message the
+    // id the macro generates; without one the message is its own id, as for the tagged form.
     if (!Array.isArray(strings)) {
-      const { message } = strings as { message: string }
-      return { id: message, message }
+      const { message, context } = strings as { message: string; context?: string }
+      return { id: context ? generateMessageId(message, context) : message, message }
     }
     const names = placeholders.map((placeholder, idx) =>
       placeholder && typeof placeholder === 'object'
