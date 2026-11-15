@@ -371,14 +371,13 @@ func TestSecureLiquidEngine_RenderLengthLimitStopsRunaway(t *testing.T) {
 }
 
 // The work limit bounds a loop that writes nothing, which the output cap does not see.
+// The error is the limit's, not the timeout's: the limit stops the loop first.
 func TestSecureLiquidEngine_RenderScoreLimitStopsEmptyLoop(t *testing.T) {
-	start := time.Now()
 	out, err := NewSecureLiquidEngine().Render("{% for i in (1..200000000) %}{% endfor %}done", map[string]interface{}{})
-	elapsed := time.Since(start)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "resource limits")
+	assert.NotContains(t, err.Error(), "timeout")
 	assert.Empty(t, out)
-	assert.Less(t, elapsed, 2*time.Second, "the work limit must stop the loop well before the timeout")
 }
 
 // The assign limit bounds what a capture builds, which the output cap does not see.
