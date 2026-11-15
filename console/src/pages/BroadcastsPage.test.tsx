@@ -32,7 +32,9 @@ const url = vi.hoisted(() => {
 const state = vi.hoisted(() => ({
   permissions: {} as Record<string, { read: boolean; write: boolean }>,
   provider: true as boolean,
-  pageStats: undefined as unknown
+  pageStats: undefined as unknown,
+  /** The detail opens a drawer inside it, as its template preview or test send does. */
+  detailChildDrawer: false
 }))
 
 const navigate = vi.hoisted(() =>
@@ -68,9 +70,17 @@ vi.mock('../components/broadcasts/BroadcastKpis', () => ({ BroadcastKpis: () => 
 vi.mock('../components/broadcasts/useBroadcastPageStats', () => ({
   useBroadcastPageStats: () => state.pageStats
 }))
-vi.mock('../components/broadcasts/detail/BroadcastDetail', () => ({
-  BroadcastDetail: ({ broadcastId }: { broadcastId: string }) => <div data-testid="detail">{broadcastId}</div>
-}))
+vi.mock('../components/broadcasts/detail/BroadcastDetail', async () => {
+  const { Drawer } = await import('antd')
+  return {
+    BroadcastDetail: ({ broadcastId }: { broadcastId: string }) => (
+      <div data-testid="detail">
+        {broadcastId}
+        {state.detailChildDrawer ? <Drawer open getContainer={false} title="Preview" /> : null}
+      </div>
+    )
+  }
+})
 vi.mock('../components/broadcasts/compose/BroadcastCompose', () => ({
   BroadcastCompose: ({ composeId, onClose }: { composeId: string; onClose: () => void }) => (
     <div data-testid="compose">
@@ -323,6 +333,21 @@ describe('BroadcastsPage', () => {
 
     expect(navigate).toHaveBeenLastCalledWith(expect.objectContaining({ ignoreBlocker: true }))
     await waitFor(() => expect(url.get().compose).toBeUndefined())
+  })
+
+  it('keeps the detail in place when a drawer opens inside it', async () => {
+    state.detailChildDrawer = true
+    try {
+      list.mockResolvedValue(page([broadcastOf('b1')]))
+      url.set({ broadcast: 'b1' })
+      renderPage()
+      expect(await screen.findByTestId('detail')).toHaveTextContent('b1')
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      const detail = document.querySelector<HTMLElement>('.app-full-drawer .ant-drawer-content-wrapper')!
+      expect(detail.style.transform).toBe('')
+    } finally {
+      state.detailChildDrawer = false
+    }
   })
 
   it('walks the rows with J and K, loading the next page at the last row', async () => {

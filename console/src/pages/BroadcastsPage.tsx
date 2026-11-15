@@ -345,7 +345,14 @@ export function BroadcastsPage() {
         )
       )}
 
-      <FullDrawer open={!!search.broadcast && !search.compose} onClose={closeDetail} backLabel={t`Broadcasts`} nav={nav}>
+      {/* A drawer opened inside the detail (template preview, test send) must not slide it aside. */}
+      <FullDrawer
+        open={!!search.broadcast && !search.compose}
+        onClose={closeDetail}
+        backLabel={t`Broadcasts`}
+        nav={nav}
+        push={false}
+      >
         {detailId ? (
           <BroadcastDetail
             key={detailId}
