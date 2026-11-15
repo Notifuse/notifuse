@@ -19,8 +19,8 @@ vi.mock('../../../services/api/contact_timeline', () => ({
 vi.mock('../../../services/api/analytics', () => ({ analyticsService: { query: vi.fn() } }))
 vi.mock('../../../services/api/web_analytics', () => ({ webAnalyticsService: { contactVisits: vi.fn() } }))
 vi.mock('../../../services/api/messages_history', () => ({ listMessages: vi.fn() }))
-vi.mock('../../timeline', () => ({
-  ContactTimeline: ({ entries }: { entries: { id: string }[] }) => <div>{entries.length} entries</div>
+vi.mock('./ContactActivityFeed', () => ({
+  ContactActivityFeed: ({ entries }: { entries: { id: string }[] }) => <div>{entries.length} entries</div>
 }))
 
 import { contactTimelineApi } from '../../../services/api/contact_timeline'

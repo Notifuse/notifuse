@@ -9,6 +9,7 @@ import type { Segment } from '../../services/api/segment'
 import type { List, UserPermissions, Workspace } from '../../services/api/types'
 import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
 import { Pill } from '../layout'
+import { segmentDotColor } from '../segment/segmentColor'
 import { JsonViewer } from './ContactColumnsSelector'
 import { TrackingConsentSummary } from './TrackingConsent'
 import { contactDisplayName, contactInitials, LIST_STATUS_LABEL, LIST_STATUS_TONE } from './contactDisplay'
@@ -191,7 +192,7 @@ export function ContactsTable({
                     aria-hidden="true"
                     className="size-1.5 rounded-full"
                     // The segment's own colour, chosen by the user: not a theme token.
-                    style={{ backgroundColor: segment?.color }}
+                    style={{ backgroundColor: segmentDotColor(segment?.color) }}
                   />
                   {segment?.name ?? membership.segment_id}
                 </span>

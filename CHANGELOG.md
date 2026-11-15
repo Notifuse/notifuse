@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
-- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, activity, messages and web visits, each visit with its pages and goals (a very long one says it shows only its first).
+- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, its activity day by day in sentences, each message with its journey (delivered, opened, clicked) and the email sent, and its web visits, each with its pages and goals (a very long one says it shows only its first).
 
 - **Feature**: The blog page in the console lists posts with a tab per status, scheduled posts included, and their counts, a title search, and each post's views over 30 days once the web analytics script is in the blog's theme. Categories show their post counts in the side rail, with a menu to edit or delete them.
 
@@ -115,6 +115,8 @@ All notable changes to this project will be documented in this file.
 - **Fix**: The blog theme preview in the console uses pictures bundled with the console, instead of photos of people loaded from Unsplash.
 
 - **Fix**: Negative web analytics amounts, such as refunded goal values, drop their cents from a thousand like positive ones: "-1,235", not "-1,234.57".
+
+- **Fix**: In a contact's activity, a removal from a list reads "Removed from Newsletter" instead of a status change ending in "undefined".
 
 - **Fix**: In a contact's activity and fields and in the message history, the full date shown on hover is the time in the timezone it names (the contact's or the workspace's), in the console's language, not in your browser's.
 
