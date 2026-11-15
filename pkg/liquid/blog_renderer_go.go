@@ -13,6 +13,13 @@ import (
 const (
 	BlogRenderTimeout   = 5 * time.Second
 	BlogMaxTemplateSize = 100 * 1024 // 100KB
+	// The resource limits liquidgo checks while it renders, partials included (they
+	// share the limits of the page that renders them): the output (a page is well
+	// under 1MB), the work, which counts each node rendered and each loop iteration
+	// (10 million is about 0.2s), and what assign and capture build.
+	BlogMaxRenderLength = 10_000_000 // 10MB
+	BlogMaxRenderScore  = 10_000_000
+	BlogMaxAssignScore  = 10_000_000
 )
 
 // mapFileSystem is a simple in-memory FileSystem for partials
@@ -58,6 +65,12 @@ func NewBlogTemplateRenderer() *BlogTemplateRenderer {
 
 	// Register standard tags (CRITICAL - required for if, for, assign, etc.)
 	tags.RegisterStandardTags(env)
+
+	env.SetDefaultResourceLimits(map[string]interface{}{
+		"render_length_limit": BlogMaxRenderLength,
+		"render_score_limit":  BlogMaxRenderScore,
+		"assign_score_limit":  BlogMaxAssignScore,
+	})
 
 	// Register any custom filters if needed in the future
 	// env.RegisterFilter(&MyCustomFilters{})
@@ -125,8 +138,17 @@ func (r *BlogTemplateRenderer) Render(
 			tmpl.Registers()["file_system"] = fs
 		}
 
-		// Render the template (first parameter is 'assigns' - the template data)
-		output := tmpl.Render(data, nil)
+		// Render the template (first parameter is 'assigns' - the template data). The
+		// context stops the render at its next node once the timeout is reached, so a
+		// runaway theme does not keep its goroutine running.
+		output := tmpl.Render(data, &liquid.RenderOptions{Context: ctx})
+
+		// A render over its limits ends with "Liquid error: Memory limits exceeded" in
+		// its output: it is an error, never a page.
+		if limits := tmpl.ResourceLimits(); limits != nil && limits.Reached() {
+			resultChan <- result{output: "", err: fmt.Errorf("template rendering exceeded its resource limits (output size, work or assigns)")}
+			return
+		}
 
 		// In lax mode (default), errors are rendered inline in the output, not as errors.
 		// Only return an error if rendering completely failed (empty output with errors).
