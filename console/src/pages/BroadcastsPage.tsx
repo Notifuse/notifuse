@@ -177,15 +177,30 @@ export function BroadcastsPage() {
 
   const counts = list.statusCounts
   const allCount = groupCount(counts, undefined)
+  // The tabs count newsletters: 'newsletter filter' lets French put them in the feminine plural
+  // (Toutes, Programmées, Envoyées), where the same English words elsewhere qualify emails.
   const tabs: CountTabOption<StatusGroup>[] = [
-    { value: 'all', label: t`All`, count: allCount },
+    { value: 'all', label: t({ message: 'All', context: 'newsletter filter' }), count: allCount },
     { value: 'draft', label: t`Drafts`, count: groupCount(counts, BROADCAST_STATUS_GROUPS.draft) },
-    { value: 'scheduled', label: t`Scheduled`, count: groupCount(counts, BROADCAST_STATUS_GROUPS.scheduled) },
-    { value: 'sending', label: t`Sending`, count: groupCount(counts, BROADCAST_STATUS_GROUPS.sending) },
-    { value: 'sent', label: t`Sent`, count: groupCount(counts, BROADCAST_STATUS_GROUPS.sent) }
+    {
+      value: 'scheduled',
+      label: t({ message: 'Scheduled', context: 'newsletter filter' }),
+      count: groupCount(counts, BROADCAST_STATUS_GROUPS.scheduled)
+    },
+    {
+      value: 'sending',
+      label: t({ message: 'Sending', context: 'newsletter filter' }),
+      count: groupCount(counts, BROADCAST_STATUS_GROUPS.sending)
+    },
+    {
+      value: 'sent',
+      label: t({ message: 'Sent', context: 'newsletter filter' }),
+      count: groupCount(counts, BROADCAST_STATUS_GROUPS.sent)
+    }
   ]
   const failedCount = groupCount(counts, BROADCAST_STATUS_GROUPS.failed) ?? 0
-  if (failedCount > 0 || statusGroup === 'failed') tabs.push({ value: 'failed', label: t`Failed`, count: failedCount })
+  if (failedCount > 0 || statusGroup === 'failed')
+    tabs.push({ value: 'failed', label: t({ message: 'Failed', context: 'newsletter filter' }), count: failedCount })
 
   const hasMarketingProvider = !!workspace?.settings?.marketing_email_provider_id
   // Nothing at all in the workspace: no search, and the counts of every status are zero.
@@ -330,7 +345,14 @@ export function BroadcastsPage() {
         )
       )}
 
-      <FullDrawer open={!!search.broadcast && !search.compose} onClose={closeDetail} backLabel={t`Broadcasts`} nav={nav}>
+      {/* A drawer opened inside the detail (template preview, test send) must not slide it aside. */}
+      <FullDrawer
+        open={!!search.broadcast && !search.compose}
+        onClose={closeDetail}
+        backLabel={t`Broadcasts`}
+        nav={nav}
+        push={false}
+      >
         {detailId ? (
           <BroadcastDetail
             key={detailId}

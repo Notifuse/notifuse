@@ -36,7 +36,7 @@ export function SendingCard({ workspace, canConfigure }: SendingCardProps) {
     id ? workspace.integrations?.find((integration) => integration.id === id) : undefined
 
   return (
-    <Panel title={t`Sending`}>
+    <Panel title={t({ message: 'Sending', context: 'section' })}>
       <div className="flex flex-col gap-3">
         {uses.map((use) => {
           const integration = provider(use.providerId)

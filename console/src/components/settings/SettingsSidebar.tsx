@@ -24,7 +24,7 @@ import { RailItem, RailSection } from '../layout'
  */
 export const SETTINGS_GROUPS = [
   { title: msg`Workspace`, sections: ['general', 'team'] },
-  { title: msg`Sending`, sections: ['integrations', 'webhooks', 'smtp-bridge'] },
+  { title: msg({ message: 'Sending', context: 'section' }), sections: ['integrations', 'webhooks', 'smtp-bridge'] },
   { title: msg`Content`, sections: ['custom-fields', 'blog', 'web-analytics'] },
   // Licence is deployment-wide rather than workspace-wide, and rendered only for a root user —
   // but listed here unconditionally, because this list is what makes a URL valid and a root user

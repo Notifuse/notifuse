@@ -116,9 +116,35 @@ describe('AudienceCard', () => {
         {(v, u) => <AudienceCard values={v} onChange={u} lists={lists} segments={segments} canReadLists canReadSegments estimate={estimate} />}
       </Harness>
     )
-    expect(screen.getByText(/carry no List-Unsubscribe header/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('switch', { name: 'Exclude unsubscribed recipients' }))
+    // One short line on screen; the consequences behind a "?", and in the switch's description, once.
+    expect(screen.getByText('Turn off only for a notice everyone must receive (security, legal).')).toBeVisible()
+    const toggle = screen.getByRole('switch', {
+      name: 'Exclude unsubscribed recipients',
+      description: /^Turn off for notices every member must receive.*carry no List-Unsubscribe header/
+    })
+    expect(screen.getByText(/carry no List-Unsubscribe header/)).toHaveAttribute('hidden')
+    expect(screen.getByRole('button', { name: 'About unsubscribed recipients' })).toBeInTheDocument()
+    await userEvent.click(toggle)
     expect(latest.excludeUnsubscribed).toBe(false)
+  })
+
+  it('puts the list and the segments side by side, the segments with a one-line hint and a "?"', () => {
+    render(
+      <Harness initial={base()}>
+        {(v, u) => <AudienceCard values={v} onChange={u} lists={lists} segments={segments} canReadLists canReadSegments estimate={estimate} />}
+      </Harness>
+    )
+    const list = screen.getByRole('combobox', { name: 'List' })
+    const segmentsBox = screen.getByRole('combobox', { name: 'Segments' })
+    const grid = list.closest('.grid')
+    expect(grid).not.toBeNull()
+    expect(grid).toContainElement(segmentsBox)
+    expect(screen.getByText('Optional. Empty means the whole list.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'About segments' })).toBeInTheDocument()
+    expect(segmentsBox).toHaveAccessibleDescription(/Leave empty for the whole list/)
+    // The label points at the select, not at the "?" it holds.
+    const label = screen.getByText('And in at least one segment').closest('label')!
+    expect(label).toHaveAttribute('for', segmentsBox.id)
   })
 })
 
@@ -287,7 +313,12 @@ describe('TrackingCard', () => {
 
   it("turns tracking off for the broadcast, and the automatic winner with it", async () => {
     render(<Harness initial={base({ autoSendWinner: true })}>{(v, u) => <TrackingCard values={v} onChange={u} />}</Harness>)
-    await userEvent.click(screen.getByRole('switch', { name: "Don't track opens and clicks for this broadcast" }))
+    const toggle = screen.getByRole('switch', {
+      name: "Don't track opens and clicks for this broadcast",
+      description: /UTM parameters are kept/
+    })
+    expect(screen.getByRole('link', { name: 'Learn more' })).toBeInTheDocument()
+    await userEvent.click(toggle)
     expect(latest).toMatchObject({ noTracking: true, autoSendWinner: false })
   })
 })
@@ -305,6 +336,35 @@ describe('AdvancedRow', () => {
     expect(screen.getByText('Off')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Global data feed/ }))
     expect(screen.getByText('global feed none')).toBeInTheDocument()
+  })
+
+  it('says what each feed does under its name, as the description of its button', () => {
+    render(<Harness initial={base()}>{(v, u) => <AdvancedRow workspaceId="ws1" values={v} onChange={u} />}</Harness>)
+    expect(
+      screen.getByRole('button', {
+        name: 'Global data feed Off',
+        description: 'Data shared by every recipient, in the global_feed variable'
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', {
+        name: 'Per-recipient data feed Off',
+        description: 'One HTTPS call per contact before sending, in the recipient_feed variable'
+      })
+    ).toBeInTheDocument()
+  })
+
+  it('lets a long feed address shrink with an ellipsis rather than push the row', () => {
+    const url = 'https://a-very-long-subdomain.of-a-feed-provider.example.test/path'
+    render(
+      <Harness initial={base({ globalFeed: { enabled: true, url: 'not a url ' + url, headers: [] } })}>
+        {(v, u) => <AdvancedRow workspaceId="ws1" values={v} onChange={u} />}
+      </Harness>
+    )
+    const state = screen.getByText('not a url ' + url)
+    expect(state.className).toContain('truncate')
+    expect(state.className).toContain('min-w-0')
+    expect(state.className).not.toContain('shrink-0')
   })
 
   it('feedState reads an invalid URL as typed', () => {
