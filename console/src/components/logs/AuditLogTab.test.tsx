@@ -278,11 +278,42 @@ describe('AuditLogTab', () => {
   })
 
   it('offers the deployment view to a root only, and loads the members for them', async () => {
-    renderTab()
+    const { unmount } = renderTab()
+    // Neither the chip nor either scope, whatever the chip is called
+    expect(screen.queryByText('This workspace')).not.toBeInTheDocument()
     expect(screen.queryByText('Whole deployment')).not.toBeInTheDocument()
-    renderTab({ tab: 'audit' }, true)
-    expect(screen.getByText('Whole deployment')).toBeInTheDocument()
+    unmount()
+    renderTab({ tab: 'audit', actor_id: 'u2', id: 'e1' }, true)
     await waitFor(() => expect(state.getMembers).toHaveBeenCalledWith('ws1'))
+    // A menu, « View This workspace », rather than two buttons
+    await userEvent.click(screen.getByRole('button', { name: /View This workspace/ }))
+    // The scope already shown changes nothing: the actor filter and the open entry stay
+    await userEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'This workspace' }))
+    expect(state.navigate).not.toHaveBeenCalled()
+    // Another scope drops the actor filter and the open entry, as they belong to the other view
+    await userEvent.click(screen.getByRole('button', { name: /View This workspace/ }))
+    await userEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Whole deployment' }))
+    expect(lastSearch().search).toEqual({ tab: 'audit', scope: 'deployment' })
+    // The search keeps the width chosen for one line at 1440 (the line itself is checked on screen)
+    let sized: HTMLElement | null = screen.getByRole('textbox', { name: 'Search the audit log' })
+    while (sized && !sized.style.width) sized = sized.parentElement
+    expect(sized?.style.width).toBe('260px')
+  })
+
+  it('lays out the toolbar and the resource as the mockup does', async () => {
+    renderTab()
+    await waitFor(() => expect(rows()).toHaveLength(1))
+    // Actor, Resource, then Period
+    const chips = ['Actor', 'Resource', 'Period'].map((label) => screen.getByRole('button', { name: new RegExp(`^${label} `) }))
+    for (let i = 1; i < chips.length; i++) {
+      expect(chips[i - 1].compareDocumentPosition(chips[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
+    // Export as a borderless button, the mockup's
+    expect(screen.getByRole('button', { name: /Export/ })).toHaveClass('ant-btn-text')
+    // The resource in a grey pill, without the status dot
+    const resource = within(rows()[0] as HTMLElement).getByText('Templates')
+    expect(resource).toHaveClass('bg-neutral-bg')
+    expect(resource.querySelector('[data-pill-dot]')).toBeNull()
   })
 
   it('shows the workspace of each entry in deployment view, without members nor retention', async () => {
