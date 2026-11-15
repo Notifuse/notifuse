@@ -115,6 +115,11 @@ type DemoConfig struct {
 	FileManagerBucket    string
 	FileManagerAccessKey string
 	FileManagerSecretKey string
+	// WebAnalyticsSessions overrides how many web-analytics sessions a demo seed
+	// generates; 0 keeps the demo's own volume. Never read from the environment:
+	// the integration harness lowers it so a seed does not spend minutes on volume
+	// no test asserts.
+	WebAnalyticsSessions int
 }
 
 type ServerConfig struct {
@@ -252,6 +257,10 @@ type TaskSchedulerConfig struct {
 	Enabled  bool          // Enable/disable internal scheduler
 	Interval time.Duration // Tick interval (default: 20s)
 	MaxTasks int           // Max tasks per execution (default: 100)
+	// SendNowDelay overrides how far ahead a send-now broadcast task is due; 0
+	// keeps the default (5s). Never read from the environment: the integration
+	// harness shortens it, since every test broadcast otherwise waits it out.
+	SendNowDelay time.Duration
 }
 
 type AutomationSchedulerConfig struct {

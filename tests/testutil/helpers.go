@@ -578,9 +578,15 @@ func WaitForBroadcastStatus(t *testing.T, client *APIClient, broadcastID string,
 // Returns the final status reached or an error if timeout occurs.
 func WaitForBroadcastStatusWithExecution(t *testing.T, client *APIClient, broadcastID string, acceptableStatuses []string, timeout time.Duration) (string, error) {
 	deadline := time.Now().Add(timeout)
-	pollInterval := 1 * time.Second
-	taskExecutionInterval := 2 * time.Second
+	// The harness makes a send-now task due shortly after it is scheduled (see
+	// NewServerManager), and a broadcast takes more than one task run: polling at
+	// this pace keeps the wait close to that instead of rounding each run up to
+	// seconds. Only failures and status changes are logged, so a long wait stays
+	// readable in CI logs.
+	pollInterval := 250 * time.Millisecond
+	taskExecutionInterval := 500 * time.Millisecond
 	lastTaskExecution := time.Now()
+	lastStatus := ""
 
 	t.Logf("Starting WaitForBroadcastStatusWithExecution for broadcast %s (timeout: %v)", broadcastID, timeout)
 	t.Logf("Acceptable statuses: %v", acceptableStatuses)
@@ -594,20 +600,18 @@ func WaitForBroadcastStatusWithExecution(t *testing.T, client *APIClient, broadc
 		// Execute pending tasks periodically
 		if time.Since(lastTaskExecution) >= taskExecutionInterval {
 			taskExecutionCount++
-			t.Logf("Executing pending tasks (cycle %d)", taskExecutionCount)
 
 			execResp, err := client.ExecutePendingTasks(10)
 			if err != nil {
-				t.Logf("Warning: ExecutePendingTasks failed: %v", err)
+				t.Logf("Warning: ExecutePendingTasks failed (cycle %d): %v", taskExecutionCount, err)
 			} else {
 				execResp.Body.Close()
-				t.Logf("Task execution completed successfully")
 			}
 
 			lastTaskExecution = time.Now()
 
 			// Give tasks time to process
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}
 
 		// Check broadcast status
@@ -627,8 +631,10 @@ func WaitForBroadcastStatusWithExecution(t *testing.T, client *APIClient, broadc
 		if broadcastData, ok := result["broadcast"].(map[string]interface{}); ok {
 			if status, ok := broadcastData["status"].(string); ok {
 				// Log current status every few iterations
-				if iterationCount%3 == 1 {
-					t.Logf("Broadcast %s current status: %s (iteration %d)", broadcastID, status, iterationCount)
+				if status != lastStatus {
+					t.Logf("Broadcast %s current status: %s (iteration %d, %d task executions)",
+						broadcastID, status, iterationCount, taskExecutionCount)
+					lastStatus = status
 				}
 
 				// Check if we've reached an acceptable status
