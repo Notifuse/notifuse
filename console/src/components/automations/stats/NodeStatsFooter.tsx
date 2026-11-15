@@ -25,7 +25,7 @@ interface NodeStatsFooterProps {
   nodeType: NodeType
 }
 
-/** A step's results under its card, with "With stats" on. Nothing for an unsaved step. */
+/** A step's results under its card, with the stats switch on. Nothing for an unsaved step. */
 export function NodeStatsFooter({ nodeId, nodeType }: NodeStatsFooterProps) {
   const state = useNodeStatsState()
   if (!state.enabled || state.error || !state.savedNodeIds.has(nodeId)) return null

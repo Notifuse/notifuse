@@ -17,10 +17,18 @@ export interface TemplatePreviewFrameProps {
   testData?: Record<string, unknown>
   /** The width the email is rendered at before scaling (600, or a phone's 375). */
   emailWidth?: number
+  /** How much of the email is shown, at its rendered width: a smaller value crops it to its top. */
+  frameHeight?: number
 }
 
 /** A scaled-down, non-interactive render of a template, compiled as it is sent. */
-export function TemplatePreviewFrame({ workspace, template, testData, emailWidth = EMAIL_WIDTH }: TemplatePreviewFrameProps) {
+export function TemplatePreviewFrame({
+  workspace,
+  template,
+  testData,
+  emailWidth = EMAIL_WIDTH,
+  frameHeight = FRAME_HEIGHT
+}: TemplatePreviewFrameProps) {
   const { t } = useLingui()
   const box = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
@@ -48,7 +56,7 @@ export function TemplatePreviewFrame({ workspace, template, testData, emailWidth
       ref={box}
       data-testid="template-preview-frame"
       className="relative overflow-hidden rounded-md border border-line-soft bg-subtle"
-      style={{ height: scale ? Math.round(FRAME_HEIGHT * scale) : undefined }}
+      style={{ height: scale ? Math.round(frameHeight * scale) : undefined }}
     >
       {query.isLoading ? (
         <div className="flex h-40 items-center justify-center">
@@ -63,7 +71,7 @@ export function TemplatePreviewFrame({ workspace, template, testData, emailWidth
           sandbox=""
           tabIndex={-1}
           className="pointer-events-none origin-top-left border-0 bg-surface"
-          style={{ width: emailWidth, height: FRAME_HEIGHT, transform: `scale(${scale})` }}
+          style={{ width: emailWidth, height: frameHeight, transform: `scale(${scale})` }}
         />
       ) : null}
     </div>

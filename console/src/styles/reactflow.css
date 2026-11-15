@@ -5,11 +5,7 @@
   font-family: inherit;
 }
 
-/* Selection highlight */
-.react-flow__node.selected .automation-node {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
+/* A selected step's border and halo are BaseNode's (its `selected` classes). */
 
 /* Custom edge styles */
 .react-flow__edge-path {
@@ -18,7 +14,7 @@
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: #1890ff;
+  stroke: var(--color-primary-500);
 }
 
 /* Handle styles */

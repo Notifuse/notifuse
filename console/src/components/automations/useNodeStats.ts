@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { automationApi } from '../../services/api/automation'
-import { last30Days } from './last30Days'
+import { lastDays } from './lastDays'
 import type { StatsPeriod } from './stats/nodeStatsState'
 
 const ONE_MINUTE = 60_000
@@ -17,9 +17,9 @@ export interface UseNodeStatsOptions {
   live: boolean
 }
 
-/** E3: each step's results over the last 30 days or all time; refreshed every minute while live and watched. */
+/** E3: each step's results over the last 7 or 30 days or all time; refreshed every minute while live and watched. */
 export function useNodeStats({ workspaceId, automationId, timezone, period, available, watched, live }: UseNodeStatsOptions) {
-  const range = period === 'last30' ? last30Days(timezone) : null
+  const range = period === 'all' ? null : lastDays(timezone, period === 'last7' ? 7 : 30)
   return useQuery({
     queryKey: ['automation-node-stats', workspaceId, automationId, range ? range.startUtc : 'all'],
     queryFn: () =>

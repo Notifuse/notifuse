@@ -19,9 +19,9 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ hasListSelected }) => 
   }
 
   return (
-    <div className="flex flex-col gap-3" data-node-palette>
+    <div className="flex flex-col gap-7" data-node-palette>
       {PALETTE_GROUPS.map((group) => (
-        <section key={group.key} className="flex flex-col gap-1.5" aria-label={i18n._(group.title)}>
+        <section key={group.key} className="flex flex-col gap-0.5" aria-label={i18n._(group.title)}>
           <h3 data-unreset className="text-xs font-medium tracking-wide text-ink-3 uppercase">
             {i18n._(group.title)}
           </h3>
@@ -32,8 +32,8 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ hasListSelected }) => 
                 key={type}
                 data-palette-item={type}
                 aria-disabled={isDisabled || undefined}
-                className={`flex items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm text-ink ${
-                  isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab hover:border-line hover:bg-subtle'
+                className={`flex items-center gap-2 rounded-md px-2 py-1 text-sm text-ink ${
+                  isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab hover:bg-subtle'
                 }`}
                 draggable={!isDisabled}
                 onDragStart={(e) => !isDisabled && onDragStart(e, type)}

@@ -1,9 +1,13 @@
 import type { Node } from '@xyflow/react'
 import type { ABTestNodeConfig, NodeType } from '../../../services/api/automation'
+import { MULTI_OUTPUT_TYPES } from '../nodes/outputLayout'
 
 interface LayoutOptions {
   horizontalSpacing?: number
-  verticalSpacing?: number
+  /** Space under a level of single-output steps, before the next level. */
+  stepGap?: number
+  /** Space under a level holding a filter, A/B test, list status or branch: room for the shares. */
+  branchGap?: number
   nodeWidth?: number
   startX?: number
   startY?: number
@@ -21,7 +25,8 @@ interface NodeWithType {
 
 const DEFAULT_OPTIONS: Required<LayoutOptions> = {
   horizontalSpacing: 80,
-  verticalSpacing: 200,
+  stepGap: 70,
+  branchGap: 110,
   nodeWidth: 300, // Matches BaseNode minWidth
   startX: 400,
   startY: 50
@@ -41,7 +46,7 @@ export function layoutNodes<T extends NodeWithType>(
   options: LayoutOptions = {}
 ): T[] {
   const opts = { ...DEFAULT_OPTIONS, ...options }
-  const { horizontalSpacing, verticalSpacing, nodeWidth, startX, startY } = opts
+  const { horizontalSpacing, stepGap, branchGap, nodeWidth, startX, startY } = opts
 
   const triggerNode = nodes.find((n) => n.data.nodeType === 'trigger')
   if (!triggerNode) return nodes
@@ -281,9 +286,25 @@ export function layoutNodes<T extends NodeWithType>(
     return targetX
   }
 
+  // Each level starts under the tallest step of the level above (its measured height: a step grows
+  // with its stats), with more room under a level that branches.
+  // An edge may name a step that is not on the canvas: it counts as an unmeasured simple step.
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const heightOf = (id: string) => byId.get(id)?.measured?.height || NODE_HEIGHT
+  const levelY: number[] = [startY]
+  for (let level = 0; level < maxLevel; level++) {
+    const ids = nodesByLevel.get(level) || []
+    const tallest = Math.max(NODE_HEIGHT, ...ids.map(heightOf))
+    const branches = ids.some((id) => {
+      const type = byId.get(id)?.data.nodeType
+      return !!type && MULTI_OUTPUT_TYPES.has(type)
+    })
+    levelY.push(levelY[level] + tallest + (branches ? branchGap : stepGap))
+  }
+
   for (let level = 0; level <= maxLevel; level++) {
     const nodesAtLevel = nodesByLevel.get(level) || []
-    const y = startY + level * verticalSpacing
+    const y = levelY[level]
 
     if (level === 0) {
       // Root level (trigger) - position at center
@@ -363,21 +384,23 @@ export function layoutNodes<T extends NodeWithType>(
     orphanNodes.forEach((node) => {
       // Get the node's current Y position
       const currentY = (node as unknown as Node).position?.y ?? startY
-      // Snap to nearest level
-      const level = Math.round((currentY - startY) / verticalSpacing)
-      const levelY = startY + level * verticalSpacing
+      // Snap to the nearest level
+      const nearest = levelY.reduce(
+        (best, y) => (Math.abs(y - currentY) < Math.abs(best - currentY) ? y : best),
+        levelY[0]
+      )
 
-      if (!orphansByLevel.has(levelY)) {
-        orphansByLevel.set(levelY, [])
+      if (!orphansByLevel.has(nearest)) {
+        orphansByLevel.set(nearest, [])
       }
-      orphansByLevel.get(levelY)!.push(node)
+      orphansByLevel.get(nearest)!.push(node)
     })
 
     // Position orphans at their level, stacking horizontally if multiple at same level
-    orphansByLevel.forEach((nodesAtLevel, levelY) => {
+    orphansByLevel.forEach((nodesAtLevel, rowY) => {
       let currentX = orphanX
       nodesAtLevel.forEach((node) => {
-        newPositions.set(node.id, { x: currentX, y: levelY })
+        newPositions.set(node.id, { x: currentX, y: rowY })
         currentX += nodeWidth + horizontalSpacing
       })
     })
@@ -443,11 +466,10 @@ export function layoutNodes<T extends NodeWithType>(
           const intermediatePos = newPositions.get(intermediateId)
           if (!intermediatePos) continue
 
-          const levelY = startY + lvl * verticalSpacing
           const intermediateHeight = nodes.find((n) => n.id === intermediateId)?.measured?.height ?? NODE_HEIGHT
 
           // Check if edge would cross this node
-          if (lineIntersectsNode(edgeX, sourcePos.y, targetPos.y, intermediatePos.x, levelY, intermediateHeight)) {
+          if (lineIntersectsNode(edgeX, sourcePos.y, targetPos.y, intermediatePos.x, levelY[lvl], intermediateHeight)) {
             // Move the intermediate node out of the way
             // Determine direction: move away from edge
             const nodeCenter = intermediatePos.x

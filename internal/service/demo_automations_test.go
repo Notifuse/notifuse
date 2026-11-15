@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/config"
@@ -411,4 +412,53 @@ func demoReachableNodes(automation *domain.Automation) map[string]bool {
 		queue = append(queue, demoNodeTargets(node)...)
 	}
 	return reachable
+}
+
+// The editor renders stored positions as they are: steps of one level must not touch (cards are
+// 300px wide, the console's layout keeps 80px between them), and a branching step needs more room
+// under it for the shares on its links.
+func TestDemoAutomations_StepsDoNotTouch(t *testing.T) {
+	const cardWidth, levelGap = 300.0, 80.0
+	branching := map[domain.NodeType]bool{
+		domain.NodeTypeFilter:           true,
+		domain.NodeTypeABTest:           true,
+		domain.NodeTypeListStatusBranch: true,
+	}
+	for _, automation := range demoAutomations("ws1") {
+		t.Run(automation.ID, func(t *testing.T) {
+			for i, a := range automation.Nodes {
+				for _, b := range automation.Nodes[i+1:] {
+					if a.Position.Y == b.Position.Y {
+						gap := b.Position.X - a.Position.X
+						if gap < 0 {
+							gap = -gap
+						}
+						assert.GreaterOrEqual(t, gap, cardWidth+levelGap, "%s and %s touch", a.ID, b.ID)
+					}
+				}
+			}
+			byID := map[string]*domain.AutomationNode{}
+			for _, node := range automation.Nodes {
+				byID[node.ID] = node
+			}
+			for _, parent := range automation.Nodes {
+				if !branching[parent.Type] {
+					continue
+				}
+				for _, child := range automation.Nodes {
+					if child.ID == parent.ID || !demoLinks(parent, child.ID) {
+						continue
+					}
+					assert.GreaterOrEqual(t, child.Position.Y-parent.Position.Y, demoNodeRowHeight+demoNodeBranchExtra,
+						"%s is too close under the branching step %s", child.ID, parent.ID)
+				}
+			}
+		})
+	}
+}
+
+// demoLinks reports whether a step's config sends one of its paths to the target.
+func demoLinks(node *domain.AutomationNode, target string) bool {
+	raw, err := json.Marshal(node.Config)
+	return err == nil && target != "" && strings.Contains(string(raw), `"`+target+`"`)
 }

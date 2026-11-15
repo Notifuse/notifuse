@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { readPeriodParam, type StatsPeriodParam } from "./components/automations/stats/periodParam";
 import {
   createRootRoute,
   createRoute,
@@ -151,6 +152,8 @@ export interface AutomationsSearch {
   automation?: string;
   /** 1 when the editor shows each step's results. A number: a string that parses as JSON is written quoted. */
   stats?: 1;
+  /** The period of those results: 7 days or all time; 30 days without it. */
+  period?: StatsPeriodParam;
 }
 
 const AUTOMATION_STATUS_FILTERS: AutomationStatusFilter[] = ["live", "paused", "draft"];
@@ -160,11 +163,13 @@ export function validateAutomationsSearch(search: Record<string, unknown>): Auto
   const plain = validateBroadcastsSearch({ status: search.status, q: search.q, broadcast: search.automation });
   const status = AUTOMATION_STATUS_FILTERS.find((value) => value === plain.status);
   const rawStats = Array.isArray(search.stats) ? search.stats[0] : search.stats;
+  const rawPeriod = Array.isArray(search.period) ? search.period[0] : search.period;
   return {
     status,
     q: plain.q,
     automation: plain.broadcast,
     stats: rawStats === 1 || rawStats === "1" ? 1 : undefined,
+    period: readPeriodParam(rawPeriod),
   };
 }
 

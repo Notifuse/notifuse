@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useNodeStats, type UseNodeStatsOptions } from './useNodeStats'
 import { automationApi } from '../../services/api/automation'
-import { last30Days } from './last30Days'
+import { last30Days, lastDays } from './lastDays'
 
 vi.mock('../../services/api/automation', () => ({
   automationApi: { nodeStats: vi.fn().mockResolvedValue({ automation_id: 'a1', nodes: {} }) }
@@ -33,6 +33,18 @@ describe('useNodeStats', () => {
   it('asks the last 30 days with the bounds of resolveRange', async () => {
     run({})
     const range = last30Days('Europe/Paris')
+    await waitFor(() => expect(automationApi.nodeStats).toHaveBeenCalled())
+    expect(automationApi.nodeStats).toHaveBeenCalledWith({
+      workspace_id: 'ws',
+      automation_id: 'a1',
+      since: range.startUtc,
+      until: range.endUtc
+    })
+  })
+
+  it('asks the last 7 days with their bounds', async () => {
+    run({ period: 'last7' })
+    const range = lastDays('Europe/Paris', 7)
     await waitFor(() => expect(automationApi.nodeStats).toHaveBeenCalled())
     expect(automationApi.nodeStats).toHaveBeenCalledWith({
       workspace_id: 'ws',

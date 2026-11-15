@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { App } from 'antd'
 import type { ReactNode } from 'react'
 import { i18n } from '@lingui/core'
@@ -23,8 +23,11 @@ vi.mock('@tanstack/react-router', async (importOriginal) => ({
 // The per-type forms are exercised by their own tests; stubbing the barrel keeps this one about
 // the description field the panel owns, and keeps a single textbox on screen to address.
 vi.mock('./config', () => {
-  const Stub = ({ canReadTemplates }: { canReadTemplates?: boolean }) => (
-    <div data-testid="type-form" data-can-read-templates={String(canReadTemplates)} />
+  // The email form shows the preview it is given, under its template field.
+  const Stub = ({ canReadTemplates, preview }: { canReadTemplates?: boolean; preview?: ReactNode }) => (
+    <div data-testid="type-form" data-can-read-templates={String(canReadTemplates)}>
+      {preview}
+    </div>
   )
   return {
     TriggerConfigForm: Stub,
@@ -39,17 +42,24 @@ vi.mock('./config', () => {
   }
 })
 
-// The preview reads the template: it has its own test.
-vi.mock('./stats/EmailStepPreview', () => ({
-  EmailStepPreview: ({ canReadTemplates }: { canReadTemplates: boolean }) => (
-    <div data-testid="email-preview" data-can-read-templates={String(canReadTemplates)} />
-  )
-}))
+// The preview reads the template: it has its own test. Its stand-in keeps an antd button, so
+// whether the panel's read-only setting reaches it shows.
+vi.mock('./stats/EmailStepPreview', async () => {
+  const { Button } = await import('antd')
+  return {
+    EmailStepPreview: ({ canReadTemplates }: { canReadTemplates: boolean }) => (
+      <div data-testid="email-preview" data-can-read-templates={String(canReadTemplates)}>
+        <Button>Retry</Button>
+      </div>
+    )
+  }
+})
 
 const context = vi.hoisted(() => ({
   canReadTemplates: true,
   readOnly: false,
-  workspace: { id: 'ws-1' } as Record<string, unknown>
+  workspace: { id: 'ws-1' } as Record<string, unknown>,
+  templates: [] as { id: string; name: string }[]
 }))
 
 vi.mock('./context', () => ({
@@ -57,7 +67,8 @@ vi.mock('./context', () => ({
     workspace: context.workspace,
     canReadTemplates: context.canReadTemplates,
     readOnly: context.readOnly,
-    automationId: 'auto-1'
+    automationId: 'auto-1',
+    templates: context.templates
   })
 }))
 
@@ -89,14 +100,14 @@ const makeNode = (
 
 const renderPanel = (
   selectedNode: Node<AutomationNodeData>,
-  { stats = NO_NODE_STATS, onDelete }: { stats?: NodeStatsState; onDelete?: (id: string) => void } = {}
+  { stats = NO_NODE_STATS }: { stats?: NodeStatsState } = {}
 ) => {
   const onNodeUpdate = vi.fn()
   const view = render(
     <I18nProvider i18n={i18n}>
       <App>
         <NodeStatsContext.Provider value={stats}>
-          <NodeConfigPanel selectedNode={selectedNode} onNodeUpdate={onNodeUpdate} workspaceId="ws-1" onDelete={onDelete} />
+          <NodeConfigPanel selectedNode={selectedNode} onNodeUpdate={onNodeUpdate} workspaceId="ws-1" />
         </NodeStatsContext.Provider>
       </App>
     </I18nProvider>
@@ -244,27 +255,45 @@ const nodeStats = (over: Partial<NodeStats> = {}): NodeStats => ({
   ...over
 })
 
-describe('NodeConfigPanel Delete step', () => {
+describe('NodeConfigPanel title', () => {
   afterEach(() => {
-    context.readOnly = false
+    context.templates = []
   })
 
-  it('deletes a step after confirming', async () => {
-    const onDelete = vi.fn()
-    renderPanel(makeNode('n1', 'delay', {}), { onDelete })
-    fireEvent.click(screen.getByRole('button', { name: /Delete step/ }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith('n1'))
+  const title = () => document.querySelector('[data-step-panel] .truncate')?.textContent
+
+  it("shows the step's description first", () => {
+    context.templates = [{ id: 'tpl-1', name: 'Welcome Email' }]
+    renderPanel(makeNode('n1', 'email', { template_id: 'tpl-1', description: 'Day 1' }))
+    expect(title()).toBe('Day 1')
   })
 
-  it('offers no Delete step on the trigger', () => {
-    renderPanel(makeNode('n1', 'trigger', {}), { onDelete: vi.fn() })
-    expect(screen.queryByRole('button', { name: /Delete step/ })).not.toBeInTheDocument()
+  it('names an email step by its template without a description', () => {
+    context.templates = [{ id: 'tpl-1', name: 'Welcome Email' }]
+    renderPanel(makeNode('n1', 'email', { template_id: 'tpl-1' }))
+    expect(title()).toBe('Welcome Email')
   })
 
-  it('offers no Delete step read-only', () => {
-    context.readOnly = true
-    renderPanel(makeNode('n1', 'delay', {}), { onDelete: vi.fn() })
+  it('falls back to the type when the template is not listed', () => {
+    renderPanel(makeNode('n1', 'email', { template_id: 'tpl-gone' }))
+    expect(title()).toBe('Email')
+  })
+
+  it('names other steps by their type', () => {
+    context.templates = [{ id: 'tpl-1', name: 'Welcome Email' }]
+    renderPanel(makeNode('n1', 'delay', { template_id: 'tpl-1' }))
+    expect(title()).toBe('Delay')
+  })
+
+  it('puts the preview inside the email form', () => {
+    renderPanel(makeNode('n1', 'email', { template_id: 'tpl-1' }))
+    expect(screen.getByTestId('type-form')).toContainElement(screen.getByTestId('email-preview'))
+  })
+})
+
+describe('NodeConfigPanel actions', () => {
+  it('leaves deleting a step to its card: no Delete step in the panel', () => {
+    renderPanel(makeNode('n1', 'delay', {}))
     expect(screen.queryByRole('button', { name: /Delete step/ })).not.toBeInTheDocument()
   })
 
@@ -294,6 +323,11 @@ describe('NodeConfigPanel results', () => {
     const { unmount } = renderPanel(makeNode('n1', 'delay', {}), { stats: statsOn({ nodes: { n1: nodeStats() } }) })
     expect(screen.getByRole('region', { name: 'Last 30 days' })).toBeInTheDocument()
     unmount()
+    const seven = renderPanel(makeNode('n1', 'delay', {}), {
+      stats: statsOn({ period: 'last7', nodes: { n1: nodeStats() } })
+    })
+    expect(screen.getByRole('region', { name: 'Last 7 days' })).toBeInTheDocument()
+    seven.unmount()
     renderPanel(makeNode('n1', 'delay', {}), { stats: statsOn({ period: 'all', nodes: { n1: nodeStats() } }) })
     expect(screen.getByRole('region', { name: 'All time' })).toBeInTheDocument()
   })
@@ -318,7 +352,8 @@ describe('NodeConfigPanel results', () => {
     const link = screen.getByRole('link', { name: 'View messages' })
     expect(link).toHaveAttribute('href')
     expect(link).not.toHaveAttribute('aria-disabled', 'true')
-    expect(screen.getByTestId('email-preview')).toBeInTheDocument()
+    // The preview sits in the disabled form, yet its buttons (Retry) stay usable.
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled()
   })
 
   it.each([

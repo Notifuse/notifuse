@@ -2,6 +2,8 @@ import React from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
+import { OutputNames } from './OutputNames'
+import { outputLeft } from './outputLayout'
 import { SourceHandle, TargetHandle } from './handles'
 import { getNodeDescription } from './constants'
 import { useAutomation } from '../context'
@@ -26,6 +28,7 @@ export const ListStatusBranchNode: React.FC<ListStatusBranchNodeProps> = ({ id, 
         selected={selected}
         isOrphan={data.isOrphan}
         onDelete={data.onDelete}
+        outputs={<OutputNames nodeType="list_status_branch" config={data.config} />}
       >
         {!config?.list_id ? (
           <div className="text-warning-fg text-xs">{t`Select a list`}</div>
@@ -34,17 +37,11 @@ export const ListStatusBranchNode: React.FC<ListStatusBranchNodeProps> = ({ id, 
             {t`Check`}: {listName || config.list_id}
           </div>
         )}
-        {/* Branch labels */}
-        <div className="flex justify-between text-xs mt-2 px-1">
-          <span className="text-ink-3 font-medium">{t`Not in List`}</span>
-          <span className="text-success-fg font-medium">{t`Active`}</span>
-          <span className="text-warning-fg font-medium">{t`Non-Active`}</span>
-        </div>
       </BaseNode>
       {/* Three source handles */}
-      <SourceHandle id="not_in_list" left="20%" tone="muted" />
-      <SourceHandle id="active" left="50%" tone="yes" />
-      <SourceHandle id="non_active" left="80%" tone="warning" />
+      <SourceHandle id="not_in_list" left={`${outputLeft('list_status_branch', 0, 3)}%`} tone="muted" />
+      <SourceHandle id="active" left={`${outputLeft('list_status_branch', 1, 3)}%`} tone="yes" />
+      <SourceHandle id="non_active" left={`${outputLeft('list_status_branch', 2, 3)}%`} tone="warning" />
     </>
   )
 }
