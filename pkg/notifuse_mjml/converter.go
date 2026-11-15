@@ -479,9 +479,10 @@ func cleanLiquidTemplateHTML(content string) string {
 	})
 }
 
-// decodeLiquidLiteralEntities decodes the HTML entities inside the string literals
-// of a cleaned markup. An entity that would decode to the literal's own quote stays
-// encoded: Liquid has no escape for it, and decoding it would end the literal.
+// decodeLiquidLiteralEntities decodes the entities inside the string literals of a
+// cleaned markup (see decodeLiteralEntity for which). A literal holding its own quote
+// as an entity is rewritten with the other quote when it holds none of that one:
+// Liquid has no escape for a quote, and keeping the entity would show it escaped.
 func decodeLiquidLiteralEntities(markup string) string {
 	if !strings.Contains(markup, "&") {
 		return markup
@@ -501,41 +502,49 @@ func decodeLiquidLiteralEntities(markup string) string {
 			break
 		}
 		literal := markup[i+1 : i+1+end]
-		b.WriteByte(c)
-		b.WriteString(decodeEntitiesKeeping(literal, c))
-		b.WriteByte(c)
+		quote := c
+		decoded, ownQuote := decodeLiteralEntities(literal, quote)
+		if ownQuote {
+			other := byte('"')
+			if quote == '"' {
+				other = '\''
+			}
+			if all, _ := decodeLiteralEntities(literal, 0); !strings.ContainsRune(all, rune(other)) {
+				quote, decoded = other, all
+			}
+		}
+		b.WriteByte(quote)
+		b.WriteString(decoded)
+		b.WriteByte(quote)
 		i += end + 2
 	}
 	return b.String()
 }
 
-// decodeEntitiesKeeping decodes the HTML entities of s, except those that stand
-// for quote.
-func decodeEntitiesKeeping(s string, quote byte) string {
-	if !strings.Contains(s, "&") {
-		return s
+// literalEntityRegexp matches the entities a literal is decoded from: the XML ones,
+// &nbsp; and numeric references, each with its semicolon. A name without one, as
+// in a query string (?a=1&copy=2), is not an entity here.
+var literalEntityRegexp = regexp.MustCompile(`&(?:amp|lt|gt|quot|apos|nbsp|#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6});`)
+
+// decodeLiteralEntities decodes the entities of a literal, except one that stands
+// for quote (0: none), and those that would give {, } or %, which would change
+// the Liquid markup around the literal. ownQuote reports a kept entity of quote.
+func decodeLiteralEntities(literal string, quote byte) (decoded string, ownQuote bool) {
+	if !strings.Contains(literal, "&") {
+		return literal, false
 	}
-	var b strings.Builder
-	for i := 0; i < len(s); {
-		if s[i] != '&' {
-			b.WriteByte(s[i])
-			i++
-			continue
+	decoded = literalEntityRegexp.ReplaceAllStringFunc(literal, func(entity string) string {
+		text := html.UnescapeString(entity)
+		switch {
+		case quote != 0 && text == string(quote):
+			ownQuote = true
+			return entity
+		case text == "{" || text == "}" || text == "%":
+			return entity
 		}
-		end := strings.IndexByte(s[i:], ';')
-		if end < 0 {
-			b.WriteString(s[i:])
-			break
-		}
-		entity := s[i : i+end+1]
-		decoded := html.UnescapeString(entity)
-		if decoded == string(quote) {
-			decoded = entity
-		}
-		b.WriteString(decoded)
-		i += end + 1
-	}
-	return b.String()
+		return text
+	})
+	return decoded, ownQuote
 }
 
 func cleanLiquidTemplateWith(content string, clean func(string) string) string {
