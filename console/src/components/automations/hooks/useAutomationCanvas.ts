@@ -54,7 +54,6 @@ export interface UnconnectedOutput {
   nodeId: string
   handleId: string | null  // null for default single output
   position: { x: number; y: number }  // placeholder position in flow coords
-  label?: string  // "Yes", "No", or variant name
   color?: string  // a status colour of the theme tokens
 }
 
@@ -659,7 +658,6 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
             nodeId: node.id,
             handleId: 'continue',
             position: freePlus(node, outputLeft('filter', 0, 2), 2),
-            label: 'Yes',
             color: colors.status.success
           })
         }
@@ -668,7 +666,6 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
             nodeId: node.id,
             handleId: 'exit',
             position: freePlus(node, outputLeft('filter', 1, 2), 2),
-            label: 'No',
             // The tone of the "No" name and of its link's share.
             color: colors.status.warning
           })
@@ -685,8 +682,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
             outputs.push({
               nodeId: node.id,
               handleId: variant.id,
-              position: freePlus(node, handlePercent, totalVariants),
-              label: variant.name
+              position: freePlus(node, handlePercent, totalVariants)
             })
           }
         })

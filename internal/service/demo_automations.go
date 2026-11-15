@@ -83,10 +83,11 @@ func demoIntendedStatus(automationID string) domain.AutomationStatus {
 // Node layout geometry. The Flow Stats drawer re-runs layoutNodes so it looks right whatever is
 // stored, but the editor renders stored positions verbatim — automationToFlow maps them straight
 // through and only the user's explicit "reorganize" action re-layouts. Identical or zero positions
-// therefore open the three editable flows as a pile of overlapping boxes. These values follow
-// layoutNodes (console/src/components/automations/utils/layoutNodes.ts) so the two views agree:
-// steps of one level 80px apart, and more room under a step that branches, for the shares on its
-// links.
+// therefore open the three editable flows as a pile of overlapping boxes. These values keep the
+// rules of layoutNodes (console/src/components/automations/utils/layoutNodes.ts) — steps of one
+// level 80px apart, more room under a step that branches — on a fixed row grid: layoutNodes sizes
+// each level by the measured cards, which the seed cannot know, so a Reorganize may tighten the
+// rows.
 const (
 	demoNodeStartX    = 400.0
 	demoNodeStartY    = 50.0

@@ -130,7 +130,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             canReadTemplates={canReadTemplates}
             readOnly={readOnly}
             preview={
-              // The form is disabled read-only; Preview and Open template stay usable.
+              // The form is disabled read-only; the preview's Retry stays usable.
               <ConfigProvider componentDisabled={false}>
                 <EmailStepPreview
                   workspace={workspace}

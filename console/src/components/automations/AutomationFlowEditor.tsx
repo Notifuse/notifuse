@@ -355,7 +355,6 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
       data: {
         sourceNodeId: output.nodeId,
         sourceHandle: output.handleId,
-        label: output.label,
         color: output.color
       } as AddNodeEdgeData
     }))
@@ -451,7 +450,7 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [flowReady, triggerMeasured, nodes])
+  }, [flowReady, triggerMeasured])
 
   const handleNodeDragStart = useCallback(() => {
     draggingRef.current = true

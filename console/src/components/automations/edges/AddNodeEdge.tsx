@@ -7,8 +7,6 @@ import { colors } from '../../../theme/tokens'
 export type AddNodeEdgeData = {
   sourceNodeId: string
   sourceHandle?: string | null
-  /** The path's name, kept on the data for the add-node handler; the stub draws none. */
-  label?: string
   /** A status colour of the theme tokens. */
   color?: string
 }

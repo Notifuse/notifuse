@@ -288,12 +288,17 @@ export function layoutNodes<T extends NodeWithType>(
 
   // Each level starts under the tallest step of the level above (its measured height: a step grows
   // with its stats), with more room under a level that branches.
-  const heightOf = (id: string) => nodes.find((n) => n.id === id)?.measured?.height || NODE_HEIGHT
+  // An edge may name a step that is not on the canvas: it counts as an unmeasured simple step.
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const heightOf = (id: string) => byId.get(id)?.measured?.height || NODE_HEIGHT
   const levelY: number[] = [startY]
   for (let level = 0; level < maxLevel; level++) {
     const ids = nodesByLevel.get(level) || []
     const tallest = Math.max(NODE_HEIGHT, ...ids.map(heightOf))
-    const branches = ids.some((id) => MULTI_OUTPUT_TYPES.has(nodes.find((n) => n.id === id)!.data.nodeType))
+    const branches = ids.some((id) => {
+      const type = byId.get(id)?.data.nodeType
+      return !!type && MULTI_OUTPUT_TYPES.has(type)
+    })
     levelY.push(levelY[level] + tallest + (branches ? branchGap : stepGap))
   }
 

@@ -33,7 +33,7 @@ Mockup 72 (`suite-maquettes/3-maquettes/identite-visuelle/automatisations-refont
 - The node "⋯" menu (D6).
 - The header keeps its existing controls the mockup does not draw: Activate, the "⋯" menu and the copy-link button. They are features, not decoration. The mockup's "Édition / Avec statistiques" control is replaced by D7.
 - The Description field in the step panel (D4); the mockup has none.
-- The help lines under the template and integration fields stay (they explain the fields; the mockup simply has none).
+- The help lines under the template and integration fields stay, in an info icon beside each label (decided after the first pass: the panel kept its results out of view).
 - Sidebar and top bar: merged into the sidebar on purpose, not counted.
 - Mockup content (Acme, French template names, 1 284 entered) is fake data; the demo shows its own.
 

@@ -54,6 +54,17 @@ describe('layoutNodes', () => {
     expect(Math.abs(at(laid, 'n').x - at(laid, 'y').x)).toBeGreaterThanOrEqual(300 + 80)
   })
 
+  it('lays out a flow whose link names a step missing from the canvas, without throwing', () => {
+    const laid = layoutNodes(
+      [node('t', 'trigger', 100), node('d', 'delay', 90)],
+      [
+        { source: 't', target: 'd' },
+        { source: 'd', target: 'gone' }
+      ]
+    )
+    expect(at(laid, 'd').y - at(laid, 't').y).toBe(100 + 70)
+  })
+
   it('takes 86px for a step not measured yet', () => {
     const laid = layoutNodes([node('t', 'trigger'), node('d', 'delay')], [{ source: 't', target: 'd' }])
     expect(at(laid, 'd').y - at(laid, 't').y).toBe(86 + 70)

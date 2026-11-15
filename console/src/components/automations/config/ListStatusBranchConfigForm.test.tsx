@@ -7,10 +7,13 @@ import { ListStatusBranchConfigForm } from './ListStatusBranchConfigForm'
 vi.mock('../context', () => ({ useAutomation: () => ({ lists: [{ id: 'news', name: 'Newsletter' }] }) }))
 
 describe('ListStatusBranchConfigForm', () => {
-  it('explains the three outputs in a plain info box, without an icon', () => {
+  it('explains the outputs in a plain info box, without an icon', () => {
     render(
       <I18nProvider i18n={i18n}>
-        <ListStatusBranchConfigForm config={{ list_id: 'news', not_in_list_node_id: '', active_node_id: '', non_active_node_id: '' }} onChange={vi.fn()} />
+        <ListStatusBranchConfigForm
+          config={{ list_id: 'news', not_in_list_node_id: '', active_node_id: '', non_active_node_id: '' }}
+          onChange={vi.fn()}
+        />
       </I18nProvider>
     )
     expect(screen.getByText('Branch Logic')).toBeInTheDocument()
