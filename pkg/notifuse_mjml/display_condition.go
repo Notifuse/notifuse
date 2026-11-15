@@ -387,8 +387,8 @@ func (names conditionNames) numericGuard(v, comparison string) string {
 }
 
 // Evaluate reports whether the block shows with data, with the Liquid the export
-// writes, rendered by liquidgo and parsed once per pooled engine (every name the
-// generated Liquid reads is assigned first, so a cached template is safe to reuse). A nil condition shows the block without rendering.
+// writes, rendered by liquidgo and parsed once by the shared engine (a parsed
+// template keeps nothing of a render). A nil condition shows the block without rendering.
 // Any output other than "1" or nothing (a Liquid error text) hides the block. The
 // error is the engine's own failure (timeout, size), never the condition's result.
 func (c *DisplayCondition) Evaluate(data map[string]interface{}) (bool, error) {
@@ -397,13 +397,10 @@ func (c *DisplayCondition) Evaluate(data map[string]interface{}) (bool, error) {
 	}
 	open, close := c.toLiquid(newConditionNames(""))
 	data = withoutConditionNames(data)
-	engine := liquidEnginePool.Get().(*SecureLiquidEngine)
-	out, err := engine.renderCached(open+"1"+close, data)
+	out, err := liquidEngine.renderCached(open+"1"+close, data)
 	if err != nil {
-		// as in processLiquidContent, an engine that failed is not repooled
 		return false, fmt.Errorf("display condition: %w", err)
 	}
-	liquidEnginePool.Put(engine)
 	return out == "1", nil
 }
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Switch, Input, Button, Space, Typography, App, Spin, Form, Modal, Alert, Tooltip } from 'antd'
+import { Input, Button, Space, Typography, App, Spin, Form, Modal, Alert, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { CheckCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { Highlight, themes } from 'prism-react-renderer'
@@ -81,21 +81,12 @@ export function GlobalFeedSettings({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <Text strong>{t`Global Data Feed`}</Text>
-        <Switch
-          checked={settings.enabled}
-          onChange={(checked) => handleChange('enabled', checked)}
-          disabled={disabled}
-        />
-      </div>
-
       {settings.enabled ? (
         <div className="space-y-4">
           <Form.Item
             label={
               <Space size={4}>
-                <span>{t`Global feed URL`}</span>
+                <span>{t`Feed URL`}</span>
                 <Tooltip title={t`The URL must be publicly accessible. A POST request will be sent with broadcast and list information.`}>
                   <QuestionCircleOutlined className="text-gray-400 cursor-help" />
                 </Tooltip>
@@ -186,11 +177,7 @@ export function GlobalFeedSettings({
             </div>
           </Modal>
         </div>
-      ) : (
-        <Text type="secondary">
-          {t`Enable to fetch global data that will be available to all recipients in this broadcast. The data will be accessible in your templates using the "global_feed" variable.`}
-        </Text>
-      )}
+      ) : null}
     </div>
   )
 }

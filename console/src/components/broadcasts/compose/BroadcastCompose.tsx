@@ -422,10 +422,10 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
   const barTitle = (
     <>
       <div className="w-72">
+        {/* Outlined, so it reads as the field it is rather than as the bar's title. */}
         <Input
           aria-label={t`Broadcast name`}
-          variant="borderless"
-          size="small"
+          placeholder={t`Broadcast name`}
           value={values.name}
           onChange={(e) => update((v) => withName(v, e.target.value))}
         />
@@ -509,6 +509,8 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
           ) : null}
         </div>
         <aside className="flex shrink-0 flex-col gap-3 min-[1200px]:sticky min-[1200px]:top-14 min-[1200px]:w-aside">
+          {/* The summary first, the preview under it. */}
+          <SendSummary checks={checks} values={values} listName={listName} segmentNames={segmentNames} workspaceId={ws} />
           <PreviewPanel
             workspace={workspace}
             variants={values.variants}
@@ -518,7 +520,6 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
             onPreview={setPreviewIndex}
             canReadTemplates={canReadTemplates}
           />
-          <SendSummary checks={checks} values={values} listName={listName} segmentNames={segmentNames} workspaceId={ws} />
         </aside>
       </div>
       <SendTemplateModal

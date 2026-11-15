@@ -141,6 +141,17 @@ describe('buildChartOption', () => {
     expect(html).toContain('Clicks <b>n=5</b>')
   })
 
+  it('writes a dash, not a 0, for a bucket still to come', () => {
+    const option = build()
+    const html = option.tooltip.formatter([
+      { axisValue: '2026-11-11T09:00:00Z', seriesName: 'Opens', value: null },
+      { axisValue: '2026-11-11T09:00:00Z', seriesName: 'Clicks', value: undefined }
+    ])
+    expect(html).toContain('Opens <b>—</b>')
+    expect(html).toContain('Clicks <b>—</b>')
+    expect(html).not.toContain('n=0')
+  })
+
   it('writes a series name in its tooltip as text, not as HTML', () => {
     const option = build({ labels: { opens: 'Opens <unique>', clicks: 'Clicks & co' } })
     const html = option.tooltip.formatter([

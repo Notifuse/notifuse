@@ -87,6 +87,16 @@
   background: var(--ant-color-bg-layout);
 }
 
+/* Full-width drawers (rootClassName "app-drawer-instant") open and close at once:
+   a whole screen sliding in reads as a page that lags. antd has no motion prop on
+   Drawer, and its motion token would also still every popup inside. 1ms rather
+   than none: rc-motion ends a motion on transitionend, and without one it waits
+   its 500ms deadline, the invisible mask catching clicks meanwhile. */
+.app-drawer-instant .ant-drawer-mask,
+.app-drawer-instant .ant-drawer-content-wrapper {
+  transition-duration: 1ms;
+}
+
 /* Tags read as a fill, not an outline. Three quarters of the call sites
  * already pass `bordered={false}`, so this is what makes the rest match
  * instead of leaving two looks side by side in one cell. Transparent rather

@@ -9,7 +9,7 @@ import { workspaceContactsRoute, type ContactsSearch } from '../router'
 import { contactsApi, type Contact } from '../services/api/contacts'
 import { contactListApi } from '../services/api/contact_list'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
-import { CountTabs, Panel, RailLayout, TableToolbar, useNumberFormat } from '../components/layout'
+import { Panel, TableToolbar, useNumberFormat } from '../components/layout'
 import { ContactsRail } from '../components/contacts/ContactsRail'
 import { ContactsTable, CONTACT_COLUMNS_STORAGE_KEY } from '../components/contacts/ContactsTable'
 import { DEFAULT_VISIBLE_COLUMNS, useSelectableColumns } from '../components/contacts/contactColumns'
@@ -38,7 +38,7 @@ import {
 } from '../components/contacts/contactsView'
 import { exactViewTotal } from '../components/contacts/contactNavigation'
 import { ListHeader } from '../components/lists/ListHeader'
-import { LIST_STATUSES, LIST_STAT_KEYS, useListStats, type ListStatus } from '../components/lists/listStats'
+import { LIST_STATUSES, LIST_STAT_KEYS, useListStats } from '../components/lists/listStats'
 import { CreateListDrawer } from '../components/lists/ListDrawer'
 import { DrawerSegment } from '../components/segment/button_upsert'
 import { useBulkContactAction, SkippedAction, type BulkActionResult } from '../hooks/useBulkContactAction'
@@ -552,41 +552,6 @@ export function ContactsPage() {
     )
   })()
 
-  const statusTabs =
-    view.kind === 'list' && list ? (
-      <CountTabs<'all' | ListStatus>
-        value={(tableSearch.contact_list_status as ListStatus | undefined) ?? 'all'}
-        onChange={(status) =>
-          go((prev) => ({
-            ...prev,
-            contact_list_status: status === 'all' ? undefined : status,
-            contact: undefined,
-            limit: undefined
-          }))
-        }
-        options={[
-          {
-            value: 'all',
-            label: t`All`,
-            count: listStats.data
-              ? LIST_STATUSES.reduce((sum, key) => sum + listStats.data.stats[LIST_STAT_KEYS[key]], 0)
-              : undefined
-          },
-          ...LIST_STATUSES.map((status) => ({
-            value: status,
-            label: {
-              active: t`Active`,
-              pending: t`Pending`,
-              unsubscribed: t`Unsubscribed`,
-              bounced: t`Bounced`,
-              complained: t`Complained`
-            }[status],
-            count: listStats.data?.stats[LIST_STAT_KEYS[status]]
-          }))
-        ]}
-      />
-    ) : null
-
   const tableArea = (() => {
     if (!canReadContacts) {
       return <div className="px-4 py-10 text-center text-sm text-ink-3">{t`You don't have access to contacts`}</div>
@@ -621,29 +586,39 @@ export function ContactsPage() {
 
   const gone = listGone || segmentGone
 
-  return (
-    <RailLayout
-      ariaLabel={t`Contacts`}
-      rail={
-        <ContactsRail
-          workspaceId={workspaceId}
-          view={view}
-          permissions={permissions}
-          contactsCount={totalQuery.data?.total_contacts}
-          segments={segmentsQuery.data?.segments}
-          segmentsLoading={segmentsQuery.isLoading}
-          onSelect={selectView}
-          onCreateList={() => setListDrawer('create')}
-          onCreateSegment={() => setSegmentDrawerOpen(true)}
-        />
-      }
+  // The lists and segments as a rounded card beside the table, top-aligned with it and only as
+  // tall as its content, instead of a full-height column.
+  const rail = (
+    <nav
+      aria-label={t`Contacts`}
+      data-contacts-rail-card
+      className="w-rail shrink-0 self-start rounded-lg border border-line bg-surface px-2 py-3 shadow-card"
     >
+      <ContactsRail
+        workspaceId={workspaceId}
+        view={view}
+        permissions={permissions}
+        contactsCount={totalQuery.data?.total_contacts}
+        segments={segmentsQuery.data?.segments}
+        segmentsLoading={segmentsQuery.isLoading}
+        onSelect={selectView}
+        onCreateList={() => setListDrawer('create')}
+        onCreateSegment={() => setSegmentDrawerOpen(true)}
+      />
+    </nav>
+  )
+
+  return (
+    <div data-rail-content className="flex min-w-0 flex-col gap-3 px-5 pt-4 pb-6">
       {gone ? (
-        <div className="flex flex-col items-start gap-2 py-6 text-sm text-ink-2">
-          <span>{listGone ? t`This list no longer exists` : t`This segment no longer exists`}</span>
-          <Button type="link" className="px-0" onClick={backToAll}>
-            {t`All contacts`}
-          </Button>
+        <div className="flex items-start gap-3">
+          {rail}
+          <div className="flex flex-col items-start gap-2 py-6 text-sm text-ink-2">
+            <span>{listGone ? t`This list no longer exists` : t`This segment no longer exists`}</span>
+            <Button type="link" className="px-0" onClick={backToAll}>
+              {t`All contacts`}
+            </Button>
+          </div>
         </div>
       ) : (
         <>
@@ -656,10 +631,9 @@ export function ContactsPage() {
             permissions={permissions}
             role={role}
             total={viewTotal}
-            columns={columnChoices}
-            onColumnVisibilityChange={setColumnVisible}
             onExport={() => setExportOpen(true)}
             onContactCreated={invalidateAfterContactChange}
+            onEditList={() => setListDrawer('edit')}
             onViewDeleted={handleViewDeleted}
           />
           {list ? (
@@ -668,10 +642,15 @@ export function ContactsPage() {
               list={list}
               permissions={permissions}
               status={tableSearch.contact_list_status}
+              // A second click on the open status removes the filter: there are no « All » tabs.
               onStatusChange={(status) =>
-                go((prev) => ({ ...prev, contact_list_status: status, contact: undefined, limit: undefined }))
+                go((prev) => ({
+                  ...prev,
+                  contact_list_status: prev.contact_list_status === status ? undefined : status,
+                  contact: undefined,
+                  limit: undefined
+                }))
               }
-              onEditList={() => setListDrawer('edit')}
             />
           ) : null}
           {segment ? (
@@ -680,8 +659,6 @@ export function ContactsPage() {
               segment={segment}
               lists={lists}
               customFieldLabels={workspace.settings?.custom_field_labels ?? {}}
-              canWrite={canWriteSegments}
-              canReadTemplates={!!permissions?.templates?.read}
             />
           ) : null}
 
@@ -691,81 +668,85 @@ export function ContactsPage() {
               ? plural(selectedCount, { one: '# contact selected', other: '# contacts selected' })
               : ''}
           </span>
-          <Panel flush>
-            {canReadContacts && selectedEmails.length > 0 ? (
-              <BulkActionsBar
-                selectedCount={selectedCount}
-                lists={lists}
-                canWriteContacts={canWriteContacts}
-                canWriteLists={canWriteLists}
-                disabled={bulk.running}
-                onAddToList={handleBulkAddToList}
-                onRemoveFromList={handleBulkRemoveFromList}
-                onUnsubscribeFromList={handleBulkUnsubscribe}
-                onDelete={handleBulkDelete}
-                onClear={clearSelection}
-              />
-            ) : canReadContacts ? (
-              <TableToolbar
-                start={
-                  <>
-                    {statusTabs}
-                    <TableToolbar.Search
-                      id={CONTACTS_SEARCH_ID}
-                      value={searchInput}
-                      onChange={setSearchInput}
-                      placeholder={t`Email, name or external ID`}
-                    />
-                    <ContactsFilters
-                      search={tableSearch}
-                      fields={filterFields}
-                      segments={segments}
-                      canCreateSegment={canWriteSegments}
-                      onApply={(key, value) => go((prev) => ({ ...prev, [key]: value, limit: undefined }))}
-                      onCreateSegment={() => setSegmentDrawerOpen(true)}
-                      onRemove={(key) => go((prev) => ({ ...prev, [key]: undefined, limit: undefined }), true)}
-                      onClear={clearFilters}
-                    />
-                  </>
-                }
-                end={
-                  <>
-                    <ContactColumnsSelector columns={columnChoices} onColumnVisibilityChange={setColumnVisible} />
-                    <Tooltip title={t`Refresh`}>
-                      <Button
-                        type="text"
-                        aria-label={t`Refresh`}
-                        icon={<RefreshCw size={14} aria-hidden="true" />}
-                        onClick={handleRefresh}
-                      />
-                    </Tooltip>
-                  </>
-                }
-              />
-            ) : null}
-            {tableArea}
-          </Panel>
+          <div className="flex items-start gap-3">
+            {rail}
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <Panel flush>
+                {canReadContacts && selectedEmails.length > 0 ? (
+                  <BulkActionsBar
+                    selectedCount={selectedCount}
+                    lists={lists}
+                    canWriteContacts={canWriteContacts}
+                    canWriteLists={canWriteLists}
+                    disabled={bulk.running}
+                    onAddToList={handleBulkAddToList}
+                    onRemoveFromList={handleBulkRemoveFromList}
+                    onUnsubscribeFromList={handleBulkUnsubscribe}
+                    onDelete={handleBulkDelete}
+                    onClear={clearSelection}
+                  />
+                ) : canReadContacts ? (
+                  <TableToolbar
+                    start={
+                      <>
+                        <TableToolbar.Search
+                          id={CONTACTS_SEARCH_ID}
+                          value={searchInput}
+                          onChange={setSearchInput}
+                          placeholder={t`Email, name or external ID`}
+                        />
+                        <ContactsFilters
+                          search={tableSearch}
+                          fields={filterFields}
+                          segments={segments}
+                          canCreateSegment={canWriteSegments}
+                          onApply={(key, value) => go((prev) => ({ ...prev, [key]: value, limit: undefined }))}
+                          onCreateSegment={() => setSegmentDrawerOpen(true)}
+                          onRemove={(key) => go((prev) => ({ ...prev, [key]: undefined, limit: undefined }), true)}
+                          onClear={clearFilters}
+                        />
+                      </>
+                    }
+                    end={
+                      <>
+                        <ContactColumnsSelector columns={columnChoices} onColumnVisibilityChange={setColumnVisible} />
+                        <Tooltip title={t`Refresh`}>
+                          <Button
+                            type="text"
+                            aria-label={t`Refresh`}
+                            icon={<RefreshCw size={14} aria-hidden="true" />}
+                            onClick={handleRefresh}
+                          />
+                        </Tooltip>
+                      </>
+                    }
+                  />
+                ) : null}
+                {tableArea}
+              </Panel>
 
-          {canReadContacts && rows.length > 0 ? (
-            <div data-contacts-footer className="flex items-center justify-between gap-3 px-1">
-              <span className="text-xs text-ink-3">{footerCount}</span>
-              {atMax && hasMore ? (
-                <span className="text-xs text-ink-3">
-                  {t`Showing the first ${int(MAX_CONTACT_ROWS)} contacts. Refine your filters to see more.`}
-                </span>
-              ) : hasMore ? (
-                <Button
-                  size="small"
-                  loading={table.isFetching}
-                  onClick={() =>
-                    go((prev) => ({ ...prev, limit: (prev.limit ?? CONTACTS_PAGE_SIZE) + CONTACTS_PAGE_SIZE }), true)
-                  }
-                >
-                  {t`Load ${CONTACTS_PAGE_SIZE} more`}
-                </Button>
+              {canReadContacts && rows.length > 0 ? (
+                <div data-contacts-footer className="flex items-center justify-between gap-3 px-1">
+                  <span className="text-xs text-ink-3">{footerCount}</span>
+                  {atMax && hasMore ? (
+                    <span className="text-xs text-ink-3">
+                      {t`Showing the first ${int(MAX_CONTACT_ROWS)} contacts. Refine your filters to see more.`}
+                    </span>
+                  ) : hasMore ? (
+                    <Button
+                      size="small"
+                      loading={table.isFetching}
+                      onClick={() =>
+                        go((prev) => ({ ...prev, limit: (prev.limit ?? CONTACTS_PAGE_SIZE) + CONTACTS_PAGE_SIZE }), true)
+                      }
+                    >
+                      {t`Load ${CONTACTS_PAGE_SIZE} more`}
+                    </Button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
-          ) : null}
+          </div>
         </>
       )}
 
@@ -784,7 +765,8 @@ export function ContactsPage() {
         onLoadMore={() =>
           go((prev) => ({ ...prev, limit: (prev.limit ?? CONTACTS_PAGE_SIZE) + CONTACTS_PAGE_SIZE }), true)
         }
-        onDelete={setContactToDelete}
+        // Confirmed in the sheet's bar: no second confirmation here.
+        onDelete={(email) => deleteMutation.mutate(email)}
       />
 
       <DeleteContactModal
@@ -849,7 +831,7 @@ export function ContactsPage() {
         onCancel={bulk.cancel}
         onClose={handleProgressModalClose}
       />
-    </RailLayout>
+    </div>
   )
 }
 

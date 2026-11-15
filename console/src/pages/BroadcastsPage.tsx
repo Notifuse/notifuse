@@ -292,10 +292,10 @@ export function BroadcastsPage() {
                   />
                 }
                 end={
-                  <div className="w-64">
+                  // The size of the contacts search (TableToolbar.Search): default height, 300px wide.
+                  <div className="w-75">
                     <Input
                       allowClear
-                      size="small"
                       aria-label={t`Search by name`}
                       placeholder={t`Search by name`}
                       prefix={<Search size={14} aria-hidden="true" />}

@@ -200,6 +200,14 @@ describe('AppSidebar', () => {
       expect(isExpanded()).toBe(false)
     })
 
+    it('gives its folded entries no title tooltip, which antd drew at the top left as it folded', async () => {
+      render(<Harness startPinned={false} />)
+      // The entry hovered while the rail is still folded: antd's own tooltip would name it.
+      fireEvent.mouseEnter(document.querySelector('.ant-menu-item')!)
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      expect(document.querySelector('.ant-menu-inline-collapsed-tooltip')).toBeNull()
+    })
+
     it('does not open for a drag passing over it', () => {
       render(<Harness startPinned={false} />)
       const event = createEvent.pointerOver(aside())

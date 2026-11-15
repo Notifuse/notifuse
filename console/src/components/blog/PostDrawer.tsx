@@ -655,11 +655,12 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     <Drawer
       title={isEditMode ? t`Edit Post` : t`Create New Post`}
       size="100%"
+      rootClassName="app-drawer-instant"
       onClose={handleClose}
       open={open}
       keyboard={false}
       mask={{ closable: false }}
-      className={'drawer-no-transition drawer-body-no-padding'}
+      className="drawer-body-no-padding"
       extra={
         <div className="text-right">
           <Space>

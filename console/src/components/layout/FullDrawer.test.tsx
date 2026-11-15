@@ -42,6 +42,12 @@ describe('FullDrawer', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
+  it('sets the close button apart with a separator right before it', () => {
+    renderDrawer()
+    const close = screen.getByRole('button', { name: 'Close' })
+    expect(close.previousElementSibling).toHaveAttribute('data-drawer-close-separator')
+  })
+
   it('labels the back button "Back" without a backLabel', () => {
     renderDrawer({ backLabel: undefined })
     expect(screen.getByRole('button', { name: /Back/ })).toBeInTheDocument()

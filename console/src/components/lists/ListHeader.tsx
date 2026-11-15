@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Button, Tooltip } from 'antd'
-import { Pencil, SlidersHorizontal } from 'lucide-react'
+import { Button } from 'antd'
+import { Pencil } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { templatesApi } from '../../services/api/template'
 import type { List, TemplateReference, UserPermissions, Workspace } from '../../services/api/types'
@@ -16,17 +16,15 @@ export interface ListHeaderProps {
   /** The open tab (contact_list_status); absent for All. */
   status?: string
   onStatusChange: (status: ListStatus) => void
-  onEditList: () => void
 }
 
-/** The KPIs of a list, then its settings in one read-only bar. */
+/** The KPIs of a list, then its double opt-in settings in one read-only bar. */
 export function ListHeader({
   workspace,
   list,
   permissions,
   status,
-  onStatusChange,
-  onEditList
+  onStatusChange
 }: ListHeaderProps) {
   const { t } = useLingui()
   const { int, percent } = useNumberFormat()
@@ -58,52 +56,28 @@ export function ListHeader({
     }
   })
 
-  const canWriteLists = !!permissions?.lists?.write
-
   return (
     <div className="flex flex-col gap-2">
       <KpiStrip items={items} loading={isLoading} />
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-        <Tooltip title={list.is_public ? t`Visible in the notification center` : undefined}>
-          <span className="flex">
-            <Pill tone={list.is_public ? 'success' : 'neutral'}>
-              {list.is_public ? t`Public` : t`Private`}
-            </Pill>
-          </span>
-        </Tooltip>
-        {list.is_double_optin ? (
-          <>
-            <Pill tone="primary">{t`Double opt-in`}</Pill>
-            {list.double_optin_template ? (
-              <span className="flex min-w-0 items-center gap-1.5">
-                <span className="text-ink-3">{t`Template`}</span>
-                <OptInTemplate
-                  workspace={workspace}
-                  templateRef={list.double_optin_template}
-                  canRead={!!permissions?.templates?.read}
-                  canEdit={!!permissions?.templates?.write}
-                />
-              </span>
-            ) : null}
-          </>
-        ) : null}
-        <span className="flex min-w-0 items-center gap-1.5">
-          <span className="text-ink-3">{t`ID`}</span>
-          <Mono copy>{list.id}</Mono>
-        </span>
-        <div className="ml-auto">
-          <Tooltip title={canWriteLists ? undefined : t`You don't have write permission for lists`}>
-            <Button
-              size="small"
-              icon={<SlidersHorizontal size={14} aria-hidden="true" />}
-              disabled={!canWriteLists}
-              onClick={onEditList}
-            >
-              {t`Edit list`}
-            </Button>
-          </Tooltip>
+      {list.is_double_optin ? (
+        <div
+          data-list-optin-bar
+          className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2 text-sm"
+        >
+          <Pill tone="primary">{t`Double opt-in`}</Pill>
+          {list.double_optin_template ? (
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="text-ink-3">{t`Template`}</span>
+              <OptInTemplate
+                workspace={workspace}
+                templateRef={list.double_optin_template}
+                canRead={!!permissions?.templates?.read}
+                canEdit={!!permissions?.templates?.write}
+              />
+            </span>
+          ) : null}
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }

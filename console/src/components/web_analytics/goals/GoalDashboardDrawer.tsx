@@ -118,6 +118,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
       afterOpenChange={props.afterOpenChange}
       placement="right"
       size="100%"
+      rootClassName="app-drawer-instant"
       styles={{ body: { background: 'var(--color-canvas)' } }}
       title={
         <div className="flex items-center gap-2">

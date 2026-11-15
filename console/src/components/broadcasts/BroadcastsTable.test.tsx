@@ -1,6 +1,6 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App } from 'antd'
 import { BroadcastsTable, type BroadcastsTableProps } from './BroadcastsTable'
 import { BROADCAST_NAME_MIN_WIDTH, minTableWidth } from './tableWidth'
@@ -87,6 +87,69 @@ describe('BroadcastsTable', () => {
     expect(back.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     fireEvent.click(back)
     expect(onAction).toHaveBeenCalledWith('unschedule', scheduled)
+  })
+
+  it('shows « A/B » after the name on the first line, its variants and test in a popover', async () => {
+    renderTable({
+      rows: [
+        broadcast({
+          test_settings: {
+            enabled: true,
+            sample_percentage: 20,
+            auto_send_winner: true,
+            auto_send_winner_metric: 'click_rate',
+            test_duration_hours: 6,
+            variations: [
+              { variation_name: 'variation-a', template_id: 't1', template: { name: 'Spring offer' } },
+              { variation_name: 'variation-b', template_id: 't2', template: { name: 'Spring offer, short' } }
+            ]
+          },
+          winning_template: 't2'
+        } as Partial<Broadcast>)
+      ]
+    })
+    const pill = document.querySelector('[data-ab-pill]') as HTMLElement
+    // The name's line, right after it.
+    const nameLine = screen.getByText('Black Friday').parentElement as HTMLElement
+    expect(nameLine.contains(pill)).toBe(true)
+    // Seen: « A/B » alone, the summary being for screen readers only.
+    const visible = pill.cloneNode(true) as HTMLElement
+    visible.querySelectorAll('.sr-only').forEach((node) => node.remove())
+    expect(visible.textContent?.trim()).toBe('A/B')
+    // The former summary stays for screen readers.
+    expect(pill.querySelector('.sr-only')).toHaveTextContent('A/B · Spring offer, short')
+
+    fireEvent.mouseEnter(pill)
+    const popover = await waitFor(() => {
+      const node = document.querySelector('[data-ab-popover]')
+      expect(node).not.toBeNull()
+      return node as HTMLElement
+    })
+    expect(popover).toHaveTextContent('Spring offer')
+    expect(popover).toHaveTextContent('Winner')
+    // Each variant by its letter, as in the composer, never by its internal name.
+    expect(within(popover).getByText('A')).toBeInTheDocument()
+    expect(within(popover).getByText('B')).toBeInTheDocument()
+    expect(popover).not.toHaveTextContent('variation-a')
+    expect(popover).toHaveTextContent('20 %')
+    expect(popover).toHaveTextContent('Click rate')
+    expect(popover).toHaveTextContent('6')
+  })
+
+  it('lists Website traffic in the row menu without a divider, even with no action above it', async () => {
+    renderTable({
+      canReadWeb: true,
+      rows: [
+        broadcast({
+          status: 'processed',
+          started_at: '2026-11-10T08:00:00Z',
+          utm_parameters: { campaign: 'black-friday' }
+        } as Partial<Broadcast>)
+      ]
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(await screen.findByText('Website traffic')).toBeInTheDocument()
+    expect(document.querySelector('.ant-dropdown-menu-item-divider')).toBeNull()
   })
 
   it('scrolls below the width that leaves the Broadcast column its minimum', () => {
