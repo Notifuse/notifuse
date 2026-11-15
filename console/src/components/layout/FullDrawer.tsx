@@ -88,6 +88,8 @@ export function FullDrawer({
           <div className="flex shrink-0 items-center gap-1">
             {topActions ? <div className="mr-1 flex items-center gap-2">{topActions}</div> : null}
             {copyLink ? <CopyLinkButton /> : null}
+            {/* Sets Close apart from the actions before it. */}
+            <span data-drawer-close-separator aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-line" />
             <CloseButton onClose={onClose} />
           </div>
         </div>

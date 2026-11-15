@@ -1,27 +1,20 @@
 import { useState, type ReactNode } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { App, Button, Dropdown, Modal, Tooltip } from 'antd'
+import { App, Button, Dropdown, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
-import { Braces, Columns3, Download, MoreHorizontal, Pencil, Plus, Upload } from 'lucide-react'
+import { Braces, Download, MoreHorizontal, Pencil, Plus, Upload } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { deleteSegment, type Segment } from '../../services/api/segment'
 import type { List, UserPermissions, Workspace } from '../../services/api/types'
-import { PageHeader } from '../layout'
+import { Mono, PageHeader, Pill } from '../layout'
 import { DeleteListModal } from '../lists/DeleteListModal'
 import { segmentDotColor } from '../segment/segmentColor'
 import { BulkUpdateDrawer } from './BulkUpdateDrawer'
-import { ContactColumnsChecklist } from './ContactColumnsSelector'
 import { ContactUpsertDrawer } from './ContactUpsertDrawer'
 import { useContactsCsvUpload } from './ContactsCsvUploadProvider'
 import type { ContactsView } from './contactsView'
 import { SegmentBuildingIndicator } from './SegmentProgress'
-
-export interface ContactsViewColumn {
-  key: string
-  title: string
-  visible: boolean
-}
 
 export interface ContactsViewHeaderProps {
   workspace: Workspace
@@ -36,11 +29,10 @@ export interface ContactsViewHeaderProps {
   role: 'root' | 'owner' | 'member' | undefined
   /** The view's total, without the row filters nor the status tab: shown next to the title. */
   total?: number
-  /** The columns of the table, for « Displayed columns… ». */
-  columns: ContactsViewColumn[]
-  onColumnVisibilityChange: (key: string, visible: boolean) => void
   onExport: () => void
   onContactCreated: () => void
+  /** Opens the settings drawer of the open list. */
+  onEditList: () => void
   /** The open list or segment was deleted: the page goes back to All contacts. */
   onViewDeleted: () => void
 }
@@ -57,10 +49,9 @@ export function ContactsViewHeader({
   permissions,
   role,
   total,
-  columns,
-  onColumnVisibilityChange,
   onExport,
   onContactCreated,
+  onEditList,
   onViewDeleted
 }: ContactsViewHeaderProps) {
   const { t } = useLingui()
@@ -69,7 +60,6 @@ export function ContactsViewHeader({
   const navigate = useNavigate()
   const { openDrawer, openDrawerWithSelectedList } = useContactsCsvUpload()
   const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false)
-  const [columnsOpen, setColumnsOpen] = useState(false)
   const [deleteListOpen, setDeleteListOpen] = useState(false)
 
   const workspaceId = workspace.id
@@ -79,14 +69,6 @@ export function ContactsViewHeader({
   const canWriteSegments = !!permissions?.segments?.write
   // As the settings page decides: an owner, or workspace write.
   const canManageCustomFields = role === 'owner' || role === 'root' || !!permissions?.workspace?.write
-
-  const exportButton = canReadContacts ? (
-    <Tooltip title={t`Exports the contacts of this view, filters included`}>
-      <Button icon={icon(Download)} onClick={onExport}>
-        {t`Export`}
-      </Button>
-    </Tooltip>
-  ) : null
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteSegment({ workspace_id: workspaceId, id }),
@@ -100,13 +82,13 @@ export function ContactsViewHeader({
 
   // The items every view shares, then the view's own Delete last. A divider only between two groups.
   const groups: NonNullable<MenuProps['items']>[] = [
-    canWriteContacts
-      ? [{ key: 'bulk', icon: icon(Pencil), label: t`Bulk update (CSV)`, onClick: () => setBulkUpdateOpen(true) }]
-      : [],
     [
-      ...(canReadContacts
-        ? [{ key: 'columns', icon: icon(Columns3), label: t`Displayed columns…`, onClick: () => setColumnsOpen(true) }]
-        : []),
+      ...(canReadContacts ? [{ key: 'export', icon: icon(Download), label: t`Export`, onClick: onExport }] : []),
+      ...(canWriteContacts
+        ? [{ key: 'bulk', icon: icon(Pencil), label: t`Bulk update (CSV)`, onClick: () => setBulkUpdateOpen(true) }]
+        : [])
+    ],
+    [
       ...(canManageCustomFields
         ? [
             {
@@ -164,7 +146,27 @@ export function ContactsViewHeader({
       <PageHeader
         title={list?.name ?? view.listId}
         count={count}
-        description={list?.description || undefined}
+        // Under the title, one line: the list ID, then the description.
+        description={
+          list ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
+              <span data-list-id className="flex min-w-0 items-center gap-1.5">
+                <span>{t`ID`}</span>
+                <Mono>{list.id}</Mono>
+              </span>
+              {list.description ? <span>{list.description}</span> : null}
+            </div>
+          ) : undefined
+        }
+        status={
+          list ? (
+            <Tooltip title={list.is_public ? t`Visible in the notification center` : undefined}>
+              <span className="flex">
+                <Pill tone={list.is_public ? 'success' : 'neutral'}>{list.is_public ? t`Public` : t`Private`}</Pill>
+              </span>
+            </Tooltip>
+          ) : undefined
+        }
         actions={
           <>
             {canWriteContacts && canWriteLists && list ? (
@@ -176,8 +178,12 @@ export function ContactsViewHeader({
                 {t`Import to list`}
               </Button>
             ) : null}
-            {exportButton}
             {moreMenu}
+            <Tooltip title={canWriteLists ? undefined : t`You don't have write permission for lists`}>
+              <Button icon={icon(Pencil)} disabled={!canWriteLists} onClick={onEditList}>
+                {t`Edit list`}
+              </Button>
+            </Tooltip>
           </>
         }
       />
@@ -205,7 +211,6 @@ export function ContactsViewHeader({
         }
         actions={
           <>
-            {exportButton}
             {moreMenu}
           </>
         }
@@ -223,7 +228,6 @@ export function ContactsViewHeader({
                 {t`Import`}
               </Button>
             ) : null}
-            {exportButton}
             {moreMenu}
             {canWriteContacts ? (
               <ContactUpsertDrawer
@@ -249,16 +253,6 @@ export function ContactsViewHeader({
           onClose={() => setBulkUpdateOpen(false)}
         />
       ) : null}
-      <Modal
-        title={t`Displayed columns`}
-        open={columnsOpen}
-        onCancel={() => setColumnsOpen(false)}
-        footer={null}
-        width={520}
-        destroyOnHidden
-      >
-        <ContactColumnsChecklist columns={columns} onColumnVisibilityChange={onColumnVisibilityChange} />
-      </Modal>
       {view.kind === 'list' && list ? (
         <DeleteListModal
           workspaceId={workspaceId}

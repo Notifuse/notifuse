@@ -143,12 +143,11 @@ export function ContactsFilters({
     <div ref={listRef} data-filter-picker className="flex w-72 flex-col">
       <div className="border-b border-line-soft p-1.5">
         <Input
-          size="small"
           variant="borderless"
           autoFocus
           aria-label={t`Search the fields`}
           placeholder={t`Filter by…`}
-          prefix={<Search size={13} aria-hidden="true" />}
+          prefix={<Search size={14} aria-hidden="true" />}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -158,7 +157,13 @@ export function ContactsFilters({
           const groupFields = shown.filter((field) => field.group === group.key)
           if (groupFields.length === 0) return null
           return (
-            <div key={group.key} role="group" aria-label={i18n._(group.label)}>
+            // A rule and some space before each group but the first; the fields indented under their title.
+            <div
+              key={group.key}
+              role="group"
+              aria-label={i18n._(group.label)}
+              className="mt-1 border-t border-line pt-1 first:mt-0 first:border-t-0 first:pt-0"
+            >
               <div className="px-3 pt-2 pb-1 text-2xs font-semibold tracking-wide text-ink-3 uppercase">
                 {i18n._(group.label)}
               </div>
@@ -166,7 +171,7 @@ export function ContactsFilters({
                 <button
                   key={field.key}
                   type="button"
-                  className="block w-full cursor-pointer rounded-sm px-3 py-1 text-left text-sm text-ink hover:bg-fill focus-visible:bg-fill focus-visible:outline-none"
+                  className="block w-full cursor-pointer rounded-sm py-1 pr-3 pl-6 text-left text-sm text-ink hover:bg-fill focus-visible:bg-fill focus-visible:outline-none"
                   onClick={() => startEditing(field)}
                 >
                   {field.label}
@@ -226,7 +231,7 @@ export function ContactsFilters({
         styles={{ container: { padding: 0 } }}
         destroyOnHidden
       >
-        <Button ref={triggerRef} size="small" type="dashed" icon={<FilterIcon size={13} aria-hidden="true" />}>
+        <Button ref={triggerRef} type="dashed" icon={<FilterIcon size={14} aria-hidden="true" />}>
           {t`Filter`}
         </Button>
       </Popover>
@@ -251,26 +256,26 @@ function FilterPill({ label, removeLabel, onEdit, onRemove }: FilterPillProps) {
   return (
     <span
       data-filter-pill
-      className="inline-flex max-w-72 items-center rounded-md border border-line bg-surface text-xs text-ink-2"
+      className="inline-flex h-7 max-w-72 items-center rounded-md border border-primary-500 bg-surface text-base text-ink-2"
     >
       {onEdit ? (
         <button
           type="button"
-          className="min-w-0 cursor-pointer truncate py-0.5 pl-2 text-left focus-visible:underline focus-visible:outline-none"
+          className="min-w-0 cursor-pointer truncate pl-2.5 text-left focus-visible:underline focus-visible:outline-none"
           onClick={onEdit}
         >
           {label}
         </button>
       ) : (
-        <span className="min-w-0 truncate py-0.5 pl-2">{label}</span>
+        <span className="min-w-0 truncate pl-2.5">{label}</span>
       )}
       <button
         type="button"
         aria-label={removeLabel}
-        className="flex cursor-pointer items-center px-1.5 py-1 text-ink-3 hover:text-ink focus-visible:text-ink focus-visible:outline-none"
+        className="flex cursor-pointer items-center self-stretch px-2 text-ink-3 hover:text-ink focus-visible:text-ink focus-visible:outline-none"
         onClick={onRemove}
       >
-        <X size={12} aria-hidden="true" />
+        <X size={13} aria-hidden="true" />
       </button>
     </span>
   )

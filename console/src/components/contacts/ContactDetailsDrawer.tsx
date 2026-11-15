@@ -6,6 +6,7 @@ import { FullDrawer, useNumberFormat, type DrawerNav } from '../layout'
 import { contactNavigation } from './contactNavigation'
 import { MAX_CONTACT_ROWS, type ContactsTableSearch } from './contactsView'
 import { ContactDetailsBody } from './sheet/ContactDetailsBody'
+import { ContactSheetTopActions } from './sheet/ContactSheetTopActions'
 import { useContactsTableQuery } from './useContactsTableQuery'
 
 export interface ContactDetailsDrawerProps {
@@ -27,6 +28,7 @@ export interface ContactDetailsDrawerProps {
   onNavigate: (email: string) => void
   /** Loads 50 more rows, as « Load 50 more » does. */
   onLoadMore: () => void
+  /** Deletes the contact, once confirmed in the bar's popconfirm. */
   onDelete: (email: string) => void
 }
 
@@ -122,7 +124,23 @@ export function ContactDetailsDrawer({
   }
 
   return (
-    <FullDrawer open={!!email} onClose={onClose} backLabel={t`Contacts`} nav={nav}>
+    <FullDrawer
+      open={!!email}
+      onClose={onClose}
+      backLabel={t`Contacts`}
+      nav={nav}
+      topActions={
+        shown ? (
+          <ContactSheetTopActions
+            key={shown}
+            workspaceId={workspace.id}
+            email={shown}
+            canWriteContacts={!!permissions?.contacts?.write}
+            onDelete={onDelete}
+          />
+        ) : undefined
+      }
+    >
       {shown ? (
         <ContactDetailsBody
           key={shown}
@@ -132,7 +150,6 @@ export function ContactDetailsDrawer({
           segments={segments}
           permissions={permissions}
           onClose={onClose}
-          onDelete={onDelete}
         />
       ) : null}
     </FullDrawer>
