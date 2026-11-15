@@ -2241,7 +2241,14 @@ func TestAutomationExecutor_Execute_OptimisticLockAbortsOnConcurrentExit(t *test
 	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	// The journey was concurrently exited → persist matches 0 rows.
 	mockAutomationRepo.EXPECT().UpdateContactAutomationIfActive(gomock.Any(), workspaceID, gomock.Any()).Return(false, nil)
-	// Abort: no completion stat, no end-event timeline write, no node-execution finalize.
+	// The step ran, so its execution is completed; the tick then aborts with no completion
+	// stat and no end-event timeline write.
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, ne *domain.NodeExecution) error {
+			assert.Equal(t, domain.NodeActionCompleted, ne.Action)
+			assert.NotNil(t, ne.CompletedAt)
+			return nil
+		})
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	mockTimelineRepo.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
@@ -2345,18 +2352,81 @@ func TestAutomationExecutor_ProcessBatch_RenewsEachClaim(t *testing.T) {
 		assert.Equal(t, 0, processed)
 	})
 
-	t.Run("on shutdown the journeys left keep their claim and are not renewed", func(t *testing.T) {
+	t.Run("on shutdown the journeys left are handed back, due now, and not renewed", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		repo := mocks.NewMockAutomationRepository(ctrl)
 		executor := &AutomationExecutor{automationRepo: repo, logger: setupMockLogger(ctrl)}
 
-		token := time.Now().UTC()
+		token1, token2 := time.Now().UTC(), time.Now().UTC().Add(time.Second)
 		repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
-			Return([]*domain.ContactAutomationWithWorkspace{journey("ca-1", &token), journey("ca-2", &token)}, nil)
-		// No renewal and no run is expected.
+			Return([]*domain.ContactAutomationWithWorkspace{journey("ca-1", &token1), journey("ca-nil", nil), journey("ca-2", &token2)}, nil)
+		release := func(id string, token time.Time) *gomock.Call {
+			return repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, id, token).
+				DoAndReturn(func(ctx context.Context, _, _ string, _ time.Time) (bool, error) {
+					assert.NoError(t, ctx.Err(), "the release outlives the cancelled run")
+					_, hasDeadline := ctx.Deadline()
+					assert.True(t, hasDeadline, "the release is bounded")
+					return true, nil
+				})
+		}
+		gomock.InOrder(release("ca-1", token1), release("ca-2", token2))
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
+		processed, err := executor.ProcessBatch(ctx, 50)
+		require.NoError(t, err)
+		assert.Equal(t, 0, processed)
+	})
+
+	t.Run("a shutdown during a journey hands back only the journeys after it", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockAutomationRepository(ctrl)
+		executor := &AutomationExecutor{automationRepo: repo, logger: setupMockLogger(ctrl)}
+
+		token1, token2, token3 := time.Now().UTC(), time.Now().UTC().Add(time.Second), time.Now().UTC().Add(2*time.Second)
+		repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
+			Return([]*domain.ContactAutomationWithWorkspace{journey("ca-1", &token1), journey("ca-2", &token2), journey("ca-3", &token3)}, nil)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		gomock.InOrder(
+			repo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca-1", token1, inTickResumeLease).Return(true, nil),
+			// The shutdown lands while the first journey runs.
+			repo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").DoAndReturn(func(context.Context, string, string) (*domain.Automation, error) {
+				cancel()
+				return paused, nil
+			}),
+			// A failed release is logged; the next one is still tried.
+			repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, "ca-2", token2).Return(false, errors.New("db down")),
+			repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, "ca-3", token3).Return(true, nil),
+		)
+
+		processed, err := executor.ProcessBatch(ctx, 50)
+		require.NoError(t, err)
+		assert.Equal(t, 1, processed)
+	})
+
+	t.Run("a renewal cut short by the shutdown hands back that journey and the next ones", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockAutomationRepository(ctrl)
+		executor := &AutomationExecutor{automationRepo: repo, logger: setupMockLogger(ctrl)}
+
+		token1, token2 := time.Now().UTC(), time.Now().UTC().Add(time.Second)
+		repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
+			Return([]*domain.ContactAutomationWithWorkspace{journey("ca-1", &token1), journey("ca-2", &token2)}, nil)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		gomock.InOrder(
+			repo.EXPECT().RenewContactAutomationClaim(gomock.Any(), workspaceID, "ca-1", token1, inTickResumeLease).
+				DoAndReturn(func(context.Context, string, string, time.Time, time.Duration) (bool, error) {
+					cancel()
+					return false, context.Canceled
+				}),
+			repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, "ca-1", token1).Return(true, nil),
+			repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), workspaceID, "ca-2", token2).Return(true, nil),
+		)
+
 		processed, err := executor.ProcessBatch(ctx, 50)
 		require.NoError(t, err)
 		assert.Equal(t, 0, processed)

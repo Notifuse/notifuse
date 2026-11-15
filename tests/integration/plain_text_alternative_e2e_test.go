@@ -25,6 +25,7 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 	"github.com/Notifuse/notifuse/tests/testutil"
 )
 
@@ -174,7 +175,7 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NoError(t, factory.AddUserToWorkspace(user.ID, workspace.ID, "owner"))
-	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID, smtpToMailpit("Plain Text E2E"))
+	integration, err := factory.SetupWorkspaceWithSMTPProvider(workspace.ID, smtpToMailpit("Plain Text E2E"))
 	require.NoError(t, err)
 
 	workerCtx, cancelWorker := context.WithCancel(context.Background())
@@ -210,7 +211,7 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		_ = resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
 
-		email, err := waitForEmailByRecipientAddr(t, recipient, 30*time.Second)
+		email, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 30*time.Second)
 		require.NoError(t, err)
 		parts := readDeliveredParts(t, email.ID)
 
@@ -251,7 +252,7 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, []string{"processed", "completed", "sent"}, 60*time.Second)
 		require.NoError(t, err)
 
-		grantedEmail, err := waitForEmailByRecipientAddr(t, granted, 30*time.Second)
+		grantedEmail, err := testutil.WaitForMailpitMessageByRecipient(t, granted, 30*time.Second)
 		require.NoError(t, err)
 		grantedParts := readDeliveredParts(t, grantedEmail.ID)
 		assertTextMirrorsHTML(t, grantedParts)
@@ -259,12 +260,59 @@ func TestPlainTextAlternative_E2E(t *testing.T) {
 		assert.Contains(t, grantedParts.text, linkEndpoint+"/r/", "a consenting recipient's text links are tracked")
 		assert.NotEmpty(t, grantedParts.header.Get("List-Unsubscribe"), "the unsubscribe header is still set")
 
-		refusedEmail, err := waitForEmailByRecipientAddr(t, refused, 30*time.Second)
+		refusedEmail, err := testutil.WaitForMailpitMessageByRecipient(t, refused, 30*time.Second)
 		require.NoError(t, err)
 		refusedParts := readDeliveredParts(t, refusedEmail.ID)
 		assertTextMirrorsHTML(t, refusedParts)
 		assert.NotContains(t, refusedParts.text, "/r/", "a refusing recipient's text links go straight to their destination")
 		assert.Contains(t, refusedParts.text, "https://shop.example.com/sale?")
+	})
+
+	t.Run("a list's test email carries the list's links in its text", func(t *testing.T) {
+		list, err := factory.CreateList(workspace.ID, testutil.WithListName("Plain Text Test List"))
+		require.NoError(t, err)
+		withUnsubscribe, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateName("Plain Text List Test"),
+			testutil.WithTemplateSubject("Plain text list test "+tag),
+			testutil.WithCodeModeTemplate(`<mjml><mj-body><mj-section><mj-column>
+	<mj-text><p>Our news.</p><p><a href="{{ unsubscribe_url }}">Unsubscribe</a></p></mj-text>
+</mj-column></mj-section></mj-body></mjml>`))
+		require.NoError(t, err)
+
+		recipient := fmt.Sprintf("list-test-%s@example.com", tag)
+		status, body := postStatus(t, client, "/api/transactional.testTemplate", map[string]interface{}{
+			"workspace_id":    workspace.ID,
+			"template_id":     withUnsubscribe.ID,
+			"integration_id":  integration.ID,
+			"sender_id":       integration.EmailProvider.Senders[0].ID,
+			"recipient_email": recipient,
+			"list_id":         list.ID,
+		})
+		require.Equal(t, http.StatusOK, status, body)
+
+		email, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 30*time.Second)
+		require.NoError(t, err)
+		parts := readDeliveredParts(t, email.ID)
+
+		assertTextMirrorsHTML(t, parts)
+		require.Contains(t, parts.text, "Unsubscribe (")
+		// The text's unsubscribe link, tracked or not, leads to this list's unsubscribe page.
+		var destinations []string
+		for _, u := range plainTextURLRe.FindAllString(parts.text, -1) {
+			if m := regexp.MustCompile(`/r/([A-Za-z0-9_-]+)`).FindStringSubmatch(u); m != nil {
+				tok, err := trackingtoken.Parse(m[1], trackingtoken.PurposeClick)
+				require.NoError(t, err)
+				u = tok.URL
+			}
+			destinations = append(destinations, u)
+		}
+		found := false
+		for _, d := range destinations {
+			if strings.Contains(d, "lid="+list.ID) && strings.Contains(d, "action=unsubscribe") {
+				found = true
+			}
+		}
+		assert.True(t, found, "the text links to the list's unsubscribe page: %v", destinations)
 	})
 
 	t.Run("templates.compile returns the text version", func(t *testing.T) {
@@ -365,7 +413,7 @@ func TestPlainTextCustom_E2E(t *testing.T) {
 		body, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode, string(body))
-		email, err := waitForEmailByRecipientAddr(t, recipient, 30*time.Second)
+		email, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 30*time.Second)
 		require.NoError(t, err)
 		return readDeliveredParts(t, email.ID)
 	}
@@ -468,7 +516,7 @@ func TestPlainTextCustom_E2E(t *testing.T) {
 		require.NoError(t, err)
 
 		for email, name := range recipients {
-			delivered, err := waitForEmailByRecipientAddr(t, email, 30*time.Second)
+			delivered, err := testutil.WaitForMailpitMessageByRecipient(t, email, 30*time.Second)
 			require.NoError(t, err)
 			parts := readDeliveredParts(t, delivered.ID)
 			require.Contains(t, parts.types, "multipart/alternative")
@@ -517,5 +565,17 @@ func TestPlainTextCustom_E2E(t *testing.T) {
 		assert.Contains(t, *invalid.Text, "Compile HTML")
 		assert.Equal(t, "auto", invalid.TextSource)
 		assert.NotEmpty(t, invalid.TextError)
+
+		// A text over the size a saved template accepts is refused, as saving refuses it.
+		resp, err := client.Post("/api/templates.compile", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"message_id":   "preview",
+			"mjml_source":  customTextMJML("Compile HTML"),
+			"channel":      "email",
+			"text":         strings.Repeat("a", domain.MaxCustomTextSize+1),
+		})
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 }

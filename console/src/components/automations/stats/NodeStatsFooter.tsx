@@ -47,7 +47,8 @@ function StatsLines({ nodeType, stats, canReadHistory }: { nodeType: NodeType; s
 
   switch (nodeType) {
     case 'trigger':
-      parts.push(plural(stats.visits, { one: '# entered', other: '# entered' }))
+      // Passes, not journeys: a journey looping back to the trigger counts each time.
+      parts.push(plural(stats.visits, { one: '# pass', other: '# passes' }))
       break
     case 'email':
       if (canReadHistory && stats.email) {

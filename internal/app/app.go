@@ -1607,7 +1607,7 @@ func (a *App) InitHandlers() error {
 		service.NewWebVersionService(trackingWorkspaces, a.workspaceRepo, a.messageHistoryRepo, a.templateRepo, a.config.APIEndpoint, a.logger),
 		a.rateLimiter,
 	)
-	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
+	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogHandler := httpHandler.NewBlogHandler(a.blogService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogThemeHandler := httpHandler.NewBlogThemeHandler(a.blogService, getJWTSecret, a.logger)
 	taskHandler := httpHandler.NewTaskHandler(
@@ -1622,6 +1622,7 @@ func (a *App) InitHandlers() error {
 		// works exactly when something calls it.
 		!a.config.TaskScheduler.Enabled,
 	)
+	taskHandler.SetCronTaskCeiling(a.config.TaskScheduler.MaxTasks)
 	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
 	inboundWebhookEventHandler := httpHandler.NewInboundWebhookEventHandler(a.inboundWebhookEventService, getJWTSecret, a.rateLimiter, a.logger)
 	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getJWTSecret, a.logger)
@@ -2192,7 +2193,7 @@ func (a *App) cleanupResources(ctx context.Context) error {
 	// Close connection manager before closing database
 	if connManager, err := pkgDatabase.GetConnectionManager(); err == nil {
 		a.logger.Info("Closing connection manager")
-		if err := connManager.Close(); err != nil {
+		if err := closeWithin(ctx, connManager.Close); err != nil {
 			a.logger.WithField("error", err).Error("Error closing connection manager")
 		} else {
 			a.logger.Info("Connection manager closed successfully")
@@ -2209,7 +2210,7 @@ func (a *App) cleanupResources(ctx context.Context) error {
 		}
 
 		a.logger.Info("Closing database connection")
-		if err := a.db.Close(); err != nil {
+		if err := closeWithin(ctx, a.db.Close); err != nil {
 			a.logger.WithField("error", err).Error("Error closing database connection")
 			return err
 		}
@@ -2223,6 +2224,35 @@ func (a *App) cleanupResources(ctx context.Context) error {
 
 	a.logger.Info("Resource cleanup completed")
 	return nil
+}
+
+// closeGrace is how long closeWithin waits for a close when the shutdown deadline has already
+// passed, so a quick close still ends cleanly.
+var closeGrace = time.Second
+
+// closeWithin runs closeFn and returns its error, or ctx's error once ctx ends first (once
+// closeGrace has passed, when ctx had already ended). A close still running then goes on in its
+// goroutine, so a stuck close does not hold the shutdown.
+func closeWithin(ctx context.Context, closeFn func() error) error {
+	done := make(chan error, 1)
+	go func() { done <- closeFn() }()
+	waitCtx := ctx
+	if ctx.Err() != nil {
+		var cancel context.CancelFunc
+		waitCtx, cancel = context.WithTimeout(context.WithoutCancel(ctx), closeGrace)
+		defer cancel()
+	}
+	select {
+	case err := <-done:
+		return err
+	case <-waitCtx.Done():
+		select {
+		case err := <-done:
+			return err
+		default:
+			return fmt.Errorf("close did not end before the shutdown deadline: %w", ctx.Err())
+		}
+	}
 }
 
 // IsServerCreated safely checks if the server has been created

@@ -16,6 +16,13 @@ describe('contactsView', () => {
     })
   })
 
+  it('drops the legacy segments under a segment view, whose query reads that segment alone', () => {
+    const table = toTableSearch({ segment_id: 'pro', segments: ['a', 'b'] })
+    expect(table.segments).toBeUndefined()
+    expect(hasRowFilters(table)).toBe(false)
+    expect(toTableSearch({ segments: ['a', 'b'] }).segments).toEqual(['a', 'b'])
+  })
+
   it('counts the search, the chips and the legacy segments as row filters, not the view', () => {
     expect(
       hasRowFilters({ list_id: 'news', contact_list_status: 'active', segment_id: undefined, limit: 50 })

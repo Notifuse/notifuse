@@ -59,6 +59,19 @@ export function sectionChildWidth(
   return width ?? sectionShare(section)
 }
 
+/**
+ * Width of a column in a group on the canvas, as in the email: its own width, else its share of the group's
+ * columns. Other children get none.
+ */
+export function groupChildWidth(child: EmailBlock, group: EmailBlock): string | undefined {
+  if (child.type !== 'mj-column') return undefined
+  const count = (group.children ?? []).filter((block) => block.type === 'mj-column').length
+  return (
+    readableWidth((child.attributes as Record<string, unknown> | undefined)?.width) ??
+    `${Number((100 / Math.max(count, 1)).toFixed(2))}%`
+  )
+}
+
 /** The section that directly holds the block, or null when its parent is not a section. */
 export function findParentSection(tree: EmailBlock, blockId: string): EmailBlock | null {
   const children = (tree.children ?? []) as EmailBlock[]

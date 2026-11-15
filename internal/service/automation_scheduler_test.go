@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -531,8 +533,53 @@ func TestAutomationScheduler_StopTimeoutDefault(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	executor := &AutomationExecutor{logger: setupMockLogger(ctrl)}
 	scheduler := NewAutomationScheduler(executor, executor.logger, time.Second, 50)
-	assert.Equal(t, 25*time.Second, scheduler.stopTimeout(), "the default drain plus the default margin")
+	assert.Equal(t, 29*time.Second, scheduler.stopTimeout(), "the default drain plus the default margin")
 
-	assert.Equal(t, 25*time.Second, NewAutomationScheduler(nil, executor.logger, time.Second, 50).stopTimeout(),
+	assert.Equal(t, 29*time.Second, NewAutomationScheduler(nil, executor.logger, time.Second, 50).stopTimeout(),
 		"without an executor, the default drain")
+}
+
+// A batch that keeps failing is logged at Error once per window, then at Debug.
+func TestAutomationScheduler_RepeatedBatchErrorLoggedOnce(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repo := mocks.NewMockAutomationRepository(ctrl)
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+
+	executor := &AutomationExecutor{automationRepo: repo, logger: log}
+	scheduler := NewAutomationScheduler(executor, log, time.Hour, 50)
+	repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).Return(nil, assert.AnError).Times(3)
+
+	gomock.InOrder(
+		log.EXPECT().Error("Failed to process automation batch"),
+		log.EXPECT().Debug("Failed to process automation batch").Times(2),
+	)
+	for i := 0; i < 3; i++ {
+		scheduler.processBatch(context.Background())
+	}
+}
+
+// A claim that fails in some workspaces at every tick is logged at Error once per window; the
+// journeys the others gave still run.
+func TestAutomationExecutor_ProcessBatch_RepeatedPartialClaimErrorLoggedOnce(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	repo := mocks.NewMockAutomationRepository(ctrl)
+	log := pkgmocks.NewMockLogger(ctrl)
+	log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+	log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+
+	executor := &AutomationExecutor{automationRepo: repo, logger: log}
+	partial := errors.New("workspace ws2: db down")
+	repo.EXPECT().ClaimScheduledContactAutomationsGlobal(gomock.Any(), 50, inTickResumeLease).
+		Return([]*domain.ContactAutomationWithWorkspace{{WorkspaceID: "ws1"}}, partial).Times(2)
+	log.EXPECT().Error("Claimed contact automation has no claim token; skipping").Times(2)
+
+	gomock.InOrder(
+		log.EXPECT().Error("Failed to claim scheduled contacts in some workspaces"),
+		log.EXPECT().Debug("Failed to claim scheduled contacts in some workspaces"),
+	)
+	for i := 0; i < 2; i++ {
+		_, err := executor.ProcessBatch(context.Background(), 50)
+		require.NoError(t, err)
+	}
 }

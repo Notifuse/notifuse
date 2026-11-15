@@ -126,11 +126,11 @@ describe('AddBlockPopover saved blocks', () => {
     expect(rowIds('[data-testid="saved-unavailable"]')).toEqual(['header', 'column'])
   })
 
-  it('gives the reason a block cannot go here, as visible text and as its title', async () => {
+  it('gives the reason a block cannot go here as visible text, with no title repeating it', async () => {
     renderPopover()
     await openSaved()
     expect(row('column')).toHaveTextContent('Goes inside a section')
-    expect(row('column')).toHaveAttribute('title', 'Goes inside a section')
+    expect(row('column')).not.toHaveAttribute('title')
     expect(row('header')).toHaveTextContent('Not allowed here')
   })
 
@@ -138,25 +138,45 @@ describe('AddBlockPopover saved blocks', () => {
     renderPopover({ parentId: 'section-1', parentType: 'mj-section' })
     await openSaved()
     expect(row('cta')).toHaveTextContent('Goes inside a column')
-    expect(row('column')).not.toHaveAttribute('aria-disabled')
+    expect(row('column')).toBeEnabled()
   })
 
   it('refuses a Liquid block in a column with a display condition', async () => {
     renderPopover({ parentId: 'column-2', savedBlocks: [liquid, cta] })
     await openSaved()
-    expect(row('liquid')).toHaveAttribute('aria-disabled', 'true')
+    expect(row('liquid')).toBeDisabled()
     expect(row('liquid')).toHaveTextContent('Not allowed inside a conditional block')
-    expect(row('cta')).not.toHaveAttribute('aria-disabled')
+    expect(row('cta')).toBeEnabled()
   })
 
   it('does not insert a block that cannot go here, nor preview it', async () => {
     const { onAddSavedBlock } = renderPopover()
     await openSaved()
-    expect(row('header')).toHaveAttribute('aria-disabled', 'true')
+    expect(row('header')).toBeDisabled()
     fireEvent.mouseEnter(row('header'))
     fireEvent.click(row('header'))
     expect(onAddSavedBlock).not.toHaveBeenCalled()
     expect(screen.queryByText(/A copy is inserted/)).toBeNull()
+  })
+
+  it('makes every saved row a button, so the keyboard reaches it and previews it on focus', async () => {
+    const { onAddSavedBlock } = renderPopover()
+    await openSaved()
+    for (const id of ['intro', 'cta', 'header', 'column']) expect(row(id).tagName).toBe('BUTTON')
+    fireEvent.focus(row('cta'))
+    expect(within(screen.getByTestId('saved-preview')).getByText('CTA text')).toBeInTheDocument()
+    fireEvent.click(row('cta'))
+    expect(onAddSavedBlock).toHaveBeenCalledWith('column-1', cta.block, 1)
+  })
+
+  it('keeps its rows while it closes', async () => {
+    const { onAddSavedBlock } = renderPopover()
+    await openSaved()
+    fireEvent.click(row('cta'))
+    expect(onAddSavedBlock).toHaveBeenCalled()
+    // Closed, still in the document for its animation: the rows are still there (antd keeps the
+    // content of a closed popover; this pins it across antd upgrades)
+    expect(rowIds('[data-testid="saved-available"]')).toEqual(['intro', 'cta'])
   })
 
   it('shows a thumbnail on each block that can go here', async () => {

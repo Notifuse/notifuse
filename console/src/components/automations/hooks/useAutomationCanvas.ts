@@ -22,6 +22,7 @@ import {
 } from '../utils/flowConverter'
 import { layoutNodes } from '../utils/layoutNodes'
 import { textEditCoalesceKey } from '../utils/historyCoalescing'
+import { clearHandleTarget } from '../utils/clearHandleTarget'
 import type { NodeType, ABTestNodeConfig, FilterNodeConfig, ListStatusBranchNodeConfig } from '../../../services/api/automation'
 import { colors } from '../../../theme/tokens'
 
@@ -97,7 +98,6 @@ export interface UseAutomationCanvasReturn {
 export function useAutomationCanvas(): UseAutomationCanvasReturn {
   const {
     canvasState,
-    markAsChanged,
     initialSelectedNodeId,
     pushHistory,
     listId,
@@ -184,24 +184,18 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     setNodes(nds => applyNodeChanges(changes, nds))
 
-    // Only mark as changed for non-selection changes
-    if (changes.some(c => c.type !== 'select')) {
-      markAsChanged()
-    }
-
     // Track selection changes from ReactFlow
     const selectChange = changes.find(c => c.type === 'select' && c.selected)
     if (selectChange && 'id' in selectChange) {
       setSelectedNodeId(selectChange.id)
     }
-  }, [setNodes, setEdges, selectedNodeId, setSelectedNodeId, markAsChanged, pushHistory, readOnly])
+  }, [setNodes, setEdges, selectedNodeId, setSelectedNodeId, pushHistory, readOnly])
 
   // Handle edges change from ReactFlow
   const onEdgesChange = useCallback((incoming: EdgeChange<Edge>[]) => {
     const changes = readOnly ? incoming.filter(c => c.type === 'select') : incoming
     setEdges(eds => applyEdgeChanges(changes, eds))
-    markAsChanged()
-  }, [setEdges, markAsChanged, readOnly])
+  }, [setEdges, readOnly])
 
   // Handle new connection
   const onConnect = useCallback((params: Connection) => {
@@ -276,8 +270,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     // Trigger auto-reorganization after manual connection
     setNeedsReorganize(true)
-    markAsChanged()
-  }, [nodes, setNodes, setEdges, markAsChanged, pushHistory, readOnly])
+  }, [nodes, setNodes, setEdges, pushHistory, readOnly])
 
   // Get default config for node type
   const getDefaultConfig = useCallback((type: NodeType): Record<string, unknown> => {
@@ -328,8 +321,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       }
     }
     setNodes(nds => [...nds, newNode])
-    markAsChanged()
-  }, [setNodes, markAsChanged, pushHistory, getDefaultConfig, readOnly])
+  }, [setNodes, pushHistory, getDefaultConfig, readOnly])
 
   // Add node with edge from source
   const addNodeWithEdge = useCallback((
@@ -427,14 +419,13 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       setEdges(eds => [...eds, newEdge])
     }
 
-    markAsChanged()
     setLastAddedNodeId(newNodeId)
 
     // Auto-select the new node
     setTimeout(() => {
       selectNode(newNodeId)
     }, 50)
-  }, [nodes, setNodes, setEdges, markAsChanged, selectNode, pushHistory, getDefaultConfig, readOnly])
+  }, [nodes, setNodes, setEdges, selectNode, pushHistory, getDefaultConfig, readOnly])
 
   // Insert a node on an existing edge (between source and target)
   const insertNodeOnEdge = useCallback((edgeId: string, type: NodeType) => {
@@ -571,14 +562,13 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       updatedNewNode
     ])
     setEdges(eds => [...eds.filter(e => e.id !== edgeId), edgeToNew, edgeFromNew])
-    markAsChanged()
     setLastAddedNodeId(newNodeId)
 
     // Auto-select the new node
     setTimeout(() => {
       selectNode(newNodeId)
     }, 50)
-  }, [nodes, edges, setNodes, setEdges, markAsChanged, selectNode, pushHistory, getDefaultConfig, readOnly])
+  }, [nodes, edges, setNodes, setEdges, selectNode, pushHistory, getDefaultConfig, readOnly])
 
   // Delete an edge
   const deleteEdge = useCallback((edgeId: string) => {
@@ -588,62 +578,21 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     pushHistory()
 
-    // For A/B test nodes, clear variant's next_node_id when edge is deleted
+    // A node with several outputs keeps each output's target in its config: clear it.
     if (edge.sourceHandle) {
       const sourceNode = nodes.find(n => n.id === edge.source)
-      if (sourceNode?.data.nodeType === 'ab_test') {
-        const config = sourceNode.data.config as Structural<ABTestNodeConfig>
-        if (config?.variants) {
-          const updatedVariants = config.variants.map(v =>
-            v.id === edge.sourceHandle ? { ...v, next_node_id: '' } : v
-          )
-          setNodes(nds =>
-            nds.map(n =>
-              n.id === edge.source
-                ? { ...n, data: { ...n.data, config: { ...config, variants: updatedVariants } } }
-                : n
-            )
-          )
-        }
-      }
-
-      // For filter nodes, clear continue_node_id or exit_node_id when edge is deleted
-      if (sourceNode?.data.nodeType === 'filter') {
-        const config = sourceNode.data.config as Structural<FilterNodeConfig>
-        const field = edge.sourceHandle === 'continue' ? 'continue_node_id' : 'exit_node_id'
+      const config = sourceNode
+        ? clearHandleTarget(sourceNode.data.nodeType, sourceNode.data.config as Record<string, unknown> | undefined, edge.sourceHandle)
+        : undefined
+      if (config) {
         setNodes(nds =>
-          nds.map(n =>
-            n.id === edge.source
-              ? { ...n, data: { ...n.data, config: { ...config, [field]: '' } } }
-              : n
-          )
+          nds.map(n => (n.id === edge.source ? { ...n, data: { ...n.data, config } } : n))
         )
-      }
-
-      // For list_status_branch nodes, clear the appropriate branch node ID when edge is deleted
-      if (sourceNode?.data.nodeType === 'list_status_branch') {
-        const config = sourceNode.data.config as Structural<ListStatusBranchNodeConfig>
-        const fieldMap: Record<string, string> = {
-          not_in_list: 'not_in_list_node_id',
-          active: 'active_node_id',
-          non_active: 'non_active_node_id'
-        }
-        const field = fieldMap[edge.sourceHandle || '']
-        if (field) {
-          setNodes(nds =>
-            nds.map(n =>
-              n.id === edge.source
-                ? { ...n, data: { ...n.data, config: { ...config, [field]: '' } } }
-                : n
-            )
-          )
-        }
       }
     }
 
     setEdges(eds => eds.filter(e => e.id !== edgeId))
-    markAsChanged()
-  }, [nodes, edges, setNodes, setEdges, markAsChanged, pushHistory, readOnly])
+  }, [nodes, edges, setNodes, setEdges, pushHistory, readOnly])
 
   // Remove a node
   const removeNode = useCallback((id: string) => {
@@ -654,8 +603,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     if (selectedNodeId === id) {
       setSelectedNodeId(null)
     }
-    markAsChanged()
-  }, [setNodes, setEdges, selectedNodeId, markAsChanged, pushHistory, readOnly, setSelectedNodeId])
+  }, [setNodes, setEdges, selectedNodeId, pushHistory, readOnly, setSelectedNodeId])
 
   // Update node config
   const updateNodeConfig = useCallback((nodeId: string, config: Record<string, unknown>) => {
@@ -669,8 +617,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           : n
       )
     )
-    markAsChanged()
-  }, [nodes, setNodes, markAsChanged, pushHistory, readOnly])
+  }, [nodes, setNodes, pushHistory, readOnly])
 
   // Handle node drag stop - push history for position changes
   // Note: We ignore the event params, just need to know drag ended
@@ -835,8 +782,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     const layoutedNodes = layoutNodes(nodes, toLayoutEdges(edges), { nodeWidth: EDITOR_NODE_WIDTH })
     setNodes(layoutedNodes)
-    markAsChanged()
-  }, [nodes, edges, setNodes, markAsChanged, pushHistory, readOnly])
+  }, [nodes, edges, setNodes, pushHistory, readOnly])
 
   // Clear reorganize flag (called after reorganization is handled)
   const clearReorganizeFlag = useCallback(() => {

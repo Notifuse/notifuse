@@ -72,6 +72,10 @@ func (co *ChannelOptions) Scan(value interface{}) error {
 	return json.Unmarshal(cloned, co)
 }
 
+// MessageMetadataRenderedLanguage is the MessageData.Metadata key holding the template
+// translation a broadcast or automation email was rendered in, "" for the base content.
+const MessageMetadataRenderedLanguage = "rendered_language"
+
 // MessageData represents the JSON data used to compile a template
 type MessageData struct {
 	// Custom fields used in template compilation

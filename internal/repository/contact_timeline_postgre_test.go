@@ -186,6 +186,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 		entries, nextCursor, err := repo.List(ctx, workspaceID, email, limit, nil, domain.TimelineEntityTypeFilter{})
 
 		require.NoError(t, err)
+		assert.NotNil(t, entries, "an empty list, which the API sends as [] rather than null")
 		assert.Empty(t, entries)
 		assert.Nil(t, nextCursor)
 		assert.NoError(t, mock.ExpectationsWereMet())

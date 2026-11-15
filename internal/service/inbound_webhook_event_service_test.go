@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -229,8 +230,7 @@ func TestProcessWebhook_Success(t *testing.T) {
 		err := service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload)
 
 		// Assert
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "unsupported email provider kind")
+		assert.ErrorIs(t, err, domain.ErrInboundIntegrationNotFound)
 	})
 
 	// Test storage error case
@@ -280,9 +280,12 @@ func TestProcessWebhook_Success(t *testing.T) {
 		// Call method
 		err = service.ProcessWebhook(context.Background(), workspaceID, integrationID, rawPayload)
 
-		// Assert
+		// Assert: a failure on our side, none of the refusals, so the webhook answers 500.
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to store inbound webhook events")
+		assert.NotErrorIs(t, err, domain.ErrWebhookPayloadInvalid)
+		assert.NotErrorIs(t, err, domain.ErrInboundIntegrationNotFound)
+		assert.NotErrorIs(t, err, domain.ErrWebhookProviderUnsupported)
 	})
 }
 
@@ -467,6 +470,14 @@ func TestProcessSESWebhook(t *testing.T) {
 		rawPayload, err := json.Marshal(payload)
 		require.NoError(t, err)
 
+		// AWS answers the confirmation (a fake transport: the test reaches no network).
+		var confirmed string
+		service.httpClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			confirmed = r.URL.String()
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("<ok/>")), Header: http.Header{}}, nil
+		})}
+		defer func() { service.httpClient = nil }()
+
 		// Call method
 		events, err := service.processSESWebhook(integrationID, rawPayload)
 
@@ -474,6 +485,7 @@ func TestProcessSESWebhook(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, events)
 		assert.Len(t, events, 0)
+		assert.Equal(t, payload.SubscribeURL, confirmed)
 	})
 
 	t.Run("Unsubscribe Confirmation", func(t *testing.T) {

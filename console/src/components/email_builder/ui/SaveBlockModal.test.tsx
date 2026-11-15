@@ -6,6 +6,12 @@ import { App, Button } from 'antd'
 import { SaveBlockModal } from './SaveBlockModal'
 import type { EmailBlock, SaveBlockHandler, SavedBlock } from '../types'
 import { email } from '../utils/libraryTestTrees'
+import { headKeyOf } from '../utils/library'
+
+vi.mock('../utils/library', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../utils/library')>()
+  return { ...actual, headKeyOf: vi.fn(actual.headKeyOf) }
+})
 
 // The selected section. Attribute keys in the same order as the saved "Header" below, which differs only in a
 // long-hand padding: the shape the old "is this block already saved?" guess matched.
@@ -271,5 +277,32 @@ describe('SaveBlockModal', () => {
     expect(onSave).toHaveBeenCalledTimes(1)
     pending.resolve('id')
     await waitFor(() => expect(dialogDisplay()).toBe('none'))
+  })
+
+  it("reads the email's head only while open, not on each change of the email while closed", () => {
+    const noop: SaveBlockHandler = async () => ''
+    const withTree = (emailTree: EmailBlock, block: EmailBlock | null) => (
+      <App>
+        <SaveBlockModal block={block} emailTree={emailTree} savedBlocks={[]} onSave={noop} onClose={() => {}} />
+      </App>
+    )
+    vi.mocked(headKeyOf).mockClear()
+    const { rerender } = render(withTree(tree, null))
+    rerender(withTree({ ...tree } as EmailBlock, null))
+    expect(headKeyOf).not.toHaveBeenCalled()
+    rerender(withTree(tree, section))
+    expect(headKeyOf).toHaveBeenCalledTimes(1)
+  })
+
+  it('waits for a running library change before it saves', () => {
+    const onSave = vi.fn(async () => 'id')
+    render(
+      <App>
+        <SaveBlockModal block={section} emailTree={tree} savedBlocks={[]} onSave={onSave} libraryBusy onClose={() => {}} />
+      </App>
+    )
+    expect(screen.getByRole('button', { name: /Save/ })).toBeDisabled()
+    fireEvent.keyDown(nameInput(), { key: 'Enter', keyCode: 13 })
+    expect(onSave).not.toHaveBeenCalled()
   })
 })

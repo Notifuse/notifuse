@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { queryPlan } from '../../__tests__/queryPlan'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
@@ -44,9 +45,12 @@ const broadcast = (id: string, date: string, extra: Partial<Broadcast> = {}): Br
     ...extra
   }) as unknown as Broadcast
 
-const renderCard = (props: { canReadLists?: boolean; canCreate?: boolean } = {}) =>
+const renderCard = (
+  props: { canReadLists?: boolean; canCreate?: boolean } = {},
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={client}>
       <I18nProvider i18n={i18n}>
         <UpcomingSends
           workspaceId="ws1"
@@ -66,6 +70,17 @@ beforeEach(() => {
 })
 
 describe('UpcomingSends', () => {
+  it('reads the scheduled broadcasts each minute, and the lists once there is a row', async () => {
+    listBroadcasts.mockResolvedValue({ broadcasts: [{ id: 'b1', name: 'Launch', status: 'scheduled' }], total_count: 1 })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    renderCard({}, client)
+    await waitFor(() => expect(listLists).toHaveBeenCalled())
+    expect(queryPlan(client)).toEqual([
+      { key: ['dashboard', 'upcoming', 'ws1'], refetchInterval: 60_000 },
+      { key: ['lists', 'ws1'], refetchInterval: undefined }
+    ])
+  })
+
   it('lists scheduled broadcasts soonest first, with their list and A/B test', async () => {
     listBroadcasts.mockResolvedValue({
       broadcasts: [

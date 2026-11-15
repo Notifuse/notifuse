@@ -36,5 +36,7 @@ describe('BackfillStatus', () => {
 
     // French groups thousands with a narrow no-break space, which \s matches.
     expect(await screen.findByText(/^12\s345 rows rewritten$/)).toBeInTheDocument()
+    // The progress in French too, not antd's own "40%"
+    expect(screen.getByText(/^40\s%$/)).toBeInTheDocument()
   })
 })

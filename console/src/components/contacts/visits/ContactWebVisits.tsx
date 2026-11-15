@@ -200,6 +200,11 @@ function SessionJourney({
           )}
         </div>
       ))}
+      {journey.data.pages_truncated || journey.data.goals_truncated ? (
+        <span data-journey-truncated className="text-xs text-ink-3">
+          {t`This session is too long to show in full: only its first pages and goals are listed.`}
+        </span>
+      ) : null}
       <div className="mt-1 flex items-center gap-2 border-t border-line-soft pt-2 text-xs text-ink-3">
         <span>{t`Exited on`}</span>
         <Mono>{session.exit_path}</Mono>

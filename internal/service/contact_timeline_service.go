@@ -32,6 +32,17 @@ var timelineEntityPermissions = map[string]domain.PermissionResource{
 	domain.TimelineEntityWebPage:             domain.PermissionResourceWebAnalytics,
 }
 
+// timelinePublicEntityTypes are the entity types that carry nothing beyond the contact, so
+// reading contacts is enough. Every type of domain.TimelineEntityTypes is in this list or in
+// timelineEntityPermissions (TestTimelineEntityTypes_AllClassified).
+var timelinePublicEntityTypes = []string{
+	domain.TimelineEntityContact,
+	domain.TimelineEntityContactList,
+	domain.TimelineEntityContactSegment,
+	domain.TimelineEntityCustomEvent,
+	domain.TimelineEntityAutomation,
+}
+
 // List retrieves timeline entries for a contact with pagination
 func (s *ContactTimelineService) List(ctx context.Context, workspaceID string, email string, limit int, cursor *string, entityTypes []string) ([]*domain.ContactTimelineEntry, *string, error) {
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)

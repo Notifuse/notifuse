@@ -2,7 +2,7 @@ import React from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLock, faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
-import { Select, Radio, Tooltip } from 'antd'
+import { Alert, Select, Radio, Tooltip } from 'antd'
 import type { EmailBlock, MJMLComponentType, MJGroupAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
@@ -16,7 +16,8 @@ import BackgroundInput from '../ui/BackgroundInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import WidthInput from '../ui/WidthInput'
 import PanelLayout from '../panels/PanelLayout'
-import { findParentSection, sectionShare } from '../utils/sectionChildWidth'
+import { findParentSection, groupChildWidth, sectionShare } from '../utils/sectionChildWidth'
+import { bodyWidthOf, sectionOverflow } from '../utils/columnWidths'
 
 // Functional component for settings panel with i18n support
 interface MjGroupSettingsPanelProps {
@@ -25,15 +26,19 @@ interface MjGroupSettingsPanelProps {
   onUpdate: OnUpdateAttributesFunction
   /** Width the group takes without one: its share of the section, when it is in one */
   sectionShareWidth?: string
+  /** How far, in percent, the section's columns and groups go past its width; 0 when they fit */
+  sectionOverflow?: number
 }
 
 const MjGroupSettingsPanel: React.FC<MjGroupSettingsPanelProps> = ({
   currentAttributes,
   blockDefaults,
   onUpdate,
-  sectionShareWidth
+  sectionShareWidth,
+  sectionOverflow = 0
 }) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
+  const over = new Intl.NumberFormat(i18n.locale, { maximumFractionDigits: 2 }).format(sectionOverflow)
 
   const handleAttributeChange = (key: string, value: unknown) => {
     onUpdate({ [key]: value })
@@ -53,6 +58,15 @@ const MjGroupSettingsPanel: React.FC<MjGroupSettingsPanelProps> = ({
             onChange={(value) => onUpdate({ width: value })}
             placeholder={(blockDefaults.width as string | undefined) || sectionShareWidth}
           />
+          {sectionOverflow > 0 && (
+            <div className="mt-2">
+              <Alert
+                type="warning"
+                showIcon
+                message={t`The section's columns and groups go ${over}% past its width: in the email, the last ones move to a new line.`}
+              />
+            </div>
+          )}
         </InputLayout>
 
         <InputLayout label={t`Vertical Align`}>
@@ -257,6 +271,13 @@ export class MjGroupBlock extends BaseEmailBlock {
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
         sectionShareWidth={section ? sectionShare(section) : undefined}
+        sectionOverflow={
+          section && emailTree
+            ? sectionOverflow(section, EmailBlockClass.extractAttributeDefaults(emailTree), {
+                bodyWidth: bodyWidthOf(emailTree)
+              })
+            : 0
+        }
       />
     )
   }
@@ -323,22 +344,33 @@ export class MjGroupBlock extends BaseEmailBlock {
         {children.length === 0 ? (
           <MjGroupEmptyPlaceholder />
         ) : (
-          children.map((child) => (
-            <React.Fragment key={child.id}>
-              {EmailBlockClass.renderEmailBlock(
-                child,
-                attributeDefaults,
-                selectedBlockId,
-                onSelectBlock,
-                emailTree,
-                onUpdateBlock,
-                onCloneBlock,
-                onDeleteBlock,
-                onSave,
-                savedBlocks
-              )}
-            </React.Fragment>
-          ))
+          children.map((child) => {
+            const rendered = EmailBlockClass.renderEmailBlock(
+              child,
+              attributeDefaults,
+              selectedBlockId,
+              onSelectBlock,
+              emailTree,
+              onUpdateBlock,
+              onCloneBlock,
+              onDeleteBlock,
+              onSave,
+              savedBlocks
+            )
+            // Each column takes its width in the group, as in the email, rather than an equal part of the row
+            const width = groupChildWidth(child, this.block)
+            return width ? (
+              <div
+                key={child.id}
+                data-group-column-width={width}
+                style={{ flex: `0 1 ${width}`, maxWidth: width, minWidth: 0 }}
+              >
+                {rendered}
+              </div>
+            ) : (
+              <React.Fragment key={child.id}>{rendered}</React.Fragment>
+            )
+          })
         )}
       </div>
     )

@@ -20,22 +20,12 @@ import (
 // with a generic message; the internal error stays in the logs.
 func TestTaskHandler_ExecuteTask_LookupErrors(t *testing.T) {
 	const secretKey = "test-secret-key"
-	body := []byte(`{"workspace_id":"workspace1","id":"task123"}`)
+	body := []byte(`{"workspace_id":"workspace1","id":"12312312-3123-4123-8123-123123123123"}`)
 	dbErr := errors.New("pq: connection refused")
 
-	newHandler := func(t *testing.T) (*TaskHandler, *mocks.MockTaskService) {
-		ctrl := gomock.NewController(t)
-		mockTaskService := mocks.NewMockTaskService(ctrl)
-		mockAuth := mocks.NewMockAuthService(ctrl)
-		mockLogger := pkgmocks.NewMockLogger(ctrl)
-		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
-		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
-		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
-		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
-		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
-		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
-		handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return nil, nil }, mockLogger, secretKey, true)
-		return handler, mockTaskService
+	newHandler := func(t *testing.T) (*TaskHandler, *mocks.MockTaskService, *pkgmocks.MockLogger, *[]map[string]interface{}) {
+		handler, svc, _, log, fields := recordingTaskHandler(t)
+		return handler, svc, log, fields
 	}
 
 	execute := func(t *testing.T, handler *TaskHandler) (int, string) {
@@ -49,35 +39,51 @@ func TestTaskHandler_ExecuteTask_LookupErrors(t *testing.T) {
 	}
 
 	t.Run("the task cannot be read", func(t *testing.T) {
-		handler, svc := newHandler(t)
-		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "task123").Return(nil, dbErr)
+		handler, svc, log, fields := newHandler(t)
+		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").Return(nil, dbErr)
+		log.EXPECT().Error("Failed to get task for execution").Times(1)
 
 		code, msg := execute(t, handler)
 
 		assert.Equal(t, http.StatusInternalServerError, code)
 		assert.Equal(t, "Failed to get task", msg)
+		assertErrorFieldLogged(t, *fields, dbErr.Error())
 	})
 
 	t.Run("the execution cannot read the task", func(t *testing.T) {
-		handler, svc := newHandler(t)
-		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "task123").Return(&domain.Task{MaxRuntime: 60}, nil)
-		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "task123", gomock.Any()).
+		handler, svc, log, fields := newHandler(t)
+		log.EXPECT().Error("Failed to execute task").Times(1)
+		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").Return(&domain.Task{MaxRuntime: 60}, nil)
+		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123", gomock.Any()).
 			Return(fmt.Errorf("failed to load task for execution: %w", dbErr))
 
 		code, msg := execute(t, handler)
 
 		assert.Equal(t, http.StatusInternalServerError, code)
 		assert.Equal(t, "Failed to execute task", msg)
+		assertErrorFieldLogged(t, *fields, dbErr.Error())
 	})
 
 	t.Run("the task is gone when the execution reads it", func(t *testing.T) {
-		handler, svc := newHandler(t)
-		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "task123").Return(&domain.Task{MaxRuntime: 60}, nil)
-		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "task123", gomock.Any()).
-			Return(&domain.ErrNotFound{Entity: "task", ID: "task123"})
+		// Logged at Warn once, never at Error: the strict logger refuses anything else.
+		ctrl := gomock.NewController(t)
+		svc := mocks.NewMockTaskService(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().Debug(gomock.Any()).AnyTimes()
+		log.EXPECT().Warn("Task to execute not found").Times(1)
+		handler := NewTaskHandler(svc, mocks.NewMockAuthService(ctrl),
+			func() ([]byte, error) { return []byte("test-jwt-secret-key-for-testing-32bytes"), nil },
+			log, secretKey, true)
+		svc.EXPECT().GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").Return(&domain.Task{MaxRuntime: 60}, nil)
+		svc.EXPECT().ExecuteTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123", gomock.Any()).
+			Return(&domain.ErrNotFound{Entity: "task", ID: "12312312-3123-4123-8123-123123123123"})
 
-		code, _ := execute(t, handler)
+		code, msg := execute(t, handler)
 
 		assert.Equal(t, http.StatusNotFound, code)
+		assert.Equal(t, (&domain.ErrNotFound{Entity: "task", ID: "12312312-3123-4123-8123-123123123123"}).Error(), msg)
 	})
 }

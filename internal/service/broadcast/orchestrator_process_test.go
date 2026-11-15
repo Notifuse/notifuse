@@ -154,11 +154,9 @@ func TestProcess_HappyPath(t *testing.T) {
 		Return(0, nil).
 		Times(1)
 
-	// Expect UpdateBroadcast to be called when marking broadcast as processed (no recipients)
-	mockBroadcastRepository.EXPECT().
-		UpdateBroadcast(gomock.Any(), gomock.Any()).
-		Return(nil).
-		Times(1)
+	// The broadcast is marked processed on its locked row (no recipients)
+	expectFinalWrite(mockBroadcastRepository, "workspace-123", createMockBroadcast(broadcastID, []string{"template-1"}),
+		func(context.Context, *domain.Broadcast) error { return nil })
 
 	config := createTestConfig()
 	orchestrator := broadcast.NewBroadcastOrchestrator(
@@ -529,11 +527,9 @@ func TestProcess_ZeroRecipients(t *testing.T) {
 		Return(0, nil).
 		Times(1)
 
-	// Expect UpdateBroadcast to be called when marking broadcast as sent (no recipients)
-	mockBroadcastRepository.EXPECT().
-		UpdateBroadcast(gomock.Any(), gomock.Any()).
-		Return(nil).
-		Times(1)
+	// The broadcast is marked processed on its locked row (no recipients)
+	expectFinalWrite(mockBroadcastRepository, "workspace-123", createMockBroadcast(broadcastID, []string{"template-1"}),
+		func(context.Context, *domain.Broadcast) error { return nil })
 
 	config := createTestConfig()
 	orchestrator := broadcast.NewBroadcastOrchestrator(

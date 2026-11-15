@@ -39,6 +39,8 @@ func TestTaskService_ResetAndTrigger_LookupFailureIsNotNotFound(t *testing.T) {
 			require.Error(t, err)
 			assert.ErrorIs(t, err, sentinel)
 			assert.NotErrorIs(t, err, domain.ErrTaskNotFound)
+			assert.Equal(t, "failed to load task: failed to get task: connection refused", err.Error(),
+				"each layer names its own step, once")
 		})
 	}
 }

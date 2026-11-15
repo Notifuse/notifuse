@@ -43,6 +43,12 @@ type DataFeedFetcher interface {
 type dataFeedFetcher struct {
 	httpClient *http.Client
 	logger     logger.Logger
+
+	// The recipient feed's per-attempt timeout, retries and wait between attempts. They
+	// are fixed (domain.RecipientFeedSettings), set by the constructor; tests shorten them.
+	recipientTimeout    time.Duration
+	recipientRetries    int
+	recipientRetryDelay time.Duration
 }
 
 // NewDataFeedFetcher creates a new DataFeedFetcher with SSRF protection.
@@ -77,9 +83,13 @@ func NewUnsafeDataFeedFetcher(log logger.Logger) DataFeedFetcher {
 
 // newDataFeedFetcher builds a fetcher around the given HTTP client.
 func newDataFeedFetcher(httpClient *http.Client, log logger.Logger) *dataFeedFetcher {
+	var defaults domain.RecipientFeedSettings
 	return &dataFeedFetcher{
-		httpClient: httpClient,
-		logger:     log,
+		httpClient:          httpClient,
+		logger:              log,
+		recipientTimeout:    time.Duration(defaults.GetTimeout()) * time.Second,
+		recipientRetries:    defaults.GetMaxRetries(),
+		recipientRetryDelay: time.Duration(defaults.GetRetryDelay()) * time.Millisecond,
 	}
 }
 
@@ -240,9 +250,9 @@ func (f *dataFeedFetcher) FetchRecipient(ctx context.Context, settings *domain.R
 	}
 
 	// Determine timeout and retry settings
-	timeout := time.Duration(settings.GetTimeout()) * time.Second
-	maxRetries := settings.GetMaxRetries()
-	retryDelay := time.Duration(settings.GetRetryDelay()) * time.Millisecond
+	timeout := f.recipientTimeout
+	maxRetries := f.recipientRetries
+	retryDelay := f.recipientRetryDelay
 
 	// Prepare payload (use empty struct if nil)
 	var payloadBytes []byte
@@ -275,7 +285,13 @@ func (f *dataFeedFetcher) FetchRecipient(ctx context.Context, settings *domain.R
 				"url":     settings.URL,
 				"attempt": attempt + 1,
 			}).Debug("Retrying recipient feed request")
-			time.Sleep(retryDelay)
+			timer := time.NewTimer(retryDelay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return nil, fmt.Errorf("recipient feed retry interrupted: %w", ctx.Err())
+			case <-timer.C:
+			}
 		}
 
 		result, statusCode, err := f.doRecipientRequest(ctx, settings, payloadBytes, timeout)

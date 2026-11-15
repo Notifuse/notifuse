@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { queryPlan } from '../../__tests__/queryPlan'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -36,9 +37,9 @@ const contact = (email: string, extra: Partial<Contact> = {}): Contact =>
     ...extra
   }) as Contact
 
-const renderCard = (canImport = true) =>
+const renderCard = (canImport = true, client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={client}>
       <I18nProvider i18n={i18n}>
         <NewContactsTable workspaceId="ws1" canImport={canImport} />
       </I18nProvider>
@@ -52,6 +53,14 @@ beforeEach(() => {
 })
 
 describe('NewContactsTable', () => {
+  it('reads the latest contacts under the key the CSV import invalidates, each minute', async () => {
+    list.mockResolvedValue({ contacts: [] })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    renderCard(true, client)
+    await waitFor(() => expect(list).toHaveBeenCalled())
+    expect(queryPlan(client)).toEqual([{ key: ['contacts', 'ws1', 'dashboard-latest'], refetchInterval: 60_000 }])
+  })
+
   it('lists the five latest contacts with their age and name', async () => {
     list.mockResolvedValue({
       contacts: [

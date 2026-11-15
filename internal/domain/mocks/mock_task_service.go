@@ -192,6 +192,33 @@ func (mr *MockTaskServiceMockRecorder) ResetTask(arg0, arg1, arg2 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetTask", reflect.TypeOf((*MockTaskService)(nil).ResetTask), arg0, arg1, arg2)
 }
 
+// RunTaskNow mocks base method.
+func (m *MockTaskService) RunTaskNow(arg0, arg1 string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "RunTaskNow", arg0, arg1)
+}
+
+// RunTaskNow indicates an expected call of RunTaskNow.
+func (mr *MockTaskServiceMockRecorder) RunTaskNow(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunTaskNow", reflect.TypeOf((*MockTaskService)(nil).RunTaskNow), arg0, arg1)
+}
+
+// ScheduleBroadcastTask mocks base method.
+func (m *MockTaskService) ScheduleBroadcastTask(arg0 context.Context, arg1, arg2 string, arg3 bool, arg4 *time.Time) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ScheduleBroadcastTask", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ScheduleBroadcastTask indicates an expected call of ScheduleBroadcastTask.
+func (mr *MockTaskServiceMockRecorder) ScheduleBroadcastTask(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScheduleBroadcastTask", reflect.TypeOf((*MockTaskService)(nil).ScheduleBroadcastTask), arg0, arg1, arg2, arg3, arg4)
+}
+
 // SubscribeToBroadcastEvents mocks base method.
 func (m *MockTaskService) SubscribeToBroadcastEvents(arg0 domain.EventBus) {
 	m.ctrl.T.Helper()

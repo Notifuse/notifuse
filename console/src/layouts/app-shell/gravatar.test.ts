@@ -5,9 +5,9 @@ describe('getGravatarUrl', () => {
   // md5('test@example.com'), as Gravatar's own documentation hashes it.
   const hash = '55502f40dc8b7c769880b10874abc9d0'
 
-  it('hashes the email and asks for an identicon fallback', () => {
+  it('hashes the email and asks for a 404 when it has no Gravatar', () => {
     expect(getGravatarUrl('test@example.com', 52)).toBe(
-      `https://www.gravatar.com/avatar/${hash}?s=52&d=identicon`
+      `https://www.gravatar.com/avatar/${hash}?s=52&d=404`
     )
   })
 

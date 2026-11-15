@@ -111,6 +111,12 @@ async function openMenu(name: string) {
 const entry = (menu: HTMLElement, label: string) =>
   within(menu).getByText(label).closest('[role="menuitem"]') as HTMLElement
 
+// A refused entry is drawn disabled and stays on the keyboard's path (antd's disabled one has no tabindex)
+const expectRefused = (item: HTMLElement) => {
+  expect(item).toHaveClass('ant-dropdown-menu-item-disabled')
+  expect(item).toHaveAttribute('tabindex', '-1')
+}
+
 describe('TransactionalTable', () => {
   it('runs each entry of the row menu on its notification, without opening the sheet', async () => {
     const actions = renderTable([notification('welcome')])
@@ -136,20 +142,58 @@ describe('TransactionalTable', () => {
     const menu = await openMenu('Name welcome')
 
     for (const label of ['Edit', 'Preview template', 'View in logs', 'Delete']) {
-      expect(entry(menu, label)).toHaveAttribute('aria-disabled', 'true')
+      expectRefused(entry(menu, label))
     }
-    expect(entry(menu, 'Copy ID')).not.toHaveAttribute('aria-disabled', 'true')
+    expect(entry(menu, 'Copy ID')).not.toHaveClass('ant-dropdown-menu-item-disabled')
     // Written in the entry, without hover.
     expect(within(entry(menu, 'Delete')).getByText('You need Transactional write permission')).toBeInTheDocument()
     expect(within(entry(menu, 'View in logs')).getByText('You need access to message history')).toBeInTheDocument()
     expect(within(entry(menu, 'Preview template')).getByText('You need access to templates')).toBeInTheDocument()
   })
 
+  it('does nothing on a click on a refused entry', async () => {
+    const actions = handlers()
+    renderTable(
+      [notification('welcome')],
+      {
+        templates: { read: false, write: false },
+        transactional: { read: true, write: false },
+        message_history: { read: false, write: false }
+      } as unknown as UserPermissions,
+      actions
+    )
+    for (const label of ['Edit', 'Preview template', 'View in logs', 'Delete']) {
+      fireEvent.click(entry(await openMenu('Name welcome'), label))
+    }
+    expect(actions.onEdit).not.toHaveBeenCalled()
+    expect(actions.onPreview).not.toHaveBeenCalled()
+    expect(actions.onLogs).not.toHaveBeenCalled()
+    expect(actions.onDelete).not.toHaveBeenCalled()
+  })
+
+  it('keeps a refused Send test on the keyboard path and says why', () => {
+    const actions = handlers()
+    renderTable(
+      [notification('welcome')],
+      { ...full, transactional: { read: true, write: false } } as unknown as UserPermissions,
+      actions
+    )
+    const test = screen.getByRole('button', { name: 'Send test' })
+    expect(test).not.toBeDisabled()
+    expect(test).toHaveAttribute('aria-disabled', 'true')
+    expect(test).toHaveAccessibleDescription(
+      'You need Templates read and Transactional write permissions to send test emails'
+    )
+    fireEvent.click(test)
+    expect(actions.onTest).not.toHaveBeenCalled()
+    expect(actions.onOpen).not.toHaveBeenCalled()
+  })
+
   it('refuses to delete a notification an integration manages, and names it', async () => {
     renderTable([notification('managed', { integration_id: 'supabase' })])
     const menu = await openMenu('Name managed')
 
-    expect(entry(menu, 'Delete')).toHaveAttribute('aria-disabled', 'true')
+    expectRefused(entry(menu, 'Delete'))
     expect(within(entry(menu, 'Delete')).getByText("Managed by Supabase: it can't be deleted")).toBeInTheDocument()
     // The label of the integration stands next to the name.
     expect(screen.getAllByText('Supabase').length).toBeGreaterThan(0)
@@ -158,7 +202,7 @@ describe('TransactionalTable', () => {
   it('keeps the template preview disabled until the template is read', async () => {
     renderTable([notification('welcome')], full, handlers(), new Map([['tpl', { status: 'loading' }]]))
     const menu = await openMenu('Name welcome')
-    expect(entry(menu, 'Preview template')).toHaveAttribute('aria-disabled', 'true')
+    expectRefused(entry(menu, 'Preview template'))
     // Nothing to say while it loads.
     expect(entry(menu, 'Preview template').textContent).toBe('Preview template')
   })
@@ -171,14 +215,14 @@ describe('TransactionalTable', () => {
       new Map([['tpl', { status: 'error', error: new Error('boom'), retry: () => {} }]])
     )
     const menu = await openMenu('Name welcome')
-    expect(entry(menu, 'Preview template')).toHaveAttribute('aria-disabled', 'true')
+    expectRefused(entry(menu, 'Preview template'))
     expect(within(entry(menu, 'Preview template')).getByText("Couldn't load the template")).toBeInTheDocument()
   })
 
   it('says why the template preview is disabled for a notification without template', async () => {
     renderTable([notification('bare', { channels: {} })])
     const menu = await openMenu('Name bare')
-    expect(entry(menu, 'Preview template')).toHaveAttribute('aria-disabled', 'true')
+    expectRefused(entry(menu, 'Preview template'))
     expect(within(entry(menu, 'Preview template')).getByText('This notification has no email template')).toBeInTheDocument()
   })
 

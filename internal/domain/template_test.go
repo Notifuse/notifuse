@@ -3187,6 +3187,15 @@ func TestGetTemplateUsageRequest_FromURLParams(t *testing.T) {
 		require.NoError(t, req.FromURLParams(url.Values{"workspace_id": {"ws1"}, "template_id": {"welcome"}}))
 		assert.Equal(t, GetTemplateUsageRequest{WorkspaceID: "ws1", TemplateID: "welcome"}, req)
 	})
+
+	t.Run("a template_id PostgreSQL cannot read is refused", func(t *testing.T) {
+		for _, id := range []string{"wel\x00come", "wel\xffcome"} {
+			var req GetTemplateUsageRequest
+			err := req.FromURLParams(url.Values{"workspace_id": {"ws1"}, "template_id": {id}})
+			require.Error(t, err, "%q", id)
+			assert.Contains(t, err.Error(), "template_id must be valid UTF-8 text without NUL bytes")
+		}
+	})
 }
 
 func TestTemplateUsage_JSON(t *testing.T) {
@@ -3245,4 +3254,48 @@ func TestTemplateUsageCounts_Set(t *testing.T) {
 	raw, err := json.Marshal(c)
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"broadcasts":1,"transactional_notifications":2,"automations":3,"lists":4}`, string(raw))
+}
+
+func TestTemplate_ResolvedLanguage(t *testing.T) {
+	tmpl := &Template{
+		Email: &EmailTemplate{Subject: "Default"},
+		Translations: map[string]TemplateTranslation{
+			"fr": {Email: &EmailTemplate{Subject: "Français"}},
+			"de": {Web: &WebTemplate{}},
+		},
+	}
+	cases := map[string]struct{ contact, def, want string }{
+		"no contact language":         {"", "en", ""},
+		"the default language":        {"fr", "fr", ""},
+		"a known translation":         {"fr", "en", "fr"},
+		"an unknown language":         {"es", "en", ""},
+		"a translation without email": {"de", "en", ""},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, tmpl.ResolvedLanguage(tc.contact, tc.def))
+		})
+	}
+	assert.Equal(t, "", (&Template{Email: &EmailTemplate{}}).ResolvedLanguage("fr", "en"), "no translations")
+	assert.Equal(t, "", (&Template{Translations: tmpl.Translations}).ResolvedLanguage("fr", "en"), "no email")
+}
+
+func TestTemplate_EmailContentForLanguage(t *testing.T) {
+	base := &EmailTemplate{Subject: "Default", SenderID: "sender", ReplyTo: "reply@example.com"}
+	tmpl := &Template{
+		Email:        base,
+		Translations: map[string]TemplateTranslation{"fr": {Email: &EmailTemplate{Subject: "Français"}}},
+	}
+
+	assert.Same(t, base, tmpl.EmailContentForLanguage(""), "the base content")
+	assert.Same(t, base, tmpl.EmailContentForLanguage("es"), "an unknown key gives the base content")
+
+	fr := tmpl.EmailContentForLanguage("fr")
+	require.NotNil(t, fr)
+	assert.Equal(t, "Français", fr.Subject)
+	assert.Equal(t, "sender", fr.SenderID, "the sender falls back to the template's")
+	assert.Equal(t, "reply@example.com", fr.ReplyTo)
+	assert.Empty(t, tmpl.Translations["fr"].Email.SenderID, "the translation is not filled in place")
+
+	assert.Nil(t, (&Template{Translations: tmpl.Translations}).EmailContentForLanguage("fr"), "no email")
 }

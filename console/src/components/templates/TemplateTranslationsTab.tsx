@@ -20,6 +20,7 @@ import { useLicense } from '../../hooks/useLicense'
 import { LicenceGateNotice } from '../license/LicenceGateNotice'
 import type { CustomTextVersion } from '../email_builder/panels/TextVersionPanel'
 import { customTextOrUndefined, seedTextVersion } from './textVersionSeed'
+import { ImportExportButton } from './ImportExportButton'
 
 export interface TranslationEditorState {
   enabled: boolean
@@ -50,6 +51,8 @@ interface TemplateTranslationsTabProps {
   onDeleteSavedBlock?: DeleteSavedBlockHandler
   // Template category: decides which links a custom text is reminded to keep.
   category?: string
+  // The template's name, which an exported translation's file is named after, with its language
+  templateName?: string
 }
 
 const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
@@ -68,7 +71,8 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   canManageSavedBlocks,
   onRenameSavedBlock,
   onDeleteSavedBlock,
-  category
+  category,
+  templateName
 }) => {
   const { t } = useLingui()
   const [editorDrawerLang, setEditorDrawerLang] = useState<string | null>(null)
@@ -410,6 +414,16 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
               hiddenBlocks={['mj-title', 'mj-preview']}
               height="calc(100vh - 61px)"
               textVersion={{ enabled: true, custom: activeCustomText }}
+              toolbarActions={
+                // Imports into, and exports, the open language only: the default language is left as it is
+                <ImportExportButton
+                  onImport={(imported) => updateLangState(editorDrawerLang, { visualEditorTree: imported })}
+                  tree={activeLangState.visualEditorTree || defaultVisualEditorTree}
+                  testData={testData}
+                  workspaceId={workspace.id}
+                  templateName={templateName ? `${templateName} (${editorDrawerLang})` : undefined}
+                />
+              }
             />
           )}
         </Drawer>

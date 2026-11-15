@@ -2125,3 +2125,61 @@ func TestBlogSitemapLimits(t *testing.T) {
 	assert.Equal(t, 50000, BlogSitemapMaxURLs)
 	assert.Equal(t, 49998, BlogSitemapMaxPosts)
 }
+
+// The slugs are written out, so that a slug dropped from the domain's lists shows here.
+// TestBlogReservedCategorySlugs (tests/integration) checks most of them against the running
+// server.
+func TestBlogCategorySlugRouteOf(t *testing.T) {
+	cases := map[BlogCategorySlugRoute][]string{
+		BlogCategorySlugSubtreeTaken: {
+			"v", "t", "r",
+			"api", "console", "notification-center",
+			// The root handler matches api, console and notification-center by prefix.
+			"apis", "api-docs", "consoles", "notification-centers",
+		},
+		BlogCategorySlugPageTaken: {
+			"visit", "opens", "track",
+			"preferences", "subscribe", "unsubscribe", "unsubscribe-oneclick",
+			"health", "healthz",
+		},
+		BlogCategorySlugFree: {
+			// Nothing is registered at /webhooks itself, only paths under it.
+			"webhooks",
+			// Neighbours of an exact route.
+			"vip", "tracking", "health-tips", "visits", "news", "r2", "tv",
+		},
+	}
+	for want, slugs := range cases {
+		for _, slug := range slugs {
+			assert.Equal(t, want, BlogCategorySlugRouteOf(slug), slug)
+			assert.Equal(t, want != BlogCategorySlugFree, IsReservedBlogCategorySlug(slug), slug)
+		}
+	}
+}
+
+func TestCreateBlogCategoryRequest_Validate_ReservedSlug(t *testing.T) {
+	for _, slug := range []string{"track", "unsubscribe", "apis"} {
+		err := (&CreateBlogCategoryRequest{Name: "Name", Slug: slug}).Validate()
+		require.Error(t, err, slug)
+		assert.Equal(t, "slug is reserved by another route", err.Error())
+	}
+	assert.NoError(t, (&CreateBlogCategoryRequest{Name: "Name", Slug: "tracking"}).Validate())
+}
+
+// An existing category keeps a reserved slug it already had: the update refuses only a
+// change to one, in the service.
+func TestUpdateBlogCategoryRequest_Validate_ReservedSlugAllowed(t *testing.T) {
+	assert.NoError(t, (&UpdateBlogCategoryRequest{ID: "c1", Name: "Name", Slug: "health"}).Validate())
+}
+
+func TestListBlogPostsRequest_Validate_UnreadableSearch(t *testing.T) {
+	for _, search := range []string{"a\x00b", "caf\xe9"} {
+		req := &ListBlogPostsRequest{Search: search}
+		err := req.Validate()
+		require.Error(t, err, "%q", search)
+		var validation ValidationError
+		require.ErrorAs(t, err, &validation)
+		assert.Equal(t, "search must be valid UTF-8 text without NUL bytes", validation.Message)
+	}
+	assert.NoError(t, (&ListBlogPostsRequest{Search: "café"}).Validate())
+}

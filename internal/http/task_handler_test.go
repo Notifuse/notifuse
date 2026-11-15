@@ -121,7 +121,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 		// Setup
 		reqBody := domain.ExecuteTaskRequest{
 			WorkspaceID: "workspace1",
-			ID:          "task123",
+			ID:          "12312312-3123-4123-8123-123123123123",
 		}
 
 		reqJSON, _ := json.Marshal(reqBody)
@@ -194,7 +194,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 		// Setup
 		reqBody := domain.ExecuteTaskRequest{
 			WorkspaceID: "workspace1",
-			ID:          "task123",
+			ID:          "12312312-3123-4123-8123-123123123123",
 		}
 
 		reqJSON, _ := json.Marshal(reqBody)
@@ -221,7 +221,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 		// Setup
 		reqBody := domain.ExecuteTaskRequest{
 			WorkspaceID: "workspace1",
-			ID:          "task123",
+			ID:          "12312312-3123-4123-8123-123123123123",
 		}
 
 		reqJSON, _ := json.Marshal(reqBody)
@@ -253,7 +253,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 		// Setup
 		reqBody := domain.ExecuteTaskRequest{
 			WorkspaceID: "workspace1",
-			ID:          "task123",
+			ID:          "12312312-3123-4123-8123-123123123123",
 		}
 
 		reqJSON, _ := json.Marshal(reqBody)
@@ -285,7 +285,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 		// Setup
 		reqBody := domain.ExecuteTaskRequest{
 			WorkspaceID: "workspace1",
-			ID:          "task123",
+			ID:          "12312312-3123-4123-8123-123123123123",
 		}
 
 		reqJSON, _ := json.Marshal(reqBody)
@@ -415,7 +415,7 @@ func newTaskHandlerWithDispatch(t *testing.T, ctrl *gomock.Controller, httpDispa
 // unrouted /api path, so a dispatcher aimed at the wrong instance saw success and
 // dropped the execution. Owning the path is what makes the misconfiguration loud.
 func TestTaskHandler_ExecuteTask_SchedulerEnabled(t *testing.T) {
-	body := []byte(`{"workspace_id":"ws-1","id":"task-1"}`)
+	body := []byte(`{"workspace_id":"ws-1","id":"11111111-1111-4111-8111-111111111111"}`)
 
 	t.Run("the route is registered so nothing falls through to the SPA", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -521,7 +521,7 @@ func TestTaskHandler_GetTask(t *testing.T) {
 		// Setup expected task
 		now := time.Now()
 		task := &domain.Task{
-			ID:          "task123",
+			ID:          "12312312-3123-4123-8123-123123123123",
 			Type:        "send_broadcast",
 			Status:      domain.TaskStatusPending,
 			WorkspaceID: "workspace1",
@@ -531,11 +531,11 @@ func TestTaskHandler_GetTask(t *testing.T) {
 
 		// Configure service mock to return the task
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "workspace1", "task123").
+			GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").
 			Return(task, nil)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=workspace1&id=task123", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=workspace1&id=12312312-3123-4123-8123-123123123123", nil)
 		rec := httptest.NewRecorder()
 
 		handler.GetTask(rec, req)
@@ -574,11 +574,11 @@ func TestTaskHandler_GetTask(t *testing.T) {
 	t.Run("Task not found", func(t *testing.T) {
 		// Configure service mock to return a not found error
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "workspace1", "nonexistent").
-			Return(nil, errors.New("task not found"))
+			GetTask(gomock.Any(), "workspace1", "44444444-4444-4444-8444-444444444444").
+			Return(nil, domain.ErrTaskNotFound)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=workspace1&id=nonexistent", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=workspace1&id=44444444-4444-4444-8444-444444444444", nil)
 		rec := httptest.NewRecorder()
 
 		handler.GetTask(rec, req)
@@ -590,11 +590,11 @@ func TestTaskHandler_GetTask(t *testing.T) {
 	t.Run("Service error (not not-found)", func(t *testing.T) {
 		// Configure service mock to return a service error
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "workspace1", "task123").
+			GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").
 			Return(nil, errors.New("database error"))
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=workspace1&id=task123", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=workspace1&id=12312312-3123-4123-8123-123123123123", nil)
 		rec := httptest.NewRecorder()
 
 		handler.GetTask(rec, req)
@@ -629,7 +629,7 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 		response := &domain.TaskListResponse{
 			Tasks: []*domain.Task{
 				{
-					ID:          "task123",
+					ID:          "12312312-3123-4123-8123-123123123123",
 					Type:        "send_broadcast",
 					Status:      domain.TaskStatusPending,
 					WorkspaceID: "workspace1",
@@ -637,7 +637,7 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 					UpdatedAt:   now,
 				},
 				{
-					ID:          "task456",
+					ID:          "45645645-6456-4456-8456-456456456456",
 					Type:        "build_segment",
 					Status:      domain.TaskStatusCompleted,
 					WorkspaceID: "workspace1",
@@ -752,14 +752,14 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 	t.Run("Successful deletion", func(t *testing.T) {
 		// Configure service mock to return success
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "workspace1", "task123").
-			Return(&domain.Task{ID: "task123", Type: "send_broadcast"}, nil)
+			GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").
+			Return(&domain.Task{ID: "12312312-3123-4123-8123-123123123123", Type: "send_broadcast"}, nil)
 		mockTaskService.EXPECT().
-			DeleteTask(gomock.Any(), "workspace1", "task123").
+			DeleteTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").
 			Return(nil)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=workspace1&id=task123", nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=workspace1&id=12312312-3123-4123-8123-123123123123", nil)
 		rec := httptest.NewRecorder()
 
 		handler.DeleteTask(rec, req)
@@ -799,11 +799,11 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 		// The authorization read is what discovers the task is gone, so the
 		// delete never runs.
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "workspace1", "nonexistent").
-			Return(nil, errors.New("task not found"))
+			GetTask(gomock.Any(), "workspace1", "44444444-4444-4444-8444-444444444444").
+			Return(nil, domain.ErrTaskNotFound)
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=workspace1&id=nonexistent", nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=workspace1&id=44444444-4444-4444-8444-444444444444", nil)
 		rec := httptest.NewRecorder()
 
 		handler.DeleteTask(rec, req)
@@ -815,14 +815,14 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 	t.Run("Service error (not not-found)", func(t *testing.T) {
 		// Configure service mock to return a service error
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "workspace1", "task123").
-			Return(&domain.Task{ID: "task123", Type: "send_broadcast"}, nil)
+			GetTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").
+			Return(&domain.Task{ID: "12312312-3123-4123-8123-123123123123", Type: "send_broadcast"}, nil)
 		mockTaskService.EXPECT().
-			DeleteTask(gomock.Any(), "workspace1", "task123").
+			DeleteTask(gomock.Any(), "workspace1", "12312312-3123-4123-8123-123123123123").
 			Return(errors.New("database error"))
 
 		// Call handler
-		req := httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=workspace1&id=task123", nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=workspace1&id=12312312-3123-4123-8123-123123123123", nil)
 		rec := httptest.NewRecorder()
 
 		handler.DeleteTask(rec, req)
@@ -1240,13 +1240,13 @@ func TestTaskHandler_ResetTask(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "ws-1", "task-1").
-			Return(&domain.Task{ID: "task-1", Type: "sync_integration"}, nil)
+			GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+			Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", Type: "sync_integration"}, nil)
 		mockTaskService.EXPECT().
-			ResetTask(gomock.Any(), "ws-1", "task-1").
+			ResetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
 			Return(nil)
 
-		body := `{"workspace_id": "ws-1", "id": "task-1"}`
+		body := `{"workspace_id": "ws-1", "id": "11111111-1111-4111-8111-111111111111"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.reset", strings.NewReader(body))
 		w := httptest.NewRecorder()
 
@@ -1275,7 +1275,7 @@ func TestTaskHandler_ResetTask(t *testing.T) {
 	})
 
 	t.Run("Missing workspace_id", func(t *testing.T) {
-		body := `{"id": "task-1"}`
+		body := `{"id": "11111111-1111-4111-8111-111111111111"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.reset", strings.NewReader(body))
 		w := httptest.NewRecorder()
 
@@ -1287,10 +1287,10 @@ func TestTaskHandler_ResetTask(t *testing.T) {
 
 	t.Run("Task not found", func(t *testing.T) {
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "ws-1", "task-not-found").
+			GetTask(gomock.Any(), "ws-1", "33333333-3333-4333-8333-333333333333").
 			Return(nil, domain.ErrTaskNotFound)
 
-		body := `{"workspace_id": "ws-1", "id": "task-not-found"}`
+		body := `{"workspace_id": "ws-1", "id": "33333333-3333-4333-8333-333333333333"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.reset", strings.NewReader(body))
 		w := httptest.NewRecorder()
 
@@ -1327,13 +1327,13 @@ func TestTaskHandler_TriggerTask(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "ws-1", "task-1").
-			Return(&domain.Task{ID: "task-1", Type: "send_broadcast"}, nil)
+			GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+			Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", Type: "send_broadcast"}, nil)
 		mockTaskService.EXPECT().
-			TriggerTask(gomock.Any(), "ws-1", "task-1").
+			TriggerTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
 			Return(nil)
 
-		body := `{"workspace_id": "ws-1", "id": "task-1"}`
+		body := `{"workspace_id": "ws-1", "id": "11111111-1111-4111-8111-111111111111"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader(body))
 		w := httptest.NewRecorder()
 
@@ -1374,10 +1374,10 @@ func TestTaskHandler_TriggerTask(t *testing.T) {
 
 	t.Run("Task not found", func(t *testing.T) {
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "ws-1", "task-not-found").
+			GetTask(gomock.Any(), "ws-1", "33333333-3333-4333-8333-333333333333").
 			Return(nil, domain.ErrTaskNotFound)
 
-		body := `{"workspace_id": "ws-1", "id": "task-not-found"}`
+		body := `{"workspace_id": "ws-1", "id": "33333333-3333-4333-8333-333333333333"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader(body))
 		w := httptest.NewRecorder()
 
@@ -1388,13 +1388,13 @@ func TestTaskHandler_TriggerTask(t *testing.T) {
 
 	t.Run("Task already running", func(t *testing.T) {
 		mockTaskService.EXPECT().
-			GetTask(gomock.Any(), "ws-1", "task-running").
-			Return(&domain.Task{ID: "task-running", Type: "send_broadcast"}, nil)
+			GetTask(gomock.Any(), "ws-1", "22222222-2222-4222-8222-222222222222").
+			Return(&domain.Task{ID: "22222222-2222-4222-8222-222222222222", Type: "send_broadcast"}, nil)
 		mockTaskService.EXPECT().
-			TriggerTask(gomock.Any(), "ws-1", "task-running").
-			Return(&domain.ErrTaskAlreadyRunning{TaskID: "task-running"})
+			TriggerTask(gomock.Any(), "ws-1", "22222222-2222-4222-8222-222222222222").
+			Return(&domain.ErrTaskAlreadyRunning{TaskID: "22222222-2222-4222-8222-222222222222"})
 
-		body := `{"workspace_id": "ws-1", "id": "task-running"}`
+		body := `{"workspace_id": "ws-1", "id": "22222222-2222-4222-8222-222222222222"}`
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.trigger", strings.NewReader(body))
 		w := httptest.NewRecorder()
 
@@ -1427,12 +1427,12 @@ func TestTaskHandler_ExecuteTask_DetachedFromRequestContext(t *testing.T) {
 
 	handler := NewTaskHandler(mockTaskService, mockAuth, func() ([]byte, error) { return nil, nil }, mockLogger, "test-secret", true)
 
-	task := &domain.Task{ID: "task-1", WorkspaceID: "ws-1", MaxRuntime: 50}
-	mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(task, nil)
+	task := &domain.Task{ID: "11111111-1111-4111-8111-111111111111", WorkspaceID: "ws-1", MaxRuntime: 50}
+	mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(task, nil)
 
 	captured := make(chan context.Context, 1)
 	mockTaskService.EXPECT().
-		ExecuteTask(gomock.Any(), "ws-1", "task-1", gomock.Any()).
+		ExecuteTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, _, _ string, _ time.Time) error {
 			captured <- ctx
 			return nil
@@ -1442,7 +1442,7 @@ func TestTaskHandler_ExecuteTask_DetachedFromRequestContext(t *testing.T) {
 	reqCtx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	body := []byte(`{"workspace_id":"ws-1","id":"task-1"}`)
+	body := []byte(`{"workspace_id":"ws-1","id":"11111111-1111-4111-8111-111111111111"}`)
 	req := newSignedExecuteRequest("test-secret", body).WithContext(reqCtx)
 	rec := httptest.NewRecorder()
 
@@ -1522,11 +1522,11 @@ func TestTaskHandler_UnknownTaskTypeFailsClosed(t *testing.T) {
 
 	handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
 	allowOwner(mockAuth)
-	mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
-		Return(&domain.Task{ID: "task-1", Type: "import_contacts"}, nil)
+	mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+		Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", Type: "import_contacts"}, nil)
 
 	rec := httptest.NewRecorder()
-	handler.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-1&id=task-1", nil))
+	handler.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-1&id=11111111-1111-4111-8111-111111111111", nil))
 
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
@@ -1534,7 +1534,7 @@ func TestTaskHandler_UnknownTaskTypeFailsClosed(t *testing.T) {
 // TestTaskHandler_PermissionEnforcement grants the OPPOSITE permission per case
 // and asserts the route denies. read for get/list, write for delete/reset/trigger.
 func TestTaskHandler_PermissionEnforcement(t *testing.T) {
-	sendBroadcast := &domain.Task{ID: "task-1", WorkspaceID: "ws-1", Type: "send_broadcast"}
+	sendBroadcast := &domain.Task{ID: "11111111-1111-4111-8111-111111111111", WorkspaceID: "ws-1", Type: "send_broadcast"}
 
 	testCases := []struct {
 		name string
@@ -1547,42 +1547,42 @@ func TestTaskHandler_PermissionEnforcement(t *testing.T) {
 			name:    "get needs broadcasts read",
 			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Write: true}},
 			expect: func(m *mocks.MockTaskService) {
-				m.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(sendBroadcast, nil)
+				m.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(sendBroadcast, nil)
 			},
 			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
-				h.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-1&id=task-1", nil))
+				h.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-1&id=11111111-1111-4111-8111-111111111111", nil))
 			},
 		},
 		{
 			name:    "delete needs broadcasts write",
 			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Read: true}},
 			expect: func(m *mocks.MockTaskService) {
-				m.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(sendBroadcast, nil)
+				m.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(sendBroadcast, nil)
 			},
 			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
-				h.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-1&id=task-1", nil))
+				h.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-1&id=11111111-1111-4111-8111-111111111111", nil))
 			},
 		},
 		{
 			name:    "reset needs broadcasts write",
 			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Read: true}},
 			expect: func(m *mocks.MockTaskService) {
-				m.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(sendBroadcast, nil)
+				m.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(sendBroadcast, nil)
 			},
 			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
 				h.ResetTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.reset",
-					strings.NewReader(`{"workspace_id":"ws-1","id":"task-1"}`)))
+					strings.NewReader(`{"workspace_id":"ws-1","id":"11111111-1111-4111-8111-111111111111"}`)))
 			},
 		},
 		{
 			name:    "trigger needs broadcasts write",
 			granted: domain.UserPermissions{domain.PermissionResourceBroadcasts: {Read: true}},
 			expect: func(m *mocks.MockTaskService) {
-				m.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(sendBroadcast, nil)
+				m.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(sendBroadcast, nil)
 			},
 			call: func(h *TaskHandler, rec *httptest.ResponseRecorder) {
 				h.TriggerTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.trigger",
-					strings.NewReader(`{"workspace_id":"ws-1","id":"task-1"}`)))
+					strings.NewReader(`{"workspace_id":"ws-1","id":"11111111-1111-4111-8111-111111111111"}`)))
 			},
 		},
 		{
@@ -1629,18 +1629,18 @@ func TestTaskHandler_CrossTenantDenied(t *testing.T) {
 			h.ListTasks(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.list?workspace_id=ws-b", nil))
 		}},
 		{"get", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
-			h.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-b&id=task-1", nil))
+			h.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-b&id=11111111-1111-4111-8111-111111111111", nil))
 		}},
 		{"delete", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
-			h.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-b&id=task-1", nil))
+			h.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-b&id=11111111-1111-4111-8111-111111111111", nil))
 		}},
 		{"reset", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
 			h.ResetTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.reset",
-				strings.NewReader(`{"workspace_id":"ws-b","id":"task-1"}`)))
+				strings.NewReader(`{"workspace_id":"ws-b","id":"11111111-1111-4111-8111-111111111111"}`)))
 		}},
 		{"trigger", func(h *TaskHandler, rec *httptest.ResponseRecorder) {
 			h.TriggerTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.trigger",
-				strings.NewReader(`{"workspace_id":"ws-b","id":"task-1"}`)))
+				strings.NewReader(`{"workspace_id":"ws-b","id":"11111111-1111-4111-8111-111111111111"}`)))
 		}},
 	}
 
@@ -1713,16 +1713,16 @@ func TestTaskHandler_ListTasks_NarrowsToReadableTypes(t *testing.T) {
 // authentication.
 func TestTaskHandler_ExecuteTaskSignature(t *testing.T) {
 	const secretKey = "test-secret-key"
-	body := []byte(`{"workspace_id":"ws-1","id":"task-1"}`)
+	body := []byte(`{"workspace_id":"ws-1","id":"11111111-1111-4111-8111-111111111111"}`)
 
 	t.Run("a correctly signed dispatch runs the task", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		handler, mockTaskService, _ := newTaskHandlerForAuth(t, ctrl)
-		mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
-			Return(&domain.Task{ID: "task-1", MaxRuntime: 60}, nil)
-		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "task-1", gomock.Any()).Return(nil)
+		mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+			Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", MaxRuntime: 60}, nil)
+		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111", gomock.Any()).Return(nil)
 
 		rec := httptest.NewRecorder()
 		handler.ExecuteTask(rec, newSignedExecuteRequest(secretKey, body))
@@ -1768,7 +1768,7 @@ func TestTaskHandler_ExecuteTaskSignature(t *testing.T) {
 		// is what the bare-path signature form would have allowed for five
 		// minutes: same path, any task id.
 		captured := newSignedExecuteRequest(secretKey, body)
-		other := []byte(`{"workspace_id":"ws-1","id":"task-2"}`)
+		other := []byte(`{"workspace_id":"ws-1","id":"55555555-5555-4555-8555-555555555555"}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/tasks.execute", bytes.NewReader(other))
 		req.Header.Set(domain.TaskExecuteTimestampHeader, captured.Header.Get(domain.TaskExecuteTimestampHeader))
 		req.Header.Set(domain.TaskExecuteSignatureHeader, captured.Header.Get(domain.TaskExecuteSignatureHeader))
@@ -1815,13 +1815,56 @@ func TestTaskHandler_ExecuteTaskSignature(t *testing.T) {
 		handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
 		mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), gomock.Any()).Times(0)
 
-		mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
-			Return(&domain.Task{ID: "task-1", MaxRuntime: 60, Type: "send_broadcast"}, nil)
-		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "task-1", gomock.Any()).Return(nil)
+		mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+			Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", MaxRuntime: 60, Type: "send_broadcast"}, nil)
+		mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111", gomock.Any()).Return(nil)
 
 		rec := httptest.NewRecorder()
 		handler.ExecuteTask(rec, newSignedExecuteRequest(secretKey, body))
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 	})
+}
+
+// /api/cron is public: max_tasks is clamped to a ceiling, never refused, so an external
+// crontab that asks for more keeps running.
+func TestTaskHandler_ExecutePendingTasks_MaxTasksCeiling(t *testing.T) {
+	run := func(t *testing.T, ceiling *int, query string, wantRun int) {
+		t.Helper()
+		ctrl := gomock.NewController(t)
+		taskService := mocks.NewMockTaskService(ctrl)
+		log := pkgmocks.NewMockLogger(ctrl)
+		log.EXPECT().Info(gomock.Any()).AnyTimes()
+		log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+		log.EXPECT().Error(gomock.Any()).AnyTimes()
+		handler := NewTaskHandler(taskService, mocks.NewMockAuthService(ctrl), func() ([]byte, error) { return nil, nil }, log, "k", true)
+		if ceiling != nil {
+			handler.SetCronTaskCeiling(*ceiling)
+		}
+		done := make(chan struct{})
+		taskService.EXPECT().ExecutePendingTasks(gomock.Any(), wantRun).DoAndReturn(func(context.Context, int) error {
+			close(done)
+			return nil
+		})
+
+		rec := httptest.NewRecorder()
+		handler.ExecutePendingTasks(rec, httptest.NewRequest(http.MethodGet, "/api/cron"+query, nil))
+		require.Equal(t, http.StatusAccepted, rec.Code)
+		var resp map[string]interface{}
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, float64(wantRun), resp["max_tasks"], "the response reports the value used")
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatal("background execution never started")
+		}
+	}
+	n := func(v int) *int { return &v }
+
+	t.Run("above the default ceiling", func(t *testing.T) { run(t, nil, "?max_tasks=1000000", 100) })
+	t.Run("below it, unchanged", func(t *testing.T) { run(t, nil, "?max_tasks=7", 7) })
+	t.Run("zero means the default", func(t *testing.T) { run(t, nil, "?max_tasks=0", 100) })
+	t.Run("negative means the default", func(t *testing.T) { run(t, nil, "?max_tasks=-5", 100) })
+	t.Run("a higher configured ceiling", func(t *testing.T) { run(t, n(500), "?max_tasks=1000", 500) })
+	t.Run("a configured ceiling never goes below the default", func(t *testing.T) { run(t, n(10), "?max_tasks=50", 50) })
 }

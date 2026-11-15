@@ -258,10 +258,28 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
     ? `mjml-draft-${templateId}`
     : `mjml-draft-new-${draftUniqueId}`
 
+  const clearErrorMarkers = () => {
+    if (monacoRef.current && editorRef.current) {
+      const monaco = monacoRef.current as typeof import('monaco-editor')
+      const model = editorRef.current.getModel()
+      if (model) {
+        monaco.editor.setModelMarkers(model, 'mjml', [])
+      }
+    }
+  }
+
   // Compile function
   const doCompile = useCallback(
     async (source: string) => {
-      if (!source.trim()) return
+      // Nothing to compile: the email is empty, rather than waiting for a compile or showing the last one
+      if (!source.trim()) {
+        setPreviewHtml('')
+        setHtmlOutput('')
+        setTextOutput('')
+        setCompileErrors(undefined)
+        clearErrorMarkers()
+        return
+      }
       setIsCompiling(true)
       try {
         let parsedTestData: Record<string, unknown> | undefined
@@ -297,14 +315,7 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
           setHtmlOutput(result.html)
           setTextOutput(result.text ?? '')
           setCompileErrors(undefined)
-          // Clear error markers
-          if (monacoRef.current && editorRef.current) {
-            const monaco = monacoRef.current as typeof import('monaco-editor')
-            const model = editorRef.current.getModel()
-            if (model) {
-              monaco.editor.setModelMarkers(model, 'mjml', [])
-            }
-          }
+          clearErrorMarkers()
         }
       } catch (err) {
         setCompileErrors({
@@ -342,11 +353,9 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
     }
   }, [])
 
-  // Initial compile
+  // Initial compile; an empty source compiles to nothing, without a call
   useEffect(() => {
-    if (mjmlSource) {
-      doCompile(mjmlSource)
-    }
+    doCompile(mjmlSource || '')
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentional mount-only compile
   }, [])
 

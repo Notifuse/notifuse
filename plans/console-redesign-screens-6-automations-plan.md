@@ -368,8 +368,8 @@ above where they differ, and the code review below overrides them where it says 
 2. `npx tsc -b`, `npx eslint .`, `npm run build`.
 3. e2e locally (scratchpad configs, port 19173): `npx playwright test e2e/features/automations.spec.ts
    e2e/protected-pages.spec.ts --trace off`, then the port freed.
-4. Captures at 1440 and 1280 into `/mnt/project-files/captures/fil-5-6/automations/`: list, editor
-   edit mode, With stats, email step panel, read-only live, empty.
+4. Captures at 1440 and 1280, saved outside the repository: list, editor edit mode,
+   With stats, email step panel, read-only live, empty.
 5. Docs: `mint broken-links`.
 
 ## Implementation notes

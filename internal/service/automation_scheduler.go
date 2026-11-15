@@ -19,12 +19,15 @@ type AutomationScheduler struct {
 	mu          sync.Mutex
 	running     bool
 	// stopMargin overrides automationStopMargin when positive (tests).
-	stopMargin time.Duration
+	stopMargin  time.Duration
+	batchErrors repeatedErrorLog // a failing batch, logged at Error once per window
 }
 
 // automationStopMargin is how long Stop waits past the executor's drain deadline: once the
-// deadline cancels the node, the writes left fail fast and the loop returns.
-const automationStopMargin = 5 * time.Second
+// deadline cancels the node, the writes that record it have up to afterStepWriteTimeout, then
+// the release of the journeys the batch did not run has up to releaseClaimsTimeout, and the
+// loop returns. One more second covers the rest of the loop.
+const automationStopMargin = afterStepWriteTimeout + releaseClaimsTimeout + time.Second
 
 // stopTimeout is how long Stop waits for the batch in progress: the executor's drain, which
 // counts from the stop, plus a margin.
@@ -138,9 +141,8 @@ func (s *AutomationScheduler) processBatch(ctx context.Context) {
 	elapsed := time.Since(startTime)
 
 	if err != nil {
-		s.logger.WithField("error", err.Error()).
-			WithField("elapsed", elapsed).
-			Error("Failed to process automation batch")
+		s.batchErrors.log(s.logger.WithField("error", err.Error()).WithField("elapsed", elapsed),
+			"Failed to process automation batch")
 	} else if processed > 0 {
 		s.logger.WithField("processed", processed).
 			WithField("elapsed", elapsed).

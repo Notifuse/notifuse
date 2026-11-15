@@ -276,7 +276,7 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 
 		messageIDs := make(map[string]string, len(recipients))
 		for _, email := range recipients {
-			msg, err := waitForEmailAndGetMessage(t, email, 30*time.Second)
+			msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 30*time.Second)
 			require.NoError(t, err, "the broadcast email should reach Mailpit")
 			messageIDs[email] = deliveredHeader(t, msg, "X-Message-ID")
 			waitForMessageRow(t, messageIDs[email])
@@ -678,7 +678,7 @@ func TestMailjetUnsubscribeWebhook(t *testing.T) {
 	sendAutomationEmailFor := func(t *testing.T, event, listID, email string) string {
 		t.Helper()
 		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, event, map[string]interface{}{}))
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err, "the automation email should reach Mailpit")
 		messageID := deliveredHeader(t, msg, "X-Message-ID")
 		waitForMessageRow(t, messageID)

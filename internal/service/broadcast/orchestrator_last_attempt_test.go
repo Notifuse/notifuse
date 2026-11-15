@@ -44,6 +44,9 @@ type lastAttemptRun struct {
 	refusedByRow bool
 	writeErrs    []error
 
+	// finalReadErr fails the finalizer's read of the broadcast.
+	finalReadErr error
+
 	// ctx and countErr shape the failure: the recipient count, the first thing
 	// a run does, fails with countErr. cancelWhileFinalizing cancels ctx while
 	// the finalizer reads the task back, cancelWhileWriting while it writes;
@@ -73,6 +76,9 @@ type broadcastWrite struct {
 	unless   []domain.BroadcastStatus
 	reads    []string
 	logs     []string
+
+	// returned is the error Process returned.
+	returned error
 }
 
 // recordingLogger keeps each line as "level: message", followed by the status
@@ -161,6 +167,9 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 			if reads > 1 {
 				assert.NoError(t, ctx.Err(), "the finalizer's read must not ride on the run's context")
 				write.reads = append(write.reads, "broadcast")
+				if run.finalReadErr != nil {
+					return nil, run.finalReadErr
+				}
 				b.Status = run.statusAtEnd
 			}
 			return b, nil
@@ -245,11 +254,12 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	)
 
 	task := &domain.Task{
-		ID:          "task-123",
-		WorkspaceID: "workspace-123",
-		BroadcastID: &broadcastID,
-		RetryCount:  run.retryCount,
-		MaxRetries:  run.maxRetries,
+		ID:            "task-123",
+		WorkspaceID:   "workspace-123",
+		BroadcastID:   &broadcastID,
+		RetryCount:    run.retryCount,
+		MaxRetries:    run.maxRetries,
+		RetryInterval: 300,
 		State: &domain.TaskState{
 			SendBroadcast: &domain.SendBroadcastState{
 				BroadcastID:     broadcastID,
@@ -267,6 +277,7 @@ func runFailingAttempt(t *testing.T, run lastAttemptRun) broadcastWrite {
 	}
 
 	write.logs = log.recorded()
+	write.returned = err
 	return write
 }
 
@@ -504,6 +515,7 @@ func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
 		})
 		assert.Equal(t, []domain.BroadcastStatus{domain.BroadcastStatusFailed}, write.statuses)
 		assert.Contains(t, write.logs, "error: Failed to update broadcast status after max retries [status=failed]")
+		assertRequeuedForTheRetryInterval(t, write.returned)
 	})
 
 	t.Run("a failed pause after the failed status committed logs both writes", func(t *testing.T) {
@@ -519,6 +531,9 @@ func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
 		assert.Contains(t, write.logs, "info: Broadcast finalized after max retries reached [status=failed]",
 			"the committed failed status must be in the log")
 		assert.Contains(t, write.logs, "error: Failed to update broadcast status after max retries [status=paused]")
+		var requeue *domain.TaskRequeueError
+		assert.False(t, errors.As(write.returned, &requeue),
+			"the broadcast is failed already: a retry would send the rest and flip it back to processed")
 	})
 
 	t.Run("the run's deadline passing while the finalizer reads still fails", func(t *testing.T) {
@@ -543,5 +558,63 @@ func TestProcess_InterruptedRunPausesOnlyTheLastAttempt(t *testing.T) {
 			countErr:    context.Canceled,
 		})
 		assert.False(t, write.called, "the user's cancel was overwritten with a pause")
+	})
+}
+
+// assertRequeuedForTheRetryInterval checks that the run handed its task back for the task's
+// retry interval, without consuming the attempt, so that the next run finalizes again.
+func assertRequeuedForTheRetryInterval(t *testing.T, err error) {
+	t.Helper()
+	var requeue *domain.TaskRequeueError
+	require.True(t, errors.As(err, &requeue), "expected a requeue, got %v", err)
+	assert.Equal(t, 300*time.Second, requeue.After)
+	assert.False(t, requeue.Park)
+}
+
+// A last attempt whose outcome cannot be recorded is tried again instead of leaving the
+// broadcast in its sending status for good, unless retrying would undo what was recorded.
+func TestProcess_LastAttemptWhoseFinalizationFailsIsRetried(t *testing.T) {
+	t.Run("the finalizer's read fails", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			countErr:     errors.New("database is down"),
+			finalReadErr: errors.New("connection reset"),
+		})
+		assert.False(t, write.called, "nothing was written")
+		assertRequeuedForTheRetryInterval(t, write.returned)
+	})
+
+	t.Run("the status write fails", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd: domain.BroadcastStatusProcessing,
+			countErr:    errors.New("database is down"),
+			writeErrs:   []error{errors.New("connection reset")},
+		})
+		assertRequeuedForTheRetryInterval(t, write.returned)
+	})
+
+	t.Run("a deleted broadcast keeps the run's error, so its task fails", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			countErr:     errors.New("database is down"),
+			finalReadErr: &domain.ErrBroadcastNotFound{ID: "broadcast-123"},
+		})
+		var requeue *domain.TaskRequeueError
+		assert.False(t, errors.As(write.returned, &requeue), "a task whose broadcast is gone must not loop")
+		assert.Contains(t, write.returned.Error(), "database is down")
+	})
+
+	t.Run("a written status keeps the run's error", func(t *testing.T) {
+		write := runFailingAttempt(t, lastAttemptRun{
+			retryCount: 3, maxRetries: 3,
+			storedTask:  &domain.Task{ID: "task-123", RetryCount: 3, MaxRetries: 3},
+			statusAtEnd: domain.BroadcastStatusProcessing,
+			countErr:    errors.New("database is down"),
+		})
+		assert.Equal(t, []domain.BroadcastStatus{domain.BroadcastStatusFailed}, write.statuses)
+		var requeue *domain.TaskRequeueError
+		assert.False(t, errors.As(write.returned, &requeue))
 	})
 }

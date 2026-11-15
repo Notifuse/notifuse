@@ -128,7 +128,7 @@ func (s *queueMessageSender) SendBatch(
 
 	// A sender chosen on a variation that has left the integration stops the batch before
 	// any recipient: the broadcast pauses and the batch is sent once the sender is fixed.
-	if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
+	if senderErr := findUnavailableVariationSender(broadcast, templates, emailProvider); senderErr != nil {
 		return 0, 0, senderErr
 	}
 
@@ -361,7 +361,8 @@ func (s *queueMessageSender) buildQueueEntry(
 	decision.Apply(&trackingSettings)
 
 	// Resolve language variant
-	emailContent := template.ResolveEmailContent(contactLanguage, workspaceDefaultLanguage)
+	renderedLanguage := template.ResolvedLanguage(contactLanguage, workspaceDefaultLanguage)
+	emailContent := template.EmailContentForLanguage(renderedLanguage)
 	if emailContent == nil {
 		return nil, fmt.Errorf("email content not available after language resolution")
 	}
@@ -449,9 +450,10 @@ func (s *queueMessageSender) buildQueueEntry(
 			EmailOptions: domain.EmailOptions{
 				ReplyTo: emailContent.ReplyTo,
 			},
-			TemplateVersion: int(template.Version),
-			ListID:          broadcast.Audience.List,
-			TemplateData:    data, // Store template data for message history
+			TemplateVersion:  int(template.Version),
+			ListID:           broadcast.Audience.List,
+			TemplateData:     data, // Store template data for message history
+			RenderedLanguage: &renderedLanguage,
 		},
 		MaxAttempts: 3,
 		CreatedAt:   time.Now().UTC(),
@@ -460,13 +462,7 @@ func (s *queueMessageSender) buildQueueEntry(
 
 	entry.Payload.OpensTracked, entry.Payload.ClicksTracked = decision.TrackedFlags()
 
-	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance (broadcast emails
-	// only), unless the broadcast is a notice that also goes to unsubscribed contacts.
-	if broadcast.SendsListUnsubscribeHeader() {
-		if unsubscribeURL, ok := data["oneclick_unsubscribe_url"].(string); ok && unsubscribeURL != "" {
-			entry.Payload.EmailOptions.ListUnsubscribeURL = unsubscribeURL
-		}
-	}
+	entry.Payload.EmailOptions.ListUnsubscribeURL = broadcast.ListUnsubscribeURL(data)
 
 	return entry, nil
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { App, Button, Empty } from 'antd'
+import { App, Button, Empty, Tooltip } from 'antd'
 import { useParams, useNavigate, useSearch } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
@@ -25,9 +25,14 @@ export function BlogPage() {
   const { message } = App.useApp()
   const { workspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
-  // Posts follow workspace write, as they always have; categories follow blog write.
-  const canWritePosts = Boolean(permissions?.workspace?.write)
+  // Posts and categories follow blog write, as the server does
+  const canWritePosts = Boolean(permissions?.blog?.write)
   const canManageCategories = Boolean(permissions?.blog?.write)
+  // A post's content is a template: the drawer reads it with Templates read and saves it with Templates write
+  const editRefusal =
+    permissions && !(permissions.templates?.read && permissions.templates?.write)
+      ? t`Writing or editing a post also needs Templates read and write: its content is a template.`
+      : undefined
 
   const [categoryDrawer, setCategoryDrawer] = useState<{ category: BlogCategory | null } | null>(
     null
@@ -98,14 +103,18 @@ export function BlogPage() {
       return (
         <div className="mt-24">
           <Empty description={t`Create your first blog post to get started`}>
-            <Button
-              type="primary"
-              icon={<Plus size={14} aria-hidden="true" />}
-              disabled={!canWritePosts}
-              onClick={() => setPostDrawerOpen(true)}
-            >
-              {t`Create Your First Post`}
-            </Button>
+            <Tooltip title={canWritePosts ? editRefusal : undefined}>
+              <span className="inline-block">
+                <Button
+                  type="primary"
+                  icon={<Plus size={14} aria-hidden="true" />}
+                  disabled={!canWritePosts || !!editRefusal}
+                  onClick={() => setPostDrawerOpen(true)}
+                >
+                  {t`Create Your First Post`}
+                </Button>
+              </span>
+            </Tooltip>
           </Empty>
         </div>
       )
@@ -116,6 +125,7 @@ export function BlogPage() {
         categories={categories}
         counts={countsQuery.isPlaceholderData ? undefined : counts}
         canWritePosts={canWritePosts}
+        editRefusal={editRefusal}
         showViews={showViews}
       />
     )

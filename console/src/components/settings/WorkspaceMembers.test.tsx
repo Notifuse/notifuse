@@ -607,6 +607,18 @@ describe('create API key drawer', () => {
     expect(api.createAPIKey.mock.calls[0][0].email_prefix).toBe('website-signup')
   })
 
+  it('sends the name without the underscore a trailing space became', async () => {
+    const drawer = await openCreateApiKey()
+
+    const input = within(drawer).getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'website ' } })
+    expect(input).toHaveValue('website_')
+    fireEvent.click(within(footerOf(drawer)).getByRole('button', { name: 'Create API Key' }))
+
+    await waitFor(() => expect(api.createAPIKey).toHaveBeenCalled())
+    expect(api.createAPIKey.mock.calls[0][0].email_prefix).toBe('website')
+  })
+
   it('offers a switch for every resource in the canonical list', async () => {
     const drawer = await openCreateApiKey()
 

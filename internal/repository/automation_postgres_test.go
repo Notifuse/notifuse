@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -414,7 +415,9 @@ func TestAutomationRepository_Delete(t *testing.T) {
 
 	err = repo.Delete(ctx, workspaceID, automationID)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "automation not found or already deleted")
+	var notFound *domain.ErrNotFound
+	require.ErrorAs(t, err, &notFound)
+	assert.Equal(t, "automation", notFound.Entity)
 	assert.NoError(t, mock.ExpectationsWereMet())
 
 	// Test database error (soft-delete)
@@ -787,7 +790,8 @@ func TestAutomationRepository_GetContactAutomation(t *testing.T) {
 	ca, err = repo.GetContactAutomation(ctx, workspaceID, id)
 	assert.Error(t, err)
 	assert.Nil(t, ca)
-	assert.Contains(t, err.Error(), "contact automation not found")
+	assert.Equal(t, "contact automation not found: "+id, err.Error())
+	assert.ErrorIs(t, err, domain.ErrContactAutomationNotFound)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -1471,6 +1475,84 @@ func TestAutomationRepository_List_ScanError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// A journey whose saved context is not a JSON object is claimed with no context instead of
+// failing the claim, which would leave the whole batch to wait out its lease.
+func TestAutomationRepository_ClaimScheduledContactAutomations_ContextNotAnObject(t *testing.T) {
+	db, mock, repo := setupAutomationMock(t)
+	defer func() { _ = db.Close() }()
+
+	now := time.Now().UTC()
+	columns := []string{
+		"id", "automation_id", "contact_email", "current_node_id", "status",
+		"exit_reason", "entered_at", "scheduled_at", "context", "retry_count", "last_error",
+		"last_retry_at", "max_retries",
+	}
+	row := func(id string, context []byte) []driver.Value {
+		return []driver.Value{id, "auto-1", id + "@example.com", "node-1", "active", nil, now, now, context, 0, nil, nil, 3}
+	}
+	mock.ExpectQuery("WITH picked AS").WillReturnRows(sqlmock.NewRows(columns).
+		AddRow(row("ca-1", []byte(`{"a":1}`))...).
+		AddRow(row("ca-2", []byte(`[1]`))...).
+		AddRow(row("ca-3", []byte(`{"c":3}`))...))
+
+	cas, err := repo.ClaimScheduledContactAutomations(context.Background(), "ws", 10, 5*time.Minute)
+	require.NoError(t, err)
+	require.Len(t, cas, 3)
+	assert.Equal(t, map[string]interface{}{"a": float64(1)}, cas[0].Context)
+	assert.Nil(t, cas[1].Context)
+	assert.Equal(t, map[string]interface{}{"c": float64(3)}, cas[2].Context)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAutomationRepository_ReleaseContactAutomationClaim(t *testing.T) {
+	ctx := context.Background()
+	token := time.Date(2026, 11, 14, 8, 0, 0, 123456000, time.UTC)
+	releaseQuery := `UPDATE contact_automations\s+SET scheduled_at = NOW\(\)\s+WHERE id = \$1 AND status = 'active' AND scheduled_at = \$2`
+
+	t.Run("the holder of the claim hands it back", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec(releaseQuery).WithArgs("ca-1", token).WillReturnResult(sqlmock.NewResult(0, 1))
+
+		released, err := repo.ReleaseContactAutomationClaim(ctx, "ws", "ca-1", token)
+		require.NoError(t, err)
+		assert.True(t, released)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a claim taken over or a journey that ended is left alone", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec(releaseQuery).WithArgs("ca-1", token).WillReturnResult(sqlmock.NewResult(0, 0))
+
+		released, err := repo.ReleaseContactAutomationClaim(ctx, "ws", "ca-1", token)
+		require.NoError(t, err)
+		assert.False(t, released)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a database error is wrapped", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec(releaseQuery).WillReturnError(fmt.Errorf("db down"))
+
+		released, err := repo.ReleaseContactAutomationClaim(ctx, "ws", "ca-1", token)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to release contact automation claim")
+		assert.False(t, released)
+	})
+
+	t.Run("an unreadable result is an error", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+		mock.ExpectExec(releaseQuery).WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("no count")))
+
+		released, err := repo.ReleaseContactAutomationClaim(ctx, "ws", "ca-1", token)
+		require.Error(t, err)
+		assert.False(t, released)
+	})
+}
+
 func TestAutomationRepository_ClaimScheduledContactAutomations_ScanError(t *testing.T) {
 	db, mock, repo := setupAutomationMock(t)
 	defer func() { _ = db.Close() }()
@@ -1609,7 +1691,9 @@ func TestAutomationRepository_Delete_NotFound(t *testing.T) {
 
 	err := repo.Delete(ctx, workspaceID, automationID)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "automation not found or already deleted")
+	var notFound *domain.ErrNotFound
+	require.ErrorAs(t, err, &notFound)
+	assert.Equal(t, "automation", notFound.Entity)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

@@ -13,6 +13,8 @@ interface SaveBlockModalProps {
   emailTree: EmailBlock
   savedBlocks?: SavedBlock[]
   onSave: SaveBlockHandler
+  // Another change to the library is running: Save waits for it
+  libraryBusy?: boolean
   // Once the save succeeded, with the saved block's id
   onSaved?: (savedId: string, operation: SaveOperation) => void
   onClose: () => void
@@ -23,6 +25,7 @@ export const SaveBlockModal: React.FC<SaveBlockModalProps> = ({
   emailTree,
   savedBlocks,
   onSave,
+  libraryBusy = false,
   onSaved,
   onClose
 }) => {
@@ -61,8 +64,12 @@ export const SaveBlockModal: React.FC<SaveBlockModalProps> = ({
   )
   const count = sameType.length
 
-  const headKey = useMemo(() => headKeyOf(emailTree), [emailTree])
-  const canSave = mode === 'new' ? !!name.trim() : !!replacedId
+  // Computed while open only: closed, the dialog stays mounted and the email changes under it. The
+  // last key is kept for the closing animation.
+  const [headKey, setHeadKey] = useState('')
+  const openHeadKey = useMemo(() => (open ? headKeyOf(emailTree) : null), [open, emailTree])
+  if (openHeadKey !== null && openHeadKey !== headKey) setHeadKey(openHeadKey)
+  const canSave = (mode === 'new' ? !!name.trim() : !!replacedId) && !libraryBusy
 
   const handleSave = async () => {
     if (!block || savingRef.current || !canSave) return
@@ -89,7 +96,7 @@ export const SaveBlockModal: React.FC<SaveBlockModalProps> = ({
       onCancel={onClose}
       okText={mode === 'new' ? t`Save` : t`Replace`}
       cancelText={t`Cancel`}
-      okButtonProps={{ disabled: !canSave, loading: saving }}
+      okButtonProps={{ disabled: !canSave, loading: saving || libraryBusy }}
       cancelButtonProps={{ disabled: saving }}
       closable={!saving}
       mask={{ closable: !saving }}

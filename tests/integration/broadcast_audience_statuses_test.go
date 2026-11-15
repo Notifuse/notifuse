@@ -132,22 +132,20 @@ func TestBroadcastAudienceStatusesAsDelivered(t *testing.T) {
 		enqueued = got.Broadcast.EnqueuedCount
 
 		// The queue worker sends after the broadcast is processed, one email per recipient
-		// (each has a single To address). Once Mailpit holds as many emails for this subject
+		// (each has a single To address). Once Mailpit lists as many emails for this subject
 		// as were enqueued, every one has arrived, unless a recipient was mailed twice, which
-		// the check below reports. The recipients and their emails come from the same read,
-		// so the header assertions look at exactly the emails the audience assertion counted.
+		// the check below reports. The wait reads the list alone; each email's headers are
+		// then read once, so the header assertions look at the emails the audience counted.
 		testutil.WaitForCondition(t, func() bool {
-			delivered, err = testutil.GetMailpitMessagesByRecipient(t, subject)
+			listed, err := testutil.CountMailpitMessagesBySubject(t, subject)
 			if err != nil {
-				t.Logf("Reading the broadcast emails from Mailpit: %v", err)
+				t.Logf("Listing the broadcast emails in Mailpit: %v", err)
 				return false
 			}
-			emails := 0
-			for _, msgs := range delivered {
-				emails += len(msgs)
-			}
-			return emails >= enqueued
+			return listed >= enqueued
 		}, 30*time.Second, "waiting for the broadcast emails of "+subject)
+		delivered, err = testutil.GetMailpitMessagesByRecipient(t, subject)
+		require.NoError(t, err)
 
 		received = make(map[string]bool, len(delivered))
 		for email, msgs := range delivered {

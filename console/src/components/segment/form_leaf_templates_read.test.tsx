@@ -20,6 +20,8 @@ vi.mock('../../services/api/template', () => ({
   templatesApi: { list: vi.fn(), get: vi.fn() }
 }))
 vi.mock('../../contexts/AuthContext', () => ({
+  // TemplateSelectorInput reads the member's permissions for its drawers
+  useWorkspacePermissions: () => ({ permissions: null }),
   useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Workspace', integrations: [] }] })
 }))
 vi.mock('../templates/TemplatePreviewDrawer', () => ({ default: () => null }))

@@ -20,7 +20,7 @@ import (
 func TestHandleEstimateAudience(t *testing.T) {
 	serve := func(t *testing.T, method, body string, expect func(m *mocks.MockBroadcastService)) *httptest.ResponseRecorder {
 		t.Helper()
-		handler, service, _, logger, ctrl := setupBroadcastHandler(t)
+		handler, service, logger, ctrl := setupBroadcastHandler(t)
 		t.Cleanup(ctrl.Finish)
 		logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
 		logger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -71,7 +71,7 @@ func TestHandleEstimateAudience(t *testing.T) {
 	})
 
 	t.Run("the route is registered", func(t *testing.T) {
-		handler, _, _, _, ctrl := setupBroadcastHandler(t)
+		handler, _, _, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 		mux := http.NewServeMux()
 		handler.RegisterRoutes(mux)
@@ -84,7 +84,7 @@ func TestHandleList_StatusCountsAndStartedAfter(t *testing.T) {
 	startedAfter := time.Date(2026, 10, 12, 22, 0, 0, 0, time.UTC)
 
 	t.Run("the new parameters reach the service and status_counts is written", func(t *testing.T) {
-		handler, service, _, _, ctrl := setupBroadcastHandler(t)
+		handler, service, _, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 		service.EXPECT().ListBroadcasts(gomock.Any(), gomock.Eq(domain.ListBroadcastsParams{
 			WorkspaceID: "ws", Status: domain.BroadcastStatusDraft, Statuses: []domain.BroadcastStatus{domain.BroadcastStatusDraft},
@@ -99,7 +99,7 @@ func TestHandleList_StatusCountsAndStartedAfter(t *testing.T) {
 	})
 
 	t.Run("status_counts is an object even when nothing matches", func(t *testing.T) {
-		handler, service, _, _, ctrl := setupBroadcastHandler(t)
+		handler, service, _, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 		service.EXPECT().ListBroadcasts(gomock.Any(), gomock.Any()).Return(&domain.BroadcastListResponse{}, nil)
 
@@ -112,7 +112,7 @@ func TestHandleList_StatusCountsAndStartedAfter(t *testing.T) {
 	})
 
 	t.Run("without with_status_counts there is no status_counts key", func(t *testing.T) {
-		handler, service, _, _, ctrl := setupBroadcastHandler(t)
+		handler, service, _, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 		service.EXPECT().ListBroadcasts(gomock.Any(), gomock.Any()).Return(&domain.BroadcastListResponse{}, nil)
 
@@ -123,7 +123,7 @@ func TestHandleList_StatusCountsAndStartedAfter(t *testing.T) {
 	})
 
 	t.Run("an unreadable started_after is a 400", func(t *testing.T) {
-		handler, _, _, _, ctrl := setupBroadcastHandler(t)
+		handler, _, _, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 		rec := httptest.NewRecorder()
 		handler.HandleList(rec, httptest.NewRequest(http.MethodGet, "/api/broadcasts.list?workspace_id=ws&started_after=yesterday", nil))

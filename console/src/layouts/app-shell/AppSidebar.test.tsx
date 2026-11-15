@@ -5,6 +5,8 @@ import { forwardRef, useState, type ReactNode } from 'react'
 import type { Workspace } from '../../services/api/types'
 import { AppSidebar, type AppSidebarProps } from './AppSidebar'
 import { changeLanguage } from '../../i18n/languages'
+import { i18n } from '@lingui/core'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 
 vi.mock('@tanstack/react-router', () => ({
   // Forwards its ref like the real Link: Escape on the pin moves the focus to the logo.
@@ -108,6 +110,20 @@ describe('AppSidebar', () => {
     const link = logo.closest('a')!
     expect(link).toHaveAttribute('href', '/console/workspace/$workspaceId')
     expect(link.dataset.params).toBe(JSON.stringify({ workspaceId: 'ws1' }))
+  })
+
+  it('links the logo to the page it is given, under that page\'s name', () => {
+    render(
+      <Harness
+        home={{
+          target: { to: '/console/workspace/$workspaceId/contacts', params: { workspaceId: 'ws1' } },
+          label: 'Contacts'
+        }}
+      />
+    )
+    const link = screen.getByRole('img', { name: 'Notifuse' }).closest('a')!
+    expect(link).toHaveAttribute('href', '/console/workspace/$workspaceId/contacts')
+    expect(link).toHaveAttribute('aria-label', 'Contacts')
   })
 
   it('follows the banner and keeps the chrome under the banner', () => {
@@ -417,7 +433,83 @@ describe('AppSidebar', () => {
     })
   })
 
+  describe('menu buttons', () => {
+    const menus = [
+      ['workspace', /Acme/, /Beta/],
+      ['help', /Help/, /Documentation/],
+      ['account', /jane@example\.com/, /Logout/]
+    ] as const
+
+    it.each(menus)('says the %s button opens a menu, and whether it is open', async (_, name, item) => {
+      render(<Harness />)
+      const button = screen.getByRole('button', { name })
+      expect(button).toHaveAttribute('aria-haspopup', 'menu')
+      expect(button).toHaveAttribute('aria-expanded', 'false')
+      await userEvent.click(button)
+      await screen.findByRole('menuitem', { name: item })
+      expect(button).toHaveAttribute('aria-expanded', 'true')
+    })
+
+    it.each(menus)('gives the focus back to the %s button after Escape', async (_, name, item) => {
+      render(<Harness />)
+      const button = screen.getByRole('button', { name })
+      await userEvent.click(button)
+      await screen.findByRole('menuitem', { name: item })
+      // Where antd leaves it once the menu took the keyboard
+      button.blur()
+      fireEvent.keyDown(document, { key: 'Escape' })
+      await waitFor(() => expect(button).toHaveAttribute('aria-expanded', 'false'))
+      await waitFor(() => expect(document.activeElement).toBe(button))
+    })
+
+    it('does not take the focus back after an entry picked with the mouse, so the unpinned sidebar still folds', async () => {
+      render(<Harness startPinned={false} />)
+      fireEvent.pointerEnter(aside())
+      const button = screen.getByRole('button', { name: /jane@example\.com/ })
+      await userEvent.click(button)
+      const logout = await screen.findByRole('menuitem', { name: /Logout/ })
+      fireEvent.pointerDown(logout)
+      // Where the press leaves the focus once the entry closes the menu
+      act(() => button.blur())
+      // A modifier held during the click repeats its keydown: still a mouse pick.
+      fireEvent.keyDown(document, { key: 'Shift' })
+      fireEvent.click(logout)
+      await waitFor(() => expect(button).toHaveAttribute('aria-expanded', 'false'))
+      await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(document.activeElement).not.toBe(button)
+      fireEvent.pointerLeave(aside())
+      expect(isExpanded()).toBe(false)
+    })
+
+    it('leaves the focus on the control a click outside moved it to', async () => {
+      render(<Harness />)
+      await userEvent.click(screen.getByRole('button', { name: /Acme/ }))
+      await screen.findByRole('menuitem', { name: /Beta/ })
+      const outside = screen.getByRole('button', { name: 'Outside' })
+      await userEvent.click(outside)
+      await waitFor(() => expect(screen.getByRole('button', { name: /Acme/ })).toHaveAttribute('aria-expanded', 'false'))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(document.activeElement).toBe(outside)
+    })
+  })
+
   describe('workspace switcher', () => {
+    it('names the button after the workspace, or "Workspace" when the list does not hold it', () => {
+      const { unmount } = render(<Harness startPinned={false} />)
+      expect(screen.getByRole('button', { name: 'Acme' })).toBeInTheDocument()
+      unmount()
+      render(<Harness startPinned={false} workspaceId="gone" />)
+      expect(screen.getByRole('button', { name: 'Workspace' })).toBeInTheDocument()
+    })
+
+    it('cuts a long name rather than widening the menu', async () => {
+      render(<Harness />)
+      await userEvent.click(screen.getByRole('button', { name: /Acme/ }))
+      const menu = await screen.findByRole('menuitem', { name: /Beta/ })
+      expect(menu.closest<HTMLElement>('.ant-dropdown')!.style.maxWidth).toBe('320px')
+      expect(within(menu).getByText('Beta').className).toContain('truncate')
+    })
+
     it('switches to the workspace picked, the current one selected', async () => {
       const onSelectWorkspace = vi.fn()
       render(<Harness onSelectWorkspace={onSelectWorkspace} />)
@@ -465,9 +557,16 @@ describe('AppSidebar', () => {
     it('shows the initials until the Gravatar has loaded, then the photo', () => {
       render(<Harness />)
       expect(avatar()).toHaveTextContent('JD')
-      expect(images[0].src).toMatch(/^https:\/\/www\.gravatar\.com\/avatar\/[0-9a-f]{32}\?s=52&d=identicon$/)
+      expect(images[0].src).toMatch(/^https:\/\/www\.gravatar\.com\/avatar\/[0-9a-f]{32}\?s=52&d=404$/)
       act(() => images[0].onload?.())
       expect(avatar().querySelector('img')).toHaveAttribute('src', images[0].src)
+    })
+
+    it('keeps the initials when the email has no Gravatar', () => {
+      render(<Harness />)
+      act(() => images[0].onerror?.())
+      expect(avatar().querySelector('img')).toBeNull()
+      expect(avatar()).toHaveTextContent('JD')
     })
 
     it('keeps the initials while the Gravatar never loads, from the email without a name', () => {
@@ -485,6 +584,17 @@ describe('AppSidebar', () => {
     ] as const)('reads the %s role with the language', (role, line) => {
       render(<Harness role={role} />)
       expect(document.querySelector('[data-account-role]')).toHaveTextContent(line)
+    })
+
+    it('reads the root role in its own words, apart from the root folder', () => {
+      i18n.load('fr', { [generateMessageId('Root', 'role')]: 'Administrateur', Root: 'Racine' })
+      i18n.activate('fr')
+      try {
+        render(<Harness role="root" />)
+        expect(document.querySelector('[data-account-role]')).toHaveTextContent('Administrateur · EN')
+      } finally {
+        i18n.activate('en')
+      }
     })
 
     it('lists the version and signs out from the menu', async () => {

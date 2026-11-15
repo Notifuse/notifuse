@@ -42,6 +42,20 @@ describe('Mono', () => {
     expect(await screen.findByText('Copied')).toBeInTheDocument()
   })
 
+  it('copies the text shown when the children are elements', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    setClipboard(writeText)
+    render(
+      <App>
+        <Mono copy>
+          <span>utm_source</span>=<strong>newsletter</strong>
+        </Mono>
+      </App>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('utm_source=newsletter'))
+  })
+
   it('falls back to a selection copy without the clipboard API', async () => {
     const execCommand = vi.fn().mockReturnValue(true)
     setExecCommand(execCommand)

@@ -427,13 +427,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		},
 	}
 
-	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance (broadcast emails
-	// only), unless the broadcast is a notice that also goes to unsubscribed contacts.
-	if broadcast.SendsListUnsubscribeHeader() {
-		if unsubscribeURL, ok := data["oneclick_unsubscribe_url"].(string); ok && unsubscribeURL != "" {
-			emailRequest.EmailOptions.ListUnsubscribeURL = unsubscribeURL
-		}
-	}
+	emailRequest.EmailOptions.ListUnsubscribeURL = broadcast.ListUnsubscribeURL(data)
 
 	// Now send email directly using compiled HTML rather than passing template to broadcastRepo
 	// Note: Context is checked by SendEmail; in rare cancellation cases we may complete
@@ -537,7 +531,7 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 
 	// A sender chosen on a variation that has left the integration stops the batch before
 	// any recipient: the broadcast pauses and the batch is sent once the sender is fixed.
-	if senderErr := checkVariationSenders(broadcast, templates, emailProvider); senderErr != nil {
+	if senderErr := findUnavailableVariationSender(broadcast, templates, emailProvider); senderErr != nil {
 		return 0, 0, senderErr
 	}
 

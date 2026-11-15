@@ -31,7 +31,8 @@
           type: string
           maxLength: 100
         description: |
-          Search across email, first name, last name, full name and external ID (case-insensitive partial match).
+          Search across email, first name, last name, full name, first and last name together ("Jane Doe") and
+          external ID (case-insensitive partial match).
           Leading and trailing spaces are ignored; `%` and `_` are matched literally. At most 100 characters.
         example: john
       - name: email

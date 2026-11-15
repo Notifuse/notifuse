@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { API_KEY_PREFIX_MAX_LENGTH, toApiKeyPrefix } from './apiKeyPrefix'
+import { API_KEY_PREFIX_MAX_LENGTH, finalApiKeyPrefix, toApiKeyPrefix } from './apiKeyPrefix'
 
 // The server takes ^[a-z0-9_-]{1,64}$ as the part of the key's address before "@".
 describe('toApiKeyPrefix', () => {
@@ -24,5 +24,14 @@ describe('toApiKeyPrefix', () => {
   it('stops at the length the server accepts', () => {
     expect(API_KEY_PREFIX_MAX_LENGTH).toBe(64)
     expect(toApiKeyPrefix('a'.repeat(70))).toBe('a'.repeat(64))
+  })
+})
+
+describe('finalApiKeyPrefix', () => {
+  it('drops the leading and trailing underscores and dashes, not the inner ones', () => {
+    expect(finalApiKeyPrefix('website_')).toBe('website')
+    expect(finalApiKeyPrefix('-_crm_sync-_')).toBe('crm_sync')
+    expect(finalApiKeyPrefix('website-signup')).toBe('website-signup')
+    expect(finalApiKeyPrefix('__')).toBe('')
   })
 })

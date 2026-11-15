@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="Hills under a sky">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9c4ff"/>
+      <stop offset="1" stop-color="#f5f4ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1180" cy="250" r="90" fill="#ffffff" opacity="0.9"/>
+  <path d="M0 620 C 260 500 480 520 720 600 S 1200 700 1600 560 L 1600 900 L 0 900 Z" fill="#8c82ff"/>
+  <path d="M0 720 C 300 640 560 660 860 730 S 1340 800 1600 700 L 1600 900 L 0 900 Z" fill="#6a5af9"/>
+  <path d="M0 820 C 340 770 700 790 1000 830 S 1420 870 1600 820 L 1600 900 L 0 900 Z" fill="#4b3fd6"/>
+</svg>

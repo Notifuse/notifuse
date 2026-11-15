@@ -440,6 +440,18 @@ func TestAuditMiddleware_TargetFromResponseAndNestedRequest(t *testing.T) {
 		assert.Equal(t, "from-service", recorder.rows[0].TargetID)
 	})
 
+	t.Run("a target the handler named survives a response past the capture limit", func(t *testing.T) {
+		recorder := &captureRecorder{}
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			domain.AuditFromContext(r.Context()).SetTarget(domain.AuditTargetBroadcast, "bc-1", "")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"broadcast":{"notes":"` + strings.Repeat("x", auditResponseBodyLimit) + `","id":"bc-2"}}`))
+		}
+		serve(t, recorder, handler, auditedRequest(http.MethodPost, "/api/broadcasts.create", `{"workspace_id":"ws1"}`))
+		require.Len(t, recorder.rows, 1)
+		assert.Equal(t, "bc-1", recorder.rows[0].TargetID)
+	})
+
 	t.Run("a failed create names nothing from its error body", func(t *testing.T) {
 		recorder := &captureRecorder{}
 		handler := func(w http.ResponseWriter, r *http.Request) {

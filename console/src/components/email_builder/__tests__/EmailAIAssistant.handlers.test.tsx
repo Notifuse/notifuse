@@ -303,3 +303,57 @@ describe('EmailAIAssistant display conditions', () => {
     expect(onAddBlock.mock.calls[0][1]).toBe('mj-text')
   })
 })
+
+describe('EmailAIAssistant messages', () => {
+  const ctx = () => ({ progress: vi.fn(), signal: new AbortController().signal, round: 1 })
+  const metadata = (input: unknown, onSubject?: () => void, onPreview?: () => void) => {
+    render(
+      <EmailAIAssistant
+        workspace={workspace}
+        onUpdateSubject={onSubject}
+        onUpdatePreviewText={onPreview}
+        callbacks={{
+          getEmailTree: () => tree,
+          setEmailTree,
+          onAddBlock: vi.fn(),
+          onUpdateBlock,
+          onDeleteBlock: vi.fn(),
+          onMoveBlock: vi.fn(),
+          onSelectBlock: vi.fn()
+        }}
+      />
+    )
+    captured!.toolHandlers.get(TOOL_NAMES.UPDATE_EMAIL_METADATA)!(
+      { type: 'tool_use', tool_name: TOOL_NAMES.UPDATE_EMAIL_METADATA, tool_input: input } as LLMChatEvent,
+      insert,
+      ctx()
+    )
+  }
+
+  beforeEach(() => {
+    captured = undefined
+    vi.clearAllMocks()
+  })
+
+  it('names what the metadata update changed, in a sentence of its own for each case', async () => {
+    const { message } = await import('antd')
+    const success = vi.spyOn(message, 'success').mockImplementation(() => (() => {}) as never)
+
+    metadata({ subject: 'Hi', preview_text: 'Read on' }, vi.fn(), vi.fn())
+    metadata({ subject: 'Hi' }, vi.fn(), vi.fn())
+    metadata({ preview_text: 'Read on' }, vi.fn(), vi.fn())
+
+    expect(success.mock.calls.map((call) => call[0])).toEqual([
+      'Updated the subject and the preview text',
+      'Updated the subject',
+      'Updated the preview text'
+    ])
+    success.mockRestore()
+  })
+
+  it('gives the chat a title and a placeholder', () => {
+    handlerFor(TOOL_NAMES.SET_EMAIL_TREE)
+    expect(captured!.config.title).toBe('AI Email Designer')
+    expect(captured!.config.placeholder).toBe('Ask me to design your email...')
+  })
+})

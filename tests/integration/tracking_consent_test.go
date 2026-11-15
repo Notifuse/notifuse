@@ -398,7 +398,7 @@ func TestTrackingConsent_BroadcastE2E(t *testing.T) {
 	html := map[string]string{}
 	var sentTs int64
 	for name, r := range recipients {
-		email, err := waitForEmailByRecipientAddr(t, r.email, 30*time.Second)
+		email, err := testutil.WaitForMailpitMessageByRecipient(t, r.email, 30*time.Second)
 		require.NoError(t, err, "the email to %s must arrive", name)
 		html[name] = email.HTML
 		if m := consentRedirectRe.FindStringSubmatch(email.HTML); m != nil {
@@ -590,7 +590,7 @@ func TestTrackingConsent_TransactionalE2E(t *testing.T) {
 			MessageID string `json:"message_id"`
 		}
 		require.NoError(t, json.Unmarshal(raw, &result))
-		email, err := waitForEmailByRecipientAddr(t, contact["email"].(string), 30*time.Second)
+		email, err := testutil.WaitForMailpitMessageByRecipient(t, contact["email"].(string), 30*time.Second)
 		require.NoError(t, err)
 		return result.MessageID, email.HTML
 	}

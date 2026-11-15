@@ -126,6 +126,8 @@ describe('LibraryDnd', () => {
   }
 
   const indicator = () => document.querySelector('[data-testid="canvas-drop-indicator"]')
+  // dnd-kit's live region, where the announcements are read out
+  const announced = () => document.querySelector('[id^="DndLiveRegion"]')?.textContent ?? ''
 
   beforeEach(() => {
     frames = []
@@ -161,6 +163,16 @@ describe('LibraryDnd', () => {
     expect(onDrop).toHaveBeenCalledWith(item, { parentId: 'C', index: 1 })
     expect(onDraggingChange).toHaveBeenLastCalledWith(false)
     expect(indicator()).toBeNull()
+    expect(announced()).toBe('Signature was inserted.')
+  })
+
+  it('says when the editor did not insert the dropped block', () => {
+    const { onDrop } = setup()
+    onDrop.mockReturnValue(null)
+    startDrag()
+    moveTo(300, 80)
+    fireEvent.pointerUp(document, { clientX: 300, clientY: 80 })
+    expect(announced()).toBe('Signature could not be inserted there.')
   })
 
   it('computes the place again at release, without waiting for a frame', () => {
@@ -183,6 +195,7 @@ describe('LibraryDnd', () => {
     fireEvent.pointerUp(document, { clientX: 800, clientY: 80 })
     expect(onDrop).not.toHaveBeenCalled()
     expect(onDraggingChange).toHaveBeenLastCalledWith(false)
+    expect(announced()).toBe('Signature was not dropped on the email.')
   })
 
   it('drops nothing on a place that refuses the block, and says why', () => {
@@ -195,6 +208,7 @@ describe('LibraryDnd', () => {
     fireEvent.pointerUp(document, { clientX: 300, clientY: 300 })
     expect(onDrop).not.toHaveBeenCalled()
     expect(screen.queryByTestId('canvas-drop-refusal')).toBeNull()
+    expect(announced()).toBe('Signature was not inserted: Goes inside a column.')
   })
 
   it('Escape cancels the drag', () => {

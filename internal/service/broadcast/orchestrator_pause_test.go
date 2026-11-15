@@ -2,6 +2,7 @@ package broadcast_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -166,9 +167,8 @@ func TestBroadcastOrchestrator_Process_PausedBroadcast(t *testing.T) {
 	timeoutAt := time.Now().Add(5 * time.Minute)
 	allDone, err := orchestrator.Process(ctx, task, timeoutAt)
 
-	// Verify - should complete successfully without error, but allDone should be false
-	// because the task is paused (not complete) and should be resumed later
-	require.NoError(t, err)
+	// The task is parked, not completed: a resume wakes it.
+	assertParkedForTheResume(t, err)
 	assert.False(t, allDone, "Task should not be marked as complete when broadcast is paused - it should be resumable")
 }
 
@@ -369,8 +369,8 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 	timeoutAt := time.Now().Add(5 * time.Minute)
 	allDone, err := orchestrator.Process(ctx, task, timeoutAt)
 
-	// Verify - should detect pause and stop without error
-	require.NoError(t, err)
+	// The pause is detected and the task parked for the resume.
+	assertParkedForTheResume(t, err)
 	assert.False(t, allDone, "Task should not be complete when broadcast is paused during processing")
 }
 
@@ -542,12 +542,65 @@ func TestBroadcastOrchestrator_Process_PausedVsCancelled(t *testing.T) {
 			allDone, err := orchestrator.Process(ctx, task, timeoutAt)
 
 			// Verify
-			if tc.expectedError {
+			switch {
+			case tc.expectedError:
 				require.Error(t, err)
-			} else {
+			case tc.broadcastStatus == domain.BroadcastStatusPaused:
+				assertParkedForTheResume(t, err)
+			default:
 				require.NoError(t, err)
 			}
 			assert.Equal(t, tc.expectedAllDone, allDone, tc.testDescription)
+		})
+	}
+}
+
+// assertParkedForTheResume checks that a run which found its broadcast paused parks its task
+// (paused, a day ahead) instead of leaving it due at once, where every scheduler tick ran it
+// again for nothing.
+func assertParkedForTheResume(t *testing.T, err error) {
+	t.Helper()
+	var requeue *domain.TaskRequeueError
+	require.True(t, errors.As(err, &requeue), "expected the task to be parked, got %v", err)
+	assert.True(t, requeue.Park)
+	assert.Equal(t, 24*time.Hour, requeue.After)
+	assert.NotNil(t, requeue.AfterRequeue, "a resume committed while the run held the task must still wake it")
+}
+
+// Once the task is parked, the run reads the broadcast again: a resume committed while the
+// run still held the task could not wake it, so the run wakes it.
+func TestPausedRun_WakesItsTaskWhenTheBroadcastWasResumedMeanwhile(t *testing.T) {
+	for _, tc := range []struct {
+		status domain.BroadcastStatus
+		wake   bool
+	}{
+		{domain.BroadcastStatusPaused, false},
+		{domain.BroadcastStatusProcessing, true},
+		{domain.BroadcastStatusCancelled, true},
+	} {
+		t.Run(string(tc.status), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			broadcasts := domainmocks.NewMockBroadcastRepository(ctrl)
+			taskRepo := domainmocks.NewMockTaskRepository(ctrl)
+			logger := pkgmocks.NewMockLogger(ctrl)
+			logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+			logger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(logger).AnyTimes()
+			logger.EXPECT().Info(gomock.Any()).AnyTimes()
+			logger.EXPECT().Warn(gomock.Any()).AnyTimes()
+			o := broadcast.NewBroadcastOrchestrator(mocks.NewMockMessageSender(ctrl), broadcasts, domainmocks.NewMockTemplateRepository(ctrl),
+				domainmocks.NewMockContactRepository(ctrl), taskRepo, domainmocks.NewMockWorkspaceRepository(ctrl), nil, nil, logger,
+				nil, mocks.NewMockTimeProvider(ctrl), "https://api.example.com", domainmocks.NewMockEventBus(ctrl))
+
+			broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").
+				Return(&domain.Broadcast{ID: "broadcast-123", Status: tc.status}, nil)
+			if tc.wake {
+				taskRepo.EXPECT().WakeTask(gomock.Any(), "workspace-123", "task-123", gomock.Any()).Return(true, nil)
+			}
+
+			err := broadcast.ParkPausedTaskForTest(o, &domain.Task{ID: "task-123", WorkspaceID: "workspace-123"}, "broadcast-123")
+			var requeue *domain.TaskRequeueError
+			require.True(t, errors.As(err, &requeue))
+			requeue.AfterRequeue(context.Background())
 		})
 	}
 }

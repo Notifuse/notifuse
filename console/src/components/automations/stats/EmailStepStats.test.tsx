@@ -1,10 +1,21 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import type { NodeEmailStats, NodeStats, NodeType } from '../../../services/api/automation'
 import { EmailStepStats } from './EmailStepStats'
 import { StepStats } from './StepStats'
+
+// The step's link to Logs goes through the router; here it only shows where it leads.
+vi.mock('@tanstack/react-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-router')>()),
+  createLink:
+    (Comp: (props: Record<string, unknown>) => ReactNode) =>
+    ({ to, params, search, ...rest }: { to: string; params: { workspaceId: string }; search: Record<string, string> }) => (
+      <Comp href={`${to.replace('$workspaceId', params.workspaceId)}?${new URLSearchParams(search).toString()}`} {...rest} />
+    )
+}))
 
 const EMAIL: NodeEmailStats = {
   executions: 100,
@@ -25,7 +36,7 @@ const EMAIL: NodeEmailStats = {
 const renderEmail = (email: Partial<NodeEmailStats> | undefined, { smtp = false, canReadHistory = true } = {}) =>
   render(
     <I18nProvider i18n={i18n}>
-      <EmailStepStats email={email ? { ...EMAIL, ...email } : undefined} canReadHistory={canReadHistory} smtp={smtp} messagesHref="/logs?x=1" />
+      <EmailStepStats email={email ? { ...EMAIL, ...email } : undefined} canReadHistory={canReadHistory} smtp={smtp} messages={{ workspaceId: 'ws1', automationId: 'auto-1', templateId: 'tpl-1' }} />
     </I18nProvider>
   )
 
@@ -39,7 +50,7 @@ describe('EmailStepStats', () => {
     expect(row('opened')).toHaveTextContent('50.0%')
     expect(row('clicked')).toHaveTextContent('10.0%')
     expect(screen.getByText('1 failed · 1 unsubscribe · 2 bounces')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'View messages' })).toHaveAttribute('href', '/logs?x=1')
+    expect(screen.getByRole('link', { name: 'View messages' })).toHaveAttribute('href', '/console/workspace/ws1/logs?automation_id=auto-1&template_id=tpl-1')
   })
 
   it('shows queued and not sent only when there are any', () => {

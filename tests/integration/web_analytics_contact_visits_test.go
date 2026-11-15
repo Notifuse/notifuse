@@ -6,6 +6,7 @@ package integration
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -192,7 +193,7 @@ func TestWebAnalyticsContactVisits(t *testing.T) {
 		_, raw := get(t, "/api/webAnalytics.contactSessionPages", map[string]string{
 			"email": bob, "session_id": latest.id, "session_date": latest.date,
 		}, nil)
-		assert.JSONEq(t, `{"pages":[],"goals":[]}`, raw)
+		assert.JSONEq(t, `{"pages":[],"goals":[],"pages_truncated":false,"goals_truncated":false}`, raw)
 	})
 
 	t.Run("malformed inputs are a 400, not a database error", func(t *testing.T) {
@@ -202,6 +203,7 @@ func TestWebAnalyticsContactVisits(t *testing.T) {
 		}{
 			{"/api/webAnalytics.contactVisits", map[string]string{"email": "a\x00b@example.com"}},
 			{"/api/webAnalytics.contactVisits", map[string]string{"email": "a\xffb@example.com"}},
+			{"/api/webAnalytics.contactVisits", map[string]string{"email": strings.Repeat("a", 243) + "@example.com"}},
 			{"/api/webAnalytics.contactSessionPages", map[string]string{"email": "a\x00b@example.com", "session_id": latest.id, "session_date": latest.date}},
 			{"/api/webAnalytics.contactSessionPages", map[string]string{"email": ann, "session_id": latest.id, "session_date": "0000-01-01"}},
 		} {

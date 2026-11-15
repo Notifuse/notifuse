@@ -3,16 +3,22 @@ package migrations
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
+
+	"github.com/lib/pq"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 )
 
 // V44Migration, on workspaces that already exist, makes a click on a link write its own
 // timeline entry, adds the partial indexes of the dashboard's recent failures, dates the
 // broadcasts that started without a start date, removes the segment memberships of deleted
-// contacts and recounts the exited journeys of each automation.
+// contacts and the instance's own links recorded in clicked_links, and recounts the exited
+// journeys of each automation.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -43,7 +49,20 @@ import (
 // without any message keeps no date. The first messages are found in one grouped pass over
 // message_history, not one walk per broadcast.
 //
-// After the builds, stats.exited of each automation is raised to the number of its journeys
+// After the builds, under their SHARE lock and before contact_segments is locked (so that
+// membership writes do not wait for it), the links of clicked_links on the instance's own
+// hosts are removed (v44OwnLinksPurgeSQL): those of the API endpoint and of the workspace's
+// current custom endpoint, on any port, in any case, with or without one trailing dot, as
+// the click recorder leaves them out since 44. Before, behind a reverse proxy, unsubscribe
+// and notification center links were recorded with the contact's address. The lock is held
+// already, so no other transaction writing message_history holds a row lock on it, and as
+// no statement takes SELECT ... FOR UPDATE or FOR SHARE on message_history, the purge cannot
+// deadlock with another transaction; it writes no timeline entry, so it does not touch automations. It
+// reads every row holding clicked links while writes to message_history wait, so sending and
+// tracking wait for it too. clicked_at, the other keys and updated_at stay. A rerun matches
+// no row. Without any readable own host the statement is skipped.
+//
+// After the builds and the purge, stats.exited of each automation is raised to the number of its journeys
 // that exited (v44ExitedRecountSQL). Until 44 a journey ended by a reply exited without being
 // counted there, so the counter fell short of the journeys it describes. The recount comes
 // last because it row-locks automations: a tracking write locks message_history first and
@@ -100,6 +119,59 @@ WHERE b.id = m.broadcast_id AND b.started_at IS NULL AND b.status NOT IN ('draft
 const v44OrphanMembershipsSQL = `DELETE FROM contact_segments cs
 WHERE NOT EXISTS (SELECT 1 FROM contacts c WHERE c.email = cs.email)`
 
+// v44KeyHostSQL is the hostname of a clicked_links key k: lowercase, without userinfo, port,
+// IPv6 brackets or one trailing dot. NULL when k is not an http(s) URL with a host. Its
+// patterns hold no backslash, so they read the same whether standard_conforming_strings is
+// on or off.
+const v44KeyHostSQL = `NULLIF(regexp_replace(btrim(lower(substring(%s from '(?i)^[[:space:]]*https?://(?:[^/?#]*@)?([[][^]]*[]]|[^/?#:]*)')), '[]'), '[.]$', ''), '')`
+
+// v44OwnLinksPurgeSQL removes from clicked_links the keys whose host is one of $1. A key
+// whose host cannot be read is kept.
+var v44OwnLinksPurgeSQL = `UPDATE message_history mh
+SET clicked_links = (SELECT COALESCE(jsonb_object_agg(e.key, e.value), '{}'::jsonb)
+                     FROM jsonb_each(mh.clicked_links) e
+                     WHERE NOT COALESCE(` + fmt.Sprintf(v44KeyHostSQL, "e.key") + ` = ANY($1), false))
+WHERE CASE WHEN jsonb_typeof(mh.clicked_links) = 'object'
+           THEN EXISTS (SELECT 1 FROM jsonb_object_keys(mh.clicked_links) k(key)
+                        WHERE ` + fmt.Sprintf(v44KeyHostSQL, "k.key") + ` = ANY($1))
+           ELSE false END`
+
+// v44OwnHosts returns the hostnames v44OwnLinksPurgeSQL removes: for the API endpoint and
+// the workspace's current custom endpoint, the host as trackingtoken.HostOf writes it and as
+// it is written, lowercase. The two differ for an IPv6 literal not written canonical, and
+// for a hostname written in Unicode (Punycode, and as written). An
+// endpoint whose host cannot be read gives none.
+func v44OwnHosts(cfg *config.Config, workspace *domain.Workspace) []string {
+	endpoints := []string{cfg.APIEndpoint}
+	if workspace.Settings.CustomEndpointURL != nil {
+		endpoints = append(endpoints, *workspace.Settings.CustomEndpointURL)
+	}
+	var hosts []string
+	seen := map[string]bool{}
+	add := func(host string) {
+		host = strings.TrimSuffix(host, ".")
+		if host != "" && !seen[host] {
+			seen[host] = true
+			hosts = append(hosts, host)
+		}
+	}
+	for _, endpoint := range endpoints {
+		canonical := trackingtoken.HostOf(endpoint)
+		if canonical == "" {
+			continue
+		}
+		add(canonical)
+		raw := strings.TrimSpace(endpoint)
+		if !strings.Contains(raw, "://") {
+			raw = "https://" + raw
+		}
+		if u, err := url.Parse(raw); err == nil {
+			add(strings.ToLower(u.Hostname()))
+		}
+	}
+	return hosts
+}
+
 // v44ExitedRecountSQL raises stats.exited to the number of exited journeys of the automation.
 // A stored value that is not a whole number below 10^18 counts as 0, so it is replaced.
 const v44ExitedRecountSQL = `UPDATE automations a
@@ -128,31 +200,41 @@ func (m *V44Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 // v44WorkspaceStatement is one step of the workspace update, with what its error says.
 type v44WorkspaceStatement struct {
 	sql  string
+	args []interface{}
 	step string
 }
 
-// v44WorkspaceStatements are the workspace update's statements, run in this order.
-func v44WorkspaceStatements() []v44WorkspaceStatement {
-	return []v44WorkspaceStatement{
-		{schema.TrackMessageHistoryChangesFunction(), "install the link click timeline step"},
-		{`SET LOCAL statement_timeout = 0`, "lift the statement timeout"},
-		{`SET LOCAL lock_timeout = '5s'`, "set the lock timeout"},
-		{v44StartedAtBackfillSQL, "date the broadcasts that started without a start date"},
-		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, "create idx_message_history_failed_recent"},
-		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, "create idx_message_history_bounced_recent"},
-		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, "create idx_message_history_complained_recent"},
-		{`ALTER TABLE contact_segments DISABLE TRIGGER contact_segment_changes_trigger`, "disable contact_segment_changes_trigger"},
-		{`ALTER TABLE contact_segments DISABLE TRIGGER webhook_contact_segments`, "disable webhook_contact_segments"},
-		{v44OrphanMembershipsSQL, "remove the segment memberships of deleted contacts"},
-		{`ALTER TABLE contact_segments ENABLE TRIGGER webhook_contact_segments`, "enable webhook_contact_segments"},
-		{`ALTER TABLE contact_segments ENABLE TRIGGER contact_segment_changes_trigger`, "enable contact_segment_changes_trigger"},
-		{v44ExitedRecountSQL, "recount the exited journeys of each automation"},
+// v44WorkspaceStatements are the workspace update's statements, run in this order. The purge
+// of the own links is left out when there is no own host to remove.
+func v44WorkspaceStatements(ownHosts []string) []v44WorkspaceStatement {
+	purge := []v44WorkspaceStatement{}
+	if len(ownHosts) > 0 {
+		purge = append(purge, v44WorkspaceStatement{v44OwnLinksPurgeSQL, []interface{}{pq.Array(ownHosts)}, "remove the instance's own links from clicked_links"})
 	}
+	statements := []v44WorkspaceStatement{
+		{schema.TrackMessageHistoryChangesFunction(), nil, "install the link click timeline step"},
+		{`SET LOCAL statement_timeout = 0`, nil, "lift the statement timeout"},
+		{`SET LOCAL lock_timeout = '5s'`, nil, "set the lock timeout"},
+		{v44StartedAtBackfillSQL, nil, "date the broadcasts that started without a start date"},
+		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, nil, "create idx_message_history_failed_recent"},
+		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, nil, "create idx_message_history_bounced_recent"},
+		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, nil, "create idx_message_history_complained_recent"},
+	}
+	statements = append(statements, purge...)
+	statements = append(statements, []v44WorkspaceStatement{
+		{`ALTER TABLE contact_segments DISABLE TRIGGER contact_segment_changes_trigger`, nil, "disable contact_segment_changes_trigger"},
+		{`ALTER TABLE contact_segments DISABLE TRIGGER webhook_contact_segments`, nil, "disable webhook_contact_segments"},
+		{v44OrphanMembershipsSQL, nil, "remove the segment memberships of deleted contacts"},
+		{`ALTER TABLE contact_segments ENABLE TRIGGER webhook_contact_segments`, nil, "enable webhook_contact_segments"},
+		{`ALTER TABLE contact_segments ENABLE TRIGGER contact_segment_changes_trigger`, nil, "enable contact_segment_changes_trigger"},
+		{v44ExitedRecountSQL, nil, "recount the exited journeys of each automation"},
+	}...)
+	return statements
 }
 
 func (m *V44Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, workspace *domain.Workspace, db DBExecutor) error {
-	for _, stmt := range v44WorkspaceStatements() {
-		if _, err := db.ExecContext(ctx, stmt.sql); err != nil {
+	for _, stmt := range v44WorkspaceStatements(v44OwnHosts(cfg, workspace)) {
+		if _, err := db.ExecContext(ctx, stmt.sql, stmt.args...); err != nil {
 			return fmt.Errorf("v44: failed to %s for workspace %s: %w", stmt.step, workspace.ID, err)
 		}
 	}

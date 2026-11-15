@@ -114,9 +114,12 @@ describe('RailItem', () => {
     const edit = screen.getByRole('button', { name: 'Edit' })
     expect(main.contains(edit)).toBe(false)
     expect(document.querySelectorAll('button button, a button, button a')).toHaveLength(0)
-    // Actions show on hover and focus, and stay reachable by keyboard (no display:none).
+    // Actions show on hover and on a keyboard focus, and stay reachable by keyboard (no display:none).
+    // A mouse click's focus leaves them hidden once the pointer has gone: focus-visible, not focus-within.
     expect(edit.parentElement!.className).toMatch(/opacity-0/)
-    expect(edit.parentElement!.className).toMatch(/group-focus-within:opacity-100/)
+    expect(edit.parentElement!.className).toMatch(/group-has-\[:focus-visible\]:opacity-100/)
+    expect(main.parentElement!.className).toMatch(/has-\[:focus-visible\]:ring-2/)
+    expect(document.querySelector('[data-rail-item]')!.className).not.toMatch(/focus-within/)
   })
 
   it('always shows a trailing indicator', () => {

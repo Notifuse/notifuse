@@ -4,9 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
-- **Improvement**: Emails are rendered with safe-mjml v1.0.0, the new name of the MJML engine Notifuse used (gomjml). Their HTML is the HTML the official MJML 4.18 writes, inline `mj-style` applies every selector as MJML does, and Liquid tags are kept intact. A condition written in `mj-raw` tags between sections now applies to the plain-text version too, as it does to the HTML. A template without `mj-body` fails to compile instead of giving an empty email.
-
-- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, its activity day by day in sentences, each message with its journey (delivered, opened, clicked) and the email sent, and its web visits.
+- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, its activity day by day in sentences, each message with its journey (delivered, opened, clicked) and the email sent, and its web visits, each with its pages and goals (a very long one says it shows only its first).
 
 - **Feature**: The blog page in the console lists posts with a tab per status, scheduled posts included, and their counts, a title search, and each post's views over 30 days once the web analytics script is in the blog's theme. Categories show their post counts in the side rail, with a menu to edit or delete them.
 
@@ -14,28 +12,7 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The Logs page shows the tabs you may open, and the Logs menu entry appears with any of them, the audit log included. Messages show the last 24 hours by default, with counts by status you can click, a search by email or message ID, a filter by origin (newsletter, automation, transactional) and the journey of each message; a message opens in a side panel with its events, the content sent and its data. Incoming webhooks can be filtered by provider, and an event opens with its raw payload. The audit log reads as sentences, such as "Invited ann@example.com", filtered by period, actor, resource, action or outcome, with its filters kept in the link. An outgoing webhook delivery opens in a side panel with its response and payload.
 
-- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, the web analytics charts, ranges and annotations, the licence and invitation expiry dates, the day an integration was connected, and the dates in the prompts to restore a blog draft or resume a contact import. Counts and amounts use its separators too ("12 345" in French): contact imports and exports, sending progress, analytics amounts, rate limits and the values in a contact's activity and fields. So do the web analytics counts, percentages and durations ("1,5 k", "12,5 %", "5 min 12 s"). Weeks start on Monday in French, Spanish, German, Catalan and Italian.
-
-- **Fix**: In a contact's activity, a removal from a list reads "Removed from Newsletter" instead of a status change ending in "undefined".
-- **Fix**: Web analytics durations and counts no longer read "4m 60s", "1h 60m" or "1000.0K" at a rounding boundary.
-- **Fix**: Negative web analytics amounts, such as refunded goal values, drop their cents from a thousand like positive ones: "-1,235", not "-1,234.57".
-- **Fix**: In a contact's activity and fields and in the message history, the full date shown on hover is the time in the timezone it names (the contact's or the workspace's), in the console's language, not in your browser's.
-
-- **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
-
-- **Fix**: `automations.get` answers 404 instead of 500 for an automation that does not exist.
-
-- **Improvement**: `tasks.reset` and `tasks.trigger` answer 500 when the database fails, without the internal error in the response, and 404 only for a task that does not exist. A refusal because of the task's state (not recurring, not failed, already completed) still answers 400, its message now starting with "validation error: ".
-
-- **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
-
-- **Improvement**: With the internal scheduler off, `tasks.execute` answers 500 when the database fails while reading the task, without the internal error in the response, and 404 only for a task that does not exist.
-
-- **Improvement**: When Notifuse stops normally, during an upgrade for example, an automation step already under way finishes and is recorded before the server exits (for up to 20 seconds), so it does not run again after the restart and its email is not sent twice.
-
-- **Improvement**: The Docker Compose files give Notifuse 75 seconds to stop instead of Docker's default 10, so the work under way (an automation step, emails being sent, web analytics visits) finishes before the container exits. It applies once the container is recreated, for example by `docker compose up -d`. With your own Compose file, `docker run` or Kubernetes, set `stop_grace_period: 75s`, `--stop-timeout 75` or `terminationGracePeriodSeconds: 75` on the Notifuse container.
-
-- **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone.
+- **Feature**: Automations can start when a contact clicks a specific link, with the new "Clicked a link" trigger (`email.link_clicked`). It starts the first time a contact clicks each link of an email, and can be limited to links containing some text, to one broadcast or to one template. Its broadcast and template filters take at most 64 characters. A click on an email the automation sent itself does not start it again. Clicks made before the upgrade, and clicks on links in emails sent before 42.2, do not start it; a link clicked before the upgrade starts it on its next click. The new event does not count toward the monthly event usage.
 
 - **Feature**: The per-link statistics of a broadcast open the message log on the emails where that link was clicked, so you see who clicked it. The message log takes the same filter (`clicked_url`, with `broadcast_id`) through the console and the API.
 
@@ -45,111 +22,29 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The API counts the recipients of a broadcast audience before it is sent, with the new `broadcasts.estimateAudience`. `broadcasts.list` gives the number of broadcasts in each status (`with_status_counts`) and keeps the ones started from a date (`started_after`), and the message history analytics take `opened_at` and `clicked_at` as time dimensions. In the console, broadcasts get a new list with status tabs, a search and their 30-day results, a detail page with the funnel, opens and clicks over time, the A/B test and the clicked links, and a one-screen editor that saves as you type, previews the email and checks everything before sending.
 
-- **Fix**: `broadcasts.get` and `broadcasts.list` give the number of recipients of an A/B test and of its winner (`test_phase_recipient_count`, `winner_phase_recipient_count`) instead of 0, and so do the `test_recipients`, `winner_recipients` and `avg_test_recipients` broadcast analytics measures, while `count_with_ab_test` counts them, for A/B broadcasts sent from 44.0 on.
-
-- **Fix**: In the console, an API key name keeps its hyphens ("website-signup"), as the API accepts them, and the integration drawers are titled with the provider's name, in the console's language: "Add Mailgun integration", not "Add New MAILGUN Integration".
-
 - **Feature**: The API gives the statistics of each step of an automation, over a period or all time, with the new `automations.nodeStats`: visits (each time a journey reached the step, a loop counting each time round), results, the path each split took, the journeys waiting or retrying there, and for email steps the messages sent, delivered, opened and clicked. `automations.list` gives each automation's journeys by status (`with_journey_counts`), `messages.list` filters by `automation_id`, and the message history analytics split by `automation_id`. In the console, automations get a list with status tabs, a search and their journeys, completion and open rates, and the editor becomes a full-screen canvas: read-only while live, warning before you leave unsaved changes, with a "With stats" view that shows each step's results on the canvas and in its panel, with the email's preview.
-
-- **Fix**: An automation's statistics no longer count every journey that entered as in flight; each step shows the journeys actually on it.
 
 - **Feature**: The new `messages.count` API endpoint counts messages by status for the same filters as `messages.list`, which also takes `origin`, `created_after` and `created_before`; `inboundWebhookEvents.list` filters by `source`.
 
-- **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise.
-
-- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, transactional notifications, automations and double opt-in lists), and lists them for one template. It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search`; `workspaces.members` returns each member's `name`.
-
-- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status.
-
-- **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
-
-- **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
-
-- **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. Behind a proxy that forwards neither the public host nor `X-Forwarded-Host`, links on a custom domain the workspace no longer uses are still recorded. Links recorded before the upgrade stay in the per-link statistics.
-
-- **Fix**: The status filter of outgoing webhook deliveries now filters them. `webhookSubscriptions.deliveries` takes `status`.
-
-- **Fix**: Filtering incoming webhooks by Auth email or User created no longer fails.
-
-- **Fix**: A link to a webhooks tab, filtered or not, opens that tab again, not the messages.
-
-- **Fix**: View more on the failed messages card opens the failed messages.
+- **Feature**: The API counts what uses each template with the new `templates.usage` endpoint (broadcasts that may still send, counting only the winning variation once an A/B test has one, transactional notifications, automations and double opt-in lists), and lists them for one template (a `template_id` that is not valid UTF-8 or holds a NUL byte answers 400). It counts posts by status and category with the new `blogPosts.counts` endpoint; `blogPosts.list` lists the posts still to come with `status=scheduled` and searches titles with `search` (400 for a search that is not valid UTF-8 or holds a NUL byte); `workspaces.members` returns each member's `name`.
 
 - **Feature**: Blocks of the visual email editor can now be sent only to some recipients, with a display condition on the email's data, such as "`order.total` is greater than 100" or "`contact.custom_string_1` equals `vip`" (#395). Add it at the top of a section, text, image, button or other block's settings, where its result with the test data shows; the preview hides the blocks it would hide. Columns and groups cannot have one. Through the API, a block of `visual_editor_tree` takes it as `display_condition`. The MJML export writes conditions as Liquid; importing that file back into the visual editor drops them.
 
-- **Feature**: Every email now includes a plain-text version, for mail clients that show text only and for better deliverability. By default it is generated from the HTML at every send, its links tracked like the links of the HTML. In the template editor's new Text version mode, and in the MJML editor's Text version tab, you can instead write your own, starting from the automatic version, with Liquid like the subject, for the default language and for each translation; a language without its own text gets the automatic version. A custom text is sent as written: its links are not tracked, and a marketing template's text should keep `{{ unsubscribe_url }}`, which the editor reminds you of. A custom text that cannot be rendered at send time is replaced by the automatic version. The template preview shows the text sent and where it comes from, and `templates.compile` returns it as `text`, with `text_source` and `text_error`.
+- **Feature**: Every email now includes a plain-text version, for mail clients that show text only and for better deliverability. By default it is generated from the HTML at every send, its links tracked like the links of the HTML. In the template editor's new Text version mode, and in the MJML editor's Text version tab, you can instead write your own, starting from the automatic version, with Liquid like the subject, for the default language and for each translation; a language without its own text gets the automatic version. A custom text is sent as written: its links are not tracked, and a marketing template's text should keep `{{ unsubscribe_url }}`, which the editor reminds you of. A custom text that cannot be rendered at send time is replaced by the automatic version. The template preview shows the text sent and where it comes from, and `templates.compile` returns it as `text`, with `text_source` and `text_error`. A custom text is at most 64 KiB, at save and in `templates.compile`.
 
-  **Before you upgrade, if you set `email.text` through the API**: it was stored and never sent, and is now sent as the email's text version. It is checked when the template is saved (Liquid syntax, 64 KiB at most, 400 otherwise) and rendered with Liquid, so a literal `{{` needs `{% raw %}`.
+  **Before you upgrade, if you set `email.text` through the API**: it was stored and never sent, and is now sent as the email's text version. It is checked when the template is saved (Liquid syntax, 64 KiB at most, 400 otherwise), for the default language and for each translation the request sends; a save without `translations` keeps the stored ones as they are, unchecked unless it changes the template's channel. The text is rendered with Liquid, so a literal `{{` needs `{% raw %}`.
 
-- **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, with the template version and the data of that send. Viewing it records no open and its links record no click; they keep their UTM parameters. With click tracking on, the click on the link in the email itself counts as a click. Only emails whose template uses the variable have a web version; transactional and double opt-in emails leave it empty. Deleting the template takes its web versions down, and so does deleting the contact. The link signs the domain it was sent with, and the page opens there and on the API endpoint only, which keeps another workspace's custom domain from showing it. The API endpoint shows every workspace's web versions, and workspaces that already share a custom domain show each other's on it. After a workspace changes custom domain, its old links keep working while the old domain points to Notifuse, and stop within a few minutes of another workspace taking it; a redirect keeps them working only if it goes to the API endpoint. Behind a reverse proxy, forward the original `Host` or set `X-Forwarded-Host`, which is then the only host the request is judged on; a proxy that sends the API endpoint's host as `Host` turns the rule off. The link editor of the visual builder offers it as a link type, "Web version of the email".
+- **Feature**: Broadcast and automation emails can link to their web version with `{{ view_in_browser_url }}`, for recipients whose mail client renders the email badly. The page shows the email as it was sent, in the language it was sent in, with the template version and the data of that send. Viewing it records no open and its links record no click; they keep their UTM parameters. With click tracking on, the click on the link in the email itself counts as a click. Only emails whose template uses the variable have a web version; transactional, double opt-in and broadcast test emails leave it empty. Deleting the template takes its web versions down, and so does deleting the contact. The link signs the domain it was sent with, and the page opens there and on the API endpoint only, which keeps another workspace's custom domain from showing it. The API endpoint shows every workspace's web versions, and workspaces that already share a custom domain show each other's on it. After a workspace changes custom domain, its old links keep working while the old domain points to Notifuse, and stop within a few minutes of another workspace taking it; a redirect keeps them working only if it goes to the API endpoint. Behind a reverse proxy, forward the original `Host` or set `X-Forwarded-Host` or `Forwarded`, which is then the only host the request is judged on; a proxy that sends the API endpoint's host as `Host` turns the rule off. The link editor of the visual builder offers it as a link type, "Web version of the email".
 
   From this version on, automation emails keep the data they were rendered with in the message history, encrypted, as broadcasts already did, so their web version can be shown. Deleting a contact removes it.
 
-  The `/v/` path is now reserved for web versions: on a blog's custom domain, a blog category whose slug is `v` is no longer reachable. Rename such a category before upgrading.
+  The `/v/` path is now reserved for web versions: on a blog's custom domain, a blog category whose slug is `v` is no longer reachable, and a new category cannot take it. Rename such a category before upgrading.
 
-- **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A variation whose chosen sender is removed from the integration afterwards is queued for no further recipient until another sender is chosen: the broadcast cannot be scheduled, cannot be resumed while that variation still has recipients to queue, and pauses at the next run of its sending task if it is queuing them. The console then offers to change the sender of the paused broadcast. Emails already queued keep the sender they were queued with, and no email falls back to another address.
+- **Feature**: A broadcast can now send from a sender other than its template's: each variation, in an A/B test too, chooses one of the marketing email integration's senders, or keeps its template's. A transactional email can do the same with `email_options.sender_id`. A sender that is not one of the integration's is refused when saving or sending. A variation whose chosen sender is removed from the integration afterwards is queued for no further recipient until another sender is chosen: the broadcast cannot be scheduled, cannot be resumed while that variation still has recipients to queue, and pauses before its next batch if it is queuing them. The console then offers to change the sender of the paused broadcast. Emails already queued keep the sender they were queued with, and no email falls back to another address.
 
-- **Feature**: `contacts.list` takes `search`, which matches a contact's email, first, last and full name, and external ID.
-
-- **Fix**: A contact's activity (`timeline.list`) no longer shows messages and provider events such as bounces to members and API keys without Message history read, nor website visits to those without Web analytics read.
-
-- **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again.
-
-- **Fix**: Scheduled broadcasts now record when they started sending, as broadcasts sent at once already did. Upgrading to 44 dates the ones already sent from their first email.
-
-- **Fix**: A scheduled blog post now appears on the blog's pages and at its address only from its publication date.
-
-- **Fix**: The blog's post list in the console now shows every post, not only the first 100.
-
-- **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
-
-- **Fix**: New notification and Edit are now disabled, with a tooltip naming the missing permission, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
-
-- **Fix**: A member without Templates read now sees the template's ID instead of an empty field or "Untitled" in a list's double opt-in template, a broadcast's templates, an automation's email nodes and a segment's email conditions, and these screens no longer request templates such a member cannot read. The template fields carry a lock saying that Templates read is needed.
-
-- **Fix**: After you switch workspace, the console's menu and pages no longer use the previous workspace's permissions until the new ones arrive, nor keep them when the previous workspace answers last.
-
-- **Fix**: `transactional.update`, `transactional.delete` and `templates.delete` now answer 400 with the reason, instead of 500, when they refuse to change the name or channels of a notification managed by an integration, or to delete such a notification or template. `templates.delete` also answers a missing permission with 403 and a revoked API key with 401, as the other endpoints do, instead of 500.
-
-- **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
-
-- **Fix**: The blog's sitemap now lists the blog's posts and the feeds of its categories.
-
-- **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
-
-- **Fix**: As in Shopify Liquid, `{{ item.size }}` on an object without a `size` field now gives its number of fields: use `item["size"]` to test an optional field. A filter given too many arguments now shows nothing instead of the unfiltered text.
-
-- **Fix**: As in Shopify Liquid 5.11, `{% snippet %}` and `{% render variable %}` are no longer supported: a template or blog theme using them shows a Liquid error. Use `{% render 'name' %}`.
+- **Feature**: `contacts.list` takes `search`, which matches a contact's email, first, last and full name, first and last name together ("Jane Doe"), and external ID.
 
 - **Feature**: The visual email editor has a Library tab beside Structure, with previews of your saved blocks that you can search and filter, and the basic blocks. A block's Insert button adds it at the selected block, where it fits, and the confirmation offers to undo it; you can also drag a saved or basic block onto the email, where a line shows where it lands and a label says why a place does not take it. Saving a block to the library suggests a name from its content, says that templates already using a saved block do not change when it is replaced, and opens the library on the new block. In the editor opened from the Templates page, members who can edit templates can rename a saved block from the library, replace it with the selected block, duplicate it or delete it. The "+" menus of the email's body list every saved block, with a preview, and say why the ones that cannot go there do not fit.
-
-- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Replace an existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
-
-- **Fix**: In the email editor, the canvas now fits the space left for it. It was taller, which made the bottom of a long email hard to reach.
-
-- **Fix**: In the email editor's structure tree, a block dragged down now lands where the line shows, and the line only appears where the block can go.
-
-- **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. While dragging, moving the pointer left or right picks the level where the block goes, and the line shows that level. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
-
-- **Fix**: The file manager now lists up to 10,000 files of the bucket instead of the first 1,000, says when there are more, and shows folders created outside Notifuse.
-
-- **Fix**: Deleting a folder in the file manager now deletes its files too.
-
-- **Fix**: Emails sent in a template's translation now leave from the sender chosen on the template, with its reply-to, instead of the email integration's default sender with no reply-to. Emails already queued before the upgrade keep the sender they were queued with.
-
-- **Fix**: A transactional email sent with `email_options.reply_to`, or relayed through the SMTP bridge with a `Reply-To` header, now uses that address even when its template has a reply-to of its own.
-
-- **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
-
-- **Fix**: Test emails sent to an address typed with capital letters are now recorded under the contact's address, so they show in the contact's history and are erased with the contact.
-
-- **Fix**: In templates written in the MJML editor, an attribute value containing an escaped double quote or angle bracket, such as `alt="27&quot; monitor"` on an image, no longer fails the compile, and a quote escaped in the HTML of a text or raw block now reaches the email intact.
-
-- **Improvement**: Groups in email templates now render as in MJML: a group without a width takes its share of the section, a group with a percentage width keeps it, and in Outlook a group sits side by side with the columns and groups of its section, with raw HTML blocks placed between them. A group saved with a width of 100% next to another column or group now makes a row wider than the email in Outlook: give the group and the columns next to it widths that add up to 100%.
-
-- **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
-
-- **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
 
 - **Feature**: The console has a new, denser look: the Inter typeface, new colors and tighter spacing.
 
@@ -163,11 +58,187 @@ All notable changes to this project will be documented in this file.
 
 - **Feature**: The transactional page shows each notification's open and click rates and its last send, and opens a detail view with sends per day, the latest sends, a preview of its template and the API call in cURL, TypeScript and Python. The message log can be filtered by transactional notification in the console. Each notification's name links to its detail view, a disabled action says why in its menu, and the sends per day can be read as a table by screen readers.
 
-- **Fix**: Segments with relative dates, such as "opened in the last 7 days", now drop the contacts that no longer match at their daily update, and a segment updated to match nobody is emptied. The first daily update after the upgrade removes the contacts that stopped matching earlier, so automations and webhooks on leaving a segment receive those exits at once.
+- **Improvement**: Emails are rendered with safe-mjml v1.0.0, the new name of the MJML engine Notifuse used (gomjml). Their HTML is the HTML the official MJML 4.18 writes, inline `mj-style` applies every selector as MJML does, and Liquid tags are kept intact. A condition written in `mj-raw` tags between sections now applies to the plain-text version too, as it does to the HTML. A template without `mj-body` fails to compile instead of giving an empty email.
+
+- **Improvement**: Most dates in the console follow its language: month and weekday names, "3 days ago", the date pickers, the web analytics charts, ranges and annotations, the licence and invitation expiry dates, the day an integration was connected, and the dates in the prompts to restore a blog draft or resume a contact import. Counts and amounts use its separators too ("12 345" in French): contact imports and exports, sending progress, analytics amounts, rate limits and the values in a contact's activity and fields. So do the web analytics counts, percentages and durations ("1,5 k", "12,5 %", "5 min 12 s"). Weeks start on Monday in French, Spanish, German, Catalan and Italian.
+
+- **Improvement**: `tasks.get`, `tasks.delete`, `tasks.reset`, `tasks.trigger` and `tasks.execute` (with the internal scheduler off) answer 500 when the database fails, without the internal error in the response, 404 only for a task that does not exist, and 400 for a task ID that is not a UUID. A refusal of a reset or a trigger because of the task's state (not recurring, not failed, already completed) still answers 400, its message now starting with "validation error: ".
+
+- **Improvement**: When Notifuse stops normally, during an upgrade for example, an automation step already under way finishes and is recorded before the server exits (for up to 20 seconds), so it does not run again after the restart and its email is not sent twice.
+
+- **Improvement**: The Docker Compose files give Notifuse 75 seconds to stop instead of Docker's default 10, so the work under way (an automation step, emails being sent, web analytics visits) finishes before the container exits. It applies once the container is recreated, for example by `docker compose up -d`. With your own Compose file, `docker run` or Kubernetes, set `stop_grace_period: 75s`, `--stop-timeout 75` or `terminationGracePeriodSeconds: 75` on the Notifuse container.
+
+- **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise, and then while the instance's own links are removed from the click statistics, which takes longer the more clicked links the workspace has recorded.
+
+- **Improvement**: `blogPosts.list` answers 400 instead of 500 for an invalid status or a `category_id` that is not a UUID.
+
+- **Improvement**: Segments filtering on a clicked link now include a contact as soon as they click it in an email sent from 42.2 on, even when it was not the first link they clicked in that email.
+
+- **Improvement**: Opens and clicks on an email whose contact was deleted are no longer recorded. The link still redirects.
+
+- **Improvement**: Behind a reverse proxy, clicks on an email's unsubscribe and notification center links are no longer recorded per link, so the contact address these links carry is no longer stored with the click. The public host is read from `X-Forwarded-Host` or `Forwarded`, and links to the instance on another port, or to blog posts on the workspace's custom domain, are not recorded either. Behind a proxy that forwards neither the public host nor one of these headers, links on a custom domain the workspace no longer uses are still recorded. Upgrading to 44 removes from the per-link statistics the links recorded on the API endpoint and on the workspace's current custom domain.
+
+- **Improvement**: A tracked link to the instance's own host written with a trailing dot, or to its IPv6 address written another way, now opens directly instead of showing the confirmation page.
+
+- **Improvement**: `/api/cron` runs at most 100 tasks per call, or `TASK_SCHEDULER_MAX_TASKS` when it is higher; a larger `max_tasks` is lowered to that limit, and the response gives the number used.
+
+- **Improvement**: A broadcast whose last attempt cannot record its outcome is tried again instead of staying in Sending; a run that outlives its time no longer makes the next run send to recipients again.
+
+- **Improvement**: With Exit on reply, an email whose journey cannot be checked is retried later instead of being sent, and an email whose journey no longer exists is not sent.
+
+- **Improvement**: `audience.exclude_unsubscribed` can only be changed before a broadcast starts sending, and a scheduled broadcast that has started sending can no longer change its tracking mode.
+
+- **Improvement**: A graceful shutdown ends within 70 seconds, even when closing the database hangs.
+
+- **Improvement**: A broadcast run that ends while its recipient feed waits to retry stops at once instead of waiting out the delay.
+
+- **Improvement**: A blog category can no longer take a slug whose address another route answers on the blog's domain: `v`, `t`, `r` and any slug starting with `api`, `console` or `notification-center`, where none of its pages would show, and `track`, `unsubscribe`, `health` and the like, where its own page would not while its posts and feed do. An existing category keeps its slug and stays editable; the sitemap lists only its addresses that reach the blog.
+
+- **Improvement**: Blocks can now be dragged into empty columns, sections, wrappers, groups and social blocks, wrappers get a drag handle, and a section dragged below nested content finds its place without a sideways move. While dragging, moving the pointer left or right picks the level where the block goes, and the line shows that level. Moving, adding, duplicating or deleting a column keeps the other columns' proportions when their widths are percentages adding up to 100.
+
+- **Improvement**: Test emails can now be sent for a mailing list, chosen in the test dialog of a template or a broadcast and preselected with the broadcast's audience list (#423). They then carry that list's working unsubscribe and confirmation links and the List-Unsubscribe header, as a broadcast to the list does; a test for the audience list of a broadcast that also goes to the list's unsubscribed contacts has no header, as the broadcast. Unsubscribing or confirming from such a test, or a bounce or complaint on it, changes the recipient's subscription to the list. `transactional.testTemplate` takes `list_id` and `omit_list_unsubscribe_header`; a test for a list also needs Lists read.
+
+- **Improvement**: Groups in email templates now render as in MJML: a group without a width takes its share of the section, a group with a percentage width keeps it, and in Outlook a group sits side by side with the columns and groups of its section, with raw HTML blocks placed between them. A group saved with a width of 100% next to another column or group now makes a row wider than the email in Outlook: give the group and the columns next to it widths that add up to 100%.
+
+- **Improvement**: The email editor no longer gives a new group a width of 100%, unless the template's default attributes give groups one, so it takes its share of the section, and the canvas shows each group at the width the email gives it. The Width field of a group shows that share when it is empty. Adding, moving, duplicating or deleting a group in a section resizes the section's columns to the room the groups leave, keeping their proportions.
+
+- **Improvement**: A translation's visual editor can import an MJML or JSON file into its language, and export that language's email.
 
 - **Improvement**: A temporary database error while updating segment members, or in an automation's "Add to list" or "Remove from list" step, is now retried instead of leaving the contact out of the segment or the list.
 
+- **Fix**: The French console has its apostrophes back: many of its translations had lost them ("Accepter l invitation", "Clé d accès").
+
+- **Fix**: Web analytics durations and counts no longer read "4m 60s", "1h 60m" or "1000.0K" at a rounding boundary, and a small negative value reads "0", not "-0".
+
+- **Fix**: A custom web analytics range starts at midnight in the workspace's timezone on a daylight saving day too, instead of an hour off when the browser is in another timezone.
+
+- **Fix**: The blog theme preview in the console uses pictures bundled with the console, instead of photos of people loaded from Unsplash.
+
+- **Fix**: Negative web analytics amounts, such as refunded goal values, drop their cents from a thousand like positive ones: "-1,235", not "-1,234.57".
+
+- **Fix**: In a contact's activity, a removal from a list reads "Removed from Newsletter" instead of a status change ending in "undefined".
+
+- **Fix**: In a contact's activity and fields and in the message history, the full date shown on hover is the time in the timezone it names (the contact's or the workspace's), in the console's language, not in your browser's.
+
+- **Fix**: `automations.get`, `automations.update`, `automations.delete`, `automations.activate` and `automations.pause` answer 404 instead of 500 for an automation that does not exist.
+
+- **Fix**: Contacts who leave an automation by replying now count in its exited total, past exits included.
+
+- **Fix**: A journey whose saved context is not a JSON object no longer stops the automations of its workspace.
+
+- **Fix**: When saving a journey's last step fails and the journey has a retry left, it ends as that step decided, counted in the automation's completed or exited total, with its end in the contact's activity.
+
+- **Fix**: A journey ended by a reply or by its automation's deletion while one of its steps runs is no longer counted as completed or failed, nor shown as such in the contact's activity.
+
+- **Fix**: With several Notifuse instances, a contact could go through the same automation step twice and receive the same email twice; an instance now claims each journey before it runs it, so another instance leaves it alone. A shutdown hands back the journeys it has not run yet, due at once, and a claim that keeps failing is logged as an error once every 5 minutes.
+
+- **Fix**: In the automation editor, deleting the link out of a branch's path or default path clears that path, which no longer leads to the step it was linked to.
+
+- **Fix**: `broadcasts.get` and `broadcasts.list` give the number of recipients of an A/B test and of its winner (`test_phase_recipient_count`, `winner_phase_recipient_count`) instead of 0, and so do the `test_recipients`, `winner_recipients` and `avg_test_recipients` broadcast analytics measures, while `count_with_ab_test` counts them, for A/B broadcasts sent from 44.0 on.
+
+- **Fix**: In the console, an API key name keeps its hyphens ("website-signup"), as the API accepts them, and the integration drawers are titled with the provider's name, in the console's language: "Add Mailgun integration", not "Add New MAILGUN Integration".
+
+- **Fix**: An API key named with a trailing space, such as "website ", is created as `website@…`, not `website_@…`: the name loses its leading and trailing underscores and hyphens when the key is created.
+
+- **Fix**: An automation's statistics no longer count every journey that entered as in flight; each step shows the journeys actually on it.
+
+- **Fix**: The status filter of outgoing webhook deliveries now filters them. `webhookSubscriptions.deliveries` takes `status`.
+
+- **Fix**: The email provider webhook (`/webhooks/email`) answers 400 for a request it cannot read (a payload its provider's parser refuses, a missing `workspace_id` or `integration_id`) or an integration that is not an email provider, 404 for an unknown workspace or integration, and 500 for a failure on our side, so providers send those events again instead of dropping them. An SES subscription confirmation that AWS does not accept answers 500 too, so SNS sends it again.
+
+- **Fix**: Filtering incoming webhooks by Auth email or User created no longer fails.
+
+- **Fix**: A link to a webhooks tab, filtered or not, opens that tab again, not the messages.
+
+- **Fix**: View more on the failed messages card opens the failed messages.
+
+- **Fix**: A contact's activity (`timeline.list`) no longer shows messages and provider events such as bounces to members and API keys without Message history read, nor website visits to those without Web analytics read.
+
+- **Fix**: Scheduled broadcasts now record when they started sending, as broadcasts sent at once already did. Upgrading to 44 dates the ones already sent from their first email.
+
+- **Fix**: A broadcast paused while its last emails are being queued stays paused, and those emails wait for the resume.
+
+- **Fix**: Scheduling a broadcast fails when its sending task cannot be created, instead of leaving a broadcast that never sends. "Send now" starts that broadcast at once, not another one that is due.
+
+- **Fix**: With Exit on reply, the last email of a journey is sent.
+
+- **Fix**: The test send of a broadcast renders Liquid in its subject and no longer counts in the broadcast's statistics.
+
+- **Fix**: A scheduled blog post now appears on the blog's pages, cached ones included, and at its address only from its publication date.
+
+- **Fix**: The blog's post list in the console now shows every post, not only the first 100.
+
+- **Fix**: On the blog page in the console, a member with Blog write but without Workspace write can now write posts, and a member without Blog write no longer gets buttons that fail: New post, Create Your First Post and Theme are disabled, and the category buttons and the post menus are not shown. Writing or editing a post is disabled, with its reason, for a member without Templates read or write, since a post's content is a template.
+
+- **Fix**: The email builder's AI assistant is in the console's language: its title, its placeholder and its messages were in English whatever the language.
+
+- **Fix**: The subtitle of an integration card in Settings, "Type: …", is translated and names the integration's type in words.
+
+- **Fix**: For a member without Templates read, the message history no longer asks for the template of each message, which the server refused.
+
+- **Fix**: The button that picks the message history's columns has an accessible name, "Select columns", for screen readers.
+
+- **Fix**: The system emails (workspace invitation, sign-in code, circuit breaker alert) now put their text part before their HTML part, as the standard asks, so a mail client that picks the last part it can display shows the HTML.
+
+- **Fix**: The Send Test Email buttons of the templates and broadcasts pages are now enabled for members with Templates read and Transactional write, what sending a test needs, instead of Templates read and Contacts write. The transactional notifications page offers its test only with Templates read too, and the test dialog shows CC and BCC only to members with Contacts read, which they need. The permissions matrix now lists the test email, and the creation and console edit of a transactional notification, under Templates read.
+
+- **Fix**: New notification and Edit are now disabled, with a tooltip naming the missing permission, on the transactional notifications page for members without Templates read: creating offered a template picker they could not load, and saving an edit was refused. Editing a notification managed by an integration stays available with Transactional write alone. Its edit drawer then shows the template's ID, with a note that Templates read is needed to see the template, instead of an empty field, and the page no longer requests templates without Templates read.
+
+- **Fix**: A member without Templates read now sees the template's ID instead of an empty field or "Untitled" in a list's double opt-in template, a broadcast's templates, an automation's email nodes and a segment's email conditions, and these screens no longer request templates such a member cannot read. The template fields carry a lock saying that Templates read is needed.
+
+- **Fix**: After you switch workspace, the console's menu and pages no longer use the previous workspace's permissions until the new ones arrive, nor keep them when the previous workspace answers last.
+
+- **Fix**: `transactional.update`, `transactional.delete` and `templates.delete` now answer 400 with the reason, instead of 500, when they refuse to change the name or channels of a notification managed by an integration, or to delete such a notification or template. `templates.delete` also answers a missing permission with 403 and a revoked API key with 401, as the other endpoints do, instead of 500.
+
+- **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
+
+- **Fix**: The blog's sitemap now lists the blog's posts, with the date of their last change, and the page and feed of each of its categories, on the custom domain in lower case. robots.txt names the sitemap by its absolute address, as search engines require, and both answer 405 to a method other than GET or HEAD.
+
+- **Fix**: A blog feed read with both `If-None-Match` and `If-Modified-Since` is sent again when it changed, instead of answering 304 because of the date; `If-None-Match` also matches a list of ETags and `*`. A feed's `Last-Modified` moves when a scheduled post goes live, so a reader that only sends the date sees the post.
+
+- **Fix**: `{% if tags contains "vip" %}` on a list now matches only the element `vip`, no longer `vip_gold`. Check templates that relied on the partial match.
+
+- **Fix**: As in Shopify Liquid, `{{ item.size }}` on an object without a `size` field now gives its number of fields: use `item["size"]` to test an optional field. A filter given too many arguments now shows nothing instead of the unfiltered text.
+
+- **Fix**: As in Shopify Liquid 5.11, `{% snippet %}` and `{% render variable %}` are no longer supported: a template or blog theme using them shows a Liquid error. Use `{% render 'name' %}`.
+
+- **Fix**: In the email editor, saving a block now always starts as a new saved block, and "Replace an existing block" only lists saved blocks of the same type. Before, the dialog could open on updating another saved block that merely looked alike. The confirmation now appears once the block is saved, and the dialog stays open if saving fails.
+
+- **Fix**: In the email editor, the canvas now fits the space left for it. It was taller, which made the bottom of a long email hard to reach.
+
+- **Fix**: In the email editor's structure tree, a block dragged down now lands where the line shows, and the line only appears where the block can go.
+
+- **Fix**: The file manager now lists up to 10,000 files of the bucket instead of the first 1,000, says when there are more, and shows folders created outside Notifuse.
+
+- **Fix**: Deleting a folder in the file manager now deletes its files too.
+
+- **Fix**: Emails sent in a template's translation now leave from the sender chosen on the template, with its reply-to, instead of the email integration's default sender with no reply-to. Emails already queued before the upgrade keep the sender and reply-to they were queued with.
+
+- **Fix**: A transactional email sent with `email_options.reply_to`, or relayed through the SMTP bridge with a `Reply-To` header, now uses that address even when its template has a reply-to of its own.
+
+- **Fix**: Test emails sent to an address typed with capital letters are now recorded under the contact's address, so they show in the contact's history and are erased with the contact.
+
+- **Fix**: In templates written in the MJML editor, an attribute value containing an escaped double quote or angle bracket, such as `alt="27&quot; monitor"` on an image, no longer fails the compile, and a quote escaped in the HTML of a text or raw block now reaches the email intact.
+
+- **Fix**: `broadcasts.get` with `with_templates=true` now returns the latest version of each variation's template, the one that is sent, instead of its first version.
+
+- **Fix**: The `count_transactional_messages` measure of message history counts only the messages sent by a transactional notification. It counted every message outside a broadcast, automation emails, template tests and double opt-in confirmations included.
+
+- **Fix**: An analytics query can be ordered by any of its schema's measures, selected or not. A time series with a date range stays in period order as long as its periods are filled (see the next line). Ordering by a measure whose SQL is a column or `*` rather than an aggregate failed before.
+
+- **Fix**: An analytics time series split by a dimension keeps every value of each period: the periods filled because they had no data get a row for each value, and two values of the same period no longer overwrite each other. In a filled period, a `max`, `min` or `avg` measure is empty instead of 0. A series that would fill more than 50,000 rows, split by a dimension or not, is returned without the filled periods, in the order the query asks for, if it asks for one.
+
+- **Fix**: `templates.compile` with an empty `mjml_source` and a visual tree renders the Liquid of the tree's `mj-liquid` blocks, and applies the preview text override to a tree without an `mj-preview` block; it left the first as raw Liquid and dropped the second.
+
+- **Fix**: `timeline.list` answers an empty list instead of `null` for a contact without entries.
+
+- **Fix**: The audit log names the theme version a `blogThemes.create` saved, also when the theme's files are large.
+
+- **Fix**: Segments with relative dates, such as "opened in the last 7 days", now drop the contacts that no longer match at their daily update, and a segment updated to match nobody is emptied. The first daily update after the upgrade removes the contacts that stopped matching earlier, so automations and webhooks on leaving a segment receive those exits at once.
+
 - **Fix**: The upgrade to 44.0 removes the segment memberships left behind by deleted contacts, mostly by deletions before 38.0, without any segment exit in the timeline, webhooks or automations, so segment counts and member lists no longer include them.
+
+- **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again. A custom domain URL whose domain cannot be read is refused.
 
 ## [43.0] - 2026-11-07
 

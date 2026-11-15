@@ -58,7 +58,10 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
   // Set once Enter, Escape or a blur has ended the edit, so the blur that follows does nothing
   const ended = useRef(false)
   const inputRef = useRef<InputRef>(null)
-  const { listeners, setNodeRef, isDragging } = useLibraryDraggable(item, editing)
+  // The card's "More actions" button, where the focus goes back after an action
+  const moreRef = useRef<HTMLButtonElement>(null)
+  const refocusMore = useRef(false)
+  const { attributes, listeners, setNodeRef, isDragging } = useLibraryDraggable(item, editing)
   const formatted = formatSavedDate(date, locale)
   const highlighted = !!highlight
   const name = item.name
@@ -74,9 +77,11 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
     setEditing(true)
   }
 
-  const endRename = async (save: boolean) => {
+  // Enter and Escape give the focus back to "More actions"; a blur leaves it where it went
+  const endRename = async (save: boolean, refocus = false) => {
     if (ended.current) return
     ended.current = true
+    refocusMore.current = refocus
     const name = draft.trim()
     if (!save || !name || name === item.name || !actions?.onRename) {
       setEditing(false)
@@ -119,9 +124,19 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
       ]
     : []
 
+  // Once the rename input is gone, the focus goes back to the card's menu button
+  useEffect(() => {
+    if (editing || !refocusMore.current) return
+    refocusMore.current = false
+    moreRef.current?.focus()
+  }, [editing])
+
   const onMenuClick: MenuProps['onClick'] = ({ key }) => {
     setMenuOpen(false)
     if (!actions) return
+    // The menu's item is gone: the focus goes back to its button, where a confirmation dialog
+    // also returns it (delete moves it on from there, the card being gone)
+    if (key !== 'rename') moreRef.current?.focus()
     if (key === 'rename') startRename()
     else if (key === 'replace') actions.onReplace()
     else if (key === 'duplicate') actions.onDuplicate()
@@ -132,7 +147,7 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
     <div
       data-library-card={item.key}
       className={`group rounded border bg-white transition-colors ${
-        highlighted ? 'border-[#7763F1]' : 'border-gray-200 hover:border-[#7763F1]'
+        highlighted ? 'border-primary-500' : 'border-gray-200 hover:border-primary-500'
       }`}
       style={{ opacity: isDragging ? 0.4 : 1 }}
     >
@@ -140,6 +155,9 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
       <div
         ref={setNodeRef}
         {...listeners}
+        // dnd-kit's instructions, linked; not its role and tab stop, as Insert is the keyboard path
+        aria-describedby={attributes['aria-describedby']}
+        aria-roledescription={attributes['aria-roledescription']}
         data-library-drag-handle
         className={editing ? '' : 'cursor-grab select-none'}
         style={{ touchAction: 'none' }}
@@ -168,12 +186,13 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
                   exceedFormatter: (text, { max }) => fitUtf8(text, max)
                 }}
                 onChange={(e) => setDraft(e.target.value)}
-                onPressEnter={() => endRename(true)}
+                onPressEnter={() => endRename(true, true)}
                 onKeyDown={(e) => {
-                  // Escape during an IME conversion cancels the conversion, not the rename
-                  if (e.key === 'Escape' && !e.nativeEvent.isComposing) {
+                  // Escape during an IME conversion cancels the conversion, not the rename. Safari
+                  // ends a conversion with a keydown that is no longer composing but has keyCode 229.
+                  if (e.key === 'Escape' && !e.nativeEvent.isComposing && e.keyCode !== 229) {
                     e.stopPropagation()
-                    endRename(false)
+                    endRename(false, true)
                   }
                 }}
                 onBlur={() => endRename(true)}
@@ -220,9 +239,11 @@ export const SavedBlockCard: React.FC<SavedBlockCardProps> = ({
               menu={{ items: menu, onClick: onMenuClick }}
             >
               <Button
+                ref={moreRef}
                 size="small"
                 type="text"
                 className="shrink-0"
+                data-library-more
                 aria-label={t`More actions for ${name}`}
                 icon={<FontAwesomeIcon icon={faEllipsis} />}
               />

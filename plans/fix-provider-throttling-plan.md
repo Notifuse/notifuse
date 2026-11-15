@@ -3,7 +3,8 @@
 Branch: `fix/provider-throttling` (from `dev`, PR to `dev`). Docs: `Notifuse/docs`, branch `docs/provider-throttling`, PR to `dev`.
 No schema change, no migration, no new environment variable.
 
-Reviews of this plan: Gemini (`/mnt/project-files/reviews/fix-provider-throttling-gemini-brut-plan.md`) and an independent xhigh review; outcomes in "Plan review outcomes" at the end, verdicts in `/mnt/project-files/reviews/fix-provider-throttling-gemini-verif-plan.md`.
+Reviews of this plan: Gemini and an independent xhigh review; outcomes in "Plan review outcomes"
+at the end.
 
 ## The problem
 

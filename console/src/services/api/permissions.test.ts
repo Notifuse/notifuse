@@ -225,6 +225,10 @@ describe('templates read catalogue', () => {
       ])
     )
   })
+  it('lists broadcasts.sendToIndividual, which reads the template with the member context', () => {
+    const endpoints = PERMISSION_DESCRIPTORS.templates.read.endpoints.map((e) => e.endpoint)
+    expect(endpoints).toContain('/api/broadcasts.sendToIndividual')
+  })
   it('lists templates.usage, which answers under Templates read', () => {
     const endpoints = PERMISSION_DESCRIPTORS.templates.read.endpoints.map((e) => e.endpoint)
     expect(endpoints).toContain('/api/templates.usage')

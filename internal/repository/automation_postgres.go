@@ -615,13 +615,18 @@ func (r *AutomationRepository) ExitContactJourneysOnReply(ctx context.Context, w
 		RETURNING c.n`, automationFilter)
 
 	var total int
-	for attempt := 1; ; attempt++ {
+	attempt := 1
+	for ; ; attempt++ {
+		args[3] = time.Now().UTC() // updated_at, taken again on each attempt
 		total, err = runExitOnReply(ctx, db, query, args)
 		if err == nil || attempt >= exitOnReplyAttempts || !isDeadlock(err) {
 			break
 		}
 	}
 	if err != nil {
+		if isDeadlock(err) {
+			return 0, fmt.Errorf("failed to exit contact journeys on reply after %d deadlocks: %w", attempt, err)
+		}
 		return 0, fmt.Errorf("failed to exit contact journeys on reply: %w", err)
 	}
 	return total, nil
@@ -675,16 +680,27 @@ func (r *AutomationRepository) DeleteTx(ctx context.Context, tx *sql.Tx, workspa
 
 	now := time.Now().UTC()
 
+	var execer interface {
+		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	}
+	if tx != nil {
+		execer = tx
+	} else {
+		execer = db
+	}
+
 	// 1. Drop the automation trigger (ignore errors - trigger might not exist)
 	_ = r.DropAutomationTrigger(ctx, workspaceID, id)
 
-	// 2. Mark all active contact_automations as exited with reason
+	// 2. Mark all active contact_automations as exited with reason. These exits are not added
+	// to stats.exited, unlike a reply's: a deleted automation's stats are never read again
+	// (GetByIDTx and List leave deleted automations out, and the v44 recount skips them).
 	exitQuery := `
 		UPDATE contact_automations
 		SET status = 'exited', scheduled_at = NULL, exit_reason = 'automation_deleted'
 		WHERE automation_id = $1 AND status = 'active'
 	`
-	_, err = db.ExecContext(ctx, exitQuery, id)
+	_, err = execer.ExecContext(ctx, exitQuery, id)
 	if err != nil {
 		return fmt.Errorf("failed to exit active contacts: %w", err)
 	}
@@ -700,15 +716,6 @@ func (r *AutomationRepository) DeleteTx(ctx context.Context, tx *sql.Tx, workspa
 		return fmt.Errorf("failed to build query: %w", err)
 	}
 
-	var execer interface {
-		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	}
-	if tx != nil {
-		execer = tx
-	} else {
-		execer = db
-	}
-
 	result, err := execer.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to soft-delete automation: %w", err)
@@ -719,7 +726,7 @@ func (r *AutomationRepository) DeleteTx(ctx context.Context, tx *sql.Tx, workspa
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("automation not found or already deleted: %s", id)
+		return &domain.ErrNotFound{Entity: "automation", ID: id}
 	}
 
 	return nil
@@ -959,7 +966,7 @@ func (r *AutomationRepository) GetContactAutomationTx(ctx context.Context, tx *s
 		&ca.LastRetryAt, &ca.MaxRetries,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("contact automation not found: %s", id)
+		return nil, fmt.Errorf("%w: %s", domain.ErrContactAutomationNotFound, id)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contact automation: %w", err)
@@ -1243,9 +1250,12 @@ func (r *AutomationRepository) ClaimScheduledContactAutomations(ctx context.Cont
 			return nil, fmt.Errorf("failed to scan contact automation row: %w", err)
 		}
 
+		// The claim has already moved this journey's scheduled_at: a context that does not
+		// decode into an object (an array, a scalar) is read as none rather than failing the
+		// claim, which would hold the whole batch until its lease ends.
 		if len(contextJSON) > 0 {
 			if err := json.Unmarshal(contextJSON, &ca.Context); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal context: %w", err)
+				ca.Context = nil
 			}
 		}
 
@@ -1257,6 +1267,31 @@ func (r *AutomationRepository) ClaimScheduledContactAutomations(ctx context.Cont
 	}
 
 	return cas, nil
+}
+
+// ReleaseContactAutomationClaim makes a claimed journey due now, only while it is still active
+// and still holds the claim token. A run that stops before a journey hands it back this way
+// instead of leaving it to wait out its lease. It returns false when the journey was claimed
+// again since, or ended.
+func (r *AutomationRepository) ReleaseContactAutomationClaim(ctx context.Context, workspaceID, id string, token time.Time) (bool, error) {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	result, err := db.ExecContext(ctx, `
+		UPDATE contact_automations
+		SET scheduled_at = NOW()
+		WHERE id = $1 AND status = 'active' AND scheduled_at = $2
+	`, id, token)
+	if err != nil {
+		return false, fmt.Errorf("failed to release contact automation claim: %w", err)
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to read released claim: %w", err)
+	}
+	return n == 1, nil
 }
 
 // RenewContactAutomationClaim extends a claim to NOW() + lease, only while the journey is

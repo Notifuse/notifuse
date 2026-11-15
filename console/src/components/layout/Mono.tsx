@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { App } from 'antd'
 import { Copy } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
@@ -14,17 +14,19 @@ export interface MonoProps {
 export function Mono({ children, copy }: MonoProps) {
   const { t } = useLingui()
   const { message } = App.useApp()
+  const codeRef = useRef<HTMLElement>(null)
   const text = typeof children === 'string' || typeof children === 'number' ? String(children) : undefined
 
   const handleCopy = async () => {
-    const value = text ?? ''
+    // What is shown, whatever the children are made of
+    const value = codeRef.current?.textContent ?? ''
     if (await copyToClipboard(value)) message.success(t`Copied`)
     else message.error(t`Failed to copy to clipboard`)
   }
 
   return (
     <span className="inline-flex max-w-full min-w-0 items-center gap-1">
-      <code title={text} className="truncate rounded-sm bg-fill px-1.5 font-mono text-xs text-ink-2">
+      <code ref={codeRef} title={text} className="truncate rounded-sm bg-fill px-1.5 font-mono text-xs text-ink-2">
         {children}
       </code>
       {copy ? (

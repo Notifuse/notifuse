@@ -328,6 +328,17 @@ func TestHostOf(t *testing.T) {
 		"https://my_host.example.com": "my_host.example.com",
 		"https://bücher_shop.example": "xn--bcher_shop-9db.example",
 		"https://ü\u0080.example":     "",
+		// Not valid UTF-8: no browser sends it, and it must not pass for a host.
+		"https://%FF.example": "",
+		// Non-transitional mapping keeps ß, as browsers do (transitional would give strasse).
+		"https://straße.example": "xn--strae-oqa.example",
+		// A hyphen at a label's end is allowed, as browsers allow it.
+		"https://-ü.example": "xn----eha.example",
+		// An IP literal is written in its canonical form, so two spellings are one host.
+		"https://[2001:0DB8:0:0:0:0:0:1]:8443": "2001:db8::1",
+		"https://[2001:db8::1]":                "2001:db8::1",
+		"https://[fe80::1%25eth0]":             "fe80::1%eth0",
+		"https://192.168.0.1:8080":             "192.168.0.1",
 	}
 	for raw, want := range cases {
 		assert.Equal(t, want, HostOf(raw), "%q", raw)
@@ -448,4 +459,20 @@ func TestSameHostname(t *testing.T) {
 	assert.True(t, SameHostname("2001:db8::1", "2001:DB8::1"))
 	assert.False(t, SameHostname("2001:db8::1", "2001:db8::2"))
 	assert.False(t, SameHostname("", ""))
+}
+
+func TestCanonicalIP(t *testing.T) {
+	for raw, want := range map[string]string{
+		"2001:0DB8:0:0:0:0:0:1": "2001:db8::1",
+		"::FFFF:192.0.2.1":      "::ffff:192.0.2.1",
+		"10.0.0.1":              "10.0.0.1",
+	} {
+		got, ok := CanonicalIP(raw)
+		assert.True(t, ok, raw)
+		assert.Equal(t, want, got, raw)
+	}
+	for _, raw := range []string{"", "example.com", "[2001:db8::1]", "1.2.3"} {
+		_, ok := CanonicalIP(raw)
+		assert.False(t, ok, raw)
+	}
 }

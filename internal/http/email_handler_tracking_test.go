@@ -472,21 +472,6 @@ func TestEncryptedClick_PassesEveryOwnHostToTheRecorder(t *testing.T) {
 		req.Header.Set("User-Agent", trackingTestUA)
 		handler.handleEncryptedClick(httptest.NewRecorder(), req)
 	})
-
-	t.Run("the legacy /visit route passes them too", func(t *testing.T) {
-		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
-		expectLookup(ws, trackingtoken.Workspace{EndpointHost: "links.brand.com"}, trackingtoken.WorkspaceKnown)
-		svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, "", []string{"notifuse:8080", "mail.brand.test", apiHost, "links.brand.com"}, false).Return(nil)
-
-		req := httptest.NewRequest(http.MethodGet, "/visit?"+url.Values{
-			"mid": {trackingTestMessageID}, "wid": {trackingTestWorkspace}, "url": {"https://shop.example.com/x"},
-			"ts": {strconv.FormatInt(oldTS(), 10)},
-		}.Encode(), nil)
-		req.Host = "notifuse:8080"
-		req.Header.Set("User-Agent", trackingTestUA)
-		req.Header.Set("X-Forwarded-Host", "mail.brand.test")
-		handler.handleClickRedirection(httptest.NewRecorder(), req)
-	})
 }
 
 // TestClickOwnHosts_BracketsIPv6EndpointHosts pins the form of an endpoint host that is
@@ -497,4 +482,36 @@ func TestClickOwnHosts_BracketsIPv6EndpointHosts(t *testing.T) {
 	req.Host = "127.0.0.1:8080"
 	assert.Equal(t, []string{"127.0.0.1:8080", "[2001:db8::1]", "[::1]"}, clickOwnHosts(req, "2001:db8::1", "::1"))
 	assert.Equal(t, []string{"127.0.0.1:8080", "api.notifuse.test"}, clickOwnHosts(req, "api.notifuse.test", ""))
+}
+
+// TestClickRoutes_EndpointHostOnlyForAKnownWorkspace pins the guards that read a
+// workspace's custom endpoint host only when the lookup knows the workspace: an
+// unavailable lookup may still carry a stale value, which grants no redirect and no
+// own-host exemption.
+func TestClickRoutes_EndpointHostOnlyForAKnownWorkspace(t *testing.T) {
+	const dest = "https://links.brand.com/notification-center"
+	stale := trackingtoken.Workspace{EndpointHost: "links.brand.com"}
+
+	t.Run("/visit", func(t *testing.T) {
+		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
+		expectLookup(ws, stale, trackingtoken.WorkspaceUnavailable)
+		expectVisit(svc, "", false)
+		assertInterstitial(t, visitRequest(handler, url.Values{
+			"url": {dest}, "mid": {trackingTestMessageID}, "wid": {trackingTestWorkspace}, "ts": {strconv.FormatInt(oldTS(), 10)},
+		}, trackingTestReqHost))
+	})
+
+	t.Run("/r/", func(t *testing.T) {
+		svc, ws, _, handler := setupEmailHandlerTestWithWorkspaces(t)
+		expectLookup(ws, stale, trackingtoken.WorkspaceUnavailable)
+		var hosts []string
+		svc.EXPECT().VisitLink(gomock.Any(), trackingTestMessageID, trackingTestWorkspace, dest, gomock.Any(), false).
+			DoAndReturn(func(_ context.Context, _, _, _ string, ownHosts []string, _ bool) error {
+				hosts = ownHosts
+				return nil
+			})
+		assertInterstitial(t, clickRequest(handler, signedClickToken(t, nil, oldTS(), dest), trackingTestReqHost, trackingTestUA))
+		assert.Contains(t, hosts, trackingTestReqHost)
+		assert.NotContains(t, hosts, "links.brand.com")
+	})
 }

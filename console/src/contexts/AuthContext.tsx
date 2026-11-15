@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { authService } from '../services/api/auth'
 import { workspaceService } from '../services/api/workspace'
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
@@ -166,6 +166,34 @@ export interface WorkspacePermissions {
   loading: boolean
 }
 
+interface AnswerCounts {
+  data: number
+  error: number
+  /** When the last answer, or failure, landed. */
+  at: number
+}
+
+/** Where a caller of a key started counting answers, and the counts it last saw. */
+interface AnswerTally {
+  key: string
+  start: AnswerCounts
+  seen: AnswerCounts
+}
+
+/**
+ * The tally after a render that sees `seen`. A new key starts afresh. A reset sets the counts back
+ * to 0, and its refetch may land in the same render: a count lower than the last seen, or an answer
+ * whose count did not grow, is one, and every answer from it counts.
+ */
+function nextTally(tally: AnswerTally, key: string, seen: AnswerCounts): AnswerTally {
+  if (tally.key !== key) return { key, start: seen, seen }
+  const last = tally.seen
+  if (seen.data === last.data && seen.error === last.error && seen.at === last.at) return tally
+  const grew = seen.data > last.data || seen.error > last.error
+  const reset = seen.data < last.data || seen.error < last.error || (!grew && seen.at !== last.at)
+  return { key, start: reset ? { data: 0, error: 0, at: 0 } : tally.start, seen }
+}
+
 // The signed-in user's permissions in a workspace, read from its members list. Pages and the
 // workspace layout stay mounted when the workspace changes, so the list is a query keyed by the
 // workspace: after a switch the hook answers "loading" until the new workspace's list arrives,
@@ -181,11 +209,31 @@ export function useWorkspacePermissions(workspaceId: string): WorkspacePermissio
 
   // The list depends on who asks (a member without Workspace read gets only their own entry),
   // hence the user in the key.
-  const { data, isFetchedAfterMount } = useQuery({
-    queryKey: ['workspace-members', workspaceId, userId],
+  const queryKey = ['workspace-members', workspaceId, userId]
+  const { data } = useQuery({
+    queryKey,
     queryFn: () => workspaceService.getMembers(workspaceId),
-    enabled: !!userId && !!workspaceId && !isRoot
+    enabled: !!userId && !!workspaceId && !isRoot,
+    // Every answer renders this caller again, a failure or a reset included, for the counts below
+    notifyOnChangeProps: ['data', 'dataUpdatedAt', 'errorUpdatedAt']
   })
+
+  // The query's answer counts when this caller started on its key. A cached list may predate a
+  // change of permissions, so only an answer from then on counts, as react-query's
+  // isFetchedAfterMount reads it. Unlike it, a reset (resetQueries sets the counts back to 0, and
+  // its refetch may land in the same render) moves the start to the reset: a caller mounted over a
+  // cached list would otherwise stay loading after the reset's own refetch.
+  const state = useQueryClient().getQueryState(queryKey)
+  const seen: AnswerCounts = {
+    data: state?.dataUpdateCount ?? 0,
+    error: state?.errorUpdateCount ?? 0,
+    at: Math.max(state?.dataUpdatedAt ?? 0, state?.errorUpdatedAt ?? 0)
+  }
+  const key = `${workspaceId}:${userId ?? ''}`
+  const [tally, setTally] = useState<AnswerTally>(() => ({ key, start: seen, seen }))
+  const next = nextTally(tally, key, seen)
+  if (next !== tally) setTally(next)
+  const answeredSince = seen.data > next.start.data || seen.error > next.start.error
 
   // Memoised, so a caller that depends on the permissions object sees it change only when the
   // answer does.
@@ -197,10 +245,9 @@ export function useWorkspacePermissions(workspaceId: string): WorkspacePermissio
     if (isRoot) {
       return { permissions: ROOT_USER_PERMISSIONS, role: 'root', loading: false }
     }
-    // A cached list may predate a change of permissions: wait for this mount's own answer, as
-    // when each caller fetched its own. (resetQueries on this key would set its answer count
-    // back and leave a caller mounted over a cached list loading: nothing resets it today.)
-    if (!isFetchedAfterMount) {
+    // A cached list may predate a change of permissions: wait for an answer from this caller's
+    // start, as when each caller fetched its own.
+    if (!answeredSince) {
       return { permissions: null, role: undefined, loading: true }
     }
     // On error with no list, assume no permissions. A failed refetch keeps the list the query
@@ -221,5 +268,5 @@ export function useWorkspacePermissions(workspaceId: string): WorkspacePermissio
       role: currentUserMember.role === 'owner' ? 'owner' : 'member',
       loading: false
     }
-  }, [userId, workspaceId, isRoot, data, isFetchedAfterMount])
+  }, [userId, workspaceId, isRoot, data, answeredSince])
 }

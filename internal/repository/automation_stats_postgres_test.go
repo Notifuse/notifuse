@@ -67,8 +67,8 @@ func TestAutomationRepository_CountJourneysByStatus(t *testing.T) {
 // The node stats statements, matched on the parts that decide which rows count (the visits'
 // FILTER, the FROM and WHERE clauses); the integration test checks what they count.
 const (
-	visitsQuery         = `SELECT node_id,\s+COUNT\(\*\) FILTER \(WHERE action IN \('processing', 'completed', 'skipped'\)\),[\s\S]*FROM automation_node_executions\s+WHERE automation_id = \$1%s\s+GROUP BY node_id$`
-	notPassedQuery      = `FROM contact_automations ca\s+CROSS JOIN LATERAL \([\s\S]*ORDER BY e.entered_at DESC\s+LIMIT 1\s+\) l\s+WHERE ca.automation_id = \$1 AND ca.status IN \('active', 'failed', 'exited'\)\s+AND ca.current_node_id IS NOT NULL\s+AND l.node_id = ca.current_node_id AND l.action IN \('entered', 'failed'\)%s\s+GROUP BY 1$`
+	visitsQuery         = `SELECT node_id,\s+COUNT\(\*\) FILTER \(WHERE action IN \('processing', 'completed', 'skipped'\)\),[\s\S]*COUNT\(\*\) FILTER \(WHERE action = 'failed' AND completed_at IS NULL\),[\s\S]*FROM automation_node_executions\s+WHERE automation_id = \$1%s\s+GROUP BY node_id$`
+	notPassedQuery      = `FROM contact_automations ca\s+CROSS JOIN LATERAL \(\s*SELECT e\.node_id, e\.action, e\.entered_at\s+FROM automation_node_executions e\s+WHERE e\.contact_automation_id = ca\.id\s+ORDER BY e.entered_at DESC\s+LIMIT 1\s+\) l\s+WHERE ca.automation_id = \$1 AND ca.status IN \('active', 'failed', 'exited'\)\s+AND ca.current_node_id IS NOT NULL\s+AND l.node_id = ca.current_node_id AND l.action IN \('entered', 'failed'\)%s\s+GROUP BY 1$`
 	skipReasonsQuery    = `SELECT node_id, output->>'skip_reason', COUNT\(\*\)\s+FROM automation_node_executions\s+WHERE automation_id = \$1 AND action = 'completed' AND output->>'skipped' = 'true'\s+AND output->>'skip_reason' IS NOT NULL%s\s+GROUP BY 1, 2$`
 	branchesQuery       = `AND node_type IN \('filter', 'list_status_branch', 'ab_test', 'branch'\)%s\s+\) b\s+WHERE branch IS NOT NULL`
 	inPlaceQuery        = `WHERE ca.automation_id = \$1 AND ca.status = 'active'\s+\) s\s+WHERE node_id IS NOT NULL\s+GROUP BY 1, 2$`
@@ -241,4 +241,37 @@ func TestAutomationRepository_GetNodeStats(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "begin")
 	})
+}
+
+// txOptionsConnector is a driver whose connections record the options of the transaction they
+// are asked to begin, and refuse it. go-sqlmock ignores BeginTx's options.
+type txOptionsConnector struct{ got *driver.TxOptions }
+
+func (c txOptionsConnector) Connect(context.Context) (driver.Conn, error) {
+	return txOptionsConn(c), nil
+}
+func (c txOptionsConnector) Driver() driver.Driver { return nil }
+
+type txOptionsConn struct{ got *driver.TxOptions }
+
+func (txOptionsConn) Prepare(string) (driver.Stmt, error) { return nil, errors.New("not supported") }
+func (txOptionsConn) Close() error                        { return nil }
+func (txOptionsConn) Begin() (driver.Tx, error)           { return nil, errors.New("not supported") }
+func (c txOptionsConn) BeginTx(_ context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	*c.got = opts
+	return nil, errors.New("refused")
+}
+
+// The node stats statements share one read-only, repeatable-read snapshot.
+func TestAutomationRepository_GetNodeStats_ReadOnlySnapshot(t *testing.T) {
+	var got driver.TxOptions
+	db := sql.OpenDB(txOptionsConnector{got: &got})
+	defer func() { _ = db.Close() }()
+	repo := &AutomationRepository{db: db}
+
+	_, err := repo.GetNodeStats(context.Background(), "ws1", "auto1", nil, nil, false)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to begin node stats transaction")
+	assert.True(t, got.ReadOnly, "read-only")
+	assert.Equal(t, driver.IsolationLevel(sql.LevelRepeatableRead), got.Isolation)
 }

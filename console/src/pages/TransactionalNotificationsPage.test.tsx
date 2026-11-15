@@ -558,24 +558,30 @@ describe('TransactionalNotificationsPage list', () => {
 })
 
 describe('TransactionalNotificationsPage rights', () => {
-  it('disables the test without templates read, and says what is needed', async () => {
+  it('refuses the test without templates read, and says what is needed', async () => {
     state.permissions = { ...full, templates: { read: false, write: false } }
     renderPage()
     await screen.findByText('Welcome')
 
+    // Refused, yet still on the keyboard path (RefusedButton)
     const button = within(row('Welcome')).getByRole('button', { name: 'Send test' })
-    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).toHaveAccessibleDescription(
+      'You need Templates read and Transactional write permissions to send test emails'
+    )
     expect(await tooltipOf(button.parentElement as HTMLElement)).toBe(
       'You need Templates read and Transactional write permissions to send test emails'
     )
   })
 
-  it('disables the test of a notification whose template is missing', async () => {
+  it('refuses the test of a notification whose template is missing', async () => {
     renderPage()
     await screen.findByText('Managed')
     await within(row('Managed')).findByText('tpl-managed')
 
-    await waitFor(() => expect(within(row('Managed')).getByRole('button', { name: 'Send test' })).toBeDisabled())
+    await waitFor(() =>
+      expect(within(row('Managed')).getByRole('button', { name: 'Send test' })).toHaveAttribute('aria-disabled', 'true')
+    )
   })
 
   it('disables creation without templates read, and says what is needed', async () => {

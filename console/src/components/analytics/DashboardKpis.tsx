@@ -205,6 +205,7 @@ export function DashboardKpis({
   const items: KpiItem[] = []
 
   if (canContacts) {
+    const contactsNewPending = contactsNew.data === undefined || contactsNew.isPlaceholderData
     const contactsValue = (
       <Link
         to="/console/workspace/$workspaceId/contacts"
@@ -229,15 +230,14 @@ export function DashboardKpis({
             label: t`Contacts`,
             value: contactsValue,
             // Nothing until the count of new contacts of this period arrives, rather than a false « +0 »
-            // or the count of the period before.
-            sub:
-              contactsNew.data === undefined || contactsNew.isPlaceholderData
-                ? undefined
-                : t`${plural(days, {
-                    one: `+${int(kpis.contacts.added)} over # d`,
-                    other: `+${int(kpis.contacts.added)} over # d`
-                  })}`,
-            tone: kpis.contacts.tone
+            // or the count of the period before, nor its tone.
+            sub: contactsNewPending
+              ? undefined
+              : t`${plural(days, {
+                  one: `+${int(kpis.contacts.added)} over # d`,
+                  other: `+${int(kpis.contacts.added)} over # d`
+                })}`,
+            tone: contactsNewPending ? 'neutral' : kpis.contacts.tone
           }
     )
   }

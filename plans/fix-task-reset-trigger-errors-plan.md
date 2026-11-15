@@ -23,16 +23,18 @@ No schema change, no migration, no environment variable.
 
 `GetTx` returns `domain.ErrTaskNotFound` for `sql.ErrNoRows`, and `MarkAsPendingTx`
 returns it when no row is updated, instead of `fmt.Errorf("task not found")`. The text is
-the same ("task not found"), so the callers that match the string (the `GetTask` handler, `authorizeExistingTask`)
-or carry it on (the `ExecuteTask` handler, `MarkAsFailedTx`, the orchestrator) behave as before; callers can now use `errors.Is`. `Get` goes through `GetTx` inside
-`WithTransaction`, which returns the callback's error unwrapped. The `MarkAsPendingTx`
-change keeps a task deleted between reset's read and its write a 404 rather than a 500,
-and makes the "recurring task deleted during execution" branch of `ExecuteTask`
-(`errors.Is(err, domain.ErrTaskNotFound)` after `MarkAsPending`) reachable.
+the same ("task not found"), so the callers that match the string (the `GetTask` handler,
+`authorizeExistingTask`) or carry it on (the `ExecuteTask` handler, `MarkAsFailedTx`, the
+orchestrator) behave as before; callers can now use `errors.Is`. `Get` goes through
+`GetTx` inside `WithTransaction`, which returns the callback's error unwrapped. The
+`MarkAsPendingTx` change keeps a task deleted between reset's read and its write a 404
+rather than a 500, and makes the "recurring task deleted during execution" branch of
+`ExecuteTask` (`errors.Is(err, domain.ErrTaskNotFound)` after `MarkAsPending`) reachable.
 
 Test files: `internal/repository/task_tx_branches_test.go` (no row →
-`errors.Is(err, domain.ErrTaskNotFound)` besides the text), `internal/repository/task_postgres_test.go`
-(`MarkAsPending` / `MarkAsPendingTx` updating no row → `ErrTaskNotFound`).
+`errors.Is(err, domain.ErrTaskNotFound)` besides the text),
+`internal/repository/task_postgres_test.go` (`MarkAsPending` / `MarkAsPendingTx` updating
+no row → `ErrTaskNotFound`).
 
 ### `internal/service/task_service.go`
 
@@ -41,9 +43,10 @@ Test files: `internal/repository/task_tx_branches_test.go` (no row →
 - any other lookup error → `fmt.Errorf("failed to get task: %w", err)`;
 - the state refusals become `domain.ValidationError`, built with
   `domain.NewValidationError` (a value: a pointer would not match `writeValidationError`'s
-  value target and would drop to 500), the existing type the HTTP layer maps to 400: "task is not in failed state, current status:
-  …", "task is not a recurring task", "task cannot be triggered in current status: …".
-  Their text gains the type's "validation error: " prefix.
+  value target and would drop to 500), the existing type the HTTP layer maps to 400: "task
+  is not in failed state, current status: …", "task is not a recurring task", "task cannot
+  be triggered in current status: …". Their text gains the type's "validation error: "
+  prefix.
 - `ErrTaskAlreadyRunning` and the write failures (`failed to reset task: %w`,
   `failed to trigger task: %w`) are unchanged.
 
@@ -81,9 +84,9 @@ optional fractional seconds, the same without zone (`to_json` of a `timestamp`),
 PostgreSQL's text output with a numeric zone (`2006-01-02 15:04:05.999999999-07:00` and
 `-07`), without zone, and a bare date. A zoneless value is read as UTC, as lib/pq does and
 as the `TIMESTAMP` columns are written. Text that matches none is an error naming the
-text. Refused on purpose, since a `time.Time` cannot hold them or Go cannot parse them:
-`infinity` (a `time.Time` cannot hold it), BC dates, years above 9999 and historic
-second-level offsets (`time.Parse` does not read them). A refused text leaves the value as it was.
+text. Refused on purpose: `infinity` (a `time.Time` cannot hold it), BC dates, years above
+9999 and historic second-level offsets (`time.Parse` does not read them). A refused text
+leaves the value as it was.
 
 No production code scans into `NullableTime` today (contacts go through `sql.NullTime`,
 and lib/pq decodes timestamps to `time.Time` itself), so the change is not visible with the
@@ -92,8 +95,9 @@ shipped driver.
 Test files: `internal/domain/nullable_time_text_test.go` (each layout as `[]byte` and as
 `string` → the expected instant, compared with `Equal`; `invalid`, `2026-13-45`, empty,
 `infinity`, a BC date → error), `internal/domain/feed_nullable_gap_test.go` (its `[]byte`
-case pinned the old failure; it now scans into a fresh NULL value and pins the parsed instant), `internal/domain/nullables_test.go`
-(the string case is renamed "scan text that is not a time").
+case pinned the old failure; it now scans into a fresh NULL value and pins the parsed
+instant), `internal/domain/nullables_test.go` (the string case is renamed "scan text that
+is not a time").
 
 ### `CHANGELOG.md`
 

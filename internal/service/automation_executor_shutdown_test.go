@@ -200,7 +200,9 @@ func TestAutomationExecutor_ProcessBatch_Shutdown(t *testing.T) {
 		}, nil)
 		journeys := h.claim("ca-1", "ca-2")
 		h.expectRenewal(journeys[0])
-		// No renewal of ca-2: it keeps its claim and is due again when it ends.
+		// No renewal of ca-2: its claim is handed back, so it is due again at once.
+		h.repo.EXPECT().ReleaseContactAutomationClaim(gomock.Any(), shutdownTestWorkspace, journeys[1].ID, *journeys[1].ScheduledAt).
+			Return(true, nil)
 
 		processed, err := h.executor.ProcessBatch(ctx, 50)
 		require.NoError(t, err)
@@ -241,7 +243,7 @@ func TestAutomationExecutor_ProcessBatch_Shutdown(t *testing.T) {
 			t.Fatal("ProcessBatch did not return after the drain deadline")
 		}
 		assert.GreaterOrEqual(t, nodeDoneAt.Sub(cancelledAt), drain, "the node keeps its context for the drain")
-		assert.Empty(t, h.landedWrites(), "a node cut by the deadline records nothing")
+		assert.Empty(t, h.landedWrites(), "a node cut by the deadline does not move its journey")
 	})
 
 	t.Run("no deadline while the app runs", func(t *testing.T) {

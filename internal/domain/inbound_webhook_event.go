@@ -14,7 +14,15 @@ import (
 // Permanent (client/config) errors for inbound reply processing. The HTTP handler maps
 // these to 4xx so the provider stops retrying, instead of 5xx (which triggers retries).
 var (
+	// ErrInboundIntegrationNotFound is also the email provider webhook's error for an
+	// integration ID the workspace does not have.
 	ErrInboundIntegrationNotFound = errors.New("inbound: integration not found")
+	// ErrWebhookProviderUnsupported: the email provider webhook names an integration whose
+	// kind sends no delivery events.
+	ErrWebhookProviderUnsupported = errors.New("webhook: the integration is not an email provider that sends events")
+	// ErrWebhookPayloadInvalid wraps the error of a provider's parser that refused the
+	// payload of the email provider webhook.
+	ErrWebhookPayloadInvalid = errors.New("webhook: invalid payload")
 	ErrInboundProviderUnsupported = errors.New("inbound: provider does not support inbound replies")
 	// ErrInboundControlMessage signals that a ReplyParser handled a provider control
 	// message (e.g. an SNS subscription confirmation) rather than a real reply. The caller

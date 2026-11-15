@@ -168,7 +168,7 @@ func TestGetTaskRequest_FromURLParams(t *testing.T) {
 	t.Run("valid params", func(t *testing.T) {
 		values := url.Values{
 			"workspace_id": []string{"ws-123"},
-			"id":           []string{"task-456"},
+			"id":           []string{"46646646-6466-4466-8466-466466466466"},
 		}
 
 		req := &GetTaskRequest{}
@@ -176,7 +176,7 @@ func TestGetTaskRequest_FromURLParams(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "ws-123", req.WorkspaceID)
-		assert.Equal(t, "task-456", req.ID)
+		assert.Equal(t, "46646646-6466-4466-8466-466466466466", req.ID)
 	})
 
 	t.Run("missing params", func(t *testing.T) {
@@ -196,7 +196,7 @@ func TestDeleteTaskRequest_FromURLParams(t *testing.T) {
 	t.Run("valid params", func(t *testing.T) {
 		values := url.Values{
 			"workspace_id": []string{"ws-123"},
-			"id":           []string{"task-456"},
+			"id":           []string{"46646646-6466-4466-8466-466466466466"},
 		}
 
 		req := &DeleteTaskRequest{}
@@ -204,13 +204,13 @@ func TestDeleteTaskRequest_FromURLParams(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "ws-123", req.WorkspaceID)
-		assert.Equal(t, "task-456", req.ID)
+		assert.Equal(t, "46646646-6466-4466-8466-466466466466", req.ID)
 	})
 
 	t.Run("missing workspace", func(t *testing.T) {
 		values := url.Values{
 			// Missing workspace_id
-			"id": []string{"task-456"},
+			"id": []string{"46646646-6466-4466-8466-466466466466"},
 		}
 
 		req := &DeleteTaskRequest{}
@@ -724,7 +724,7 @@ func TestExecuteTaskRequest_Validate(t *testing.T) {
 	t.Run("valid request", func(t *testing.T) {
 		req := &ExecuteTaskRequest{
 			WorkspaceID: "ws-123",
-			ID:          "task-456",
+			ID:          "46646646-6466-4466-8466-466466466466",
 		}
 
 		err := req.Validate()
@@ -733,7 +733,7 @@ func TestExecuteTaskRequest_Validate(t *testing.T) {
 
 	t.Run("missing workspace_id", func(t *testing.T) {
 		req := &ExecuteTaskRequest{
-			ID: "task-456",
+			ID: "46646646-6466-4466-8466-466466466466",
 		}
 
 		err := req.Validate()
@@ -957,7 +957,7 @@ func TestResetTaskRequest_Validate(t *testing.T) {
 	t.Run("valid request", func(t *testing.T) {
 		req := &ResetTaskRequest{
 			WorkspaceID: "ws-123",
-			ID:          "task-456",
+			ID:          "46646646-6466-4466-8466-466466466466",
 		}
 
 		err := req.Validate()
@@ -966,7 +966,7 @@ func TestResetTaskRequest_Validate(t *testing.T) {
 
 	t.Run("missing workspace_id", func(t *testing.T) {
 		req := &ResetTaskRequest{
-			ID: "task-456",
+			ID: "46646646-6466-4466-8466-466466466466",
 		}
 
 		err := req.Validate()
@@ -977,7 +977,7 @@ func TestResetTaskRequest_Validate(t *testing.T) {
 	t.Run("empty workspace_id", func(t *testing.T) {
 		req := &ResetTaskRequest{
 			WorkspaceID: "",
-			ID:          "task-456",
+			ID:          "46646646-6466-4466-8466-466466466466",
 		}
 
 		err := req.Validate()
@@ -1011,7 +1011,7 @@ func TestTriggerTaskRequest_Validate(t *testing.T) {
 	t.Run("valid request", func(t *testing.T) {
 		req := &TriggerTaskRequest{
 			WorkspaceID: "ws-123",
-			ID:          "task-456",
+			ID:          "46646646-6466-4466-8466-466466466466",
 		}
 
 		err := req.Validate()
@@ -1020,7 +1020,7 @@ func TestTriggerTaskRequest_Validate(t *testing.T) {
 
 	t.Run("missing workspace_id", func(t *testing.T) {
 		req := &TriggerTaskRequest{
-			ID: "task-456",
+			ID: "46646646-6466-4466-8466-466466466466",
 		}
 
 		err := req.Validate()
@@ -1031,7 +1031,7 @@ func TestTriggerTaskRequest_Validate(t *testing.T) {
 	t.Run("empty workspace_id", func(t *testing.T) {
 		req := &TriggerTaskRequest{
 			WorkspaceID: "",
-			ID:          "task-456",
+			ID:          "46646646-6466-4466-8466-466466466466",
 		}
 
 		err := req.Validate()
@@ -1066,7 +1066,7 @@ func TestTask_RecurringFields(t *testing.T) {
 		interval := int64(60)
 		integrationID := "int-123"
 		task := &Task{
-			ID:                "task-1",
+			ID:                "11111111-1111-4111-8111-111111111111",
 			WorkspaceID:       "ws-1",
 			Type:              "sync_integration",
 			RecurringInterval: &interval,
@@ -1080,7 +1080,7 @@ func TestTask_RecurringFields(t *testing.T) {
 
 	t.Run("task without recurring fields", func(t *testing.T) {
 		task := &Task{
-			ID:          "task-1",
+			ID:          "11111111-1111-4111-8111-111111111111",
 			WorkspaceID: "ws-1",
 			Type:        "send_broadcast",
 		}
@@ -1089,4 +1089,24 @@ func TestTask_RecurringFields(t *testing.T) {
 		assert.Nil(t, task.IntegrationID)
 		assert.False(t, task.IsRecurring())
 	})
+}
+
+// Every request that names a task refuses an ID that is not a UUID.
+func TestTaskRequests_IDMustBeAUUID(t *testing.T) {
+	const valid = "11111111-1111-4111-8111-111111111111"
+	// uuid.Parse reads the urn and braced forms; PostgreSQL's uuid type refuses the urn one.
+	for _, id := range []string{"not-a-uuid", "task-1", valid + "x", "urn:uuid:" + valid, "{" + valid + "}"} {
+		params := url.Values{"workspace_id": {"ws"}, "id": {id}}
+		assert.EqualError(t, (&GetTaskRequest{}).FromURLParams(params), "task id must be a UUID", id)
+		assert.EqualError(t, (&DeleteTaskRequest{}).FromURLParams(params), "task id must be a UUID", id)
+		assert.EqualError(t, (&ExecuteTaskRequest{WorkspaceID: "ws", ID: id}).Validate(), "task id must be a UUID", id)
+		assert.EqualError(t, (&ResetTaskRequest{WorkspaceID: "ws", ID: id}).Validate(), "task id must be a UUID", id)
+		assert.EqualError(t, (&TriggerTaskRequest{WorkspaceID: "ws", ID: id}).Validate(), "task id must be a UUID", id)
+	}
+	params := url.Values{"workspace_id": {"ws"}, "id": {valid}}
+	assert.NoError(t, (&GetTaskRequest{}).FromURLParams(params))
+	assert.NoError(t, (&DeleteTaskRequest{}).FromURLParams(params))
+	assert.NoError(t, (&ExecuteTaskRequest{WorkspaceID: "ws", ID: valid}).Validate())
+	assert.NoError(t, (&ResetTaskRequest{WorkspaceID: "ws", ID: valid}).Validate())
+	assert.NoError(t, (&TriggerTaskRequest{WorkspaceID: "ws", ID: valid}).Validate())
 }

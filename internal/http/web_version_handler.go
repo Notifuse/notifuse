@@ -122,15 +122,20 @@ func (h *WebVersionHandler) writeError(w http.ResponseWriter, r *http.Request, e
 }
 
 // webVersionRequestHost returns the host the reader asked for: the first
-// X-Forwarded-Host when a reverse proxy set one, the request's Host otherwise. A request
-// is judged on that one host, so a proxy that sends the API host as Host must forward the
-// reader's host in X-Forwarded-Host. A reader's browser sends neither header with
-// anything but the address it shows.
+// X-Forwarded-Host entry when a reverse proxy set one, else the first host parameter of
+// Forwarded (RFC 7239), else the request's Host. A request is judged on that one host,
+// so a proxy that sends the API host as Host must forward the reader's host. A reader's
+// browser sends neither header with anything but the address it shows.
 func webVersionRequestHost(r *http.Request) string {
 	if forwarded := r.Header.Get("X-Forwarded-Host"); forwarded != "" {
 		first, _, _ := strings.Cut(forwarded, ",")
 		if first = strings.TrimSpace(first); first != "" {
 			return first
+		}
+	}
+	for _, value := range r.Header.Values("Forwarded") {
+		if hosts := forwardedHeaderHosts(value); len(hosts) > 0 {
+			return hosts[0]
 		}
 	}
 	return r.Host

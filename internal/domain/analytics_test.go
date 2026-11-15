@@ -480,3 +480,19 @@ func TestMessageHistoryEngagementTimeDimensions(t *testing.T) {
 		assert.Equal(t, name, dimension.SQL, name)
 	}
 }
+
+// count_transactional_messages counts what the origin dimension calls transactional: a
+// notification's message, not an automation email carrying a notification ID, nor a broadcast's.
+func TestTransactionalMessagesMeasureFollowsTheOrigin(t *testing.T) {
+	m, ok := PredefinedSchemas["message_history"].Measures["count_transactional_messages"]
+	require.True(t, ok)
+	sql := make([]string, 0, len(m.Filters))
+	for _, f := range m.Filters {
+		sql = append(sql, f.SQL)
+	}
+	assert.ElementsMatch(t, []string{
+		"transactional_notification_id IS NOT NULL",
+		"automation_id IS NULL",
+		"broadcast_id IS NULL",
+	}, sql)
+}

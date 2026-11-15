@@ -2487,6 +2487,78 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// The template test send uses the sender chosen in the dialog, whatever the translation's,
+// and the subject and reply-to of the translation of the language chosen.
+func TestTransactionalNotificationService_TestTemplate_TranslationSenderAndReplyTo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	workspace := &domain.Workspace{
+		ID:       "ws",
+		Settings: domain.WorkspaceSettings{SecretKey: "test-secret-key", DefaultLanguage: "en"},
+		Integrations: []domain.Integration{{
+			ID: "integration-1", Type: "email",
+			EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSparkPost, Senders: []domain.EmailSender{
+				{ID: "chosen", Email: "chosen@example.com", Name: "Chosen"},
+				{ID: "sender-fr", Email: "bonjour@example.com", Name: "France"},
+			}},
+		}},
+	}
+	tree := func() notifuse_mjml.EmailBlock {
+		return &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}
+	}
+	template := &domain.Template{
+		ID: "tpl", Name: "Welcome",
+		Email: &domain.EmailTemplate{Subject: "Hello", ReplyTo: "support@example.com", VisualEditorTree: tree()},
+		Translations: map[string]domain.TemplateTranslation{"fr": {Email: &domain.EmailTemplate{
+			Subject: "Bonjour", SenderID: "sender-fr", ReplyTo: "assistance@example.com", VisualEditorTree: tree(),
+		}}},
+	}
+	html := "<html><body>x</body></html>"
+
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws").Return(ctx, &domain.User{ID: "u"},
+		&domain.UserWorkspace{UserID: "u", WorkspaceID: "ws", Role: "owner"}, nil)
+	mockTemplateService.EXPECT().GetTemplateByID(gomock.Any(), "ws", "tpl", int64(0)).Return(template, nil)
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws").Return(workspace, nil)
+	mockContactService.EXPECT().UpsertContact(gomock.Any(), "ws", gomock.Any()).
+		Return(domain.UpsertContactOperation{Email: "to@example.com", Action: domain.UpsertContactOperationUpdate})
+	mockContactService.EXPECT().GetContactByEmail(gomock.Any(), "ws", "to@example.com").Return(&domain.Contact{Email: "to@example.com"}, nil)
+	mockTemplateService.EXPECT().CompileTemplate(gomock.Any(), gomock.Any()).Return(&domain.CompileTemplateResponse{Success: true, HTML: &html}, nil)
+	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest, _ bool) error {
+			assert.Equal(t, "chosen@example.com", req.FromAddress, "the dialog's sender, not the translation's")
+			assert.Equal(t, "Bonjour", req.Subject)
+			assert.Equal(t, "assistance@example.com", req.EmailOptions.ReplyTo)
+			return nil
+		})
+	mockMsgHistoryRepo.EXPECT().Create(gomock.Any(), "ws", gomock.Any(), gomock.Any()).Return(nil)
+
+	service := &TransactionalNotificationService{
+		messageHistoryRepo: mockMsgHistoryRepo,
+		templateService:    mockTemplateService,
+		contactService:     mockContactService,
+		emailService:       mockEmailService,
+		logger:             mockLogger,
+		workspaceRepo:      mockWorkspaceRepo,
+		apiEndpoint:        "https://api.example.com",
+		authService:        mockAuthService,
+	}
+	require.NoError(t, service.TestTemplate(ctx, "ws", "tpl", "integration-1", "chosen", "to@example.com", "fr", "", false, domain.EmailOptions{}))
+}
+
 func TestTransactionalNotificationService_TestTemplate_TrackingFollowsWorkspaceFlag(t *testing.T) {
 	for _, trackingEnabled := range []bool{true, false} {
 		name := "WorkspaceTrackingEnabled"

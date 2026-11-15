@@ -28,7 +28,10 @@ import {
   mockEmptyMessageCounts,
   mockEmptyFiles,
   mockTotalContacts,
-  mockAnalyticsData,
+  mockAnalyticsAnswer,
+  emptyBroadcastStats,
+  emptyBroadcastQueue,
+  type MockAnalyticsQuery,
   mockBlogPostsResponse,
   mockBlogPostCounts,
   mockBlogCategoriesResponse,
@@ -473,6 +476,26 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     // ============================================
     // LOGS & ANALYTICS (supports both singular and plural API routes)
     // ============================================
+    // A broadcast's numbers, as the server answers them for a broadcast with no message yet
+    if (url.includes('/api/messages.broadcastStats')) {
+      const broadcastId = new URL(url).searchParams.get('broadcast_id') ?? ''
+      return route.fulfill(
+        jsonResponse({ broadcast_id: broadcastId, stats: emptyBroadcastStats, queue: emptyBroadcastQueue })
+      )
+    }
+    if (url.includes('/api/messages.broadcastVariationStats')) {
+      const params = new URL(url).searchParams
+      return route.fulfill(
+        jsonResponse({
+          broadcast_id: params.get('broadcast_id') ?? '',
+          template_id: params.get('template_id') ?? '',
+          stats: emptyBroadcastStats
+        })
+      )
+    }
+    if (url.includes('/api/messages.broadcastLinkStats')) {
+      return route.fulfill(jsonResponse({ link_stats: [] }))
+    }
     if (url.includes('/api/messages.count')) {
       return route.fulfill(jsonResponse(mockEmptyMessageCounts))
     }
@@ -485,7 +508,9 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       return route.fulfill(jsonResponse(mockEmptyLogs))
     }
     if (url.includes('/api/analytics')) {
-      return route.fulfill(jsonResponse(mockAnalyticsData))
+      // Answered by what the query asks: its measures, its dimensions and its days
+      const body = route.request().postDataJSON() as { query?: MockAnalyticsQuery } | null
+      return route.fulfill(jsonResponse(mockAnalyticsAnswer(body?.query ?? {})))
     }
 
     // ============================================
@@ -558,6 +583,9 @@ export const test = base.extend<{
     // Set auth token and force English locale in localStorage via page context
     // Also clear any cached locale to ensure fresh start
     await page.addInitScript(() => {
+      // The top frame only: the script also runs in every frame of the console's origin (the
+      // thumbnail of a raw HTML block), which would clear the storage of the page under test
+      if (window !== window.top) return
       // Clear storage first
       localStorage.clear()
       // Set required values
@@ -579,6 +607,9 @@ export const test = base.extend<{
     // Set auth token and force English locale in localStorage via page context
     // Also clear any cached locale to ensure fresh start
     await page.addInitScript(() => {
+      // The top frame only: the script also runs in every frame of the console's origin (the
+      // thumbnail of a raw HTML block), which would clear the storage of the page under test
+      if (window !== window.top) return
       // Clear storage first
       localStorage.clear()
       // Set required values

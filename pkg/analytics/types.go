@@ -137,6 +137,15 @@ type Querier interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 
+// MeasureTypes maps each measure of the schema to its type.
+func (s SchemaDefinition) MeasureTypes() map[string]string {
+	types := make(map[string]string, len(s.Measures))
+	for name, measure := range s.Measures {
+		types[name] = measure.Type
+	}
+	return types
+}
+
 // Query executes the analytics query against the database and returns an analytics response
 func (q *Query) Query(ctx context.Context, db Querier, schema SchemaDefinition) (*Response, error) {
 	// Validate that the query schema name matches the provided schema
@@ -165,7 +174,7 @@ func (q *Query) Query(ctx context.Context, db Querier, schema SchemaDefinition) 
 	defer func() { _ = rows.Close() }()
 
 	// Process rows with time series gap filling
-	data, err := ProcessRows(rows, *q)
+	data, err := ProcessRows(rows, *q, schema.MeasureTypes())
 	if err != nil {
 		return nil, err
 	}

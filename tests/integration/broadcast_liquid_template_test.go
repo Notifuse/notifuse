@@ -4,7 +4,6 @@ package integration
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -157,7 +156,7 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipient(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
 
 		t.Logf("Email subject: %s", msg.Subject)
@@ -248,7 +247,7 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipient(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
 
 		t.Logf("Email subject: %s", msg.Subject)
@@ -323,13 +322,13 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 			[]string{"processed", "completed"}, 60*time.Second)
 		require.NoError(t, err)
 
-		anonymousMsg, err := waitForEmailByRecipient(t, anonymousEmail, 15*time.Second)
+		anonymousMsg, err := testutil.WaitForMailpitMessageByRecipient(t, anonymousEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email for the contact without a name")
 		assert.Equal(t, "Hi friend - "+uniqueID, anonymousMsg.Subject)
 		assert.Contains(t, anonymousMsg.HTML, "Hello Valued User!")
 		assert.NotContains(t, anonymousMsg.HTML, "Hello !")
 
-		namedMsg, err := waitForEmailByRecipient(t, namedEmail, 15*time.Second)
+		namedMsg, err := testutil.WaitForMailpitMessageByRecipient(t, namedEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email for the named contact")
 		assert.Equal(t, "Hi John - "+uniqueID, namedMsg.Subject)
 		assert.Contains(t, namedMsg.HTML, "Hello John!")
@@ -393,12 +392,12 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 			[]string{"processed", "completed"}, 60*time.Second)
 		require.NoError(t, err)
 
-		injectedMsg, err := waitForEmailByRecipient(t, injectedEmail, 15*time.Second)
+		injectedMsg, err := testutil.WaitForMailpitMessageByRecipient(t, injectedEmail, 15*time.Second)
 		require.NoError(t, err, "the contact with Liquid in its name must still receive the email")
 		assert.Contains(t, injectedMsg.HTML, "Hello {{ 7 | times: 6 }}!", "data-borne Liquid must render as literal text")
 		assert.NotContains(t, injectedMsg.HTML, "Hello 42", "data-borne Liquid must not be executed")
 
-		normalMsg, err := waitForEmailByRecipient(t, normalEmail, 15*time.Second)
+		normalMsg, err := testutil.WaitForMailpitMessageByRecipient(t, normalEmail, 15*time.Second)
 		require.NoError(t, err, "the control contact must receive a personalized email")
 		assert.Contains(t, normalMsg.HTML, "Hello Jane!")
 	})
@@ -484,7 +483,7 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipient(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
 
 		t.Logf("Email subject: %s", msg.Subject)
@@ -628,7 +627,7 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipient(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
 
 		t.Logf("Email HTML (first 500 chars): %s", truncateString(msg.HTML, 500))
@@ -655,57 +654,6 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		// Contact variable still renders alongside the workspace variables
 		assert.Contains(t, msg.HTML, "Hello Ada!", "Contact first_name should be rendered")
 	})
-}
-
-// waitForEmailByRecipient waits for an email to arrive for a specific recipient
-func waitForEmailByRecipient(t *testing.T, recipientEmail string, timeout time.Duration) (*testutil.MailpitMessage, error) {
-	deadline := time.Now().Add(timeout)
-	var lastErr error
-	httpClient := &http.Client{Timeout: 5 * time.Second}
-	pollInterval := 500 * time.Millisecond
-
-	for time.Now().Before(deadline) {
-		resp, err := httpClient.Get("http://localhost:8025/api/v1/messages")
-		if err != nil {
-			t.Logf("Failed to connect to Mailpit: %v", err)
-			time.Sleep(pollInterval)
-			continue
-		}
-
-		var apiResp testutil.MailpitMessagesResponse
-		err = json.NewDecoder(resp.Body).Decode(&apiResp)
-		resp.Body.Close()
-
-		if err != nil {
-			t.Logf("Failed to decode Mailpit response: %v", err)
-			time.Sleep(pollInterval)
-			continue
-		}
-
-	scan:
-		for _, msg := range apiResp.Messages {
-			for _, to := range msg.To {
-				if strings.EqualFold(recipientEmail, to.Address) {
-					t.Logf("Found email for recipient: %s (message ID: %s)", recipientEmail, msg.ID)
-					found, err := testutil.GetMailpitMessage(t, msg.ID)
-					if err == nil {
-						return found, nil
-					}
-					// A passing Mailpit failure: poll again until the deadline. The scan stops
-					// at this newest match, so a failed read never falls back to an older
-					// email to the same recipient.
-					lastErr = err
-					t.Logf("Failed to read Mailpit message %s: %v", msg.ID, err)
-					break scan
-				}
-			}
-		}
-		time.Sleep(pollInterval)
-	}
-	if lastErr != nil {
-		return nil, fmt.Errorf("timeout waiting for email to %s after %v: %w", recipientEmail, timeout, lastErr)
-	}
-	return nil, fmt.Errorf("timeout waiting for email to %s after %v", recipientEmail, timeout)
 }
 
 // truncateString truncates a string to maxLen characters and adds "..." if truncated

@@ -36,7 +36,7 @@ import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { Panel, Pill } from '../layout'
 import { initialsFor } from '../../layouts/app-shell/gravatar'
 import { summarizeAccess } from './accessSummary'
-import { API_KEY_PREFIX_MAX_LENGTH, toApiKeyPrefix } from './apiKeyPrefix'
+import { API_KEY_PREFIX_MAX_LENGTH, finalApiKeyPrefix, toApiKeyPrefix } from './apiKeyPrefix'
 import { PERMISSION_RESOURCE_LABELS } from './permissionLabels'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -337,12 +337,11 @@ export function WorkspaceMembers({
   }
 
   const handleCreateApiKey = async () => {
-    if (!apiKeyName.trim()) {
+    const prefix = finalApiKeyPrefix(apiKeyName)
+    if (!prefix) {
       message.error(t`Please enter an API key name`)
       return
     }
-
-    const prefix = toApiKeyPrefix(apiKeyName.trim())
 
     setCreatingApiKey(true)
     try {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -182,7 +183,7 @@ func TestBroadcastService_ScheduleBroadcast_VariationSenderGone(t *testing.T) {
 	)
 	draft := testBroadcast("w1", "b1")
 	draft.TestSettings.Variations[0].SenderID = "sender-since-deleted"
-	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(draft, nil)
+	d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(draft, nil)
 	// No UpdateBroadcastTx and no event: nothing is scheduled.
 
 	err := d.svc.ScheduleBroadcast(ctx, req)
@@ -206,6 +207,7 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 		f := newSenderFixture()
 		ctx := context.Background()
 		authOK(d.authService, ctx, "w1")
+		noTaskStateYet(d)
 		expectTx(d, ctx)
 		paused := testBroadcast("w1", "b1")
 		paused.Status = domain.BroadcastStatusPaused
@@ -247,12 +249,71 @@ func TestBroadcastService_ResumeBroadcast_VariationSender(t *testing.T) {
 		}}
 		winner := "tplA"
 		paused.WinningTemplate = &winner
+		noTaskStateYet(d)
 		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
 		expectResumed(d)
 
 		require.NoError(t, d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}))
 	})
+
+	// A pause can come after the run queued the last recipient and before it wrote the
+	// completion date: the task's cursor then tells that nothing is left to queue.
+	taskAt := func(phase string, offset int64, total int) *domain.Task {
+		return &domain.Task{ID: "task-1", State: &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{
+			Phase: phase, RecipientOffset: offset, TotalRecipients: total,
+		}}}
+	}
+	for _, tc := range []struct {
+		name    string
+		task    *domain.Task
+		readErr error
+		checked bool
+	}{
+		{"every recipient queued: no sender to resolve", taskAt("single", 40, 40), nil, false},
+		{"every recipient of the winner phase queued: no sender to resolve", taskAt("winner", 40, 40), nil, false},
+		{"recipients left: their sender is resolved", taskAt("single", 20, 40), nil, true},
+		{"the test phase: the winner's recipients are still to queue", taskAt("test", 40, 40), nil, true},
+		{"a task that cannot be read keeps the check", nil, errors.New("connection reset"), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			f := newSenderFixture()
+			ctx := context.Background()
+			authOK(d.authService, ctx, "w1")
+			expectTx(d, ctx)
+			paused := testBroadcast("w1", "b1")
+			paused.Status = domain.BroadcastStatusPaused
+			paused.TestSettings.Variations[0].SenderID = "sender-since-deleted"
+			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
+			d.taskRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), "w1", "b1").Return(tc.task, tc.readErr)
+			if tc.readErr != nil {
+				// The failed read is logged at Warn once (the strict mock refuses anything else).
+				log := pkgmocks.NewMockLogger(gomock.NewController(t))
+				log.EXPECT().WithFields(gomock.Any()).Return(log).AnyTimes()
+				log.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(log).AnyTimes()
+				log.EXPECT().Warn("Failed to read the task of the broadcast to resume").Times(1)
+				d.svc.logger = log
+			}
+
+			if tc.checked {
+				d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
+				err := d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"})
+				requireValidationError(t, err, "sender-since-deleted")
+				return
+			}
+			d.taskRepo.EXPECT().ResetRetryBudget(gomock.Any(), "w1", "task-1").Return(nil)
+			expectResumed(d)
+			require.NoError(t, d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}))
+		})
+	}
+}
+
+// noTaskStateYet answers the resume's read of the broadcast's task with no task, so the
+// sender check runs as it does for a broadcast whose run has not started.
+func noTaskStateYet(d *broadcastSvcDeps) {
+	d.taskRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil, domain.ErrTaskNotFound).AnyTimes()
 }
 
 func TestBroadcastService_SendToIndividual_VariationSender(t *testing.T) {
@@ -302,5 +363,59 @@ func TestBroadcastService_SendToIndividual_VariationSender(t *testing.T) {
 
 		err := d.svc.SendToIndividual(ctx, req)
 		require.ErrorIs(t, err, domain.ErrSenderNotFound)
+	})
+}
+
+// A run that fails while its broadcast is paused reads the broadcast, then its task, before
+// it fails the broadcast for good. The resume writes the task's fresh retry budget before it
+// commits, so a broadcast read as resumed comes with a task read that sees the budget.
+func TestBroadcastService_ResumeBroadcast_ResetsTheRetryBudgetBeforeItCommits(t *testing.T) {
+	setup := func(t *testing.T, task *domain.Task) (*broadcastSvcDeps, context.Context, *bool) {
+		d := setupBroadcastSvc(t)
+		ctx := context.Background()
+		authOK(d.authService, ctx, "w1")
+		committed := new(bool)
+		d.repo.EXPECT().WithTransaction(ctx, "w1", gomock.Any()).DoAndReturn(
+			func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
+				if err := fn(nil); err != nil {
+					return err
+				}
+				*committed = true
+				return nil
+			})
+		paused := testBroadcast("w1", "b1")
+		paused.Status = domain.BroadcastStatusPaused
+		d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(paused, nil)
+		d.taskRepo.EXPECT().GetTaskByBroadcastID(gomock.Any(), "w1", "b1").Return(task, nil)
+		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(newSenderFixture().workspace, nil).AnyTimes()
+		d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").Return(int64(0), nil)
+		d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
+		return d, ctx, committed
+	}
+
+	t.Run("the reset precedes the commit", func(t *testing.T) {
+		d, ctx, committed := setup(t, &domain.Task{ID: "task-1", Status: domain.TaskStatusPaused})
+		d.taskRepo.EXPECT().ResetRetryBudget(gomock.Any(), "w1", "task-1").DoAndReturn(
+			func(context.Context, string, string) error {
+				assert.False(t, *committed, "the budget is reset before the resume commits")
+				return nil
+			})
+		require.NoError(t, d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}))
+		assert.True(t, *committed)
+	})
+
+	t.Run("a failed reset does not stop the resume", func(t *testing.T) {
+		d, ctx, committed := setup(t, &domain.Task{ID: "task-1", Status: domain.TaskStatusPaused})
+		d.taskRepo.EXPECT().ResetRetryBudget(gomock.Any(), "w1", "task-1").Return(errors.New("connection reset"))
+		require.NoError(t, d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}))
+		assert.True(t, *committed)
+	})
+
+	t.Run("a completed task is left alone", func(t *testing.T) {
+		d, ctx, _ := setup(t, &domain.Task{ID: "task-1", Status: domain.TaskStatusCompleted})
+		d.taskRepo.EXPECT().ResetRetryBudget(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		require.NoError(t, d.svc.ResumeBroadcast(ctx, &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}))
 	})
 }

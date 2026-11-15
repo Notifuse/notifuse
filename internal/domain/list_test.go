@@ -1199,6 +1199,7 @@ func TestGetListsRequest_FromURLParams_WithCounts(t *testing.T) {
 	_, err = parse(url.Values{"with_counts": {"yes please"}})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "with_counts")
+	assert.Contains(t, err.Error(), "must be a boolean")
 }
 
 func TestList_ActiveCountJSON(t *testing.T) {

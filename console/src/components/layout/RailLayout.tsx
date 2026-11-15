@@ -139,7 +139,7 @@ export function RailItem({
   return (
     <div
       data-rail-item
-      className={`group flex h-7 items-center gap-2 rounded-md pr-2 text-base focus-within:ring-2 focus-within:ring-primary-500/18 ${DEPTH[depth]} ${
+      className={`group flex h-7 items-center gap-2 rounded-md pr-2 text-base has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500/18 ${DEPTH[depth]} ${
         active ? 'bg-primary-100' : 'hover:bg-fill'
       }`}
     >
@@ -167,7 +167,7 @@ export function RailItem({
       {trailing ? (
         <span
           className={`flex shrink-0 items-center gap-0.5 ${
-            trailingMode === 'actions' ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : ''
+            trailingMode === 'actions' ? 'opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100' : ''
           }`}
         >
           {trailing}

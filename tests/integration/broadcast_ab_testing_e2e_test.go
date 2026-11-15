@@ -466,19 +466,10 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 		}
 		assert.Equal(t, http.StatusOK, winnerResp.StatusCode)
 
-		// Verify transition to winner phase with continuous task execution
-		finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
-			[]string{"winner_selected", "processing", "processed", "completed"},
-			60*time.Second)
-		if err != nil {
-			t.Logf("Warning: broadcast did not reach final state: %v", err)
-		}
+		// The broadcast ends with the winner sent to the rest of the list
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID, []string{"processed"}, 60*time.Second)
+		require.NoError(t, err, "the broadcast must finish after the manual pick")
 
-		// Should be in or past winner phase
-		assert.Contains(t, []string{"winner_selected", "processing", "processed", "completed"}, finalStatus,
-			"Broadcast should progress to winner phase after manual selection")
-
-		// Verify correct winner
 		getBroadcastResp2, err := client.GetBroadcast(broadcastID)
 		require.NoError(t, err)
 		defer func() { _ = getBroadcastResp2.Body.Close() }()
@@ -488,9 +479,26 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 		require.NoError(t, err)
 
 		finalBroadcastData := getBroadcastResult2["broadcast"].(map[string]interface{})
-		if winningTemplate, ok := finalBroadcastData["winning_template"]; ok && winningTemplate != nil {
-			assert.Equal(t, template2.ID, winningTemplate.(string))
-		}
+		assert.Equal(t, template2.ID, finalBroadcastData["winning_template"])
+
+		// The two phases add up to the audience, every contact got the broadcast, and the
+		// losing variation went out in the test phase only.
+		testCount := int(finalBroadcastData["test_phase_recipient_count"].(float64))
+		winnerCount := int(finalBroadcastData["winner_phase_recipient_count"].(float64))
+		assert.Equal(t, 5, testCount+winnerCount, "test %d + winner %d", testCount, winnerCount)
+
+		db, err := factory.GetWorkspaceDB(workspaceID)
+		require.NoError(t, err)
+		// Processed means queued: an email is in the queue or, once sent, in the message history.
+		var total, loser int
+		require.NoError(t, db.QueryRow(`
+			SELECT count(DISTINCT contact_email), count(*) FILTER (WHERE template_id <> $2) FROM (
+				SELECT contact_email, template_id FROM email_queue WHERE source_type = 'broadcast' AND source_id = $1
+				UNION ALL
+				SELECT contact_email, template_id FROM message_history WHERE broadcast_id = $1) sent`,
+			broadcastID, template2.ID).Scan(&total, &loser))
+		assert.Equal(t, 5, total, "every contact got the broadcast")
+		assert.LessOrEqual(t, loser, testCount, "the losing variation went to test recipients only")
 	})
 }
 

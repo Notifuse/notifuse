@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Alert, App, Button, ConfigProvider, Dropdown, Input, Result, Segmented, Skeleton, Tooltip, type MenuProps } from 'antd'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useBlocker } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { Ellipsis, Pause, Play, Redo2, Undo2 } from 'lucide-react'
@@ -11,6 +12,7 @@ import type { Workspace, Template } from '../../services/api/types'
 import type { List } from '../../services/api/list'
 import type { Segment } from '../../services/api/segment'
 import { copyToClipboard } from '../../lib/copyToClipboard'
+import { isMac } from '../../lib/platform'
 import { workspaceTimezone } from '../broadcasts/access'
 import { AutomationProvider, useAutomation } from './context'
 import { AutomationFlowEditor } from './AutomationFlowEditor'
@@ -66,17 +68,19 @@ export function AutomationEditor(props: AutomationEditorProps) {
   const [ready, setReady] = useState(false)
   if (!ready && e1.isFetchedAfterMount && e1.status === 'success') setReady(true)
 
-  const shell = (body: ReactNode) => (
-    <FullDrawer open onClose={props.onClose} backLabel={t`Automations`} copyLink={false}>
-      {body}
-    </FullDrawer>
-  )
+  // One drawer from the skeleton to the editor, so the first load slides once: the editor puts its
+  // bar title and actions into the drawer's bar through portals, and its close behind the drawer's.
+  const [barSlot, setBarSlot] = useState<HTMLElement | null>(null)
+  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null)
+  const closeRef = useRef<(() => void) | null>(null)
 
   // The skeleton and "not found" belong to the first load only: a later error keeps the editor.
-  if (session !== 'new' && (!ready || !automation)) {
+  const editorShown = session === 'new' || (ready && !!automation)
+  let body: ReactNode
+  if (!editorShown) {
     if (e1.isError && !e1.isFetching) {
       const notFound = e1.error instanceof ApiError && e1.error.status === 404
-      return shell(
+      body = (
         <Result
           status={notFound ? '404' : 'error'}
           title={notFound ? t`Automation not found` : t`Couldn't load the automation`}
@@ -90,42 +94,61 @@ export function AutomationEditor(props: AutomationEditorProps) {
           }
         />
       )
+    } else {
+      body = (
+        <div data-editor-loading className="flex flex-col gap-3">
+          <Skeleton active title paragraph={{ rows: 8 }} />
+        </div>
+      )
     }
-    return shell(
-      <div data-editor-loading className="flex flex-col gap-3">
-        <Skeleton active title paragraph={{ rows: 8 }} />
-      </div>
+  } else {
+    const readOnly = !props.canWrite || automation?.status === 'live'
+    body = (
+      <AutomationProvider
+        key={`${session}:${reloadCount}`}
+        workspace={workspace}
+        automation={automation}
+        lists={props.lists}
+        segments={props.segments}
+        templates={props.templates}
+        canReadTemplates={props.canReadTemplates}
+        readOnly={readOnly}
+        onSaved={(saved) => {
+          if (session === 'new' && !createdId) {
+            setCreatedId(saved.id)
+            props.onCreated(saved.id)
+          }
+        }}
+      >
+        <EditorScreen
+          {...props}
+          loaded={automation}
+          barSlot={barSlot}
+          actionsSlot={actionsSlot}
+          closeRef={closeRef}
+          onReload={async () => {
+            await e1.refetch()
+            setReloadCount((n) => n + 1)
+          }}
+        />
+      </AutomationProvider>
     )
   }
 
-  const readOnly = !props.canWrite || automation?.status === 'live'
-
   return (
-    <AutomationProvider
-      key={`${session}:${reloadCount}`}
-      workspace={workspace}
-      automation={automation}
-      lists={props.lists}
-      segments={props.segments}
-      templates={props.templates}
-      canReadTemplates={props.canReadTemplates}
-      readOnly={readOnly}
-      onSaved={(saved) => {
-        if (session === 'new' && !createdId) {
-          setCreatedId(saved.id)
-          props.onCreated(saved.id)
-        }
-      }}
+    <FullDrawer
+      open
+      onClose={() => (closeRef.current ?? props.onClose)()}
+      backLabel={t`Automations`}
+      copyLink={editorShown && !!id}
+      barTitle={editorShown ? <span ref={setBarSlot} className="contents" /> : undefined}
+      topActions={editorShown ? <span ref={setActionsSlot} className="contents" /> : undefined}
+      fill={editorShown}
+      // The condition, template and preview drawers open inside: the editor must not slide aside.
+      push={editorShown ? false : undefined}
     >
-      <EditorScreen
-        {...props}
-        loaded={automation}
-        onReload={async () => {
-          await e1.refetch()
-          setReloadCount((n) => n + 1)
-        }}
-      />
-    </AutomationProvider>
+      {body}
+    </FullDrawer>
   )
 }
 
@@ -152,6 +175,11 @@ interface EditorScreenProps extends AutomationEditorProps {
   /** The automation as last read from the server (E1). */
   loaded: Automation | undefined
   onReload: () => Promise<void>
+  /** Where the drawer's bar takes the editor's title and actions. */
+  barSlot: HTMLElement | null
+  actionsSlot: HTMLElement | null
+  /** The drawer's back, close and Escape go through the editor's close. */
+  closeRef: MutableRefObject<(() => void) | null>
 }
 
 function EditorScreen({
@@ -164,7 +192,10 @@ function EditorScreen({
   onClose,
   onToggleStats,
   onViewMessages,
-  onReload
+  onReload,
+  barSlot,
+  actionsSlot,
+  closeRef
 }: EditorScreenProps) {
   const { t } = useLingui()
   const { modal, message } = App.useApp()
@@ -178,6 +209,7 @@ function EditorScreen({
     setName,
     listId,
     hasUnsavedChanges: dirty,
+    hasHeldChanges,
     isSaving,
     save,
     validate,
@@ -189,6 +221,7 @@ function EditorScreen({
     selectedNodeId
   } = ctx
   const actions = useAutomationActions(workspace.id)
+  const queryClient = useQueryClient()
   const anchorRef = useRef<HTMLDivElement>(null)
   const [period, setPeriod] = useState<StatsPeriod>('last30')
   const [savedThisSession, setSavedThisSession] = useState(false)
@@ -211,16 +244,20 @@ function EditorScreen({
     live
   })
   const savedNodeIds = useMemo(() => new Set((saved?.nodes ?? []).map((n) => n.id)), [saved])
-  const statsState: NodeStatsState = {
-    enabled: statsOn,
-    period,
-    loading: e3.isLoading,
-    error: e3.isError,
-    nodes: e3.data?.nodes,
-    savedNodeIds,
-    canReadHistory,
-    neverRan
-  }
+  // Memoised: every step card reads it, and an edit elsewhere (the name) must not render them all.
+  const statsState = useMemo<NodeStatsState>(
+    () => ({
+      enabled: statsOn,
+      period,
+      loading: e3.isLoading,
+      error: e3.isError,
+      nodes: e3.data?.nodes,
+      savedNodeIds,
+      canReadHistory,
+      neverRan
+    }),
+    [statsOn, period, e3.isLoading, e3.isError, e3.data?.nodes, savedNodeIds, canReadHistory, neverRan]
+  )
 
   const leaveWarning = t`You have unsaved changes. Are you sure you want to close?`
   const confirmLeave = (onOk: () => void) =>
@@ -265,6 +302,10 @@ function EditorScreen({
   }, [blocker.status])
 
   const close = () => (dirty ? confirmLeave(onClose) : onClose())
+  useLayoutEffect(() => {
+    closeRef.current = close
+  })
+  useLayoutEffect(() => () => void (closeRef.current = null), [closeRef])
 
   const handleSave = useCallback(async () => {
     if (readOnly) return
@@ -314,10 +355,13 @@ function EditorScreen({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [readOnly, canUndo, canRedo, undo, redo, handleSave])
 
+  // The buttons stay busy until the automation is read again: between the action's answer
+  // and that read, the status shown is the old one and a second click would repeat it.
   const runStatus = async (kind: 'activate' | 'pause') => {
     setBusy(kind)
     try {
       await (kind === 'activate' ? actions.activate(automationId) : actions.pause(automationId))
+      await queryClient.refetchQueries({ queryKey: ['automation', workspace.id, automationId], exact: true })
     } finally {
       setBusy(null)
     }
@@ -396,15 +440,16 @@ function EditorScreen({
           {name || t`Untitled automation`}
         </span>
       ) : (
-        <Input
-          variant="borderless"
-          size="small"
-          aria-label={t`Automation name`}
-          placeholder={t`Automation name`}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-64"
-        />
+        <div className="w-64">
+          <Input
+            variant="borderless"
+            size="small"
+            aria-label={t`Automation name`}
+            placeholder={t`Automation name`}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
       )}
       <AutomationStatusPill status={status} />
       {dirty ? (
@@ -417,14 +462,17 @@ function EditorScreen({
     </>
   )
 
+  const mac = isMac()
+  const undoKeys = mac ? '⌘Z' : 'Ctrl+Z'
+  const redoKeys = mac ? '⇧⌘Z' : 'Ctrl+Shift+Z'
   const topActions = (
     <>
       {!readOnly ? (
         <span className="flex items-center">
-          <Tooltip title={t`Undo (Ctrl+Z)`}>
+          <Tooltip title={t`Undo (${undoKeys})`}>
             <Button type="text" size="small" aria-label={t`Undo`} icon={<Undo2 size={14} aria-hidden="true" />} disabled={!canUndo} onClick={undo} />
           </Tooltip>
-          <Tooltip title={t`Redo (Ctrl+Shift+Z)`}>
+          <Tooltip title={t`Redo (${redoKeys})`}>
             <Button type="text" size="small" aria-label={t`Redo`} icon={<Redo2 size={14} aria-hidden="true" />} disabled={!canRedo} onClick={redo} />
           </Tooltip>
         </span>
@@ -462,7 +510,7 @@ function EditorScreen({
             <Button
               size="small"
               icon={<Pause size={14} aria-hidden="true" />}
-              disabled={!canWrite}
+              disabled={!canWrite || busy !== null}
               loading={busy === 'pause'}
               onClick={() => confirmStatus('pause')}
             >
@@ -474,7 +522,7 @@ function EditorScreen({
             <Button
               size="small"
               icon={<Play size={14} aria-hidden="true" />}
-              disabled={!canWrite || dirty}
+              disabled={!canWrite || dirty || busy !== null}
               loading={busy === 'activate'}
               onClick={() => confirmStatus('activate')}
             >
@@ -502,9 +550,12 @@ function EditorScreen({
             type="info"
             showIcon
             title={t`This automation is live. Pause it to edit.`}
+            // Turned live elsewhere while this editor held changes: they stay on screen but
+            // cannot be saved while it runs.
+            description={hasHeldChanges ? t`Your unsaved changes can't be saved until the automation is paused.` : undefined}
             action={
               canWrite ? (
-                <Button size="small" loading={busy === 'pause'} onClick={() => confirmStatus('pause')}>
+                <Button size="small" loading={busy === 'pause'} disabled={busy !== null} onClick={() => confirmStatus('pause')}>
                   {t`Pause`}
                 </Button>
               ) : undefined
@@ -539,17 +590,9 @@ function EditorScreen({
     ) : null
 
   return (
-    <FullDrawer
-      open
-      onClose={close}
-      backLabel={t`Automations`}
-      copyLink={isEditing}
-      barTitle={barTitle}
-      topActions={topActions}
-      fill
-      // The condition, template and preview drawers open inside: the editor must not slide aside.
-      push={false}
-    >
+    <>
+      {barSlot ? createPortal(barTitle, barSlot) : null}
+      {actionsSlot ? createPortal(topActions, actionsSlot) : null}
       <NodeStatsContext.Provider value={statsState}>
         <div ref={anchorRef} className="flex min-h-0 min-w-0 flex-1" data-automation-editor>
           <div className="flex w-rail shrink-0 flex-col gap-4 overflow-y-auto border-r border-line bg-surface px-3.5 py-3">
@@ -561,6 +604,6 @@ function EditorScreen({
           <AutomationFlowEditor overlay={overlay} />
         </div>
       </NodeStatsContext.Provider>
-    </FullDrawer>
+    </>
   )
 }

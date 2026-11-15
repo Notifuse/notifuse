@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -135,7 +137,26 @@ func TestAutomationRepository_ExitContactJourneysOnReply(t *testing.T) {
 		_, err := repo.ExitContactJourneysOnReply(context.Background(), "ws", "jane@x.com", nil, "replied", before)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "deadlock detected")
+		assert.Contains(t, err.Error(), fmt.Sprintf("after %d deadlocks", exitOnReplyAttempts), "the log names the deadlocks")
 		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("each attempt takes updated_at again", func(t *testing.T) {
+		db, mock, repo := setupAutomationMock(t)
+		defer func() { _ = db.Close() }()
+
+		var seen []time.Time
+		at := recordTime{seen: &seen}
+		mock.ExpectQuery(exitPredicates+statsUpdate).WithArgs("replied", "jane@x.com", before, at).
+			WillReturnError(&pq.Error{Code: "40P01", Message: "deadlock detected"})
+		mock.ExpectQuery(exitPredicates+statsUpdate).WithArgs("replied", "jane@x.com", before, at).
+			WillReturnRows(sqlmock.NewRows([]string{"n"}).AddRow(1))
+
+		_, err := repo.ExitContactJourneysOnReply(context.Background(), "ws", "jane@x.com", nil, "replied", before)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+		require.Len(t, seen, 2)
+		assert.True(t, seen[1].After(seen[0]), "the retry's updated_at %v is later than the first attempt's %v", seen[1], seen[0])
 	})
 
 	t.Run("another error is not retried", func(t *testing.T) {
@@ -146,6 +167,21 @@ func TestAutomationRepository_ExitContactJourneysOnReply(t *testing.T) {
 
 		_, err := repo.ExitContactJourneysOnReply(context.Background(), "ws", "jane@x.com", nil, "replied", before)
 		require.Error(t, err)
+		// A retry would fail on an unexpected second query, which ExpectationsWereMet does
+		// not see: the error must be the first attempt's.
+		assert.Contains(t, err.Error(), "fk violation")
+		assert.NotContains(t, err.Error(), "deadlocks")
 		require.NoError(t, mock.ExpectationsWereMet(), "a single attempt")
 	})
+}
+
+// recordTime matches any time.Time argument and records it.
+type recordTime struct{ seen *[]time.Time }
+
+func (r recordTime) Match(v driver.Value) bool {
+	t, ok := v.(time.Time)
+	if ok {
+		*r.seen = append(*r.seen, t)
+	}
+	return ok
 }

@@ -184,11 +184,11 @@ func TestContactVisitsRepository_ContactSessionPages(t *testing.T) {
 		mock.ExpectQuery(ownership).WithArgs("2026-11-03", sessionID, "ann@example.com").
 			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 		mock.ExpectQuery(sqlPattern(`SELECT entered_at, path, duration_ms, page_number, tab_id FROM web_pages WHERE session_date = $1 AND session_id = $2 ORDER BY entered_at, tab_id, page_number LIMIT $3`)).
-			WithArgs("2026-11-03", sessionID, 200).
+			WithArgs("2026-11-03", sessionID, 201).
 			WillReturnRows(sqlmock.NewRows([]string{"entered_at", "path", "duration_ms", "page_number", "tab_id"}).
 				AddRow(enteredAt, "/", 1000, 1, 7).AddRow(enteredAt.Add(time.Second), "/pricing", 2000, 1, 9))
 		mock.ExpectQuery(sqlPattern(`SELECT goal_at, goal_name, goal_value, path, tab_id FROM web_goals WHERE session_date = $1 AND session_id = $2 ORDER BY goal_at, tab_id, client_ts_ms, goal_name LIMIT $3`)).
-			WithArgs("2026-11-03", sessionID, 200).
+			WithArgs("2026-11-03", sessionID, 201).
 			WillReturnRows(sqlmock.NewRows([]string{"goal_at", "goal_name", "goal_value", "path", "tab_id"}).
 				AddRow(enteredAt.Add(2*time.Second), "signup", 9.5, "/pricing", 9))
 
@@ -199,8 +199,43 @@ func TestContactVisitsRepository_ContactSessionPages(t *testing.T) {
 			{EnteredAt: enteredAt.Add(time.Second), Path: "/pricing", DurationMs: 2000, PageNumber: 1, TabID: 9},
 		}, got.Pages)
 		assert.Equal(t, []domain.ContactSessionGoal{{GoalAt: enteredAt.Add(2 * time.Second), GoalName: "signup", GoalValue: 9.5, Path: "/pricing", TabID: 9}}, got.Goals)
+		assert.False(t, got.PagesTruncated)
+		assert.False(t, got.GoalsTruncated)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
+
+	// The bound is read plus one row: the extra row says the session was cut, and is dropped.
+	for _, tt := range []struct {
+		name         string
+		pages, goals int
+	}{
+		{"more pages than the bound", domain.ContactSessionPagesMax + 1, 0},
+		{"more goals than the bound", 0, domain.ContactSessionPagesMax + 1},
+		{"exactly the bound of each", domain.ContactSessionPagesMax, domain.ContactSessionPagesMax},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			repo, mock := setupContactVisitsRepo(t)
+			mock.ExpectQuery(ownership).WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+			pageRows := sqlmock.NewRows([]string{"entered_at", "path", "duration_ms", "page_number", "tab_id"})
+			for i := 0; i < tt.pages; i++ {
+				pageRows.AddRow(enteredAt.Add(time.Duration(i)*time.Second), "/", 1000, i+1, 7)
+			}
+			goalRows := sqlmock.NewRows([]string{"goal_at", "goal_name", "goal_value", "path", "tab_id"})
+			for i := 0; i < tt.goals; i++ {
+				goalRows.AddRow(enteredAt.Add(time.Duration(i)*time.Second), "signup", 1.0, "/", 7)
+			}
+			mock.ExpectQuery(`FROM web_pages`).WithArgs("2026-11-03", sessionID, 201).WillReturnRows(pageRows)
+			mock.ExpectQuery(`FROM web_goals`).WithArgs("2026-11-03", sessionID, 201).WillReturnRows(goalRows)
+
+			got, err := repo.ContactSessionPages(ctx, "ws", "ann@example.com", "2026-11-03", sessionID)
+			require.NoError(t, err)
+			assert.Len(t, got.Pages, min(tt.pages, domain.ContactSessionPagesMax))
+			assert.Len(t, got.Goals, min(tt.goals, domain.ContactSessionPagesMax))
+			assert.Equal(t, tt.pages > domain.ContactSessionPagesMax, got.PagesTruncated)
+			assert.Equal(t, tt.goals > domain.ContactSessionPagesMax, got.GoalsTruncated)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 
 	t.Run("another contact's session: empty, pages and goals not read", func(t *testing.T) {
 		repo, mock := setupContactVisitsRepo(t)

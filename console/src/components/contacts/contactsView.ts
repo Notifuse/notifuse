@@ -21,7 +21,9 @@ export function viewOf(search: Pick<ContactsSearch, 'list_id' | 'segment_id'>): 
 export function toTableSearch(search: ContactsSearch): ContactsTableSearch {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the sheet is not part of the table
   const { contact, ...table } = search
-  return table
+  // A segment view reads that segment alone (contactsListParams): the legacy segments a link may
+  // still carry beside it are not shown as a chip the query would ignore.
+  return table.segment_id ? { ...table, segments: undefined } : table
 }
 
 /** Row filters on top of the view: the unified search, the filter chips, the legacy segments chip. */

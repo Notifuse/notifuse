@@ -4,6 +4,7 @@ import { ChevronsUpDown, Plus } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import type { Workspace } from '../../services/api/types'
 import { layout } from '../../theme/tokens'
+import { useFocusBack } from './useFocusBack'
 
 const NEW_WORKSPACE_KEY = '__new_workspace__'
 
@@ -70,7 +71,10 @@ export function WorkspaceSwitcher({
 }: WorkspaceSwitcherProps) {
   const { t } = useLingui()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { ref, focusBack } = useFocusBack<HTMLButtonElement>()
   const current = workspaces.find((workspace) => workspace.id === workspaceId)
+  // A workspace id the list does not hold still leaves the button a name
+  const name = current?.name ?? t`Workspace`
 
   const items: MenuProps['items'] = [
     ...workspaces.map((workspace) => ({
@@ -100,8 +104,11 @@ export function WorkspaceSwitcher({
 
   const button = (
     <button
+      ref={ref}
       type="button"
-      aria-label={collapsed ? current?.name : undefined}
+      aria-haspopup="menu"
+      aria-expanded={menuOpen}
+      aria-label={collapsed ? name : undefined}
       className={
         collapsed
           ? 'grid size-9 cursor-pointer place-items-center rounded-md border-0 bg-transparent hover:bg-fill focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none'
@@ -111,7 +118,7 @@ export function WorkspaceSwitcher({
       <WorkspaceBadge workspace={current} />
       {collapsed ? null : (
         <>
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{current?.name}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{name}</span>
           <ChevronsUpDown size={14} aria-hidden="true" className="shrink-0 text-ink-3" />
         </>
       )}
@@ -124,10 +131,12 @@ export function WorkspaceSwitcher({
       onOpenChange={(open) => {
         setMenuOpen(open)
         onMenuOpenChange?.(open)
+        if (!open) focusBack()
       }}
       placement={collapsed ? 'rightTop' : 'bottomLeft'}
       getPopupContainer={getPopupContainer}
-      styles={{ root: { minWidth: layout.sidebar - 20 } }}
+      // A long name is cut, rather than widening the menu
+      styles={{ root: { minWidth: layout.sidebar - 20, maxWidth: layout.aside } }}
       menu={{
         items,
         selectable: true,
@@ -140,7 +149,7 @@ export function WorkspaceSwitcher({
           drop its focus when the sidebar opens. The name shows when the sidebar folds under a
           still pointer, after a click on an entry. */}
       <Tooltip
-        title={collapsed ? current?.name : undefined}
+        title={collapsed ? name : undefined}
         placement="right"
         getPopupContainer={getPopupContainer}
         // A tooltip left over the menu it opened would cover its first or last row.

@@ -139,7 +139,8 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
       JSON.stringify(auditListParams(search, { scope, workspaceId, now: next })) ===
       JSON.stringify(params)
     setClock({ key: filtersKey, now: next })
-    if (sameWindow) void queryClient.resetQueries({ queryKey: ['audit-logs'] })
+    // The list only: an open entry does not change, and its key is not this one
+    if (sameWindow) void queryClient.resetQueries({ queryKey: ['audit-logs', scope, workspaceId] })
   }
 
   const exportAs = async (format: AuditExportFormat) => {

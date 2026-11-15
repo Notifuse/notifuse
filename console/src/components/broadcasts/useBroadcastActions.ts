@@ -3,10 +3,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import { broadcastApi, type Broadcast } from '../../services/api/broadcast'
+import { ApiError } from '../../services/api/errors'
 
 export type ConfirmedAction = 'pause' | 'resume' | 'cancel' | 'retryFailed'
 
 const errorText = (error: unknown) => (error instanceof Error && error.message ? error.message : undefined)
+
+// A resume refused because a variation's chosen sender is unknown to the marketing integration, or there is no
+// such integration: the server's English validation error (400) names a sender
+const refusedForSender = (error: unknown) =>
+  error instanceof ApiError && error.status === 400 && /\bsender\b/i.test(error.message)
 
 /**
  * The lifecycle actions of a broadcast, with their current confirmations and messages. Each
@@ -56,14 +62,18 @@ export function useBroadcastActions(workspaceId: string) {
       }
       invalidate(broadcast.id)
     } catch (error) {
-      // The server names why, e.g. a chosen sender that left the integration.
+      // The server names why a retry failed; a resume refused for its sender gets a sentence of its own
       const reason = errorText(error)
       switch (action) {
         case 'pause':
           message.error(t`Failed to pause broadcast`)
           break
         case 'resume':
-          message.error(reason ?? t`Failed to resume broadcast`)
+          message.error(
+            refusedForSender(error)
+              ? t`A variation's sender is no longer one of the marketing integration's senders. Choose its sender again, then resume.`
+              : t`Failed to resume broadcast`
+          )
           break
         case 'cancel':
           message.error(t`Failed to cancel broadcast`)

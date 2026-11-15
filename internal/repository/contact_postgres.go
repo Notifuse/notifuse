@@ -337,6 +337,9 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 			sq.ILike{"c.first_name": pattern},
 			sq.ILike{"c.last_name": pattern},
 			sq.ILike{"c.full_name": pattern},
+			// "Jane Doe" finds a contact with only a first and a last name; CONCAT_WS skips
+			// a missing one.
+			sq.Expr("CONCAT_WS(' ', c.first_name, c.last_name) ILIKE ?", pattern),
 			sq.ILike{"c.external_id": pattern},
 		})
 	}

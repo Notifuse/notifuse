@@ -622,3 +622,41 @@ func TestWebVersionService_RendersWhenOnlyTheCustomTextLinksToIt(t *testing.T) {
 		assert.ErrorIs(t, err, ErrWebVersionNotFound)
 	})
 }
+
+// The web version renders the language the email was sent in, recorded in the message's
+// metadata, whatever the contact's language or the workspace's default language became.
+func TestWebVersionService_RendersTheLanguageItWasSentIn(t *testing.T) {
+	cases := []struct {
+		name            string
+		sent            interface{} // nil: no metadata, as for messages sent before
+		contactLanguage string
+		defaultLanguage string
+		want, notWant   string
+	}{
+		{"sent in French, French is now the default", "fr", "fr", "fr", "Bonjour", "Hello"},
+		{"sent in the base content, the contact is now French", "", "fr", "en", "Hello", "Bonjour"},
+		{"no record: the contact's language as resolved today", nil, "fr", "en", "Bonjour", "Hello"},
+		{"an unknown recorded language: the base content", "it", "fr", "en", "Hello", "Bonjour"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newWebVersionFixture(t)
+			template := wvTemplate("Hello")
+			template.Translations = map[string]domain.TemplateTranslation{"fr": {Email: wvEmail("Salut", "Bonjour")}}
+			message := wvBroadcastMessage(map[string]interface{}{"contact": wvContactData("Camille", tc.contactLanguage)})
+			if tc.sent != nil {
+				message.MessageData.Metadata = map[string]interface{}{domain.MessageMetadataRenderedLanguage: tc.sent}
+			}
+			workspace := wvWorkspace()
+			workspace.Settings.DefaultLanguage = tc.defaultLanguage
+			f.workspaceRepo.EXPECT().GetByID(gomock.Any(), wvWorkspaceID).Return(workspace, nil)
+			f.messageRepo.EXPECT().GetForWebVersion(gomock.Any(), wvWorkspaceID, wvSecret, wvMessageID).Return(message, nil)
+			f.templateRepo.EXPECT().GetTemplateByID(gomock.Any(), wvWorkspaceID, "tpl-1", int64(3)).Return(template, nil)
+
+			html, err := f.svc.Render(context.Background(), WebVersionRef{WorkspaceID: wvWorkspaceID, MessageID: wvMessageID})
+			require.NoError(t, err)
+			assert.Contains(t, html, tc.want)
+			assert.NotContains(t, html, tc.notWant)
+		})
+	}
+}

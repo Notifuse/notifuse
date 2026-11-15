@@ -87,24 +87,6 @@ describe('AutomationProvider saving an automation the editor loaded live', () =>
     } as unknown as ReturnType<typeof App.useApp>)
   })
 
-  // Saving keeps the stored status, and a save that failed earlier can have paused it: saved,
-  // but not running, which a plain success would hide.
-  it('warns when the automation comes back paused', async () => {
-    vi.mocked(automationApi.update).mockResolvedValue({
-      automation: { ...liveAutomation, status: 'paused' }
-    })
-    renderEditor()
-    save()
-
-    await waitFor(() =>
-      expect(mockMessage.warning).toHaveBeenCalledWith({
-        content: 'Automation updated, but it is paused: activate it to run this version.',
-        duration: 10
-      })
-    )
-    expect(mockMessage.success).not.toHaveBeenCalled()
-  })
-
   it('confirms a save that leaves it live', async () => {
     vi.mocked(automationApi.update).mockResolvedValue({ automation: liveAutomation })
     renderEditor()
@@ -168,6 +150,41 @@ describe('AutomationProvider saving an automation the editor loaded live', () =>
         'Failed to update automation: invalid trigger conditions: operator does not exist'
       )
     )
+  })
+})
+
+// The context value keeps its identity while nothing it holds changes, so its memo spares the
+// consumers a render; a permission that loads changes it.
+describe('AutomationProvider context value', () => {
+  const NO_LISTS: [] = []
+  function ValueProbe({ seen }: { seen: unknown[] }) {
+    seen.push(useAutomation())
+    return null
+  }
+  const tree = (seen: unknown[], canReadTemplates: boolean, queryClient: QueryClient) => (
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider i18n={i18n}>
+        <App>
+          <AutomationProvider workspace={workspace} automation={liveAutomation} lists={NO_LISTS} canReadTemplates={canReadTemplates}>
+            <ValueProbe seen={seen} />
+          </AutomationProvider>
+        </App>
+      </I18nProvider>
+    </QueryClientProvider>
+  )
+
+  it('keeps its identity across a re-render and changes when canReadTemplates loads', () => {
+    const queryClient = new QueryClient()
+    const seen: unknown[] = []
+    const { rerender } = render(tree(seen, false, queryClient))
+    const settled = seen.at(-1)
+
+    rerender(tree(seen, false, queryClient))
+    expect(seen.at(-1)).toBe(settled)
+
+    rerender(tree(seen, true, queryClient))
+    expect(seen.at(-1)).not.toBe(settled)
+    expect((seen.at(-1) as { canReadTemplates: boolean }).canReadTemplates).toBe(true)
   })
 })
 

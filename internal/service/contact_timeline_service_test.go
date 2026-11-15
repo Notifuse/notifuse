@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -366,4 +367,20 @@ func TestContactTimelineService_List_EntityTypes(t *testing.T) {
 		require.ErrorAs(t, err, &permErr)
 		assert.Equal(t, domain.PermissionResourceContacts, permErr.Resource)
 	})
+}
+
+// A timeline entity type added later fails here until it is gated by a permission or listed
+// as readable with contacts alone.
+func TestTimelineEntityTypes_AllClassified(t *testing.T) {
+	for _, entityType := range domain.TimelineEntityTypes {
+		_, gated := timelineEntityPermissions[entityType]
+		public := slices.Contains(timelinePublicEntityTypes, entityType)
+		assert.True(t, gated != public, "%s must be in exactly one of timelineEntityPermissions and timelinePublicEntityTypes", entityType)
+	}
+	for entityType := range timelineEntityPermissions {
+		assert.Contains(t, domain.TimelineEntityTypes, entityType)
+	}
+	for _, entityType := range timelinePublicEntityTypes {
+		assert.Contains(t, domain.TimelineEntityTypes, entityType)
+	}
 }

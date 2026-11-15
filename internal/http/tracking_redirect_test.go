@@ -33,13 +33,13 @@ func TestClassifyTrackedDestination(t *testing.T) {
 		"https://track.brand.com/u\n":        {decision: decisionRedirect, target: "https://track.brand.com/u"},
 		"https://track.brand.com/a\tb":       {decision: decisionRedirect, target: "https://track.brand.com/ab"},
 		"//track.brand.com/u":                {decision: decisionRedirect, target: "https://track.brand.com/u"},
+		"https://track.brand.com./u":         {decision: decisionRedirect, target: "https://track.brand.com./u"}, // a trailing dot names the same host
 		"https://track.brand.com/50%off":     {decision: decisionRedirect, target: "https://track.brand.com/50%25off"},
 		"https://track.brand.com/u?q=%zz&x=": {decision: decisionRedirect, target: "https://track.brand.com/u?q=%zz&x="}, // net/url keeps the query verbatim
 
 		// Not one of the installation's hosts: interstitial with Continue.
 		"https://evil.example/x":         {decision: decisionInterstitial, link: true},
 		"https://brand.com/":             {decision: decisionInterstitial, link: true}, // the website gets no exemption
-		"https://track.brand.com./u":     {decision: decisionInterstitial, link: true}, // trailing dot
 		"https://trac\u212a.brand.com/u": {decision: decisionInterstitial, link: true}, // Kelvin sign: not the request host, shown as Punycode
 		"//shop.com/promo":               {decision: decisionInterstitial, link: true},
 		"https://shop.com/50%off":        {decision: decisionInterstitial, link: true},
@@ -106,11 +106,18 @@ func TestClassifyTrackedDestination_NoEndpointHostWhenUnknown(t *testing.T) {
 	assert.Equal(t, decisionInterstitial, decision, "empty own hosts never match")
 }
 
-func TestAsciiHostEqual(t *testing.T) {
-	assert.True(t, asciiHostEqual("Brand.COM", "brand.com"))
-	assert.False(t, asciiHostEqual("\u212aey.com", "key.com"), "the Kelvin sign is not k")
-	assert.False(t, asciiHostEqual("", ""))
-	assert.False(t, asciiHostEqual("brand.com.", "brand.com"))
+func TestClassifyTrackedDestination_IPLiteralOwnHosts(t *testing.T) {
+	// An own host that is an IP literal matches every spelling of that address, as
+	// trackingtoken.HostOf writes it canonical.
+	for _, raw := range []string{"http://[2001:0DB8:0:0:0:0:0:1]:8080/x", "http://[2001:db8::1]/x"} {
+		decision, target, _, _ := classifyTrackedDestination(raw, classifyReqHost, "2001:db8::1", "")
+		assert.Equal(t, decisionRedirect, decision, raw)
+		assert.Equal(t, raw, target)
+	}
+	decision, _, _, _ := classifyTrackedDestination("http://[2001:db8::1]/x", "[2001:0DB8::1]:8443", "", "")
+	assert.Equal(t, decisionRedirect, decision, "the request host is read canonical too")
+	decision, _, _, _ = classifyTrackedDestination("http://[2001:db8::2]/x", classifyReqHost, "2001:db8::1", "")
+	assert.Equal(t, decisionInterstitial, decision, "another address is not an own host")
 }
 
 func TestDisplayHost(t *testing.T) {

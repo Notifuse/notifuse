@@ -150,6 +150,17 @@ func runBlogCountsAndSearchTests(t *testing.T, suite *testutil.IntegrationTestSu
 		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
+
+	t.Run("a search PostgreSQL cannot read is a 400, not a 500", func(t *testing.T) {
+		for _, search := range []string{"a\x00b", "caf\xe9"} {
+			resp, err := client.ListBlogPosts(map[string]string{"search": search})
+			require.NoError(t, err)
+			raw, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "%q", search)
+			assert.Contains(t, string(raw), "search must be valid UTF-8 text without NUL bytes", "%q", search)
+		}
+	})
 }
 
 // runBlogRoutingLogicTests tests the critical blog routing logic
@@ -1438,7 +1449,7 @@ func runBlogFeedTests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 		defer func() { _ = resp.Body.Close() }()
 
 		body, _ := io.ReadAll(resp.Body)
-		assert.Contains(t, string(body), "Sitemap: /sitemap.xml")
+		assert.Contains(t, string(body), "Sitemap: https://feed.blog/sitemap.xml")
 	})
 
 	t.Run("Non-existent category feed returns empty items not 500", func(t *testing.T) {

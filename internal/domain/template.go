@@ -225,23 +225,42 @@ type Template struct {
 // on the template rather than the integration's default one. The translation is returned as a
 // copy, never filled in place, as the template may be held and saved again by the caller.
 func (t *Template) ResolveEmailContent(contactLanguage string, workspaceDefaultLanguage string) *EmailTemplate {
-	if t.Email == nil || t.Translations == nil || contactLanguage == "" {
-		return t.Email
-	}
-	if contactLanguage == workspaceDefaultLanguage {
-		return t.Email
+	return t.EmailContentForLanguage(t.ResolvedLanguage(contactLanguage, workspaceDefaultLanguage))
+}
+
+// ResolvedLanguage returns the translation key ResolveEmailContent picks for a contact
+// language, or "" for the default content: no contact language, the workspace's default
+// language, no such translation, or a translation without email content.
+func (t *Template) ResolvedLanguage(contactLanguage string, workspaceDefaultLanguage string) string {
+	if t.Email == nil || t.Translations == nil || contactLanguage == "" || contactLanguage == workspaceDefaultLanguage {
+		return ""
 	}
 	if translation, ok := t.Translations[contactLanguage]; ok && translation.Email != nil {
-		resolved := *translation.Email
-		if resolved.SenderID == "" {
-			resolved.SenderID = t.Email.SenderID
-		}
-		if resolved.ReplyTo == "" {
-			resolved.ReplyTo = t.Email.ReplyTo
-		}
-		return &resolved
+		return contactLanguage
 	}
-	return t.Email
+	return ""
+}
+
+// EmailContentForLanguage returns the email content of a translation key as
+// ResolvedLanguage writes it: the default content for "" or a key without email content,
+// otherwise a copy of the translation with the template's sender and reply-to where it
+// leaves them empty.
+func (t *Template) EmailContentForLanguage(language string) *EmailTemplate {
+	if t.Email == nil || language == "" {
+		return t.Email
+	}
+	translation, ok := t.Translations[language]
+	if !ok || translation.Email == nil {
+		return t.Email
+	}
+	resolved := *translation.Email
+	if resolved.SenderID == "" {
+		resolved.SenderID = t.Email.SenderID
+	}
+	if resolved.ReplyTo == "" {
+		resolved.ReplyTo = t.Email.ReplyTo
+	}
+	return &resolved
 }
 
 // ResolveSubjectPreviewOverride picks the preview text to inject into the mj-preview block at
@@ -280,7 +299,7 @@ func (e *EmailTemplate) ApplyToCompileRequest(req *CompileTemplateRequest, expli
 }
 
 // MaxCustomTextSize caps the source of a custom plain-text version, in bytes.
-const MaxCustomTextSize = 64 * 1024
+const MaxCustomTextSize = notifuse_mjml.MaxCustomTextSize
 
 // NormalizeCustomText returns the custom plain-text version as it is stored and compared:
 // line endings as \n, and nil when it holds only whitespace, which means the automatic
@@ -1066,6 +1085,10 @@ func (r *GetTemplateUsageRequest) FromURLParams(queryParams url.Values) error {
 	r.TemplateID = queryParams.Get("template_id")
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("invalid get template usage request: workspace_id is required")
+	}
+	// The ID is compared with a text column: PostgreSQL refuses a NUL byte or invalid UTF-8.
+	if !utf8.ValidString(r.TemplateID) || strings.ContainsRune(r.TemplateID, 0) {
+		return fmt.Errorf("invalid get template usage request: template_id must be valid UTF-8 text without NUL bytes")
 	}
 	return nil
 }

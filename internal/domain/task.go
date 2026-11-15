@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/url"
 	"strconv"
 	"strings"
@@ -205,6 +206,16 @@ type TaskService interface {
 	SubscribeToBroadcastEvents(eventBus EventBus)
 	IsAutoExecuteEnabled() bool
 
+	// ScheduleBroadcastTask creates the task of a broadcast being scheduled, or starts its
+	// existing task over, and returns the task's ID. A send-now task is due shortly after
+	// the call (RunTaskNow starts it at once); a scheduled one at scheduledAt. It fails, and
+	// writes nothing, when an execution holds the broadcast's task.
+	ScheduleBroadcastTask(ctx context.Context, workspaceID, broadcastID string, sendNow bool, scheduledAt *time.Time) (string, error)
+	// RunTaskNow starts an execution of the given task in the background, whatever its next
+	// run, when this instance executes its tasks itself; otherwise the scheduler or the
+	// cron dispatches it.
+	RunTaskNow(workspaceID, taskID string)
+
 	// Recurring task operations
 	ResetTask(ctx context.Context, workspace, taskID string) error
 	TriggerTask(ctx context.Context, workspace, taskID string) error
@@ -245,7 +256,10 @@ type TaskRepository interface {
 	MarkAsRunning(ctx context.Context, workspace, id string, timeoutAfter time.Time) error
 	MarkAsRunningTx(ctx context.Context, tx *sql.Tx, workspace, id string, timeoutAfter time.Time) error
 
-	// SaveState saves the current state of a running task
+	// SaveState saves the current state of a running task. When ctx carries the run's lease
+	// (WithTaskLease), only the execution that holds that lease writes: once the task was
+	// handed to another execution, nothing is written. It returns ErrTaskNotRunning when no
+	// row was written.
 	SaveState(ctx context.Context, workspace, id string, progress float64, state *TaskState) error
 	SaveStateTx(ctx context.Context, tx *sql.Tx, workspace, id string, progress float64, state *TaskState) error
 
@@ -275,6 +289,21 @@ type TaskRepository interface {
 	// its retry budget or touching its saved progress.
 	ReleaseTask(ctx context.Context, workspace, id string, reason string, nextRunAfter time.Time) error
 	ReleaseTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, reason string, nextRunAfter time.Time) error
+
+	// RequeueTask hands a running task back for a later run without counting a failed
+	// attempt: status (pending, or paused to park it), progress, state and next run are
+	// written, the lease is cleared, and the retry count is kept, so a run that was the
+	// last attempt leaves its successor the last attempt too. It returns ErrTaskNotRunning,
+	// and changes nothing, when the task is no longer running: a cancel marked it failed
+	// meanwhile, and that decision stands.
+	RequeueTask(ctx context.Context, workspace, id string, status TaskStatus, nextRunAfter time.Time, progress float64, state *TaskState) error
+
+	// ResetBroadcastTaskTx starts a broadcast's task over for a new schedule: pending, due at
+	// nextRunAfter, with the given state, no progress, a fresh retry budget, no error and
+	// a creation date of now (the age the orchestrator reads to tell a task waiting for its
+	// schedule's commit from an orphan). It returns ErrTaskAlreadyRunning, and changes
+	// nothing, for a task an execution holds.
+	ResetBroadcastTaskTx(ctx context.Context, tx *sql.Tx, workspace, id string, state *TaskState, nextRunAfter time.Time) error
 
 	// WakeTask puts a waiting task back in the queue: pending, due at nextRunAfter,
 	// with a fresh retry budget and no error message. It returns false, and changes
@@ -426,7 +455,7 @@ func (r *GetTaskRequest) FromURLParams(values url.Values) error {
 		return fmt.Errorf("id is required")
 	}
 
-	return nil
+	return validateTaskID(r.ID)
 }
 
 // DeleteTaskRequest defines the request to delete a task
@@ -447,7 +476,7 @@ func (r *DeleteTaskRequest) FromURLParams(values url.Values) error {
 		return fmt.Errorf("id is required")
 	}
 
-	return nil
+	return validateTaskID(r.ID)
 }
 
 // ListTasksRequest is used to extract query parameters for listing tasks
@@ -588,6 +617,19 @@ func (r *ExecuteTaskRequest) Validate() error {
 		return fmt.Errorf("task id is required")
 	}
 
+	return validateTaskID(r.ID)
+}
+
+// validateTaskID refuses a task ID that is not a UUID in its 36-character form: tasks.id is a
+// UUID column, so another ID would reach the database only to fail there. uuid.Parse also
+// reads forms PostgreSQL refuses, such as urn:uuid:<uuid>.
+func validateTaskID(id string) error {
+	if len(id) != 36 {
+		return fmt.Errorf("task id must be a UUID")
+	}
+	if _, err := uuid.Parse(id); err != nil {
+		return fmt.Errorf("task id must be a UUID")
+	}
 	return nil
 }
 
@@ -607,7 +649,7 @@ func (r *ResetTaskRequest) Validate() error {
 		return fmt.Errorf("id is required")
 	}
 
-	return nil
+	return validateTaskID(r.ID)
 }
 
 // TriggerTaskRequest defines the request to trigger immediate execution of a recurring task
@@ -626,5 +668,20 @@ func (r *TriggerTaskRequest) Validate() error {
 		return fmt.Errorf("id is required")
 	}
 
-	return nil
+	return validateTaskID(r.ID)
+}
+
+type taskLeaseKey struct{}
+
+// WithTaskLease returns ctx carrying the lease (timeout_after) that the execution running a
+// task stored when it claimed it. A write that must come from that execution only, such as
+// TaskRepository.SaveState, matches it.
+func WithTaskLease(ctx context.Context, lease time.Time) context.Context {
+	return context.WithValue(ctx, taskLeaseKey{}, lease)
+}
+
+// TaskLeaseFrom returns the lease WithTaskLease put in ctx.
+func TaskLeaseFrom(ctx context.Context) (time.Time, bool) {
+	lease, ok := ctx.Value(taskLeaseKey{}).(time.Time)
+	return lease, ok
 }

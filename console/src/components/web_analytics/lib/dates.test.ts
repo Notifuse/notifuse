@@ -101,6 +101,23 @@ describe('resolveRange', () => {
     expect(resolved.endUtc).toBe('2026-01-06T14:59:59.999Z')
   })
 
+  it('starts a DST day at its local midnight, whatever the zone of the browser', () => {
+    const browser = process.env.TZ
+    // A browser in Los Angeles, a workspace in Paris, on the day Paris moves to summer time
+    process.env.TZ = 'America/Los_Angeles'
+    try {
+      const range = computeDateRange('custom', 'Europe/Paris', { start: '2026-03-29', end: '2026-03-29' })
+      expect(range.start.toISOString()).toBe('2026-03-28T23:00:00.000Z')
+      const resolved = resolveRange(range, 'Europe/Paris')
+      expect(resolved.startUtc).toBe('2026-03-28T23:00:00.000Z')
+      expect(resolved.endUtc).toBe('2026-03-29T21:59:59.999Z')
+    } finally {
+      // An unset TZ must stay unset: assigning undefined stores the string "undefined"
+      if (browser === undefined) delete process.env.TZ
+      else process.env.TZ = browser
+    }
+  })
+
   it('emits days the time-series gap filler can parse', () => {
     const resolved = resolveRange(computeDateRange('previous_7_days', 'UTC'), 'UTC')
     expect(resolved.startDay).toMatch(/^\d{4}-\d{2}-\d{2}$/)

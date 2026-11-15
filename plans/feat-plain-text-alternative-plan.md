@@ -20,7 +20,7 @@ text-only readers, watches and some screen readers show the text part.
 
 ## Scope and delivery
 
-Two PRs to `dev`, same unreleased version **43.1** (minor bump: no schema change).
+Two PRs to `dev`, same unreleased version **44.0** (shipped with the 44 schema changes).
 
 | PR | Content |
 |---|---|
@@ -239,9 +239,9 @@ Mailpit from the HTML, so it proves nothing.
 
 ### 8. Docs, changelog, version
 
-- `config/config.go`: `VERSION = "43.1"`, then `make sdk-build` on Node 24 and commit
+- `config/config.go`: `VERSION = "44.0"`, then `make sdk-build` on Node 24 and commit
   `web_analytics_sdk/dist/` (the bundle embeds VERSION and CI diffs it byte for byte,
-  `Makefile:68-72`); `CHANGELOG.md`: `## [43.1] - WIP`, one feature line:
+  `Makefile:68-72`); `CHANGELOG.md`: `## [44.0] - WIP`, one feature line:
   "Every email now includes a plain-text version, generated from its HTML, for mail clients
   that show text only and for better deliverability. Its links follow the same tracking as
   the HTML. Preview it in the template editor's new Text version mode."
@@ -356,7 +356,7 @@ Mailpit from the HTML, so it proves nothing.
    a `fr` contact; `de` translation without → automatic text of the `de` HTML; template API
    round-trip (`template_api_test.go`): create/update/get keeps `email.text` and translation
    texts, update without `text` returns to Automatic.
-8. **Docs / changelog**: fold into the 43.1 feature line ("…or write your own, per language,
+8. **Docs / changelog**: fold into the 44.0 feature line ("…or write your own, per language,
    in the same mode"), plus one line for API users: "If you set `email.text` through the API,
    that text is now sent as the plain-text version." Docs section and `openapi`
    (`email.text` description, compile `text_source`), `make openapi-bundle`.
@@ -414,9 +414,11 @@ and the suggestions were checked against the code and integrated:
 
 - The visual editor has no navbar block, so the golden fixture builds its navigation row
   as adjacent anchors in an `mj-text`, which is what the navbar compiles to.
-- Punctuation right after a link (`.,;:!?)]` and ASCII quotes) stays attached when a
-  space or the end of the text follows: `label (url).`, not `label (url) .`. Autolinkers
-  leave it out of the link. Typographic closing quotes are kept apart, since autolinkers
-  take them into the link.
+- Punctuation right after a link (`.,;:!?)` and ASCII quotes) stays attached when a
+  space or the end of the text follows: `label (url).`, not `label (url) .`. GitHub's
+  autolinker (cmark-gfm, `autolink_delim`) leaves each of `.,;:!?"'` and an unmatched `)`
+  out of the link; the GFM spec's prose lists fewer, and Gmail's and linkify's were not
+  checked. Typographic closing quotes and `]` are kept apart: Markdown-style autolinkers
+  (marked) take `]`.
 - A link with a relative `href` keeps its label only: there is no base to resolve it
   against. Tracked links are absolute whenever `API_ENDPOINT` or a custom endpoint is set.

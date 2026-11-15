@@ -30,7 +30,7 @@ func TestBroadcastHandlers_SenderErrors(t *testing.T) {
 	senderNotFound := fmt.Errorf("failed to get sender for broadcast: %w", fmt.Errorf("%w: promos", domain.ErrSenderNotFound))
 
 	run := func(t *testing.T, serviceErr error, wantCode int, wantMessage string) {
-		handler, mockService, _, mockLogger, ctrl := setupBroadcastHandler(t)
+		handler, mockService, mockLogger, ctrl := setupBroadcastHandler(t)
 		defer ctrl.Finish()
 		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
@@ -48,7 +48,7 @@ func TestBroadcastHandlers_SenderErrors(t *testing.T) {
 				name: "update",
 				body: domain.UpdateBroadcastRequest{ID: "broadcast123", WorkspaceID: "workspace123", Name: "Promo", Audience: domain.AudienceSettings{List: "list123"}},
 				expect: func(m *mocks.MockBroadcastService, err error) {
-					m.EXPECT().GetBroadcast(gomock.Any(), "workspace123", "broadcast123").Return(createTestBroadcast(), nil)
+					m.EXPECT().GetBroadcast(gomock.Any(), "workspace123", "broadcast123", gomock.Any()).Return(createTestBroadcast(), nil)
 					m.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil, err)
 				},
 				call: handler.HandleUpdate,

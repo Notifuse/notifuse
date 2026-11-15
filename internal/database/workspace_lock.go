@@ -169,6 +169,12 @@ func withLockTransaction(ctx context.Context, db *sql.DB, bounds lockBounds, acq
 	cancelPrepare()
 
 	if err := acquire(ctx, tx); err != nil {
+		// lib/pq reports a wait the caller's context ended as the server's "canceling
+		// statement due to user request", not as the context's error: name both, so the
+		// caller can tell its own cancellation from a refusal.
+		if ctxErr := ctx.Err(); ctxErr != nil && !errors.Is(err, ctxErr) {
+			return fmt.Errorf("%w (%w)", err, ctxErr)
+		}
 		return err
 	}
 	// Once acquire has returned, lib/pq's cancel watcher has settled: a nil ctx.Err()

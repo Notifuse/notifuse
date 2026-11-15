@@ -1,10 +1,13 @@
 import md5 from 'blueimp-md5'
 
-/** The Gravatar of an email, an identicon when it has none; '' without an email. */
+/**
+ * The Gravatar of an email; '' without an email. An email with none answers 404 (`d=404`), so the
+ * avatar keeps its initials rather than showing a generated pattern.
+ */
 export function getGravatarUrl(email: string | undefined, size: number = 32): string {
   if (!email) return ''
   const hash = md5(email.trim().toLowerCase())
-  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=404`
 }
 
 /**

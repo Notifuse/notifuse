@@ -316,6 +316,33 @@ func TestBlogService_UpdateCategory(t *testing.T) {
 		assert.Equal(t, req.Name, category.Settings.Name)
 	})
 
+	t.Run("a slug another route answers is refused when the slug changes", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.UpdateBlogCategoryRequest{ID: "cat123", Name: "Name", Slug: "track"}
+		mockCategoryRepo.EXPECT().GetCategory(ctx, req.ID).
+			Return(&domain.BlogCategory{ID: "cat123", Slug: "old-slug"}, nil)
+		// No slug lookup and no update: the strict mock refuses them.
+
+		category, err := service.UpdateCategory(ctx, req)
+
+		require.Error(t, err)
+		assert.Nil(t, category)
+		assert.Equal(t, "slug is reserved by another route", err.Error())
+	})
+
+	t.Run("a category that already has a reserved slug stays editable", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.UpdateBlogCategoryRequest{ID: "cat123", Name: "New name", Slug: "health"}
+		mockCategoryRepo.EXPECT().GetCategory(ctx, req.ID).
+			Return(&domain.BlogCategory{ID: "cat123", Slug: "health"}, nil)
+		mockCategoryRepo.EXPECT().UpdateCategory(ctx, gomock.Any()).Return(nil)
+
+		category, err := service.UpdateCategory(ctx, req)
+
+		require.NoError(t, err)
+		assert.Equal(t, "New name", category.Settings.Name)
+	})
+
 	t.Run("validation error", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UpdateBlogCategoryRequest{
@@ -1043,55 +1070,6 @@ func TestBlogService_GetPublicPostByCategoryAndSlug(t *testing.T) {
 	})
 }
 
-func TestBlogService_ListPublicPosts(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
-
-	t.Run("successful listing - only published", func(t *testing.T) {
-		params := &domain.ListBlogPostsRequest{
-			Status: domain.BlogPostStatusAll, // Will be forced to published
-			Limit:  50,
-		}
-
-		now := time.Now()
-		expectedResponse := &domain.BlogPostListResponse{
-			Posts: []*domain.BlogPost{
-				{ID: "post1", PublishedAt: &now},
-				{ID: "post2", PublishedAt: &now},
-			},
-			TotalCount: 2,
-		}
-
-		before := time.Now()
-		mockPostRepo.EXPECT().
-			ListPosts(ctx, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, p domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
-				// Verify status was forced to published
-				assert.Equal(t, domain.BlogPostStatusPublished, p.Status)
-				assertPublishedBeforeNow(t, p, before, time.Now())
-				return expectedResponse, nil
-			})
-
-		result, err := service.ListPublicPosts(ctx, params)
-		require.NoError(t, err)
-		assert.Equal(t, 2, result.TotalCount)
-	})
-
-	t.Run("repository error", func(t *testing.T) {
-		params := &domain.ListBlogPostsRequest{
-			Limit: 50,
-		}
-
-		mockPostRepo.EXPECT().
-			ListPosts(ctx, gomock.Any()).
-			Return(nil, errors.New("database error"))
-
-		result, err := service.ListPublicPosts(ctx, params)
-		require.Error(t, err)
-		assert.Nil(t, result)
-	})
-}
-
 func TestBlogService_ListPublicSitemapPosts(t *testing.T) {
 	// The auth mock has no expectation: any authentication call fails the test.
 	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
@@ -1122,6 +1100,43 @@ func TestBlogService_ListPublicSitemapPosts(t *testing.T) {
 			Return(nil, errors.New("database error"))
 
 		_, err := service.ListPublicSitemapPosts(ctx)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "database error")
+	})
+}
+
+func TestBlogService_NextScheduledPublishAt(t *testing.T) {
+	// The auth mock has no expectation: any authentication call fails the test.
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "ws1")
+	now := time.Date(2026, 11, 12, 9, 0, 0, 0, time.UTC)
+
+	t.Run("returns the repository's next publication for the instant given", func(t *testing.T) {
+		service, _, mockPostRepo, _, _, _, _, _ := setupBlogServiceTest(t)
+		due := now.Add(30 * time.Second)
+		mockPostRepo.EXPECT().NextScheduledPublishAt(ctx, now).Return(&due, nil)
+
+		next, err := service.NextScheduledPublishAt(ctx, now)
+
+		require.NoError(t, err)
+		assert.Equal(t, &due, next)
+	})
+
+	t.Run("returns nil when none is scheduled", func(t *testing.T) {
+		service, _, mockPostRepo, _, _, _, _, _ := setupBlogServiceTest(t)
+		mockPostRepo.EXPECT().NextScheduledPublishAt(ctx, now).Return(nil, nil)
+
+		next, err := service.NextScheduledPublishAt(ctx, now)
+
+		require.NoError(t, err)
+		assert.Nil(t, next)
+	})
+
+	t.Run("returns the repository error", func(t *testing.T) {
+		service, _, mockPostRepo, _, _, _, _, _ := setupBlogServiceTest(t)
+		mockPostRepo.EXPECT().NextScheduledPublishAt(ctx, now).Return(nil, errors.New("database error"))
+
+		_, err := service.NextScheduledPublishAt(ctx, now)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "database error")

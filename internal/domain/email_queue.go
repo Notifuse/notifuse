@@ -98,6 +98,12 @@ type EmailQueuePayload struct {
 	// message_history. An entry queued before they existed has neither.
 	OpensTracked  *bool `json:"opens_tracked,omitempty"`
 	ClicksTracked *bool `json:"clicks_tracked,omitempty"`
+
+	// RenderedLanguage is the template translation the email was rendered in, "" for
+	// the base content (Template.ResolvedLanguage). The worker records it in the
+	// message's metadata, so the web version shows the language that was sent. An
+	// entry queued before it existed has none.
+	RenderedLanguage *string `json:"rendered_language,omitempty"`
 }
 
 // ToSendEmailProviderRequest converts the payload to a SendEmailProviderRequest

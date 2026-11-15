@@ -65,12 +65,17 @@ func covWorkspaceService(ctrl *gomock.Controller, webhook *mocks.MockWebhookRegi
 		webhook,
 		"secret_key",
 		supabase,
-		&DNSVerificationService{},
+		acceptingDomainVerifier{},
 		&BlogService{},
 		entitlements,
 	)
 	return svc, deps
 }
+
+// acceptingDomainVerifier accepts every custom domain, so no test reaches a resolver.
+type acceptingDomainVerifier struct{}
+
+func (acceptingDomainVerifier) VerifyDomainOwnership(context.Context, string) error { return nil }
 
 func (d covWorkspaceDeps) expectOwner(ctx context.Context, workspaceID, userID string) {
 	d.auth.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).

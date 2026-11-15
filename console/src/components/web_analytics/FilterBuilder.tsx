@@ -316,6 +316,9 @@ function FilterPicker(props: {
         <InputNumber
           className="w-full"
           min={0}
+          // A rate is a percent, one decimal at most; a duration counts whole seconds
+          max={metric === 'median_duration' ? undefined : 100}
+          precision={metric === 'median_duration' ? 0 : 1}
           value={metricValue}
           onChange={(value) => setMetricValue(value ?? 0)}
         />

@@ -3,6 +3,7 @@ package domain
 import (
 	"encoding/json"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -158,4 +159,47 @@ func TestContactVisitsResponse_JSON(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(data), `"first_session":null`)
 	assert.Contains(t, string(data), `"goals":[]`)
+}
+
+// Validate checks the email of a request built without FromQuery, as FromQuery's callers do.
+func TestContactVisitsRequests_ValidateEmail(t *testing.T) {
+	atTheBound := strings.Repeat("a", ContactVisitsEmailMaxBytes-len("@example.com")) + "@example.com"
+	require.Len(t, atTheBound, 254)
+	for _, tt := range []struct {
+		name, email string
+		ok          bool
+	}{
+		{"an address", "ann@example.com", true},
+		{"an address of 254 bytes", atTheBound, true},
+		{"an address of 255 bytes", "a" + atTheBound, false},
+		{"empty", "", false},
+		{"a NUL byte", "a\x00b@example.com", false},
+		{"invalid UTF-8", "a\xffb@example.com", false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			visits := ContactVisitsRequest{WorkspaceID: "ws1", Email: tt.email, Filter: ContactVisitsFilterAll, Limit: 10}
+			pages := ContactSessionPagesRequest{WorkspaceID: "ws1", Email: tt.email,
+				SessionID: "0190d5a4-1c2b-7000-8000-000000000001", SessionDate: "2026-11-03"}
+			if tt.ok {
+				assert.NoError(t, visits.Validate())
+				assert.NoError(t, pages.Validate())
+			} else {
+				assert.Error(t, visits.Validate())
+				assert.Error(t, pages.Validate())
+			}
+		})
+	}
+
+	t.Run("FromQuery refuses invalid UTF-8 before lowercasing turns it into a valid address", func(t *testing.T) {
+		var req ContactSessionPagesRequest
+		err := req.FromQuery(url.Values{"workspace_id": {"ws1"}, "email": {"A\xffb@example.com"},
+			"session_id": {"0190d5a4-1c2b-7000-8000-000000000001"}, "session_date": {"2026-11-03"}})
+		assert.EqualError(t, err, "email must be valid UTF-8 without NUL bytes")
+	})
+}
+
+func TestContactSessionPagesResponse_JSON(t *testing.T) {
+	data, err := json.Marshal(ContactSessionPagesResponse{Pages: []ContactSessionPage{}, Goals: []ContactSessionGoal{}, GoalsTruncated: true})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"pages":[],"goals":[],"pages_truncated":false,"goals_truncated":true}`, string(data))
 }

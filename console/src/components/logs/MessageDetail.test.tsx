@@ -314,6 +314,15 @@ describe('MessageDetail', () => {
     await waitFor(() => expect(value('From')).toHaveTextContent('News <news@acme.io>'))
     second.unmount()
 
+    // Without a marketing provider, no sender is guessed for it: the server would not have sent it.
+    state.settings = { marketing_email_provider_id: undefined }
+    const doi = renderDetail()
+    await screen.findByText('To ann@example.com')
+    // While the template loads it counts as marketing, and the first email integration stands in
+    await waitFor(() => expect(value('From')).toHaveTextContent('—'))
+    doi.unmount()
+    state.settings = {}
+
     // A notification goes through the transactional provider, whatever its template's category.
     state.getTemplate.mockResolvedValue({
       template: template({ category: 'marketing', email: {} })

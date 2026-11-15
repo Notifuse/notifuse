@@ -1,7 +1,7 @@
 # Fix the tracking consent release blockers (43.0)
 
 Two defects that #494 (per-contact tracking consent) put on `dev`, found by the high review run before the
-43.0 release (`/mnt/project-files/reviews/pr-494-revue-high-post-merge.md`). Neither has shipped: 43.0 is not
+43.0 release. Neither has shipped: 43.0 is not
 released, so the CHANGELOG gets **no Fix bullet** (CLAUDE.md), and the 43.0 entries already describe the
 intended behaviour.
 
@@ -163,7 +163,7 @@ automatic ones (a change to released console behaviour).
 ## Counter-review
 
 The Gemini key was refused, so on Pierre's request the plan was counter-reviewed by an independent xhigh
-subagent (`/mnt/project-files/reviews/fix-tracking-consent-release-blockers-contre-avis-xhigh-plan.md`). Changes
+subagent. Changes
 made from it: the A/B fix follows the documented rule (manual choice) instead of crowning the first variation; v39
 keeps a frozen literal instead of a new generator variant; the integration test runs v39 to v42.
 

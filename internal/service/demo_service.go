@@ -1836,39 +1836,44 @@ type messageEngagement struct {
 	clickedTime   time.Time
 }
 
+// demoCampaignTemplate is one email the demo may send a contact.
+type demoCampaignTemplate struct {
+	templateID      string
+	templateVersion int64
+	broadcastID     *string // nil for transactional
+	messageType     string  // "newsletter", "welcome", "password-reset"
+	daysAgo         int
+}
+
+// demoTransactionalCampaigns are the demo's transactional emails over the last 10 days. Each
+// message type has its notification in demoNotificationIDs.
+var demoTransactionalCampaigns = []demoCampaignTemplate{
+	{templateID: "welcome-email", templateVersion: 1, messageType: "welcome", daysAgo: 2},
+	{templateID: "welcome-email", templateVersion: 1, messageType: "welcome", daysAgo: 5},
+	{templateID: "password-reset", templateVersion: 1, messageType: "password-reset", daysAgo: 3},
+	{templateID: "password-reset", templateVersion: 1, messageType: "password-reset", daysAgo: 8},
+}
+
 // generateMessagesPerContact creates message history by assigning 2-4 emails to each contact
 func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceID string, secretKey string, contacts []*domain.Contact, broadcastIDs []string) (int, error) {
 	s.logger.WithField("workspace_id", workspaceID).Info("Generating messages per contact")
 
-	// Define available campaign/message templates over the last 10 days
-	type campaignTemplate struct {
-		templateID      string
-		templateVersion int64
-		broadcastID     *string // nil for transactional
-		messageType     string  // "newsletter", "welcome", "password-reset"
-		daysAgo         int
-	}
-
-	campaigns := []campaignTemplate{
-		// Transactional messages
-		{templateID: "welcome-email", templateVersion: 1, broadcastID: nil, messageType: "welcome", daysAgo: 2},
-		{templateID: "welcome-email", templateVersion: 1, broadcastID: nil, messageType: "welcome", daysAgo: 5},
-		{templateID: "password-reset", templateVersion: 1, broadcastID: nil, messageType: "password-reset", daysAgo: 3},
-		{templateID: "password-reset", templateVersion: 1, broadcastID: nil, messageType: "password-reset", daysAgo: 8},
-	}
+	campaigns := append([]demoCampaignTemplate{}, demoTransactionalCampaigns...)
 
 	// Add newsletter campaigns using real broadcast IDs
 	if len(broadcastIDs) >= 4 {
 		campaigns = append(campaigns,
-			campaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[0], messageType: "newsletter", daysAgo: 1},
-			campaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[1], messageType: "newsletter", daysAgo: 4},
-			campaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[2], messageType: "newsletter", daysAgo: 7},
-			campaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[3], messageType: "newsletter", daysAgo: 10},
+			demoCampaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[0], messageType: "newsletter", daysAgo: 1},
+			demoCampaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[1], messageType: "newsletter", daysAgo: 4},
+			demoCampaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[2], messageType: "newsletter", daysAgo: 7},
+			demoCampaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[3], messageType: "newsletter", daysAgo: 10},
 		)
 	}
 
 	totalMessages := 0
 	batchSize := 50
+	// The recipients drawn for each broadcast, which its A/B counters are made of.
+	broadcastRecipients := map[string]int{}
 
 	for i := 0; i < len(contacts); i += batchSize {
 		end := i + batchSize
@@ -1885,7 +1890,7 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 			numEmails := 2 + rand.Intn(3) // 2, 3, or 4 emails
 
 			// Randomly select campaigns for this contact
-			selectedCampaigns := make([]campaignTemplate, numEmails)
+			selectedCampaigns := make([]demoCampaignTemplate, numEmails)
 			selectedIndexes := rand.Perm(len(campaigns))[:numEmails]
 			for j, idx := range selectedIndexes {
 				selectedCampaigns[j] = campaigns[idx]
@@ -1916,6 +1921,9 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 				})
 
 				totalMessages++
+				if campaign.broadcastID != nil {
+					broadcastRecipients[*campaign.broadcastID]++
+				}
 			}
 		}
 
@@ -1936,8 +1944,35 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 		}
 	}
 
+	s.recordDemoABTestCounts(ctx, workspaceID, broadcastIDs, broadcastRecipients)
+
 	s.logger.WithField("workspace_id", workspaceID).WithField("total_messages", totalMessages).Info("Messages per contact generation completed")
 	return totalMessages, nil
+}
+
+// recordDemoABTestCounts gives each A/B broadcast of the demo the recipients of its test and
+// winner phases, as a real send records them: its sample percentage of the recipients drawn
+// went to the test, the rest to the winner.
+func (s *DemoService) recordDemoABTestCounts(ctx context.Context, workspaceID string, broadcastIDs []string, recipients map[string]int) {
+	for _, broadcastID := range broadcastIDs {
+		total := recipients[broadcastID]
+		if total == 0 {
+			continue
+		}
+		broadcast, err := s.broadcastRepo.GetBroadcast(ctx, workspaceID, broadcastID)
+		if err != nil {
+			s.logger.WithField("broadcast_id", broadcastID).WithField("error", err.Error()).Warn("Failed to read sample broadcast for its A/B counts")
+			continue
+		}
+		if !broadcast.TestSettings.Enabled {
+			continue
+		}
+		broadcast.TestPhaseRecipientCount = total * broadcast.TestSettings.SamplePercentage / 100
+		broadcast.WinnerPhaseRecipientCount = total - broadcast.TestPhaseRecipientCount
+		if err := s.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
+			s.logger.WithField("broadcast_id", broadcastID).WithField("error", err.Error()).Warn("Failed to record sample broadcast A/B counts")
+		}
+	}
 }
 
 // messageEngagementData holds a message and its engagement info

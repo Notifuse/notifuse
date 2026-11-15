@@ -37,6 +37,13 @@ func TestBlogSitemap(t *testing.T) {
 		testutil.WithBlogEnabled(true),
 	)
 	require.NoError(t, err)
+	// A published theme, so that every listed page renders.
+	page := "<html><body>{{ blog.title }}</body></html>"
+	_, err = factory.CreateBlogTheme(workspace.ID,
+		testutil.WithThemePublished(true),
+		testutil.WithThemeFiles(domain.BlogThemeFiles{HomeLiquid: page, CategoryLiquid: page, PostLiquid: page}),
+	)
+	require.NoError(t, err)
 
 	publishedAt := func(at time.Time) testutil.BlogPostOption {
 		return func(p *domain.BlogPost) {
@@ -86,6 +93,15 @@ func TestBlogSitemap(t *testing.T) {
 		publishedAt(time.Now().Add(-time.Hour)),
 	)
 	require.NoError(t, err)
+	// A category created before its slug was refused: another route answers its page, while
+	// its posts and feed reach the blog (TestBlogReservedCategorySlugs covers the others).
+	track, err := factory.CreateBlogCategory(workspace.ID, testutil.WithCategorySlug("track"))
+	require.NoError(t, err)
+	_, err = factory.CreateBlogPost(workspace.ID, track.ID,
+		testutil.WithPostSlug("tracked-post"),
+		publishedAt(time.Now().Add(-time.Hour)),
+	)
+	require.NoError(t, err)
 
 	// A deleted post, and a live post left in a deleted category: both answer 404.
 	db, err := factory.GetWorkspaceDB(workspace.ID)
@@ -93,6 +109,10 @@ func TestBlogSitemap(t *testing.T) {
 	_, err = db.Exec(`UPDATE blog_posts SET deleted_at = NOW() WHERE id = $1`, deleted.ID)
 	require.NoError(t, err)
 	_, err = db.Exec(`UPDATE blog_categories SET deleted_at = NOW() WHERE id = $1`, archived.ID)
+	require.NoError(t, err)
+	// The oldest tech post, published 70 hours ago, edited 30 hours ago: two different days.
+	edited := time.Now().Add(-30 * time.Hour).UTC()
+	_, err = db.Exec(`UPDATE blog_posts SET updated_at = $1 WHERE slug = 'tech-post-69'`, edited)
 	require.NoError(t, err)
 
 	resp, err := client.MakeRequestWithHost("GET", "/sitemap.xml", host, nil)
@@ -105,13 +125,16 @@ func TestBlogSitemap(t *testing.T) {
 
 	var sitemap struct {
 		URLs []struct {
-			Loc string `xml:"loc"`
+			Loc     string `xml:"loc"`
+			LastMod string `xml:"lastmod"`
 		} `xml:"url"`
 	}
 	require.NoError(t, xml.Unmarshal(body, &sitemap), "the sitemap is well-formed XML")
 	locs := map[string]int{}
+	lastmods := map[string]string{}
 	for _, u := range sitemap.URLs {
 		locs[u.Loc]++
+		lastmods[u.Loc] = u.LastMod
 	}
 	url := func(path string) string { return "https://" + host + path }
 
@@ -129,15 +152,66 @@ func TestBlogSitemap(t *testing.T) {
 		}
 	})
 
-	t.Run("lists the home page, the main feed and the feed of each live category once", func(t *testing.T) {
-		for _, path := range []string{"/", "/feed.xml", "/tech/feed.xml", "/design/feed.xml"} {
+	t.Run("lists the home page, the main feed and the page and feed of each live category once", func(t *testing.T) {
+		for _, path := range []string{"/", "/feed.xml", "/tech", "/tech/feed.xml", "/design", "/design/feed.xml"} {
 			assert.Equal(t, 1, locs[url(path)], path)
 		}
+		assert.Zero(t, locs[url("/archived")])
 		assert.Zero(t, locs[url("/archived/feed.xml")])
 	})
 
+	t.Run("leaves out the page another route answers, and lists the category's post and feed", func(t *testing.T) {
+		assert.Zero(t, locs[url("/track")])
+		assert.Equal(t, 1, locs[url("/track/feed.xml")])
+		assert.Equal(t, 1, locs[url("/track/tracked-post")])
+	})
+
 	t.Run("lists nothing else", func(t *testing.T) {
-		// Home page, main feed, the live posts and the two live categories' feeds.
-		assert.Len(t, sitemap.URLs, 2+len(live)+2)
+		// Home page, main feed, the live posts, the two live categories' pages and feeds, and
+		// the track category's post and feed.
+		assert.Len(t, sitemap.URLs, 2+len(live)+4+2)
+	})
+
+	t.Run("an edited post's lastmod is its edit date", func(t *testing.T) {
+		assert.Equal(t, edited.Format("2006-01-02"), lastmods[url("/tech/tech-post-69")])
+	})
+
+	t.Run("every listed URL answers 200", func(t *testing.T) {
+		for _, u := range sitemap.URLs {
+			path := u.Loc[len("https://"+host):]
+			resp, err := client.MakeRequestWithHost("GET", path, host, nil)
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+			assert.Equal(t, http.StatusOK, resp.StatusCode, path)
+		}
+	})
+
+	t.Run("a second request within the cache's TTL is served from the cache", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/sitemap.xml", host, nil)
+		require.NoError(t, err)
+		again, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.NoError(t, err)
+		assert.Equal(t, "HIT", resp.Header.Get("X-Cache"))
+		assert.Equal(t, string(body), string(again))
+	})
+
+	t.Run("robots.txt names the sitemap by its absolute URL", func(t *testing.T) {
+		resp, err := client.MakeRequestWithHost("GET", "/robots.txt", host, nil)
+		require.NoError(t, err)
+		robots, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Contains(t, string(robots), "Sitemap: https://"+host+"/sitemap.xml\n")
+	})
+
+	t.Run("robots.txt and the sitemap answer 405 to a POST", func(t *testing.T) {
+		for _, path := range []string{"/robots.txt", "/sitemap.xml"} {
+			resp, err := client.MakeRequestWithHost("POST", path, host, nil)
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+			assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode, path)
+		}
 	})
 }

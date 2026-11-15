@@ -809,20 +809,49 @@ func setupBlogHandlerTest(t *testing.T) (*mocks.MockBlogService, *pkgmocks.MockL
 }
 
 func TestRootHandler_serveBlogRobots(t *testing.T) {
-	_, _, _, _, handler := setupBlogHandlerTest(t)
+	t.Run("names the sitemap by its absolute URL on the lower-case host", func(t *testing.T) {
+		_, _, _, _, handler := setupBlogHandlerTest(t)
 
-	req := httptest.NewRequest("GET", "/robots.txt", nil)
-	req.Host = "example.com"
-	w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/robots.txt", nil)
+		req.Host = "Blog.Example.com:8080"
+		w := httptest.NewRecorder()
 
-	handler.serveBlogRobots(w, req)
+		handler.serveBlogRobots(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
-	body := w.Body.String()
-	assert.Contains(t, body, "User-agent: *")
-	assert.Contains(t, body, "Allow: /")
-	assert.Contains(t, body, "Sitemap: /sitemap.xml")
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "text/plain", w.Header().Get("Content-Type"))
+		assert.Equal(t, "User-agent: *\nAllow: /\n\nSitemap: https://blog.example.com/sitemap.xml\n", w.Body.String())
+	})
+
+	t.Run("answers 405 outside GET and HEAD", func(t *testing.T) {
+		_, _, _, _, handler := setupBlogHandlerTest(t)
+		for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
+			req := httptest.NewRequest(method, "/robots.txt", nil)
+			req.Host = "example.com"
+			w := httptest.NewRecorder()
+
+			handler.serveBlogRobots(w, req)
+
+			assert.Equal(t, http.StatusMethodNotAllowed, w.Code, method)
+			assert.Equal(t, "GET, HEAD", w.Header().Get("Allow"), method)
+		}
+	})
+
+	t.Run("answers HEAD", func(t *testing.T) {
+		_, _, _, _, handler := setupBlogHandlerTest(t)
+		req := httptest.NewRequest(http.MethodHead, "/robots.txt", nil)
+		req.Host = "example.com"
+		w := httptest.NewRecorder()
+
+		handler.serveBlogRobots(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
+// expectNoScheduledPost lets a page be cached for domain.BlogCacheTTL: no post is scheduled.
+func expectNoScheduledPost(m *mocks.MockBlogService) {
+	m.EXPECT().NextScheduledPublishAt(gomock.Any(), gomock.Any()).Return(nil, nil)
 }
 
 func TestRootHandler_serveBlog404(t *testing.T) {
@@ -856,25 +885,26 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		return w
 	}
 
-	t.Run("lists every post at its category's address and each category's feed once", func(t *testing.T) {
-		// The strict mock fails on any other call: GetCategory, which needs a user, and
-		// ListPublicPosts, capped by ListBlogPostsRequest.Validate, are no longer used.
+	t.Run("lists every post at its category's address and each category's page and feed once", func(t *testing.T) {
+		// The strict mock fails on any other call: GetCategory, which needs a user, is not used.
 		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
 		mockBlogService.EXPECT().
 			ListPublicSitemapPosts(gomock.Any()).
 			DoAndReturn(func(ctx context.Context) ([]*domain.BlogSitemapPost, error) {
 				assert.Equal(t, workspace.ID, ctx.Value(domain.WorkspaceIDKey))
 				return []*domain.BlogSitemapPost{
-					{CategorySlug: "tech", PostSlug: "first-post", PublishedAt: newest},
-					{CategorySlug: "design", PostSlug: "colors", PublishedAt: older},
-					{CategorySlug: "tech", PostSlug: "second-post", PublishedAt: oldest},
+					{CategorySlug: "tech", PostSlug: "first-post", PublishedAt: newest, LastModified: newest},
+					{CategorySlug: "design", PostSlug: "colors", PublishedAt: older, LastModified: older},
+					{CategorySlug: "tech", PostSlug: "second-post", PublishedAt: oldest, LastModified: oldest},
 				}, nil
 			})
+		expectNoScheduledPost(mockBlogService)
 
 		w := serve(t, handler, workspace)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "application/xml", w.Header().Get("Content-Type"))
+		assert.Equal(t, "MISS", w.Header().Get("X-Cache"))
 		body := w.Body.String()
 		assert.True(t, strings.HasPrefix(body, `<?xml version="1.0" encoding="UTF-8"?>`))
 		assert.Contains(t, body, `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
@@ -882,19 +912,23 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		assert.Contains(t, body, "<loc>https://example.com/tech/first-post</loc>\n    <lastmod>2026-11-10</lastmod>")
 		assert.Contains(t, body, "<loc>https://example.com/design/colors</loc>\n    <lastmod>2026-11-02</lastmod>")
 		assert.Contains(t, body, "<loc>https://example.com/tech/second-post</loc>\n    <lastmod>2026-10-20</lastmod>")
-		assert.Equal(t, 1, strings.Count(body, "<loc>https://example.com/tech/feed.xml</loc>"))
-		assert.Equal(t, 1, strings.Count(body, "<loc>https://example.com/design/feed.xml</loc>"))
-		// Home page, three posts, main feed, two category feeds.
-		assert.Equal(t, 7, strings.Count(body, "<loc>"))
+		for _, loc := range []string{"/tech", "/tech/feed.xml", "/design", "/design/feed.xml"} {
+			assert.Equal(t, 1, strings.Count(body, "<loc>https://example.com"+loc+"</loc>"), loc)
+		}
+		// Home page, three posts, main feed, two category pages and their feeds.
+		assert.Equal(t, 9, strings.Count(body, "<loc>"))
 
-		// Home page, posts newest first, main feed, then category feeds in order of first post.
+		// Home page, posts newest first, main feed, then each category's page and feed in
+		// order of first post.
 		order := []string{
 			"<loc>https://example.com/</loc>",
 			"<loc>https://example.com/tech/first-post</loc>",
 			"<loc>https://example.com/design/colors</loc>",
 			"<loc>https://example.com/tech/second-post</loc>",
 			"<loc>https://example.com/feed.xml</loc>",
+			"<loc>https://example.com/tech</loc>",
 			"<loc>https://example.com/tech/feed.xml</loc>",
+			"<loc>https://example.com/design</loc>",
 			"<loc>https://example.com/design/feed.xml</loc>",
 		}
 		last := -1
@@ -909,6 +943,7 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 	t.Run("lists the home page and the main feed when there is no post", func(t *testing.T) {
 		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
 		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(nil, nil)
+		expectNoScheduledPost(mockBlogService)
 
 		w := serve(t, handler, workspace)
 
@@ -920,15 +955,16 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		assert.Equal(t, 2, strings.Count(body, "<loc>"))
 	})
 
-	t.Run("builds its URLs from the host without what follows its colon", func(t *testing.T) {
-		// The workspace is found by the host before the colon; the rest of the header is
-		// not checked, and would otherwise be repeated, unescaped, in every URL.
+	t.Run("builds its URLs from the host in lower case, without what follows its colon", func(t *testing.T) {
+		// The workspace is found by the host before the colon, whatever its case; the rest of
+		// the header is not checked, and would otherwise be repeated, unescaped, in every URL.
 		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
 		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return([]*domain.BlogSitemapPost{
-			{CategorySlug: "tech", PostSlug: "first-post", PublishedAt: newest},
+			{CategorySlug: "tech", PostSlug: "first-post", PublishedAt: newest, LastModified: newest},
 		}, nil)
+		expectNoScheduledPost(mockBlogService)
 		req := httptest.NewRequest("GET", "/sitemap.xml", nil)
-		req.Host = "example.com:&x"
+		req.Host = "Example.COM:&x"
 		w := httptest.NewRecorder()
 
 		handler.serveBlogSitemap(w, req, workspace)
@@ -948,6 +984,7 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 			"https://example.com/",
 			"https://example.com/tech/first-post",
 			"https://example.com/feed.xml",
+			"https://example.com/tech",
 			"https://example.com/tech/feed.xml",
 		}, locs)
 	})
@@ -959,6 +996,7 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 			posts[i] = &domain.BlogSitemapPost{CategorySlug: "tech", PostSlug: fmt.Sprintf("p%d", i), PublishedAt: newest}
 		}
 		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(posts, nil)
+		expectNoScheduledPost(mockBlogService)
 
 		w := serve(t, handler, workspace)
 
@@ -973,6 +1011,63 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		w := serve(t, handler, workspace)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+
+	t.Run("answers 405 outside GET and HEAD", func(t *testing.T) {
+		_, _, _, workspace, handler := setupBlogHandlerTest(t)
+		req := httptest.NewRequest(http.MethodPost, "/sitemap.xml", nil)
+		req.Host = "example.com"
+		w := httptest.NewRecorder()
+
+		handler.serveBlogSitemap(w, req, workspace)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+		assert.Equal(t, "GET, HEAD", w.Header().Get("Allow"))
+	})
+
+	t.Run("serves a second request from the cache, per workspace and host", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(nil, nil).Times(3)
+		mockBlogService.EXPECT().NextScheduledPublishAt(gomock.Any(), gomock.Any()).Return(nil, nil).Times(3)
+
+		first := serve(t, handler, workspace)
+		req := httptest.NewRequest("GET", "/sitemap.xml", nil)
+		req.Host = "EXAMPLE.com:443"
+		second := httptest.NewRecorder()
+		handler.serveBlogSitemap(second, req, workspace)
+
+		assert.Equal(t, "MISS", first.Header().Get("X-Cache"))
+		assert.Equal(t, "HIT", second.Header().Get("X-Cache"), "the same host, normalised")
+		assert.Equal(t, first.Body.String(), second.Body.String())
+		assert.Equal(t, "application/xml", second.Header().Get("Content-Type"))
+
+		// Another workspace on the same host is built again.
+		other := *workspace
+		other.ID = "other-workspace-id"
+		third := serve(t, handler, &other)
+		assert.Equal(t, "MISS", third.Header().Get("X-Cache"))
+
+		// So is another host of the same workspace.
+		req = httptest.NewRequest("GET", "/sitemap.xml", nil)
+		req.Host = "blog.example.org"
+		fourth := httptest.NewRecorder()
+		handler.serveBlogSitemap(fourth, req, workspace)
+		assert.Equal(t, "MISS", fourth.Header().Get("X-Cache"))
+		assert.Contains(t, fourth.Body.String(), "<loc>https://blog.example.org/</loc>")
+	})
+
+	t.Run("answers HEAD", func(t *testing.T) {
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(nil, nil)
+		expectNoScheduledPost(mockBlogService)
+		req := httptest.NewRequest(http.MethodHead, "/sitemap.xml", nil)
+		req.Host = "example.com"
+		w := httptest.NewRecorder()
+
+		handler.serveBlogSitemap(w, req, workspace)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "application/xml", w.Header().Get("Content-Type"))
 	})
 }
 
@@ -991,19 +1086,21 @@ func TestWriteBlogSitemap_URLBudget(t *testing.T) {
 	}
 
 	t.Run("lists everything when it fits exactly", func(t *testing.T) {
-		// Home, main feed, four posts, two category feeds.
-		body := write(8)
-		assert.Equal(t, 8, strings.Count(body, "<loc>"))
+		// Home, main feed, four posts, two category pages and two category feeds.
+		body := write(10)
+		assert.Equal(t, 10, strings.Count(body, "<loc>"))
 		assert.Contains(t, body, "<loc>https://example.com/tech/p4</loc>")
 	})
 
-	t.Run("counts a new category's feed against the budget and keeps the newest posts", func(t *testing.T) {
-		// Home, main feed, p1 and p2 with the tech feed take 5; p3 needs 2 more (its post and
-		// the design feed), so the sitemap stops before it, and p4 is not listed after it.
-		body := write(6)
-		assert.Equal(t, 5, strings.Count(body, "<loc>"))
+	t.Run("counts a new category's page and feed against the budget and keeps the newest posts", func(t *testing.T) {
+		// Home, main feed, p1 and p2 with the tech page and feed take 6; p3 needs 3 more (its
+		// post, the design page and feed), so the sitemap stops before it, and p4 is not listed
+		// after it.
+		body := write(8)
+		assert.Equal(t, 6, strings.Count(body, "<loc>"))
 		assert.Contains(t, body, "<loc>https://example.com/tech/p1</loc>")
 		assert.Contains(t, body, "<loc>https://example.com/tech/p2</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/tech</loc>")
 		assert.Contains(t, body, "<loc>https://example.com/tech/feed.xml</loc>")
 		assert.NotContains(t, body, "p3")
 		assert.NotContains(t, body, "design")
@@ -1011,21 +1108,113 @@ func TestWriteBlogSitemap_URLBudget(t *testing.T) {
 	})
 
 	t.Run("stops at the first post that does not fit", func(t *testing.T) {
-		// Home, main feed, p1 and the tech feed take 4; p2 does not fit in 4.
-		body := write(4)
-		assert.Equal(t, 4, strings.Count(body, "<loc>"))
+		// Home, main feed, p1 and the tech page and feed take 5; p2 does not fit in 5.
+		body := write(5)
+		assert.Equal(t, 5, strings.Count(body, "<loc>"))
 		assert.Contains(t, body, "<loc>https://example.com/tech/p1</loc>")
 		assert.Contains(t, body, "<loc>https://example.com/tech/feed.xml</loc>")
 		assert.NotContains(t, body, "p2")
 	})
 
+	t.Run("a new category whose page is an exact route costs its post and its feed", func(t *testing.T) {
+		// Home, main feed, p1 and the track feed take 4. At a budget of 4 a dearer track
+		// category would not fit; at 6 a cheaper one would leave room for p2 and its category
+		// (3 more). The same 4 addresses at both budgets pin the cost from both sides.
+		for _, budget := range []int{4, 6} {
+			var b strings.Builder
+			writeBlogSitemap(&b, "example.com", []*domain.BlogSitemapPost{
+				{CategorySlug: "track", PostSlug: "p1", PublishedAt: at},
+				{CategorySlug: "tech", PostSlug: "p2", PublishedAt: at},
+			}, budget)
+			body := b.String()
+			assert.Equal(t, 4, strings.Count(body, "<loc>"), "budget %d", budget)
+			assert.Contains(t, body, "<loc>https://example.com/track/p1</loc>", "budget %d", budget)
+			assert.Contains(t, body, "<loc>https://example.com/track/feed.xml</loc>", "budget %d", budget)
+			assert.NotContains(t, body, "p2", "budget %d", budget)
+		}
+	})
+
+	t.Run("a post under a route that takes the subtree costs nothing", func(t *testing.T) {
+		var b strings.Builder
+		writeBlogSitemap(&b, "example.com", []*domain.BlogSitemapPost{
+			{CategorySlug: "v", PostSlug: "p1", PublishedAt: at},
+			{CategorySlug: "tech", PostSlug: "p2", PublishedAt: at},
+		}, 5)
+		body := b.String()
+		// Home, main feed, p2 with the tech page and feed take 5, exactly the budget.
+		assert.Equal(t, 5, strings.Count(body, "<loc>"))
+		assert.Contains(t, body, "<loc>https://example.com/tech/p2</loc>")
+	})
+
 	t.Run("lists the home page and the main feed only when nothing else fits", func(t *testing.T) {
-		for _, maxURLs := range []int{2, 3} {
+		for _, maxURLs := range []int{2, 3, 4} {
 			body := write(maxURLs)
 			assert.Equal(t, 2, strings.Count(body, "<loc>"), "maxURLs %d", maxURLs)
 			assert.Contains(t, body, "<loc>https://example.com/</loc>")
 			assert.Contains(t, body, "<loc>https://example.com/feed.xml</loc>")
 		}
+	})
+}
+
+func TestWriteBlogSitemap_Content(t *testing.T) {
+	published := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	edited := time.Date(2026, 11, 3, 18, 30, 0, 0, time.UTC)
+	write := func(posts ...*domain.BlogSitemapPost) string {
+		var b strings.Builder
+		writeBlogSitemap(&b, "example.com", posts, domain.BlogSitemapMaxURLs)
+		return b.String()
+	}
+
+	t.Run("an edited post's lastmod is its edit date", func(t *testing.T) {
+		body := write(&domain.BlogSitemapPost{CategorySlug: "tech", PostSlug: "p1", PublishedAt: published, LastModified: edited})
+		assert.Contains(t, body, "<loc>https://example.com/tech/p1</loc>\n    <lastmod>2026-11-03</lastmod>")
+	})
+
+	t.Run("a post never edited after its publication has its publication date", func(t *testing.T) {
+		body := write(&domain.BlogSitemapPost{CategorySlug: "tech", PostSlug: "p1", PublishedAt: published, LastModified: published})
+		assert.Contains(t, body, "<loc>https://example.com/tech/p1</loc>\n    <lastmod>2026-10-01</lastmod>")
+	})
+
+	t.Run("a category's page is listed once, whatever its number of posts", func(t *testing.T) {
+		body := write(
+			&domain.BlogSitemapPost{CategorySlug: "tech", PostSlug: "p1", PublishedAt: published},
+			&domain.BlogSitemapPost{CategorySlug: "tech", PostSlug: "p2", PublishedAt: published},
+		)
+		assert.Equal(t, 1, strings.Count(body, "<loc>https://example.com/tech</loc>"))
+	})
+
+	t.Run("a post read without its edit date has its publication date", func(t *testing.T) {
+		body := write(&domain.BlogSitemapPost{CategorySlug: "tech", PostSlug: "p1", PublishedAt: published})
+		assert.Contains(t, body, "<loc>https://example.com/tech/p1</loc>\n    <lastmod>2026-10-01</lastmod>")
+	})
+
+	t.Run("a category whose page is an exact route keeps its posts and feed", func(t *testing.T) {
+		body := write(
+			&domain.BlogSitemapPost{CategorySlug: "track", PostSlug: "p1", PublishedAt: published},
+			&domain.BlogSitemapPost{CategorySlug: "health", PostSlug: "p2", PublishedAt: published},
+		)
+		assert.NotContains(t, body, "<loc>https://example.com/track</loc>")
+		assert.NotContains(t, body, "<loc>https://example.com/health</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/track/p1</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/track/feed.xml</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/health/p2</loc>")
+		assert.Contains(t, body, "<loc>https://example.com/health/feed.xml</loc>")
+		// Home, main feed, and each category's post and feed.
+		assert.Equal(t, 6, strings.Count(body, "<loc>"))
+	})
+
+	t.Run("a category under a route that takes the subtree is left out with its posts", func(t *testing.T) {
+		body := write(
+			&domain.BlogSitemapPost{CategorySlug: "v", PostSlug: "p1", PublishedAt: published},
+			&domain.BlogSitemapPost{CategorySlug: "apis", PostSlug: "p2", PublishedAt: published},
+			&domain.BlogSitemapPost{CategorySlug: "tracking", PostSlug: "p3", PublishedAt: published},
+		)
+		assert.NotContains(t, body, "/v/")
+		assert.NotContains(t, body, "/v<")
+		assert.NotContains(t, body, "/apis")
+		assert.Contains(t, body, "<loc>https://example.com/tracking/p3</loc>")
+		// Home, main feed, p3 with the tracking page and feed.
+		assert.Equal(t, 5, strings.Count(body, "<loc>"))
 	})
 }
 
@@ -1037,6 +1226,7 @@ func TestRootHandler_serveBlogHome(t *testing.T) {
 		mockBlogService.EXPECT().
 			RenderHomePage(gomock.Any(), workspace.ID, 1, nil).
 			Return(expectedHTML, nil)
+		expectNoScheduledPost(mockBlogService)
 
 		req := httptest.NewRequest("GET", "/", nil)
 		req.Host = "example.com"
@@ -1058,6 +1248,7 @@ func TestRootHandler_serveBlogHome(t *testing.T) {
 		mockBlogService.EXPECT().
 			RenderHomePage(gomock.Any(), workspace.ID, 2, nil).
 			Return(expectedHTML, nil)
+		expectNoScheduledPost(mockBlogService)
 
 		req := httptest.NewRequest("GET", "/?page=2", nil)
 		req.Host = "example.com"
@@ -1233,6 +1424,7 @@ func TestRootHandler_serveBlogCategory(t *testing.T) {
 		mockBlogService.EXPECT().
 			RenderCategoryPage(gomock.Any(), workspace.ID, "tech", 1, nil).
 			Return(expectedHTML, nil)
+		expectNoScheduledPost(mockBlogService)
 
 		req := httptest.NewRequest("GET", "/tech", nil)
 		req.Host = "example.com"
@@ -1252,6 +1444,7 @@ func TestRootHandler_serveBlogCategory(t *testing.T) {
 		mockBlogService.EXPECT().
 			RenderCategoryPage(gomock.Any(), workspace.ID, "tech", 2, nil).
 			Return(expectedHTML, nil)
+		expectNoScheduledPost(mockBlogService)
 
 		req := httptest.NewRequest("GET", "/tech?page=2", nil)
 		req.Host = "example.com"
@@ -1551,6 +1744,7 @@ func TestRootHandler_serveBlog(t *testing.T) {
 		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
 
 		mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).Return(nil, nil)
+		expectNoScheduledPost(mockBlogService)
 
 		req := httptest.NewRequest("GET", "/sitemap.xml", nil)
 		req.Host = "example.com"
@@ -1568,6 +1762,7 @@ func TestRootHandler_serveBlog(t *testing.T) {
 		mockBlogService.EXPECT().
 			RenderHomePage(gomock.Any(), workspace.ID, 1, nil).
 			Return("<html><body>Home</body></html>", nil)
+		expectNoScheduledPost(mockBlogService)
 
 		req := httptest.NewRequest("GET", "/", nil)
 		req.Host = "example.com"
@@ -1600,6 +1795,7 @@ func TestRootHandler_serveBlog(t *testing.T) {
 		mockBlogService.EXPECT().
 			RenderCategoryPage(gomock.Any(), workspace.ID, "tech", 1, nil).
 			Return("<html><body>Category</body></html>", nil)
+		expectNoScheduledPost(mockBlogService)
 
 		req := httptest.NewRequest("GET", "/tech", nil)
 		req.Host = "example.com"
@@ -1697,6 +1893,7 @@ func TestRootHandler_serveBlog(t *testing.T) {
 				assert.Equal(t, workspace.ID, ctxWorkspaceID)
 				return "<html><body>Home</body></html>", nil
 			})
+		expectNoScheduledPost(mockBlogService)
 
 		req := httptest.NewRequest("GET", "/", nil)
 		req.Host = "example.com"
@@ -1880,6 +2077,37 @@ func TestRootHandler_serveBlogFeed(t *testing.T) {
 		assert.Equal(t, http.StatusNotModified, w.Code)
 	})
 
+	t.Run("a stale ETag answers 200 even with a recent If-Modified-Since", func(t *testing.T) {
+		// RFC 9110 §13.1.3: If-None-Match, when sent, decides alone.
+		mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+
+		mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+		mockBlogService.EXPECT().BuildFeed(gomock.Any(), workspace.ID, nil).Return(feedPayload, nil)
+
+		req := httptest.NewRequest("GET", "/feed.xml", nil)
+		req.Header.Set("If-None-Match", `W/"stale"`)
+		req.Header.Set("If-Modified-Since", now.Add(time.Hour).UTC().Format(http.TimeFormat))
+		w := httptest.NewRecorder()
+		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "<rss")
+	})
+
+	t.Run("304 on a list naming the ETag, compared weakly, and on *", func(t *testing.T) {
+		for _, match := range []string{`"other", "abc123"`, `"abc123"`, `*`} {
+			mockBlogService, _, _, workspace, handler := setupBlogHandlerTest(t)
+			mockBlogService.EXPECT().GetFeedFingerprint(gomock.Any(), workspace.ID, nil).Return(now, etag, nil)
+
+			req := httptest.NewRequest("GET", "/feed.xml", nil)
+			req.Header.Set("If-None-Match", match)
+			w := httptest.NewRecorder()
+			handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
+
+			assert.Equal(t, http.StatusNotModified, w.Code, match)
+		}
+	})
+
 	t.Run("405 on POST", func(t *testing.T) {
 		_, _, _, workspace, handler := setupBlogHandlerTest(t)
 
@@ -1888,6 +2116,7 @@ func TestRootHandler_serveBlogFeed(t *testing.T) {
 		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
 
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+		assert.Equal(t, "GET, HEAD", w.Header().Get("Allow"))
 	})
 
 	t.Run("HEAD returns headers but empty body", func(t *testing.T) {
@@ -1982,5 +2211,115 @@ func TestRootHandler_serveBlogFeed(t *testing.T) {
 		handler.serveBlogFeed(w, req, workspace, nil, feedFormatRSS)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
+// ttlRecordingCache records the TTL of each entry it is given.
+type ttlRecordingCache struct {
+	cache.Cache
+	ttls map[string]time.Duration
+}
+
+func (c *ttlRecordingCache) Set(key string, value interface{}, ttl time.Duration) {
+	c.ttls[key] = ttl
+	c.Cache.Set(key, value, ttl)
+}
+
+// The home, category and sitemap entries live no longer than until the next scheduled post
+// goes live, and at least a second; without a scheduled post, domain.BlogCacheTTL.
+func TestRootHandler_BlogCacheTTL(t *testing.T) {
+	// Each page takes at least this long to build, so that an entry counted from the instant
+	// before the build would outlive the publication by as much.
+	const buildTime = 50 * time.Millisecond
+	serve := func(t *testing.T, next func(now time.Time) (*time.Time, error)) map[string]time.Duration {
+		t.Helper()
+		ttls := map[string]time.Duration{}
+		for _, path := range []string{"/", "/tech", "/sitemap.xml"} {
+			mockBlogService, _, testCache, workspace, handler := setupBlogHandlerTest(t)
+			recorder := &ttlRecordingCache{Cache: testCache, ttls: ttls}
+			handler.cache = recorder
+			var renderedAfter time.Time
+			switch path {
+			case "/":
+				mockBlogService.EXPECT().RenderHomePage(gomock.Any(), workspace.ID, 1, nil).
+					DoAndReturn(func(context.Context, string, int, *int) (string, error) {
+						time.Sleep(buildTime)
+						renderedAfter = time.Now().UTC()
+						return "<html></html>", nil
+					})
+			case "/tech":
+				mockBlogService.EXPECT().GetPublicCategoryBySlug(gomock.Any(), "tech").Return(&domain.BlogCategory{Slug: "tech"}, nil)
+				mockBlogService.EXPECT().RenderCategoryPage(gomock.Any(), workspace.ID, "tech", 1, nil).
+					DoAndReturn(func(context.Context, string, string, int, *int) (string, error) {
+						time.Sleep(buildTime)
+						renderedAfter = time.Now().UTC()
+						return "<html></html>", nil
+					})
+			case "/sitemap.xml":
+				mockBlogService.EXPECT().ListPublicSitemapPosts(gomock.Any()).
+					DoAndReturn(func(context.Context) ([]*domain.BlogSitemapPost, error) {
+						time.Sleep(buildTime)
+						renderedAfter = time.Now().UTC()
+						return nil, nil
+					})
+			}
+			mockBlogService.EXPECT().NextScheduledPublishAt(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, now time.Time) (*time.Time, error) {
+					assert.Equal(t, workspace.ID, ctx.Value(domain.WorkspaceIDKey), path)
+					assert.False(t, now.After(renderedAfter), "%s: the instant is taken before the page is built", path)
+					return next(now)
+				})
+
+			req := httptest.NewRequest("GET", path, nil)
+			req.Host = "example.com"
+			w := httptest.NewRecorder()
+			handler.serveBlog(w, req, workspace)
+			require.Equal(t, http.StatusOK, w.Code, path)
+		}
+		return ttls
+	}
+	keys := []string{"example.com:/?page=1", "example.com:/tech?page=1", "sitemap:test-workspace-id:example.com"}
+
+	t.Run("a post due in 30 s bounds the entries to what is left of the 30 s once the page is built", func(t *testing.T) {
+		ttls := serve(t, func(now time.Time) (*time.Time, error) {
+			at := now.Add(30 * time.Second)
+			return &at, nil
+		})
+		for _, key := range keys {
+			assert.LessOrEqual(t, ttls[key], 30*time.Second-buildTime, key)
+			assert.Greater(t, ttls[key], 25*time.Second, key)
+		}
+	})
+
+	t.Run("a post due after the cache's TTL leaves it as it is", func(t *testing.T) {
+		ttls := serve(t, func(now time.Time) (*time.Time, error) {
+			at := now.Add(time.Hour)
+			return &at, nil
+		})
+		for _, key := range keys {
+			assert.Equal(t, domain.BlogCacheTTL, ttls[key], key)
+		}
+	})
+
+	t.Run("no scheduled post leaves the cache's TTL", func(t *testing.T) {
+		ttls := serve(t, func(time.Time) (*time.Time, error) { return nil, nil })
+		for _, key := range keys {
+			assert.Equal(t, domain.BlogCacheTTL, ttls[key], key)
+		}
+	})
+
+	t.Run("a post already due keeps the entry a second", func(t *testing.T) {
+		ttls := serve(t, func(now time.Time) (*time.Time, error) {
+			at := now.Add(-time.Second)
+			return &at, nil
+		})
+		for _, key := range keys {
+			assert.Equal(t, time.Second, ttls[key], key)
+		}
+	})
+
+	t.Run("a failed read leaves the page out of the cache", func(t *testing.T) {
+		ttls := serve(t, func(time.Time) (*time.Time, error) { return nil, assert.AnError })
+		assert.Empty(t, ttls)
 	})
 }

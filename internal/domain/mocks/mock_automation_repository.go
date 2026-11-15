@@ -374,6 +374,21 @@ func (mr *MockAutomationRepositoryMockRecorder) ListContactAutomations(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListContactAutomations", reflect.TypeOf((*MockAutomationRepository)(nil).ListContactAutomations), arg0, arg1, arg2)
 }
 
+// ReleaseContactAutomationClaim mocks base method.
+func (m *MockAutomationRepository) ReleaseContactAutomationClaim(arg0 context.Context, arg1, arg2 string, arg3 time.Time) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseContactAutomationClaim", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReleaseContactAutomationClaim indicates an expected call of ReleaseContactAutomationClaim.
+func (mr *MockAutomationRepositoryMockRecorder) ReleaseContactAutomationClaim(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseContactAutomationClaim", reflect.TypeOf((*MockAutomationRepository)(nil).ReleaseContactAutomationClaim), arg0, arg1, arg2, arg3)
+}
+
 // RenewContactAutomationClaim mocks base method.
 func (m *MockAutomationRepository) RenewContactAutomationClaim(arg0 context.Context, arg1, arg2 string, arg3 time.Time, arg4 time.Duration) (bool, error) {
 	m.ctrl.T.Helper()

@@ -30,7 +30,9 @@ const primary = {
   400: '#8c82ff',
   500: '#6a5af9',
   600: '#5b4beb',
-  700: '#4b3fd6'
+  700: '#4b3fd6',
+  /** A pressed primary button, one step past its hover (700). */
+  800: '#3b33c1'
 } as const
 
 export const colors = {
@@ -38,7 +40,7 @@ export const colors = {
   canvas: '#f3f4f7',
   /** Cards, tables, sidebar, left rail, side drawers, popups. */
   surface: '#ffffff',
-  /** Table headers and row hover, secondary areas inside a card. */
+  /** Table headers, secondary areas inside a card. */
   subtle: gray[50],
   /** Neutral pill, icon background, hover of a menu item. */
   fill: gray[100],
@@ -83,6 +85,21 @@ export const colors = {
     series4: '#f59e0b'
   }
 } as const
+
+/**
+ * The opaque colour of `hex` at `opacity` over `base`: `over('#6a5af9', 0.03)` → `#fbfaff`. For a
+ * fill that must hide what is under it, such as a sticky table cell.
+ */
+export function over(hex: string, opacity: number, base: string = colors.surface): string {
+  const channels = (value: string) => {
+    const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(value)
+    if (!match) throw new Error(`over() expects 6-digit hex colours, got ${value}`)
+    return match.slice(1).map((channel) => parseInt(channel, 16))
+  }
+  const top = channels(hex)
+  const mixed = channels(base).map((b, i) => Math.round(top[i] * opacity + b * (1 - opacity)))
+  return `#${mixed.map((v) => v.toString(16).padStart(2, '0')).join('')}`
+}
 
 /** `alpha('#6a5af9', 0.5)` → `rgba(106, 90, 249, 0.5)`. */
 export function alpha(hex: string, opacity: number): string {

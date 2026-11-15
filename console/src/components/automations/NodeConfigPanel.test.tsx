@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { App } from 'antd'
+import type { ReactNode } from 'react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import type { Node } from '@xyflow/react'
@@ -8,6 +9,16 @@ import { NodeConfigPanel } from './NodeConfigPanel'
 import type { AutomationNodeData } from './utils/flowConverter'
 import type { NodeStats, NodeType } from '../../services/api/automation'
 import { NO_NODE_STATS, NodeStatsContext, type NodeStatsState } from './stats/nodeStatsState'
+
+// The step's link to Logs goes through the router; here it only shows where it leads.
+vi.mock('@tanstack/react-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-router')>()),
+  createLink:
+    (Comp: (props: Record<string, unknown>) => ReactNode) =>
+    ({ to, params, search, ...rest }: { to: string; params: { workspaceId: string }; search: Record<string, string> }) => (
+      <Comp href={`${to.replace('$workspaceId', params.workspaceId)}?${new URLSearchParams(search).toString()}`} {...rest} />
+    )
+}))
 
 // The per-type forms are exercised by their own tests; stubbing the barrel keeps this one about
 // the description field the panel owns, and keeps a single textbox on screen to address.
