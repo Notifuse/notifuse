@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntApp } from 'antd'
 import type { ReactElement } from 'react'
+import { Plus } from 'lucide-react'
 import { UpsertTransactionalNotificationDrawer } from './UpsertTransactionalNotificationDrawer'
 import {
   transactionalNotificationsApi,
@@ -383,6 +384,22 @@ describe('UpsertTransactionalNotificationDrawer name and API identifier length',
     const payload = (transactionalNotificationsApi.create as Mock).mock.calls[0][0]
     expect(payload.notification.id).toBe('password_reset_email_for_a_user')
     expect(payload.notification.name).toBe('Password reset email for a user list')
+  })
+})
+
+describe('UpsertTransactionalNotificationDrawer button', () => {
+  it('passes its button props, the icon included, to its own button', () => {
+    renderDrawer(
+      <UpsertTransactionalNotificationDrawer
+        workspace={workspace}
+        canReadTemplates
+        buttonContent="New notification"
+        buttonProps={{ type: 'primary', icon: <Plus size={14} aria-hidden="true" /> }}
+      />
+    )
+    const button = screen.getByRole('button', { name: 'New notification' })
+    expect(button).toHaveClass('ant-btn-primary')
+    expect(button.querySelector('svg.lucide-plus')).not.toBeNull()
   })
 })
 

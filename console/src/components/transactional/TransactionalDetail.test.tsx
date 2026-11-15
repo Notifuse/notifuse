@@ -662,6 +662,8 @@ describe('TransactionalDetail', () => {
       'You need Templates read and Transactional write permissions to send test emails'
     )
     expect(edit).toHaveAccessibleDescription('You need Transactional write permission')
+    // A refused Edit keeps its pencil
+    expect(edit.querySelector('svg.lucide-pencil')).not.toBeNull()
     test.focus()
     expect(test).toHaveFocus()
     fireEvent.click(test)
@@ -677,7 +679,9 @@ describe('TransactionalDetail', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Send test' }))
     expect(p.onTest).toHaveBeenCalledWith(expect.objectContaining({ id: 'reset' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    const edit = screen.getByRole('button', { name: 'Edit' })
+    expect(edit.querySelector('svg.lucide-pencil')).not.toBeNull()
+    fireEvent.click(edit)
     expect(p.onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'reset' }))
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     fireEvent.click(await screen.findByText('Delete'))
