@@ -106,6 +106,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: A temporary database error while updating segment members, or in an automation's "Add to list" or "Remove from list" step, is now retried instead of leaving the contact out of the segment or the list.
 
+- **Fix**: A Liquid template that would loop or build without end in an email is refused with an error, within a fraction of a second, instead of running until the 5-second timeout and, past its output limit, sending "Liquid error: Memory limits exceeded" as the email's text. Notifuse renders Liquid with liquidgo v5.11.2.
 - **Fix**: The French console has its apostrophes back: many of its translations had lost them ("Accepter l invitation", "Clé d accès").
 
 - **Fix**: Web analytics durations and counts no longer read "4m 60s", "1h 60m" or "1000.0K" at a rounding boundary, and a small negative value reads "0", not "-0".
