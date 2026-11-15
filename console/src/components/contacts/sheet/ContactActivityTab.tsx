@@ -3,8 +3,8 @@ import { Segmented } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import type { Segment } from '../../../services/api/segment'
 import type { Workspace } from '../../../services/api/types'
-import { ContactTimeline } from '../../timeline'
 import { BlockError } from '../BlockError'
+import { ContactActivityFeed } from './ContactActivityFeed'
 import { useContactTimeline, type ActivityFilter } from './useContactSheetQueries'
 
 export interface ContactActivityTabProps {
@@ -41,17 +41,17 @@ export function ContactActivityTab({
   ]
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-1">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Segmented<ActivityFilter> size="small" value={filter} onChange={setFilter} options={options} />
-        <span className="text-xs text-ink-3">{t`Times in ${timezone}`}</span>
+        <span className="text-xs whitespace-nowrap text-ink-3">{t`Times in ${timezone}`}</span>
       </div>
       {timeline.isError && !timeline.data ? (
         <BlockError onRetry={() => timeline.refetch()} />
       ) : filter !== 'all' && timeline.isSuccess && entries.length === 0 ? (
         <div className="py-8 text-center text-sm text-ink-3">{t`No activity of this kind`}</div>
       ) : (
-        <ContactTimeline
+        <ContactActivityFeed
           entries={entries}
           loading={timeline.isLoading}
           timezone={timezone}

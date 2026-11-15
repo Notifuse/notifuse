@@ -4,6 +4,7 @@ import { useLingui } from '@lingui/react/macro'
 import type { Segment } from '../../services/api/segment'
 import type { UserPermissions } from '../../services/api/types'
 import { RailItem, RailSection } from '../layout'
+import { segmentDotColor } from '../segment/segmentColor'
 import type { ContactsView } from './contactsView'
 import { SegmentBuildingIndicator } from './SegmentProgress'
 import { useListsWithCountsQuery } from './useContactsLookups'
@@ -131,7 +132,7 @@ export function ContactsRail({
                   <span
                     className="size-2 rounded-full"
                     // The segment's own colour, chosen by the user: not a theme token.
-                    style={{ backgroundColor: segment.color }}
+                    style={{ backgroundColor: segmentDotColor(segment.color) }}
                   />
                 }
                 label={segment.name}

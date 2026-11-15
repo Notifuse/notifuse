@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Button, Dropdown, Skeleton, Tabs } from 'antd'
-import { MoreHorizontal, RefreshCw } from 'lucide-react'
+import { App, Button, Dropdown, Skeleton, Tabs } from 'antd'
+import type { MenuProps } from 'antd'
+import { Copy, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import dayjs from '../../../lib/dayjs'
 import { contactsApi, type Contact } from '../../../services/api/contacts'
 import { ApiError } from '../../../services/api/errors'
 import type { Segment } from '../../../services/api/segment'
 import type { List, UserPermissions, Workspace } from '../../../services/api/types'
-import { KeyValueList, MetaLine, Mono, Panel, useNumberFormat } from '../../layout'
+import { KeyValueList, MetaLine, Mono, useNumberFormat } from '../../layout'
 import { BlockError } from '../BlockError'
 import { TrackingConsentEditor } from '../TrackingConsent'
 import { contactDisplayName, contactInitials } from '../contactDisplay'
@@ -19,6 +20,8 @@ import { ContactKpis } from './ContactKpis'
 import { ContactListsCard, ContactSegmentsCard } from './ContactListsCard'
 import { ContactMessagesTab } from './ContactMessagesTab'
 import { ContactProfileFields } from './ContactProfileFields'
+import { SHEET_LABEL_WIDTH, SheetSection } from './SheetSection'
+import { sheetTimezone } from './sheetDates'
 import { useContactMessageStats, useContactVisits } from './useContactSheetQueries'
 import { contactKey } from './contactKey'
 
@@ -73,6 +76,22 @@ export interface ContactDetailsBodyProps {
   onDelete: (email: string) => void
 }
 
+// The sheet's columns, as whole class strings (Tailwind only generates the classes it finds whole).
+// The centre column holds tables: three columns only from 1400px, where it keeps room for them.
+const THREE_COLUMNS = {
+  columns: 3,
+  grid: 'grid grid-cols-1 items-start gap-4 min-[900px]:grid-cols-[280px_minmax(0,1fr)] min-[1400px]:grid-cols-[300px_minmax(0,1fr)_320px]',
+  aside:
+    'overflow-hidden rounded-lg border border-line bg-surface shadow-card min-[900px]:row-span-2 min-[1400px]:row-span-1',
+  main: 'min-w-0 rounded-lg border border-line bg-surface px-4 pb-4 shadow-card min-[900px]:col-start-2 min-[900px]:row-start-2 min-[1400px]:row-start-1'
+}
+const TWO_COLUMNS = {
+  columns: 2,
+  grid: 'grid grid-cols-1 items-start gap-4 min-[900px]:grid-cols-[280px_minmax(0,1fr)] min-[1400px]:grid-cols-[300px_minmax(0,1fr)]',
+  aside: 'overflow-hidden rounded-lg border border-line bg-surface shadow-card',
+  main: 'min-w-0 rounded-lg border border-line bg-surface px-4 pb-4 shadow-card'
+}
+
 /** The sheet of one contact. Mounted per email, so its pages and cursors never mix two contacts. */
 export function ContactDetailsBody({
   workspace,
@@ -85,12 +104,15 @@ export function ContactDetailsBody({
 }: ContactDetailsBodyProps) {
   const { t } = useLingui()
   const { int } = useNumberFormat()
+  const { message } = App.useApp()
   const queryClient = useQueryClient()
   const workspaceId = workspace.id
 
   const canWriteContacts = !!permissions?.contacts?.write
   const canReadLists = !!permissions?.lists?.read
   const canReadSegments = !!permissions?.segments?.read
+  const hasMemberships = canReadLists || canReadSegments
+  const layout = hasMemberships ? THREE_COLUMNS : TWO_COLUMNS
   const canReadMessages = !!permissions?.message_history?.read
   const canReadVisits = !!workspace.settings?.web_analytics?.enabled && !!permissions?.web_analytics?.read
 
@@ -168,8 +190,8 @@ export function ContactDetailsBody({
   if (!contact) return <Skeleton active avatar paragraph={{ rows: 8 }} />
 
   const name = contactDisplayName(contact)
-  const timezone = contact.timezone || workspace.settings?.timezone || 'UTC'
   const workspaceTimezone = workspace.settings?.timezone || 'UTC'
+  const timezone = sheetTimezone(contact.timezone, workspaceTimezone)
   const place = [contact.country, contact.state].filter(Boolean).join(', ')
   const messagesCount = stats.data?.messages
   const visitsCount = visits.data?.pages[0]?.summary?.sessions
@@ -181,6 +203,47 @@ export function ContactDetailsBody({
     </span>
   )
 
+  const externalId = contact.external_id
+  // The header holds no action buttons: refreshing, copying and deleting live in « … ».
+  const actions: MenuProps['items'] = [
+    {
+      key: 'refresh',
+      icon: <RefreshCw size={14} aria-hidden="true" />,
+      label: t`Refresh`,
+      disabled: contactQuery.isFetching,
+      onClick: refreshAll
+    },
+    ...(externalId
+      ? [
+          {
+            key: 'external-id',
+            icon: <Copy size={14} aria-hidden="true" />,
+            label: t`Copy external ID`,
+            onClick: async () => {
+              try {
+                await navigator.clipboard.writeText(externalId)
+                message.success(t`External ID copied`)
+              } catch {
+                message.error(t`Could not copy the external ID`)
+              }
+            }
+          }
+        ]
+      : []),
+    ...(canWriteContacts
+      ? [
+          { type: 'divider' as const },
+          {
+            key: 'delete',
+            icon: <Trash2 size={14} aria-hidden="true" />,
+            label: t`Delete contact`,
+            danger: true,
+            onClick: () => onDelete(email)
+          }
+        ]
+      : [])
+  ]
+
   return (
     <>
       <div className="flex items-start justify-between gap-4 rounded-lg border border-line bg-surface px-4 py-3">
@@ -190,9 +253,11 @@ export function ContactDetailsBody({
             <h1 data-unreset className="m-0 truncate text-title font-semibold text-ink">
               {name || contact.email}
             </h1>
-            <Mono copy>{contact.email}</Mono>
             <MetaLine
               items={[
+                <Mono key="email" copy>
+                  {contact.email}
+                </Mono>,
                 contact.job_title || null,
                 place || null,
                 t`Added on ${dayjs(contact.created_at).tz(workspaceTimezone).format('ll')}`
@@ -200,28 +265,9 @@ export function ContactDetailsBody({
             />
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button
-            icon={<RefreshCw size={14} aria-hidden="true" />}
-            loading={contactQuery.isFetching}
-            onClick={refreshAll}
-          >
-            {t`Refresh`}
-          </Button>
-          {canWriteContacts ? (
-            <Dropdown
-              trigger={['click']}
-              placement="bottomRight"
-              menu={{
-                items: [
-                  { key: 'delete', label: t`Delete contact`, danger: true, onClick: () => onDelete(email) }
-                ]
-              }}
-            >
-              <Button aria-label={t`More actions`} icon={<MoreHorizontal size={15} aria-hidden="true" />} />
-            </Dropdown>
-          ) : null}
-        </div>
+        <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: actions }}>
+          <Button aria-label={t`More actions`} icon={<MoreHorizontal size={15} aria-hidden="true" />} />
+        </Dropdown>
       </div>
 
       <ContactKpis
@@ -231,8 +277,45 @@ export function ContactDetailsBody({
         canReadVisits={canReadVisits}
       />
 
-      <div className="flex flex-col gap-4 min-[1200px]:flex-row min-[1200px]:items-start">
-        <div className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-4 pb-4">
+      {/* Three columns from 1400px: attributes, activity, memberships. Below, the memberships go
+          above the activity; under 900px everything stacks. Without lists or segments to read, two
+          columns. */}
+      <div data-columns={layout.columns} className={layout.grid}>
+        <aside data-contact-aside className={layout.aside}>
+          <ContactProfileFields
+            workspace={workspace}
+            contact={contact}
+            canWrite={canWriteContacts}
+            onSave={(key, value) => saveFields({ [key]: value })}
+          />
+          <SheetSection title={t`Tracking consent`}>
+            <TrackingConsentEditor
+              opens={contact.tracking_opens_consent}
+              clicks={contact.tracking_clicks_consent}
+              updatedAt={contact.tracking_consent_updated_at}
+              source={contact.tracking_consent_source}
+              disabled={!canWriteContacts}
+              onSave={saveFields}
+            />
+          </SheetSection>
+          <SheetSection title={t`System`}>
+            <KeyValueList
+              labelWidth={SHEET_LABEL_WIDTH}
+              items={[
+                {
+                  label: t`Created At`,
+                  value: dayjs(contact.created_at).tz(workspaceTimezone).format('lll')
+                },
+                {
+                  label: t`Updated At`,
+                  value: dayjs(contact.updated_at).tz(workspaceTimezone).format('lll')
+                }
+              ]}
+            />
+          </SheetSection>
+        </aside>
+
+        <div data-contact-main className={layout.main}>
           <Tabs
             items={[
               {
@@ -254,7 +337,15 @@ export function ContactDetailsBody({
                     {
                       key: 'messages',
                       label: tabLabel(t`Messages`, messagesCount),
-                      children: <ContactMessagesTab workspace={workspace} email={email} />
+                      children: (
+                        <ContactMessagesTab
+                          workspace={workspace}
+                          email={email}
+                          permissions={permissions}
+                          timezone={timezone}
+                          total={messagesCount}
+                        />
+                      )
                     }
                   ]
                 : []),
@@ -271,53 +362,25 @@ export function ContactDetailsBody({
           />
         </div>
 
-        <aside
-          data-contact-aside
-          className="flex flex-col gap-3 rounded-lg bg-subtle p-3 [&>*]:shrink-0 min-[1200px]:sticky min-[1200px]:top-14 min-[1200px]:max-h-[calc(100vh-72px)] min-[1200px]:w-aside min-[1200px]:shrink-0 min-[1200px]:overflow-y-auto"
-        >
-          <ContactProfileFields
-            workspace={workspace}
-            contact={contact}
-            canWrite={canWriteContacts}
-            onSave={(key, value) => saveFields({ [key]: value })}
-          />
-          <Panel title={t`Tracking consent`}>
-            <TrackingConsentEditor
-              opens={contact.tracking_opens_consent}
-              clicks={contact.tracking_clicks_consent}
-              updatedAt={contact.tracking_consent_updated_at}
-              source={contact.tracking_consent_source}
-              disabled={!canWriteContacts}
-              onSave={saveFields}
-            />
-          </Panel>
-          <Panel title={t`System`}>
-            <KeyValueList
-              items={[
-                {
-                  label: t`Created At`,
-                  value: dayjs(contact.created_at).tz(workspaceTimezone).format('lll')
-                },
-                {
-                  label: t`Updated At`,
-                  value: dayjs(contact.updated_at).tz(workspaceTimezone).format('lll')
-                }
-              ]}
-            />
-          </Panel>
-          {canReadLists ? (
-            <ContactListsCard
-              workspace={workspace}
-              contact={contact}
-              lists={lists}
-              permissions={permissions}
-              onChanged={afterListChange}
-            />
-          ) : null}
-          {canReadSegments ? (
-            <ContactSegmentsCard workspace={workspace} contact={contact} segments={segments} />
-          ) : null}
-        </aside>
+        {hasMemberships ? (
+          <div
+            data-contact-memberships
+            className="flex min-w-0 flex-col gap-3 min-[900px]:col-start-2 min-[900px]:row-start-1 min-[1400px]:col-start-3"
+          >
+            {canReadLists ? (
+              <ContactListsCard
+                workspace={workspace}
+                contact={contact}
+                lists={lists}
+                permissions={permissions}
+                onChanged={afterListChange}
+              />
+            ) : null}
+            {canReadSegments ? (
+              <ContactSegmentsCard workspace={workspace} contact={contact} segments={segments} />
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </>
   )

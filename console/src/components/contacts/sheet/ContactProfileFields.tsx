@@ -7,7 +7,9 @@ import dayjs from '../../../lib/dayjs'
 import type { Contact } from '../../../services/api/contacts'
 import type { Workspace } from '../../../services/api/types'
 import { computeCustomFieldLabel } from '../../../hooks/useCustomFieldLabel'
-import { KeyValueList, Panel, type KeyValueItem } from '../../layout'
+import { KeyValueList, type KeyValueItem } from '../../layout'
+import { SHEET_LABEL_WIDTH, SheetSection } from './SheetSection'
+import { useStandardFieldLabels } from './contactFieldLabels'
 import { InlineEditableField } from '../InlineEditableField'
 import { getFieldType } from '../fieldTypes'
 
@@ -92,10 +94,10 @@ function FieldSection({
   const count = empty.length
   return (
     <div className="flex flex-col gap-2">
-      {filled.length > 0 ? <KeyValueList items={filled.map(toItem)} /> : null}
+      {filled.length > 0 ? <KeyValueList labelWidth={SHEET_LABEL_WIDTH} items={filled.map(toItem)} /> : null}
       {count > 0 ? (
         showEmpty ? (
-          <KeyValueList items={empty.map(toItem)} />
+          <KeyValueList labelWidth={SHEET_LABEL_WIDTH} items={empty.map(toItem)} />
         ) : (
           <Button type="link" size="small" className="self-start" onClick={() => setShowEmpty(true)}>
             {t`${plural(count, { one: '# empty field', other: '# empty fields' })}`}
@@ -106,24 +108,10 @@ function FieldSection({
   )
 }
 
-/** The Profile and Custom fields cards of the contact sheet. */
+/** The Profile and Custom fields sections of the contact sheet. */
 export function ContactProfileFields({ workspace, contact, canWrite, onSave }: ContactProfileFieldsProps) {
   const { t } = useLingui()
-  const labels: Record<(typeof STANDARD_FIELDS)[number], string> = {
-    first_name: t`First Name`,
-    last_name: t`Last Name`,
-    full_name: t`Full Name`,
-    phone: t`Phone`,
-    address_line_1: t`Address Line 1`,
-    address_line_2: t`Address Line 2`,
-    country: t`Country`,
-    state: t`State`,
-    postcode: t`Postcode`,
-    job_title: t`Job Title`,
-    timezone: t`Timezone`,
-    language: t`Language`,
-    external_id: t`External ID`
-  }
+  const labels = useStandardFieldLabels()
 
   const standard: FieldRow[] = STANDARD_FIELDS.map((key) => {
     const value = contact[key] as FieldValue
@@ -153,7 +141,7 @@ export function ContactProfileFields({ workspace, contact, canWrite, onSave }: C
 
   return (
     <>
-      <Panel title={t`Profile`}>
+      <SheetSection title={t`Profile`}>
         <FieldSection
           workspace={workspace}
           filled={standard.filter((field) => !isEmpty(field.value))}
@@ -161,8 +149,8 @@ export function ContactProfileFields({ workspace, contact, canWrite, onSave }: C
           canWrite={canWrite}
           onSave={onSave}
         />
-      </Panel>
-      <Panel
+      </SheetSection>
+      <SheetSection
         title={t`Custom fields`}
         extra={
           <Link
@@ -181,7 +169,7 @@ export function ContactProfileFields({ workspace, contact, canWrite, onSave }: C
           canWrite={canWrite}
           onSave={onSave}
         />
-      </Panel>
+      </SheetSection>
     </>
   )
 }

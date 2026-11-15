@@ -62,7 +62,7 @@ function sessionDay(createdAt: string, timezone: string, labels: { today: string
     : start.isSame(today.subtract(1, 'day'), 'day')
       ? labels.yesterday
       : start.format('ll')
-  return `${day} · ${start.format('HH:mm')}`
+  return { day, time: start.format('HH:mm') }
 }
 
 /** A goal's value, which may carry cents. */
@@ -258,19 +258,27 @@ export function ContactWebVisits({ workspace, email }: ContactWebVisitsProps) {
     {
       title: t`Session`,
       key: 'session',
-      render: (_, session) => (
-        <span className="whitespace-nowrap">{sessionDay(session.created_at, timezone, dayLabels)}</span>
-      )
+      width: 112,
+      render: (_, session) => {
+        // The day above its time, as in the mockup: the narrow column leaves Source and Entry room.
+        const { day, time } = sessionDay(session.created_at, timezone, dayLabels)
+        return (
+          <span data-session-day className="flex flex-col leading-tight whitespace-nowrap">
+            <span className="text-ink">{day}</span>
+            <span className="text-xs text-ink-3 tabular-nums">{time}</span>
+          </span>
+        )
+      }
     },
     { title: t`Source`, key: 'source', render: (_, session) => <SourceCell session={session} i18n={i18n} /> },
     {
       title: t`Entry`,
       key: 'entry',
       render: (_, session) => (
-        <span className="flex items-center gap-1.5">
+        <span className="flex min-w-0 items-center gap-1.5">
           <Mono>{session.landing_path}</Mono>
           {session.pageview_count > 1 ? (
-            <span className="text-xs text-ink-3">{t`+${session.pageview_count - 1}`}</span>
+            <span className="shrink-0 text-xs text-ink-3">{t`+${session.pageview_count - 1}`}</span>
           ) : null}
         </span>
       )
@@ -278,6 +286,7 @@ export function ContactWebVisits({ workspace, email }: ContactWebVisitsProps) {
     {
       title: t`Duration`,
       key: 'duration',
+      width: 84,
       align: 'right',
       render: (_, session) => (
         <span className="tabular-nums">{formatDuration(session.duration_ms, i18n)}</span>
@@ -286,6 +295,7 @@ export function ContactWebVisits({ workspace, email }: ContactWebVisitsProps) {
     {
       title: t`Device`,
       key: 'device',
+      width: 72,
       render: (_, session) => {
         const Icon = DEVICE_ICONS[deviceIcon(session.device)]
         return (
@@ -300,13 +310,16 @@ export function ContactWebVisits({ workspace, email }: ContactWebVisitsProps) {
     {
       title: t`Goal`,
       key: 'goal',
+      width: 120,
       render: (_, session) =>
         session.first_goal_name ? (
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
-            <Target size={13} aria-hidden="true" className="text-success-fg" />
-            {session.first_goal_name}
+          <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+            <Target size={13} aria-hidden="true" className="shrink-0 text-success-fg" />
+            <span className="truncate" title={session.first_goal_name}>
+              {session.first_goal_name}
+            </span>
             {session.goal_count > 1 ? (
-              <span className="text-xs text-ink-3">{t`+${session.goal_count - 1}`}</span>
+              <span className="shrink-0 text-xs text-ink-3">{t`+${session.goal_count - 1}`}</span>
             ) : null}
           </span>
         ) : null
@@ -340,6 +353,9 @@ export function ContactWebVisits({ workspace, email }: ContactWebVisitsProps) {
             dataSource={sessions}
             loading={current.isLoading}
             pagination={false}
+            // Fixed widths for the short columns: Source and Entry share the rest and truncate, so the
+            // table fits the sheet's centre column instead of spilling over the cards beside it.
+            tableLayout="fixed"
             expandable={{
               expandedRowRender: (session) => (
                 <SessionJourney workspace={workspace} email={email} session={session} />

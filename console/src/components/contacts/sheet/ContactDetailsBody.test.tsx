@@ -220,8 +220,9 @@ describe('ContactDetailsBody', () => {
 
   it('has no delete without contacts write', async () => {
     renderBody({ permissions: withRights({ contacts: { read: true, write: false } }) })
-    await screen.findByRole('heading', { name: 'Ann Lee' })
-    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull()
+    fireEvent.click(await screen.findByRole('button', { name: 'More actions' }))
+    expect(await screen.findByText('Refresh')).toBeInTheDocument()
+    expect(screen.queryByText('Delete contact')).toBeNull()
   })
 
   it('shows the Messages and Web visits tabs with their counts', async () => {
@@ -258,11 +259,14 @@ describe('ContactDetailsBody', () => {
     await screen.findByRole('heading', { name: 'Ann Lee' })
     expect(screen.queryByText('lists card')).toBeNull()
     expect(screen.queryByText('segments card')).toBeNull()
+    // No empty memberships column: two columns.
+    expect(document.querySelector('[data-columns]')?.getAttribute('data-columns')).toBe('2')
   })
 
   it('shows the Lists and Segments cards with their read rights', async () => {
     renderBody()
     expect(await screen.findByText('lists card')).toBeInTheDocument()
     expect(screen.getByText('segments card')).toBeInTheDocument()
+    expect(document.querySelector('[data-columns]')?.getAttribute('data-columns')).toBe('3')
   })
 })
