@@ -120,7 +120,7 @@ msgid "{0, plural, one {{shown} message} other {{shown} messages}}"
 msgstr "{0, plural, one {{shown} message} other {{shown} messages}}"
 
 #. placeholder {0}: actions.length
-#: src/components/logs/AuditLogTab.tsx:369
+#: src/components/logs/AuditLogTab.tsx:368
 msgid "{0, plural, one {# action} other {# actions}}"
 msgstr "{0, plural, one {# action} other {# actions}}"
 
@@ -236,7 +236,7 @@ msgid "{0, plural, one {# removed} other {# removed}}"
 msgstr "{0, plural, one {# retiré} other {# retirés}}"
 
 #. placeholder {0}: categories.length
-#: src/components/logs/AuditLogTab.tsx:291
+#: src/components/logs/AuditLogTab.tsx:290
 msgid "{0, plural, one {# resource} other {# resources}}"
 msgstr "{0, plural, one {# ressource} other {# ressources}}"
 
@@ -978,7 +978,7 @@ msgstr "{position} sur {total}"
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# destinataire remis en file pour une nouvelle tentative} other {# destinataires remis en file pour une nouvelle tentative}}"
 
-#: src/components/logs/AuditLogTab.tsx:664
+#: src/components/logs/AuditLogTab.tsx:676
 msgid "{retentionDays, plural, one {Kept # day} other {Kept # days}}"
 msgstr "{retentionDays, plural, one {Conservé # jour} other {Conservé # jours}}"
 
@@ -1031,7 +1031,7 @@ msgstr "{share} % trackés"
 
 #. placeholder {0}: int(shown)
 #. placeholder {1}: int(shown)
-#: src/components/logs/AuditLogTab.tsx:674
+#: src/components/logs/AuditLogTab.tsx:686
 msgid "{shown, plural, one {{0} entry} other {{1} entries}}"
 msgstr "{shown, plural, one {{0} entrée} other {{1} entrées}}"
 
@@ -1218,7 +1218,7 @@ msgstr "+ Ajouter un filtre de propriété"
 #~ msgid "+ Add variation"
 #~ msgstr "+ Ajouter une variation"
 
-#: src/components/logs/AuditLogTab.tsx:469
+#: src/components/logs/AuditLogTab.tsx:473
 #: src/components/logs/MessagesTab.tsx:501
 msgid "+ Filter"
 msgstr "+ Filtre"
@@ -1568,8 +1568,8 @@ msgstr "Clé d'accès"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:604
 #: src/components/logs/AuditEntryDetail.tsx:128
-#: src/components/logs/AuditLogTab.tsx:296
-#: src/components/logs/AuditLogTab.tsx:548
+#: src/components/logs/AuditLogTab.tsx:295
+#: src/components/logs/AuditLogTab.tsx:556
 #: src/components/web_analytics/filters/TestFilterModal.tsx:183
 msgid "Action"
 msgstr "Action"
@@ -1657,12 +1657,12 @@ msgid "Activity {kind}"
 msgstr "Activité {kind}"
 
 #: src/components/logs/AuditEntryDetail.tsx:141
-#: src/components/logs/AuditLogTab.tsx:465
-#: src/components/logs/AuditLogTab.tsx:542
+#: src/components/logs/AuditLogTab.tsx:440
+#: src/components/logs/AuditLogTab.tsx:550
 msgid "Actor"
 msgstr "Acteur"
 
-#: src/components/logs/AuditLogTab.tsx:298
+#: src/components/logs/AuditLogTab.tsx:297
 msgid "Actor email"
 msgstr "Email de l'acteur"
 
@@ -2083,9 +2083,9 @@ msgstr "Alignement"
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:338
 #: src/components/email_builder/panels/LibraryPanel.tsx:259
-#: src/components/logs/AuditLogTab.tsx:228
-#: src/components/logs/AuditLogTab.tsx:250
-#: src/components/logs/AuditLogTab.tsx:288
+#: src/components/logs/AuditLogTab.tsx:227
+#: src/components/logs/AuditLogTab.tsx:249
+#: src/components/logs/AuditLogTab.tsx:287
 #: src/components/logs/InboundWebhooksTab.tsx:152
 #: src/components/logs/InboundWebhooksTab.tsx:161
 #: src/components/logs/InboundWebhooksTab.tsx:192
@@ -2177,7 +2177,7 @@ msgstr "Tous les côtés"
 
 #: src/components/automations/AutomationEditor.tsx:503
 #: src/components/automations/NodeConfigPanel.tsx:191
-#: src/components/logs/AuditLogTab.tsx:189
+#: src/components/logs/AuditLogTab.tsx:188
 #: src/components/logs/InboundWebhooksTab.tsx:132
 #: src/components/logs/MessagesTab.tsx:254
 #: src/components/web_analytics/usePeriodLabels.ts:25
@@ -2297,7 +2297,7 @@ msgstr "une intégration"
 msgid "An invisible image in each email records when it is opened"
 msgstr "Une image invisible dans chaque e-mail enregistre le moment de l'ouverture"
 
-#: src/components/logs/AuditLogTab.tsx:423
+#: src/components/logs/AuditLogTab.tsx:426
 msgid "An IP address and a target ID must match exactly; an actor email matches any part of it."
 msgstr "Une adresse IP et un ID de cible doivent correspondre exactement ; un email d'acteur correspond à n'importe quelle partie."
 
@@ -2365,9 +2365,9 @@ msgstr "Les annotations n'ont pas de permission propre : elles dépendent délib
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Une autre modification de la bibliothèque est en cours. Réessayez dans un instant."
 
-#: src/components/logs/AuditLogTab.tsx:339
-#: src/components/logs/AuditLogTab.tsx:366
-#: src/components/logs/AuditLogTab.tsx:396
+#: src/components/logs/AuditLogTab.tsx:338
+#: src/components/logs/AuditLogTab.tsx:365
+#: src/components/logs/AuditLogTab.tsx:395
 #: src/components/logs/MessagesTab.tsx:369
 #: src/components/logs/MessagesTab.tsx:393
 #: src/components/logs/MessagesTab.tsx:428
@@ -2379,7 +2379,7 @@ msgstr "Tous"
 msgid "ANY"
 msgstr "N'IMPORTE"
 
-#: src/components/logs/AuditLogTab.tsx:217
+#: src/components/logs/AuditLogTab.tsx:216
 msgid "Any API key"
 msgstr "Toute clé API"
 
@@ -2408,7 +2408,7 @@ msgstr "N'importe quel nom d'objectif"
 msgid "Any link"
 msgstr "N'importe quel lien"
 
-#: src/components/logs/AuditLogTab.tsx:216
+#: src/components/logs/AuditLogTab.tsx:215
 msgid "Any member"
 msgstr "Tout membre"
 
@@ -4081,7 +4081,7 @@ msgstr "Modifier un abonnement, y compris l'URL vers laquelle il poste et les é
 msgid "Change a template's content, in any language"
 msgstr "Modifier le contenu d'un modèle, dans n'importe quelle langue"
 
-#: src/components/logs/AuditLogTab.tsx:697
+#: src/components/logs/AuditLogTab.tsx:709
 msgid "Change in Settings"
 msgstr "Modifier dans les paramètres"
 
@@ -4214,7 +4214,7 @@ msgstr "Choisissez d'abord un modèle"
 msgid "Choose a template to see the preview"
 msgstr "Choisissez un modèle pour voir l'aperçu"
 
-#: src/components/logs/AuditLogTab.tsx:380
+#: src/components/logs/AuditLogTab.tsx:379
 msgid "Choose actions"
 msgstr "Choisir des actions"
 
@@ -4255,7 +4255,7 @@ msgstr "Niveau ville (précision ~1 km)"
 msgid "Clear"
 msgstr "Effacer"
 
-#: src/components/logs/AuditLogTab.tsx:473
+#: src/components/logs/AuditLogTab.tsx:477
 #: src/components/logs/MessagesTab.tsx:504
 msgid "Clear all"
 msgstr "Tout effacer"
@@ -4269,7 +4269,7 @@ msgstr "Tout effacer"
 msgid "Clear field"
 msgstr "Effacer le champ"
 
-#: src/components/logs/AuditLogTab.tsx:623
+#: src/components/logs/AuditLogTab.tsx:635
 #: src/components/logs/InboundWebhooksTab.tsx:297
 #: src/components/logs/MessagesTab.tsx:800
 #: src/components/logs/OutgoingWebhooksTab.tsx:233
@@ -5275,7 +5275,7 @@ msgstr "Impossible de charger plus d'articles"
 msgid "Couldn't load stats"
 msgstr "Impossible de charger les statistiques"
 
-#: src/components/logs/AuditLogTab.tsx:608
+#: src/components/logs/AuditLogTab.tsx:620
 msgid "Couldn't load the audit log"
 msgstr "Impossible de charger le journal d'audit"
 
@@ -6006,7 +6006,7 @@ msgstr "Permissions personnalisées (RBAC)"
 msgid "Custom permissions require a Notifuse {tier} licence."
 msgstr "Les permissions personnalisées nécessitent une licence Notifuse {tier}."
 
-#: src/components/logs/AuditLogTab.tsx:190
+#: src/components/logs/AuditLogTab.tsx:189
 #: src/components/web_analytics/usePeriodLabels.ts:26
 msgid "Custom range"
 msgstr "Plage personnalisée"
@@ -6688,7 +6688,7 @@ msgid "Denied"
 msgstr "Refusé"
 
 #: src/components/logs/AuditEntryDetail.tsx:176
-#: src/components/logs/AuditLogTab.tsx:583
+#: src/components/logs/AuditLogTab.tsx:595
 msgid "Deployment"
 msgstr "Déploiement"
 
@@ -8241,7 +8241,7 @@ msgstr "Correspondance exacte"
 msgid "Exact URL"
 msgstr "URL exacte"
 
-#: src/components/logs/AuditLogTab.tsx:403
+#: src/components/logs/AuditLogTab.tsx:402
 #: src/components/logs/InboundWebhooksTab.tsx:187
 #: src/components/logs/MessagesTab.tsx:491
 msgid "Exact value"
@@ -8344,7 +8344,7 @@ msgstr "Explorer"
 #: src/components/contacts/ContactsViewHeader.tsx:86
 #: src/components/contacts/ExportContactsModal.tsx:367
 #: src/components/email_builder/MjmlCodeEditor.tsx:649
-#: src/components/logs/AuditLogTab.tsx:509
+#: src/components/logs/AuditLogTab.tsx:517
 #: src/components/templates/ImportExportButton.tsx:233
 msgid "Export"
 msgstr "Exporter"
@@ -10524,11 +10524,11 @@ msgstr "Invitation de {inviterName}"
 #~ msgstr "IP"
 
 #: src/components/logs/AuditEntryDetail.tsx:159
-#: src/components/logs/AuditLogTab.tsx:300
+#: src/components/logs/AuditLogTab.tsx:299
 msgid "IP address"
 msgstr "Adresse IP"
 
-#: src/components/logs/AuditLogTab.tsx:428
+#: src/components/logs/AuditLogTab.tsx:431
 msgid "IP address, actor email or target ID"
 msgstr "Adresse IP, email d'acteur ou ID de cible"
 
@@ -10725,11 +10725,11 @@ msgstr "Gardez le lien de confirmation : {CONFIRM_VARIABLE}."
 msgid "Keep the unsubscribe link: {UNSUBSCRIBE_VARIABLE}."
 msgstr "Gardez le lien de désabonnement : {UNSUBSCRIBE_VARIABLE}."
 
-#: src/components/logs/AuditLogTab.tsx:665
+#: src/components/logs/AuditLogTab.tsx:677
 msgid "Kept for the deployment default"
 msgstr "Conservé selon la valeur par défaut du déploiement"
 
-#: src/components/logs/AuditLogTab.tsx:662
+#: src/components/logs/AuditLogTab.tsx:674
 msgid "Kept forever"
 msgstr "Conservé indéfiniment"
 
@@ -10799,7 +10799,7 @@ msgstr "Les grandes images peuvent ralentir considérablement le chargement des 
 #~ msgid "Last {WINDOW_MINUTES} minutes"
 #~ msgstr ""
 
-#: src/components/logs/AuditLogTab.tsx:185
+#: src/components/logs/AuditLogTab.tsx:184
 #: src/components/logs/InboundWebhooksTab.tsx:129
 #: src/components/logs/MessagesTab.tsx:251
 msgid "Last 24 hours"
@@ -10808,7 +10808,7 @@ msgstr "Dernières 24 heures"
 #: src/components/automations/AutomationEditor.tsx:502
 #: src/components/automations/NodeConfigPanel.tsx:191
 #: src/components/broadcasts/BroadcastKpis.tsx:138
-#: src/components/logs/AuditLogTab.tsx:187
+#: src/components/logs/AuditLogTab.tsx:186
 #: src/components/logs/InboundWebhooksTab.tsx:131
 #: src/components/logs/MessagesTab.tsx:253
 msgid "Last 30 days"
@@ -10823,13 +10823,13 @@ msgstr "30 derniers jours : {0}"
 #~ msgid "last 30 minutes"
 #~ msgstr ""
 
-#: src/components/logs/AuditLogTab.tsx:186
+#: src/components/logs/AuditLogTab.tsx:185
 #: src/components/logs/InboundWebhooksTab.tsx:130
 #: src/components/logs/MessagesTab.tsx:252
 msgid "Last 7 days"
 msgstr "7 derniers jours"
 
-#: src/components/logs/AuditLogTab.tsx:188
+#: src/components/logs/AuditLogTab.tsx:187
 msgid "Last 90 days"
 msgstr "90 derniers jours"
 
@@ -11346,7 +11346,7 @@ msgstr "Charger {PAGE_SIZE} de plus"
 #: src/components/blog/PostsTable.tsx:485
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:318
 #: src/components/contacts/visits/ContactWebVisits.tsx:371
-#: src/components/logs/AuditLogTab.tsx:683
+#: src/components/logs/AuditLogTab.tsx:695
 #: src/components/logs/InboundWebhooksTab.tsx:354
 #: src/components/logs/MessagesTab.tsx:857
 #: src/components/logs/OutgoingWebhooksTab.tsx:286
@@ -11703,7 +11703,7 @@ msgstr "La plage maximale est de 2 ans"
 msgid "Maximum range is 2 years. Dates are read in {timezone}."
 msgstr "La plage maximale est de 2 ans. Les dates sont interprétées dans le fuseau {timezone}."
 
-#: src/components/logs/AuditLogTab.tsx:223
+#: src/components/logs/AuditLogTab.tsx:222
 msgid "Me"
 msgstr "Moi"
 
@@ -12384,7 +12384,7 @@ msgstr "Aucune règle d'attribution pour le moment. Créez la première pour com
 #~ msgid "No audit entries match"
 #~ msgstr "Aucune entrée d'audit ne correspond"
 
-#: src/components/logs/AuditLogTab.tsx:626
+#: src/components/logs/AuditLogTab.tsx:638
 msgid "No audit entries yet"
 msgstr "Aucune entrée d'audit pour l'instant"
 
@@ -12780,7 +12780,7 @@ msgstr "Aucune réponse"
 msgid "No results found"
 msgstr "Aucun résultat trouvé"
 
-#: src/components/logs/AuditLogTab.tsx:622
+#: src/components/logs/AuditLogTab.tsx:634
 #: src/components/logs/InboundWebhooksTab.tsx:296
 #: src/components/logs/MessagesTab.tsx:799
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
@@ -13171,11 +13171,11 @@ msgstr "Rien n'a été enregistré au cours des dernières 24 heures. Vérifiez 
 msgid "Nothing in the last 24 hours"
 msgstr "Rien sur les dernières 24 heures"
 
-#: src/components/logs/AuditLogTab.tsx:628
+#: src/components/logs/AuditLogTab.tsx:640
 msgid "Nothing in the last 7 days"
 msgstr "Rien ces 7 derniers jours"
 
-#: src/components/logs/AuditLogTab.tsx:630
+#: src/components/logs/AuditLogTab.tsx:642
 #: src/components/logs/InboundWebhooksTab.tsx:315
 #: src/components/logs/MessagesTab.tsx:807
 msgid "Nothing in this period"
@@ -13744,7 +13744,7 @@ msgstr "Recherche organique"
 msgid "Organic social"
 msgstr "Réseaux sociaux organiques"
 
-#: src/components/logs/AuditLogTab.tsx:568
+#: src/components/logs/AuditLogTab.tsx:580
 #: src/components/logs/MessagesTab.tsx:495
 msgid "Origin"
 msgstr "Origine"
@@ -13780,7 +13780,7 @@ msgid "Outbound webhook subscriptions — where the workspace POSTs its own even
 msgstr "Les abonnements webhook sortants — vers lesquels l'espace de travail poste ses propres événements — et leur journal de livraison."
 
 #: src/components/logs/AuditEntryDetail.tsx:131
-#: src/components/logs/AuditLogTab.tsx:297
+#: src/components/logs/AuditLogTab.tsx:296
 msgid "Outcome"
 msgstr "Résultat"
 
@@ -13881,7 +13881,7 @@ msgstr "Vidéo payante"
 msgid "Parent Frame"
 msgstr "Cadre parent"
 
-#: src/components/logs/AuditLogTab.tsx:403
+#: src/components/logs/AuditLogTab.tsx:402
 msgid "Part of an email"
 msgstr "Partie d'un email"
 
@@ -14066,7 +14066,7 @@ msgstr "URL du feed par destinataire"
 #~ msgstr "L'URL du feed par destinataire est requise lorsqu'il est activé"
 
 #: src/components/automations/AutomationEditor.tsx:498
-#: src/components/logs/AuditLogTab.tsx:437
+#: src/components/logs/AuditLogTab.tsx:443
 #: src/components/logs/InboundWebhooksTab.tsx:189
 #: src/components/logs/MessagesTab.tsx:493
 msgid "Period"
@@ -15305,8 +15305,8 @@ msgid "Referrers"
 msgstr "Référents"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:212
-#: src/components/logs/AuditLogTab.tsx:514
-#: src/components/logs/AuditLogTab.tsx:518
+#: src/components/logs/AuditLogTab.tsx:522
+#: src/components/logs/AuditLogTab.tsx:526
 #: src/components/logs/InboundWebhooksTab.tsx:203
 #: src/components/logs/InboundWebhooksTab.tsx:207
 #: src/components/logs/MessagesTab.tsx:522
@@ -15790,8 +15790,8 @@ msgid "Resolved"
 msgstr "Résolu"
 
 #: src/components/logs/AuditEntryDetail.tsx:129
-#: src/components/logs/AuditLogTab.tsx:466
-#: src/components/logs/AuditLogTab.tsx:562
+#: src/components/logs/AuditLogTab.tsx:441
+#: src/components/logs/AuditLogTab.tsx:570
 #: src/components/settings/PermissionsMatrix.tsx:237
 msgid "Resource"
 msgstr "Ressource"
@@ -15916,7 +15916,7 @@ msgstr "A relancé les envois échoués de la newsletter <0>{target}</0>"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:171
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:782
-#: src/components/logs/AuditLogTab.tsx:610
+#: src/components/logs/AuditLogTab.tsx:622
 #: src/components/logs/InboundWebhooksTab.tsx:288
 #: src/components/logs/MessageDetail.tsx:91
 #: src/components/logs/MessagesTab.tsx:791
@@ -16415,7 +16415,7 @@ msgstr "Rechercher dans les blocs enregistrés"
 msgid "Search templates..."
 msgstr "Rechercher des modèles..."
 
-#: src/components/logs/AuditLogTab.tsx:427
+#: src/components/logs/AuditLogTab.tsx:430
 msgid "Search the audit log"
 msgstr "Rechercher dans le journal d'audit"
 
@@ -16439,15 +16439,15 @@ msgstr "Rechercher..."
 msgid "Searches the web and returns relevant URLs"
 msgstr "Recherche sur le web et retourne les URLs pertinentes"
 
-#: src/components/logs/AuditLogTab.tsx:179
+#: src/components/logs/AuditLogTab.tsx:178
 msgid "Searching by actor email"
 msgstr "Recherche par email d'acteur"
 
-#: src/components/logs/AuditLogTab.tsx:178
+#: src/components/logs/AuditLogTab.tsx:177
 msgid "Searching by IP address"
 msgstr "Recherche par adresse IP"
 
-#: src/components/logs/AuditLogTab.tsx:180
+#: src/components/logs/AuditLogTab.tsx:179
 msgid "Searching by target ID"
 msgstr "Recherche par ID de cible"
 
@@ -17565,7 +17565,7 @@ msgstr "partagé avec le reste de ce compte AWS"
 msgid "Show"
 msgstr "Afficher"
 
-#: src/components/logs/AuditLogTab.tsx:617
+#: src/components/logs/AuditLogTab.tsx:629
 #: src/components/logs/InboundWebhooksTab.tsx:292
 #: src/components/logs/MessagesTab.tsx:795
 msgid "Show all time"
@@ -17685,7 +17685,7 @@ msgstr "S'est déconnecté"
 #~ msgstr "A déconnecté <0>{target}</0>"
 
 #: src/components/logs/auditDisplay.ts:26
-#: src/components/logs/AuditLogTab.tsx:219
+#: src/components/logs/AuditLogTab.tsx:218
 msgid "Signed-out visitor"
 msgstr "Visiteur non connecté"
 
@@ -18449,7 +18449,7 @@ msgstr "Passez en mode Aperçu pour voir les effets du point de rupture. Le mode
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:301
 #: src/components/logs/auditDisplay.ts:24
-#: src/components/logs/AuditLogTab.tsx:218
+#: src/components/logs/AuditLogTab.tsx:217
 #: src/components/logs/labels.ts:8
 msgid "System"
 msgstr "Système"
@@ -18489,7 +18489,7 @@ msgstr "Faire une visite guidée"
 msgid "Target"
 msgstr "Cible"
 
-#: src/components/logs/AuditLogTab.tsx:299
+#: src/components/logs/AuditLogTab.tsx:298
 msgid "Target ID"
 msgstr "ID de la cible"
 
@@ -19061,7 +19061,7 @@ msgstr "L'email n'a pas pu être compilé"
 msgid "The email holds no text yet."
 msgstr "L’email ne contient encore aucun texte."
 
-#: src/components/logs/AuditLogTab.tsx:154
+#: src/components/logs/AuditLogTab.tsx:153
 msgid "The export failed"
 msgstr "L'export a échoué"
 
@@ -19778,7 +19778,7 @@ msgstr "Cela enverra un vrai email de test à l'adresse fournie."
 msgid "This will set the value to NULL. Are you sure?"
 msgstr "Cela définira la valeur à NULL. Êtes-vous sûr ?"
 
-#: src/components/logs/AuditLogTab.tsx:492
+#: src/components/logs/AuditLogTab.tsx:415
 msgid "This workspace"
 msgstr "Ce workspace"
 
@@ -19793,7 +19793,7 @@ msgstr "Ce wrapper n'a pas de sections. Ajoutez une section pour afficher du con
 #: src/components/blog/PublishModal.tsx:149
 #: src/components/broadcasts/compose/SendingCard.tsx:100
 #: src/components/broadcasts/compose/SendingCard.tsx:102
-#: src/components/logs/AuditLogTab.tsx:530
+#: src/components/logs/AuditLogTab.tsx:538
 #: src/components/logs/InboundWebhooksTab.tsx:249
 #: src/components/logs/MessagesTab.tsx:634
 #: src/components/logs/OutgoingWebhooksTab.tsx:161
@@ -21124,6 +21124,11 @@ msgstr "La vidéo démarre à cet horodatage (MM:SS, HH:MM:SS, ou secondes)"
 msgid "View"
 msgstr "Vue"
 
+#: src/components/logs/AuditLogTab.tsx:487
+msgctxt "audit log scope"
+msgid "View"
+msgstr "Vue"
+
 #: src/components/web_analytics/InstallOverlay.tsx:108
 msgid "View anyway"
 msgstr "Afficher quand même"
@@ -21622,7 +21627,7 @@ msgstr "Qui peut faire quoi dans cet espace de travail"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Qui a fait quoi dans ce workspace : membres, permissions, clés API, intégrations, paramètres et modifications de contenu, avec l'adresse d'origine et si c'était autorisé."
 
-#: src/components/logs/AuditLogTab.tsx:493
+#: src/components/logs/AuditLogTab.tsx:416
 msgid "Whole deployment"
 msgstr "Tout le déploiement"
 
@@ -21729,7 +21734,7 @@ msgid "Without its own text, this language receives the automatic version."
 msgstr "Sans texte propre, cette langue reçoit la version automatique."
 
 #: src/components/logs/AuditEntryDetail.tsx:175
-#: src/components/logs/AuditLogTab.tsx:577
+#: src/components/logs/AuditLogTab.tsx:589
 #: src/components/logs/labels.ts:9
 #: src/components/settings/GeneralSettings.tsx:225
 #: src/components/settings/GeneralSettings.tsx:323

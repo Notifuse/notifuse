@@ -8,7 +8,6 @@ import {
   Empty,
   Input,
   Result,
-  Segmented,
   Select,
   Skeleton,
   Table,
@@ -412,6 +411,10 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
   }
 
   const filtered = hasAuditFilters(search)
+  const scopeLabels: Record<AuditScope, string> = {
+    workspace: t`This workspace`,
+    deployment: t`Whole deployment`
+  }
   // The view (scope) and the period are not filters: clearing keeps them.
   const clearFilters = () => clear(['scope', 'period', 'from', 'to'])
   const toolbar = (
@@ -428,11 +431,14 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
                 placeholder={t`IP address, actor email or target ID`}
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
-                style={{ width: 300 }}
+                style={{ width: 260 }}
               />
             </Tooltip>
           </div>
           {hintKey ? <span className="text-xs text-ink-3">{searchHints[hintKey]}</span> : null}
+          {/* Actor, Resource, then Period, the mockup's order */}
+          <FilterChip label={t`Actor`} value={actorValue} menu={actorMenu} />
+          <FilterChip label={t`Resource`} value={resourceValue} menu={resourceMenu} />
           <FilterChip
             label={t`Period`}
             value={periodValue}
@@ -462,8 +468,6 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
               </div>
             )}
           />
-          <FilterChip label={t`Actor`} value={actorValue} menu={actorMenu} />
-          <FilterChip label={t`Resource`} value={resourceValue} menu={resourceMenu} />
           {added.map(addedChip)}
           {addMenu.items && addMenu.items.length > 0 ? (
             <FilterChip label={t`+ Filter`} dashed menu={addMenu} />
@@ -478,20 +482,24 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
       end={
         <>
           {isRoot ? (
-            <Segmented<AuditScope>
-              size="small"
-              value={scope}
-              onChange={(value) =>
-                update({
-                  scope: value === 'deployment' ? 'deployment' : undefined,
-                  id: undefined,
-                  actor_id: undefined
-                })
-              }
-              options={[
-                { label: t`This workspace`, value: 'workspace' },
-                { label: t`Whole deployment`, value: 'deployment' }
-              ]}
+            // A menu rather than two buttons, so the toolbar keeps to one line at 1440
+            <FilterChip
+              label={t({ message: 'View', context: 'audit log scope' })}
+              value={scopeLabels[scope]}
+              menu={{
+                items: (Object.keys(scopeLabels) as AuditScope[]).map((key) => ({ key, label: scopeLabels[key] })),
+                selectable: true,
+                selectedKeys: [scope],
+                onClick: ({ key }) => {
+                  // The scope already shown: nothing changes, and the actor filter and open entry stay
+                  if (key === scope) return
+                  update({
+                    scope: key === 'deployment' ? 'deployment' : undefined,
+                    id: undefined,
+                    actor_id: undefined
+                  })
+                }
+              }}
             />
           ) : null}
           <Dropdown
@@ -504,7 +512,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
               onClick: ({ key }) => void exportAs(key as AuditExportFormat)
             }}
           >
-            <Button size="small" icon={<Download size={14} />}>
+            <Button type="text" size="small" icon={<Download size={14} />}>
               <span className="inline-flex items-center gap-1">
                 {t`Export`}
                 <ChevronDown size={12} aria-hidden="true" />
@@ -562,7 +570,11 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
       title: t`Resource`,
       key: 'resource',
       width: 130,
-      render: (_, entry) => <span className="text-ink-3">{categoryLabel(entry.category)}</span>
+      render: (_, entry) => (
+        <Pill tone="neutral" dot={false}>
+          {categoryLabel(entry.category)}
+        </Pill>
+      )
     },
     {
       title: t`Origin`,
