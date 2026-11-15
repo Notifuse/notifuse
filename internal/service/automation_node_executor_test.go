@@ -4088,6 +4088,49 @@ func TestWebhookNodeExecutor_Execute_RefusesARedirectIntoThePrivateNetwork(t *te
 	assert.Equal(t, int32(0), atomic.LoadInt32(&hits), "the redirect target must never be contacted")
 }
 
+// The node bounds its call itself, whatever client it is given: a client with no timeout still
+// gets a request whose context ends at the node's timeout.
+func TestWebhookNodeExecutor_Execute_BoundedByItsTimeout(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	t.Run("the request carries the node's deadline", func(t *testing.T) {
+		transport := &recordingTransport{}
+		executor := NewWebhookNodeExecutor(setupMockLoggerForNodeExecutor(ctrl), &http.Client{Transport: transport})
+		before := time.Now()
+		_, err := executor.Execute(context.Background(), webhookNodeTestParams(map[string]interface{}{"url": "https://receiver.invalid/hook"}))
+		require.NoError(t, err)
+		require.Len(t, transport.requests, 1)
+		deadline, ok := transport.requests[0].Context().Deadline()
+		require.True(t, ok, "the request has a deadline although the client has no timeout")
+		assert.WithinDuration(t, before.Add(WebhookNodeTimeout), deadline, time.Second)
+	})
+
+	t.Run("an endpoint that does not answer fails the node at its timeout", func(t *testing.T) {
+		release := make(chan struct{})
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-release:
+			case <-r.Context().Done():
+			}
+		}))
+		defer server.Close()
+		defer close(release)
+
+		executor := NewWebhookNodeExecutor(setupMockLoggerForNodeExecutor(ctrl), &http.Client{})
+		executor.timeout = 50 * time.Millisecond
+		var result *NodeExecutionResult
+		err := sendWithin(t, 5*time.Second, func() error {
+			var err error
+			result, err = executor.Execute(context.Background(), webhookNodeTestParams(map[string]interface{}{"url": server.URL}))
+			return err
+		})
+		assert.Nil(t, result)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+}
+
 func TestNewWebhookNodeExecutor_NilClientFailsClosed(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -4100,7 +4143,7 @@ func TestNewWebhookNodeExecutor_NilClientFailsClosed(t *testing.T) {
 	defer server.Close()
 
 	executor := NewWebhookNodeExecutor(setupMockLoggerForNodeExecutor(ctrl), nil)
-	assert.Equal(t, 30*time.Second, executor.httpClient.Timeout, "the node's timeout is unchanged")
+	assert.Equal(t, WebhookNodeTimeout, executor.httpClient.Timeout, "the node's own timeout")
 
 	_, err := executor.Execute(context.Background(), webhookNodeTestParams(map[string]interface{}{"url": server.URL}))
 	assert.ErrorIs(t, err, safehttpclient.ErrPrivateIP, "a caller that passes no client gets the guarded one")

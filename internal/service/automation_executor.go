@@ -74,14 +74,18 @@ func NewAutomationExecutor(
 // inTickResumeLease is how far ahead scheduled_at is set after a step when the same tick goes
 // on to the next one. It keeps another instance from picking the contact up for the rest of
 // the tick, and resumes the journey if the tick dies before its next persist. It is renewed
-// after every step, so it only has to outlast one node: a webhook node waits 30 s at most.
+// after every step, so it only has to outlast one node: a webhook node waits WebhookNodeTimeout
+// at most.
 // The claim of a batch (ProcessBatch) uses the same lease, renewed before each journey.
 const inTickResumeLease = 5 * time.Minute
 
 // automationShutdownDrain is how long, once the app starts stopping, the node under way in a
 // batch keeps its context to finish and record itself. Cutting it would leave the journey on
-// that node, and the node would run again once the claim ends: the same email sent twice.
-const automationShutdownDrain = 20 * time.Second
+// that node, and the node would run again once the claim ends: the same email sent, or the same
+// webhook posted, twice. It is WebhookNodeTimeout plus five seconds for what can still come
+// before the call once the stop began (the node's execution row and its context), which have no
+// deadline of their own: a database slow at that moment can still push a node past the drain.
+const automationShutdownDrain = WebhookNodeTimeout + 5*time.Second
 
 func (e *AutomationExecutor) drainTimeout() time.Duration {
 	if e != nil && e.shutdownDrain > 0 {
@@ -363,7 +367,7 @@ func (e *AutomationExecutor) retryAfterFailedSave(ctx context.Context, workspace
 }
 
 // ProcessBatch claims a batch of due journeys and runs them one after the other. A batch can
-// outlast its claim (a webhook step waits up to 30 s), after which another instance may claim
+// outlast its claim (a webhook step waits up to WebhookNodeTimeout), after which another instance may claim
 // a journey again, so each journey's claim is renewed right before it runs, against the token
 // the claim returned: a journey whose claim was lost meanwhile is left to the instance that
 // holds it.

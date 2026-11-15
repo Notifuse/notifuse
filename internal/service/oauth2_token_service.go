@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,7 +52,9 @@ func NewOAuth2TokenService(logger logger.Logger) *OAuth2TokenService {
 // GetAccessToken returns a valid OAuth2 access token for the given SMTP settings.
 // It first checks the cache and returns a cached token if valid.
 // Otherwise, it fetches a new token from the OAuth2 provider.
-func (s *OAuth2TokenService) GetAccessToken(settings *domain.SMTPSettings) (string, error) {
+//
+// ctx bounds the token request; the lock held while it runs does not wait on ctx.
+func (s *OAuth2TokenService) GetAccessToken(ctx context.Context, settings *domain.SMTPSettings) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -67,9 +70,9 @@ func (s *OAuth2TokenService) GetAccessToken(settings *domain.SMTPSettings) (stri
 
 	switch settings.OAuth2Provider {
 	case "microsoft":
-		accessToken, expiresAt, err = s.fetchMicrosoftToken(settings)
+		accessToken, expiresAt, err = s.fetchMicrosoftToken(ctx, settings)
 	case "google":
-		accessToken, expiresAt, err = s.fetchGoogleToken(settings)
+		accessToken, expiresAt, err = s.fetchGoogleToken(ctx, settings)
 	default:
 		return "", fmt.Errorf("unsupported OAuth2 provider: %s", settings.OAuth2Provider)
 	}
@@ -124,7 +127,7 @@ func (s *OAuth2TokenService) getCachedToken(settings *domain.SMTPSettings) (bool
 }
 
 // fetchMicrosoftToken fetches an access token from Microsoft Azure AD using client credentials flow
-func (s *OAuth2TokenService) fetchMicrosoftToken(settings *domain.SMTPSettings) (string, time.Time, error) {
+func (s *OAuth2TokenService) fetchMicrosoftToken(ctx context.Context, settings *domain.SMTPSettings) (string, time.Time, error) {
 	// Construct token URL with tenant ID
 	tokenURL := s.microsoftTokenURL
 	if tokenURL == "" {
@@ -138,11 +141,11 @@ func (s *OAuth2TokenService) fetchMicrosoftToken(settings *domain.SMTPSettings) 
 	data.Set("client_secret", settings.OAuth2ClientSecret)
 	data.Set("scope", "https://outlook.office365.com/.default")
 
-	return s.fetchToken(tokenURL, data)
+	return s.fetchToken(ctx, tokenURL, data)
 }
 
 // fetchGoogleToken fetches an access token from Google using refresh token flow
-func (s *OAuth2TokenService) fetchGoogleToken(settings *domain.SMTPSettings) (string, time.Time, error) {
+func (s *OAuth2TokenService) fetchGoogleToken(ctx context.Context, settings *domain.SMTPSettings) (string, time.Time, error) {
 	tokenURL := s.googleTokenURL
 
 	// Prepare form data
@@ -152,12 +155,12 @@ func (s *OAuth2TokenService) fetchGoogleToken(settings *domain.SMTPSettings) (st
 	data.Set("client_secret", settings.OAuth2ClientSecret)
 	data.Set("refresh_token", settings.OAuth2RefreshToken)
 
-	return s.fetchToken(tokenURL, data)
+	return s.fetchToken(ctx, tokenURL, data)
 }
 
 // fetchToken makes the HTTP request to fetch an OAuth2 token
-func (s *OAuth2TokenService) fetchToken(tokenURL string, data url.Values) (string, time.Time, error) {
-	req, err := http.NewRequest(http.MethodPost, tokenURL, strings.NewReader(data.Encode()))
+func (s *OAuth2TokenService) fetchToken(ctx context.Context, tokenURL string, data url.Values) (string, time.Time, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to create token request: %w", err)
 	}
