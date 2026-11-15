@@ -236,14 +236,21 @@ export function TemplatesPage() {
   // Import: the same reading and checks as the editor's button, then a new template to save.
   const jsonInput = useRef<HTMLInputElement>(null)
   const mjmlInput = useRef<HTMLInputElement>(null)
-  const [importErrors, setImportErrors] = useState<{ title: string; errors: string[] } | null>(null)
+  const [importErrors, setImportErrors] = useState<{
+    title: string
+    errors: string[]
+    kind: TemplateFileKind
+    source?: string
+    line?: number
+  } | null>(null)
   const handleImport = async (event: ChangeEvent<HTMLInputElement>, kind: TemplateFileKind) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
     const result = await importTemplateFile(file, kind, i18n)
     if (!result.ok) {
-      if (result.title) setImportErrors({ title: result.title, errors: result.errors })
+      if (result.title)
+        setImportErrors({ title: result.title, errors: result.errors, kind, source: result.source, line: result.line })
       else message.error(result.errors[0])
       return
     }
@@ -664,12 +671,23 @@ export function TemplatesPage() {
         onCancel={() => setToDelete(null)}
       />
 
-      <ImportErrorsModal
-        open={Boolean(importErrors)}
-        title={importErrors?.title ?? ''}
-        errors={importErrors?.errors ?? []}
-        onClose={() => setImportErrors(null)}
-      />
+      {/* Mounted only while open, so a retry starts from a fresh one */}
+      {importErrors ? (
+        <ImportErrorsModal
+          open
+          title={importErrors.title}
+          errors={importErrors.errors}
+          source={importErrors.source}
+          line={importErrors.line}
+          onClose={() => setImportErrors(null)}
+          onRetry={() => {
+            // The same picker again, opened in the click that asks for it
+            const input = importErrors.kind === 'json' ? jsonInput.current : mjmlInput.current
+            setImportErrors(null)
+            input?.click()
+          }}
+        />
+      ) : null}
 
       {workspace ? (
         <SendTemplateModal

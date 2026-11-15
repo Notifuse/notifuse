@@ -1,17 +1,26 @@
 import { Button, Modal } from 'antd'
-import { TriangleAlert } from 'lucide-react'
+import { TriangleAlert, X } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { excerptLines } from './importExcerpt'
 
 interface ImportErrorsModalProps {
   open: boolean
   title: string
   errors: string[]
   onClose: () => void
+  /** The imported file's text, for the excerpt around `line`. */
+  source?: string
+  /** The line an MJML syntax error names; the excerpt shows it and the two before it. */
+  line?: number
+  /** Opens the file picker again, for a corrected file. */
+  onRetry?: () => void
 }
 
 /** The validation errors of an imported template file, shown by the editor and the page. */
-export function ImportErrorsModal({ open, title, errors, onClose }: ImportErrorsModalProps) {
+export function ImportErrorsModal({ open, title, errors, onClose, source, line, onRetry }: ImportErrorsModalProps) {
   const { t } = useLingui()
+  const excerpt = source && line ? excerptLines(source, line) : []
+
   return (
     <Modal
       title={
@@ -23,35 +32,48 @@ export function ImportErrorsModal({ open, title, errors, onClose }: ImportErrors
       open={open}
       onCancel={onClose}
       footer={[
-        <Button key="ok" type="primary" onClick={onClose}>
-          {t`OK`}
-        </Button>
+        <Button key="close" onClick={onClose}>
+          {t`Close`}
+        </Button>,
+        ...(onRetry
+          ? [
+              <Button key="retry" type="primary" onClick={onRetry}>
+                {t`Retry with a corrected file`}
+              </Button>
+            ]
+          : [])
       ]}
       width={600}
     >
       <div className="flex flex-col gap-3">
-        <p className="text-ink-2">{t`The following validation errors were found in your import:`}</p>
+        <ul className="m-0 flex max-h-60 list-none flex-col overflow-y-auto rounded-md border border-line p-0">
+          {errors.map((error, index) => (
+            <li
+              key={index}
+              className="flex items-start gap-2 border-b border-line-soft bg-danger-bg px-3 py-2 last:border-b-0"
+            >
+              <X size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-danger-fg" />
+              <span className="font-mono text-xs whitespace-pre-line text-danger-fg">{error}</span>
+            </li>
+          ))}
+        </ul>
 
-        <div className="max-h-60 overflow-y-auto rounded-md border border-danger-fg/25 bg-danger-bg p-3">
-          <ul className="flex flex-col gap-2">
-            {errors.map((error, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <span className="mt-0.5 font-bold text-danger-fg">•</span>
-                <span className="whitespace-pre-line text-sm text-danger-fg">{error}</span>
-              </li>
+        {excerpt.length > 0 ? (
+          <pre
+            data-testid="import-excerpt"
+            aria-label={t`Excerpt of the file around line ${line}`}
+            className="m-0 overflow-x-auto rounded-md border border-line bg-subtle px-3 py-2 font-mono text-xs leading-relaxed text-ink-2"
+          >
+            {excerpt.map((row) => (
+              <div key={row.number} data-faulty={row.number === line || undefined} className="flex gap-3">
+                <span className="w-6 shrink-0 text-right text-ink-4 select-none">{row.number}</span>
+                <span className={row.number === line ? 'font-medium text-danger-fg' : undefined}>{row.text}</span>
+              </div>
             ))}
-          </ul>
-        </div>
+          </pre>
+        ) : null}
 
-        <div className="text-sm text-ink-3">
-          <p className="font-medium">{t`Tips for fixing these errors:`}</p>
-          <ul className="mt-1 ml-4 flex flex-col gap-1">
-            <li>{t`• Check that your MJML structure follows the proper hierarchy`}</li>
-            <li>{t`• Ensure all required components are properly nested`}</li>
-            <li>{t`• Verify that component attributes are valid`}</li>
-            <li>{t`• Make sure all XML tags are properly closed`}</li>
-          </ul>
-        </div>
+        <p className="m-0 text-sm text-ink-3">{t`Check the MJML hierarchy and that every tag is closed.`}</p>
       </div>
     </Modal>
   )

@@ -69,8 +69,11 @@ const renderTab = (
     </LicenseContext.Provider>
   )
 
-const switchFor = (language: string) =>
-  screen.getByText(new RegExp(`\\(${language}\\)`)).closest('.ant-card')!.querySelector('button[role="switch"]') as HTMLButtonElement
+// The language list names each switch after its language, in the console's language
+const NAMES: Record<string, string> = { fr: 'French', de: 'German' }
+const switchFor = (language: string) => screen.getByRole('switch', { name: `Translate into ${NAMES[language]}` })
+// A row of the language list, which shows its language in the detail
+const pick = (language: string) => fireEvent.click(screen.getByRole('button', { name: new RegExp(NAMES[language]) }))
 
 /**
  * What is locked mirrors what the server's TranslationsWiden check refuses, no more: switching a
@@ -262,10 +265,8 @@ describe('TemplateTranslationsTab custom text version', () => {
     const onChange = vi.fn()
     renderTab(['template_i18n'], { fr: french('Salut') }, { onTranslationsStateChange: onChange })
 
-    const card = screen.getByText(/\(fr\)/).closest('.ant-card') as HTMLElement
-    const buttons = card.querySelectorAll('.ant-space-compact button')
-    fireEvent.click(buttons[buttons.length - 1])
-    fireEvent.click(await screen.findByText('Reset'))
+    // Reset is in the header of the language's card, behind a confirmation
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
     const confirm = await screen.findAllByRole('button', { name: 'Reset' })
     fireEvent.click(confirm[confirm.length - 1])
 
@@ -280,10 +281,10 @@ describe('TemplateTranslationsTab custom text version', () => {
       de: { enabled: true, subject: 'Hallo', subjectPreview: '' }
     })
 
-    const card = (language: string) =>
-      screen.getByText(new RegExp(`\\(${language}\\)`)).closest('.ant-card') as HTMLElement
-    expect(card('fr')).toHaveTextContent('Text version: Custom')
-    expect(card('de')).toHaveTextContent('Text version: Automatic')
+    // One language at a time in the detail: fr first, the first switched on, then de
+    expect(screen.getByText('Text version: Custom')).toBeInTheDocument()
+    pick('de')
+    expect(screen.getByText('Text version: Automatic')).toBeInTheDocument()
   })
 })
 
@@ -326,5 +327,119 @@ describe('TemplateTranslationsTab change made from an earlier render', () => {
     act(() => startedWith.onChange('Late seed'))
 
     expect(changes.mock.calls.at(-1)![0].fr).toMatchObject({ text: 'Late seed', visualEditorTree: changedTree })
+  })
+})
+
+describe('TemplateTranslationsTab master-detail', () => {
+  const on = (subject: string): TranslationEditorState => ({ enabled: true, subject, subjectPreview: '' })
+  const off: TranslationEditorState = { enabled: false, subject: '', subjectPreview: '' }
+
+  it('lists the default language and each translation language with its named switch', () => {
+    renderTab(['template_i18n'], { fr: on('Bonjour'), de: off })
+
+    const list = screen.getByText('Workspace languages').parentElement as HTMLElement
+    expect(list).toHaveTextContent('English')
+    expect(list).toHaveTextContent('Default')
+    expect(switchFor('fr')).toBeChecked()
+    expect(switchFor('de')).not.toBeChecked()
+  })
+
+  it('shows the first language switched on, and another one once picked', () => {
+    renderTab(['template_i18n'], { fr: off, de: on('Hallo') })
+
+    expect(screen.getByText('German translation')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Hallo')).toBeInTheDocument()
+    pick('fr')
+    expect(screen.getByText('French translation')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('Hallo')).not.toBeInTheDocument()
+  })
+
+  it('puts the default language text beside each field that translates it', () => {
+    renderTab(['template_i18n'], { fr: on('Bonjour') })
+
+    const source = screen.getByText('Subject · English').parentElement as HTMLElement
+    expect(source).toHaveTextContent('Hello')
+    expect(screen.getByText('Subject preview · English').parentElement).toHaveTextContent('—')
+  })
+
+  it('switches a language on or off without changing the one shown', () => {
+    const onChange = vi.fn()
+    renderTab(['template_i18n'], { fr: on('Bonjour'), de: off }, { onTranslationsStateChange: onChange })
+
+    fireEvent.click(switchFor('de'))
+    expect(onChange.mock.calls[0][0].de.enabled).toBe(true)
+    expect(screen.getByText('French translation')).toBeInTheDocument()
+  })
+
+  it('keeps the language shown when another one is switched on before any pick', () => {
+    const Host = () => {
+      const [state, setState] = useState<Record<string, TranslationEditorState>>({ fr: off, de: off })
+      return (
+        <LicenseContext.Provider value={{ ...UNKNOWN_LICENSE, entitlements: licensedFor(['template_i18n']) }}>
+          <TemplateTranslationsTab
+            workspace={workspace}
+            editorMode="visual"
+            translationsState={state}
+            onTranslationsStateChange={setState}
+            defaultSubject="Hello"
+            defaultSubjectPreview=""
+            defaultVisualEditorTree={tree}
+            defaultMjmlSource=""
+            onTestDataChange={vi.fn()}
+            savedBlocks={[]}
+            onSaveBlock={vi.fn()}
+          />
+        </LicenseContext.Provider>
+      )
+    }
+    render(<Host />)
+
+    expect(screen.getByText('French translation')).toBeInTheDocument()
+    fireEvent.click(switchFor('de'))
+    // de is now the first switched on, yet the detail stays on fr
+    expect(screen.getByText('French translation')).toBeInTheDocument()
+  })
+
+  it('lists the default language once in a workspace that names none', () => {
+    render(
+      <LicenseContext.Provider value={{ ...UNKNOWN_LICENSE, entitlements: licensedFor(['template_i18n']) }}>
+        <TemplateTranslationsTab
+          workspace={{ id: 'ws1', settings: { languages: ['en', 'fr'] } } as unknown as Workspace}
+          editorMode="visual"
+          translationsState={{ fr: on('Bonjour') }}
+          onTranslationsStateChange={vi.fn()}
+          defaultSubject="Hello"
+          defaultSubjectPreview=""
+          defaultVisualEditorTree={tree}
+          defaultMjmlSource=""
+          onTestDataChange={vi.fn()}
+          savedBlocks={[]}
+          onSaveBlock={vi.fn()}
+        />
+      </LicenseContext.Provider>
+    )
+
+    expect(screen.queryByRole('switch', { name: 'Translate into English' })).not.toBeInTheDocument()
+    expect(switchFor('fr')).toBeInTheDocument()
+  })
+
+  it('offers to enable a language switched off, from its detail', () => {
+    const onChange = vi.fn()
+    renderTab(['template_i18n'], { fr: on('Bonjour'), de: off }, { onTranslationsStateChange: onChange })
+
+    pick('de')
+    expect(screen.getByText('Enable this translation to edit it.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Enable' }))
+    expect(onChange.mock.calls[0][0].de).toMatchObject({ enabled: true, subject: 'Hello' })
+  })
+
+  it('locks enabling, reset and the editor without the licence, and points to its notice', () => {
+    renderTab(['rbac'], { fr: on('Bonjour'), de: off })
+
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Open email editor' })).toBeDisabled()
+    pick('de')
+    expect(screen.getByText('Your licence does not cover translations: see the notice above.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enable' })).toBeDisabled()
   })
 })

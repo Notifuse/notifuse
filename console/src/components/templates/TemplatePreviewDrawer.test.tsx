@@ -1,6 +1,6 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
 import TemplatePreviewDrawer from './TemplatePreviewDrawer'
 import { templatesApi } from '../../services/api/template'
@@ -42,6 +42,13 @@ const message = (metadata?: Record<string, unknown>): MessageHistory =>
     created_at: '2026-08-01T10:00:00Z',
     updated_at: '2026-08-01T10:00:00Z'
   }) as MessageHistory
+
+
+// The language menu of the header: opens it, then picks a language
+const pickLanguage = async (name: string) => {
+  fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Language' }))
+  fireEvent.click(await screen.findByTitle(name))
+}
 
 const openDrawer = async (messageHistory?: MessageHistory, record: Template = template) => {
   render(
@@ -91,9 +98,10 @@ describe('TemplatePreviewDrawer text version tab', () => {
     ...template,
     email: { editor_mode: 'code', mjml_source: '<mjml></mjml>' }
   } as unknown as Template
-  const tabLabels = () => Array.from(document.querySelectorAll('.ant-tabs-tab')).map((tab) => tab.textContent)
+  const viewLabels = () =>
+    Array.from(document.querySelectorAll('.ant-drawer .ant-segmented-item-label')).map((view) => view.textContent)
 
-  it('shows the text version between the HTML preview and the MJML source', async () => {
+  it('shows the views in the mockup order: HTML, MJML, text, data', async () => {
     vi.mocked(templatesApi.compile).mockResolvedValueOnce({
       html: '<p>Hello</p>',
       mjml: '<mjml></mjml>',
@@ -102,7 +110,7 @@ describe('TemplatePreviewDrawer text version tab', () => {
     await openDrawer(undefined, codeTemplate)
     await waitFor(() => expect(screen.getByText('Text version')).toBeInTheDocument())
 
-    expect(tabLabels().slice(0, 3)).toEqual(['HTML Preview', 'Text version', 'MJML Source'])
+    expect(viewLabels()).toEqual(['HTML Preview', 'MJML Source', 'Text version', 'Template Data'])
     fireEvent.click(screen.getByText('Text version'))
     await waitFor(() =>
       expect(screen.getByTestId('preview-text-version').textContent).toBe(
@@ -218,7 +226,7 @@ describe('TemplatePreviewDrawer custom text version', () => {
     renderMultilingual(withText('Default text', french('Salut {{ contact.first_name }}')))
     await waitFor(() => expect(lastRequest().text).toBe('Default text'))
 
-    fireEvent.click(await screen.findByText('French'))
+    await pickLanguage('French')
     await waitFor(() => expect(lastRequest().text).toBe('Salut {{ contact.first_name }}'))
     vi.mocked(templatesApi.compile).mockReset()
     vi.mocked(templatesApi.compile).mockRejectedValue(new Error('no preview in tests'))
@@ -229,7 +237,7 @@ describe('TemplatePreviewDrawer custom text version', () => {
     renderMultilingual(withText('Default text', french('Salut')))
     await waitFor(() => expect(lastRequest().text).toBe('Default text'))
 
-    fireEvent.click(await screen.findByText('German'))
+    await pickLanguage('German')
     await waitFor(() => expect(lastRequest().subject).toBe('Hallo'))
     expect(lastRequest()).not.toHaveProperty('text')
     vi.mocked(templatesApi.compile).mockReset()
@@ -280,7 +288,68 @@ describe('TemplatePreviewDrawer controlled by the page', () => {
     const onClose = vi.fn()
     renderControlled(true, onClose)
     await screen.findByText('Template Data')
-    fireEvent.click(document.querySelector('.ant-drawer-close') as HTMLElement)
+    // The cross on the right of the header, as in the mockup
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('TemplatePreviewDrawer header and envelope', () => {
+  it('names the version and the category after the name, a category it does not know as it is', async () => {
+    await openDrawer()
+    expect(screen.getByText('v1 · Transactional')).toBeInTheDocument()
+    cleanup()
+    await openDrawer(undefined, { ...template, version: 4, category: 'custom-kind' } as unknown as Template)
+    expect(screen.getByText('v4 · custom-kind')).toBeInTheDocument()
+  })
+
+  it('always shows Reply to, Not set without one, and no Bcc row for a template alone', async () => {
+    await openDrawer()
+    expect(screen.getByText('Reply to')).toBeInTheDocument()
+    expect(screen.getByText('Not set')).toBeInTheDocument()
+    expect(screen.queryByText('BCC')).not.toBeInTheDocument()
+  })
+
+  it('shows the reply-to of a message and the template one it replaced, and its cc and bcc', async () => {
+    const sent = {
+      ...message(),
+      channel_options: { reply_to: 'help@acme.io', cc: ['cc@acme.io'], bcc: ['bcc@acme.io'] }
+    } as unknown as MessageHistory
+    await openDrawer(sent, { ...template, email: { reply_to: 'team@acme.io' } } as unknown as Template)
+    expect(screen.getByText('help@acme.io')).toBeInTheDocument()
+    expect(screen.getByText('(original: team@acme.io)')).toBeInTheDocument()
+    expect(screen.getByText('cc@acme.io')).toBeInTheDocument()
+    expect(screen.getByText('bcc@acme.io')).toBeInTheDocument()
+  })
+
+  it('keeps every view mounted, so going back to HTML does not reload it', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValueOnce({ html: '<p>Hello</p>', mjml: '<mjml></mjml>' })
+    await openDrawer(undefined, {
+      ...template,
+      email: { editor_mode: 'code', mjml_source: '<mjml></mjml>' }
+    } as unknown as Template)
+    await waitFor(() => expect(screen.getByTitle(/HTML Preview of/)).toBeInTheDocument())
+    const iframe = screen.getByTitle(/HTML Preview of/)
+
+    fireEvent.click(screen.getByText('MJML Source'))
+    expect(iframe).toBeInTheDocument()
+    expect(iframe.closest('[hidden]')).not.toBeNull()
+    fireEvent.click(screen.getByText('HTML Preview'))
+    expect(screen.getByTitle(/HTML Preview of/)).toBe(iframe)
+  })
+
+  it('shows the MJML view when the compile fails, as there is no HTML to show', async () => {
+    vi.mocked(templatesApi.compile).mockResolvedValueOnce({
+      html: '',
+      mjml: '<mjml><mj-bad /></mjml>',
+      error: { message: 'bad tag', details: [] }
+    } as never)
+    await openDrawer(undefined, {
+      ...template,
+      email: { editor_mode: 'code', mjml_source: '<mjml></mjml>' }
+    } as unknown as Template)
+    await waitFor(() => expect(screen.getByText('MJML Source')).toBeInTheDocument())
+    const selected = document.querySelector('.ant-drawer .ant-segmented-item-selected')
+    expect(selected?.textContent).toBe('MJML Source')
   })
 })

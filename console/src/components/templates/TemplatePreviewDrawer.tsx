@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions, Segmented } from 'antd'
+import { Drawer, Typography, Spin, Alert, Tag, Space, Segmented, Select } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
 import { buildTemplatePreviewRequest } from './compileTemplatePreview'
@@ -8,6 +8,9 @@ import { Highlight, themes } from 'prism-react-renderer'
 import type { MessageHistory } from '../../services/api/messages_history'
 import { BroadcastSenderLine, SenderLine } from './previewSender'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
+import { CloseButton } from '../layout/DrawerControls'
+import { KeyValueList, type KeyValueItem } from '../layout'
+import { TEMPLATE_CATEGORY_LABELS, isTemplateCategory } from './templateCategories'
 
 const { Text } = Typography
 
@@ -32,7 +35,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   open,
   onClose
 }) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [previewMjml, setPreviewMjml] = useState<string | null>(null)
   // Plain-text version sent with the email; null when the compile returned none.
@@ -195,14 +198,26 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       key: '1',
       label: t`HTML Preview`,
       children: (
-        <iframe
-          srcDoc={previewHtml}
-          className="w-full h-full border-0"
-          style={{ height: '600px', width: '100%' }}
-          title={t`HTML Preview of ${record.name}`}
-          sandbox=""
-        />
+        // The email on a grey ground, as the inbox shows it
+        <div className="rounded-md bg-subtle p-4">
+          <iframe
+            srcDoc={previewHtml}
+            className="block w-full rounded-md border border-line bg-surface"
+            style={{ height: '600px' }}
+            title={t`HTML Preview of ${record.name}`}
+            sandbox=""
+          />
+        </div>
       )
+    })
+  }
+
+  // The mockup's order: HTML, MJML, text, data
+  if (previewMjml) {
+    items.push({
+      key: '2',
+      label: t`MJML Source`,
+      children: <MJMLPreview previewMjml={previewMjml} />
     })
   }
 
@@ -255,14 +270,6 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     })
   }
 
-  if (previewMjml) {
-    items.push({
-      key: '2',
-      label: t`MJML Source`,
-      children: <MJMLPreview previewMjml={previewMjml} />
-    })
-  }
-
   // Add Template Data tab regardless of preview status. Prefer the effective data the
   // server rendered with (includes the injected workspace object); fall back to the
   // local data before the first compile resolves.
@@ -297,89 +304,109 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   )?.email_provider
 
   const senders = emailProvider?.senders ?? []
+  const categoryLabel = record.category
+    ? isTemplateCategory(record.category)
+      ? i18n._(TEMPLATE_CATEGORY_LABELS[record.category])
+      : record.category
+    : undefined
+  const subtitle = [record.version ? `v${record.version}` : null, categoryLabel].filter(Boolean).join(' · ')
   const fromName = messageHistory?.channel_options?.from_name
+
+  const replyTo = messageHistory?.channel_options?.reply_to
+  const envelope: KeyValueItem[] = [
+    {
+      key: 'from',
+      label: t`From`,
+      value: fromBroadcast ? (
+        <BroadcastSenderLine
+          workspaceId={workspace.id}
+          broadcastId={messageHistory!.broadcast_id!}
+          templateId={record.id}
+          senders={senders}
+          templateSenderId={record.email?.sender_id}
+          fromName={fromName}
+        />
+      ) : (
+        <SenderLine senders={senders} senderId={record.email?.sender_id} fromName={fromName} />
+      )
+    },
+    {
+      key: 'replyTo',
+      label: t`Reply to`,
+      value: replyTo ? (
+        <>
+          <Text>{replyTo}</Text>
+          {record.email?.reply_to && (
+            <Text type="secondary" className="pl-2 text-xs">
+              {t`(original: ${record.email.reply_to})`}
+            </Text>
+          )}
+        </>
+      ) : record.email?.reply_to ? (
+        <Text>{record.email.reply_to}</Text>
+      ) : (
+        <span className="text-ink-3">{t`Not set`}</span>
+      )
+    },
+    ...(messageHistory?.channel_options?.cc?.length
+      ? [
+          {
+            key: 'cc',
+            label: t`CC`,
+            value: (
+              <Space size={[0, 4]} wrap>
+                {messageHistory.channel_options.cc.map((email, idx) => (
+                  <Tag variant="filled" key={idx} color="blue" className="text-xs">
+                    {email}
+                  </Tag>
+                ))}
+              </Space>
+            )
+          }
+        ]
+      : []),
+    ...(messageHistory?.channel_options?.bcc?.length
+      ? [
+          {
+            key: 'bcc',
+            label: t`BCC`,
+            value: (
+              <Space size={[0, 4]} wrap>
+                {messageHistory.channel_options.bcc.map((email, idx) => (
+                  <Tag variant="filled" key={idx} color="purple" className="text-xs">
+                    {email}
+                  </Tag>
+                ))}
+              </Space>
+            )
+          }
+        ]
+      : []),
+    {
+      key: 'subject',
+      label: t`Subject`,
+      value: <span className="font-semibold text-ink">{renderedSubject ?? effectiveEmail?.subject}</span>
+    },
+    ...(renderedSubjectPreview || effectiveEmail?.subject_preview
+      ? [
+          {
+            key: 'subjectPreview',
+            label: t`Subject preview`,
+            value: <span className="text-ink-3">{renderedSubjectPreview ?? effectiveEmail?.subject_preview}</span>
+          }
+        ]
+      : [])
+  ]
+
+  // The view shown: the one chosen when it exists, else the first there is (no HTML on an MJML error)
+  const shownKey = items.some((item) => item.key === activeTabKey) ? activeTabKey : items[0]?.key
 
   const drawerContent = (
     <div>
-      {/* Header details */}
-      <Descriptions bordered={false} size="small" column={1} className="mb-4">
-        <Descriptions.Item label={t`From`}>
-          {fromBroadcast ? (
-            <BroadcastSenderLine
-              workspaceId={workspace.id}
-              broadcastId={messageHistory!.broadcast_id!}
-              templateId={record.id}
-              senders={senders}
-              templateSenderId={record.email?.sender_id}
-              fromName={fromName}
-            />
-          ) : (
-            <SenderLine senders={senders} senderId={record.email?.sender_id} fromName={fromName} />
-          )}
-        </Descriptions.Item>
-
-        {(record.email?.reply_to || messageHistory?.channel_options?.reply_to) && (
-          <Descriptions.Item label={t`Reply to`}>
-            {messageHistory?.channel_options?.reply_to ? (
-              <>
-                <Text>{messageHistory.channel_options.reply_to}</Text>
-                {record.email?.reply_to && (
-                  <Text type="secondary" className="text-xs pl-2">
-                    {t`(original: ${record.email.reply_to})`}
-                  </Text>
-                )}
-              </>
-            ) : (
-              <Text>{record.email?.reply_to || t`Not set`}</Text>
-            )}
-          </Descriptions.Item>
-        )}
-
-        <Descriptions.Item label={t`Subject`}>
-          <Text>{renderedSubject ?? effectiveEmail?.subject}</Text>
-        </Descriptions.Item>
-
-        {(renderedSubjectPreview || effectiveEmail?.subject_preview) && (
-          <Descriptions.Item label={t`Subject preview`}>
-            <Text>{renderedSubjectPreview ?? effectiveEmail?.subject_preview}</Text>
-          </Descriptions.Item>
-        )}
-
-        {/* Channel Options Display - CC and BCC */}
-        {messageHistory?.channel_options?.cc && messageHistory.channel_options.cc.length > 0 && (
-          <Descriptions.Item label={t`CC`}>
-            <Space size={[0, 4]} wrap>
-              {messageHistory.channel_options.cc.map((email, idx) => (
-                <Tag variant="filled" key={idx} color="blue" className="text-xs">
-                  {email}
-                </Tag>
-              ))}
-            </Space>
-          </Descriptions.Item>
-        )}
-
-        {messageHistory?.channel_options?.bcc && messageHistory.channel_options.bcc.length > 0 && (
-          <Descriptions.Item label={t`BCC`}>
-            <Space size={[0, 4]} wrap>
-              {messageHistory.channel_options.bcc.map((email, idx) => (
-                <Tag variant="filled" key={idx} color="purple" className="text-xs">
-                  {email}
-                </Tag>
-              ))}
-            </Space>
-          </Descriptions.Item>
-        )}
-        {showLanguageSelector && (
-          <Descriptions.Item label={t`Language`}>
-            <Segmented
-              size="small"
-              value={effectiveLanguage}
-              onChange={(value) => setSelectedLanguage(value as string)}
-              options={availableLanguages}
-            />
-          </Descriptions.Item>
-        )}
-      </Descriptions>
+      {/* The envelope: who sends, to whom it answers, what the inbox shows */}
+      <div className="mb-4 border-b border-line-soft pb-3">
+        <KeyValueList labelWidth={130} items={envelope} />
+      </div>
       {/* Main content area */}
       <div className="flex flex-col mt-4">
         {isLoading && (
@@ -420,13 +447,21 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         )}
         {!isLoading &&
           items.length > 0 && ( // Success case
-            <Tabs
-              activeKey={activeTabKey} // Control active tab
-              onChange={setActiveTabKey} // Update state on tab change (onChange is preferred over onTabClick for controlled Tabs)
-              className="flex flex-col flex-grow"
-              items={items}
-              destroyOnHidden={false}
-            />
+            <div className="flex flex-col gap-3">
+              <Segmented
+                size="small"
+                value={shownKey}
+                onChange={(key) => setActiveTabKey(String(key))}
+                options={items.map((item) => ({ value: item.key, label: item.label }))}
+                className="self-start"
+              />
+              {/* Every view stays mounted, as with the former tabs: switching does not reload the HTML */}
+              {items.map((item) => (
+                <div key={item.key} hidden={item.key !== shownKey}>
+                  {item.children}
+                </div>
+              ))}
+            </div>
           )}
         {!isLoading &&
           !error &&
@@ -446,9 +481,32 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     <>
       {controlled ? null : <div onClick={() => setOwnOpen(true)}>{children}</div>}
       <Drawer
-        title={`${record.name}`}
+        title={
+          // The name, then its version and category in grey
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate">{record.name}</span>
+            {subtitle ? <span className="shrink-0 text-sm font-normal text-ink-3">{subtitle}</span> : null}
+          </span>
+        }
+        extra={
+          <div className="flex items-center gap-2">
+            {showLanguageSelector ? (
+              <Select
+                size="small"
+                aria-label={t`Language`}
+                value={effectiveLanguage}
+                onChange={(value: string) => setSelectedLanguage(value)}
+                options={availableLanguages}
+                popupMatchSelectWidth={false}
+                className="min-w-32"
+              />
+            ) : null}
+            <CloseButton onClose={close} />
+          </div>
+        }
+        closable={false}
         placement="right"
-        size={650}
+        size={760}
         open={isOpen}
         onClose={close}
         destroyOnHidden={true}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Modal, Button, Input, Select, Typography, Form, App, Upload, Space, Tag } from 'antd'
-import { UploadOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Button, Input, Select, Typography, Form, App, Upload, Space, Tag } from 'antd'
+import { Paperclip, Send, X } from 'lucide-react'
+import { SidePanel } from '../layout'
 import { Workspace, Template, Integration } from '../../services/api/types'
 import {
   transactionalNotificationsApi,
@@ -56,7 +57,6 @@ export default function SendTemplateModal({
   const [bccEmails, setBccEmails] = useState<string[]>([])
   const [replyTo, setReplyTo] = useState<string>('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<string>('')
   const [selectedListId, setSelectedListId] = useState<string | undefined>(undefined)
   const [form] = Form.useForm()
@@ -154,7 +154,6 @@ export default function SendTemplateModal({
       setBccEmails([])
       setReplyTo('')
       setAttachments([])
-      setShowAdvancedOptions(false)
       setSelectedLanguage(workspace?.settings?.default_language || '')
       setSelectedListId(defaultListId)
       form.resetFields()
@@ -309,61 +308,62 @@ export default function SendTemplateModal({
   )
 
   return (
-    <Modal
-      title={t`Send Test Email`}
+    // A panel on the right, its options shown: the mockup's form, every field kept
+    <SidePanel
       open={isOpen}
-      onCancel={onClose}
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          {t`Cancel`}
-        </Button>,
-        <Button
-          key="send"
-          type="primary"
-          onClick={handleSend}
-          disabled={
-            !email || !selectedIntegrationId || loading || sendLoading || waitingForDefaultList
-          }
-          loading={loading || sendLoading}
-        >
-          {t`Send Test Email`}
-        </Button>
-      ]}
-      width={showAdvancedOptions ? 600 : 520}
+      onClose={onClose}
+      title={t`Send Test Email`}
+      copyLink={false}
+      footer={
+        <div className="flex items-center justify-end gap-2">
+          <Button onClick={onClose}>{t`Cancel`}</Button>
+          <Button
+            type="primary"
+            icon={<Send size={14} aria-hidden="true" />}
+            onClick={handleSend}
+            disabled={!email || !selectedIntegrationId || loading || sendLoading || waitingForDefaultList}
+            loading={loading || sendLoading}
+          >
+            {t`Send Test Email`}
+          </Button>
+        </div>
+      }
     >
       <Form form={form} layout="vertical">
-        <div className="py-2 space-y-4">
-          <p>{t`Send a test email using this template to verify how it will look.`}</p>
+        <div className="flex flex-col">
+          <p className="m-0 mb-4 text-sm text-ink-3">{t`Send a test email using this template to verify how it will look.`}</p>
 
-          <Form.Item label={t`Email Integration`}>
-            <Select
-              className="w-full"
-              placeholder={t`Select an email integration`}
-              value={selectedIntegrationId}
-              onChange={setSelectedIntegrationId}
-              disabled={emailIntegrations.length === 0}
-            >
-              {emailIntegrations.map(renderIntegrationOption)}
-            </Select>
-            {emailIntegrations.length === 0 && (
-              <Text type="warning" className="mt-1 block">
-                {t`No email integrations available. Please configure one in Settings.`}
-              </Text>
-            )}
-          </Form.Item>
+          <div className="grid grid-cols-2 gap-x-3">
+            <Form.Item label={t`Email Integration`}>
+              <Select
+                className="w-full"
+                placeholder={t`Select an email integration`}
+                value={selectedIntegrationId}
+                onChange={setSelectedIntegrationId}
+                disabled={emailIntegrations.length === 0}
+              >
+                {emailIntegrations.map(renderIntegrationOption)}
+              </Select>
+              {emailIntegrations.length === 0 && (
+                <Text type="warning" className="mt-1 block">
+                  {t`No email integrations available. Please configure one in Settings.`}
+                </Text>
+              )}
+            </Form.Item>
 
-          <Form.Item label={t`Sender`}>
-            <Select
-              className="w-full"
-              placeholder={t`Select a sender`}
-              value={selectedSenderId}
-              onChange={setSelectedSenderId}
-              options={selectedIntegration?.email_provider?.senders.map((sender) => ({
-                label: `${sender.name} <${sender.email}>`,
-                value: sender.id
-              }))}
-            />
-          </Form.Item>
+            <Form.Item label={t`Sender`}>
+              <Select
+                className="w-full"
+                placeholder={t`Select a sender`}
+                value={selectedSenderId}
+                onChange={setSelectedSenderId}
+                options={selectedIntegration?.email_provider?.senders.map((sender) => ({
+                  label: `${sender.name} <${sender.email}>`,
+                  value: sender.id
+                }))}
+              />
+            </Form.Item>
+          </div>
 
           <Form.Item label={t`Recipient Email`} required>
             <Input
@@ -393,10 +393,7 @@ export default function SendTemplateModal({
                 value={listId}
                 onChange={(value?: string) => setSelectedListId(value)}
                 options={lists.map((list) => ({
-                  label:
-                    list.id === defaultListId
-                      ? t`${list.name} (broadcast audience)`
-                      : list.name,
+                  label: list.id === defaultListId ? t`${list.name} (broadcast audience)` : list.name,
                   value: list.id
                 }))}
               />
@@ -414,103 +411,94 @@ export default function SendTemplateModal({
             </Form.Item>
           )}
 
-          {!showAdvancedOptions && (
-            <Button type="link" onClick={() => setShowAdvancedOptions(true)} className="!p-0">
-              {canReadContacts
-                ? t`+ add from name, CC, BCC, reply-to, attachments`
-                : t`+ add from name, reply-to, attachments`}
-            </Button>
-          )}
+          <div className="mt-1 mb-4 border-t border-line-soft pt-4 text-xs font-medium tracking-wide text-ink-3 uppercase">
+            {t`Options`}
+          </div>
 
-          {showAdvancedOptions && (
-            <>
-              <Form.Item label={t`From Name (override)`}>
-                <Input
-                  placeholder={t`Custom sender name (optional)`}
-                  value={fromName}
-                  onChange={(e) => setFromName(e.target.value)}
-                  allowClear
-                />
-                <Text type="secondary" className="text-xs mt-1 block">
-                  {t`Override the default sender name for this test email`}
-                </Text>
-              </Form.Item>
+          <Form.Item label={t`From Name (override)`}>
+            <Input
+              placeholder={t`Custom sender name (optional)`}
+              value={fromName}
+              onChange={(e) => setFromName(e.target.value)}
+              allowClear
+            />
+            <Text type="secondary" className="text-xs mt-1 block">
+              {t`Override the default sender name for this test email`}
+            </Text>
+          </Form.Item>
 
-              {canReadContacts && (
-                <>
-                  <Form.Item label={t`CC Recipients`}>
-                    <Select
-                      mode="tags"
-                      placeholder={t`Enter CC email addresses`}
-                      value={ccEmails}
-                      onChange={setCcEmails}
-                      tokenSeparators={[',', ' ']}
-                      allowClear
-                    />
-                  </Form.Item>
-
-                  <Form.Item label={t`BCC Recipients`}>
-                    <Select
-                      mode="tags"
-                      placeholder={t`Enter BCC email addresses`}
-                      value={bccEmails}
-                      onChange={setBccEmails}
-                      tokenSeparators={[',', ' ']}
-                      allowClear
-                    />
-                  </Form.Item>
-                </>
-              )}
-
-              <Form.Item label={t`Reply-To`}>
-                <Input
-                  placeholder={t`Enter Reply-To email address`}
-                  value={replyTo}
-                  onChange={(e) => setReplyTo(e.target.value)}
+          {canReadContacts && (
+            <div className="grid grid-cols-2 gap-x-3">
+              <Form.Item label={t`CC Recipients`}>
+                <Select
+                  mode="tags"
+                  placeholder={t`Enter CC email addresses`}
+                  value={ccEmails}
+                  onChange={setCcEmails}
+                  tokenSeparators={[',', ' ']}
                   allowClear
                 />
               </Form.Item>
 
-              <Form.Item label={t`Attachments`}>
-                <Upload beforeUpload={handleFileUpload} showUploadList={false} multiple>
-                  <Button icon={<UploadOutlined />} disabled={attachments.length >= 20}>
-                    {t`Upload Files`}
-                  </Button>
-                </Upload>
-                <Text type="secondary" className="text-xs mt-1 block">
-                  {t`Max 3MB per file, 10MB total, 20 files maximum`}
-                </Text>
-                {attachments.length > 0 && (
-                  <Space orientation="vertical" className="mt-2 w-full">
-                    {attachments.map((att, index) => {
-                      // Calculate approximate file size from base64
-                      const sizeBytes = (att.content.length * 3) / 4
-                      return (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-2 border border-gray-200 rounded"
-                        >
-                          <Space>
-                            <Text>{att.filename}</Text>
-                            <Tag>{formatFileSize(sizeBytes)}</Tag>
-                          </Space>
-                          <Button
-                            type="text"
-                            danger
-                            size="small"
-                            icon={<DeleteOutlined />}
-                            onClick={() => removeAttachment(index)}
-                          />
-                        </div>
-                      )
-                    })}
-                  </Space>
-                )}
+              <Form.Item label={t`BCC Recipients`}>
+                <Select
+                  mode="tags"
+                  placeholder={t`Enter BCC email addresses`}
+                  value={bccEmails}
+                  onChange={setBccEmails}
+                  tokenSeparators={[',', ' ']}
+                  allowClear
+                />
               </Form.Item>
-            </>
+            </div>
           )}
+
+          <Form.Item label={t`Reply-To`}>
+            <Input
+              placeholder={t`Enter Reply-To email address`}
+              value={replyTo}
+              onChange={(e) => setReplyTo(e.target.value)}
+              allowClear
+            />
+          </Form.Item>
+
+          <Form.Item label={t`Attachments`}>
+            <Upload beforeUpload={handleFileUpload} showUploadList={false} multiple>
+              <Button icon={<Paperclip size={14} aria-hidden="true" />} disabled={attachments.length >= 20}>
+                {t`Upload Files`}
+              </Button>
+            </Upload>
+            <Text type="secondary" className="text-xs mt-1 block">
+              {t`Max 3MB per file, 10MB total, 20 files maximum`}
+            </Text>
+            {attachments.length > 0 && (
+              <Space orientation="vertical" className="mt-2 w-full">
+                {attachments.map((att, index) => {
+                  // Calculate approximate file size from base64
+                  const sizeBytes = (att.content.length * 3) / 4
+                  const filename = att.filename
+                  return (
+                    <div key={index} className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                      <Space>
+                        <Text>{filename}</Text>
+                        <Tag>{formatFileSize(sizeBytes)}</Tag>
+                      </Space>
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        aria-label={t`Remove ${filename}`}
+                        icon={<X size={14} aria-hidden="true" />}
+                        onClick={() => removeAttachment(index)}
+                      />
+                    </div>
+                  )
+                })}
+              </Space>
+            )}
+          </Form.Item>
         </div>
       </Form>
-    </Modal>
+    </SidePanel>
   )
 }

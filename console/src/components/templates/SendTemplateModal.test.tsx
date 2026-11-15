@@ -312,8 +312,8 @@ describe('SendTemplateModal cc and bcc', () => {
   // cc and bcc need contacts:read on the server, so a member without it is not offered them.
   it('hides cc and bcc without canReadContacts', async () => {
     renderModal({ canReadContacts: false })
-    await userEvent.click(screen.getByText('+ add from name, reply-to, attachments'))
 
+    // The options are shown without a click
     expect(screen.getByText('From Name (override)')).toBeInTheDocument()
     expect(screen.queryByText('CC Recipients')).not.toBeInTheDocument()
     expect(screen.queryByText('BCC Recipients')).not.toBeInTheDocument()
@@ -321,7 +321,6 @@ describe('SendTemplateModal cc and bcc', () => {
 
   it('sends the cc typed with Contacts read, and none once that permission is gone', async () => {
     const { rerenderModal } = renderModal({ canReadContacts: true })
-    await userEvent.click(screen.getByText(/add from name, CC, BCC/i))
     const ccInput = screen
       .getByText('CC Recipients')
       .closest('.ant-form-item')
@@ -343,9 +342,21 @@ describe('SendTemplateModal cc and bcc', () => {
 
   it('shows cc and bcc when canReadContacts is true', async () => {
     renderModal({ canReadContacts: true })
-    await userEvent.click(screen.getByText(/add from name, CC, BCC/i))
 
     expect(screen.getByText('CC Recipients')).toBeInTheDocument()
     expect(screen.getByText('BCC Recipients')).toBeInTheDocument()
+  })
+})
+
+describe('SendTemplateModal panel', () => {
+  it('opens as a side panel with every option shown, and no link to reveal them', () => {
+    renderModal({ canReadContacts: true })
+    expect(document.querySelector('.ant-drawer')).not.toBeNull()
+    expect(document.querySelector('.ant-modal')).toBeNull()
+    for (const label of ['From Name (override)', 'CC Recipients', 'BCC Recipients', 'Reply-To', 'Attachments']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+    expect(screen.queryByText(/add from name/i)).not.toBeInTheDocument()
+    expect(screen.getByText('Options')).toBeInTheDocument()
   })
 })

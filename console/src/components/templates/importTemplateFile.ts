@@ -29,6 +29,9 @@ export type TemplateImport =
       /** With a title, the errors go to the validation modal; without, the only one to a toast. */
       title?: string
       errors: string[]
+      /** For an MJML syntax error: the file's text, and the first line the parser names. */
+      source?: string
+      line?: number
     }
 
 interface ExportedTemplate {
@@ -119,6 +122,21 @@ function importJson(content: string, i18n: I18n): TemplateImport {
   }
 }
 
+/**
+ * The first line an XML parser names in its error, in the three forms it comes in: libxml2 (Chrome,
+ * Safari) « error on line 6 at column 12: … mj-text line 5 … », Firefox « Line Number 6, Column 3 »,
+ * and jsdom « 6:12: unexpected close tag. » right after « Invalid MJML syntax: ». Only the first
+ * number counts: libxml2 names the opening tag's line after it.
+ */
+export function syntaxErrorLine(message: string): number | undefined {
+  const match =
+    /error on line (\d+)/i.exec(message) ??
+    /Line Number (\d+)/i.exec(message) ??
+    /Invalid MJML syntax:\s*(\d+):\d+:/.exec(message)
+  const line = match ? Number(match[1]) : NaN
+  return Number.isInteger(line) && line > 0 ? line : undefined
+}
+
 function importMjml(content: string, i18n: I18n): TemplateImport {
   try {
     const tree = convertMjmlToJsonBrowser(content)
@@ -148,7 +166,13 @@ function importMjml(content: string, i18n: I18n): TemplateImport {
       error.message.includes('Invalid MJML syntax') ||
       error.message.includes('Root element must be')
     ) {
-      return { ok: false, title: i18n._(msg`MJML Syntax Error`), errors: [error.message] }
+      return {
+        ok: false,
+        title: i18n._(msg`MJML Syntax Error`),
+        errors: [error.message],
+        source: content,
+        line: syntaxErrorLine(error.message)
+      }
     }
     const errors = splitValidationMessage(error)
     if (errors) return { ok: false, title: i18n._(msg`MJML Validation Failed`), errors }
