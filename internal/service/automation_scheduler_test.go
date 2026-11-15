@@ -533,9 +533,9 @@ func TestAutomationScheduler_StopTimeoutDefault(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	executor := &AutomationExecutor{logger: setupMockLogger(ctrl)}
 	scheduler := NewAutomationScheduler(executor, executor.logger, time.Second, 50)
-	assert.Equal(t, 29*time.Second, scheduler.stopTimeout(), "the default drain plus the default margin")
+	assert.Equal(t, 44*time.Second, scheduler.stopTimeout(), "the default drain plus the default margin")
 
-	assert.Equal(t, 29*time.Second, NewAutomationScheduler(nil, executor.logger, time.Second, 50).stopTimeout(),
+	assert.Equal(t, 44*time.Second, NewAutomationScheduler(nil, executor.logger, time.Second, 50).stopTimeout(),
 		"without an executor, the default drain")
 }
 

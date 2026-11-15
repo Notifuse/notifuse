@@ -1606,7 +1606,7 @@ func TestSendRawEmailWithSettings_OAuth2_XOAUTH2(t *testing.T) {
 		token: expectedToken,
 	}
 
-	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	err := sendRawEmailWithSettings(context.Background(), settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
 	require.NoError(t, err)
 
 	// Verify AUTH XOAUTH2 was sent
@@ -1643,7 +1643,7 @@ func TestSendRawEmailWithSettings_OAuth2_InvalidToken(t *testing.T) {
 		token: "wrong-token",
 	}
 
-	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	err := sendRawEmailWithSettings(context.Background(), settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "authentication")
 }
@@ -1663,7 +1663,7 @@ func TestSendRawEmailWithSettings_BasicAuth_Fallback(t *testing.T) {
 
 	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
 
-	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, nil)
+	err := sendRawEmailWithSettings(context.Background(), settings, "sender@example.com", []string{"recipient@example.com"}, msg, nil)
 	require.NoError(t, err)
 
 	messages := server.GetMessages()
@@ -1685,7 +1685,7 @@ func TestSendRawEmailWithSettings_EmptyAuthType_DefaultsToBasic(t *testing.T) {
 
 	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
 
-	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, nil)
+	err := sendRawEmailWithSettings(context.Background(), settings, "sender@example.com", []string{"recipient@example.com"}, msg, nil)
 	require.NoError(t, err)
 
 	messages := server.GetMessages()
@@ -1735,7 +1735,7 @@ func TestSendRawEmailWithSettings_OAuth2_TokenServiceError(t *testing.T) {
 		err: fmt.Errorf("failed to get access token"),
 	}
 
-	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	err := sendRawEmailWithSettings(context.Background(), settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get OAuth2 token")
 }
@@ -1747,10 +1747,12 @@ type mockOAuth2TokenService struct {
 	invalidateCalled bool
 	callCount        int
 	tokensOnRetry    []string // tokens to return on subsequent calls (for retry testing)
+	lastCtx          context.Context
 }
 
-func (m *mockOAuth2TokenService) GetAccessToken(settings *domain.SMTPSettings) (string, error) {
+func (m *mockOAuth2TokenService) GetAccessToken(ctx context.Context, settings *domain.SMTPSettings) (string, error) {
 	m.callCount++
+	m.lastCtx = ctx
 	if m.err != nil {
 		return "", m.err
 	}
@@ -1996,7 +1998,7 @@ func TestSendRawEmailWithSettings_OAuth2_RetryOnExpiredToken(t *testing.T) {
 		tokensOnRetry: []string{expectedToken},
 	}
 
-	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	err := sendRawEmailWithSettings(context.Background(), settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
 	require.NoError(t, err)
 
 	// Verify retry happened
@@ -2094,7 +2096,7 @@ func TestSendRawEmailWithSettings_OAuth2_ErrorDecoding(t *testing.T) {
 		token: "some-token",
 	}
 
-	err = sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	err = sendRawEmailWithSettings(context.Background(), settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
 	require.Error(t, err)
 	// The error should contain the decoded JSON message
 	assert.Contains(t, err.Error(), "status")

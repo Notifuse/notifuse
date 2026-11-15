@@ -1145,16 +1145,23 @@ func parseABTestNodeConfig(config map[string]interface{}) (*domain.ABTestNodeCon
 type WebhookNodeExecutor struct {
 	httpClient *http.Client
 	logger     logger.Logger
+	// timeout bounds each call; zero means WebhookNodeTimeout. Tests set it shorter.
+	timeout time.Duration
 }
 
+// WebhookNodeTimeout is how long a webhook node waits for its endpoint. A normal stop lets the
+// node under way finish for automationShutdownDrain, which must exceed it: a call cut by the
+// drain leaves the journey on the node, and the endpoint is posted to again after the restart.
+const WebhookNodeTimeout = 30 * time.Second
+
 // NewWebhookNodeExecutor creates a webhook node executor that sends with
-// httpClient. A nil client gets the SSRF-safe one, with the node's 30s timeout,
+// httpClient. A nil client gets the SSRF-safe one, with WebhookNodeTimeout,
 // rather than an unguarded default: a caller that forgets to wire a client must
 // fail closed.
 func NewWebhookNodeExecutor(log logger.Logger, httpClient *http.Client) *WebhookNodeExecutor {
 	if httpClient == nil {
 		httpClient = safehttpclient.New()
-		httpClient.Timeout = 30 * time.Second
+		httpClient.Timeout = WebhookNodeTimeout
 	}
 	return &WebhookNodeExecutor{
 		httpClient: httpClient,
@@ -1183,7 +1190,13 @@ func (e *WebhookNodeExecutor) Execute(ctx context.Context, params NodeExecutionP
 		return nil, fmt.Errorf("failed to marshal webhook payload: %w", err)
 	}
 
-	// 3. Create HTTP request
+	// 3. Create HTTP request, bounded by the node's own timeout whatever the client's
+	timeout := e.timeout
+	if timeout <= 0 {
+		timeout = WebhookNodeTimeout
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, config.URL, bytes.NewReader(payloadBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook request: %w", err)

@@ -538,11 +538,11 @@ describe('Page Smoke Tests', () => {
       })
     })
 
-    it('ContactsPage shows contacts title', async () => {
+    it('ContactsPage shows the all contacts title', async () => {
       const Wrapper = createWrapper()
       render(<ContactsPage />, { wrapper: Wrapper })
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: 'Contacts' })).toBeTruthy()
+        expect(screen.getByRole('heading', { name: 'All contacts' })).toBeTruthy()
       })
     })
   })

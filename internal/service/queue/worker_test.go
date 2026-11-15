@@ -31,7 +31,8 @@ func TestDefaultWorkerConfig(t *testing.T) {
 	assert.Equal(t, 10, config.SendConcurrency)
 	assert.Equal(t, 1, config.SMTPSendConcurrency)
 	assert.Equal(t, 2*time.Second, config.RoundWindow)
-	assert.Equal(t, 10*time.Second, config.ShutdownGrace)
+	assert.Equal(t, 40*time.Second, config.ShutdownGrace)
+	assert.Equal(t, 100*time.Second, config.SendTimeout)
 	assert.Equal(t, 5*time.Second, config.AbortWait)
 	assert.Equal(t, time.Minute, config.OrphanCheckInterval)
 }
@@ -2829,7 +2830,7 @@ func TestEmailQueueWorker_Stop(t *testing.T) {
 		lt.email.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).
 			DoAndReturn(func(context.Context, domain.SendEmailProviderRequest, bool) error {
 				close(started)
-				time.Sleep(300 * time.Millisecond) // like SMTP, deaf to its context
+				time.Sleep(300 * time.Millisecond) // a provider that does not answer to its context
 				return nil
 			})
 

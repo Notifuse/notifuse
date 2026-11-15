@@ -110,6 +110,31 @@ type TaskHandler struct {
 	// cronTaskCeiling caps the max_tasks of one /api/cron run; 0 means
 	// defaultCronTaskCeiling. See SetCronTaskCeiling.
 	cronTaskCeiling int
+	// runs starts the runs of /api/cron and tasks.execute so that the app's stop cancels
+	// and waits for them (SetRunStarter). Unset, they run detached from the request only.
+	runs runStarter
+}
+
+// runStarter starts a task run that a caller giving up does not cut, but the app's stop
+// cancels and waits for. The task service implements it (BeginRun).
+type runStarter interface {
+	BeginRun(parent context.Context) (context.Context, func(), bool)
+}
+
+// SetRunStarter makes /api/cron and tasks.execute runs stop with the app. Without it, a cron run
+// cut by the exit could lose the cursor of a broadcast batch it had just queued, and the next run
+// would queue that batch again.
+func (h *TaskHandler) SetRunStarter(runs runStarter) {
+	h.runs = runs
+}
+
+// beginRun returns the context of a run the request starts, detached from the request, and
+// reports false once the app is stopping.
+func (h *TaskHandler) beginRun(r *http.Request) (context.Context, func(), bool) {
+	if h.runs == nil {
+		return context.WithoutCancel(r.Context()), func() {}, true
+	}
+	return h.runs.BeginRun(r.Context())
 }
 
 // defaultCronTaskCeiling is the default ceiling of the tasks one /api/cron run executes
@@ -420,8 +445,14 @@ func (h *TaskHandler) ExecutePendingTasks(w http.ResponseWriter, r *http.Request
 	// Detach from the request: with in-process execution the tasks run right
 	// here, so a caller that gives up (a cron client's timeout, a proxy's
 	// read timeout) would otherwise cancel every task it just started, mid
-	// database transaction. Answer immediately and let the work finish.
-	execCtx := context.WithoutCancel(r.Context())
+	// database transaction. Answer immediately and let the work finish. The
+	// app's stop still cancels the run, and waits for it.
+	execCtx, runDone, ok := h.beginRun(r)
+	if !ok {
+		h.cronRunning.Store(false)
+		WriteJSONError(w, "The server is stopping", http.StatusServiceUnavailable)
+		return
+	}
 	maxTasks := executeRequest.MaxTasks
 	ceiling := max(h.cronTaskCeiling, defaultCronTaskCeiling)
 	if maxTasks <= 0 {
@@ -430,6 +461,7 @@ func (h *TaskHandler) ExecutePendingTasks(w http.ResponseWriter, r *http.Request
 	maxTasks = min(maxTasks, ceiling)
 
 	go func() {
+		defer runDone()
 		defer h.cronRunning.Store(false)
 		defer func() {
 			if rec := recover(); rec != nil {
@@ -559,9 +591,14 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 	// task's own timeout+grace deadline, applied in ExecuteTask; tying it to
 	// the caller's connection instead meant the dispatcher's HTTP client
 	// timeout cancelled a running task mid-batch — aborting the enqueue
-	// transaction and stranding the recipients it was writing. The 60s
-	// graceful-shutdown window covers an in-flight run.
-	execCtx := context.WithoutCancel(r.Context())
+	// transaction and stranding the recipients it was writing. The app's stop
+	// cancels the run and waits for it.
+	execCtx, runDone, ok := h.beginRun(r)
+	if !ok {
+		WriteJSONError(w, "The server is stopping", http.StatusServiceUnavailable)
+		return
+	}
+	defer runDone()
 
 	// Get the task to calculate timeout
 	task, err := h.taskService.GetTask(execCtx, executeRequest.WorkspaceID, executeRequest.ID)

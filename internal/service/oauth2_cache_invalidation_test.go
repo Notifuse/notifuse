@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -43,16 +44,16 @@ func TestOAuth2TokenService_InvalidateCache(t *testing.T) {
 	svc.SetTokenURLs("", srv.URL)
 	settings := googleSettings()
 
-	first, err := svc.GetAccessToken(settings)
+	first, err := svc.GetAccessToken(context.Background(), settings)
 	require.NoError(t, err)
-	second, err := svc.GetAccessToken(settings)
+	second, err := svc.GetAccessToken(context.Background(), settings)
 	require.NoError(t, err)
 	assert.Equal(t, first, second, "second call must come from the cache")
 	assert.Equal(t, int32(1), atomic.LoadInt32(&hits))
 
 	svc.InvalidateCache()
 
-	third, err := svc.GetAccessToken(settings)
+	third, err := svc.GetAccessToken(context.Background(), settings)
 	require.NoError(t, err)
 	assert.NotEqual(t, first, third, "after invalidation a fresh token must be fetched")
 	assert.Equal(t, int32(2), atomic.LoadInt32(&hits))
@@ -68,18 +69,18 @@ func TestOAuth2TokenService_InvalidateCacheForSettings(t *testing.T) {
 	settingsB := googleSettings()
 	settingsB.OAuth2ClientID = "client-2" // different cache key (provider:tenant:client)
 
-	tokenA, err := svc.GetAccessToken(settingsA)
+	tokenA, err := svc.GetAccessToken(context.Background(), settingsA)
 	require.NoError(t, err)
-	tokenB, err := svc.GetAccessToken(settingsB)
+	tokenB, err := svc.GetAccessToken(context.Background(), settingsB)
 	require.NoError(t, err)
 	require.Equal(t, int32(2), atomic.LoadInt32(&hits))
 
 	svc.InvalidateCacheForSettings(settingsA)
 
-	againA, err := svc.GetAccessToken(settingsA)
+	againA, err := svc.GetAccessToken(context.Background(), settingsA)
 	require.NoError(t, err)
 	assert.NotEqual(t, tokenA, againA, "the invalidated settings must refetch")
-	againB, err := svc.GetAccessToken(settingsB)
+	againB, err := svc.GetAccessToken(context.Background(), settingsB)
 	require.NoError(t, err)
 	assert.Equal(t, tokenB, againB, "other settings keep their cached token")
 	assert.Equal(t, int32(3), atomic.LoadInt32(&hits), "exactly one refetch")
@@ -93,12 +94,12 @@ func TestOAuth2TokenService_SetTokenURLs_RoutesProviders(t *testing.T) {
 	svc := NewOAuth2TokenService(logger.NewLoggerWithLevel("disabled"))
 	svc.SetTokenURLs(msSrv.URL, googleSrv.URL)
 
-	_, err := svc.GetAccessToken(&domain.SMTPSettings{
+	_, err := svc.GetAccessToken(context.Background(), &domain.SMTPSettings{
 		OAuth2Provider: "microsoft", OAuth2TenantID: "tenant-1",
 		OAuth2ClientID: "client-1", OAuth2ClientSecret: "secret",
 	})
 	require.NoError(t, err)
-	_, err = svc.GetAccessToken(googleSettings())
+	_, err = svc.GetAccessToken(context.Background(), googleSettings())
 	require.NoError(t, err)
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&msHits), "microsoft must use the microsoft URL")
