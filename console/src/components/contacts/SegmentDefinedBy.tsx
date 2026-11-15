@@ -15,22 +15,18 @@ export interface SegmentDefinedByProps {
   segment: Segment
   lists: List[]
   customFieldLabels: Record<string, string>
-  /** Segments write: Recompute and Edit segment. */
-  canWrite: boolean
+}
+
+export interface SegmentActionsProps {
+  workspaceId: string
+  segment: Segment
   /** Templates read, which the segment drawer needs to list the templates. */
   canReadTemplates: boolean
 }
 
-/** The first conditions of a segment, when it last changed, and with segments write Recompute and Edit. */
-export function SegmentDefinedBy({
-  workspaceId,
-  segment,
-  lists,
-  customFieldLabels,
-  canWrite,
-  canReadTemplates
-}: SegmentDefinedByProps) {
-  const { t, i18n } = useLingui()
+/** Recompute (confirmed first) and Edit segment, for segments write: the view header shows them. */
+export function SegmentActions({ workspaceId, segment, canReadTemplates }: SegmentActionsProps) {
+  const { t } = useLingui()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
@@ -43,6 +39,42 @@ export function SegmentDefinedBy({
     },
     onError: (error: Error) => message.error(error?.message || t`Failed to rebuild segment`)
   })
+
+  return (
+    <>
+      <Popconfirm
+        title={t`Rebuild segment`}
+        description={
+          <div className="max-w-72">
+            {t`Segments update automatically as contacts change. Recompute "${segment.name}" now? This recalculates all of its members.`}
+          </div>
+        }
+        okText={t`Yes`}
+        cancelText={t`No`}
+        onConfirm={() => rebuild.mutate()}
+      >
+        <Button icon={<RefreshCw size={14} aria-hidden="true" />} loading={rebuild.isPending}>
+          {t`Recompute`}
+        </Button>
+      </Popconfirm>
+      <Button icon={<Pencil size={14} aria-hidden="true" />} onClick={() => setEditing(true)}>
+        {t`Edit segment`}
+      </Button>
+      {editing ? (
+        <DrawerSegment
+          segment={segment}
+          canReadTemplates={canReadTemplates}
+          setDrawserVisible={setEditing}
+          onSuccess={invalidateSegments}
+        />
+      ) : null}
+    </>
+  )
+}
+
+/** The first conditions of a segment and when it last changed. */
+export function SegmentDefinedBy({ workspaceId, segment, lists, customFieldLabels }: SegmentDefinedByProps) {
+  const { t, i18n } = useLingui()
   const summary = segmentSummary(segment.tree, i18n, {
     listName: (id) => lists.find((list) => list.id === id)?.name ?? id,
     customFieldLabels
@@ -72,37 +104,6 @@ export function SegmentDefinedBy({
           <span>{t`Updated ${updatedAgo}`}</span>
         </Tooltip>
       </span>
-      {canWrite ? (
-        <span className="flex items-center gap-1">
-          <Popconfirm
-            title={t`Rebuild segment`}
-            description={t`Are you sure you want to rebuild "${segment.name}"? This will recalculate segment membership.`}
-            okText={t`Yes`}
-            cancelText={t`No`}
-            onConfirm={() => rebuild.mutate()}
-          >
-            <Button
-              size="small"
-              type="text"
-              icon={<RefreshCw size={13} aria-hidden="true" />}
-              loading={rebuild.isPending}
-            >
-              {t`Recompute`}
-            </Button>
-          </Popconfirm>
-          <Button size="small" icon={<Pencil size={13} aria-hidden="true" />} onClick={() => setEditing(true)}>
-            {t`Edit segment`}
-          </Button>
-        </span>
-      ) : null}
-      {editing ? (
-        <DrawerSegment
-          segment={segment}
-          canReadTemplates={canReadTemplates}
-          setDrawserVisible={setEditing}
-          onSuccess={invalidateSegments}
-        />
-      ) : null}
     </div>
   )
 }

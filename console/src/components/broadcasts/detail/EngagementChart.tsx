@@ -69,6 +69,9 @@ export function EngagementChart({ workspaceId, broadcast, timezone, live }: Enga
         measure: ENGAGEMENT_COLUMNS[kind].measure
       })
     const markers: ChartMarker[] = []
+    // While the period is under way, a marker says where it stands: the buckets after it are empty.
+    const now = dayjs()
+    if (end.isAfter(now)) markers.push({ key: bucketKey(now, granularity, timezone), label: t`Now` })
     if (broadcast.test_sent_at) markers.push({ key: bucketKey(broadcast.test_sent_at, granularity, timezone), label: t`Test sent` })
     if (broadcast.winner_sent_at)
       markers.push({

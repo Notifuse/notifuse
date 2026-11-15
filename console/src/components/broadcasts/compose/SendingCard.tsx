@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { AutoComplete, DatePicker, Form, Select } from 'antd'
+import { AutoComplete, ConfigProvider, DatePicker, Form, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { CalendarClock, Send } from 'lucide-react'
 import dayjs from '../../../lib/dayjs'
@@ -9,6 +9,9 @@ import type { ScheduleSettings } from '../../../services/api/broadcast'
 import { scheduledInstant, useBroadcastDates } from '../useBroadcastDates'
 import { normalizeTime, type ComposeValues, type SendChoice } from './composeValues'
 import type { ComposeUpdate } from './types'
+
+// The card's padding ends it: its fields drop the bottom margin antd gives stacked labelled fields.
+const FLUSH_FORM_THEME = { components: { Form: { itemMarginBottom: 0 } } }
 
 /** Times offered every 15 minutes; any other is typed. */
 export const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
@@ -86,38 +89,42 @@ export function SendingCard({ values, onChange, booked, workspaceTimezone }: Sen
           {choice('schedule', t`Schedule`, t`At a date and time you choose`, <CalendarClock size={14} />)}
         </div>
         {values.sendChoice === 'schedule' ? (
-          <Form layout="vertical" component="div">
-            <div className="grid grid-cols-3 gap-3">
-              <Form.Item label={t`Date`} required>
-                <DatePicker
-                  aria-label={t`Date`}
-                  format="YYYY-MM-DD"
-                  value={values.scheduledDate ? dayjs(values.scheduledDate, 'YYYY-MM-DD') : null}
-                  disabledDate={(current) => current.format('YYYY-MM-DD') < today.format('YYYY-MM-DD')}
-                  onChange={(date) => onChange((v) => ({ ...v, scheduledDate: date ? date.format('YYYY-MM-DD') : undefined }))}
-                />
-              </Form.Item>
-              <Form.Item label={t`Time`} required>
-                <AutoComplete
-                  aria-label={t`Time`}
-                  options={TIME_OPTIONS}
-                  value={typedTime ?? values.scheduledTime}
-                  onChange={(text: string) => setTypedTime(text)}
-                  onSelect={(time: string) => commitTime(time)}
-                  onBlur={() => commitTime(typedTime ?? values.scheduledTime)}
-                />
-              </Form.Item>
-              <Form.Item label={t`Timezone`} required>
-                <Select
-                  aria-label={t`Timezone`}
-                  showSearch={{ optionFilterProp: 'label' }}
-                  options={TIMEZONE_OPTIONS}
-                  value={timezone}
-                  onChange={(tz: string) => onChange((v) => ({ ...v, timezone: tz }))}
-                />
-              </Form.Item>
-            </div>
-          </Form>
+          <ConfigProvider theme={FLUSH_FORM_THEME}>
+            <Form layout="vertical" component="div">
+              <div className="grid grid-cols-3 gap-3">
+                <Form.Item label={t`Date`} required>
+                  <DatePicker
+                    aria-label={t`Date`}
+                    // The whole column, as the Time and Timezone fields beside it.
+                    style={{ width: '100%' }}
+                    format="YYYY-MM-DD"
+                    value={values.scheduledDate ? dayjs(values.scheduledDate, 'YYYY-MM-DD') : null}
+                    disabledDate={(current) => current.format('YYYY-MM-DD') < today.format('YYYY-MM-DD')}
+                    onChange={(date) => onChange((v) => ({ ...v, scheduledDate: date ? date.format('YYYY-MM-DD') : undefined }))}
+                  />
+                </Form.Item>
+                <Form.Item label={t`Time`} required>
+                  <AutoComplete
+                    aria-label={t`Time`}
+                    options={TIME_OPTIONS}
+                    value={typedTime ?? values.scheduledTime}
+                    onChange={(text: string) => setTypedTime(text)}
+                    onSelect={(time: string) => commitTime(time)}
+                    onBlur={() => commitTime(typedTime ?? values.scheduledTime)}
+                  />
+                </Form.Item>
+                <Form.Item label={t`Timezone`} required>
+                  <Select
+                    aria-label={t`Timezone`}
+                    showSearch={{ optionFilterProp: 'label' }}
+                    options={TIMEZONE_OPTIONS}
+                    value={timezone}
+                    onChange={(tz: string) => onChange((v) => ({ ...v, timezone: tz }))}
+                  />
+                </Form.Item>
+              </div>
+            </Form>
+          </ConfigProvider>
         ) : null}
       </div>
     </Panel>

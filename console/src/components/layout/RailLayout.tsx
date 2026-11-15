@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Tooltip } from 'antd'
+import { Button, Tooltip } from 'antd'
 import { Link } from '@tanstack/react-router'
 import type { LinkProps } from '@tanstack/react-router'
 import { minusBannerOffset, withBannerOffset } from '../license/bannerOffset'
@@ -44,8 +44,11 @@ export function RailLayout({ title, ariaLabel, rail, footer, children }: RailLay
 
 export interface RailSectionProps {
   title?: ReactNode
-  /** An icon button beside the title ("+" of a list); its label is its accessible name. */
-  action?: { label: string; icon: ReactNode; onClick: () => void }
+  /**
+   * An icon button beside the title ("+" of a list); its label is its accessible name. `primary`
+   * draws it as an antd primary ghost button instead of a plain icon.
+   */
+  action?: { label: string; icon: ReactNode; onClick: () => void; primary?: boolean }
   children: ReactNode
 }
 
@@ -56,7 +59,18 @@ export function RailSection({ title, action, children }: RailSectionProps) {
       {title || action ? (
         <div data-rail-section-head className="flex items-center justify-between px-2 pt-4 pb-1">
           <span className="text-overline font-semibold uppercase tracking-[0.06em] text-ink-3">{title}</span>
-          {action ? (
+          {action?.primary ? (
+            <Tooltip title={action.label}>
+              <Button
+                type="primary"
+                ghost
+                size="small"
+                aria-label={action.label}
+                icon={action.icon}
+                onClick={action.onClick}
+              />
+            </Tooltip>
+          ) : action ? (
             <Tooltip title={action.label}>
               <button
                 type="button"

@@ -16,7 +16,7 @@ vi.mock('../segment/button_upsert', () => ({
 }))
 
 import { rebuildSegment } from '../../services/api/segment'
-import { SegmentDefinedBy } from './SegmentDefinedBy'
+import { SegmentActions, SegmentDefinedBy } from './SegmentDefinedBy'
 
 const leaf = (value: string): TreeNode => ({
   kind: 'leaf',
@@ -42,18 +42,21 @@ const segment = (tree: TreeNode, patch: Partial<Segment> = {}): Segment =>
     ...patch
   }) as Segment
 
-function renderBar(value: Segment, canWrite = false, canReadTemplates = true) {
+function renderBar(value: Segment) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <App>
-        <SegmentDefinedBy
-          workspaceId="ws"
-          segment={value}
-          lists={[]}
-          customFieldLabels={{}}
-          canWrite={canWrite}
-          canReadTemplates={canReadTemplates}
-        />
+        <SegmentDefinedBy workspaceId="ws" segment={value} lists={[]} customFieldLabels={{}} />
+      </App>
+    </QueryClientProvider>
+  )
+}
+
+function renderActions(value: Segment, canReadTemplates = true) {
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <App>
+        <SegmentActions workspaceId="ws" segment={value} canReadTemplates={canReadTemplates} />
       </App>
     </QueryClientProvider>
   )
@@ -76,22 +79,25 @@ describe('SegmentDefinedBy', () => {
     expect(screen.getByRole('img', { name: 'Computing this segment…' })).toBeInTheDocument()
   })
 
-  it('offers Recompute and Edit segment only with segments write', () => {
+  it('leaves Recompute and Edit segment to the view header', () => {
     renderBar(segment(leaf('FR')))
+    expect(screen.getByText('Country is FR')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Recompute/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /Edit segment/ })).toBeNull()
   })
 
   it('recomputes the segment once confirmed', async () => {
-    renderBar(segment(leaf('FR')), true)
+    renderActions(segment(leaf('FR')))
     fireEvent.click(screen.getByRole('button', { name: /Recompute/ }))
+    // The confirmation says segments already follow the contacts on their own.
+    expect(await screen.findByText(/Segments update automatically as contacts change/)).toBeInTheDocument()
     expect(rebuildSegment).not.toHaveBeenCalled()
     fireEvent.click(await screen.findByRole('button', { name: 'Yes' }))
     await waitFor(() => expect(rebuildSegment).toHaveBeenCalledWith({ workspace_id: 'ws', segment_id: 'eu' }))
   })
 
   it.each([true, false])('opens the segment drawer on Edit segment, with Templates read %s', (read) => {
-    renderBar(segment(leaf('FR')), true, read)
+    renderActions(segment(leaf('FR')), read)
     expect(screen.queryByTestId('segment-drawer')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /Edit segment/ }))
     expect(screen.getByTestId('segment-drawer')).toHaveTextContent('Europe')

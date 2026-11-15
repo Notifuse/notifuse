@@ -72,7 +72,6 @@ let queryClient: QueryClient
 
 function renderBody(props: { email?: string; permissions?: UserPermissions; webAnalytics?: boolean } = {}) {
   const onClose = vi.fn()
-  const onDelete = vi.fn()
   render(
     <QueryClientProvider client={queryClient}>
       <App>
@@ -83,12 +82,11 @@ function renderBody(props: { email?: string; permissions?: UserPermissions; webA
           segments={[]}
           permissions={props.permissions ?? createFullPermissions()}
           onClose={onClose}
-          onDelete={onDelete}
         />
       </App>
     </QueryClientProvider>
   )
-  return { onClose, onDelete }
+  return { onClose }
 }
 
 const withRights = (patch: Partial<UserPermissions>): UserPermissions => ({
@@ -211,18 +209,33 @@ describe('ContactDetailsBody', () => {
     expect(await screen.findByRole('heading', { name: 'Ann Lee' })).toBeInTheDocument()
   })
 
-  it('deletes the contact through the page, and only with contacts write', async () => {
-    const { onDelete } = renderBody()
-    fireEvent.click(await screen.findByRole('button', { name: 'More actions' }))
-    fireEvent.click(await screen.findByText('Delete contact'))
-    expect(onDelete).toHaveBeenCalledWith('ann@x.com')
+  it('leaves Refresh and Delete to the drawer bar, and shows no menu without an external ID', async () => {
+    renderBody()
+    await screen.findByRole('heading', { name: 'Ann Lee' })
+    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull()
+    expect(screen.queryByText('Refresh')).toBeNull()
+    expect(screen.queryByText('Delete contact')).toBeNull()
   })
 
-  it('has no delete without contacts write', async () => {
-    renderBody({ permissions: withRights({ contacts: { read: true, write: false } }) })
+  it('keeps « … » to copy the external ID', async () => {
+    state.contacts['ann@x.com'] = { ...state.contacts['ann@x.com'], external_id: 'crm-42' }
+    renderBody()
     fireEvent.click(await screen.findByRole('button', { name: 'More actions' }))
-    expect(await screen.findByText('Refresh')).toBeInTheDocument()
+    expect(await screen.findByText('Copy external ID')).toBeInTheDocument()
+    expect(screen.queryByText('Refresh')).toBeNull()
     expect(screen.queryByText('Delete contact')).toBeNull()
+  })
+
+  it('puts the place and the date on a second line under the name', async () => {
+    renderBody()
+    const heading = await screen.findByRole('heading', { name: 'Ann Lee' })
+    const lines = heading.parentElement?.querySelectorAll(':scope > div') ?? []
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toHaveTextContent('ann@x.com')
+    expect(lines[0]).toHaveTextContent('CTO')
+    expect(lines[0]).not.toHaveTextContent('FR')
+    expect(lines[1]).toHaveTextContent('FR')
+    expect(lines[1]).toHaveTextContent(/Added on/)
   })
 
   it('shows the Messages and Web visits tabs with their counts', async () => {

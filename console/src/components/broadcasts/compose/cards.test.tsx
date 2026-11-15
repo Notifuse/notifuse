@@ -11,7 +11,6 @@ import { ContentCard } from './ContentCard'
 import { SendingCard } from './SendingCard'
 import { TrackingCard } from './TrackingCard'
 import { AdvancedRow } from './AdvancedRow'
-import { feedState } from './feedState'
 import type { Template } from '../../../services/api/template'
 import type { Workspace } from '../../../services/api/types'
 
@@ -326,49 +325,45 @@ describe('TrackingCard', () => {
 describe('AdvancedRow', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('says Off or the host of each feed, and unfolds one on click', async () => {
+  it('turns a feed on with the switch on its right, then shows its settings', async () => {
+    render(<Harness initial={base()}>{(v, u) => <AdvancedRow workspaceId="ws1" values={v} onChange={u} />}</Harness>)
+    const global = screen.getByRole('switch', { name: 'Global' })
+    expect(global).not.toBeChecked()
+    expect(screen.queryByText('global feed none')).toBeNull()
+    expect(screen.queryByText('Off')).toBeNull()
+    await userEvent.click(global)
+    expect(global).toBeChecked()
+    expect(screen.getByText('global feed none')).toBeInTheDocument()
+    expect(screen.queryByText('recipient feed')).toBeNull()
+  })
+
+  it('shows the settings of a feed already on, and hides them when it is turned off', async () => {
     render(
-      <Harness initial={base({ globalFeed: { enabled: true, url: 'https://api.acme.test/feed', headers: [] } })}>
+      <Harness initial={base({ recipientFeed: { enabled: true, url: 'https://api.acme.test/feed', headers: [] } })}>
         {(v, u) => <AdvancedRow workspaceId="ws1" values={v} onChange={u} />}
       </Harness>
     )
-    expect(screen.getByText('api.acme.test')).toBeInTheDocument()
-    expect(screen.getByText('Off')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /Global data feed/ }))
-    expect(screen.getByText('global feed none')).toBeInTheDocument()
+    const recipient = screen.getByRole('switch', { name: 'Per-recipient' })
+    expect(recipient).toBeChecked()
+    expect(screen.getByText('recipient feed')).toBeInTheDocument()
+    await userEvent.click(recipient)
+    expect(recipient).not.toBeChecked()
+    expect(screen.queryByText('recipient feed')).toBeNull()
   })
 
-  it('says what each feed does under its name, as the description of its button', () => {
+  it('says what each feed does under its name, as the description of its switch', () => {
     render(<Harness initial={base()}>{(v, u) => <AdvancedRow workspaceId="ws1" values={v} onChange={u} />}</Harness>)
     expect(
-      screen.getByRole('button', {
-        name: 'Global data feed Off',
+      screen.getByRole('switch', {
+        name: 'Global',
         description: 'Data shared by every recipient, in the global_feed variable'
       })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('button', {
-        name: 'Per-recipient data feed Off',
+      screen.getByRole('switch', {
+        name: 'Per-recipient',
         description: 'One HTTPS call per contact before sending, in the recipient_feed variable'
       })
     ).toBeInTheDocument()
-  })
-
-  it('lets a long feed address shrink with an ellipsis rather than push the row', () => {
-    const url = 'https://a-very-long-subdomain.of-a-feed-provider.example.test/path'
-    render(
-      <Harness initial={base({ globalFeed: { enabled: true, url: 'not a url ' + url, headers: [] } })}>
-        {(v, u) => <AdvancedRow workspaceId="ws1" values={v} onChange={u} />}
-      </Harness>
-    )
-    const state = screen.getByText('not a url ' + url)
-    expect(state.className).toContain('truncate')
-    expect(state.className).toContain('min-w-0')
-    expect(state.className).not.toContain('shrink-0')
-  })
-
-  it('feedState reads an invalid URL as typed', () => {
-    expect(feedState({ enabled: true, url: 'not a url', headers: [] }, 'Off')).toBe('not a url')
-    expect(feedState({ enabled: false, url: 'https://x.test', headers: [] }, 'Off')).toBe('Off')
   })
 })

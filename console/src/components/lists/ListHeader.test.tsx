@@ -54,7 +54,6 @@ const baseList: List = {
 
 function renderHeader(props: { list?: List; permissions?: UserPermissions; status?: string } = {}) {
   const onStatusChange = vi.fn()
-  const onEditList = vi.fn()
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
@@ -65,12 +64,11 @@ function renderHeader(props: { list?: List; permissions?: UserPermissions; statu
           permissions={props.permissions ?? createFullPermissions()}
           status={props.status}
           onStatusChange={onStatusChange}
-          onEditList={onEditList}
         />
       </App>
     </QueryClientProvider>
   )
-  return { onStatusChange, onEditList }
+  return { onStatusChange }
 }
 
 const cell = (label: string) => screen.getByText(label).closest('[data-kpi-cell]') as HTMLElement
@@ -119,13 +117,6 @@ describe('ListHeader', () => {
     expect(onStatusChange).toHaveBeenNthCalledWith(2, 'complained')
   })
 
-  it('says whether the list is public or private', () => {
-    renderHeader()
-    expect(screen.getByText('Public')).toBeInTheDocument()
-    renderHeader({ list: { ...baseList, is_public: false } })
-    expect(screen.getByText('Private')).toBeInTheDocument()
-  })
-
   it('names the confirmation template of a double opt-in list, with its pencil', async () => {
     renderHeader()
     expect(screen.getByText('Double opt-in')).toBeInTheDocument()
@@ -133,10 +124,18 @@ describe('ListHeader', () => {
     expect(screen.getByRole('button', { name: 'Edit template' })).toHaveAttribute('data-saved-blocks', 'true')
   })
 
-  it('shows no template without double opt-in', () => {
+  it('shows no settings bar without double opt-in', () => {
     renderHeader({ list: { ...baseList, is_double_optin: false, double_optin_template: undefined } })
     expect(screen.queryByText('Double opt-in')).toBeNull()
     expect(screen.queryByText('Template')).toBeNull()
+    expect(document.querySelector('[data-list-optin-bar]')).toBeNull()
+  })
+
+  it('leaves the visibility, the ID and Edit list to the page header', () => {
+    renderHeader()
+    expect(screen.queryByText('Public')).toBeNull()
+    expect(screen.queryByText('news')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Edit list/ })).toBeNull()
   })
 
   it('hides the pencil without templates write', async () => {
@@ -153,23 +152,5 @@ describe('ListHeader', () => {
     renderHeader({ permissions })
     expect(screen.getByText('optin')).toBeInTheDocument()
     expect(templatesApi.get).not.toHaveBeenCalled()
-  })
-
-  it('edits the list, or disables it without lists write', () => {
-    const { onEditList } = renderHeader()
-    fireEvent.click(screen.getByRole('button', { name: /Edit list/ }))
-    expect(onEditList).toHaveBeenCalled()
-
-    const permissions = createFullPermissions()
-    permissions.lists = { read: true, write: false }
-    renderHeader({ permissions })
-    const buttons = screen.getAllByRole('button', { name: /Edit list/ })
-    expect(buttons[buttons.length - 1]).toBeDisabled()
-  })
-
-  it('shows the list ID to copy', () => {
-    renderHeader()
-    expect(screen.getByText('news')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument()
   })
 })

@@ -1,6 +1,6 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App } from 'antd'
 import { createFullPermissions } from '../../services/api/permissions'
 import type { Contact } from '../../services/api/contacts'
@@ -127,6 +127,37 @@ describe('ContactsTable', () => {
       ['+1', 'and 1 more: VIP Club'],
       ['+2', 'and 2 more: Plan Pro, Zero opens']
     ])
+  })
+
+  it('lists every segment with its match date in a popover over the cell', async () => {
+    renderTable({
+      segments: [
+        { id: 'pro', name: 'Plan Pro', color: 'volcano' },
+        { id: 'eu', name: 'European Market', color: 'geekblue' }
+      ] as Segment[],
+      contacts: [
+        contact({
+          email: 'bo@example.com',
+          contact_segments: [
+            { segment_id: 'pro', matched_at: '2026-01-02T00:00:00Z' },
+            { segment_id: 'eu', matched_at: '2026-01-03T00:00:00Z' }
+          ]
+        } as Partial<Contact> & { email: string })
+      ]
+    })
+    const cell = row('bo@example.com').querySelector('[data-segments-cell]') as HTMLElement
+    const more = within(cell).getByText('+1')
+    fireEvent.mouseEnter(cell)
+    fireEvent.mouseEnter(more)
+    await waitFor(() => expect(document.querySelector('[data-segments-popover]')).not.toBeNull())
+    // Once the popover is open, the « +1 » has opened no tooltip of its own: the popover names them.
+    expect(document.querySelector('.ant-tooltip')).toBeNull()
+    const popover = document.querySelector('[data-segments-popover]') as HTMLElement
+    expect(popover.closest('.ant-popover')?.querySelector('.ant-popover-title')).toBeNull()
+    expect(within(popover).getByText('European Market')).toBeInTheDocument()
+    expect(within(popover).getByText('Plan Pro')).toBeInTheDocument()
+    expect(within(popover).getAllByText(/Matched on:/)).toHaveLength(2)
+    expect(within(popover).getByText(/Timezone:/)).toHaveTextContent('Timezone: UTC')
   })
 
   it('shows the open segment first in a segment view', () => {

@@ -290,7 +290,9 @@ describe('ContactsPage', () => {
       expect(screen.getByRole('heading', { name: 'All contacts' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Import/ })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /New contact/ })).toBeInTheDocument()
-      fireEvent.click(screen.getByRole('button', { name: /Export/ }))
+      expect(screen.queryByRole('button', { name: /Export/ })).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByText('Export'))
       expect(screen.getByText('export modal')).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
       fireEvent.click(await screen.findByText('Bulk update (CSV)'))
@@ -299,17 +301,27 @@ describe('ContactsPage', () => {
       expect(listCall().list_id).toBeUndefined()
     })
 
-    it('shows a list with its KPIs, status tabs and actions', async () => {
+    it('shows a list with its KPIs and actions, without status tabs', async () => {
       renderPage({ list_id: 'news' })
       expect(await screen.findByRole('heading', { name: 'Newsletter' })).toBeInTheDocument()
       expect(screen.getByText('Monthly news')).toBeInTheDocument()
       expect(listCall()).toMatchObject({ list_id: 'news' })
       expect(screen.getByRole('button', { name: /Import to list/ })).toBeInTheDocument()
-      // The status tabs drive contact_list_status.
-      fireEvent.click(await screen.findByRole('radio', { name: /Bounced/ }))
+      // The status KPIs drive contact_list_status.
+      fireEvent.click(await screen.findByRole('button', { name: /Bounced/ }))
+      expect(screen.queryByRole('radio', { name: /Bounced/ })).toBeNull()
       expect(lastNavigation().search).toMatchObject({ list_id: 'news', contact_list_status: 'bounced' })
       fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
       expect(await screen.findByText('Delete list')).toBeInTheDocument()
+    })
+
+    it('removes the status filter on a second click of its KPI', async () => {
+      renderPage({ list_id: 'news', contact_list_status: 'bounced' })
+      const bounced = await screen.findByRole('button', { name: /Bounced/ })
+      await waitFor(() => expect(bounced).toHaveAttribute('aria-pressed', 'true'))
+      fireEvent.click(bounced)
+      expect(lastNavigation().search).toMatchObject({ list_id: 'news' })
+      expect(lastNavigation().search.contact_list_status).toBeUndefined()
     })
 
     it('sends the list status with the list', async () => {
@@ -524,15 +536,13 @@ describe('ContactsPage', () => {
       await waitFor(() => expect(screen.queryByText('1 contact selected')).toBeNull())
     })
 
-    it('swaps the toolbar for the selection bar, and brings it back with the status tabs', async () => {
+    it('swaps the toolbar for the selection bar, and brings it back', async () => {
       renderPage({ list_id: 'news' })
       fireEvent.click(await screen.findByLabelText('select alice@example.com'))
       expect(await screen.findByText('1 selected')).toBeInTheDocument()
       expect(screen.queryByPlaceholderText('Email, name or external ID')).toBeNull()
-      expect(screen.queryByRole('radio', { name: /Bounced/ })).toBeNull()
       fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
       expect(await screen.findByPlaceholderText('Email, name or external ID')).toBeInTheDocument()
-      expect(screen.getByRole('radio', { name: /Bounced/ })).toBeInTheDocument()
       await waitFor(() => expect(document.activeElement?.id).toBe('contacts-search'))
     })
 
@@ -584,14 +594,16 @@ describe('ContactsPage', () => {
       await waitFor(() => expect(footer()).toBe('10 contacts'))
     })
 
-    it('keeps the view total next to the title whatever the status tab or the search', async () => {
+    it('keeps the view total next to the title whatever the status or the search', async () => {
       const heading = () => screen.getByRole('heading', { level: 1 })
       const badge = () => heading().nextElementSibling?.textContent
       const { rerender } = renderPage({ list_id: 'news' })
       await waitFor(() => expect(heading()).toHaveTextContent('Newsletter'))
       await waitFor(() => expect(badge()).toBe('100'))
       rerender({ list_id: 'news', contact_list_status: 'bounced' })
-      await waitFor(() => expect(screen.getByRole('radio', { name: /Bounced/ })).toBeChecked())
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /Bounced/ })).toHaveAttribute('aria-pressed', 'true')
+      )
       expect(badge()).toBe('100')
       rerender({ list_id: 'news', search: 'ann' })
       await waitFor(() => expect(listCall(vi.mocked(contactsApi.list).mock.calls.length - 1).search).toBe('ann'))
@@ -794,10 +806,13 @@ describe('ContactsPage', () => {
       expect(screen.getByRole('button', { name: 'delete alice@example.com' })).toBeInTheDocument()
     })
 
-    it('closes the sheet of a contact deleted from it', async () => {
+    it('closes the sheet of a contact deleted from it, with no second confirmation', async () => {
       renderPage({ contact: 'alice@example.com' })
       fireEvent.click(await screen.findByRole('button', { name: 'delete from sheet' }))
-      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
+      expect(screen.queryByRole('dialog')).toBeNull()
+      await waitFor(() =>
+        expect(contactsApi.delete).toHaveBeenCalledWith({ workspace_id: 'ws', email: 'alice@example.com' })
+      )
       await waitFor(() =>
         expect(lastNavigation()).toEqual({
           search: expect.objectContaining({ contact: undefined }),
@@ -818,10 +833,9 @@ describe('ContactsPage', () => {
       await screen.findByText('alice@example.com')
       expect(screen.queryByRole('button', { name: /Import/ })).toBeNull()
       expect(screen.queryByRole('button', { name: /New contact/ })).toBeNull()
-      expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument()
-      // Reading actions only: the columns, no bulk update.
+      // Reading actions only: the export, no bulk update.
       fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
-      expect(await screen.findByText('Displayed columns…')).toBeInTheDocument()
+      expect(await screen.findByText('Export')).toBeInTheDocument()
       expect(screen.queryByText('Bulk update (CSV)')).toBeNull()
     })
 
