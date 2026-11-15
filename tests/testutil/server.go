@@ -129,6 +129,16 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 		},
 		TaskScheduler: config.TaskSchedulerConfig{
 			Enabled: false, // Disable task scheduler and autoExecuteImmediate to prevent background goroutines
+			// Production makes a send-now task wait so the broadcast commits first;
+			// every test broadcast would wait it out. A shorter margin keeps the
+			// tests in the order production runs (see TaskService.SetSendNowDelay
+			// for what an early pick costs).
+			SendNowDelay: time.Second,
+		},
+		// The demo seed generates 100 000 web-analytics sessions, minutes of writes
+		// that no test asserts on. The 400-day span is kept, only the density drops.
+		Demo: config.DemoConfig{
+			WebAnalyticsSessions: 2000,
 		},
 		AutomationScheduler: config.AutomationSchedulerConfig{
 			Delay:     0,                      // No delay for tests

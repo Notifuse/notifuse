@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -310,4 +311,26 @@ func TestDemoContactIdentities(t *testing.T) {
 		_, err := svc.demoContactIdentities(ctx, "ws-1")
 		require.Error(t, err)
 	})
+}
+
+// The seed generates the demo's own volume unless the configuration lowers it
+// (the integration harness does); an unset or nonsensical value keeps the demo's.
+func TestDemoWebAnalyticsSessionCount(t *testing.T) {
+	cases := []struct {
+		name string
+		cfg  *config.Config
+		want int
+	}{
+		{"no configuration", nil, demoWebAnalyticsSessions},
+		{"unset", &config.Config{}, demoWebAnalyticsSessions},
+		{"negative", &config.Config{Demo: config.DemoConfig{WebAnalyticsSessions: -1}}, demoWebAnalyticsSessions},
+		{"configured", &config.Config{Demo: config.DemoConfig{WebAnalyticsSessions: 2000}}, 2000},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := &DemoService{config: tc.cfg}
+			assert.Equal(t, tc.want, svc.demoWebAnalyticsSessionCount())
+		})
+	}
+	assert.Equal(t, 100_000, demoWebAnalyticsSessions, "the demo's own volume")
 }

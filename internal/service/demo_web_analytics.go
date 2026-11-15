@@ -52,6 +52,16 @@ const (
 	demoWebAnalyticsSite = "https://www.apple.com"
 )
 
+// demoWebAnalyticsSessionCount is the volume a seed generates: the demo's own,
+// unless the configuration lowers it (the integration harness does — the span
+// stays 400 days either way, only the density changes).
+func (s *DemoService) demoWebAnalyticsSessionCount() int {
+	if s.config != nil && s.config.Demo.WebAnalyticsSessions > 0 {
+		return s.config.Demo.WebAnalyticsSessions
+	}
+	return demoWebAnalyticsSessions
+}
+
 // seedWebAnalytics fills the demo workspace with web analytics history.
 //
 // Sessions are generated with their channel left blank and classified by the
@@ -81,7 +91,7 @@ func (s *DemoService) seedWebAnalytics(ctx context.Context, workspaceID string, 
 
 	now = now.UTC()
 	generator := newDemoWebAnalyticsGenerator(demoWebAnalyticsOptions{
-		Sessions:   demoWebAnalyticsSessions,
+		Sessions:   s.demoWebAnalyticsSessionCount(),
 		Days:       demoWebAnalyticsDays,
 		Now:        now,
 		Seed:       demoWebAnalyticsSeed,
