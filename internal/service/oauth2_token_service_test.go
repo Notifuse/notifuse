@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -34,7 +35,7 @@ func TestOAuth2TokenService_GetAccessToken_CachedToken(t *testing.T) {
 		// Username is no longer required for OAuth2
 	}
 
-	token, err := service.GetAccessToken(settings)
+	token, err := service.GetAccessToken(context.Background(), settings)
 	require.NoError(t, err)
 	assert.Equal(t, "cached-token-123", token)
 }
@@ -75,7 +76,7 @@ func TestOAuth2TokenService_GetAccessToken_ExpiredToken(t *testing.T) {
 		// Username is no longer required for OAuth2
 	}
 
-	token, err := service.GetAccessToken(settings)
+	token, err := service.GetAccessToken(context.Background(), settings)
 	require.NoError(t, err)
 	assert.Equal(t, "new-token-123", token)
 }
@@ -117,7 +118,7 @@ func TestOAuth2TokenService_FetchMicrosoftToken(t *testing.T) {
 		// Username is no longer required for OAuth2
 	}
 
-	token, expiresAt, err := service.fetchMicrosoftToken(settings)
+	token, expiresAt, err := service.fetchMicrosoftToken(context.Background(), settings)
 	require.NoError(t, err)
 	assert.Equal(t, "microsoft-token-xyz", token)
 	assert.True(t, expiresAt.After(time.Now().Add(50*time.Minute))) // ~1 hour minus buffer
@@ -160,7 +161,7 @@ func TestOAuth2TokenService_FetchGoogleToken(t *testing.T) {
 		// Username is no longer required for OAuth2
 	}
 
-	token, expiresAt, err := service.fetchGoogleToken(settings)
+	token, expiresAt, err := service.fetchGoogleToken(context.Background(), settings)
 	require.NoError(t, err)
 	assert.Equal(t, "google-token-xyz", token)
 	assert.True(t, expiresAt.After(time.Now().Add(50*time.Minute))) // ~1 hour minus buffer
@@ -274,7 +275,7 @@ func TestOAuth2TokenService_ThreadSafety(t *testing.T) {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			token, err := service.GetAccessToken(settings)
+			token, err := service.GetAccessToken(context.Background(), settings)
 			tokens[idx] = token
 			errors[idx] = err
 		}(i)
@@ -343,7 +344,7 @@ func TestOAuth2TokenService_InvalidProvider(t *testing.T) {
 		// Username is no longer required for OAuth2
 	}
 
-	_, err := service.GetAccessToken(settings)
+	_, err := service.GetAccessToken(context.Background(), settings)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported OAuth2 provider")
 }
@@ -371,7 +372,7 @@ func TestOAuth2TokenService_HTTPError(t *testing.T) {
 		// Username is no longer required for OAuth2
 	}
 
-	_, err := service.GetAccessToken(settings)
+	_, err := service.GetAccessToken(context.Background(), settings)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "401")
 }
@@ -395,7 +396,7 @@ func TestOAuth2TokenService_InvalidJSONResponse(t *testing.T) {
 		// Username is no longer required for OAuth2
 	}
 
-	_, err := service.GetAccessToken(settings)
+	_, err := service.GetAccessToken(context.Background(), settings)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to decode")
 }

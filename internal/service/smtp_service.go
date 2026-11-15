@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/textproto"
@@ -157,7 +158,7 @@ func (c *smtpConnection) Close() error {
 
 // OAuth2TokenProvider is an interface for getting OAuth2 access tokens
 type OAuth2TokenProvider interface {
-	GetAccessToken(settings *domain.SMTPSettings) (string, error)
+	GetAccessToken(ctx context.Context, settings *domain.SMTPSettings) (string, error)
 	InvalidateCacheForSettings(settings *domain.SMTPSettings)
 }
 
@@ -179,7 +180,7 @@ func sendRawEmail(host string, port int, username, password string, useTLS bool,
 		UseTLS:   useTLS,
 		AuthType: "basic",
 	}
-	return sendRawEmailWithSettings(settings, from, to, msg, nil)
+	return sendRawEmailWithSettings(context.Background(), settings, from, to, msg, nil)
 }
 
 // parseAuthMechanisms extracts the SASL mechanisms advertised in an EHLO reply.
@@ -260,15 +261,34 @@ func smtpAuthLogin(c *smtpConnection, username, password string) error {
 
 // sendRawEmailWithSettings sends an email using raw SMTP commands with full settings support.
 // It supports both basic authentication and OAuth2 (XOAUTH2) authentication.
-func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []string, msg []byte, oauth2Provider OAuth2TokenProvider) error {
+//
+// The send ends with ctx: the whole exchange has ctx's deadline, and a cancelled ctx closes the
+// connection. An error from a send that ctx ended wraps ctx's error, so callers can tell a send
+// cut short from a refusal. With no deadline and no cancellation the exchange is bounded only by
+// the dial and TLS handshake timeouts, as before.
+func sendRawEmailWithSettings(ctx context.Context, settings *domain.SMTPSettings, from string, to []string, msg []byte, oauth2Provider OAuth2TokenProvider) (err error) {
 	addr := net.JoinHostPort(settings.Host, fmt.Sprintf("%d", settings.Port))
+	deadline, hasDeadline := ctx.Deadline()
+	defer func() {
+		err = withContextCause(ctx, err, deadline, hasDeadline)
+	}()
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return fmt.Errorf("failed to connect: %w", ctxErr)
+	}
 
 	// Connect to SMTP server with configurable timeout
 	dialer := &net.Dialer{Timeout: getSMTPDialTimeout()}
-	conn, err := dialer.Dial("tcp", addr)
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
+	// The TCP connection itself: closing it also ends a TLS session over it, and conn is
+	// replaced by the TLS connection below.
+	rawConn := conn
+	stopClosing := context.AfterFunc(ctx, func() { _ = rawConn.Close() })
+	defer stopClosing()
+	// Zero when ctx has no deadline: no deadline, as before.
+	_ = conn.SetDeadline(deadline)
 
 	// On the SMTPS port the server starts with a TLS handshake instead of a
 	// plaintext greeting, so the connection must be upgraded before any SMTP
@@ -279,12 +299,12 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		// The dialer timeout only covers the TCP connect; bound the handshake
 		// too, so a server that accepts the connection but never speaks TLS
 		// cannot block the sender forever.
-		conn.SetDeadline(time.Now().Add(getSMTPDialTimeout()))
+		_ = conn.SetDeadline(handshakeDeadline(deadline))
 		if err := tlsConn.Handshake(); err != nil {
 			conn.Close()
 			return fmt.Errorf("implicit TLS handshake failed: %w", err)
 		}
-		conn.SetDeadline(time.Time{})
+		_ = conn.SetDeadline(deadline)
 		conn = tlsConn
 	}
 
@@ -334,11 +354,11 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 
 		// Upgrade connection to TLS, bounding the handshake like the dial
 		tlsConn := tls.Client(conn, smtpTLSConfig(settings.Host))
-		conn.SetDeadline(time.Now().Add(getSMTPDialTimeout()))
+		_ = conn.SetDeadline(handshakeDeadline(deadline))
 		if err := tlsConn.Handshake(); err != nil {
 			return fmt.Errorf("TLS handshake failed: %w", err)
 		}
-		conn.SetDeadline(time.Time{})
+		_ = conn.SetDeadline(deadline)
 
 		// Replace connection with TLS connection
 		smtpConn = newSMTPConnection(tlsConn)
@@ -365,7 +385,7 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 			return fmt.Errorf("OAuth2 authentication requires a token provider")
 		}
 
-		accessToken, err := oauth2Provider.GetAccessToken(settings)
+		accessToken, err := oauth2Provider.GetAccessToken(ctx, settings)
 		if err != nil {
 			return fmt.Errorf("failed to get OAuth2 token: %w", err)
 		}
@@ -384,7 +404,7 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 			// Try refresh once if this looks like a token expiry (535)
 			if code == 535 && oauth2Provider != nil {
 				oauth2Provider.InvalidateCacheForSettings(settings)
-				if newToken, retryErr := oauth2Provider.GetAccessToken(settings); retryErr == nil {
+				if newToken, retryErr := oauth2Provider.GetAccessToken(ctx, settings); retryErr == nil {
 					retryXoauth2 := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", from, newToken)
 					retryEncoded := base64.StdEncoding.EncodeToString([]byte(retryXoauth2))
 					if retryCode, _, retryErr := smtpConn.sendCommand(fmt.Sprintf("AUTH XOAUTH2 %s", retryEncoded)); retryErr == nil && retryCode == 235 {
@@ -497,6 +517,31 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 	_, _, _ = smtpConn.sendCommand("QUIT")
 
 	return nil
+}
+
+// handshakeDeadline bounds a TLS handshake by the dial timeout, and by the send's deadline when
+// it comes first.
+func handshakeDeadline(sendDeadline time.Time) time.Time {
+	d := time.Now().Add(getSMTPDialTimeout())
+	if !sendDeadline.IsZero() && sendDeadline.Before(d) {
+		return sendDeadline
+	}
+	return d
+}
+
+// withContextCause makes the error of a send that ctx ended wrap ctx's error. The connection's
+// deadline is ctx's, so a read can fail with a timeout an instant before ctx itself is done.
+func withContextCause(ctx context.Context, err error, deadline time.Time, hasDeadline bool) error {
+	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return fmt.Errorf("%w (%w)", err, ctxErr)
+	}
+	if hasDeadline && errors.Is(err, os.ErrDeadlineExceeded) && !time.Now().Before(deadline) {
+		return fmt.Errorf("%w (%w)", err, context.DeadlineExceeded)
+	}
+	return err
 }
 
 // smtpReplyDetail formats a rejection so the server's own explanation survives.
@@ -674,6 +719,7 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	// Send using native net/smtp (avoids BODY=8BITMIME extension issues - fix for issue #172)
 	// Use sendRawEmailWithSettings for OAuth2 support
 	if err := sendRawEmailWithSettings(
+		ctx,
 		smtpSettings,
 		request.FromAddress,
 		recipients,
