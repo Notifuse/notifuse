@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 import type { ReactNode } from 'react'
 import type { Workspace } from '../../services/api/workspace'
 
@@ -68,6 +69,18 @@ const renderCard = (ws: Workspace, canConfigure = true) =>
   )
 
 describe('SendingCard', () => {
+  it('is titled as a section, not as a state in progress', () => {
+    i18n.load('fr', { [generateMessageId('Sending', 'section')]: 'Envoi', Sending: 'Envoi en cours' })
+    i18n.activate('fr')
+    try {
+      renderCard(workspace({ marketing_email_provider_id: 'ses' }))
+      expect(screen.getByText('Envoi')).toBeInTheDocument()
+      expect(screen.queryByText('Envoi en cours')).not.toBeInTheDocument()
+    } finally {
+      i18n.activate('en')
+    }
+  })
+
   it('shows the provider and default sender of each use', () => {
     renderCard(
       workspace({

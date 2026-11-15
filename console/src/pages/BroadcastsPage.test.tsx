@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 import type { Broadcast } from '../services/api/broadcast'
 import type { BroadcastsSearch } from '../router'
 import type { PageStats } from '../components/broadcasts/useBroadcastPageStats'
@@ -236,6 +237,27 @@ describe('BroadcastsPage', () => {
     renderPage()
     await screen.findByText('Broadcast b1')
     expect(screen.getByText('Failed', { selector: '.ant-segmented-item-label span span' })).toBeInTheDocument()
+  })
+
+  it('names its tabs in the newsletter filter context', async () => {
+    const filter = (message: string) => generateMessageId(message, 'newsletter filter')
+    i18n.load('fr', {
+      [filter('All')]: 'Toutes',
+      [filter('Scheduled')]: 'Programmées',
+      [filter('Sending')]: 'En cours',
+      [filter('Sent')]: 'Envoyées',
+      [filter('Failed')]: 'Échouées'
+    })
+    i18n.activate('fr')
+    try {
+      list.mockResolvedValue(page([broadcastOf('b1')], 1, { failed: 1 }))
+      renderPage()
+      await screen.findByText('Broadcast b1')
+      const labels = [...document.querySelectorAll('.ant-segmented-item-label span span')].map((el) => el.textContent)
+      expect(labels).toEqual(expect.arrayContaining(['Toutes', 'Programmées', 'En cours', 'Envoyées', 'Échouées']))
+    } finally {
+      i18n.activate('en')
+    }
   })
 
   it('strips an unknown status from the URL', async () => {

@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { EngagementChart } from './EngagementChart'
-import { buildChartOption } from './engagementChartOption'
 import { runBroadcastQuery } from '../broadcastQueryClient'
 import type { Broadcast } from '../../../services/api/broadcast'
 
@@ -45,39 +44,22 @@ describe('EngagementChart', () => {
       { dimension: 'opened_at', granularity: 'day' }
     ])
   })
-})
 
-describe('buildChartOption', () => {
-  const buckets = [
-    { key: '2026-11-10T08:00:00Z', value: 3 },
-    { key: '2026-11-10T09:00:00Z', value: 1 }
-  ]
+  it('names its period in the title, and explains its counts behind a "?" rather than in the body', async () => {
+    renderChart(broadcast())
+    await screen.findByTestId('chart')
+    expect(screen.getByText('Opens and clicks per hour')).toBeInTheDocument()
+    const help = screen.getByRole('button', { name: 'About these numbers' })
+    expect(help).toBeInTheDocument()
+    expect(screen.queryByText(/First opens counts/)).toBeNull()
+    expect(screen.queryByText(/in the hour of its first open/)).toBeNull()
 
-  it('puts first opens in bars and first clicks in a line', () => {
-    const option = buildChartOption({
-      opens: buckets,
-      clicks: buckets.map((b) => ({ ...b, value: 1 })),
-      granularity: 'hour',
-      markers: [],
-      labels: { opens: 'First opens', clicks: 'First clicks' }
-    })
-    expect(option.series[0]).toMatchObject({ name: 'First opens', type: 'bar', data: [3, 1] })
-    expect(option.series[1]).toMatchObject({ name: 'First clicks', type: 'line', data: [1, 1] })
-    expect(option.xAxis.data).toEqual(['2026-11-10T08:00:00Z', '2026-11-10T09:00:00Z'])
-  })
+    fireEvent.mouseEnter(help)
+    expect(await screen.findByText(/in the hour of its first open or click/)).toBeInTheDocument()
 
-  it('draws a dashed marker for each date inside the window', () => {
-    const option = buildChartOption({
-      opens: buckets,
-      clicks: buckets,
-      granularity: 'hour',
-      markers: [
-        { key: '2026-11-10T09:00:00Z', label: 'Winner sent' },
-        { key: '2026-11-20T09:00:00Z', label: 'Outside' }
-      ],
-      labels: { opens: 'o', clicks: 'c' }
-    })
-    expect(option.series[0].markLine?.data).toEqual([{ name: 'Winner sent', xAxis: '2026-11-10T09:00:00Z' }])
-    expect(option.series[0].markLine?.lineStyle.type).toBe('dashed')
+    fireEvent.click(screen.getByText('7 d'))
+    expect(screen.getByText('Opens and clicks per hour')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('30 d'))
+    expect(screen.getByText('Opens and clicks per day')).toBeInTheDocument()
   })
 })

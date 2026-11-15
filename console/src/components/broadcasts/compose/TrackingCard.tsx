@@ -1,10 +1,11 @@
-import { Form, Input, Switch } from 'antd'
+import { Form, Input } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Globe } from 'lucide-react'
 import { Panel } from '../../layout'
 import { TRACKING_DOCS_URL } from '../../../lib/emailTracking'
 import type { ComposeValues } from './composeValues'
 import type { ComposeUpdate } from './types'
+import { SwitchRow } from './SwitchRow'
 
 export interface TrackingCardProps {
   values: ComposeValues
@@ -42,29 +43,22 @@ export function TrackingCard({ values, onChange }: TrackingCardProps) {
             />
           </Form.Item>
         </div>
-        <Form.Item
-          label={t`Open and click tracking`}
-          extra={
-            <>
-              {t`No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies.`}{' '}
-              <a href={TRACKING_DOCS_URL} target="_blank" rel="noopener noreferrer">
-                {t`Learn more`}
-              </a>
-            </>
-          }
-        >
-          <span className="inline-flex items-center gap-2 text-sm text-ink">
-            <Switch
-              aria-label={t`Don't track opens and clicks for this broadcast`}
-              checked={values.noTracking}
-              // The server refuses an untracked broadcast with an automatic winner: the winner is
-              // chosen on opens or clicks.
-              onChange={(noTracking) => onChange((v) => ({ ...v, noTracking, autoSendWinner: noTracking ? false : v.autoSendWinner }))}
-            />
-            {t`Don't track opens and clicks for this broadcast`}
-          </span>
-        </Form.Item>
       </Form>
+      <SwitchRow
+        title={t`Don't track opens and clicks for this broadcast`}
+        hint={
+          <>
+            {t`No recipient gets the open pixel or tracked links; UTM parameters are kept. Otherwise each contact's tracking consent applies.`}{' '}
+            <a href={TRACKING_DOCS_URL} target="_blank" rel="noopener noreferrer">
+              {t`Learn more`}
+            </a>
+          </>
+        }
+        checked={values.noTracking}
+        // The server refuses an untracked broadcast with an automatic winner: the winner is
+        // chosen on opens or clicks.
+        onChange={(noTracking) => onChange((v) => ({ ...v, noTracking, autoSendWinner: noTracking ? false : v.autoSendWinner }))}
+      />
     </Panel>
   )
 }

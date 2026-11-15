@@ -1,6 +1,8 @@
 import '../../__tests__/resizeObserverMock'
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { i18n } from '@lingui/core'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 import { BroadcastStatusPill } from './BroadcastStatusPill'
 import type { Broadcast } from '../../services/api/broadcast'
 import type { DeliveryVerdict } from './broadcastStatus'
@@ -65,5 +67,45 @@ describe('BroadcastStatusPill', () => {
     render(<BroadcastStatusPill broadcast={broadcast('paused', { pause_reason: 'Circuit breaker: bounces' })} />)
     await hoverTooltip('Paused')
     expect(await screen.findByText('Circuit breaker: bounces')).toBeInTheDocument()
+  })
+
+  it('reads its labels in the newsletter status context, every sending state included', () => {
+    const status = (message: string) => generateMessageId(message, 'newsletter status')
+    // The plain messages would give the masculine of an email: only the context gives these.
+    i18n.load('fr', {
+      [status('Sending')]: 'En cours',
+      [status('Sent')]: 'Envoyée',
+      [status('Scheduled')]: 'Programmée',
+      Sending: 'Envoi en cours',
+      Sent: 'Envoyé',
+      Scheduled: 'Programmé'
+    })
+    i18n.activate('fr')
+    try {
+      for (const [status_, verdict] of [
+        ['processing', undefined],
+        ['winner_selected', undefined],
+        ['processed', { kind: 'sending', remaining: 3 }]
+      ] as const) {
+        const { unmount } = render(<BroadcastStatusPill broadcast={broadcast(status_)} verdict={verdict as DeliveryVerdict | undefined} />)
+        expect(screen.getByText('En cours')).toBeInTheDocument()
+        unmount()
+      }
+      const { unmount } = render(<BroadcastStatusPill broadcast={broadcast('processed')} />)
+      expect(screen.getByText('Envoyée')).toBeInTheDocument()
+      unmount()
+      render(<BroadcastStatusPill broadcast={broadcast('scheduled')} />)
+      expect(screen.getByText('Programmée')).toBeInTheDocument()
+    } finally {
+      i18n.activate('en')
+    }
+  })
+
+  it('truncates in a table column, and starts its tooltip with the whole label', async () => {
+    render(<BroadcastStatusPill broadcast={broadcast('test_completed')} truncate />)
+    expect(screen.getByText('Pick a winner').className).toContain('truncate')
+    fireEvent.mouseEnter(screen.getByText('Pick a winner').closest('span.inline-flex')!)
+    await waitFor(() => expect(document.querySelector('.ant-tooltip')).not.toBeNull())
+    expect(document.querySelector('.ant-tooltip')).toHaveTextContent(/^Pick a winnerA\/B test has completed/)
   })
 })
