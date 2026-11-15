@@ -621,6 +621,64 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
+/api/broadcasts.unschedule:
+  post:
+    summary: Send a scheduled broadcast back to draft
+    description: |
+      Sends a scheduled broadcast back to draft before it starts sending. It keeps its date, time and timezone, can be edited, and can be scheduled again; it will not be sent at its scheduled time.
+
+      Once the sending has started (emails queued or sent, or its send task under way), the request is refused with 400: cancel the broadcast instead. Pause does not apply to a scheduled broadcast. Not available in demo mode.
+    operationId: unscheduleBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/UnscheduleBroadcastRequest'
+    responses:
+      '200':
+        description: Broadcast sent back to draft
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: The broadcast is not scheduled, or its sending has started (cancel it instead)
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Forbidden - write access to broadcasts required
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
 /api/broadcasts.sendToIndividual:
   post:
     summary: Send broadcast to individual

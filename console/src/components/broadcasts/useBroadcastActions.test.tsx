@@ -7,7 +7,7 @@ import { useBroadcastActions } from './useBroadcastActions'
 import { broadcastApi, type Broadcast } from '../../services/api/broadcast'
 import { ApiError } from '../../services/api/errors'
 
-vi.mock('../../services/api/broadcast', () => ({ broadcastApi: { resume: vi.fn() } }))
+vi.mock('../../services/api/broadcast', () => ({ broadcastApi: { resume: vi.fn(), unschedule: vi.fn() } }))
 
 const toasts = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
 vi.mock('antd', async (importOriginal) => {
@@ -49,5 +49,50 @@ describe('useBroadcastActions resume', () => {
     expect(await resumeFailingWith(new ApiError('validation error: id is required', 400))).toBe(
       'Failed to resume broadcast'
     )
+  })
+})
+
+describe('useBroadcastActions back to draft', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  // A client of its own, to see what each run reads again.
+  const runUnschedule = async () => {
+    const client = new QueryClient()
+    const invalidated = vi.spyOn(client, 'invalidateQueries')
+    const own = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>
+        <App>{children}</App>
+      </QueryClientProvider>
+    )
+    const { result } = renderHook(() => useBroadcastActions('ws1'), { wrapper: own })
+    await act(() => result.current.run('unschedule', broadcast))
+    return invalidated.mock.calls.map(([filters]) => filters?.queryKey)
+  }
+
+  it('sends the broadcast back to draft, says so and reads it again', async () => {
+    vi.mocked(broadcastApi.unschedule).mockResolvedValueOnce({ success: true })
+    const keys = await runUnschedule()
+    expect(broadcastApi.unschedule).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'b1' })
+    expect(toasts.success).toHaveBeenCalledWith('Broadcast "News" is back to draft')
+    expect(keys).toContainEqual(['broadcast', 'ws1', 'b1'])
+    expect(keys).toContainEqual(['broadcasts', 'ws1'])
+  })
+
+  it('says in a sentence of its own that the sending has started, and reads the broadcast again', async () => {
+    vi.mocked(broadcastApi.unschedule).mockRejectedValueOnce(
+      new ApiError('the broadcast has started sending: cancel it instead', 400)
+    )
+    const keys = await runUnschedule()
+    expect(toasts.error).toHaveBeenCalledWith(
+      'This broadcast has started sending, so it can no longer go back to draft. Cancel it instead.'
+    )
+    // Read again, a broadcast found started drops Back to draft; Cancel is always there.
+    expect(keys).toContainEqual(['broadcast', 'ws1', 'b1'])
+  })
+
+  it('shows the generic sentence for any other failure', async () => {
+    vi.mocked(broadcastApi.unschedule).mockRejectedValueOnce(new ApiError('Broadcast not found', 404))
+    await runUnschedule()
+    expect(toasts.error).toHaveBeenCalledWith('Failed to send the broadcast back to draft')
   })
 })

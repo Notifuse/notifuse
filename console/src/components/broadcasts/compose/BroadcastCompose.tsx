@@ -17,6 +17,8 @@ import type { UserPermissions } from '../../../services/api/workspace'
 import dayjs from '../../../lib/dayjs'
 import SendTemplateModal from '../../templates/SendTemplateModal'
 import { BroadcastStatusPill } from '../BroadcastStatusPill'
+import { availableActions } from '../broadcastStatus'
+import { useBroadcastActions } from '../useBroadcastActions'
 import { workspaceTimezone } from '../access'
 import { useComposeEstimate } from '../useAudienceEstimates'
 import { getMarketingSenders } from '../variationSender'
@@ -126,6 +128,7 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
   const [leftEditable, setLeftEditable] = useState(false)
 
   const scheduled = broadcast?.status === 'scheduled'
+  const broadcastActions = useBroadcastActions(ws)
   const senderIds = getMarketingSenders(workspace).map((s) => s.id)
   const context = { senderIds }
   const canReadLists = !!permissions?.lists?.read
@@ -371,6 +374,18 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
       : !id
         ? t`Choose a list first`
         : undefined
+  // A scheduled broadcast not yet sending goes back to draft from here too. Its edits are saved or
+  // discarded first: going back to draft reads the broadcast again, which would drop them.
+  const backToDraftButton =
+    broadcast && scheduled && availableActions(broadcast).unschedule ? (
+      <Tooltip title={autosave.dirty ? t`Save or discard your changes first` : undefined}>
+        <span className="inline-flex">
+          <Button disabled={autosave.dirty} onClick={() => broadcastActions.confirm('unschedule', broadcast)}>
+            {t`Back to draft`}
+          </Button>
+        </span>
+      </Tooltip>
+    ) : null
   const mainButton = scheduled ? null : (
     <Tooltip title={mainDisabledReason}>
       <span className="inline-flex">
@@ -432,6 +447,7 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
       topActions={
         <>
           {testButton}
+          {backToDraftButton}
           {mainButton}
         </>
       }

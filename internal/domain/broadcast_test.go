@@ -3583,3 +3583,9 @@ func TestBroadcast_VariationsToSend(t *testing.T) {
 	require.Len(t, b.VariationsToSend(), 1)
 	assert.Equal(t, "tplB", b.VariationsToSend()[0].TemplateID)
 }
+
+func TestUnscheduleBroadcastRequest_Validate(t *testing.T) {
+	assert.NoError(t, (&domain.UnscheduleBroadcastRequest{WorkspaceID: "w1", ID: "b1"}).Validate())
+	assert.EqualError(t, (&domain.UnscheduleBroadcastRequest{ID: "b1"}).Validate(), "workspace_id is required")
+	assert.EqualError(t, (&domain.UnscheduleBroadcastRequest{WorkspaceID: "w1"}).Validate(), "broadcast id is required")
+}

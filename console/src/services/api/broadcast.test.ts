@@ -101,3 +101,11 @@ describe('broadcastApi.estimateAudience', () => {
     expect(api.post).toHaveBeenCalledWith('/api/broadcasts.estimateAudience', { workspace_id: 'ws', audience })
   })
 })
+
+describe('broadcastApi.unschedule', () => {
+  it('posts the broadcast to broadcasts.unschedule', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ success: true })
+    await expect(broadcastApi.unschedule({ workspace_id: 'ws', id: 'b1' })).resolves.toEqual({ success: true })
+    expect(api.post).toHaveBeenCalledWith('/api/broadcasts.unschedule', { workspace_id: 'ws', id: 'b1' })
+  })
+})

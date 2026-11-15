@@ -244,6 +244,9 @@ type TaskRepository interface {
 
 	// Delete removes a task
 	Delete(ctx context.Context, workspace, id string) error
+	// DeleteBroadcastTasksTx removes every send_broadcast task of a broadcast, within a
+	// transaction, and reports how many it removed.
+	DeleteBroadcastTasksTx(ctx context.Context, tx *sql.Tx, workspace, broadcastID string) (int64, error)
 	DeleteAll(ctx context.Context, workspace string) error
 
 	// List retrieves tasks with optional filtering

@@ -336,6 +336,13 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
             </Button>
           )
         : null}
+      {set.unschedule
+        ? guard(
+            <Button disabled={!canWrite} onClick={() => actions.confirm('unschedule', broadcast)}>
+              {t`Back to draft`}
+            </Button>
+          )
+        : null}
       {set.cancel
         ? guard(
             <Button danger disabled={!canWrite} onClick={() => actions.confirm('cancel', broadcast)}>

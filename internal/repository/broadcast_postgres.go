@@ -631,6 +631,22 @@ func (r *broadcastRepository) DeleteBroadcastTx(ctx context.Context, tx *sql.Tx,
 	return nil
 }
 
+// HasSendActivityTx reports whether the broadcast has an email in the queue or in the message
+// history, both in the workspace database. Each reads an index: idx_email_queue_source and
+// idx_message_history_broadcast_id.
+func (r *broadcastRepository) HasSendActivityTx(ctx context.Context, tx *sql.Tx, broadcastID string) (bool, error) {
+	query := `
+		SELECT
+			EXISTS (SELECT 1 FROM email_queue WHERE source_type = $1 AND source_id = $2)
+			OR EXISTS (SELECT 1 FROM message_history WHERE broadcast_id = $2)
+	`
+	var active bool
+	if err := tx.QueryRowContext(ctx, query, string(domain.EmailQueueSourceBroadcast), broadcastID).Scan(&active); err != nil {
+		return false, fmt.Errorf("failed to read the broadcast's send activity: %w", err)
+	}
+	return active, nil
+}
+
 // scanBroadcast scans a row into a Broadcast struct
 func scanBroadcast(scanner interface {
 	Scan(dest ...interface{}) error

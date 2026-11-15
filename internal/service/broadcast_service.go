@@ -237,35 +237,41 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 		)
 	}
 
-	// First, get the existing broadcast
-	existingBroadcast, err := s.repo.GetBroadcast(ctx, request.WorkspaceID, request.ID)
-	if err != nil {
-		s.logger.Error("Failed to get broadcast for update")
-		return nil, err
-	}
-
-	// Validate and update broadcast fields
-	updatedBroadcast, err := request.Validate(existingBroadcast)
-	if err != nil {
-		s.logger.Error("Failed to validate broadcast update request")
-		return nil, err
-	}
-
-	// Only senders the request sets are checked: a patch that leaves test_settings out
-	// keeps the stored variations and must not be blocked by a sender removed since.
-	if request.TestSettingsProvided() {
-		if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, updatedBroadcast.TestSettings.Variations); err != nil {
-			return nil, err
+	// The broadcast is read locked and written in one transaction: the write carries every
+	// column, status and schedule included, so an unlocked read let a save landing next to a
+	// status change (UnscheduleBroadcast sending it back to draft) write the old status back,
+	// and a scheduled broadcast whose task was deleted would never send.
+	var updatedBroadcast *domain.Broadcast
+	err = s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
+		existingBroadcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, request.WorkspaceID, request.ID)
+		if err != nil {
+			s.logger.Error("Failed to get broadcast for update")
+			return err
 		}
-	}
 
-	// Set the updated time
-	updatedBroadcast.UpdatedAt = time.Now().UTC()
+		// Validate and update broadcast fields
+		updatedBroadcast, err = request.Validate(existingBroadcast)
+		if err != nil {
+			s.logger.Error("Failed to validate broadcast update request")
+			return err
+		}
 
-	// Persist the changes
-	err = s.repo.UpdateBroadcast(ctx, updatedBroadcast)
+		// Only senders the request sets are checked: a patch that leaves test_settings out
+		// keeps the stored variations and must not be blocked by a sender removed since.
+		if request.TestSettingsProvided() {
+			if err := s.requireKnownVariationSenders(ctx, request.WorkspaceID, updatedBroadcast.TestSettings.Variations); err != nil {
+				return err
+			}
+		}
+
+		updatedBroadcast.UpdatedAt = time.Now().UTC()
+		if err := s.repo.UpdateBroadcastTx(ctx, tx, updatedBroadcast); err != nil {
+			s.logger.Error("Failed to update broadcast in repository")
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		s.logger.Error("Failed to update broadcast in repository")
 		return nil, err
 	}
 
@@ -958,6 +964,138 @@ func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.
 	})
 
 	return err
+}
+
+// errUnscheduleSendStarted refuses to send a broadcast back to draft once its sending started:
+// the emails already queued or sent would stay out, and a new schedule would send to the whole
+// audience again. Pause refuses a scheduled broadcast, so Cancel is the way out.
+var errUnscheduleSendStarted = domain.NewValidationError("the broadcast has started sending: cancel it instead")
+
+// taskShowsSendStarted reports whether a broadcast's task shows its sending started: it is
+// running or completed, a run holds its lease, a run took place since it was (re)scheduled, or it
+// saved progress. A rescheduled task keeps the last_run_at of an earlier run but gets a new
+// created_at (ResetBroadcastTaskTx), so only a run after that date counts.
+func taskShowsSendStarted(task *domain.Task, now time.Time) bool {
+	if task.Status == domain.TaskStatusRunning || task.Status == domain.TaskStatusCompleted {
+		return true
+	}
+	if task.TimeoutAfter != nil && task.TimeoutAfter.After(now) {
+		return true
+	}
+	if task.LastRunAt != nil && task.LastRunAt.After(task.CreatedAt) {
+		return true
+	}
+	if task.State != nil && task.State.SendBroadcast != nil {
+		progress := task.State.SendBroadcast
+		if progress.RecipientOffset > 0 || progress.EnqueuedCount > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// UnscheduleBroadcast sends a scheduled broadcast whose sending has not started back to draft,
+// keeping its date and time, and deletes its send task.
+//
+// The broadcast lives in the workspace database and its task in the system one. The locks are
+// taken in the order ScheduleBroadcast and CancelBroadcast use, broadcast then task, so two of
+// these flows cannot wait on each other across the two databases, where PostgreSQL cannot see the
+// cycle. The tasks are deleted while the broadcast is locked, but that deletion commits after the
+// draft: a draft that fails to commit keeps its task, and a system commit that fails after the
+// draft leaves a task for a draft, which the orchestrator never sends (refuseDraft) and a second
+// call deletes. The other commit order could leave a scheduled broadcast with no task, which
+// would never send.
+//
+// A scheduled broadcast keeps its status while its task sends, and its start date can be missing
+// (a failed write, a send under way at the v44 upgrade), so "not started" is read from the start
+// date, the emails queued or sent, and the task together.
+func (s *BroadcastService) UnscheduleBroadcast(ctx context.Context, request *domain.UnscheduleBroadcastRequest) error {
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	if err != nil {
+		s.logger.WithField("broadcast_id", request.ID).Error("Failed to authenticate user for workspace")
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceBroadcasts, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceBroadcasts,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to broadcasts required",
+		)
+	}
+
+	if err := request.Validate(); err != nil {
+		return err
+	}
+
+	// The system transaction opens first but locks nothing until the broadcast is locked, and
+	// commits last.
+	return s.taskRepo.WithTransaction(ctx, func(taskTx *sql.Tx) error {
+		return s.repo.WithTransaction(ctx, request.WorkspaceID, func(tx *sql.Tx) error {
+			bcast, err := s.repo.GetBroadcastForUpdateTx(ctx, tx, request.WorkspaceID, request.ID)
+			if err != nil {
+				return err
+			}
+
+			switch bcast.Status {
+			case domain.BroadcastStatusScheduled:
+				if bcast.StartedAt != nil {
+					return errUnscheduleSendStarted
+				}
+				active, err := s.repo.HasSendActivityTx(ctx, tx, bcast.ID)
+				if err != nil {
+					return err
+				}
+				if active {
+					return errUnscheduleSendStarted
+				}
+			case domain.BroadcastStatusDraft:
+				// Already a draft: an earlier call whose task deletion failed. Only its task is
+				// left to delete, below.
+			default:
+				return domain.NewValidationError(fmt.Sprintf(
+					"only scheduled broadcasts can be sent back to draft, current status: %s", bcast.Status))
+			}
+
+			task, err := s.taskRepo.GetTaskByBroadcastIDTx(ctx, taskTx, request.WorkspaceID, bcast.ID)
+			switch {
+			case errors.Is(err, domain.ErrTaskNotFound):
+				task = nil
+			case err != nil:
+				return err
+			}
+
+			if bcast.Status == domain.BroadcastStatusDraft && task == nil {
+				return domain.NewValidationError("the broadcast is not scheduled")
+			}
+			if bcast.Status == domain.BroadcastStatusScheduled && task != nil && taskShowsSendStarted(task, time.Now().UTC()) {
+				return errUnscheduleSendStarted
+			}
+
+			// The tasks are deleted while the broadcast is still locked: deleted after its lock
+			// was released, a schedule of the new draft could commit its task in between and lose
+			// it to this deletion. The deletion commits with the system transaction, after the
+			// draft: a draft that fails to commit keeps its task.
+			deleted, err := s.taskRepo.DeleteBroadcastTasksTx(ctx, taskTx, request.WorkspaceID, bcast.ID)
+			if err != nil {
+				return err
+			}
+			s.logger.WithFields(map[string]interface{}{
+				"broadcast_id":  bcast.ID,
+				"deleted_tasks": deleted,
+			}).Info("Broadcast sent back to draft")
+
+			if bcast.Status == domain.BroadcastStatusDraft {
+				return nil
+			}
+			// The date, time and timezone stay: the broadcast opens on the same schedule.
+			bcast.Status = domain.BroadcastStatusDraft
+			bcast.Schedule.IsScheduled = false
+			bcast.UpdatedAt = time.Now().UTC()
+			return s.repo.UpdateBroadcastTx(ctx, tx, bcast)
+		})
+	})
 }
 
 // DeleteBroadcast deletes a broadcast

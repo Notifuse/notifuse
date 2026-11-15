@@ -587,6 +587,10 @@ export const PERMISSION_DESCRIPTORS: Record<
           action: msg`Cancel a broadcast`,
         },
         {
+          endpoint: "/api/broadcasts.unschedule",
+          action: msg`Send a scheduled broadcast back to draft, before it starts sending`,
+        },
+        {
           endpoint: "/api/broadcasts.delete",
           action: msg`Delete a broadcast`,
         },
