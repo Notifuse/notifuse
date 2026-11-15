@@ -142,6 +142,9 @@ type TaskService struct {
 	// autoExecuteImmediate controls whether tasks are automatically executed when set to immediate
 	// This is mainly used to disable auto-execution during testing
 	autoExecuteImmediate bool
+	// sendNowDelay is how far ahead a send-now broadcast task is due; see
+	// sendNowTaskDelay and SetSendNowDelay.
+	sendNowDelay time.Duration
 	// directExecution controls how due tasks are executed by ExecutePendingTasks: when true,
 	// each task runs in-process instead of being dispatched over HTTP to /api/tasks.execute.
 	// Wired from TaskScheduler.Enabled — an instance running its own scheduler executes its
@@ -257,7 +260,24 @@ func NewTaskService(repository domain.TaskRepository, settingRepo domain.Setting
 		processors:           make(map[string]domain.TaskProcessor),
 		apiEndpoint:          apiEndpoint,
 		autoExecuteImmediate: true, // Enable auto-execution by default
+		sendNowDelay:         sendNowTaskDelay,
 	}
+}
+
+// SetSendNowDelay sets how far ahead a send-now broadcast task is due. A value of
+// zero or less keeps sendNowTaskDelay. The integration harness shortens it. A
+// shorter delay is still safe but not free: a run that finds the broadcast still a
+// draft hands the task back for the orchestrator's draft recheck interval, far
+// longer than the delay saves. The harness can afford it because its tests start
+// running tasks only once the schedule request has returned, after the broadcast
+// has committed.
+func (s *TaskService) SetSendNowDelay(d time.Duration) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if d <= 0 {
+		d = sendNowTaskDelay
+	}
+	s.sendNowDelay = d
 }
 
 // SetAutoExecuteImmediate sets whether tasks should be automatically executed immediately
@@ -1225,7 +1245,8 @@ func (s *TaskService) SubscribeToBroadcastEvents(eventBus domain.EventBus) {
 // may pick it, which the broadcast's commit takes far less than; a run that finds the
 // broadcast still a draft hands the task back anyway. Where tasks run in this process,
 // RunTaskNow starts it once the broadcast has committed; elsewhere (the cron, or a scheduler
-// that dispatches over HTTP) the next pass after this delay does.
+// that dispatches over HTTP) the next pass after this delay does. It is the default; an
+// instance can shorten it with TaskSchedulerConfig.SendNowDelay (the integration harness does).
 const sendNowTaskDelay = 5 * time.Second
 
 // ScheduleBroadcastTask creates or resets the task of a broadcast being scheduled; see
@@ -1239,7 +1260,10 @@ func (s *TaskService) ScheduleBroadcastTask(ctx context.Context, workspaceID, br
 	tracing.AddAttribute(ctx, "broadcast_id", broadcastID)
 	tracing.AddAttribute(ctx, "send_now", sendNow)
 
-	nextRunAfter := time.Now().UTC().Add(sendNowTaskDelay)
+	s.lock.RLock()
+	delay := s.sendNowDelay
+	s.lock.RUnlock()
+	nextRunAfter := time.Now().UTC().Add(delay)
 	if !sendNow && scheduledAt != nil {
 		nextRunAfter = scheduledAt.UTC()
 	}
