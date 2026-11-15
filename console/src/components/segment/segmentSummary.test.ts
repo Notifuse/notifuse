@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { i18n as englishI18n, setupI18n } from '@lingui/core'
 import type {
   ContactTimelineCondition,
@@ -136,7 +136,7 @@ describe('segmentSummary', () => {
     expect(describe(timeline({ kind: 'email.sent' }))).toBe('Was sent an email')
     expect(describe(timeline({ kind: 'email.bounced', count_value: 2 }))).toBe('Had an email bounce at least 2 times')
     // A date reads as a date, not as the ISO string the condition stores.
-    expect(describe(timeline({ timeframe_operator: 'before_date', timeframe_values: ['2026-01-15T00:00:00Z'] }))).toBe(
+    expect(describe(timeline({ timeframe_operator: 'before_date', timeframe_values: ['2026-01-15'] }))).toBe(
       'Opened an email · before Jan 15, 2026'
     )
     expect(describe(timeline({ kind: 'custom.kind' }))).toBe('1 condition')
@@ -145,6 +145,29 @@ describe('segmentSummary', () => {
     expect(describe(timeline({ kind: 'email.clicked', link_url: 'https://x.com' }))).toBe(
       'Clicked in an email (filtered)'
     )
+  })
+
+  it('reads a stored instant in the browser timezone, as the form picked it', () => {
+    vi.stubEnv('TZ', 'Europe/Paris')
+    try {
+      // 15 January picked in Paris is stored as the previous evening in UTC.
+      const tree: TreeNode = {
+        kind: 'leaf',
+        leaf: {
+          source: 'contact_timeline',
+          contact_timeline: {
+            kind: 'email.opened',
+            count_operator: 'at_least',
+            count_value: 1,
+            timeframe_operator: 'before_date',
+            timeframe_values: ['2026-01-14T23:00:00.000Z']
+          }
+        }
+      }
+      expect(segmentSummary(tree, englishI18n).conditions[0]).toBe('Opened an email · before Jan 15, 2026')
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 
   it('describes a goal, negated or within a timeframe', () => {

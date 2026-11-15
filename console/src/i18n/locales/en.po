@@ -51,7 +51,7 @@ msgstr "... and {0} more emails"
 msgid "· read only"
 msgstr "· read only"
 
-#: src/components/segment/segmentSummary.ts:200
+#: src/components/segment/segmentSummary.ts:208
 msgid "“{name}”"
 msgstr "“{name}”"
 
@@ -148,11 +148,6 @@ msgstr "{0, plural, one {# checked} other {# checked}}"
 #: src/components/automations/stats/NodeStatsFooter.tsx:57
 msgid "{0, plural, one {# click} other {# clicks}}"
 msgstr "{0, plural, one {# click} other {# clicks}}"
-
-#. placeholder {0}: selectedEmails.length
-#: src/pages/ContactsPage.tsx:691
-#~ msgid "{0, plural, one {# contact selected} other {# contacts selected}}"
-#~ msgstr "{0, plural, one {# contact selected} other {# contacts selected}}"
 
 #. placeholder {0}: progress.total
 #: src/components/contacts/BulkActionProgressModal.tsx:79
@@ -554,15 +549,15 @@ msgstr "{0} seconds"
 #~ msgid "{0}-{1} of {total} broadcasts"
 #~ msgstr "{0}-{1} of {total} broadcasts"
 
-#: src/components/segment/segmentSummary.ts:186
+#: src/components/segment/segmentSummary.ts:194
 msgid "{action} at least {count} times"
 msgstr "{action} at least {count} times"
 
-#: src/components/segment/segmentSummary.ts:183
+#: src/components/segment/segmentSummary.ts:191
 msgid "{action} at most {count} times"
 msgstr "{action} at most {count} times"
 
-#: src/components/segment/segmentSummary.ts:184
+#: src/components/segment/segmentSummary.ts:192
 msgid "{action} exactly {count} times"
 msgstr "{action} exactly {count} times"
 
@@ -598,8 +593,8 @@ msgstr "{capability} requires a Notifuse licence."
 msgid "{completed} completed · {exited} exited · {failed} failed"
 msgstr "{completed} completed · {exited} exited · {failed} failed"
 
-#: src/components/segment/segmentSummary.ts:190
-#: src/components/segment/segmentSummary.ts:221
+#: src/components/segment/segmentSummary.ts:198
+#: src/components/segment/segmentSummary.ts:229
 msgid "{condition} (filtered)"
 msgstr "{condition} (filtered)"
 
@@ -656,7 +651,7 @@ msgstr "{count} clicks out of {recipients} recipients"
 msgid "{count} clicks out of {tracked} tracked recipients ({recipients} sent)"
 msgstr "{count} clicks out of {tracked} tracked recipients ({recipients} sent)"
 
-#: src/components/segment/segmentSummary.ts:235
+#: src/components/segment/segmentSummary.ts:243
 msgid "{count} conditions"
 msgstr "{count} conditions"
 
@@ -712,87 +707,81 @@ msgstr "{deleted, plural, one {Deleted # file} other {Deleted # files}}"
 msgid "{deletedFiles, plural, one {Deleted # file, {failedFiles} failed} other {Deleted # files, {failedFiles} failed}}"
 msgstr "{deletedFiles, plural, one {Deleted # file, {failedFiles} failed} other {Deleted # files, {failedFiles} failed}}"
 
-#. placeholder {0}: int(shown)
-#. placeholder {1}: int(shown)
-#: src/pages/ContactsPage.tsx:499
-#~ msgid "{exactTotal, plural, one {{0} of # contact} other {{1} of # contacts}}"
-#~ msgstr "{exactTotal, plural, one {{0} of # contact} other {{1} of # contacts}}"
-
 #: src/pages/ContactsPage.tsx:502
 msgid "{exactTotal, plural, one {{shownCount} of # contact} other {{shownCount} of # contacts}}"
 msgstr "{exactTotal, plural, one {{shownCount} of # contact} other {{shownCount} of # contacts}}"
 
-#: src/components/segment/segmentSummary.ts:102
+#: src/components/segment/segmentSummary.ts:110
 msgid "{field} < {value}"
 msgstr "{field} < {value}"
 
-#: src/components/segment/segmentSummary.ts:98
+#: src/components/segment/segmentSummary.ts:106
 msgid "{field} > {value}"
 msgstr "{field} > {value}"
 
-#: src/components/segment/segmentSummary.ts:104
+#: src/components/segment/segmentSummary.ts:112
 msgid "{field} ≤ {value}"
 msgstr "{field} ≤ {value}"
 
-#: src/components/segment/segmentSummary.ts:100
+#: src/components/segment/segmentSummary.ts:108
 msgid "{field} ≥ {value}"
 msgstr "{field} ≥ {value}"
 
-#: src/components/segment/segmentSummary.ts:108
+#: src/components/segment/segmentSummary.ts:116
 msgid "{field} after {value}"
 msgstr "{field} after {value}"
 
-#: src/components/segment/segmentSummary.ts:106
+#: src/components/segment/segmentSummary.ts:114
 msgid "{field} before {value}"
 msgstr "{field} before {value}"
 
-#: src/components/segment/segmentSummary.ts:110
+#: src/components/segment/segmentSummary.ts:118
 msgid "{field} between {first} and {second}"
 msgstr "{field} between {first} and {second}"
 
 #: src/components/contacts/ContactsFilters.tsx:76
-#: src/components/segment/segmentSummary.ts:90
+#: src/components/segment/segmentSummary.ts:98
 msgid "{field} contains {value}"
 msgstr "{field} contains {value}"
 
-#: src/components/segment/segmentSummary.ts:92
+#: src/components/segment/segmentSummary.ts:100
 msgid "{field} does not contain {value}"
 msgstr "{field} does not contain {value}"
 
-#: src/components/segment/segmentSummary.ts:96
+#: src/components/segment/segmentSummary.ts:104
 msgid "{field} ends with {value}"
 msgstr "{field} ends with {value}"
 
-#: src/components/segment/segmentSummary.ts:114
+#: src/components/segment/segmentSummary.ts:122
 msgid "{field} in the last {days} days"
 msgstr "{field} in the last {days} days"
 
 #: src/components/contacts/ContactsFilters.tsx:76
-#: src/components/segment/segmentSummary.ts:85
+#: src/components/segment/segmentSummary.ts:93
 msgid "{field} is {value}"
 msgstr "{field} is {value}"
 
-#: src/components/segment/segmentSummary.ts:87
+#: src/components/segment/segmentSummary.ts:95
 msgid "{field} is not {value}"
 msgstr "{field} is not {value}"
 
-#: src/components/segment/segmentSummary.ts:83
+#: src/components/segment/segmentSummary.ts:91
 msgid "{field} is not set"
 msgstr "{field} is not set"
 
-#: src/components/segment/segmentSummary.ts:81
+#: src/components/segment/segmentSummary.ts:89
 msgid "{field} is set"
 msgstr "{field} is set"
 
-#: src/components/segment/segmentSummary.ts:112
+#: src/components/segment/segmentSummary.ts:120
 msgid "{field} not between {first} and {second}"
 msgstr "{field} not between {first} and {second}"
 
-#: src/components/segment/segmentSummary.ts:116
+#: src/components/segment/segmentSummary.ts:124
 msgid "{field} not in the last {days} days"
 msgstr "{field} not in the last {days} days"
 
-#: src/components/segment/segmentSummary.ts:94
+#: src/components/segment/segmentSummary.ts:102
 msgid "{field} starts with {value}"
 msgstr "{field} starts with {value}"
 
@@ -1058,19 +1047,19 @@ msgstr "{shown, plural, one {# message} other {# messages}}"
 msgid "{shown, plural, one {#+ contact} other {#+ contacts}}"
 msgstr "{shown, plural, one {#+ contact} other {#+ contacts}}"
 
-#: src/components/segment/segmentSummary.ts:211
+#: src/components/segment/segmentSummary.ts:219
 msgid "{subject}: {aggregate} = {value}"
 msgstr "{subject}: {aggregate} = {value}"
 
-#: src/components/segment/segmentSummary.ts:208
+#: src/components/segment/segmentSummary.ts:216
 msgid "{subject}: {aggregate} ≤ {value}"
 msgstr "{subject}: {aggregate} ≤ {value}"
 
-#: src/components/segment/segmentSummary.ts:219
+#: src/components/segment/segmentSummary.ts:227
 msgid "{subject}: {aggregate} ≥ {value}"
 msgstr "{subject}: {aggregate} ≥ {value}"
 
-#: src/components/segment/segmentSummary.ts:215
+#: src/components/segment/segmentSummary.ts:223
 msgid "{subject}: {aggregate} between {value} and {second}"
 msgstr "{subject}: {aggregate} between {value} and {second}"
 
@@ -1276,8 +1265,8 @@ msgstr "0 contacts"
 msgid "1 block hidden by its condition with this test data."
 msgstr "1 block hidden by its condition with this test data."
 
-#: src/components/segment/segmentSummary.ts:235
-#: src/components/segment/segmentSummary.ts:256
+#: src/components/segment/segmentSummary.ts:243
+#: src/components/segment/segmentSummary.ts:264
 msgid "1 condition"
 msgstr "1 condition"
 
@@ -2016,7 +2005,7 @@ msgstr "After"
 #~ msgid "After {0} hours based on highest {1}"
 #~ msgstr "After {0} hours based on highest {1}"
 
-#: src/components/segment/segmentSummary.ts:165
+#: src/components/segment/segmentSummary.ts:173
 msgid "after {date}"
 msgstr "after {date}"
 
@@ -2332,14 +2321,10 @@ msgstr "Anchor ID"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
 #: src/components/segment/form_leaf.tsx:853
 #: src/components/segment/input.tsx:678
-#: src/components/segment/segmentSummary.ts:241
-#: src/components/segment/segmentSummary.ts:269
+#: src/components/segment/segmentSummary.ts:249
+#: src/components/segment/segmentSummary.ts:277
 msgid "and"
 msgstr "and"
-
-#: src/components/contacts/ContactsTable.tsx:35
-#~ msgid "and {count} more: {joined}"
-#~ msgstr "and {count} more: {joined}"
 
 #: src/components/segment/input.tsx:138
 msgid "AND | OR"
@@ -2411,7 +2396,7 @@ msgstr "Any event"
 msgid "Any field change triggers automation"
 msgstr "Any field change triggers automation"
 
-#: src/components/segment/segmentSummary.ts:136
+#: src/components/segment/segmentSummary.ts:144
 msgid "Any goal"
 msgstr "Any goal"
 
@@ -3017,7 +3002,7 @@ msgstr "Available Tools"
 msgid "Avatar URL"
 msgstr "Avatar URL"
 
-#: src/components/segment/segmentSummary.ts:149
+#: src/components/segment/segmentSummary.ts:157
 msgid "average"
 msgstr "average"
 
@@ -3185,7 +3170,7 @@ msgstr "before"
 msgid "Before"
 msgstr "Before"
 
-#: src/components/segment/segmentSummary.ts:163
+#: src/components/segment/segmentSummary.ts:171
 msgid "before {date}"
 msgstr "before {date}"
 
@@ -3223,7 +3208,7 @@ msgstr "Best TimeScore"
 msgid "between"
 msgstr "between"
 
-#: src/components/segment/segmentSummary.ts:167
+#: src/components/segment/segmentSummary.ts:175
 msgid "between {first} and {second}"
 msgstr "between {first} and {second}"
 
@@ -3376,7 +3361,7 @@ msgstr "Body:"
 msgid "Bold"
 msgstr "Bold"
 
-#: src/components/segment/segmentSummary.ts:141
+#: src/components/segment/segmentSummary.ts:149
 #: src/components/settings/WebhooksSettings.tsx:604
 msgid "Booking"
 msgstr "Booking"
@@ -4413,15 +4398,11 @@ msgstr "Clicked a link in {name}"
 msgid "Clicked a link in {source}"
 msgstr "Clicked a link in {source}"
 
-#: src/components/segment/segmentSummary.ts:114
-#~ msgid "Clicked an email"
-#~ msgstr "Clicked an email"
-
 #: src/components/contacts/sheet/describeActivity.tsx:136
 msgid "Clicked in {name}"
 msgstr "Clicked in {name}"
 
-#: src/components/segment/segmentSummary.ts:127
+#: src/components/segment/segmentSummary.ts:135
 msgid "Clicked in an email"
 msgstr "Clicked in an email"
 
@@ -5385,7 +5366,7 @@ msgstr "Couldn't render the preview"
 msgid "Couldn't render this message"
 msgstr "Couldn't render this message"
 
-#: src/components/segment/segmentSummary.ts:147
+#: src/components/segment/segmentSummary.ts:155
 msgid "count"
 msgstr "count"
 
@@ -9707,7 +9688,7 @@ msgstr "Group Attributes"
 #~ msgid "Group by"
 #~ msgstr "Group by"
 
-#: src/components/segment/segmentSummary.ts:128
+#: src/components/segment/segmentSummary.ts:136
 msgid "Had an email bounce"
 msgstr "Had an email bounce"
 
@@ -10205,7 +10186,7 @@ msgstr "In any of: {segmentNames}"
 msgid "in date range"
 msgstr "in date range"
 
-#: src/components/segment/segmentSummary.ts:245
+#: src/components/segment/segmentSummary.ts:253
 msgid "In list {list}"
 msgstr "In list {list}"
 
@@ -10225,7 +10206,7 @@ msgstr "In progress"
 msgid "in the last"
 msgstr "in the last"
 
-#: src/components/segment/segmentSummary.ts:161
+#: src/components/segment/segmentSummary.ts:169
 msgid "in the last {days} days"
 msgstr "in the last {days} days"
 
@@ -10896,7 +10877,7 @@ msgstr "Last sent"
 msgid "Last success"
 msgstr "Last success"
 
-#: src/components/segment/segmentSummary.ts:139
+#: src/components/segment/segmentSummary.ts:147
 #: src/components/settings/WebhooksSettings.tsx:602
 msgid "Lead"
 msgstr "Lead"
@@ -11612,7 +11593,7 @@ msgstr "Map your CSV columns to contact fields. The"
 msgid "Mark the dates that explain a chart — a launch, a campaign, an outage — and they appear as labelled verticals on the dashboard and goal charts."
 msgstr "Mark the dates that explain a chart — a launch, a campaign, an outage — and they appear as labelled verticals on the dashboard and goal charts."
 
-#: src/components/segment/segmentSummary.ts:129
+#: src/components/segment/segmentSummary.ts:137
 msgid "Marked an email as spam"
 msgstr "Marked an email as spam"
 
@@ -11687,7 +11668,7 @@ msgstr "Matching contacts:"
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "Max 3MB per file, 10MB total, 20 files maximum"
 
-#: src/components/segment/segmentSummary.ts:151
+#: src/components/segment/segmentSummary.ts:159
 msgid "maximum"
 msgstr "maximum"
 
@@ -11882,7 +11863,7 @@ msgstr "Minimap"
 msgid "Minimize YouTube branding"
 msgstr "Minimize YouTube branding"
 
-#: src/components/segment/segmentSummary.ts:150
+#: src/components/segment/segmentSummary.ts:158
 msgid "minimum"
 msgstr "minimum"
 
@@ -13003,7 +12984,7 @@ msgstr "None (no unsubscribe link)"
 msgid "Normal"
 msgstr "Normal"
 
-#: src/components/segment/segmentSummary.ts:222
+#: src/components/segment/segmentSummary.ts:230
 msgid "Not ({condition})"
 msgstr "Not ({condition})"
 
@@ -13088,7 +13069,7 @@ msgstr "Not in list"
 msgid "Not in List"
 msgstr "Not in List"
 
-#: src/components/segment/segmentSummary.ts:245
+#: src/components/segment/segmentSummary.ts:253
 msgid "Not in list {list}"
 msgstr "Not in list {list}"
 
@@ -13597,7 +13578,7 @@ msgstr "Opened"
 msgid "Opened {name}"
 msgstr "Opened {name}"
 
-#: src/components/segment/segmentSummary.ts:126
+#: src/components/segment/segmentSummary.ts:134
 msgid "Opened an email"
 msgstr "Opened an email"
 
@@ -13727,7 +13708,7 @@ msgstr "Optional. If provided, sent as Authorization: Bearer <secret>"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
-#: src/components/segment/segmentSummary.ts:269
+#: src/components/segment/segmentSummary.ts:277
 #: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "or"
@@ -13771,7 +13752,7 @@ msgstr "OS"
 msgid "Other"
 msgstr "Other"
 
-#: src/components/segment/segmentSummary.ts:143
+#: src/components/segment/segmentSummary.ts:151
 msgid "Other goal"
 msgstr "Other goal"
 
@@ -14885,7 +14866,7 @@ msgstr "Published the blog post <0>{target}</0>"
 msgid "Published the blog theme <0>{target}</0>"
 msgstr "Published the blog theme <0>{target}</0>"
 
-#: src/components/segment/segmentSummary.ts:137
+#: src/components/segment/segmentSummary.ts:145
 #: src/components/settings/WebhooksSettings.tsx:600
 msgid "Purchase"
 msgstr "Purchase"
@@ -15160,10 +15141,6 @@ msgstr "Rebuilt the segment <0>{target}</0>"
 #: src/components/logs/InboundWebhooksTab.tsx:395
 msgid "Received"
 msgstr "Received"
-
-#: src/components/segment/segmentSummary.ts:112
-#~ msgid "Received an email"
-#~ msgstr "Received an email"
 
 #: src/components/analytics/DashboardKpis.tsx:277
 msgid "Recent emails may still be clicked"
@@ -15474,11 +15451,6 @@ msgstr "Remove dimension"
 #: src/components/contacts/ContactUpsertDrawer.tsx:551
 msgid "Remove field"
 msgstr "Remove field"
-
-#. placeholder {0}: filter.field.label
-#: src/components/contacts/ContactsFilters.tsx:199
-#~ msgid "Remove filter {0}"
-#~ msgstr "Remove filter {0}"
 
 #: src/components/contacts/ContactsFilters.tsx:204
 msgid "Remove filter {field}"
@@ -17656,7 +17628,7 @@ msgstr "Sign in with SSO"
 msgid "Sign-in"
 msgstr "Sign-in"
 
-#: src/components/segment/segmentSummary.ts:140
+#: src/components/segment/segmentSummary.ts:148
 msgid "Sign-up"
 msgstr "Sign-up"
 
@@ -18320,7 +18292,7 @@ msgstr "Subscript"
 
 #: src/components/logs/OutgoingWebhooksTab.tsx:134
 #: src/components/logs/OutgoingWebhooksTab.tsx:174
-#: src/components/segment/segmentSummary.ts:138
+#: src/components/segment/segmentSummary.ts:146
 #: src/components/settings/WebhooksSettings.tsx:601
 msgid "Subscription"
 msgstr "Subscription"
@@ -20095,7 +20067,7 @@ msgstr "Top Sources"
 msgid "Top traffic sources"
 msgstr "Top traffic sources"
 
-#: src/components/segment/segmentSummary.ts:148
+#: src/components/segment/segmentSummary.ts:156
 msgid "total"
 msgstr "total"
 
@@ -20251,7 +20223,7 @@ msgstr "Translations already saved keep being sent, and switching one off is alw
 msgid "Transparent"
 msgstr "Transparent"
 
-#: src/components/segment/segmentSummary.ts:142
+#: src/components/segment/segmentSummary.ts:150
 #: src/components/settings/WebhooksSettings.tsx:605
 msgid "Trial"
 msgstr "Trial"
@@ -20574,7 +20546,7 @@ msgid "Unsubscribed from {name}"
 msgstr "Unsubscribed from {name}"
 
 #: src/components/automations/describeTrigger.ts:137
-#: src/components/segment/segmentSummary.ts:130
+#: src/components/segment/segmentSummary.ts:138
 msgid "Unsubscribed from an email"
 msgstr "Unsubscribed from an email"
 
@@ -21211,7 +21183,7 @@ msgstr "View website"
 msgid "Viewed {page}"
 msgstr "Viewed {page}"
 
-#: src/components/segment/segmentSummary.ts:131
+#: src/components/segment/segmentSummary.ts:139
 msgid "Viewed a page"
 msgstr "Viewed a page"
 
@@ -21244,7 +21216,7 @@ msgstr "Visit website"
 #~ msgid "visited"
 #~ msgstr "visited"
 
-#: src/components/segment/segmentSummary.ts:132
+#: src/components/segment/segmentSummary.ts:140
 msgid "Visited the website"
 msgstr "Visited the website"
 
@@ -21289,7 +21261,7 @@ msgstr "Waiting for server restart..."
 msgid "Warning"
 msgstr "Warning"
 
-#: src/components/segment/segmentSummary.ts:125
+#: src/components/segment/segmentSummary.ts:133
 msgid "Was sent an email"
 msgstr "Was sent an email"
 

@@ -57,11 +57,19 @@ function fieldLabel(fieldName: string, i18n: I18n, options: SegmentSummaryOption
   return options.customFieldLabels?.[fieldName] ?? ContactsTableSchema.fields[fieldName]?.title ?? fieldName
 }
 
-/** An ISO date as a date in the console language; any other value as it is. */
+/**
+ * An ISO date as a date in the console language; any other value as it is. The form stores the
+ * midnight picked in the browser's timezone as an instant, so an instant reads in that timezone;
+ * a bare date (YYYY-MM-DD) reads as itself.
+ */
 function formatDate(value: string, i18n: I18n): string {
-  const date = /^\d{4}-\d{2}-\d{2}/.test(value) ? new Date(value) : null
-  if (!date || Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date)
+  if (!/^\d{4}-\d{2}-\d{2}/.test(value)) return value
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const bareDate = value.length === 10
+  return new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium', ...(bareDate ? { timeZone: 'UTC' } : {}) }).format(
+    date
+  )
 }
 
 const DATE_OPERATORS = new Set(['before_date', 'after_date', 'in_date_range', 'not_in_date_range'])

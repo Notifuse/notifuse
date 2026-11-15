@@ -576,6 +576,14 @@ describe('ContactsPage', () => {
       await waitFor(() => expect(footer()).toBe('10 contacts'))
     })
 
+    it('counts the rows once all are loaded, even when the view total says more', async () => {
+      state.contacts = Array.from({ length: 10 }, (_, i) => state.contact(`c${i}@x.com`))
+      state.segments = [{ ...state.segments[1], users_count: 12 }]
+      renderPage({ segment_id: 'fr' })
+      const footer = () => document.querySelector('[data-contacts-footer] span')?.textContent
+      await waitFor(() => expect(footer()).toBe('10 contacts'))
+    })
+
     it('keeps the view total next to the title whatever the status tab or the search', async () => {
       const heading = () => screen.getByRole('heading', { level: 1 })
       const badge = () => heading().nextElementSibling?.textContent

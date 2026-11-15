@@ -348,7 +348,7 @@ test.describe('Contacts Feature', () => {
 
       // Should be on contacts page
       await expect(page).toHaveURL(/contacts/)
-      await expect(page.getByText('Contacts', { exact: true }).first()).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'All contacts', level: 1 })).toBeVisible()
     })
   })
 
