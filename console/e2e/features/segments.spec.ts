@@ -268,7 +268,7 @@ test.describe('Segments Feature', () => {
   })
 
   test.describe('Edit Form Prefill', () => {
-    // A segment opens as a view from the rail; its header carries « Edit segment ».
+    // A segment opens as a view from the rail; its « Defined by » bar carries « Edit segment ».
     const openSegmentEditor = async (page: Page, segmentName: string) => {
       await page.locator('[data-rail-item]').filter({ hasText: segmentName }).click()
       await page.getByRole('button', { name: 'Edit segment', exact: true }).click()

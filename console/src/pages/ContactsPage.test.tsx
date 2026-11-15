@@ -148,13 +148,7 @@ vi.mock('../components/contacts/ExportContactsModal', () => ({
   ExportContactsModal: ({ visible }: { visible: boolean }) => (visible ? <div>export modal</div> : null)
 }))
 vi.mock('../components/segment/button_upsert', () => ({
-  DrawerSegment: ({
-    segment,
-    canReadTemplates
-  }: {
-    segment?: { name: string }
-    canReadTemplates: boolean
-  }) => (
+  DrawerSegment: ({ segment, canReadTemplates }: { segment?: { name: string }; canReadTemplates: boolean }) => (
     <div data-can-read-templates={String(canReadTemplates)}>
       {segment ? `edit segment ${segment.name}` : 'new segment drawer'}
     </div>
@@ -171,9 +165,7 @@ vi.mock('../components/lists/ListDrawer', () => ({
     canReadTemplates: boolean
   }) =>
     open ? (
-      <div data-can-read-templates={String(canReadTemplates)}>
-        {list ? 'edit list drawer' : 'new list drawer'}
-      </div>
+      <div data-can-read-templates={String(canReadTemplates)}>{list ? 'edit list drawer' : 'new list drawer'}</div>
     ) : null
 }))
 
@@ -278,9 +270,7 @@ describe('ContactsPage', () => {
           leaf: {
             source: 'contacts',
             contact: {
-              filters: [
-                { field_name: 'country', field_type: 'string', operator: 'equals', string_values: ['FR'] }
-              ]
+              filters: [{ field_name: 'country', field_type: 'string', operator: 'equals', string_values: ['FR'] }]
             }
           }
         }
@@ -297,7 +287,7 @@ describe('ContactsPage', () => {
     it('shows all contacts with Import, Export, New contact and the bulk update in the menu', async () => {
       renderPage()
       expect(await screen.findByText('alice@example.com')).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Contacts' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'All contacts' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Import/ })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /New contact/ })).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: /Export/ }))
@@ -335,9 +325,7 @@ describe('ContactsPage', () => {
       expect(screen.getByText('Defined by')).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: /Recompute/ }))
       fireEvent.click(await screen.findByRole('button', { name: 'Yes' }))
-      await waitFor(() =>
-        expect(rebuildSegment).toHaveBeenCalledWith({ workspace_id: 'ws', segment_id: 'pro' })
-      )
+      await waitFor(() => expect(rebuildSegment).toHaveBeenCalledWith({ workspace_id: 'ws', segment_id: 'pro' }))
       fireEvent.click(screen.getByRole('button', { name: /Edit segment/ }))
       expect(screen.getByText('edit segment Plan Pro')).toBeInTheDocument()
     })
@@ -371,9 +359,7 @@ describe('ContactsPage', () => {
     it('reads the table again when the segment it shows has been computed', async () => {
       state.segments = [{ ...state.segments[0], status: 'building' }]
       renderPage({ segment_id: 'pro' })
-      expect((await screen.findAllByRole('img', { name: 'Computing this segment…' })).length).toBeGreaterThan(
-        0
-      )
+      expect((await screen.findAllByRole('img', { name: 'Computing this segment…' })).length).toBeGreaterThan(0)
       await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(1))
       act(() => {
         queryClient.setQueryData(['segments', 'ws', { with_count: true }], {
@@ -538,6 +524,28 @@ describe('ContactsPage', () => {
       await waitFor(() => expect(screen.queryByText('1 contact selected')).toBeNull())
     })
 
+    it('swaps the toolbar for the selection bar, and brings it back with the status tabs', async () => {
+      renderPage({ list_id: 'news' })
+      fireEvent.click(await screen.findByLabelText('select alice@example.com'))
+      expect(await screen.findByText('1 selected')).toBeInTheDocument()
+      expect(screen.queryByPlaceholderText('Email, name or external ID')).toBeNull()
+      expect(screen.queryByRole('radio', { name: /Bounced/ })).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
+      expect(await screen.findByPlaceholderText('Email, name or external ID')).toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: /Bounced/ })).toBeInTheDocument()
+      await waitFor(() => expect(document.activeElement?.id).toBe('contacts-search'))
+    })
+
+    it('counts the rows against the total, or with « + » while it is unknown', async () => {
+      state.nextCursor = 'next'
+      const { rerender } = renderPage()
+      const footer = () => document.querySelector('[data-contacts-footer] span')?.textContent
+      await waitFor(() => expect(footer()).toMatch(/^50 of 1,?288 contacts$/))
+      // A filter makes the total unknown: the rows loaded, and more to come.
+      rerender({ country: 'FR' })
+      await waitFor(() => expect(footer()).toBe('50+ contacts'))
+    })
+
     it('loads 50 more rows in place while a cursor remains', async () => {
       state.nextCursor = 'next'
       renderPage()
@@ -563,22 +571,43 @@ describe('ContactsPage', () => {
   describe('filters', () => {
     it('shows the old segments filter as one chip, removed as a whole', async () => {
       renderPage({ segments: ['pro', 'fr'] })
-      const chip = await screen.findByText('In any of: Plan Pro, France')
-      fireEvent.click(within(chip.closest('.ant-tag') as HTMLElement).getByLabelText('Close'))
+      expect(await screen.findByText('In any of: Plan Pro, France')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Remove filter Segments' }))
       expect(lastNavigation().search).toMatchObject({ segments: undefined })
     })
 
     it('offers the contact fields, not the list, its status or the segments', async () => {
       renderPage()
-      fireEvent.click(await screen.findByRole('button', { name: /Filter by/ }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Filter' }))
       expect(await screen.findByRole('button', { name: 'Country' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'List' })).toBeNull()
       expect(screen.queryByRole('button', { name: 'List Status' })).toBeNull()
     })
 
-    it('shows the active filters as chips and clears them', async () => {
+    it('applies a filter in a new history entry, keeping the view and the search', async () => {
+      renderPage({ list_id: 'news', search: 'ann', limit: 100 })
+      fireEvent.click(await screen.findByRole('button', { name: 'Filter' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Email' }))
+      fireEvent.change(screen.getByPlaceholderText('Filter by Email'), { target: { value: 'acme' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+      const { search, replace } = lastNavigation()
+      expect(replace).toBe(false)
+      expect(search).toMatchObject({ list_id: 'news', search: 'ann', email: 'acme', limit: undefined })
+    })
+
+    it('keeps the segment view when a filter applies', async () => {
+      renderPage({ segment_id: 'pro' })
+      fireEvent.click(await screen.findByRole('button', { name: 'Filter' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Phone' }))
+      fireEvent.change(screen.getByPlaceholderText('Filter by Phone'), { target: { value: '+33' } })
+      fireEvent.keyDown(screen.getByPlaceholderText('Filter by Phone'), { key: 'Enter', code: 'Enter', keyCode: 13 })
+      expect(lastNavigation().search).toMatchObject({ segment_id: 'pro', phone: '+33' })
+    })
+
+    it('shows the active filters as pills and clears them', async () => {
       renderPage({ country: 'FR', search: 'ann' })
-      expect(await screen.findByText('Country: FR - France')).toBeInTheDocument()
+      // The server matches the country as a substring, as every text field.
+      expect(await screen.findByText('Country contains FR - France')).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
       expect(lastNavigation().search).toMatchObject({ country: undefined, search: undefined })
     })
@@ -592,9 +621,7 @@ describe('ContactsPage', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'New list' }))
       expect(screen.getByText('new list drawer').getAttribute('data-can-read-templates')).toBe(String(read))
       fireEvent.click(screen.getByRole('button', { name: 'New segment' }))
-      expect(screen.getByText('new segment drawer').getAttribute('data-can-read-templates')).toBe(
-        String(read)
-      )
+      expect(screen.getByText('new segment drawer').getAttribute('data-can-read-templates')).toBe(String(read))
     })
   })
 
@@ -734,8 +761,11 @@ describe('ContactsPage', () => {
       await screen.findByText('alice@example.com')
       expect(screen.queryByRole('button', { name: /Import/ })).toBeNull()
       expect(screen.queryByRole('button', { name: /New contact/ })).toBeNull()
-      expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull()
       expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument()
+      // Reading actions only: the columns, no bulk update.
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      expect(await screen.findByText('Displayed columns…')).toBeInTheDocument()
+      expect(screen.queryByText('Bulk update (CSV)')).toBeNull()
     })
 
     it('opens the first list for a member who can read lists only', async () => {
@@ -758,7 +788,7 @@ describe('ContactsPage', () => {
     it('falls back to all contacts for a list without lists read, keeping the URL', async () => {
       without({ lists: { read: false, write: false } })
       renderPage({ list_id: 'news' })
-      expect(await screen.findByRole('heading', { name: 'Contacts' })).toBeInTheDocument()
+      expect(await screen.findByRole('heading', { name: 'All contacts' })).toBeInTheDocument()
       await waitFor(() => expect(contactsApi.list).toHaveBeenCalled())
       expect(listCall().list_id).toBeUndefined()
       expect(state.navigate).not.toHaveBeenCalled()
@@ -767,7 +797,7 @@ describe('ContactsPage', () => {
     it('falls back to all contacts for a segment without segments read', async () => {
       without({ segments: { read: false, write: false } })
       renderPage({ segment_id: 'pro' })
-      expect(await screen.findByRole('heading', { name: 'Contacts' })).toBeInTheDocument()
+      expect(await screen.findByRole('heading', { name: 'All contacts' })).toBeInTheDocument()
       await waitFor(() => expect(contactsApi.list).toHaveBeenCalled())
       expect(listCall().segments).toBeUndefined()
     })

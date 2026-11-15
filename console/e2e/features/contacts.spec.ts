@@ -177,16 +177,16 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // « Filter by… » lists the fields; each opens a popover with its input
-      await page.getByRole('button', { name: 'Filter by…' }).click()
-      await page.getByRole('button', { name: 'Email', exact: true }).click()
+      // « Filter » lists the fields; a field opens its input in the same popover
+      await page.getByRole('button', { name: 'Filter', exact: true }).click()
+      await page.locator('[data-filter-picker]').getByRole('button', { name: 'Email', exact: true }).click()
       await page.getByPlaceholder('Filter by Email').fill('john@example.com')
-      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+      await page.getByRole('button', { name: 'Apply', exact: true }).click()
 
       // The filter is applied by writing it into the URL query string
       await expect(page).toHaveURL(/[?&]email=john%40example\.com/)
-      // The chip above the table (the filter popover lists the same text)
-      await expect(page.locator('.ant-tag', { hasText: 'Email: john@example.com' })).toBeVisible()
+      // The pill above the table says what the server does
+      await expect(page.locator('[data-filter-pill]', { hasText: 'Email contains john@example.com' })).toBeVisible()
     })
 
     test('shows a filter button for every contact field', async ({ authenticatedPageWithData }) => {
@@ -195,12 +195,13 @@ test.describe('Contacts Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      await page.getByRole('button', { name: 'Filter by…' }).click()
+      await page.getByRole('button', { name: 'Filter', exact: true }).click()
+      const picker = page.locator('[data-filter-picker]')
       for (const field of ['Email', 'External ID', 'First Name', 'Last Name', 'Country']) {
-        await expect(page.getByRole('button', { name: field, exact: true })).toBeVisible()
+        await expect(picker.getByRole('button', { name: field, exact: true })).toBeVisible()
       }
       // The list is the view, chosen in the rail: it is not a filter any more
-      await expect(page.getByRole('button', { name: 'List', exact: true })).toHaveCount(0)
+      await expect(picker.getByRole('button', { name: 'List', exact: true })).toHaveCount(0)
     })
   })
 

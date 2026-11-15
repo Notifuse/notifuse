@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
-- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, its activity day by day in sentences, each message with its journey (delivered, opened, clicked) and the email sent, and its web visits, each with its pages and goals (a very long one says it shows only its first).
+- **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, its activity day by day in sentences, each message with its journey (delivered, opened, clicked) and the email sent, and its web visits, each visit with its pages and goals (a very long one says it shows only its first). The contacts table is denser, keeps each row on one line (its first lists and segment, then « +N » naming the others) and counts the contacts it shows at its foot. « Filter » picks a field by group and shows each filter as a pill that says how it matches (« Country contains FR », « Opens tracking consent is Granted »). A selection replaces the toolbar with its actions. A segment view says what defines it, its goals and activity conditions included, with Recompute and Edit segment beside it; the ⋯ menu of every view gathers Bulk update, Displayed columns and Manage custom fields.
 
 - **Feature**: The blog page in the console lists posts with a tab per status, scheduled posts included, and their counts, a title search, and each post's views over 30 days once the web analytics script is in the blog's theme. Categories show their post counts in the side rail, with a menu to edit or delete them.
 
@@ -105,6 +105,8 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: A translation's visual editor can import an MJML or JSON file into its language, and export that language's email.
 
 - **Improvement**: A temporary database error while updating segment members, or in an automation's "Add to list" or "Remove from list" step, is now retried instead of leaving the contact out of the segment or the list.
+
+- **Fix**: In the contacts table, Remove from list and Unsubscribe from list on a selection are offered only to members who may write lists as well as contacts, as the server requires and as Add to list already was: a member without lists write had them refused.
 
 - **Fix**: The French console has its apostrophes back: many of its translations had lost them ("Accepter l invitation", "Clé d accès").
 

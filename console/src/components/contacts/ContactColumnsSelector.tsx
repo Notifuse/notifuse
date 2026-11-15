@@ -28,100 +28,54 @@ export function JsonViewer({ json, title }: JsonViewerProps) {
       content={
         <div>
           {title && <div className="font-medium mb-2">{title}</div>}
-          <pre className="max-h-[300px] overflow-auto text-sm bg-gray-50 p-2 rounded">
+          <pre className="max-h-[300px] overflow-auto rounded bg-subtle p-2 text-sm">
             {JSON.stringify(json, null, 2)}
           </pre>
         </div>
       }
     >
-      <span className="text-gray-600 cursor-pointer">{preview}</span>
+      <span className="cursor-pointer text-ink-2">{preview}</span>
     </Popover>
   )
 }
 
-const STORAGE_KEY = 'contact_columns_visibility'
-
-export function ContactColumnsSelector({
-  columns,
-  onColumnVisibilityChange
-}: ContactColumnsSelectorProps) {
-  const { t } = useLingui()
-
-  // Split columns into two groups
+/** The two columns of checkboxes, shared by the toolbar popover and the « Displayed columns » modal. */
+export function ContactColumnsChecklist({ columns, onColumnVisibilityChange }: ContactColumnsSelectorProps) {
   const midPoint = Math.ceil(columns.length / 2)
-  const leftColumns = columns.slice(0, midPoint)
-  const rightColumns = columns.slice(midPoint)
-
-  const content = (
-    <div className="flex gap-4">
-      <div className="min-w-[200px]">
-        {leftColumns.map((column) => {
-          const showTooltip = column.key !== 'lists' && column.key !== 'segments'
-
-          return (
-            <div key={column.key} className="py-1">
-              <Tooltip title={showTooltip ? column.key : ''} placement="left">
-                <span style={{ display: 'inline-block' }}>
-                  <Checkbox
-                    checked={column.visible}
-                    onChange={(e) => {
-                      onColumnVisibilityChange(column.key as string, e.target.checked)
-                      // Save to localStorage
-                      const currentState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-                      localStorage.setItem(
-                        STORAGE_KEY,
-                        JSON.stringify({
-                          ...currentState,
-                          [column.key]: e.target.checked
-                        })
-                      )
-                    }}
-                  >
-                    {column.title}
-                  </Checkbox>
-                </span>
-              </Tooltip>
-            </div>
-          )
-        })}
-      </div>
-      <div className="min-w-[200px] border-l border-gray-200 pl-4">
-        {rightColumns.map((column) => {
-          const showTooltip = column.key !== 'lists' && column.key !== 'segments'
-
-          return (
-            <div key={column.key} className="py-1">
-              <Tooltip title={showTooltip ? column.key : ''} placement="left">
-                <span style={{ display: 'inline-block' }}>
-                  <Checkbox
-                    checked={column.visible}
-                    onChange={(e) => {
-                      onColumnVisibilityChange(column.key as string, e.target.checked)
-                      // Save to localStorage
-                      const currentState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-                      localStorage.setItem(
-                        STORAGE_KEY,
-                        JSON.stringify({
-                          ...currentState,
-                          [column.key]: e.target.checked
-                        })
-                      )
-                    }}
-                  >
-                    {column.title}
-                  </Checkbox>
-                </span>
-              </Tooltip>
-            </div>
-          )
-        })}
-      </div>
+  const halves = [columns.slice(0, midPoint), columns.slice(midPoint)]
+  return (
+    <div data-columns-checklist className="flex gap-4">
+      {halves.map((half, index) => (
+        <div key={index} className={`min-w-[200px] ${index > 0 ? 'border-l border-line pl-4' : ''}`}>
+          {half.map((column) => {
+            const showTooltip = column.key !== 'lists' && column.key !== 'segments'
+            return (
+              <div key={column.key} className="py-1">
+                <Tooltip title={showTooltip ? column.key : ''} placement="left">
+                  <span className="inline-block">
+                    {/* The page keeps the choice (and stores it): this only reports it. */}
+                    <Checkbox
+                      checked={column.visible}
+                      onChange={(e) => onColumnVisibilityChange(column.key as string, e.target.checked)}
+                    >
+                      {column.title}
+                    </Checkbox>
+                  </span>
+                </Tooltip>
+              </div>
+            )
+          })}
+        </div>
+      ))}
     </div>
   )
+}
 
+export function ContactColumnsSelector(props: ContactColumnsSelectorProps) {
+  const { t } = useLingui()
   return (
     <Popover
-      content={content}
+      content={<ContactColumnsChecklist {...props} />}
       placement="bottomRight"
       trigger="click"
       classNames={{
@@ -129,7 +83,12 @@ export function ContactColumnsSelector({
       }}
     >
       <Tooltip title={t`Select columns`} placement="top">
-        <Button size="small" type="text" icon={<Columns2 size={16} />} className="cursor-pointer" />
+        <Button
+          size="small"
+          type="text"
+          aria-label={t`Select columns`}
+          icon={<Columns2 size={16} aria-hidden="true" />}
+        />
       </Tooltip>
     </Popover>
   )
