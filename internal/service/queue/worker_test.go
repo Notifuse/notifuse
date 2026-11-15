@@ -31,7 +31,8 @@ func TestDefaultWorkerConfig(t *testing.T) {
 	assert.Equal(t, 10, config.SendConcurrency)
 	assert.Equal(t, 1, config.SMTPSendConcurrency)
 	assert.Equal(t, 2*time.Second, config.RoundWindow)
-	assert.Equal(t, 10*time.Second, config.ShutdownGrace)
+	assert.Equal(t, 40*time.Second, config.ShutdownGrace)
+	assert.Equal(t, 100*time.Second, config.SendTimeout)
 	assert.Equal(t, 5*time.Second, config.AbortWait)
 	assert.Equal(t, time.Minute, config.OrphanCheckInterval)
 }
