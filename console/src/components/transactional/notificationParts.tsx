@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Skeleton, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { SquareTerminal } from 'lucide-react'
 import { Pill } from '../layout'
 import type { TransactionalNotification } from '../../services/api/transactional_notifications'
 import type { Workspace } from '../../services/api/types'
@@ -22,6 +23,39 @@ export function IntegrationTag({
         <Pill tone="neutral" dot={false}>
           {integration ? integration.name : t`Managed by an integration`}
         </Pill>
+      </span>
+    </Tooltip>
+  )
+}
+
+/**
+ * The icon of an integration that manages the notification, for the list's narrow name column: its
+ * logo for Supabase, a generic one otherwise, named by the tooltip of the label it replaces.
+ */
+export function IntegrationIcon({
+  notification,
+  workspace
+}: {
+  notification: TransactionalNotification
+  workspace: Workspace
+}) {
+  const { t } = useLingui()
+  if (!notification.integration_id) return null
+  const integration = workspace.integrations?.find((item) => item.id === notification.integration_id)
+  const label = integration
+    ? t`Managed by ${integration.name} (${integration.type} integration)`
+    : t`Managed by an integration`
+  return (
+    <Tooltip title={label}>
+      <span role="img" aria-label={label} className="inline-flex shrink-0 items-center">
+        {integration?.type === 'supabase' ? (
+          // The logo's bolt alone: the square box hides the wordmark that follows it in the image
+          <span className="inline-flex size-3.5 overflow-hidden">
+            <img src="/console/supabase.png" alt="" className="h-3.5 max-w-none" />
+          </span>
+        ) : (
+          <SquareTerminal size={14} aria-hidden="true" className="text-ink-3" />
+        )}
       </span>
     </Tooltip>
   )
@@ -69,15 +103,31 @@ export function SmtpDash({ kind }: { kind: 'delivery' | 'bounce' }) {
   )
 }
 
-/** The warning pill of a template deleted since: the notification still sends with it. */
-export function DeletedTemplatePill() {
+/**
+ * The warning pill of a template deleted since: the notification still sends with it. `short` says
+ * « Deleted » alone, for the list's narrow Template column, and puts « Deleted template » in the tooltip.
+ */
+interface DeletedTemplatePillProps {
+  /** « Deleted » alone, for a narrow column. */
+  short?: boolean
+}
+
+export function DeletedTemplatePill({ short = false }: DeletedTemplatePillProps) {
   const { t } = useLingui()
+  const full = t`Deleted template`
+  // One message, so each language punctuates and orders it its own way
+  const sentence = short
+    ? t`Deleted template. This notification still sends with it`
+    : t`This notification still sends with it`
   return (
-    <Tooltip title={t`This notification still sends with it`}>
+    <Tooltip title={sentence}>
       <span className="shrink-0">
-        <Pill tone="warning">{t`Deleted template`}</Pill>
+        <Pill tone="warning">
+          {/* The short word is for the eye: a screen reader reads the whole sentence below */}
+          {short ? <span aria-hidden="true">{t({ message: 'Deleted', context: 'deleted template pill' })}</span> : full}
+        </Pill>
         {/* The tooltip's sentence, read without it */}
-        <span className="sr-only"> {t`This notification still sends with it`}</span>
+        <span className="sr-only"> {sentence}</span>
       </span>
     </Tooltip>
   )

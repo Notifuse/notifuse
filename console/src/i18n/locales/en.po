@@ -842,7 +842,7 @@ msgstr "{langName} translation is missing required fields (subject and preview)"
 msgid "{language} code copied to clipboard!"
 msgstr "{language} code copied to clipboard!"
 
-#: src/components/transactional/TransactionalTable.tsx:226
+#: src/components/transactional/TransactionalTable.tsx:254
 msgid "{LAST_SENT_DAYS, plural, one {No successful send in the last # day} other {No successful send in the last # days}}"
 msgstr "{LAST_SENT_DAYS, plural, one {No successful send in the last # day} other {No successful send in the last # days}}"
 
@@ -1346,7 +1346,7 @@ msgid "300 - Light"
 msgstr "300 - Light"
 
 #: src/components/transactional/SendsPerDayChart.tsx:231
-#: src/pages/TransactionalNotificationsPage.tsx:319
+#: src/pages/TransactionalNotificationsPage.tsx:329
 msgid "30d"
 msgstr "30d"
 
@@ -1371,7 +1371,7 @@ msgid "600 - Semi Bold"
 msgstr "600 - Semi Bold"
 
 #: src/components/transactional/SendsPerDayChart.tsx:232
-#: src/pages/TransactionalNotificationsPage.tsx:319
+#: src/pages/TransactionalNotificationsPage.tsx:329
 msgid "60d"
 msgstr "60d"
 
@@ -1390,7 +1390,7 @@ msgid "700 - Bold"
 msgstr "700 - Bold"
 
 #: src/components/transactional/SendsPerDayChart.tsx:230
-#: src/pages/TransactionalNotificationsPage.tsx:319
+#: src/pages/TransactionalNotificationsPage.tsx:329
 msgid "7d"
 msgstr "7d"
 
@@ -1578,7 +1578,7 @@ msgstr "Action"
 #: src/components/blog/RecentThemesTable.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:225
 #: src/components/settings/WorkspaceMembers.tsx:228
-#: src/components/transactional/TransactionalTable.tsx:246
+#: src/components/transactional/TransactionalTable.tsx:274
 msgid "Actions"
 msgstr "Actions"
 
@@ -2268,7 +2268,7 @@ msgstr "An address that is not a contact yet becomes one, carrying the country, 
 msgid "An API call can choose another sender with email_options.sender_id. A translation can use another sender."
 msgstr "An API call can choose another sender with email_options.sender_id. A translation can use another sender."
 
-#: src/components/transactional/TransactionalDetail.tsx:418
+#: src/components/transactional/TransactionalDetail.tsx:422
 msgid "An API call can set email_options.reply_to. A translation can use another one."
 msgstr "An API call can set email_options.reply_to. A translation can use another one."
 
@@ -2288,7 +2288,7 @@ msgstr "An error occurred during export"
 msgid "An error occurred with the file manager"
 msgstr "An error occurred with the file manager"
 
-#: src/components/transactional/TransactionalDetail.tsx:425
+#: src/components/transactional/TransactionalDetail.tsx:429
 msgid "an integration"
 msgstr "an integration"
 
@@ -2432,8 +2432,8 @@ msgstr "API"
 msgid "API call"
 msgstr "API call"
 
-#: src/components/transactional/TransactionalTable.tsx:308
-#: src/components/transactional/TransactionalTable.tsx:312
+#: src/components/transactional/TransactionalTable.tsx:337
+#: src/components/transactional/TransactionalTable.tsx:341
 msgid "API command"
 msgstr "API command"
 
@@ -3526,7 +3526,7 @@ msgstr "Bounced or failed"
 #: src/components/broadcasts/BroadcastKpis.tsx:150
 #: src/components/broadcasts/BroadcastsTable.tsx:314
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:109
-#: src/components/transactional/TransactionalTable.tsx:202
+#: src/components/transactional/TransactionalTable.tsx:228
 msgid "Bounces"
 msgstr "Bounces"
 
@@ -4132,7 +4132,7 @@ msgid "Changing your domain"
 msgstr "Changing your domain"
 
 #: src/components/logs/MessagesTab.tsx:281
-#: src/components/transactional/TransactionalDetail.tsx:404
+#: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/web_analytics/explore/BreakdownModal.tsx:63
 #: src/components/web_analytics/explore/DimensionSelector.tsx:97
 #: src/components/web_analytics/FilterBuilder.tsx:55
@@ -4279,7 +4279,7 @@ msgstr "Clear field"
 msgid "Clear filters"
 msgstr "Clear filters"
 
-#: src/pages/TransactionalNotificationsPage.tsx:370
+#: src/pages/TransactionalNotificationsPage.tsx:380
 msgid "Clear search"
 msgstr "Clear search"
 
@@ -4436,8 +4436,8 @@ msgstr "Clicked links"
 #: src/components/contacts/TrackingConsent.tsx:203
 #: src/components/settings/GeneralSettings.tsx:286
 #: src/components/settings/GeneralSettings.tsx:436
-#: src/components/transactional/TransactionalDetail.tsx:411
-#: src/components/transactional/TransactionalTable.tsx:189
+#: src/components/transactional/TransactionalDetail.tsx:415
+#: src/components/transactional/TransactionalTable.tsx:212
 msgid "Clicks"
 msgstr "Clicks"
 
@@ -5043,7 +5043,7 @@ msgstr "Contacts will be added to these lists on import (optional)"
 msgid "Contacts without recorded consent"
 msgstr "Contacts without recorded consent"
 
-#: src/components/transactional/TransactionalDetail.tsx:368
+#: src/components/transactional/TransactionalDetail.tsx:372
 msgid "Contacts' tracking consent still applies"
 msgstr "Contacts' tracking consent still applies"
 
@@ -5163,7 +5163,7 @@ msgstr "Copy external ID"
 
 #: src/components/automations/AutomationEditor.tsx:418
 #: src/components/transactional/TransactionalDetail.tsx:324
-#: src/components/transactional/TransactionalTable.tsx:264
+#: src/components/transactional/TransactionalTable.tsx:296
 #: src/pages/TemplatesPage.tsx:307
 msgid "Copy ID"
 msgstr "Copy ID"
@@ -5259,7 +5259,7 @@ msgstr "Couldn't check where this template is used"
 #: src/components/broadcasts/CouldntLoad.tsx:8
 #: src/components/logs/MessagesTab.tsx:557
 #: src/components/transactional/LoadError.tsx:20
-#: src/components/transactional/notificationParts.tsx:48
+#: src/components/transactional/notificationParts.tsx:82
 #: src/components/transactional/TransactionalDetail.tsx:267
 #: src/pages/TemplatesPage.tsx:334
 #: src/pages/TransactionalNotificationsPage.tsx:302
@@ -5662,7 +5662,7 @@ msgstr "Create your first list"
 #~ msgid "Create your first list to get started"
 #~ msgstr "Create your first list to get started"
 
-#: src/pages/TransactionalNotificationsPage.tsx:346
+#: src/pages/TransactionalNotificationsPage.tsx:356
 msgid "Create your first notification to get started"
 msgstr "Create your first notification to get started"
 
@@ -5685,7 +5685,7 @@ msgstr "Create your first template to get started"
 #: src/components/logs/OutgoingWebhooksTab.tsx:400
 #: src/components/settings/WebhookDetail.tsx:502
 #: src/components/settings/WorkspaceMembers.tsx:298
-#: src/components/transactional/TransactionalDetail.tsx:427
+#: src/components/transactional/TransactionalDetail.tsx:431
 msgid "Created"
 msgstr "Created"
 
@@ -6202,7 +6202,7 @@ msgstr "Defaults to meta title"
 msgid "Defaults to SMTP host"
 msgstr "Defaults to SMTP host"
 
-#: src/components/transactional/TransactionalDetail.tsx:392
+#: src/components/transactional/TransactionalDetail.tsx:396
 msgid "Defaults to the template ID"
 msgstr "Defaults to the template ID"
 
@@ -6250,7 +6250,7 @@ msgstr "Delay"
 #: src/components/settings/WorkspaceMembers.tsx:191
 #: src/components/settings/WorkspaceMembers.tsx:203
 #: src/components/transactional/TransactionalDetail.tsx:333
-#: src/components/transactional/TransactionalTable.tsx:273
+#: src/components/transactional/TransactionalTable.tsx:305
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:83
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:86
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:141
@@ -6529,6 +6529,11 @@ msgstr "Delete Workspace"
 msgid "Deleted"
 msgstr "Deleted"
 
+#: src/components/transactional/notificationParts.tsx:127
+msgctxt "deleted template pill"
+msgid "Deleted"
+msgstr "Deleted"
+
 #: src/components/file_manager/fileManager.tsx:232
 #~ msgid "Deleted {deleted} item(s) of the folder, failed to delete {failed}."
 #~ msgstr "Deleted {deleted} item(s) of the folder, failed to delete {failed}."
@@ -6545,9 +6550,13 @@ msgstr "Deleted"
 msgid "Deleted entries past the retention period"
 msgstr "Deleted entries past the retention period"
 
-#: src/components/transactional/notificationParts.tsx:78
+#: src/components/transactional/notificationParts.tsx:117
 msgid "Deleted template"
 msgstr "Deleted template"
+
+#: src/components/transactional/notificationParts.tsx:120
+msgid "Deleted template. This notification still sends with it"
+msgstr "Deleted template. This notification still sends with it"
 
 #: src/components/logs/auditPhrases.ts:13
 msgid "Deleted the annotation <0>{target}</0>"
@@ -6635,7 +6644,7 @@ msgstr "Deleting this webhook breaks the Zap that created it. The Zap stays swit
 #: src/components/transactional/RecentSends.tsx:44
 #: src/components/transactional/SendsPerDayChart.tsx:49
 #: src/components/transactional/TransactionalDetail.tsx:216
-#: src/components/transactional/TransactionalTable.tsx:175
+#: src/components/transactional/TransactionalTable.tsx:196
 #: src/pages/TransactionalNotificationsPage.tsx:262
 #: src/pages/TransactionalNotificationsPage.tsx:268
 msgid "Delivered"
@@ -6800,7 +6809,7 @@ msgstr "Disable webhook"
 msgid "Disabled"
 msgstr "Disabled"
 
-#: src/components/transactional/TransactionalDetail.tsx:374
+#: src/components/transactional/TransactionalDetail.tsx:378
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:387
 msgid "Disabled for this notification"
 msgstr "Disabled for this notification"
@@ -7187,8 +7196,8 @@ msgstr "Each variation keeps its template's sender unless you choose another one
 #: src/components/settings/Integrations.tsx:939
 #: src/components/settings/integrations/EmailProviderCard.tsx:337
 #: src/components/settings/WebhookDetail.tsx:331
-#: src/components/transactional/TransactionalDetail.tsx:355
-#: src/components/transactional/TransactionalTable.tsx:256
+#: src/components/transactional/TransactionalDetail.tsx:359
+#: src/components/transactional/TransactionalTable.tsx:288
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:91
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:154
 #: src/components/web_analytics/filters/FilterTable.tsx:140
@@ -7447,7 +7456,7 @@ msgstr "Element Padding"
 #: src/components/segment/segmentSummary.ts:34
 #: src/components/settings/Integrations.tsx:1197
 #: src/components/settings/Integrations.tsx:2108
-#: src/components/transactional/TransactionalDetail.tsx:404
+#: src/components/transactional/TransactionalDetail.tsx:408
 #: src/pages/SignInPage.tsx:276
 #: src/pages/SignInPage.tsx:283
 msgid "Email"
@@ -8441,9 +8450,13 @@ msgstr "Extra high"
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
 #: src/components/transactional/TransactionalDetail.tsx:220
-#: src/components/transactional/TransactionalTable.tsx:194
 #: src/pages/BroadcastsPage.tsx:188
 #: src/pages/TransactionalNotificationsPage.tsx:282
+msgid "Failed"
+msgstr "Failed"
+
+#: src/components/transactional/TransactionalTable.tsx:219
+msgctxt "failures column"
 msgid "Failed"
 msgstr "Failed"
 
@@ -9291,7 +9304,7 @@ msgstr "Folder name"
 msgid "Folders"
 msgstr "Folders"
 
-#: src/components/transactional/TransactionalDetail.tsx:375
+#: src/components/transactional/TransactionalDetail.tsx:379
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:382
 msgid "Follow workspace setting"
 msgstr "Follow workspace setting"
@@ -10868,7 +10881,7 @@ msgstr "Last hour"
 msgid "Last Name"
 msgstr "Last Name"
 
-#: src/components/transactional/TransactionalTable.tsx:217
+#: src/components/transactional/TransactionalTable.tsx:244
 msgid "Last sent"
 msgstr "Last sent"
 
@@ -11544,13 +11557,14 @@ msgstr "Manage custom fields"
 msgid "managed"
 msgstr "managed"
 
-#: src/components/transactional/TransactionalDetail.tsx:425
+#: src/components/transactional/TransactionalDetail.tsx:429
 msgid "Managed by"
 msgstr "Managed by"
 
 #. placeholder {0}: integration.name
 #. placeholder {1}: integration.type
-#: src/components/transactional/notificationParts.tsx:20
+#: src/components/transactional/notificationParts.tsx:21
+#: src/components/transactional/notificationParts.tsx:46
 #: src/pages/TemplatesPage.tsx:372
 msgid "Managed by {0} ({1} integration)"
 msgstr "Managed by {0} ({1} integration)"
@@ -11560,7 +11574,8 @@ msgstr "Managed by {0} ({1} integration)"
 msgid "Managed by {0}: it can't be deleted"
 msgstr "Managed by {0}: it can't be deleted"
 
-#: src/components/transactional/notificationParts.tsx:23
+#: src/components/transactional/notificationParts.tsx:24
+#: src/components/transactional/notificationParts.tsx:47
 msgid "Managed by an integration"
 msgstr "Managed by an integration"
 
@@ -12018,8 +12033,8 @@ msgstr "Monthly"
 #: src/components/file_manager/FileExplorer.tsx:1068
 #: src/components/settings/Integrations.tsx:966
 #: src/components/settings/integrations/EmailProviderCard.tsx:343
-#: src/components/transactional/TransactionalDetail.tsx:358
-#: src/components/transactional/TransactionalTable.tsx:321
+#: src/components/transactional/TransactionalDetail.tsx:362
+#: src/components/transactional/TransactionalTable.tsx:350
 #: src/pages/TemplatesPage.tsx:470
 msgid "More actions"
 msgstr "More actions"
@@ -12116,7 +12131,7 @@ msgstr "Name is required"
 msgid "Name must be less than 255 characters"
 msgstr "Name must be less than 255 characters"
 
-#: src/pages/TransactionalNotificationsPage.tsx:360
+#: src/pages/TransactionalNotificationsPage.tsx:370
 msgid "Name or ID"
 msgstr "Name or ID"
 
@@ -12684,7 +12699,7 @@ msgstr "No name"
 msgid "No notes"
 msgstr "No notes"
 
-#: src/pages/TransactionalNotificationsPage.tsx:369
+#: src/pages/TransactionalNotificationsPage.tsx:379
 msgid "No notifications match"
 msgstr "No notifications match"
 
@@ -12696,7 +12711,7 @@ msgstr "No notifications match"
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 
-#: src/components/transactional/TransactionalDetail.tsx:372
+#: src/components/transactional/TransactionalDetail.tsx:376
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:385
 msgid "No open or click tracking, keep UTM parameters"
 msgstr "No open or click tracking, keep UTM parameters"
@@ -12903,7 +12918,7 @@ msgstr "No traffic in the last 24 hours"
 msgid "No transactional email provider. Notifications can't be sent until you choose one."
 msgstr "No transactional email provider. Notifications can't be sent until you choose one."
 
-#: src/pages/TransactionalNotificationsPage.tsx:345
+#: src/pages/TransactionalNotificationsPage.tsx:355
 msgid "No transactional notifications found"
 msgstr "No transactional notifications found"
 
@@ -12968,7 +12983,7 @@ msgstr "Non-Active"
 #: src/components/email_builder/ui/FontStyleInput.tsx:129
 #: src/components/email_builder/ui/FontStyleInput.tsx:136
 #: src/components/integrations/LLMIntegration.tsx:229
-#: src/components/transactional/TransactionalDetail.tsx:379
+#: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:81
 msgid "None"
 msgstr "None"
@@ -13118,7 +13133,7 @@ msgstr "Not set up"
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:41
 #: src/components/settings/GeneralSettings.tsx:293
 #: src/components/transactional/TransactionalDetail.tsx:203
-#: src/components/transactional/TransactionalTable.tsx:57
+#: src/components/transactional/TransactionalTable.tsx:61
 #: src/pages/TransactionalNotificationsPage.tsx:256
 msgid "Not tracked"
 msgstr "Not tracked"
@@ -13170,7 +13185,7 @@ msgstr "Nothing in this period"
 msgid "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 msgstr "Nothing is being recorded, and nothing is refused: this page, the export and the retention setting stay available, and entries recorded while a licence covered audit logs stay readable."
 
-#: src/components/transactional/TransactionalTable.tsx:136
+#: src/components/transactional/TransactionalTable.tsx:155
 msgid "Notification"
 msgstr "Notification"
 
@@ -13318,9 +13333,9 @@ msgstr "off"
 
 #: src/components/broadcasts/compose/AdvancedRow.tsx:43
 #: src/components/settings/GeneralSettings.tsx:215
-#: src/components/transactional/TransactionalDetail.tsx:369
-#: src/components/transactional/TransactionalDetail.tsx:408
+#: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
+#: src/components/transactional/TransactionalDetail.tsx:416
 msgid "Off"
 msgstr "Off"
 
@@ -13341,7 +13356,7 @@ msgid "on"
 msgstr "on"
 
 #: src/components/settings/GeneralSettings.tsx:215
-#: src/components/transactional/TransactionalDetail.tsx:369
+#: src/components/transactional/TransactionalDetail.tsx:373
 msgid "On"
 msgstr "On"
 
@@ -13599,8 +13614,8 @@ msgstr "Opened an email"
 #: src/components/contacts/TrackingConsent.tsx:199
 #: src/components/settings/GeneralSettings.tsx:280
 #: src/components/settings/GeneralSettings.tsx:426
-#: src/components/transactional/TransactionalDetail.tsx:407
-#: src/components/transactional/TransactionalTable.tsx:184
+#: src/components/transactional/TransactionalDetail.tsx:411
+#: src/components/transactional/TransactionalTable.tsx:206
 msgid "Opens"
 msgstr "Opens"
 
@@ -14606,7 +14621,7 @@ msgstr "Preview Results"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:180
 #: src/components/broadcasts/detail/AbTestPanel.tsx:181
-#: src/components/transactional/TransactionalTable.tsx:261
+#: src/components/transactional/TransactionalTable.tsx:293
 msgid "Preview template"
 msgstr "Preview template"
 
@@ -15650,7 +15665,7 @@ msgstr "Reply to"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:106
 #: src/components/logs/MessageDetail.tsx:649
 #: src/components/templates/SendTemplateModal.tsx:465
-#: src/components/transactional/TransactionalDetail.tsx:416
+#: src/components/transactional/TransactionalDetail.tsx:420
 msgid "Reply-To"
 msgstr "Reply-To"
 
@@ -17027,8 +17042,8 @@ msgstr "Send now"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:307
 #: src/components/settings/WebhookDetail.tsx:324
 #: src/components/transactional/TransactionalDetail.tsx:352
-#: src/components/transactional/TransactionalTable.tsx:302
-#: src/components/transactional/TransactionalTable.tsx:303
+#: src/components/transactional/TransactionalTable.tsx:331
+#: src/components/transactional/TransactionalTable.tsx:332
 #: src/pages/TemplatesPage.tsx:295
 msgid "Send test"
 msgstr "Send test"
@@ -17170,7 +17185,7 @@ msgstr "Sends refused by the provider. Requests rejected before sending are not 
 #: src/components/transactional/RecentSends.tsx:45
 #: src/components/transactional/SendsPerDayChart.tsx:48
 #: src/components/transactional/TransactionalDetail.tsx:215
-#: src/components/transactional/TransactionalTable.tsx:169
+#: src/components/transactional/TransactionalTable.tsx:189
 #: src/pages/BroadcastsPage.tsx:185
 msgid "Sent"
 msgstr "Sent"
@@ -17217,14 +17232,22 @@ msgstr "sent to the remaining {remaining} at {time}"
 
 #. placeholder {0}: provider.name
 #: src/pages/TransactionalNotificationsPage.tsx:309
-msgid "Sent via {0}"
-msgstr "Sent via {0}"
+#~ msgid "Sent via {0}"
+#~ msgstr "Sent via {0}"
 
 #. placeholder {0}: provider.name
 #. placeholder {1}: sender.email
 #: src/pages/TransactionalNotificationsPage.tsx:309
-msgid "Sent via {0} · {1}"
-msgstr "Sent via {0} · {1}"
+#~ msgid "Sent via {0} · {1}"
+#~ msgstr "Sent via {0} · {1}"
+
+#: src/pages/TransactionalNotificationsPage.tsx:316
+msgid "Sent via <0>{providerName}</0>"
+msgstr "Sent via <0>{providerName}</0>"
+
+#: src/pages/TransactionalNotificationsPage.tsx:312
+msgid "Sent via <0>{providerName}</0> · {senderEmail}"
+msgstr "Sent via <0>{providerName}</0> · {senderEmail}"
 
 #: src/components/templates/TemplatePreviewDrawer.tsx:224
 msgid "Sent with the HTML version and generated from it. Its links are tracked like the links of the HTML."
@@ -17508,7 +17531,7 @@ msgstr "Sets the screen width below which the email will switch to mobile layout
 msgid "Setting up..."
 msgstr "Setting up..."
 
-#: src/components/transactional/TransactionalDetail.tsx:478
+#: src/components/transactional/TransactionalDetail.tsx:482
 #: src/layouts/app-shell/menuItems.ts:233
 #: src/pages/WorkspaceSettingsPage.tsx:269
 msgid "Settings"
@@ -17854,7 +17877,7 @@ msgid "SMTP port is required"
 msgstr "SMTP port is required"
 
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:113
-#: src/components/transactional/notificationParts.tsx:64
+#: src/components/transactional/notificationParts.tsx:98
 #: src/components/transactional/TransactionalDetail.tsx:201
 #: src/pages/TransactionalNotificationsPage.tsx:292
 msgid "SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked"
@@ -17865,7 +17888,7 @@ msgid "SMTP provider doesn't support complaint webhooks, so spam complaints cann
 msgstr "SMTP provider doesn't support complaint webhooks, so spam complaints cannot be tracked"
 
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:40
-#: src/components/transactional/notificationParts.tsx:63
+#: src/components/transactional/notificationParts.tsx:97
 #: src/components/transactional/TransactionalDetail.tsx:200
 #: src/pages/TransactionalNotificationsPage.tsx:264
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
@@ -18526,7 +18549,7 @@ msgstr "template"
 #: src/components/messages/MessageHistoryTable.tsx:156
 #: src/components/messages/MessageHistoryTable.tsx:242
 #: src/components/transactional/TransactionalDetail.tsx:293
-#: src/components/transactional/TransactionalTable.tsx:161
+#: src/components/transactional/TransactionalTable.tsx:180
 #: src/pages/TemplatesPage.tsx:360
 msgid "Template"
 msgstr "Template"
@@ -18627,7 +18650,7 @@ msgstr "Template name must be at most {TEMPLATE_NAME_MAX_LENGTH} characters long
 #: src/components/transactional/notificationRules.ts:53
 #: src/components/transactional/notificationRules.ts:65
 #: src/components/transactional/PreviewPanel.tsx:76
-#: src/components/transactional/TransactionalTable.tsx:84
+#: src/components/transactional/TransactionalTable.tsx:103
 msgid "Template not found"
 msgstr "Template not found"
 
@@ -19583,8 +19606,7 @@ msgstr "This notification is managed by an integration and cannot be renamed"
 msgid "This notification is managed by an integration and the template cannot be changed"
 msgstr "This notification is managed by an integration and the template cannot be changed"
 
-#: src/components/transactional/notificationParts.tsx:76
-#: src/components/transactional/notificationParts.tsx:80
+#: src/components/transactional/notificationParts.tsx:121
 msgid "This notification still sends with it"
 msgstr "This notification still sends with it"
 
@@ -20113,14 +20135,14 @@ msgstr "Track website traffic with a first-party script. Beats are stored in thi
 msgid "Tracked"
 msgstr "Tracked"
 
-#: src/components/transactional/TransactionalTable.tsx:62
+#: src/components/transactional/TransactionalTable.tsx:66
 msgid "Tracked on {tracked} of {total} emails"
 msgstr "Tracked on {tracked} of {total} emails"
 
 #: src/components/contacts/ContactsFilters.tsx:29
 #: src/components/logs/MessageDetail.tsx:652
 #: src/components/settings/WebAnalyticsSettings.tsx:298
-#: src/components/transactional/TransactionalDetail.tsx:405
+#: src/components/transactional/TransactionalDetail.tsx:409
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:377
 msgid "Tracking"
 msgstr "Tracking"
@@ -20400,7 +20422,7 @@ msgstr "Unique clicks counts each recipient once per link — someone who clicks
 #: src/components/contacts/ContactUpsertDrawer.tsx:433
 #: src/components/contacts/TrackingConsent.tsx:14
 #: src/components/contacts/trackingConsentOptions.ts:16
-#: src/components/transactional/TransactionalDetail.tsx:420
+#: src/components/transactional/TransactionalDetail.tsx:424
 #: src/components/web_analytics/LiveSessionMap.tsx:52
 msgid "Unknown"
 msgstr "Unknown"
@@ -20938,7 +20960,7 @@ msgstr "Uses you can't see aren't counted."
 msgid "Using {0}..."
 msgstr "Using {0}..."
 
-#: src/components/transactional/TransactionalDetail.tsx:414
+#: src/components/transactional/TransactionalDetail.tsx:418
 #: src/components/web_analytics/explore/BreakdownModal.tsx:64
 #: src/components/web_analytics/explore/DimensionSelector.tsx:98
 #: src/components/web_analytics/FilterBuilder.tsx:56
@@ -21131,7 +21153,7 @@ msgstr "View full dashboard"
 #: src/components/analytics/RecentFailures.tsx:91
 #: src/components/transactional/RecentSends.tsx:54
 #: src/components/transactional/TransactionalDetail.tsx:327
-#: src/components/transactional/TransactionalTable.tsx:267
+#: src/components/transactional/TransactionalTable.tsx:299
 msgid "View in logs"
 msgstr "View in logs"
 
@@ -21926,7 +21948,7 @@ msgstr "Yesterday"
 msgid "Yesterday {time}"
 msgstr "Yesterday {time}"
 
-#: src/components/transactional/TransactionalTable.tsx:237
+#: src/components/transactional/TransactionalTable.tsx:265
 msgid "Yesterday, {time}"
 msgstr "Yesterday, {time}"
 
@@ -22037,7 +22059,7 @@ msgstr "You joined {workspaceName}"
 msgid "You need access to contacts"
 msgstr "You need access to contacts"
 
-#: src/components/transactional/notificationParts.tsx:42
+#: src/components/transactional/notificationParts.tsx:76
 #: src/components/transactional/notificationRules.ts:71
 msgid "You need access to message history"
 msgstr "You need access to message history"

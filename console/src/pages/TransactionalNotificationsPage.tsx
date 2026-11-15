@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Alert, App, Button, Empty, Result, Segmented, Skeleton, Tooltip } from 'antd'
-import { SquareTerminal, Zap } from 'lucide-react'
-import { useLingui } from '@lingui/react/macro'
+import { Plus, SquareTerminal, Zap } from 'lucide-react'
+import { Trans, useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import { KpiStrip, PageHeader, Panel, TableToolbar, useNumberFormat, type KpiItem } from '../components/layout'
 import {
@@ -191,7 +191,7 @@ export function TransactionalNotificationsPage() {
           workspace={workspace}
           canReadTemplates={Boolean(permissions?.templates?.read)}
           buttonContent={t`New notification`}
-          buttonProps={{ type: 'primary', disabled: !canCreate }}
+          buttonProps={{ type: 'primary', disabled: !canCreate, icon: <Plus size={14} aria-hidden="true" /> }}
         />
       </span>
     </Tooltip>
@@ -302,11 +302,21 @@ export function TransactionalNotificationsPage() {
   const kpiItems = gate.error ? kpis.map((item) => ({ ...item, value: dash, sub: t`Couldn't load` })) : kpis
 
   const sender = defaultSender(provider)
+  const providerName = provider?.name
+  const senderEmail = sender?.email
   const providerLine = provider ? (
     <span className="flex min-w-0 items-center gap-1.5 text-sm text-ink-3">
       <Zap size={14} aria-hidden="true" className="shrink-0" />
       <span className="truncate">
-        {sender ? t`Sent via ${provider.name} · ${sender.email}` : t`Sent via ${provider.name}`}
+        {senderEmail ? (
+          <Trans>
+            Sent via <span className="font-medium text-ink">{providerName}</span> · {senderEmail}
+          </Trans>
+        ) : (
+          <Trans>
+            Sent via <span className="font-medium text-ink">{providerName}</span>
+          </Trans>
+        )}
       </span>
     </span>
   ) : null

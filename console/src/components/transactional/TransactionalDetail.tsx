@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Button, Dropdown, Result, Skeleton, Tooltip, type MenuProps } from 'antd'
 import { RefusedButton } from '../common/RefusedButton'
-import { MoreHorizontal, Send } from 'lucide-react'
+import { MoreHorizontal, Pencil, Send } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import { FullDrawer, KeyValueList, KpiStrip, Mono, PageHeader, Panel, useNumberFormat, type KpiItem } from '../layout'
@@ -351,7 +351,11 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
       >
         {t`Send test`}
       </RefusedButton>
-      <RefusedButton refusal={rules.edit} onClick={() => props.onEdit(notification)}>
+      <RefusedButton
+        icon={<Pencil size={14} aria-hidden="true" />}
+        refusal={rules.edit}
+        onClick={() => props.onEdit(notification)}
+      >
         {t`Edit`}
       </RefusedButton>
       <Dropdown trigger={['click']} menu={{ items: menuItems, onClick: onMenu }}>
