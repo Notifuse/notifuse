@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { App, Button, Dropdown, Table, Tooltip, type MenuProps, type TableColumnsType } from 'antd'
+import { App, Button, Dropdown, Skeleton, Table, Tooltip, type MenuProps, type TableColumnsType } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Ellipsis, Pause, Play, Zap } from 'lucide-react'
 import { Pill, RateBar, useNumberFormat, useRelativeDate } from '../../layout'
@@ -250,6 +250,13 @@ export function AutomationsTable({
       render: (_, a) => {
         if (!canReadHistory || !hasEmailStep(a)) return dash
         if (openRates.error) return <CouldntLoad />
+        if (openRates.loading) {
+          return (
+            <span data-open-rate-loading>
+              <Skeleton.Input active size="small" style={{ width: 40, minWidth: 40, height: 14 }} />
+            </span>
+          )
+        }
         const rate = openRates.rates.get(a.id)
         return rate === null || rate === undefined ? dash : <PercentText rate={rate} />
       }

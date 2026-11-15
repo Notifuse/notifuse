@@ -113,7 +113,8 @@ func TestDataFeedFetcher_FetchRecipient_CancelledInFlight_NotRetried(t *testing.
 
 	settings := &domain.RecipientFeedSettings{Enabled: true, URL: server.URL}
 	start := time.Now()
-	result, err := NewUnsafeDataFeedFetcher(log).FetchRecipient(ctx, settings, recipientPayload())
+	fetcher := NewUnsafeDataFeedFetcher(log).(*dataFeedFetcher)
+	result, err := fetcher.FetchRecipient(ctx, settings, recipientPayload())
 	elapsed := time.Since(start)
 
 	require.Error(t, err)
@@ -123,7 +124,7 @@ func TestDataFeedFetcher_FetchRecipient_CancelledInFlight_NotRetried(t *testing.
 	assert.Equal(t, int32(1), hits.Load())
 	// A retry on the cancelled context never reaches the server, so the hit count
 	// alone cannot see it; the delay before each retry can.
-	assert.Less(t, elapsed, time.Duration(settings.GetRetryDelay())*time.Millisecond, "a cancelled request is not retried")
+	assert.Less(t, elapsed, fetcher.recipientRetryDelay, "a cancelled request is not retried")
 }
 
 // A 200 that is not JSON is the feed's bug, not a transient fault: no retry.
@@ -233,4 +234,75 @@ func TestGetHTTPStatusDescription_Fallbacks(t *testing.T) {
 	assert.Equal(t, "Not Found", getHTTPStatusDescription(http.StatusNotFound))
 	assert.Equal(t, http.StatusText(http.StatusTeapot), getHTTPStatusDescription(http.StatusTeapot))
 	assert.Equal(t, "Unknown Error", getHTTPStatusDescription(599))
+}
+
+// countingTransport counts the attempts that reach the network, refused or not.
+type countingTransport struct {
+	n    atomic.Int32
+	next http.RoundTripper
+}
+
+func (c *countingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	c.n.Add(1)
+	return c.next.RoundTrip(r)
+}
+
+// A recipient feed that times out, or refuses the connection, is tried again after the retry
+// delay, and fails once every attempt has failed. The delay and the per-attempt timeout are
+// shortened through the fetcher's own fields.
+func TestDataFeedFetcher_FetchRecipient_RetriesThenFails(t *testing.T) {
+	newFetcher := func(t *testing.T) (*dataFeedFetcher, *countingTransport) {
+		ctrl := gomock.NewController(t)
+		log, _ := newFieldRecorder(ctrl)
+		transport := &countingTransport{next: http.DefaultTransport}
+		f := newDataFeedFetcher(&http.Client{Transport: transport}, log)
+		f.recipientTimeout = 50 * time.Millisecond
+		f.recipientRetryDelay = 5 * time.Millisecond
+		return f, transport
+	}
+
+	t.Run("a timeout", func(t *testing.T) {
+		f, transport := newFetcher(t)
+		release := make(chan struct{})
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-release:
+			case <-r.Context().Done():
+			}
+		}))
+		t.Cleanup(server.Close)
+		t.Cleanup(func() { close(release) })
+
+		start := time.Now()
+		result, err := f.FetchRecipient(context.Background(), &domain.RecipientFeedSettings{Enabled: true, URL: server.URL}, recipientPayload())
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.Equal(t, int32(f.recipientRetries+1), transport.n.Load(), "every attempt is made")
+		// The shortened timeout and delay are the ones used: the fixed ones take seconds.
+		assert.Less(t, time.Since(start), 2*time.Second)
+	})
+
+	t.Run("a refused connection", func(t *testing.T) {
+		f, transport := newFetcher(t)
+		server := httptest.NewServer(http.NotFoundHandler())
+		url := server.URL
+		server.Close() // nothing listens on its address any more
+
+		start := time.Now()
+		result, err := f.FetchRecipient(context.Background(), &domain.RecipientFeedSettings{Enabled: true, URL: url}, recipientPayload())
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.Equal(t, int32(f.recipientRetries+1), transport.n.Load(), "every attempt is made")
+		assert.Less(t, time.Since(start), 2*time.Second, "the shortened delay is the one used")
+	})
+
+	t.Run("the defaults are the feed's fixed settings", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		log, _ := newFieldRecorder(ctrl)
+		f := newDataFeedFetcher(&http.Client{}, log)
+		var settings domain.RecipientFeedSettings
+		assert.Equal(t, time.Duration(settings.GetTimeout())*time.Second, f.recipientTimeout)
+		assert.Equal(t, settings.GetMaxRetries(), f.recipientRetries)
+		assert.Equal(t, time.Duration(settings.GetRetryDelay())*time.Millisecond, f.recipientRetryDelay)
+	})
 }

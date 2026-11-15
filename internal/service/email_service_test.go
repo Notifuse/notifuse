@@ -2788,7 +2788,10 @@ func TestEmailService_SendEmailForTemplate_SenderAndReplyTo(t *testing.T) {
 	defaultSender := domain.NewEmailSender("hello@example.com", "Default")
 	newsletterSender := domain.NewEmailSender("news@example.com", "Newsletter")
 	newsletterSender.IsDefault = false
-	senders := []domain.EmailSender{defaultSender, newsletterSender}
+	// Neither the template's nor the integration's default: a fall back to either shows.
+	italianSender := domain.NewEmailSender("ciao@example.com", "Italia")
+	italianSender.IsDefault = false
+	senders := []domain.EmailSender{defaultSender, newsletterSender, italianSender}
 
 	newTemplate := func() *domain.Template {
 		return &domain.Template{
@@ -2831,12 +2834,13 @@ func TestEmailService_SendEmailForTemplate_SenderAndReplyTo(t *testing.T) {
 	t.Run("a translation's own sender and reply-to win over the template's", func(t *testing.T) {
 		tmpl := newTemplate()
 		it := tmpl.Translations["it"]
-		it.Email.SenderID = defaultSender.ID
+		it.Email.SenderID = italianSender.ID
 		it.Email.ReplyTo = "assistenza@example.com"
 
 		sent := sendForTemplateCapturingProviderRequest(t, tmpl, senders, italian, domain.EmailOptions{})
 
-		assert.Equal(t, "hello@example.com", sent.FromAddress)
+		assert.Equal(t, "ciao@example.com", sent.FromAddress)
+		assert.Equal(t, "Italia", sent.FromName)
 		assert.Equal(t, "assistenza@example.com", sent.EmailOptions.ReplyTo)
 	})
 

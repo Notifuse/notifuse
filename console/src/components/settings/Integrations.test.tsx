@@ -323,8 +323,15 @@ describe('Integrations — Zapier', () => {
     const settingsless = { ...zapierIntegration, zapier_settings: undefined }
     renderIntegrations({ integrations: [settingsless] })
 
-    expect(await screen.findByText('Type: zapier')).toBeInTheDocument()
+    // Named as a reader knows it, not by its raw type
+    expect(await screen.findByText('Type: Zapier')).toBeInTheDocument()
     expect(screen.queryByText(ZAPIER_KEY_EMAIL)).not.toBeInTheDocument()
+  })
+
+  it('names the type of an integration that has no card of its own', async () => {
+    renderIntegrations({ integrations: [{ ...zapierIntegration, id: 'sms-1', name: 'Texts', type: 'sms' }] })
+
+    expect(await screen.findByText('Type: SMS')).toBeInTheDocument()
   })
 
   it('connects Zapier and refreshes the workspace without closing the token panel', async () => {

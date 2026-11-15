@@ -177,6 +177,42 @@ export function firstAccessiblePage(hasAccess: HasAccess, workspaceId: string): 
   return { key: 'settings', target: ENTRY_PAGES.settings(workspaceId) }
 }
 
+/**
+ * Where the dashboard sends a member who cannot read it. Its rights are read strictly: message_history
+ * write is granted to every member the console saves, so the sidebar's read-or-write check would
+ * offer the dashboard to members who cannot read messages.
+ */
+export function dashboardFallback(permissions: UserPermissions | null | undefined, workspaceId: string): MenuPage {
+  const strictAccess: HasAccess = (resource) => {
+    if (resource === 'message_history') return false
+    const granted = permissions?.[resource]
+    return Boolean(granted?.read || granted?.write)
+  }
+  return firstAccessiblePage(strictAccess, workspaceId)
+}
+
+/** Whether a member reads the dashboard: it shows messages, so message_history read. */
+export function canReadDashboard(permissions: UserPermissions | null | undefined): boolean {
+  return Boolean(permissions?.message_history?.read)
+}
+
+/**
+ * Where the sidebar's logo leads, and its name: the dashboard, or for a member who cannot read it the
+ * page the dashboard would send them to. The dashboard while the rights load.
+ */
+export function homePage(
+  permissions: UserPermissions | null | undefined,
+  loading: boolean,
+  workspaceId: string,
+  i18n: I18n
+): { target: MenuTarget; label: string } {
+  if (loading || canReadDashboard(permissions)) {
+    return { target: { to: '/console/workspace/$workspaceId', params: { workspaceId } }, label: i18n._(LABELS.dashboard) }
+  }
+  const page = dashboardFallback(permissions, workspaceId)
+  return { target: page.target, label: i18n._(ENTRY_LABELS[page.key] ?? LABELS.settings) }
+}
+
 const LABELS = {
   dashboard: msg`Dashboard`,
   webAnalytics: msg`Web Analytics`,
@@ -196,6 +232,18 @@ const LABELS = {
   logs: msg`Logs`,
   settings: msg`Settings`
 } satisfies Record<string, MessageDescriptor>
+
+/** The name of each top entry a member can land on instead of the dashboard. */
+const ENTRY_LABELS: Record<string, MessageDescriptor> = {
+  'web-analytics': LABELS.webAnalytics,
+  contacts: LABELS.contacts,
+  broadcasts: LABELS.broadcasts,
+  automations: LABELS.automations,
+  'transactional-notifications': LABELS.transactional,
+  content: LABELS.content,
+  logs: LABELS.logs,
+  settings: LABELS.settings
+}
 
 // Written with createElement so this module stays a .ts file of plain functions (fast refresh
 // wants a .tsx file to export components only).

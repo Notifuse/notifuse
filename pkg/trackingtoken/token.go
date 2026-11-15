@@ -23,10 +23,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/netip"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"golang.org/x/net/idna"
@@ -85,7 +87,8 @@ func ValidWorkspaceID(id string) bool {
 // HostOf returns the lowercase hostname of an endpoint URL such as API_ENDPOINT or a
 // workspace's custom endpoint, read as https when it has no scheme, or "" when it is
 // empty or does not parse. A Unicode hostname comes back in Punycode, as browsers send
-// it, and one that cannot be converted comes back "", matching no request.
+// it, and one that cannot be converted, or that is not valid UTF-8, comes back "",
+// matching no request. An IP literal comes back in its canonical form (CanonicalIP).
 func HostOf(endpoint string) string {
 	raw := strings.TrimSpace(endpoint)
 	if raw == "" {
@@ -99,8 +102,14 @@ func HostOf(endpoint string) string {
 		return ""
 	}
 	host := u.Hostname()
+	if ip, ok := CanonicalIP(host); ok {
+		return ip
+	}
 	for i := 0; i < len(host); i++ {
 		if host[i] >= 0x80 {
+			if !utf8.ValidString(host) {
+				return ""
+			}
 			converted, err := hostProfile.ToASCII(host)
 			if err != nil {
 				return ""
@@ -109,6 +118,17 @@ func HostOf(endpoint string) string {
 		}
 	}
 	return strings.ToLower(host)
+}
+
+// CanonicalIP returns hostname in its canonical form when it is an IP address, without
+// brackets ("2001:db8::1" for "2001:0DB8:0:0:0:0:0:1"), and false otherwise. Two
+// spellings of one address name the same host, and an IP literal cannot be a look-alike.
+func CanonicalIP(hostname string) (string, bool) {
+	addr, err := netip.ParseAddr(hostname)
+	if err != nil {
+		return "", false
+	}
+	return addr.String(), true
 }
 
 // hostProfile maps a Unicode hostname as a browser's address bar does. It allows what

@@ -43,6 +43,9 @@ type TriggerFormConfig = {
   segment_id?: string
   custom_event_name?: string
   updated_fields?: string[]
+  link_url?: string
+  broadcast_id?: string
+  template_id?: string
   conditions?: TreeNode
   frequency?: 'once' | 'every_time'
 }
@@ -214,15 +217,13 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
           ? workspace.integrations?.find((i) => i.id === emailConfig.integration_id)
           : undefined
         const smtp = integration ? integration.email_provider?.kind === 'smtp' : isSmtpMarketingProvider(workspace)
-        const params = new URLSearchParams({ automation_id: automationId })
-        if (emailConfig.template_id) params.set('template_id', emailConfig.template_id)
         body = (
           <div className="flex flex-col gap-3">
             <EmailStepStats
               email={nodeStats.email}
               canReadHistory={stats.canReadHistory}
               smtp={smtp}
-              messagesHref={`/console/workspace/${workspace.id}/logs?${params.toString()}`}
+              messages={{ workspaceId: workspace.id, automationId, templateId: emailConfig.template_id }}
             />
             <StepStats nodeType={nodeType} config={config} stats={nodeStats} />
           </div>

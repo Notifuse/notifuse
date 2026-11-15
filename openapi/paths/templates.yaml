@@ -80,7 +80,9 @@
       Counts the broadcasts, transactional notifications, automations and
       double opt-in lists that use each template. Broadcasts count while they
       may still send (draft, scheduled, processing, paused, testing,
-      test_completed or winner_selected); deleted notifications, automations
+      test_completed or winner_selected), and an A/B broadcast counts only the
+      variations it can still send: the winner's once one is chosen, every
+      variation before; deleted notifications, automations
       and lists do not count; an automation counts once, through its email
       nodes or its trigger. Templates referenced in segment or trigger
       conditions, and blog web templates, are not counted. With

@@ -14,6 +14,9 @@ import { ThemePreset, THEME_PRESETS } from './themePresets'
 
 const { TextArea } = Input
 
+/** A tab's panel as tall as what its tab bar leaves: antd's body holder already takes that room. */
+const FILLING_TABS = { body: { height: '100%' }, content: { height: '100%' } }
+
 interface DraftWindow extends Window {
   __themeDraft?: DraftState
 }
@@ -324,9 +327,15 @@ export function ThemeEditorDrawer({
         onClose={handleCancel}
         size="100%"
         closable={false}
-        styles={{ body: { padding: 0, height: 'calc(100vh - 55px)' } }}
+        // A flex column down to the editor and the preview, so they fill what the header leaves
+        // whatever its height, with no band under them
+        styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
       >
-        <PanelGroup direction="horizontal" key={isFullscreen ? 'fullscreen' : 'split'}>
+        <PanelGroup
+          direction="horizontal"
+          key={isFullscreen ? 'fullscreen' : 'split'}
+          style={{ flex: 1, minHeight: 0, height: 'auto' }}
+        >
           {/* Left: File Editor */}
           {!isFullscreen && (
             <>
@@ -338,23 +347,14 @@ export function ThemeEditorDrawer({
                     onChange={(key) => setSelectedFile(key as keyof BlogThemeFiles)}
                     type="card"
                     size="small"
-                    style={{
-                      height: 'calc(100vh - 110px)',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}
+                    style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+                    styles={FILLING_TABS}
                     tabBarStyle={{ margin: 0 }}
                     items={THEME_FILES.map((file) => ({
                       key: file.key,
                       label: file.label,
                       children: (
-                        <div
-                          style={{
-                            height: 'calc(100vh - 155px)',
-                            display: 'flex',
-                            flexDirection: 'column'
-                          }}
-                        >
+                        <div data-theme-editor-pane style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                           <div style={{ flex: 1, minHeight: 0 }}>
                             <Editor
                               height="100%"
@@ -399,6 +399,7 @@ export function ThemeEditorDrawer({
               onChange={(key) => setPreviewPage(key as 'home' | 'category' | 'post')}
               type="card"
               style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+              styles={FILLING_TABS}
               tabBarStyle={{ margin: 0, paddingLeft: 16, paddingRight: 16 }}
               tabBarExtraContent={{
                 right: (
@@ -418,7 +419,7 @@ export function ThemeEditorDrawer({
                   key: 'home',
                   label: t`Home`,
                   children: (
-                    <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
+                    <div data-theme-preview-pane style={{ height: '100%', overflow: 'auto' }}>
                       <ThemePreview files={previewFiles} workspace={workspace} view="home" />
                     </div>
                   )
@@ -427,7 +428,7 @@ export function ThemeEditorDrawer({
                   key: 'category',
                   label: t`Category`,
                   children: (
-                    <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
+                    <div data-theme-preview-pane style={{ height: '100%', overflow: 'auto' }}>
                       <ThemePreview files={previewFiles} workspace={workspace} view="category" />
                     </div>
                   )
@@ -436,7 +437,7 @@ export function ThemeEditorDrawer({
                   key: 'post',
                   label: t`Post`,
                   children: (
-                    <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
+                    <div data-theme-preview-pane style={{ height: '100%', overflow: 'auto' }}>
                       <ThemePreview files={previewFiles} workspace={workspace} view="post" />
                     </div>
                   )

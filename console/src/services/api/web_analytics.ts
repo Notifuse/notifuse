@@ -178,6 +178,9 @@ export interface ContactSessionPagesRequest {
 export interface ContactSessionPagesResponse {
   pages: { entered_at: string; path: string; duration_ms: number; page_number: number }[]
   goals: { goal_at: string; goal_name: string; goal_value: number; path: string }[]
+  /** The session has more pages, or more goals, than the server lists: only the first are here. */
+  pages_truncated: boolean
+  goals_truncated: boolean
 }
 
 export const webAnalyticsService = {

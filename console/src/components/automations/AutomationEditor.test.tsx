@@ -54,11 +54,15 @@ vi.mock('../../services/api/automation', async (importOriginal) => ({
 }))
 
 // The canvas has its own tests: this one shows the overlay and edits through the context.
+const statsSeen = vi.hoisted(() => [] as unknown[])
 vi.mock('./AutomationFlowEditor', async () => {
   const { useAutomation } = await vi.importActual<typeof import('./context')>('./context')
+  const { useContext } = await vi.importActual<typeof import('react')>('react')
+  const { NodeStatsContext } = await vi.importActual<typeof import('./stats/nodeStatsState')>('./stats/nodeStatsState')
   return {
     AutomationFlowEditor: ({ overlay }: { overlay?: ReactNode }) => {
       const { canvasState, pushHistory, automationId } = useAutomation()
+      statsSeen.push(useContext(NodeStatsContext))
       const dropEdges = () => {
         pushHistory()
         canvasState.setEdges([])
@@ -422,9 +426,87 @@ describe('AutomationEditor, server answers', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Yes, activate' }))
     await waitFor(() => expect(automationApi.activate).toHaveBeenCalledWith({ workspace_id: 'ws1', automation_id: 'auto-1' }))
   })
+
+  it('says unsaved changes wait for a pause when the automation turns live elsewhere', async () => {
+    const { queryClient } = renderEditor()
+    await loaded()
+    fireEvent.change(nameInput(), { target: { value: 'Renamed' } })
+    expect(unsaved()).not.toBeNull()
+    await act(async () => queryClient.setQueryData(['automation', 'ws1', 'auto-1'], { automation: automationOf({ status: 'live' }) }))
+    expect(await screen.findByText("Your unsaved changes can't be saved until the automation is paused.")).toBeInTheDocument()
+  })
+
+  it('keeps Activate disabled until the automation is read again', async () => {
+    renderEditor()
+    await loaded()
+    let answer: (value: { automation: Automation }) => void = () => {}
+    const readsBefore = get.mock.calls.length
+    get.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+    await act(async () => fireEvent.click(button('Activate')))
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes, activate' }))
+    await waitFor(() => expect(automationApi.activate).toHaveBeenCalled())
+    await waitFor(() => expect(get.mock.calls.length).toBeGreaterThan(readsBefore))
+    // The action answered; the read that shows its result has not.
+    expect(button(/Activate/)).toBeDisabled()
+    await act(async () => answer({ automation: automationOf({ status: 'live' }) }))
+    // Live now: the bar and the banner each offer Pause, both clickable.
+    await waitFor(() => {
+      const pauses = screen.getAllByRole('button', { name: /^Pause$/ })
+      expect(pauses.length).toBeGreaterThan(0)
+      for (const pause of pauses) expect(pause).toBeEnabled()
+    })
+  })
 })
 
 describe('AutomationEditor, review fixes', () => {
+  it('keeps the step results value while an edit elsewhere renders the editor', async () => {
+    renderEditor()
+    await loaded()
+    const before = statsSeen.at(-1)
+    const renders = statsSeen.length
+    fireEvent.change(nameInput(), { target: { value: 'Renamed' } })
+    await waitFor(() => expect(unsaved()).not.toBeNull())
+    expect(statsSeen.length).toBeGreaterThan(renders)
+    expect(statsSeen.at(-1)).toBe(before)
+  })
+
+  it.each([
+    ['MacIntel', 'Undo (⌘Z)', 'Redo (⇧⌘Z)'],
+    ['Win32', 'Undo (Ctrl+Z)', 'Redo (Ctrl+Shift+Z)']
+  ])('names the undo and redo shortcuts of %s', async (platform, undoTip, redoTip) => {
+    const spy = vi.spyOn(navigator, 'platform', 'get').mockReturnValue(platform)
+    try {
+      renderEditor()
+      await loaded()
+      // Two steps back in history, one undone: both buttons enabled, as a tooltip needs.
+      fireEvent.click(button('probe: drop edges'))
+      fireEvent.click(button('probe: drop edges'))
+      fireEvent.click(button('Undo'))
+      fireEvent.mouseEnter(button('Undo'))
+      expect(await screen.findByText(undoTip)).toBeInTheDocument()
+      fireEvent.mouseEnter(button('Redo'))
+      expect(await screen.findByText(redoTip)).toBeInTheDocument()
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('keeps one drawer from the skeleton to the editor, so the first load slides once', async () => {
+    let answer: (value: { automation: Automation }) => void = () => {}
+    get.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+    renderEditor()
+    await waitFor(() => expect(document.querySelector('[data-editor-loading]')).not.toBeNull())
+    const bar = document.querySelector('[data-drawer-bar]')
+    expect(bar).not.toBeNull()
+    await act(async () => answer({ automation: automationOf() }))
+    await loaded()
+    expect(document.querySelectorAll('[data-drawer-bar]')).toHaveLength(1)
+    expect(document.querySelector('[data-drawer-bar]')).toBe(bar)
+    // The bar holds the editor's title and actions.
+    expect(within(bar as HTMLElement).getByRole('textbox', { name: 'Automation name' })).toHaveValue('Welcome')
+    expect(within(bar as HTMLElement).getByRole('button', { name: 'Save' })).toBeInTheDocument()
+  })
+
   it('opens on the server copy, never on one cached by an earlier opening', async () => {
     // Cached with two steps; the server has one, and another name.
     get.mockResolvedValue({

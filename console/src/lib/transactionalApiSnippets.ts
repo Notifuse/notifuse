@@ -10,7 +10,8 @@ export interface SnippetNotification {
 
 /** cURL: the raw HTTP call. */
 export function curlSnippet(notification: SnippetNotification, workspaceId: string): string {
-  return `curl -X POST \\
+  return `# email_options also takes "sender_id": one of the integration's senders, in place of the template's
+curl -X POST \\
   "${window.API_ENDPOINT}/api/transactional.send" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
@@ -120,6 +121,7 @@ interface EmailOptions {
   reply_to?: string;
   cc?: string[];
   bcc?: string[];
+  sender_id?: string; // One of the integration's senders, in place of the template's
 }
 
 interface NotificationRequest {
@@ -182,6 +184,7 @@ const sendNotification = async (): Promise<void> => {
         reply_to: "support@example.com",
         cc: ["manager@example.com"],
         bcc: ["audit@example.com"]
+        // sender_id: "your-sender-id"
       }
     }
   };
@@ -275,7 +278,8 @@ def send_notification():
             "email_options": {
                 "reply_to": "support@example.com",
                 "cc": ["manager@example.com"],
-                "bcc": ["audit@example.com"]
+                "bcc": ["audit@example.com"],
+                # "sender_id": "your-sender-id",  # One of the integration's senders, in place of the template's
             }
         }
     }
@@ -349,9 +353,10 @@ type Contact struct {
 }
 
 type EmailOptions struct {
-    ReplyTo string   \`json:"reply_to,omitempty"\`
-    CC      []string \`json:"cc,omitempty"\`
-    BCC     []string \`json:"bcc,omitempty"\`
+    ReplyTo  string   \`json:"reply_to,omitempty"\`
+    CC       []string \`json:"cc,omitempty"\`
+    BCC      []string \`json:"bcc,omitempty"\`
+    SenderID string   \`json:"sender_id,omitempty"\` // One of the integration's senders, in place of the template's
 }
 
 type Notification struct {
@@ -419,6 +424,7 @@ func sendNotification() error {
                 ReplyTo: "support@example.com",
                 CC:      []string{"manager@example.com"},
                 BCC:     []string{"audit@example.com"},
+                // SenderID: "your-sender-id",
             },
         },
     }
@@ -589,6 +595,9 @@ public class NotificationSender {
         public String replyTo;
         public String[] cc;
         public String[] bcc;
+        // One of the integration's senders, in place of the template's
+        @JsonProperty("sender_id")
+        public String senderId;
         
         public EmailOptions(String replyTo, String[] cc, String[] bcc) {
             this.replyTo = replyTo;
@@ -672,6 +681,7 @@ public class NotificationSender {
             new String[]{"manager@example.com"},
             new String[]{"audit@example.com"}
         );
+        // emailOptions.senderId = "your-sender-id";
         
         java.util.Map<String, Object> data = new java.util.HashMap<>();
         data.put("your_template_variable", "value");

@@ -273,7 +273,7 @@ const TreeNodeTitle: React.FC<{
           <Tooltip title={t`Shown under a condition`}>
             <FontAwesomeIcon
               icon={faCodeBranch}
-              className="text-[#7763F1] text-[11px] ml-1.5"
+              className="text-primary-500 text-[11px] ml-1.5"
               data-testid="tree-condition-icon"
             />
           </Tooltip>

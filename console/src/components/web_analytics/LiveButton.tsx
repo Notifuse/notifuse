@@ -3,12 +3,14 @@ import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from './useWebAnalytics'
 import { useMinuteTick } from './lib/useMinuteTick'
 import { readTotals, useWebQuery } from './lib/query'
+import { useNumberFormat } from '../layout'
 import { AnalyticsQuery } from '../../services/api/analytics'
 
 const REFRESH_MS = 15_000
 
 export function LiveButton() {
   const { t } = useLingui()
+  const { int } = useNumberFormat()
   const { workspaceId } = useWebAnalytics()
 
   // Sessions still active, i.e. last seen in the past 30 minutes. The window
@@ -44,7 +46,7 @@ export function LiveButton() {
         <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
       </span>
       <span>{t`Live`}</span>
-      <span className="font-semibold text-gray-800">{sessions}</span>
+      <span className="font-semibold text-gray-800">{int(sessions)}</span>
     </Link>
   )
 }

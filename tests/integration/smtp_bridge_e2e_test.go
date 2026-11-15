@@ -19,6 +19,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/Notifuse/notifuse/pkg/smtp_bridge"
 	"github.com/Notifuse/notifuse/tests/testutil"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -146,6 +147,15 @@ func TestSMTPBridgeE2E(t *testing.T) {
 
 	// Shared template
 	template, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateName("SMTP Bridge Test"))
+	require.NoError(t, err)
+
+	// A template with its own reply-to, for the Reply-To subtest.
+	replyToTemplate, err := factory.CreateTemplate(workspace.ID, testutil.WithTemplateName("SMTP Bridge Reply-To"),
+		func(tpl *domain.Template) { tpl.Email.ReplyTo = "template-reply@example.com" })
+	require.NoError(t, err)
+	_, err = factory.CreateTransactionalNotification(workspace.ID,
+		testutil.WithNotificationID("reply_to_check"),
+		testutil.WithNotificationTemplateID(replyToTemplate.ID))
 	require.NoError(t, err)
 
 	// Create all notifications used across subtests
@@ -324,6 +334,50 @@ Content-Type: text/plain
 			require.NoError(t, err)
 			assert.GreaterOrEqual(t, len(messages), 1, "At least one message should be recorded")
 			t.Log("Email with headers was processed successfully")
+		})
+
+		// A relayed message's Reply-To header reaches the recipient over the template's own
+		// reply-to; without the header the template's applies.
+		t.Run("ReplyToHeaderWinsOverTheTemplates", func(t *testing.T) {
+			relay := func(t *testing.T, recipient, replyToHeader string) {
+				t.Helper()
+				smtpClient := smtpBridgeDialAndAuth(t, addr, apiUser.Email, apiKey)
+				defer func() { _ = smtpClient.Close() }()
+				require.NoError(t, smtpClient.Mail("sender@example.com"))
+				require.NoError(t, smtpClient.Rcpt(recipient))
+				wc, err := smtpClient.Data()
+				require.NoError(t, err)
+				headers := "From: sender@example.com\nTo: " + recipient + "\n"
+				if replyToHeader != "" {
+					headers += "Reply-To: " + replyToHeader + "\n"
+				}
+				body := fmt.Sprintf(`{"workspace_id": "%s", "notification": {"id": "reply_to_check", "contact": {"email": "%s"}}}`,
+					workspace.ID, recipient)
+				_, err = wc.Write([]byte(headers + "Subject: Reply-To check\nContent-Type: text/plain\n\n" + body))
+				require.NoError(t, err)
+				require.NoError(t, wc.Close())
+				require.NoError(t, smtpClient.Quit())
+			}
+			replyTo := func(t *testing.T, recipient string) []string {
+				t.Helper()
+				msg, err := testutil.WaitForMailpitMessageByRecipient(t, recipient, 15*time.Second)
+				require.NoError(t, err)
+				return msg.Headers["Reply-To"]
+			}
+			withHeader := "reply-header-" + uuid.NewString()[:8] + "@example.com"
+			withoutHeader := "reply-template-" + uuid.NewString()[:8] + "@example.com"
+
+			relay(t, withHeader, "agent@example.com")
+			relay(t, withoutHeader, "")
+
+			got := replyTo(t, withHeader)
+			require.Len(t, got, 1)
+			assert.Contains(t, got[0], "agent@example.com")
+			assert.NotContains(t, got[0], "template-reply@example.com")
+
+			got = replyTo(t, withoutHeader)
+			require.Len(t, got, 1)
+			assert.Contains(t, got[0], "template-reply@example.com")
 		})
 
 		t.Run("InvalidAuthentication", func(t *testing.T) {

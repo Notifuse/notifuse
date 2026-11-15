@@ -19,7 +19,7 @@ describe('KeyValueList', () => {
     expect((container.firstChild as HTMLElement).style.gridTemplateColumns).toBe('140px minmax(0, 1fr)')
   })
 
-  it('marks the list, its labels and its values data-unreset against the margins of the antd reset', () => {
+  it('marks the list, its labels and its values data-unreset against the antd reset: the margins, and the weight of dt', () => {
     const { container } = render(<KeyValueList items={[{ label: 'Email', value: 'a@b.c' }]} />)
     expect(container.querySelector('dl')).toHaveAttribute('data-unreset')
     expect(container.querySelector('dt')).toHaveAttribute('data-unreset')

@@ -2,6 +2,7 @@ package broadcast_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -123,7 +124,7 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 		assert.NotNil(t, b.PausedAt)
 		require.NotNil(t, b.PauseReason)
 		assert.Contains(t, *b.PauseReason, "sender-since-deleted")
-		assert.Contains(t, *b.PauseReason, `variation "Spring"`)
+		assert.Contains(t, *b.PauseReason, "variation “Spring”")
 		assert.NotContains(t, *b.PauseReason, "feed")
 		return nil
 	})
@@ -139,6 +140,43 @@ func TestProcessBroadcastTask_VariationSenderGone_PausesBeforeSending(t *testing
 	var senderErr *broadcast.SenderUnavailableError
 	require.ErrorAs(t, err, &senderErr)
 	assert.Equal(t, "template-1", senderErr.TemplateID)
+	assert.Equal(t, 1, senderErr.VariationNumber)
+	assert.Equal(t, 1, senderErr.VariationCount)
+}
+
+// In an A/B test the pause names an unnamed variation by its number among the broadcast's.
+func TestProcessBroadcastTask_VariationSenderGone_PausesNamingTheVariation(t *testing.T) {
+	d := newSenderOrchestratorDeps(t)
+	d.broadcasts.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	d.broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(&domain.Broadcast{
+		ID:       "broadcast-123",
+		Status:   domain.BroadcastStatusTesting,
+		Audience: domain.AudienceSettings{List: "list-1"},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: true, SamplePercentage: 20,
+			Variations: []domain.BroadcastVariation{
+				{TemplateID: "template-a", SenderID: d.kept.ID},
+				{TemplateID: "template-b", SenderID: "sender-since-deleted"},
+				{TemplateID: "template-c"},
+			},
+		},
+	}, nil).AnyTimes()
+	d.expectTemplate("template-a")
+	d.expectTemplate("template-b")
+	d.expectTemplate("template-c")
+	d.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		require.NotNil(t, b.PauseReason)
+		assert.Contains(t, *b.PauseReason, "the sender chosen for variation 2 (sender sender-since-deleted)")
+		return nil
+	})
+	d.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).AnyTimes()
+
+	_, err := d.orchestrate.Process(context.Background(), senderTask("test"), time.Now().Add(30*time.Second))
+	var senderErr *broadcast.SenderUnavailableError
+	require.ErrorAs(t, err, &senderErr)
+	assert.Equal(t, 2, senderErr.VariationNumber)
+	assert.Equal(t, 3, senderErr.VariationCount)
+	assert.Equal(t, "template-b", senderErr.TemplateID)
 }
 
 // A broadcast whose test phase is over waits for a winner: a losing variation's missing
@@ -200,7 +238,8 @@ func TestSenderUnavailableError_PauseReason(t *testing.T) {
 		err  broadcast.SenderUnavailableError
 		want string
 	}{
-		{"named variation", broadcast.SenderUnavailableError{VariationName: "Spring", VariationNumber: 2, VariationCount: 2, SenderID: "s-gone"}, `the sender chosen for variation "Spring" (sender s-gone)`},
+		{"named variation", broadcast.SenderUnavailableError{VariationName: "Spring", VariationNumber: 2, VariationCount: 2, SenderID: "s-gone"}, "the sender chosen for variation “Spring” (sender s-gone)"},
+		{"a name with quotes and a backslash is shown as written", broadcast.SenderUnavailableError{VariationName: `The "B" \ side`, VariationNumber: 2, VariationCount: 2, SenderID: "s-gone"}, `the sender chosen for variation “The "B" \ side” (sender s-gone)`},
 		{"unnamed A/B variation, as the console saves them", broadcast.SenderUnavailableError{VariationNumber: 2, VariationCount: 2, TemplateID: "tpl-b", SenderID: "s-gone"}, "the sender chosen for variation 2 (sender s-gone)"},
 		{"single variation", broadcast.SenderUnavailableError{VariationNumber: 1, VariationCount: 1, TemplateID: "tpl", SenderID: "s-gone"}, "the sender chosen for this broadcast (sender s-gone)"},
 	} {
@@ -246,4 +285,51 @@ func TestProcessBroadcastTask_WinnerPhase_OnlyTheWinnersSenderCounts(t *testing.
 
 	_, err := d.orchestrate.Process(context.Background(), senderTask("winner"), time.Now().Add(30*time.Second))
 	require.ErrorIs(t, err, stop)
+}
+
+// A run resumed with every recipient queued already (paused while its last batch was queued)
+// has no email left to address: a variation's removed sender does not pause it again, and it
+// ends the send, as ResumeBroadcast accepts it without the sender.
+func TestProcessBroadcastTask_VariationSenderGone_NothingLeftToQueue(t *testing.T) {
+	d := newSenderOrchestratorDeps(t)
+	d.broadcasts.EXPECT().MarkBroadcastStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	d.broadcasts.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(&domain.Broadcast{
+		ID:       "broadcast-123",
+		Status:   domain.BroadcastStatusProcessing,
+		Audience: domain.AudienceSettings{List: "list-1"},
+		TestSettings: domain.BroadcastTestSettings{
+			Variations: []domain.BroadcastVariation{{VariationName: "Spring", TemplateID: "template-1", SenderID: "sender-since-deleted"}},
+		},
+	}, nil).AnyTimes()
+	d.templates.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(&domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			Subject:          "Hello",
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)},
+		},
+	}, nil).AnyTimes()
+	// The end of the run is written: the broadcast, read with its lock, becomes processed.
+	d.broadcasts.EXPECT().WithTransaction(gomock.Any(), "workspace-123", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) }).AnyTimes()
+	d.broadcasts.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "workspace-123", "broadcast-123").
+		Return(&domain.Broadcast{ID: "broadcast-123", Status: domain.BroadcastStatusProcessing}, nil).AnyTimes()
+	var final *domain.Broadcast
+	d.broadcasts.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error { final = b; return nil }).AnyTimes()
+	d.broadcasts.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		assert.NotEqual(t, domain.BroadcastStatusPaused, b.Status, "not paused again")
+		return nil
+	}).AnyTimes()
+	d.eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Do(func(_ context.Context, event domain.EventPayload) {
+		assert.NotEqual(t, domain.EventBroadcastPaused, event.Type)
+	}).AnyTimes()
+	// Nothing is fetched or sent: every recipient is queued.
+
+	task := senderTask("single")
+	task.State.SendBroadcast.RecipientOffset = int64(task.State.SendBroadcast.TotalRecipients)
+	done, err := d.orchestrate.Process(context.Background(), task, time.Now().Add(30*time.Second))
+	require.NoError(t, err)
+	assert.True(t, done, "the send ends")
+	require.NotNil(t, final, "the end of the run is written")
+	assert.Equal(t, domain.BroadcastStatusProcessed, final.Status)
 }

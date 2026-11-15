@@ -81,6 +81,8 @@ describe('formatters', () => {
     // Halves round away from zero on both sides, like Intl does: -999.5 is "-1K", not "-1,000".
     expect(formatNumber(-999.5)).toBe('-1K')
     expect(formatNumber(999.5)).toBe('1K')
+    // A small negative rounds to zero, without a sign
+    expect(formatNumber(-0.4)).toBe('0')
     expect(formatDuration(45)).toBe('45 s')
     expect(formatDuration(312)).toBe('5 min 12 s')
     expect(formatDuration(300)).toBe('5 min')
@@ -190,6 +192,9 @@ describe('formatCurrency in the console language', () => {
     try {
       // German has no unit for thousands: the amount is written out.
       expect(plain(formatCurrency(12_345, 'EUR'))).toBe('12.345 €')
+      // Without its cents either, as below ten thousand
+      expect(plain(formatCurrency(12_345.68, 'EUR'))).toBe('12.346 €')
+      expect(plain(formatCurrency(9_999.4, 'EUR'))).toBe('9.999 €')
       expect(plain(formatCurrency(2_345_678, 'EUR'))).toBe('2,35 Mio. €')
     } finally {
       i18n.activate('en')

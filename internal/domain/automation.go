@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -111,6 +112,9 @@ func (t NodeType) IsValid() bool {
 	}
 }
 
+// ErrContactAutomationNotFound is returned when a contact's journey does not exist.
+var ErrContactAutomationNotFound = errors.New("contact automation not found")
+
 // ContactAutomationStatus represents the status of a contact's journey in an automation
 type ContactAutomationStatus string
 
@@ -172,6 +176,11 @@ type TimelineTriggerConfig struct {
 // the link_url an email.link_clicked trigger can usefully match.
 const MaxClickedURLLength = 2048
 
+// MaxTriggerIDFilterLength bounds the broadcast_id and template_id filters of an
+// email.link_clicked trigger: the IDs they match are far shorter, and the value is compiled
+// into the trigger's SQL.
+const MaxTriggerIDFilterLength = 64
+
 // validateLinkClickFilters checks the filters only an email.link_clicked trigger takes. Their
 // values reach the trigger's WHEN clause as SQL literals; a NUL byte cannot be stored in one.
 func (c *TimelineTriggerConfig) validateLinkClickFilters() error {
@@ -195,6 +204,11 @@ func (c *TimelineTriggerConfig) validateLinkClickFilters() error {
 	}
 	if c.LinkURL != nil && len(*c.LinkURL) > MaxClickedURLLength {
 		return fmt.Errorf("link_url must be at most %d characters", MaxClickedURLLength)
+	}
+	for _, f := range filters[1:] {
+		if f.value != nil && len(*f.value) > MaxTriggerIDFilterLength {
+			return fmt.Errorf("%s must be at most %d characters", f.name, MaxTriggerIDFilterLength)
+		}
 	}
 	return nil
 }
@@ -915,6 +929,9 @@ type AutomationRepository interface {
 	// RenewContactAutomationClaim extends a claim to now + lease while the journey is active and
 	// still holds token; false when another instance claimed it since or it ended.
 	RenewContactAutomationClaim(ctx context.Context, workspaceID, id string, token time.Time, lease time.Duration) (bool, error)
+	// ReleaseContactAutomationClaim makes a claimed journey due now while it is active and still
+	// holds token; false when another instance claimed it since or it ended.
+	ReleaseContactAutomationClaim(ctx context.Context, workspaceID, id string, token time.Time) (bool, error)
 
 	// ExitContactJourneysOnReply marks the contact's active journeys as exited
 	// (with the given reason) when their automation has exit_on_reply enabled. When
@@ -1090,7 +1107,7 @@ func (r *ListAutomationsRequest) FromURLParams(params map[string][]string) error
 	if v, ok := params["with_journey_counts"]; ok && len(v) > 0 && v[0] != "" {
 		withCounts, err := strconv.ParseBool(v[0])
 		if err != nil {
-			return fmt.Errorf("invalid with_journey_counts parameter: must be true or false")
+			return fmt.Errorf("invalid with_journey_counts parameter: must be a boolean")
 		}
 		r.WithJourneyCounts = withCounts
 	}

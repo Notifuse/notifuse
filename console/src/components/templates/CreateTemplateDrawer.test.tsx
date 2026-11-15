@@ -10,6 +10,7 @@ import type { Template, Workspace } from '../../services/api/types'
 import type { EmailAIAssistantProps } from '../email_builder/EmailAIAssistant'
 import { templatesApi } from '../../services/api/template'
 import { templateBlocksApi } from '../../services/api/template_blocks'
+import { EmailBlockClass } from '../email_builder/EmailBlockClass'
 import type {
   DeleteSavedBlockHandler,
   EmailBlock,
@@ -25,6 +26,7 @@ import type {
 // The visual builder stub records its last props, so the tests can call the handlers the drawer gives it
 // (onSaveBlock, onCompile).
 const builder = vi.hoisted(() => ({ props: undefined as undefined | Record<string, unknown> }))
+const assistant = vi.hoisted(() => ({ props: undefined as undefined | Record<string, unknown> }))
 const auth = vi.hoisted(() => ({ refreshWorkspaces: vi.fn() }))
 vi.mock('../email_builder/EmailBuilder', () => ({
   default: (props: Record<string, unknown>) => {
@@ -33,9 +35,10 @@ vi.mock('../email_builder/EmailBuilder', () => ({
   }
 }))
 vi.mock('../email_builder/EmailAIAssistant', () => ({
-  EmailAIAssistant: ({ category }: EmailAIAssistantProps) => (
-    <div data-testid="email-ai-assistant" data-category={category ?? ''} />
-  )
+  EmailAIAssistant: (props: EmailAIAssistantProps) => {
+    assistant.props = props as unknown as Record<string, unknown>
+    return <div data-testid="email-ai-assistant" data-category={props.category ?? ''} />
+  }
 }))
 vi.mock('../email_builder/MjmlCodeEditor', () => ({
   default: () => null,
@@ -201,6 +204,92 @@ describe('CreateTemplateDrawer AI assistant context', () => {
         'marketing'
       )
     })
+  })
+})
+
+describe('CreateTemplateDrawer AI assistant column widths', () => {
+  const col = (id: string, width: string) => ({ id, type: 'mj-column', attributes: { width }, children: [] })
+  const withSection = (columns: unknown[]): Template => {
+    const template = makeTemplate(3)
+    return {
+      ...template,
+      email: {
+        ...template.email,
+        visual_editor_tree: {
+          id: 'root',
+          type: 'mjml',
+          children: [
+            {
+              id: 'body',
+              type: 'mj-body',
+              attributes: {},
+              children: [{ id: 'sec', type: 'mj-section', attributes: {}, children: columns }]
+            }
+          ]
+        }
+      }
+    } as unknown as Template
+  }
+  const widths = () => {
+    const tree = builder.props!.tree as EmailBlock
+    return (EmailBlockClass.findBlockById(tree, 'sec')?.children ?? []).map(
+      (child) => (child.attributes as Record<string, unknown>).width
+    )
+  }
+  const callbacks = () =>
+    assistant.props!.callbacks as Required<NonNullable<EmailAIAssistantProps['callbacks']>>
+
+  const openEditor = async (template: Template) => {
+    ;(templatesApi.get as Mock).mockResolvedValue({ template })
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} template={template} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await waitFor(() => expect(builder.props?.tree).toBeDefined())
+    await waitFor(() => expect(widths().length).toBeGreaterThan(0))
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+    assistant.props = undefined
+  })
+
+  it('gives a column the assistant adds its share, the others keeping their ratio, as the editor does', async () => {
+    await openEditor(withSection([col('a', '30%'), col('b', '70%')]))
+
+    act(() => callbacks().onAddBlock('sec', 'mj-column', 2))
+
+    await waitFor(() => expect(widths()).toEqual(['20%', '46.67%', '33.33%']))
+  })
+
+  it('scales the columns left when the assistant deletes one', async () => {
+    await openEditor(withSection([col('a', '20%'), col('b', '30%'), col('c', '50%')]))
+
+    act(() => callbacks().onDeleteBlock('c'))
+
+    await waitFor(() => expect(widths()).toEqual(['40%', '60%']))
+  })
+
+  it('rebalances both sections when the assistant moves a column between them, not on a reorder', async () => {
+    const template = withSection([col('a', '50%'), col('b', '50%')])
+    const body = (template.email!.visual_editor_tree as unknown as EmailBlock).children![0]
+    ;(body.children as EmailBlock[]).push({
+      id: 'sec2',
+      type: 'mj-section',
+      attributes: {},
+      children: [col('d', '100%')]
+    } as unknown as EmailBlock)
+    await openEditor(template)
+
+    act(() => callbacks().onMoveBlock('b', 'sec', 0))
+    await waitFor(() => expect(widths()).toEqual(['50%', '50%']))
+
+    act(() => callbacks().onMoveBlock('b', 'sec2', 1))
+    await waitFor(() => expect(widths()).toEqual(['100%']))
+    const second = EmailBlockClass.findBlockById(builder.props!.tree as EmailBlock, 'sec2')
+    expect(second?.children?.map((child) => (child.attributes as Record<string, unknown>).width)).toEqual([
+      '50%',
+      '50%'
+    ])
   })
 })
 
@@ -404,9 +493,21 @@ describe('CreateTemplateDrawer saving a block from the editor', () => {
     })
     await waitFor(() => expect(toasts('success')).toHaveLength(1))
     expect(
-      await screen.findByText('Block saved. Reload the page to see it in your saved blocks.')
+      await screen.findByText('Block replaced. Reload the page to see its new content in your saved blocks.')
     ).toBeInTheDocument()
     expect(toasts('error')).toHaveLength(0)
+  })
+
+  it('warns with the saved block when creating it is done but refreshing the workspace fails', async () => {
+    ;(templateBlocksApi.create as Mock).mockResolvedValue({ block: { id: 'products-id' } })
+    auth.refreshWorkspaces.mockRejectedValue(new Error('network'))
+    const onSaveBlock = await openEditor()
+
+    await expect(onSaveBlock(block, 'create', 'Products')).resolves.toBe('products-id')
+
+    expect(
+      await screen.findByText('Block saved. Reload the page to see it in your saved blocks.')
+    ).toBeInTheDocument()
   })
 })
 
@@ -454,24 +555,31 @@ describe('CreateTemplateDrawer managing saved blocks', () => {
     expect((await openEditor(true)).canManageSavedBlocks).toBe(true)
   })
 
-  it('renames a saved block, keeping its content, then refreshes', async () => {
+  it('renames a saved block, keeping its content as the server has it, then refreshes', async () => {
+    // Replaced elsewhere since the workspace was loaded: the server's content is the one kept
+    const replaced = { ...block, id: 'b2' } as EmailBlock
+    ;(templateBlocksApi.get as Mock).mockResolvedValue({
+      block: { id: 'header-id', name: 'Header', block: replaced }
+    })
     ;(templateBlocksApi.update as Mock).mockResolvedValue({ block: {} })
     const props = await openEditor(true)
     const rename = props.onRenameSavedBlock as RenameSavedBlockHandler
 
     await expect(rename('header-id', 'Top')).resolves.toBeUndefined()
 
+    expect(templateBlocksApi.get).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'header-id' })
     expect(templateBlocksApi.update).toHaveBeenCalledWith({
       workspace_id: 'ws1',
       id: 'header-id',
       name: 'Top',
-      block
+      block: replaced
     })
     expect(auth.refreshWorkspaces).toHaveBeenCalledTimes(1)
     expect(await screen.findByText('Block renamed to "Top"')).toBeInTheDocument()
   })
 
   it('rejects and shows the error when renaming fails', async () => {
+    ;(templateBlocksApi.get as Mock).mockResolvedValue({ block: { id: 'header-id', name: 'Header', block } })
     ;(templateBlocksApi.update as Mock).mockRejectedValue(new Error('Server down'))
     const rename = (await openEditor(true)).onRenameSavedBlock as RenameSavedBlockHandler
 
@@ -482,9 +590,17 @@ describe('CreateTemplateDrawer managing saved blocks', () => {
   })
 
   it('refreshes when the block to rename is already gone from the server', async () => {
-    ;(templateBlocksApi.update as Mock).mockRejectedValue(
-      new ApiError('Template block not found', 404)
-    )
+    ;(templateBlocksApi.get as Mock).mockRejectedValue(new ApiError('Template block not found', 404))
+    const rename = (await openEditor(true)).onRenameSavedBlock as RenameSavedBlockHandler
+
+    await expect(rename('header-id', 'Top')).rejects.toThrow()
+    expect(templateBlocksApi.update).not.toHaveBeenCalled()
+    expect(auth.refreshWorkspaces).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes when the block to rename goes between the read and the update', async () => {
+    ;(templateBlocksApi.get as Mock).mockResolvedValue({ block: { id: 'header-id', name: 'Header', block } })
+    ;(templateBlocksApi.update as Mock).mockRejectedValue(new ApiError('Template block not found', 404))
     const rename = (await openEditor(true)).onRenameSavedBlock as RenameSavedBlockHandler
 
     await expect(rename('header-id', 'Top')).rejects.toThrow()

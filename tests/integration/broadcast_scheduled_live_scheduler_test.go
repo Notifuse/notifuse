@@ -509,6 +509,13 @@ func TestTask_StaleRunning_Reaped_Issue317(t *testing.T) {
 	require.NoError(t, err)
 	updateResp.Body.Close()
 
+	// The task belongs to a broadcast that was scheduled: a run refuses to send a draft's.
+	broadcastRepo := appIface.GetBroadcastRepository()
+	stored, err := broadcastRepo.GetBroadcast(context.Background(), workspace.ID, broadcast.ID)
+	require.NoError(t, err)
+	stored.Status = domain.BroadcastStatusScheduled
+	require.NoError(t, broadcastRepo.UpdateBroadcast(context.Background(), stored))
+
 	// Seed a send_broadcast task directly in status=running with timeout_after
 	// long in the past — simulating a task whose prior execution died after
 	// MarkAsRunningTx but before MarkAsPending/Completed/Failed. The reporter

@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MjGroupBlock } from './MjGroupBlock'
 import { EmailBlockClass } from '../EmailBlockClass'
 import type { EmailBlock, MergedBlockAttributes } from '../types'
+import type { PreviewProps } from './BaseEmailBlock'
 
 const column = (id: string) => ({ id, type: 'mj-column', attributes: {}, children: [] })
 const groupBlock = (id = 'g', attributes: Record<string, unknown> = {}) => ({
@@ -75,5 +76,69 @@ describe('group Width placeholder', () => {
     const defaults = groupBlock('defaults-group')
     const tree = treeWith([groupBlock(), column('c')], [defaults])
     expect(widthPlaceholder(defaults, tree)).toBe('Enter width')
+  })
+})
+
+describe('group Width warning', () => {
+  const warning = /go .*% past its width/
+  const renderPanel = (group: unknown, tree: EmailBlock) =>
+    render(<>{new MjGroupBlock(group as EmailBlock).renderSettingsPanel(vi.fn(), {} as MergedBlockAttributes, tree)}</>)
+
+  it('warns when the section goes past 100%', () => {
+    const g = groupBlock('g', { width: '70%' })
+    renderPanel(g, treeWith([g, { ...column('c'), attributes: { width: '60%' } }]))
+    expect(screen.getByText(/go 30% past its width/)).toBeInTheDocument()
+  })
+
+  it('says nothing when the section fits', () => {
+    const g = groupBlock('g', { width: '40%' })
+    renderPanel(g, treeWith([g, { ...column('c'), attributes: { width: '60%' } }]))
+    expect(screen.queryByText(warning)).toBeNull()
+  })
+})
+
+describe('group canvas', () => {
+  const props = () =>
+    ({
+      selectedBlockId: null,
+      onSelectBlock: vi.fn(),
+      onUpdateBlock: vi.fn(),
+      onCloneBlock: vi.fn(),
+      onDeleteBlock: vi.fn(),
+      attributeDefaults: {},
+      emailTree: {} as EmailBlock,
+      onSaveBlock: vi.fn()
+    }) as unknown as PreviewProps
+
+  const cellWidths = (group: unknown) => {
+    const { container } = render(<>{new MjGroupBlock(group as EmailBlock).getEdit(props())}</>)
+    return Array.from(container.querySelectorAll<HTMLElement>('[data-group-column-width]')).map(
+      (cell) => [cell.style.flexBasis, cell.style.maxWidth]
+    )
+  }
+
+  it('gives each column its own width, as in the email', () => {
+    const group = {
+      id: 'g',
+      type: 'mj-group',
+      attributes: {},
+      children: [
+        { ...column('a'), attributes: { width: '30%' } },
+        { ...column('b'), attributes: { width: '70%' } }
+      ]
+    }
+    expect(cellWidths(group)).toEqual([
+      ['30%', '30%'],
+      ['70%', '70%']
+    ])
+  })
+
+  it('gives a column without a width its share of the group', () => {
+    const group = { id: 'g', type: 'mj-group', attributes: {}, children: [column('a'), column('b'), column('c')] }
+    expect(cellWidths(group)).toEqual([
+      ['33.33%', '33.33%'],
+      ['33.33%', '33.33%'],
+      ['33.33%', '33.33%']
+    ])
   })
 })

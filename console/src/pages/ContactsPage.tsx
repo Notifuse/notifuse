@@ -2,7 +2,7 @@ import React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Skeleton, Tooltip } from 'antd'
 import { RefreshCw } from 'lucide-react'
-import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
+import { useParams, useSearch, useNavigate, useRouter } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { workspaceContactsRoute, type ContactsSearch } from '../router'
 import { contactsApi, type Contact } from '../services/api/contacts'
@@ -28,11 +28,7 @@ import { BulkActionProgressModal } from '../components/contacts/BulkActionProgre
 import { BlockError } from '../components/contacts/BlockError'
 import { SegmentDefinedBy } from '../components/contacts/SegmentDefinedBy'
 import { useContactsCsvUpload } from '../components/contacts/ContactsCsvUploadProvider'
-import {
-  contactsTableKey,
-  useContactsTableQuery,
-  type ContactsTableData
-} from '../components/contacts/useContactsTableQuery'
+import { useContactsTableQuery, type ContactsTableData } from '../components/contacts/useContactsTableQuery'
 import { useListsQuery, useSegmentsQuery } from '../components/contacts/useContactsLookups'
 import {
   CONTACTS_PAGE_SIZE,
@@ -89,6 +85,7 @@ export function ContactsPage() {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
   const search = useSearch({ from: workspaceContactsRoute.id })
   const navigate = useNavigate()
+  const router = useRouter()
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
   const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
@@ -127,7 +124,6 @@ export function ContactsPage() {
     segment_id: view.kind === 'segment' ? view.segmentId : undefined
   }
   const tableSearch = toTableSearch(effectiveSearch)
-  const tableKey = contactsTableKey(workspaceId, tableSearch)
   const table = useContactsTableQuery(workspaceId, tableSearch, {
     enabled: canReadContacts && !permissionsLoading
   })
@@ -335,6 +331,10 @@ export function ContactsPage() {
     if (typed !== sentSearch.current) {
       window.clearTimeout(searchTimer.current)
       commitSearch(typed)
+      // The browser history queues its changes until the next microtask and merges a replace and a
+      // push of the same tick into one push: the replace is written first, or the entry under the
+      // sheet would keep the old search.
+      router.history.flush()
     }
     sheetOpenedHere.current = true
     go((prev) => ({ ...prev, contact: email }))
@@ -347,17 +347,40 @@ export function ContactsPage() {
     }
     go((prev) => ({ ...prev, contact: undefined }), true)
   }
+  // The rows J loaded while the sheet was open (its own entry's limit) are kept when Back closes it
+  // onto the entry before: the same filters get that limit again. A filter changed on closing
+  // starts over, as it does without a sheet.
+  const sheetRows = React.useRef<{ filters: string; limit: number } | null>(null)
+  React.useEffect(() => {
+    const limit = search.limit ?? CONTACTS_PAGE_SIZE
+    if (search.contact) {
+      sheetRows.current = { filters: filtersKey, limit }
+      return
+    }
+    const kept = sheetRows.current
+    sheetRows.current = null
+    if (kept && kept.filters === filtersKey && kept.limit > limit) {
+      go((prev) => ({ ...prev, limit: kept.limit }), true)
+    }
+  }, [search.contact, search.limit, filtersKey, go])
 
   // ---- Row edit and delete
   const [contactToEdit, setContactToEdit] = React.useState<Contact | null>(null)
   const [contactToDelete, setContactToDelete] = React.useState<string | null>(null)
+  // Deleted contacts and when the delete started. During a load more, the table shows the rows the
+  // previous page size kept (placeholder data), which the cache update below cannot reach, so the
+  // rows are filtered here too, until a fetch that started after the delete answers.
+  const [deletedAt, setDeletedAt] = React.useState<ReadonlyMap<string, number>>(new Map())
   const deleteMutation = useMutation({
     mutationFn: (email: string) => contactsApi.delete({ workspace_id: workspaceId, email }),
     onMutate: async (email) => {
-      await queryClient.cancelQueries({ queryKey: tableKey })
-      const previous = queryClient.getQueryData<ContactsTableData>(tableKey)
-      queryClient.setQueryData<ContactsTableData>(tableKey, (old) =>
-        old ? { ...old, contacts: old.contacts.filter((c) => c.email !== email) } : old
+      setDeletedAt((prev) => new Map(prev).set(email, Date.now()))
+      // Every page size of every view, since the table may show any of them next
+      const tables = { queryKey: ['contacts', workspaceId] }
+      await queryClient.cancelQueries(tables)
+      const previous = queryClient.getQueriesData<ContactsTableData>(tables)
+      queryClient.setQueriesData<ContactsTableData>(tables, (old) =>
+        old?.contacts ? { ...old, contacts: old.contacts.filter((c) => c.email !== email) } : old
       )
       return { previous }
     },
@@ -372,12 +395,31 @@ export function ContactsPage() {
         go((prev) => ({ ...prev, contact: undefined }), true)
       }
     },
-    onError: (error: Error, _email, context) => {
-      if (context?.previous) queryClient.setQueryData(tableKey, context.previous)
+    onError: (error: Error, email, context) => {
+      setDeletedAt((prev) => {
+        const next = new Map(prev)
+        next.delete(email)
+        return next
+      })
+      for (const [key, data] of context?.previous ?? []) queryClient.setQueryData(key, data)
       message.error(error?.message || t`Failed to delete contact`)
     },
     onSettled: invalidateAfterContactChange
   })
+
+  // Once the table's data is newer than a delete (the optimistic update stamps it, and so does any
+  // later read), that data no longer holds the row: forget the delete, so that a contact created
+  // again with that email shows during the next load more.
+  React.useEffect(() => {
+    if (table.isPlaceholderData) return
+    const answered = [...deletedAt].filter(([, at]) => table.dataUpdatedAt > at).map(([email]) => email)
+    if (answered.length === 0) return
+    setDeletedAt((prev) => {
+      const next = new Map(prev)
+      for (const email of answered) next.delete(email)
+      return next
+    })
+  }, [deletedAt, table.isPlaceholderData, table.dataUpdatedAt])
 
   // ---- Lists and segments created or edited from the rail and the list header
   const [listDrawer, setListDrawer] = React.useState<'create' | 'edit' | null>(null)
@@ -429,7 +471,10 @@ export function ContactsPage() {
     return <div className="px-5 pt-6 text-sm text-ink-3">{t`You don't have access to contacts`}</div>
   }
 
-  const rows = table.data?.contacts ?? []
+  const rows = (table.data?.contacts ?? []).filter((c) => {
+    const at = deletedAt.get(c.email)
+    return at === undefined || (!table.isPlaceholderData && table.dataUpdatedAt > at)
+  })
   const hasMore = !!table.data?.next_cursor
   const rowFilters = hasRowFilters(tableSearch)
   const filtered = rowFilters || (view.kind === 'list' && !!tableSearch.contact_list_status)

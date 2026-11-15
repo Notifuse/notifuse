@@ -3,6 +3,7 @@ import { Tag, Tooltip } from 'antd'
 import { i18n } from '@lingui/core'
 import { msg } from '@lingui/core/macro'
 import dayjs from '../lib/dayjs'
+import { onZoneClock } from '../lib/zoneClock'
 
 /**
  * Smart formatting for all JSON types
@@ -37,9 +38,10 @@ export const formatValue = (value: unknown, timezone?: string): React.ReactNode 
     if (date.isValid()) {
       // On the clock of the timezone it names, in the console's language; without one, the
       // browser's clock and no zone name.
-      const when = timezone ? date.tz(timezone).format('LLLL') : date.format('LLLL')
+      const clock = timezone ? onZoneClock(date, timezone) : undefined
+      const when = clock ? clock.when.format('LLLL') : date.format('LLLL')
       // Named `zone` so the message is the "{when} in {zone}" already translated for the timeline.
-      const zone = timezone
+      const zone = clock?.zone
       const title = zone ? i18n._(msg`${when} in ${zone}`) : when
       return (
         <Tooltip title={title}>

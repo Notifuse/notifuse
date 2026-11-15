@@ -16,7 +16,8 @@ import (
 )
 
 // How reset and trigger answer each kind of service error, once the task was found
-// and the caller may change it.
+// and the caller may change it. Only the failure on our side is logged at Error, once, with
+// the internal error (the logger mock refuses any other Error).
 func TestTaskHandler_ResetAndTrigger_ErrorStatuses(t *testing.T) {
 	dbFailure := errors.New("pq: connection refused")
 	cases := []struct {
@@ -54,21 +55,23 @@ func TestTaskHandler_ResetAndTrigger_ErrorStatuses(t *testing.T) {
 	for _, route := range []string{"reset", "trigger"} {
 		for _, tc := range cases {
 			t.Run(route+": "+tc.name, func(t *testing.T) {
-				ctrl := gomock.NewController(t)
-				handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
+				handler, mockTaskService, mockAuth, log, fields := recordingTaskHandler(t)
 				allowOwner(mockAuth)
-				mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
-					Return(&domain.Task{ID: "task-1", Type: "sync_integration"}, nil)
+				if tc.wantStatus == http.StatusInternalServerError {
+					log.EXPECT().Error("Failed to " + route + " task").Times(1)
+				}
+				mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+					Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", Type: "sync_integration"}, nil)
 				err := tc.err(route)
 
 				req := httptest.NewRequest(http.MethodPost, "/api/tasks."+route,
-					strings.NewReader(`{"workspace_id": "ws-1", "id": "task-1"}`))
+					strings.NewReader(`{"workspace_id": "ws-1", "id": "11111111-1111-4111-8111-111111111111"}`))
 				rec := httptest.NewRecorder()
 				if route == "reset" {
-					mockTaskService.EXPECT().ResetTask(gomock.Any(), "ws-1", "task-1").Return(err)
+					mockTaskService.EXPECT().ResetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(err)
 					handler.ResetTask(rec, req)
 				} else {
-					mockTaskService.EXPECT().TriggerTask(gomock.Any(), "ws-1", "task-1").Return(err)
+					mockTaskService.EXPECT().TriggerTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(err)
 					handler.TriggerTask(rec, req)
 				}
 
@@ -77,6 +80,9 @@ func TestTaskHandler_ResetAndTrigger_ErrorStatuses(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 				assert.Equal(t, tc.wantError(route), body["error"])
 				assert.NotContains(t, rec.Body.String(), "pq:", "no internal error text in the body")
+				if tc.wantStatus == http.StatusInternalServerError {
+					assertErrorFieldLogged(t, *fields, dbFailure.Error())
+				}
 			})
 		}
 	}

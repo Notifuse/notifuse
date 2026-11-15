@@ -138,7 +138,7 @@
   z-index: 2;
   padding: 0 6px;
   border-bottom-left-radius: 4px;
-  background: #7763f1;
+  background: var(--ant-color-primary);
   color: #fff;
   font-size: 11px;
   font-weight: 600;

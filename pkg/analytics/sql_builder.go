@@ -242,13 +242,16 @@ func (sb *SQLBuilder) BuildSQL(query Query, schema SchemaDefinition) (string, []
 			orderDirection = "ASC"
 		}
 
-		// Check if field exists in measures or dimensions
+		// Check if field exists in measures or dimensions. A measure orders by its aggregate,
+		// as HAVING filters by it: its raw SQL (* for a count, a column for a max) is not valid
+		// outside the aggregate, and the aggregate does not need the measure to be selected.
 		var fieldSQL string
 		if measureDef, exists := schema.Measures[field]; exists {
-			fieldSQL = measureDef.SQL
-			if fieldSQL == "" {
-				fieldSQL = field
+			measureSQL := measureDef.SQL
+			if measureSQL == "" {
+				measureSQL = field
 			}
+			fieldSQL = sb.buildMeasureSQL(measureDef.Type, measureSQL, measureDef.Filters)
 		} else if dimensionDef, exists := schema.Dimensions[field]; exists {
 			fieldSQL = dimensionDef.SQL
 			if fieldSQL == "" {
@@ -615,8 +618,10 @@ func ScanRows(rows *sql.Rows) ([]map[string]interface{}, error) {
 	return data, nil
 }
 
-// ProcessRows scans SQL rows and fills time series gaps if the query has time dimensions
-func ProcessRows(rows *sql.Rows, query Query) ([]map[string]interface{}, error) {
+// ProcessRows scans SQL rows and fills time series gaps if the query has time dimensions.
+// measureTypes maps each measure to its type (SchemaDefinition.MeasureTypes), which says what
+// a filled period holds for it.
+func ProcessRows(rows *sql.Rows, query Query, measureTypes map[string]string) ([]map[string]interface{}, error) {
 	// First scan the rows normally
 	data, err := ScanRows(rows)
 	if err != nil {
@@ -637,7 +642,18 @@ func ProcessRows(rows *sql.Rows, query Query) ([]map[string]interface{}, error) 
 	}
 
 	// For time series queries, fill gaps with zero values
-	return fillTimeSeriesGaps(data, query)
+	return fillTimeSeriesGaps(data, query, measureTypes)
+}
+
+// emptyMeasureValue is what a measure of this type is over no row: 0 for a count or a sum,
+// nil for a max, a min or an average, which have no value then. An unknown type gets 0.
+func emptyMeasureValue(measureType string) interface{} {
+	switch measureType {
+	case "max", "min", "avg":
+		return nil
+	default:
+		return 0
+	}
 }
 
 // generateZeroValueRow creates a single row with zero values for all measures
@@ -657,8 +673,14 @@ func generateZeroValueRow(query Query) []map[string]interface{} {
 	return []map[string]interface{}{row}
 }
 
-// fillTimeSeriesGaps fills missing time periods with zero values
-func fillTimeSeriesGaps(data []map[string]interface{}, query Query) ([]map[string]interface{}, error) {
+// fillTimeSeriesGaps gives every period of the date range a row for each combination of
+// dimension values seen in the data (or one row with empty dimensions when there is none). A
+// row is keyed by its period and its dimension values, so a query with a dimension keeps every
+// row of a period. A filled row holds each measure's empty value (emptyMeasureValue).
+// Periods times combinations is bounded by maxGapFilledRows: past it, the data is returned
+// unfilled, as a dimension with many values over a long range would otherwise make millions
+// of rows.
+func fillTimeSeriesGaps(data []map[string]interface{}, query Query, measureTypes map[string]string) ([]map[string]interface{}, error) {
 	if len(query.TimeDimensions) == 0 {
 		return data, nil
 	}
@@ -698,45 +720,71 @@ func fillTimeSeriesGaps(data []map[string]interface{}, query Query) ([]map[strin
 		return data, nil
 	}
 
-	// Create a map of existing data by time dimension
-	existingData := make(map[string]map[string]interface{})
-	for _, row := range data {
-		if timeVal, exists := row[timeDimColumn]; exists {
-			if timeStr, ok := timeVal.(string); ok {
-				existingData[timeStr] = row
-			}
+	dimensionKey := func(row map[string]interface{}) string {
+		parts := make([]string, len(query.Dimensions))
+		for i, dimension := range query.Dimensions {
+			parts[i] = fmt.Sprintf("%T:%v", row[dimension], row[dimension])
 		}
+		return strings.Join(parts, "\x00")
 	}
 
-	// Fill gaps
-	result := make([]map[string]interface{}, 0, len(timeRange))
-	for _, timeStr := range timeRange {
-		if existingRow, exists := existingData[timeStr]; exists {
-			// Use existing data
-			result = append(result, existingRow)
-		} else {
-			// Create zero-value row
-			zeroRow := make(map[string]interface{})
-
-			// Set time dimension
-			zeroRow[timeDimColumn] = timeStr
-
-			// Set all measures to zero
-			for _, measure := range query.Measures {
-				zeroRow[measure] = 0
-			}
-
-			// Set dimensions to empty strings or copy from first existing row
+	// The existing rows by period and dimension values, and the combinations of dimension
+	// values in the order the data first shows them.
+	existingData := make(map[string]map[string]interface{})
+	var combinations []map[string]interface{}
+	seen := make(map[string]bool)
+	for _, row := range data {
+		timeStr, ok := row[timeDimColumn].(string)
+		if !ok {
+			continue
+		}
+		key := dimensionKey(row)
+		existingData[timeStr+"\x00"+key] = row
+		if !seen[key] {
+			seen[key] = true
+			combination := make(map[string]interface{}, len(query.Dimensions))
 			for _, dimension := range query.Dimensions {
-				zeroRow[dimension] = ""
+				combination[dimension] = row[dimension]
 			}
+			combinations = append(combinations, combination)
+		}
+	}
+	if len(combinations) == 0 {
+		empty := make(map[string]interface{}, len(query.Dimensions))
+		for _, dimension := range query.Dimensions {
+			empty[dimension] = ""
+		}
+		combinations = append(combinations, empty)
+	}
 
-			result = append(result, zeroRow)
+	if len(timeRange)*len(combinations) > maxGapFilledRows {
+		return data, nil
+	}
+
+	result := make([]map[string]interface{}, 0, len(timeRange)*len(combinations))
+	for _, timeStr := range timeRange {
+		for _, combination := range combinations {
+			if existingRow, exists := existingData[timeStr+"\x00"+dimensionKey(combination)]; exists {
+				result = append(result, existingRow)
+				continue
+			}
+			filled := make(map[string]interface{}, len(query.Measures)+len(combination)+1)
+			filled[timeDimColumn] = timeStr
+			for _, measure := range query.Measures {
+				filled[measure] = emptyMeasureValue(measureTypes[measure])
+			}
+			for dimension, value := range combination {
+				filled[dimension] = value
+			}
+			result = append(result, filled)
 		}
 	}
 
 	return result, nil
 }
+
+// maxGapFilledRows bounds the rows the gap filling may return.
+const maxGapFilledRows = 50000
 
 // generateTimeRange generates a slice of time strings based on start, end, and granularity
 func generateTimeRange(start, end time.Time, granularity string) []string {

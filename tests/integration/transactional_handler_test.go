@@ -1288,11 +1288,8 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		foundEmail := false
 		for _, msgSummary := range mailpitData.Messages {
 			// Get full message to check headers
-			fullMsg, err := testutil.GetMailpitMessage(t, msgSummary.ID)
-			if err != nil {
-				t.Logf("Failed to get full message: %v", err)
-				continue
-			}
+			fullMsg, err := testutil.GetMailpitMessageEventually(t, msgSummary.ID, 5*time.Second)
+			require.NoError(t, err, "a message that cannot be read is not skipped")
 			// Check if this is our email by looking at the subject
 			subjects := fullMsg.Headers["Subject"]
 			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
@@ -1406,10 +1403,8 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		// Verify at least one email was sent
 		foundEmail := false
 		for _, msgSummary := range mailpitData.Messages {
-			fullMsg, err := testutil.GetMailpitMessage(t, msgSummary.ID)
-			if err != nil {
-				continue
-			}
+			fullMsg, err := testutil.GetMailpitMessageEventually(t, msgSummary.ID, 5*time.Second)
+			require.NoError(t, err, "a message that cannot be read is not skipped")
 			subjects := fullMsg.Headers["Subject"]
 			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
 				foundEmail = true
@@ -1884,11 +1879,8 @@ func testTransactionalSendWithCustomSubject(t *testing.T, client *testutil.APICl
 		foundEmail := false
 		for _, msgSummary := range mailpitData.Messages {
 			// Get full message to check headers
-			fullMsg, err := testutil.GetMailpitMessage(t, msgSummary.ID)
-			if err != nil {
-				t.Logf("Failed to get full message: %v", err)
-				continue
-			}
+			fullMsg, err := testutil.GetMailpitMessageEventually(t, msgSummary.ID, 5*time.Second)
+			require.NoError(t, err, "a message that cannot be read is not skipped")
 			// Check if this is our email by looking at the subject
 			subjects := fullMsg.Headers["Subject"]
 			if len(subjects) > 0 && subjects[0] == customSubject {
@@ -2006,11 +1998,8 @@ func testTransactionalSendWithCustomSubjectPreview(t *testing.T, client *testuti
 		// Find our email and verify the preheader is in the HTML body
 		foundEmail := false
 		for _, msgSummary := range mailpitData.Messages {
-			fullMsg, err := testutil.GetMailpitMessage(t, msgSummary.ID)
-			if err != nil {
-				t.Logf("Failed to get full message: %v", err)
-				continue
-			}
+			fullMsg, err := testutil.GetMailpitMessageEventually(t, msgSummary.ID, 5*time.Second)
+			require.NoError(t, err, "a message that cannot be read is not skipped")
 			if fullMsg.Subject == customSubject {
 				foundEmail = true
 				// The preheader text should appear in the HTML body inside the hidden div

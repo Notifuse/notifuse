@@ -227,6 +227,10 @@ func (s *BlogService) UpdateCategory(ctx context.Context, request *domain.Update
 
 	// Check if slug is changing and if new slug already exists
 	if category.Slug != request.Slug {
+		// An existing category with a reserved slug stays editable; it cannot move to one.
+		if domain.IsReservedBlogCategorySlug(request.Slug) {
+			return nil, fmt.Errorf("slug is reserved by another route")
+		}
 		existing, err := s.categoryRepo.GetCategoryBySlug(ctx, request.Slug)
 		if err == nil && existing != nil && existing.ID != request.ID {
 			return nil, fmt.Errorf("category with slug '%s' already exists", request.Slug)
@@ -837,22 +841,7 @@ func (s *BlogService) GetPublicPostByCategoryAndSlug(ctx context.Context, catego
 	return post, nil
 }
 
-// ListPublicPosts retrieves published blog posts (no auth required)
-func (s *BlogService) ListPublicPosts(ctx context.Context, params *domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
-	// Force status to published, and hide posts scheduled after now
-	params.Status = domain.BlogPostStatusPublished
-	now := time.Now().UTC()
-	params.PublishedBefore = &now
-
-	// Validate the request
-	if err := params.Validate(); err != nil {
-		return nil, err
-	}
-
-	return s.postRepo.ListPosts(ctx, *params)
-}
-
-// ListPublicSitemapPosts returns the live posts the blog sitemap lists, newest first, at most
+// ListPublicSitemapPosts returns the live posts the sitemap can list, newest first, at most
 // domain.BlogSitemapMaxPosts of them (no auth required: the sitemap is public)
 func (s *BlogService) ListPublicSitemapPosts(ctx context.Context) ([]*domain.BlogSitemapPost, error) {
 	posts, err := s.postRepo.ListSitemapPosts(ctx, time.Now().UTC(), domain.BlogSitemapMaxPosts)
@@ -860,6 +849,16 @@ func (s *BlogService) ListPublicSitemapPosts(ctx context.Context) ([]*domain.Blo
 		return nil, fmt.Errorf("failed to list sitemap posts: %w", err)
 	}
 	return posts, nil
+}
+
+// NextScheduledPublishAt returns the earliest publication after now, or nil when no post is
+// scheduled (no auth required: it bounds the cache of the public pages).
+func (s *BlogService) NextScheduledPublishAt(ctx context.Context, now time.Time) (*time.Time, error) {
+	next, err := s.postRepo.NextScheduledPublishAt(ctx, now)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the next scheduled publication: %w", err)
+	}
+	return next, nil
 }
 
 // ====================

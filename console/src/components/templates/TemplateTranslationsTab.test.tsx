@@ -143,6 +143,50 @@ describe('TemplateTranslationsTab saved blocks', () => {
   })
 })
 
+describe('TemplateTranslationsTab import and export', () => {
+  interface ImportExportProps {
+    onImport: (tree: EmailBlock) => void
+    tree: EmailBlock
+    templateName?: string
+  }
+  const importExport = () => (builder.props?.toolbarActions as React.ReactElement<ImportExportProps>).props
+  const frenchTree = { kind: 'french' } as unknown as EmailBlock
+  const imported = { kind: 'imported' } as unknown as EmailBlock
+
+  it("imports into the open language's tree only, leaving the default language and the others alone", async () => {
+    const onTranslationsStateChange = vi.fn()
+    const de: TranslationEditorState = { enabled: true, subject: 'Hallo', subjectPreview: '', visualEditorTree: tree }
+    renderTab(
+      ['template_i18n'],
+      { fr: { enabled: true, subject: 'Bonjour', subjectPreview: '', visualEditorTree: frenchTree }, de },
+      { onTranslationsStateChange, library: { templateName: 'Welcome' } }
+    )
+    fireEvent.click(screen.getAllByText('Open email editor')[0])
+    await waitFor(() => expect(builder.props?.toolbarActions).toBeDefined())
+
+    act(() => importExport().onImport(imported))
+
+    const next = onTranslationsStateChange.mock.calls.at(-1)![0] as Record<string, TranslationEditorState>
+    expect(next.fr).toMatchObject({ subject: 'Bonjour', visualEditorTree: imported })
+    expect(next.de).toEqual(de)
+    // The default language is not part of the translations: only its own editor changes it
+    expect(Object.keys(next).sort()).toEqual(['de', 'fr'])
+  })
+
+  it("exports the translation's tree, named after the template and the language", async () => {
+    renderTab(
+      ['template_i18n'],
+      { fr: { enabled: true, subject: 'Bonjour', subjectPreview: '', visualEditorTree: frenchTree } },
+      { library: { templateName: 'Welcome' } }
+    )
+    fireEvent.click(screen.getByText('Open email editor'))
+    await waitFor(() => expect(builder.props?.toolbarActions).toBeDefined())
+
+    expect(importExport().tree).toBe(frenchTree)
+    expect(importExport().templateName).toBe('Welcome (fr)')
+  })
+})
+
 describe('TemplateTranslationsTab custom text version', () => {
   const french = (text?: string): TranslationEditorState => ({
     enabled: true,

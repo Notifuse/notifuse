@@ -199,12 +199,27 @@ func (h *InboundWebhookEventHandler) handleIncomingWebhook(w http.ResponseWriter
 	// Process the webhook event
 	err = h.service.ProcessWebhook(r.Context(), workspaceID, integrationID, body)
 	if err != nil {
-		h.logger.WithField("error", err.Error()).
+		// The status tells the provider whether to send the event again: a 4xx for a request
+		// that will never succeed, a 500 for a failure on our side, which it retries.
+		entry := h.logger.WithField("error", err.Error()).
 			WithField("workspace_id", workspaceID).
 			WithField("integration_id", integrationID).
-			WithField("provider", provider).
-			Error("Failed to process webhook")
-		WriteJSONError(w, "Failed to process webhook", http.StatusBadRequest)
+			WithField("provider", provider)
+		var workspaceNotFound *domain.ErrWorkspaceNotFound
+		switch {
+		case errors.As(err, &workspaceNotFound), errors.Is(err, domain.ErrInboundIntegrationNotFound):
+			entry.Warn("Webhook for an unknown workspace or integration")
+			WriteJSONError(w, "Workspace or integration not found", http.StatusNotFound)
+		case errors.Is(err, domain.ErrWebhookProviderUnsupported):
+			entry.Warn("Webhook for an integration that is not an email provider")
+			WriteJSONError(w, "The integration is not an email provider", http.StatusBadRequest)
+		case errors.Is(err, domain.ErrWebhookPayloadInvalid):
+			entry.Warn("Webhook payload refused")
+			WriteJSONError(w, "Invalid webhook payload", http.StatusBadRequest)
+		default:
+			entry.Error("Failed to process webhook")
+			WriteJSONError(w, "Failed to process webhook", http.StatusInternalServerError)
+		}
 		return
 	}
 

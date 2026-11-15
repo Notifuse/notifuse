@@ -141,9 +141,33 @@
 /* The row of a list whose detail is open keeps the hover background while the
  * drawer covers the list, so closing it lands the eye on the row just read.
  * antd paints the hover on the cells, which is where this has to go too; the
- * colour is the Table's rowHoverBg token (subtle). */
+ * colour is the Table's rowHoverBg token, read from antd's own variable. */
 .ant-table-tbody > tr.is-hover > td {
-  background: var(--color-subtle);
+  background: var(--ant-table-row-hover-bg);
+}
+
+/* A sorted column that is also fixed: antd paints a sorted cell with bodySortBg,
+ * which the theme sets transparent, and a sticky cell needs an opaque fill or the
+ * cells scrolling under it show through. The row's hover and selection rules are
+ * more specific and still win. antd 6.6 marks both sides with .ant-table-cell-fix. */
+.ant-table-wrapper td.ant-table-cell-fix.ant-table-column-sort {
+  background: var(--ant-color-bg-container);
+}
+
+/* No right border on the sidebar's inline menu: the sidebar draws its own edge.
+ * Scoped here rather than set by activeBarBorderWidth, a global token that would
+ * also take the border off every other vertical menu (the emoji menu). */
+.app-sidebar-nav .ant-menu-root.ant-menu-inline {
+  border-inline-end: 0;
+}
+
+/* A link marked data-plain-link takes the colour its Tailwind classes give it:
+ * inside antd's App every anchor takes colorLink from an unlayered rule, which
+ * beats a layered utility. revert-layer hands the colour back to the layers. */
+a[data-plain-link],
+a[data-plain-link]:hover,
+a[data-plain-link]:active {
+  color: revert-layer;
 }
 
 /* A row's name that links to its sheet reads as the row's title, in ink: inside antd's App

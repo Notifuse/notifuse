@@ -368,8 +368,8 @@ Verification PR 1: `npx vitest run src/components/templates`, `npx tsc -b`, `npm
 
 Playwright against `npm run dev` on port 19173 with the e2e fixture backend, 1440 and 1280 px,
 deviceScaleFactor 2: list, list with a followed row, detail (A/B, sent), detail of a draft,
-composer (new, A/B on, incomplete), composer of a scheduled broadcast. Saved under
-`/mnt/project-files/captures/fil-5-6/`. The dev server is stopped afterwards.
+composer (new, A/B on, incomplete), composer of a scheduled broadcast, saved outside the
+repository. The dev server is stopped afterwards.
 
 ## CHANGELOG
 

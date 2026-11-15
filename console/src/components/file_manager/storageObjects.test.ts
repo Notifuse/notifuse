@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { i18n } from '@lingui/core'
 import {
   DeleteObjectCommand,
   ListObjectsV2Command,
@@ -206,6 +207,23 @@ describe('toStorageItems', () => {
 
     expect(items.filter((i) => i.is_folder && i.name === '')).toEqual([])
   })
+
+  it('places a key with an empty segment in the folder its other segments name', () => {
+    const items = toStorageItems([obj('/x.png'), obj('a//y.png'), obj('b//')], settings)
+
+    expect(items.find((i) => i.key === 'a//y.png')).toMatchObject({ name: 'y.png', path: 'a/' })
+    expect(items.find((i) => i.key === '/x.png')).toMatchObject({ name: 'x.png', path: '' })
+    // The folders a/ and b/, each once: the marker "b//" is the folder b/
+    expect(
+      items
+        .filter((i) => i.is_folder)
+        .map((i) => [i.name, i.path])
+        .sort()
+    ).toEqual([
+      ['a', ''],
+      ['b', '']
+    ])
+  })
 })
 
 describe('deleteFolder', () => {
@@ -292,6 +310,23 @@ describe('deleteFolder', () => {
       .filter((command): command is DeleteObjectCommand => command instanceof DeleteObjectCommand)
       .map((command) => command.input.Key)
     expect(deletedKeys).toEqual(['a/1'])
+  })
+
+  it('says why it refuses in the language of the console', async () => {
+    const { client } = fakeClient([{ Contents: [obj('a/1')], IsTruncated: true }])
+    const locale = i18n.locale
+    // Keyed as the test setup's macro stand-in names them (a placeholder by its position)
+    i18n.load('fr', {
+      'Not a folder prefix: "{0}"': 'Pas un préfixe de dossier : « {0} »',
+      'The storage did not return the whole content of "{0}"': 'Contenu incomplet de « {0} »'
+    })
+    i18n.activate('fr')
+    try {
+      await expect(deleteFolder(client, 'media', 'a')).rejects.toThrow('Pas un préfixe de dossier : « a »')
+      await expect(deleteFolder(client, 'media', 'a/')).rejects.toThrow('Contenu incomplet de « a/ »')
+    } finally {
+      i18n.activate(locale)
+    }
   })
 
   it.each(['', 'a', 'a/b'])('refuses the prefix %j, which is not a folder', async (prefix) => {

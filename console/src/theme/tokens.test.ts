@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { colors, shadows, alpha, typography, radii, motion, layout } from './tokens'
+import { colors, shadows, alpha, over, typography, radii, motion, layout } from './tokens'
 
 // WCAG 2.x relative luminance and contrast ratio, kept here so tokens.ts holds values only.
 function luminance(hex: string): number {
@@ -71,6 +71,19 @@ describe('alpha', () => {
   it('refuses anything but a 6-digit hex', () => {
     expect(() => alpha('#fff', 1)).toThrow()
     expect(() => alpha('rgb(0, 0, 0)', 1)).toThrow()
+  })
+})
+
+describe('over', () => {
+  it('mixes a hex colour at an opacity over the surface, or over a given base', () => {
+    expect(over('#6a5af9', 0.03)).toBe('#fbfaff')
+    expect(over('#000000', 0.5, '#ffffff')).toBe('#808080')
+    expect(over('#6a5af9', 1, '#000000')).toBe('#6a5af9')
+  })
+
+  it('refuses anything but 6-digit hex colours', () => {
+    expect(() => over('#fff', 0.5)).toThrow()
+    expect(() => over('#6a5af9', 0.5, 'white')).toThrow()
   })
 })
 

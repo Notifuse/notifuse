@@ -19,7 +19,7 @@ import {
   type DashboardMetric,
   type DashboardPeriod
 } from '../components/analytics/dashboardSearch'
-import { firstAccessiblePage, type HasAccess } from '../layouts/app-shell/menuItems'
+import { canReadDashboard, dashboardFallback } from '../layouts/app-shell/menuItems'
 import type { UserPermissions } from '../services/api/types'
 
 /** Changes once a minute, so the periods move to the next day at midnight on an open tab. */
@@ -69,9 +69,8 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- tick only recomputes the bounds
   const periods = useMemo(() => resolveDashboardPeriods(period, timezone), [period, timezone, tick])
 
-  // Read strictly: message_history write is granted to every member the console saves, so the
-  // sidebar's read-or-write check shows the dashboard to members who cannot read messages.
-  const canRead = Boolean(permissions?.message_history?.read)
+  // Read strictly, as the sidebar's logo reads it (menuItems.ts, canReadDashboard)
+  const canRead = canReadDashboard(permissions)
   const series = useOriginSeries({
     workspaceId,
     timezone,
@@ -92,12 +91,7 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
   }
 
   if (!permissionsLoading && !canRead) {
-    const strictAccess: HasAccess = (resource: keyof UserPermissions) => {
-      if (resource === 'message_history') return false
-      const granted = permissions?.[resource]
-      return Boolean(granted?.read || granted?.write)
-    }
-    return <Navigate {...firstAccessiblePage(strictAccess, workspaceId).target} replace />
+    return <Navigate {...dashboardFallback(permissions, workspaceId).target} replace />
   }
 
   const header = (

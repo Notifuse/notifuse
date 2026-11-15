@@ -68,6 +68,33 @@ describe('buildOriginChart', () => {
     expect(chart.values.broadcast).toEqual([0, 4000, 0])
   })
 
+  it('keeps the small values of other emails out of the median', () => {
+    // With them pooled the median would be 400, and 4,500 past ten times it
+    const chart = buildOriginChart(
+      {
+        broadcast: [point(days[0], { sent: 0 }), point(days[1], { sent: 4500 }), point(days[2], { sent: 0 })],
+        transactional: days.map((day) => point(day, { sent: 500 })),
+        automation: days.map((day) => point(day, { sent: 400 })),
+        other: days.map((day) => point(day, { sent: 1 }))
+      },
+      'sent'
+    )
+    expect(chart.log).toBe(false)
+  })
+
+  it('reads the other emails alone when nothing else was sent', () => {
+    const chart = buildOriginChart(
+      {
+        broadcast: [],
+        transactional: [],
+        automation: [],
+        other: [point(days[0], { sent: 1 }), point(days[1], { sent: 1 }), point(days[2], { sent: 50 })]
+      },
+      'sent'
+    )
+    expect(chart.log).toBe(true)
+  })
+
   it('is empty when nothing was sent', () => {
     const chart = buildOriginChart(
       {

@@ -1,0 +1,1828 @@
+# Grouped fixes: the small points left open by earlier PRs
+
+## Why
+
+Earlier PRs each left a list of small points "known, not handled": edge cases, missing tests, comments that
+drifted, small UX gaps. One PR collects them instead of one PR each. The list was reviewed point by point
+against `dev` (48cfbc8a) before this plan; points that were wrong or already fixed were dropped.
+
+The PR is built in lots, one area of the code each. Each lot has its section here, reviewed before its code
+is written, then its own commits and its own code review. A point that turns out larger than its
+description, or that needs a schema or environment variable change not already decided, is not done here:
+it goes to the PR's "known, not handled" list.
+
+## Lot 1: tracking links, custom domains, web version, public webhook and cron routes
+
+Reviewed before code (spec review, Opus xhigh). What the review changed: 1.1 no longer reorders the checks (the
+reorder fixes nothing), 1.4 runs after the index builds and keeps keys it cannot read, 1.6 is dropped
+(unreachable), 1.14 waits for Pierre's decision, 1.15 clamps instead of refusing, the CHANGELOG folds into
+the unreleased 44.0 lines.
+
+### 1.1 Custom domain: tests of the uniqueness check, and a host that cannot be read
+
+The point "the error tells whether a domain is used, before the DNS check" is not fixed here: running the DNS
+check first changes nothing, since `VerifyDomainOwnership` (`internal/service/dns_verification_service.go:43`)
+only checks that the domain points to the instance, which another workspace's domain already does. The real
+fix is a per-workspace TXT token: known, not handled.
+
+What is done:
+- `dnsVerificationService` becomes a small interface declared in the service package
+  (`customDomainVerifier { VerifyDomainOwnership(ctx, url string) error }`, `//go:generate mockgen`), satisfied by
+  `*DNSVerificationService`. `covWorkspaceService` (workspace_service_integration_coverage_test.go:68) gets an
+  accepting fake by default, so no test reaches a real resolver or the nil logger of `&DNSVerificationService{}`.
+- On a change of custom endpoint only (a stored value never blocks an unrelated save), a custom endpoint whose
+  `trackingtoken.HostOf` is empty is refused with a validation error: the uniqueness check skips such a host.
+
+Tests, `internal/service/workspace_custom_domain_test.go`:
+- the sub-test "lets a workspace edit the URL of a domain it shares" uses the mock verifier, expects
+  `VerifyDomainOwnership` once and `Update` exactly once, and asserts no error (today `Update` is `AnyTimes` and
+  the assertion conditional);
+- a URL change that keeps the host calls the verifier (a mutant that skips the DNS check when the host is the
+  same fails);
+- `https://%FF.example` (empty `HostOf` after 1.7) is refused, `Update` not called.
+
+### 1.2 Cap the forwarded hosts read per click
+
+`internal/http/email_handler.go`, `clickOwnHosts`: every entry of every `X-Forwarded-Host` value is kept, and
+each costs a hostname comparison in `sanitizeClickedURL`. With 1.9 the forwarded entries are those of
+`X-Forwarded-Host` then the `host=` of `Forwarded`; keep only the **last** `maxForwardedHosts = 8` of them (the
+proxies nearest the server append last, so a client cannot push them out). `r.Host`, the API host and the
+endpoint host are always kept. The function comment ("every X-Forwarded-Host entry") is updated.
+
+Tests, `internal/http/forwarded_hosts_test.go` (new) and the existing `clickOwnHosts` tests: 20 entries across
+two header values give `r.Host`, the last 8 entries and the two endpoint hosts, in that order; empty entries do
+not count.
+
+### 1.3 (dropped) Fixed secret key in development
+
+Pierre decided (14/11) to leave it as it is.
+
+### 1.4 v44 removes the instance's own links recorded before 44.0
+
+Decided by Pierre (14/11): v44, not released, removes from `clicked_links` the keys whose host is the
+instance's, with the rule of `sanitizeClickedURL` (any port, case-insensitive, one trailing dot). Before 44.0,
+behind a reverse proxy, unsubscribe and notification center links were recorded with the contact's address.
+
+`internal/migrations/v44.go`, a new statement **after the three index builds and before the exited recount**:
+once the SHARE lock is held no other transaction holds row locks on `message_history`, so the purge cannot
+deadlock with a writer (the review reproduced the deadlock with the purge placed before the builds). The purge
+writes no timeline entry (the link step only writes for keys that become verified), so it never touches
+`automations`, and the order "message_history, then automations" of the type comment still holds.
+
+```sql
+UPDATE message_history mh
+SET clicked_links = (SELECT COALESCE(jsonb_object_agg(e.key, e.value), '{}'::jsonb)
+                     FROM jsonb_each(mh.clicked_links) e
+                     WHERE NOT COALESCE(<host of e.key> = ANY($1), false))
+WHERE jsonb_typeof(mh.clicked_links) = 'object'
+  AND EXISTS (SELECT 1 FROM jsonb_object_keys(mh.clicked_links) k WHERE <host of k> = ANY($1))
+```
+
+- `<host of k>`: `regexp_replace(btrim(lower(substring(k from '(?i)^\s*https?://(?:[^/?#@]*@)?(\[[^]]*\]|[^/?#:]*)')), '[]'), '\.$', '')`.
+  A key the expression cannot read gives NULL and is kept (`COALESCE(…, false)`). A key whose hostname is
+  written in Unicode is not converted to Punycode (no IDNA in SQL); the instance's hosts are ASCII in practice.
+- `$1`: for the API endpoint and the workspace's current custom endpoint, `trackingtoken.HostOf` and the
+  lowercase literal hostname (they differ for a non-canonical IPv6 literal, 1.8), empty ones dropped,
+  duplicates removed. With none, the statement is skipped.
+- `clicked_at` and the other keys stay, `updated_at` is not touched. Every key on those hosts goes, blog posts
+  served on the custom domain included (`sanitizeClickedURL` leaves them out too since 44.0); keys on a former
+  custom domain stay. Idempotent: a second run matches no row.
+- Cost: the purge reads every row with clicked links while the SHARE lock is held, so sending and tracking wait
+  for it too. The type comment and the CHANGELOG line of the index builds say so.
+- `v44WorkspaceStatement` gains an `args` field.
+
+Tests:
+- `internal/migrations/v44_test.go`: the expected statements include the purge, in its place, with its
+  argument (sqlmock `WithArgs`); without any endpoint host it is not run; its error names the step.
+- `tests/integration/v44_own_links_purge_test.go` (new), on a real workspace database: keys on the API host
+  (port, upper case, trailing dot), on the custom domain, on another host, an unreadable key (`https:/x`) beside
+  an own key, a row with only own keys. After the migration: own keys gone, the others and `clicked_at` kept,
+  the only-own row is `{}`, no `email.link_clicked` entry written, a second run changes nothing.
+
+### 1.5 The web version renders the language that was sent
+
+`internal/service/web_version_service.go:294` resolves with the workspace's current default language.
+
+- `internal/domain/template.go`: `(*Template).ResolvedLanguage(contactLanguage, defaultLanguage) string` (the
+  translation key `ResolveEmailContent` picks, `""` for the base content, also for a translation whose `Email` is
+  nil) and `(*Template).EmailContentForLanguage(lang string) *EmailTemplate`. `ResolveEmailContent` becomes
+  `EmailContentForLanguage(ResolvedLanguage(...))`, so the two cannot drift.
+- `EmailQueuePayload.RenderedLanguage *string` (`json:"rendered_language,omitempty"`), set by
+  `internal/service/broadcast/queue_message_sender.go` and `internal/service/automation_node_executor.go`.
+  (`message_sender.go`, the direct sender, is unused in production; lot 2 removes it from the orchestrator path.)
+- `internal/service/queue/worker.go`, `upsertMessageHistory`: a set value goes to
+  `MessageData.Metadata["rendered_language"]`, stored unencrypted. The upsert's `ON CONFLICT` keeps the first
+  insert's `message_data`, which already holds it.
+- `Render`: a string `rendered_language` in the metadata picks the content with `EmailContentForLanguage`;
+  without it (messages sent before), today's resolution.
+- `SendToIndividual` loses its `broadcast_id` in lot 2 (decided by Pierre), so its web version is not rendered
+  and needs nothing here.
+
+Tests: `internal/domain/template_test.go` (`ResolvedLanguage`: no translations, default language, known key,
+unknown key, key with nil `Email`; `EmailContentForLanguage`: `""`, known key with sender fallback, unknown key);
+`queue_message_sender_test.go` and `automation_node_executor_test.go` (payload carries `"fr"` / `""`);
+`queue/worker_test.go` (metadata key set, absent without the field); `web_version_service_test.go` (sent in `fr`,
+default now `fr`: French content; `""` with a French contact: base content; no metadata: old resolution);
+`internal/repository/message_history_postgre_test.go` or an integration test: the metadata survives the
+encrypted round trip.
+
+### 1.6 (dropped) Click route and endpoints written in NFD or full width
+
+Unreachable in production: Go's resolver refuses a non-ASCII name before any query, so the DNS check refuses
+every non-ASCII custom endpoint. Known, not handled.
+
+### 1.7 `HostOf` and invalid UTF-8
+
+`pkg/trackingtoken/token.go:89`: `HostOf("https://%FF.example")` gives `xn--zn7c.example`. Return `""` when the
+hostname is not valid UTF-8; with 1.1, such an endpoint is refused at save. The uppercase sharp s and the Bidi
+rule stay (Go's IDNA tables; known, not handled).
+
+Tests, `TestHostOf`: `%FF` → `""`; `https://straße.example` → `xn--strae-oqa.example` (pins `Transitional(false)`,
+transitional mapping gives `strasse.example`); `https://-ü.example` → `xn----eha.example` (pins
+`CheckHyphens(false)`). `Transitional(false)` stays: it has an effect.
+
+### 1.8 IPv6 literals in their canonical form
+
+`HostOf`: a hostname that `netip.ParseAddr` reads is returned as `addr.String()` (zone kept, IPv4 unchanged).
+`internal/http/tracking_redirect.go`, `classifyTrackedDestination`: an IP-literal destination host is
+canonicalized the same way before the comparison (an IP literal cannot be a look-alike), so
+`API_ENDPOINT=https://[2001:0DB8::1]` keeps redirecting its own unsigned links.
+
+Tests: `TestHostOf` (both IPv6 spellings, an IPv4 literal, a zone); `tracking_redirect_test.go` (non-canonical
+API endpoint and destination redirect).
+
+### 1.9 Read `Forwarded: host=` (RFC 7239)
+
+Helper `forwardedHosts(h http.Header) []string`: the `X-Forwarded-Host` entries, then the `host=` parameters of
+`Forwarded` (case-insensitive name, quoted value unquoted), empty values skipped. `clickOwnHosts` keeps the last 8
+(1.2). `webVersionRequestHost` keeps today's rule for `X-Forwarded-Host` (its first entry, if not empty) and
+otherwise takes the first `Forwarded` host, else `r.Host`; `X-Forwarded-Host: , b` still falls back as today.
+
+Tests, `internal/http/forwarded_hosts_test.go`: `Forwarded: for=1.2.3.4;host=a.example, host="b.example:8443"`,
+`Host=` in mixed case, both headers (order), empty entries; `webVersionRequestHost` with only `Forwarded`, and with
+an empty first `X-Forwarded-Host` entry.
+
+### 1.10 The `status == WorkspaceKnown` guards of the click routes
+
+`internal/http/email_handler.go:195` (`/visit`) and `:376` (`/r/`): the guards that only read `ws.EndpointHost`
+for a known workspace are not covered. Keep them and test both in `internal/http/email_handler_test.go`: a
+lookup answering `WorkspaceUnavailable` with a non-empty `EndpointHost`, a destination on that host gets the
+confirmation page; on `/r/`, `VisitLink` receives own hosts without it.
+
+### 1.11 `/visit` passes no own hosts
+
+`handleClickRedirection` records with an empty URL, which `sanitizeClickedURL` never reads hosts for. Pass `nil`,
+drop the `endpointHost` lines, remove the `/visit` sub-test that asserted the list.
+
+### 1.12 One host comparison
+
+`tracking_redirect.go`: `hostnameOf` and `asciiHostEqual` duplicate `trackingtoken.SameHost` / `SameHostname`
+(without the trailing dot). Use the trackingtoken functions; `lowerASCII` goes. The case
+`"https://track.brand.com./u"` of `tracking_redirect_test.go:42` flips to a redirect (the recorder already trims
+the dot), `TestAsciiHostEqual` is deleted; the Kelvin-sign case stays a confirmation page (also pinned by
+`TestSameHost`).
+
+### 1.13 Demo: the clicked-link error branch
+
+`internal/service/demo_service.go:2042`: test in `demo_service_test.go` where `SetClicked` fails for the first
+clicked message: the second is still updated and the function returns nil.
+
+### 1.14 A rate limit on `/webhooks/email` (F-38): waiting for Pierre
+
+The review showed that a 429 loses events (SNS retries for about 60 s, Mailgun never retries delivery
+notifications), that a per-IP limit caps the whole instance and is bypassed through `X-Forwarded-For`, and that
+`pkg/ratelimiter` costs about 150 KB and 60 µs per call at such sizes, under a lock shared with sign-in. Pierre
+chooses between leaving it out (recommended), a high per-workspace limit, or the original plan. Not coded until
+then. The rate limiter's cleanup, which resets every namespace holding a colon at each tick
+(`pkg/ratelimiter/ratelimiter.go:196-213`), is a separate defect: known, not handled.
+
+### 1.15 `/api/cron`: a ceiling on `max_tasks` (F-24)
+
+Decided by Pierre (14/11): a ceiling only. A refusal would silently stop an external crontab that sends more,
+so the value is clamped: `TaskHandler.SetCronTaskCeiling(n)` (called in `internal/app/app.go` with
+`max(100, TASK_SCHEDULER_MAX_TASKS)`, 100 when unset) and `ExecutePendingTasks` receives
+`min(max_tasks, ceiling)`; a value of 0 or less keeps meaning the default (100), as today
+(`task_service.go:386`). The response's `max_tasks` is the value used. A setter rather than a constructor
+argument keeps the open PRs that construct the handler unchanged.
+
+Tests: `internal/http/task_handler_test.go`: `?max_tasks=1000` runs with 100 and answers `max_tasks: 100`; with a
+ceiling of 250, 250; `max_tasks=0` runs and reports the default 100; `tests/integration/task_handler_test.go:403-420`
+(`max_tasks=0`, 202) stays green.
+
+### 1.16 CHANGELOG (44.0)
+
+The web version, the click route's host rule and the uniqueness check are unreleased (#502, #507): no new lines
+for them, their 44.0 lines are amended.
+- Line 57 (clicks behind a reverse proxy): `Forwarded` is read like `X-Forwarded-Host`; links on the
+  instance's hostname on another port, and blog links on the custom domain, are not recorded per link either
+  (the transverse point on what the rule leaves out); "Links recorded before the upgrade stay" becomes:
+  upgrading to 44 removes the ones recorded on the API endpoint or the current custom domain.
+- Line 47 (index builds): the wait also covers the removal of those links.
+- Line 73 (web version): it shows the language the email was sent in; `Forwarded` is accepted beside
+  `X-Forwarded-Host`.
+- New line, Improvement: `/api/cron` runs at most 100 tasks per call, or `TASK_SCHEDULER_MAX_TASKS` when higher.
+
+## Test commands for lot 1
+
+```
+go test ./pkg/trackingtoken/ ./internal/domain/ ./internal/service/... ./internal/http/... ./internal/migrations/ ./internal/app/
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestV44|TestTaskHandler|TestWebVersion|TestTracking' -count=1
+make test-integration  # the full suite once before the code review
+```
+
+## Lot 2: broadcasts, tasks, sending queue
+
+The points that depend on #568, #569 and #570 (still open on 14/11: plain-text "task not found" errors, the
+404 read from the error text, the non-UUID id of `tasks.execute`, the cancelled request on reset and trigger,
+the log noise of `ExecuteTask`, the duplicated reset/trigger tests, the unverified error logs, the
+status-only sub-test, `repo.Get` through `WithTransaction`, the doubled "failed to get task" prefix) wait for
+those PRs and go to lot 7. The automation executor points (claims kept 5 min at shutdown, log noise of a
+failing claim, the deadlock retry loop) go to lot 3.
+
+### 2.1 One way for a run to hand its task back for later
+
+`internal/domain/task.go`: a new error type `TaskRequeueError{After time.Duration; Reason string}`
+(`Error()` gives the reason). A processor returns it when its task must run again later without counting a
+failed attempt. `internal/service/task_service.go`, `ExecuteTask`: in the processor goroutine an error that
+`errors.As` a `*TaskRequeueError` is not logged as "Task processing failed"; in the `processErr` branch, before
+the cancellation check, it is handled with `MarkAsPending(bgCtx, workspace, taskID, now+After, task.Progress,
+task.State)` (the same write as an unfinished run, so the saved state and the retry budget are kept), logged
+at Info, and `ExecuteTask` returns nil. A failed `MarkAsPending` is returned as today's "failed to mark task
+as pending" error.
+
+Tests, `internal/service/task_service_test.go`: a processor returning `&TaskRequeueError{After: time.Minute}`
+gives one `MarkAsPending` whose next run is about a minute away (`gomock` matcher on the time, ±5 s), no
+`MarkAsFailed`, nil from `ExecuteTask`; wrapped in `fmt.Errorf("%w")` too; a failing `MarkAsPending` returns
+the error.
+
+### 2.2 F-26: a run that finds its broadcast paused parks the task
+
+`internal/service/broadcast/orchestrator.go`, the loop's "paused during processing" branch returns
+`false, &domain.TaskRequeueError{After: pausedRecheckInterval, ...}` with `pausedRecheckInterval = time.Minute`,
+instead of `allDone = false`, which `MarkAsPending` made due at once, so each scheduler tick ran the task again
+for nothing. Not 24 hours like the pause handler: a resume committed while this run still held the task finds
+it held (`WakeTask` refuses), and only this delay brings it back. A resume after the park wakes it at once
+(`WakeTask` takes a pending task). The deferred last-attempt finalizer leaves a `TaskRequeueError` alone.
+
+Tests, `orchestrator_test.go`: a broadcast refreshed as paused returns the requeue error with a one-minute
+delay and pauses the queue entries; on a last attempt the finalizer writes no status (no
+`UpdateBroadcastStatusUnless`).
+
+### 2.3 F-04: the final `processed` write respects a pause or a cancel committed meanwhile
+
+`orchestrator.go`, the end of `Process` (today a full-row `UpdateBroadcast` on `context.Background()`): in
+`WithTransaction`, `GetBroadcastForUpdateTx`, then
+- `paused`: nothing written, the run returns the requeue error of 2.2 (the queue entries are paused already;
+  after the resume the next run finds every recipient queued and writes `processed`);
+- `cancelled` or `processed`: nothing written, `true, nil`;
+- otherwise the final fields (status `processed`, `completed_at`, `winner_sent_at` for the winner phase,
+  `enqueued_count`, the phase counts of `setPhaseRecipientCounts`, `updated_at`) are set **on the locked row**
+  and written with `UpdateBroadcastTx`, so a column another writer changed since the run's last refresh is not
+  written back.
+The no-recipient `processed` write (`orchestrator.go:906`) goes through the same helper.
+
+Tests, `orchestrator_test.go`: locked row paused (requeue, no write), cancelled (true, no write), processing
+(written: the written broadcast holds the locked row's other columns, e.g. a `name` changed meanwhile, and
+the final fields); the no-recipient path; a failing transaction returns the error.
+
+### 2.4 F-08: no progress write past the run's lease
+
+`orchestrator.go`: a helper `leaseContext(ctx)` returns `context.WithoutCancel(ctx)` bounded by `ctx`'s
+deadline when it has one. `ExecuteTask` gives the processor a context whose deadline is the lease
+(`timeoutAt + taskExecutionGrace`, the `timeout_after` it stored), so a write on it survives a shutdown's
+cancellation (the cursor of the last batch is kept, as `context.Background()` kept it) but never runs past the
+lease, after which another execution may own the task. Used by `SaveProgressState` (instead of
+`context.Background()`), by the final write of 2.3 and by `handleTestPhaseCompletion`.
+
+Tests: `SaveProgressState` with a context whose deadline has passed returns an error and the repository sees
+a context already done (mock `SaveState` asserting `ctx.Err() != nil` or `ctx.Deadline()` equal to the
+parent's); with a cancelled but not expired context the write goes through (context not done).
+
+### 2.5 F-33: a last attempt whose finalization fails is retried, not failed
+
+`orchestrator.go`, deferred finalizer: when `GetBroadcast` or the status write fails, the named `err` becomes
+`&domain.TaskRequeueError{After: time.Duration(task.RetryInterval) * time.Second, Reason: ...}` (wrapping the
+cause in the reason), so the task service puts the task back without marking it failed, and the next run
+(still its last attempt) finalizes again. `stillLastAttempt` is unchanged (a failed read already keeps the
+decision).
+
+Tests: `GetBroadcast` fails in the finalizer → `Process` returns a `*TaskRequeueError` with the task's retry
+interval; the status write fails → same; the write succeeds → the original error.
+
+### 2.6 F-15 and F-27: the task of a scheduled broadcast is created in the request, and run by its ID
+
+- `domain.TaskService` gains `ScheduleBroadcastTask(ctx, workspaceID, broadcastID string, sendNow bool,
+  scheduledAt *time.Time) (taskID string, err error)` and `RunTaskNow(workspaceID, taskID string)`; the
+  domain mock is regenerated.
+- `TaskService.ScheduleBroadcastTask` holds today's `handleBroadcastScheduled` transaction and returns its
+  error. An existing task of the broadcast (only an orphan of a schedule whose broadcast write rolled back
+  can exist: only a draft can be scheduled) is reset: status pending, fresh `SendBroadcast` state, retry count
+  0, next run now or at the scheduled time; a running one is refused with an error (the request fails, the
+  user retries).
+- `RunTaskNow` runs `ExecuteTask(context.Background(), workspaceID, taskID, now+MaxRuntime)` in a goroutine
+  when `autoExecuteImmediate` is on (it is on exactly when this instance runs its own scheduler, i.e. direct
+  execution), after reading the task's `MaxRuntime`; otherwise nothing (the scheduler or cron dispatches it).
+- `BroadcastService.ScheduleBroadcast` calls `ScheduleBroadcastTask` inside its transaction, after
+  `UpdateBroadcastTx`, instead of `PublishWithAck`; an error rolls the broadcast back and fails the request.
+  After the commit, for a send-now, `RunTaskNow`. The `EventBroadcastScheduled` publish and
+  `handleBroadcastScheduled` subscription go: the task service is its only subscriber.
+- The resume's "start now" (`handleBroadcastResumed`, `ExecutePendingTasks(…, 1)` after a 100 ms sleep) uses
+  `RunTaskNow(task.ID)` too.
+- `orchestrator.Process` refuses a `draft` broadcast: the task is created before the broadcast commits, so the
+  scheduler may pick it up in that window, and an orphan task must never send a draft. A draft is requeued
+  after 30 s (2.1) while the task is younger than 10 minutes, and its task completed without sending after
+  that (logged at Warn); a later schedule resets it (above).
+
+Tests: `task_service_test.go` (`ScheduleBroadcastTask`: new task for now and for later with `NextRunAfter`;
+existing pending or completed task reset; running task refused; repository error returned; `RunTaskNow` runs
+the given task only, not another due one, and nothing when auto-execute is off); `broadcast_service_test.go`
+(`ScheduleBroadcast`: the task scheduler's error fails the request and `UpdateBroadcastTx`'s transaction
+returns it; send-now calls `RunTaskNow` with the returned ID after the commit, a later schedule does not);
+`orchestrator_test.go` (draft: young task requeued, old task completed without loading templates);
+integration, `tests/integration/broadcast_schedule_task_test.go` (new): send now on a workspace with a due task
+of another broadcast runs this broadcast's task (its emails reach Mailpit) and leaves the other task pending
+with its `next_run_after` unchanged.
+
+### 2.7 F-29: the recipient feed's retry wait ends with the run
+
+`internal/service/broadcast/data_feed.go:278`: `time.Sleep(retryDelay)` becomes a `select` on `ctx.Done()`
+(returns `ctx.Err()` wrapped, so the run is seen as interrupted) and a `time.NewTimer(retryDelay)` (stopped
+on the way out).
+
+Test, `data_feed_test.go`: a server failing with 503, a retry delay of 10 s, a context cancelled after 50 ms:
+`FetchRecipient` returns within 1 s with `errors.Is(err, context.Canceled)`.
+
+### 2.8 F-31: shutdown keeps to its 70 seconds
+
+- `cmd/api/main.go`, `runServer`: the wait after the shutdown signal also selects `ctx.Done()` and returns
+  `ctx.Err()` (logged) when the 70 s run out.
+- `internal/app/app.go`, `cleanupResources`: the connection manager's and the database's `Close` run through
+  `closeWithin(ctx, name, fn)`, which returns when `fn` ends or `ctx` is done (logged at Error, the close goes
+  on in its goroutine).
+
+Tests: `cmd/api/main_test.go` with a fake app whose `Shutdown` blocks: `runServer` returns once the context
+expires (the timeout injected through a package variable `shutdownTimeout`, set to 50 ms in the test);
+`internal/app/app_test.go`: `closeWithin` with a blocking close returns at the context's end with an error,
+and passes a close's error through.
+
+### 2.9 F-03 and Exit on reply: the journey check before an automation email
+
+Integration test first, `tests/integration/automation_exit_on_reply_last_email_test.go` (new): an Exit on reply
+automation whose last step is an email; the contact enters; the email must reach Mailpit and the journey be
+`completed`. If it fails as expected, `internal/service/queue/worker.go:753-775` changes:
+- the email is dropped only when the journey is `exited` (a reply or a removal), not when it is `completed`
+  or `failed`: the executor marks the journey completed in the same pass as its last email;
+- a missing journey (`domain.ErrContactAutomationNotFound`, a new sentinel that
+  `automation_postgres.go:962` wraps, text unchanged) is a finished journey: the email is dropped;
+- any other lookup error fails closed (Pierre, 14/11): the entry goes back to the queue with
+  `MarkAsFailed(…, &nextRetry)` like a failed send (`CalculateNextRetryTime(entry.Attempts)`), without a
+  message history failure (nothing was sent) and logged at Warn. After its attempts the entry fails for good.
+If the integration test passes as is, only the fail-closed and missing-journey changes are made, and the
+exited-only rule is left out.
+
+Tests, `worker_test.go`: completed journey sends; exited journey drops the entry (`MarkAsSent`, no
+`SendEmail`); not found drops it; another error calls `MarkAsFailed` with a next retry and no `SendEmail`, no
+`Upsert`. `automation_postgres_test.go`: the not-found error `errors.Is` the sentinel and keeps its text.
+
+### 2.10 `exclude_unsubscribed` is fixed once the broadcast has sent
+
+`internal/domain/broadcast.go:735`: an `audience.exclude_unsubscribed` that changes the stored value on a
+broadcast that is neither draft nor scheduled is refused ("exclude_unsubscribed can only be changed on a draft
+or scheduled broadcast"), as `tracking_mode` is. Tests, `broadcast_test.go`: paused + change refused; paused +
+same value accepted; draft and scheduled accept the change.
+
+### 2.11 `broadcasts.sendToIndividual`
+
+`internal/service/broadcast_service.go`, `SendToIndividual`:
+- the subject goes through `notifuse_mjml.ProcessLiquidTemplate(emailContent.Subject, templateData,
+  "email_subject")`, as the queue sender does; an error fails the send;
+- the message history row has no `broadcast_id` (Pierre, 14/11): the test send no longer counts in the
+  broadcast's statistics;
+- `WebVersion: false` in its template data: without `broadcast_id` the web version page refuses the message,
+  so `view_in_browser_url` is left empty rather than a link to a 404.
+`internal/http/broadcast_handler.go:60`: the route gets `restrictedInDemo`, as `broadcasts.schedule`.
+
+Tests: `broadcast_service_test.go` (subject `Hello {{ contact.first_name }}` arrives rendered; an invalid
+Liquid subject fails; the recorded message has `BroadcastID == nil`; template data without
+`view_in_browser_url` value); `broadcast_handler_test.go` (demo mode answers as the other restricted routes).
+
+### 2.12 The sender of each batch, and a resume with nothing left to queue
+
+- `orchestrator.go`: before each `SendBatch`, the workspace is read again and the run's `emailProvider` and
+  `integrationID` refreshed; `checkVariationSenders` runs on the batch's templates, and a missing sender pauses
+  the broadcast as at the start of the run (`pauseForSendError`). A failed read keeps the run's copy (logged
+  at Warn). Test: a provider that loses the sender between two batches pauses before the second `SendBatch`.
+- `broadcast_service.go:707`, `ResumeBroadcast`: the sender check is also skipped when the broadcast's task
+  state shows every recipient queued (phase single or winner, `RecipientOffset >= TotalRecipients > 0`), read
+  with `taskRepo.GetTaskByBroadcastID`; a failed read keeps the check. The console's modal (lot 6) still decides
+  on `completed_at`: known, not handled there. Tests: all queued → no sender check; test phase → check; read
+  error → check.
+
+### 2.13 Dead code and small fixes
+
+- The circuit-breaker branches of `Process` (`orchestrator.go:634-643` in the finalizer, `:1430-1520` in the
+  loop) go: the queue sender never returns `ErrCodeCircuitOpen` (`app.go` always passes `useQueueSender =
+  true`, and the queue side pauses on an open circuit, `PauseForCircuitBreaker`). Their tests go too. The
+  direct sender itself stays (known, not handled).
+- `EmailQueueWorker.SetCallbacks`, `onEmailSent`, `onEmailFailed` and their two call sites go, with their tests.
+- `PauseReason` writes the variation's name as `“%s”` instead of `%q`. Test: a name with `"` and `\` is shown
+  as written.
+- `ErrBroadcastShouldPause`'s text becomes "broadcast should pause until the user acts".
+- The two unexported `checkVariationSenders` are renamed `requireKnownVariationSenders` (service) and
+  `findUnavailableVariationSender` (orchestrator).
+
+### 2.14 A/B tests
+
+- `tests/integration/broadcast_ab_testing_e2e_test.go:365`, `testManualWinnerSelectionDuringTestPhase`: waits
+  for `processed` and checks `test_phase_recipient_count + winner_phase_recipient_count` equals the audience
+  and the winner phase count equals what was sent after the pick.
+- `orchestrator_test.go`: one test per uncovered switch of the A/B fix (`orchestrator.go:1021` resume in
+  `winner_selected`, and the three "winner already selected" guards at the end of the test phase, `:1260`,
+  `:1304`, `:1381`), each asserting the winner phase is entered with the offset the test phase reached.
+
+### 2.15 CHANGELOG (44.0)
+
+Released behaviour, so Fix lines, short and client-facing:
+- Fix: a broadcast paused while its last emails are queued stays paused, and a broadcast paused during a run
+  no longer keeps its task busy.
+- Fix: scheduling a broadcast fails when its sending task cannot be created, instead of leaving a broadcast
+  that never sends; "send now" starts that broadcast, not another one that is due.
+- Fix: a broadcast whose final status cannot be written is retried instead of failing; a run cut short no
+  longer moves the progress of the next one back.
+- Fix: with Exit on reply, the last email of a journey is sent; an email whose journey cannot be checked is
+  retried later instead of being sent.
+- Fix: the test send of a broadcast renders Liquid in the subject and no longer counts in the broadcast's
+  statistics; it is unavailable in the demo.
+- Improvement: `audience.exclude_unsubscribed` can only be changed on a draft or scheduled broadcast; shutdown
+  keeps to its 70 seconds; a recipient feed retry stops with the run.
+(The integration test of 2.9 decides the first half of the Exit on reply line.)
+
+### Corrections after the plan review
+
+The plan review (Opus, xhigh) confirmed problems in
+ten points. They replace what the points above say where the two differ.
+
+- **2.1** The requeue does not go through `MarkAsPending`, which resets `retry_count`. A new repository method
+  `RequeueTask(ctx, workspace, id, status, nextRunAfter, progress, state)` writes the status (pending, or
+  paused for 2.2), progress, state and next run, clears the lease, keeps `retry_count`, and matches only
+  `status = running` (else `ErrTaskNotRunning`, logged at Info: a cancel marked the task failed meanwhile, and
+  that decision stands). `TaskRequeueError` gains `Park bool` (requeue as paused) and `AfterRequeue
+  func(context.Context)`, run once the requeue is written. Tests: sqlmock cases for the method,
+  `task_lease_test.go` case (a running task requeued keeps its retry count; a failed one is left failed).
+- **2.2** The run that finds its broadcast paused pauses the queue entries, then breaks out of the loop (so the
+  progress block after the loop runs) and returns a requeue with `Park: true`, 24 hours, and an `AfterRequeue`
+  that reads the broadcast again and wakes the task (`WakeTask`, now) when it is no longer paused. The resume's
+  wake moves from `handleBroadcastResumed` to `BroadcastService.ResumeBroadcast`, after its commit: either the
+  resume's wake finds the parked task, or the run's second read sees the resume. Existing tests that change:
+  `orchestrator_pause_test.go:170-172`, `:372-374`, the paused row of `:542-550`.
+- **2.3** In the final write, the paused case also calls `pauseQueueEntries` and the cancelled case
+  `deleteQueueEntries`, so the last batch's rows committed after the pause's or cancel's own statement are not
+  sent. The draft check of 2.6 runs before the no-recipient path. Existing tests move from `UpdateBroadcast`
+  to `WithTransaction` + `GetBroadcastForUpdateTx` + `UpdateBroadcastTx`.
+- **2.4** `ExecuteTask` already bounds the processor's context by the lease. Added: the lease fence. `ExecuteTask`
+  truncates the lease to microseconds, stores it, and puts it in the processor's context
+  (`domain.WithTaskLease`); `SaveStateTx` adds `timeout_after = lease` when the context carries one and returns
+  `ErrTaskNotRunning` when no row matches. No signature change, no schema change. `leaseContext` keeps the
+  context values, so the fence holds on it too.
+- **2.5** The finalizer requeues (keeping the retry count, so the next run is still the last attempt) only when
+  no status write committed and the broadcast still exists: `ErrBroadcastNotFound` keeps the original error, and
+  the path where `failed` was written and the pause write failed keeps it too. A write that keeps failing is
+  retried once per retry interval.
+- **2.6** `ScheduleBroadcastTask` runs in one system-DB transaction: `GetTaskByBroadcastIDTx` (`FOR UPDATE`),
+  then `CreateTx`, or a conditional reset (`ResetBroadcastTask`, one `UPDATE` guarded by `notHeld`, which sets
+  `created_at = now`, state, `retry_count = 0`, pending, next run). A task held by a live lease is refused.
+  `GetTaskByBroadcastIDTx` wraps `domain.ErrTaskNotFound` (same text) so "no task" is told from a failed read.
+  The draft refusal is the first thing `Process` does on every run. A send-now task is created with
+  `next_run_after = now + 30 s` so the scheduler and cron cannot pick it before the broadcast commits;
+  `RunTaskNow` ignores `next_run_after`. The resume and `SelectWinner` call `RunTaskNow(task.ID)` after their
+  commit instead of `ExecutePendingTasks(…, 1)`. `RunTaskNow` logs `ErrTaskAlreadyRunning` at Debug. The
+  integration test goes into `broadcast_scheduled_task_test.go`, with `TaskScheduler.Enabled = true` in the
+  suite's config, no ticker, the queue worker started, and the other task with a NULL `next_run_after` and an
+  older `created_at`. Existing tests to rewrite: `task_service_test.go:869`, `:882-930`, `:2084-2410`,
+  `qb_task_gap_test.go:1079`, and the `ScheduleBroadcast` cases that mock `PublishWithAck`.
+- **2.10** (commit `10b7fea`) Both guards (`exclude_unsubscribed` and `tracking_mode`) also refuse the change
+  when `StartedAt` is set: a broadcast scheduled for later keeps `scheduled` while it sends.
+- **2.12** No extra sender check: the batch's `SendBatch` already checks the senders of the provider it is
+  given. The fix is the refreshed provider; a refresh that finds no marketing provider keeps the run's copy
+  (logged at Warn), so the batch fails as it would have. The 44.0 sender bullet (CHANGELOG.md:83) is amended.
+- **2.13** The feed pause reason no longer carries the sentinel's text (done in `af05284`).
+- **2.14** The three guards at `:1260`, `:1304`, `:1381` cannot be reached and are removed; only the `:1021`
+  test is written.
+- **2.15** As the review's table says: F-33 and F-08 as one Improvement, the Exit on reply line split, the
+  Improvement line split per change, the 44.0 web version bullet names the test send.
+
+Implementation notes (lot 2): a send-now task is due 5 s ahead, not 30 s: where tasks run through the cron
+or a scheduler that dispatches over HTTP, `RunTaskNow` does nothing, and 30 s delayed every send now there
+(`TestBroadcastSingleExecution_E2E_WinnerPickedThroughTheAPIDuringTheTestPhase` timed out on it). A run that
+finds the broadcast still a draft hands the task back, so the shorter delay only costs a 30 s wait in the rare
+case the broadcast has not committed. The three "winner already selected" guards are removed (2.14), and
+`TestTask_StaleRunning_Reaped_Issue317` seeds its task for a scheduled broadcast, since a run no longer sends a
+draft's.
+
+Known, not handled (lot 2): the terminal writes of `ExecuteTask` have no lease fence; the pause handler parks the
+task before the pause commits; `RunTaskNow` runs on `context.Background()` and is not released at shutdown;
+the sending-started annotation of a resume during a paused run; the small gaps left by #566.
+
+### Corrections after the delta review (lot 2, round 2)
+
+The review of 0b0c148 confirmed one bug: the run
+that loses its task read the broadcast unlocked, and a cancel marks the task failed before its own commit.
+`settleQueuedAfterLostTask` now reads it with `GetBroadcastForUpdateTx` and settles the rows with the Tx queue
+writes. Minor remarks taken: a pause never takes a held task (comments and the test case say so); a failed
+read of the task in `ResumeBroadcast` is logged; the final write's error reads "failed to write the end of
+the run"; the nothing-left-to-queue test asserts the send ends processed. Known, not handled: a refused
+schedule answers 500 like any error, the schedule's lock is held across the global feed fetch, and
+`PauseBroadcast` writes back a stale `completed_at`.
+
+### After the delta review (lot 2, round 2)
+
+The review (`grouped-pr-lot2-round2-review.md`) found no blocking problem. A comment and a test name said a
+paused broadcast's lost task needs a second instance; a shutdown that releases the task while the run saves is
+a third way, and they now say so. Tests now pin the settle's context (it outlives a cancelled run, bounded by
+its deadline), its failed locked read, and the Warn of a failed task read in `ResumeBroadcast`. No change to
+the code's behaviour, so no third round of review.
+
+## Test commands for lot 2
+
+```
+go test ./internal/domain/ ./internal/service/... ./internal/repository/ ./internal/http/ ./internal/app/ ./cmd/api/
+INTEGRATION_TESTS=true go test -race -timeout 45m -tags integration,licdev ./tests/integration/ -run 'TestBroadcast|TestAutomation|TestTask|TestScheduledBroadcast|TestDataFeed|TestRecipientFeed|TestSendTimeSender|TestCircuitBreaker|TestCron|TestRecurringTask|TestV44' -count=1
+make test-integration  # the full suite once before the code review
+```
+
+## Lot 3: the automation executor and its step statistics
+
+Reviewed before code (Opus xhigh; corrections at the
+end of the lot). No schema change: every point is Go code or a statement on existing columns.
+
+### 3.1 A journey whose `context` is not a JSON object no longer holds its batch
+
+`internal/repository/automation_postgres.go`, `ClaimScheduledContactAutomations`: a `context` that does not
+decode into a map (an array, a scalar) is read as a nil context instead of failing the whole claim, so the
+rest of the batch runs at once and that journey runs with an empty context (it was unreadable anyway; its
+next persist writes `null`).
+
+Test, `automation_postgres_test.go` (sqlmock): three claimed rows, the middle one with context `[1]`: three
+journeys returned, the middle one with a nil `Context`, the others with theirs.
+
+### 3.2 The writes after a step outlive a cancelled run
+
+`internal/service/automation_executor.go`, `Execute`: once a node has run, the writes that record it
+(`UpdateNodeExecution`, `UpdateContactAutomationIfActive`, the stat, the end event, and the writes of
+`handleError`) run on `context.WithoutCancel(ctx)` bounded by `afterStepWriteTimeout = 10 * time.Second`. A
+node whose own execution fails because the run's context is done (`ctx.Err() != nil`) is not a failed
+attempt: its execution row is marked `failed` with a `completed_at` (so it counts no pass) and the journey is
+left as it is, due again when its claim ends, with no retry spent. A shutdown in the middle of a step then
+leaves no `processing` row behind; a process killed outright still does (known, not handled; the comment of
+`nodeStatsVisitsSQL` is narrowed to that case).
+
+Tests, `automation_executor_test.go`: a node that returns `context.Canceled` with a cancelled context: the
+execution is updated to failed with a `CompletedAt`, no `UpdateContactAutomationIfActive`, no failed entry
+created, `RetryCount` unchanged; a node that succeeds while the context is cancelled meanwhile (the mock
+cancels it): the persist and the completed update still reach the repository with a context that is not
+done.
+
+### 3.3 A shutdown hands its unrun claims back
+
+`ProcessBatch`: on `ctx.Err()`, the journeys claimed and not run yet get their claim released: a new
+repository method `ReleaseContactAutomationClaim(ctx, workspaceID, id, token)` sets `scheduled_at = NOW()`
+where `id`, `status = 'active'` and `scheduled_at = token` (a journey claimed again since, or ended, is left
+alone). It runs on `WithoutCancel` with a 5 s bound; an error is logged at Warn and the claim ends on its own.
+The journeys lose their order by due time (all were due), which does not matter to the scheduler.
+
+Tests: sqlmock for the method (query, arguments, `RowsAffected` 0 and 1); `automation_executor_test.go`: a
+context cancelled after the first journey releases the second and third with their tokens and does not run
+them; `tests/integration/automation_claim_test.go`: a claim of three journeys, a cancelled `ProcessBatch`,
+then the three are due now (`scheduled_at <= now()`), not in 5 minutes.
+
+### 3.4 A failed persist after a step records the failure on that step
+
+`Execute`, the path where `UpdateContactAutomationIfActive` fails after node X ran:
+- X's execution row is marked `completed` with its output first (X did run; its output is needed by
+  `buildContextFromNodeExecutions`), then `handleError` writes its failed row on X, not on the next step Y
+  that `CurrentNodeID` already names. `handleError` gains the node the failure belongs to as a parameter;
+  the other callers pass `ca.CurrentNodeID`.
+- On a terminal step (`NextNodeID == nil`), the status is put back to `active` before `handleError`, so the
+  retry does not persist `completed` with a retry time: the next run finds no current node and completes
+  through `markAsCompleted`, which writes the stat and the end event.
+
+Tests, `automation_executor_test.go`: persist fails on a step with a next one: the failed entry is on X, X's
+execution is completed; persist fails on a terminal step: `handleError`'s persist writes status `active`,
+then a run with `CurrentNodeID == nil` writes `completed`, the stat and the end event.
+
+### 3.5 Completed, exited and failed are counted only when the journey's row changed
+
+`markAsCompleted`, `markAsExited` and the failed branch of `handleError` increment the stat and write the end
+event after `persistIfActive`, and only when it updated the row (`persistIfActive` returns `(bool, error)`).
+The inline completion and exit of `Execute` already persist first and stop on `!updated`.
+
+Tests: `UpdateContactAutomationIfActive` returning false: no `IncrementAutomationStat`, no timeline entry, for
+each of the three; returning true: one each.
+
+### 3.6 `nodeStats` compares a delay with the application's clock
+
+`internal/repository/automation_stats_postgres.go`, `nodeStatsInPlaceSQL`: `now()` becomes `$2`, the time
+passed by `GetNodeStats` (`time.Now().UTC()`), the clock that wrote `delay_until`. Test: the sqlmock
+expectation takes the second argument.
+
+### 3.7 A claim that keeps failing logs once every five minutes
+
+`ProcessBatch` ("Failed to claim scheduled contacts in some workspaces") and `AutomationScheduler.processBatch`
+("Failed to process automation batch") log an error whose text is the one they logged less than 5 minutes ago
+at Debug instead of Error. One small type in the service package, `repeatedErrorLog` (a mutex, the last text,
+the time), shared by both. Tests: same text twice within the window: Error then Debug; another text: Error;
+same text after the window (injected clock): Error.
+
+### 3.8 The automation handlers answer 404 for an unknown automation
+
+`internal/http/automation_handler.go`: `writeUpdateFailure`, `handleDelete`, `handleActivate` and
+`handlePause` answer 404 on `*domain.ErrNotFound`, as `handleGet` does. `DeleteTx` returns
+`&domain.ErrNotFound{Entity: "automation", ID: id}` when no row was soft-deleted. Tests: one 404 case per
+handler (`automation_handler_test.go`); sqlmock `DeleteTx` with 0 rows: `errors.As` the type; integration
+(`tests/integration/automation_*`): delete, activate, pause and update of an unknown ID answer 404.
+
+### 3.9 Deleting an automation counts the journeys it exits
+
+`DeleteTx`: the exit and the `stats.exited` increment are one statement, as `ExitContactJourneysOnReply` does
+(a CTE, with the same non-object guard), and it runs on `tx` when one is given. Tests: sqlmock of the
+statement; integration: two active journeys, delete, `stats.exited` raised by two.
+
+### 3.10 The reply exit's deadlock loop
+
+`ExitContactJourneysOnReply`: `updated_at` is taken again on each attempt; when the last attempt is still a
+deadlock, the error says so ("failed to exit contact journeys on reply after %d deadlocks: %w"), so the caller's
+log names it. Test "another error is not retried" asserts the error contains "fk violation" (a retried
+error would fail on the unexpected second query, which `ExpectationsWereMet` does not see), and a deadlock
+test asserts the attempt count in the text.
+
+### 3.11 Small validation fixes
+
+- `internal/domain/automation.go`, `validateLinkClickFilters`: `broadcast_id` and `template_id` longer than
+  `MaxTriggerIDFilterLength = 64` are refused. Tests: 64 accepted, 65 refused, for each.
+- `with_counts` (`list.go:173`) and `with_journey_counts` (`automation.go:1093`): "must be a boolean". Tests
+  updated.
+
+### 3.12 Tests
+
+- `automation_claim_test.go:129`: `activeJourneys` takes `runCtx`.
+- `automation_node_stats_test.go`: a delay followed by an email step: the email step's visits are 0 while the
+  delay runs; automation C's sub-tests each set up their own automation and journey.
+- `automation_stats_postgres_test.go`: `notPassedQuery` checks `e.contact_automation_id = ca.id`, `visitsQuery`
+  checks the `completed_at IS NULL` of the failed attempts.
+- `nodeStats` SQL details (integration, `automation_node_stats_test.go`): an email step with one completed
+  execution whose output has an error and one without: `errors` 1 and `completed` 1; an email execution with
+  no message and no queue entry is not queued; an A/B split counted by `variant_id`, with a `variant_name`
+  that differs; the transaction is read-only (a sqlmock test asserting `BeginTx` with `ReadOnly: true` and
+  `sql.LevelRepeatableRead`).
+- `TestAutomation/LongChainWithoutDelay`: run with `-count=10`; if it fails, the wait it shows is fixed, else
+  it is listed as not reproduced.
+
+### 3.13 CHANGELOG (44.0)
+
+Each point extends a 44.0 line, which is unreleased, rather than adding a Fix:
+- the `automations.get` 404 line names update, delete, activate and pause too;
+- the reply exits line ("count in its exited total") adds the journeys an automation's deletion exits, and that
+  an exit landing during a step is no longer counted twice;
+- the claim line (several instances) adds that a shutdown hands back the journeys it had not run, that a journey
+  whose saved context cannot be read no longer delays the others, and that a failing claim logs once every
+  5 minutes;
+- the `automations.nodeStats` line: a shutdown no longer adds a pass, a failed save is counted on its step, and
+  waiting journeys follow the application's clock;
+- the "Clicked a link" trigger line: broadcast and template filters are limited to 64 characters.
+
+Known, not handled (lot 3): the cost of `nodeStatsNotPassedSQL` on many long waits is not measured again; a
+process killed in the middle of a step still leaves a `processing` row.
+
+### Corrections after the plan review (lot 3)
+
+The plan review confirmed seven blocking and six minor problems. These replace what the points above say where
+the two differ.
+
+- **3.6 is dropped.** A delay ends when the claim finds `ca.scheduled_at <= NOW()`, the database clock
+  (`automation_postgres.go:1205`), which is the clock `nodeStatsInPlaceSQL` already uses. The TODO point is closed
+  with that evidence, and its CHANGELOG half-sentence goes.
+- **3.4, exits.** A step that ends the journey with `Exited` and no next step is not put back to `active`. The
+  retry keeps `CurrentNodeID == nil` and `ExitReason`, and a run that finds no current node with an `ExitReason`
+  calls `markAsExited(*ExitReason)`; without one, `markAsCompleted`. Test: an email step on an unsubscribed
+  contact whose save fails, then the next run writes `exited` with reason `unsubscribed`, the exited stat and the
+  end event.
+- **3.4, the failure is not a failed attempt on any step.** X's execution is marked completed (the email counters
+  and the delay's waiting state need that row); the save failure writes no failed execution row, `retry_count`
+  and `last_error` record it, and the journey retries from Y, which is what runs next. `handleError` keeps the
+  later of its backoff and the `ScheduledAt` the step set, so a delay keeps its resume time.
+- **3.2, the loop stops on a cancelled run.** Each iteration starts with `if ctx.Err() != nil { return }`: the
+  previous persist left the journey due when its lease ends. Test: trigger then delay, the context cancelled
+  during the trigger's persist: the delay is neither run nor persisted.
+- **3.2, every `handleError` caller.** When the run's context is done, `handleError` writes nothing (no retry
+  spent, no failed row, no stat), whichever caller it has, including the reads of `GetByID` and
+  `GetContactByEmail`. Test: `GetByID` returns `context.Canceled` on a cancelled context: no
+  `UpdateContactAutomationIfActive`, no failed entry, `RetryCount` unchanged.
+- **3.2, claims narrowed.** A shutdown can still leave a `processing` row: write errors stay ignored, and the
+  write bounds can outlast `AutomationScheduler.Stop`'s 5 s wait, after which the pools close. The comment of
+  `nodeStatsVisitsSQL` keeps "an attempt whose failure was not written". The concurrent-exit path (`!updated`)
+  marks the step completed, since the step ran. Bounds: no deadline on the after-step writes while the run is live, 5 s for them once it is cancelled, 3 s for all the releases of
+  3.3. Known, not handled: the scheduler goroutine is not awaited by `cleanupResources`.
+- **3.3, tests.** The integration test cancels `runCtx` from the first journey's webhook receiver; journeys 2 and
+  3 are due now, journey 1 is not due (held) or has ended. The unit test "on shutdown the journeys left keep
+  their claim and are not renewed" (`automation_executor_test.go:2348`) and the comment at
+  `automation_executor.go:258` are rewritten for the releases.
+- **3.12, read-only transaction.** go-sqlmock ignores `BeginTx` options, so the test uses a small fake
+  `driver.Connector` whose connection implements `driver.ConnBeginTx` and records the `driver.TxOptions`.
+- **3.9 is reduced to a comment.** A deleted automation's stats are never read (`GetByIDTx` filters
+  `deleted_at`, no caller lists deleted ones, the v44 recount skips them), so `DeleteTx` gets a comment saying
+  its exits are not counted and why, and it still runs on `tx` when one is given. No CHANGELOG change.
+- **3.11.** The `with_journey_counts` message also changes in `openapi/paths/automations.yaml` and the bundled
+  `openapi.json`.
+- **3.7.** `repeatedErrorLog` works as a zero value (a value field, the clock defaulting to `time.Now`), since
+  tests build the executor by struct literal.
+- **3.10.** A test pins that `updated_at` is taken again on each attempt (two attempts, two distinct times).
+- **Reached going down.** The notifuse half (the nodeStats description in `openapi/paths/automations.yaml` and
+  `openapi.json`) is done with the docs half.
+- **CHANGELOG.** Four points fix behaviour that shipped in 43.0 and get their own line:
+  - "Fix: A journey whose saved context is not a JSON object no longer stops the automations of its
+    workspace." (3.1)
+  - "Fix: An automation step that finishes while Notifuse shuts down is saved, instead of running again after
+    the restart (an email step could send its email twice)." (3.2)
+  - "Fix: When saving a journey's last step fails, the journey is now counted as completed or exited and its end
+    shows in the contact's activity." (3.4)
+  - "Fix: A journey ended by a reply or by its automation's deletion while one of its steps runs is no longer
+    counted as completed or failed, nor shown as such in the contact's activity." (3.5)
+
+  The 404 Fix line names update, delete, activate and pause. 3.3, 3.7 and 3.11 fold into their 44.0 lines,
+  worded as behaviour ("a shutdown hands back the journeys it has not run"), never "no longer".
+
+### Implementation notes (lot 3)
+
+- `TestAutomation/LongChainWithoutDelay` passed ten runs in a row (`-count=10`): not reproduced, no wait changed.
+- No caller passes a transaction to `DeleteTx`; its exit statement runs on it anyway when one is given.
+- 3.11's OpenAPI message also changes in the docs repository's `openapi.json`.
+- The 3.2 unit tests check that each write after a step gets a context that is not done, with no deadline
+  while the run is live.
+
+### Corrections after the code review (lot 3, round 1)
+
+The code review (Fable, high) confirmed three bugs,
+three tests that could not fail and four overstated claims. Each fix has a test, and reverting a fix fails it.
+The delta review (`grouped-pr-lot3-fix-review.md`) found three mutations short of a revert that pass: the timer
+armed at creation, the `AfterFunc` not unregistered, and the row-written-then-cancelled case; they stay as they
+are (known, not handled).
+
+- The add-to-list and remove-from-list steps fail when the run's context is done, so a step a shutdown cut
+  short runs again instead of being saved as done.
+- The after-step writes have no deadline while the run is live; once it is cancelled they go on for 5 s
+  (`writeContext`, `context.AfterFunc`).
+- A run cancelled while the processing row is written runs no step and closes the row.
+- The tests: the failing release is not the last; `expectProcessingRow` asserts; a failed save on a cancelled
+  run is retried on a live context.
+- The claims: the last-step Fix line holds while a retry is left; the stats comment says what the SQL counts for
+  a step cut short; the repeated-error log is per call site (`repeatedErrorLog` no longer compares texts); the
+  no-current-node branch also ends a journey whose last step was a delay.
+
+## Test commands for lot 3
+
+```
+go test ./internal/domain/ ./internal/service/ ./internal/repository/ ./internal/http/
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestAutomation' -count=1
+```
+
+## Lot 4: the tasks API, the email webhook's statuses, the compile request
+
+Reviewed before code: see "Corrections after the plan review (lot 4)". #568, #569 and #570 are merged in dev, so the points
+that waited for them are done here.
+
+### 4.1 A missing task is `domain.ErrTaskNotFound` everywhere, and recognised only as such
+
+- `internal/repository/task_postgres.go`: `UpdateTx`, `Delete`, `MarkAsCompletedTx` and `MarkAsFailedTx`
+  return `domain.ErrTaskNotFound` (same text) instead of `fmt.Errorf("task not found")`.
+- `internal/http/task_handler.go`: `GetTask`, `DeleteTask` and `authorizeExistingTask` answer 404 on
+  `errors.Is(err, domain.ErrTaskNotFound)` alone; the `strings.Contains(err.Error(), "not found")` checks go.
+- `internal/service/task_service.go`, `ResetTask` and `TriggerTask`: a failed read is wrapped as
+  "failed to load task: %w" (the repository already says "failed to get task").
+
+Tests: sqlmock, each of the four methods with 0 rows: `errors.Is(err, domain.ErrTaskNotFound)`;
+`TestTaskRepository_GetWithTransaction` gains the no-row case through `Get`; handler tests: an error whose
+text contains "not found" but is not the sentinel answers 500 on get, delete and the authorization read; the
+service tests of reset and trigger assert the error text has the prefix once.
+
+### 4.2 `tasks.execute` refuses an ID that is not a UUID
+
+`internal/domain/task.go`, `ExecuteTaskRequest.Validate`: `uuid.Parse(r.ID)` fails → "task id must be a
+UUID" (400 through the handler's existing branch). Tests: domain (valid UUID, `not-a-uuid`), handler (400,
+no service call).
+
+### 4.3 Reset and trigger cancelled by the client
+
+`ResetTask` and `TriggerTask` handlers: an error that `errors.Is(err, context.Canceled)` is logged at Debug
+(no Error), and answered 500 as now (the client is gone). Tests: the service returns a wrapped
+`context.Canceled`: the strict logger mock expects `Debug` and no `Error`.
+
+### 4.4 One log per failed task read on execution
+
+`TaskService.ExecuteTask`: a missing task is logged at Warn, and a failed read is not logged in the service
+any more (it is returned wrapped, and each caller logs it: the handler, `ExecutePendingTasks`'s loop,
+`runTaskNow`, the segment service). Tests: the strict logger mock of the service sees `Warn` for a missing
+task and nothing for a read error; the handler's 500 case expects `Error` once.
+
+### 4.5 Task handler tests
+
+- `task_handler_refusals_test.go`, `TestTaskHandler_ResetAndTrigger_ServiceFailures`: the cases that
+  `task_handler_reset_trigger_errors_test.go` covers go; what only it covers stays.
+- `task_handler_execute_lookup_errors_test.go` and `task_handler_reset_trigger_errors_test.go`: each 500 case
+  expects `Error` `.Times(1)` on a logger mock that refuses other calls to `Error`; "the task is gone when the
+  execution reads it" asserts the body.
+- `internal/domain/nullable_time_text_test.go`: `"10000-01-01"` and `"1900-01-01 00:00:00+00:09:21"` refused; a
+  zoneless value has `Location() == time.UTC`.
+
+### 4.6 F-14: the email webhook answers by the kind of failure
+
+`internal/service/inbound_webhook_event_service.go`, `ProcessWebhook`:
+- a workspace that does not exist: the repository's `*domain.ErrWorkspaceNotFound` passes through wrapped;
+- no integration with that ID: `domain.ErrInboundIntegrationNotFound` (the reply route's sentinel);
+- an integration of a kind without webhook parsing: `domain.ErrInboundProviderUnsupported`;
+- a payload the provider's parser refuses: a new sentinel `domain.ErrWebhookPayloadInvalid`, wrapped with the
+  parser's error.
+`internal/http/inbound_webhook_event_handler.go`, `handleIncomingWebhook`: 404 for the first two, 400 for the
+next two, 500 otherwise (database, storage, infrastructure), logged at Error only for the 500s and Warn for
+the others. A parser step that is not about the payload (an HTTP call, as the SES subscription confirmation
+may make) keeps its error unwrapped, so it answers 500.
+
+Tests: service, one case per sentinel and a `StoreEvents` failure that is none of them; handler, one row per
+status; integration (`tests/integration/webhook_*`): an unknown integration answers 404, a garbled body 400.
+
+### 4.7 The compile request's text and the API reference
+
+- `CompileTemplateRequest.Validate`: a `text` over `MaxCustomTextSize` bytes is refused, as a saved template's
+  is. Test: 64 KiB accepted, one byte more refused.
+- `openapi/components/schemas/template.yaml`: the `text` description says the 64 KiB limit counts bytes
+  (`maxLength` counts characters); the compile request documents `preserve_liquid`. The generated
+  `openapi.json` of this repository and of the docs repository are regenerated.
+
+### 4.8 The small gaps left by #566
+
+- `assertAuditReason` finalizes with the status the refusal actually answers (passed by each caller).
+- `automations.nodeStats` handler table: a revoked API key (401) and a permission refusal wrapped by the
+  service (403).
+- The recipient feed's retries: with the retry delay from the feed settings set to a few milliseconds, a
+  timeout and a refused connection are each retried, then fail after the configured attempts.
+
+### 4.9 CHANGELOG (44.0)
+
+The task API lines of 44.0 (unreleased, #569/#570) are extended rather than given Fix lines: `tasks.execute`
+answers 400 for an ID that is not a UUID; 404 only for a task that does not exist (now strictly). F-14 is a
+fix to released behaviour: "Fix: the email provider webhook answers 400 only for a payload it cannot read,
+404 for an unknown workspace or integration, and 500 for a failure on our side, so providers retry it." The
+compile request limit: "Improvement: `templates.compile` refuses a text version over 64 KiB, as saving does."
+
+### Corrections after the plan review (lot 4)
+
+The plan review (Opus, xhigh) confirmed four
+blocking and ten minor problems. These replace what the points above say where the two differ.
+
+- **4.1** The handler tests that return a plain `errors.New("task not found")` and expect 404
+  (`task_handler_test.go:578`, `:803`, `task_handler_refusals_test.go:71`) return the sentinel. The repository's
+  existing zero-row tests gain `ErrorIs` rather than new cases.
+- **4.2** The tests whose task IDs are not UUIDs get UUIDs (`task_handler_test.go:122, 196, 223, 255, 287, 1412,
+  1716`, `task_handler_refusals_test.go:83`, `task_handler_execute_lookup_errors_test.go:24`, domain
+  `task_test.go:725`). `tasks.get`, `tasks.delete`, `tasks.reset` and `tasks.trigger` refuse a non-UUID ID with a
+  400 too, since they answer 500 with an Error log today and are reachable with an API key.
+- **4.3** A cancellation is recognised from the request's context (`r.Context().Err() != nil`) as well as from
+  the error, so a statement cancelled by lib/pq or a `sql.ErrTxDone` counts; the authorization reads take the
+  same rule.
+- **4.4** Warn for a missing task applies to every caller: the scheduler loop, `runTaskNow` and the segment
+  service log `*domain.ErrNotFound` at Warn.
+- **4.5** The 500 cases assert the logged error field holds the internal error's text; the Equal-only UTC check
+  of `feed_nullable_gap_test.go:85-89` asserts `Location() == time.UTC` too.
+- **4.6** `validateSNSURL` refusing a SubscribeURL is a payload error (400); a failed `client.Do`, and a non-2xx
+  answer from AWS to the confirmation, are ours (500), so SNS sends the confirmation again. The existing tests
+  whose outcome changes are updated (the handler's ProcessError case, the shared logger mock gains Warn, the
+  "unsupported email provider kind" assertion). The run pattern covers every `/webhooks/email` end-to-end test.
+  The Fix line says 400 for a payload it cannot read or an integration that is not an email provider.
+- **4.7** `MaxCustomTextSize` moves to `pkg/notifuse_mjml` (internal/domain keeps an alias). The check runs on
+  the normalised text, before `Validate`'s early return for `mjml_source`, with a test in each mode. It answers
+  400 as saving does (the source is the caller's input, unlike a rendering problem, which stays a `text_error`);
+  the compile request's `text` description names the limit; `./pkg/notifuse_mjml/` joins the test command.
+- **4.8** The feed's retry delay and per-attempt timeout are fixed in `internal/domain/data_feed.go:175-188`:
+  the fetcher gets an injection point of its own (fields set by its constructor, overridden in tests), not a
+  setting of `RecipientFeedSettings`, which is the broadcast's stored JSON. The cancelled-feed bound of
+  `data_feed_failures_test.go:126` uses it as well.
+- **4.9** The compile limit is folded into the 44.0 plain-text Feature line (`CHANGELOG.md:77`): the request's
+  `text` field is 44.0 work.
+
+### Corrections after the code review (lot 4, round 1)
+
+The code review (Fable, high) found no blocking
+problem and eleven minor ones. Fixed: the zero-row sentinel of `UpdateTx` and `MarkAsFailedTx` is pinned; the
+Warn for a missing task is pinned in the handler and in `runTaskNow`, whose own read now logs a missing task at
+Warn too (`logExecutionFailure` reads `domain.ErrTaskNotFound`); a task ID must be 36 characters, so the
+`urn:uuid:` form answers 400; a refused SNS `SubscribeURL` is logged at Warn; the feed retry test bounds its
+time; the CHANGELOG's 400 line and the webhook integration test's comment say what they cover; the test
+commands above list every test that posts to `/webhooks/email`.
+
+Known, not handled: `assertAuditReason` takes the status it checks from its caller; a payload that parses but
+cannot be stored (an over-long bounce type, invalid UTF-8 in the raw payload) answers 500 on every delivery; a
+delivery sent again after a failure past `StoreEvents` stores its events twice (a soft bounce counts twice
+toward the threshold); `tasks.get` and `tasks.delete` still log a cancelled request at Error.
+
+## Test commands for lot 4
+
+```
+go test ./internal/domain/ ./internal/service/... ./internal/repository/ ./internal/http/ ./pkg/notifuse_mjml/
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestTask|TestWebhook|TestInbound|TestTemplate|TestPlainText|TestEmailEvent|TestBounce|TestMailjet|TestSESBounceHandling|TestAutomationComplaint|TestMessageStatusRecordsTheListRow' -count=1
+```
+
+## Lot 5: the public blog (robots, sitemap, feeds, cache) and the blog API
+
+Reviewed before code (Opus xhigh; corrections in "Corrections after the plan review (lot 5)"). No schema change.
+
+### 5.1 robots.txt and the sitemap answer as the feeds do
+
+`internal/http/root_handler.go`:
+- `serveBlogRobots` and `serveBlogSitemap` answer 405 outside GET and HEAD, as `serveBlogFeed` does.
+- robots.txt names the sitemap by its absolute URL, `Sitemap: https://<host>/sitemap.xml`, the host being
+  `hostWithoutPort(r.Host)` in lower case (the custom domain the workspace was found by).
+- The sitemap's URLs take that lower-case host too.
+
+Tests, `root_handler_test.go`: POST on both answers 405; robots.txt on `Blog.Example.com:8080` names
+`https://blog.example.com/sitemap.xml`; the sitemap's `loc` values are lower case.
+
+### 5.2 Sitemap content
+
+- `lastmod` of a post is its last change, `GREATEST(p.published_at, p.updated_at)` read by
+  `ListSitemapPosts` (`domain.BlogSitemapPost` gains `LastModified`).
+- Each category with a listed post has its page `/<category>` listed next to its feed; the URL budget counts
+  both (`cost` 3 for a post opening a new category).
+- The sitemap is written straight to the response, and kept in the handler's cache for `BlogCacheTTL` under a
+  key per workspace and host, as the pages are.
+- More than 50 000 URLs still drops the oldest posts: an index of sitemaps is left out (known, not handled).
+
+Tests: `writeBlogSitemap` table (a category page listed once, the budget with category pages, the
+`lastmod` of an edited post); repository sqlmock of the query; handler: a second request within the TTL does
+not call the service (`X-Cache: HIT`); `tests/integration/blog_sitemap_test.go`: every listed URL answers 200
+(GET in a loop), and an edited post's `lastmod` is its edit date.
+
+### 5.3 Category slugs taken by another route are refused
+
+`internal/domain/blog.go`: `ReservedBlogCategorySlugs` lists the first path segments the server routes before
+the blog: `api`, `console`, `notification-center`, `v`, `t`, `r`, `visit`, `opens`, `preferences`,
+`subscribe`, `unsubscribe`, `unsubscribe-oneclick`, `health`, `healthz`, `track`, `webhooks`; and a slug
+starting with `api`, `console` or `notification-center` (the root handler matches those by prefix,
+`root_handler.go:105-117`). Category create and update refuse them ("slug is reserved by another route").
+Existing categories are not touched. Tests: one refused slug per kind (exact, prefix), a neighbour accepted
+(`apis` refused, `vip` accepted, `tracking` accepted).
+
+### 5.4 Feeds: If-None-Match decides alone when present
+
+`serveBlogFeed`: If-Modified-Since is read only when the request has no If-None-Match (RFC 9110 §13.1.3).
+Test: a stale ETag with a recent If-Modified-Since answers 200.
+
+### 5.5 A scheduled post shows on time on the cached pages
+
+The home and category page cache entries live until the next scheduled publication when it comes before
+`BlogCacheTTL`: a repository method `NextScheduledPublishAt(ctx, now)` (the smallest `published_at > now`
+of a live post, or none), read on a cache miss; the TTL is `min(BlogCacheTTL, next - now)` and at least one
+second. Tests: sqlmock of the query; handler: a post due in 30 s gives the entry a TTL of 30 s (the cache
+fake records it); integration: a post scheduled 2 s ahead shows on the home page after it is due.
+
+### 5.6 Blog and template API input
+
+- `ListBlogPostsRequest.Validate`: a `search` with a NUL byte or invalid UTF-8 answers 400; a `category_id`
+  that is not a UUID answers 400 (the column is a UUID, `init.go:398`).
+- `GetTemplateUsageRequest.FromURLParams`: a `template_id` with a NUL byte or invalid UTF-8 answers 400.
+Tests: domain table per case; handler 400 for `blogPosts.list?category_id=news`.
+
+### 5.7 Dead code and comments
+
+`BlogService.ListPublicPosts` (no caller) goes, with its interface method, mock and tests; the comments of
+`ListPublicSitemapPosts` (service and interface) say "the live posts the sitemap can list"; the 150-character
+comment of `writeBlogSitemap` is wrapped. `internal/repository/blog_postgres_test.go`: a sub-test
+`PublishedBefore` + `Search` that pins the SQL placeholders' numbering.
+
+### 5.8 CHANGELOG (44.0)
+
+The sitemap, robots.txt and feeds are 44.0 work (unreleased): their lines take the changes (absolute sitemap
+URL, category pages, last change date, 405, the conditional GET rule). The reserved slugs, the scheduled post
+on time, and the 400s are released behaviour: "Fix: a scheduled blog post appears on the home and category
+pages when it is due, not up to 5 minutes later.", "Improvement: a blog category cannot take a name another
+route already answers (`api`, `track`, `unsubscribe`, …).", "Fix: `blogPosts.list` answers 400 for an
+unreadable search or category ID, and `templates.usage` for an unreadable template ID, instead of 500."
+
+### Corrections after the plan review (lot 5)
+
+The plan review (Opus, xhigh) confirmed blocking
+and minor problems in lots 5 and 6. These replace what the points above say where the two differ.
+
+- **5.2** The sitemap cache is keyed on the workspace ID and the normalised host, not `r.Host`. The integration
+  test publishes a blog theme. The body is built in memory once (no extra `[]byte` copy). The sitemap entry is
+  bounded by the next scheduled publication, as 5.5 bounds the pages. `writeBlogSitemap` skips a category whose
+  slug is reserved (5.3), so its posts and page are not listed.
+- **5.3** A slug is refused only when it changes (`UpdateBlogCategory` already tells a changed slug), so an
+  existing `health` category keeps being editable. The 44.0 line on `v` says a new category cannot take it.
+- **5.4** The ETag comparison uses `etagMatches` (weak comparison, lists, `*`). The feed's Last-Modified takes
+  `GREATEST(p.published_at, p.updated_at, c.updated_at)`.
+- **5.5** A `BlogService` method (with its mock and test) reads the next publication; the instant is taken
+  before the render.
+- **5.6** `category_id` is canonicalised in `parseListBlogPostsParams` (`uuid.Parse(...).String()`, refusing
+  what does not parse), not in `Validate`, which the public render paths share.
+- **5.7** One sub-test with CategoryID, `status=scheduled`, PublishedBefore and Search pins every placeholder
+  and LIMIT/OFFSET.
+- **5.8** No Fix line for the scheduled post (fold into the 44.0 scheduled-post line) nor for `search` and
+  `templates.usage` (fold into their 44.0 Feature line); `category_id` joins the 44.0 "invalid status" line;
+  5.4 gets its own Fix line (a reader that sent both headers got 304 for a changed feed); robots.txt and the
+  sitemap join the 44.0 sitemap Fix line.
+
+### Corrections after the code review (lot 5, round 1)
+
+- **B1** The reserved slugs split by what the route takes. `domain.BlogCategorySlugRouteOf` answers
+  `BlogCategorySlugSubtreeTaken` for `v`, `t`, `r` (subtree patterns) and any slug starting with `api`,
+  `console` or `notification-center` (prefixes the root handler matches), `BlogCategorySlugPageTaken` for the
+  exact patterns (`visit`, `opens`, `track`, `preferences`, `subscribe`, `unsubscribe`, `unsubscribe-oneclick`,
+  `health`, `healthz`), and `BlogCategorySlugFree` otherwise. `webhooks` leaves the list: nothing is
+  registered at `/webhooks`. `IsReservedBlogCategorySlug` (creation and rename) refuses both taken kinds. The
+  sitemap skips every address of a subtree slug and only the page of an exact-route slug (its posts and feed
+  are listed; a new such category costs 2 URLs). Tests: `TestBlogCategorySlugRouteOf` with the slugs written
+  out; `TestWriteBlogSitemap_Content` and `_URLBudget` cases per kind; `TestBlogSitemap`'s track category now
+  lists its post and feed; `TestBlogReservedCategorySlugs` (integration) requests the page, a post and the
+  feed of a category per slug on the running app, asserts each reaches the blog exactly when the domain says
+  so and the sitemap lists exactly those, and that creating `health` or `v` answers 400.
+- **B2** The domain test no longer iterates the list it protects (see B1).
+- **m1** `blogPageTTL` counts the time left to the next publication from the call (`time.Until`), just before
+  the Set; the next publication is still read after the instant taken before the build. Test: each page takes
+  50 ms to build, and the entry for a post due in 30 s is at most 30 s less that.
+- **m2** `TestRootHandler_serveBlogSitemap` "answers HEAD".
+- **m3** The `lastmod` fallback gets a case (a post read without its edit date).
+- **m4** The cache-key test also requests another host of the same workspace.
+- **m5** `BlogSitemapMaxPosts`'s comment names the category's page and feed.
+- **m6** The scheduled post's Fix line no longer compares with the 5-minute delay of unreleased code.
+- **m7** Integration cases for the `search` and `template_id` 400s; the reserved-slug refusal is in
+  `TestBlogReservedCategorySlugs`; the OpenAPI category slug and its 400 examples name the reserved slugs;
+  `TestBlogScheduledPost_OnTime` leaves 6 s and asserts the pages were cached before the date.
+- **m8** Comment wording (sitemaps protocol; the sitemap's cache key); the three blog 405s send
+  `Allow: GET, HEAD` through `refuseBlogMethod`.
+
+Known, not handled: a category named `webhooks` (now allowed) loses the address of a post slugged `email`
+to the email webhook, and one named after another route's first segment loses the matching post addresses
+the same way; the page cache still keys on the raw Host.
+
+### After the delta review (lot 5, round 2)
+
+- **N1** `writeBlogSitemap`'s comment says which addresses it leaves out, by route kind.
+- **N2** The integration test's comment says what it pins: what the server does for each slug it names, not
+  that the domain knows every route the server registers (known, not handled: a test reading the mux's
+  registered patterns).
+- **n1, n2** The exact-route budget case uses a budget of 4, which a cost of 3 would overflow; a new case
+  pins that a post under a subtree route costs nothing.
+- **n5** The exact routes include the web analytics collector.
+- **n6, n7** No unpinned counts in those comments; the domain test says the integration test checks most of
+  its slugs.
+- **n8** The update schema's slug names the refusal on a rename; **n10** the integration test refuses a
+  rename to `healthz` and keeps `opens` on an edit of its category.
+- **n9** The lot's integration command also runs `TestTemplatesUsage`.
+- **n11** The TTL lower bound leaves 5 s for the build.
+
+Known, not handled: `/track/` (trailing slash) answers the blog's category page; a category `webhooks`
+lists `/webhooks/email`, which the email webhook answers (as in 43.0).
+
+## Test commands for lot 5
+
+```
+go test ./internal/domain/ ./internal/service/ ./internal/repository/ ./internal/http/
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestBlog|TestTemplatesUsage' -count=1
+```
+
+## Lot 6: templates, the plain-text version, the visual editor's MJML, system emails
+
+Reviewed before code (Opus xhigh; corrections in "Corrections after the plan review (lot 6)"). No schema change.
+
+### 6.1 The automatic plain-text version (`pkg/plaintext`)
+
+One table row in `plaintext_test.go` per case, written first, then the local fix:
+- `]` leaves `trailingPunctuation`: Markdown-style autolinkers take it into the link, so `[Unsubscribe
+  (https://e.com/u)]` must read `… (https://e.com/u) ]`; the comment of `trailingPunctuation` and
+  `plans/feat-plain-text-alternative-plan.md:419` say which autolinkers leave what out.
+- In `<pre>`, a link's URL is kept apart from the text around it by a space (`«https://…»` becomes
+  `« https://… »`).
+- A Unicode space other than NBSP at the edge of a text node (`&#x202F;`, `&#x2003;`) separates the words as an
+  ASCII space does: the edge test reads the first and last rune with `unicode.IsSpace`.
+- An `<li>` whose first child is a `<pre>` or a nested list writes its marker before that content.
+- `start="3px"` numbers from 3, as browsers read the leading integer.
+- `mailto:?subject=…` (no address) writes its label alone.
+- Nested anchors whose outer label starts with a URL: the row is written; if the parser already splits the
+  anchors and both destinations are kept, the row stays as a pin and nothing else changes.
+- A `mj-social-element` with click tracking: its icon link and its label link name one destination; the pair is
+  written once as `Label (url)`. Detected on the HTML that gomjml produces for a social element (an icon cell
+  and a label cell that share an href inside one element's table), so other layouts keep every destination.
+
+### 6.2 Custom text and the compile preview
+
+- `plainTextVersion`: a custom text that renders blank sets `text_error` ("the custom text renders blank for
+  this data") only when the request asks for the automatic text (`IncludeText`, the `templates.compile`
+  preview); send paths are unchanged.
+- The starting point of a custom text (`PreserveLiquid`): a loop around table rows, or an `mj-raw` inside a
+  column, sets the same notice the split tag pair sets, so the preview warns that the Liquid may be misplaced.
+  Rows added to `TestCompileTemplate_CustomTextSeed`.
+- `CompileTemplateRequest.Validate` calls `ValidateDisplayConditions(req.VisualEditorTree)` for a visual tree,
+  so an invalid condition answers its own error rather than "'if' tag was never closed".
+- The code-mode path (`MjmlSource`) removes the top-level `__dc*` keys from the data before
+  `ProcessLiquidTemplate`, with `withoutConditionNames`, as the visual path does.
+- Exported conditions and the 100 KB limit: a test with 50 conditional sections of 20 rules measures the
+  exported size; the generated Liquid is shortened where the test shows most of it is (variable names, the
+  numeric guard), and the "Conditional blocks" doc page names the limit (docs PR).
+
+### 6.3 Templates API
+
+- `TemplateService.UpdateTemplate`: a stored translation carried over (request without `translations`) is not
+  validated again; the request's own translations still are. Test: a stored translation that no longer
+  validates, an update without `translations` succeeds; one with that translation answers 400 naming it.
+- `templates.usage` counts what a broadcast will send: `winning_template` once a winner is set, the first
+  variation when `test_settings.enabled` is false, every variation otherwise. Tests: sqlmock of the SQL and an
+  integration case per kind.
+- `broadcasts.get` with `with_templates`: the template loop moves into `BroadcastService.GetBroadcast`,
+  guarded by `HasPermission(templates, read)` like `ListBroadcasts`; a caller without it gets the variations
+  without templates and no Warn per variation. Tests: service with and without the permission.
+
+### 6.4 System emails send the text part first
+
+`pkg/mailer/mailer.go` (the three senders): the text is the main body and the HTML the alternative, so
+`multipart/alternative` goes from the plainest to the richest (RFC 2046 §5.1.4). Tests: the mailer tests read
+the parts' order.
+
+### 6.5 MJML converter
+
+- `pkg/notifuse_mjml/model.go` formatted with gofmt, in its own commit.
+- The comments of `escapeAttributeValue` and of Step 3 (`template_compilation.go:103-113`) describe what the
+  gomjml version in `go.mod` writes by hand (only the section's `bgcolor`), name `mj-font`'s `href` among the
+  exceptions, and are wrapped. The doubling itself and the `background-url` quote wait for the next gomjml
+  version (known, not handled).
+- Coverage of the skip paths (`converter_display_condition_test.go`): an evaluation error from a failing
+  engine, and a typed-nil child next to a conditional one.
+- `liquid_validate_test.go`: an `include` on a later line of a multi-line `{% liquid %}` is refused; the error
+  branches of the custom text and of the validation environment get a case each.
+
+### 6.6 Sender and headers tests
+
+- `email_service_test.go:2831`: the translation's sender is not the integration's default, so a fall back to
+  the default fails the From assertion.
+- The translation's own sender wins on the broadcast queue sender and the automation email node: one sub-test
+  each. The template test send takes the sender chosen in the dialog, not the translation's (code review: the
+  endpoint sends from the address the dialog shows), and its sub-test pins that.
+- An integration test sends a message through the SMTP bridge with a `Reply-To` to a template that has its own
+  reply-to, and reads which one Mailpit received.
+- The List-Unsubscribe header tests get a row with tracking off (`tracking_mode = no_tracking`).
+- The block that reads `oneclick_unsubscribe_url` when `SendsListUnsubscribeHeader()` is true becomes
+  `(*Broadcast).ListUnsubscribeURL(data)`, tested once, called from the three places.
+- `orchestrator_sender_test.go`: the pause reason's `VariationNumber` and `VariationCount` are asserted; the
+  sending-started annotation is asserted for `processing` and not for `testing`.
+
+### 6.7 The list test email
+
+`plans/feat-plain-text-alternative-plan.md` says 44.0 (lines 23, 242, 244, 359); an integration sub-test in
+`plain_text_alternative_e2e_test.go` checks that the text part of a list's test email holds the list's links.
+
+### 6.8 CHANGELOG (44.0)
+
+The plain-text version, the custom text, display conditions and the code export are 44.0 work: their lines take
+the changes. Released behaviour: "Fix: system emails (invitations, sign-in codes) put their text part first, as
+mail clients expect.", "Fix: updating a template without its translations no longer fails on a stored
+translation.", "Fix: `templates.usage` counts only the templates a broadcast will send.", and
+"Improvement: `broadcasts.get` with `with_templates` leaves the templates out for a caller without Templates
+read, without a lookup per variation."
+
+### Corrections after the plan review (lot 6)
+
+- **6.1** The social element: detected on structure alone (an `inline-table` holding an icon link and a
+  sibling text link) or by the destinations decoded from the `/r/` tokens; if neither fits in the lot, the
+  point goes to "known, not handled".
+- **6.2** The 100 KB limit: the scenario is far over it whatever the names (measured 239 KB to 1.5 MB), so the
+  lot keeps the doc note of the limit and the shortening is "known, not handled". The seed notice is detected
+  on the request's visual tree (a `mj-liquid` or `mj-raw` placed among rows or columns), not on the parsed HTML.
+  Tests: a condition on a block holding `mj-liquid` refused by the compile request's `Validate` (which
+  `templates.compile` answers with 400); a code-mode compile whose data carries
+  `__dc_<id>`; a blank custom text with and without `IncludeText`.
+- **6.3** `templates.usage` counts `VariationsToSend()`: the winning variation once set, every stored variation
+  otherwise (the random pick among stale variations with A/B off is "known, not handled"). `broadcasts.get`:
+  `GetBroadcast` gains an options argument for the templates; no CHANGELOG line beyond the 44.0 line on members
+  without Templates read.
+- **6.4** A function builds each system email's message; the tests write it with `msg.WriteTo` and read the
+  parts' order.
+- **6.5** The comments name what v0.14.1 writes by hand (section `bgcolor`, mj-font `href`, the carousel's
+  `href`, `src` and `alt`, inline style values); the evaluation error gets a case with data and one without.
+- **6.6** The sending-started annotation is asserted for a first run in `testing` (in
+  `orchestrator_sending_started_test.go`). The SMTP bridge test asserts the header's Reply-To wins.
+- **6.8** `templates.usage` and the stored translation's text fold into their 44.0 lines; no `broadcasts.get`
+  line.
+
+### Corrections after the code review (lot 6, round 1)
+
+Review of 6c590c7.
+
+- B1: the stray-winner comments of `templates.usage` (repository and integration test) now say what the code
+  does: a winner that is none of the variations counts the variations, as `VariationsToSend` reads them, while
+  the orchestrator sends the winner's own template. That gap goes to "known, not handled".
+- B2: `UpdateTemplate` validates the merged translations when the edit changes the channel, so a `web` template
+  carrying email translations is refused as in 43.0. Test: "a change of channel checks the translations it
+  carries over".
+- B3, B4, B5: the comments of `plainTextVersion`, of the hand-written gomjml attributes (both places, now
+  wrapped) and of `trailingPunctuation` (and this repository's plain-text plan) are corrected.
+- Minors taken: the OpenAPI `text_error` and `templates.usage` descriptions; the `MjmlSource` check matches
+  `CompileTemplate` (an empty source compiles the tree), with a test; the unreadable template is no longer the
+  last variation in the `GetBroadcast` test; the cut CHANGELOG sentence. Left in "known, not handled": the
+  `socialLabelLink` hidden checks and untested guards, `liquidAmongBlocks` on an `mj-raw` in a section, the
+  `HandleUpdate` options matched with `gomock.Any()`. The console notice prefix is a lot 8 point (8.2).
+
+### Corrections after the delta review (lot 6, round 2)
+
+- The `trailingPunctuation` comment and the plain-text plan's note now follow cmark-gfm's `autolink_delim`,
+  which leaves each of `.,;:!?"'` and an unmatched `)` out of the link; the GFM spec's prose lists fewer.
+- `CompileTemplate`: the whole-string Liquid pass and the preview override fallback test an empty
+  `mjml_source` as the code-mode branch does (`codeMode`), so an empty source with a tree renders its
+  `mj-liquid` blocks. Test: `TestCompileTemplate_EmptyMjmlSourceRendersTheTreesLiquid`, which fails with
+  either condition put back.
+- OpenAPI `text_error`: the blank custom text no longer depends on a request option the API does not have.
+
+## Test commands for lot 6
+
+```
+go test ./pkg/... ./internal/domain/ ./internal/service/... ./internal/repository/ ./internal/http/
+INTEGRATION_TESTS=true go test -race -timeout 45m -tags integration,licdev ./tests/integration/ -run 'TestTemplate|TestPlainText|TestSMTPBridge|TestBroadcast' -count=1
+```
+
+## Lot 7: analytics, contacts and visits, the timeline, the demo, the audit log, the test helpers
+
+Reviewed before code (Opus xhigh; corrections after lot 9). No schema change.
+
+### 7.1 Analytics
+
+- `count_transactional_messages` (`internal/domain/analytics.go:160`) counts what the `origin` dimension calls
+  transactional: `transactional_notification_id IS NOT NULL AND automation_id IS NULL AND broadcast_id IS NULL`.
+  Released measure, so a Fix line. Tests: the schema's filter; integration: an automation email and a template
+  test are not counted.
+- `pkg/analytics/sql_builder.go`, ORDER BY: a measure is ordered by its output alias, not by its raw SQL
+  (`*` for a count, `sent_at` for a max, neither valid outside the aggregate). Tests: order by `count_sent`
+  and by `last_sent_at` build valid SQL (sqlmock, and an integration query).
+- `fillTimeSeriesGaps`: rows are keyed by time and dimension values, so a query with a dimension (such as
+  `origin`) keeps every row of a period; each period gets a row per dimension value seen in the data. A filled
+  row has 0 for count and sum measures and null for the others (`max`, `min`, `avg`), read from the measure
+  types `ProcessRows` now receives. Tests: two origins on one day both kept; a missing day gets a row per
+  origin; `last_sent_at` of a filled row is nil.
+- `last_sent_at` of a broadcast or an automation is the time it was queued: the measure's description says so.
+
+### 7.2 Contacts and web visits
+
+- `contacts.list` search also matches `first_name || ' ' || last_name`, so "Jane Doe" finds a contact with
+  only those two fields. Test: sqlmock of the condition; integration: the contact is found.
+- `webAnalytics.contactSessionPages`: the response gains `pages_truncated` and `goals_truncated`, true when the
+  repository returned `ContactSessionPagesMax` rows of that kind (it reads one more row to tell). Tests:
+  repository with 201 rows; handler; openapi.
+- `ContactVisitsRequest` and the session pages request: `Validate` refuses an email over 254 bytes, a NUL
+  byte or invalid UTF-8 (moved from `FromQuery`, which keeps calling it). Tests: domain table.
+
+### 7.3 Timeline
+
+- `timeline.list` answers `[]` when the contact has no entry: the repository starts from an empty slice.
+  Test: repository with no row; handler body `"entries":[]`.
+- A test walks `domain.TimelineEntityTypes` and requires each type to be in `timelineEntityPermissions` or in
+  a new explicit `timelinePublicEntityTypes` list, so a type added later fails until it is classified.
+
+### 7.4 Demo
+
+- The A/B broadcast of the demo records `TestPhaseRecipientCount` (its `SamplePercentage` of the recipients
+  generated) and `WinnerPhaseRecipientCount` (the rest). Test: demo service, the two counts add up to the
+  recipients and the test count is the sample.
+- A test generates every demo transactional message type and requires a notification ID for each
+  (`demoNotificationIDs`).
+
+### 7.5 Audit log of blog themes
+
+`blogThemes.create` names its target in the handler (`record.SetTarget` with the new version) instead of
+reading it from a response the middleware cut at 64 KiB. Tests: handler sets the target; middleware with a
+response over 64 KiB keeps a target set by the handler.
+
+### 7.6 Coverage gaps
+
+- `internal/app`: a test fails when `WithContactVisits` is not wired (the app built for tests answers the
+  route).
+- Integration: the web analytics half of the timeline permissions fix, and API key access to `timeline.list`.
+- `templates.usage`: the guards (empty IDs filtered, the variations' CASE, `LIMIT 50` with `COUNT(*) OVER ()`)
+  get integration cases with data that each would get wrong.
+- A test compares instants across time zones for the timeline's `created_at` (a value written in UTC read under
+  another session time zone).
+
+### 7.7 Test helpers
+
+- The three copies of the per-recipient Mailpit wait (`list_unsubscribe_headers_test.go:466`,
+  `broadcast_liquid_template_test.go:661`, `broadcast_data_feed_email_test.go:965`) use
+  `testutil.WaitForMailpitMessageByRecipient`.
+- `transactional_handler_test.go:1294, 1411, 1890, 2012`: a failed `GetMailpitMessage` stops the scan and polls
+  again, as the helper does, instead of skipping the message.
+- `GetMailpitMessagesByRecipient` used by `sendToList`: waits for the count from the list alone, then reads
+  the headers once.
+- `TestWebhookWorkerEndToEnd/a_slow_batch_renews…`: the lease and the slow batch are set short in the test (the
+  worker's lease is a constructor option already, or becomes one), so the case waits seconds, not 30 s.
+- `TestWorkspaceLock_GrantedAsTheContextEnds`: run alone and under load with `-count=20`; the race it shows is
+  fixed, else it is listed as not reproduced.
+
+### 7.8 Small fixes
+
+- `internal/service/list_service.go:493`: the comment names the double opt-in email.
+- `openapi/paths/webhook-subscriptions.yaml:381`: "An empty value lists every status; any other value answers
+  400", `failed` also covers deliveries waiting for a retry; the 400 says "missing parameters or unknown
+  status"; `openapi.json` regenerated here and in the docs repository.
+
+### 7.9 CHANGELOG (44.0)
+
+Released behaviour: "Fix: the `count_transactional_messages` measure no longer counts automation emails and
+other messages.", "Fix: analytics queries can be ordered by a measure.", "Fix: analytics time series with a
+dimension keep every value of each period.", "Fix: the contact search finds a contact by first and last name
+together.", "Fix: `timeline.list` answers an empty list instead of null for a contact without entries.",
+"Fix: the audit log names the theme a `blogThemes.create` saved." The session pages flags and the visits email
+limit extend the 44.0 lines of those endpoints, which are unreleased.
+
+### What the code did differently (lot 7)
+
+- 7.1: the console keeps one query per origin; its comment no longer says two origins overwrite each other.
+  Lot 8 decides whether one query with the `origin` dimension replaces them.
+- 7.2: `webAnalytics.contactSessionPages` has no OpenAPI entry (a console endpoint), so the flags are documented
+  in the domain type. The contact sheet notes a cut session.
+- 7.4: the demo counts are pinned by the service test only; no integration test seeds the whole demo.
+- 7.6: the timeline time zone case writes an entry from a session in Asia/Tokyo with a wall time and reads the
+  instant back through `timeline.list`.
+- 7.7: the audience statuses test waited on a count that was the whole mailbox: `GetMailpitMessageCount`
+  returned the search answer's `total` instead of its `messages_count`. It now returns the search's count. Only a
+  subject without a space reaches the search (`broadcast_scheduled_live_scheduler_test.go`): the helper does not
+  escape the subject, Mailpit refuses one with a space and the count comes from listing, the path of the other
+  callers before and after this change. The audience test waits on its listed count
+  (`CountMailpitMessagesBySubject`). (Corrected after the code review: the cause first given here, a search
+  matching words, was false.)
+- 7.7: `TestWebhookWorkerEndToEnd/a_slow_batch…` did not fail in 50 runs with `-race`: no fix is claimed.
+- Known, not handled (lot 7): the webhook worker flake above; the periods of a time series are generated before
+  the 50,000-row bound is checked; past the bound the rows come in the query's order, with no mark in `Meta`.
+- 7.1: the gap filling is bounded: past 50,000 rows (periods times dimension values) the series comes back
+  unfilled, where a dimension with thousands of values over a year made millions of rows (code review B1).
+- 7.7: `TestWorkspaceLock_GrantedAsTheContextEnds` failed 5 runs of 20: lib/pq reports a wait the context ended
+  as the server's "canceling statement due to user request", which names no context error. The lock now names
+  both (`withLockTransaction`), with a sqlmock test that fails without it.
+
+### Corrections after the code review (lot 7, round 1)
+
+- B1: the gap filling is bounded at 50,000 rows; past it the series is returned unfilled. Test:
+  `TestFillTimeSeriesGaps_BoundedByTheRowsItWouldMake`, which fails without the bound.
+- B2: the CHANGELOG line on ordering names what failed in 43.0: a measure whose SQL is a column or `*`.
+- B3: `GetMailpitMessageCount` returns the search's `messages_count`, not the mailbox's `total`; the comments
+  and the 7.7 note say so, and the `WaitForMailpitMessages` callers are no longer "known, not handled". The
+  broadcast and analytics integration tests pass with it.
+- B4: the lot 7 commands name `TestTemplatesUsage` and `TestAuditLogs`, and the `-count=20` lock run.
+- Minors taken: a unit test pins the `count_transactional_messages` filters; the webhook flake outcome; gofmt of
+  `list_unsubscribe_headers_test.go`; the `contacts.list` `search` description; `openapi.json` regenerated.
+- Also taken from the lot 6 delta reviews: a `Fix` line for `templates.compile` with an empty `mjml_source`
+  (43.0 had the same two tests), the 6.2 line, the `text_error` wrap, and a lot 8.2 point for the
+  `SendTemplateModal` sender.
+
+### Corrections after the delta review (lot 7, round 2)
+
+- B1: the integration command gets `-timeout 45m`: `TestBroadcast` alone runs past the default 10 minutes with
+  `-race`, and the tests after it never started. It also names `TestTask` and `TestScheduled`, so every caller
+  of the changed Mailpit helper runs.
+- B2: the `templates.compile` line says what 43.0 did: the `mj-liquid` Liquid stayed raw, and the preview text
+  override was dropped from a tree without an `mj-preview` block (a tree with one rendered it).
+- B3: the 7.7 note says which callers reach the search; the helper's comments describe the listing as the
+  usual path.
+- Minors taken: the ordering line says a time series with a date range stays in period order while its periods
+  are filled; the bound's
+  sentence covers a series without a dimension; the `templates.compile` line moves out of the analytics lines;
+  lot 7 gets its own "known, not handled" line.
+
+### Corrections after the delta review (lot 7, round 3)
+
+Pierre was asked before this third round (decision card); the review supplied the corrected text.
+
+- B1: the ordering line holds only while the periods are filled: past the 50,000-row bound the rows come in the
+  query's order, and the bound's line says so.
+- B2: the lot 2 and lot 6 commands, which also select `TestBroadcast` with `-race`, get `-timeout 45m`.
+- Minors taken: round 2's B1 note names `TestScheduled` beside `TestTask`; it is `TestScheduled` that reaches
+  the `TestScheduledBroadcast_*` caller reading the search count.
+
+## Test commands for lot 7
+
+```
+go test ./pkg/... ./internal/...
+INTEGRATION_TESTS=true go test -race -timeout 45m -tags integration,licdev ./tests/integration/ -run 'TestAnalytics|TestContact|TestTimeline|TestDemo|TestWebAnalytics|TestTemplatesUsage|TestAuditLogs|TestWebhookWorker|TestWorkspaceLock|TestTransactional|TestListUnsubscribe|TestBroadcast|TestTask|TestScheduled' -count=1
+INTEGRATION_TESTS=true go test -race -tags integration,licdev ./tests/integration/ -run 'TestWorkspaceLock_GrantedAsTheContextEnds' -count=20
+```
+
+## Lot 8: console
+
+Reviewed before code (Opus xhigh; corrections after lot 9). Every user-facing string goes through Lingui and is
+translated in the eight catalogues (`console/CLAUDE.md`). Each point gets a vitest test next to its component
+(created when the component has none), written first. Paths are under `console/src/`.
+
+### 8.1 Automations
+
+- `automations/hooks/useAutomationCanvas.ts:584`, `deleteEdge`: the `branch` case clears the path's
+  `next_node_id` (paths and default path). Test: delete each kind of branch edge.
+- `AutomationEditor.tsx`: Activate and Pause stay disabled until the automation's refetch after the action has
+  settled. Test: the button is disabled while the refetch is pending.
+- When `readOnly` turns on while changes are unsaved, the live banner says the unsaved changes cannot be saved
+  until the automation is paused. Test.
+- One `FullDrawer` whose content goes from the skeleton to the editor (`AutomationEditor.tsx:70`, `:542`), so
+  the first load slides once; a reopen with cached data shows the editor without the skeleton. Test: one
+  drawer element through the load.
+- `stats/NodeStatsFooter.tsx:50`: the root's label reads "passes" ("# passes") rather than "entered", since a
+  loop back to the trigger counts each time. Test.
+- `nodes/TriggerNode.tsx`: the broadcast and template filters are shown, by name when the lists are loaded,
+  else by ID. Test.
+- `NodeConfigPanel.tsx:40`, `TriggerFormConfig` gains `link_url`, `broadcast_id`, `template_id`.
+- `context/AutomationContext.tsx`: the callbacks of the context value are `useCallback`s, so the memo holds;
+  a test asserts the value keeps its identity across a re-render and changes when `canReadTemplates` loads.
+  `markAsChanged` (empty) and its five calls in `useAutomationCanvas.ts`, and the unreachable live-save
+  warning, go.
+- Small editor details: ⌘ on Mac in the shortcut tooltips; `EmailStepPreview` tells a missing template (404)
+  from another read error; "View messages" is a router `Link`; the open rate shows a skeleton while loading;
+  the stats context value and payload key are memoised; the Tailwind margins on antd `Input`/`Form.Item` in
+  `EditorSettings.tsx` move to the components' own props or a wrapper; under 1200 px the "+" buttons stay
+  beside the step panel (the panel reserves its width).
+
+### 8.2 Email builder and saved blocks
+
+- `ui/SavedBlockCard.tsx:174`: Escape with `e.keyCode === 229` (Safari's end of composition) does not cancel.
+- `EmailBuilder.tsx:870-893`, `changeLibrary` returns false when another change is running, and
+  `ui/SaveBlockModal.tsx` disables Save (`loading`) while the library is busy.
+- `ui/SaveBlockModal.tsx`: `headKeyOf(emailTree)` is computed only while open.
+- `utils/suggestBlockName.ts`: entities are decoded with `DOMParser`; the space is removed only before `,` and
+  `.`.
+- `ui/SavedBlockCard.tsx`, `panels/LibraryPanel.tsx`: dnd-kit's `attributes` are spread on the handle; the
+  announcements are made from `handleEnd` with the real outcome (inserted, refused with its reason, nothing).
+- A renamed card that no longer matches the search stays visible, highlighted, until the filter changes.
+- Focus returns to the card's "More actions" button after rename or duplicate, and to the next card (or the
+  list) after delete.
+- `ui/AddBlockPopover.tsx`: saved block rows are `button`s (disabled with their reason as text, no redundant
+  `title`); the last rows are kept while the popover closes.
+- `templates/SendTemplateModal.tsx:129`: the test send preselects the sender of the template (or of the open
+  translation) when the integration has it, else the integration's default, rather than its first sender.
+- `TemplateSelectorInput.tsx:208, 242, 281`: the three drawers get `canManageSavedBlocks` from
+  `permissions?.templates?.write`.
+- `CreateTemplateDrawer.tsx:637`: Replace has its own refresh failure message.
+- `CreateTemplateDrawer.tsx:659-680`, rename: the workspace is read again before the update, so a block
+  replaced elsewhere keeps its new content.
+- Column widths: `utils/columnWidths.ts`, `rebalanceAfterRemove` leaves the widths alone when removing a group
+  leaves no room (as on add); a group in px counts by its px over the body width minus the section padding;
+  changing a group's width warns when the section goes over 100 %; the AI assistant's add, remove and move go
+  through the same rebalance helper, extracted from `EmailBuilder.tsx`; on the canvas, the columns of a group
+  take their widths (`MjColumnBlock.tsx:315-322`). The canvas limits of `sectionChildWidth.ts` (a row over 100 %
+  squeezed, Liquid-made columns, `mj-class` widths) stay (known, not handled).
+- `MjmlCodeEditor.tsx`: an empty source sets the text output to '' without compiling.
+- `textVersionSeed.ts`: Liquid counted outside attributes, `mj-preview` and comments; the "Liquid lost" notice
+  names display conditions. `TextVersionPanel.tsx`: an email with no text shows "The email holds no text yet";
+  the seed's `text_error` is shown without the "would not be accepted" prefix when it is the placement notice
+  (markup that is accepted and may land elsewhere).
+- `EmailAIAssistant.tsx`: its messages, title and placeholder go through `t`; `AIAssistantChat.tsx`: the
+  markdown headings take the theme's sizes.
+- The old violet `#7763F1` becomes the `primary-500` tokens in the files the TODO lists, with their tests; and
+  `theme/noHardcodedColors.test.ts` walks every `.ts`, `.tsx` and `.css` of `src/` with the listed exceptions,
+  so it would have caught it.
+- Import and export of MJML/JSON in a translation's visual editor (#448, approved 14/11):
+  `TemplateTranslationsTab.tsx:397` passes `toolbarActions` with an `ImportExportButton` bound to the open
+  language. Tests: import replaces only that language's tree, the default language is untouched, export gives
+  the translation's tree.
+- `ui/SavedBlockCard.test.tsx:223-225`: the drag test asserts no drag starts; `LibraryPanel.test.tsx`: the
+  scroll to the highlighted card with a filter on. `columnWidths.test.ts:78`: the comment is corrected.
+
+### 8.3 Templates, transactional, broadcasts
+
+- `templates/TemplatePreviewDrawer.tsx`: opened from the message history for a broadcast email, it shows the
+  variation's `sender_id` sender first.
+- `messages/MessageHistoryTable.tsx:53-81`: the template preview query waits for `canReadTemplates`; without it
+  the template's ID is shown.
+- `blog/PostDrawer.tsx`: editing is disabled with its reason when Templates read or write is missing.
+- `pages/BlogPage.tsx:29`: `canWritePosts` reads `permissions?.blog?.write`.
+- `services/api/permissions.ts`: `broadcasts.sendToIndividual` is listed under Templates read too.
+- `lib/transactionalApiSnippets.ts`: `email_options.sender_id` as a commented option, fixture updated.
+- `broadcasts/useBroadcastActions.ts`: a resume refused for a missing sender shows a translated sentence; other
+  errors the translated generic text.
+- `transactional/TransactionalDetail.tsx`, `TransactionalTable.tsx`, `notificationParts.tsx`: the reasons of the
+  disabled Send test and Edit, of "(default)" and of "Deleted template" reach the keyboard (`aria-disabled`
+  buttons with `aria-describedby`, `sr-only` text); a rate link with no value is named "…: no data, view in the
+  message log"; disabled menu entries are `aria-disabled` and stay reachable.
+- `components/templates/TemplateSelector.tsx` and its export go (no import).
+
+### 8.4 Logs, messages, contacts
+
+- `logs/LogsSearchBox.tsx`: `picked` resets when the URL clears the search; the hint sits in an `aria-live`
+  container that is always there.
+- `logs/MessageDetail.tsx:496-531`: a double opt-in message without a marketing provider shows no From; `SourceLink`
+  builds its `Link` itself.
+- `logs/AuditLogTab.tsx:142`: Refresh resets `['audit-logs', scope, workspaceId]` only. Tests: the key with the
+  user ID (a second `getMembers` when the user changes); Refresh moves `from` later.
+- `logs/period.ts`: `CountedPeriod` becomes `RollingPeriod`.
+- `messages/MessageColumnsSelector.tsx:92`: the tooltip no longer describes the button.
+- `pages/ContactsPage.tsx`: the search write settles before the push to the contact (await the first
+  `navigate`), tested on a memory history; the loaded page count survives closing the sheet (kept outside the
+  history entry); the optimistic delete applies to every `['contacts', workspaceId]` key
+  (`setQueriesData`); the "In any of" chip is hidden when `segment_id` is set.
+- `contacts/sheet/ContactDetailsBody.tsx:126`: `cancelQueries` before `setQueryData`.
+- `settings/WorkspaceMembers.tsx:345`: leading and trailing `_` and `-` are removed from the API key name when
+  sent.
+- `file_manager/storageObjects.ts`: its two errors are translated; empty path segments are ignored; deleting a
+  prefix with no object says there is nothing to delete. `FileExplorer.test.tsx`: a second folder delete
+  after the first ends, and cancel refused while deleting.
+- `settings/Integrations.tsx:1202`: "Type: …" is translated, with a readable type name.
+
+### 8.5 Dashboard, analytics and web analytics
+
+- `analytics/DashboardKpis.tsx:240`: the contacts tone is neutral while the new count loads; one test per
+  placeholder guard (`:162`, `:169`); a test pins each block's query key and `refetchInterval`.
+- `web_analytics/lib/dates.ts:92, 111`: the start of a day is `dayjs.tz(day, zone)` without `startOf('day')`;
+  the test runs with `process.env.TZ` set to another zone. `MessageHistoryTable.test.tsx` and
+  `formatters.test.tsx` set `TZ` away from Tokyo for their Tokyo cases.
+- `web_analytics/lib/format.ts`: `-0` is not shown (`rounded || 0`); the compact currency without a compact part
+  drops the cents.
+- `web_analytics/filters/BackfillStatus.tsx:94`: the progress percent is formatted by `formatPercent`;
+  `LiveButton.tsx:47`, `LiveSessionMap.tsx:77`, `explore/MinSessionsInput.tsx:57` format their counts;
+  `FilterBuilder.tsx:316` gets `max={100}` for rates and a `precision`.
+- `MessageHistoryTable.tsx` and `utils/formatters.tsx`: an unknown time zone falls back to UTC.
+- One render test, in French, for each web analytics component the TODO lists (`Delta.tsx`,
+  `explore/ExploreTable.tsx`, `explore/BreakdownDrawer.tsx`, `lib/csv.ts`, `MetricSummary.tsx`,
+  `goals/GoalCard.tsx`, `goals/GoalDashboardDrawer.tsx`, `DimensionTableWidget.tsx`, `tabs/DashboardTab.tsx`,
+  `TrafficHeatmapWidget.tsx`).
+- `analytics/useOriginSeries.ts`: once lot 7's gap filling keeps every origin, one query with the `origin`
+  dimension replaces the four; the log axis threshold reads the series without "other"'s small values.
+- The chart font sizes of `OriginVolumeChart.tsx` and `SendsPerDayChart.tsx` come from `theme/tokens.ts`.
+
+### 8.6 Layout, theme, blog
+
+- `layouts/app-shell/gravatar.ts:7`: `d=404`, and the avatar shows the initials on error (Pierre, 14/11). Test:
+  the URL, and the initials after an image error.
+- `WorkspaceSwitcher.tsx`: `aria-haspopup`, `aria-expanded`, a fallback name, a max width with truncation; the
+  three sidebar menus give the focus back to their button on Escape.
+- `AppSidebar.tsx:137`: the logo goes to `firstAccessiblePage(...)` with a matching label.
+- `components/layout/SidePanel.tsx`: the tab content is rendered in antd's `items[].children`; the own tab
+  resets on close. `useDrawerNavKeys.ts:36`: only click-opened popovers, or one holding the focus, block J/K.
+  `KpiStrip.tsx`: the trend's room is kept while loading. `Mono.tsx`: copies the rendered `textContent`.
+  `RailLayout.tsx:140, 163`: `has-[:focus-visible]` instead of `focus-within`. `MetaLine.test.tsx` added.
+- `theme/antdTheme.ts`: `Table.rowHoverBg` takes a tint distinct from `Table.headerBg` (Pierre, 14/11), and
+  `antdTheme.test.ts` computes the contrast ratio between `Tag.defaultBg` and the hover tint; `colorPrimaryHover`
+  two steps darker (`primary[700]`, the press `primary[800]`); `Menu.activeBarBorderWidth: 0` moves to the sidebar's own `ConfigProvider`; a sorted fixed
+  column has an opaque background (`td.ant-table-cell-fix.ant-table-column-sort`); links marked
+  `data-plain-link` inherit their color (`antd-overrides.css`), used by `WebAnalyticsLivePage.tsx:125-131`.
+- `blog/ThemeEditorDrawer.tsx`: the editor fills the drawer with a flex column (`min-h-0 flex-1`).
+- `utils/mockBlogData.ts`: the Unsplash photos of people become neutral images shipped with the console (an
+  SVG landscape, a generic avatar).
+- `ThemePresetPreviewDrawer.tsx` and `ThemeSelectionModal` go (unreachable).
+- `__tests__/WorkspaceLayout.test.tsx:251`: `useSidebarCollapsed` is tested with `renderHook` and a throwing
+  `setItem`. `KeyValueList.test.tsx:22` and `WorkspaceLayout.tsx:161` wording.
+- `contexts/AuthContext.tsx`: a test that `useWorkspacePermissions` leaves `loading` after a reset of
+  `['workspace-members']`.
+
+### 8.7 Translations and test setup
+
+- `i18n/locales/fr.po`: the apostrophes lost in about 280 translations are restored (a script inserts `'` where
+  a French elision lost it: `d `, `l `, `qu `, `n `, `s `, `j `, `c ` before a vowel or `h`, then each change is
+  read in the diff); `e2e/features/library-management.spec.ts:216` follows.
+- "Root" translated in the seven languages; German "Pp." becomes "PP"; Catalan sidebar verbs harmonised.
+- `__tests__/setup.tsx`: `t` is created once at module level, and a descriptor is resolved with its `id`,
+  `context` and `values`.
+- `e2e/fixtures/auth.ts:560-566, 581-587`: the storage reset runs in the top frame only, and the `mj-raw`
+  exclusion of `add-block-popover.spec.ts:90-93` goes; `e2e/fixtures/mock-data.ts:818` answers
+  `analytics.query` by its measures and dimensions.
+- `PostDrawer` and `ContactsCsvUploadDrawer` get test files with their resume prompt dates in French;
+  `ExportContactsModal.test.tsx` and the import drawer check the French thousands separator.
+
+### 8.8 CHANGELOG (44.0)
+
+Most points touch 44.0 console work (the redesign is unreleased): they extend its lines or need none. Lines
+added: "Improvement: a translation's visual editor can import and export MJML and JSON." Released behaviour
+fixed: "Fix: members with Blog write but not Workspace write can write blog posts in the console, and the
+others no longer see buttons that fail." "Fix: the automation editor clears a branch path when its link is
+deleted."
+
+### What the code did differently (lot 8)
+
+- 8.1, one drawer: the editor's bar title and actions reach the drawer's bar through portals, and the drawer's
+  back, close and Escape call the editor's close through a ref. A reopen still shows the skeleton while it
+  reads: the editor opens on a copy read since it opened (review fix E1, tested by "opens on the server copy"),
+  since a cached copy's flow would be saved over a newer one. The drawer no longer slides twice either way.
+- 8.1, "+" under 1200 px: the step panel is a column at every width and the canvas is clipped, rather than a
+  panel over the canvas whose width the canvas reserves.
+- 8.1, context identity: the two callbacks that used `t` take their strings from the render instead; the
+  mutations give their stable `mutateAsync`. (Compiled by the build's macro transform, `t` in a dependency
+  array becomes `@lingui/react`'s `_`, rebuilt only on a locale change: it was the test mock's `t` that
+  changed on each render, fixed in 8.7.)
+- 8.2, rename: the block is read with `templateBlocks.get` just before the update, rather than the whole
+  workspace; a block gone between the two reads (404 on either call) refreshes the library as before.
+- 8.2, column widths: the rebalance takes `{ bodyWidth }` (the `mj-body` width, 600 px by default) and, on
+  removal, `{ removed }`; a section's side padding is read from its `paddingLeft`/`paddingRight`, then its
+  `padding` shorthand, then the template's default attributes. Wrapper padding and borders are not taken off.
+  The editor and the AI assistant both call `utils/layoutRebalance.ts`. Changing a group's width warns (the
+  section's overflow, in the group's settings) rather than rebalancing the columns.
+- 8.2, empty code source: the preview and the HTML are cleared with the text, so nothing of the last compile
+  stays on screen.
+- 8.2, text version: the placement notice is recognised by its start (the Go test pins the whole sentence) and
+  shown as the console's own translated sentence. The "Liquid lost" count leaves out the `mj-head`, comments and
+  tag attributes; the notice now names display conditions, which the compiled MJML always carries as tags
+  between blocks.
+- 8.2, test sender: it follows the selected integration and language, so it is no longer taken from the first
+  integration whatever the selected one.
+- 8.2, colours: the walk excludes tests and two files whose colours are not the console's (the blog themes and
+  the broadcast annotation colour), each checked to still hold an old colour.
+- 8.3, broadcast sender in the preview: the broadcast is read by a child of the drawer's From line, mounted
+  only when the drawer opens on a broadcast email and only with Broadcasts read, so the message history does not
+  read a broadcast per row. A variation's `sender_id` that is no longer among the marketing senders falls back to
+  the template's.
+- 8.3, message history: without Templates read the preview button is not rendered; the Template column already
+  shows the ID.
+- 8.3, blog: the refusal is placed where an edit starts (the posts table's Edit entry and row click, the "New
+  post" and first-post buttons), so `PostDrawer` is never opened for an edit the rights refuse.
+- 8.3, transactional menus: rc-menu derives `aria-disabled` from `disabled` alone and gives a disabled entry no
+  `tabindex`, so a refused entry is left enabled, drawn with antd's `ant-dropdown-menu-item-disabled` class,
+  says why in its label (`MenuEntryLabel`) and does nothing when chosen; it carries no `aria-disabled`.
+- 8.3, refused buttons: `common/RefusedButton.tsx` keeps Send test and Edit focusable (`aria-disabled`, antd's
+  `ant-btn-disabled` class for the look, the reason in an `sr-only` element named by `aria-describedby`). The
+  tooltip wraps a span, because antd's tooltip sets its own `aria-describedby` on its child.
+- 8.4, search box: the box remembers that its own last write removed every key; any other URL without a key
+  forgets the picked key, a box of spaces included. The hint's live region is always rendered, empty.
+- 8.4, double opt-in sender: only an opt-in template loses the first-integration fallback; an unknown template
+  keeps it, as it may be a template test.
+- 8.4, contacts search before the sheet: `router.history.flush()` between the replace and the push, rather than
+  awaiting the first `navigate`, whose promise also waits for the route to load. The page test checks the
+  order; `__tests__/browserHistoryBatching.test.ts` pins the merge on jsdom's history with
+  `createBrowserHistory`, with and without the flush.
+- 8.4, rows loaded while the sheet was open: kept by a replace of `limit` once Back has closed the sheet onto
+  the same filters, rather than outside the history entry (the URL keeps `limit`, so a reload keeps it too).
+- 8.4, "In any of": `toTableSearch` drops the legacy `segments` under a segment view, so neither the chip nor
+  the row-filter count sees them.
+- 8.4, API key name: `finalApiKeyPrefix` trims on send; the field still shows what was typed.
+- 8.4, storage: a key's empty segments are dropped for its place in the tree (`a//y.png` sits in `a/`); a marker
+  with an empty segment is not shown beside the folder it names. "Nothing to delete" is an info message, and
+  the explorer still moves to the parent.
+- 8.4, integration type: SMS, WhatsApp and a record missing its settings reach the generic card; product names
+  are not translated.
+- 8.5, contacts tone: the tone only colours the sub-line, which is hidden while the count loads, so its guard
+  has no effect in the DOM and no test pins it. The placeholder guards have a test each: the rate change while
+  the series is the period before, the visits change while either visits query is.
+- 8.5, query plans: `__tests__/queryPlan.ts` lists each cached query with its key and `refetchInterval`, so
+  the dashboard tests pin both.
+- 8.5, origin chart: one query split by `origin`, under one key; an origin the answer leaves out counts as
+  zero every day. The log axis median is taken over broadcast, transactional and automation sends (all values
+  when they are all zero), the peak over every origin.
+- 8.5, unknown zone: `lib/zoneClock.ts` (`onZoneClock`) reads a date on a zone's clock and falls back to UTC,
+  for the message log and `utils/formatters.tsx`.
+- 8.5, chart fonts: the axis and legend sizes are the `2xs` and `overline` tokens.
+- 8.5, French renders: one file, `web_analytics/frenchRendering.test.tsx`, renders each component with French
+  active, plus the three counts. The CSV keeps dot decimals in French; its readable duration is in words.
+- 8.6, sidebar menus: `app-shell/useFocusBack.ts` gives the focus back to the button after a close that leaves
+  it on the body or in the menu; a click on another control keeps it there. The switcher's menu is at most
+  `layout.aside` (320px) wide.
+- 8.6, logo: `homePage` (menuItems.ts) leads to the dashboard while the rights load or for a member who reads
+  the messages, otherwise to `dashboardFallback`, the page `AnalyticsPage` redirects to, under its entry's name.
+  The two share `canReadDashboard`.
+- 8.6, side panel: each tab's content is the antd tabpanel's own, inside the scrolling body; a tab without
+  content shows the panel's children. The tab chosen goes back to the first on close, reset during render
+  (the lint refuses a state set in an effect). The tab bar keeps its 16px inset as a margin.
+- 8.6, J and K: a popconfirm and a dropdown always take them; a popover takes them when it, or its trigger
+  (`ant-popover-open`), holds the focus.
+- 8.6, theme: the row hover is `primary[500]` at 3 % over the surface, made opaque (`over()`, `#fbfaff`) so
+  that a fixed column hides what scrolls under it; the test computes the contrast of the neutral tag on it
+  (1.077) and on the header (1.062), and requires more than the header's. `colorPrimaryHover` is
+  `primary[700]` (contrast 1.490 with the button, against 1.217 for the `primary[600]` it had, which the TODO point
+  found too faint), and `colorPrimaryActive` a new `primary[800]` (`#3b33c1`, 1.829); the test requires the hover
+  to stand further from the button than 600 did, and the press further again. The sidebar's menu border is removed by a rule
+  scoped to `.app-sidebar-nav` in `antd-overrides.css`, not a local `ConfigProvider` (the theme rules forbid a
+  local theme). `data-plain-link` uses `color: revert-layer`, which hands the colour back to the link's
+  Tailwind classes; `inherit` would beat them too. The open-row hover reads `--ant-table-row-hover-bg`.
+- 8.6, blog preview: two SVGs in `src/assets/blog-preview/` (a landscape, an avatar), which Vite inlines.
+- 8.6, permissions after a reset: the test showed a caller mounted over a cached list staying loading, so
+  `useWorkspacePermissions` counts answers itself (`nextTally`): a count lower than the last seen, or an
+  answer whose count did not grow, is a reset, and every answer from it counts.
+- 8.6, a 8.3 page test still expected the refused Send test to be `disabled`; it now checks `aria-disabled`
+  and the description (folded into the 8.3 commit).
+- 8.7, French apostrophes: the script found 360 elisions (not about 280), "aujourd'hui" included; each one
+  was read in the word diff.
+- 8.7, "Root": the folder (file manager) and the role (account menu) were one msgid. The role now has the
+  `role` context, translated as the administrator's title; the folder keeps the plain msgid.
+- 8.7, test setup: the mocked `useLingui` returns the same `t` on every render, and resolves a descriptor's
+  `context` with `generateMessageId`; `__tests__/linguiMock.test.tsx` pins both.
+- 8.7, e2e: `mockAnalyticsAnswer` builds the rows each `analytics.query` asks for (its measures, its
+  dimensions, one row per day for a daily granularity). The "+" menu's refused saved blocks are disabled
+  buttons since 8.2, so the spec checks `toBeDisabled` and clicks with `force`; the library's rename reads the
+  block with `templateBlocks.get` since 8.2, which the spec's store now answers. With analytics rows to read,
+  the broadcast detail asked for its stats before its test ended, and the mock's `{}` crashed it: the fixture
+  answers `messages.broadcastStats`, `broadcastVariationStats` and `broadcastLinkStats` with empty stats.
+  No CI job runs these specs; they were run locally against the dev server, all 258 passing.
+- 8.7, import drawer: the "resume from row … of …" alert formatted its two numbers raw; they go through
+  `int` like the drawer's other counters.
+
+## Test commands for lot 8
+
+```
+cd console && npm test && npx tsc --noEmit && npm run lint
+cd console && npm run lingui:extract   # then the eight catalogues are complete
+```
+
+## Lot 9: brand, CHANGELOG and plans; the other repositories
+
+Reviewed before code with lots 7 and 8; the corrections follow lot 9.
+
+### 9.1 notifuse: brand files
+
+- The six `brand/*.svg` get `width`/`height` equal to their viewBox, keep `<title>` with `role="img"` and lose
+  the duplicate `aria-label`.
+- A `brand/README.md` of a few lines: "square" is the N icon, not the `logo-square.png` of docs and website;
+  which file to use where.
+- A variant of the icon with a margin for round crops, `brand/notifuse-square-color-padded.svg`
+  (viewBox `-40 -40 560 560`).
+- A console test compares the path `d` values of `components/brand/NotifuseLogo.tsx` with those of `brand/`, and
+  a test in the same file checks that the black and white variants have the colour variant's geometry.
+- The N and the word are centred in their frames (Pierre, 14/11), in the six files and in the console's
+  `NotifuseLogo` and `NotifuseMark`: the SVGs become the reference, the PNGs keep the old offset.
+
+### 9.2 notifuse: CHANGELOG and plans
+
+- The "Behind a reverse proxy…" line of 44.0 adds that links to the instance's host name on another port, and
+  behind a proxy that forwards nothing the blog's links, are no longer recorded one by one.
+- "keep the sender and reply-to they were queued with" (`CHANGELOG.md:127`).
+- The two task Improvement lines of 44.0 become one.
+- The Columns button: its accessible name gets a Fix line (it existed in 43.0).
+- The 44.0 section is sorted by type (Feature, Improvement, Fix, Security), as the last step of the PR, after
+  every lot's lines are in.
+- Plans: `test-coverage-critical-paths-plan.md` (the OIDC issuer check is reachable),
+  `fix-task-reset-trigger-errors-plan.md` (line width, the repeated sentence), `feat-send-time-sender-plan.md:135,
+  138` (file names), `fix-translation-sender-reply-to-plan.md` (wrap at 100), and the eight plans that cite
+  the shared project folder: the path goes, a one-line summary of the review stays.
+- `CLAUDE.md` gains the architecture instruction, copied from `cadrer-le-document-d-architecture-de-reference.md`
+  as written there.
+
+### 9.3 docs (one PR to dev)
+
+The twelve points of the TODO's docs section, as each describes them, plus the doc halves of lots 3 to 7
+(`nodeStats` "Reached" of a past period; the links that trigger nothing; the conditional block's text in a
+custom text; `{% render %}` for blog themes; sender wording; the sitemap's content; the file manager's 10 000
+objects; "Use for marketing"; the image order on provider pages; the unused `smtp_form.png` and `favicon.svg`;
+the regenerated `openapi.json`; the Conditional blocks size limit; the webhook delivery `status` filter).
+
+### 9.4 cloud (one PR to its default branch)
+
+The twenty points of the TODO's cloud section, in `billing-api`, `billing-app` and `billing-admin`, each with
+the test its entry names; `make test` and `make lint` in each component. The "Owner" line: the `getTenant`
+query takes `listTenants`'s LATERAL join and the e2e spec pins it (the request shape and the answer, both sides).
+
+### 9.5 architecture (one PR to main)
+
+The points of the TODO's architecture section, planned in that private repository, not here. Commits as
+Pierre, checks of its `CLAUDE.md` step 3 before pushing.
+
+### 9.6 website and liquidgo
+
+- website: `public/favicon.svg` becomes `brand/notifuse-square-color.svg`.
+- liquidgo: `StrainerTemplate.Invoke` checks each argument's type against the parameter before
+  `reflect.Call` and returns an `ArgumentError`; keyword arguments are evaluated in sorted key order; the
+  skipped keyword argument test runs and asserts the HTML; the stale TODOs and commented cases go.
+
+### Corrections after the plan review (lots 7 to 9)
+
+Blocking remarks, each taken:
+
+- 7.9 contact search: it came with #529, after 43.0. It extends the 44.0 Feature line of the search
+  instead of a Fix line.
+- 7.1 ordering by a measure: the ORDER BY uses the aggregate expression, as HAVING does, not the output
+  alias, so a measure that is not selected can order. The integration query orders by an unselected
+  measure; the sqlmock test only pins the expression.
+- 7.2 visit emails: the UTF-8 check stays before `FromQuery` lowercases (`strings.ToLower` turns invalid
+  bytes into U+FFFD) and is added in `Validate` as well.
+- 7.3 timeline: the key is `timeline`. The fix lives in the repository, so its test is a repository test
+  (sqlmock) and an integration test, not a handler test on a mocked service.
+- 7.4 demo A/B counts: written where `generateMessagesPerContact` draws the recipients. The message types
+  move to a package-level variable that the notification-ID test walks.
+- 7.7 webhook worker flake: 5ad16b9 already has the 1200 ms lease and the 300 ms delay, and CI failed
+  with them. The cause is looked for with `-count=50 -race`; without a reproduction the point goes to the
+  "known, not handled" list, with no claimed fix.
+- 8.6 permissions reset: the reset invalidates the permissions query; the test mounts over a cached list
+  and asserts the refetch.
+- 8.6 table hover: the tint and the test's threshold are chosen together, from the computed contrast
+  ratios against the header and the tag colour; the plan records both values when they are chosen.
+- 9.4 cloud: `default_source` is out (Pierre: nothing to do), so nineteen points.
+- Lot 9 test commands: added below.
+
+Minor remarks taken: gap filling names each measure type's empty value (`count_distinct` 0) and the
+console builds the missing series of a dimension query with no data; the visits sqlmock test pins the
+extra row with `WithArgs(..., 201)`; the audit middleware test is rewritten so it fails without the fix
+and the `theme.version` ResponseKey goes; the lot 7 command is `TestTemplatesUsage` plus the `-count=20`
+run; the docs' "entered" line of the trigger card (features/automations.mdx) joins 9.3; the drag
+announcements are in `dnd/LibraryDnd.tsx`; primary hover takes a step that is not the active colour, and (delta review N1) a step past the 600 it had; the
+console defects shipped in 43.0 (fr.po apostrophes, AI assistant strings, "Type:", template preview and
+PostDrawer reads without Templates read, API key name underscore) get Fix lines; lot 8 runs the e2e
+specs it changes and `vitest run`, not bare `vitest`.
+
+Already done: 9.1 (67e5931) and 9.6 (liquidgo aa973db, website 94541ed). 9.2: the reverse-proxy line was
+extended by 7040a35, its blog-links condition is checked against the code; the sender line is
+`CHANGELOG.md:153`, the send-time plan rows `:135, 140`, and nine plans cite the shared folder. 9.3: the
+twelve doc points are committed on the docs branch (d5c8f65); what remains is the Conditional blocks size
+limit, the `failed` status note, the "entered" line and the `openapi.json` resync.
+
+## Test commands for lot 9
+
+- notifuse: `cd console && npx vitest run src/components/brand`.
+- docs: `npx --yes mint broken-links` and the `openapi.json` diff against
+  `npx --yes @redocly/cli@1 bundle openapi/openapi.yaml -o openapi.json --ext json` in notifuse.
+- cloud: `make test` and `make lint` in `billing-api`, `billing-app` and `billing-admin`, then `make test-int`
+  in `billing-api` for the Owner e2e spec.
+- architecture: the four refcheck commands of its `CLAUDE.md` step 3.
+- liquidgo: `go test ./...`; website: its build.

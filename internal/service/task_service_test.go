@@ -865,7 +865,8 @@ func TestTaskService_BroadcastEventHandlers(t *testing.T) {
 	taskService := NewTaskService(mockRepo, mockSettingRepo, mockLogger, mockAuthService, apiEndpoint)
 
 	// Setup subscription to events
-	mockEventBus.EXPECT().Subscribe(domain.EventBroadcastScheduled, gomock.Any()).Times(1)
+	// The schedule request writes the broadcast's task itself: the scheduled event has no subscriber.
+	mockEventBus.EXPECT().Subscribe(domain.EventBroadcastScheduled, gomock.Any()).Times(0)
 	mockEventBus.EXPECT().Subscribe(domain.EventBroadcastPaused, gomock.Any()).Times(1)
 	mockEventBus.EXPECT().Subscribe(domain.EventBroadcastResumed, gomock.Any()).Times(1)
 	mockEventBus.EXPECT().Subscribe(domain.EventBroadcastSent, gomock.Any()).Times(1)
@@ -877,54 +878,6 @@ func TestTaskService_BroadcastEventHandlers(t *testing.T) {
 
 	// Subscribe to events
 	taskService.SubscribeToBroadcastEvents(mockEventBus)
-
-	t.Run("handleBroadcastScheduled creates a new task", func(t *testing.T) {
-		// Setup
-		ctx := context.Background()
-		workspaceID := "workspace1"
-		broadcastID := "broadcast123"
-
-		// Create event payload
-		payload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: workspaceID,
-			EntityID:    broadcastID,
-			Data: map[string]interface{}{
-				"send_now": true,
-				"status":   string(domain.BroadcastStatusProcessing),
-			},
-		}
-
-		// Configure mock repository to return no existing task
-		mockRepo.EXPECT().
-			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
-			Return(nil, errors.New("not found"))
-
-		// Configure the transaction
-		mockRepo.EXPECT().
-			WithTransaction(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, fn func(*sql.Tx) error) error {
-				return fn(nil)
-			})
-
-		// Expect task creation
-		mockRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, task *domain.Task) error {
-				// Verify task properties
-				assert.Equal(t, workspaceID, task.WorkspaceID)
-				assert.Equal(t, "send_broadcast", task.Type)
-				assert.Equal(t, domain.TaskStatusPending, task.Status)
-				assert.Equal(t, broadcastID, *task.BroadcastID)
-				assert.Equal(t, 50, task.MaxRuntime) // 10 minutes
-				assert.Equal(t, 3, task.MaxRetries)
-				assert.Equal(t, 300, task.RetryInterval) // 5 minutes
-				return nil
-			})
-
-		// Call the event handler
-		taskService.handleBroadcastScheduled(ctx, payload)
-	})
 
 	t.Run("handleBroadcastPaused pauses the related task", func(t *testing.T) {
 		// Setup
@@ -2049,364 +2002,6 @@ func TestTaskService_HandleBroadcastCancelled(t *testing.T) {
 		// Call the event handler
 		taskService.handleBroadcastCancelled(ctx, payload)
 		// No assertions needed - if no panic, the test passes
-	})
-}
-
-func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockTaskRepository(ctrl)
-	mockSettingRepo := mocks.NewMockSettingRepository(ctrl)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	var mockAuthService *AuthService = nil
-	apiEndpoint := "http://localhost:8080"
-
-	// Configure logger expectations
-	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
-
-	taskService := NewTaskService(mockRepo, mockSettingRepo, mockLogger, mockAuthService, apiEndpoint)
-	taskService.SetAutoExecuteImmediate(false) // Disable for testing
-
-	t.Run("Updates existing task when found for immediate sending", func(t *testing.T) {
-		// Setup
-		ctx := context.Background()
-		workspaceID := "workspace1"
-		broadcastID := "broadcast123"
-
-		// Create event payload for immediate sending
-		payload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: workspaceID,
-			EntityID:    broadcastID,
-			Data: map[string]interface{}{
-				"send_now": true,
-				"status":   string(domain.BroadcastStatusProcessing),
-			},
-		}
-
-		// Create existing task to be returned by mock
-		existingTask := &domain.Task{
-			ID:          "task456",
-			WorkspaceID: workspaceID,
-			Type:        "send_broadcast",
-			Status:      domain.TaskStatusPaused,
-			// BroadcastID not set initially
-		}
-
-		// Configure mock repository transaction
-		mockRepo.EXPECT().
-			WithTransaction(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, fn func(*sql.Tx) error) error {
-				return fn(nil)
-			})
-
-		// Configure mock repository to return the existing task
-		mockRepo.EXPECT().
-			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
-			Return(existingTask, nil)
-
-		// Expect task to be updated
-		mockRepo.EXPECT().
-			Update(gomock.Any(), workspaceID, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, updatedTask *domain.Task) error {
-				// Verify task updates
-				assert.Equal(t, domain.TaskStatusPending, updatedTask.Status)
-				assert.NotNil(t, updatedTask.NextRunAfter)
-				assert.NotNil(t, updatedTask.BroadcastID)
-				assert.Equal(t, broadcastID, *updatedTask.BroadcastID)
-				// The next run time should be now or in the past
-				assert.True(t, updatedTask.NextRunAfter.Before(time.Now().Add(1*time.Second)))
-				return nil
-			})
-
-		// Call the event handler
-		taskService.handleBroadcastScheduled(ctx, payload)
-	})
-
-	t.Run("Creates a new task for future scheduled broadcast", func(t *testing.T) {
-		// Setup
-		ctx := context.Background()
-		workspaceID := "workspace1"
-		broadcastID := "broadcast789"
-
-		// Create event payload for scheduled (not immediate) sending
-		scheduledTime := time.Now().Add(1 * time.Hour)
-		payload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: workspaceID,
-			EntityID:    broadcastID,
-			Data: map[string]interface{}{
-				"send_now":       false,
-				"status":         string(domain.BroadcastStatusScheduled),
-				"scheduled_time": scheduledTime.Format(time.RFC3339),
-			},
-		}
-
-		// Configure mock repository transaction
-		mockRepo.EXPECT().
-			WithTransaction(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, fn func(*sql.Tx) error) error {
-				return fn(nil)
-			})
-
-		// Configure mock repository to return no existing task
-		mockRepo.EXPECT().
-			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
-			Return(nil, errors.New("not found"))
-
-		// Expect task creation
-		mockRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, task *domain.Task) error {
-				// Verify task properties
-				assert.Equal(t, workspaceID, task.WorkspaceID)
-				assert.Equal(t, "send_broadcast", task.Type)
-				assert.Equal(t, domain.TaskStatusPending, task.Status)
-				assert.Equal(t, broadcastID, *task.BroadcastID)
-				assert.Equal(t, 50, task.MaxRuntime) // 50 seconds
-				assert.Equal(t, 3, task.MaxRetries)
-				assert.Equal(t, 300, task.RetryInterval) // 5 minutes
-				assert.NotNil(t, task.NextRunAfter)      // Should have a future execution time
-				// Verify the scheduled time is used correctly (within 1 second tolerance)
-				assert.True(t, task.NextRunAfter.Sub(scheduledTime) < time.Second)
-				assert.True(t, task.NextRunAfter.Sub(scheduledTime) > -time.Second)
-				return nil
-			})
-
-		// Call the event handler
-		taskService.handleBroadcastScheduled(ctx, payload)
-	})
-
-	t.Run("Handles task creation error", func(t *testing.T) {
-		// Setup
-		ctx := context.Background()
-		workspaceID := "workspace1"
-		broadcastID := "broadcast999"
-
-		// Create event payload
-		payload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: workspaceID,
-			EntityID:    broadcastID,
-			Data: map[string]interface{}{
-				"send_now": true,
-				"status":   string(domain.BroadcastStatusProcessing),
-			},
-		}
-
-		// Configure mock repository transaction
-		mockRepo.EXPECT().
-			WithTransaction(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, fn func(*sql.Tx) error) error {
-				return fn(nil)
-			})
-
-		// Configure mock repository to return no existing task
-		mockRepo.EXPECT().
-			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
-			Return(nil, errors.New("not found"))
-
-		// Expect task creation to fail
-		mockRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
-			Return(errors.New("database error"))
-
-		// Call the event handler
-		taskService.handleBroadcastScheduled(ctx, payload)
-		// No assertions needed - if no panic, the test passes
-	})
-
-	t.Run("Handles update error for existing task", func(t *testing.T) {
-		// Setup
-		ctx := context.Background()
-		workspaceID := "workspace1"
-		broadcastID := "broadcast123"
-
-		// Create event payload
-		payload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: workspaceID,
-			EntityID:    broadcastID,
-			Data: map[string]interface{}{
-				"send_now": true,
-				"status":   string(domain.BroadcastStatusProcessing),
-			},
-		}
-
-		// Create existing task
-		existingTask := &domain.Task{
-			ID:          "task456",
-			WorkspaceID: workspaceID,
-			Type:        "send_broadcast",
-			Status:      domain.TaskStatusPaused,
-			BroadcastID: &broadcastID,
-		}
-
-		// Configure mock repository transaction
-		mockRepo.EXPECT().
-			WithTransaction(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, fn func(*sql.Tx) error) error {
-				return fn(nil)
-			})
-
-		// Configure mock repository to return the existing task
-		mockRepo.EXPECT().
-			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
-			Return(existingTask, nil)
-
-		// Expect update to fail
-		mockRepo.EXPECT().
-			Update(gomock.Any(), workspaceID, gomock.Any()).
-			Return(errors.New("update failed"))
-
-		// Call the event handler
-		taskService.handleBroadcastScheduled(ctx, payload)
-		// No assertions needed - if no panic, the test passes
-	})
-
-	t.Run("Handles transaction error", func(t *testing.T) {
-		// Setup
-		ctx := context.Background()
-		workspaceID := "workspace1"
-		broadcastID := "broadcast123"
-
-		// Create event payload
-		payload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: workspaceID,
-			EntityID:    broadcastID,
-			Data: map[string]interface{}{
-				"send_now": true,
-				"status":   string(domain.BroadcastStatusProcessing),
-			},
-		}
-
-		// Configure mock repository transaction to fail
-		mockRepo.EXPECT().
-			WithTransaction(gomock.Any(), gomock.Any()).
-			Return(errors.New("transaction failed"))
-
-		// Call the event handler
-		taskService.handleBroadcastScheduled(ctx, payload)
-		// No assertions needed - if no panic, the test passes
-	})
-}
-
-// TestTaskService_HandleBroadcastScheduled_ScheduledTime tests that scheduled broadcasts
-// use the actual scheduled time instead of hardcoded 1 minute delay
-func TestTaskService_HandleBroadcastScheduled_ScheduledTime(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockTaskRepository(ctrl)
-	mockSettingRepo := mocks.NewMockSettingRepository(ctrl)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	var mockAuthService *AuthService = nil
-	apiEndpoint := "http://localhost:8080"
-
-	// Configure logger expectations
-	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
-	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
-
-	taskService := NewTaskService(mockRepo, mockSettingRepo, mockLogger, mockAuthService, apiEndpoint)
-	taskService.SetAutoExecuteImmediate(false) // Disable for testing
-
-	t.Run("Uses scheduled_time from payload when provided", func(t *testing.T) {
-		// Setup
-		ctx := context.Background()
-		workspaceID := "workspace1"
-		broadcastID := "broadcast123"
-		scheduledTime := time.Now().Add(2 * time.Hour) // 2 hours in the future
-
-		// Create event payload with scheduled time
-		payload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: workspaceID,
-			EntityID:    broadcastID,
-			Data: map[string]interface{}{
-				"send_now":       false,
-				"status":         string(domain.BroadcastStatusScheduled),
-				"scheduled_time": scheduledTime.Format(time.RFC3339),
-			},
-		}
-
-		// Configure mock repository transaction
-		mockRepo.EXPECT().
-			WithTransaction(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, fn func(*sql.Tx) error) error {
-				return fn(nil)
-			})
-
-		// Configure mock repository to return nil (no existing task)
-		mockRepo.EXPECT().
-			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
-			Return(nil, errors.New("not found"))
-
-		// Expect new task to be created
-		mockRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, newTask *domain.Task) error {
-				// Verify task uses the scheduled time from payload
-				assert.NotNil(t, newTask.NextRunAfter)
-				// Should be exactly the scheduled time (within 1 second tolerance)
-				assert.True(t, newTask.NextRunAfter.Sub(scheduledTime) < time.Second)
-				assert.True(t, newTask.NextRunAfter.Sub(scheduledTime) > -time.Second)
-				return nil
-			})
-
-		// Call the event handler
-		taskService.handleBroadcastScheduled(ctx, payload)
-	})
-
-	t.Run("Creates task without NextRunAfter when scheduled_time is missing", func(t *testing.T) {
-		// Setup
-		ctx := context.Background()
-		workspaceID := "workspace1"
-		broadcastID := "broadcast456"
-
-		// Create event payload WITHOUT scheduled time
-		payload := domain.EventPayload{
-			Type:        domain.EventBroadcastScheduled,
-			WorkspaceID: workspaceID,
-			EntityID:    broadcastID,
-			Data: map[string]interface{}{
-				"send_now": false,
-				"status":   string(domain.BroadcastStatusScheduled),
-				// No scheduled_time in payload - NextRunAfter will be nil
-			},
-		}
-
-		// Configure mock repository transaction
-		mockRepo.EXPECT().
-			WithTransaction(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, fn func(*sql.Tx) error) error {
-				return fn(nil)
-			})
-
-		// Configure mock repository to return nil (no existing task)
-		mockRepo.EXPECT().
-			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
-			Return(nil, errors.New("not found"))
-
-		// Expect new task to be created without NextRunAfter when no scheduled_time
-		mockRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, newTask *domain.Task) error {
-				// Verify task doesn't have NextRunAfter set when no scheduled_time in payload
-				assert.Nil(t, newTask.NextRunAfter, "NextRunAfter should be nil when no scheduled_time is provided")
-				return nil
-			})
-
-		// Call the event handler
-		taskService.handleBroadcastScheduled(ctx, payload)
 	})
 }
 
@@ -3571,7 +3166,7 @@ func TestTaskService_BroadcastPauseResume_LeaveAHeldTaskToItsRun(t *testing.T) {
 			mockRepo.EXPECT().WakeTask(gomock.Any(), workspaceID, task.ID, gomock.Any()).Return(false, nil),
 		)
 		// No immediate execution: the run that holds the task carries on.
-		mockRepo.EXPECT().GetNextBatch(gomock.Any(), gomock.Any()).Times(0)
+		mockRepo.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 		taskService.handleBroadcastResumed(ctx, domain.EventPayload{
 			Type:        domain.EventBroadcastResumed,
@@ -3591,8 +3186,14 @@ func TestTaskService_BroadcastPauseResume_LeaveAHeldTaskToItsRun(t *testing.T) {
 			mockRepo.EXPECT().ResetRetryBudget(gomock.Any(), workspaceID, task.ID).Return(nil),
 			mockRepo.EXPECT().WakeTask(gomock.Any(), workspaceID, task.ID, gomock.Any()).Return(true, nil),
 		)
-		mockRepo.EXPECT().GetNextBatch(gomock.Any(), 1).DoAndReturn(
-			func(context.Context, int) ([]*domain.Task, error) { close(executed); return nil, nil })
+		// Its own task runs, read by its ID; the scheduler took it first here, which ends
+		// the execution quietly.
+		mockRepo.EXPECT().Get(gomock.Any(), workspaceID, task.ID).Return(&waiting, nil)
+		mockRepo.EXPECT().WithTransaction(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(context.Context, func(*sql.Tx) error) error {
+				close(executed)
+				return &domain.ErrTaskAlreadyRunning{TaskID: task.ID}
+			})
 
 		taskService.handleBroadcastResumed(ctx, domain.EventPayload{
 			Type:        domain.EventBroadcastResumed,

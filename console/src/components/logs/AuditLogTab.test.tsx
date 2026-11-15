@@ -19,6 +19,7 @@ const state = vi.hoisted(() => ({
   getMembers: vi.fn(),
   download: vi.fn(),
   retention: undefined as number | undefined,
+  userId: 'u1',
   timezone: 'UTC'
 }))
 
@@ -50,7 +51,7 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 'u1', email: 'ann@example.com' },
+    user: { id: state.userId, email: 'ann@example.com' },
     workspaces: [
       {
         id: 'ws1',
@@ -305,6 +306,30 @@ describe('AuditLogTab', () => {
     expect(lastSearch()).toMatchObject({ search: { tab: 'audit', id: 'e1' }, replace: true })
   })
 
+  it('leaves the open entry alone on a Refresh that keeps the window', async () => {
+    renderTab({ tab: 'audit', period: 'all', id: 'e1' })
+    await screen.findByRole('dialog')
+    await waitFor(() => expect(state.get).toHaveBeenCalledTimes(1))
+    const calls = state.list.mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await waitFor(() => expect(state.list.mock.calls.length).toBe(calls + 1))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(state.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('reads the members again for another user of the same workspace', async () => {
+    state.getMembers.mockClear()
+    const view = renderTab()
+    await waitFor(() => expect(state.getMembers).toHaveBeenCalledTimes(1))
+    state.userId = 'u2'
+    try {
+      view.rerenderWith({ tab: 'audit' })
+      await waitFor(() => expect(state.getMembers).toHaveBeenCalledTimes(2))
+    } finally {
+      state.userId = 'u1'
+    }
+  })
+
   it('opens the entry of the link, even when it is not loaded', async () => {
     state.get.mockResolvedValue({ log: entry({ id: 'old', target_name: 'Archive' }) })
     renderTab({ tab: 'audit', id: 'old' })
@@ -345,6 +370,9 @@ describe('AuditLogTab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
     await waitFor(() => expect(lastListParams().from).not.toBe(firstFrom))
+    expect(new Date(lastListParams().from as string).getTime()).toBeGreaterThan(
+      new Date(firstFrom as string).getTime()
+    )
   })
 
   it.each([

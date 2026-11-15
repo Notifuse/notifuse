@@ -144,7 +144,13 @@ function KpiCell({ item, loading, arrow, gridColumn }: KpiCellProps) {
         ) : (
           value
         )}
-        {item.trend && !loading ? <span className="flex shrink-0 items-end">{item.trend}</span> : null}
+        {/* Kept, unseen, while loading: a trend taller than the value line holds its room, so the
+            cell does not grow when the data arrives */}
+        {item.trend ? (
+          <span data-kpi-trend aria-hidden={loading || undefined} className={`flex shrink-0 items-end ${loading ? 'invisible' : ''}`}>
+            {item.trend}
+          </span>
+        ) : null}
       </span>
       {item.sub ? (
         <span className={`block truncate text-xs ${SUB_TONE[item.tone ?? 'neutral']}`}>{item.sub}</span>

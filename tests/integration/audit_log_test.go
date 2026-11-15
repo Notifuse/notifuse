@@ -113,6 +113,15 @@ func TestAuditLogs(t *testing.T) {
 		resp.Body.Close()
 		require.Contains(t, []int{http.StatusOK, http.StatusCreated}, resp.StatusCode)
 
+		// A theme whose files make the response longer than what the middleware keeps of it.
+		resp, err = client.Post("/api/blogThemes.create?workspace_id="+workspaceID, map[string]any{
+			"files": map[string]any{"home.liquid": strings.Repeat("x", 100<<10)},
+		})
+		require.NoError(t, err)
+		themeBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode, string(themeBody))
+
 		page := listAuditLogs(t, client, map[string]string{"workspace_id": workspaceID})
 		actions := auditActions(page)
 		assert.Contains(t, actions, "workspaces.create")
@@ -134,6 +143,11 @@ func TestAuditLogs(t *testing.T) {
 		assert.Equal(t, "full", invite.Metadata["scope"])
 		assert.NotEmpty(t, invite.IPAddress)
 		assert.NotEmpty(t, invite.RequestID)
+
+		theme := findAuditRow(page, "blogThemes.create")
+		require.NotNil(t, theme)
+		assert.Equal(t, domain.AuditTargetBlogTheme, theme.TargetType)
+		assert.Equal(t, "1", theme.TargetID, "the new version, named past the response capture")
 
 		created := findAuditRow(page, "workspaces.create")
 		require.NotNil(t, created)

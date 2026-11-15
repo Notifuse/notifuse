@@ -161,6 +161,19 @@ describe('ContactDetailsBody', () => {
     expect(queryClient.getQueryData(contactKey('ws', 'ann@x.com'))).toMatchObject({ first_name: 'Ann' })
   })
 
+  it('cancels the reads still running before it writes the saved values', async () => {
+    renderBody()
+    await screen.findByRole('heading', { name: 'Ann Lee' })
+    const cancel = vi.spyOn(queryClient, 'cancelQueries')
+    const write = vi.spyOn(queryClient, 'setQueryData')
+    fireEvent.click(screen.getByRole('button', { name: 'save first name' }))
+    await waitFor(() => expect(write).toHaveBeenCalled())
+    const cancelled = cancel.mock.calls.map(([filters]) => filters?.queryKey)
+    expect(cancelled).toContainEqual(contactKey('ws', 'ann@x.com'))
+    expect(cancelled).toContainEqual(['contacts', 'ws'])
+    expect(Math.max(...cancel.mock.invocationCallOrder)).toBeLessThan(write.mock.invocationCallOrder[0])
+  })
+
   it('clears a field in the sheet and the table rows, though the server omits it', async () => {
     queryClient.setQueryData(['contacts', 'ws', { limit: 50 }], {
       contacts: [{ email: 'ann@x.com', job_title: 'CTO' }]

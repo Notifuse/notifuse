@@ -594,7 +594,7 @@ func TestRemovedContactListMembership(t *testing.T) {
 		_ = resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode, "send broadcast: %s", body)
 
-		delivered, err := waitForEmailAndGetMessage(t, apiRemoved, 30*time.Second)
+		delivered, err := testutil.WaitForMailpitMessageByRecipient(t, apiRemoved, 30*time.Second)
 		require.NoError(t, err, "the broadcast to Y should reach Mailpit")
 		signed := listUnsubscribeURL(t, delivered).Query()
 

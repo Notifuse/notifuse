@@ -35,6 +35,7 @@ func TestListAutomationsRequest_WithJourneyCounts(t *testing.T) {
 	_, err = parse(map[string][]string{"with_journey_counts": {"yes"}})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "with_journey_counts")
+	assert.Contains(t, err.Error(), "must be a boolean")
 }
 
 func TestNodeStatsRequest_FromURLParams(t *testing.T) {

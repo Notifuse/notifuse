@@ -854,7 +854,7 @@ export function ContactsCsvUploadDrawer({
 
       {savedProgressExists && csvData && !uploading && !uploadComplete && (
         <Alert
-          description={t`You're continuing a previous upload session of "${fileName}". The upload will resume from row ${currentRow + 1} of ${totalRows}.`}
+          description={t`You're continuing a previous upload session of "${fileName}". The upload will resume from row ${int(currentRow + 1)} of ${int(totalRows)}.`}
           type="info"
           showIcon
           style={{ marginBottom: 24 }}

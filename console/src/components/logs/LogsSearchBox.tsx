@@ -45,6 +45,8 @@ export function LogsSearchBox<K extends string>({
   // newly typed "@" switches to Email. A key the URL brings is not a pick.
   const [picked, setPicked] = useState(false)
   const [seenUrlKey, setSeenUrlKey] = useState(urlKey)
+  // The box's last write removed every key: a URL without a key is then its own write, not a clear
+  const [clearedItself, setClearedItself] = useState(false)
 
   const writeFor = (key: K, value: string) => {
     const clean = key === emailKey ? value.toLowerCase() : value
@@ -52,6 +54,7 @@ export function LogsSearchBox<K extends string>({
     const patch: Partial<Record<K, string | undefined>> = {}
     for (const candidate of keys) patch[candidate.key] = undefined
     if (clean) patch[key] = clean
+    setClearedItself(!clean)
     onWrite(patch)
   }
 
@@ -64,9 +67,10 @@ export function LogsSearchBox<K extends string>({
     setSeenUrlKey(urlKey)
     if (urlKey) setChosen(urlKey)
     // The box writes its text to the key chosen, and an empty or blank text by removing every key;
-    // another key, or every key removed while the box still holds text, comes from outside. The
-    // text is still the one before the URL changed: the box follows the URL after this render.
-    if (urlKey ? urlKey !== chosen : text.trim() !== '') setPicked(false)
+    // another key, or every key removed by anything but the box, comes from outside, even while the
+    // box holds only spaces (Clear filters during the pause). The box follows the URL after this render.
+    if (urlKey ? urlKey !== chosen : !clearedItself) setPicked(false)
+    setClearedItself(false)
   }
 
   const onChange = (value: string) => {
@@ -94,7 +98,7 @@ export function LogsSearchBox<K extends string>({
     chosen === emailKey && text.trim() !== '' && !isFullEmail(text.trim().toLowerCase())
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col">
       <Space.Compact>
         <Select<K>
           aria-label={t`Search by`}
@@ -118,11 +122,14 @@ export function LogsSearchBox<K extends string>({
           />
         </Tooltip>
       </Space.Compact>
-      {incomplete ? (
-        <span id={hintId} className="text-xs text-ink-3">
-          {t`Enter a full email address`}
-        </span>
-      ) : null}
+      {/* Always there, so a screen reader reads the hint when it appears while typing */}
+      <div aria-live="polite">
+        {incomplete ? (
+          <span id={hintId} className="mt-1 block text-xs text-ink-3">
+            {t`Enter a full email address`}
+          </span>
+        ) : null}
+      </div>
     </div>
   )
 }

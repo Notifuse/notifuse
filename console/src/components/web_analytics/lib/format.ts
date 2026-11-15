@@ -32,7 +32,8 @@ export function formatNumber(value: number): string {
   // from zero, as Intl rounds them, so -999.5 reads "-1K" like 999.5 reads "1K".
   const rounded = Math.sign(value) * Math.round(Math.abs(value))
   if (Math.abs(rounded) < 1_000) {
-    return new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 }).format(value)
+    // The rounded value, its -0 made 0: -0.4 reads "0", not "-0"
+    return new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 }).format(rounded || 0)
   }
   // Grouping forced: compact notation leaves German and Japanese four-digit counts ungrouped
   // ("1234") where the rest of the console writes "1.234".
@@ -94,14 +95,25 @@ export function formatCurrency(value: number, currency?: string): string {
   // rounding, so 999,999 reads "$1M", never "$1,000K". Grouping forced, as in formatNumber:
   // Spanish writes thousands of millions ("2.345,68 M €") and Japanese 万 ("￥1,234.57万").
   const compact = Math.round(absolute) >= 10_000
-  return new Intl.NumberFormat(language, {
+  const formatter = new Intl.NumberFormat(language, {
     style: 'currency',
     currency,
     currencyDisplay: 'narrowSymbol',
     minimumFractionDigits: 0,
     maximumFractionDigits: !compact && absolute >= 1000 ? 0 : 2,
     ...(compact ? { notation: 'compact' as const, useGrouping: true } : {})
-  }).format(value)
+  })
+  // A language with no unit for the amount (German below a million) writes it whole: without cents,
+  // as below ten thousand, rather than "12.345,68 €"
+  if (compact && !formatter.formatToParts(value).some((part) => part.type === 'compact')) {
+    return new Intl.NumberFormat(language, {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'narrowSymbol',
+      maximumFractionDigits: 0
+    }).format(value)
+  }
+  return formatter.format(value)
 }
 
 export function formatValue(value: number, format: ValueFormat, currency?: string): string {

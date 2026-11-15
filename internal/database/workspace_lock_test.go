@@ -641,6 +641,27 @@ func TestWithWorkspaceDatabaseLockOn_LockRefused(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// A wait the caller ends is reported by the driver as a cancelled statement, which names
+// no context error; the lock's error still says the caller's context ended.
+func TestWithWorkspaceDatabaseLockOn_CancelledWaitNamesTheContext(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	mock.ExpectBegin()
+	expectLockTransactionSettings(mock)
+	mock.ExpectExec(`SELECT pg_advisory_xact_lock\(\$1::integer, hashtext\(\$2\)\)`).WillDelayFor(5 * time.Second).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectRollback()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(50*time.Millisecond, cancel)
+	err = withWorkspaceDatabaseLockOn(ctx, db, "notifuse_ws_acme", func(ctx context.Context, admin *sql.DB) error {
+		t.Error("the work runs without the lock")
+		return nil
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	assert.ErrorContains(t, err, "failed to take the lock on workspace database notifuse_ws_acme")
+}
+
 func TestWithWorkspaceDatabaseLock_AdminDatabase(t *testing.T) {
 	cfg := &config.DatabaseConfig{User: "u", Password: "p", Host: "h", Port: 5432, SSLMode: "disable"}
 

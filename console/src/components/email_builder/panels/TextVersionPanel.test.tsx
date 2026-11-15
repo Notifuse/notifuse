@@ -137,7 +137,32 @@ describe('TextVersionPanel with a custom text', () => {
     const onSeed = vi.fn().mockResolvedValue({ text: '- {{ item.name }}', lostLiquid: true })
     setup({ value: '', onSeed })
     fireEvent.click(screen.getByRole('button', { name: 'Start again from the automatic version' }))
-    expect(await screen.findByText(/Conditions and loops placed between blocks are not carried over/)).toBeTruthy()
+    expect(
+      await screen.findByText(/Display conditions, and conditions and loops placed between blocks, are not carried over/)
+    ).toBeTruthy()
+  })
+
+  it('says the email holds no text yet when the starting point is empty', async () => {
+    const onSeed = vi.fn().mockResolvedValue({ text: '' })
+    setup({ value: '', onSeed })
+    fireEvent.click(screen.getByRole('button', { name: 'Start again from the automatic version' }))
+    expect(await screen.findByText('The email holds no text yet.')).toBeTruthy()
+  })
+
+  it('says nothing of an empty email when the starting point has text', async () => {
+    setup({ value: '' })
+    fireEvent.click(screen.getByRole('button', { name: 'Start again from the automatic version' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Start again/ })).not.toBeNull())
+    await act(async () => {})
+    expect(screen.queryByText('The email holds no text yet.')).toBeNull()
+  })
+
+  it('shows Liquid placed between blocks as a placement warning, not as refused markup', async () => {
+    const onSeed = vi.fn().mockResolvedValue({ text: 'VIP', liquidPlacement: true })
+    setup({ value: '', onSeed })
+    fireEvent.click(screen.getByRole('button', { name: 'Start again from the automatic version' }))
+    expect(await screen.findByText(/may not land where it applies/)).toBeTruthy()
+    expect(screen.queryByText(/would not be accepted/)).toBeNull()
   })
 
   it('shows a Liquid problem found in the starting point', async () => {

@@ -1050,3 +1050,34 @@ func TestDataFeedFetcher_FetchRecipient_RetryOn429(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, true, result["_success"])
 }
+
+func TestDataFeedFetcher_FetchRecipient_RetryWaitEndsWithTheContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	fetcher := NewUnsafeDataFeedFetcher(mockLogger)
+	settings := &domain.RecipientFeedSettings{Enabled: true, URL: server.URL, Headers: []domain.DataFeedHeader{}}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(50*time.Millisecond, cancel)
+
+	start := time.Now()
+	result, err := fetcher.FetchRecipient(ctx, settings, nil)
+
+	// The retry delay is seconds long; the wait must end when the run is cancelled.
+	assert.Less(t, time.Since(start), time.Second)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, context.Canceled)
+}

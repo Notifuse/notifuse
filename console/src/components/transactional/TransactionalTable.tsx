@@ -1,6 +1,7 @@
 import type { MouseEvent, ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Button, Dropdown, Table, Tooltip, type MenuProps } from 'antd'
+import { RefusedButton } from '../common/RefusedButton'
 import type { ColumnsType } from 'antd/es/table'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
@@ -18,6 +19,7 @@ import {
   type StatGate
 } from './notificationParts'
 import { templateIdOf, useActionRules } from './notificationRules'
+import { refusedMenuItem } from './refusedMenuItem'
 import { statsOf, statsRates, BOUNCE_WARNING, type NotificationStats, type TrackedRate } from './transactionalStats'
 import { formatFullDateTime, formatLastSent } from './transactionalTime'
 import { LAST_SENT_DAYS } from './useTransactionalStats'
@@ -252,29 +254,37 @@ export function TransactionalTable(props: TransactionalTableProps) {
           {
             key: 'edit',
             label: <MenuEntryLabel label={t`Edit`} reason={rules.edit} />,
-            disabled: rules.edit !== undefined
+            ...refusedMenuItem(rules.edit)
           },
           {
             key: 'preview',
             label: <MenuEntryLabel label={t`Preview template`} reason={rules.preview} />,
-            disabled: rules.preview !== undefined
+            ...refusedMenuItem(rules.preview)
           },
           { key: 'copy', label: t`Copy ID` },
           {
             key: 'logs',
             label: <MenuEntryLabel label={t`View in logs`} reason={rules.logs} />,
-            disabled: rules.logs !== undefined
+            ...refusedMenuItem(rules.logs)
           },
           { type: 'divider' },
           {
             key: 'delete',
             label: <MenuEntryLabel label={t`Delete`} reason={rules.remove} />,
             danger: rules.remove === undefined,
-            disabled: rules.remove !== undefined
+            ...refusedMenuItem(rules.remove)
           }
         ]
         const onMenu: MenuProps['onClick'] = ({ key, domEvent }) => {
           domEvent.stopPropagation()
+          // A refused entry stays in the menu, reachable, and does nothing
+          const refusals: Record<string, string | undefined> = {
+            edit: rules.edit,
+            preview: rules.preview,
+            logs: rules.logs,
+            delete: rules.remove
+          }
+          if (refusals[key] !== undefined) return
           if (key === 'edit') props.onEdit(notification)
           else if (key === 'preview') props.onPreview(notification)
           else if (key === 'copy') props.onCopyId(notification)
@@ -286,19 +296,15 @@ export function TransactionalTable(props: TransactionalTableProps) {
             className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
             onClick={stop}
           >
-            <Tooltip title={rules.test ?? t`Send test`}>
-              {/* A span: a disabled button receives no hover, and its tooltip would never show. */}
-              <span>
-                <Button
-                  type="text"
-                  size="small"
-                  aria-label={t`Send test`}
-                  icon={<Send size={14} aria-hidden="true" />}
-                  disabled={rules.test !== undefined}
-                  onClick={() => props.onTest(notification)}
-                />
-              </span>
-            </Tooltip>
+            <RefusedButton
+              type="text"
+              size="small"
+              aria-label={t`Send test`}
+              tooltip={t`Send test`}
+              icon={<Send size={14} aria-hidden="true" />}
+              refusal={rules.test}
+              onClick={() => props.onTest(notification)}
+            />
             <Tooltip title={t`API command`}>
               <Button
                 type="text"

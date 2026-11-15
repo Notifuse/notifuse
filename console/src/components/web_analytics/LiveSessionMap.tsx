@@ -4,6 +4,7 @@ import ReactECharts from 'echarts-for-react'
 import { Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { PRIMARY_COLOR } from './lib/types'
+import { numberFormat } from '../layout'
 import worldGeoJson from './lib/worldGeo.json'
 
 // Same lazy registration as CountryMapView: parsing the 240 KB collection is
@@ -39,7 +40,9 @@ interface TooltipParams {
  * the same country stay two marks — which is the point of watching live.
  */
 export function LiveSessionMap(props: LiveSessionMapProps): ReactNode {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
+  // The options are rebuilt on a language change, for the counts of the tooltip
+  const locale = i18n.locale
 
   const points = useMemo(
     () =>
@@ -74,7 +77,7 @@ export function LiveSessionMap(props: LiveSessionMapProps): ReactNode {
         formatter: (params: TooltipParams) => {
           if (!params.value) return ''
           const sessions = params.value[2]
-          return `${params.name}: ${sessions}`
+          return `${params.name}: ${numberFormat(locale, i18n).int(sessions)}`
         }
       },
       series: [
@@ -92,7 +95,7 @@ export function LiveSessionMap(props: LiveSessionMapProps): ReactNode {
         }
       ]
     }
-  }, [points])
+  }, [points, locale, i18n])
 
   if (props.loading && props.data.length === 0) {
     return (

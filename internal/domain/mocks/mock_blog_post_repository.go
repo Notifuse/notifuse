@@ -259,6 +259,21 @@ func (mr *MockBlogPostRepositoryMockRecorder) ListSitemapPosts(arg0, arg1, arg2 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSitemapPosts", reflect.TypeOf((*MockBlogPostRepository)(nil).ListSitemapPosts), arg0, arg1, arg2)
 }
 
+// NextScheduledPublishAt mocks base method.
+func (m *MockBlogPostRepository) NextScheduledPublishAt(arg0 context.Context, arg1 time.Time) (*time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NextScheduledPublishAt", arg0, arg1)
+	ret0, _ := ret[0].(*time.Time)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NextScheduledPublishAt indicates an expected call of NextScheduledPublishAt.
+func (mr *MockBlogPostRepositoryMockRecorder) NextScheduledPublishAt(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextScheduledPublishAt", reflect.TypeOf((*MockBlogPostRepository)(nil).NextScheduledPublishAt), arg0, arg1)
+}
+
 // PublishPost mocks base method.
 func (m *MockBlogPostRepository) PublishPost(arg0 context.Context, arg1 string, arg2 *time.Time) error {
 	m.ctrl.T.Helper()

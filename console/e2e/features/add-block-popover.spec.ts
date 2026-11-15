@@ -47,12 +47,12 @@ test.describe('The saved blocks of the "+" menu', () => {
       'lib-wrapper'
     ])
     await expect(popover.getByText('Not available here')).toBeVisible()
-    await expect(editor.row('lib-column')).toHaveAttribute('aria-disabled', 'true')
+    await expect(editor.row('lib-column')).toBeDisabled()
     await expect(editor.row('lib-column')).toContainText('Goes inside a section')
     await expect(editor.row('lib-section')).toContainText('Not allowed here')
 
-    // A greyed block does nothing when clicked
-    await editor.row('lib-section').click()
+    // A greyed block does nothing when clicked: a disabled button, which the click skips the wait for
+    await editor.row('lib-section').click({ force: true })
     await expect(popover).toBeVisible()
 
     await editor.row('lib-text').hover()
@@ -79,18 +79,15 @@ test.describe('The saved blocks of the "+" menu', () => {
     const editor = await openStructure(page)
     const popover = await editor.open('CC')
     await popover.getByRole('tab', { name: /Saved blocks/ }).click()
-    await expect(editor.row('lib-liquid')).toHaveAttribute('aria-disabled', 'true')
+    await expect(editor.row('lib-liquid')).toBeDisabled()
     await expect(editor.row('lib-liquid')).toContainText('Not allowed inside a conditional block')
-    await expect(editor.row('lib-text')).not.toHaveAttribute('aria-disabled', 'true')
+    await expect(editor.row('lib-text')).toBeEnabled()
   })
 
   test('opens on the tab used last, in another "+"', async ({ authenticatedPage: page }) => {
-    // Without the raw HTML block: its thumbnail is an iframe of the console's origin, where the test's start-up
-    // script runs again and clears the storage
-    const editor = await openStructure(
-      page,
-      librarySavedBlocks.filter((saved) => saved.block.type !== 'mj-raw')
-    )
+    // The raw HTML block included: its thumbnail is an iframe of the console's origin, where the start-up script
+    // leaves the storage alone
+    const editor = await openStructure(page, librarySavedBlocks)
     let popover = await editor.open('C1')
     await popover.getByRole('tab', { name: /Saved blocks/ }).click()
     // A click outside closes the menu

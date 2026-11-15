@@ -230,7 +230,7 @@ func TestSecretKeyRotation(t *testing.T) {
 	_ = resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	require.True(t, sent.Success, "test email send failed: %s", sent.Error)
-	trackedEmail, err := waitForEmailAndGetMessage(t, trackedRecipient, 20*time.Second)
+	trackedEmail, err := testutil.WaitForMailpitMessageByRecipient(t, trackedRecipient, 20*time.Second)
 	require.NoError(t, err)
 	_, trackedToken := deliveredClickLink(t, trackedEmail.HTML, "https://shop.example.com/rotation")
 	require.NotEmpty(t, trackedToken.Tag)

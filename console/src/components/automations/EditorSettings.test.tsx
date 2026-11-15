@@ -97,4 +97,11 @@ describe('NodePalette', () => {
     fireEvent.mouseEnter(email)
     expect(await screen.findByText('Select a list to enable email nodes')).toBeInTheDocument()
   })
+
+  it('spaces its fields with a column, with no margin class on the antd items', () => {
+    renderSettings()
+    const items = document.querySelectorAll('[data-editor-settings] .ant-form-item')
+    expect(items.length).toBeGreaterThan(0)
+    for (const item of items) expect(item.className).not.toMatch(/\bm[btlrxy]?-\d/)
+  })
 })

@@ -1,5 +1,5 @@
 import type { ThemeConfig } from 'antd'
-import { alpha, colors as c, typography as t, radii, shadows as s, motion, layout } from './tokens'
+import { alpha, over, colors as c, typography as t, radii, shadows as s, motion, layout } from './tokens'
 
 const seconds = (ms: number) => `${ms / 1000}s`
 
@@ -13,8 +13,10 @@ const seconds = (ms: number) => `${ms / 1000}s`
 export const antdTheme: ThemeConfig = {
   token: {
     colorPrimary: c.primary[500],
-    colorPrimaryHover: c.primary[600],
-    colorPrimaryActive: c.primary[700],
+    // Two steps darker than the button: at 600 a filled primary button's hover hardly read as a
+    // change. The press is one step darker again.
+    colorPrimaryHover: c.primary[700],
+    colorPrimaryActive: c.primary[800],
     colorPrimaryBorder: c.primary[300],
     colorLink: c.primary[600],
     colorLinkHover: c.primary[700],
@@ -87,9 +89,7 @@ export const antdTheme: ThemeConfig = {
       itemSelectedColor: c.primary[700],
       groupTitleFontSize: t.size.overline,
       groupTitleColor: c.ink3,
-      collapsedWidth: layout.sidebarCollapsed,
-      // No right border on an inline menu: the sidebar draws its own edge.
-      activeBarBorderWidth: 0
+      collapsedWidth: layout.sidebarCollapsed
     },
     Card: {
       // antd draws the card border (and its header divider) with colorBorderSecondary.
@@ -104,8 +104,10 @@ export const antdTheme: ThemeConfig = {
       headerColor: c.ink3,
       headerSplitColor: 'transparent',
       borderColor: c.lineSoft,
-      // Subtle rather than fill: a neutral tag (fill) must stay visible on a hovered row.
-      rowHoverBg: c.subtle,
+      // A faint primary tint: apart from the header (subtle), and lighter than a neutral tag (fill),
+      // which must stay visible on a hovered row. Opaque, because antd paints it on the cells of
+      // fixed columns too, which must hide the columns scrolling under them.
+      rowHoverBg: over(c.primary[500], 0.03),
       rowSelectedBg: c.primary[50],
       rowSelectedHoverBg: c.primary[100],
       cellFontSize: t.size.sm,

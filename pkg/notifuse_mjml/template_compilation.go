@@ -109,8 +109,7 @@ func preprocessMjmlForXML(mjmlString string) string {
 	// rich-text link saved as href="…?q=&quot;exact&quot;" reached the HTML as
 	// href="…?q="exact"", which ends the URL at "q=". v0.14.1 leaves entities
 	// inside quoted attribute values to its XML parser and escapes most of the
-	// attributes it writes (not the carousel's hand-built href and src). The doubling below (&amp;quot;, the way
-	// escapeAttributeValue does for visual-editor attributes) still comes back
+	// attributes it writes (not the carousel's hand-built href and src). The doubling below (&amp;quot;) still comes back
 	// as &quot; through decodeHTMLEntitiesInURLAttributes after the render, so
 	// the output is the same with both releases.
 	//
@@ -663,6 +662,12 @@ func (r *CompileTemplateRequest) Validate() error {
 		return fmt.Errorf("invalid compile template request: message_id is required")
 	}
 
+	// The custom text is capped as a saved template's is (the source, normalised, in bytes),
+	// whichever source the email comes from.
+	if text := NormalizeCustomText(r.Text); text != nil && len(*text) > MaxCustomTextSize {
+		return fmt.Errorf("invalid compile template request: text version must be at most %d bytes", MaxCustomTextSize)
+	}
+
 	// Accept either MjmlSource or VisualEditorTree
 	if r.MjmlSource != nil && *r.MjmlSource != "" {
 		// MjmlSource is provided, no need to validate VisualEditorTree
@@ -675,6 +680,10 @@ func (r *CompileTemplateRequest) Validate() error {
 	}
 	if r.VisualEditorTree.GetChildren() == nil {
 		return fmt.Errorf("invalid compile template request: visual_editor_tree root block must have children")
+	}
+	// An invalid display condition answers its own error, not the Liquid error it would cause.
+	if err := ValidateDisplayConditions(r.VisualEditorTree); err != nil {
+		return fmt.Errorf("invalid compile template request: %w", err)
 	}
 
 	return nil
@@ -715,6 +724,10 @@ func (r *CompileTemplateResponse) CustomText() string {
 	return *r.Text
 }
 
+// MaxCustomTextSize caps the source of a custom plain-text version, in bytes, at save and in
+// a compile request.
+const MaxCustomTextSize = 64 * 1024
+
 // NormalizeCustomText returns a custom text with \n line endings, or nil when it holds
 // only whitespace, which means the automatic version.
 func NormalizeCustomText(text *string) *string {
@@ -728,8 +741,9 @@ func NormalizeCustomText(text *string) *string {
 
 // plainTextVersion decides the plain-text version of an email compile from its final
 // HTML. A custom text is rendered with the same rules as the subject; when that fails,
-// renders blank or too large, the email keeps the automatic text and TextError says why
-// (blank is not an error: a condition chose to say nothing). The automatic text is only
+// renders blank or too large, the email keeps the automatic text and TextError says why.
+// Blank sets TextError only when the request asks for the text, as the preview does: on a
+// send it is no error, a condition chose to say nothing. The automatic text is only
 // generated here when the request asked for it; a send leaves it to SendEmail.
 func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *string, source string, textErr string) {
 	if custom := NormalizeCustomText(req.Text); custom != nil {
@@ -741,6 +755,10 @@ func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *str
 			textErr = fmt.Sprintf("the text version renders to more than %d bytes", MaxRenderedCustomTextSize)
 		case strings.TrimSpace(rendered) != "":
 			return &rendered, TextSourceCustom, ""
+		case req.IncludeText:
+			// Blank is what a send wants (a condition chose to say nothing), but the
+			// preview must say why it shows the automatic text.
+			textErr = "the custom text renders blank for this data"
 		}
 	}
 	if !req.IncludeText {
@@ -752,9 +770,41 @@ func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *str
 	if req.PreserveLiquid && textErr == "" {
 		if err := ValidateLiquidSyntax(auto); err != nil {
 			textErr = err.Error()
+		} else if (req.MjmlSource == nil || *req.MjmlSource == "") && liquidAmongBlocks(req.VisualEditorTree) {
+			// The console (textVersionSeed.ts) tells this notice from refused markup by its start
+			textErr = "Liquid placed between the blocks of a section or a column may not land where it applies in the text version: check it before saving"
 		}
 	}
 	return &auto, TextSourceAuto, textErr
+}
+
+// liquidAmongBlocks reports whether a visual tree places Liquid tags in an mj-raw or an
+// mj-liquid block among the blocks of a section, a group or a column. Those blocks become
+// table rows and cells, and a tag written between them lands outside the content it wraps
+// in the starting point of a custom text.
+func liquidAmongBlocks(block EmailBlock) bool {
+	if isNilBlock(block) {
+		return false
+	}
+	switch block.GetType() {
+	case MJMLComponentMjSection, MJMLComponentMjGroup, MJMLComponentMjColumn:
+		for _, child := range block.GetChildren() {
+			if isNilBlock(child) {
+				continue
+			}
+			if t := child.GetType(); t == MJMLComponentMjRaw || t == MJMLComponentMjLiquid {
+				if content := child.GetContent(); content != nil && strings.Contains(*content, "{%") {
+					return true
+				}
+			}
+		}
+	}
+	for _, child := range block.GetChildren() {
+		if liquidAmongBlocks(child) {
+			return true
+		}
+	}
+	return false
 }
 
 // renderCustomText renders a custom text like the subject (see renderSubjectField); kept
@@ -860,15 +910,18 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		return &CompileTemplateResponse{Success: false, Subject: renderedSubject, Error: previewErr}, nil
 	}
 
-	// If MjmlSource is provided (code mode), use it directly.
+	// If MjmlSource is provided (code mode), use it directly; an empty one compiles the tree.
 	// Note: Channel filtering is not applied in code mode — code mode users
 	// control their own MJML structure directly.
-	if req.MjmlSource != nil && *req.MjmlSource != "" {
+	codeMode := req.MjmlSource != nil && *req.MjmlSource != ""
+	if codeMode {
 		mjmlString = *req.MjmlSource
 
 		// Process Liquid templates if template data is provided and PreserveLiquid is false
 		if !req.PreserveLiquid && len(req.TemplateData) > 0 {
-			processed, err := ProcessLiquidTemplate(mjmlString, req.TemplateData, "mjml-source")
+			// The exported code of a visual template holds its display conditions, whose
+			// variables a "__dc" key of the data would otherwise decide.
+			processed, err := ProcessLiquidTemplate(mjmlString, withoutConditionNames(req.TemplateData), "mjml-source")
 			if err != nil {
 				return &CompileTemplateResponse{
 					Success:        false,
@@ -965,7 +1018,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// Whole-string Liquid pass for visual editor mode.
 	// Processes raw Liquid from mj-liquid blocks. Existing block content was already
 	// Liquid-processed per-block during tree walk, so the second pass is a no-op for them.
-	if req.MjmlSource == nil && !req.PreserveLiquid && len(req.TemplateData) > 0 && req.Channel != "web" {
+	if !codeMode && !req.PreserveLiquid && len(req.TemplateData) > 0 && req.Channel != "web" {
 		processed, liquidErr := ProcessLiquidTemplate(mjmlString, req.TemplateData, "visual-editor-whole")
 		if liquidErr != nil {
 			return &CompileTemplateResponse{
@@ -990,7 +1043,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// <mj-preview /> means it did not — an mj-liquid block can emit a bare tag the
 	// walk never sees — so it falls through here and overrideMjPreviewInSource fills
 	// it rather than injecting a second element.
-	if req.MjmlSource == nil && req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
+	if !codeMode && req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
 		if !mjPreviewTagRegexp.MatchString(mjmlString) {
 			renderedOverride, overrideErr := renderSubjectField(req.SubjectPreviewOverride, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview_override")
 			if overrideErr != nil {

@@ -581,6 +581,16 @@ func parseListBlogPostsParams(values url.Values) (domain.ListBlogPostsRequest, e
 		Search:     values.Get("search"),
 	}
 
+	// The column is a UUID: any other value would fail in PostgreSQL. A UUID written in
+	// capitals or braces is read as the same category.
+	if params.CategoryID != "" {
+		id, err := uuid.Parse(params.CategoryID)
+		if err != nil {
+			return params, errors.New("category_id must be a UUID")
+		}
+		params.CategoryID = id.String()
+	}
+
 	// Parse limit
 	if limitStr := values.Get("limit"); limitStr != "" {
 		limit, err := strconv.Atoi(limitStr)

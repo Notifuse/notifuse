@@ -1107,6 +1107,9 @@ func TestAppInitHandlers(t *testing.T) {
 		"/api/annotations.create",
 		"/api/annotations.update",
 		"/api/annotations.delete",
+		// Registered only once the contact visits service is wired (WithContactVisits).
+		"/api/webAnalytics.contactVisits",
+		"/api/webAnalytics.contactSessionPages",
 	}
 
 	for _, route := range annotationRoutes {

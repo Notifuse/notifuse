@@ -81,7 +81,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
             example:
-              error: 'invalid with_journey_counts parameter: must be true or false'
+              error: 'invalid with_journey_counts parameter: must be a boolean'
       '401':
         description: Unauthorized - missing or invalid authentication
         content:
@@ -117,8 +117,9 @@
 
 
       `since` and `until` bound the time the executions entered their step (a
-      visit is dated by its attempt that succeeded, else by its last attempt),
-      and the time failed journeys entered the automation; both are given, or
+      visit is dated by its attempt that succeeded, else by its last attempt,
+      so a visit whose retry succeeds later moves to the later period and the
+      earlier one keeps only its failed attempts), and the time failed journeys entered the automation; both are given, or
       neither for all time. `waiting`, `retrying` and `in_progress` describe
       the active journeys now, whatever the period.
 

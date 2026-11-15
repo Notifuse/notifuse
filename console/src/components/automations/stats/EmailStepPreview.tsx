@@ -4,6 +4,7 @@ import { useLingui } from '@lingui/react/macro'
 import { ExternalLink, Eye } from 'lucide-react'
 import { KeyValueList } from '../../layout'
 import { templatesApi } from '../../../services/api/template'
+import { ApiError } from '../../../services/api/errors'
 import type { EmailNodeConfig } from '../../../services/api/automation'
 import type { Workspace } from '../../../services/api/types'
 import { TemplatePreviewFrame } from '../../broadcasts/detail/TemplatePreviewFrame'
@@ -31,6 +32,17 @@ export function EmailStepPreview({ workspace, config, canReadTemplates }: EmailS
     return <p data-unreset className="m-0 text-sm text-ink-3">{t`You need access to templates to preview this email.`}</p>
   }
   if (query.isLoading) return <Skeleton active title={false} paragraph={{ rows: 3 }} />
+  // A template deleted since is not a read that failed: only the second can be retried.
+  if (query.isError && !(query.error instanceof ApiError && query.error.status === 404)) {
+    return (
+      <div data-unreset className="flex items-center gap-2 text-sm text-ink-3">
+        <span>{t`Couldn't load the template`}</span>
+        <Button size="small" onClick={() => void query.refetch()}>
+          {t`Retry`}
+        </Button>
+      </div>
+    )
+  }
   const template = query.data?.template
   if (!template) return <p data-unreset className="m-0 text-sm text-ink-3">{t`This template no longer exists`}</p>
 

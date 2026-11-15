@@ -448,7 +448,8 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
 
   return (
     <div className="relative flex h-full min-w-0 flex-1">
-      <div className="relative min-w-0 flex-1" ref={reactFlowWrapper} data-canvas>
+      {/* Clipped: a "+" of a step near the edge never lands on the step panel. */}
+      <div className="relative min-w-0 flex-1 overflow-hidden" ref={reactFlowWrapper} data-canvas>
         <ReactFlow
           nodes={nodesWithPlaceholders}
           edges={edgesWithPlaceholders}
@@ -530,12 +531,10 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({ overla
         })}
       </div>
 
-      {/* The step's panel: its own column, over the canvas on a narrow screen. */}
+      {/* The step's panel: its own column at every width, so the canvas and its "+" buttons sit
+          beside it rather than under it. */}
       {selectedNode && (
-        <aside
-          aria-label={t`Step`}
-          className="absolute inset-y-0 right-0 z-20 w-aside shrink-0 overflow-hidden border-l border-line bg-surface shadow-lg min-[1200px]:static min-[1200px]:shadow-none"
-        >
+        <aside aria-label={t`Step`} data-step-aside className="w-aside shrink-0 overflow-hidden border-l border-line bg-surface">
           <NodeConfigPanel
             selectedNode={selectedNode}
             onNodeUpdate={handleNodeUpdateFromPanel}

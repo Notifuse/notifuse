@@ -92,7 +92,7 @@ func TestAutomationComplaintRecordedOnList(t *testing.T) {
 		require.NoError(t, err)
 
 		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, eventName, map[string]interface{}{}))
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err, "the automation email should reach Mailpit")
 		messageID = deliveredHeader(t, msg, "X-Message-ID")
 

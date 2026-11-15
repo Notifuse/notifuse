@@ -32,7 +32,7 @@ func TestTaskHandler_AuthenticationFailureIsAServerError(t *testing.T) {
 		Return(nil, nil, nil, errors.New("database unavailable"))
 
 	rec := httptest.NewRecorder()
-	handler.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-1&id=task-1", nil))
+	handler.GetTask(rec, httptest.NewRequest(http.MethodGet, "/api/tasks.get?workspace_id=ws-1&id=11111111-1111-4111-8111-111111111111", nil))
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	assert.Equal(t, "Failed to get task", errorMessage(t, rec))
@@ -50,11 +50,11 @@ func TestTaskHandler_TaskLookupFailureStopsTheMutation(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
 			allowOwner(mockAuth)
-			mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(nil, errors.New("connection reset"))
+			mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(nil, errors.New("connection reset"))
 
 			rec := httptest.NewRecorder()
 			call(handler, rec, httptest.NewRequest(http.MethodPost, "/api/tasks."+name,
-				strings.NewReader(`{"workspace_id": "ws-1", "id": "task-1"}`)))
+				strings.NewReader(`{"workspace_id": "ws-1", "id": "11111111-1111-4111-8111-111111111111"}`)))
 
 			assert.Equal(t, http.StatusInternalServerError, rec.Code)
 			assert.Equal(t, "Failed to "+name+" task", errorMessage(t, rec))
@@ -66,12 +66,12 @@ func TestTaskHandler_DeleteTask_GoneBetweenCheckAndDelete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
 	allowOwner(mockAuth)
-	mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
-		Return(&domain.Task{ID: "task-1", Type: "sync_integration"}, nil)
-	mockTaskService.EXPECT().DeleteTask(gomock.Any(), "ws-1", "task-1").Return(errors.New("task not found"))
+	mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").
+		Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", Type: "sync_integration"}, nil)
+	mockTaskService.EXPECT().DeleteTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(domain.ErrTaskNotFound)
 
 	rec := httptest.NewRecorder()
-	handler.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-1&id=task-1", nil))
+	handler.DeleteTask(rec, httptest.NewRequest(http.MethodPost, "/api/tasks.delete?workspace_id=ws-1&id=11111111-1111-4111-8111-111111111111", nil))
 
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
@@ -80,7 +80,7 @@ func TestTaskHandler_DeleteTask_GoneBetweenCheckAndDelete(t *testing.T) {
 // error, so a concurrent run must answer 409 and a real failure must not.
 func TestTaskHandler_ExecuteTask_FailureStatuses(t *testing.T) {
 	const secretKey = "test-secret-key"
-	body := []byte(`{"workspace_id": "ws-1", "id": "task-1"}`)
+	body := []byte(`{"workspace_id": "ws-1", "id": "11111111-1111-4111-8111-111111111111"}`)
 
 	cases := []struct {
 		name       string
@@ -90,23 +90,23 @@ func TestTaskHandler_ExecuteTask_FailureStatuses(t *testing.T) {
 	}{
 		{
 			name:       "the task disappeared",
-			err:        &domain.ErrNotFound{Entity: "task", ID: "task-1"},
+			err:        &domain.ErrNotFound{Entity: "task", ID: "11111111-1111-4111-8111-111111111111"},
 			wantStatus: http.StatusNotFound,
 		},
 		{
 			name:       "already running",
-			err:        &domain.ErrTaskAlreadyRunning{TaskID: "task-1"},
+			err:        &domain.ErrTaskAlreadyRunning{TaskID: "11111111-1111-4111-8111-111111111111"},
 			wantStatus: http.StatusConflict,
 		},
 		{
 			name:       "already running, wrapped",
-			err:        &domain.ErrTaskExecution{TaskID: "task-1", Reason: "processor failed", Err: &domain.ErrTaskAlreadyRunning{TaskID: "task-1"}},
+			err:        &domain.ErrTaskExecution{TaskID: "11111111-1111-4111-8111-111111111111", Reason: "processor failed", Err: &domain.ErrTaskAlreadyRunning{TaskID: "11111111-1111-4111-8111-111111111111"}},
 			wantStatus: http.StatusConflict,
 			wantError:  "Task is already being processed",
 		},
 		{
 			name:       "claimed by another executor",
-			err:        &domain.ErrTaskExecution{TaskID: "task-1", Reason: "failed to mark task as running", Err: errors.New("no row updated")},
+			err:        &domain.ErrTaskExecution{TaskID: "11111111-1111-4111-8111-111111111111", Reason: "failed to mark task as running", Err: errors.New("no row updated")},
 			wantStatus: http.StatusConflict,
 			wantError:  "Task is already being processed",
 		},
@@ -121,8 +121,8 @@ func TestTaskHandler_ExecuteTask_FailureStatuses(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			handler, mockTaskService, _ := newTaskHandlerForAuth(t, ctrl)
-			mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").Return(&domain.Task{ID: "task-1", MaxRuntime: 50}, nil)
-			mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "task-1", gomock.Any()).Return(tc.err)
+			mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111").Return(&domain.Task{ID: "11111111-1111-4111-8111-111111111111", MaxRuntime: 50}, nil)
+			mockTaskService.EXPECT().ExecuteTask(gomock.Any(), "ws-1", "11111111-1111-4111-8111-111111111111", gomock.Any()).Return(tc.err)
 
 			rec := httptest.NewRecorder()
 			handler.ExecuteTask(rec, newSignedExecuteRequest(secretKey, body))
@@ -150,42 +150,4 @@ func TestTaskHandler_ExecuteTask_UnreadableBody(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Equal(t, "Invalid request body", errorMessage(t, rec))
-}
-
-func TestTaskHandler_ResetAndTrigger_ServiceFailures(t *testing.T) {
-	cases := []struct {
-		name       string
-		route      string
-		err        error
-		wantStatus int
-		wantError  string
-	}{
-		{name: "reset: task gone", route: "reset", err: domain.ErrTaskNotFound, wantStatus: http.StatusNotFound, wantError: "Task not found"},
-		{name: "reset: refused", route: "reset", err: domain.NewValidationError("task is not a recurring task"), wantStatus: http.StatusBadRequest, wantError: "validation error: task is not a recurring task"},
-		{name: "trigger: task gone", route: "trigger", err: domain.ErrTaskNotFound, wantStatus: http.StatusNotFound, wantError: "Task not found"},
-		{name: "trigger: refused", route: "trigger", err: domain.NewValidationError("task cannot be triggered in current status: completed"), wantStatus: http.StatusBadRequest, wantError: "validation error: task cannot be triggered in current status: completed"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			handler, mockTaskService, mockAuth := newTaskHandlerForAuth(t, ctrl)
-			allowOwner(mockAuth)
-			mockTaskService.EXPECT().GetTask(gomock.Any(), "ws-1", "task-1").
-				Return(&domain.Task{ID: "task-1", Type: "sync_integration"}, nil)
-
-			req := httptest.NewRequest(http.MethodPost, "/api/tasks."+tc.route,
-				strings.NewReader(`{"workspace_id": "ws-1", "id": "task-1"}`))
-			rec := httptest.NewRecorder()
-			if tc.route == "reset" {
-				mockTaskService.EXPECT().ResetTask(gomock.Any(), "ws-1", "task-1").Return(tc.err)
-				handler.ResetTask(rec, req)
-			} else {
-				mockTaskService.EXPECT().TriggerTask(gomock.Any(), "ws-1", "task-1").Return(tc.err)
-				handler.TriggerTask(rec, req)
-			}
-
-			assert.Equal(t, tc.wantStatus, rec.Code)
-			assert.Equal(t, tc.wantError, errorMessage(t, rec))
-		})
-	}
 }

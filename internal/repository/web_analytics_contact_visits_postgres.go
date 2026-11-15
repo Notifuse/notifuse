@@ -197,7 +197,7 @@ func (r *webAnalyticsContactVisitsRepository) ContactSessionPages(ctx context.Co
 
 	pages, err := db.QueryContext(ctx, `SELECT entered_at, path, duration_ms, page_number, tab_id
 		FROM web_pages WHERE session_date = $1 AND session_id = $2
-		ORDER BY entered_at, tab_id, page_number LIMIT $3`, sessionDate, sessionID, domain.ContactSessionPagesMax)
+		ORDER BY entered_at, tab_id, page_number LIMIT $3`, sessionDate, sessionID, domain.ContactSessionPagesMax+1)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list session pages: %w", err)
 	}
@@ -212,10 +212,15 @@ func (r *webAnalyticsContactVisitsRepository) ContactSessionPages(ctx context.Co
 	if err := pages.Err(); err != nil {
 		return nil, fmt.Errorf("failed to read session pages: %w", err)
 	}
+	// One row more than the bound was read, to tell a session cut at the bound.
+	if len(result.Pages) > domain.ContactSessionPagesMax {
+		result.Pages = result.Pages[:domain.ContactSessionPagesMax]
+		result.PagesTruncated = true
+	}
 
 	goals, err := db.QueryContext(ctx, `SELECT goal_at, goal_name, goal_value, path, tab_id
 		FROM web_goals WHERE session_date = $1 AND session_id = $2
-		ORDER BY goal_at, tab_id, client_ts_ms, goal_name LIMIT $3`, sessionDate, sessionID, domain.ContactSessionPagesMax)
+		ORDER BY goal_at, tab_id, client_ts_ms, goal_name LIMIT $3`, sessionDate, sessionID, domain.ContactSessionPagesMax+1)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list session goals: %w", err)
 	}
@@ -229,6 +234,10 @@ func (r *webAnalyticsContactVisitsRepository) ContactSessionPages(ctx context.Co
 	}
 	if err := goals.Err(); err != nil {
 		return nil, fmt.Errorf("failed to read session goals: %w", err)
+	}
+	if len(result.Goals) > domain.ContactSessionPagesMax {
+		result.Goals = result.Goals[:domain.ContactSessionPagesMax]
+		result.GoalsTruncated = true
 	}
 
 	return result, nil

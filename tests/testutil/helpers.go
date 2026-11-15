@@ -1259,6 +1259,21 @@ func GetMailpitMessageRaw(t *testing.T, messageID string) (string, error) {
 	return string(body), nil
 }
 
+// GetMailpitMessageEventually reads a message, polling again after a failed read until the
+// timeout. A scan that skipped a message it could not read would miss the email it looks for,
+// or pass an assertion that no such email exists.
+func GetMailpitMessageEventually(t *testing.T, messageID string, timeout time.Duration) (*MailpitMessage, error) {
+	deadline := time.Now().Add(timeout)
+	for {
+		msg, err := GetMailpitMessage(t, messageID)
+		if err == nil || !time.Now().Before(deadline) {
+			return msg, err
+		}
+		t.Logf("Failed to read Mailpit message %s, polling again: %v", messageID, err)
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
 // WaitForMailpitMessageByRecipient polls Mailpit until an email for the given recipient is found,
 // then returns the full MailpitMessage (with Subject, HTML, Text fields).
 func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeout time.Duration) (*MailpitMessage, error) {
@@ -1316,8 +1331,9 @@ func WaitForMailpitMessageByRecipient(t *testing.T, recipientEmail string, timeo
 func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
-	// Use the search API to find messages by subject
-	// Mailpit supports search queries in the format: subject:"text"
+	// The search API answers for a subject without a space. The subject goes into the URL
+	// unescaped and unquoted, so Mailpit refuses one with a space (400) and the count comes
+	// from listing the messages: the path most callers take.
 	searchURL := fmt.Sprintf("http://localhost:8025/api/v1/search?query=subject:%s", subject)
 	resp, err := httpClient.Get(searchURL)
 	if err != nil {
@@ -1326,7 +1342,7 @@ func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// Fall back to listing all messages if search not supported
+		// A refused query (a subject with a space): count by listing
 		return getMailpitMessageCountByListing(t, subject)
 	}
 
@@ -1335,7 +1351,15 @@ func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
 		return 0, fmt.Errorf("failed to decode Mailpit search response: %w", err)
 	}
 
-	return apiResp.Total, nil
+	// messages_count is the search's count; total is the whole mailbox.
+	return apiResp.MessagesCount, nil
+}
+
+// CountMailpitMessagesBySubject counts the listed messages whose subject contains subject. It
+// reads the list alone, no message's headers, and compares the subjects itself rather than
+// going through Mailpit's search.
+func CountMailpitMessagesBySubject(t *testing.T, subject string) (int, error) {
+	return getMailpitMessageCountByListing(t, subject)
 }
 
 // getMailpitMessageCountByListing counts messages by listing all and filtering by subject
@@ -1427,7 +1451,7 @@ func GetMailpitMessagesByRecipient(t *testing.T, subject string) (map[string][]*
 		if !strings.Contains(summary.Subject, subject) {
 			continue
 		}
-		msg, err := GetMailpitMessage(t, summary.ID)
+		msg, err := GetMailpitMessageEventually(t, summary.ID, 5*time.Second)
 		if err != nil {
 			return nil, err
 		}

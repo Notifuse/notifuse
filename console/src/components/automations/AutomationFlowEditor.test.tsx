@@ -227,4 +227,22 @@ describe('AutomationFlowEditor', () => {
     const captured = renderEditor(automation)
     expect(captured.nodes.some((n) => n.type === 'placeholder')).toBe(true)
   })
+
+  it('keeps the step panel in its own column beside a clipped canvas, at every width', async () => {
+    // A new automation opens with its trigger selected, so its panel is shown.
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <AutomationProvider workspace={workspace} lists={[]} canReadTemplates>
+              <AutomationFlowEditor />
+            </AutomationProvider>
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    const aside = await screen.findByRole('complementary', { name: 'Step' })
+    expect(aside.className).not.toMatch(/\babsolute\b/)
+    expect(document.querySelector('[data-canvas]')?.className).toMatch(/\boverflow-hidden\b/)
+  })
 })

@@ -3,8 +3,8 @@
 Branch `fix/editor-drag-and-drop`, from `dev` (b994c1a6). PR to `dev`. Console only: no table, no migration, no
 environment variable, no new user-facing string.
 
-Audit (46 browser scenarios) and independent second opinion:
-`/mnt/project-files/etudes/drag-and-drop/glisser-deposer-editeur-email.md`.
+Audit (46 browser scenarios) and independent second opinion, kept outside the repository: their
+findings are the defects listed below.
 
 ## Problem
 

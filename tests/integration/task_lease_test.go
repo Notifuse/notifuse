@@ -4,6 +4,8 @@ package integration
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
@@ -359,5 +361,121 @@ func TestTaskLease_ResetRetryBudget(t *testing.T) {
 		task := h.get(t, id)
 		assert.Equal(t, domain.TaskStatusCompleted, task.Status)
 		assert.Equal(t, 2, task.RetryCount)
+	})
+}
+
+func TestTaskLease_RequeueTask(t *testing.T) {
+	h := setupTaskLease(t)
+	ctx := context.Background()
+
+	t.Run("a running task is handed back with its retry count kept", func(t *testing.T) {
+		id := h.newTask(t)
+		require.NoError(t, h.repo.MarkAsRunning(ctx, h.workspaceID, id, *liveLease()))
+		_, err := h.suite.DBManager.GetDB().Exec(`UPDATE tasks SET retry_count = 3 WHERE id = $1`, id)
+		require.NoError(t, err)
+
+		next := time.Now().UTC().Add(time.Hour)
+		state := &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{LastProcessedEmail: "next@example.com"}}
+		require.NoError(t, h.repo.RequeueTask(ctx, h.workspaceID, id, domain.TaskStatusPaused, next, 42, state))
+
+		task := h.get(t, id)
+		assert.Equal(t, domain.TaskStatusPaused, task.Status)
+		assert.Equal(t, 3, task.RetryCount, "a requeue is not a failed attempt, nor a refund")
+		assert.Nil(t, task.TimeoutAfter, "the lease is released")
+		require.NotNil(t, task.NextRunAfter)
+		assert.WithinDuration(t, next, *task.NextRunAfter, time.Millisecond)
+		assert.Equal(t, 42.0, task.Progress)
+		assert.Equal(t, "next@example.com", task.State.SendBroadcast.LastProcessedEmail)
+	})
+
+	t.Run("a task a cancel marked failed stays failed", func(t *testing.T) {
+		id := h.newTask(t)
+		require.NoError(t, h.repo.MarkAsRunning(ctx, h.workspaceID, id, *liveLease()))
+		h.set(t, id, domain.TaskStatusFailed, nil)
+
+		err := h.repo.RequeueTask(ctx, h.workspaceID, id, domain.TaskStatusPending, time.Now().UTC(), 0, nil)
+		assert.ErrorIs(t, err, domain.ErrTaskNotRunning)
+		task := h.get(t, id)
+		assert.Equal(t, domain.TaskStatusFailed, task.Status)
+		assert.Equal(t, "start@example.com", task.State.SendBroadcast.LastProcessedEmail, "nothing was written")
+	})
+}
+
+// SaveState with the run's lease writes only while that run holds the task, on the value
+// PostgreSQL stored for it.
+func TestTaskLease_SaveStateMatchesTheRunsLease(t *testing.T) {
+	h := setupTaskLease(t)
+	ctx := context.Background()
+	id := h.newTask(t)
+
+	// ExecuteTask truncates its lease to the microsecond the column keeps.
+	lease := time.Now().UTC().Add(time.Minute).Truncate(time.Microsecond)
+	require.NoError(t, h.repo.MarkAsRunning(ctx, h.workspaceID, id, lease))
+
+	state := func(cursor string) *domain.TaskState {
+		return &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{LastProcessedEmail: cursor}}
+	}
+	require.NoError(t, h.repo.SaveState(domain.WithTaskLease(ctx, lease), h.workspaceID, id, 10, state("mine@example.com")))
+	assert.Equal(t, "mine@example.com", h.get(t, id).State.SendBroadcast.LastProcessedEmail)
+
+	// Another execution took the task over with its own lease: the first run writes nothing.
+	other := lease.Add(time.Minute)
+	_, err := h.suite.DBManager.GetDB().Exec(`UPDATE tasks SET timeout_after = $1 WHERE id = $2`, other, id)
+	require.NoError(t, err)
+	err = h.repo.SaveState(domain.WithTaskLease(ctx, lease), h.workspaceID, id, 20, state("stale@example.com"))
+	assert.ErrorIs(t, err, domain.ErrTaskNotRunning)
+	assert.Equal(t, "mine@example.com", h.get(t, id).State.SendBroadcast.LastProcessedEmail)
+}
+
+// A new schedule starts the broadcast's task over, unless an execution holds it.
+func TestTaskLease_ResetBroadcastTask(t *testing.T) {
+	h := setupTaskLease(t)
+	next := time.Now().UTC().Add(time.Hour).Truncate(time.Microsecond)
+	fresh := &domain.TaskState{SendBroadcast: &domain.SendBroadcastState{BroadcastID: "b1"}}
+	reset := func(id string) error {
+		return h.repo.WithTransaction(context.Background(), func(tx *sql.Tx) error {
+			return h.repo.ResetBroadcastTaskTx(context.Background(), tx, h.workspaceID, id, fresh, next)
+		})
+	}
+
+	t.Run("a completed task starts over, as new", func(t *testing.T) {
+		id := h.newTask(t)
+		_, err := h.suite.DBManager.GetDB().Exec(
+			`UPDATE tasks SET status = 'completed', retry_count = 2, progress = 100, error_message = 'old',
+				completed_at = NOW(), created_at = NOW() - INTERVAL '1 day' WHERE id = $1`, id)
+		require.NoError(t, err)
+
+		require.NoError(t, reset(id))
+		task := h.get(t, id)
+		assert.Equal(t, domain.TaskStatusPending, task.Status)
+		assert.Zero(t, task.RetryCount)
+		assert.Zero(t, task.Progress)
+		assert.Nil(t, task.ErrorMessage)
+		assert.Nil(t, task.CompletedAt)
+		require.NotNil(t, task.NextRunAfter)
+		assert.True(t, task.NextRunAfter.Equal(next))
+		assert.WithinDuration(t, time.Now(), task.CreatedAt, time.Minute, "its age counts from the new schedule")
+		require.NotNil(t, task.State.SendBroadcast)
+		assert.Empty(t, task.State.SendBroadcast.LastProcessedEmail, "the cursor of the old run is gone")
+	})
+
+	t.Run("a task an execution holds is refused and kept", func(t *testing.T) {
+		id := h.newTask(t)
+		h.set(t, id, domain.TaskStatusRunning, liveLease())
+
+		err := reset(id)
+		var running *domain.ErrTaskAlreadyRunning
+		assert.True(t, errors.As(err, &running), "got %v", err)
+		task := h.get(t, id)
+		assert.Equal(t, domain.TaskStatusRunning, task.Status)
+		assert.Equal(t, "start@example.com", task.State.SendBroadcast.LastProcessedEmail)
+	})
+
+	t.Run("a task whose lease expired can start over", func(t *testing.T) {
+		id := h.newTask(t)
+		h.set(t, id, domain.TaskStatusRunning, expiredLease())
+
+		require.NoError(t, reset(id))
+		assert.Equal(t, domain.TaskStatusPending, h.get(t, id).Status)
 	})
 }

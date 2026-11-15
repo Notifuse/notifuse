@@ -49,7 +49,7 @@ import {
   canCountMessages,
   defaultMessagesPeriod,
   periodBounds,
-  type CountedPeriod
+  type RollingPeriod
 } from './period'
 import { useLogsUrl } from './useLogsUrl'
 
@@ -122,7 +122,7 @@ export interface MessagesTabProps {
 export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
   const { t, i18n } = useLingui()
   // The longest period counted without an indexed filter, as the counters' tooltip names it.
-  const countedDurations: Record<CountedPeriod, string> = {
+  const countedDurations: Record<RollingPeriod, string> = {
     '1h': t`1 hour`,
     '24h': t`24 hours`,
     '7d': t`7 days`,

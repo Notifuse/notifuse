@@ -173,8 +173,8 @@ func TestCompileTemplate_PlainTextGolden(t *testing.T) {
 }
 
 // With click tracking every link gets its own token, so the icon and the label of a
-// social element no longer share a URL and both are written: no link of the HTML is
-// left out of the text, and the text links only to what the HTML links to.
+// social element no longer share a URL: the pair is written once, as the label's link. The
+// text links only to what the HTML links to, and leaves out only the social icons' links.
 func TestCompileTemplate_PlainTextGoldenTracked(t *testing.T) {
 	src, err := os.ReadFile("testdata/plain-text-golden.json")
 	require.NoError(t, err)
@@ -194,7 +194,28 @@ func TestCompileTemplate_PlainTextGoldenTracked(t *testing.T) {
 
 	assert.Contains(t, *resp.Text, "Facebook (https://t.example.com/r/")
 	assert.Contains(t, *resp.Text, "Instagram (https://t.example.com/r/")
-	assert.Equal(t, urlSet(htmlHrefs(t, *resp.HTML)), urlSet(textURL.FindAllString(*resp.Text, -1)))
+	inHTML, inText := map[string]bool{}, map[string]bool{}
+	for _, u := range htmlHrefs(t, *resp.HTML) {
+		inHTML[u] = true
+	}
+	for _, u := range textURL.FindAllString(*resp.Text, -1) {
+		inText[u] = true
+	}
+	var missing []string
+	for u := range inHTML {
+		if !inText[u] {
+			missing = append(missing, u)
+		}
+	}
+	for u := range inText {
+		assert.True(t, inHTML[u], "the text links only to what the HTML links to: %s", u)
+	}
+	// The fixture's two social elements, Facebook and Instagram.
+	require.Len(t, missing, 2)
+	for _, u := range missing {
+		assert.Regexp(t, regexp.MustCompile(`href="`+regexp.QuoteMeta(u)+`"[^>]*>\s*<img`), *resp.HTML,
+			"a link left out of the text is a social icon")
+	}
 }
 
 func BenchmarkCompileTemplate(b *testing.B) {

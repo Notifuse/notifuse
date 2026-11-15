@@ -335,6 +335,17 @@ func (b *Broadcast) SendsListUnsubscribeHeader() bool {
 	return b != nil && b.Audience.ExcludeUnsubscribed
 }
 
+// ListUnsubscribeURL is the RFC 8058 List-Unsubscribe URL of a broadcast email rendered with
+// data: its oneclick_unsubscribe_url, or "" when the broadcast sends no such header or the
+// data has no such URL.
+func (b *Broadcast) ListUnsubscribeURL(data map[string]interface{}) string {
+	if !b.SendsListUnsubscribeHeader() {
+		return ""
+	}
+	url, _ := data["oneclick_unsubscribe_url"].(string)
+	return url
+}
+
 // UTMParameters contains UTM tracking parameters for the broadcast
 type UTMParameters struct {
 	Source   string `json:"source,omitempty"`
@@ -698,6 +709,17 @@ func CheckVariationSenders(provider *EmailProvider, variations []BroadcastVariat
 	return nil
 }
 
+// HasStartedSending reports whether part of the audience may already have received the
+// broadcast: it is neither a draft nor scheduled, or it has a start date. A broadcast
+// scheduled for later keeps the scheduled status while its task sends, and its first sending
+// run records started_at.
+func (b *Broadcast) HasStartedSending() bool {
+	if b.StartedAt != nil {
+		return true
+	}
+	return b.Status != BroadcastStatusDraft && b.Status != BroadcastStatusScheduled
+}
+
 // Validate validates the update broadcast request
 func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadcast, error) {
 	if r.WorkspaceID != existingBroadcast.WorkspaceID {
@@ -725,7 +747,14 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 	// decision about who the next send reaches and only the list is one Validate would
 	// object to losing. Every key stays writable: a list retargets, an empty segments
 	// array widens back to the whole list, and an explicit false switches the
-	// unsubscribed exclusion off.
+	// unsubscribed exclusion off, until the broadcast has started sending (HasStartedSending):
+	// past that point, as for tracking_mode, part of the audience already received the email
+	// as it was.
+	if !r.audienceExcludeUnsubscribedOmitted &&
+		r.Audience.ExcludeUnsubscribed != existingBroadcast.Audience.ExcludeUnsubscribed &&
+		existingBroadcast.HasStartedSending() {
+		return nil, fmt.Errorf("exclude_unsubscribed can only be changed on a draft or scheduled broadcast")
+	}
 	if !r.audienceListOmitted {
 		existingBroadcast.Audience.List = r.Audience.List
 	}
@@ -754,9 +783,7 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 
 	if r.TrackingMode != nil {
 		mode := canonicalBroadcastTrackingMode(*r.TrackingMode)
-		if mode != existingBroadcast.TrackingMode &&
-			existingBroadcast.Status != BroadcastStatusDraft &&
-			existingBroadcast.Status != BroadcastStatusScheduled {
+		if mode != existingBroadcast.TrackingMode && existingBroadcast.HasStartedSending() {
 			// Part of the audience already received the email as it was.
 			return nil, fmt.Errorf("tracking_mode can only be changed on a draft or scheduled broadcast")
 		}
@@ -1399,13 +1426,20 @@ type TestRecipientFeedResponse struct {
 	ContactEmail string `json:"contact_email,omitempty"`
 }
 
+// GetBroadcastOptions says what BroadcastService.GetBroadcast adds to the broadcast it reads.
+type GetBroadcastOptions struct {
+	// WithTemplates sets each variation's template, as ListBroadcasts does: only for a member
+	// with Templates read, the others get the variations without their templates.
+	WithTemplates bool
+}
+
 // BroadcastService defines the interface for broadcast operations
 type BroadcastService interface {
 	// CreateBroadcast creates a new broadcast
 	CreateBroadcast(ctx context.Context, request *CreateBroadcastRequest) (*Broadcast, error)
 
-	// GetBroadcast retrieves a broadcast by ID
-	GetBroadcast(ctx context.Context, workspaceID, id string) (*Broadcast, error)
+	// GetBroadcast retrieves a broadcast by ID, with what opts asks for
+	GetBroadcast(ctx context.Context, workspaceID, id string, opts GetBroadcastOptions) (*Broadcast, error)
 
 	// UpdateBroadcast updates an existing broadcast
 	UpdateBroadcast(ctx context.Context, request *UpdateBroadcastRequest) (*Broadcast, error)

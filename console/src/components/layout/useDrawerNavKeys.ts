@@ -32,12 +32,22 @@ function isTopmost(anchor: HTMLElement | null): boolean {
   )
 }
 
-/** An open popconfirm, popover or dropdown menu: J and K belong to it, not to the list behind. */
+/**
+ * An open popconfirm or dropdown menu, or a popover in use: J and K belong to it, not to the list
+ * behind. A popover is in use when it holds the focus, or its trigger does, which is where a click
+ * opens it from; one shown while the pointer rests on its trigger leaves the keys to the drawer.
+ */
 function hasOpenPopup(): boolean {
-  return (
-    document.querySelector(
-      '.ant-popover:not(.ant-popover-hidden), .ant-dropdown:not(.ant-dropdown-hidden)'
-    ) !== null
+  if (
+    document.querySelector('.ant-popconfirm:not(.ant-popover-hidden), .ant-dropdown:not(.ant-dropdown-hidden)')
+  ) {
+    return true
+  }
+  const active = document.activeElement
+  if (!active || active === document.body) return false
+  if (active.closest('.ant-popover-open')) return true
+  return Array.from(document.querySelectorAll('.ant-popover:not(.ant-popover-hidden)')).some((popover) =>
+    popover.contains(active)
   )
 }
 

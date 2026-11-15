@@ -7,7 +7,7 @@ import { templatesApi } from '../../services/api/template'
 import type { Template, Workspace } from '../../services/api/types'
 import TemplatePreviewPopover from './TemplatePreviewDrawer'
 import { CreateTemplateDrawer } from './CreateTemplateDrawer'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth, useWorkspacePermissions } from '../../contexts/AuthContext'
 
 interface TemplateSelectorInputProps {
   value?: string | null
@@ -49,6 +49,9 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const { workspaces } = useAuth()
+  // The drawers it opens manage the saved blocks as the templates page does, with Templates write
+  const { permissions } = useWorkspacePermissions(workspaceId)
+  const canManageSavedBlocks = Boolean(permissions?.templates?.write)
 
   // Find the current workspace from the workspaces array
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
@@ -207,6 +210,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
           {currentWorkspace && (
             <CreateTemplateDrawer
               workspace={currentWorkspace}
+              canManageSavedBlocks={canManageSavedBlocks}
               forceCategory={category}
               buttonProps={{
                 type: 'primary',
@@ -242,6 +246,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
                     <CreateTemplateDrawer
                       key="clone"
                       workspace={currentWorkspace}
+                      canManageSavedBlocks={canManageSavedBlocks}
                       fromTemplate={template}
                       forceCategory={category}
                       buttonProps={{
@@ -280,6 +285,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
             {currentWorkspace && (
               <CreateTemplateDrawer
                 workspace={currentWorkspace}
+                canManageSavedBlocks={canManageSavedBlocks}
                 forceCategory={category}
                 buttonProps={{
                   type: 'primary',

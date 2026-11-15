@@ -133,7 +133,7 @@ func TestLinkClickMailpitE2E(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("Fetching email from Mailpit...")
-	email, err := waitForEmailByRecipientAddr(t, contactEmail, 30*time.Second)
+	email, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 30*time.Second)
 	require.NoError(t, err, "the broadcast email must arrive in Mailpit")
 
 	// The authored destinations must not appear as raw hrefs: every link is
@@ -500,7 +500,7 @@ func TestLinkClickMailpitE2E_URLsWithQuotesOrCharacterReferences(t *testing.T) {
 				[]string{"processed", "completed", "sent"}, 60*time.Second)
 			require.NoError(t, err)
 
-			email, err := waitForEmailByRecipientAddr(t, contactEmail, 30*time.Second)
+			email, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 30*time.Second)
 			require.NoError(t, err, "the broadcast email must arrive in Mailpit")
 
 			// Read every link as delivered before clicking any.

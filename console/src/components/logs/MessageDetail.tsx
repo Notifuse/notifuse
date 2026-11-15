@@ -497,7 +497,8 @@ interface MessageFieldsProps {
  * confirmation (marketing provider, opt-in template) or a template test, whose provider is read as
  * the test dialog's default: the marketing one for a marketing template, the transactional one
  * otherwise, and the first email integration when that default is not set or no longer exists. An
- * unknown template (no templates.read, still loading, deleted) counts as marketing. Not recorded on
+ * opt-in template has no such fallback: the server sends no double opt-in confirmation without a
+ * marketing provider, so none is guessed. An unknown template (no templates.read, still loading, deleted) counts as marketing. Not recorded on
  * the message, so not shown here: the integration picked in a test dialog and its sender (a test
  * goes out from the dialog's sender, never the template's, so the address shown for a test is a
  * guess), an automation email node's own integration, a newsletter variation's sender, and a
@@ -520,7 +521,7 @@ function senderOf(
   const integrations = workspace?.integrations ?? []
   const integration =
     integrations.find((candidate) => candidate.id === providerId) ??
-    (origin === 'other'
+    (origin === 'other' && template?.category !== 'opt_in'
       ? integrations.find(
           (candidate) => candidate.type === 'email' && candidate.email_provider?.kind
         )
@@ -594,15 +595,10 @@ function MessageFields({
       <SourceLink
         label={names.broadcast(id) ?? id}
         enabled={Boolean(permissions?.broadcasts?.read)}
-      >
-        <Link
-          to="/console/workspace/$workspaceId/broadcasts"
-          params={{ workspaceId }}
-          search={{ broadcast: id }}
-        >
-          {names.broadcast(id) ?? id}
-        </Link>
-      </SourceLink>
+        to="/console/workspace/$workspaceId/broadcasts"
+        workspaceId={workspaceId}
+        search={{ broadcast: id }}
+      />
     )
   } else if (origin === 'automation' && message.automation_id) {
     const id = message.automation_id
@@ -610,28 +606,21 @@ function MessageFields({
       <SourceLink
         label={names.automation(id) ?? id}
         enabled={Boolean(permissions?.automations?.read)}
-      >
-        <Link
-          to="/console/workspace/$workspaceId/automations"
-          params={{ workspaceId }}
-          search={{ automation: id }}
-        >
-          {names.automation(id) ?? id}
-        </Link>
-      </SourceLink>
+        to="/console/workspace/$workspaceId/automations"
+        workspaceId={workspaceId}
+        search={{ automation: id }}
+      />
     )
   } else if (origin === 'transactional' && message.transactional_notification_id) {
     const id = message.transactional_notification_id
     sentBy = (
-      <SourceLink label={id} enabled={Boolean(permissions?.transactional?.read)}>
-        <Link
-          to="/console/workspace/$workspaceId/transactional-notifications"
-          params={{ workspaceId }}
-          search={{ notification: id }}
-        >
-          {id}
-        </Link>
-      </SourceLink>
+      <SourceLink
+        label={id}
+        enabled={Boolean(permissions?.transactional?.read)}
+        to="/console/workspace/$workspaceId/transactional-notifications"
+        workspaceId={workspaceId}
+        search={{ notification: id }}
+      />
     )
   }
 
@@ -688,17 +677,24 @@ function MessageFields({
   )
 }
 
+type SourceLinkProps =
+  | { to: '/console/workspace/$workspaceId/broadcasts'; search: { broadcast: string } }
+  | { to: '/console/workspace/$workspaceId/automations'; search: { automation: string } }
+  | { to: '/console/workspace/$workspaceId/transactional-notifications'; search: { notification: string } }
+
 /** What sent the message: its link with the right to read it, else its name as text. */
 function SourceLink({
   label,
   enabled,
-  children
-}: {
-  label: string
-  enabled: boolean
-  children: ReactNode
-}) {
-  return enabled ? children : <span>{label}</span>
+  workspaceId,
+  ...target
+}: SourceLinkProps & { label: string; enabled: boolean; workspaceId: string }) {
+  if (!enabled) return <span>{label}</span>
+  return (
+    <Link {...target} params={{ workspaceId }}>
+      {label}
+    </Link>
+  )
 }
 
 interface SentContentProps {

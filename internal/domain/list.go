@@ -170,7 +170,7 @@ func (r *GetListsRequest) FromURLParams(queryParams url.Values) (err error) {
 	r.WorkspaceID = queryParams.Get("workspace_id")
 	if v := queryParams.Get("with_counts"); v != "" {
 		if r.WithCounts, err = strconv.ParseBool(v); err != nil {
-			return fmt.Errorf("invalid get lists request: with_counts must be true or false")
+			return fmt.Errorf("invalid get lists request: with_counts must be a boolean")
 		}
 	}
 

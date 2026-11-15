@@ -1,3 +1,6 @@
+import PREVIEW_IMAGE from '../assets/blog-preview/landscape.svg'
+import PREVIEW_AVATAR from '../assets/blog-preview/avatar.svg'
+
 // SEO settings structure (matches backend)
 export interface SEOSettings {
   meta_title?: string
@@ -115,11 +118,11 @@ const FULL_POSTS_DATA: Post[] = [
     title: 'Complete Style Guide & Kitchen Sink',
     excerpt:
       'A comprehensive showcase of all content blocks, styling options, and typography elements available in our blog theme system.',
-    featured_image_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800',
+    featured_image_url: PREVIEW_IMAGE,
     authors: [
       {
         name: 'Jane Doe',
-        avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'
+        avatar_url: PREVIEW_AVATAR
       }
     ],
     reading_time_minutes: 8,
@@ -211,8 +214,8 @@ console.log(message); // Output: Hello, World!</code></pre>
 <h2 id="images">Images</h2>
 <p>Images are crucial for visual storytelling. Here's an example:</p>
 
-<img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800" alt="Person typing on laptop" data-caption="A developer working on a laptop" data-show-caption="true" />
-<p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 8px;">Caption: A developer working on a laptop</p>
+<img src="${PREVIEW_IMAGE}" alt="Hills under a sky" data-caption="Hills under a sky" data-show-caption="true" />
+<p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 8px;">Caption: Hills under a sky</p>
 
 <p>Notice how images should have proper spacing above and below, and captions should be visually distinct from body text.</p>
 
@@ -260,11 +263,11 @@ console.log(message); // Output: Hello, World!</code></pre>
     updated_at: '2024-03-12T10:00:00Z',
     title: 'The Future of Artificial Intelligence',
     excerpt: 'Exploring how AI will transform industries and daily life in the coming years.',
-    featured_image_url: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800',
+    featured_image_url: PREVIEW_IMAGE,
     authors: [
       {
         name: 'John Smith',
-        avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'
+        avatar_url: PREVIEW_AVATAR
       }
     ],
     reading_time_minutes: 8,
@@ -280,11 +283,11 @@ console.log(message); // Output: Hello, World!</code></pre>
     updated_at: '2024-03-10T10:00:00Z',
     title: 'Design Principles for Modern Websites',
     excerpt: 'Essential design principles that will make your website stand out in 2024.',
-    featured_image_url: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800',
+    featured_image_url: PREVIEW_IMAGE,
     authors: [
       {
         name: 'Sarah Johnson',
-        avatar_url: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=100'
+        avatar_url: PREVIEW_AVATAR
       }
     ],
     reading_time_minutes: 6,
@@ -301,11 +304,11 @@ console.log(message); // Output: Hello, World!</code></pre>
     title: 'Building Scalable REST APIs with Node.js',
     excerpt:
       'Learn how to design and implement RESTful APIs that can handle millions of requests with Node.js and Express.',
-    featured_image_url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800',
+    featured_image_url: PREVIEW_IMAGE,
     authors: [
       {
         name: 'Alex Chen',
-        avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'
+        avatar_url: PREVIEW_AVATAR
       }
     ],
     reading_time_minutes: 10,
@@ -409,11 +412,11 @@ app.listen(PORT, () => {
     title: 'Understanding Cloud Architecture Patterns',
     excerpt:
       'Explore essential cloud architecture patterns that enable scalability, reliability, and cost-efficiency in modern applications.',
-    featured_image_url: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=800',
+    featured_image_url: PREVIEW_IMAGE,
     authors: [
       {
         name: 'Michael Brown',
-        avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100'
+        avatar_url: PREVIEW_AVATAR
       }
     ],
     reading_time_minutes: 7,
@@ -529,11 +532,11 @@ app.listen(PORT, () => {
     title: 'Mastering User Experience: A Practical Guide',
     excerpt:
       'Discover proven UX principles and practical techniques to create intuitive, delightful experiences that users love.',
-    featured_image_url: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800',
+    featured_image_url: PREVIEW_IMAGE,
     authors: [
       {
         name: 'Emily Davis',
-        avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100'
+        avatar_url: PREVIEW_AVATAR
       }
     ],
     reading_time_minutes: 9,
@@ -753,7 +756,7 @@ export const MOCK_BLOG_DATA: MockBlogData = {
     og_title: 'My Awesome Blog',
     og_description:
       'Join us as we share insights about web development, AI, and modern design practices.',
-    og_image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200',
+    og_image: PREVIEW_IMAGE,
     canonical_url: 'https://example.com',
     keywords: ['web development', 'technology', 'design', 'tutorials', 'blog']
   }

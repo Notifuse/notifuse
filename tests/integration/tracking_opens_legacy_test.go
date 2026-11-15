@@ -134,7 +134,7 @@ func TestTrackingOpensAndLegacyLinksOnRealMessages(t *testing.T) {
 		}
 		require.NoError(t, json.Unmarshal(body, &result))
 		require.NotEmpty(t, result.MessageID)
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err)
 		testutil.WaitForCondition(t, func() bool {
 			var n int

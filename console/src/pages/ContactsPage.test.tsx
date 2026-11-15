@@ -24,6 +24,7 @@ const state = vi.hoisted(() => {
     contact,
     search: {} as Search,
     navigate: vi.fn(),
+    flush: vi.fn(),
     permissions: null as UserPermissions | null,
     permissionsLoading: false,
     contacts: [] as { email: string }[],
@@ -45,6 +46,7 @@ vi.mock('@tanstack/react-router', async () => {
   return {
     ...actual,
     useNavigate: () => state.navigate,
+    useRouter: () => ({ history: { flush: state.flush } }),
     useParams: () => ({ workspaceId: 'ws' }),
     useSearch: () => state.search,
     Link: ({ children }: { children?: ReactNode }) => <a>{children}</a>
@@ -428,8 +430,36 @@ describe('ContactsPage', () => {
       expect(before).toMatchObject({ search: 'bob' })
       expect(before.contact).toBeUndefined()
       expect(calls[1].search(before)).toMatchObject({ search: 'bob', contact: 'bob@example.com' })
+      // The replace reaches the browser before the push: a push in the same tick would take its place
+      const [replaceAt, pushAt] = state.navigate.mock.invocationCallOrder
+      expect(state.flush).toHaveBeenCalledTimes(1)
+      expect(state.flush.mock.invocationCallOrder[0]).toBeGreaterThan(replaceAt)
+      expect(state.flush.mock.invocationCallOrder[0]).toBeLessThan(pushAt)
       act(() => vi.advanceTimersByTime(300))
       expect(state.navigate).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps the rows loaded while the sheet was open when Back closes it', async () => {
+      const { rerender } = renderPage()
+      fireEvent.click(await screen.findByRole('button', { name: 'bob@example.com' }))
+      rerender(lastNavigation().search)
+      // J loaded more rows into the sheet's entry, then Back returns to the entry before it
+      rerender({ ...state.search, limit: 100 })
+      const calls = state.navigate.mock.calls.length
+      rerender({ ...state.search, contact: undefined, limit: 50 })
+      await waitFor(() => expect(state.navigate.mock.calls.length).toBe(calls + 1))
+      expect(lastNavigation()).toEqual({ search: expect.objectContaining({ limit: 100 }), replace: true })
+    })
+
+    it('starts over when the sheet closes onto other filters', async () => {
+      const { rerender } = renderPage()
+      fireEvent.click(await screen.findByRole('button', { name: 'bob@example.com' }))
+      rerender(lastNavigation().search)
+      rerender({ ...state.search, limit: 100 })
+      const calls = state.navigate.mock.calls.length
+      rerender({ country: 'FR' })
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      expect(state.navigate).toHaveBeenCalledTimes(calls)
     })
 
     it('closes a sheet opened from a row with Back, and a linked one by replacing the entry', async () => {
@@ -625,6 +655,59 @@ describe('ContactsPage', () => {
         expect(contactsApi.delete).toHaveBeenCalledWith({ workspace_id: 'ws', email: 'alice@example.com' })
       )
       expect(await screen.findByText('1 contact selected')).toBeInTheDocument()
+    })
+
+    it('removes the row from every table of the workspace while the delete runs', async () => {
+      renderPage()
+      await screen.findByText('alice@example.com')
+      // The cached rows of another page size, which the table may show next
+      const other = ['contacts', 'ws', { limit: 100 }]
+      // Kept without an observer (the client collects at once otherwise)
+      queryClient.setQueryDefaults(other, { gcTime: Infinity })
+      queryClient.setQueryData(other, { contacts: [{ email: 'alice@example.com' }, { email: 'bob@example.com' }] })
+      vi.mocked(contactsApi.delete).mockImplementationOnce(() => new Promise(() => {}))
+      fireEvent.click(screen.getByRole('button', { name: 'delete alice@example.com' }))
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
+      await waitFor(() =>
+        expect(queryClient.getQueryData<{ contacts: { email: string }[] }>(other)?.contacts).toEqual([
+          { email: 'bob@example.com' }
+        ])
+      )
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'delete alice@example.com' })).not.toBeInTheDocument()
+      )
+    })
+
+    it('removes the row while the delete runs, when more rows are loading', async () => {
+      const { rerender } = renderPage()
+      await screen.findByRole('button', { name: 'delete alice@example.com' })
+      // Load more: the next page size is still loading, so the table shows the rows it had
+      vi.mocked(contactsApi.list).mockImplementationOnce(() => new Promise(() => {}))
+      rerender({ limit: 100 })
+      await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(2))
+      vi.mocked(contactsApi.delete).mockImplementationOnce(() => new Promise(() => {}))
+      fireEvent.click(screen.getByRole('button', { name: 'delete alice@example.com' }))
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'delete alice@example.com' })).not.toBeInTheDocument()
+      )
+      expect(screen.getByRole('button', { name: 'delete bob@example.com' })).toBeInTheDocument()
+    })
+
+    it('shows a contact created again with a deleted email while more rows load', async () => {
+      const { rerender } = renderPage()
+      // The delete succeeds and she is created anew with that email before the next read
+      vi.mocked(contactsApi.delete).mockImplementationOnce(async () => ({ success: true }))
+      fireEvent.click(await screen.findByRole('button', { name: 'delete alice@example.com' }))
+      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
+      await waitFor(() => expect(contactsApi.delete).toHaveBeenCalled())
+      await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(2))
+      await screen.findByRole('button', { name: 'delete alice@example.com' })
+      // Load more: the next page size is still loading, so the table shows the rows it had
+      vi.mocked(contactsApi.list).mockImplementationOnce(() => new Promise(() => {}))
+      rerender({ limit: 100 })
+      await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(3))
+      expect(screen.getByRole('button', { name: 'delete alice@example.com' })).toBeInTheDocument()
     })
 
     it('closes the sheet of a contact deleted from it', async () => {

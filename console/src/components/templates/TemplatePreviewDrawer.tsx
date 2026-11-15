@@ -6,6 +6,7 @@ import { templatesApi } from '../../services/api/template'
 import { buildTemplatePreviewRequest } from './compileTemplatePreview'
 import { Highlight, themes } from 'prism-react-renderer'
 import type { MessageHistory } from '../../services/api/messages_history'
+import { BroadcastSenderLine, SenderLine } from './previewSender'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 
 const { Text } = Typography
@@ -285,56 +286,35 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
     })
   }
 
+  // A broadcast email goes out through the marketing integration, with its variation's sender when it has one
+  const fromBroadcast = !!messageHistory?.broadcast_id
   const emailProvider = workspace.integrations?.find(
     (i) =>
       i.id ===
-      (record.category === 'marketing'
+      (record.category === 'marketing' || fromBroadcast
         ? workspace.settings?.marketing_email_provider_id
         : workspace.settings?.transactional_email_provider_id)
   )?.email_provider
 
-  const defaultSender = emailProvider?.senders.find((s) => s.is_default)
-  const templateSender = emailProvider?.senders.find((s) => s.id === record.email?.sender_id)
+  const senders = emailProvider?.senders ?? []
+  const fromName = messageHistory?.channel_options?.from_name
 
   const drawerContent = (
     <div>
       {/* Header details */}
       <Descriptions bordered={false} size="small" column={1} className="mb-4">
         <Descriptions.Item label={t`From`}>
-          {messageHistory?.channel_options?.from_name ? (
-            <>
-              <Text>
-                {messageHistory.channel_options.from_name} &lt;
-                {templateSender?.email || defaultSender?.email || t`no email`}&gt;
-              </Text>
-              {(templateSender || defaultSender) && (
-                <Text type="secondary" className="text-xs pl-2">
-                  {t`(original: ${templateSender?.name || defaultSender?.name})`}
-                </Text>
-              )}
-            </>
+          {fromBroadcast ? (
+            <BroadcastSenderLine
+              workspaceId={workspace.id}
+              broadcastId={messageHistory!.broadcast_id!}
+              templateId={record.id}
+              senders={senders}
+              templateSenderId={record.email?.sender_id}
+              fromName={fromName}
+            />
           ) : (
-            <>
-              {templateSender ? (
-                <>
-                  <Text>
-                    {templateSender.name}
-                    <Text> &lt;{templateSender.email}&gt;</Text>
-                  </Text>
-                </>
-              ) : (
-                <>
-                  {defaultSender ? (
-                    <Text>
-                      {defaultSender.name}
-                      <Text> &lt;{defaultSender.email}&gt;</Text>
-                    </Text>
-                  ) : (
-                    <Text>{t`No default sender configured`}</Text>
-                  )}
-                </>
-              )}
-            </>
+            <SenderLine senders={senders} senderId={record.email?.sender_id} fromName={fromName} />
           )}
         </Descriptions.Item>
 

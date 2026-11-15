@@ -334,7 +334,8 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 	if params.ContactData.Language != nil && !params.ContactData.Language.IsNull {
 		contactLang = params.ContactData.Language.String
 	}
-	emailContent := template.ResolveEmailContent(contactLang, workspace.Settings.DefaultLanguage)
+	renderedLanguage := template.ResolvedLanguage(contactLang, workspace.Settings.DefaultLanguage)
+	emailContent := template.EmailContentForLanguage(renderedLanguage)
 
 	// 9. Compile template
 	compileReq := notifuse_mjml.CompileTemplateRequest{
@@ -428,8 +429,9 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			// The version and data it was rendered from, as broadcasts record them: the
 			// worker stores both in message_history, where the web version and the
 			// console's message preview render the email again from them.
-			TemplateVersion: int(template.Version),
-			TemplateData:    templateData,
+			TemplateVersion:  int(template.Version),
+			TemplateData:     templateData,
+			RenderedLanguage: &renderedLanguage,
 			EmailOptions: domain.EmailOptions{
 				ReplyTo: emailContent.ReplyTo,
 			},

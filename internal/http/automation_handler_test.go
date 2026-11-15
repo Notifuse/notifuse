@@ -1084,13 +1084,15 @@ func TestAutomationHandler_NodeStats(t *testing.T) {
 		}
 	})
 
-	t.Run("service errors: 403, 404, 500", func(t *testing.T) {
+	t.Run("service errors: 401, 403, 404, 500", func(t *testing.T) {
 		_, automationSvc, mux, secretKey := setupAutomationTest(t)
 		cases := []struct {
 			err  error
 			want int
 		}{
+			{fmt.Errorf("failed to authenticate user: %w", domain.ErrAPIKeyRevoked), http.StatusUnauthorized},
 			{domain.NewPermissionError(domain.PermissionResourceAutomations, domain.PermissionTypeRead, "no"), http.StatusForbidden},
+			{fmt.Errorf("get node stats: %w", domain.NewPermissionError(domain.PermissionResourceAutomations, domain.PermissionTypeRead, "no")), http.StatusForbidden},
 			{fmt.Errorf("get automation: %w", &domain.ErrNotFound{Entity: "automation", ID: "auto-1"}), http.StatusNotFound},
 			{errors.New("db down"), http.StatusInternalServerError},
 		}
@@ -1101,4 +1103,78 @@ func TestAutomationHandler_NodeStats(t *testing.T) {
 			assert.NotContains(t, w.Body.String(), "db down", "the internal error stays in the log")
 		}
 	})
+}
+
+// An unknown or deleted automation is a 404 on update, delete, activate and pause, as on get.
+func TestAutomationHandler_NotFoundMapping(t *testing.T) {
+	_, automationSvc, mux, secretKey := setupAutomationTest(t)
+
+	wrapped := fmt.Errorf("failed to get automation: %w", &domain.ErrNotFound{Entity: "automation", ID: "auto-123"})
+	idBody := func(t *testing.T) []byte {
+		body, err := json.Marshal(map[string]string{"workspace_id": "workspace-123", "automation_id": "auto-123"})
+		require.NoError(t, err)
+		return body
+	}
+
+	testCases := []struct {
+		name     string
+		endpoint string
+		expect   func()
+		body     func(t *testing.T) []byte
+	}{
+		{
+			name:     "update",
+			endpoint: "/api/automations.update",
+			expect: func() {
+				automationSvc.EXPECT().Update(gomock.Any(), "workspace-123", gomock.Any()).Return(wrapped)
+			},
+			body: func(t *testing.T) []byte {
+				body, err := json.Marshal(domain.UpdateAutomationRequest{
+					WorkspaceID: "workspace-123",
+					Automation:  createTestAutomation("auto-123", "workspace-123"),
+				})
+				require.NoError(t, err)
+				return body
+			},
+		},
+		{
+			name:     "delete",
+			endpoint: "/api/automations.delete",
+			expect: func() {
+				automationSvc.EXPECT().Delete(gomock.Any(), "workspace-123", "auto-123").Return(wrapped)
+			},
+			body: idBody,
+		},
+		{
+			name:     "activate",
+			endpoint: "/api/automations.activate",
+			expect: func() {
+				automationSvc.EXPECT().Activate(gomock.Any(), "workspace-123", "auto-123").Return(wrapped)
+			},
+			body: idBody,
+		},
+		{
+			name:     "pause",
+			endpoint: "/api/automations.pause",
+			expect: func() {
+				automationSvc.EXPECT().Pause(gomock.Any(), "workspace-123", "auto-123").Return(wrapped)
+			},
+			body: idBody,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.expect()
+
+			req := httptest.NewRequest(http.MethodPost, tc.endpoint, bytes.NewReader(tc.body(t)))
+			req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusNotFound, w.Code)
+			assert.Equal(t, "Automation not found", decodeErrorMessage(t, w))
+		})
+	}
 }

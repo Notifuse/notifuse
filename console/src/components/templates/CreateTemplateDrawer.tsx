@@ -42,6 +42,7 @@ import { ImportExportButton } from './ImportExportButton'
 import { useAuth } from '../../contexts/AuthContext'
 import { EmailAIAssistant } from '../email_builder/EmailAIAssistant'
 import { EmailBlockClass } from '../email_builder/EmailBlockClass'
+import { parentIdOf, rebalanceAdded, rebalanceRemoved } from '../email_builder/utils/layoutRebalance'
 import type { MJMLComponentType } from '../email_builder/types'
 import MjmlCodeEditor, { STARTER_TEMPLATE } from '../email_builder/MjmlCodeEditor'
 import type { MjmlCodeEditorRef } from '../email_builder/MjmlCodeEditor'
@@ -634,7 +635,11 @@ export function CreateTemplateDrawer({
         : t`Template block "${existingBlock?.name}" updated successfully`
     )
 
-    await refreshSavedBlocks(t`Block saved. Reload the page to see it in your saved blocks.`)
+    await refreshSavedBlocks(
+      operation === 'create'
+        ? t`Block saved. Reload the page to see it in your saved blocks.`
+        : t`Block replaced. Reload the page to see its new content in your saved blocks.`
+    )
     return savedId
   }
 
@@ -657,15 +662,15 @@ export function CreateTemplateDrawer({
   }
 
   const handleRenameSavedBlock: RenameSavedBlockHandler = async (id, name) => {
-    const existing = workspace.settings.template_blocks?.find((b) => b.id === id)
     try {
-      if (!existing) throw new Error(t`Template block not found`)
-      // The API replaces the whole entry: the block goes with the new name
+      // The API replaces the whole entry, so the block goes with the new name. It is read from the server
+      // rather than from the loaded workspace: a block replaced elsewhere since keeps its new content.
+      const { block: current } = await templateBlocksApi.get({ workspace_id: workspace.id, id })
       await templateBlocksApi.update({
         workspace_id: workspace.id,
         id,
         name,
-        block: existing.block
+        block: current.block
       })
     } catch (error) {
       failedBlockChange(error, t`Failed to rename the block`)
@@ -1357,6 +1362,7 @@ export function CreateTemplateDrawer({
                     onRenameSavedBlock={handleRenameSavedBlock}
                     onDeleteSavedBlock={handleDeleteSavedBlock}
                     category={categoryValue}
+                    templateName={template?.name}
                   />
                 </div>
               )}
@@ -1546,6 +1552,8 @@ export function CreateTemplateDrawer({
                       position ?? (prevTree.children?.length || 0)
                     )
                     if (updatedTree) {
+                      // A column or a group takes its part as in the editor, the other columns keeping their ratio
+                      rebalanceAdded(updatedTree, parentId, newBlock.id)
                       // Schedule selection update after state is applied
                       setTimeout(() => setSelectedBlockId(newBlock.id), 0)
                       return updatedTree
@@ -1563,8 +1571,11 @@ export function CreateTemplateDrawer({
                 onDeleteBlock: (blockId) => {
                   dirtyRef.current = true
                   setVisualEditorTree(prevTree => {
+                    const removedType = EmailBlockClass.findBlockById(prevTree, blockId)?.type
+                    const parentId = parentIdOf(prevTree, blockId)
                     const updatedTree = EmailBlockClass.removeBlockFromTree(prevTree, blockId)
                     if (updatedTree) {
+                      if (parentId) rebalanceRemoved(updatedTree, parentId, removedType)
                       // Clear selection if deleted block was selected
                       if (selectedBlockId === blockId) {
                         setTimeout(() => setSelectedBlockId(null), 0)
@@ -1577,13 +1588,21 @@ export function CreateTemplateDrawer({
                 onMoveBlock: (blockId, newParentId, position) => {
                   dirtyRef.current = true
                   setVisualEditorTree(prevTree => {
+                    const movedType = EmailBlockClass.findBlockById(prevTree, blockId)?.type
+                    const sourceId = parentIdOf(prevTree, blockId)
                     const updatedTree = EmailBlockClass.moveBlockInTree(
                       prevTree,
                       blockId,
                       newParentId,
                       position
                     )
-                    return updatedTree || prevTree
+                    if (!updatedTree) return prevTree
+                    // Both containers keep their proportions; a reorder within one leaves the widths alone
+                    if (sourceId && sourceId !== newParentId) {
+                      rebalanceRemoved(updatedTree, sourceId, movedType)
+                      rebalanceAdded(updatedTree, newParentId, blockId)
+                    }
+                    return updatedTree
                   })
                 },
                 onSelectBlock: (blockId) => {

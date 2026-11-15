@@ -127,7 +127,7 @@ func TestTrackedLinksAreSignedOnEverySendPath(t *testing.T) {
 			"sender_id":       integration.EmailProvider.Senders[0].ID,
 			"recipient_email": email,
 		})
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err)
 		assertDeliveredLinkIsSigned(t, msg.HTML, workspace.ID, dest)
 	})
@@ -148,7 +148,7 @@ func TestTrackedLinksAreSignedOnEverySendPath(t *testing.T) {
 			"recipient_email": email,
 			"template_id":     template.ID,
 		})
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err)
 		assertDeliveredLinkIsSigned(t, msg.HTML, workspace.ID, dest)
 	})
@@ -162,7 +162,7 @@ func TestTrackedLinksAreSignedOnEverySendPath(t *testing.T) {
 		eventName := "signed_links_" + uuid.New().String()[:8]
 		createActiveAutomation(t, client, workspace.ID, shortuuid.New(), list.ID, eventName, template.ID)
 		require.NoError(t, factory.CreateCustomEvent(workspace.ID, email, eventName, map[string]interface{}{}))
-		msg, err := waitForEmailAndGetMessage(t, email, 30*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 30*time.Second)
 		require.NoError(t, err)
 		assertDeliveredLinkIsSigned(t, msg.HTML, workspace.ID, dest)
 	})
@@ -186,7 +186,7 @@ func TestTrackedLinksAreSignedOnEverySendPath(t *testing.T) {
 		_ = resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode, "/subscribe: %s", raw)
 
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err)
 		assertDeliveredLinkIsSigned(t, msg.HTML, workspace.ID, dest)
 	})
@@ -215,7 +215,7 @@ func TestTrackedLinksAreSignedOnEverySendPath(t *testing.T) {
 			"sender_id":       otherIntegration.EmailProvider.Senders[0].ID,
 			"recipient_email": email,
 		})
-		msg, err := waitForEmailAndGetMessage(t, email, 20*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, email, 20*time.Second)
 		require.NoError(t, err)
 		link, tok := deliveredClickLink(t, msg.HTML, dest)
 		require.NotEmpty(t, tok.Tag)

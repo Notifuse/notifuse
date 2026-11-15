@@ -6,6 +6,7 @@ import { useLocale } from '../../contexts/LocaleContext'
 import { LANGUAGES, changeLanguage } from '../../i18n/languages'
 import type { Locale } from '../../i18n'
 import { getGravatarUrl, initialsFor } from './gravatar'
+import { useFocusBack } from './useFocusBack'
 
 export type AccountRole = 'root' | 'owner' | 'member'
 
@@ -65,8 +66,16 @@ export function AccountMenu({
   const { t } = useLingui()
   const { locale, setLocale } = useLocale()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { ref, focusBack } = useFocusBack<HTMLButtonElement>()
   const roleLabel =
-    role === 'root' ? t`Root` : role === 'owner' ? t`Owner` : role === 'member' ? t`Member` : null
+    // A context of its own: the same word names the root folder of the file manager
+    role === 'root'
+      ? t({ message: 'Root', context: 'role' })
+      : role === 'owner'
+        ? t`Owner`
+        : role === 'member'
+          ? t`Member`
+          : null
   const email = user?.email ?? ''
 
   const items: MenuProps['items'] = [
@@ -103,7 +112,10 @@ export function AccountMenu({
 
   const button = (
     <button
+      ref={ref}
       type="button"
+      aria-haspopup="menu"
+      aria-expanded={menuOpen}
       aria-label={collapsed ? email : undefined}
       className={`flex cursor-pointer items-center gap-2 rounded-md border-0 bg-transparent p-1.5 text-left hover:bg-line-soft focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none ${
         collapsed ? 'mx-auto' : 'w-full'
@@ -131,6 +143,7 @@ export function AccountMenu({
       onOpenChange={(open) => {
         setMenuOpen(open)
         onMenuOpenChange?.(open)
+        if (!open) focusBack()
       }}
       placement={collapsed ? 'rightBottom' : 'topLeft'}
       getPopupContainer={getPopupContainer}

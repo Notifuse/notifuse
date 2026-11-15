@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
+import { generateMessageId } from '@lingui/message-utils/generateMessageId'
 import type { Template } from '../../services/api/template'
 import type { Workspace } from '../../services/api/types'
 
@@ -101,6 +102,19 @@ describe('PreviewPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Open' }))
     expect(onOpen).toHaveBeenCalledTimes(1)
+  })
+
+  it('names the button with the verb, not the open event, in another language', async () => {
+    compile.mockResolvedValue({ html: '', mjml: '' })
+    // The verb has a context of its own: the catalog holds both words under different ids
+    i18n.load('fr', { [generateMessageId('Open', 'action')]: 'Ouvrir', Open: 'Ouvertures' })
+    i18n.activate('fr')
+    try {
+      renderPanel({ status: 'ok', template: template() })
+      expect(await screen.findByRole('button', { name: 'Ouvrir' })).toBeInTheDocument()
+    } finally {
+      i18n.activate('en')
+    }
   })
 
   it("leaves the deleted template's pill to the sheet's header", async () => {

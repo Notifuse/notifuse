@@ -575,6 +575,59 @@ describe('FileExplorer folder delete', () => {
     expect(onPathChange).not.toHaveBeenCalled()
   })
 
+  it('runs a second folder delete once the first has ended', async () => {
+    const pending = pendingFolderDelete()
+    renderExplorer()
+    await screen.findByText('a.png')
+
+    await openFolderDelete()
+    fireEvent.click(confirmButton())
+    await pending.deleteSent
+    await act(async () => pending.release())
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    const first = deleteCalls()
+
+    await openFolderDelete()
+    fireEvent.click(confirmButton())
+    await waitFor(() => expect(deleteCalls()).toBeGreaterThan(first))
+  })
+
+  it('refuses to cancel while the folder is being deleted', async () => {
+    const pending = pendingFolderDelete()
+    renderExplorer()
+    await screen.findByText('a.png')
+
+    await openFolderDelete()
+    fireEvent.click(confirmButton())
+    await pending.deleteSent
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
+    expect(screen.getByRole('dialog')).toBeTruthy()
+
+    await act(async () => pending.release())
+  })
+
+  it('says when the folder held nothing to delete', async () => {
+    s3.send.mockImplementation(async (command: unknown) => {
+      if (command instanceof ListObjectsV2Command) {
+        // The bucket's listing still shows the folder; its own listing finds nothing in it now
+        return command.input.Prefix === 'docs/'
+          ? { Contents: [], IsTruncated: false }
+          : { Contents: BUCKET, IsTruncated: false }
+      }
+      return {}
+    })
+    renderExplorer()
+    await screen.findByText('a.png')
+
+    await openFolderDelete()
+    fireEvent.click(confirmButton())
+
+    expect(await screen.findByText('The folder held nothing to delete.')).toBeTruthy()
+    expect(screen.queryByText('Folder deleted successfully.')).toBeNull()
+    expect(deleteCalls()).toBe(0)
+  })
+
   it('keeps the folder and says how many files failed', async () => {
     s3.send.mockImplementation(async (command: unknown) => {
       if (command instanceof ListObjectsV2Command) return { Contents: BUCKET, IsTruncated: false }

@@ -329,9 +329,11 @@ export function FileExplorer(props: FileExplorerProps) {
     setIsDeletingFolder(true)
     storage
       .deleteFolder(folder)
-      .then(({ failed, deletedFiles, failedFiles }) => {
+      .then(({ deleted, failed, deletedFiles, failedFiles }) => {
         if (failed === 0) {
-          message.success(t`Folder deleted successfully.`)
+          // A prefix the listing still showed but that holds nothing any more (another tool emptied it)
+          if (deleted === 0) message.info(t`The folder held nothing to delete.`)
+          else message.success(t`Folder deleted successfully.`)
           // Go to the parent folder, unless the user has left the deleted folder or the file
           // manager in the meantime.
           if (mountedRef.current && currentPathRef.current.startsWith(folder)) {

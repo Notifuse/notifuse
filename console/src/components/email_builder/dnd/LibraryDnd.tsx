@@ -14,6 +14,7 @@ import { useLingui } from '@lingui/react/macro'
 import type { EmailBlock } from '../types'
 import type { CanvasHandle } from '../panels/EditPanel'
 import { CanvasDropIndicator } from '../panels/CanvasDropIndicator'
+import { useDropRefusalText } from '../panels/dropRefusalText'
 import type { CanvasDropResult } from '../utils/canvasDrop'
 import type { InsertPlace } from '../utils/insertTarget'
 import {
@@ -28,7 +29,8 @@ interface LibraryDndProps {
   tree: EmailBlock
   // This editor's canvas: another editor may be mounted, hidden, at the same time
   canvasRef: React.MutableRefObject<CanvasHandle | null>
-  onDrop: (item: LibraryItem, place: InsertPlace) => void
+  // The inserted block's id, or null when the editor did not insert it
+  onDrop: (item: LibraryItem, place: InsertPlace) => string | null | void
   onDraggingChange: (dragging: boolean) => void
   children: React.ReactNode
 }
@@ -58,6 +60,9 @@ export const LibraryDnd: React.FC<LibraryDndProps> = ({
   children
 }) => {
   const { t } = useLingui()
+  const refusalText = useDropRefusalText()
+  // What the last drop did, said by the drag end announcement (dnd-kit calls onDragEnd first)
+  const outcome = useRef('')
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
   const [active, setActive] = useState<LibraryItem | null>(null)
   const [result, setResult] = useState<CanvasDropResult | null>(null)
@@ -120,9 +125,18 @@ export const LibraryDnd: React.FC<LibraryDndProps> = ({
     // Computed again at the release point: the canvas may have scrolled since the last frame
     const final = item ? locate(item) : null
     stop()
-    if (item && final?.drop) {
-      latest.current.onDrop(item, { parentId: final.drop.parentId, index: final.drop.index })
+    if (!item) {
+      outcome.current = ''
+      return
     }
+    const name = item.name
+    if (final?.drop) {
+      const inserted = latest.current.onDrop(item, { parentId: final.drop.parentId, index: final.drop.index })
+      outcome.current = inserted === null ? t`${name} could not be inserted there.` : t`${name} was inserted.`
+      return
+    }
+    const reason = refusalText(final)
+    outcome.current = reason ? t`${name} was not inserted: ${reason}.` : t`${name} was not dropped on the email.`
   }
 
   // dnd-kit's announcements for screen readers, translated
@@ -133,14 +147,10 @@ export const LibraryDnd: React.FC<LibraryDndProps> = ({
       const name = nameOf(dragged)
       return t`Picked up ${name}.`
     },
-    onDragOver: ({ active: dragged }) => {
-      const name = nameOf(dragged)
-      return t`${name} is being dragged over the email.`
-    },
-    onDragEnd: ({ active: dragged }) => {
-      const name = nameOf(dragged)
-      return t`${name} was dropped.`
-    },
+    // The canvas has no dnd-kit droppable: the drag is never over one
+    onDragOver: () => undefined,
+    // Said from what handleEnd did: inserted, refused with its reason, or nothing
+    onDragEnd: () => outcome.current || undefined,
     onDragCancel: ({ active: dragged }) => {
       const name = nameOf(dragged)
       return t`Dragging ${name} was cancelled.`
@@ -172,7 +182,7 @@ export const LibraryDnd: React.FC<LibraryDndProps> = ({
           {active ? (
             <div
               data-testid="library-drag-ghost"
-              className="rounded border border-[#7763F1] bg-white px-2 py-1.5 text-xs shadow-lg"
+              className="rounded border border-primary-500 bg-white px-2 py-1.5 text-xs shadow-lg"
               style={{ width: 160, pointerEvents: 'none', opacity: 0.95 }}
             >
               <div className="truncate font-medium text-gray-800">{active.name}</div>

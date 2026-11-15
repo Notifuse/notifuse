@@ -202,23 +202,6 @@ func TestBlogService_ThemeChains(t *testing.T) {
 	})
 }
 
-func TestBlogService_ListPublicPosts_ForcesPublished(t *testing.T) {
-	svc, _, postRepo, _, _, _, _, _ := setupBlogServiceTest(t)
-	postRepo.EXPECT().ListPosts(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, params domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
-			assert.Equal(t, domain.BlogPostStatusPublished, params.Status,
-				"public listing must never leak drafts, whatever the caller asked for")
-			return &domain.BlogPostListResponse{TotalCount: 2}, nil
-		}).Times(1)
-
-	params := &domain.ListBlogPostsRequest{Status: domain.BlogPostStatusDraft, Limit: 10, Page: 1}
-	resp, err := svc.ListPublicPosts(context.Background(), params)
-	require.NoError(t, err)
-	assert.Equal(t, 2, resp.TotalCount)
-	assert.Equal(t, domain.BlogPostStatusPublished, params.Status,
-		"the caller's params are rewritten in place — pin it so it stays deliberate")
-}
-
 func TestBlogService_UpdatePost_Chain(t *testing.T) {
 	t.Run("update requires the post to exist and the slug to stay unique", func(t *testing.T) {
 		svc, _, postRepo, _, _, _, _, auth := setupBlogServiceTest(t)

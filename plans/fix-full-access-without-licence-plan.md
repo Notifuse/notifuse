@@ -204,8 +204,7 @@ In `## [42.3]` (unreleased, top), one **Fix** bullet, 2–4 sentences:
 
 ## Gemini review
 
-Raw answer: `/mnt/project-files/reviews/fix-full-access-without-licence-gemini-brut-plan.md`;
-verification: `/mnt/project-files/reviews/fix-full-access-without-licence-gemini-verif-plan.md`.
+A raw answer and its verification, kept outside the repository.
 Remark 3 integrated above; remark 4 implemented then reverted (badge out of the scope of this
 decision). Known, not treated: resending a restricted invitation without
 the licence still answers 402 (deliberate: a resend must not widen the stored grant, and the

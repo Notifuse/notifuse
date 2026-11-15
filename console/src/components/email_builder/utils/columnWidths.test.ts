@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { EmailBlock } from '../types'
-import { rebalanceAfterAdd, rebalanceAfterRemove } from './columnWidths'
+import { bodyWidthOf, rebalanceAfterAdd, rebalanceAfterRemove, sectionOverflow } from './columnWidths'
 
 interface Node {
   id: string
@@ -75,7 +75,7 @@ describe('rebalanceAfterAdd', () => {
   })
 
   it('equalises the columns in what the groups leave when they did not fill it', () => {
-    // A group created before groups were counted, next to a column at 100%
+    // A group without a width (cleared, or imported) next to a column at 100%
     const section = container('mj-section', [group('g'), col('a', '100%'), col('new')])
     rebalanceAfterAdd(section, 'new')
     expect(widths(section)).toEqual([undefined, '33.33%', '33.34%'])
@@ -93,10 +93,38 @@ describe('rebalanceAfterAdd', () => {
     expect(widths(section)).toEqual(['60%', '20%', '20%'])
   })
 
-  it('counts a group with a pixel width as its equal share', () => {
-    const section = container('mj-section', [group('g', '300px'), col('new')])
+  it("counts a group with a pixel width as its part of the body's width", () => {
+    // 150px of the default 600px body
+    const section = container('mj-section', [group('g', '150px'), col('new')])
     rebalanceAfterAdd(section, 'new')
-    expect(widths(section)).toEqual(['300px', '50%'])
+    expect(widths(section)).toEqual(['150px', '75%'])
+
+    // 150px of a 300px body
+    const narrow = container('mj-section', [group('g', '150px'), col('new')])
+    rebalanceAfterAdd(narrow, 'new', {}, { bodyWidth: 300 })
+    expect(widths(narrow)).toEqual(['150px', '50%'])
+  })
+
+  it("measures a group's pixel width against the section less its side padding", () => {
+    // 600px less 50px each side leaves 500px, of which the group takes 200px
+    const section = {
+      ...container('mj-section', [group('g', '200px'), col('new')]),
+      attributes: { paddingLeft: '50px', paddingRight: '50px' }
+    } as EmailBlock
+    rebalanceAfterAdd(section, 'new')
+    expect(widths(section)).toEqual(['200px', '60%'])
+
+    // The padding shorthand of an imported section, and the template's default attributes
+    const imported = {
+      ...container('mj-section', [group('g', '200px'), col('new')]),
+      attributes: { padding: '20px 50px' }
+    } as EmailBlock
+    rebalanceAfterAdd(imported, 'new')
+    expect(widths(imported)).toEqual(['200px', '60%'])
+
+    const byDefault = container('mj-section', [group('g', '200px'), col('new')])
+    rebalanceAfterAdd(byDefault, 'new', { 'mj-section': { padding: '0 25px 0 75px' } })
+    expect(widths(byDefault)).toEqual(['200px', '60%'])
   })
 
   it("counts a group at the width the template's default attributes give it", () => {
@@ -186,10 +214,62 @@ describe('rebalanceAfterRemove', () => {
     expect(widths(section)).toEqual(['50%', '50%'])
   })
 
+  it('leaves the columns alone when the group that went still leaves them no room', () => {
+    // A third group at 50% went: the two left still fill the section
+    const section = container('mj-section', [group('g', '50%'), group('g2', '50%'), col('c', '50%')])
+    rebalanceAfterRemove(section, {}, { removed: 'mj-group' })
+    expect(widths(section)).toEqual(['50%', '50%', '50%'])
+  })
+
+  it('gives the columns the section when a column went and the groups leave them no room', () => {
+    const section = container('mj-section', [group('g', '100%'), col('a', '20%'), col('b', '30%')])
+    rebalanceAfterRemove(section, {}, { removed: 'mj-column' })
+    expect(widths(section)).toEqual(['100%', '40%', '60%'])
+  })
+
   it("does not touch a group's own columns when the section changes", () => {
     const section = container('mj-section', [group('g'), col('a', '100%')])
     rebalanceAfterRemove(section)
     expect(widths(section.children![0] as EmailBlock)).toEqual(['50%', '50%'])
     expect(widths(section)).toEqual([undefined, '50%'])
+  })
+})
+
+describe('sectionOverflow', () => {
+  it('is 0 when the columns and groups fit', () => {
+    expect(sectionOverflow(container('mj-section', [group('g', '40%'), col('a', '60%')]))).toBe(0)
+    expect(sectionOverflow(container('mj-section', [group('g'), col('a')]))).toBe(0)
+  })
+
+  it('tells how far they go past the section', () => {
+    expect(sectionOverflow(container('mj-section', [group('g', '70%'), col('a', '60%')]))).toBe(30)
+    // A width-less column takes its share; a group in pixels its part of the body
+    expect(sectionOverflow(container('mj-section', [group('g', '450px'), col('a')]))).toBe(25)
+    expect(sectionOverflow(container('mj-section', [group('g', '450px'), col('a')]), {}, { bodyWidth: 900 })).toBe(0)
+  })
+
+  it("uses the template's default group width", () => {
+    expect(sectionOverflow(container('mj-section', [group('g'), col('a', '50%')]), { 'mj-group': { width: '75%' } })).toBe(
+      25
+    )
+  })
+
+  it('is 0 outside a section', () => {
+    expect(sectionOverflow(container('mj-group', [col('a', '80%'), col('b', '80%')]))).toBe(0)
+  })
+})
+
+describe('bodyWidthOf', () => {
+  const tree = (width?: string) =>
+    ({
+      id: 'root',
+      type: 'mjml',
+      children: [{ id: 'body', type: 'mj-body', attributes: width === undefined ? {} : { width }, children: [] }]
+    }) as unknown as EmailBlock
+
+  it("reads the body's pixel width, else MJML's 600px", () => {
+    expect(bodyWidthOf(tree('480px'))).toBe(480)
+    expect(bodyWidthOf(tree())).toBe(600)
+    expect(bodyWidthOf(tree('80%'))).toBe(600)
   })
 })

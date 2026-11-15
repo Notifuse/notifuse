@@ -2,6 +2,7 @@ package notifuse_mjml
 
 import (
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -168,4 +169,54 @@ func TestDisplayConditionConverter_RawPathWrapsTheBlock(t *testing.T) {
 </mjml>`, out)
 	assert.Contains(t, open, "__dc_img_1")
 	assert.NotContains(t, out, "R&D", "values are encoded so the MJML stays well formed")
+}
+
+// failingLiquidEngines makes every engine the pool hands out refuse any template (its size
+// limit is one byte) until the test ends. The pool is replaced, not drained, so no engine
+// from before is handed out.
+func failingLiquidEngines(t *testing.T) {
+	liquidEnginePool = sync.Pool{New: func() interface{} {
+		return NewSecureLiquidEngineWithOptions(DefaultRenderTimeout, 1)
+	}}
+	t.Cleanup(func() {
+		liquidEnginePool = sync.Pool{New: func() interface{} { return NewSecureLiquidEngine() }}
+	})
+}
+
+// The engine's own failure (timeout, size) is not the condition's result: with data the send
+// fails and names the block, without data the block is kept, as that walk ignores Liquid
+// errors.
+func TestDisplayConditionConverter_EngineFailure(t *testing.T) {
+	image := withCondition(goldenImage, hasImage)
+
+	t.Run("with data, the conversion fails and names the block", func(t *testing.T) {
+		failingLiquidEngines(t)
+		_, err := ConvertJSONToMJMLWithData(conditionTree(t, goldenSpacer, image), `{"order":{"has_image":true}}`)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "display condition failed for block i1")
+	})
+
+	t.Run("without data, the block is kept", func(t *testing.T) {
+		failingLiquidEngines(t)
+		out := ConvertJSONToMJML(conditionTree(t, goldenSpacer, image))
+		assert.Contains(t, out, `<mj-image src="https://example.com/a.png" />`)
+	})
+}
+
+// A typed-nil child is skipped next to a conditional one, on both walks.
+func TestDisplayConditionConverter_TypedNilNextToACondition(t *testing.T) {
+	tree := conditionTree(t, withCondition(goldenImage, hasImage), goldenSpacer)
+	column := tree.GetChildren()[0].GetChildren()[0].GetChildren()[0]
+	var typedNil *MJTextBlock
+	column.SetChildren(append([]EmailBlock{typedNil}, column.GetChildren()...))
+
+	shown, err := ConvertJSONToMJMLWithData(tree, `{"order":{"has_image":true}}`)
+	require.NoError(t, err)
+	assert.Contains(t, shown, "        <mj-image src=\"https://example.com/a.png\" />\n        <mj-spacer />\n")
+
+	hidden, err := ConvertJSONToMJMLWithData(tree, `{"order":{"has_image":false}}`)
+	require.NoError(t, err)
+	assert.Contains(t, hidden, "      <mj-column>\n        <mj-spacer />\n")
+
+	assert.Contains(t, ConvertJSONToMJML(tree), "      <mj-column>\n        <mj-spacer />\n", "without data the image is hidden")
 }

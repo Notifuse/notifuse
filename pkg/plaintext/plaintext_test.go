@@ -148,6 +148,29 @@ func TestFromHTML(t *testing.T) {
 		{"a linked image with a liquid href keeps its alt and destination", `<a href="{{ shop_url }}"><img src="logo.png" alt="Shop"></a>`, "Shop ({{ shop_url }})\n"},
 		{"liquid inside a web url is unchanged", `<a href="https://e.com/?id={{ contact.id }}">Profile</a>`, "Profile (https://e.com/?id={{ contact.id }})\n"},
 		{"liquid tags in text are kept", `<p>{% if vip %}Hello VIP{% endif %}</p>`, "{% if vip %}Hello VIP{% endif %}\n"},
+		// Markdown-style autolinkers (marked) take a ] into the link.
+		{"a ] after a link is kept apart", `<p>[<a href="https://e.com/u">Unsubscribe</a>]</p>`, "[Unsubscribe (https://e.com/u) ]\n"},
+		{"a ] after a bare url is kept apart", `<p>[<a href="https://e.com/u">https://e.com/u</a>]</p>`, "[https://e.com/u ]\n"},
+		{"a url in pre is kept apart from the text around it", "<pre>\u00ab<a href=\"https://e.com/a\">https://e.com/a</a>\u00bb</pre>", "\u00ab https://e.com/a \u00bb\n"},
+		{"a link in pre keeps the punctuation that ends its sentence", `<pre>see <a href="https://e.com/a">docs</a>.</pre>`, "see docs (https://e.com/a).\n"},
+		{"a url ending a line of pre leaves the next line alone", "<pre><a href=\"https://e.com/a\">https://e.com/a</a>\nnext</pre>", "https://e.com/a\nnext\n"},
+		{"a narrow no-break space at the edge of a text separates words", `<p>A<span>&#x202F;B</span></p>`, "A B\n"},
+		{"an em space at the edge of a text separates words", `<p><span>D&#x2003;</span>E</p>`, "D E\n"},
+		{"an item that opens with pre keeps its marker and indent", "<ul><li><pre>code\nmore</pre></li><li>Two</li></ul>", "- code\n  more\n\n- Two\n"},
+		{"an item that opens with a list keeps its marker", `<ol><li><ul><li>Sub</li></ul></li><li>Two</li></ol>`, "1.\n  - Sub\n2. Two\n"},
+		{"start is read as its leading integer", `<ol start="3px"><li>Three</li><li>Four</li></ol>`, "3. Three\n4. Four\n"},
+		{"a start that is not a number is ignored", `<ol start="x"><li>One</li></ol>`, "1. One\n"},
+		{"a mailto without an address keeps its label alone", `<a href="mailto:?subject=Hi">Share</a>`, "Share\n"},
+		// The parser closes the outer anchor where the inner one opens: both destinations stay.
+		{"nested anchors keep both destinations", `<a href="https://e.com/outer">https://e.com/x <a href="https://e.com/inner">Inner</a></a>`, "https://e.com/outer Inner (https://e.com/inner)\n"},
+		{"a label that starts with a url and goes on is kept", `<a href="https://e.com/outer">https://e.com/x more</a>`, "https://e.com/x more (https://e.com/outer)\n"},
+		// With click tracking the icon and the label of one social element get two addresses.
+		{"a social element with click tracking is written once, as its label", `<table style="float:none;display:inline-table;"><tbody><tr><td style="padding:4px;"><table><tbody><tr><td><a href="https://t.e.com/r/1"><img alt="" src="facebook.png"></a></td></tr></tbody></table></td><td style="padding:4px 4px 4px 0;"><a href="https://t.e.com/r/2">Facebook</a></td></tr></tbody></table><table style="float:none; display: inline-table;"><tbody><tr><td><table><tbody><tr><td><a href="https://t.e.com/r/3"><img alt="" src="x.png"></a></td></tr></tbody></table></td><td><a href="https://t.e.com/r/4">X</a></td></tr></tbody></table>`, "Facebook (https://t.e.com/r/2)\n\nX (https://t.e.com/r/4)\n"},
+		{
+			"an inline table with two labelled links keeps both",
+			`<table style="display:inline-table"><tr><td><a href="https://e.com/1">One</a></td><td><a href="https://e.com/2">Two</a></td></tr></table>`,
+			"One (https://e.com/1)\nTwo (https://e.com/2)\n",
+		},
 	}
 
 	for _, tt := range tests {

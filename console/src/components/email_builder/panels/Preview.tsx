@@ -481,7 +481,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
               {hiddenBlockCount > 0 && (
                 <div className="px-4 pt-4" data-testid="preview-hidden-blocks">
                   <div className="inline-flex items-center gap-2 bg-white/95 border border-gray-200 rounded-lg shadow-sm px-3 py-1.5 text-xs text-slate-600">
-                    <FontAwesomeIcon icon={faCodeBranch} className="text-[#7763F1]" />
+                    <FontAwesomeIcon icon={faCodeBranch} className="text-primary-500" />
                     {hiddenBlockCount === 1
                       ? t`1 block hidden by its condition with this test data.`
                       : t`${hiddenBlockCount} blocks hidden by their condition with this test data.`}

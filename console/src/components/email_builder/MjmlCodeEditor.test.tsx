@@ -12,11 +12,11 @@ vi.mock('@monaco-editor/react', () => ({
 
 const source = '<mjml><mj-body><mj-section><mj-column><mj-text>Hi</mj-text></mj-column></mj-section></mj-body></mjml>'
 
-const renderEditor = (onCompile: Mock) =>
+const renderEditor = (onCompile: Mock, mjmlSource = source) =>
   render(
     <App>
       <MjmlCodeEditor
-        mjmlSource={source}
+        mjmlSource={mjmlSource}
         onMjmlSourceChange={vi.fn()}
         onCompile={onCompile}
         onTestDataChange={vi.fn()}
@@ -71,6 +71,36 @@ describe('MjmlCodeEditor text version tab', () => {
     fireEvent.click(screen.getByText('Text version'))
     await waitFor(() => expect(screen.getByText('The email could not be compiled')).toBeTruthy())
     expect(screen.queryByText('Old text')).toBeNull()
+  })
+})
+
+describe('MjmlCodeEditor with an empty source', () => {
+  it('shows an empty text version without compiling, rather than loading', async () => {
+    const onCompile = vi.fn()
+    renderEditor(onCompile, '')
+
+    fireEvent.click(screen.getByText('Text version'))
+
+    await waitFor(() =>
+      expect(screen.getByText('No text version: this email will be sent as HTML only.')).toBeTruthy()
+    )
+    expect(onCompile).not.toHaveBeenCalled()
+  })
+
+  it('drops the text of the last compile once the source is emptied', async () => {
+    const onCompile = vi.fn().mockResolvedValue({ html: '<p>Hi</p>', mjml: source, text: 'Old text\n' })
+    renderEditor(onCompile)
+    await waitFor(() => expect(onCompile).toHaveBeenCalledTimes(1))
+
+    fireEvent.change(screen.getByTestId('monaco'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByText('Text version'))
+
+    await waitFor(
+      () => expect(screen.getByText('No text version: this email will be sent as HTML only.')).toBeTruthy(),
+      { timeout: 2000 }
+    )
+    expect(screen.queryByText('Old text')).toBeNull()
+    expect(onCompile).toHaveBeenCalledTimes(1)
   })
 })
 

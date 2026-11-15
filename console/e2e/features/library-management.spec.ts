@@ -29,6 +29,13 @@ const libraryStore = async (page: Page) => {
     json(route, { workspace: workspaceWithBlocks(blocks) })
   )
   const now = () => new Date().toISOString()
+  // A rename reads the stored block again just before its update
+  await page.route(`${api}/templateBlocks.get*`, (route) => {
+    const block = blocks.find((b) => b.id === new URL(route.request().url()).searchParams.get('id'))
+    return block
+      ? json(route, { block })
+      : route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"not found"}' })
+  })
   await page.route(`${api}/templateBlocks.update*`, (route) => {
     const body = route.request().postDataJSON()
     calls.push({ endpoint: 'update', body })
@@ -213,7 +220,7 @@ test.describe('Managing saved blocks from the library', () => {
   test("confirms in the console's language", async ({ authenticatedPage: page }) => {
     await page.addInitScript(() => localStorage.setItem('locale', 'fr'))
     const editor = await openManaged(page, {
-      labels: { drawer: 'Modifier le modèle d email', templateTab: '2. Modèle' }
+      labels: { drawer: "Modifier le modèle d'email", templateTab: '2. Modèle' }
     })
     const card = editor.card('lib-text')
     await card.hover()

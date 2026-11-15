@@ -28,7 +28,10 @@ func TestMessageHistoryRepository_GetForWebVersion(t *testing.T) {
 		mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
 		defer cleanup()
 
-		encrypted, err := encryptMessageData(domain.MessageData{Data: map[string]interface{}{"contact": map[string]interface{}{"first_name": "Camille"}}}, testSecretKey)
+		encrypted, err := encryptMessageData(domain.MessageData{
+			Data:     map[string]interface{}{"contact": map[string]interface{}{"first_name": "Camille"}},
+			Metadata: map[string]interface{}{domain.MessageMetadataRenderedLanguage: "fr"},
+		}, testSecretKey)
 		require.NoError(t, err)
 		stored, err := json.Marshal(encrypted)
 		require.NoError(t, err)
@@ -47,6 +50,7 @@ func TestMessageHistoryRepository_GetForWebVersion(t *testing.T) {
 		assert.Equal(t, "tpl-1", message.TemplateID)
 		assert.Equal(t, int64(4), message.TemplateVersion)
 		assert.Equal(t, map[string]interface{}{"first_name": "Camille"}, message.MessageData.Data["contact"])
+		assert.Equal(t, "fr", message.MessageData.Metadata[domain.MessageMetadataRenderedLanguage], "the language it was sent in survives the encryption")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 

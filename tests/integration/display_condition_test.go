@@ -132,7 +132,7 @@ func TestDisplayCondition_TransactionalE2E(t *testing.T) {
 		raw, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode, string(raw))
-		message, err := waitForEmailByRecipientAddr(t, email, 30*time.Second)
+		message, err := testutil.WaitForMailpitMessageByRecipient(t, email, 30*time.Second)
 		require.NoError(t, err)
 		return message.HTML
 	}
@@ -208,9 +208,9 @@ func TestDisplayCondition_BroadcastE2E(t *testing.T) {
 	_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, []string{"processed", "completed", "sent"}, 60*time.Second)
 	require.NoError(t, err)
 
-	vipEmail, err := waitForEmailByRecipientAddr(t, vip, 30*time.Second)
+	vipEmail, err := testutil.WaitForMailpitMessageByRecipient(t, vip, 30*time.Second)
 	require.NoError(t, err)
-	regularEmail, err := waitForEmailByRecipientAddr(t, regular, 30*time.Second)
+	regularEmail, err := testutil.WaitForMailpitMessageByRecipient(t, regular, 30*time.Second)
 	require.NoError(t, err)
 	assert.Contains(t, vipEmail.HTML, "VIP-ONLY-SECTION")
 	assert.NotContains(t, regularEmail.HTML, "VIP-ONLY-SECTION")

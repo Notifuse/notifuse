@@ -131,10 +131,10 @@ func TestWebAnalyticsHandlerContactVisits(t *testing.T) {
 		handler, visits := newContactVisitsHandlerForTest(t)
 		visits.EXPECT().ContactSessionPages(gomock.Any(), domain.ContactSessionPagesRequest{
 			WorkspaceID: "ws1", Email: "ann@example.com", SessionID: "0190d5a4-1c2b-7000-8000-000000000001", SessionDate: "2026-11-03",
-		}).Return(&domain.ContactSessionPagesResponse{Pages: []domain.ContactSessionPage{}, Goals: []domain.ContactSessionGoal{}}, nil)
+		}).Return(&domain.ContactSessionPagesResponse{Pages: []domain.ContactSessionPage{}, Goals: []domain.ContactSessionGoal{}, PagesTruncated: true}, nil)
 
 		rec := serve(handler, http.MethodGet, contactSessionPagesQuery)
 		require.Equal(t, http.StatusOK, rec.Code)
-		assert.JSONEq(t, `{"pages":[],"goals":[]}`, rec.Body.String())
+		assert.JSONEq(t, `{"pages":[],"goals":[],"pages_truncated":true,"goals_truncated":false}`, rec.Body.String())
 	})
 }

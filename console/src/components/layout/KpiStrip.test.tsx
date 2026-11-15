@@ -119,6 +119,19 @@ describe('KpiStrip', () => {
     expect(screen.getByText('Label 2')).toBeInTheDocument()
   })
 
+  it('keeps the room of the trend, unseen, while loading', () => {
+    const strip = (loading: boolean) => (
+      <KpiStrip items={[{ key: 'a', label: 'Open rate', value: '49%', trend: <svg data-testid="spark" /> }]} loading={loading} />
+    )
+    const { rerender } = render(strip(true))
+    const trend = () => screen.getByTestId('spark').closest<HTMLElement>('[data-kpi-trend]')!
+    expect(trend().className).toContain('invisible')
+    expect(trend()).toHaveAttribute('aria-hidden', 'true')
+    rerender(strip(false))
+    expect(trend().className).not.toContain('invisible')
+    expect(trend()).not.toHaveAttribute('aria-hidden')
+  })
+
   it('draws a border and a shadow unless embedded', () => {
     const { container, rerender } = render(<KpiStrip items={items(2)} />)
     const box = () => container.querySelector<HTMLElement>('[data-kpi-strip]')!

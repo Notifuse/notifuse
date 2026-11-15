@@ -126,6 +126,7 @@ function LiveView(props: { workspaceId: string }) {
             params={{ workspaceId: props.workspaceId, tab: 'dashboard' }}
             aria-label={t`Dashboard`}
             title={t`Dashboard`}
+            data-plain-link
             className="grid size-7 shrink-0 place-items-center rounded-md text-ink-3 hover:bg-fill hover:text-ink"
           >
             <ArrowLeft size={16} aria-hidden="true" />

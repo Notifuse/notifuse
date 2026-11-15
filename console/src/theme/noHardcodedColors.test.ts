@@ -6,19 +6,13 @@ import { PRIMARY_COLOR, COMPARISON_COLOR } from '../components/web_analytics/lib
 const SRC = resolve(__dirname, '..')
 const read = (path: string) => readFileSync(join(SRC, path), 'utf8')
 
-// The console's interface colours come from tokens.ts. These files used to write the old violet
-// or the old #F9F9F9 background by hand.
-const MIGRATED = [
-  'App.tsx',
-  'index.css',
-  'layouts/WorkspaceLayout.tsx',
-  'components/settings/SettingsSidebar.tsx',
-  'components/blog/BlogSidebar.tsx',
-  'components/automations/nodes/BaseNode.tsx',
-  'components/broadcasts/detail/LinkStatsPanel.tsx',
-  'components/web_analytics/CountryMapView.tsx',
-  'components/web_analytics/TrafficHeatmapWidget.tsx',
-  'components/web_analytics/lib/types.ts'
+// The console's interface colours come from tokens.ts: no source file writes the old violet or the old #F9F9F9
+// background by hand, except these, whose colours are not the console's
+const EXCEPTIONS = [
+  // The themes of published blogs, which keep their own palette
+  'components/blog/themePresets.ts',
+  // The colour broadcast annotations are written with, kept in step with domain.AnnotationBroadcastColor
+  'components/web_analytics/annotations/AnnotationFormModal.tsx'
 ]
 
 const OLD_COLOURS = /#7763f1|rgba\(\s*119\s*,\s*99\s*,\s*241|#f9f9f9/i
@@ -32,8 +26,15 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe('hard-coded colours', () => {
-  it.each(MIGRATED)('%s writes neither the old violet nor #F9F9F9', (file) => {
-    expect(read(file)).not.toMatch(OLD_COLOURS)
+  it('no source file writes the old violet or #F9F9F9, tests and the listed exceptions aside', () => {
+    const offenders = sourceFiles(SRC).filter(
+      (file) => !/\.test\.tsx?$/.test(file) && !EXCEPTIONS.includes(file) && OLD_COLOURS.test(read(file))
+    )
+    expect(offenders).toEqual([])
+  })
+
+  it.each(EXCEPTIONS)('%s still writes an old colour, so its exception is still needed', (file) => {
+    expect(read(file)).toMatch(OLD_COLOURS)
   })
 
   it('charts take the primary and comparison colours from the tokens', () => {

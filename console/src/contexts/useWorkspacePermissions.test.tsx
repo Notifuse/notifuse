@@ -235,6 +235,25 @@ describe('useWorkspacePermissions', () => {
     expect(first.result.current).toEqual({ permissions: permsB, role: 'member', loading: false })
   })
 
+  it('leaves loading after a reset of the members, for a caller mounted over a cached list', async () => {
+    getMembers.mockResolvedValue(membersOf({ permissions: permsA }))
+    const client = newClient()
+    const first = renderPermissions('A', member, client)
+    await waitFor(() => expect(first.result.current.loading).toBe(false))
+    // Mounted over the list the first caller cached, it waits for its own answer
+    const second = renderPermissions('A', member, client)
+    await waitFor(() => expect(second.result.current.loading).toBe(false))
+    expect(getMembers).toHaveBeenCalledTimes(2)
+
+    await act(() => client.resetQueries({ queryKey: ['workspace-members'] }))
+    // The reset's own refetch is an answer after both mounts
+    await waitFor(() => expect(getMembers).toHaveBeenCalledTimes(3))
+    for (const caller of [first, second]) {
+      await waitFor(() => expect(caller.result.current.loading).toBe(false))
+      expect(caller.result.current.permissions).toEqual(permsA)
+    }
+  })
+
   it('keeps the list it has when a refetch fails', async () => {
     const fails = deferred()
     answering({ A: [Promise.resolve(membersOf({ permissions: permsA })), fails.promise] })

@@ -1,9 +1,11 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // Common error types
@@ -32,6 +34,23 @@ func (e *ErrTaskExecution) Error() string {
 
 func (e *ErrTaskExecution) Unwrap() error {
 	return e.Err
+}
+
+// TaskRequeueError is returned by a processor whose task must run again later without
+// counting a failed attempt: the task is handed back (TaskRepository.RequeueTask) with its
+// retry count, progress and state, due After from now, as paused when Park is set (only a
+// wake brings it back before then). AfterRequeue, when set, runs once the hand-back is
+// written, on a context the run's deadline does not cut: a check that must see the task
+// parked, such as a resume committed while the run still held it.
+type TaskRequeueError struct {
+	After        time.Duration
+	Park         bool
+	Reason       string
+	AfterRequeue func(ctx context.Context)
+}
+
+func (e *TaskRequeueError) Error() string {
+	return fmt.Sprintf("task requeued for %s: %s", e.After, e.Reason)
 }
 
 type ErrTaskTimeout struct {

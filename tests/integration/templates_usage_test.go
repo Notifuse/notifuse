@@ -150,6 +150,54 @@ func TestTemplatesUsage(t *testing.T) {
 		assert.Equal(t, float64(1), counts["automations"])
 	})
 
+	t.Run("an A/B broadcast counts the variations it can still send", func(t *testing.T) {
+		a, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+		b, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+		winner := func(id string) testutil.BroadcastOption {
+			return func(bc *domain.Broadcast) { bc.WinningTemplate = &id }
+		}
+		inTest, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusTesting, "A/B testing", a.ID, b.ID))
+		require.NoError(t, err)
+		won, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusWinnerSelected, "A/B won by A", a.ID, b.ID), winner(a.ID))
+		require.NoError(t, err)
+		// A winner that is none of the variations counts every variation, as VariationsToSend
+		// reads it. The orchestrator would send the winner's own template, which this does not
+		// count (known, not handled).
+		strayWinner, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusWinnerSelected, "A/B stray winner", a.ID, b.ID), winner(tid))
+		require.NoError(t, err)
+
+		all := usage(t, map[string]string{})["usage"].(map[string]interface{})
+		assert.Equal(t, float64(3), all[a.ID].(map[string]interface{})["broadcasts"], "the broadcast A won, the open A/B test and the one with a stray winner")
+		assert.Equal(t, float64(2), all[b.ID].(map[string]interface{})["broadcasts"], "not the broadcast A won")
+
+		refs := func(id string) []string {
+			var names []string
+			for _, ref := range usage(t, map[string]string{"template_id": id})["references"].([]interface{}) {
+				if ref.(map[string]interface{})["type"] == "broadcast" {
+					names = append(names, ref.(map[string]interface{})["id"].(string))
+				}
+			}
+			return names
+		}
+		assert.ElementsMatch(t, []string{inTest.ID, won.ID, strayWinner.ID}, refs(a.ID))
+		assert.ElementsMatch(t, []string{inTest.ID, strayWinner.ID}, refs(b.ID))
+
+		// The template the stray winner names is not counted for that broadcast: only its
+		// variations are.
+		assert.Equal(t, float64(1), all[tid].(map[string]interface{})["broadcasts"])
+	})
+
+	t.Run("a template_id PostgreSQL cannot read is a 400, not a 500", func(t *testing.T) {
+		for _, id := range []string{"a\x00b", "caf\xe9"} {
+			resp, err := client.Get("/api/templates.usage", map[string]string{"workspace_id": workspace.ID, "template_id": id})
+			require.NoError(t, err)
+			_ = resp.Body.Close()
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "%q", id)
+		}
+	})
+
 	t.Run("an unused template has no entry and no reference", func(t *testing.T) {
 		unused, err := factory.CreateTemplate(workspace.ID)
 		require.NoError(t, err)
@@ -175,5 +223,49 @@ func TestTemplatesUsage(t *testing.T) {
 		for _, ref := range got["references"].([]interface{}) {
 			assert.NotEqual(t, "automation", ref.(map[string]interface{})["type"])
 		}
+	})
+
+	t.Run("an empty template ID is no template, and a variations scalar fails nothing", func(t *testing.T) {
+		_, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusDraft, "Blank variation", ""))
+		require.NoError(t, err)
+		scalar, err := factory.CreateBroadcast(workspace.ID, withVariations(domain.BroadcastStatusDraft, "Scalar variations", tid))
+		require.NoError(t, err)
+		_, err = workspaceDB.ExecContext(ctx, `UPDATE broadcasts SET test_settings = jsonb_set(test_settings, '{variations}', '"oops"') WHERE id = $1`, scalar.ID)
+		require.NoError(t, err)
+		_, err = factory.CreateTransactionalNotification(workspace.ID, func(n *domain.TransactionalNotification) {
+			n.Channels = domain.ChannelTemplates{domain.TransactionalChannelEmail: domain.ChannelTemplate{TemplateID: ""}}
+		})
+		require.NoError(t, err)
+		_, err = factory.CreateAutomation(workspace.ID, func(a *domain.Automation) {
+			a.Status = domain.AutomationStatusLive
+			a.Nodes = []*domain.AutomationNode{{ID: "n1", Type: domain.NodeTypeEmail, Config: map[string]interface{}{"template_id": ""}}}
+		})
+		require.NoError(t, err)
+		_, err = factory.CreateList(workspace.ID, func(l *domain.List) {
+			l.IsDoubleOptin = true
+			l.DoubleOptInTemplate = &domain.TemplateReference{ID: "", Version: 1}
+		})
+		require.NoError(t, err)
+
+		all := usage(t, map[string]string{})["usage"].(map[string]interface{})
+		assert.NotContains(t, all, "", "an empty ID counts for no template")
+		counts := all[tid].(map[string]interface{})
+		assert.Equal(t, float64(1), counts["broadcasts"], "the broadcast whose variations are a scalar uses nothing")
+	})
+
+	t.Run("references stop at the limit while the count stays exact", func(t *testing.T) {
+		popular, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+		for i := 0; i <= domain.TemplateUsageReferenceLimit; i++ {
+			_, err := factory.CreateTransactionalNotification(workspace.ID, func(n *domain.TransactionalNotification) {
+				n.Channels = domain.ChannelTemplates{domain.TransactionalChannelEmail: domain.ChannelTemplate{TemplateID: popular.ID}}
+			})
+			require.NoError(t, err)
+		}
+
+		got := usage(t, map[string]string{"template_id": popular.ID})
+		assert.Len(t, got["references"], domain.TemplateUsageReferenceLimit)
+		counts := got["usage"].(map[string]interface{})[popular.ID].(map[string]interface{})
+		assert.Equal(t, float64(domain.TemplateUsageReferenceLimit+1), counts["transactional_notifications"])
 	})
 }

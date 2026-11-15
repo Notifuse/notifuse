@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Button, Dropdown, Result, Skeleton, Tooltip, type MenuProps } from 'antd'
+import { RefusedButton } from '../common/RefusedButton'
 import { MoreHorizontal, Send } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
@@ -34,6 +35,7 @@ import {
   type TrackedRate
 } from './transactionalStats'
 import { DeletedTemplatePill, IntegrationTag, MenuEntryLabel, type StatGate } from './notificationParts'
+import { refusedMenuItem } from './refusedMenuItem'
 import { templateIdOf, useActionRules } from './notificationRules'
 import type { TransactionalRowActions } from './TransactionalTable'
 import { useCurrentStats, useTemplateStates } from './useTransactionalStats'
@@ -182,7 +184,9 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
         params={{ workspaceId: workspace.id }}
         search={{ tab: LOGS_TAB.messages, transactional_notification_id: notification.id, ...filter }}
         // Named by what it counts, not by its number alone; the number stays in the name.
-        aria-label={t`${label}: ${value}, view in the message log`}
+        aria-label={
+          value === '—' ? t`${label}: no data, view in the message log` : t`${label}: ${value}, view in the message log`
+        }
         className="hover:underline"
       >
         {value}
@@ -300,7 +304,15 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
           t`An API call can choose another sender with email_options.sender_id. A translation can use another sender.`
         }
       >
-        {senderText ? <span>{senderText}</span> : <span className="text-warning-fg">{t`No sender`}</span>}
+        {senderText ? (
+          <span>
+            {senderText}
+            {/* The reason of "(default)", read without the tooltip */}
+            {sender.providerDefaultOnly && defaultReason ? <span className="sr-only"> {defaultReason}</span> : null}
+          </span>
+        ) : (
+          <span className="text-warning-fg">{t`No sender`}</span>
+        )}
       </Tooltip>
     )
   }
@@ -313,43 +325,35 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
     {
       key: 'logs',
       label: <MenuEntryLabel label={t`View in logs`} reason={rules.logs} />,
-      disabled: rules.logs !== undefined
+      ...refusedMenuItem(rules.logs)
     },
     { type: 'divider' },
     {
       key: 'delete',
       label: <MenuEntryLabel label={t`Delete`} reason={rules.remove} />,
       danger: rules.remove === undefined,
-      disabled: rules.remove !== undefined
+      ...refusedMenuItem(rules.remove)
     }
   ]
   const onMenu: MenuProps['onClick'] = ({ key }) => {
+    // A refused entry stays in the menu, reachable, and does nothing
     if (key === 'copy') props.onCopyId(notification)
-    else if (key === 'logs') props.onLogs(notification)
-    else if (key === 'delete') props.onDelete(notification)
+    else if (key === 'logs' && rules.logs === undefined) props.onLogs(notification)
+    else if (key === 'delete' && rules.remove === undefined) props.onDelete(notification)
   }
 
   const actions = ready ? (
     <div className="flex items-center gap-2">
-      {/* Spans: a disabled button receives no hover, and its tooltip would never show. */}
-      <Tooltip title={rules.test}>
-        <span>
-          <Button
-            icon={<Send size={14} aria-hidden="true" />}
-            disabled={rules.test !== undefined}
-            onClick={() => props.onTest(notification)}
-          >
-            {t`Send test`}
-          </Button>
-        </span>
-      </Tooltip>
-      <Tooltip title={rules.edit}>
-        <span>
-          <Button disabled={rules.edit !== undefined} onClick={() => props.onEdit(notification)}>
-            {t`Edit`}
-          </Button>
-        </span>
-      </Tooltip>
+      <RefusedButton
+        icon={<Send size={14} aria-hidden="true" />}
+        refusal={rules.test}
+        onClick={() => props.onTest(notification)}
+      >
+        {t`Send test`}
+      </RefusedButton>
+      <RefusedButton refusal={rules.edit} onClick={() => props.onEdit(notification)}>
+        {t`Edit`}
+      </RefusedButton>
       <Dropdown trigger={['click']} menu={{ items: menuItems, onClick: onMenu }}>
         <Button aria-label={t`More actions`} icon={<MoreHorizontal size={14} aria-hidden="true" />} />
       </Dropdown>

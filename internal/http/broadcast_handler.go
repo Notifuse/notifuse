@@ -23,16 +23,14 @@ func (e *MissingParameterError) Error() string {
 
 type BroadcastHandler struct {
 	service      domain.BroadcastService
-	templateSvc  domain.TemplateService
 	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 	isDemo       bool
 }
 
-func NewBroadcastHandler(service domain.BroadcastService, templateSvc domain.TemplateService, getJWTSecret func() ([]byte, error), logger logger.Logger, isDemo bool) *BroadcastHandler {
+func NewBroadcastHandler(service domain.BroadcastService, getJWTSecret func() ([]byte, error), logger logger.Logger, isDemo bool) *BroadcastHandler {
 	return &BroadcastHandler{
 		service:      service,
-		templateSvc:  templateSvc,
 		logger:       logger,
 		getJWTSecret: getJWTSecret,
 		isDemo:       isDemo,
@@ -57,7 +55,7 @@ func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/broadcasts.resume", requireAuth(http.HandlerFunc(h.HandleResume)))
 	mux.Handle("/api/broadcasts.cancel", requireAuth(http.HandlerFunc(h.HandleCancel)))
 	mux.Handle("/api/broadcasts.retryFailed", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleRetryFailed))))
-	mux.Handle("/api/broadcasts.sendToIndividual", requireAuth(http.HandlerFunc(h.HandleSendToIndividual)))
+	mux.Handle("/api/broadcasts.sendToIndividual", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleSendToIndividual))))
 	mux.Handle("/api/broadcasts.delete", requireAuth(http.HandlerFunc(h.HandleDelete)))
 	// A/B Testing endpoints
 	mux.Handle("/api/broadcasts.getTestResults", requireAuth(http.HandlerFunc(h.HandleGetTestResults)))
@@ -170,7 +168,7 @@ func (h *BroadcastHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	broadcast, err := h.service.GetBroadcast(r.Context(), req.WorkspaceID, req.ID)
+	broadcast, err := h.service.GetBroadcast(r.Context(), req.WorkspaceID, req.ID, domain.GetBroadcastOptions{WithTemplates: req.WithTemplates})
 	if err != nil {
 		if writePermissionError(w, err) {
 			return
@@ -182,30 +180,6 @@ func (h *BroadcastHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		h.logger.WithField("error", err.Error()).Error("Failed to get broadcast")
 		WriteJSONError(w, "Failed to get broadcast", http.StatusInternalServerError)
 		return
-	}
-
-	// If WithTemplates is true, fetch template details for each variation
-	if req.WithTemplates {
-		// Use the same logic as in ListBroadcasts to fetch templates
-		for i, variation := range broadcast.TestSettings.Variations {
-			if variation.TemplateID != "" {
-				// Latest version (0), the one that is sent, as ListBroadcasts does
-				template, err := h.templateSvc.GetTemplateByID(r.Context(), req.WorkspaceID, variation.TemplateID, 0)
-				if err != nil {
-					h.logger.WithFields(map[string]interface{}{
-						"error":        err,
-						"workspace_id": req.WorkspaceID,
-						"broadcast_id": broadcast.ID,
-						"template_id":  variation.TemplateID,
-					}).Warn("Failed to fetch template for broadcast variation")
-					// Continue with the next variation rather than failing the whole request
-					continue
-				}
-
-				// Assign the template to the variation
-				broadcast.SetTemplateForVariation(i, template)
-			}
-		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -266,7 +240,7 @@ func (h *BroadcastHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get the existing broadcast to pass to Validate
-	existingBroadcast, err := h.service.GetBroadcast(r.Context(), req.WorkspaceID, req.ID)
+	existingBroadcast, err := h.service.GetBroadcast(r.Context(), req.WorkspaceID, req.ID, domain.GetBroadcastOptions{})
 	if err != nil {
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
 			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)

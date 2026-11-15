@@ -327,7 +327,7 @@ func TestEmptyResultShape(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = rows.Close() }()
 
-		data, err := ProcessRows(rows, query)
+		data, err := ProcessRows(rows, query, nil)
 		require.NoError(t, err)
 		return data
 	}
@@ -404,7 +404,7 @@ func TestGapFillKeepsRealBuckets(t *testing.T) {
 			Dimension: "created_at", Granularity: "day",
 			DateRange: &[2]string{"2026-08-08", "2026-08-09"},
 		}},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	total := 0

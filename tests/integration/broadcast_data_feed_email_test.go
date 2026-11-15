@@ -2,10 +2,7 @@ package integration
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -152,7 +149,7 @@ func TestBroadcastDataFeedEmailRendering(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipientAddr(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
 
 		t.Logf("Email subject: %s", msg.Subject)
@@ -259,10 +256,10 @@ func TestBroadcastDataFeedEmailRendering(t *testing.T) {
 
 		// Fetch both emails from Mailpit
 		t.Log("Fetching emails from Mailpit...")
-		aliceMsg, err := waitForEmailByRecipientAddr(t, aliceEmail, 15*time.Second)
+		aliceMsg, err := testutil.WaitForMailpitMessageByRecipient(t, aliceEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email for Alice")
 
-		bobMsg, err := waitForEmailByRecipientAddr(t, bobEmail, 15*time.Second)
+		bobMsg, err := testutil.WaitForMailpitMessageByRecipient(t, bobEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email for Bob")
 
 		// Assert Alice's email
@@ -356,7 +353,7 @@ func TestBroadcastDataFeedEmailRendering(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipientAddr(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
 
 		t.Logf("Email subject: %s", msg.Subject)
@@ -504,7 +501,7 @@ func TestRecipientFeedEmailRendering(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipientAddr(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email in Mailpit")
 
 		t.Logf("Email subject: %s", msg.Subject)
@@ -613,7 +610,7 @@ func TestRecipientFeedEmailRendering(t *testing.T) {
 
 		// Fetch and verify Alice's email
 		t.Log("Fetching Alice's email from Mailpit...")
-		aliceMsg, err := waitForEmailByRecipientAddr(t, aliceEmail, 15*time.Second)
+		aliceMsg, err := testutil.WaitForMailpitMessageByRecipient(t, aliceEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email for Alice")
 
 		t.Logf("Alice's email HTML (first 300 chars): %s", truncStr(aliceMsg.HTML, 300))
@@ -626,7 +623,7 @@ func TestRecipientFeedEmailRendering(t *testing.T) {
 
 		// Fetch and verify Bob's email
 		t.Log("Fetching Bob's email from Mailpit...")
-		bobMsg, err := waitForEmailByRecipientAddr(t, bobEmail, 15*time.Second)
+		bobMsg, err := testutil.WaitForMailpitMessageByRecipient(t, bobEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email for Bob")
 
 		t.Logf("Bob's email HTML (first 300 chars): %s", truncStr(bobMsg.HTML, 300))
@@ -722,7 +719,7 @@ func TestRecipientFeedEmailRendering(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipientAddr(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email after retries succeed")
 
 		t.Logf("Email HTML (first 300 chars): %s", truncStr(msg.HTML, 300))
@@ -820,7 +817,7 @@ func TestRecipientFeedEmailRendering(t *testing.T) {
 
 		// Fetch email from Mailpit
 		t.Log("Fetching email from Mailpit...")
-		msg, err := waitForEmailByRecipientAddr(t, contactEmail, 15*time.Second)
+		msg, err := testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err, "Should receive email with both feeds")
 
 		t.Logf("Email subject: %s", msg.Subject)
@@ -918,7 +915,7 @@ func TestRecipientFeedEmailRendering(t *testing.T) {
 		require.NoError(t, err)
 
 		// Wait for email to ensure feed was fetched
-		_, err = waitForEmailByRecipientAddr(t, contactEmail, 15*time.Second)
+		_, err = testutil.WaitForMailpitMessageByRecipient(t, contactEmail, 15*time.Second)
 		require.NoError(t, err)
 
 		// Verify the request payload sent to mock server
@@ -959,57 +956,6 @@ func TestRecipientFeedEmailRendering(t *testing.T) {
 		require.True(t, ok, "Payload should contain workspace object")
 		assert.Equal(t, workspace.ID, workspaceData["id"], "Should contain workspace ID")
 	})
-}
-
-// waitForEmailByRecipientAddr polls Mailpit until an email for the given recipient is found
-func waitForEmailByRecipientAddr(t *testing.T, recipientEmail string, timeout time.Duration) (*testutil.MailpitMessage, error) {
-	deadline := time.Now().Add(timeout)
-	var lastErr error
-	httpClient := &http.Client{Timeout: 5 * time.Second}
-	pollInterval := 500 * time.Millisecond
-
-	for time.Now().Before(deadline) {
-		resp, err := httpClient.Get("http://localhost:8025/api/v1/messages")
-		if err != nil {
-			t.Logf("Failed to connect to Mailpit: %v", err)
-			time.Sleep(pollInterval)
-			continue
-		}
-
-		var apiResp testutil.MailpitMessagesResponse
-		err = json.NewDecoder(resp.Body).Decode(&apiResp)
-		resp.Body.Close()
-
-		if err != nil {
-			t.Logf("Failed to decode Mailpit response: %v", err)
-			time.Sleep(pollInterval)
-			continue
-		}
-
-	scan:
-		for _, msg := range apiResp.Messages {
-			for _, to := range msg.To {
-				if strings.EqualFold(recipientEmail, to.Address) {
-					t.Logf("Found email for recipient: %s (message ID: %s)", recipientEmail, msg.ID)
-					found, err := testutil.GetMailpitMessage(t, msg.ID)
-					if err == nil {
-						return found, nil
-					}
-					// A passing Mailpit failure: poll again until the deadline. The scan stops
-					// at this newest match, so a failed read never falls back to an older
-					// email to the same recipient.
-					lastErr = err
-					t.Logf("Failed to read Mailpit message %s: %v", msg.ID, err)
-					break scan
-				}
-			}
-		}
-		time.Sleep(pollInterval)
-	}
-	if lastErr != nil {
-		return nil, fmt.Errorf("timeout waiting for email to %s after %v: %w", recipientEmail, timeout, lastErr)
-	}
-	return nil, fmt.Errorf("timeout waiting for email to %s after %v", recipientEmail, timeout)
 }
 
 // truncStr truncates a string to maxLen characters

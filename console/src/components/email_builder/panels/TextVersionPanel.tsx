@@ -22,9 +22,12 @@ export interface TextVersionSeed {
   error?: string
   // A Liquid tag of the starting point that would be refused at save.
   textError?: string
-  // Liquid tags of the email that the starting point does not hold (conditions and loops
-  // written between blocks).
+  // Liquid tags of the email that the starting point does not hold (display conditions, and
+  // conditions and loops written between blocks).
   lostLiquid?: boolean
+  // Liquid written between the blocks of a section or a column, which is accepted and may
+  // land elsewhere in the text than where it applies.
+  liquidPlacement?: boolean
 }
 
 export interface CustomTextVersion {
@@ -235,11 +238,21 @@ export const TextVersionPanel: React.FC<TextVersionPanelProps> = ({
           message={t`The automatic version could not be generated: ${seedResult.error}`}
         />
       )}
+      {!seedResult.error && seedResult.text !== undefined && seedResult.text.trim() === '' && (
+        <Alert type="info" showIcon message={t`The email holds no text yet.`} />
+      )}
       {seedResult.lostLiquid && !seedResult.error && (
         <Alert
           type="warning"
           showIcon
-          message={t`Conditions and loops placed between blocks are not carried over. Check the text before saving.`}
+          message={t`Display conditions, and conditions and loops placed between blocks, are not carried over. Check the text before saving.`}
+        />
+      )}
+      {seedResult.liquidPlacement && !seedResult.error && (
+        <Alert
+          type="warning"
+          showIcon
+          message={t`Liquid placed between the blocks of a section or a column may not land where it applies. Check the text before saving.`}
         />
       )}
       {seedResult.textError && !seedResult.error && (

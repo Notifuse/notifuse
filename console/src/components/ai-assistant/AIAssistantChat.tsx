@@ -288,8 +288,12 @@ export function AIAssistantChat({
                   // prompt asks the model to keep tables narrow, but a model will
                   // sometimes emit a wide one anyway, so the table scrolls inside its
                   // own bubble rather than pushing the conversation out of shape.
+                  // Headings take the theme's sizes: the base layer sets them to the body text's otherwise
                   contentRender: (content: string) => (
-                    <div className="[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto">
+                    <div
+                      data-assistant-markdown
+                      className="[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_h1]:text-title [&_h2]:text-subtitle [&_h3]:text-base [&_h4]:text-base"
+                    >
                       <XMarkdown openLinksInNewTab>{content}</XMarkdown>
                     </div>
                   )
