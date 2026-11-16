@@ -330,7 +330,6 @@ export function EmailProviderCard({
           <>
             <Button
               type="text"
-              size="small"
               icon={<Pencil size={14} aria-hidden="true" />}
               onClick={() => onEdit(integration)}
             >
@@ -339,7 +338,6 @@ export function EmailProviderCard({
             <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: menuItems }}>
               <Button
                 type="text"
-                size="small"
                 aria-label={t`More actions`}
                 loading={registrationInProgress}
                 icon={<MoreHorizontal size={16} aria-hidden="true" />}

@@ -253,7 +253,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   ) =>
     isOwner ? (
       <>
-        <Button type="text" size="small" icon={<Pencil size={14} aria-hidden="true" />} onClick={onEdit}>
+        <Button type="text" icon={<Pencil size={14} aria-hidden="true" />} onClick={onEdit}>
           {t`Edit`}
         </Button>
         <Dropdown
@@ -280,7 +280,6 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         >
           <Button
             type="text"
-            size="small"
             aria-label={t`More actions`}
             icon={<MoreHorizontal size={16} aria-hidden="true" />}
           />
