@@ -824,9 +824,11 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 		schema.WebhookCustomEventsTriggerFunction(),
 		`DROP TRIGGER IF EXISTS webhook_custom_events ON custom_events`,
 		`CREATE TRIGGER webhook_custom_events AFTER INSERT OR UPDATE ON custom_events FOR EACH ROW EXECUTE FUNCTION webhook_custom_events_trigger()`,
-		// Automation enroll contact function, shared with the v38 migration so an
-		// upgraded workspace and a fresh one enrol identically.
-		schema.AutomationEnrollContactFunction(),
+		// Automation enrolment functions, shared with the v44 migration so an upgraded
+		// workspace and a fresh one enrol identically: the five-argument one the generated
+		// triggers call, then the four-argument relay to it.
+		schema.AutomationEnrollContactWithTriggerFunction(),
+		schema.AutomationEnrollContactRelayFunction(),
 	}
 
 	return []workspaceSchemaGroup{

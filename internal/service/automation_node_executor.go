@@ -312,6 +312,18 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		listName = list.Name
 	}
 
+	providedData := domain.MapOfAny{
+		"automation_id":   params.Automation.ID,
+		"automation_name": params.Automation.Name,
+	}
+	// The event that started this journey, which the enrolment stored (see
+	// schema.AutomationEnrollContactWithTriggerFunction): a custom event's properties, the
+	// list or segment the contact joined, the link clicked. A journey that started before
+	// 44.0 has none, and {{ trigger_event }} is then simply absent.
+	if trigger, ok := triggerEventFromContext(params.Contact); ok {
+		providedData["trigger_event"] = trigger
+	}
+
 	templateData, err := domain.BuildTemplateData(domain.TemplateDataRequest{
 		WorkspaceID:         params.WorkspaceID,
 		WorkspaceSecretKey:  workspace.Settings.SecretKey,
@@ -319,11 +331,8 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		ContactWithList:     domain.ContactWithList{Contact: params.ContactData, ListID: listID, ListName: listName},
 		MessageID:           messageID,
 		TrackingSettings:    trackingSettings,
-		ProvidedData: domain.MapOfAny{
-			"automation_id":   params.Automation.ID,
-			"automation_name": params.Automation.Name,
-		},
-		WebVersion: true,
+		ProvidedData:        providedData,
+		WebVersion:          true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to build template data: %w", err)
@@ -1306,4 +1315,17 @@ func parseWebhookNodeConfig(config map[string]interface{}) (*domain.WebhookNodeC
 	}
 
 	return &c, nil
+}
+
+// triggerEventFromContext returns the trigger event stored in a journey's context, if any.
+// Only an object counts: the enrolment writes one or nothing, so anything else is not ours.
+func triggerEventFromContext(contact *domain.ContactAutomation) (map[string]interface{}, bool) {
+	if contact == nil || contact.Context == nil {
+		return nil, false
+	}
+	trigger, ok := contact.Context["trigger"].(map[string]interface{})
+	if !ok || len(trigger) == 0 {
+		return nil, false
+	}
+	return trigger, true
 }

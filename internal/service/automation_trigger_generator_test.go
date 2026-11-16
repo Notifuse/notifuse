@@ -955,7 +955,14 @@ BEGIN
         'golden1',
         NEW.email,
         'rootnode1',
-        'once'
+        'once',
+        jsonb_build_object(
+            'kind', NEW.kind,
+            'entity_type', NEW.entity_type,
+            'entity_id', NEW.entity_id,
+            'changes', NEW.changes,
+            'occurred_at', NEW.created_at
+        )
     );
     RETURN NEW;
 END;
@@ -1426,4 +1433,102 @@ func TestAutomationTriggerGenerator_LinkClickedWHENClause(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "NEW.kind = 'email.clicked'", result.WHENClause)
 	})
+}
+
+// A custom event's timeline row does not carry its properties, so the trigger reads the event
+// from custom_events by its key and merges it over the timeline fields.
+func TestAutomationTriggerGenerator_CustomEventPassesItsProperties(t *testing.T) {
+	gen := NewAutomationTriggerGenerator(NewQueryBuilder())
+	name := "cart_abandoned"
+
+	result, err := gen.Generate(&domain.Automation{
+		ID:         "cart1",
+		RootNodeID: "root1",
+		Trigger: &domain.TimelineTriggerConfig{
+			EventKind:       "custom_event",
+			CustomEventName: &name,
+			Frequency:       domain.TriggerFrequencyEveryTime,
+		},
+	})
+	require.NoError(t, err)
+
+	body := result.FunctionBody
+	assert.Contains(t, body, "'every_time',\n        jsonb_build_object(")
+	assert.Contains(t, body, "FROM custom_events ce")
+	// "custom_event." is 13 characters: the name starts at the 14th.
+	assert.Contains(t, body, "WHERE ce.event_name = substring(NEW.kind from 14)")
+	assert.Contains(t, body, "AND ce.external_id = NEW.entity_id")
+	assert.Contains(t, body, "'properties', ce.properties")
+	// The event may be gone: the trigger still passes its name and external id.
+	assert.Contains(t, body, "'properties', '{}'::jsonb")
+	// The name is read from the row, never interpolated into the body.
+	assert.NotContains(t, body, "'cart_abandoned'")
+}
+
+// Only a custom event trigger reads custom_events: any other kind passes the timeline row.
+func TestAutomationTriggerGenerator_OtherKindsDoNotReadCustomEvents(t *testing.T) {
+	gen := NewAutomationTriggerGenerator(NewQueryBuilder())
+	listID := "list1"
+
+	for _, kind := range []string{"list.subscribed", "contact.created", "segment.joined", "email.link_clicked"} {
+		trigger := &domain.TimelineTriggerConfig{EventKind: kind, Frequency: domain.TriggerFrequencyOnce}
+		if kind == "list.subscribed" {
+			trigger.ListID = &listID
+		}
+		segmentID := "seg1"
+		if kind == "segment.joined" {
+			trigger.SegmentID = &segmentID
+		}
+		result, err := gen.Generate(&domain.Automation{ID: "a1", RootNodeID: "root1", Trigger: trigger})
+		require.NoErrorf(t, err, kind)
+		assert.NotContainsf(t, result.FunctionBody, "custom_events", kind)
+		assert.Containsf(t, result.FunctionBody, "'changes', NEW.changes", kind)
+	}
+}
+
+// With conditions, the event travels inside the guard, with the enrolment it belongs to.
+func TestAutomationTriggerGenerator_GuardedEnrolmentPassesTheEvent(t *testing.T) {
+	gen := NewAutomationTriggerGenerator(NewQueryBuilder())
+	result, err := gen.Generate(&domain.Automation{
+		ID:         "guarded1",
+		RootNodeID: "root1",
+		Trigger: &domain.TimelineTriggerConfig{
+			EventKind: "contact.created",
+			Frequency: domain.TriggerFrequencyOnce,
+			Conditions: &domain.TreeNode{
+				Kind: "leaf",
+				Leaf: &domain.TreeNodeLeaf{
+					Source: "contacts",
+					Contact: &domain.ContactCondition{
+						Filters: []*domain.DimensionFilter{{FieldName: "country", FieldType: "string", Operator: "equals", StringValues: []string{"US"}}},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	body := result.FunctionBody
+	guardIdx := strings.Index(body, "IF (")
+	payloadIdx := strings.Index(body, "'kind', NEW.kind")
+	endIfIdx := strings.Index(body, "END IF;")
+	require.True(t, guardIdx >= 0 && payloadIdx >= 0 && endIfIdx >= 0)
+	assert.Less(t, guardIdx, payloadIdx)
+	assert.Less(t, payloadIdx, endIfIdx)
+}
+
+// v38 runs before v44 installs the five-argument enrolment: the triggers it regenerates must call
+// the four-argument one, or every write that fires them fails until v44 commits.
+func TestAutomationTriggerGenerator_WithoutTriggerEventCallsTheFourArgumentEnrolment(t *testing.T) {
+	gen := NewAutomationTriggerGenerator(NewQueryBuilder()).WithoutTriggerEvent()
+	name := "cart_abandoned"
+	result, err := gen.Generate(&domain.Automation{
+		ID:         "old1",
+		RootNodeID: "root1",
+		Trigger:    &domain.TimelineTriggerConfig{EventKind: "custom_event", CustomEventName: &name, Frequency: domain.TriggerFrequencyOnce},
+	})
+	require.NoError(t, err)
+	assert.Contains(t, result.FunctionBody, "'root1',\n        'once'\n    );")
+	assert.NotContains(t, result.FunctionBody, "jsonb_build_object")
+	assert.NotContains(t, result.FunctionBody, "custom_events")
 }
