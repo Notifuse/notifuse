@@ -77,8 +77,8 @@ func NewBlogTemplateRenderer() *BlogTemplateRenderer {
 		"assign_score_limit":  BlogMaxAssignScore,
 	})
 
-	// Register any custom filters if needed in the future
-	// env.RegisterFilter(&MyCustomFilters{})
+	// Custom filters, if ever needed, are declared:
+	// env.RegisterFilter(liquid.Filter("name", fn))
 
 	return &BlogTemplateRenderer{
 		env: env,
