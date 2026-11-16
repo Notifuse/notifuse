@@ -6,6 +6,7 @@ import { plural } from '@lingui/core/macro'
 import { useQuery } from '@tanstack/react-query'
 import { CircleMinus, ExternalLink, Eye, Lock, Mail, MoreHorizontal, Plus, Search } from 'lucide-react'
 import { templatesApi, type Template, type TemplateUsageReference } from '../../services/api/template'
+import { templateLanguages } from './templateLanguages'
 import type { Workspace } from '../../services/api/types'
 import { resolveSenderInfo, type SendingProvider } from '../transactional/senderInfo'
 import { TemplatePreviewFrame } from '../broadcasts/detail/TemplatePreviewFrame'
@@ -49,6 +50,8 @@ export interface TemplateSelectorModalProps {
    * sender it gets there. Absent for a filter that sends nothing: no sender is shown.
    */
   sendsWith?: SendingProvider
+  /** A sender that goes before the template's own: a broadcast variant's. */
+  senderOverrideId?: string
   onCancel: () => void
   /** A template, or null for "Any template". */
   onPick: (template: Template | null) => void
@@ -73,6 +76,7 @@ export function TemplateSelectorModal({
   canWrite,
   listStatusNotice,
   sendsWith,
+  senderOverrideId,
   onCancel,
   onPick,
   onNew,
@@ -378,6 +382,7 @@ export function TemplateSelectorModal({
               usageTotal={usage.isSuccess ? summarizeUsage(usage.data.usage?.[previewed.id]).total : 0}
               listStatusNotice={listStatusNotice}
               sendsWith={sendsWith}
+              senderOverrideId={senderOverrideId}
               onUse={() => onPick(previewed)}
               onFullPreview={() => onFullPreview(previewed)}
             />
@@ -536,31 +541,28 @@ function CategoryModels({ workspace, category, onStart }: { workspace: Workspace
   )
 }
 
-/**
- * A template's languages, the workspace's default first: a translation counts once it has content,
- * as the preview can only show those.
- */
-function templateLanguages(template: Template, main: string): string[] {
-  return [
-    main,
-    ...Object.entries(template.translations ?? {})
-      .filter(([code, translation]) => code !== main && (translation.email?.visual_editor_tree || translation.email?.mjml_source))
-      .map(([code]) => code)
-  ]
-}
-
 interface TemplatePaneProps {
   workspace: Workspace
   template: Template
   usageTotal: number
   listStatusNotice?: boolean
   sendsWith?: SendingProvider
+  senderOverrideId?: string
   onUse: () => void
   onFullPreview: () => void
 }
 
 /** The previewed template: its render, desktop or mobile, in each of its languages, and what it needs. */
-function TemplatePane({ workspace, template, usageTotal, listStatusNotice, sendsWith, onUse, onFullPreview }: TemplatePaneProps) {
+function TemplatePane({
+  workspace,
+  template,
+  usageTotal,
+  listStatusNotice,
+  sendsWith,
+  senderOverrideId,
+  onUse,
+  onFullPreview
+}: TemplatePaneProps) {
   const { t, i18n } = useLingui()
   const languageName = useLanguageName()
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
@@ -575,7 +577,7 @@ function TemplatePane({ workspace, template, usageTotal, listStatusNotice, sends
   const compiled = useTemplatePreview(workspace, shown)
   const subject = compiled.data?.subject ?? shown.email?.subject
   const subjectPreview = compiled.data?.subject_preview ?? shown.email?.subject_preview
-  const sender = sendsWith ? resolveSenderInfo(workspace, template, sendsWith).sender : null
+  const sender = sendsWith ? resolveSenderInfo(workspace, template, sendsWith, senderOverrideId).sender : null
   const variables = ownVariablePaths(template.test_data)
   const subscriptionSensitive = template.category === 'marketing' || template.category === 'blog'
   const categoryName = isTemplateCategory(template.category) ? i18n._(TEMPLATE_CATEGORY_LABELS[template.category]) : template.category

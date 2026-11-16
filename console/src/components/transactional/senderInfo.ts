@@ -54,11 +54,19 @@ export function defaultSender(provider: Integration | null): Sender | null {
 export function resolveSenderInfo(
   workspace: Pick<Workspace, 'settings' | 'integrations'>,
   template: Pick<Template, 'email'> | undefined,
-  sendsWith: SendingProvider = 'transactional'
+  sendsWith: SendingProvider = 'transactional',
+  /** A sender the send path sets before the template's own, as a broadcast variant's (ResolveSender). */
+  senderOverrideId?: string
 ): SenderInfo {
   const provider = sendingProvider(workspace, sendsWith)
   const fallback = defaultSender(provider)
   if (!template) return { provider, sender: fallback, providerDefaultOnly: true, replyTo: null }
+  // As ResolveSender: a sender the send path chose is that one or none — the send fails rather
+  // than falling back to the template's or the default.
+  if (senderOverrideId) {
+    const chosen = provider?.email_provider?.senders?.find((sender) => sender.id === senderOverrideId) ?? null
+    return { provider, sender: chosen, providerDefaultOnly: false, replyTo: template.email?.reply_to?.trim() || null }
+  }
   const senderId = template.email?.sender_id
   const chosen = senderId ? provider?.email_provider?.senders?.find((sender) => sender.id === senderId) : undefined
   return {

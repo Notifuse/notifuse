@@ -106,7 +106,11 @@ const orderShipped = {
   channel: 'email',
   category: 'transactional',
   email: { subject: 'Your order {{order.number}} is on its way', sender_id: 'orders', compiled_preview: '' },
-  translations: { fr: { email: { subject: 'Votre commande' } } },
+  translations: {
+    fr: { email: { subject: 'Votre commande', visual_editor_tree: { id: 'root' } } },
+    // A translation started but never written: sends in German fall back to the main language.
+    de: { email: { subject: 'Ihre Bestellung' } }
+  },
   test_data: { order: { number: 'A-1042', carrier: 'Colissimo' }, contact: { first_name: 'Jane' } },
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z'
@@ -398,6 +402,7 @@ describe('UpsertTransactionalNotificationDrawer: creating', () => {
     expect(within(summary).getByText('Your order {{order.number}} is on its way')).toBeInTheDocument()
     expect(within(summary).getByText('Acme Orders · orders@example.com')).toBeInTheDocument()
     expect(within(summary).getByText('English (default), French')).toBeInTheDocument()
+    expect(within(summary).queryByText(/German/)).toBeNull()
     // What every send fills in (contact) is left out
     expect(within(summary).getByText('order.number')).toBeInTheDocument()
     expect(within(summary).getByText('order.carrier')).toBeInTheDocument()

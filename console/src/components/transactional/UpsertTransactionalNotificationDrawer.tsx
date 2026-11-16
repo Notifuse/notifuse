@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { templateLanguages } from '../templates/templateLanguages'
 import { Alert, App, Button, Form, Input, Select, Space } from 'antd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
@@ -292,8 +293,9 @@ function NotificationEditor({ workspace, notification, canReadTemplates, backLab
   const languages = template
     ? [
         ...(defaultLanguage ? [`${languageName(defaultLanguage)} ${t`(default)`}`] : []),
-        ...Object.keys(template.translations ?? {})
-          .filter((code) => code !== defaultLanguage)
+        // Only the translations with content, the rule the template selector shows too.
+        ...templateLanguages(template, defaultLanguage ?? '')
+          .slice(1)
           .map((code) => languageName(code))
       ]
     : []

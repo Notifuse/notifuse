@@ -52,6 +52,8 @@ interface TemplateSelectorInputProps {
    * segment condition, a trigger): the window shows no sender.
    */
   sendsWith?: SendingProvider
+  /** A sender set by the caller that goes before the template's own: a broadcast variant's. */
+  senderOverrideId?: string
 }
 
 // What the editor opened from the window starts from.
@@ -70,7 +72,8 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   anyLabel,
   subtitle,
   listStatusNotice,
-  sendsWith
+  sendsWith,
+  senderOverrideId
 }) => {
   const { t } = useLingui()
   const defaultPlaceholder = placeholder || t`Select a template`
@@ -199,6 +202,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
           canWrite={canWrite}
           listStatusNotice={listStatusNotice}
           sendsWith={sendsWith}
+          senderOverrideId={senderOverrideId}
           onCancel={() => setOpen(false)}
           onPick={choose}
           onNew={() => create({ kind: 'new' })}

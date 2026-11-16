@@ -88,6 +88,15 @@ describe('resolveSenderInfo for a given send path', () => {
     expect(resolveSenderInfo(two, template({}), { integrationId: 'ses' }).provider?.name).toBe('SES')
     expect(resolveSenderInfo(two, template({}), { integrationId: 'gone' }).sender).toBeNull()
   })
+
+  it("puts a sender set by the send path (a broadcast variant's) before the template's", () => {
+    // As EmailProvider.ResolveSender(variationSenderID, templateSenderID).
+    const info = resolveSenderInfo(two, template({ sender_id: 's3' }), 'transactional', 's1')
+    expect(info.sender?.email).toBe('hello@acme.test')
+    // One the provider no longer has gives no sender: the send fails (ErrSenderNotFound), it does
+    // not fall back to the template's sender nor to the provider's default.
+    expect(resolveSenderInfo(two, template({ sender_id: 's3' }), 'transactional', 'gone').sender).toBeNull()
+  })
 })
 
 describe('transactionalProvider', () => {

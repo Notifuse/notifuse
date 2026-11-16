@@ -166,6 +166,7 @@ export function ContentCard({
                       workspaceId={workspace.id}
                       category="marketing"
                       sendsWith="marketing"
+                      senderOverrideId={variant.sender_id || undefined}
                       canReadTemplates={canReadTemplates}
                       placeholder={t`Select template`}
                       subtitle={variants.length > 1 ? t`Template of variant ${letter}` : undefined}

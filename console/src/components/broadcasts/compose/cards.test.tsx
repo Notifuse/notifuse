@@ -20,17 +20,20 @@ vi.mock('../../templates/TemplateSelectorInput', () => ({
     onChange,
     canReadTemplates,
     subtitle,
-    sendsWith
+    sendsWith,
+    senderOverrideId
   }: {
     value?: string | null
     onChange?: (v: string | null) => void
     canReadTemplates?: boolean
     subtitle?: string
     sendsWith?: unknown
+    senderOverrideId?: string
   }) => (
     <select
       aria-label="Template"
       data-sends-with={JSON.stringify(sendsWith ?? null)}
+      data-sender-override={senderOverrideId ?? ''}
       data-can-read-templates={String(canReadTemplates)}
       data-subtitle={subtitle ?? ''}
       value={value ?? ''}
@@ -230,6 +233,12 @@ describe('ContentCard', () => {
   it('tells the template window the broadcast sends with the marketing provider', () => {
     renderCard(base({ variants: [{ variation_name: 'A', template_id: 'tpl-a' }] }))
     expect(screen.getByRole('combobox', { name: 'Template' }).dataset.sendsWith).toBe('"marketing"')
+  })
+
+  // ResolveSender puts a variant's sender before the template's: the window must name that one.
+  it("tells the template window the variant's own sender, when it has one", () => {
+    renderCard(base({ variants: [{ variation_name: 'A', template_id: 'tpl-a', sender_id: 's1' }] }))
+    expect(screen.getByRole('combobox', { name: 'Template' }).dataset.senderOverride).toBe('s1')
   })
 
   it('gives the template window no subtitle for a single variant', () => {
