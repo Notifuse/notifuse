@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  Switch,
   Input,
   Button,
   Space,
@@ -84,27 +83,12 @@ export function RecipientFeedSettings({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <Text strong>{t`Per-Recipient Data Feed`}</Text>
-        <Switch
-          checked={settings.enabled}
-          onChange={(checked) => handleChange('enabled', checked)}
-          disabled={disabled}
-        />
-      </div>
-
       {settings.enabled ? (
         <div className="space-y-4">
-          <Alert
-            description={t`This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically.`}
-            type="info"
-            className="!mb-6"
-          />
-
           <Form.Item
             label={
               <Space size={4}>
-                <span>{t`Per-recipient feed URL`}</span>
+                <span>{t`Feed URL`}</span>
                 <Tooltip title={t`The URL must use HTTPS. A POST request will be sent with contact information for each recipient.`}>
                   <QuestionCircleOutlined className="text-gray-400 cursor-help" />
                 </Tooltip>
@@ -136,6 +120,12 @@ export function RecipientFeedSettings({
               </Tooltip>
             </Space.Compact>
           </Form.Item>
+
+          {/* Under the URL: what calling it for each recipient costs. */}
+          <Alert
+            description={t`This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically.`}
+            type="info"
+          />
 
           <HeadersEditor
             value={settings.headers}
@@ -229,11 +219,7 @@ export function RecipientFeedSettings({
             </div>
           </Modal>
         </div>
-      ) : (
-        <Text type="secondary">
-          {t`Enable to fetch personalized data for each recipient before sending their email. The data will be accessible in your templates using the "recipient_feed" variable.`}
-        </Text>
-      )}
+      ) : null}
     </div>
   )
 }

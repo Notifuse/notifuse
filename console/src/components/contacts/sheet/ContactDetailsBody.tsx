@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Dropdown, Skeleton, Tabs } from 'antd'
 import type { MenuProps } from 'antd'
-import { Copy, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react'
+import { Copy, MoreHorizontal } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import dayjs from '../../../lib/dayjs'
 import { contactsApi, type Contact } from '../../../services/api/contacts'
@@ -73,7 +73,6 @@ export interface ContactDetailsBodyProps {
   segments: Segment[]
   permissions: UserPermissions | null
   onClose: () => void
-  onDelete: (email: string) => void
 }
 
 // The sheet's columns, as whole class strings (Tailwind only generates the classes it finds whole).
@@ -99,8 +98,7 @@ export function ContactDetailsBody({
   lists,
   segments,
   permissions,
-  onClose,
-  onDelete
+  onClose
 }: ContactDetailsBodyProps) {
   const { t } = useLingui()
   const { int } = useNumberFormat()
@@ -128,14 +126,6 @@ export function ContactDetailsBody({
 
   const refreshActivity = () =>
     queryClient.invalidateQueries({ queryKey: ['contact_timeline', workspaceId, email] })
-
-  const refreshAll = () => {
-    contactQuery.refetch()
-    refreshActivity()
-    queryClient.invalidateQueries({ queryKey: ['message_history', workspaceId, email] })
-    queryClient.invalidateQueries({ queryKey: ['contact-message-stats', workspaceId, email] })
-    queryClient.invalidateQueries({ queryKey: ['contact-visits', workspaceId, email] })
-  }
 
   const afterListChange = () => {
     queryClient.invalidateQueries({ queryKey: contactKey(workspaceId, email) })
@@ -204,50 +194,35 @@ export function ContactDetailsBody({
   )
 
   const externalId = contact.external_id
-  // The header holds no action buttons: refreshing, copying and deleting live in « … ».
-  const actions: MenuProps['items'] = [
-    {
-      key: 'refresh',
-      icon: <RefreshCw size={14} aria-hidden="true" />,
-      label: t`Refresh`,
-      disabled: contactQuery.isFetching,
-      onClick: refreshAll
-    },
-    ...(externalId
-      ? [
-          {
-            key: 'external-id',
-            icon: <Copy size={14} aria-hidden="true" />,
-            label: t`Copy external ID`,
-            onClick: async () => {
-              try {
-                await navigator.clipboard.writeText(externalId)
-                message.success(t`External ID copied`)
-              } catch {
-                message.error(t`Could not copy the external ID`)
-              }
+  // Refresh and Delete sit in the drawer bar (ContactSheetTopActions): « … » keeps the copy of the
+  // external ID, and is not shown without one.
+  const actions: MenuProps['items'] = externalId
+    ? [
+        {
+          key: 'external-id',
+          icon: <Copy size={14} aria-hidden="true" />,
+          label: t`Copy external ID`,
+          onClick: async () => {
+            try {
+              await navigator.clipboard.writeText(externalId)
+              message.success(t`External ID copied`)
+            } catch {
+              message.error(t`Could not copy the external ID`)
             }
           }
-        ]
-      : []),
-    ...(canWriteContacts
-      ? [
-          { type: 'divider' as const },
-          {
-            key: 'delete',
-            icon: <Trash2 size={14} aria-hidden="true" />,
-            label: t`Delete contact`,
-            danger: true,
-            onClick: () => onDelete(email)
-          }
-        ]
-      : [])
-  ]
+        }
+      ]
+    : []
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4 rounded-lg border border-line bg-surface px-4 py-3">
-        <div className="flex min-w-0 items-center gap-3">
+      {/* One card, one row: the contact, its KPIs, the menu. Under 900px the KPIs wrap below,
+          the menu staying on the name's row. */}
+      <div
+        data-contact-header
+        className="flex flex-wrap overflow-hidden rounded-lg border border-line bg-surface min-[900px]:flex-nowrap"
+      >
+        <div className="order-1 flex min-w-0 flex-1 items-center gap-3 px-4 py-3 min-[900px]:max-w-[40%] min-[900px]:flex-none">
           <ContactAvatar contact={contact} />
           <div className="flex min-w-0 flex-col gap-0.5">
             <h1 data-unreset className="m-0 truncate text-title font-semibold text-ink">
@@ -258,24 +233,35 @@ export function ContactDetailsBody({
                 <Mono key="email" copy>
                   {contact.email}
                 </Mono>,
-                contact.job_title || null,
-                place || null,
-                t`Added on ${dayjs(contact.created_at).tz(workspaceTimezone).format('ll')}`
+                contact.job_title || null
               ]}
+            />
+            {/* The place and the date on a line of their own. */}
+            <MetaLine
+              items={[place || null, t`Added on ${dayjs(contact.created_at).tz(workspaceTimezone).format('ll')}`]}
             />
           </div>
         </div>
-        <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: actions }}>
-          <Button aria-label={t`More actions`} icon={<MoreHorizontal size={15} aria-hidden="true" />} />
-        </Dropdown>
+        <div
+          data-contact-header-kpis
+          className="order-3 min-w-0 basis-full border-t border-line-soft min-[900px]:order-2 min-[900px]:flex-1 min-[900px]:basis-auto min-[900px]:border-t-0 min-[900px]:border-l"
+        >
+          <ContactKpis
+            workspaceId={workspaceId}
+            email={email}
+            canReadMessages={canReadMessages}
+            canReadVisits={canReadVisits}
+            embedded
+          />
+        </div>
+        {actions.length > 0 ? (
+          <div className="order-2 flex shrink-0 items-center px-3 min-[900px]:order-3">
+            <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: actions }}>
+              <Button aria-label={t`More actions`} icon={<MoreHorizontal size={15} aria-hidden="true" />} />
+            </Dropdown>
+          </div>
+        ) : null}
       </div>
-
-      <ContactKpis
-        workspaceId={workspaceId}
-        email={email}
-        canReadMessages={canReadMessages}
-        canReadVisits={canReadVisits}
-      />
 
       {/* Three columns from 1400px: attributes, activity, memberships. Below, the memberships go
           above the activity; under 900px everything stacks. Without lists or segments to read, two

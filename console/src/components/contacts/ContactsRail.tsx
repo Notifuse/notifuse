@@ -75,7 +75,12 @@ export function ContactsRail({
           title={t`Lists`}
           action={
             permissions?.lists?.write
-              ? { label: t`New list`, icon: <Plus size={14} aria-hidden="true" />, onClick: onCreateList }
+              ? {
+                  label: t`New list`,
+                  icon: <Plus size={14} aria-hidden="true" />,
+                  onClick: onCreateList,
+                  primary: true
+                }
               : undefined
           }
         >
@@ -115,7 +120,8 @@ export function ContactsRail({
               ? {
                   label: t`New segment`,
                   icon: <Plus size={14} aria-hidden="true" />,
-                  onClick: onCreateSegment
+                  onClick: onCreateSegment,
+                  primary: true
                 }
               : undefined
           }

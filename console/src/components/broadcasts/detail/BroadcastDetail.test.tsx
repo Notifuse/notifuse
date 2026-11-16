@@ -18,7 +18,14 @@ vi.mock('../../../services/api/broadcast', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../services/api/broadcast')>()
   return {
     ...actual,
-    broadcastApi: { get: vi.fn(), getTestResults: vi.fn(), delete: vi.fn(), pause: vi.fn(), selectWinner: vi.fn() }
+    broadcastApi: {
+      get: vi.fn(),
+      getTestResults: vi.fn(),
+      delete: vi.fn(),
+      pause: vi.fn(),
+      selectWinner: vi.fn(),
+      unschedule: vi.fn()
+    }
   }
 })
 vi.mock('../../../services/api/client', async () => ({
@@ -253,29 +260,49 @@ describe('BroadcastDetail', () => {
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
   })
 
+  it('asks back to draft or cancel from one Cancel button on a scheduled broadcast not yet sending', async () => {
+    ;(broadcastApi.get as Mock).mockResolvedValue({
+      broadcast: broadcastOf({ status: 'scheduled', started_at: undefined, completed_at: undefined })
+    })
+    ;(broadcastApi.unschedule as Mock).mockResolvedValue({ success: true })
+    renderDetail()
+    // One Cancel button, no Back to draft beside it: it asks which way out, and choosing is the
+    // confirmation. Cancel broadcast stays, the server may still refuse going back to draft.
+    expect(screen.queryByRole('button', { name: 'Back to draft' })).toBeNull()
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel' })
+    expect(cancelButton.className).not.toContain('dangerous')
+    await userEvent.click(cancelButton)
+    expect((await screen.findAllByText('Cancel the scheduled send?')).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /^Cancel broadcast/ })).toBeInTheDocument()
+    expect(broadcastApi.unschedule).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: /^Back to draft/ }))
+    await waitFor(() => expect(broadcastApi.unschedule).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'bc1' }))
+  })
+
+  it('offers Cancel, not Back to draft, on a scheduled broadcast that has started sending', async () => {
+    ;(broadcastApi.get as Mock).mockResolvedValue({
+      broadcast: broadcastOf({ status: 'scheduled', started_at: '2026-11-15T09:00:00Z', completed_at: undefined })
+    })
+    renderDetail()
+    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Back to draft' })).not.toBeInTheDocument()
+  })
+
   it('opens the test modal on the single template', async () => {
     renderDetail()
     await userEvent.click(await screen.findByRole('button', { name: /Send test/ }))
     expect(screen.getByTestId('send-test-modal')).toHaveTextContent('tpl-a')
   })
 
-  it('refreshes the broadcast, its stats, task, test results, variation stats and links', async () => {
-    const { client } = renderDetail()
+  // Refresh stats sits in the drawer's bar (BroadcastsPage), not in this menu.
+  it('does not offer Refresh stats in its menu', async () => {
+    renderDetail()
     await screen.findByText('1,000')
-    const spy = vi.spyOn(client, 'invalidateQueries')
-    await userEvent.click(screen.getByRole('button', { name: 'More actions' }))
-    await userEvent.click(await screen.findByText('Refresh stats'))
-    const keys = spy.mock.calls.map(([filters]) => (filters as { queryKey: unknown[] }).queryKey)
-    expect(keys).toEqual(
-      expect.arrayContaining([
-        ['broadcast', 'ws1', 'bc1'],
-        ['broadcast-stats', 'ws1', 'bc1'],
-        ['task', 'ws1', 'bc1'],
-        ['testResults', 'ws1', 'bc1'],
-        ['broadcast-variation-stats', 'ws1', 'bc1'],
-        ['broadcast-link-stats', 'ws1', 'bc1']
-      ])
-    )
+    const more = screen.queryByRole('button', { name: 'More actions' })
+    if (more) {
+      await userEvent.click(more)
+      expect(screen.queryByText('Refresh stats')).toBeNull()
+    }
   })
 
   it('closes before the delete refreshes the list', async () => {

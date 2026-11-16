@@ -61,7 +61,7 @@ describe('fillBuckets', () => {
     ])
   })
 
-  it('stops at now', () => {
+  it('spans the whole period, the hours still to come empty rather than at 0', () => {
     const buckets = fillBuckets({
       start: dayjs('2026-11-10T08:00:00Z'),
       end: dayjs('2026-11-12T08:00:00Z'),
@@ -72,7 +72,36 @@ describe('fillBuckets', () => {
       measure: 'count_opened',
       now: dayjs('2026-11-10T10:30:00Z')
     })
-    expect(buckets.map((b) => b.key)).toEqual(['2026-11-10T08:00:00Z', '2026-11-10T09:00:00Z', '2026-11-10T10:00:00Z'])
+    expect(buckets).toHaveLength(49)
+    expect(buckets[buckets.length - 1].key).toBe('2026-11-12T08:00:00Z')
+    // 08:00, 09:00 and the hour under way have their value; 11:00 onwards is to come.
+    expect(buckets.slice(0, 4)).toEqual([
+      { key: '2026-11-10T08:00:00Z', value: 0 },
+      { key: '2026-11-10T09:00:00Z', value: 0 },
+      { key: '2026-11-10T10:00:00Z', value: 0 },
+      { key: '2026-11-10T11:00:00Z', value: null }
+    ])
+    expect(buckets.slice(3).every((b) => b.value === null)).toBe(true)
+  })
+
+  it('shows 30 days for a broadcast sent 6 days ago, the days to come empty', () => {
+    const start = dayjs('2026-11-09T08:00:00Z')
+    const buckets = fillBuckets({
+      start,
+      end: start.add(30 * 24, 'hour'),
+      granularity: 'day',
+      timezone: 'UTC',
+      rows: [{ opened_at_day: '2026-11-10T00:00:00Z', count_opened: 7 }],
+      column: 'opened_at_day',
+      measure: 'count_opened',
+      now: dayjs('2026-11-15T12:00:00Z')
+    })
+    expect(buckets).toHaveLength(31)
+    expect(buckets[1]).toEqual({ key: '2026-11-10T00:00:00Z', value: 7 })
+    // Today has its value so far; tomorrow onwards is to come.
+    expect(buckets[6]).toEqual({ key: '2026-11-15T00:00:00Z', value: 0 })
+    expect(buckets[7]).toEqual({ key: '2026-11-16T00:00:00Z', value: null })
+    expect(buckets.filter((b) => b.value !== null)).toHaveLength(7)
   })
 
   it('fills days', () => {

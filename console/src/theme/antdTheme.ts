@@ -145,7 +145,8 @@ export const antdTheme: ThemeConfig = {
     },
     Segmented: {
       itemSelectedBg: c.surface,
-      trackBg: c.line,
+      // A light primary track: the selected item stands out on it in white.
+      trackBg: c.primary[100],
       trackPadding: 2
     },
     Tag: {

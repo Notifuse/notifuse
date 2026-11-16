@@ -177,23 +177,34 @@ export interface BroadcastActionSet {
   pause: boolean
   resume: boolean
   cancel: boolean
+  /** A scheduled broadcast that has not started sending goes back to draft. */
+  unschedule: boolean
   /** Recipients given up on can be queued again. */
   retryFailed: boolean
   delete: boolean
 }
 
 export function availableActions(
-  broadcast: Pick<Broadcast, 'status'>,
+  broadcast: Pick<Broadcast, 'status' | 'started_at'>,
   verdict?: DeliveryVerdict,
   progress?: ProgressStats
 ): BroadcastActionSet {
   const { status } = broadcast
   const sendingNow = status === 'processing' || (status === 'processed' && verdict?.kind === 'sending')
+  // A scheduled broadcast keeps its status while it sends: its start date and its progress
+  // (emails queued, sent or failed) tell them apart. Before it, it can also go back to draft. The
+  // server checks further (its task) and may still refuse: Cancel stays offered on every scheduled
+  // broadcast, so one is never left with only an action the server refuses (nor in demo, where
+  // going back to draft is not allowed).
+  const hasSendProgress =
+    !!progress && (progress.enqueuedCount > 0 || progress.processed > 0 || (progress.inFlight ?? 0) > 0)
+  const scheduledNotStarted = status === 'scheduled' && !broadcast.started_at && !hasSendProgress
   return {
     edit: status === 'draft' || status === 'scheduled',
     pause: sendingNow,
     resume: status === 'paused',
     cancel: sendingNow || status === 'scheduled' || status === 'paused',
+    unschedule: scheduledNotStarted,
     retryFailed:
       (status === 'processed' || status === 'failed') &&
       verdict?.kind === 'completedWithFailures' &&

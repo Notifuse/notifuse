@@ -54,6 +54,8 @@ func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/broadcasts.pause", requireAuth(http.HandlerFunc(h.HandlePause)))
 	mux.Handle("/api/broadcasts.resume", requireAuth(http.HandlerFunc(h.HandleResume)))
 	mux.Handle("/api/broadcasts.cancel", requireAuth(http.HandlerFunc(h.HandleCancel)))
+	// Blocked in demo as schedule is: a demo broadcast sent back to draft could not be scheduled again.
+	mux.Handle("/api/broadcasts.unschedule", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleUnschedule))))
 	mux.Handle("/api/broadcasts.retryFailed", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleRetryFailed))))
 	mux.Handle("/api/broadcasts.sendToIndividual", restrictedInDemo(requireAuth(http.HandlerFunc(h.HandleSendToIndividual))))
 	mux.Handle("/api/broadcasts.delete", requireAuth(http.HandlerFunc(h.HandleDelete)))
@@ -472,6 +474,49 @@ func (h *BroadcastHandler) HandleCancel(w http.ResponseWriter, r *http.Request) 
 		}
 		h.logger.WithField("error", err.Error()).Error("Failed to cancel broadcast")
 		WriteJSONError(w, "Failed to cancel broadcast", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+	})
+}
+
+// HandleUnschedule sends a scheduled broadcast whose sending has not started back to draft.
+// A broadcast that has started sending, or is not scheduled, answers 400 with the reason.
+func (h *BroadcastHandler) HandleUnschedule(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.UnscheduleBroadcastRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.UnscheduleBroadcast(r.Context(), &req); err != nil {
+		if writePermissionError(w, err) {
+			return
+		}
+		var notFound *domain.ErrBroadcastNotFound
+		if errors.As(err, &notFound) {
+			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
+			return
+		}
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
+			return
+		}
+		h.logger.WithField("error", err.Error()).Error("Failed to send the broadcast back to draft")
+		WriteJSONError(w, "Failed to send the broadcast back to draft", http.StatusInternalServerError)
 		return
 	}
 

@@ -2502,3 +2502,31 @@ func TestTaskRepository_ResetBroadcastTaskTx(t *testing.T) {
 		assert.EqualError(t, err, "failed to reset task: connection reset")
 	})
 }
+
+// TestTaskRepository_DeleteBroadcastTasksTx removes every send_broadcast task of the broadcast,
+// within the caller's transaction, and counts them.
+func TestTaskRepository_DeleteBroadcastTasksTx(t *testing.T) {
+	db, mock, repo := setupTaskMock(t)
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	const query = `DELETE FROM tasks WHERE workspace_id = \$1 AND broadcast_id = \$2 AND type = 'send_broadcast'`
+
+	mock.ExpectBegin()
+	mock.ExpectExec(query).WithArgs("ws1", "bc1").WillReturnResult(sqlmock.NewResult(0, 2))
+	tx, err := db.Begin()
+	require.NoError(t, err)
+	deleted, err := repo.DeleteBroadcastTasksTx(ctx, tx, "ws1", "bc1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), deleted)
+
+	// A broadcast without a task is no error: there is nothing left to run.
+	mock.ExpectExec(query).WithArgs("ws1", "bc1").WillReturnResult(sqlmock.NewResult(0, 0))
+	deleted, err = repo.DeleteBroadcastTasksTx(ctx, tx, "ws1", "bc1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), deleted)
+
+	mock.ExpectExec(query).WithArgs("ws1", "bc1").WillReturnError(errors.New("db down"))
+	_, err = repo.DeleteBroadcastTasksTx(ctx, tx, "ws1", "bc1")
+	require.ErrorContains(t, err, "db down")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

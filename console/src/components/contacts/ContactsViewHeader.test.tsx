@@ -18,7 +18,8 @@ vi.mock('./BulkUpdateDrawer', () => ({
 vi.mock('./ContactUpsertDrawer', () => ({ ContactUpsertDrawer: () => <button type="button">New contact</button> }))
 vi.mock('./SegmentProgress', () => ({ SegmentBuildingIndicator: () => <span>Computing</span> }))
 vi.mock('../lists/DeleteListModal', () => ({ DeleteListModal: () => null }))
-vi.mock('../../services/api/segment', () => ({ deleteSegment: vi.fn() }))
+vi.mock('../../services/api/segment', () => ({ deleteSegment: vi.fn(), rebuildSegment: vi.fn() }))
+vi.mock('../segment/button_upsert', () => ({ DrawerSegment: () => null }))
 
 import { ContactsViewHeader, type ContactsViewHeaderProps } from './ContactsViewHeader'
 
@@ -43,10 +44,9 @@ function renderHeader(props: Partial<ContactsViewHeaderProps> = {}) {
           permissions={createFullPermissions()}
           role="member"
           total={1288}
-          columns={[{ key: 'country', title: 'Country', visible: true }]}
-          onColumnVisibilityChange={vi.fn()}
           onExport={vi.fn()}
           onContactCreated={vi.fn()}
+          onEditList={vi.fn()}
           onViewDeleted={vi.fn()}
           {...props}
         />
@@ -106,8 +106,19 @@ describe('ContactsViewHeader', () => {
     expect(badge()).toBeFalsy()
   })
 
-  it('leaves Recompute and Edit segment to the Defined by bar', () => {
+  it('puts Recompute then Edit segment after the menu of a segment view', () => {
     renderHeader({ view: { kind: 'segment', segmentId: 'eu' }, segment })
+    const more = screen.getByRole('button', { name: 'More actions' })
+    const recompute = screen.getByRole('button', { name: /Recompute/ })
+    const edit = screen.getByRole('button', { name: /Edit segment/ })
+    expect(more.compareDocumentPosition(recompute) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(recompute.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('has no Recompute nor Edit segment without segments write', () => {
+    const permissions = createFullPermissions()
+    permissions.segments = { read: true, write: false }
+    renderHeader({ view: { kind: 'segment', segmentId: 'eu' }, segment, permissions })
     expect(screen.queryByRole('button', { name: /Recompute/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /Edit segment/ })).toBeNull()
   })
@@ -115,12 +126,7 @@ describe('ContactsViewHeader', () => {
   it('lists the shared actions, then Delete segment last', async () => {
     renderHeader({ view: { kind: 'segment', segmentId: 'eu' }, segment })
     const menu = await openMenu()
-    expect(itemLabels(menu)).toEqual([
-      'Bulk update (CSV)',
-      'Displayed columns…',
-      'Manage custom fields',
-      'Delete segment'
-    ])
+    expect(itemLabels(menu)).toEqual(['Export', 'Bulk update (CSV)', 'Manage custom fields', 'Delete segment'])
     expect(menu.querySelectorAll('.ant-dropdown-menu-item-divider')).toHaveLength(2)
   })
 
@@ -128,17 +134,17 @@ describe('ContactsViewHeader', () => {
     renderHeader({ view: { kind: 'list', listId: 'news' }, list })
     const menu = await openMenu()
     const labels = itemLabels(menu)
-    expect(labels[0]).toBe('Bulk update (CSV)')
+    expect(labels.slice(0, 2)).toEqual(['Export', 'Bulk update (CSV)'])
     expect(labels[labels.length - 1]).toBe('Delete list')
     fireEvent.click(within(menu).getByText('Bulk update (CSV)'))
     expect(screen.getByTestId('bulk-update')).toBeInTheDocument()
   })
 
-  it('offers only Displayed columns to a member who reads contacts', async () => {
+  it('offers only Export to a member who reads contacts', async () => {
     renderHeader({ permissions: readOnly() })
     expect(screen.queryByRole('button', { name: /Import/ })).toBeNull()
     const menu = await openMenu()
-    expect(itemLabels(menu)).toEqual(['Displayed columns…'])
+    expect(itemLabels(menu)).toEqual(['Export'])
     expect(menu.querySelector('.ant-dropdown-menu-item-divider')).toBeNull()
   })
 
@@ -152,13 +158,55 @@ describe('ContactsViewHeader', () => {
     })
   })
 
-  it('opens the displayed columns in a modal', async () => {
-    renderHeader()
+  it('exports from the menu, not from a header button', async () => {
+    const onExport = vi.fn()
+    renderHeader({ onExport })
+    expect(screen.queryByRole('button', { name: /Export/ })).toBeNull()
     const menu = await openMenu()
-    fireEvent.click(within(menu).getByText('Displayed columns…'))
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText('Displayed columns')).toBeInTheDocument()
-    expect(within(dialog).getByText('Country')).toBeInTheDocument()
+    fireEvent.click(within(menu).getByText('Export'))
+    expect(onExport).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the visibility after the list title, then the ID before the description', () => {
+    renderHeader({
+      view: { kind: 'list', listId: 'news' },
+      list: { ...list, is_public: true, description: 'Monthly news' }
+    })
+    const titleRow = heading().parentElement as HTMLElement
+    expect(within(titleRow).getByText('Public')).toBeInTheDocument()
+    expect(within(titleRow).queryByText('news')).toBeNull()
+    const id = document.querySelector('[data-list-id]') as HTMLElement
+    expect(within(id).getByText('news')).toBeInTheDocument()
+    const description = screen.getByText('Monthly news')
+    expect(id.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Copy' })).toBeNull()
+  })
+
+  it('says Private for a private list', () => {
+    renderHeader({ view: { kind: 'list', listId: 'news' }, list: { ...list, is_public: false } })
+    expect(screen.getByText('Private')).toBeInTheDocument()
+  })
+
+  it('puts Edit list after the menu', () => {
+    const onEditList = vi.fn()
+    renderHeader({ view: { kind: 'list', listId: 'news' }, list, onEditList })
+    const more = screen.getByRole('button', { name: 'More actions' })
+    const edit = screen.getByRole('button', { name: /Edit list/ })
+    expect(more.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(edit)
+    expect(onEditList).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables Edit list without lists write', () => {
+    const permissions = createFullPermissions()
+    permissions.lists = { read: true, write: false }
+    renderHeader({ view: { kind: 'list', listId: 'news' }, list, permissions })
+    expect(screen.getByRole('button', { name: /Edit list/ })).toBeDisabled()
+  })
+
+  it('shows no Edit list outside a list', () => {
+    renderHeader()
+    expect(screen.queryByRole('button', { name: /Edit list/ })).toBeNull()
   })
 
   it('shows no menu and no export without any permission', () => {

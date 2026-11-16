@@ -976,6 +976,25 @@ func (r *CancelBroadcastRequest) Validate() error {
 	return nil
 }
 
+// UnscheduleBroadcastRequest defines the request to send a scheduled broadcast back to draft
+type UnscheduleBroadcastRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	ID          string `json:"id"`
+}
+
+// Validate validates the unschedule broadcast request
+func (r *UnscheduleBroadcastRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+
+	if r.ID == "" {
+		return fmt.Errorf("broadcast id is required")
+	}
+
+	return nil
+}
+
 // DeleteBroadcastRequest defines the request to delete a broadcast
 type DeleteBroadcastRequest struct {
 	WorkspaceID string `json:"workspace_id"`
@@ -1467,6 +1486,9 @@ type BroadcastService interface {
 	// CancelBroadcast cancels a scheduled broadcast
 	CancelBroadcast(ctx context.Context, request *CancelBroadcastRequest) error
 
+	// UnscheduleBroadcast sends a scheduled broadcast whose sending has not started back to draft
+	UnscheduleBroadcast(ctx context.Context, request *UnscheduleBroadcastRequest) error
+
 	// DeleteBroadcast deletes a broadcast
 	DeleteBroadcast(ctx context.Context, request *DeleteBroadcastRequest) error
 
@@ -1532,6 +1554,10 @@ type BroadcastRepository interface {
 	MarkBroadcastStarted(ctx context.Context, workspaceID, broadcastID string, startedAt time.Time) error
 	DeleteBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) error
 	ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params ListBroadcastsParams) (*BroadcastListResponse, error)
+	// HasSendActivityTx reports whether the broadcast has an email in the queue or in the
+	// message history: proof that its sending started, whatever its status and start date
+	// say. A send to one recipient records no broadcast_id, so it does not count.
+	HasSendActivityTx(ctx context.Context, tx *sql.Tx, broadcastID string) (bool, error)
 }
 
 // ErrBroadcastNotFound is an error type for when a broadcast is not found

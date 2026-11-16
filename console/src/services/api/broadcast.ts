@@ -280,6 +280,11 @@ export interface CancelBroadcastRequest {
   id: string
 }
 
+export interface UnscheduleBroadcastRequest {
+  workspace_id: string
+  id: string
+}
+
 export interface SendToIndividualRequest {
   workspace_id: string
   broadcast_id: string
@@ -418,6 +423,14 @@ export const broadcastApi = {
 
   cancel: async (params: CancelBroadcastRequest): Promise<{ success: boolean }> => {
     return api.post<{ success: boolean }>('/api/broadcasts.cancel', params)
+  },
+
+  /**
+   * Sends a scheduled broadcast back to draft, keeping its date. Refused (400) once its sending
+   * has started: it can then only be cancelled.
+   */
+  unschedule: async (params: UnscheduleBroadcastRequest): Promise<{ success: boolean }> => {
+    return api.post<{ success: boolean }>('/api/broadcasts.unschedule', params)
   },
 
   /**

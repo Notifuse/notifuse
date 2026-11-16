@@ -1,4 +1,4 @@
-import { Button, Dropdown, Table, Tooltip } from 'antd'
+import { Button, Dropdown, Popover, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
 import { MoreHorizontal } from 'lucide-react'
@@ -23,21 +23,34 @@ export const CONTACT_COLUMNS_STORAGE_KEY = 'contact_columns_visibility'
 const SHOWN_LISTS = 2
 const SHOWN_SEGMENTS = 1
 
-/** « +2 », with the names it stands for in a tooltip (and to screen readers). */
-function MoreCount({ names }: { names: string[] }) {
+/**
+ * « +2 », with the names it stands for in a tooltip (and to screen readers). `tooltip={false}` when
+ * the whole cell already opens a popover naming them.
+ */
+function MoreCount({ names, tooltip = true }: { names: string[]; tooltip?: boolean }) {
   const { t } = useLingui()
   if (names.length === 0) return null
   const count = names.length
   const joined = names.join(', ')
-  return (
-    <Tooltip title={joined}>
-      <span data-more-count className="shrink-0 text-xs text-ink-3 tabular-nums">
-        <span aria-hidden="true">{t`+${count}`}</span>
-        <span className="sr-only">
-          {plural(count, { one: `and # more: ${joined}`, other: `and # more: ${joined}` })}
-        </span>
+  const badge = (
+    <span data-more-count className="shrink-0 text-xs text-ink-3 tabular-nums">
+      <span aria-hidden="true">{t`+${count}`}</span>
+      <span className="sr-only">
+        {plural(count, { one: `and # more: ${joined}`, other: `and # more: ${joined}` })}
       </span>
-    </Tooltip>
+    </span>
+  )
+  return tooltip ? <Tooltip title={joined}>{badge}</Tooltip> : badge
+}
+
+/** A segment's own colour, chosen by the user: not a theme token. */
+function SegmentDot({ color, className }: { color?: string; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`size-1.5 shrink-0 rounded-full ${className ?? ''}`}
+      style={{ backgroundColor: segmentDotColor(color) }}
+    />
   )
 }
 
@@ -206,41 +219,42 @@ export function ContactsTable({
             Number(b.segment_id === openSegment) - Number(a.segment_id === openSegment) ||
             segmentName(a.segment_id).localeCompare(segmentName(b.segment_id))
         )
+        if (memberships.length === 0) return null
+        const segmentOf = (id: string) => segments.find((s) => s.id === id)
+        // One popover for the whole cell: every segment of the contact, with when it matched.
+        const details = (
+          <div data-segments-popover className="flex max-w-80 flex-col gap-2">
+            {memberships.map((membership) => (
+              <div key={membership.segment_id} className="flex items-start gap-2">
+                <SegmentDot color={segmentOf(membership.segment_id)?.color} className="mt-1.5" />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-ink">{segmentName(membership.segment_id)}</div>
+                  <div className="text-xs text-ink-3">
+                    {t`Matched on:`} {membership.matched_at ? fullDate(membership.matched_at) : t`Unknown date`}
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div className="border-t border-line-soft pt-2 text-xs text-ink-3">
+              {t`Timezone:`} {timezone}
+            </div>
+          </div>
+        )
         return (
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
-            {memberships.slice(0, SHOWN_SEGMENTS).map((membership) => {
-              const segment = segments.find((s) => s.id === membership.segment_id)
-              return (
-                <Tooltip
-                  key={membership.segment_id}
-                  title={
-                    <>
-                      <div className="font-medium">{segment?.name ?? membership.segment_id}</div>
-                      <div>
-                        {t`Matched on:`} {membership.matched_at ? fullDate(membership.matched_at) : t`Unknown date`}
-                      </div>
-                      <div className="text-xs">
-                        {t`Timezone:`} {timezone}
-                      </div>
-                    </>
-                  }
-                >
-                  <span className="flex items-center gap-1 text-sm text-ink-2">
-                    <span
-                      aria-hidden="true"
-                      className="size-1.5 shrink-0 rounded-full"
-                      // The segment's own colour, chosen by the user: not a theme token.
-                      style={{ backgroundColor: segmentDotColor(segment?.color) }}
-                    />
-                    <span className="max-w-40 truncate">{segment?.name ?? membership.segment_id}</span>
-                  </span>
-                </Tooltip>
-              )
-            })}
-            <MoreCount
-              names={memberships.slice(SHOWN_SEGMENTS).map((membership) => segmentName(membership.segment_id))}
-            />
-          </span>
+          <Popover content={details}>
+            <span data-segments-cell className="inline-flex items-center gap-1.5 whitespace-nowrap">
+              {memberships.slice(0, SHOWN_SEGMENTS).map((membership) => (
+                <span key={membership.segment_id} className="flex items-center gap-1 text-sm text-ink-2">
+                  <SegmentDot color={segmentOf(membership.segment_id)?.color} />
+                  <span className="max-w-40 truncate">{segmentName(membership.segment_id)}</span>
+                </span>
+              ))}
+              <MoreCount
+                tooltip={false}
+                names={memberships.slice(SHOWN_SEGMENTS).map((membership) => segmentName(membership.segment_id))}
+              />
+            </span>
+          </Popover>
         )
       }
     },

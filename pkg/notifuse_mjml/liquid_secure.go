@@ -2,12 +2,17 @@ package notifuse_mjml
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"hash/fnv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Notifuse/liquidgo/v5/liquid"
 	"github.com/Notifuse/liquidgo/v5/liquid/tags"
+
+	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
 // Security limits for Liquid template rendering
@@ -33,14 +38,17 @@ type SecureLiquidEngine struct {
 	timeout time.Duration
 	maxSize int
 	env     *liquid.Environment
-	// parsed caches the templates renderCached parses, keyed by their source. It is
-	// only touched by the render goroutine of the engine's current user (an engine is
-	// never shared, and one that fails is dropped), so it needs no lock.
+	// mu guards parsed: an engine is shared by every goroutine that renders.
+	mu sync.Mutex
+	// parsed caches the templates renderCached parses, keyed by their source. A
+	// parsed template is never written by a render (liquid.Template.RenderContext),
+	// so one entry serves concurrent renders.
 	parsed map[string]*liquid.Template
 }
 
 // maxParsedTemplates bounds an engine's parse cache; past it the cache starts over.
-const maxParsedTemplates = 256
+// One shared engine serves every workspace, hence room for many conditions.
+const maxParsedTemplates = 1024
 
 // newSecureLiquidEnv builds a liquidgo environment with the standard tags and the
 // resource limits (output length, work, assigns), shared by every engine constructor.
@@ -101,9 +109,8 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 }
 
 // renderCached is RenderWithTimeout for a template rendered over and over, such as a
-// display condition, which it parses once per engine. Only for a template whose every
-// variable is assigned before it is read: liquidgo keeps a template's assigns from one
-// render to the next.
+// display condition, which it parses once per engine. Each render starts from its own
+// data: liquid.Template.RenderContext keeps nothing of a render in the template.
 func (s *SecureLiquidEngine) renderCached(content string, data map[string]interface{}) (string, error) {
 	return s.render(content, data, true)
 }
@@ -132,7 +139,7 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 
 		var tmpl *liquid.Template
 		if cached {
-			tmpl = s.parsed[content]
+			tmpl = s.cachedTemplate(content)
 		}
 		if tmpl == nil {
 			var err error
@@ -144,23 +151,21 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 				return
 			}
 			if cached {
-				if s.parsed == nil || len(s.parsed) >= maxParsedTemplates {
-					s.parsed = make(map[string]*liquid.Template)
-				}
-				s.parsed[content] = tmpl
+				s.cacheTemplate(content, tmpl)
 			}
 		}
 
 		// The context stops the render at its next node once the timeout is reached,
 		// so a runaway template does not keep its goroutine running.
-		rendered := tmpl.Render(data, &liquid.RenderOptions{Context: ctx})
-		// A render over its limits ends with "Liquid error: Memory limits exceeded" in
-		// its output: it is an error, never the text of an email.
-		if limits := tmpl.ResourceLimits(); limits != nil && limits.Reached() {
-			errorChan <- fmt.Errorf("liquid rendering exceeded its resource limits (output size, work or assigns)")
+		// A Liquid error the render records (a filter given the wrong arguments, a
+		// partial that cannot be read...) would write "Liquid error: ..." in the email:
+		// it fails the render instead, and its message tells the author what to fix.
+		res, err := tmpl.RenderContext(ctx, data, liquid.RaiseErrors())
+		if err != nil {
+			errorChan <- renderError(err, content, s.timeout)
 			return
 		}
-		resultChan <- rendered
+		resultChan <- res.Output
 	}()
 
 	// Wait for result, error, or timeout
@@ -172,6 +177,64 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 	case <-ctx.Done():
 		return "", fmt.Errorf("liquid rendering timeout after %v (possible infinite loop or excessive computation)", s.timeout)
 	}
+}
+
+// renderError is the error of a render of content that could not complete. A Go
+// panic during the render (a bug, never the template's fault) is logged with its
+// stack once per template, and reported to the caller without it.
+func renderError(err error, content string, timeout time.Duration) error {
+	var limit *liquid.MemoryError
+	var canceled *liquid.CanceledError
+	var panicked *liquid.PanicError
+	switch {
+	case errors.As(err, &limit):
+		// it is an error, never the text of an email
+		return fmt.Errorf("liquid rendering exceeded its resource limits (output size, work or assigns)")
+	case errors.As(err, &canceled):
+		return fmt.Errorf("liquid rendering timeout after %v (possible infinite loop or excessive computation)", timeout)
+	case errors.As(err, &panicked):
+		logPanicOnce(content, panicked)
+		return fmt.Errorf("liquid rendering failed: internal error")
+	}
+	return fmt.Errorf("liquid rendering failed: %w", err)
+}
+
+// panicLogger logs the Go panics of renders; loggedPanics holds the templates whose
+// panic it already logged, keyed by a hash of their source.
+var (
+	panicLogger  = logger.NewLogger()
+	loggedPanics sync.Map
+)
+
+// logPanicOnce logs a render's Go panic with its stack, the first time content panics.
+func logPanicOnce(content string, panicked *liquid.PanicError) {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(content))
+	if _, logged := loggedPanics.LoadOrStore(h.Sum64(), true); logged {
+		return
+	}
+	panicLogger.WithFields(map[string]interface{}{
+		"panic":          fmt.Sprint(panicked.Value),
+		"stack":          string(panicked.Stack),
+		"template_sha64": fmt.Sprintf("%016x", h.Sum64()),
+	}).Error("Go panic while rendering a Liquid template")
+}
+
+// cachedTemplate returns the template renderCached parsed for content, if any.
+func (s *SecureLiquidEngine) cachedTemplate(content string) *liquid.Template {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.parsed[content]
+}
+
+// cacheTemplate keeps tmpl for content; past maxParsedTemplates the cache starts over.
+func (s *SecureLiquidEngine) cacheTemplate(content string, tmpl *liquid.Template) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.parsed == nil || len(s.parsed) >= maxParsedTemplates {
+		s.parsed = make(map[string]*liquid.Template)
+	}
+	s.parsed[content] = tmpl
 }
 
 // Render is a convenience method that calls RenderWithTimeout

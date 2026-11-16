@@ -360,6 +360,22 @@ func (r *TaskRepository) Delete(ctx context.Context, workspace, id string) error
 	return nil
 }
 
+// DeleteBroadcastTasksTx removes every send_broadcast task of a broadcast within a
+// transaction. By broadcast rather than by id: nothing stops two tasks for one broadcast, and a
+// broadcast sent back to draft must keep none that could still run.
+func (r *TaskRepository) DeleteBroadcastTasksTx(ctx context.Context, tx *sql.Tx, workspace, broadcastID string) (int64, error) {
+	query := `DELETE FROM tasks WHERE workspace_id = $1 AND broadcast_id = $2 AND type = 'send_broadcast'`
+	result, err := tx.ExecContext(ctx, query, workspace, broadcastID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete the broadcast's tasks: %w", err)
+	}
+	deleted, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	return deleted, nil
+}
+
 // List retrieves tasks with optional filtering
 func (r *TaskRepository) List(ctx context.Context, workspace string, filter domain.TaskFilter) ([]*domain.Task, int, error) {
 	// First, build a query to get the total count

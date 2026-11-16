@@ -17,6 +17,8 @@ import type { UserPermissions } from '../../../services/api/workspace'
 import dayjs from '../../../lib/dayjs'
 import SendTemplateModal from '../../templates/SendTemplateModal'
 import { BroadcastStatusPill } from '../BroadcastStatusPill'
+import { availableActions } from '../broadcastStatus'
+import { useBroadcastActions } from '../useBroadcastActions'
 import { workspaceTimezone } from '../access'
 import { useComposeEstimate } from '../useAudienceEstimates'
 import { getMarketingSenders } from '../variationSender'
@@ -126,6 +128,7 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
   const [leftEditable, setLeftEditable] = useState(false)
 
   const scheduled = broadcast?.status === 'scheduled'
+  const broadcastActions = useBroadcastActions(ws)
   const senderIds = getMarketingSenders(workspace).map((s) => s.id)
   const context = { senderIds }
   const canReadLists = !!permissions?.lists?.read
@@ -371,6 +374,18 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
       : !id
         ? t`Choose a list first`
         : undefined
+  // A scheduled broadcast not yet sending goes back to draft from here too. Its edits are saved or
+  // discarded first: going back to draft reads the broadcast again, which would drop them.
+  const backToDraftButton =
+    broadcast && scheduled && availableActions(broadcast).unschedule ? (
+      <Tooltip title={autosave.dirty ? t`Save or discard your changes first` : undefined}>
+        <span className="inline-flex">
+          <Button disabled={autosave.dirty} onClick={() => broadcastActions.confirm('unschedule', broadcast)}>
+            {t`Back to draft`}
+          </Button>
+        </span>
+      </Tooltip>
+    ) : null
   const mainButton = scheduled ? null : (
     <Tooltip title={mainDisabledReason}>
       <span className="inline-flex">
@@ -407,10 +422,10 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
   const barTitle = (
     <>
       <div className="w-72">
+        {/* Outlined, so it reads as the field it is rather than as the bar's title. */}
         <Input
           aria-label={t`Broadcast name`}
-          variant="borderless"
-          size="small"
+          placeholder={t`Broadcast name`}
           value={values.name}
           onChange={(e) => update((v) => withName(v, e.target.value))}
         />
@@ -432,6 +447,7 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
       topActions={
         <>
           {testButton}
+          {backToDraftButton}
           {mainButton}
         </>
       }
@@ -493,6 +509,8 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
           ) : null}
         </div>
         <aside className="flex shrink-0 flex-col gap-3 min-[1200px]:sticky min-[1200px]:top-14 min-[1200px]:w-aside">
+          {/* The summary first, the preview under it. */}
+          <SendSummary checks={checks} values={values} listName={listName} segmentNames={segmentNames} workspaceId={ws} />
           <PreviewPanel
             workspace={workspace}
             variants={values.variants}
@@ -502,7 +520,6 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
             onPreview={setPreviewIndex}
             canReadTemplates={canReadTemplates}
           />
-          <SendSummary checks={checks} values={values} listName={listName} segmentNames={segmentNames} workspaceId={ws} />
         </aside>
       </div>
       <SendTemplateModal

@@ -466,9 +466,10 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
         <Drawer
           title={t`Edit ${languageName(editorDrawerLang)} translation`}
           size="100%"
+          rootClassName="app-drawer-instant"
           open={!!editorDrawerLang}
           onClose={() => setEditorDrawerLang(null)}
-          className="drawer-no-transition drawer-body-no-padding"
+          className="drawer-body-no-padding"
           keyboard={false}
           mask={{ closable: false }}
           extra={

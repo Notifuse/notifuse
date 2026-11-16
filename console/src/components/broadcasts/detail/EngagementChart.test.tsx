@@ -7,7 +7,18 @@ import { runBroadcastQuery } from '../broadcastQueryClient'
 import type { Broadcast } from '../../../services/api/broadcast'
 
 vi.mock('../broadcastQueryClient', () => ({ runBroadcastQuery: vi.fn() }))
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="chart" /> }))
+// The option of the last render, to read what the chart draws.
+interface DrawnOption {
+  xAxis: { data: string[] }
+  series: { data: (number | null)[]; markLine?: { data: { name: string }[] } }[]
+}
+const drawn = vi.hoisted(() => ({ option: null as DrawnOption | null }))
+vi.mock('echarts-for-react', () => ({
+  default: ({ option }: { option: DrawnOption }) => {
+    drawn.option = option
+    return <div data-testid="chart" />
+  }
+}))
 
 const broadcast = (over: Partial<Broadcast> = {}) =>
   ({ id: 'b1', started_at: '2026-11-10T08:20:00Z', ...over }) as unknown as Broadcast
@@ -22,6 +33,26 @@ const renderChart = (b: Broadcast) =>
 describe('EngagementChart', () => {
   beforeEach(() => {
     vi.mocked(runBroadcastQuery).mockReset().mockResolvedValue({ data: [], meta: { total: 0, query: '', params: [] } })
+  })
+
+  it('draws the whole 30 days of a broadcast sent 6 days ago, with a Now marker and the days to come empty', async () => {
+    const started = new Date(Date.now() - 6 * 24 * 3_600_000).toISOString()
+    renderChart(broadcast({ started_at: started }))
+    await screen.findByTestId('chart')
+    fireEvent.click(screen.getByText('30 d'))
+    await waitFor(() => expect(drawn.option?.xAxis.data).toHaveLength(31))
+    const opens = drawn.option!.series[0].data
+    expect(opens.filter((value) => value !== null)).toHaveLength(7)
+    expect(opens[opens.length - 1]).toBeNull()
+    expect(drawn.option!.series[0].markLine?.data.map((m) => m.name)).toContain('Now')
+  })
+
+  it('has no Now marker once the period is over', async () => {
+    renderChart(broadcast())
+    await screen.findByTestId('chart')
+    await waitFor(() => expect(drawn.option).not.toBeNull())
+    expect(drawn.option!.series[0].markLine?.data.map((m) => m.name)).not.toContain('Now')
+    expect(drawn.option!.series[0].data.every((value) => value !== null)).toBe(true)
   })
 
   it('is hidden before the broadcast started', () => {

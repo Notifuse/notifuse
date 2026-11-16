@@ -83,12 +83,7 @@ export function ContactColumnsSelector(props: ContactColumnsSelectorProps) {
       }}
     >
       <Tooltip title={t`Select columns`} placement="top">
-        <Button
-          size="small"
-          type="text"
-          aria-label={t`Select columns`}
-          icon={<Columns2 size={16} aria-hidden="true" />}
-        />
+        <Button type="text" aria-label={t`Select columns`} icon={<Columns2 size={14} aria-hidden="true" />} />
       </Tooltip>
     </Popover>
   )

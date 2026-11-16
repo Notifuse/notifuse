@@ -12,10 +12,12 @@ export interface ContactKpisProps {
   canReadMessages: boolean
   /** Web analytics is enabled in the workspace and the member has web_analytics.read. */
   canReadVisits: boolean
+  /** Neither border nor shadow: the strip sits inside the contact's header card. */
+  embedded?: boolean
 }
 
 /** Emails received, open and click rates, last activity and site visits of a contact. */
-export function ContactKpis({ workspaceId, email, canReadMessages, canReadVisits }: ContactKpisProps) {
+export function ContactKpis({ workspaceId, email, canReadMessages, canReadVisits, embedded }: ContactKpisProps) {
   const { t, i18n } = useLingui()
   const { int, percent } = useNumberFormat()
   const stats = useContactMessageStats(workspaceId, email, canReadMessages)
@@ -76,5 +78,5 @@ export function ContactKpis({ workspaceId, email, canReadMessages, canReadVisits
 
   const loading =
     (canReadMessages && stats.isLoading) || timeline.isLoading || (canReadVisits && visits.isLoading)
-  return <KpiStrip items={items} loading={loading} />
+  return <KpiStrip items={items} loading={loading} embedded={embedded} />
 }

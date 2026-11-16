@@ -8,7 +8,8 @@ const HOUR_MS = 3_600_000
 export interface Bucket {
   /** The local hour or day of the workspace timezone, written as the server writes it: `…Z`. */
   key: string
-  value: number
+  /** Null for a bucket still to come: the axis spans the whole period, and the future stays empty. */
+  value: number | null
 }
 
 /**
@@ -31,8 +32,9 @@ export function serverBucketKey(value: unknown, granularity: EngagementGranulari
 }
 
 /**
- * Every bucket from the one of `start` to the one of `end` (bounded by now), with the server's
- * value or 0. On a daylight-saving change an hour that does not exist locally has no bucket, and
+ * Every bucket from the one of `start` to the one of `end`, with the server's value or 0, and null
+ * for the buckets that start after now: « 30 d » of a broadcast sent 6 days ago shows its 30 days,
+ * the last 24 empty rather than at 0. On a daylight-saving change an hour that does not exist locally has no bucket, and
  * an hour that occurs twice is one bucket, as the server groups it.
  */
 export function fillBuckets({
@@ -61,14 +63,16 @@ export function fillBuckets({
     if (key) values.set(key, (values.get(key) ?? 0) + toNumber(row[measure]))
   }
 
-  const last = (end.isAfter(now) ? now : end).valueOf()
-  const keys: string[] = []
+  const last = end.valueOf()
+  const nowMs = now.valueOf()
+  const buckets: { key: string; future: boolean }[] = []
   const seen = new Set<string>()
   const push = (instant: Dayjs) => {
     const key = bucketKey(instant, granularity, timezone)
     if (!seen.has(key)) {
       seen.add(key)
-      keys.push(key)
+      // The bucket under way (this hour, today) has its value so far; only later ones are empty.
+      buckets.push({ key, future: instant.valueOf() > nowMs })
     }
   }
   if (granularity === 'hour') {
@@ -81,5 +85,5 @@ export function fillBuckets({
       day = dayjs.utc(day).add(1, 'day').format('YYYY-MM-DD')
     }
   }
-  return keys.map((key) => ({ key, value: values.get(key) ?? 0 }))
+  return buckets.map(({ key, future }) => ({ key, value: future ? null : (values.get(key) ?? 0) }))
 }

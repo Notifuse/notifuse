@@ -117,7 +117,8 @@ func TestBroadcastService_UpdateBroadcast_VariationSender(t *testing.T) {
 		f := newSenderFixture()
 		ctx := context.Background()
 		authOK(d.authService, ctx, "w1")
-		d.repo.EXPECT().GetBroadcast(ctx, "w1", "b1").Return(testBroadcast("w1", "b1"), nil)
+		runsInTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(testBroadcast("w1", "b1"), nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
 
 		var req domain.UpdateBroadcastRequest
@@ -136,9 +137,10 @@ func TestBroadcastService_UpdateBroadcast_VariationSender(t *testing.T) {
 		stored := testBroadcast("w1", "b1")
 		stored.Status = domain.BroadcastStatusPaused
 		stored.TestSettings.Variations[0].SenderID = "sender-since-deleted"
-		d.repo.EXPECT().GetBroadcast(ctx, "w1", "b1").Return(stored, nil)
+		runsInTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(stored, nil)
 		d.workspaceRepo.EXPECT().GetByID(gomock.Any(), "w1").Return(f.workspace, nil)
-		d.repo.EXPECT().UpdateBroadcast(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *sql.Tx, b *domain.Broadcast) error {
 			assert.Equal(t, f.promos.ID, b.TestSettings.Variations[0].SenderID)
 			assert.Equal(t, domain.BroadcastStatusPaused, b.Status)
 			return nil
@@ -158,8 +160,9 @@ func TestBroadcastService_UpdateBroadcast_VariationSender(t *testing.T) {
 		authOK(d.authService, ctx, "w1")
 		stored := testBroadcast("w1", "b1")
 		stored.TestSettings.Variations[0].SenderID = "sender-since-deleted"
-		d.repo.EXPECT().GetBroadcast(ctx, "w1", "b1").Return(stored, nil)
-		d.repo.EXPECT().UpdateBroadcast(ctx, gomock.Any()).Return(nil)
+		runsInTx(d, "w1")
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(stored, nil)
+		d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 		var req domain.UpdateBroadcastRequest
 		require.NoError(t, json.Unmarshal([]byte(`{"workspace_id":"w1","id":"b1","name":"Renamed"}`), &req))
