@@ -244,7 +244,6 @@ export function AutomationsPage() {
                 <div className="w-64">
                   <Input
                     allowClear
-                    size="small"
                     aria-label={t`Search by name or trigger`}
                     placeholder={t`Search by name or trigger`}
                     prefix={<Search size={14} aria-hidden="true" />}

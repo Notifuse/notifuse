@@ -66,6 +66,30 @@ describe('resolveSenderInfo', () => {
   })
 })
 
+describe('resolveSenderInfo for a given send path', () => {
+  const two = {
+    settings: { transactional_email_provider_id: 'postmark', marketing_email_provider_id: 'ses' },
+    integrations: [
+      { id: 'postmark', name: 'Postmark', type: 'email', email_provider: { kind: 'postmark', senders } },
+      {
+        id: 'ses',
+        name: 'SES',
+        type: 'email',
+        email_provider: { kind: 'ses', senders: [{ id: 'm1', email: 'news@acme.test', name: 'News', is_default: true }] }
+      }
+    ]
+  } as unknown as Workspace
+
+  it('uses the provider of the send path, and looks for the template sender in it alone', () => {
+    // s3 belongs to the transactional provider: a marketing send falls back to its own default.
+    expect(resolveSenderInfo(two, template({ sender_id: 's3' }), 'marketing').sender?.email).toBe('news@acme.test')
+    expect(resolveSenderInfo(two, template({ sender_id: 's3' }), 'transactional').sender?.email).toBe('billing@acme.test')
+    expect(resolveSenderInfo(two, template({ sender_id: 's3' })).sender?.email).toBe('billing@acme.test')
+    expect(resolveSenderInfo(two, template({}), { integrationId: 'ses' }).provider?.name).toBe('SES')
+    expect(resolveSenderInfo(two, template({}), { integrationId: 'gone' }).sender).toBeNull()
+  })
+})
+
 describe('transactionalProvider', () => {
   it('is the integration the settings name', () => {
     expect(transactionalProvider(workspace('postmark'))?.name).toBe('Postmark')

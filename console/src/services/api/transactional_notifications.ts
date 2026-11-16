@@ -53,6 +53,12 @@ export interface EmailOptions {
   attachments?: Attachment[]
 }
 
+/**
+ * Tracking settings as a request writes them: `enable_tracking` may be left out, the server works it
+ * out for each send from the workspace, the contact and the tracking mode.
+ */
+export type TrackingSettingsInput = Omit<TrackingSettings, 'enable_tracking'> & { enable_tracking?: boolean }
+
 export interface CreateTransactionalNotificationRequest {
   workspace_id: string
   notification: {
@@ -60,7 +66,7 @@ export interface CreateTransactionalNotificationRequest {
     name: string
     description?: string
     channels: ChannelTemplates
-    tracking_settings: TrackingSettings
+    tracking_settings: TrackingSettingsInput
     metadata?: Record<string, unknown>
   }
 }
@@ -70,9 +76,10 @@ export interface UpdateTransactionalNotificationRequest {
   id: string
   updates: {
     name?: string
+    // An empty string clears it; leaving it out keeps it.
     description?: string
     channels?: ChannelTemplates
-    tracking_settings?: TrackingSettings
+    tracking_settings?: TrackingSettingsInput
     metadata?: Record<string, unknown>
   }
 }

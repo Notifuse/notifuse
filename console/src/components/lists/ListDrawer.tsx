@@ -283,7 +283,10 @@ export function CreateListDrawer({
                   <TemplateSelectorInput
                     workspaceId={workspaceId}
                     category="opt_in"
+                    // The confirmation goes out through the marketing provider (list_service.go).
+                    sendsWith="marketing"
                     placeholder={t`Select confirmation email template`}
+                    subtitle={t`The confirmation email each new subscriber receives`}
                     clearable={false}
                     canReadTemplates={canReadTemplates}
                   />

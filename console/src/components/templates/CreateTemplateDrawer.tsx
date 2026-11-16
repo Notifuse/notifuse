@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { buildDefaultTestData } from './defaultTestData'
 import { useLingui } from '@lingui/react/macro'
-import { Button, Form, Input, App, Dropdown, MenuProps } from 'antd'
+import { Button, Form, Input, App, Dropdown, MenuProps, Spin } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { templatesApi, type CreateTemplateRequest, type UpdateTemplateRequest } from '../../services/api/template'
 import { ApiError } from '../../services/api/client'
@@ -51,7 +51,8 @@ import { useWorkspacePermissions } from '../../contexts/AuthContext'
 import { TemplateStartModal } from './TemplateStartModal'
 import { MODEL_LABELS } from './gallery/labels'
 import { useLanguageName } from './useLanguageName'
-import { galleryAssets, withBrand, type GalleryStart } from './gallery/buildStartingPoint'
+import { withBrand, type GalleryStart } from './gallery/buildStartingPoint'
+import { useGalleryAssets, useGalleryModels } from './gallery/useGalleryModels'
 import { useLogoWidth } from './gallery/logoWidth'
 import { GALLERY_CONTENT } from './gallery/content'
 import { galleryModel } from './gallery/models'
@@ -68,7 +69,11 @@ interface CreateTemplateDrawerProps {
   fromTemplate?: Template
   buttonProps?: Record<string, unknown>
   buttonContent?: React.ReactNode
-  onClose?: () => void
+  /**
+   * Called when the drawer closes, with the template saved while it was open (the last revision),
+   * or nothing when it closes without a save (cancelled in the gallery, or discarded).
+   */
+  onClose?: (saved?: Template) => void
   forceCategory?: string
   // The member may rename, replace, duplicate and delete saved blocks from the editor's library
   canManageSavedBlocks?: boolean
@@ -82,6 +87,10 @@ interface CreateTemplateDrawerProps {
   initialTestData?: Record<string, unknown>
   /** A new template only: its name, from which its ID is derived. */
   initialName?: string
+  /** A new template only: the gallery model it starts from, the gallery itself skipped. */
+  startModelId?: string
+  /** A new template only: the message of a save that closes the drawer, instead of the default. */
+  successMessage?: string
 }
 
 // The fields of the Settings step: an error on one of them opens that step.
@@ -150,7 +159,9 @@ export function CreateTemplateDrawer({
   open,
   initialTree,
   initialTestData,
-  initialName
+  initialName,
+  startModelId: initialModelId,
+  successMessage
 }: CreateTemplateDrawerProps) {
   const { t, i18n } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
@@ -175,6 +186,8 @@ export function CreateTemplateDrawer({
   }
   // The last saved revision when the drawer stays open after a save (Save and send a test).
   const [savedTemplate, setSavedTemplate] = useState<Template | undefined>(template)
+  // The last revision saved since the drawer opened, handed to onClose.
+  const savedSinceOpenRef = useRef<Template | undefined>(undefined)
   const [testTemplate, setTestTemplate] = useState<Template | null>(null)
   // Set by "Save and send": the save opens the test send instead of closing the drawer.
   const sendAfterSaveRef = useRef(false)
@@ -192,15 +205,15 @@ export function CreateTemplateDrawer({
   const [startModelId, setStartModelId] = useState<string | undefined>()
   // A pick is applied once: a second click while the first looks up a free ID is ignored.
   const pickingRef = useRef(false)
+  // Each close starts a new round: a pick still being prepared from an earlier one applies nothing.
+  const startRoundRef = useRef(0)
+  // A model given before opening is being built: the drawer is open on a loading state.
+  const [preparing, setPreparing] = useState(false)
   // The gallery's images, served by this instance's console.
-  // In production the instance serves the console, so the API endpoint (the address recipients
-  // reach) serves the images. The dev server serves them itself: the API does not have them.
-  const assets = useMemo(
-    () => galleryAssets(import.meta.env.DEV ? window.location.origin : window.API_ENDPOINT || window.location.origin),
-    []
-  )
+  const assets = useGalleryAssets()
   // Blank, in the workspace's language: the content a template without one starts from.
   const logoWidth = useLogoWidth(workspace.settings.logo_url || undefined)
+  const initialModel = initialModelId ? galleryModel(initialModelId) : undefined
   const createDefaultBlocks = (): EmailBlock =>
     galleryModel('blank')!.build(
       withBrand(GALLERY_CONTENT[resolveGalleryLanguage(workspace.settings.default_language)], workspace.name),
@@ -331,8 +344,11 @@ export function CreateTemplateDrawer({
       // Advance the base to the just-saved revision so a subsequent save isn't a false conflict.
       baseVersionRef.current = response.template.version
       markClean()
+      savedSinceOpenRef.current = response.template
       message.success(
-        template ? t`Template updated successfully` : t`Template created successfully`
+        template
+          ? t`Template updated successfully`
+          : (!sendAfterSaveRef.current && successMessage) || t`Template created successfully`
       )
       if (sendAfterSaveRef.current) {
         // Save and send a test: the drawer stays open on the new revision, and the test
@@ -402,6 +418,8 @@ export function CreateTemplateDrawer({
       ),
     [workspace.settings.custom_endpoint_url, workspace.id]
   )
+  // A model chosen before the drawer opened (startModelId), built as the gallery builds it.
+  const gallery = useGalleryModels(workspace, assets, defaultTestData)
 
   const loadTranslations = (translations?: Record<string, TemplateTranslation>) => {
     if (!translations) return
@@ -566,6 +584,17 @@ export function CreateTemplateDrawer({
       void freshenFromServer()
     } else if (fromTemplate) {
       seedFromTemplate(fromTemplate)
+    } else if (initialModel) {
+      // A model chosen before the drawer: it opens at once on a loading state, then on that model
+      // as a pick in the gallery would, once the logo's size and a free ID are known. Closed
+      // before then, nothing opens later.
+      const round = startRoundRef.current
+      setPreparing(true)
+      setIsOpen(true)
+      void gallery.start(initialModel).then((start) => {
+        if (round === startRoundRef.current) void pickModel(start)
+      })
+      return
     } else if (!initialTree) {
       // A new template starts from a choice: the drawer opens once it is made.
       setStartModalOpen(true)
@@ -609,6 +638,7 @@ export function CreateTemplateDrawer({
   }
 
   const openAfterStart = () => {
+    setPreparing(false)
     setStartModalOpen(false)
     markClean()
     setTab('settings')
@@ -627,15 +657,19 @@ export function CreateTemplateDrawer({
   }
 
   const applyModel = async (start: GalleryStart) => {
+    const round = startRoundRef.current
+    // Blank leaves the name, subject and preview text to write, as a new template always did.
+    const blank = start.modelId === 'blank'
+    const id = blank ? undefined : await freeTemplateId(templateIdFromName(start.name))
+    // Closed while the ID was looked up: the pick is dropped.
+    if (round !== startRoundRef.current) return
     setCloneSource(undefined)
     setEditorMode('visual')
     setMjmlSource(STARTER_TEMPLATE)
     setEmailText(undefined)
-    // Blank leaves the name, subject and preview text to write, as a new template always did.
-    const blank = start.modelId === 'blank'
     form.setFieldsValue({
       name: blank ? undefined : start.name,
-      id: blank ? undefined : await freeTemplateId(templateIdFromName(start.name)),
+      id,
       category: forceCategory || start.category,
       // A model sets no sender: one left by an earlier choice is not carried over.
       email: {
@@ -692,6 +726,8 @@ export function CreateTemplateDrawer({
   }
 
   const handleClose = (notify = true) => {
+    startRoundRef.current++
+    setPreparing(false)
     setIsOpen(false)
     markClean()
     setStepsWithErrors([])
@@ -707,8 +743,10 @@ export function CreateTemplateDrawer({
     setSavedTemplate(template)
     textSessionRef.current++
     setTextSession(textSessionRef.current)
+    const saved = savedSinceOpenRef.current
+    savedSinceOpenRef.current = undefined
     if (notify && onClose) {
-      onClose()
+      onClose(saved)
     }
   }
 
@@ -931,30 +969,41 @@ export function CreateTemplateDrawer({
             />
           }
           barCenter={
-            <TemplateStepSwitch
-              step={tab}
-              onChange={setTab}
-              showTranslations={showTranslationsTab}
-              translationCount={
-                Object.values(translationsState).filter((state) => state.enabled).length
-              }
-              stepsWithErrors={stepsWithErrors}
-            />
+            preparing ? undefined : (
+              <TemplateStepSwitch
+                step={tab}
+                onChange={setTab}
+                showTranslations={showTranslationsTab}
+                translationCount={
+                  Object.values(translationsState).filter((state) => state.enabled).length
+                }
+                stepsWithErrors={stepsWithErrors}
+              />
+            )
           }
           topActions={
-            <TemplateBarActions
-              version={savedVersion}
-              saving={loading || createTemplateMutation.isPending}
-              onSave={() => form.submit()}
-              testDisabledReason={testDisabledReason}
-              onSendTest={sendTest}
-            />
+            preparing ? undefined : (
+              <TemplateBarActions
+                version={savedVersion}
+                saving={loading || createTemplateMutation.isPending}
+                onSave={() => form.submit()}
+                testDisabledReason={testDisabledReason}
+                onSendTest={sendTest}
+              />
+            )
           }
         >
+          {/* A model given before opening is still being built: nothing to edit or save yet. */}
+          {preparing ? (
+            <div data-testid="template-preparing" className="flex flex-1 items-center justify-center gap-2 text-sm text-ink-3">
+              <Spin size="small" />
+              <span>{t`Loading...`}</span>
+            </div>
+          ) : null}
           <Form
             form={form}
             layout="vertical"
-            className="flex min-h-0 min-w-0 flex-1 flex-col"
+            className={preparing ? 'hidden' : 'flex min-h-0 min-w-0 flex-1 flex-col'}
             onValuesChange={() => {
               markDirty()
             }}

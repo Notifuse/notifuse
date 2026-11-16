@@ -73,6 +73,30 @@ describe('RailSection', () => {
     fireEvent.mouseEnter(button)
     expect(await screen.findByRole('tooltip')).toHaveTextContent('New list')
   })
+
+  it('disables its action with the reason as tooltip', async () => {
+    const onClick = vi.fn()
+    render(
+      <RailSection
+        title="Folders"
+        action={{
+          label: 'New folder',
+          icon: <span>+</span>,
+          onClick,
+          primary: true,
+          disabledReason: 'New folder (Read-only mode)'
+        }}
+      >
+        <span>child</span>
+      </RailSection>
+    )
+    const button = screen.getByRole('button', { name: 'New folder' })
+    expect(button).toBeDisabled()
+    fireEvent.click(button)
+    expect(onClick).not.toHaveBeenCalled()
+    fireEvent.mouseEnter(button.parentElement as HTMLElement)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('New folder (Read-only mode)')
+  })
 })
 
 describe('RailItem', () => {
@@ -122,6 +146,25 @@ describe('RailItem', () => {
     expect(document.querySelector('[data-rail-item]')!.className).not.toMatch(/focus-within/)
   })
 
+  it('puts its leading controls before the main element, never inside it', () => {
+    const onToggle = vi.fn()
+    const onClick = vi.fn()
+    render(
+      <RailItem
+        label="docs"
+        onClick={onClick}
+        leading={<button aria-label="Expand docs" onClick={onToggle} />}
+      />
+    )
+    const main = screen.getByRole('button', { name: 'docs' })
+    const expand = screen.getByRole('button', { name: 'Expand docs' })
+    expect(main.contains(expand)).toBe(false)
+    expect(expand.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(expand)
+    expect(onToggle).toHaveBeenCalled()
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
   it('always shows a trailing indicator', () => {
     render(<RailItem label="News" onClick={() => {}} trailing={<span>!</span>} />)
     expect(screen.getByText('!').parentElement!.className).not.toMatch(/opacity-0/)
@@ -151,5 +194,19 @@ describe('RailCard', () => {
     const nav = screen.getByRole('navigation', { name: 'Blog' })
     expect(nav).toHaveAttribute('data-rail-card')
     expect(nav).toHaveTextContent('All posts')
+  })
+
+  it('puts its footer at the bottom of the card, after the rail', () => {
+    render(
+      <RailCard ariaLabel="Folders" footer={<span>media · 2 MB</span>}>
+        <span>Root</span>
+      </RailCard>
+    )
+    const nav = screen.getByRole('navigation', { name: 'Folders' })
+    const footer = screen.getByText('media · 2 MB')
+    expect(nav.contains(footer)).toBe(true)
+    expect(
+      screen.getByText('Root').compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
   })
 })

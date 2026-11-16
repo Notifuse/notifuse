@@ -45,6 +45,8 @@ export function RailLayout({ title, ariaLabel, rail, footer, children }: RailLay
 export interface RailCardProps {
   /** Accessible name of the rail's navigation landmark. */
   ariaLabel: string
+  /** Under a rule at the bottom of the card (the storage used by the file manager). */
+  footer?: ReactNode
   children: ReactNode
 }
 
@@ -53,7 +55,7 @@ export interface RailCardProps {
  * only as tall as its content, instead of RailLayout's full-height column. The page header spans the
  * width above both.
  */
-export function RailCard({ ariaLabel, children }: RailCardProps) {
+export function RailCard({ ariaLabel, footer, children }: RailCardProps) {
   return (
     <nav
       aria-label={ariaLabel}
@@ -61,6 +63,12 @@ export function RailCard({ ariaLabel, children }: RailCardProps) {
       className="w-rail shrink-0 self-start rounded-lg border border-line bg-surface px-2 py-3 shadow-card"
     >
       {children}
+      {footer ? (
+        // Across the card's padding, as RailLayout's footer spans its column.
+        <div className="-mx-2 mt-3 -mb-3 border-t border-line-soft px-4 py-2.5 text-xs text-ink-3">
+          {footer}
+        </div>
+      ) : null}
     </nav>
   )
 }
@@ -69,9 +77,16 @@ export interface RailSectionProps {
   title?: ReactNode
   /**
    * An icon button beside the title ("+" of a list); its label is its accessible name. `primary`
-   * draws it as an antd primary ghost button instead of a plain icon.
+   * draws it as an antd primary ghost button instead of a plain icon. `disabledReason` disables it
+   * and becomes its tooltip (a read-only workspace).
    */
-  action?: { label: string; icon: ReactNode; onClick: () => void; primary?: boolean }
+  action?: {
+    label: string
+    icon: ReactNode
+    onClick: () => void
+    primary?: boolean
+    disabledReason?: string
+  }
   children: ReactNode
 }
 
@@ -83,23 +98,28 @@ export function RailSection({ title, action, children }: RailSectionProps) {
         <div data-rail-section-head className="flex items-center justify-between px-2 pt-4 pb-1">
           <span className="text-overline font-semibold uppercase tracking-[0.06em] text-ink-3">{title}</span>
           {action?.primary ? (
-            <Tooltip title={action.label}>
-              <Button
-                type="primary"
-                ghost
-                size="small"
-                aria-label={action.label}
-                icon={action.icon}
-                onClick={action.onClick}
-              />
+            <Tooltip title={action.disabledReason ?? action.label}>
+              {/* A disabled button gets no pointer events: the tooltip listens on its wrapper */}
+              <span className="inline-flex">
+                <Button
+                  type="primary"
+                  ghost
+                  size="small"
+                  aria-label={action.label}
+                  icon={action.icon}
+                  disabled={action.disabledReason !== undefined}
+                  onClick={action.onClick}
+                />
+              </span>
             </Tooltip>
           ) : action ? (
-            <Tooltip title={action.label}>
+            <Tooltip title={action.disabledReason ?? action.label}>
               <button
                 type="button"
                 aria-label={action.label}
+                disabled={action.disabledReason !== undefined}
                 onClick={action.onClick}
-                className="flex size-5 cursor-pointer items-center justify-center rounded-sm text-ink-3 hover:bg-fill hover:text-ink focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none"
+                className="flex size-5 cursor-pointer items-center justify-center rounded-sm text-ink-3 hover:bg-fill hover:text-ink focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-ink-4 disabled:hover:bg-transparent"
               >
                 {action.icon}
               </button>
@@ -127,6 +147,8 @@ export interface RailItemProps extends Partial<RailLink> {
   trailing?: ReactNode
   /** `actions` appear on hover and focus; an `indicator` (default) always shows. */
   trailingMode?: 'actions' | 'indicator'
+  /** Before the item, outside its link or button: a tree's indentation and expand chevron. */
+  leading?: ReactNode
 }
 
 const DEPTH = { 0: 'pl-2', 1: 'pl-5.5', 2: 'pl-9' } as const
@@ -142,6 +164,7 @@ export function RailItem({
   depth = 0,
   trailing,
   trailingMode = 'indicator',
+  leading,
   to,
   params,
   search
@@ -180,6 +203,7 @@ export function RailItem({
         active ? 'bg-primary-100' : 'hover:bg-fill'
       }`}
     >
+      {leading ? <span className="flex shrink-0 items-center self-stretch">{leading}</span> : null}
       {to ? (
         <Link
           to={to}

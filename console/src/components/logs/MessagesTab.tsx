@@ -500,7 +500,7 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
           {shownEntities.map(entityChip)}
           {addable.length > 0 ? <FilterChip label={t`+ Filter`} dashed menu={addMenu} /> : null}
           {filterCount >= 2 ? (
-            <Button type="link" size="small" onClick={clearFilters}>
+            <Button type="link" onClick={clearFilters}>
               {t`Clear all`}
             </Button>
           ) : null}
@@ -522,7 +522,6 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
           <Tooltip title={t`Refresh`}>
             <Button
               type="text"
-              size="small"
               aria-label={t`Refresh`}
               icon={<RefreshCw size={14} />}
               onClick={refresh}

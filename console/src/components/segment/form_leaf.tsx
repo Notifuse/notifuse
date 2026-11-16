@@ -426,6 +426,8 @@ export const LeafActionForm = (props: LeafFormProps) => {
                       <TemplateSelectorInput
                         workspaceId={props.workspaceId}
                         placeholder={t`Any template`}
+                        anyLabel={t`Any template`}
+                        subtitle={t`The template of the emails this condition counts`}
                         clearable={true}
                         size="small"
                         canReadTemplates={props.canReadTemplates}

@@ -322,7 +322,6 @@ export function TransactionalNotificationsPage() {
   ) : null
   const periodSwitch = (
     <Segmented<TransactionalPeriod>
-      size="small"
       value={period}
       options={PERIODS.map((value) => ({
         value,
@@ -454,6 +453,8 @@ export function TransactionalNotificationsPage() {
           workspace={workspace}
           notification={overlay.notification}
           canReadTemplates={Boolean(permissions?.templates?.read)}
+          // Back to the sheet it was opened from, else to the list.
+          backLabel={search.notification === overlay.notification.id ? overlay.notification.name : undefined}
           onClose={closeOverlay}
         />
       ) : null}

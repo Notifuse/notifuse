@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { App, Button, Segmented } from 'antd'
 import { Highlight, themes } from 'prism-react-renderer'
 import { useLingui } from '@lingui/react/macro'
@@ -24,10 +24,12 @@ interface ApiCallPanelProps {
   workspaceId: string
   /** Opens the API command drawer with every language. */
   onOpenAll: () => void
+  /** Beside the buttons: why the call would not work yet. */
+  note?: ReactNode
 }
 
 /** The call that sends the notification, in three languages. */
-export function ApiCallPanel({ notification, workspaceId, onOpenAll }: ApiCallPanelProps) {
+export function ApiCallPanel({ notification, workspaceId, onOpenAll, note }: ApiCallPanelProps) {
   const { t } = useLingui()
   const { message } = App.useApp()
   const [language, setLanguage] = useState<Language>('curl')
@@ -76,6 +78,7 @@ export function ApiCallPanel({ notification, workspaceId, onOpenAll }: ApiCallPa
           <Button size="small" type="link" onClick={onOpenAll}>
             {t`All languages`}
           </Button>
+          {note ? <span className="ml-auto text-xs text-ink-3">{note}</span> : null}
         </div>
       </div>
     </Panel>

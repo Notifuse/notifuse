@@ -23,3 +23,22 @@ export function liquidVariablePaths(data: Record<string, unknown> | null | undef
   walk(data ?? {}, '', 0)
   return paths
 }
+
+/** The variables every send fills in, which a template does not have to be given. */
+export const SEND_VARIABLES = [
+  'contact',
+  'list',
+  'unsubscribe_url',
+  'confirm_subscription_url',
+  'notification_center_url',
+  'tracking_preferences_url',
+  'tracking_optout_url',
+  'view_in_browser_url'
+]
+
+/** The variables of a template's data a send has to provide, those every send fills in left out. */
+export function ownVariablePaths(data: Record<string, unknown> | null | undefined): string[] {
+  return liquidVariablePaths(data).filter(
+    (path) => !SEND_VARIABLES.some((variable) => path === variable || path.startsWith(`${variable}.`))
+  )
+}

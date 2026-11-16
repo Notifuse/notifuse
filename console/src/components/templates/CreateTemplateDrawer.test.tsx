@@ -1314,3 +1314,112 @@ describe('CreateTemplateDrawer started from the gallery', () => {
     expect(await screen.findByRole('dialog', { name: 'Create an email template' })).toBeInTheDocument()
   })
 })
+
+// A form that opens the drawer (the template selector) chooses what was saved, and tells a save
+// from a cancel by what onClose receives.
+describe('CreateTemplateDrawer reporting what it saved', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+    auth.permissions = { templates: { read: true, write: true }, transactional: { read: true, write: true } }
+    ;(templatesApi.get as Mock).mockRejectedValue(new ApiError('not found', 404))
+  })
+
+  const field = (placeholder: string) => screen.getByPlaceholderText(placeholder) as HTMLInputElement
+
+  it('hands the created template to onClose, with the message it is given', async () => {
+    const onClose = vi.fn()
+    const created = { ...makeTemplate(1), id: 'order-confirmation', name: 'Order confirmation' }
+    ;(templatesApi.create as Mock).mockResolvedValue({ template: created })
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={onClose} successMessage="Template created and selected" />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick order' }))
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+
+    await userEvent.click(saveButton())
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+    expect(onClose.mock.calls[0][0]).toEqual(created)
+    expect(await screen.findByText('Template created and selected')).toBeInTheDocument()
+    expect(screen.queryByText('Template created successfully')).toBeNull()
+  })
+
+  it('hands onClose nothing when closed without a save', async () => {
+    const onClose = vi.fn()
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={onClose} />)
+    await pickBlank()
+    await screen.findByTestId('template-bar-name')
+    await closeDrawer()
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose.mock.calls[0][0]).toBeUndefined()
+  })
+
+  it('hands onClose nothing when the gallery is cancelled', async () => {
+    const onClose = vi.fn()
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={onClose} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'cancel start' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose.mock.calls[0][0]).toBeUndefined()
+  })
+
+  it('starts from the gallery model it is given, without the gallery', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} startModelId="order" forceCategory="transactional" />)
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+    expect(screen.queryByTestId('start-modal')).toBeNull()
+    expect(field('i.e: welcome-email').value).toBe('order-confirmation')
+    expect(JSON.stringify(builder.props?.tree)).toContain('order.items')
+    await waitFor(() => expect(assistant.props?.category).toBe('transactional'))
+  })
+
+  it('opens at once on a loading state while the model it is given is prepared', async () => {
+    let release: () => void = () => undefined
+    ;(templatesApi.get as Mock).mockImplementation(
+      () => new Promise((_, reject) => (release = () => reject(new ApiError('not found', 404))))
+    )
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} startModelId="order" />)
+    expect(await screen.findByRole('dialog', { name: 'Create an email template' })).toBeInTheDocument()
+    expect(screen.getByTestId('template-preparing')).toHaveTextContent('Loading...')
+    // Nothing to save while it loads
+    expect(screen.queryByRole('button', { name: /^(Create template|Save v\d+)$/ })).toBeNull()
+
+    await waitFor(() => expect(templatesApi.get).toHaveBeenCalled())
+    act(() => release())
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+    expect(screen.queryByTestId('template-preparing')).toBeNull()
+  })
+
+  it('opens nothing later when closed while the model it is given is prepared', async () => {
+    let release: () => void = () => undefined
+    ;(templatesApi.get as Mock).mockImplementation(
+      () => new Promise((_, reject) => (release = () => reject(new ApiError('not found', 404))))
+    )
+    const onClose = vi.fn()
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={onClose} startModelId="order" />)
+    await screen.findByTestId('template-preparing')
+    await waitFor(() => expect(templatesApi.get).toHaveBeenCalled())
+
+    await closeDrawer()
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose.mock.calls[0][0]).toBeUndefined()
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Create an email template' })).toBeNull())
+
+    act(() => release())
+    // The lookup answered after the close: the drawer stays shut.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(screen.queryByRole('dialog', { name: 'Create an email template' })).toBeNull()
+    expect(screen.queryByPlaceholderText('i.e: Welcome Email')).toBeNull()
+  })
+
+  it('keeps its own message for an edit', async () => {
+    const onClose = vi.fn()
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+    ;(templatesApi.update as Mock).mockResolvedValue({ template: makeTemplate(4) })
+    renderDrawer(
+      <CreateTemplateDrawer workspace={workspace} template={makeTemplate(3)} open onClose={onClose} successMessage="Template created and selected" />
+    )
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Welcome'))
+    await userEvent.type(field('i.e: Welcome Email'), '!')
+    await userEvent.click(saveButton())
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+    expect(onClose.mock.calls[0][0]).toEqual(makeTemplate(4))
+    expect(await screen.findByText('Template updated successfully')).toBeInTheDocument()
+  })
+})

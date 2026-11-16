@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  FolderPlus,
   HardDrive,
   LayoutGrid,
   List,
@@ -23,7 +22,7 @@ import {
 import { filesize } from 'filesize'
 import { copyToClipboard } from '../../lib/copyToClipboard'
 import { useMediaQuery } from '../../lib/useMediaQuery'
-import { PageHeader, Panel, RailLayout, RailSection, SidePanel } from '../layout'
+import { PageHeader, Panel, RailCard, SidePanel } from '../layout'
 import ButtonFilesSettings from './buttonSettings'
 import { DeleteFolderModal } from './DeleteFolderModal'
 import { FileGrid } from './FileGrid'
@@ -300,6 +299,21 @@ export function FileExplorer(props: FileExplorerProps) {
     })
   }
 
+  // Confirmed already: by the row menu's dialog or by the preview's Popconfirm.
+  const deleteFile = (item: StorageObject) =>
+    storage
+      .deleteFile(item.key)
+      .then(() => {
+        message.success(t`File deleted successfully.`)
+        if (!mountedRef.current) return
+        setCheckedKeys((keys) => keys.filter((key) => key !== item.key))
+        if (selectedKey === item.key) setSelectedKey(undefined)
+      })
+      .catch((error: unknown) => {
+        message.error(t`Failed to delete file: ` + error)
+        reportError(error)
+      })
+
   const confirmDeleteFile = (item: StorageObject) => {
     modal.confirm({
       title: t`Do you want to permanently delete this file from your storage?`,
@@ -307,19 +321,7 @@ export function FileExplorer(props: FileExplorerProps) {
       cancelText: t`Cancel`,
       okButtonProps: { danger: true },
       zIndex: overlayZ,
-      onOk: () =>
-        storage
-          .deleteFile(item.key)
-          .then(() => {
-            message.success(t`File deleted successfully.`)
-            if (!mountedRef.current) return
-            setCheckedKeys((keys) => keys.filter((key) => key !== item.key))
-            if (selectedKey === item.key) setSelectedKey(undefined)
-          })
-          .catch((error: unknown) => {
-            message.error(t`Failed to delete file: ` + error)
-            reportError(error)
-          })
+      onOk: () => deleteFile(item)
     })
   }
 
@@ -617,16 +619,29 @@ export function FileExplorer(props: FileExplorerProps) {
     </div>
   )
 
+  const folderMenu = (folder: string): MenuProps['items'] => [
+    writeEntry(
+      'delete-folder',
+      t`Delete folder`,
+      t`Delete folder (Read-only mode)`,
+      () => setFolderToDelete(folder),
+      true
+    )
+  ]
+
   const folderTreeSection = (
-    <RailSection title={t`Folders`}>
-      {/* No counts before the listing answers: an empty map would read as empty folders. */}
-      <FolderTree
-        tree={tree}
-        counts={storage.isSuccess ? counts : NO_COUNTS}
-        currentPath={currentPath}
-        onOpen={goToPath}
-      />
-    </RailSection>
+    // No counts before the listing answers: an empty map would read as empty folders.
+    <FolderTree
+      tree={tree}
+      counts={storage.isSuccess ? counts : NO_COUNTS}
+      currentPath={currentPath}
+      onOpen={goToPath}
+      loading={storage.isLoading}
+      loaded={storage.isSuccess}
+      onNewFolder={() => setNewFolderOpen(true)}
+      readOnly={readOnly}
+      menuFor={folderMenu}
+    />
   )
 
   const breadcrumb = (
@@ -744,27 +759,18 @@ export function FileExplorer(props: FileExplorerProps) {
             />
           </Tooltip>
           {viewSwitch}
+          {/* New folder is the rail's "+", in the picker as on the page. */}
           {isPicker ? (
-            <>
-              <Tooltip title={readOnly ? t`Upload file (Read-only mode)` : undefined}>
-                <Button
-                  icon={<Upload size={14} aria-hidden="true" />}
-                  disabled={readOnly}
-                  loading={isUploading}
-                  onClick={browseFiles}
-                >
-                  {t`Upload`}
-                </Button>
-              </Tooltip>
-              <Tooltip title={readOnly ? t`New folder (Read-only mode)` : t`New folder`}>
-                <Button
-                  aria-label={t`New folder`}
-                  icon={<FolderPlus size={14} aria-hidden="true" />}
-                  disabled={readOnly}
-                  onClick={() => setNewFolderOpen(true)}
-                />
-              </Tooltip>
-            </>
+            <Tooltip title={readOnly ? t`Upload file (Read-only mode)` : undefined}>
+              <Button
+                icon={<Upload size={14} aria-hidden="true" />}
+                disabled={readOnly}
+                loading={isUploading}
+                onClick={browseFiles}
+              >
+                {t`Upload`}
+              </Button>
+            </Tooltip>
           ) : null}
         </div>
       </div>
@@ -890,7 +896,7 @@ export function FileExplorer(props: FileExplorerProps) {
       onOpenFolder={goToPath}
       onCopyUrl={() => void copyUrl(selectedItem)}
       onDownload={() => download(selectedItem)}
-      onDelete={isPicker ? undefined : () => confirmDeleteFile(selectedItem)}
+      onDelete={isPicker ? undefined : () => deleteFile(selectedItem)}
       readOnly={readOnly}
     />
   ) : null
@@ -993,10 +999,14 @@ export function FileExplorer(props: FileExplorerProps) {
     return (
       <div ref={rootRef} data-file-explorer="picker" className="flex h-[80vh] flex-col">
         <div className="flex min-h-0 flex-1">
-          <div className="flex w-rail shrink-0 flex-col border-r border-line bg-surface">
+          {/* The page's rail as a full-height column: a card would float inside the modal. */}
+          <nav
+            aria-label={t`Folders`}
+            className="flex w-rail shrink-0 flex-col border-r border-line bg-surface"
+          >
             <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">{folderTreeSection}</div>
             <div className="border-t border-line-soft px-4 py-2.5 text-xs">{storageFooter}</div>
-          </div>
+          </nav>
           <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto bg-canvas p-3">
             {alerts}
             {listPanel}
@@ -1026,17 +1036,9 @@ export function FileExplorer(props: FileExplorerProps) {
       : (counts.get(currentPath) ?? 0)
     : undefined
 
+  // New folder is the rail's "+", as New category is on the Blog page.
   const headerActions = (
     <>
-      <Tooltip title={readOnly ? t`New folder (Read-only mode)` : undefined}>
-        <Button
-          icon={<FolderPlus size={14} aria-hidden="true" />}
-          disabled={readOnly}
-          onClick={() => setNewFolderOpen(true)}
-        >
-          {t`New folder`}
-        </Button>
-      </Tooltip>
       <Tooltip title={readOnly ? t`Upload file (Read-only mode)` : undefined}>
         <Button
           type="primary"
@@ -1073,37 +1075,45 @@ export function FileExplorer(props: FileExplorerProps) {
     </>
   )
 
+  // Laid out as the Blog and Contacts pages: the header spans the width, the folders are a card
+  // beside the list. The page route declares the rail layout, so this column carries the margins.
   return (
-    <div ref={rootRef} data-file-explorer="page" className="contents">
-      <RailLayout ariaLabel={t`Folders`} rail={folderTreeSection} footer={storageFooter}>
-        <PageHeader title={pageTitle} count={pageCount} actions={headerActions} />
-        {alerts}
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">{listPanel}</div>
-          {preview && previewAsColumn ? (
-            <aside aria-label={t`Preview`} className="w-[340px] shrink-0">
-              <Panel>{preview}</Panel>
-            </aside>
-          ) : null}
-        </div>
-        {!previewAsColumn ? (
-          <SidePanel
-            open={selectedItem !== undefined}
-            onClose={() => setSelectedKey(undefined)}
-            title={selectedItem?.name ?? ''}
-            copyLink
-            nav={{
-              position: navIndex >= 0 ? navIndex + 1 : undefined,
-              total: navIndex >= 0 ? visibleFiles.length : undefined,
-              onPrev,
-              onNext
-            }}
-          >
-            {preview}
-          </SidePanel>
+    <div
+      ref={rootRef}
+      data-file-explorer="page"
+      data-rail-content
+      className="flex min-w-0 flex-col gap-3 px-5 pt-4 pb-6"
+    >
+      <PageHeader title={pageTitle} count={pageCount} actions={headerActions} />
+      {alerts}
+      <div className="flex items-start gap-3">
+        <RailCard ariaLabel={t`Folders`} footer={storageFooter}>
+          {folderTreeSection}
+        </RailCard>
+        <div className="min-w-0 flex-1">{listPanel}</div>
+        {preview && previewAsColumn ? (
+          <aside aria-label={t`Preview`} className="w-[340px] shrink-0">
+            <Panel>{preview}</Panel>
+          </aside>
         ) : null}
-        {modals}
-      </RailLayout>
+      </div>
+      {!previewAsColumn ? (
+        <SidePanel
+          open={selectedItem !== undefined}
+          onClose={() => setSelectedKey(undefined)}
+          title={selectedItem?.name ?? ''}
+          copyLink
+          nav={{
+            position: navIndex >= 0 ? navIndex + 1 : undefined,
+            total: navIndex >= 0 ? visibleFiles.length : undefined,
+            onPrev,
+            onNext
+          }}
+        >
+          {preview}
+        </SidePanel>
+      ) : null}
+      {modals}
     </div>
   )
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -48,6 +49,7 @@ func TestTransactionalNotificationService_IntegrationManagedRefusals(t *testing.
 			Return(&domain.TransactionalNotification{
 				ID:            notificationID,
 				Name:          "Magic Link",
+				Description:   "Sends magic links",
 				IntegrationID: &integrationID,
 				Channels: domain.ChannelTemplates{
 					domain.TransactionalChannelEmail: domain.ChannelTemplate{TemplateID: "tpl-magic-link"},
@@ -105,10 +107,27 @@ func TestTransactionalNotificationService_IntegrationManagedRefusals(t *testing.
 			})
 		result, err := svc.UpdateNotification(ctx, workspace, notificationID, domain.TransactionalNotificationUpdateParams{
 			Name:        "Magic Link",
-			Description: "Sent on sign-in",
+			Description: ptrTo("Sent on sign-in"),
 		})
 		require.NoError(t, err)
 		assert.Equal(t, "Sent on sign-in", result.Description)
+	})
+
+	t.Run("an empty description clears it", func(t *testing.T) {
+		svc, mockRepo := setup(t)
+		mockRepo.EXPECT().
+			Update(gomock.Any(), workspace, gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, n *domain.TransactionalNotification) error {
+				assert.Equal(t, "", n.Description)
+				assert.Equal(t, "Magic Link", n.Name)
+				return nil
+			})
+		var params domain.TransactionalNotificationUpdateParams
+		// As the console sends it: the stored name and the cleared description.
+		require.NoError(t, json.Unmarshal([]byte(`{"name":"Magic Link","description":""}`), &params))
+		result, err := svc.UpdateNotification(ctx, workspace, notificationID, params)
+		require.NoError(t, err)
+		assert.Equal(t, "", result.Description)
 	})
 
 	t.Run("delete is refused", func(t *testing.T) {

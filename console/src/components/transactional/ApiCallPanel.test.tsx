@@ -59,4 +59,23 @@ describe('ApiCallPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'All languages' }))
     expect(onOpenAll).toHaveBeenCalled()
   })
+
+  it('shows the data it is given in place of the example, and its note', () => {
+    const withData = { id: 'order_shipped', data: { order: { number: 'A-1042' } } }
+    render(
+      <I18nProvider i18n={i18n}>
+        <App>
+          <ApiCallPanel notification={withData} workspaceId="ws_123" onOpenAll={vi.fn()} note="Works once created" />
+        </App>
+      </I18nProvider>
+    )
+    expect(shownCode()).toBe(flat(curlSnippet(withData, 'ws_123')))
+    expect(shownCode()).toContain('"number":"A-1042"')
+    expect(screen.getByText('Works once created')).toBeInTheDocument()
+  })
+
+  it('shows no note by default', () => {
+    renderPanel()
+    expect(screen.queryByText('Works once created')).toBeNull()
+  })
 })

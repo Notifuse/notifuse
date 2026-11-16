@@ -165,8 +165,10 @@ export function ContentCard({
                     <TemplateSelectorInput
                       workspaceId={workspace.id}
                       category="marketing"
+                      sendsWith="marketing"
                       canReadTemplates={canReadTemplates}
                       placeholder={t`Select template`}
+                      subtitle={variants.length > 1 ? t`Template of variant ${letter}` : undefined}
                       value={variant.template_id || null}
                       onChange={(id) => setVariant(index, { template_id: id ?? '' })}
                     />

@@ -80,8 +80,10 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       ),
     initialPageParam: 0,
     getNextPageParam: (last) => {
-      const next = last.offset + last.deliveries.length
-      return last.deliveries.length > 0 && next < last.total ? next : undefined
+      // Servers before 44.0 answer null for a page with no rows.
+      const rows = last.deliveries ?? []
+      const next = last.offset + rows.length
+      return rows.length > 0 && next < last.total ? next : undefined
     },
     staleTime: 30_000
   })
@@ -91,7 +93,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
     const seen = new Set<string>()
     const out: WebhookDelivery[] = []
     for (const pageData of deliveriesQuery.data?.pages ?? []) {
-      for (const delivery of pageData.deliveries) {
+      for (const delivery of pageData.deliveries ?? []) {
         if (seen.has(delivery.id)) continue
         seen.add(delivery.id)
         out.push(delivery)
@@ -146,7 +148,6 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
         <Tooltip title={t`Refresh`}>
           <Button
             type="text"
-            size="small"
             aria-label={t`Refresh`}
             icon={<RefreshCw size={14} />}
             onClick={refresh}

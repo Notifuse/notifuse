@@ -3,9 +3,8 @@ import { Button, Checkbox, Empty, Modal, Tag } from 'antd'
 import { CloseOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from '../useWebAnalytics'
+import { toColumns } from './breakdownColumns'
 import {
-  DimensionCategory,
-  DimensionInfo,
   dimensionsForSchema,
   getDimensionLabel,
   groupByCategory
@@ -20,37 +19,6 @@ interface BreakdownModalProps {
   initialDimensions?: string[]
   title?: string
   submitText?: string
-}
-
-const COLUMNS = 4
-
-interface CategoryGroup {
-  category: DimensionCategory
-  dimensions: DimensionInfo[]
-}
-
-/**
- * Spreads the categories over the grid columns without reordering them, by
- * filling each column until it holds its share of the rows. Balancing by row
- * count rather than by category keeps a ten-slot category from leaving three
- * columns nearly empty.
- */
-function toColumns(groups: CategoryGroup[]): CategoryGroup[][] {
-  const total = groups.reduce((sum, group) => sum + group.dimensions.length, 0)
-  const target = Math.ceil(total / COLUMNS)
-  const columns: CategoryGroup[][] = Array.from({ length: COLUMNS }, () => [])
-
-  let index = 0
-  let filled = 0
-  for (const group of groups) {
-    if (filled >= target && index < COLUMNS - 1) {
-      index += 1
-      filled = 0
-    }
-    columns[index].push(group)
-    filled += group.dimensions.length
-  }
-  return columns
 }
 
 /** Multi-select over the dimension catalog, used for breakdowns and for building a report from scratch. */

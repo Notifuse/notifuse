@@ -57,14 +57,16 @@ vi.mock('../components/transactional/UpsertTransactionalNotificationDrawer', () 
   default: ({
     notification,
     buttonProps,
-    open
+    open,
+    backLabel
   }: {
     notification?: { id: string }
     buttonProps?: { disabled?: boolean; icon?: ReactNode }
     open?: boolean
+    backLabel?: string
   }) =>
     open ? (
-      <div data-testid={`edit-drawer-${notification?.id}`} />
+      <div data-testid={`edit-drawer-${notification?.id}`} data-back-label={backLabel ?? ''} />
     ) : (
       <button data-testid="create" disabled={!!buttonProps?.disabled}>
         {buttonProps?.icon}
@@ -547,6 +549,23 @@ describe('TransactionalNotificationsPage list', () => {
     act(() => (detailProps.mock.calls.at(-1)?.[0] as { onApi: (n: unknown) => void }).onApi(reset))
     expect(screen.getByTestId('api-drawer-password_reset')).toBeInTheDocument()
     expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('opens the editor over the sheet with a way back to it, named after the notification', async () => {
+    state.search = { notification: 'password_reset' }
+    renderPage()
+    await screen.findByText('Welcome')
+
+    act(() => (detailProps.mock.calls.at(-1)?.[0] as { onEdit: (n: unknown) => void }).onEdit(reset))
+    expect(screen.getByTestId('edit-drawer-password_reset')).toHaveAttribute('data-back-label', reset.name)
+  })
+
+  it('opens the editor from the list with the default way back', async () => {
+    renderPage()
+    await screen.findByText('Welcome')
+
+    act(() => (detailProps.mock.calls.at(-1)?.[0] as { onEdit: (n: unknown) => void }).onEdit(reset))
+    expect(screen.getByTestId('edit-drawer-password_reset')).toHaveAttribute('data-back-label', '')
   })
 
   it("opens the template preview over the sheet when the sheet's Open asks", async () => {

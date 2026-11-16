@@ -206,6 +206,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: `transactional.update`, `transactional.delete` and `templates.delete` now answer 400 with the reason, instead of 500, when they refuse to change the name or channels of a notification managed by an integration, or to delete such a notification or template. `templates.delete` also answers a missing permission with 403 and a revoked API key with 401, as the other endpoints do, instead of 500.
 
+- **Fix**: `transactional.update` clears a notification's description sent as `""`, instead of keeping the old one while answering 200; leaving `description` out, or sending `null`, still keeps it. An API client that always sends `"description": ""` should leave the key out to keep the stored description. Editing a notification in the console no longer erases a `utm_term` set through the API: the form shows it beside the other UTM parameters.
+
 - **Fix**: Liquid in templates now matches Shopify Liquid in more cases: `{% if order.total == 100 %}` matches numbers from your data, accented text is no longer corrupted by `capitalize` or `truncate`, amounts are exact (`0.1 | plus: 0.2` is `0.3`), `date` supports `%-d` and formats timestamps, and conditions on a text containing "and" or "or", tags written over several lines and `{%- raw -%}` work.
 
 - **Fix**: The blog's sitemap now lists the blog's posts, with the date of their last change, and the page and feed of each of its categories, on the custom domain in lower case. robots.txt names the sitemap by its absolute address, as search engines require, and both answer 405 to a method other than GET or HEAD.

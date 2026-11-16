@@ -473,7 +473,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
             <FilterChip label={t`+ Filter`} dashed menu={addMenu} />
           ) : null}
           {filtered ? (
-            <Button type="link" size="small" onClick={clearFilters}>
+            <Button type="link" onClick={clearFilters}>
               {t`Clear all`}
             </Button>
           ) : null}
@@ -512,7 +512,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
               onClick: ({ key }) => void exportAs(key as AuditExportFormat)
             }}
           >
-            <Button type="text" size="small" icon={<Download size={14} />}>
+            <Button type="text" icon={<Download size={14} />}>
               <span className="inline-flex items-center gap-1">
                 {t`Export`}
                 <ChevronDown size={12} aria-hidden="true" />
@@ -522,7 +522,6 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
           <Tooltip title={t`Refresh`}>
             <Button
               type="text"
-              size="small"
               aria-label={t`Refresh`}
               icon={<RefreshCw size={14} />}
               onClick={refresh}

@@ -1,8 +1,15 @@
 import type { Integration, Sender, Workspace } from '../../services/api/workspace'
 import type { Template } from '../../services/api/template'
 
+/**
+ * The provider a send path uses, as the server picks it (Workspace.GetEmailProviderWithIntegrationID):
+ * the workspace's marketing one (broadcasts, double opt-in, an automation's Email node), its
+ * transactional one (notifications), or the integration an automation's Email node names.
+ */
+export type SendingProvider = 'marketing' | 'transactional' | { integrationId: string }
+
 export interface SenderInfo {
-  /** The workspace's transactional provider, if it is set and still exists. */
+  /** The provider the send uses, if it is set and still exists. */
   provider: Integration | null
   /** The sender of the template's default language, or the provider's default; null when none. */
   sender: Sender | null
@@ -14,10 +21,22 @@ export interface SenderInfo {
   replyTo: string | null
 }
 
-export function transactionalProvider(workspace: Pick<Workspace, 'settings' | 'integrations'>): Integration | null {
-  const id = workspace.settings?.transactional_email_provider_id
+export function sendingProvider(
+  workspace: Pick<Workspace, 'settings' | 'integrations'>,
+  sendsWith: SendingProvider
+): Integration | null {
+  const id =
+    sendsWith === 'marketing'
+      ? workspace.settings?.marketing_email_provider_id
+      : sendsWith === 'transactional'
+        ? workspace.settings?.transactional_email_provider_id
+        : sendsWith.integrationId
   if (!id) return null
   return workspace.integrations?.find((integration) => integration.id === id) ?? null
+}
+
+export function transactionalProvider(workspace: Pick<Workspace, 'settings' | 'integrations'>): Integration | null {
+  return sendingProvider(workspace, 'transactional')
 }
 
 export function defaultSender(provider: Integration | null): Sender | null {
@@ -28,14 +47,16 @@ export function defaultSender(provider: Integration | null): Sender | null {
 
 /**
  * The sender a send without email_options.sender_id uses, as EmailProvider.GetSender picks it:
- * the template's default-language sender_id among the provider's senders, else the provider's
- * default. A translation can carry its own sender and Reply-To; this is the default language's.
+ * the template's default-language sender_id among the sending provider's senders (another
+ * provider's sender is not looked at), else that provider's default. A translation can carry its
+ * own sender and Reply-To; this is the default language's. The transactional provider unless told.
  */
 export function resolveSenderInfo(
   workspace: Pick<Workspace, 'settings' | 'integrations'>,
-  template: Pick<Template, 'email'> | undefined
+  template: Pick<Template, 'email'> | undefined,
+  sendsWith: SendingProvider = 'transactional'
 ): SenderInfo {
-  const provider = transactionalProvider(workspace)
+  const provider = sendingProvider(workspace, sendsWith)
   const fallback = defaultSender(provider)
   if (!template) return { provider, sender: fallback, providerDefaultOnly: true, replyTo: null }
   const senderId = template.email?.sender_id

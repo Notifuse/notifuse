@@ -15,10 +15,24 @@ import type { Template } from '../../../services/api/template'
 import type { Workspace } from '../../../services/api/types'
 
 vi.mock('../../templates/TemplateSelectorInput', () => ({
-  default: ({ value, onChange, canReadTemplates }: { value?: string | null; onChange?: (v: string | null) => void; canReadTemplates?: boolean }) => (
+  default: ({
+    value,
+    onChange,
+    canReadTemplates,
+    subtitle,
+    sendsWith
+  }: {
+    value?: string | null
+    onChange?: (v: string | null) => void
+    canReadTemplates?: boolean
+    subtitle?: string
+    sendsWith?: unknown
+  }) => (
     <select
       aria-label="Template"
+      data-sends-with={JSON.stringify(sendsWith ?? null)}
       data-can-read-templates={String(canReadTemplates)}
+      data-subtitle={subtitle ?? ''}
       value={value ?? ''}
       onChange={(e) => onChange?.(e.target.value || null)}
     >
@@ -201,6 +215,26 @@ describe('ContentCard', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Turn off' }))
     expect(latest.abEnabled).toBe(false)
     expect(latest.variants).toEqual([{ variation_name: 'A', template_id: 'tpl-a' }])
+  })
+
+  // The template window says which variant it chooses for, once there are several.
+  it('names the variant in the template window only during an A/B test', () => {
+    renderCard(base({ abEnabled: true, variants: [{ variation_name: 'A', template_id: 'tpl-a' }, { variation_name: 'B', template_id: '' }] }))
+    expect(screen.getAllByRole('combobox', { name: 'Template' }).map((select) => select.dataset.subtitle)).toEqual([
+      'Template of variant A',
+      'Template of variant B'
+    ])
+  })
+
+  // A broadcast goes out through the marketing provider: the window names that provider's sender.
+  it('tells the template window the broadcast sends with the marketing provider', () => {
+    renderCard(base({ variants: [{ variation_name: 'A', template_id: 'tpl-a' }] }))
+    expect(screen.getByRole('combobox', { name: 'Template' }).dataset.sendsWith).toBe('"marketing"')
+  })
+
+  it('gives the template window no subtitle for a single variant', () => {
+    renderCard(base({ variants: [{ variation_name: 'A', template_id: 'tpl-a' }] }))
+    expect(screen.getByRole('combobox', { name: 'Template' }).dataset.subtitle).toBe('')
   })
 
   it('stops at 5 variants and removes one only above 2', async () => {

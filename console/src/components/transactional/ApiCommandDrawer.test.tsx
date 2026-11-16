@@ -148,3 +148,19 @@ describe('ApiCommandDrawer', () => {
     expect(onClose).toHaveBeenCalledTimes(3)
   })
 })
+
+describe('ApiCommandDrawer for a notification not created yet', () => {
+  it('shows the identifier typed and the data given', () => {
+    const draft = { id: 'order_shipped', name: 'Order shipped', data: { order: { number: 'A-1042' } } }
+    render(
+      <I18nProvider i18n={i18n}>
+        <App>
+          <ApiCommandDrawer open onClose={vi.fn()} notification={draft} workspaceId="ws_123" />
+        </App>
+      </I18nProvider>
+    )
+    expect(shownCode()).toBe(curlSnippet(draft, 'ws_123'))
+    expect(shownCode()).toContain('"number": "A-1042"')
+    expect(screen.getByText('Order shipped')).toBeInTheDocument()
+  })
+})

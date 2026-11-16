@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { liquidVariablePaths } from './liquidVariablePaths'
+import { liquidVariablePaths, ownVariablePaths } from './liquidVariablePaths'
 
 describe('liquidVariablePaths', () => {
   it('lists nested values as dotted paths, in order', () => {
@@ -30,5 +30,20 @@ describe('liquidVariablePaths', () => {
     expect(liquidVariablePaths(undefined)).toEqual([])
     expect(liquidVariablePaths(null)).toEqual([])
     expect(liquidVariablePaths({})).toEqual([])
+  })
+})
+
+describe('ownVariablePaths', () => {
+  it('leaves out the variables every send fills in, keeping those a send has to provide', () => {
+    expect(
+      ownVariablePaths({
+        contact: { first_name: 'Jane' },
+        list: { id: 'news' },
+        unsubscribe_url: 'https://x',
+        reset_url: 'https://reset',
+        order: { number: '42' },
+        contactless: true
+      })
+    ).toEqual(['reset_url', 'order.number', 'contactless'])
   })
 })

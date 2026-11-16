@@ -367,7 +367,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 			id:   notificationID,
 			input: domain.TransactionalNotificationUpdateParams{
 				Name:        "Completely Updated",
-				Description: "New Description",
+				Description: ptrTo("New Description"),
 				Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
 					domain.TransactionalChannelEmail: {
 						TemplateID: newTemplateID,
@@ -505,6 +505,55 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 			},
 		},
 		{
+			// The console clears a description by sending it empty: an explicit "" is an
+			// instruction, while an absent key (the case above) leaves it as it is.
+			name: "Success_EmptyDescriptionClearsIt",
+			id:   notificationID,
+			// Raw JSON, as the console sends it.
+			body: `{"name":"Original Name","description":""}`,
+			mockSetup: func() {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: true},
+						},
+					}, nil)
+
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(newExistingNotification(), nil)
+
+				mockRepo.EXPECT().
+					Update(gomock.Any(), workspace, gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ string, notif *domain.TransactionalNotification) error {
+						assert.Equal(t, "", notif.Description)
+						assert.Equal(t, "Original Name", notif.Name)
+						assert.Equal(t, domain.ChannelTemplates{
+							domain.TransactionalChannelEmail: {TemplateID: templateID},
+						}, notif.Channels)
+						return nil
+					})
+			},
+			expectedError: false,
+			expectedResult: &domain.TransactionalNotification{
+				ID:          notificationID,
+				Name:        "Original Name",
+				Description: "",
+				Channels: map[domain.TransactionalChannel]domain.ChannelTemplate{
+					domain.TransactionalChannelEmail: {
+						TemplateID: templateID,
+					},
+				},
+				Metadata: map[string]interface{}{
+					"original": "value",
+				},
+			},
+		},
+		{
 			name: "Success_KeepsStoredTrackingModeWhenAbsentOnRegularUpdate",
 			id:   notificationID,
 			input: domain.TransactionalNotificationUpdateParams{
@@ -559,7 +608,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 			name: "Success_KeepsStoredTrackingModeWhenAbsentOnIntegrationManagedUpdate",
 			id:   notificationID,
 			input: domain.TransactionalNotificationUpdateParams{
-				Description: "Updated Description",
+				Description: ptrTo("Updated Description"),
 				TrackingSettings: notifuse_mjml.TrackingSettings{
 					UTMSource: "newsletter",
 				},

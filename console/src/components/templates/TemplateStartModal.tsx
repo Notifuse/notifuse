@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Button, Input, Modal, Segmented, Select, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useQuery } from '@tanstack/react-query'
@@ -9,18 +9,16 @@ import { TemplatePreviewFrame } from '../broadcasts/detail/TemplatePreviewFrame'
 import { useRelativeDate } from '../layout'
 import { TemplateCategoryTag } from './TemplateCategoryTag'
 import { TEMPLATE_CATEGORIES, TEMPLATE_CATEGORY_LABELS, isTemplateCategory } from './templateCategories'
-import { liquidVariablePaths } from './liquidVariablePaths'
+import { ownVariablePaths } from './liquidVariablePaths'
 import { GALLERY_MODELS } from './gallery/models'
-import { buildStartingPoint, type GalleryStart } from './gallery/buildStartingPoint'
+import type { GalleryStart } from './gallery/buildStartingPoint'
+import { useGalleryModels } from './gallery/useGalleryModels'
+import { LazyVisible } from './LazyVisible'
 import { GALLERY_USE_CASES, type GalleryAssets, type GalleryModel, type GalleryUseCase } from './gallery/types'
 import { MODEL_LABELS, SENT_BY_LABELS, USE_CASE_LABELS } from './gallery/labels'
-import { loadLogoWidth, useLogoWidth } from './gallery/logoWidth'
 
 // How long a click on a card waits for a second one before opening the preview.
 const DOUBLE_CLICK_MS = 250
-
-// The variables every send fills in: the preview lists those a model needs on top of them.
-const SEND_VARIABLES = ['contact', 'list', 'unsubscribe_url', 'confirm_subscription_url', 'notification_center_url', 'tracking_preferences_url', 'tracking_optout_url', 'view_in_browser_url']
 
 export interface TemplateStartModalProps {
   open: boolean
@@ -62,47 +60,10 @@ export function TemplateStartModal({
   useEffect(() => () => window.clearTimeout(clickTimer.current), [])
 
   // Its languages, its name instead of the example brand, its logo instead of the placeholder,
-  // sized once the logo has loaded.
-  const logoUrl = workspace.settings.logo_url || undefined
-  const logoWidth = useLogoWidth(logoUrl)
-  const workspaceLanguages = {
-    defaultLanguage: workspace.settings.default_language,
-    languages: workspace.settings.languages,
-    name: workspace.name,
-    logoUrl,
-    logoWidth
-  }
-  // A pick made before the logo has loaded waits for its size: built without it, the logo
-  // would keep a square's width in the saved template.
-  const start = async (model: GalleryModel) => {
-    const width = logoUrl ? (logoWidth ?? (await loadLogoWidth(logoUrl))) : undefined
-    onPickModel(buildStartingPoint(model, { ...workspaceLanguages, logoWidth: width }, assets, defaultTestData))
-  }
-  // The previews wait for the logo's size too, so each is compiled once rather than twice.
-  const logoReady = !logoUrl || logoWidth !== undefined
-
-  // A model as a template the preview can compile, in the workspace's language.
-  const previewTemplate = useMemo(() => {
-    const cache = new Map<string, Template>()
-    return (model: GalleryModel): Template => {
-      const cached = cache.get(model.id)
-      if (cached) return cached
-      const built = buildStartingPoint(model, workspaceLanguages, assets, defaultTestData)
-      const template = {
-        // The logo's width is in the id: the compiled preview is cached by it.
-        id: `gallery-${model.id}-${built.language}-${logoWidth ?? 'logo'}`,
-        name: built.name,
-        version: 1,
-        channel: 'email',
-        category: model.category ?? '',
-        email: { subject: built.subject, subject_preview: built.subjectPreview, editor_mode: 'visual', visual_editor_tree: built.tree },
-        test_data: built.testData
-      } as unknown as Template
-      cache.set(model.id, template)
-      return template
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the workspace's languages and the assets are fixed while the modal is open
-  }, [workspace.id, assets.baseUrl, logoWidth])
+  // sized once the logo has loaded; the previews wait for that size, so each compiles once.
+  const gallery = useGalleryModels(workspace, assets, defaultTestData)
+  const { previewTemplate, logoReady } = gallery
+  const start = async (model: GalleryModel) => onPickModel(await gallery.start(model))
 
   const name = (model: GalleryModel) => i18n._(MODEL_LABELS[model.id].name)
   const query = search.trim().toLowerCase()
@@ -162,9 +123,8 @@ export function TemplateStartModal({
           description={i18n._(MODEL_LABELS[view.model.id].description)}
           category={view.model.category}
           sentBy={i18n._(SENT_BY_LABELS[view.model.sentBy])}
-          variables={liquidVariablePaths(previewTemplate(view.model).test_data as Record<string, unknown>).filter(
-            (path) => !SEND_VARIABLES.some((variable) => path === variable || path.startsWith(`${variable}.`))
-          )}
+          // The variables a model needs on top of those every send fills in.
+          variables={ownVariablePaths(previewTemplate(view.model).test_data as Record<string, unknown>)}
           action={t`Use this model`}
           onUse={() => start(view.model)}
         />
@@ -447,31 +407,6 @@ function YourTemplates({
           ))}
         </ul>
       )}
-    </div>
-  )
-}
-
-/**
- * Renders its children once they scroll into view, so a long list compiles only the previews
- * shown. Without IntersectionObserver (tests, old browsers) it renders them at once.
- */
-function LazyVisible({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(typeof IntersectionObserver === 'undefined')
-  useEffect(() => {
-    if (visible || !ref.current) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setVisible(true)
-        observer.disconnect()
-      }
-    })
-    observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [visible])
-  return (
-    <div ref={ref} className="h-full w-full">
-      {visible ? children : null}
     </div>
   )
 }

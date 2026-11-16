@@ -203,7 +203,6 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
         <Tooltip title={t`Refresh`}>
           <Button
             type="text"
-            size="small"
             aria-label={t`Refresh`}
             icon={<RefreshCw size={14} />}
             onClick={refresh}

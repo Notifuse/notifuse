@@ -84,6 +84,12 @@ describe('OutgoingWebhooksTab', () => {
     state.getDeliveries.mockResolvedValue(page([delivery()]))
   })
 
+  it('shows the empty state when a server answers null for a page with no rows', async () => {
+    state.getDeliveries.mockResolvedValue({ deliveries: null, total: 0, limit: 50, offset: 0 })
+    renderTab()
+    expect(await screen.findByText('No webhook deliveries yet')).toBeInTheDocument()
+  })
+
   it('sends the subscription and status of the URL', async () => {
     renderTab({ tab: 'outgoing-webhooks', subscription_id: 'sub1', status: 'failed' })
     await waitFor(() =>

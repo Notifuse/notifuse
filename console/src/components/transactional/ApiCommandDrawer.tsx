@@ -76,7 +76,8 @@ function Notes({ title, children }: { title: ReactNode; children: ReactNode }) {
 interface ApiCommandDrawerProps {
   open: boolean
   onClose: () => void
-  notification: TransactionalNotification
+  /** A saved notification, or the one being created: its identifier, its name and the data to send. */
+  notification: SnippetNotification & Pick<TransactionalNotification, 'name'>
   workspaceId: string
 }
 
