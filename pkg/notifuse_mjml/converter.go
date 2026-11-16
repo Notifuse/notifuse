@@ -15,7 +15,7 @@ import (
 // liquidEngine renders the Liquid of every email text that is not HTML (a subject,
 // the text version) and of display conditions. One engine serves every goroutine:
 // its environment is never changed after it is built, and each render has a state of
-// its own (liquid.Template.RenderContext), so a render that times out and goes on in
+// its own (liquid.Template.Render), so a render that times out and goes on in
 // its goroutine touches no other render.
 var liquidEngine = NewSecureLiquidEngine()
 

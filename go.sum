@@ -65,8 +65,8 @@ github.com/DataDog/opencensus-go-exporter-datadog v0.0.0-20220622145613-731d59e8
 github.com/DataDog/opencensus-go-exporter-datadog v0.0.0-20220622145613-731d59e8b567/go.mod h1:/VV3EFO/hTNQZHAqaj+CPGy2+ioFrP4EX3iRwozubhQ=
 github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8afzqM=
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
-github.com/Notifuse/liquidgo/v5 v5.11.8 h1:3rZXLXODopKy1/ccPWPwMHbQ/BtGAb0L0wb5Ve8FH6w=
-github.com/Notifuse/liquidgo/v5 v5.11.8/go.mod h1:gIlrQxE+iP6VgJcT0YH7ECMOcUVFh8ZIVzsYl3Yc7Nc=
+github.com/Notifuse/liquidgo/v5 v5.11.9 h1:RrVJxwaaLz/WNDhD2/xcpEDdoIamlDLSZo2uLV+EFqs=
+github.com/Notifuse/liquidgo/v5 v5.11.9/go.mod h1:gIlrQxE+iP6VgJcT0YH7ECMOcUVFh8ZIVzsYl3Yc7Nc=
 github.com/Notifuse/safe-mjml v1.0.1 h1:Htrrt+Mq9594XGBoUxvCcZZ31MC6oS6Tmkg7BzpcbC8=
 github.com/Notifuse/safe-mjml v1.0.1/go.mod h1:r13xNkJI0+KR3wN5JQL8fOhWSUkJO8usFAR1+W50Cj4=
 github.com/PuerkitoBio/goquery v1.10.3 h1:pFYcNSqHxBD06Fpj/KsbStFRsgRATgnf3LeXiUkhzPo=

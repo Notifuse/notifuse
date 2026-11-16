@@ -41,7 +41,7 @@ type SecureLiquidEngine struct {
 	// mu guards parsed: an engine is shared by every goroutine that renders.
 	mu sync.Mutex
 	// parsed caches the templates renderCached parses, keyed by their source. A
-	// parsed template is never written by a render (liquid.Template.RenderContext),
+	// parsed template is never written by a render (liquid.Template.Render),
 	// so one entry serves concurrent renders.
 	parsed map[string]*liquid.Template
 }
@@ -110,7 +110,7 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 
 // renderCached is RenderWithTimeout for a template rendered over and over, such as a
 // display condition, which it parses once per engine. Each render starts from its own
-// data: liquid.Template.RenderContext keeps nothing of a render in the template.
+// data: liquid.Template.Render keeps nothing of a render in the template.
 func (s *SecureLiquidEngine) renderCached(content string, data map[string]interface{}) (string, error) {
 	return s.render(content, data, true)
 }
@@ -160,7 +160,7 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 		// A Liquid error the render records (a filter given the wrong arguments, a
 		// partial that cannot be read...) would write "Liquid error: ..." in the email:
 		// it fails the render instead, and its message tells the author what to fix.
-		res, err := tmpl.RenderContext(ctx, data, liquid.RaiseErrors())
+		res, err := tmpl.Render(ctx, data, liquid.RaiseErrors())
 		if err != nil {
 			errorChan <- renderError(err, content, s.timeout)
 			return
@@ -272,7 +272,7 @@ func ValidateLiquidSyntax(content string) (err error) {
 func newValidationLiquidEnv() *liquid.Environment {
 	env := newSecureLiquidEnv(DefaultMaxRenderLength)
 	for _, name := range []string{"include", "render"} {
-		env.RegisterTag(name, tags.TagConstructor(func(tagName, _ string, _ liquid.ParseContextInterface) (interface{}, error) {
+		env.RegisterTag(name, tags.TagConstructor(func(tagName, _ string, _ liquid.ParseContextInterface) (liquid.Node, error) {
 			return nil, fmt.Errorf("the %s tag is not supported", tagName)
 		}))
 	}
