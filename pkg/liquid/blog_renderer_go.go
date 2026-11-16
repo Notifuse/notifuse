@@ -144,7 +144,7 @@ func (r *BlogTemplateRenderer) Render(
 
 		// The context stops the render at its next node once the timeout is reached, so a
 		// runaway theme does not keep its goroutine running.
-		res, err := tmpl.RenderContext(ctx, data, opts...)
+		res, err := tmpl.Render(ctx, data, opts...)
 		if err != nil {
 			var limit *liquid.MemoryError
 			var canceled *liquid.CanceledError
