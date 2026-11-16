@@ -30,7 +30,7 @@ export function RailLayout({ title, ariaLabel, rail, footer, children }: RailLay
         style={{ top: withBannerOffset('0px'), height: minusBannerOffset('100vh') }}
       >
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
-          {title ? <div className="px-2 pb-2 text-subtitle font-semibold text-ink">{title}</div> : null}
+          {title ? <div className="px-2 pt-1 pb-4 text-subtitle font-semibold text-ink">{title}</div> : null}
           {rail}
         </div>
         {footer ? <div className="border-t border-line-soft px-4 py-2.5 text-xs text-ink-3">{footer}</div> : null}
@@ -39,6 +39,29 @@ export function RailLayout({ title, ariaLabel, rail, footer, children }: RailLay
         {children}
       </div>
     </div>
+  )
+}
+
+export interface RailCardProps {
+  /** Accessible name of the rail's navigation landmark. */
+  ariaLabel: string
+  children: ReactNode
+}
+
+/**
+ * A page's rail as a rounded card beside its table (Contacts, Blog): top-aligned with the table and
+ * only as tall as its content, instead of RailLayout's full-height column. The page header spans the
+ * width above both.
+ */
+export function RailCard({ ariaLabel, children }: RailCardProps) {
+  return (
+    <nav
+      aria-label={ariaLabel}
+      data-rail-card
+      className="w-rail shrink-0 self-start rounded-lg border border-line bg-surface px-2 py-3 shadow-card"
+    >
+      {children}
+    </nav>
   )
 }
 

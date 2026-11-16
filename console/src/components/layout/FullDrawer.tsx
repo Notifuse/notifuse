@@ -40,7 +40,8 @@ export interface FullDrawerProps {
 }
 
 /**
- * A full-width drawer over the whole console, sidebar included, with a 40px navigation bar.
+ * A full-width drawer over the whole console, sidebar included, with a 48px navigation bar whose
+ * buttons and switches take the default control size.
  * Escape closes it (antd). Its content sits on the canvas (antd-overrides.css, `.app-full-drawer`).
  */
 export function FullDrawer({
@@ -80,7 +81,7 @@ export function FullDrawer({
         <div
           ref={barRef}
           data-drawer-bar
-          className="sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between gap-3 border-b border-line-soft bg-surface pr-3 pl-2"
+          className="sticky top-0 z-10 flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line-soft bg-surface pr-3 pl-2"
         >
           {barCenter ? (
             <div data-drawer-bar-center className="absolute left-1/2 flex -translate-x-1/2 items-center">
@@ -88,28 +89,28 @@ export function FullDrawer({
             </div>
           ) : null}
           <div className="flex min-w-0 items-center gap-1">
-            <Button type="text" size="small" icon={<ArrowLeft size={14} aria-hidden="true" />} onClick={onClose}>
+            <Button type="text" icon={<ArrowLeft size={14} aria-hidden="true" />} onClick={onClose}>
               {backLabel ?? t`Back`}
             </Button>
             {nav ? (
               <>
-                <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-line" />
-                <DrawerNavButtons nav={nav} showPosition />
+                <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-line" />
+                <DrawerNavButtons nav={nav} showPosition size="middle" />
               </>
             ) : null}
             {barTitle ? (
               <>
-                <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-line" />
+                <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-line" />
                 <div className="flex min-w-0 items-center gap-2">{barTitle}</div>
               </>
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {topActions ? <div className="mr-1 flex items-center gap-2">{topActions}</div> : null}
-            {copyLink ? <CopyLinkButton /> : null}
+            {copyLink ? <CopyLinkButton size="middle" /> : null}
             {/* Sets Close apart from the actions before it. */}
-            <span data-drawer-close-separator aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-line" />
-            <CloseButton onClose={onClose} />
+            <span data-drawer-close-separator aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-line" />
+            <CloseButton onClose={onClose} size="middle" />
           </div>
         </div>
         <div data-drawer-content className={fill ? 'flex min-h-0 flex-1' : 'flex flex-col gap-3 px-5 pt-4 pb-6'}>

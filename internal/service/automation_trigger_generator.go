@@ -287,7 +287,7 @@ func (g *AutomationTriggerGenerator) buildFunctionBody(functionName string, auto
 		frequency = "every_time"
 	}
 
-	// The fifth argument, with its separating comma, or nothing for a pre-45 body.
+	// The fifth argument, with its separating comma, or nothing for a pre-44 body.
 	payload := ",\n" + strings.Repeat(" ", 8) + triggerEventSQL(automation.Trigger)
 	if g.withoutTriggerEvent {
 		payload = ""

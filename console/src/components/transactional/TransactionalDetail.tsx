@@ -51,7 +51,7 @@ export interface TransactionalDetailProps extends Omit<TransactionalRowActions, 
   order: string[]
   onNavigate: (id: string) => void
   onClose: () => void
-  /** Opens the API command modal, from « All languages ». */
+  /** Opens the API command drawer, from « All languages ». */
   onApi: (notification: TransactionalNotification) => void
   period: TransactionalPeriod
   periods: TransactionalPeriods

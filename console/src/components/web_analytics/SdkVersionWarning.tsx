@@ -78,7 +78,6 @@ export function SdkVersionWarning(): ReactNode {
     <Alert
       type="warning"
       showIcon
-      className="mb-4"
       title={
         <div className="flex items-center justify-between gap-4">
           <span>

@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { NEGATIVE_COLOR, POSITIVE_COLOR } from './lib/types'
+import { deltaTone, hasChange } from './lib/delta'
 import { formatPercent } from './lib/format'
 
 interface DeltaProps {
@@ -7,7 +7,8 @@ interface DeltaProps {
   change?: number
   /** Lower is better (bounce rate), so a drop reads as an improvement. */
   invertTrend?: boolean
-  size?: number
+  /** `text-2xs` instead of `text-xs`, for a tile or a dense cell. */
+  small?: boolean
   decimals?: number
 }
 
@@ -19,18 +20,15 @@ interface DeltaProps {
  * "good/bad" would make a falling bounce rate render as a green up arrow,
  * which reads as growth.
  */
-export function Delta({ change, invertTrend, size = 12, decimals = 0 }: DeltaProps) {
-  if (change === undefined || !Number.isFinite(change) || change === 0) return null
+export function Delta({ change, invertTrend, small, decimals = 0 }: DeltaProps) {
+  if (!hasChange(change)) return null
 
-  const better = invertTrend ? change <= 0 : change >= 0
-  const Icon = change >= 0 ? ChevronUp : ChevronDown
+  const Icon = change > 0 ? ChevronUp : ChevronDown
+  const tone = deltaTone(change, invertTrend) === 'positive' ? 'text-success-fg' : 'text-danger-fg'
 
   return (
-    <span
-      className="inline-flex items-center font-medium"
-      style={{ color: better ? POSITIVE_COLOR : NEGATIVE_COLOR, fontSize: size }}
-    >
-      <Icon size={size} />
+    <span className={`inline-flex items-center font-medium ${small ? 'text-2xs' : 'text-xs'} ${tone}`}>
+      <Icon size={small ? 11 : 12} />
       {formatPercent(Math.abs(change), decimals)}
     </span>
   )

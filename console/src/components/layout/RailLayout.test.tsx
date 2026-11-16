@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { Settings } from 'lucide-react'
-import { RailLayout, RailSection, RailItem } from './RailLayout'
+import { RailLayout, RailCard, RailSection, RailItem } from './RailLayout'
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
@@ -138,5 +138,18 @@ describe('RailItem', () => {
     expect(child.closest('[data-rail-item]')!.className).toMatch(/\bpl-5\.5\b/)
     expect(screen.getByText('1,204')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Danger Zone' }).className).toMatch(/text-danger-fg/)
+  })
+})
+
+describe('RailCard', () => {
+  it('is a named navigation landmark holding the rail', () => {
+    render(
+      <RailCard ariaLabel="Blog">
+        <span>All posts</span>
+      </RailCard>
+    )
+    const nav = screen.getByRole('navigation', { name: 'Blog' })
+    expect(nav).toHaveAttribute('data-rail-card')
+    expect(nav).toHaveTextContent('All posts')
   })
 })

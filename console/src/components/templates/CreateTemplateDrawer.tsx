@@ -52,6 +52,7 @@ import { TemplateStartModal } from './TemplateStartModal'
 import { MODEL_LABELS } from './gallery/labels'
 import { useLanguageName } from './useLanguageName'
 import { galleryAssets, withBrand, type GalleryStart } from './gallery/buildStartingPoint'
+import { useLogoWidth } from './gallery/logoWidth'
 import { GALLERY_CONTENT } from './gallery/content'
 import { galleryModel } from './gallery/models'
 import { resolveGalleryLanguage } from './gallery/resolveGalleryLanguage'
@@ -199,10 +200,11 @@ export function CreateTemplateDrawer({
     []
   )
   // Blank, in the workspace's language: the content a template without one starts from.
+  const logoWidth = useLogoWidth(workspace.settings.logo_url || undefined)
   const createDefaultBlocks = (): EmailBlock =>
     galleryModel('blank')!.build(
       withBrand(GALLERY_CONTENT[resolveGalleryLanguage(workspace.settings.default_language)], workspace.name),
-      { ...assets, logoUrl: workspace.settings.logo_url || undefined }
+      { ...assets, logoUrl: workspace.settings.logo_url || undefined, logoWidth }
     ).tree
   // The last submitted form values, so the conflict dialog can re-submit ("overwrite").
   const lastSubmittedValuesRef = useRef<Record<string, unknown> | null>(null)

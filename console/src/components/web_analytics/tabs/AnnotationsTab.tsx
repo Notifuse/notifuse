@@ -106,12 +106,12 @@ export function AnnotationsTab() {
     <div>
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium text-gray-800">{t`Annotations`}</h2>
+          <h2 className="text-lg font-medium text-ink">{t`Annotations`}</h2>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
             {t`Add`}
           </Button>
         </div>
-        <p className="mt-3 text-gray-500 md:mt-1">
+        <p className="mt-3 text-ink-3 md:mt-1">
           {t`Mark the dates that explain a chart — a launch, a campaign, an outage — and they appear as labelled verticals on the dashboard and goal charts.`}
         </p>
       </div>

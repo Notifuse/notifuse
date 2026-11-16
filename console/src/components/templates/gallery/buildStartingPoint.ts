@@ -31,12 +31,16 @@ export function galleryAssets(apiEndpoint: string): GalleryAssets {
  */
 export function buildStartingPoint(
   model: GalleryModel,
-  workspace: { defaultLanguage?: string; languages?: string[]; name?: string; logoUrl?: string },
+  workspace: { defaultLanguage?: string; languages?: string[]; name?: string; logoUrl?: string; logoWidth?: number },
   baseAssets: GalleryAssets,
   defaultTestData: Record<string, unknown>
 ): GalleryStart {
   const language = resolveGalleryLanguage(workspace.defaultLanguage)
-  const assets: GalleryAssets = { ...baseAssets, logoUrl: workspace.logoUrl || baseAssets.logoUrl }
+  const assets: GalleryAssets = {
+    ...baseAssets,
+    logoUrl: workspace.logoUrl || baseAssets.logoUrl,
+    logoWidth: workspace.logoWidth ?? baseAssets.logoWidth
+  }
   const content = (code: keyof typeof GALLERY_CONTENT) => withBrand(GALLERY_CONTENT[code], workspace.name)
   const main = model.build(content(language), assets)
 

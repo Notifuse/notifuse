@@ -2183,3 +2183,51 @@ func TestListBlogPostsRequest_Validate_UnreadableSearch(t *testing.T) {
 	}
 	assert.NoError(t, (&ListBlogPostsRequest{Search: "café"}).Validate())
 }
+
+func TestBuildBlogTemplateData_CanonicalStandsForItsOwnPage(t *testing.T) {
+	// A canonical stands for the page it is set on. Handing a blog-wide or a category's canonical
+	// to every page let a theme that falls back to it (the default one did, up to 44.0) tell
+	// search engines that every post was a copy of that one address.
+	workspace := &Workspace{
+		ID:   "ws1",
+		Name: "Acme",
+		Settings: WorkspaceSettings{
+			BlogSettings: &BlogSettings{SEO: &SEOSettings{MetaTitle: "Acme blog", CanonicalURL: "https://acme.com/blog"}},
+		},
+	}
+	category := &BlogCategory{ID: "c1", Slug: "guides", Settings: BlogCategorySettings{
+		Name: "Guides",
+		SEO:  &SEOSettings{MetaTitle: "Guides", CanonicalURL: "https://acme.com/guides"},
+	}}
+	post := &BlogPost{ID: "p1", Slug: "subject-lines", Settings: BlogPostSettings{Title: "Subject lines"}}
+
+	seoOf := func(data MapOfAny, key string) MapOfAny {
+		section, ok := data[key].(MapOfAny)
+		require.True(t, ok, key)
+		seo, ok := section["seo"].(MapOfAny)
+		require.True(t, ok, key+".seo")
+		return seo
+	}
+
+	t.Run("the blog's canonical reaches no page", func(t *testing.T) {
+		data, err := BuildBlogTemplateData(BlogTemplateDataRequest{Workspace: workspace, PublicLists: []*List{}})
+		require.NoError(t, err)
+		seo := seoOf(data, "workspace")
+		assert.Equal(t, "Acme blog", seo["meta_title"])
+		assert.NotContains(t, seo, "canonical_url")
+	})
+
+	t.Run("a category's canonical is on its own page", func(t *testing.T) {
+		data, err := BuildBlogTemplateData(BlogTemplateDataRequest{Workspace: workspace, Category: category, PublicLists: []*List{}})
+		require.NoError(t, err)
+		assert.Equal(t, "https://acme.com/guides", seoOf(data, "category")["canonical_url"])
+	})
+
+	t.Run("not on its posts", func(t *testing.T) {
+		data, err := BuildBlogTemplateData(BlogTemplateDataRequest{Workspace: workspace, Category: category, Post: post, PublicLists: []*List{}})
+		require.NoError(t, err)
+		seo := seoOf(data, "category")
+		assert.Equal(t, "Guides", seo["meta_title"])
+		assert.NotContains(t, seo, "canonical_url")
+	})
+}

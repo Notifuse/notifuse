@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Button, Tooltip } from 'antd'
 import { EyeOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { KpiStrip, Panel, type KpiItem } from '../../layout'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { Delta } from '../Delta'
+import { deltaTone } from '../lib/delta'
 import { MiniChart } from './MiniChart'
 import { GOAL_MEASURES, goalFilters } from './queries'
 import { timeBucketColumn } from '../lib/dates'
@@ -81,84 +83,75 @@ export function GoalCard({ goalName, totals, onOpenDashboard }: GoalCardProps) {
   const current = toPoints(series.current?.data)
   const previous = context.showComparison ? toPoints(series.previous?.data) : []
 
-  return (
-    <div className="overflow-hidden rounded-md border border-gray-200">
-      <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-3">
-        <span className="truncate font-medium text-gray-800" title={goalName}>
-          {goalName}
-        </span>
-        <Tooltip title={t`View full dashboard`}>
-          <Button type="text" size="small" icon={<EyeOutlined />} onClick={onOpenDashboard} />
-        </Tooltip>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4">
-        {TILES.map((tile, index) => {
-          const tileTotals = totals[tile.key]
-          const isSelected = selected === tile.key
-          // Two columns on mobile, four from `sm` up, so the separator a tile
-          // needs on its right differs between the two layouts.
-          const isRightEdgeMobile = index % 2 === 1
-          const isRightEdgeDesktop = index === TILES.length - 1
-
-          return (
-            <button
-              type="button"
-              key={tile.key}
-              onClick={() => setSelected(tile.key)}
-              className={[
-                'cursor-pointer p-2 text-center transition-colors',
-                isRightEdgeMobile ? '' : 'border-r border-gray-100',
-                isRightEdgeDesktop ? 'sm:border-r-0' : 'sm:border-r sm:border-gray-100',
-                isSelected
-                  ? 'border-b-2 border-b-primary bg-gray-50/50'
-                  : 'border-b border-b-gray-100 hover:bg-gray-50'
-              ].join(' ')}
+  const items: KpiItem[] = TILES.map((tile) => {
+    const tileTotals = totals[tile.key]
+    const change = context.showComparison ? tileTotals.changePercent : undefined
+    const tone = deltaTone(change)
+    return {
+      key: tile.key,
+      label: (
+        <span className="inline-flex items-center gap-1">
+          {labels[tile.key]}
+          {tile.key === 'conversion_rate' ? (
+            <Tooltip
+              title={t`Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose.`}
             >
-              <div className="mb-1 flex items-center justify-center gap-1 text-xs text-gray-500">
-                {labels[tile.key]}
-                {tile.key === 'conversion_rate' ? (
-                  <Tooltip
-                    title={t`Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose.`}
-                  >
-                    <InfoCircleOutlined className="cursor-help text-[10px] text-gray-400" />
-                  </Tooltip>
-                ) : null}
-              </div>
-              <div className="text-base font-semibold text-gray-800">
-                {tile.format === 'currency' && tileTotals.current === 0
-                  ? '-'
-                  : formatValue(tileTotals.current, tile.format)}
-              </div>
-              {context.showComparison ? (
-                <div className="flex justify-center">
-                  <Delta change={tileTotals.changePercent} size={11} />
-                </div>
-              ) : null}
-            </button>
-          )
-        })}
+              <InfoCircleOutlined className="cursor-help text-overline text-ink-4" />
+            </Tooltip>
+          ) : null}
+        </span>
+      ),
+      value:
+        tile.format === 'currency' && tileTotals.current === 0
+          ? '-'
+          : formatValue(tileTotals.current, tile.format),
+      // Nothing to print for a zero change: no empty line under the value.
+      sub: tone === 'neutral' ? undefined : <Delta change={change} small />,
+      tone,
+      onClick: () => setSelected(tile.key),
+      active: selected === tile.key
+    }
+  })
+
+  return (
+    <Panel
+      title={<span title={goalName}>{goalName}</span>}
+      extra={
+        <Tooltip title={t`View full dashboard`}>
+          <Button
+            type="text"
+            size="small"
+            aria-label={t`View full dashboard`}
+            icon={<EyeOutlined />}
+            onClick={onOpenDashboard}
+          />
+        </Tooltip>
+      }
+      flush
+    >
+      <div className="border-b border-line-soft">
+        <KpiStrip items={items} embedded />
       </div>
 
-      <div className="px-2 pb-2">
+      <div className="p-2">
         {selected === 'conversion_rate' ? (
           <ChartPlaceholder text={t`Select another metric to view chart`} />
         ) : series.isLoading ? (
-          <div className="animate-pulse rounded bg-gray-100" style={{ height: CHART_HEIGHT }} />
+          <div className="animate-pulse rounded bg-fill" style={{ height: CHART_HEIGHT }} />
         ) : current.length === 0 ? (
           <ChartPlaceholder text={t`No chart data`} />
         ) : (
           <MiniChart current={current} previous={previous} height={CHART_HEIGHT} />
         )}
       </div>
-    </div>
+    </Panel>
   )
 }
 
 function ChartPlaceholder({ text }: { text: string }) {
   return (
     <div
-      className="flex items-center justify-center text-xs text-gray-400"
+      className="flex items-center justify-center text-xs text-ink-4"
       style={{ height: CHART_HEIGHT }}
     >
       {text}

@@ -5,6 +5,7 @@ import { useLingui } from '@lingui/react/macro'
 import { webAnalyticsService } from '../../../services/api/web_analytics'
 import { useNumberFormat } from '../../layout'
 import { formatPercent } from '../lib/format'
+import { colors } from '../../../theme/tokens'
 
 const { Text } = Typography
 
@@ -97,11 +98,11 @@ export function BackfillStatus(props: BackfillStatusProps) {
           // antd writes "42%" in English otherwise
           format={(percent) => formatPercent(percent ?? 0, 0)}
           status="active"
-          strokeColor={{ from: '#1890ff', to: '#52c41a' }}
+          strokeColor={{ from: colors.status.info, to: colors.status.success }}
         />
 
         {state ? (
-          <div className="mt-2 text-sm text-gray-500">
+          <div className="mt-2 text-sm text-ink-3">
             <Space separator="·" wrap>
               {partitionTotal > 0 ? (
                 <span>{t`Partition ${state.partition_index} of ${partitionTotal}`}</span>

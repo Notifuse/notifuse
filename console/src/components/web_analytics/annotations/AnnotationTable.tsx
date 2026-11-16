@@ -3,6 +3,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import dayjs from '../../../lib/dayjs'
+import { Panel } from '../../layout'
 import { Annotation } from '../../../services/api/annotation'
 import { ANNOTATION_DEFAULT_COLOR } from './AnnotationFormModal'
 
@@ -42,7 +43,7 @@ export function AnnotationTable(props: AnnotationTableProps) {
       render: (_, record) => (
         <div>
           <div className="font-semibold">{formatMoment(record)}</div>
-          <div className="text-xs text-gray-400">{record.timezone}</div>
+          <div className="text-xs text-ink-4">{record.timezone}</div>
         </div>
       )
     },
@@ -64,7 +65,7 @@ export function AnnotationTable(props: AnnotationTableProps) {
               ) : null}
             </div>
             {record.description ? (
-              <div className="text-sm text-gray-500">{record.description}</div>
+              <div className="text-sm text-ink-3">{record.description}</div>
             ) : null}
           </div>
         </div>
@@ -102,15 +103,12 @@ export function AnnotationTable(props: AnnotationTableProps) {
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden" data-testid="annotations-mobile">
         {annotations.length === 0 ? (
-          <div className="rounded-lg bg-white p-6">
+          <Panel>
             <Empty description={t`No annotations yet`} image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          </div>
+          </Panel>
         ) : (
           annotations.map((annotation) => (
-            <div
-              key={annotation.id}
-              className="rounded-lg border border-gray-200 bg-white p-4"
-            >
+            <Panel key={annotation.id}>
               <div className="flex items-start gap-3">
                 <span
                   className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
@@ -124,16 +122,16 @@ export function AnnotationTable(props: AnnotationTableProps) {
                     ) : null}
                   </div>
                   {annotation.description ? (
-                    <div className="mt-1 text-sm text-gray-500">{annotation.description}</div>
+                    <div className="mt-1 text-sm text-ink-3">{annotation.description}</div>
                   ) : null}
-                  <div className="mt-2 text-sm text-gray-400">
+                  <div className="mt-2 text-sm text-ink-4">
                     {formatMoment(annotation)}
                     <span className="mx-1">·</span>
                     {annotation.timezone}
                   </div>
                 </div>
               </div>
-              <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
+              <div className="mt-3 flex gap-2 border-t border-line-soft pt-3">
                 <Popconfirm
                   title={t`Delete annotation?`}
                   description={deletePrompt(annotation)}
@@ -154,22 +152,24 @@ export function AnnotationTable(props: AnnotationTableProps) {
                   {t`Edit`}
                 </Button>
               </div>
-            </div>
+            </Panel>
           ))
         )}
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden rounded-lg bg-white shadow-sm md:block" data-testid="annotations-desktop">
-        <Table
-          dataSource={annotations}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          showHeader={false}
-          locale={{ emptyText: t`No annotations yet` }}
-        />
+      <div className="hidden md:block" data-testid="annotations-desktop">
+        <Panel flush>
+          <Table
+            dataSource={annotations}
+            columns={columns}
+            rowKey="id"
+            loading={loading}
+            pagination={false}
+            showHeader={false}
+            locale={{ emptyText: t`No annotations yet` }}
+          />
+        </Panel>
       </div>
     </>
   )

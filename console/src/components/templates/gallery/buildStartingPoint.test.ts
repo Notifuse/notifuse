@@ -48,6 +48,8 @@ describe('the workspace in the gallery', () => {
     const tree = JSON.stringify(start.tree)
     expect(tree).toContain('https://cdn.lumen.io/logo.png')
     expect(tree).not.toContain('console/gallery/logo.png')
+    // Its proportions unknown yet: a square's width, so it is never taller than the header.
+    expect(tree).toContain('"width":"40px"')
     expect(tree).toContain('The Lumen team')
     expect(tree).not.toContain('Acme')
     expect(start.subject).toBe('Welcome to Lumen, {{ contact.first_name }}')
@@ -73,5 +75,32 @@ describe('withBrand', () => {
     const content = { a: 'Acme' }
     expect(withBrand(content, '')).toBe(content)
     expect(withBrand(content, undefined)).toBe(content)
+  })
+})
+
+describe('the workspace logo size', () => {
+  const logoOf = (tree: unknown) => {
+    const found: Record<string, unknown>[] = []
+    const walk = (block: { type?: string; attributes?: Record<string, unknown>; children?: unknown[] }) => {
+      if (block.type === 'mj-image' && String(block.attributes?.src).includes('cdn.lumen.io')) found.push(block.attributes!)
+      for (const child of block.children ?? []) walk(child as never)
+    }
+    walk(tree as never)
+    return found[0]
+  }
+
+  it('sizes the logo to the width that gives it the headers height', () => {
+    const start = buildStartingPoint(
+      galleryModel('promo')!,
+      { defaultLanguage: 'en', logoUrl: 'https://cdn.lumen.io/logo.png', logoWidth: 96 },
+      assets,
+      defaults
+    )
+    expect(logoOf(start.tree)?.width).toBe('96px')
+  })
+
+  it('keeps the placeholder at its own 120px', () => {
+    const start = buildStartingPoint(galleryModel('promo')!, { defaultLanguage: 'en' }, assets, defaults)
+    expect(JSON.stringify(start.tree)).toContain('"width":"120px"')
   })
 })

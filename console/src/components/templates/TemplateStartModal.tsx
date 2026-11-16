@@ -14,6 +14,7 @@ import { GALLERY_MODELS } from './gallery/models'
 import { buildStartingPoint, type GalleryStart } from './gallery/buildStartingPoint'
 import { GALLERY_USE_CASES, type GalleryAssets, type GalleryModel, type GalleryUseCase } from './gallery/types'
 import { MODEL_LABELS, SENT_BY_LABELS, USE_CASE_LABELS } from './gallery/labels'
+import { loadLogoWidth, useLogoWidth } from './gallery/logoWidth'
 
 // How long a click on a card waits for a second one before opening the preview.
 const DOUBLE_CLICK_MS = 250
@@ -60,14 +61,25 @@ export function TemplateStartModal({
   const clickTimer = useRef<number | undefined>(undefined)
   useEffect(() => () => window.clearTimeout(clickTimer.current), [])
 
-  // Its languages, its name instead of the example brand, its logo instead of the placeholder.
+  // Its languages, its name instead of the example brand, its logo instead of the placeholder,
+  // sized once the logo has loaded.
+  const logoUrl = workspace.settings.logo_url || undefined
+  const logoWidth = useLogoWidth(logoUrl)
   const workspaceLanguages = {
     defaultLanguage: workspace.settings.default_language,
     languages: workspace.settings.languages,
     name: workspace.name,
-    logoUrl: workspace.settings.logo_url || undefined
+    logoUrl,
+    logoWidth
   }
-  const start = (model: GalleryModel) => onPickModel(buildStartingPoint(model, workspaceLanguages, assets, defaultTestData))
+  // A pick made before the logo has loaded waits for its size: built without it, the logo
+  // would keep a square's width in the saved template.
+  const start = async (model: GalleryModel) => {
+    const width = logoUrl ? (logoWidth ?? (await loadLogoWidth(logoUrl))) : undefined
+    onPickModel(buildStartingPoint(model, { ...workspaceLanguages, logoWidth: width }, assets, defaultTestData))
+  }
+  // The previews wait for the logo's size too, so each is compiled once rather than twice.
+  const logoReady = !logoUrl || logoWidth !== undefined
 
   // A model as a template the preview can compile, in the workspace's language.
   const previewTemplate = useMemo(() => {
@@ -77,7 +89,8 @@ export function TemplateStartModal({
       if (cached) return cached
       const built = buildStartingPoint(model, workspaceLanguages, assets, defaultTestData)
       const template = {
-        id: `gallery-${model.id}-${built.language}`,
+        // The logo's width is in the id: the compiled preview is cached by it.
+        id: `gallery-${model.id}-${built.language}-${logoWidth ?? 'logo'}`,
         name: built.name,
         version: 1,
         channel: 'email',
@@ -89,7 +102,7 @@ export function TemplateStartModal({
       return template
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the workspace's languages and the assets are fixed while the modal is open
-  }, [workspace.id, assets.baseUrl])
+  }, [workspace.id, assets.baseUrl, logoWidth])
 
   const name = (model: GalleryModel) => i18n._(MODEL_LABELS[model.id].name)
   const query = search.trim().toLowerCase()
@@ -228,7 +241,9 @@ export function TemplateStartModal({
                         </div>
                       ) : (
                         <LazyVisible>
-                          <TemplatePreviewFrame workspace={workspace} template={previewTemplate(model)} frameHeight={560} />
+                          {logoReady ? (
+                            <TemplatePreviewFrame workspace={workspace} template={previewTemplate(model)} frameHeight={560} />
+                          ) : null}
                         </LazyVisible>
                       )}
                     </div>

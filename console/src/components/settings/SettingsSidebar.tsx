@@ -91,8 +91,9 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner, isRoo
   }
 
   // The rail's title ("Settings") is drawn by RailLayout, which names the navigation after it.
+  // A spacer between the groups, on top of each heading's own room.
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-3">
       {SETTINGS_GROUPS.map((group) => {
         const sections = group.sections.filter(visible)
         // A group without a visible entry disappears (Security for a member who is not root).

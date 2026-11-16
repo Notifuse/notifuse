@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import { MetricChart } from './MetricChart'
 import type { Annotation } from '../../services/api/annotation'
 import type { ChartDataPoint, MetricConfig } from './lib/types'
+import { colors, typography } from '../../theme/tokens'
 
 /** The shapes these tests read back off the captured echarts option. */
 interface MarkLineItem {
@@ -24,8 +25,15 @@ interface TooltipParam {
   dataIndex: number
 }
 
+interface AxisLabel {
+  color: string
+  fontSize: number
+}
+
 interface CapturedOption {
   grid: { top: string }
+  xAxis: { axisLabel: AxisLabel; axisLine: { lineStyle: { color: string } } }
+  yAxis: { axisLabel: AxisLabel }
   series: CapturedSeries[]
   tooltip: {
     formatter: (params: TooltipParam[]) => string
@@ -377,3 +385,30 @@ describe('MetricChart tooltip change', () => {
   })
 })
 
+describe('MetricChart on the tokens', () => {
+  const pair = (current: number, previous: number): TooltipParam[] => [
+    { axisValue: 'Aug 14', value: current, seriesName: 'Aug 13-15', dataIndex: 1 },
+    { axisValue: 'Aug 14', value: previous, seriesName: 'Aug 6-8', dataIndex: 1 }
+  ]
+
+  it('draws the axes in the ink-3 and line tokens, labels at the overline size', () => {
+    renderChart()
+    expect(option().xAxis.axisLabel).toMatchObject({ color: colors.ink3, fontSize: typography.size.overline })
+    expect(option().yAxis.axisLabel).toMatchObject({ color: colors.ink3, fontSize: typography.size.overline })
+    expect(option().xAxis.axisLine.lineStyle.color).toBe(colors.line)
+  })
+
+  it('colours the tooltip change by whether it is an improvement', () => {
+    renderChart()
+    const formatter = option().tooltip.formatter
+    expect(formatter(pair(120, 100))).toContain(`color:${colors.tones.success.fg}`)
+    expect(formatter(pair(80, 100))).toContain(`color:${colors.tones.danger.fg}`)
+  })
+
+  it('treats a rise as a deterioration when lower is better', () => {
+    renderChart({ metric: { ...METRIC, key: 'bounce_rate', format: 'percentage', invertTrend: true } })
+    const formatter = option().tooltip.formatter
+    expect(formatter(pair(120, 100))).toContain(`color:${colors.tones.danger.fg}`)
+    expect(formatter(pair(80, 100))).toContain(`color:${colors.tones.success.fg}`)
+  })
+})

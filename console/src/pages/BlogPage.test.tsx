@@ -1,5 +1,6 @@
+import type React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -9,13 +10,14 @@ import type { BlogCategory, BlogPostCounts } from '../services/api/blog'
 const state = vi.hoisted(() => ({
   search: {} as Record<string, string | undefined>,
   permissions: {} as Record<string, { read: boolean; write: boolean }>,
-  webAnalytics: false
+  webAnalytics: false,
+  navigate: vi.fn()
 }))
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ workspaceId: 'ws1' }),
   useSearch: () => state.search,
-  useNavigate: () => vi.fn()
+  useNavigate: () => state.navigate
 }))
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -32,18 +34,52 @@ vi.mock('../services/api/blog', () => ({
 
 // The table and the drawers are tested on their own; here they only say what the page gave them.
 vi.mock('../components/blog/PostsTable', () => ({
-  PostsTable: (props: { canWritePosts: boolean; editRefusal?: string; showViews: boolean; counts?: BlogPostCounts }) => (
-    <div
-      data-testid="posts-table"
-      data-can-write={String(props.canWritePosts)}
-      data-edit-refusal={props.editRefusal ?? ''}
-      data-views={String(props.showViews)}
-      data-total={props.counts?.total ?? ''}
-    />
+  PostsTable: (props: {
+    canWritePosts: boolean
+    editRefusal?: string
+    showViews: boolean
+    counts?: BlogPostCounts
+    rail?: React.ReactNode
+  }) => (
+    <>
+      {props.rail}
+      <div
+        data-testid="posts-table"
+        data-can-write={String(props.canWritePosts)}
+        data-edit-refusal={props.editRefusal ?? ''}
+        data-views={String(props.showViews)}
+        data-total={props.counts?.total ?? ''}
+      />
+    </>
   )
 }))
-vi.mock('../components/blog/CategoryDrawer', () => ({ CategoryDrawer: () => null }))
-vi.mock('../components/blog/DeleteCategoryModal', () => ({ DeleteCategoryModal: () => null }))
+vi.mock('../components/blog/CategoryDrawer', () => ({
+  CategoryDrawer: (props: {
+    open: boolean
+    category?: BlogCategory | null
+    postCount?: number
+    onDelete?: (category: BlogCategory) => void
+    onCreated?: (category: BlogCategory) => void
+  }) =>
+    props.open ? (
+      <div data-testid="category-drawer" data-category={props.category?.id ?? 'new'} data-posts={props.postCount ?? ''}>
+        <button type="button" onClick={() => props.onCreated?.({ id: 'c9' } as BlogCategory)}>
+          drawer-created
+        </button>
+        <button type="button" onClick={() => props.category && props.onDelete?.(props.category)}>
+          drawer-delete
+        </button>
+      </div>
+    ) : null
+}))
+vi.mock('../components/blog/DeleteCategoryModal', () => ({
+  DeleteCategoryModal: (props: { open: boolean; onConfirm: () => void }) =>
+    props.open ? (
+      <button type="button" onClick={props.onConfirm}>
+        confirm-delete
+      </button>
+    ) : null
+}))
 vi.mock('../components/blog/PostDrawer', () => ({ PostDrawer: () => null }))
 vi.mock('../components/seo/MissingMetaTagsWarning', () => ({ MissingMetaTagsWarning: () => null }))
 
@@ -226,4 +262,27 @@ describe('BlogPage', () => {
       expect(await screen.findByTestId('posts-table')).toHaveAttribute('data-views', shown)
     }
   )
+
+  it('opens a category it created, by its id', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'New category' }))
+    expect(screen.getByTestId('category-drawer')).toHaveAttribute('data-category', 'new')
+    fireEvent.click(screen.getByRole('button', { name: 'drawer-created' }))
+    const update = state.navigate.mock.calls.at(-1)?.[0].search as (prev: object) => object
+    expect(update({ status: 'draft' })).toEqual({ status: 'draft', category_id: 'c9' })
+  })
+
+  it('gives the drawer its post count, and closes it once its category is deleted from it', async () => {
+    vi.mocked(blogCategoriesApi.delete).mockResolvedValue({ success: true } as never)
+    renderPage()
+    await waitFor(() => expect(screen.getByRole('button', { name: /^News/ })).toHaveTextContent('6'))
+    fireEvent.click(screen.getByRole('button', { name: 'Actions for News' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
+    expect(screen.getByTestId('category-drawer')).toHaveAttribute('data-posts', '6')
+
+    fireEvent.click(screen.getByRole('button', { name: 'drawer-delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'confirm-delete' }))
+    await waitFor(() => expect(blogCategoriesApi.delete).toHaveBeenCalledWith('ws1', { id: 'c1' }))
+    await waitFor(() => expect(screen.queryByTestId('category-drawer')).not.toBeInTheDocument())
+  })
 })

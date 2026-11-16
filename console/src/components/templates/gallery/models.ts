@@ -1,5 +1,6 @@
 import type { EmailBlock } from '../../email_builder/types'
 import { ACCENT, COLORS, STYLE, modelBuilder, type ModelBuilder } from './blocks'
+import { UNKNOWN_LOGO_WIDTH } from './logoWidth'
 import type { GalleryContent } from './content/en'
 import type { GalleryAssets, GalleryEmail, GalleryModel } from './types'
 
@@ -13,8 +14,10 @@ const img = (assets: GalleryAssets, file: string) => `${assets.baseUrl}/${file}`
 // ---------------------------------------------------------------------------------------------
 
 function header(b: ModelBuilder, c: Common, assets: GalleryAssets, withNav = false): EmailBlock {
-  // The workspace's logo when it has one, the gallery's placeholder otherwise.
-  const logo = b.image(assets.logoUrl || img(assets, 'logo.png'), c.logoAlt, { width: '120px', align: withNav ? 'left' : 'center', href: '{{ workspace.website_url }}' })
+  // The workspace's logo when it has one, sized to the placeholder's 40px height from its own
+  // proportions (MJML sizes an image by its width); the gallery's 120×40 placeholder otherwise.
+  const logoWidth = assets.logoUrl ? (assets.logoWidth ?? UNKNOWN_LOGO_WIDTH) : 120
+  const logo = b.image(assets.logoUrl || img(assets, 'logo.png'), c.logoAlt, { width: `${logoWidth}px`, align: withNav ? 'left' : 'center', href: '{{ workspace.website_url }}' })
   if (!withNav) return b.section([b.column([logo])], { paddingTop: '24px', paddingBottom: '8px', paddingLeft: '32px', paddingRight: '32px' })
   return b.section(
     [

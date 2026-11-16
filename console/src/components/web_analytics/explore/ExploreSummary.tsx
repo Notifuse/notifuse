@@ -1,9 +1,11 @@
-import { Skeleton, Tooltip } from "antd";
+import { Tooltip } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { i18n } from "@lingui/core";
 import { useLingui } from "@lingui/react/macro";
+import { KpiStrip, type KpiItem } from "../../layout";
 import { useWebAnalytics } from "../useWebAnalytics";
 import { Delta } from "../Delta";
+import { deltaTone } from "../lib/delta";
 import { ExploreTotals } from "../lib/exploreRows";
 import { formatDimensionValue, getDimensionLabel } from "../lib/dimensions";
 import { formatValue } from "../lib/format";
@@ -55,142 +57,116 @@ export function ExploreSummary(props: ExploreSummaryProps) {
     median_duration: t`TimeScore is the median engaged time across all sessions`,
   };
 
-  const renderBest = (cell: string) => (
-    <Tooltip
-      key="best"
-      title={
-        hasBest ? (
-          <div className="text-xs">
-            <div className="mb-1 font-medium">{t`Best performing combination:`}</div>
-            {props.dimensions.map((dimension) => (
-              <div key={dimension}>
-                <span className="opacity-70">
-                  {getDimensionLabel(dimension, context.customDimensionLabels)}:
-                </span>{" "}
-                <span className="font-medium">
-                  {formatDimensionValue(
-                    dimension,
-                    props.bestCombination?.[dimension],
-                    {
-                      emptyLabel: t`(empty)`,
-                      locale: i18n.locale,
-                    },
-                  )}
-                </span>
-              </div>
-            ))}
-            {/* The tiles around it deliberately ignore the threshold and the
-                metric filters; this one cannot, or it would name a
-                one-session combination as the best. Say which it is. */}
-            {context.minSessions > 1 ? (
-              <div className="mt-1 opacity-70">
-                {t`Among combinations with at least ${context.minSessions} sessions.`}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          t`The best-performing combination could not be loaded.`
-        )
-      }
-    >
-      <div className={`cursor-help ${cell}`}>
-        <div className="mb-1 text-xs text-gray-500">{t`Best TimeScore`}</div>
-        <div className="flex items-baseline gap-2">
-          {hasBest ? (
-            <>
-              <span
-                style={getHeatMapStyle(
-                  props.bestTimeScore ?? 0,
-                  props.bestValue,
-                  TIMESCORE_REFERENCE_SECONDS,
-                  10,
-                )}
-              />
-              <span className="text-xl font-semibold text-gray-800">
-                {formatValue(props.bestTimeScore ?? 0, "duration")}
-              </span>
-            </>
-          ) : (
-            <span className="text-xl font-semibold text-gray-300">—</span>
-          )}
+  const bestHint = hasBest ? (
+    <div className="text-xs">
+      <div className="mb-1 font-medium">{t`Best performing combination:`}</div>
+      {props.dimensions.map((dimension) => (
+        <div key={dimension}>
+          <span className="opacity-70">
+            {getDimensionLabel(dimension, context.customDimensionLabels)}:
+          </span>{" "}
+          <span className="font-medium">
+            {formatDimensionValue(
+              dimension,
+              props.bestCombination?.[dimension],
+              {
+                emptyLabel: t`(empty)`,
+                locale: i18n.locale,
+              },
+            )}
+          </span>
         </div>
-      </div>
-    </Tooltip>
+      ))}
+      {/* The tiles around it deliberately ignore the threshold and the
+          metric filters; this one cannot, or it would name a
+          one-session combination as the best. Say which it is. */}
+      {context.minSessions > 1 ? (
+        <div className="mt-1 opacity-70">
+          {t`Among combinations with at least ${context.minSessions} sessions.`}
+        </div>
+      ) : null}
+    </div>
+  ) : (
+    t`The best-performing combination could not be loaded.`
   );
+
+  const bestItem: KpiItem = {
+    key: "best",
+    label: t`Best TimeScore`,
+    value: hasBest ? (
+      <span className="inline-flex cursor-help items-center gap-2">
+        <span
+          style={getHeatMapStyle(
+            props.bestTimeScore ?? 0,
+            props.bestValue,
+            TIMESCORE_REFERENCE_SECONDS,
+            10,
+          )}
+        />
+        {formatValue(props.bestTimeScore ?? 0, "duration")}
+      </span>
+    ) : (
+      <span className="cursor-help text-ink-4">—</span>
+    ),
+    hint: bestHint,
+  };
 
   // The best combination belongs next to the median it should be read against
   // — one is what a typical session managed, the other what the best segment
   // did — rather than stranded at the end of the row.
-  type Slot =
-    | { kind: "metric"; metric: (typeof SESSION_METRICS)[number] }
-    | { kind: "best" };
-  const slots: Slot[] = [];
+  const items: KpiItem[] = [];
   for (const metric of SESSION_METRICS) {
-    slots.push({ kind: "metric", metric });
-    if (showBest && metric.key === "median_duration")
-      slots.push({ kind: "best" });
+    const value = props.totals?.[metric.key as keyof ExploreTotals] as
+      | number
+      | undefined;
+    const change = props.showComparison
+      ? (props.totals?.[`${metric.key}_change` as keyof ExploreTotals] as
+          | number
+          | undefined)
+      : undefined;
+    const tooltip = tooltips[metric.key];
+    const tone = deltaTone(change, metric.invertTrend);
+
+    items.push({
+      key: metric.key,
+      label: (
+        <span className="inline-flex items-center gap-1">
+          {labels[metric.key] ?? metric.label}
+          {tooltip ? (
+            <Tooltip title={tooltip}>
+              <InfoCircleOutlined className="text-overline" />
+            </Tooltip>
+          ) : null}
+        </span>
+      ),
+      value: (
+        <span className="inline-flex items-center gap-2">
+          {metric.key === "median_duration" ? (
+            <span
+              style={getHeatMapStyle(
+                value ?? 0,
+                props.bestValue,
+                TIMESCORE_REFERENCE_SECONDS,
+                10,
+              )}
+            />
+          ) : null}
+          {formatValue(value ?? 0, metric.format)}
+        </span>
+      ),
+      // Nothing to print for a zero or missing change: no empty line under the value.
+      sub:
+        tone === "neutral" ? undefined : (
+          <Delta
+            change={change}
+            invertTrend={metric.invertTrend}
+            decimals={1}
+          />
+        ),
+      tone,
+    });
+    if (showBest && metric.key === "median_duration") items.push(bestItem);
   }
 
-  return (
-    <div
-      className={`mb-4 grid grid-cols-2 overflow-hidden rounded-md border border-gray-200 ${
-        showBest ? "md:grid-cols-5" : "md:grid-cols-4"
-      }`}
-    >
-      {slots.map((slot, index) => {
-        const cell =
-          index < slots.length - 1 ? "border-r border-gray-200 p-4" : "p-4";
-
-        if (slot.kind === "best") return renderBest(cell);
-
-        const metric = slot.metric;
-        const value = props.totals?.[metric.key as keyof ExploreTotals] as
-          | number
-          | undefined;
-        const change = props.totals?.[
-          `${metric.key}_change` as keyof ExploreTotals
-        ] as number | undefined;
-        const tooltip = tooltips[metric.key];
-
-        return (
-          <div key={metric.key} className={cell}>
-            <div className="mb-1 flex items-center gap-1 text-xs text-gray-500">
-              {labels[metric.key] ?? metric.label}
-              {tooltip ? (
-                <Tooltip title={tooltip}>
-                  <InfoCircleOutlined className="text-[10px]" />
-                </Tooltip>
-              ) : null}
-            </div>
-            {props.loading && !props.totals ? (
-              <Skeleton active paragraph={false} title={{ width: "60%" }} />
-            ) : (
-              <div className="flex items-baseline gap-2">
-                {metric.key === "median_duration" ? (
-                  <span
-                    style={getHeatMapStyle(
-                      value ?? 0,
-                      props.bestValue,
-                      TIMESCORE_REFERENCE_SECONDS,
-                      10,
-                    )}
-                  />
-                ) : null}
-                <span className="text-xl font-semibold text-gray-800">
-                  {formatValue(value ?? 0, metric.format)}
-                </span>
-                {props.showComparison ? (
-                  <Delta
-                    change={change}
-                    invertTrend={metric.invertTrend}
-                    decimals={1}
-                  />
-                ) : null}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+  return <KpiStrip items={items} loading={props.loading && !props.totals} />;
 }

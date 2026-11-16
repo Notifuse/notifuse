@@ -88,7 +88,7 @@ describe('TemplateStartModal', () => {
     expect(await screen.findByText('The summary sent right after a purchase: items, totals, address.')).toBeInTheDocument()
     expect(screen.getByText('order.items')).toBeInTheDocument()
     expect(screen.queryByText('contact.first_name')).toBeNull()
-    expect(screen.getByTestId('frame')).toHaveAttribute('data-template', 'gallery-order-fr')
+    expect(screen.getByTestId('frame')).toHaveAttribute('data-template', 'gallery-order-fr-logo')
 
     await userEvent.click(screen.getByRole('button', { name: 'Use this model' }))
     const start = onPickModel.mock.calls[0][0]
@@ -129,5 +129,36 @@ describe('TemplateStartModal', () => {
     renderModal({ canReadTemplates: false })
     expect(screen.queryByText('Your templates')).toBeNull()
     expect(templatesApi.list).not.toHaveBeenCalled()
+  })
+
+  it('waits for the workspace logo to load before building a pick, so it gets its own width', async () => {
+    // Built at once, a pick made before the logo loads kept a square's 40px width.
+    let release: (() => void) | undefined
+    class SlowImage {
+      naturalWidth = 300
+      naturalHeight = 100
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      set src(_value: string) {
+        release = () => this.onload?.()
+      }
+    }
+    const original = globalThis.Image
+    globalThis.Image = SlowImage as unknown as typeof Image
+    try {
+      const withLogo = {
+        ...workspace,
+        name: 'Acme',
+        settings: { ...workspace.settings, logo_url: 'https://cdn.example.com/slow-logo.png' }
+      } as unknown as Workspace
+      const { onPickModel } = renderModal({ workspace: withLogo })
+      await userEvent.click(card('blank'))
+      expect(onPickModel).not.toHaveBeenCalled()
+      release?.()
+      await waitFor(() => expect(onPickModel).toHaveBeenCalledTimes(1))
+      expect(JSON.stringify(onPickModel.mock.calls[0][0].tree)).toContain('"width":"120px"')
+    } finally {
+      globalThis.Image = original
+    }
   })
 })

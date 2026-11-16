@@ -22,7 +22,7 @@ const SNIPPETS: Record<Language, { label: string; prism: string; build: typeof c
 interface ApiCallPanelProps {
   notification: SnippetNotification
   workspaceId: string
-  /** Opens the API command modal with every language. */
+  /** Opens the API command drawer with every language. */
   onOpenAll: () => void
 }
 

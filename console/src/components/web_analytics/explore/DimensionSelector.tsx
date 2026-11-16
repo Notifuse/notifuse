@@ -74,10 +74,10 @@ function SortableDimensionChip(props: SortableDimensionChipProps) {
           onClick={props.onRemove}
           className="text-blue-400 hover:text-blue-700"
         >
-          <CloseOutlined className="text-[10px]" />
+          <CloseOutlined className="text-overline" />
         </button>
       </span>
-      {props.isLast ? null : <span className="mx-1 text-gray-400">›</span>}
+      {props.isLast ? null : <span className="mx-1 text-ink-4">›</span>}
     </span>
   )
 }
@@ -156,10 +156,10 @@ export function DimensionSelector(props: DimensionSelectorProps) {
   }
 
   const picker = (
-    <div className="w-64 rounded-lg border border-gray-200 bg-white shadow-lg">
-      <div className="border-b border-gray-100 p-2">
+    <div className="w-64 rounded-lg border border-line bg-surface shadow-popup">
+      <div className="border-b border-line-soft p-2">
         <Input
-          prefix={<SearchOutlined className="text-gray-400" />}
+          prefix={<SearchOutlined className="text-ink-4" />}
           allowClear
           placeholder={t`Search dimensions`}
           value={search}
@@ -177,7 +177,7 @@ export function DimensionSelector(props: DimensionSelectorProps) {
         ) : (
           groups.map((group) => (
             <div key={group.category}>
-              <div className="px-3 py-1 text-[10px] font-semibold uppercase text-primary">
+              <div className="px-3 py-1 text-overline font-semibold uppercase text-primary">
                 {categoryLabels[group.category] ?? group.category}
               </div>
               {group.dimensions.map((entry) => {
@@ -198,7 +198,7 @@ export function DimensionSelector(props: DimensionSelectorProps) {
                     <button
                       type="button"
                       onClick={() => add(entry.name)}
-                      className="block w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                      className="block w-full px-3 py-1.5 text-left text-sm hover:bg-fill"
                     >
                       {getDimensionLabel(entry.name, context.customDimensionLabels)}
                     </button>

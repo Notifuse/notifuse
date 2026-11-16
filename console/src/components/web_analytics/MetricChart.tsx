@@ -23,6 +23,7 @@ import {
   PRIMARY_COLOR,
   ResolvedRange
 } from './lib/types'
+import { colors, typography } from '../../theme/tokens'
 
 interface MetricChartProps {
   metric: MetricConfig
@@ -144,7 +145,7 @@ export function MetricChart(props: MetricChartProps) {
               }}`,
               rich: {
                 dot: { color: first.color, fontSize: 12, padding: [0, 4, 0, 0] },
-                title: { color: '#6b7280', fontSize: 10 }
+                title: { color: colors.ink3, fontSize: typography.size.overline }
               }
             }
           }
@@ -187,8 +188,8 @@ export function MetricChart(props: MetricChartProps) {
         confine: true,
         extraCssText: 'max-width:320px;white-space:normal;word-break:break-word;',
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderColor: '#e5e7eb',
-        textStyle: { color: '#374151', fontSize: 12 },
+        borderColor: colors.line,
+        textStyle: { color: colors.ink, fontSize: typography.size.xs },
         formatter: (
           params: { axisValue: string; value: number; seriesName: string; dataIndex: number }[]
         ) => {
@@ -218,7 +219,9 @@ export function MetricChart(props: MetricChartProps) {
                 props.currency
               )}</b>` +
                 (delta !== 0
-                  ? ` <span style="color:${better ? '#10b981' : '#ef4444'}">${sign}${formatPercent(
+                  ? ` <span style="color:${
+                      better ? colors.tones.success.fg : colors.tones.danger.fg
+                    }">${sign}${formatPercent(
                       Math.abs(delta)
                     )}</span>`
                   : '') +
@@ -237,7 +240,7 @@ export function MetricChart(props: MetricChartProps) {
             )
             if (annotation.description) {
               rows.push(
-                `<div style="margin-left:14px;color:#6b7280">${escapeTooltipHTML(
+                `<div style="margin-left:14px;color:${colors.ink3}">${escapeTooltipHTML(
                   annotation.description
                 )}</div>`
               )
@@ -252,10 +255,10 @@ export function MetricChart(props: MetricChartProps) {
         boundaryGap: false,
         data: labels,
         axisTick: { show: false },
-        axisLine: { lineStyle: { color: '#e5e7eb' } },
+        axisLine: { lineStyle: { color: colors.line } },
         axisLabel: {
-          color: '#6b7280',
-          fontSize: 10,
+          color: colors.ink3,
+          fontSize: typography.size.overline,
           interval: labelInterval,
           rotate: labelRotate
         }
@@ -264,10 +267,10 @@ export function MetricChart(props: MetricChartProps) {
         type: 'value',
         axisLine: { show: false },
         axisTick: { show: false },
-        splitLine: { lineStyle: { color: '#f3f4f6' } },
+        splitLine: { lineStyle: { color: colors.gray[100] } },
         axisLabel: {
-          color: '#6b7280',
-          fontSize: 10,
+          color: colors.ink3,
+          fontSize: typography.size.overline,
           formatter: (value: number) => formatAxisValue(value, metric.format)
         }
       },
@@ -289,7 +292,7 @@ export function MetricChart(props: MetricChartProps) {
   ])
 
   if (props.loading) {
-    return <div className="animate-pulse rounded bg-gray-100" style={{ height }} />
+    return <div className="animate-pulse rounded bg-fill" style={{ height }} />
   }
 
   if (current.length === 0) {

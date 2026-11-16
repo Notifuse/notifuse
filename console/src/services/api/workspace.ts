@@ -111,6 +111,13 @@ export interface AmazonSES {
   encrypted_secret_key?: string
 
   /**
+   * The SNS topic the inbound (reply) receipt rule publishes to; replies from any other topic are
+   * rejected. Registering webhooks writes it; set it by hand only for a receipt rule you set up
+   * yourself. Sent blank, the server keeps the stored one.
+   */
+  inbound_topic_arn?: string
+
+  /**
    * Managed tenant isolation: Notifuse provisions a tenant for this integration with its own
    * reputation profile and suppression list. Mutually exclusive with tenant_name.
    */

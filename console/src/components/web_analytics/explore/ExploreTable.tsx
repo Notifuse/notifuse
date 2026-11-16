@@ -5,6 +5,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { Loader2, SquareMinus, SquarePlus, TriangleAlert } from 'lucide-react'
 import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
+import { Panel } from '../../layout'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { Delta } from '../Delta'
 import { formatDimensionValue, getDimensionLabel } from '../lib/dimensions'
@@ -65,10 +66,10 @@ export function ExploreTable(props: ExploreTableProps) {
 
     return (
       <span className="whitespace-nowrap">
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-ink-4">
           {getDimensionLabel(dimension, context.customDimensionLabels)}:
         </span>
-        <span className={isEmpty ? 'ml-1 italic text-gray-400' : 'ml-1 font-medium'}>
+        <span className={isEmpty ? 'ml-1 italic text-ink-4' : 'ml-1 font-medium'}>
           {display}
         </span>
       </span>
@@ -105,7 +106,7 @@ export function ExploreTable(props: ExploreTableProps) {
           <div className="flex items-center justify-end gap-1">
             <span>{formatNumber(value)}</span>
             {share !== null ? (
-              <span className="text-xs text-gray-400">({formatPercent(share)})</span>
+              <span className="text-xs text-ink-4">({formatPercent(share)})</span>
             ) : null}
             {context.showComparison ? (
               <Delta change={record.sessions_change as number | undefined} />
@@ -119,7 +120,7 @@ export function ExploreTable(props: ExploreTableProps) {
         <Tooltip
           title={t`Median session duration. Green meets the reference, cyan exceeds it.`}
         >
-          <span className="cursor-help border-b border-dotted border-gray-400">{t`TimeScore`}</span>
+          <span className="cursor-help border-b border-dotted border-ink-4">{t`TimeScore`}</span>
         </Tooltip>
       ),
       dataIndex: 'median_duration',
@@ -192,9 +193,8 @@ export function ExploreTable(props: ExploreTableProps) {
   ]
 
   return (
-    <div className="overflow-hidden rounded-md">
+    <Panel flush>
       <Table<ExploreRow>
-        className="border border-gray-200 rounded-md"
         rowClassName={(record) =>
           isBestPathRow(record, props.dimensions, props.bestCombination) ? 'best-timescore-row' : ''
         }
@@ -220,7 +220,7 @@ export function ExploreTable(props: ExploreTableProps) {
             }
             if (props.loadingRows.has(record.key)) {
               return (
-                <span className={`${EXPAND_ICON_BOX} text-gray-400`}>
+                <span className={`${EXPAND_ICON_BOX} text-ink-4`}>
                   <Loader2 size={14} className="animate-spin" />
                 </span>
               )
@@ -233,20 +233,20 @@ export function ExploreTable(props: ExploreTableProps) {
                 <Tooltip
                   title={t`Every sub-item has fewer than ${context.minSessions} sessions. Lower the threshold to see them.`}
                 >
-                  <span className={`${EXPAND_ICON_BOX} cursor-help text-amber-500`}>
+                  <span className={`${EXPAND_ICON_BOX} cursor-help text-warning-fg`}>
                     <TriangleAlert size={14} />
                   </span>
                 </Tooltip>
               )
             }
             return (
-              <span className={`${EXPAND_ICON_BOX} text-gray-500`}>
+              <span className={`${EXPAND_ICON_BOX} text-ink-3`}>
                 {expanded ? <SquareMinus size={14} /> : <SquarePlus size={14} />}
               </span>
             )
           }
         }}
       />
-    </div>
+    </Panel>
   )
 }

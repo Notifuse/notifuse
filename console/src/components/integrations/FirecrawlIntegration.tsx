@@ -1,7 +1,11 @@
 import React, { useEffect } from 'react'
-import { Form, Input, Alert, message } from 'antd'
+import { App, Form, Input } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Integration, Workspace } from '../../services/api/types'
+import { Mono, Panel } from '../layout'
+import { SettingsRow, SettingsRows } from '../settings/SettingsRow'
+import { useSecretPlaceholder } from '../settings/integrations/secrets'
+import { OptionalLabel, RequiredLabel } from '../settings/integrations/FieldLabel'
 
 interface FirecrawlIntegrationProps {
   integration?: Integration
@@ -11,6 +15,7 @@ interface FirecrawlIntegrationProps {
   formRef?: React.RefObject<{ submit: () => void } | null>
 }
 
+/** The rows of a Firecrawl integration: its key, its endpoint and the tools it gives the assistant. */
 export const FirecrawlIntegration: React.FC<FirecrawlIntegrationProps> = ({
   integration,
   onSave,
@@ -18,7 +23,9 @@ export const FirecrawlIntegration: React.FC<FirecrawlIntegrationProps> = ({
   formRef
 }) => {
   const { t } = useLingui()
+  const { message } = App.useApp()
   const [form] = Form.useForm()
+  const secretPlaceholder = useSecretPlaceholder(integration)
 
   // Expose form instance to parent via ref
   useEffect(() => {
@@ -65,54 +72,68 @@ export const FirecrawlIntegration: React.FC<FirecrawlIntegrationProps> = ({
 
       await onSave(integrationData)
     } catch (error) {
+      // The page reports a failed save itself (saveOtherIntegration), and a field that does not
+      // validate shows under the field: a toast here would be the second one.
       console.error('Failed to save Firecrawl integration:', error)
-      message.error(t`Failed to save integration`)
     }
   }
 
+  const keyStored = Boolean(
+    integration?.credential_hints?.['firecrawl.api_key'] || integration?.firecrawl_settings?.encrypted_api_key
+  )
+
   return (
-    <Form form={form} layout="vertical" onFinish={handleSave} disabled={!isOwner}>
-      <Form.Item
-        label={t`Integration Name`}
-        name="name"
-        rules={[{ required: true, message: t`Please enter integration name` }]}
-      >
-        <Input placeholder={t`e.g., My Firecrawl Integration`} />
-      </Form.Item>
+    <Form form={form} layout="vertical" component={false} onFinish={handleSave} disabled={!isOwner}>
+      <Panel title={t`Integration`}>
+        <SettingsRows>
+          <SettingsRow label={<RequiredLabel>{t`Name`}</RequiredLabel>} help={t`On the card`} htmlFor="name">
+            <Form.Item name="name" rules={[{ required: true, message: t`Please enter integration name` }]}>
+              <Input placeholder={t`e.g., My Firecrawl Integration`} />
+            </Form.Item>
+          </SettingsRow>
+        </SettingsRows>
+      </Panel>
 
-      <Form.Item
-        label={t`API Key`}
-        name="api_key"
-        extra={integration ? t`Leave blank to keep the existing API key` : undefined}
-        rules={integration ? [] : [{ required: true, message: t`Please enter your API key` }]}
-      >
-        <Input.Password placeholder="fc-..." />
-      </Form.Item>
+      <Panel title={t`Account`}>
+        <SettingsRows>
+          <SettingsRow
+            label={integration ? t`API key` : <RequiredLabel>{t`API key`}</RequiredLabel>}
+            help={t`From firecrawl.dev, or your own instance`}
+            htmlFor="api_key"
+          >
+            <Form.Item
+              name="api_key"
+              extra={integration && keyStored ? t`Leave blank to keep the existing API key` : undefined}
+              rules={integration ? [] : [{ required: true, message: t`Please enter your API key` }]}
+            >
+              <Input.Password autoComplete="new-password" placeholder={secretPlaceholder('firecrawl.api_key', keyStored, 'fc-...')} />
+            </Form.Item>
+          </SettingsRow>
+          <SettingsRow
+            label={<OptionalLabel>{t`Base URL`}</OptionalLabel>}
+            help={t`Leave blank to use the default Firecrawl API (api.firecrawl.dev)`}
+            htmlFor="base_url"
+          >
+            <Form.Item name="base_url">
+              <Input placeholder="https://api.firecrawl.dev" />
+            </Form.Item>
+          </SettingsRow>
+        </SettingsRows>
+      </Panel>
 
-      <Form.Item
-        label={t`Base URL (Optional)`}
-        name="base_url"
-        extra={t`Leave blank to use the default Firecrawl API (api.firecrawl.dev)`}
+      <Panel
+        title={t`Tools`}
+        extra={<span className="text-xs text-ink-3">{t`Added to every AI assistant request`}</span>}
       >
-        <Input placeholder="https://api.firecrawl.dev" />
-      </Form.Item>
-
-      <Alert
-        title={t`Available Tools`}
-        description={
-          <ul className="list-disc pl-4 mt-2">
-            <li>
-              <strong>scrape_url</strong> - {t`Scrapes a URL and returns its content as markdown`}
-            </li>
-            <li>
-              <strong>search_web</strong> - {t`Searches the web and returns relevant URLs`}
-            </li>
-          </ul>
-        }
-        type="info"
-        showIcon
-        className="mt-4"
-      />
+        <SettingsRows>
+          <SettingsRow label={<Mono>scrape_url</Mono>}>
+            <span className="text-sm text-ink-2">{t`Scrapes a URL and returns its content as markdown`}</span>
+          </SettingsRow>
+          <SettingsRow label={<Mono>search_web</Mono>}>
+            <span className="text-sm text-ink-2">{t`Searches the web and returns relevant URLs`}</span>
+          </SettingsRow>
+        </SettingsRows>
+      </Panel>
     </Form>
   )
 }

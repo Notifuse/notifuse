@@ -165,3 +165,14 @@
     padding: 1.5rem 1.5rem 30vh;
   }
 }
+/*
+ * A post's title above its text in the editor (PostDrawer's Write step), as large as readers see
+ * it: the page heading, outside the console's type scale. Its font is the editor's headings font,
+ * from defaultEditorStyles, set by the component.
+ */
+.notifuse-editor-post-title {
+  font-size: 2.5rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}

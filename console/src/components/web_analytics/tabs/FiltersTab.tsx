@@ -8,7 +8,7 @@ import { useWebAnalytics } from '../useWebAnalytics'
 import { BackfillStatus } from '../filters/BackfillStatus'
 import { FilterDraft, FilterFormDrawer } from '../filters/FilterFormDrawer'
 import { FilterTable } from '../filters/FilterTable'
-import { TestFilterModal } from '../filters/TestFilterModal'
+import { TestFilterPanel } from '../filters/TestFilterPanel'
 
 const ALL_TAGS = 'all'
 
@@ -121,7 +121,7 @@ export function FiltersTab() {
     <div>
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium text-gray-800">{t`Attribution rules`}</h2>
+          <h2 className="text-lg font-medium text-ink">{t`Attribution rules`}</h2>
           <Space>
             <Button type="text" icon={<ExperimentOutlined />} onClick={() => setTestModalOpen(true)}>
               {t`Test`}
@@ -131,7 +131,7 @@ export function FiltersTab() {
             </Button>
           </Space>
         </div>
-        <p className="mt-3 text-gray-500 md:mt-1">
+        <p className="mt-3 text-ink-3 md:mt-1">
           {t`Map traffic to channels, fill custom dimensions and rewrite traffic source fields as sessions come in.`}
         </p>
       </div>
@@ -158,7 +158,7 @@ export function FiltersTab() {
             <Input
               placeholder={t`Search...`}
               allowClear
-              prefix={<SearchOutlined className="text-gray-400" />}
+              prefix={<SearchOutlined className="text-ink-4" />}
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
             />
@@ -182,7 +182,7 @@ export function FiltersTab() {
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
-            <span className="text-gray-500">
+            <span className="text-ink-3">
               {t`No attribution rules yet. Create the first one to start shaping your traffic data.`}
             </span>
           }
@@ -204,7 +204,7 @@ export function FiltersTab() {
         onSubmit={handleSubmit}
       />
 
-      <TestFilterModal
+      <TestFilterPanel
         open={testModalOpen}
         onClose={() => setTestModalOpen(false)}
         filters={rules}

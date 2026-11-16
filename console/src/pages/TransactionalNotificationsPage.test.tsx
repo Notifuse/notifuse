@@ -78,9 +78,9 @@ vi.mock('../components/templates/SendTemplateModal', () => ({
 vi.mock('../components/templates/TemplatePreviewDrawer', () => ({
   default: ({ record }: { record: { id: string } }) => <div data-testid={`preview-${record.id}`} />
 }))
-vi.mock('../components/transactional/ApiCommandModal', () => ({
-  ApiCommandModal: ({ notification }: { notification: { id: string } }) => (
-    <div data-testid={`api-modal-${notification.id}`} />
+vi.mock('../components/transactional/ApiCommandDrawer', () => ({
+  ApiCommandDrawer: ({ notification }: { notification: { id: string } }) => (
+    <div data-testid={`api-drawer-${notification.id}`} />
   )
 }))
 vi.mock('../components/transactional/TransactionalDetail', () => ({
@@ -533,9 +533,19 @@ describe('TransactionalNotificationsPage list', () => {
     await screen.findByText('Welcome')
 
     fireEvent.click(within(row('Welcome')).getByRole('button', { name: 'API command' }))
-    expect(screen.getByTestId('api-modal-welcome')).toBeInTheDocument()
+    expect(screen.getByTestId('api-drawer-welcome')).toBeInTheDocument()
     fireEvent.click(within(row('Password reset')).getByRole('button', { name: 'Send test' }))
     expect(screen.getByTestId('test-modal-tpl-password_reset')).toBeInTheDocument()
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it("opens the API command over the sheet when the sheet's All languages asks", async () => {
+    state.search = { notification: 'password_reset' }
+    renderPage()
+    await screen.findByText('Welcome')
+
+    act(() => (detailProps.mock.calls.at(-1)?.[0] as { onApi: (n: unknown) => void }).onApi(reset))
+    expect(screen.getByTestId('api-drawer-password_reset')).toBeInTheDocument()
     expect(navigate).not.toHaveBeenCalled()
   })
 

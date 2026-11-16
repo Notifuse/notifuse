@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Form, App, Descriptions, Input, Divider, Select, Row, Col } from 'antd'
+import { Button, Form, App, Descriptions, Input, Segmented, Select } from 'antd'
+import { Link } from '@tanstack/react-router'
+import { ExternalLink } from 'lucide-react'
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -9,10 +11,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
-import { SEOSettingsForm } from '../seo/SEOSettingsForm'
+import { SeoPreview } from '../seo/SeoPreview'
+import { blogBaseUrl } from '../blog/category/categorySeo'
+import { SettingsRow, SettingsRows } from './SettingsRow'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
-import { Panel } from '../layout'
+import { Panel, Pill } from '../layout'
 import { RecentThemesTable } from '../blog/RecentThemesTable'
 import { blogThemesApi } from '../../services/api/blog'
 import { THEME_PRESETS } from '../blog/themePresets'
@@ -40,7 +44,6 @@ interface BlogSettingsFormValues {
       og_title?: string
       og_description?: string
       og_image?: string
-      canonical_url?: string
       keywords?: string[]
       meta_robots?: string
     }
@@ -52,7 +55,7 @@ interface BlogSettingsFormValues {
  * Discard read from here, so "restore what was saved" can never drift from
  * "what was loaded".
  *
- * Every field SEOSettingsForm renders has to be listed: the save replaces
+ * Every field the form renders has to be listed: the save replaces
  * blog_settings wholesale, so a field the form shows but this builder forgets
  * reaches the backend empty and wipes whatever was stored.
  */
@@ -74,7 +77,6 @@ function toFormValues(workspace: Workspace | null): BlogSettingsFormValues {
         og_title: stored?.seo?.og_title || '',
         og_description: stored?.seo?.og_description || '',
         og_image: stored?.seo?.og_image || '',
-        canonical_url: stored?.seo?.canonical_url || '',
         keywords: stored?.seo?.keywords || [],
         meta_robots: (stored?.seo?.meta_robots ?? 'index,follow') as string
       }
@@ -89,6 +91,11 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
   const [form] = Form.useForm<BlogSettingsFormValues>()
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
+  // For the home page preview; watched here, as hooks come before the read-only return.
+  const watchedSeo = (Form.useWatch(['blog_settings', 'seo'], { form, preserve: true }) ?? {}) as NonNullable<
+    NonNullable<BlogSettingsFormValues['blog_settings']>['seo']
+  >
+  const watchedIcon = Form.useWatch(['blog_settings', 'icon_url'], { form, preserve: true }) as string | undefined
 
   // Fetch themes unconditionally (even if blog is disabled)
   const { data: themesData, isLoading: themesLoading } = useQuery({
@@ -199,16 +206,18 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
 
   const handleDisableBlog = () => {
     modal.confirm({
-      title: t`Disable Blog?`,
+      title: t`Turn off the blog?`,
       icon: <ExclamationCircleOutlined />,
-      content: t`Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone.`,
-      okText: t`Disable Blog`,
+      // The server only clears the flag (SetBlogSettings): the title, SEO, pages and feeds stay
+      // stored, and turning the blog back on brings them back.
+      content: t`The blog's pages stop being served. Its posts and settings are kept, and come back when you turn it on again.`,
+      okText: t`Turn off the blog`,
       okType: 'danger',
       cancelText: t`Cancel`,
       onOk: async () => {
         // Set blog_enabled to false and submit
         form.setFieldValue('blog_enabled', false)
-        await handleSaveSettings({ ...form.getFieldsValue(), blog_enabled: false })
+        await handleSaveSettings({ ...(form.getFieldsValue(true) as BlogSettingsFormValues), blog_enabled: false })
       }
     })
   }
@@ -256,28 +265,40 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
     )
   }
 
+  const domain = workspace?.settings.custom_endpoint_url || ''
+  // 10. The same address rule as the blog's other screens (blogBaseUrl).
+  const blogAddress = domain ? blogBaseUrl(domain, undefined) : ''
+  const blogHost = blogAddress.replace(/^https?:\/\//, '')
+  const workspaceName = workspace?.name || ''
+  const pageSizes = [5, 10, 15, 20].map((value) => ({ value, label: String(value) }))
+
+  // The home page as the default theme writes it: the title falls back to the workspace name,
+  // the share title too; the descriptions to nothing.
+  const homeSeo = {
+    title: watchedSeo.meta_title?.trim() || workspaceName,
+    description: watchedSeo.meta_description?.trim() || '',
+    ogTitle: watchedSeo.og_title?.trim() || workspaceName,
+    ogDescription: watchedSeo.og_description?.trim() || '',
+    ogImage: watchedSeo.og_image?.trim() || ''
+  }
+
+  const imageInput = (placeholder: string) => (
+    <ImageURLInput
+      placeholder={placeholder}
+      acceptFileType="image/*"
+      acceptItem={(item) => !item.is_folder && item.file_info?.content_type?.startsWith('image/')}
+      buttonText={t`Select`}
+      size="middle"
+    />
+  )
+
   return (
     <>
       <SettingsSectionHeader
         title={t`Blog`}
-        description={t`Configure styling and SEO settings for your blog. These settings will be applied to all blog pages.`}
+        description={t`The blog served on your custom domain: its identity, pages, feeds and search tags`}
       />
 
-      {!workspace?.settings.custom_endpoint_url && (
-        <Alert
-          type="warning"
-          showIcon
-          title={t`Set a domain in General, under Custom domain, before enabling the blog.`}
-        />
-      )}
-
-      {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
-        <>
-          <RecentThemesTable workspaceId={workspace.id} workspace={workspace} />
-        </>
-      )}
-
-      <Panel title={t`Blog settings`}>
       <Form
         form={form}
         layout="vertical"
@@ -286,189 +307,213 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
         // The save control floats over the page, so a rejected field can sit
         // anywhere off screen when it is pressed.
         scrollToFirstError
+        component={false}
       >
-        {/* Show enable button only when blog is disabled */}
-        {!workspace?.settings.blog_enabled && (
-          <div
-            style={{
-              padding: '24px',
-              border: '1px solid #d9d9d9',
-              borderRadius: '8px',
-              backgroundColor: '#fafafa',
-              marginBottom: 24
-            }}
-          >
-            <h3 style={{ marginBottom: 8, fontSize: '16px', fontWeight: 600 }}>{t`Enable Blog`}</h3>
-            <p style={{ marginBottom: 16, color: '#595959', lineHeight: '1.6' }}>
-              {t`Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at`}{' '}
-              <strong>
-                {workspace?.settings.custom_endpoint_url || 'your-custom-domain.com'}/
-              </strong>
-            </p>
-            <Button
-              type="primary"
-              size="large"
-              disabled={!workspace?.settings.custom_endpoint_url || themesLoading}
-              loading={savingSettings || themesLoading}
-              onClick={async () => {
-                form.setFieldValue('blog_enabled', true)
-                // Initialize blog_settings with title if not set
-                const currentValues = form.getFieldsValue()
-                const blogSettings = currentValues.blog_settings || {}
-                if (!blogSettings.title && workspace?.name) {
-                  blogSettings.title = workspace.name
-                }
-                await handleSaveSettings({
-                  ...currentValues,
-                  blog_enabled: true,
-                  blog_settings: blogSettings
-                })
-              }}
-            >
-              {t`Enable Blog`}
-            </Button>
-          </div>
-        )}
-
-        {/* Show blog settings when enabled */}
-        {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
-          <>
-            <div className="text-xl font-medium mb-8">{t`General Settings`}</div>
-
-            <Form.Item
-              name={['blog_settings', 'title']}
-              label={t`Blog Title`}
-              tooltip={t`The main title for your blog`}
-            >
-              <Input placeholder={workspace?.name || t`My Amazing Blog`} />
-            </Form.Item>
-
-            <Form.Item
-              name={['blog_settings', 'logo_url']}
-              label={t`Logo URL`}
-              tooltip={t`Main logo for your blog. Recommended size: 200x50px or similar aspect ratio`}
-            >
-              <ImageURLInput
-                placeholder={t`Enter logo URL or select image`}
-                acceptFileType="image/*"
-                acceptItem={(item) =>
-                  !item.is_folder && item.file_info?.content_type?.startsWith('image/')
-                }
-                buttonText={t`Select`}
-                size="middle"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name={['blog_settings', 'icon_url']}
-              label={t`Icon/Favicon URL`}
-              tooltip={t`Favicon for your blog. Recommended: 32x32px or 192x192px PNG`}
-            >
-              <ImageURLInput
-                placeholder={t`Enter icon URL or select image`}
-                acceptFileType="image/*"
-                acceptItem={(item) =>
-                  !item.is_folder && item.file_info?.content_type?.startsWith('image/')
-                }
-                buttonText={t`Select`}
-                size="middle"
-              />
-            </Form.Item>
-
-            <Row gutter={24}>
-              <Col span={12}>
-                <Form.Item
-                  name={['blog_settings', 'home_page_size']}
-                  label={t`Posts on homepage`}
-                  tooltip={t`Number of posts to display per page on the homepage`}
-                  rules={[{ required: true, message: t`Please select a page size` }]}
-                >
-                  <Select placeholder={t`Select page size`}>
-                    <Select.Option value={5}>5</Select.Option>
-                    <Select.Option value={10}>10</Select.Option>
-                    <Select.Option value={15}>15</Select.Option>
-                    <Select.Option value={20}>20</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col span={12}>
-                <Form.Item
-                  name={['blog_settings', 'category_page_size']}
-                  label={t`Posts on category pages`}
-                  tooltip={t`Number of posts to display per page on category pages`}
-                  rules={[{ required: true, message: t`Please select a page size` }]}
-                >
-                  <Select placeholder={t`Select page size`}>
-                    <Select.Option value={5}>5</Select.Option>
-                    <Select.Option value={10}>10</Select.Option>
-                    <Select.Option value={15}>15</Select.Option>
-                    <Select.Option value={20}>20</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <SettingsSectionHeader
-              title={t`RSS / Feeds`}
-              description={t`Configure how your blog's RSS and JSON feeds are generated.`}
-              level="section"
-              className="mb-4"
-            />
-
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name={['blog_settings', 'feed_max_items']}
-                  label={t`Items per feed`}
-                  tooltip={t`Maximum number of posts to include in the RSS/JSON feed (1–20)`}
-                >
-                  <Select placeholder={t`Select feed size`}>
-                    <Select.Option value={5}>5</Select.Option>
-                    <Select.Option value={10}>10</Select.Option>
-                    <Select.Option value={15}>15</Select.Option>
-                    <Select.Option value={20}>20</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col span={12}>
-                <Form.Item
-                  name={['blog_settings', 'feed_summary_only']}
-                  label={t`Summary-only feed`}
-                  tooltip={t`When enabled, the feed includes only excerpts instead of full article content`}
-                >
-                  <Select placeholder={t`Select content mode`}>
-                    <Select.Option value={false}>{t`Full content`}</Select.Option>
-                    <Select.Option value={true}>{t`Excerpt only`}</Select.Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Divider className="!my-8" />
-
-            <SEOSettingsForm
-              namePrefix={['blog_settings', 'seo']}
-              titlePlaceholder={t`My Amazing Blog`}
-              descriptionPlaceholder={t`Welcome to my blog where I share insights about...`}
-            />
-          </>
-        )}
-      </Form>
-      </Panel>
-
-      {/* Danger Zone - Show when blog is enabled */}
-      {workspace?.settings.blog_enabled && (
-        <Panel title={t`Danger zone`} tone="danger">
-          <p className="m-0 mb-3 text-sm text-ink-2">
-            {t`Disabling the blog will remove all SEO settings and make your blog inaccessible to visitors. This action will affect your blog's visibility and search engine rankings.`}
-          </p>
-          <Button danger onClick={handleDisableBlog}>
-            {t`Disable Blog`}
-          </Button>
+        <Panel title={t`Blog`}>
+          <SettingsRows>
+            {workspace?.settings.blog_enabled ? (
+              <SettingsRow label={t`Status`} help={t`Visitors can read the published posts`}>
+                <div className="flex items-center justify-between gap-3">
+                  <Pill tone="success">{t`On`}</Pill>
+                  {blogAddress ? (
+                    <a
+                      href={blogAddress}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-w-0 items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
+                    >
+                      <span className="truncate">{blogHost}</span>
+                      <ExternalLink size={12} aria-hidden="true" />
+                    </a>
+                  ) : null}
+                </div>
+              </SettingsRow>
+            ) : (
+              <SettingsRow label={t`Status`} help={t`Turn it on to publish posts at the root of your custom domain`}>
+                <div className="flex items-center justify-between gap-3">
+                  <Pill tone="neutral">{t`Off`}</Pill>
+                  <Button
+                    type="primary"
+                    disabled={!domain || themesLoading}
+                    loading={savingSettings || themesLoading}
+                    onClick={async () => {
+                      form.setFieldValue('blog_enabled', true)
+                      // Initialize blog_settings with title if not set
+                      // The whole store: every blog_settings field is unmounted while the blog is off,
+                      // and the save replaces blog_settings wholesale, so the mounted fields alone
+                      // would erase the logo, SEO, pages and feeds the off dialog promised to keep.
+                      const currentValues = form.getFieldsValue(true) as BlogSettingsFormValues
+                      const blogSettings = currentValues.blog_settings || {}
+                      if (!blogSettings.title && workspace?.name) {
+                        blogSettings.title = workspace.name
+                      }
+                      await handleSaveSettings({
+                        ...currentValues,
+                        blog_enabled: true,
+                        blog_settings: blogSettings
+                      })
+                    }}
+                  >
+                    {t`Turn on the blog`}
+                  </Button>
+                </div>
+              </SettingsRow>
+            )}
+            {!domain ? (
+              <SettingsRow
+                label={t`Custom domain`}
+                help={<span className="text-warning-fg">{t`Needed first: the blog is served at its root`}</span>}
+              >
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-ink-3">{t`Not set`}</span>
+                  {workspace ? (
+                    <Link
+                      to="/console/workspace/$workspaceId/settings/$section"
+                      params={{ workspaceId: workspace.id, section: 'general' }}
+                      className="text-primary-600 hover:text-primary-700"
+                    >
+                      {t`Set it in General`}
+                    </Link>
+                  ) : null}
+                </div>
+              </SettingsRow>
+            ) : null}
+          </SettingsRows>
         </Panel>
-      )}
+
+        {workspace?.settings.blog_enabled && domain ? (
+          <>
+            <RecentThemesTable workspaceId={workspace.id} workspace={workspace} />
+
+            <Panel title={t`Identity`}>
+              <SettingsRows>
+                <SettingsRow label={t`Title`} help={t`The home page headline, and the name in the footer`} htmlFor="blog_settings_title">
+                  <Form.Item name={['blog_settings', 'title']} rules={[{ max: 255, message: t`255 characters at most` }]}>
+                    <Input placeholder={workspaceName || t`My Amazing Blog`} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Logo`} help={t`In the header. Without one, the workspace logo`}>
+                  <Form.Item name={['blog_settings', 'logo_url']}>{imageInput(t`Enter logo URL or select image`)}</Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Favicon`} help={t`The icon in the browser tab; 32 or 192 px square`}>
+                  <Form.Item name={['blog_settings', 'icon_url']}>{imageInput(t`Enter icon URL or select image`)}</Form.Item>
+                </SettingsRow>
+              </SettingsRows>
+            </Panel>
+
+            <Panel title={t`Pages and feeds`}>
+              <SettingsRows>
+                <SettingsRow label={t`Posts on the home page`} help={t`Per page`}>
+                  <Form.Item
+                    name={['blog_settings', 'home_page_size']}
+                    rules={[{ required: true, message: t`Please select a page size` }]}
+                  >
+                    <Select options={pageSizes} aria-label={t`Posts on the home page`} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Posts on a category page`} help={t`Per page`}>
+                  <Form.Item
+                    name={['blog_settings', 'category_page_size']}
+                    rules={[{ required: true, message: t`Please select a page size` }]}
+                  >
+                    <Select options={pageSizes} aria-label={t`Posts on a category page`} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Posts in the feeds`} help={t`RSS and JSON feeds, newest first`}>
+                  <Form.Item name={['blog_settings', 'feed_max_items']}>
+                    <Select options={pageSizes} aria-label={t`Posts in the feeds`} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Feed content`} help={t`What a feed reader shows of each post`}>
+                  <Form.Item
+                    name={['blog_settings', 'feed_summary_only']}
+                    // Stored as a boolean; the switch speaks in content kinds.
+                    getValueProps={(summaryOnly: boolean) => ({ value: summaryOnly ? 'excerpt' : 'full' })}
+                    normalize={(kind: string) => kind === 'excerpt'}
+                  >
+                    <Segmented
+                      aria-label={t`Feed content`}
+                      options={[
+                        { value: 'full', label: t`Full post` },
+                        { value: 'excerpt', label: t`Excerpt only` }
+                      ]}
+                    />
+                  </Form.Item>
+                </SettingsRow>
+              </SettingsRows>
+            </Panel>
+
+            <Panel
+              title={t`Search engines`}
+              extra={<span className="text-xs text-ink-3">{t`The home page, and every page without its own tags`}</span>}
+            >
+              <SettingsRows>
+                <SettingsRow label={t`Meta title`} help={t`Defaults to the workspace name`} htmlFor="blog_settings_seo_meta_title">
+                  <Form.Item name={['blog_settings', 'seo', 'meta_title']}>
+                    <Input maxLength={60} showCount placeholder={workspaceName} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Meta description`} help={t`Under the title in search results`} htmlFor="blog_settings_seo_meta_description">
+                  <Form.Item name={['blog_settings', 'seo', 'meta_description']}>
+                    <Input.TextArea rows={2} maxLength={160} showCount placeholder={t`Brief description for search results`} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Keywords`}>
+                  <Form.Item name={['blog_settings', 'seo', 'keywords']}>
+                    <Select mode="tags" placeholder={t`Add keywords...`} aria-label={t`Keywords`} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Indexing`} help={t`For the whole blog: the theme writes this robots tag on every page`}>
+                  <Form.Item name={['blog_settings', 'seo', 'meta_robots']}>
+                    <Select
+                      aria-label={t`Indexing`}
+                      options={[
+                        { value: 'index,follow', label: t`Index and follow links` },
+                        { value: 'noindex,follow', label: t`Don't index, but follow links` },
+                        { value: 'index,nofollow', label: t`Index, but don't follow links` },
+                        { value: 'noindex,nofollow', label: t`Don't index and don't follow links` }
+                      ]}
+                    />
+                  </Form.Item>
+                </SettingsRow>
+              </SettingsRows>
+            </Panel>
+
+            <Panel title={t`Social share`} extra={<span className="text-xs text-ink-3">{t`When a link to the blog is shared`}</span>}>
+              <SettingsRows>
+                <SettingsRow label={t`Share title`} help={t`Defaults to the workspace name`} htmlFor="blog_settings_seo_og_title">
+                  <Form.Item name={['blog_settings', 'seo', 'og_title']}>
+                    <Input maxLength={60} showCount placeholder={workspaceName} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Share description`} htmlFor="blog_settings_seo_og_description">
+                  <Form.Item name={['blog_settings', 'seo', 'og_description']}>
+                    <Input.TextArea rows={2} maxLength={160} showCount />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow
+                  label={t`Share image`}
+                  help={t`Also the image of a post or category without one; 1200 × 630 px`}
+                >
+                  <Form.Item name={['blog_settings', 'seo', 'og_image']}>{imageInput('https://example.com/image.jpg')}</Form.Item>
+                </SettingsRow>
+              </SettingsRows>
+            </Panel>
+
+            <SeoPreview effective={homeSeo} domain={blogHost} path={[]} iconUrl={watchedIcon || undefined} />
+
+            <Panel title={t`Turn off the blog`} tone="danger">
+              <SettingsRows>
+                <SettingsRow label={t`Turn off`} help={t`The pages stop being served; posts and settings are kept`}>
+                  <Button danger onClick={handleDisableBlog}>
+                    {t`Turn off the blog`}
+                  </Button>
+                </SettingsRow>
+              </SettingsRows>
+            </Panel>
+          </>
+        ) : null}
+      </Form>
 
       {/* Last child on purpose — see SettingsSaveBar for why. */}
       <SettingsSaveBar

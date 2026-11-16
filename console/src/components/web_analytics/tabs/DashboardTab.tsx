@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Alert } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { Panel } from '../../layout'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { DimensionTableWidget, ColumnConfig } from '../DimensionTableWidget'
 import { MetricChart, useAnnotations } from '../MetricChart'
@@ -12,6 +13,7 @@ import { CountryFlag, getDeviceIcon } from '../lib/icons'
 import { timeBucketColumn } from '../lib/dates'
 import { changePercent, formatRangeSeriesName, toNumber } from '../lib/format'
 import { buildWebQuery, readMeasure, useWebComparisonQuery } from '../lib/query'
+import { filtersForSchema, getDimensionLabel } from '../lib/dimensions'
 import {
   ChartDataPoint,
   MetricTotals,
@@ -34,11 +36,22 @@ export function DashboardTab() {
     median_duration: t`TimeScore is the median engaged time across all sessions`
   }
 
+  const sessionFilters = filtersForSchema(context.filters, 'web_sessions')
+  // Named, so the strip's note reads « Goal Name filter not applied… » in every language.
+  const notApplied = context.filters
+    .filter((filter) => !sessionFilters.includes(filter))
+    .map((filter) => getDimensionLabel(filter.dimension, context.customDimensionLabels))
+  const notAppliedNames = [...new Set(notApplied)].join(', ')
+
   const base = {
     schema: 'web_sessions' as const,
     measures: SESSION_METRIC_KEYS,
     dimensions: [],
-    filters: context.filters,
+    // Page filters span both schemas: a goal clicked in the Goals widget filters on goal_name,
+    // which web_sessions does not have, and the engine rejects the whole query (the strip and
+    // the chart went blank, "Could not load the dashboard"). An inapplicable filter is left out,
+    // and said so under the strip.
+    filters: sessionFilters,
     timezone: context.timezone
   }
 
@@ -96,46 +109,52 @@ export function DashboardTab() {
   ]
 
   return (
-    <div className={seriesResult.isFetching ? 'opacity-75 transition-opacity' : ''}>
+    <div
+      className={`flex flex-col gap-3 ${seriesResult.isFetching ? 'opacity-75 transition-opacity' : ''}`}
+    >
       <SdkVersionWarning />
 
       {seriesResult.error ? (
-        <Alert type="error" showIcon title={t`Could not load the dashboard`} className="mb-4" />
+        <Alert type="error" showIcon title={t`Could not load the dashboard`} />
       ) : null}
 
-      <div className="overflow-hidden rounded-md border border-gray-200">
-        <MetricSummary
-          metrics={SESSION_METRICS}
-          totals={totals}
-          selected={selectedMetric}
-          onSelect={setSelectedMetric}
-          showComparison={context.showComparison}
-          loading={totalsResult.isLoading}
-          labels={metricLabels}
-          tooltips={metricTooltips}
-        />
-        <div className="relative pb-3 pl-2 pr-4 pt-4">
-          <div className="absolute right-4 top-4 z-10">
-            <GranularitySelector />
-          </div>
-          <MetricChart
-            metric={metric}
-            current={toSeries(seriesResult.current?.data)}
-            previous={context.showComparison ? toSeries(seriesResult.previous?.data) : []}
-            granularity={context.granularity}
-            currentLabel={formatRangeSeriesName(context.range)}
-            previousLabel={
-              context.compareRange ? formatRangeSeriesName(context.compareRange) : undefined
-            }
-            loading={seriesResult.isLoading}
-            height={220}
-            annotations={annotations}
-            timezone={context.timezone}
-          />
-        </div>
-      </div>
+      <MetricSummary
+        metrics={SESSION_METRICS}
+        totals={totals}
+        selected={selectedMetric}
+        onSelect={setSelectedMetric}
+        showComparison={context.showComparison}
+        loading={totalsResult.isLoading}
+        labels={metricLabels}
+        tooltips={metricTooltips}
+      />
+      {notAppliedNames ? (
+        <p data-filters-not-applied className="m-0 -mt-1.5 text-xs text-ink-3">
+          {notApplied.length === 1
+            ? t`${notAppliedNames} filter not applied to the session figures and chart`
+            : t`${notAppliedNames} filters not applied to the session figures and chart`}
+        </p>
+      ) : null}
 
-      <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
+      {/* The strip above is the chart's metric selector, so the panel is titled with its choice. */}
+      <Panel title={metricLabels[metric.key] ?? metric.label} extra={<GranularitySelector />}>
+        <MetricChart
+          metric={metric}
+          current={toSeries(seriesResult.current?.data)}
+          previous={context.showComparison ? toSeries(seriesResult.previous?.data) : []}
+          granularity={context.granularity}
+          currentLabel={formatRangeSeriesName(context.range)}
+          previousLabel={
+            context.compareRange ? formatRangeSeriesName(context.compareRange) : undefined
+          }
+          loading={seriesResult.isLoading}
+          height={250}
+          annotations={annotations}
+          timezone={context.timezone}
+        />
+      </Panel>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Top Pages`}
           columns={sessionColumns}
@@ -180,7 +199,7 @@ export function DashboardTab() {
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Top Campaigns`}
           columns={sessionColumns}
@@ -222,7 +241,7 @@ export function DashboardTab() {
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <TrafficHeatmapWidget title={t`Traffic by day and hour`} />
         <DimensionTableWidget
           title={t`Devices`}
@@ -241,7 +260,7 @@ export function DashboardTab() {
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <DimensionTableWidget
           title={t`Goals`}
           infoTooltip={t`Goal conversions and their total value`}

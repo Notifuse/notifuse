@@ -20,6 +20,15 @@ export interface IntegrationCardProps {
   children?: ReactNode
 }
 
+/** A provider's logo in a 28px-high tile that widens for a wordmark: on a card and in the catalogue. */
+export function IntegrationIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex h-7 min-w-7 max-w-[88px] shrink-0 items-center justify-center overflow-hidden rounded-md border border-line-soft bg-surface px-1 [&_img]:max-h-4 [&_img]:max-w-full [&_img]:object-contain">
+      {children}
+    </span>
+  )
+}
+
 /** The frame of a configured integration: header, body, footer. */
 export function IntegrationCard({
   icon,
@@ -40,9 +49,7 @@ export function IntegrationCard({
     >
       <div className="flex items-start justify-between gap-3 px-3.5 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-7 min-w-7 max-w-[88px] shrink-0 items-center justify-center overflow-hidden rounded-md border border-line-soft bg-surface px-1 [&_img]:max-h-4 [&_img]:max-w-full [&_img]:object-contain">
-            {icon}
-          </span>
+          <IntegrationIcon>{icon}</IntegrationIcon>
           <div className="flex min-w-0 flex-col">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               <Tooltip title={titleTooltip}>

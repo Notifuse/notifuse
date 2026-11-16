@@ -1235,9 +1235,9 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 			if req.Workspace.Settings.BlogSettings.SEO.OGImage != "" {
 				seoData["og_image"] = req.Workspace.Settings.BlogSettings.SEO.OGImage
 			}
-			if req.Workspace.Settings.BlogSettings.SEO.CanonicalURL != "" {
-				seoData["canonical_url"] = req.Workspace.Settings.BlogSettings.SEO.CanonicalURL
-			}
+			// No blog-wide canonical_url: a theme that falls back to it (the default one did, up to
+			// 44.0) tells search engines that every page is a copy of that one address. Each page
+			// keeps its own canonical, else its own address.
 			if len(req.Workspace.Settings.BlogSettings.SEO.Keywords) > 0 {
 				seoData["keywords"] = req.Workspace.Settings.BlogSettings.SEO.Keywords
 			}
@@ -1324,8 +1324,12 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 				"og_title":         req.Category.Settings.SEO.OGTitle,
 				"og_description":   req.Category.Settings.SEO.OGDescription,
 				"og_image":         req.Category.Settings.SEO.OGImage,
-				"canonical_url":    req.Category.Settings.SEO.CanonicalURL,
 				"keywords":         req.Category.Settings.SEO.Keywords,
+			}
+			// A category's canonical stands for the category page only: on one of its posts, a theme
+			// that falls back to it (the default one did, up to 44.0) would point the post at it.
+			if req.Post == nil {
+				categoryData["seo"].(MapOfAny)["canonical_url"] = req.Category.Settings.SEO.CanonicalURL
 			}
 		}
 

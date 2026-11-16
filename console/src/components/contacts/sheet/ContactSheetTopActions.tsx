@@ -41,7 +41,6 @@ export function ContactSheetTopActions({
       <Tooltip title={t`Refresh`}>
         <Button
           type="text"
-          size="small"
           aria-label={t`Refresh`}
           icon={<RefreshCw size={15} aria-hidden="true" />}
           disabled={fetching}
@@ -61,7 +60,6 @@ export function ContactSheetTopActions({
           <Tooltip title={t`Delete contact`}>
             <Button
               type="text"
-              size="small"
               aria-label={t`Delete contact`}
               icon={<Trash2 size={15} aria-hidden="true" />}
             />

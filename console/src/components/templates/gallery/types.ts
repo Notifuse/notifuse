@@ -19,6 +19,8 @@ export interface GalleryAssets {
   baseUrl: string
   /** The workspace's own logo, used instead of the gallery's placeholder when it has one. */
   logoUrl?: string
+  /** That logo's width at the headers' 40px height, once its natural size is known. */
+  logoWidth?: number
 }
 
 /** A model, built in one language. */

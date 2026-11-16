@@ -46,6 +46,7 @@ vi.mock('../templates/compileTemplatePreview', async (importOriginal) => ({
 vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echart" /> }))
 
 import { TransactionalDetail, type TransactionalDetailProps } from './TransactionalDetail'
+import { ApiCommandDrawer } from './ApiCommandDrawer'
 import { resolveTransactionalPeriod } from './period'
 import { ApiError } from '../../services/api/client'
 import type { NotificationStats } from './transactionalStats'
@@ -252,6 +253,24 @@ describe('TransactionalDetail', () => {
       )
     )
     await screen.findByText('Over the sheet')
+    fireEvent.keyDown(document.body, { key: 'j' })
+    expect(p.onNavigate).not.toHaveBeenCalled()
+  })
+
+  it('asks for the API command from All languages, and gives J and K up to its side panel', async () => {
+    window.API_ENDPOINT = 'https://api.example.test'
+    const p = props()
+    const client = newClient()
+    const { rerender } = render(tree(p, client))
+    await screen.findByText('Name reset')
+
+    fireEvent.click(screen.getByRole('button', { name: 'All languages' }))
+    expect(p.onApi).toHaveBeenCalledWith(expect.objectContaining({ id: 'reset' }))
+
+    // What the page mounts in answer: the side panel lies over the sheet.
+    const [asked] = vi.mocked(p.onApi).mock.calls[0]
+    rerender(tree(p, client, <ApiCommandDrawer open onClose={vi.fn()} notification={asked} workspaceId="ws1" />))
+    expect(await screen.findByRole('heading', { level: 2, name: 'API command' })).toBeInTheDocument()
     fireEvent.keyDown(document.body, { key: 'j' })
     expect(p.onNavigate).not.toHaveBeenCalled()
   })

@@ -1,5 +1,6 @@
 import { CSSProperties } from 'react'
 import { TIMESCORE_REFERENCE_SECONDS } from './types'
+import { colors } from '../../../theme/tokens'
 
 /**
  * Colour for a TimeScore value.
@@ -51,7 +52,7 @@ export function getTimescoreCellColor(
   bestValue: number,
   referenceValue: number = TIMESCORE_REFERENCE_SECONDS
 ): string {
-  if (value <= 0) return '#f5f5f5'
+  if (value <= 0) return colors.fill
   const reference = referenceValue || bestValue
   const effectiveMax = Math.max(bestValue, reference)
   if (value <= reference) {

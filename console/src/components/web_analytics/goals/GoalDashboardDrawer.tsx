@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Alert, Drawer, Tag } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { Panel } from '../../layout'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { ColumnConfig, DimensionTabConfig, DimensionTableWidget } from '../DimensionTableWidget'
 import { MetricChart, useAnnotations } from '../MetricChart'
@@ -125,44 +126,45 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
           <Tag color="green" className="m-0">
             {props.goalName}
           </Tag>
-          <span className="font-normal text-gray-500">{t`Goal dashboard`}</span>
+          <span className="font-normal text-ink-3">{t`Goal dashboard`}</span>
         </div>
       }
     >
-      <div className={series.isFetching ? 'opacity-75 transition-opacity' : ''}>
+      <div
+        className={`flex flex-col gap-3 ${series.isFetching ? 'opacity-75 transition-opacity' : ''}`}
+      >
         {series.error ? (
-          <Alert type="error" showIcon title={t`Could not load this goal`} className="mb-4" />
+          <Alert type="error" showIcon title={t`Could not load this goal`} />
         ) : null}
 
-        <div className="overflow-hidden rounded-md border border-gray-200">
-          <MetricSummary
-            metrics={GOAL_METRICS}
-            totals={series.isLoading ? {} : totals}
-            selected={selected}
-            onSelect={setSelected}
-            showComparison={context.showComparison}
-            loading={series.isLoading}
-            labels={labels}
-          />
-          <div className="pb-3 pl-2 pr-4 pt-4">
-            <MetricChart
-              metric={chartMetric}
-              current={toPoints(currentRows)}
-              previous={context.showComparison ? toPoints(previousRows) : []}
-              granularity={context.granularity}
-              currentLabel={formatRangeSeriesName(context.range)}
-              previousLabel={
-                context.compareRange ? formatRangeSeriesName(context.compareRange) : undefined
-              }
-              loading={series.isLoading}
-              height={200}
-              annotations={annotations}
-              timezone={context.timezone}
-            />
-          </div>
-        </div>
+        <MetricSummary
+          metrics={GOAL_METRICS}
+          totals={series.isLoading ? {} : totals}
+          selected={selected}
+          onSelect={setSelected}
+          showComparison={context.showComparison}
+          loading={series.isLoading}
+          labels={labels}
+        />
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Panel title={chartMetric.label}>
+          <MetricChart
+            metric={chartMetric}
+            current={toPoints(currentRows)}
+            previous={context.showComparison ? toPoints(previousRows) : []}
+            granularity={context.granularity}
+            currentLabel={formatRangeSeriesName(context.range)}
+            previousLabel={
+              context.compareRange ? formatRangeSeriesName(context.compareRange) : undefined
+            }
+            loading={series.isLoading}
+            height={200}
+            annotations={annotations}
+            timezone={context.timezone}
+          />
+        </Panel>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <DimensionTableWidget
             title={t`Top Sources`}
             columns={columns}
@@ -212,7 +214,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
           />
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <DimensionTableWidget
             title={t`Countries`}
             columns={columns}
@@ -258,7 +260,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
           />
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <TrafficHeatmapWidget
             title={t`Goals by day and hour`}
             schema="web_goals"

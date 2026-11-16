@@ -1,5 +1,5 @@
 /**
- * The code samples that send a transactional notification, shared by the API command modal and the
+ * The code samples that send a transactional notification, shared by the API command drawer and the
  * API call panel of the notification sheet. `window.API_ENDPOINT` is read when a sample is built.
  */
 

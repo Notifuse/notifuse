@@ -249,7 +249,7 @@ function FilterPicker(props: {
               className={
                 candidate === operator
                   ? 'rounded bg-primary px-2 py-0.5 text-xs text-white'
-                  : 'rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200'
+                  : 'rounded bg-fill px-2 py-0.5 text-xs text-ink-2 hover:bg-line'
               }
             >
               {operatorLabels[candidate]}
@@ -306,7 +306,7 @@ function FilterPicker(props: {
               className={
                 candidate === operator
                   ? 'rounded bg-primary px-2 py-0.5 text-xs text-white'
-                  : 'rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200'
+                  : 'rounded bg-fill px-2 py-0.5 text-xs text-ink-2 hover:bg-line'
               }
             >
               {operatorLabels[candidate]}
@@ -341,7 +341,7 @@ function FilterPicker(props: {
       <div className="mt-2 max-h-80 overflow-y-auto">
         {groups.map((group) => (
           <div key={group.category} className="mb-2">
-            <div className="px-1 py-1 text-[10px] font-semibold uppercase text-primary">
+            <div className="px-1 py-1 text-overline font-semibold uppercase text-primary">
               {categoryLabels[group.category] ?? group.category}
             </div>
             {group.dimensions.map((candidate) => (
@@ -353,7 +353,7 @@ function FilterPicker(props: {
                   setOperator((OPERATORS_BY_TYPE[candidate.type] ?? OPERATORS_BY_TYPE.string)[0])
                   setValues([])
                 }}
-                className="block w-full rounded px-1 py-1 text-left text-sm hover:bg-gray-50"
+                className="block w-full rounded px-1 py-1 text-left text-sm hover:bg-subtle"
               >
                 {getDimensionLabel(candidate.name, context.customDimensionLabels)}
               </button>
@@ -362,7 +362,7 @@ function FilterPicker(props: {
         ))}
         {props.allowMetricFilters ? (
           <div className="mb-2">
-            <div className="px-1 py-1 text-[10px] font-semibold uppercase text-primary">
+            <div className="px-1 py-1 text-overline font-semibold uppercase text-primary">
               {t`Metrics`}
             </div>
             {FILTERABLE_METRICS.filter((candidate) => !usedMetrics.has(candidate)).map(
@@ -374,7 +374,7 @@ function FilterPicker(props: {
                     setMetric(candidate)
                     setOperator('gt')
                   }}
-                  className="block w-full rounded px-1 py-1 text-left text-sm hover:bg-gray-50"
+                  className="block w-full rounded px-1 py-1 text-left text-sm hover:bg-subtle"
                 >
                   {metricLabels[candidate]}
                 </button>
@@ -383,7 +383,7 @@ function FilterPicker(props: {
           </div>
         ) : null}
         {groups.length === 0 ? (
-          <div className="px-1 py-4 text-center text-xs text-gray-400">{t`No results found`}</div>
+          <div className="px-1 py-4 text-center text-xs text-ink-4">{t`No results found`}</div>
         ) : null}
       </div>
     </div>

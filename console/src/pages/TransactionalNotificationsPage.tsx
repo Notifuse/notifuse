@@ -17,7 +17,7 @@ import { copyToClipboard } from '../lib/copyToClipboard'
 import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
-import { ApiCommandModal } from '../components/transactional/ApiCommandModal'
+import { ApiCommandDrawer } from '../components/transactional/ApiCommandDrawer'
 import { TransactionalDetail } from '../components/transactional/TransactionalDetail'
 import { TransactionalTable } from '../components/transactional/TransactionalTable'
 import {
@@ -446,7 +446,7 @@ export function TransactionalNotificationsPage() {
 
       {/* Mounted only while open: each opening lies after the sheet in the page, so above it. */}
       {overlay?.kind === 'api' ? (
-        <ApiCommandModal open onClose={closeOverlay} notification={overlay.notification} workspaceId={workspaceId} />
+        <ApiCommandDrawer open onClose={closeOverlay} notification={overlay.notification} workspaceId={workspaceId} />
       ) : null}
       {overlay?.kind === 'edit' ? (
         <UpsertTransactionalNotificationDrawer

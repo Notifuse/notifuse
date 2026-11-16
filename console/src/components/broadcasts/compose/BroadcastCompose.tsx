@@ -508,7 +508,7 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
             />
           ) : null}
         </div>
-        <aside className="flex shrink-0 flex-col gap-3 min-[1200px]:sticky min-[1200px]:top-14 min-[1200px]:w-aside">
+        <aside className="flex shrink-0 flex-col gap-3 min-[1200px]:sticky min-[1200px]:top-16 min-[1200px]:w-aside">
           {/* The summary first, the preview under it. */}
           <SendSummary checks={checks} values={values} listName={listName} segmentNames={segmentNames} workspaceId={ws} />
           <PreviewPanel

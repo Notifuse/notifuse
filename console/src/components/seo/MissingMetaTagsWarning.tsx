@@ -2,9 +2,12 @@ import { useLingui } from '@lingui/react/macro'
 import { Popover, List } from 'antd'
 import { WarningOutlined } from '@ant-design/icons'
 import type { SEOSettings } from '../../services/api/blog'
+import { seoGaps, type SeoGap } from './seoGaps'
 
 interface MissingMetaTagsWarningProps {
   seo?: SEOSettings
+  /** A post's featured image, which the theme shares when the post has no share image. */
+  featuredImage?: string
   className?: string
 }
 
@@ -14,58 +17,38 @@ interface MissingTag {
   category: 'meta' | 'og'
 }
 
-export function MissingMetaTagsWarning({ seo, className }: MissingMetaTagsWarningProps) {
+export function MissingMetaTagsWarning({ seo, featuredImage, className }: MissingMetaTagsWarningProps) {
   const { t } = useLingui()
 
-  const getMissingTags = (): MissingTag[] => {
-    const missing: MissingTag[] = []
-
-    // Meta tags
-    if (!seo?.meta_title || seo.meta_title.trim() === '') {
-      missing.push({
-        name: t`Meta Title`,
-        description: t`SEO title for search engines (recommended: 50-60 characters)`,
-        category: 'meta'
-      })
+  const tags: Record<SeoGap, MissingTag> = {
+    meta_title: {
+      name: t`Meta Title`,
+      description: t`SEO title for search engines (recommended: 50-60 characters)`,
+      category: 'meta'
+    },
+    meta_description: {
+      name: t`Meta Description`,
+      description: t`SEO description for search results (recommended: 150-160 characters)`,
+      category: 'meta'
+    },
+    og_title: {
+      name: t`Open Graph Title`,
+      description: t`Title when shared on social media (og:title)`,
+      category: 'og'
+    },
+    og_description: {
+      name: t`Open Graph Description`,
+      description: t`Description when shared on social media (og:description)`,
+      category: 'og'
+    },
+    og_image: {
+      name: t`Open Graph Image`,
+      description: t`Image URL when shared on social media (og:image)`,
+      category: 'og'
     }
-
-    if (!seo?.meta_description || seo.meta_description.trim() === '') {
-      missing.push({
-        name: t`Meta Description`,
-        description: t`SEO description for search results (recommended: 150-160 characters)`,
-        category: 'meta'
-      })
-    }
-
-    // Open Graph tags
-    if (!seo?.og_title || seo.og_title.trim() === '') {
-      missing.push({
-        name: t`Open Graph Title`,
-        description: t`Title when shared on social media (og:title)`,
-        category: 'og'
-      })
-    }
-
-    if (!seo?.og_description || seo.og_description.trim() === '') {
-      missing.push({
-        name: t`Open Graph Description`,
-        description: t`Description when shared on social media (og:description)`,
-        category: 'og'
-      })
-    }
-
-    if (!seo?.og_image || seo.og_image.trim() === '') {
-      missing.push({
-        name: t`Open Graph Image`,
-        description: t`Image URL when shared on social media (og:image)`,
-        category: 'og'
-      })
-    }
-
-    return missing
   }
 
-  const missingTags = getMissingTags()
+  const missingTags = seoGaps(seo, { featuredImage }).map((gap) => tags[gap])
 
   if (missingTags.length === 0) {
     return null

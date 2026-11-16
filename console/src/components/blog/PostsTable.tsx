@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { plural } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import {
@@ -60,6 +60,8 @@ interface PostsTableProps {
   editRefusal?: string
   /** Web analytics on in the workspace and readable by the member: the Views 30d column. */
   showViews: boolean
+  /** The categories card, beside the posts and under the header, as on the Contacts page. */
+  rail?: ReactNode
 }
 
 /** The blog's main column: header, status tabs and search, and the posts, 50 at a time. */
@@ -69,7 +71,8 @@ export function PostsTable({
   counts,
   canWritePosts,
   editRefusal,
-  showViews
+  showViews,
+  rail
 }: PostsTableProps) {
   const { t } = useLingui()
   const { message, modal } = App.useApp()
@@ -334,7 +337,7 @@ export function PostsTable({
             ) : (
               <Pill tone="neutral">{t`Draft`}</Pill>
             )}
-            <MissingMetaTagsWarning seo={post.settings.seo} />
+            <MissingMetaTagsWarning seo={post.settings.seo} featuredImage={post.settings.featured_image_url} />
           </span>
         )
       }
@@ -538,19 +541,24 @@ export function PostsTable({
         }
       />
 
-      <Panel flush footer={footer}>
-        <TableToolbar
-          start={<CountTabs<BlogPostStatus> options={tabs} value={status} onChange={setStatus} />}
-          end={
-            <TableToolbar.Search
-              value={searchInput}
-              onChange={setSearchInput}
-              placeholder={t`Title`}
+      <div className="flex items-start gap-3">
+        {rail}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Panel flush footer={footer}>
+            <TableToolbar
+              start={<CountTabs<BlogPostStatus> options={tabs} value={status} onChange={setStatus} />}
+              end={
+                <TableToolbar.Search
+                  value={searchInput}
+                  onChange={setSearchInput}
+                  placeholder={t`Title`}
+                />
+              }
             />
-          }
-        />
-        {renderBody()}
-      </Panel>
+            {renderBody()}
+          </Panel>
+        </div>
+      </div>
 
       <PostDrawer
         open={drawer !== null}

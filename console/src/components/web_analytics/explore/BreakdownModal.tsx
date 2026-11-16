@@ -117,10 +117,10 @@ export function BreakdownModal(props: BreakdownModalProps) {
         </Button>
       ]}
     >
-      <div className="mb-4 flex min-h-[46px] flex-wrap items-center gap-2 rounded-lg bg-gray-50 p-3">
-        <span className="text-xs font-medium text-gray-500">{t`Selected dimensions, in order:`}</span>
+      <div className="mb-4 flex min-h-[46px] flex-wrap items-center gap-2 rounded-lg bg-subtle p-3">
+        <span className="text-xs font-medium text-ink-3">{t`Selected dimensions, in order:`}</span>
         {selected.length === 0 ? (
-          <span className="text-xs italic text-gray-400">{t`Pick a dimension below`}</span>
+          <span className="text-xs italic text-ink-4">{t`Pick a dimension below`}</span>
         ) : (
           selected.map((dimension, index) => (
             <Tag
@@ -128,7 +128,7 @@ export function BreakdownModal(props: BreakdownModalProps) {
               color="blue"
               closable
               className="!m-0"
-              closeIcon={<CloseOutlined className="text-[10px]" />}
+              closeIcon={<CloseOutlined className="text-overline" />}
               onClose={(event) => {
                 event.preventDefault()
                 toggle(dimension)
@@ -140,7 +140,7 @@ export function BreakdownModal(props: BreakdownModalProps) {
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-gray-200 p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-line p-3">
         {isEmpty ? (
           <div className="p-8">
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No dimensions found`} />
@@ -160,7 +160,7 @@ export function BreakdownModal(props: BreakdownModalProps) {
                           key={entry.name}
                           type="button"
                           onClick={() => toggle(entry.name)}
-                          className="flex w-full items-center gap-3 rounded py-1 text-left hover:bg-gray-50"
+                          className="flex w-full items-center gap-3 rounded py-1 text-left hover:bg-subtle"
                         >
                           <Checkbox checked={selected.includes(entry.name)} />
                           <span className="text-sm">

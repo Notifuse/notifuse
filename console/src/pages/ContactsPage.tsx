@@ -9,7 +9,7 @@ import { workspaceContactsRoute, type ContactsSearch } from '../router'
 import { contactsApi, type Contact } from '../services/api/contacts'
 import { contactListApi } from '../services/api/contact_list'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
-import { Panel, TableToolbar, useNumberFormat } from '../components/layout'
+import { Panel, RailCard, TableToolbar, useNumberFormat } from '../components/layout'
 import { ContactsRail } from '../components/contacts/ContactsRail'
 import { ContactsTable, CONTACT_COLUMNS_STORAGE_KEY } from '../components/contacts/ContactsTable'
 import { DEFAULT_VISIBLE_COLUMNS, useSelectableColumns } from '../components/contacts/contactColumns'
@@ -586,14 +586,9 @@ export function ContactsPage() {
 
   const gone = listGone || segmentGone
 
-  // The lists and segments as a rounded card beside the table, top-aligned with it and only as
-  // tall as its content, instead of a full-height column.
+  // The lists and segments as a rounded card beside the table.
   const rail = (
-    <nav
-      aria-label={t`Contacts`}
-      data-contacts-rail-card
-      className="w-rail shrink-0 self-start rounded-lg border border-line bg-surface px-2 py-3 shadow-card"
-    >
+    <RailCard ariaLabel={t`Contacts`}>
       <ContactsRail
         workspaceId={workspaceId}
         view={view}
@@ -605,7 +600,7 @@ export function ContactsPage() {
         onCreateList={() => setListDrawer('create')}
         onCreateSegment={() => setSegmentDrawerOpen(true)}
       />
-    </nav>
+    </RailCard>
   )
 
   return (

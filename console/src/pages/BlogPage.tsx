@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { App, Button, Empty, Tooltip } from 'antd'
 import { useParams, useNavigate, useSearch } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
@@ -12,7 +12,7 @@ import { PostDrawer } from '../components/blog/PostDrawer'
 import { blogCategoriesApi, blogPostsApi, type BlogCategory } from '../services/api/blog'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import type { BlogSearch } from '../lib/searchParams'
-import { RailLayout } from '../components/layout'
+import { RailCard } from '../components/layout'
 
 const ROUTE = '/console/workspace/$workspaceId/blog'
 
@@ -64,6 +64,8 @@ export function BlogPage() {
       void queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
       void queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
       setCategoryToDelete(null)
+      // Deleted from its own drawer: nothing is left to edit.
+      setCategoryDrawer((open) => (open?.category?.id === id ? null : open))
       if (activeCategoryId === id) {
         navigate({ search: (prev: BlogSearch) => ({ ...prev, category_id: undefined }) })
       }
@@ -81,9 +83,36 @@ export function BlogPage() {
   const showViews =
     Boolean(workspace.settings?.web_analytics?.enabled) && Boolean(permissions?.web_analytics?.read)
 
+  const rail = (
+    <RailCard ariaLabel={t`Blog`}>
+      <BlogSidebar
+        workspaceId={workspaceId}
+        activeCategoryId={activeCategoryId}
+        counts={counts}
+        canManageCategories={canManageCategories}
+        onCategoryChange={(categoryId) =>
+          navigate({
+            search: (prev: BlogSearch) => ({ ...prev, category_id: categoryId ?? undefined })
+          })
+        }
+        onNewCategory={() => setCategoryDrawer({ category: null })}
+        onEditCategory={(category) => setCategoryDrawer({ category })}
+        onDeleteCategory={setCategoryToDelete}
+      />
+    </RailCard>
+  )
+
+  // An empty state sits beside the card, where the table would be.
+  const besideRail = (content: ReactNode) => (
+    <div className="flex items-start gap-3">
+      {rail}
+      <div className="min-w-0 flex-1">{content}</div>
+    </div>
+  )
+
   const renderMain = () => {
     if (categoriesQuery.isSuccess && categories.length === 0) {
-      return (
+      return besideRail(
         <div className="mt-24">
           <Empty description={t`No categories yet`}>
             {canManageCategories ? (
@@ -100,7 +129,7 @@ export function BlogPage() {
       )
     }
     if (counts && counts.all_total === 0 && !activeCategoryId) {
-      return (
+      return besideRail(
         <div className="mt-24">
           <Empty description={t`Create your first blog post to get started`}>
             <Tooltip title={canWritePosts ? editRefusal : undefined}>
@@ -127,37 +156,30 @@ export function BlogPage() {
         canWritePosts={canWritePosts}
         editRefusal={editRefusal}
         showViews={showViews}
+        rail={rail}
       />
     )
   }
 
+  // The page route declares the rail layout, so the chrome adds no margin: this column carries the
+  // page margins, as on the Contacts page.
   return (
-    <RailLayout
-      ariaLabel={t`Blog`}
-      rail={
-        <BlogSidebar
-          workspaceId={workspaceId}
-          activeCategoryId={activeCategoryId}
-          counts={counts}
-          canManageCategories={canManageCategories}
-          onCategoryChange={(categoryId) =>
-            navigate({
-              search: (prev: BlogSearch) => ({ ...prev, category_id: categoryId ?? undefined })
-            })
-          }
-          onNewCategory={() => setCategoryDrawer({ category: null })}
-          onEditCategory={(category) => setCategoryDrawer({ category })}
-          onDeleteCategory={setCategoryToDelete}
-        />
-      }
-    >
+    <div data-rail-content className="flex min-w-0 flex-col gap-3 px-5 pt-4 pb-6">
       {renderMain()}
 
       <CategoryDrawer
         open={categoryDrawer !== null}
         onClose={() => setCategoryDrawer(null)}
         category={categoryDrawer?.category ?? null}
-        workspaceId={workspaceId}
+        workspace={workspace}
+        postCount={
+          categoryDrawer?.category && counts ? (counts.by_category?.[categoryDrawer.category.id] ?? 0) : undefined
+        }
+        onDelete={setCategoryToDelete}
+        // The new category opens, so its first post is one click away.
+        onCreated={(category) =>
+          navigate({ search: (prev: BlogSearch) => ({ ...prev, category_id: category.id }) })
+        }
       />
 
       <DeleteCategoryModal
@@ -175,6 +197,6 @@ export function BlogPage() {
         workspace={workspace}
         initialCategoryId={activeCategoryId}
       />
-    </RailLayout>
+    </div>
   )
 }
