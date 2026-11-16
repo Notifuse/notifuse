@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react'
 import { Alert, Button, Dropdown, Result, Skeleton, Tooltip, type MenuProps } from 'antd'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { Ellipsis, Pause, Play, RotateCcw, Send } from 'lucide-react'
@@ -64,7 +64,6 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
   const timezone = workspaceTimezone(workspace)
   const canReadHistory = !!permissions?.message_history?.read
   const canReadWeb = canReadWebAnalytics(workspace, permissions)
-  const queryClient = useQueryClient()
   const navigate = useNavigate()
   const router = useRouter()
   const dates = useBroadcastDates()
@@ -250,19 +249,12 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
     navigate({ to: `/console/workspace/${ws}/logs?${params.toString()}` as string & {} })
   }
 
-  const refreshStats = () => {
-    for (const key of ['broadcast', 'broadcast-stats', 'task', 'testResults', 'broadcast-variation-stats', 'broadcast-link-stats']) {
-      queryClient.invalidateQueries({ queryKey: [key, ws, broadcast.id] })
-    }
-  }
-
   const guard = (node: ReactElement) => (canWrite ? node : <Tooltip title={noWrite}>{node}</Tooltip>)
   const singleTemplate = !abEnabled ? (variations[0] ? asTemplate(variations[0]) : undefined) : undefined
   const testAllowed = canSendTestEmail(permissions)
 
-  const menu: NonNullable<MenuProps['items']> = [
-    { key: 'refresh', label: t`Refresh stats`, onClick: refreshStats }
-  ]
+  // Refresh stats lives in the drawer's bar (BroadcastsPage), beside the close button.
+  const menu: NonNullable<MenuProps['items']> = []
   if (canReadHistory && started) menu.push({ key: 'logs', label: t`View sending logs`, onClick: () => openLogs('sent') })
   if (links) {
     menu.push({
@@ -275,7 +267,7 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
     })
   }
   if (set.delete) {
-    menu.push({ type: 'divider' })
+    if (menu.length > 0) menu.push({ type: 'divider' })
     menu.push({
       key: 'delete',
       danger: true,
@@ -336,23 +328,24 @@ export function BroadcastDetail({ workspace, permissions, broadcastId, onEdit, o
             </Button>
           )
         : null}
-      {set.unschedule
-        ? guard(
-            <Button disabled={!canWrite} onClick={() => actions.confirm('unschedule', broadcast)}>
-              {t`Back to draft`}
-            </Button>
-          )
-        : null}
+      {/* Before its sending starts, a scheduled broadcast can still go back to draft: Cancel then
+          asks which way out, going back to draft first, and is not styled as destructive. */}
       {set.cancel
         ? guard(
-            <Button danger disabled={!canWrite} onClick={() => actions.confirm('cancel', broadcast)}>
+            <Button
+              danger={!set.unschedule}
+              disabled={!canWrite}
+              onClick={() => actions.confirm(set.unschedule ? 'cancelOrDraft' : 'cancel', broadcast)}
+            >
               {t`Cancel`}
             </Button>
           )
         : null}
-      <Dropdown menu={{ items: menu }} trigger={['click']} placement="bottomRight">
-        <Button aria-label={t`More actions`} icon={<Ellipsis size={16} />} />
-      </Dropdown>
+      {menu.length > 0 ? (
+        <Dropdown menu={{ items: menu }} trigger={['click']} placement="bottomRight">
+          <Button aria-label={t`More actions`} icon={<Ellipsis size={16} />} />
+        </Dropdown>
+      ) : null}
     </>
   )
 

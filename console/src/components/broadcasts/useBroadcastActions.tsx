@@ -7,6 +7,9 @@ import { ApiError } from '../../services/api/errors'
 
 export type ConfirmedAction = 'pause' | 'resume' | 'cancel' | 'unschedule' | 'retryFailed'
 
+/** An action of a broadcast's menus: a confirmed action, or the choice between back to draft and cancel. */
+export type BroadcastAction = ConfirmedAction | 'cancelOrDraft'
+
 const errorText = (error: unknown) => (error instanceof Error && error.message ? error.message : undefined)
 
 // A resume refused because a variation's chosen sender is unknown to the marketing integration, or there is no
@@ -103,8 +106,54 @@ export function useBroadcastActions(workspaceId: string) {
     }
   }
 
-  /** Asks the current confirmation, then runs the action. */
-  const confirm = (action: ConfirmedAction, broadcast: Broadcast) => {
+  /**
+   * Cancel, for a scheduled broadcast that has not started sending: it can still go back to draft,
+   * which is offered first, as the usual way out. Choosing is the confirmation.
+   */
+  const chooseCancel = (broadcast: Broadcast) => {
+    const choose = (action: 'unschedule' | 'cancel') => {
+      instance.destroy()
+      void run(action, broadcast)
+    }
+    // The two ways out are the buttons themselves: no footer. Closing (the cross, Escape, a click
+    // outside) keeps the broadcast scheduled.
+    const instance = modal.confirm({
+      title: t`Cancel the scheduled send?`,
+      icon: null,
+      closable: true,
+      maskClosable: true,
+      footer: null,
+      content: (
+        <div className="mt-3 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => choose('unschedule')}
+            className="flex w-full cursor-pointer flex-col gap-0.5 rounded-lg border border-primary-300 bg-primary-50 px-3.5 py-3 text-left transition-colors hover:border-primary-500 focus-visible:outline-2 focus-visible:outline-primary-500"
+          >
+            <span className="font-semibold text-primary-700">{t`Back to draft`}</span>
+            <span className="text-sm text-ink-2">
+              {t`It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept.`}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => choose('cancel')}
+            className="flex w-full cursor-pointer flex-col gap-0.5 rounded-lg border border-line bg-surface px-3.5 py-3 text-left transition-colors hover:border-danger-fg hover:bg-danger-bg focus-visible:outline-2 focus-visible:outline-danger-fg"
+          >
+            <span className="font-semibold text-danger-fg">{t`Cancel broadcast`}</span>
+            <span className="text-sm text-ink-2">{t`It will never be sent. A cancelled broadcast can't be resumed.`}</span>
+          </button>
+        </div>
+      )
+    })
+  }
+
+  /** Asks the current confirmation, then runs the action; offers the choice for cancelOrDraft. */
+  const confirm = (action: BroadcastAction, broadcast: Broadcast) => {
+    if (action === 'cancelOrDraft') {
+      chooseCancel(broadcast)
+      return
+    }
     const texts: Record<ConfirmedAction, { title: string; content: string; okText: string; cancelText: string }> = {
       pause: {
         title: t`Pause broadcast?`,

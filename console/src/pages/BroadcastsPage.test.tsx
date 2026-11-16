@@ -306,6 +306,18 @@ describe('BroadcastsPage', () => {
     expect(await screen.findByTestId('detail')).toHaveTextContent('s1')
   })
 
+  // The detail's figures are read again from the drawer's bar: an icon, named by its tooltip.
+  it('refreshes the open broadcast from the drawer bar', async () => {
+    url.set({ broadcast: 's1' })
+    list.mockResolvedValue(page([broadcastOf('s1')]))
+    renderPage()
+    await screen.findByTestId('detail')
+    const refresh = screen.getByRole('button', { name: 'Refresh stats' })
+    expect(refresh.closest('[data-drawer-bar]')).not.toBeNull()
+    fireEvent.mouseEnter(refresh)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Refresh stats')
+  })
+
   it('opens a draft in the detail without write permission', async () => {
     state.permissions.broadcasts = { read: true, write: false }
     list.mockResolvedValue(page([broadcastOf('d1', { status: 'draft' })]))

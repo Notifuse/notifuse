@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Button, Empty, Input, Result, Skeleton, Tooltip } from 'antd'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
-import { Plus, Search } from 'lucide-react'
+import { Plus, RefreshCw, Search } from 'lucide-react'
 import { CountTabs, FullDrawer, PageHeader, Panel, TableToolbar, useNumberFormat, type CountTabOption } from '../components/layout'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { BROADCAST_STATUS_GROUPS, type Broadcast } from '../services/api/broadcast'
@@ -15,6 +15,7 @@ import { BroadcastKpis } from '../components/broadcasts/BroadcastKpis'
 import { BroadcastsTable } from '../components/broadcasts/BroadcastsTable'
 import { DeleteBroadcastModal } from '../components/broadcasts/DeleteBroadcastModal'
 import { BroadcastDetail } from '../components/broadcasts/detail/BroadcastDetail'
+import { refreshBroadcastStats } from '../components/broadcasts/detail/refreshBroadcastStats'
 import { BroadcastCompose } from '../components/broadcasts/compose/BroadcastCompose'
 import { canReadWebAnalytics } from '../components/broadcasts/access'
 import { useAudienceEstimates } from '../components/broadcasts/useAudienceEstimates'
@@ -33,6 +34,7 @@ export function BroadcastsPage() {
   const { t } = useLingui()
   const { int } = useNumberFormat()
   const { workspaceId } = useParams({ from: ROUTE })
+  const queryClient = useQueryClient()
   const navigate = useNavigate({ from: ROUTE })
   const search = useSearch({ from: ROUTE }) as BroadcastsSearch
   const { workspaces } = useAuth()
@@ -352,6 +354,18 @@ export function BroadcastsPage() {
         backLabel={t`Broadcasts`}
         nav={nav}
         push={false}
+        topActions={
+          detailId ? (
+            <Tooltip title={t`Refresh stats`}>
+              <Button
+                type="text"
+                aria-label={t`Refresh stats`}
+                icon={<RefreshCw size={14} aria-hidden="true" />}
+                onClick={() => refreshBroadcastStats(queryClient, workspaceId, detailId)}
+              />
+            </Tooltip>
+          ) : null
+        }
       >
         {detailId ? (
           <BroadcastDetail

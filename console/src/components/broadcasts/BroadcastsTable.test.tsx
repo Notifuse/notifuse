@@ -77,16 +77,25 @@ const renderTable = (over: Partial<BroadcastsTableProps>) =>
   )
 
 describe('BroadcastsTable', () => {
-  it('offers Back to draft before Cancel in the menu of a scheduled broadcast not yet sending', async () => {
+  // One Cancel entry, with no Back to draft beside it: it asks which way out (cancelOrDraft).
+  it('offers one Cancel entry that asks for back to draft or cancel', async () => {
     const onAction = vi.fn()
     const scheduled = broadcast({ status: 'scheduled' } as Partial<Broadcast>)
     renderTable({ rows: [scheduled], onAction, permissions: { broadcasts: { read: true, write: true } } as never })
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
-    const back = await screen.findByText('Back to draft')
-    const cancel = screen.getByText('Cancel')
-    expect(back.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    fireEvent.click(back)
-    expect(onAction).toHaveBeenCalledWith('unschedule', scheduled)
+    expect(screen.queryByText('Back to draft')).toBeNull()
+    fireEvent.click(await screen.findByText('Cancel'))
+    expect(onAction).toHaveBeenCalledWith('cancelOrDraft', scheduled)
+  })
+
+  it('cancels a broadcast whose sending started straight from Cancel', async () => {
+    const onAction = vi.fn()
+    const started = broadcast({ status: 'scheduled', started_at: '2026-11-15T09:00:00Z' } as Partial<Broadcast>)
+    renderTable({ rows: [started], onAction, permissions: { broadcasts: { read: true, write: true } } as never })
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    fireEvent.click(await screen.findByText('Cancel'))
+    expect(onAction).toHaveBeenCalledWith('cancel', started)
+    expect(screen.queryByText('Back to draft')).toBeNull()
   })
 
   it('shows « A/B » after the name on the first line, its variants and test in a popover', async () => {

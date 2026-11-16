@@ -436,7 +436,7 @@ msgid "{0} of {1} rules match"
 msgstr "{0} di {1} regole corrispondono"
 
 #. placeholder {0}: int(shown)
-#: src/pages/BroadcastsPage.tsx:224
+#: src/pages/BroadcastsPage.tsx:226
 msgid "{0} of {total, plural, one {# broadcast} other {# broadcasts}}"
 msgstr "{0} di {total, plural, one {# broadcast} other {# broadcast}}"
 
@@ -629,7 +629,7 @@ msgstr "{count, plural, one {# notifica} other {# notifiche}}"
 msgid "{count, plural, one {# recipient} other {# recipients}}"
 msgstr "{count, plural, one {# destinatario} other {# destinatari}}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:311
+#: src/components/broadcasts/BroadcastsTable.tsx:317
 msgid "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
 msgstr "{count, plural, one {A/B · # variante} other {A/B · # varianti}}"
 
@@ -989,7 +989,7 @@ msgstr "{position} di {total}"
 #~ msgid "{propertyCount} properties"
 #~ msgstr "{propertyCount} proprietà"
 
-#: src/components/broadcasts/useBroadcastActions.ts:64
+#: src/components/broadcasts/useBroadcastActions.tsx:67
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# destinatario in coda per un altro tentativo} other {# destinatari in coda per un altro tentativo}}"
 
@@ -1511,7 +1511,7 @@ msgstr "È richiesto un albero"
 msgid "A value is required..."
 msgstr "È richiesto un valore..."
 
-#: src/components/broadcasts/useBroadcastActions.ts:83
+#: src/components/broadcasts/useBroadcastActions.tsx:86
 msgid "A variation's sender is no longer one of the marketing integration's senders. Choose its sender again, then resume."
 msgstr "Il mittente di una variante non è più tra i mittenti dell'integrazione marketing. Scegli di nuovo il suo mittente, poi riprendi."
 
@@ -1525,13 +1525,13 @@ msgid "A winner has been selected. Emails are being sent to the remaining recipi
 msgstr "È stato selezionato un vincitore. Le email sono in fase di invio ai restanti destinatari."
 
 #: src/components/analytics/UpcomingSends.tsx:120
-#: src/components/broadcasts/BroadcastsTable.tsx:303
-#: src/components/broadcasts/BroadcastsTable.tsx:308
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:374
+#: src/components/broadcasts/BroadcastsTable.tsx:309
+#: src/components/broadcasts/BroadcastsTable.tsx:314
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:367
 msgid "A/B"
 msgstr "A/B"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:304
+#: src/components/broadcasts/BroadcastsTable.tsx:310
 msgid "A/B · {winnerName}"
 msgstr "A/B · {winnerName}"
 
@@ -2140,7 +2140,7 @@ msgstr "Allineamento"
 msgid "All"
 msgstr "Tutti"
 
-#: src/pages/BroadcastsPage.tsx:183
+#: src/pages/BroadcastsPage.tsx:185
 msgctxt "newsletter filter"
 msgid "All"
 msgstr "Tutti"
@@ -2710,7 +2710,7 @@ msgstr "Sei sicuro di voler rimuovere questo campo?"
 #~ msgid "Are you sure you want to select \"{templateName}\" as the winner? The broadcast will be sent to the remaining recipients."
 #~ msgstr "Vuoi davvero selezionare \"{templateName}\" come vincitore? Il broadcast verrà inviato ai destinatari rimanenti."
 
-#: src/components/broadcasts/useBroadcastActions.ts:146
+#: src/components/broadcasts/useBroadcastActions.tsx:195
 msgctxt "newsletter A/B"
 msgid "Are you sure you want to select \"{templateName}\" as the winner? The broadcast will be sent to the remaining recipients."
 msgstr "Vuoi davvero selezionare \"{templateName}\" come vincitore? Il broadcast verrà inviato ai destinatari rimanenti."
@@ -2807,7 +2807,7 @@ msgstr "Regole di attribuzione"
 #~ msgid "Attribution rules saved. Run a backfill to rewrite historical data."
 #~ msgstr ""
 
-#: src/components/broadcasts/BroadcastsTable.tsx:339
+#: src/components/broadcasts/BroadcastsTable.tsx:345
 #: src/components/broadcasts/compose/AudienceCard.tsx:61
 #: src/components/broadcasts/detail/BroadcastAside.tsx:136
 msgid "Audience"
@@ -3083,17 +3083,17 @@ msgid "Back to automations"
 msgstr "Torna alle automazioni"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:93
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:165
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:164
 msgid "Back to broadcasts"
 msgstr "Torna ai broadcast"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:201
+#: src/components/broadcasts/BroadcastsTable.tsx:206
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:384
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:342
+#: src/components/broadcasts/useBroadcastActions.tsx:133
 msgid "Back to draft"
 msgstr "Torna in bozza"
 
-#: src/components/broadcasts/useBroadcastActions.ts:128
+#: src/components/broadcasts/useBroadcastActions.tsx:177
 msgid "Back to draft?"
 msgstr "Tornare in bozza?"
 
@@ -3576,7 +3576,7 @@ msgid "Bounced or failed"
 msgstr "Respinte o fallite"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:150
-#: src/components/broadcasts/BroadcastsTable.tsx:386
+#: src/components/broadcasts/BroadcastsTable.tsx:392
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:109
 #: src/components/transactional/TransactionalTable.tsx:228
 msgid "Bounces"
@@ -3639,7 +3639,7 @@ msgid "broadcast"
 msgstr "broadcast"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:366
-#: src/components/broadcasts/BroadcastsTable.tsx:237
+#: src/components/broadcasts/BroadcastsTable.tsx:243
 #: src/components/messages/MessageHistoryTable.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:255
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:63
@@ -3654,7 +3654,7 @@ msgstr "Broadcast"
 #~ msgstr "Broadcast \"{0}\" annullato con successo"
 
 #. placeholder {0}: broadcast.name
-#: src/components/broadcasts/useBroadcastActions.ts:172
+#: src/components/broadcasts/useBroadcastActions.tsx:221
 msgid "Broadcast \"{0}\" deleted successfully"
 msgstr "Broadcast \"{0}\" eliminato con successo"
 
@@ -3683,19 +3683,19 @@ msgstr "Broadcast \"{0}\" eliminato con successo"
 #~ msgid "Broadcast \"{0}\" sending started"
 #~ msgstr "Invio broadcast \"{0}\" avviato"
 
-#: src/components/broadcasts/useBroadcastActions.ts:55
+#: src/components/broadcasts/useBroadcastActions.tsx:58
 msgid "Broadcast \"{name}\" cancelled successfully"
 msgstr "Broadcast \"{name}\" annullato"
 
-#: src/components/broadcasts/useBroadcastActions.ts:59
+#: src/components/broadcasts/useBroadcastActions.tsx:62
 msgid "Broadcast \"{name}\" is back to draft"
 msgstr "Il broadcast \"{name}\" è tornato in bozza"
 
-#: src/components/broadcasts/useBroadcastActions.ts:47
+#: src/components/broadcasts/useBroadcastActions.tsx:50
 msgid "Broadcast \"{name}\" paused successfully"
 msgstr "Broadcast \"{name}\" messo in pausa"
 
-#: src/components/broadcasts/useBroadcastActions.ts:51
+#: src/components/broadcasts/useBroadcastActions.tsx:54
 msgid "Broadcast \"{name}\" resumed successfully"
 msgstr "Broadcast \"{name}\" ripreso"
 
@@ -3725,7 +3725,7 @@ msgid "Broadcast name"
 msgstr "Nome broadcast"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:93
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:164
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:163
 msgid "Broadcast not found"
 msgstr "Broadcast non trovato"
 
@@ -3744,8 +3744,8 @@ msgstr "Broadcast: {0}"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:443
 #: src/components/settings/permissionLabels.ts:10
 #: src/layouts/app-shell/menuItems.ts:225
-#: src/pages/BroadcastsPage.tsx:251
-#: src/pages/BroadcastsPage.tsx:352
+#: src/pages/BroadcastsPage.tsx:253
+#: src/pages/BroadcastsPage.tsx:354
 #: src/services/api/errors.ts:85
 msgid "Broadcasts"
 msgstr "Broadcast"
@@ -3889,16 +3889,17 @@ msgstr "Campagne"
 #: src/components/blog/ThemeEditorDrawer.tsx:283
 #: src/components/blog/ThemeEditorDrawer.tsx:313
 #: src/components/blog/ThemeEditorDrawer.tsx:471
-#: src/components/broadcasts/BroadcastsTable.tsx:202
+#: src/components/broadcasts/BroadcastsTable.tsx:204
+#: src/components/broadcasts/BroadcastsTable.tsx:207
 #: src/components/broadcasts/ChangeVariationSenderModal.tsx:138
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:363
 #: src/components/broadcasts/compose/ContentCard.tsx:84
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:48
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:349
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:340
 #: src/components/broadcasts/HeadersEditor.tsx:103
-#: src/components/broadcasts/useBroadcastActions.ts:113
-#: src/components/broadcasts/useBroadcastActions.ts:119
-#: src/components/broadcasts/useBroadcastActions.ts:137
+#: src/components/broadcasts/useBroadcastActions.tsx:162
+#: src/components/broadcasts/useBroadcastActions.tsx:168
+#: src/components/broadcasts/useBroadcastActions.tsx:186
 #: src/components/contacts/BulkActionProgressModal.tsx:60
 #: src/components/contacts/BulkUpdateDrawer.tsx:591
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
@@ -3986,11 +3987,15 @@ msgstr "Annulla un backfill in esecuzione"
 msgid "Cancel backfill?"
 msgstr "Annullare il backfill?"
 
+#: src/components/broadcasts/useBroadcastActions.tsx:143
+msgid "Cancel broadcast"
+msgstr "Annulla il broadcast"
+
 #: src/pages/BroadcastsPage.tsx:728
 #~ msgid "Cancel Broadcast"
 #~ msgstr "Annulla broadcast"
 
-#: src/components/broadcasts/useBroadcastActions.ts:122
+#: src/components/broadcasts/useBroadcastActions.tsx:171
 msgid "Cancel broadcast?"
 msgstr "Annullare il broadcast?"
 
@@ -4001,6 +4006,10 @@ msgstr "Annullare l'operazione?"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:197
 msgid "Cancel the rule changes"
 msgstr "Annulla le modifiche alla regola"
+
+#: src/components/broadcasts/useBroadcastActions.tsx:121
+msgid "Cancel the scheduled send?"
+msgstr "Annullare l’invio programmato?"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:304
 msgid "Cancel Upload?"
@@ -4339,7 +4348,7 @@ msgstr "Cancella campo"
 #: src/components/logs/MessagesTab.tsx:800
 #: src/components/logs/OutgoingWebhooksTab.tsx:233
 #: src/pages/AutomationsPage.tsx:264
-#: src/pages/BroadcastsPage.tsx:321
+#: src/pages/BroadcastsPage.tsx:323
 #: src/pages/ContactsPage.tsx:517
 msgid "Clear filters"
 msgstr "Cancella filtri"
@@ -4381,7 +4390,7 @@ msgstr "tasso di clic"
 
 #: src/components/analytics/DashboardKpis.tsx:277
 #: src/components/broadcasts/BroadcastKpis.tsx:141
-#: src/components/broadcasts/BroadcastsTable.tsx:284
+#: src/components/broadcasts/BroadcastsTable.tsx:290
 #: src/components/broadcasts/compose/ContentCard.tsx:319
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:74
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:150
@@ -4494,7 +4503,7 @@ msgstr "Link cliccati"
 #~ msgstr "click"
 
 #: src/components/analytics/OriginVolumeChart.tsx:164
-#: src/components/broadcasts/BroadcastsTable.tsx:357
+#: src/components/broadcasts/BroadcastsTable.tsx:363
 #: src/components/broadcasts/detail/AbTestPanel.tsx:169
 #: src/components/broadcasts/detail/EngagementChart.tsx:86
 #: src/components/contacts/TrackingConsent.tsx:32
@@ -4862,7 +4871,7 @@ msgstr "Configura ora"
 #~ msgstr "Configura webhook in uscita per ricevere notifiche in tempo reale quando si verificano eventi nel tuo workspace."
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:179
-#: src/pages/BroadcastsPage.tsx:261
+#: src/pages/BroadcastsPage.tsx:263
 msgid "Configure Provider"
 msgstr "Configura provider"
 
@@ -5355,7 +5364,7 @@ msgstr "Impossibile caricare l'automazione"
 msgid "Couldn't load the automations"
 msgstr "Impossibile caricare le automazioni"
 
-#: src/pages/BroadcastsPage.tsx:238
+#: src/pages/BroadcastsPage.tsx:240
 msgid "Couldn't load the broadcasts"
 msgstr "Impossibile caricare i broadcast"
 
@@ -5387,7 +5396,7 @@ msgstr "Impossibile caricare le notifiche"
 msgid "Couldn't load the posts"
 msgstr "Impossibile caricare gli articoli"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:418
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:411
 msgid "Couldn't load the statistics of this broadcast"
 msgstr "Impossibile caricare le statistiche di questo broadcast"
 
@@ -5414,7 +5423,7 @@ msgid "Couldn't load the webhooks"
 msgstr "Impossibile caricare i webhook"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:95
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:170
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:169
 msgid "Couldn't load this broadcast"
 msgstr "Impossibile caricare questo broadcast"
 
@@ -6300,10 +6309,10 @@ msgstr "Ritardo"
 #: src/components/blog/DeleteCategoryModal.tsx:29
 #: src/components/blog/DeletePostModal.tsx:29
 #: src/components/blog/PostsTable.tsx:246
-#: src/components/broadcasts/BroadcastsTable.tsx:206
+#: src/components/broadcasts/BroadcastsTable.tsx:212
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:58
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:283
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:283
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:275
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:275
 #: src/components/contacts/BulkActionsBar.tsx:157
 #: src/components/contacts/BulkActionsBar.tsx:207
 #: src/components/contacts/ContactsTable.tsx:316
@@ -7089,7 +7098,7 @@ msgstr "Scarica come zip"
 
 #: src/components/automations/AutomationStatusPill.tsx:15
 #: src/components/blog/PostsTable.tsx:335
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:200
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:199
 #: src/components/templates/templateUsage.ts:83
 msgid "Draft"
 msgstr "Bozza"
@@ -7105,7 +7114,7 @@ msgstr "Bozza ripristinata dalla memoria locale"
 
 #: src/components/blog/PostsTable.tsx:423
 #: src/pages/AutomationsPage.tsx:141
-#: src/pages/BroadcastsPage.tsx:184
+#: src/pages/BroadcastsPage.tsx:186
 msgid "Drafts"
 msgstr "Bozze"
 
@@ -7276,7 +7285,7 @@ msgstr "Ogni variante mantiene il mittente del suo template, a meno che tu non n
 #: src/components/blog/PostsTable.tsx:225
 #: src/components/blog/PostsTable.tsx:229
 #: src/components/broadcasts/BroadcastsTable.tsx:198
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:311
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:303
 #: src/components/contacts/ContactsTable.tsx:315
 #: src/components/email_builder/EmailBuilder.tsx:1054
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
@@ -7681,7 +7690,7 @@ msgstr "Anteprima email"
 msgid "Email Provider Configuration Needed"
 msgstr "Configurazione provider email necessaria"
 
-#: src/pages/BroadcastsPage.tsx:257
+#: src/pages/BroadcastsPage.tsx:259
 msgid "Email Provider Required"
 msgstr "Provider email richiesto"
 
@@ -8562,7 +8571,7 @@ msgctxt "failures column"
 msgid "Failed"
 msgstr "Errori"
 
-#: src/pages/BroadcastsPage.tsx:203
+#: src/pages/BroadcastsPage.tsx:205
 msgctxt "newsletter filter"
 msgid "Failed"
 msgstr "Fallito"
@@ -8593,7 +8602,7 @@ msgstr "Aggiunta alla lista non riuscita: {0}"
 #~ msgid "Failed to add to list: {error}"
 #~ msgstr "Impossibile aggiungere alla lista: {error}"
 
-#: src/components/broadcasts/useBroadcastActions.ts:88
+#: src/components/broadcasts/useBroadcastActions.tsx:91
 msgid "Failed to cancel broadcast"
 msgstr "Impossibile annullare il broadcast"
 
@@ -8852,7 +8861,7 @@ msgstr "Impossibile caricare le impostazioni"
 msgid "Failed to pause automation"
 msgstr "Impossibile mettere in pausa l'automation"
 
-#: src/components/broadcasts/useBroadcastActions.ts:78
+#: src/components/broadcasts/useBroadcastActions.tsx:81
 msgid "Failed to pause broadcast"
 msgstr "Impossibile mettere in pausa il broadcast"
 
@@ -8924,11 +8933,11 @@ msgstr "Impossibile inviare nuovamente l'invito"
 msgid "Failed to resend magic code"
 msgstr "Impossibile inviare nuovamente il codice magico"
 
-#: src/components/broadcasts/useBroadcastActions.ts:84
+#: src/components/broadcasts/useBroadcastActions.tsx:87
 msgid "Failed to resume broadcast"
 msgstr "Impossibile riprendere il broadcast"
 
-#: src/components/broadcasts/useBroadcastActions.ts:100
+#: src/components/broadcasts/useBroadcastActions.tsx:103
 msgid "Failed to retry the recipients"
 msgstr "Impossibile riprovare con i destinatari"
 
@@ -8995,7 +9004,7 @@ msgstr "Impossibile programmare il broadcast"
 #~ msgid "Failed to select winner"
 #~ msgstr "Impossibile selezionare il vincitore"
 
-#: src/components/broadcasts/useBroadcastActions.ts:163
+#: src/components/broadcasts/useBroadcastActions.tsx:212
 msgctxt "newsletter A/B"
 msgid "Failed to select winner"
 msgstr "Impossibile selezionare il vincitore"
@@ -9019,7 +9028,7 @@ msgstr "Impossibile inviare l'email di test: {0}"
 msgid "Failed to send test webhook"
 msgstr "Impossibile inviare il webhook di test"
 
-#: src/components/broadcasts/useBroadcastActions.ts:94
+#: src/components/broadcasts/useBroadcastActions.tsx:97
 msgid "Failed to send the broadcast back to draft"
 msgstr "Impossibile riportare il broadcast in bozza"
 
@@ -10746,9 +10755,17 @@ msgstr "L'URL dell'issuer è obbligatorio"
 msgid "It is generated from the HTML at every send, so there is nothing to maintain. Its links are the links of the HTML, tracked the same way."
 msgstr "Viene generata dall'HTML a ogni invio, quindi non c'è nulla da mantenere. I suoi link sono quelli dell'HTML, tracciati allo stesso modo."
 
+#: src/components/broadcasts/useBroadcastActions.tsx:135
+msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
+msgstr "Non viene inviato all’ora prevista. Puoi modificarlo e programmarlo di nuovo; la data resta."
+
 #: src/components/email_builder/EmailBuilder.tsx:936
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "Viene rimosso per tutti i template del workspace. I template che contengono già questo blocco non cambiano."
+
+#: src/components/broadcasts/useBroadcastActions.tsx:144
+msgid "It will never be sent. A cancelled broadcast can't be resumed."
+msgstr "Non verrà mai inviato. Un broadcast annullato non può essere ripreso."
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:313
 #: src/components/email_builder/ui/FontStyleInput.tsx:124
@@ -11290,11 +11307,11 @@ msgstr "Lista"
 msgid "List \"{0}\" deleted successfully"
 msgstr "Lista \"{0}\" eliminata con successo"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:237
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:236
 msgid "List {listName}, unsubscribed excluded"
 msgstr "Lista {listName}, disiscritti esclusi"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:238
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:237
 msgid "List {listName}, unsubscribed included"
 msgstr "Lista {listName}, disiscritti inclusi"
 
@@ -11473,7 +11490,7 @@ msgstr "Integrazione LLM salvata con successo"
 msgid "Load {CONTACTS_PAGE_SIZE} more"
 msgstr "Carica altri {CONTACTS_PAGE_SIZE}"
 
-#: src/pages/BroadcastsPage.tsx:227
+#: src/pages/BroadcastsPage.tsx:229
 msgid "Load {PAGE_SIZE} more"
 msgstr "Carica altri {PAGE_SIZE}"
 
@@ -12160,8 +12177,8 @@ msgstr "Mensile"
 #: src/components/automations/AutomationEditor.tsx:518
 #: src/components/automations/list/AutomationsTable.tsx:294
 #: src/components/blog/PostsTable.tsx:408
-#: src/components/broadcasts/BroadcastsTable.tsx:466
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:354
+#: src/components/broadcasts/BroadcastsTable.tsx:472
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:346
 #: src/components/contacts/ContactsViewHeader.tsx:137
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
 #: src/components/file_manager/FileExplorer.tsx:1068
@@ -12310,7 +12327,7 @@ msgid "New block"
 msgstr "Nuovo blocco"
 
 #: src/components/analytics/UpcomingSends.tsx:100
-#: src/pages/BroadcastsPage.tsx:213
+#: src/pages/BroadcastsPage.tsx:215
 msgid "New broadcast"
 msgstr "Nuovo broadcast"
 
@@ -12452,9 +12469,9 @@ msgstr "Prossima esecuzione"
 #: src/components/blog/PostDrawer.tsx:296
 #: src/components/blog/PostDrawer.tsx:562
 #: src/components/broadcasts/HeadersEditor.tsx:66
-#: src/components/broadcasts/useBroadcastActions.ts:125
-#: src/components/broadcasts/useBroadcastActions.ts:131
-#: src/components/broadcasts/useBroadcastActions.ts:151
+#: src/components/broadcasts/useBroadcastActions.tsx:174
+#: src/components/broadcasts/useBroadcastActions.tsx:180
+#: src/components/broadcasts/useBroadcastActions.tsx:200
 #: src/components/contacts/ContactsViewHeader.tsx:123
 #: src/components/contacts/ContactUpsertDrawer.tsx:555
 #: src/components/contacts/SegmentDefinedBy.tsx:53
@@ -12542,7 +12559,7 @@ msgstr "Nessun broadcast programmato"
 #~ msgid "No broadcasts found"
 #~ msgstr "Nessun broadcast trovato"
 
-#: src/pages/BroadcastsPage.tsx:319
+#: src/pages/BroadcastsPage.tsx:321
 msgid "No broadcasts match"
 msgstr "Nessun broadcast corrisponde"
 
@@ -12550,7 +12567,7 @@ msgstr "Nessun broadcast corrisponde"
 #~ msgid "No broadcasts match your filters"
 #~ msgstr "Nessun broadcast corrisponde ai tuoi filtri"
 
-#: src/pages/BroadcastsPage.tsx:274
+#: src/pages/BroadcastsPage.tsx:276
 msgid "No broadcasts yet"
 msgstr "Ancora nessun broadcast"
 
@@ -13004,7 +13021,7 @@ msgstr "Nessuna consegna riuscita"
 msgid "No template chosen"
 msgstr "Nessun modello scelto"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:321
+#: src/components/broadcasts/BroadcastsTable.tsx:327
 #: src/components/broadcasts/detail/BroadcastAside.tsx:90
 msgid "No template yet"
 msgstr "Ancora nessun modello"
@@ -13669,7 +13686,7 @@ msgstr "tasso di apertura"
 #: src/components/analytics/DashboardKpis.tsx:276
 #: src/components/automations/list/AutomationsTable.tsx:246
 #: src/components/broadcasts/BroadcastKpis.tsx:140
-#: src/components/broadcasts/BroadcastsTable.tsx:284
+#: src/components/broadcasts/BroadcastsTable.tsx:290
 #: src/components/broadcasts/compose/ContentCard.tsx:318
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:62
 #: src/components/contacts/sheet/ContactKpis.tsx:43
@@ -13744,7 +13761,7 @@ msgstr "Ha aperto un’email"
 #~ msgstr "aperture"
 
 #: src/components/analytics/OriginVolumeChart.tsx:163
-#: src/components/broadcasts/BroadcastsTable.tsx:344
+#: src/components/broadcasts/BroadcastsTable.tsx:350
 #: src/components/broadcasts/detail/AbTestPanel.tsx:168
 #: src/components/broadcasts/detail/EngagementChart.tsx:86
 #: src/components/contacts/TrackingConsent.tsx:29
@@ -14089,9 +14106,9 @@ msgstr "Accesso path-style"
 #: src/components/automations/AutomationEditor.tsx:495
 #: src/components/automations/AutomationEditor.tsx:537
 #: src/components/broadcasts/BroadcastsTable.tsx:199
-#: src/components/broadcasts/BroadcastsTable.tsx:454
-#: src/components/broadcasts/BroadcastsTable.tsx:458
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:315
+#: src/components/broadcasts/BroadcastsTable.tsx:460
+#: src/components/broadcasts/BroadcastsTable.tsx:464
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:307
 #: src/components/contacts/BulkActionProgressModal.tsx:50
 #: src/components/contacts/BulkUpdateDrawer.tsx:586
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:815
@@ -14120,7 +14137,7 @@ msgstr "Mettere in pausa l'automation?"
 #~ msgid "Pause Broadcast"
 #~ msgstr "Metti in Pausa Broadcast"
 
-#: src/components/broadcasts/useBroadcastActions.ts:110
+#: src/components/broadcasts/useBroadcastActions.tsx:159
 msgid "Pause broadcast?"
 msgstr "Mettere in pausa il broadcast?"
 
@@ -14131,7 +14148,7 @@ msgstr "Metti prima in pausa l'automazione"
 #: src/components/automations/AutomationStatusPill.tsx:14
 #: src/components/broadcasts/detail/BroadcastAside.tsx:221
 #: src/components/broadcasts/detail/BroadcastAside.tsx:274
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:212
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:211
 #: src/components/templates/templateUsage.ts:86
 #: src/pages/AutomationsPage.tsx:140
 msgid "Paused"
@@ -14150,7 +14167,7 @@ msgstr "Ha messo in pausa l'automazione <0>{target}</0>"
 msgid "Paused the newsletter <0>{target}</0>"
 msgstr "Ha messo in pausa la newsletter <0>{target}</0>"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:212
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:211
 msgid "Paused: {reason}"
 msgstr "In pausa: {reason}"
 
@@ -14321,7 +14338,7 @@ msgstr "Scegli un vincitore"
 #~ msgstr "Scegli come vincitore"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:207
-#: src/components/broadcasts/useBroadcastActions.ts:145
+#: src/components/broadcasts/useBroadcastActions.tsx:194
 msgctxt "newsletter A/B"
 msgid "Pick as winner"
 msgstr "Scegli come vincitore"
@@ -15067,7 +15084,7 @@ msgstr "Push"
 #~ msgid "Querying {what}"
 #~ msgstr ""
 
-#: src/components/broadcasts/useBroadcastActions.ts:123
+#: src/components/broadcasts/useBroadcastActions.tsx:172
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr "Le email in coda non verranno inviate. Gli invii già in corso verranno completati."
 
@@ -15378,7 +15395,7 @@ msgstr "Test del feed destinatario completato con successo"
 msgid "recipient@example.com"
 msgstr "destinatario@esempio.com"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:341
+#: src/components/broadcasts/BroadcastsTable.tsx:347
 msgid "Recipients"
 msgstr "Destinatari"
 
@@ -15504,7 +15521,8 @@ msgstr "Aggiorna"
 #~ msgid "Refresh Broadcast"
 #~ msgstr "Aggiorna Broadcast"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:264
+#: src/pages/BroadcastsPage.tsx:359
+#: src/pages/BroadcastsPage.tsx:362
 msgid "Refresh stats"
 msgstr "Aggiorna statistiche"
 
@@ -16042,7 +16060,7 @@ msgid "Results:"
 msgstr "Risultati:"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:200
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:322
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:314
 #: src/components/contacts/BulkActionProgressModal.tsx:55
 #: src/components/contacts/BulkUpdateDrawer.tsx:414
 #: src/components/contacts/BulkUpdateDrawer.tsx:596
@@ -16059,7 +16077,7 @@ msgstr "Riprendi un broadcast in pausa, continuando l'invio"
 #~ msgid "Resume Broadcast"
 #~ msgstr "Riprendi Broadcast"
 
-#: src/components/broadcasts/useBroadcastActions.ts:116
+#: src/components/broadcasts/useBroadcastActions.tsx:165
 msgid "Resume broadcast?"
 msgstr "Riprendere il broadcast?"
 
@@ -16099,7 +16117,7 @@ msgstr "Ha ritentato gli invii non riusciti della newsletter <0>{target}</0>"
 #: src/components/blog/PostsTable.tsx:449
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:95
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:567
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:171
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:170
 #: src/components/contacts/BlockError.tsx:11
 #: src/components/file_manager/FileExplorer.tsx:782
 #: src/components/logs/AuditLogTab.tsx:622
@@ -16112,22 +16130,22 @@ msgstr "Ha ritentato gli invii non riusciti della newsletter <0>{target}</0>"
 #: src/components/settings/WorkspaceMembers.tsx:490
 #: src/components/transactional/LoadError.tsx:22
 #: src/pages/AutomationsPage.tsx:209
-#: src/pages/BroadcastsPage.tsx:239
+#: src/pages/BroadcastsPage.tsx:241
 #: src/pages/TemplatesPage.tsx:500
 #: src/pages/TransactionalNotificationsPage.tsx:173
 msgid "Retry"
 msgstr "Riprova"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:203
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:335
+#: src/components/broadcasts/BroadcastsTable.tsx:209
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:327
 msgid "Retry failed"
 msgstr "Riprova i non riusciti"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:205
+#: src/components/broadcasts/BroadcastsTable.tsx:211
 msgid "Retry failed…"
 msgstr "Riprova i non riusciti…"
 
-#: src/components/broadcasts/useBroadcastActions.ts:134
+#: src/components/broadcasts/useBroadcastActions.tsx:183
 msgid "Retry the failed recipients?"
 msgstr "Riprovare i destinatari non riusciti?"
 
@@ -16533,11 +16551,11 @@ msgstr "Fuso orario della pianificazione"
 #: src/components/blog/PostsTable.tsx:333
 #: src/components/blog/PostsTable.tsx:422
 #: src/components/broadcasts/compose/SendingCard.tsx:39
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:203
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:202
 msgid "Scheduled"
 msgstr "Pianificato"
 
-#: src/pages/BroadcastsPage.tsx:187
+#: src/pages/BroadcastsPage.tsx:189
 msgctxt "newsletter filter"
 msgid "Scheduled"
 msgstr "Pianificato"
@@ -16553,7 +16571,7 @@ msgid "Scheduled for {date}"
 msgstr "Pianificato per il {date}"
 
 #: src/components/broadcasts/compose/SendingCard.tsx:44
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:208
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:207
 msgid "Scheduled for {date} at {time} {zone}"
 msgstr "Pianificato per il {date} alle {time} {zone}"
 
@@ -16596,8 +16614,8 @@ msgstr "Cerca"
 msgid "Search by"
 msgstr "Cerca per"
 
-#: src/pages/BroadcastsPage.tsx:299
-#: src/pages/BroadcastsPage.tsx:300
+#: src/pages/BroadcastsPage.tsx:301
+#: src/pages/BroadcastsPage.tsx:302
 msgid "Search by name"
 msgstr "Cerca per nome"
 
@@ -17169,8 +17187,8 @@ msgstr "Dimensioni selezionate, in ordine:"
 msgid "Selected: {0}"
 msgstr "Selezionato: {0}"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:443
-#: src/components/broadcasts/BroadcastsTable.tsx:447
+#: src/components/broadcasts/BroadcastsTable.tsx:449
+#: src/components/broadcasts/BroadcastsTable.tsx:453
 msgid "Send"
 msgstr "Invia"
 
@@ -17260,7 +17278,7 @@ msgstr "Invia ora"
 #~ msgstr "Invia o programma broadcast"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:416
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:307
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:299
 #: src/components/settings/WebhookDetail.tsx:324
 #: src/components/transactional/TransactionalDetail.tsx:352
 #: src/components/transactional/TransactionalTable.tsx:331
@@ -17297,7 +17315,7 @@ msgstr "Inviare ora a ≈ {count, plural, one {# destinatario} other {# destinat
 msgid "Send transactional notifications using SMTP bridge. Perfect for integrating with existing email systems or applications that support SMTP."
 msgstr "Invia notifiche transazionali utilizzando relay SMTP. Perfetto per l'integrazione con sistemi email esistenti o applicazioni che supportano SMTP."
 
-#: src/pages/BroadcastsPage.tsx:275
+#: src/pages/BroadcastsPage.tsx:277
 msgid "Send your first newsletter to a list"
 msgstr "Invia la tua prima newsletter a una lista"
 
@@ -17349,7 +17367,7 @@ msgstr "SendGrid"
 #~ msgid "Sending"
 #~ msgstr "Invio in corso"
 
-#: src/pages/BroadcastsPage.tsx:192
+#: src/pages/BroadcastsPage.tsx:194
 msgctxt "newsletter filter"
 msgid "Sending"
 msgstr "Invio in corso"
@@ -17363,7 +17381,7 @@ msgid "Sending"
 msgstr "Invio in corso"
 
 #: src/components/analytics/SendingCard.tsx:39
-#: src/components/broadcasts/BroadcastsTable.tsx:340
+#: src/components/broadcasts/BroadcastsTable.tsx:346
 #: src/components/broadcasts/compose/SendingCard.tsx:47
 #: src/components/broadcasts/compose/SendingCard.tsx:85
 #: src/components/settings/SettingsSidebar.tsx:27
@@ -17385,7 +17403,7 @@ msgstr "Invio email..."
 msgid "Sending has been paused. You can resume at any time."
 msgstr "L'invio è stato messo in pausa. Puoi riprenderlo in qualsiasi momento."
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:231
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:230
 msgid "Sending since {since}"
 msgstr "In invio da {since}"
 
@@ -17432,7 +17450,7 @@ msgstr "Invii rifiutati dal provider. Le richieste rifiutate prima dell'invio no
 msgid "Sent"
 msgstr "Inviato"
 
-#: src/pages/BroadcastsPage.tsx:197
+#: src/pages/BroadcastsPage.tsx:199
 msgctxt "newsletter filter"
 msgid "Sent"
 msgstr "Inviato"
@@ -17466,7 +17484,7 @@ msgstr "Inviato dalla notifica transazionale {0}"
 msgid "Sent content"
 msgstr "Contenuto inviato"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:219
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:218
 msgid "Sent on {date} at {time}"
 msgstr "Inviato il {date} alle {time}"
 
@@ -17614,7 +17632,7 @@ msgstr "Sessioni (variazione %)"
 msgid "Sessions (previous)"
 msgstr "Sessioni (precedenti)"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:406
+#: src/components/broadcasts/BroadcastsTable.tsx:412
 msgid "Sessions from the broadcast's UTM campaign, from the day it was sent to 7 days after it completed."
 msgstr "Sessioni dalla campagna UTM del broadcast, dal giorno dell'invio a 7 giorni dopo il completamento."
 
@@ -17807,7 +17825,7 @@ msgstr "Configurazione"
 msgid "Setup Complete!"
 msgstr "Configurazione completata!"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:242
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:241
 msgid "Several senders"
 msgstr "Più mittenti"
 
@@ -18010,7 +18028,7 @@ msgstr "Visita al sito"
 msgid "Site visits"
 msgstr "Visite al sito"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:407
+#: src/components/broadcasts/BroadcastsTable.tsx:413
 msgctxt "table column"
 msgid "Site visits"
 msgstr "Visite"
@@ -18385,14 +18403,14 @@ msgstr "Stato"
 msgid "Stats"
 msgstr "Statistiche"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:396
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:389
 msgid "Stats appear once the broadcast starts sending"
 msgstr "Le statistiche compaiono quando il broadcast inizia l'invio"
 
 #: src/components/automations/list/AutomationsTable.tsx:114
 #: src/components/blog/PostsTable.tsx:324
 #: src/components/blog/RecentThemesTable.tsx:115
-#: src/components/broadcasts/BroadcastsTable.tsx:224
+#: src/components/broadcasts/BroadcastsTable.tsx:230
 #: src/components/broadcasts/detail/BroadcastAside.tsx:234
 #: src/components/logs/MessagesTab.tsx:672
 #: src/components/logs/OutgoingWebhooksTab.tsx:139
@@ -19061,7 +19079,7 @@ msgstr "Dati di test aggiornati con successo"
 msgid "Test deliveries are unavailable here: Zapier's hook URLs always answer with success, so a test would report a green tick even for a Zap that no longer exists."
 msgstr "Le consegne di prova non sono disponibili qui: gli URL di hook di Zapier rispondono sempre con successo, quindi un test mostrerebbe un segno di spunta verde anche per uno Zap che non esiste più."
 
-#: src/components/broadcasts/BroadcastsTable.tsx:289
+#: src/components/broadcasts/BroadcastsTable.tsx:295
 #: src/components/broadcasts/compose/ContentCard.tsx:324
 #: src/components/broadcasts/compose/ContentCard.tsx:326
 msgid "Test duration (hours)"
@@ -19109,7 +19127,7 @@ msgstr "Testa il feed destinatario"
 msgid "Test rule"
 msgstr "Testa regola"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:276
+#: src/components/broadcasts/BroadcastsTable.tsx:282
 #: src/components/broadcasts/compose/ContentCard.tsx:278
 #: src/components/broadcasts/compose/ContentCard.tsx:285
 msgid "Test sample"
@@ -19280,15 +19298,15 @@ msgstr "Impossibile salvare il broadcast"
 msgid "the broadcast has no name"
 msgstr "il broadcast non ha un nome"
 
-#: src/components/broadcasts/useBroadcastActions.ts:117
+#: src/components/broadcasts/useBroadcastActions.tsx:166
 msgid "The broadcast will continue sending from where it was paused."
 msgstr "Il broadcast continuerà l'invio da dove era stato messo in pausa."
 
-#: src/components/broadcasts/useBroadcastActions.ts:129
+#: src/components/broadcasts/useBroadcastActions.tsx:178
 msgid "The broadcast will not be sent at its scheduled time. It becomes a draft you can edit and schedule again, with its date kept."
 msgstr "Il broadcast non verrà inviato all'ora programmata. Torna una bozza che puoi modificare e programmare di nuovo, mantenendo la data."
 
-#: src/components/broadcasts/useBroadcastActions.ts:111
+#: src/components/broadcasts/useBroadcastActions.tsx:160
 msgid "The broadcast will stop sending and can be resumed later."
 msgstr "Il broadcast interromperà l'invio e potrà essere ripreso in seguito."
 
@@ -19676,7 +19694,7 @@ msgstr "Questi contatti verranno iscritti alla lista selezionata (stato: active)
 #~ msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 #~ msgstr "Questi parametri vengono aggiunti automaticamente all'URL del broadcast. Sono utilizzati dagli strumenti di web analytics per analizzare le prestazioni della tua campagna."
 
-#: src/components/broadcasts/useBroadcastActions.ts:135
+#: src/components/broadcasts/useBroadcastActions.tsx:184
 msgid "They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time."
 msgstr "Verrà inviata loro di nuovo la stessa email. Correggi prima ciò che il provider ha contestato, altrimenti fallirà una seconda volta."
 
@@ -19748,12 +19766,12 @@ msgid "This broadcast failed due to an error. Check the logs for details."
 msgstr "Questo broadcast è fallito a causa di un errore. Controlla i log per i dettagli."
 
 #: src/components/broadcasts/BroadcastAnalyticsLinks.tsx:79
-#: src/components/broadcasts/BroadcastsTable.tsx:416
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:194
+#: src/components/broadcasts/BroadcastsTable.tsx:422
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:193
 msgid "This broadcast has no UTM campaign, so its website traffic can't be identified"
 msgstr "Questo broadcast non ha una campagna UTM, quindi il suo traffico sul sito web non può essere identificato"
 
-#: src/components/broadcasts/useBroadcastActions.ts:93
+#: src/components/broadcasts/useBroadcastActions.tsx:96
 msgid "This broadcast has started sending, so it can no longer go back to draft. Cancel it instead."
 msgstr "L'invio di questo broadcast è iniziato, quindi non può più tornare in bozza. Annullalo invece."
 
@@ -20826,7 +20844,7 @@ msgstr "rimuovi"
 #~ msgid "Unsub"
 #~ msgstr "Disiscritti"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:370
+#: src/components/broadcasts/BroadcastsTable.tsx:376
 msgid "Unsub."
 msgstr "Disiscritti"
 
@@ -21385,7 +21403,7 @@ msgstr "Variante {variant}: il mittente {senderId} non esiste più"
 msgid "Variant name"
 msgstr "Nome variante"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:254
+#: src/components/broadcasts/BroadcastsTable.tsx:260
 #: src/components/broadcasts/compose/ContentCard.tsx:120
 msgid "Variants"
 msgstr "Varianti"
@@ -21488,7 +21506,7 @@ msgstr "Visualizza messaggi"
 #~ msgid "View Raw JSON"
 #~ msgstr "Visualizza JSON grezzo"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:266
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:258
 msgid "View sending logs"
 msgstr "Visualizza i log di invio"
 
@@ -21767,7 +21785,7 @@ msgstr "Webhook registrati con successo"
 msgid "Website"
 msgstr "Sito web"
 
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:272
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:264
 msgid "Website conversions"
 msgstr "Conversioni del sito"
 
@@ -21784,8 +21802,8 @@ msgid "Website preview"
 msgstr "Anteprima del sito web"
 
 #: src/components/broadcasts/BroadcastKpis.tsx:168
-#: src/components/broadcasts/BroadcastsTable.tsx:213
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:297
+#: src/components/broadcasts/BroadcastsTable.tsx:219
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:289
 msgid "Website traffic"
 msgstr "Traffico del sito"
 
@@ -21972,13 +21990,13 @@ msgstr "Riprenderà dalla riga {0}"
 #~ msgid "Winner"
 #~ msgstr "Vincitore"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:268
+#: src/components/broadcasts/BroadcastsTable.tsx:274
 #: src/components/broadcasts/detail/AbTestPanel.tsx:143
 msgctxt "newsletter A/B"
 msgid "Winner"
 msgstr "Vincitore"
 
-#: src/components/broadcasts/BroadcastsTable.tsx:282
+#: src/components/broadcasts/BroadcastsTable.tsx:288
 #: src/components/broadcasts/compose/ContentCard.tsx:314
 msgid "Winner metric"
 msgstr "Metrica del vincitore"
@@ -22000,7 +22018,7 @@ msgstr "Vincitore selezionato"
 #~ msgid "Winner selected successfully! The broadcast will be sent to remaining recipients."
 #~ msgstr "Vincitore selezionato con successo! Il broadcast verrà inviato ai destinatari rimanenti."
 
-#: src/components/broadcasts/useBroadcastActions.ts:156
+#: src/components/broadcasts/useBroadcastActions.tsx:205
 msgctxt "newsletter A/B"
 msgid "Winner selected successfully! The broadcast will be sent to remaining recipients."
 msgstr "Vincitore selezionato con successo! Il broadcast verrà inviato ai destinatari rimanenti."
@@ -22218,7 +22236,7 @@ msgstr "Annuale"
 #: src/components/blog/PostDrawer.tsx:295
 #: src/components/blog/PostDrawer.tsx:561
 #: src/components/broadcasts/HeadersEditor.tsx:65
-#: src/components/broadcasts/useBroadcastActions.ts:150
+#: src/components/broadcasts/useBroadcastActions.tsx:199
 #: src/components/contacts/ContactsViewHeader.tsx:122
 #: src/components/contacts/ContactUpsertDrawer.tsx:554
 #: src/components/contacts/SegmentDefinedBy.tsx:52
@@ -22243,11 +22261,11 @@ msgstr "Si"
 msgid "Yes, activate"
 msgstr "Si, attiva"
 
-#: src/components/broadcasts/useBroadcastActions.ts:130
+#: src/components/broadcasts/useBroadcastActions.tsx:179
 msgid "Yes, back to draft"
 msgstr "Sì, torna in bozza"
 
-#: src/components/broadcasts/useBroadcastActions.ts:124
+#: src/components/broadcasts/useBroadcastActions.tsx:173
 #: src/components/web_analytics/filters/BackfillStatus.tsx:86
 msgid "Yes, cancel"
 msgstr "Si, annulla"
@@ -22268,15 +22286,15 @@ msgstr "Si, elimina"
 
 #: src/components/automations/AutomationEditor.tsx:387
 #: src/components/automations/list/AutomationsTable.tsx:74
-#: src/components/broadcasts/useBroadcastActions.ts:112
+#: src/components/broadcasts/useBroadcastActions.tsx:161
 msgid "Yes, pause"
 msgstr "Si, metti in pausa"
 
-#: src/components/broadcasts/useBroadcastActions.ts:118
+#: src/components/broadcasts/useBroadcastActions.tsx:167
 msgid "Yes, resume"
 msgstr "Si, riprendi"
 
-#: src/components/broadcasts/useBroadcastActions.ts:136
+#: src/components/broadcasts/useBroadcastActions.tsx:185
 msgid "Yes, retry"
 msgstr "Sì, riprova"
 
@@ -22310,7 +22328,7 @@ msgstr "Non hai accesso in lettura a {resource}."
 msgid "You do not have write access to {resource}."
 msgstr "Non hai accesso in scrittura a {resource}."
 
-#: src/pages/BroadcastsPage.tsx:258
+#: src/pages/BroadcastsPage.tsx:260
 msgid "You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts."
 msgstr "Non hai configurato un provider email per il marketing. Configura un provider email nelle impostazioni del workspace per inviare broadcast."
 
@@ -22345,8 +22363,8 @@ msgstr "Non hai i permessi di scrittura per le automazioni"
 #: src/components/broadcasts/BroadcastsTable.tsx:91
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:369
 #: src/components/broadcasts/detail/AbTestPanel.tsx:200
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:177
-#: src/pages/BroadcastsPage.tsx:45
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:176
+#: src/pages/BroadcastsPage.tsx:47
 msgid "You don't have write permission for broadcasts"
 msgstr "Non hai i permessi di scrittura per i broadcast"
 
@@ -22434,7 +22452,7 @@ msgstr "Ti serve l'accesso alla cronologia messaggi per vedere le email di quest
 #~ msgstr "Hai bisogno dei permessi di lettura template e scrittura contatti per inviare email di test"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:408
-#: src/components/broadcasts/detail/BroadcastDetail.tsx:304
+#: src/components/broadcasts/detail/BroadcastDetail.tsx:296
 #: src/components/templates/SendTestEmailButton.tsx:25
 #: src/components/transactional/notificationRules.ts:49
 msgid "You need Templates read and Transactional write permissions to send test emails"
