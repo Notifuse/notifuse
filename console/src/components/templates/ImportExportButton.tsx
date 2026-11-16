@@ -1,8 +1,7 @@
 import React, { useRef } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Button, Dropdown, App } from 'antd'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
+import { ChevronDown } from 'lucide-react'
 import type { EmailBlock } from '../email_builder/types'
 import { templatesApi } from '../../services/api/template'
 import { importTemplateFile, type TemplateFileKind } from './importTemplateFile'
@@ -267,11 +266,10 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   ]
 
   return (
-    <div style={{ height: '24px' }}>
+    <div>
       <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
-        <Button size="small" type="primary" ghost>
-          <span>{t`Import / Export`}</span>
-          <FontAwesomeIcon icon={faChevronDown} className="ml-1" size="sm" />
+        <Button icon={<ChevronDown size={14} aria-hidden="true" />} iconPlacement="end">
+          {t`Import / Export`}
         </Button>
       </Dropdown>
 

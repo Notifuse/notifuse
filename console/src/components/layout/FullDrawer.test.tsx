@@ -159,4 +159,24 @@ describe('FullDrawer', () => {
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(wrapper().style.transform).toBe('')
   })
+
+  it('centres the middle of the bar, and renders nothing there without it', () => {
+    const { unmount } = renderDrawer({ barCenter: <span>Steps</span> })
+    const center = document.querySelector<HTMLElement>('[data-drawer-bar-center]')!
+    expect(center).toHaveTextContent('Steps')
+    expect(center.className).toContain('left-1/2')
+    unmount()
+    renderDrawer()
+    expect(document.querySelector('[data-drawer-bar-center]')).toBeNull()
+  })
+
+  it('closes on Escape unless keyboard is off', () => {
+    const { onClose, unmount } = renderDrawer()
+    fireEvent.keyDown(document.querySelector('.ant-drawer-content-wrapper')!, { key: 'Escape', code: 'Escape', keyCode: 27 })
+    expect(onClose).toHaveBeenCalled()
+    unmount()
+    const off = renderDrawer({ keyboard: false })
+    fireEvent.keyDown(document.querySelector('.ant-drawer-content-wrapper')!, { key: 'Escape', code: 'Escape', keyCode: 27 })
+    expect(off.onClose).not.toHaveBeenCalled()
+  })
 })

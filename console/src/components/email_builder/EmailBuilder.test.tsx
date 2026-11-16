@@ -149,7 +149,7 @@ describe('EmailBuilder text version mode', () => {
     })
     render(<EmailBuilder {...textProps(onCompile)} />)
     expect(onCompile).not.toHaveBeenCalled()
-    expect((screen.getByTitle('Undo').closest('.ant-space') as HTMLElement).style.opacity).toBe('1')
+    expect((screen.getByTitle('Undo').parentElement as HTMLElement).style.opacity).toBe('1')
 
     fireEvent.click(screen.getByText('Text version'))
 
@@ -157,7 +157,7 @@ describe('EmailBuilder text version mode', () => {
     expect(onCompile).toHaveBeenCalled()
     // Undo and redo only apply to editing: their group is hidden in this mode. (A fresh
     // builder has no history, so the buttons' disabled state would prove nothing.)
-    expect((screen.getByTitle('Undo').closest('.ant-space') as HTMLElement).style.opacity).toBe('0')
+    expect((screen.getByTitle('Undo').parentElement as HTMLElement).style.opacity).toBe('0')
   })
 
   it('shows the compile error, not a stale text', async () => {

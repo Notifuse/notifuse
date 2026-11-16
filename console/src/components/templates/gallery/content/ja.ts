@@ -1,0 +1,215 @@
+import type { GalleryContent } from './en'
+
+// The gallery's email content in Japanese, translated from en.ts.
+export const ja: GalleryContent = {
+  common: {
+    brand: 'Acme',
+    logoAlt: 'Acme のロゴ',
+    address: 'Acme · 12 Market Street, San Francisco, CA 94103',
+    signature: '今後ともよろしくお願いいたします。<br><b>Acme チーム</b>',
+    subscribedTo: 'このメールは、{{ list.name }} にご登録いただいた方にお送りしています。',
+    managePreferences: '配信設定を変更',
+    unsubscribe: '配信停止',
+    hasAccount: 'このメールは、アカウントをお持ちの方にお送りしています。',
+    placedOrder: 'このメールは、Acme でご注文いただいた方にお送りしています。',
+    invited: 'このメールは、Acme への招待を受けた方にお送りしています。',
+    questions: 'ご不明な点は、このメールにご返信ください。',
+    navShop: 'ショップ',
+    navBlog: 'ブログ',
+    navHelp: 'ヘルプ',
+    linkFallback: 'ボタンが機能しない場合は、このリンクをブラウザにコピーしてください：'
+  },
+  models: {
+    blank: {
+      name: '新しいメール',
+      subject: 'Acme からのお知らせ',
+      preheader: '受信トレイで件名の後に表示される一文を入力してください。',
+      greeting: '{{ contact.first_name }} 様',
+      body: 'ここにメッセージを入力します。左側のブロックを使って、画像、ボタン、列を追加できます。'
+    },
+    welcome: {
+      name: 'ウェルカムメール',
+      subject: 'Acme へようこそ、{{ contact.first_name }} 様',
+      preheader: '最初の1週間にやっておきたい3つのこと。',
+      title: 'ようこそ、{{ contact.first_name }} 様',
+      intro: 'ご登録ありがとうございます。最初の1週間で Acme を最大限に活用する方法をご紹介します。',
+      step1Title: 'プロフィールを完成させる',
+      step1Text: '興味のあることを教えてください。',
+      step2Title: 'ガイドを読む',
+      step2Text: 'すぐに始められる短い記事をご用意しています。',
+      step3Title: 'ひと言どうぞ',
+      step3Text: 'このメールにご返信ください。すべて拝読しています。',
+      button: 'はじめる'
+    },
+    verify: {
+      name: '認証コード',
+      subject: '認証コード：{{ code }}',
+      preheader: '有効期限は {{ expires_in_minutes }} 分です。',
+      title: '認証コード',
+      intro: 'ログインを完了するには、このコードを入力してください。有効期限は {{ expires_in_minutes }} 分です。',
+      ignore: 'ログインを試みていない場合は、このメールを無視してください。誰かが誤ってお客様のアドレスを入力した可能性があります。'
+    },
+    reset: {
+      name: 'パスワードの再設定',
+      subject: 'パスワードを再設定してください',
+      preheader: 'このリンクの有効期限は1時間です。',
+      title: 'パスワードの再設定',
+      intro: '{{ contact.first_name }} 様、パスワード再設定のリクエストを受け付けました。下のボタンをクリックして、新しいパスワードを設定してください。このリンクの有効期限は1時間です。',
+      button: '新しいパスワードを設定',
+      ignore: 'お心当たりがない場合は、このメールを無視してください。パスワードは変更されません。'
+    },
+    confirm: {
+      name: '登録確認',
+      subject: 'ご登録の確認をお願いします',
+      preheader: 'ワンクリックで完了します。',
+      title: 'ご登録を確認してください',
+      intro: '{{ list.name }} の受信をお申し込みいただきました。下のボタンをクリックして、メールアドレスを確認してください。',
+      button: '登録する',
+      ignore: 'お申し込みに心当たりがない場合は、このメールを無視してください。登録は行われません。'
+    },
+    invite: {
+      name: 'チームへの招待',
+      subject: '{{ inviter_name }} さんから {{ team_name }} への招待が届いています',
+      preheader: '招待を承諾して始めましょう。',
+      title: '{{ inviter_name }} さんが {{ team_name }} にあなたを招待しました',
+      intro: 'チームに参加して、プロジェクトでの共同作業やファイルの共有を始めましょう。この招待の有効期限は {{ expires_in_days }} 日です。',
+      button: '招待を承諾する'
+    },
+    receipt: {
+      name: '領収書',
+      subject: 'Acme からの領収書 #{{ invoice.number }}',
+      preheader: 'お支払い金額：{{ invoice.amount }}',
+      title: 'お支払いありがとうございます',
+      intro: '領収書をお送りします。PDF 版はアカウントからダウンロードできます。',
+      invoice: '請求書',
+      date: '日付',
+      description: '内容',
+      paymentMethod: 'お支払い方法',
+      amountPaid: 'お支払い金額',
+      button: '請求書をダウンロード'
+    },
+    order: {
+      name: '注文確認',
+      subject: 'ご注文 #{{ order.number }} を承りました',
+      preheader: 'ご注文ありがとうございます。ご注文内容をお知らせします。',
+      tag: 'ご注文 #{{ order.number }}',
+      title: '{{ contact.first_name }} 様、ご注文ありがとうございます',
+      intro: 'ただいま商品を準備しています。発送しましたら、改めてメールでお知らせします。',
+      quantity: '数量',
+      subtotal: '小計',
+      shipping: '送料',
+      total: '合計',
+      shippingTo: 'お届け先',
+      button: '注文を確認する'
+    },
+    shipping: {
+      name: '発送のお知らせ',
+      subject: 'ご注文 #{{ order.number }} を発送しました',
+      preheader: 'お届け予定日：{{ shipment.estimated_delivery }}',
+      title: 'ご注文の商品を発送しました',
+      intro: 'ご注文 #{{ order.number }} の商品が倉庫を出発しました。お届け予定日：<b>{{ shipment.estimated_delivery }}</b>',
+      carrier: '配送業者',
+      trackingNumber: '追跡番号',
+      button: '荷物を追跡する'
+    },
+    cart: {
+      name: 'カート放棄',
+      subject: 'カートに商品が残っています',
+      preheader: '商品は保存されています。ワンクリックで注文を完了できます。',
+      title: 'お忘れ物はありませんか？',
+      intro: '{{ contact.first_name }} 様、カートの中身は保存されています。売り切れる前にご注文を完了してください。',
+      quantity: '数量',
+      button: 'カートに戻る',
+      alsoLiked: 'こちらも人気です',
+      product1: 'ウールのニット帽',
+      product2: 'レザーの財布',
+      shopNow: '今すぐ購入'
+    },
+    promo: {
+      name: 'セール',
+      subject: 'ウィンターセール：全品30%オフ',
+      preheader: '3日間限定。コード WINTER30 をご利用ください。',
+      tag: '3日間限定',
+      title: 'ウィンターセール：全品30%オフ',
+      intro: '年に一度の最大のセールが始まりました。日曜日の深夜0時までに、お気に入りをまとめてお買い求めください。',
+      useCode: 'ご購入手続きの際にこのコードを入力してください',
+      ends: '11月30日まで。',
+      product1: 'リネンシャツ',
+      product2: 'キャンバストートバッグ',
+      shopNow: '今すぐ購入',
+      button: 'セールを見る'
+    },
+    newsletter: {
+      name: 'ニュースレター',
+      subject: 'Acme ダイジェスト',
+      preheader: '新機能、ガイド、お客様事例をお届けします。',
+      greeting: '{{ contact.first_name }} 様、今月の出来事をお届けします。',
+      featuredTag: '製品アップデート',
+      featuredTitle: '今月リリースした5つの新機能',
+      featuredText: '検索の高速化、新しいモバイルアプリ、そしてご要望の多かった3つの機能。変更点と使い方をご紹介します。',
+      readArticle: '記事を読む →',
+      article1Tag: 'ガイド',
+      article1Title: '開封される件名の書き方',
+      article1Text: '開封率の高いメールに学ぶ6つのパターン。',
+      article2Tag: 'お客様事例',
+      article2Title: '小さなお店がリピート注文を2倍にした方法',
+      article2Text: 'ウェルカムメールのシリーズと、タイミングのよいリマインダー1通。',
+      readMore: '続きを読む →',
+      quote: '「ニュースレターと領収書の配信を一か所にまとめ、送信コストを半分に削減できました」',
+      quoteAuthor: '<b>Maria Lopez</b> · Example Co. グロース責任者'
+    },
+    announce: {
+      name: '新製品のお知らせ',
+      subject: 'Smart Reports のご紹介',
+      preheader: '毎週の数字を、わかりやすい文章で。',
+      tag: '新機能',
+      title: 'Smart Reports のご紹介',
+      intro: '毎週月曜日に、数字の変化とその理由をわかりやすい言葉でまとめた短いレポートをお届けします。',
+      feature1Title: 'わかりやすい要約',
+      feature1Text: 'ダッシュボードを読み解かなくても、重要な3つの変化がわかります。',
+      feature2Title: '理由まで伝えるアラート',
+      feature2Text: '数字が動いたとき、その原因をレポートがお伝えします。',
+      feature3Title: 'ワンクリックで共有',
+      feature3Text: 'レポートをリンクまたは PDF でチームに送信できます。',
+      button: 'Smart Reports を試す'
+    },
+    event: {
+      name: 'イベントへのご招待',
+      subject: 'ご招待：年末商戦キャンペーンの計画',
+      preheader: '12月4日にライブウェビナーを開催します。今すぐお席をご予約ください。',
+      month: '12月',
+      day: '04',
+      title: '年末商戦キャンペーンの計画',
+      when: '木曜日 17:00 CET · オンライン · 45分',
+      intro: '{{ contact.first_name }} 様、一年で最も忙しいシーズンを最大限に活用するためのライブセッションに、ぜひご参加ください。',
+      agenda1Time: '17:00',
+      agenda1: '昨年うまくいったこと',
+      agenda2Time: '17:15',
+      agenda2: 'カレンダーの作り方',
+      agenda3Time: '17:35',
+      agenda3: 'ライブ質疑応答',
+      button: '席を予約する',
+      recording: 'ご都合が合わない場合も、ご登録いただければ録画をお送りします。'
+    },
+    unsub: {
+      name: '配信停止の確認',
+      subject: '配信を停止しました',
+      preheader: '今後 {{ list.name }} は配信されません。',
+      title: '配信を停止しました',
+      intro: '今後 {{ list.name }} は配信されません。その他の購読内容は変更されていません。',
+      button: '購読設定を管理',
+      mistake: '誤って配信を停止した場合は、同じページから再登録できます。'
+    },
+    winback: {
+      name: 'お久しぶりです',
+      subject: '{{ contact.first_name }} 様、お久しぶりです',
+      preheader: 'おかえりなさいの気持ちを込めて、20%オフをお届けします。',
+      title: '{{ contact.first_name }} 様、お久しぶりです',
+      intro: 'しばらくぶりですね。前回のご来店から、新商品の登場、配送の高速化、返品無料など、多くのことが変わりました。',
+      tag: 'おかえりなさい',
+      offer: '次回のご注文が20%オフ',
+      valid: '有効期限は14日間です。',
+      button: '新着情報を見る'
+    }
+  }
+}

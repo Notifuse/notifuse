@@ -27,7 +27,10 @@ import type {
 // (onSaveBlock, onCompile).
 const builder = vi.hoisted(() => ({ props: undefined as undefined | Record<string, unknown> }))
 const assistant = vi.hoisted(() => ({ props: undefined as undefined | Record<string, unknown> }))
-const auth = vi.hoisted(() => ({ refreshWorkspaces: vi.fn() }))
+const auth = vi.hoisted(() => ({
+  refreshWorkspaces: vi.fn(),
+  permissions: { templates: { read: true, write: true }, transactional: { read: true, write: true } } as Record<string, unknown>
+}))
 vi.mock('../email_builder/EmailBuilder', () => ({
   default: (props: Record<string, unknown>) => {
     builder.props = props
@@ -47,8 +50,51 @@ vi.mock('../email_builder/MjmlCodeEditor', () => ({
 vi.mock('./PhonePreview', () => ({ default: () => null }))
 vi.mock('./ImportExportButton', () => ({ ImportExportButton: () => null }))
 vi.mock('./TemplateTranslationsTab', () => ({ default: () => null }))
+// The start modal is tested on its own: here it only hands the drawer a choice, as it does.
+vi.mock('./TemplateStartModal', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./TemplateStartModal')>()
+  const { buildStartingPoint } = await import('./gallery/buildStartingPoint')
+  const { galleryModel } = await import('./gallery/models')
+  return {
+    ...actual,
+    TemplateStartModal: (props: import('./TemplateStartModal').TemplateStartModalProps) => {
+      const start = (id: string) =>
+        props.onPickModel(
+          buildStartingPoint(
+            galleryModel(id)!,
+            { defaultLanguage: props.workspace.settings.default_language, languages: props.workspace.settings.languages },
+            props.assets,
+            props.defaultTestData
+          )
+        )
+      return (
+        <div data-testid="start-modal" data-force-category={props.forceCategory ?? ''}>
+          <button onClick={() => start('blank')}>pick blank</button>
+          <button onClick={() => start('order')}>pick order</button>
+          <button onClick={() => props.onPickTemplate({ ...startSource, name: 'Spring news' } as Template)}>pick template</button>
+          <button onClick={props.onCancel}>cancel start</button>
+        </div>
+      )
+    }
+  }
+})
+const startSource = vi.hoisted(() => ({
+  id: 'spring',
+  name: 'Spring news',
+  version: 2,
+  channel: 'email',
+  category: 'marketing',
+  email: { editor_mode: 'code', subject: 'Spring', subject_preview: 'News', mjml_source: '<mjml></mjml>', sender_id: 'sender-9', reply_to: 'news@acme.io' }
+}))
+
+// The test send only shows which saved revision it was opened on.
+vi.mock('./SendTemplateModal', () => ({
+  default: (props: { isOpen: boolean; template: Template | null }) =>
+    props.isOpen ? <div data-testid="send-test" data-version={props.template?.version} /> : null
+}))
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => ({ refreshWorkspaces: auth.refreshWorkspaces })
+  useAuth: () => ({ refreshWorkspaces: auth.refreshWorkspaces }),
+  useWorkspacePermissions: () => ({ permissions: auth.permissions })
 }))
 vi.mock('../../services/api/template_blocks', () => ({
   templateBlocksApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() }
@@ -108,6 +154,28 @@ function renderDrawer(ui: ReactElement) {
   )
 }
 
+// A new template opens the start modal first: Blank, unless a test picks something else.
+async function pickBlank() {
+  await userEvent.click(await screen.findByRole('button', { name: 'pick blank' }))
+}
+
+// The bar's save button says what it writes: "Create template" for a new one, "Save vN" otherwise.
+const saveButton = () => screen.getByRole('button', { name: /^(Create template|Save v\d+)$/ })
+
+// Closes the drawer from its back button, discarding the changes when it asks.
+async function closeDrawer() {
+  await userEvent.click(screen.getByRole('button', { name: /^Templates$/ }))
+  const discard = await screen.findByRole('button', { name: 'Discard' }, { timeout: 300 }).catch(() => null)
+  if (discard) await userEvent.click(discard)
+}
+
+// The step the bar's switch shows as selected.
+const selectedStep = () => document.querySelector('.ant-segmented-item-selected')?.textContent
+
+// A step of the bar's switch (the Content card of the Settings step has the same title).
+const stepButton = (step: 'settings' | 'template' | 'translations') =>
+  document.querySelector<HTMLElement>(`[data-step="${step}"]`)!
+
 describe('CreateTemplateDrawer conflict handling', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -137,6 +205,7 @@ describe('CreateTemplateDrawer conflict handling', () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
 
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
 
     // Give any async open work a chance to run before asserting it did not fetch.
     await new Promise((r) => setTimeout(r, 0))
@@ -170,6 +239,7 @@ describe('CreateTemplateDrawer AI assistant context', () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} forceCategory="marketing" />)
 
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
 
     await waitFor(() => {
       expect(screen.getByTestId('email-ai-assistant')).toHaveAttribute(
@@ -185,6 +255,7 @@ describe('CreateTemplateDrawer AI assistant context', () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
 
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
 
     await waitFor(() => {
       expect(screen.getByTestId('email-ai-assistant')).toHaveAttribute('data-category', '')
@@ -195,6 +266,7 @@ describe('CreateTemplateDrawer AI assistant context', () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
 
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
     await userEvent.click(screen.getAllByRole('combobox')[0])
     await userEvent.click(await screen.findByText('Marketing'))
 
@@ -301,6 +373,7 @@ describe('CreateTemplateDrawer template ID and editor mode', () => {
   async function typeTemplateId(id: string) {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
     await userEvent.type(screen.getByPlaceholderText('i.e: welcome-email'), id)
   }
 
@@ -346,6 +419,7 @@ describe('CreateTemplateDrawer template ID and editor mode', () => {
   it('explains in the editor mode help that the mode is permanent', async () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
 
     const label = screen.getByText('Editor mode').closest('label')
     expect(label).not.toBeNull()
@@ -372,6 +446,7 @@ describe('CreateTemplateDrawer name and ID length', () => {
   it('limits the name to 255 characters and the ID to 32', async () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
 
     expect(nameInput()).toHaveAttribute('maxlength', '255')
     expect(idInput()).toHaveAttribute('maxlength', '32')
@@ -380,9 +455,12 @@ describe('CreateTemplateDrawer name and ID length', () => {
   it('cuts the ID filled in from a long name to 32 characters, without a trailing hyphen', async () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
 
-    // kebab-cased, its first 32 characters end on a hyphen
-    await userEvent.type(nameInput(), 'Welcome email for new customers in France')
+    // kebab-cased, its first 32 characters end on a hyphen. Pasted rather than typed: each key
+    // re-renders the whole drawer, which made this test slow enough to time out on CI.
+    await userEvent.click(nameInput())
+    await userEvent.paste('Welcome email for new customers in France')
 
     expect(idInput().value).toBe('welcome-email-for-new-customers')
   })
@@ -409,8 +487,7 @@ describe('CreateTemplateDrawer name and ID length', () => {
     await userEvent.click(screen.getByRole('button', { name: /Clone Template/i }))
 
     expect(nameInput().value).toHaveLength(257)
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await userEvent.click(saveButton())
 
     expect(
       await screen.findByText('Template name must be at most 255 characters long')
@@ -709,8 +786,7 @@ describe('CreateTemplateDrawer custom text version', () => {
   }
 
   const save = async () => {
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await userEvent.click(saveButton())
     await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
     return (templatesApi.update as Mock).mock.calls[0][0] as { email: { text?: string } }
   }
@@ -757,6 +833,8 @@ describe('CreateTemplateDrawer custom text version', () => {
       text: 'Hi {{ contact.first_name }}\n'
     })
     await openEdit(withText(undefined))
+    // The Settings step compiles its own preview: the seed's request is the last one.
+    ;(templatesApi.compile as Mock).mockClear()
     const seed = await textVersion().custom.onSeed()
 
     const request = (templatesApi.compile as Mock).mock.calls[0][0]
@@ -776,12 +854,14 @@ describe('CreateTemplateDrawer custom text version', () => {
   it('forgets the text of the previous template when creating a new one', async () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
     await waitFor(() => expect(builder.props).toBeDefined())
     act(() => textVersion().custom.onChange('Leftover'))
     await waitFor(() => expect(textVersion().custom.value).toBe('Leftover'))
 
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await closeDrawer()
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
 
     await waitFor(() => expect(textVersion().custom.value).toBeUndefined())
   })
@@ -789,12 +869,14 @@ describe('CreateTemplateDrawer custom text version', () => {
   it('drops a text that arrives for a drawer already closed', async () => {
     renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
     await waitFor(() => expect(builder.props).toBeDefined())
     // The panel keeps the handlers of the render that started a seed.
     const startedWith = textVersion().custom
 
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await closeDrawer()
     await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
     act(() => startedWith.onChange('Seed of the cancelled template'))
 
     await waitFor(() => expect(textVersion().custom.value).toBeUndefined())
@@ -820,9 +902,7 @@ describe('CreateTemplateDrawer custom text version', () => {
     ;(templatesApi.update as Mock).mockResolvedValue({ template: { ...tpl, version: 4 } })
     renderDrawer(<CreateTemplateDrawer workspace={multilingual} template={tpl} />)
     await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await userEvent.click(saveButton())
     await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
 
     const payload = (templatesApi.update as Mock).mock.calls[0][0]
@@ -839,12 +919,10 @@ describe('CreateTemplateDrawer custom text version', () => {
     await userEvent.click(screen.getByRole('button', { name: /Clone Template/i }))
     await waitFor(() => expect(textVersion().custom.value).toBe('Hi'))
     // Opened again after a Cancel, the copy starts from the source again.
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await closeDrawer()
     await userEvent.click(screen.getByRole('button', { name: /Clone Template/i }))
     await waitFor(() => expect(textVersion().custom.value).toBe('Hi'))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await userEvent.click(saveButton())
     await waitFor(() => expect(templatesApi.create).toHaveBeenCalled())
 
     const payload = (templatesApi.create as Mock).mock.calls[0][0]
@@ -868,9 +946,7 @@ describe('CreateTemplateDrawer custom text version', () => {
     await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
     await waitFor(() => expect(templatesApi.get).toHaveBeenCalled())
     await screen.findByText(/Loaded the latest version/)
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await userEvent.click(saveButton())
     await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
 
     expect((templatesApi.update as Mock).mock.calls[0][0].translations.fr.email.text).toBe('Texte plus récent')
@@ -886,23 +962,20 @@ describe('CreateTemplateDrawer custom text version', () => {
     } as unknown as Workspace
     renderDrawer(<CreateTemplateDrawer workspace={multilingual} template={tpl} />)
     await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await userEvent.click(saveButton())
     await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
     expect(await screen.findByText(new RegExp(error.replace(/[{}%]/g, '.')))).toBeInTheDocument()
   }
 
   it('goes back to the email editor when the server refuses its text version', async () => {
     await refuseText('invalid email template: text version: Liquid syntax error')
-    // The email editor's footer: back to the settings, on to the translations.
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).toBeNull())
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument()
+    // The email editor's step opens, where its text version is written.
+    await waitFor(() => expect(selectedStep()).toBe('Content'))
   })
 
   it('stays on the translations when the refused text version is a translation', async () => {
     await refuseText("translation 'fr': invalid email template: text version: Liquid syntax error")
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+    expect(selectedStep()).not.toBe('Content')
   })
 
   it('warns, without blocking, when a marketing text has no unsubscribe link', async () => {
@@ -935,7 +1008,7 @@ describe('CreateTemplateDrawer controlled by the page', () => {
       <CreateTemplateDrawer workspace={workspace} open={false} onClose={vi.fn()} />
     )
     expect(screen.queryByRole('button', { name: /Create Template/i })).not.toBeInTheDocument()
-    expect(screen.queryByText('Create an email template')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('template-bar-name')).not.toBeInTheDocument()
 
     rerender(
       <QueryClientProvider client={new QueryClient()}>
@@ -944,7 +1017,8 @@ describe('CreateTemplateDrawer controlled by the page', () => {
         </AntApp>
       </QueryClientProvider>
     )
-    expect(await screen.findByText('Create an email template')).toBeInTheDocument()
+    await pickBlank()
+    expect(await screen.findByTestId('template-bar-name')).toHaveTextContent('New template')
   })
 
   it('opens an existing template and freshens it like the button does', async () => {
@@ -952,16 +1026,17 @@ describe('CreateTemplateDrawer controlled by the page', () => {
     renderDrawer(
       <CreateTemplateDrawer workspace={workspace} template={makeTemplate(3)} open onClose={vi.fn()} />
     )
-    expect(await screen.findByText('Edit email template')).toBeInTheDocument()
+    expect(await screen.findByTestId('template-bar-name')).toHaveTextContent('Welcomev3')
     await waitFor(() => expect(nameInput().value).toBe('Welcome'))
     expect(templatesApi.get).toHaveBeenCalled()
   })
 
-  it('calls onClose on Cancel, for the page to close it', async () => {
+  it('calls onClose on the back button, for the page to close it', async () => {
     const onClose = vi.fn()
     renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={onClose} />)
-    await screen.findByText('Create an email template')
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await pickBlank()
+    await screen.findByTestId('template-bar-name')
+    await closeDrawer()
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -981,11 +1056,261 @@ describe('CreateTemplateDrawer controlled by the page', () => {
         initialTestData={{ contact: { first_name: 'Ada' } }}
       />
     )
-    await screen.findByText('Create an email template')
+    await screen.findByTestId('template-bar-name')
     expect(nameInput().value).toBe('Spring sale')
     expect(idInput().value).toBe('spring-sale')
     await waitFor(() => expect(builder.props?.tree).toEqual(importedTree))
     expect(builder.props?.testData).toEqual({ contact: { first_name: 'Ada' } })
     expect(templatesApi.create).not.toHaveBeenCalled()
+  })
+})
+
+// The drawer of the Nuit claire mockup: steps in the bar, open at any time; the save button says
+// what it writes; a test sends the saved version; closing asks before losing changes.
+describe('CreateTemplateDrawer bar, steps, test send and close', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+    auth.permissions = { templates: { read: true, write: true }, transactional: { read: true, write: true } }
+  })
+
+  const nameInput = () => screen.getByPlaceholderText('i.e: Welcome Email') as HTMLInputElement
+
+  const openNew = async () => {
+    ;(templatesApi.get as Mock).mockRejectedValue(new ApiError('not found', 404))
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} />)
+    await userEvent.click(screen.getByRole('button', { name: /Create Template/i }))
+    await pickBlank()
+    await screen.findByTestId('template-bar-name')
+  }
+
+  const openSaved = async () => {
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+    ;(templatesApi.update as Mock).mockResolvedValue({ template: makeTemplate(4) })
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} template={makeTemplate(3)} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit Template/i }))
+    await waitFor(() => expect(nameInput().value).toBe('Welcome'))
+  }
+
+  it('opens the Content step of a new template straight away', async () => {
+    await openNew()
+    expect(selectedStep()).toBe('Settings')
+    await userEvent.click(stepButton('template'))
+    expect(selectedStep()).toBe('Content')
+    expect(screen.queryByRole('button', { name: 'Next' })).toBeNull()
+  })
+
+  it('opens the Settings step and marks it when a field there blocks the save', async () => {
+    await openNew()
+    await userEvent.click(stepButton('template'))
+    await userEvent.click(saveButton())
+
+    await waitFor(() => expect(selectedStep()).toContain('Settings'))
+    expect(document.querySelector('[data-step="settings"] [data-step-error]')).not.toBeNull()
+    expect(templatesApi.create).not.toHaveBeenCalled()
+  })
+
+  it('cannot send a test before the template exists', async () => {
+    await openNew()
+    expect(screen.getByRole('button', { name: /Send test/ })).toBeDisabled()
+  })
+
+  it('cannot send a test without the permissions a test send needs', async () => {
+    auth.permissions = { templates: { read: true, write: true }, transactional: { read: true, write: false } }
+    await openSaved()
+    expect(screen.getByRole('button', { name: /Send test/ })).toBeDisabled()
+  })
+
+  it('sends the saved version straight away when nothing changed', async () => {
+    await openSaved()
+    await userEvent.click(screen.getByRole('button', { name: /Send test/ }))
+    expect(await screen.findByTestId('send-test')).toHaveAttribute('data-version', '3')
+  })
+
+  it('with changes waiting, sends the saved version when asked to', async () => {
+    await openSaved()
+    await userEvent.type(nameInput(), ' v2')
+    await userEvent.click(screen.getByRole('button', { name: /Send test/ }))
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Send the saved version' }))
+    expect(await screen.findByTestId('send-test')).toHaveAttribute('data-version', '3')
+    expect(templatesApi.update).not.toHaveBeenCalled()
+  })
+
+  it('with changes waiting, saves them and sends the new version, keeping the drawer open', async () => {
+    await openSaved()
+    await userEvent.type(nameInput(), ' v2')
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Send test/ }))
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Save v4 and send' }))
+    await waitFor(() => expect(templatesApi.update).toHaveBeenCalled())
+    expect(await screen.findByTestId('send-test')).toHaveAttribute('data-version', '4')
+    expect(screen.getByTestId('template-bar-name')).toHaveTextContent('v4')
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+    // The next save is based on the revision just written, so it is not a false conflict.
+    expect(screen.getByRole('button', { name: /Save v5/ })).toBeInTheDocument()
+  })
+
+  it('closes an untouched drawer at once', async () => {
+    const onClose = vi.fn()
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} template={makeTemplate(3)} open onClose={onClose} />)
+    await waitFor(() => expect(nameInput().value).toBe('Welcome'))
+    await userEvent.click(screen.getByRole('button', { name: /^Templates$/ }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks before closing over changes, and keeps editing when told to', async () => {
+    const onClose = vi.fn()
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} template={makeTemplate(3)} open onClose={onClose} />)
+    await waitFor(() => expect(nameInput().value).toBe('Welcome'))
+    await userEvent.type(nameInput(), '!')
+
+    await userEvent.click(screen.getByRole('button', { name: /^Templates$/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Keep editing' }))
+    expect(onClose).not.toHaveBeenCalled()
+    expect(nameInput().value).toBe('Welcome!')
+
+    await userEvent.click(screen.getByRole('button', { name: /^Templates$/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Discard' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+// A new template starts from the gallery, a template of the workspace or Blank; the drawer opens
+// filled with the choice.
+describe('CreateTemplateDrawer started from the gallery', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    builder.props = undefined
+    auth.permissions = { templates: { read: true, write: true }, transactional: { read: true, write: true } }
+    ;(templatesApi.get as Mock).mockRejectedValue(new ApiError('not found', 404))
+  })
+
+  const field = (placeholder: string) => screen.getByPlaceholderText(placeholder) as HTMLInputElement
+
+  it('asks where to start before opening, and creates nothing when cancelled', async () => {
+    const onClose = vi.fn()
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={onClose} />)
+    expect(await screen.findByTestId('start-modal')).toBeInTheDocument()
+    expect(screen.queryByTestId('template-bar-name')).toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'cancel start' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(templatesApi.create).not.toHaveBeenCalled()
+  })
+
+  it('fills the drawer with a gallery model and says where it came from', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick order' }))
+
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+    expect(field('i.e: welcome-email').value).toBe('order-confirmation')
+    expect(screen.getByRole('textbox', { name: 'Subject' })).toHaveValue('Your order #{{ order.number }} is confirmed')
+    expect(screen.getByTestId('starting-point')).toHaveTextContent('Started from “Order confirmation”')
+    expect(screen.getByTestId('starting-point')).toHaveTextContent('Gallery · English')
+    expect(JSON.stringify(builder.props?.tree)).toContain('order.items')
+    expect((builder.props?.testData as { order?: unknown }).order).toBeDefined()
+    // Nothing changed yet: closing does not ask.
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+  })
+
+  it('takes the next free ID when the model was used before', async () => {
+    ;(templatesApi.get as Mock).mockImplementation(({ id }: { id: string }) =>
+      id === 'order-confirmation' ? Promise.resolve({ template: makeTemplate(1) }) : Promise.reject(new ApiError('not found', 404))
+    )
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick order' }))
+    await waitFor(() => expect(field('i.e: welcome-email').value).toBe('order-confirmation-2'))
+  })
+
+  it('keeps the category imposed by where the template is created', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} forceCategory="marketing" />)
+    expect(await screen.findByTestId('start-modal')).toHaveAttribute('data-force-category', 'marketing')
+    await userEvent.click(screen.getByRole('button', { name: 'pick order' }))
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+    await waitFor(() => expect(assistant.props?.category).toBe('marketing'))
+  })
+
+  it('copies a template of the workspace, keeping its editor mode', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick template' }))
+
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Spring news copy'))
+    expect(screen.getByRole('radio', { name: /Code \(MJML\)/ })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: /Visual/ })).toBeDisabled()
+    expect(screen.getByTestId('starting-point')).toHaveTextContent('Your templates')
+  })
+
+  it('asks before Change replaces content that was edited', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick order' }))
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+    await userEvent.type(field('i.e: Welcome Email'), ' (EU)')
+
+    await userEvent.click(within(screen.getByTestId('starting-point')).getByRole('button', { name: 'Change' }))
+    expect(screen.queryByTestId('start-modal')).toBeNull()
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose another' }))
+    expect(await screen.findByTestId('start-modal')).toBeInTheDocument()
+  })
+
+  it('opens an imported file straight away, without the start modal', async () => {
+    const tree = { id: 'imported', type: 'mjml', children: [] } as unknown as EmailBlock
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} initialName="Imported" initialTree={tree} />)
+    expect(await screen.findByTestId('template-bar-name')).toHaveTextContent('Imported')
+    expect(screen.queryByTestId('start-modal')).toBeNull()
+  })
+
+  it('locks a gallery model to the visual editor, its content being visual', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick order' }))
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+    expect(screen.getByRole('radio', { name: /Code \(MJML\)/ })).toBeDisabled()
+  })
+
+  it('leaves Blank free to switch to code', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick blank' }))
+    expect(await screen.findByRole('radio', { name: /Code \(MJML\)/ })).not.toBeDisabled()
+  })
+
+  it('does not carry the sender of an earlier choice over to a model', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick template' }))
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Spring news copy'))
+    expect(screen.getByRole('textbox', { name: 'Reply to' })).toHaveValue('news@acme.io')
+    await userEvent.click(within(screen.getByTestId('starting-point')).getByRole('button', { name: 'Change' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'pick order' }))
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+
+    ;(templatesApi.create as Mock).mockResolvedValue({ template: makeTemplate(1) })
+    await userEvent.click(saveButton())
+    await waitFor(() => expect(templatesApi.create).toHaveBeenCalled())
+    const payload = (templatesApi.create as Mock).mock.calls[0][0]
+    expect(payload.email.sender_id).toBeUndefined()
+    expect(payload.email.reply_to).toBeUndefined()
+    expect(payload.email.editor_mode).toBe('visual')
+  })
+
+  it('applies one pick when a model is chosen twice in a row', async () => {
+    let release: () => void = () => undefined
+    ;(templatesApi.get as Mock).mockImplementation(
+      () => new Promise((_, reject) => (release = () => reject(new ApiError('not found', 404))))
+    )
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    const pick = await screen.findByRole('button', { name: 'pick order' })
+    await userEvent.click(pick)
+    await userEvent.click(pick)
+    act(() => release())
+    await waitFor(() => expect(field('i.e: Welcome Email').value).toBe('Order confirmation'))
+    expect(templatesApi.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('names the drawer for screen readers', async () => {
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} open onClose={vi.fn()} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'pick blank' }))
+    expect(await screen.findByRole('dialog', { name: 'Create an email template' })).toBeInTheDocument()
   })
 })

@@ -17,6 +17,15 @@ export interface FullDrawerProps {
   barTitle?: ReactNode
   /** Right side of the bar, before copy and close. */
   topActions?: ReactNode
+  /** The dialog's accessible name; without it, a screen reader announces an unnamed dialog. */
+  ariaLabel?: string
+  /** The middle of the bar, centred on the drawer: the steps of an editor. */
+  barCenter?: ReactNode
+  /**
+   * Escape closes the drawer (default). `false` for an editor whose fields use Escape themselves,
+   * where closing by accident would lose work.
+   */
+  keyboard?: boolean
   /**
    * A screen that lays out its own columns (a canvas): the content fills the height under the bar,
    * without the page padding.
@@ -42,6 +51,9 @@ export function FullDrawer({
   copyLink = true,
   barTitle,
   topActions,
+  barCenter,
+  ariaLabel,
+  keyboard = true,
   fill = false,
   push,
   children
@@ -57,6 +69,8 @@ export function FullDrawer({
       placement="right"
       size="100%"
       closable={false}
+      keyboard={keyboard}
+      aria-label={ariaLabel}
       destroyOnHidden
       rootClassName="app-full-drawer"
       push={push}
@@ -68,6 +82,11 @@ export function FullDrawer({
           data-drawer-bar
           className="sticky top-0 z-10 flex h-10 shrink-0 items-center justify-between gap-3 border-b border-line-soft bg-surface pr-3 pl-2"
         >
+          {barCenter ? (
+            <div data-drawer-bar-center className="absolute left-1/2 flex -translate-x-1/2 items-center">
+              {barCenter}
+            </div>
+          ) : null}
           <div className="flex min-w-0 items-center gap-1">
             <Button type="text" size="small" icon={<ArrowLeft size={14} aria-hidden="true" />} onClick={onClose}>
               {backLabel ?? t`Back`}

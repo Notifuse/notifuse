@@ -403,7 +403,7 @@ test('a drop in the translation editor lands in the translation, not in the hidd
   await page.setViewportSize({ width: 1600, height: 1000 })
   const drawer = await openTemplateEditor(page, template)
   await expect(drawer.locator('[data-canvas-root] [data-block-id="S1"]')).toBeVisible()
-  await drawer.getByRole('button', { name: 'Next' }).click()
+  await drawer.locator('[data-drawer-bar-center] .ant-segmented-item').filter({ hasText: /^Translations/ }).click()
   await drawer.getByRole('switch').first().click()
   await drawer.getByRole('button', { name: 'Open email editor' }).click()
   const translation = page.getByRole('dialog', { name: /translation/ })

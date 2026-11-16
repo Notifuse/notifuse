@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
+- **Feature**: Emails sent by an automation can use the event that started the journey, as `{{ trigger_event }}`: a custom event's properties (`{{ trigger_event.properties.items }}`), the list or segment the contact joined, or the link clicked. Journeys that started before the upgrade have no event.
+
+- **Feature**: Creating a template starts from a gallery of 15 ready-made emails (verification code, receipt, order confirmation, abandoned cart, newsletter…) written in the workspace's language, from one of your templates, or from a blank email.
+
 - **Feature**: Contacts, lists and segments share one page in the console, with your lists and segments in a side rail; the Lists page now opens it. A contact opens in a sheet with its own link: move through the table with J and K, edit fields in place, and see its key figures, its activity day by day in sentences, each message with its journey (delivered, opened, clicked) and the email sent, and its web visits, each visit with its pages and goals (a very long one says it shows only its first). The contacts table is denser, keeps each row on one line (its first lists and segment, then « +N » naming the others) and counts the contacts it shows at its foot. « Filter » picks a field by group and shows each filter as a pill that says how it matches (« Country contains FR », « Opens tracking consent is Granted »). A selection replaces the toolbar with its actions. A segment view says what defines it, its goals and activity conditions included, with Recompute and Edit segment beside it; the ⋯ menu of every view gathers Bulk update, Displayed columns and Manage custom fields.
 
 - **Feature**: The blog page in the console lists posts with a tab per status, scheduled posts included, and their counts, a title search, and each post's views over 30 days once the web analytics script is in the blog's theme. Categories show their post counts in the side rail, with a menu to edit or delete them.

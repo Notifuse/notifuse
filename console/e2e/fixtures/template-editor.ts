@@ -14,12 +14,11 @@ export const mockApi = async (page: Page, path: string, data: unknown) => {
 }
 
 // Opens the visual editor of a template, the API answering with that template
-// The labels the drawer is found by, in the console's language
+// The label of the drawer's Content step, in the console's language
 export interface EditorLabels {
-  drawer: string
-  templateTab: string
+  contentStep: string
 }
-const ENGLISH: EditorLabels = { drawer: 'Edit email template', templateTab: '2. Template' }
+const ENGLISH: EditorLabels = { contentStep: 'Content' }
 
 export const openTemplateEditor = async (
   page: Page,
@@ -34,8 +33,12 @@ export const openTemplateEditor = async (
   await waitForLoading(page)
   // A click on the row opens the editor of a member who can write templates
   await page.locator('.ant-table-row').first().click()
-  const drawer = page.getByRole('dialog', { name: labels.drawer, exact: true })
+  // The template drawer is full-screen: its dialog holds the 40px bar with the steps.
+  const drawer = page.getByRole('dialog').filter({ has: page.locator('[data-drawer-bar]') })
   await expect(drawer).toBeVisible()
-  await drawer.getByRole('tab', { name: labels.templateTab }).click()
+  await drawer
+    .locator('[data-drawer-bar-center] .ant-segmented-item')
+    .filter({ hasText: new RegExp(`^${labels.contentStep}`) })
+    .click()
   return drawer
 }

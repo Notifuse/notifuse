@@ -1,0 +1,215 @@
+import type { GalleryContent } from './en'
+
+// The gallery's email content in Catalan, translated from en.ts.
+export const ca: GalleryContent = {
+  common: {
+    brand: 'Acme',
+    logoAlt: 'Logotip d’Acme',
+    address: 'Acme · 12 Market Street, San Francisco, CA 94103',
+    signature: 'Gràcies,<br><b>L’equip d’Acme</b>',
+    subscribedTo: 'Reps aquest correu perquè et vas subscriure a {{ list.name }}.',
+    managePreferences: 'Gestiona les preferències',
+    unsubscribe: 'Dona’t de baixa',
+    hasAccount: 'Reps aquest correu perquè tens un compte amb nosaltres.',
+    placedOrder: 'Reps aquest correu perquè has fet una comanda a Acme.',
+    invited: 'Reps aquest correu perquè algú t’ha convidat a Acme.',
+    questions: 'Tens preguntes? Respon a aquest correu.',
+    navShop: 'Botiga',
+    navBlog: 'Blog',
+    navHelp: 'Ajuda',
+    linkFallback: 'El botó no funciona? Copia aquest enllaç al navegador:'
+  },
+  models: {
+    blank: {
+      name: 'Correu nou',
+      subject: 'Un missatge d’Acme',
+      preheader: 'Escriu la línia que la safata d’entrada mostra després de l’assumpte.',
+      greeting: 'Hola, {{ contact.first_name }},',
+      body: 'Escriu el teu missatge aquí. Fes servir els blocs de l’esquerra per afegir imatges, botons i columnes.'
+    },
+    welcome: {
+      name: 'Benvinguda',
+      subject: 'Et donem la benvinguda a Acme, {{ contact.first_name }}',
+      preheader: 'Tres coses per fer durant la primera setmana.',
+      title: 'Ja ets dels nostres, {{ contact.first_name }}',
+      intro: 'Ens alegra tenir-te aquí. Així pots treure el màxim profit d’Acme durant la primera setmana.',
+      step1Title: 'Completa el teu perfil',
+      step1Text: 'Explica’ns què t’interessa.',
+      step2Title: 'Explora les guies',
+      step2Text: 'Lectures breus per començar de pressa.',
+      step3Title: 'Saluda’ns',
+      step3Text: 'Respon a aquest correu: els llegim tots.',
+      button: 'Comença'
+    },
+    verify: {
+      name: 'Codi de verificació',
+      subject: 'El teu codi de verificació: {{ code }}',
+      preheader: 'Caduca d’aquí a {{ expires_in_minutes }} minuts.',
+      title: 'El teu codi de verificació',
+      intro: 'Introdueix aquest codi per acabar d’iniciar la sessió. Caduca d’aquí a {{ expires_in_minutes }} minuts.',
+      ignore: 'Si no has intentat iniciar la sessió, pots ignorar aquest correu. Potser algú ha escrit la teva adreça per error.'
+    },
+    reset: {
+      name: 'Restabliment de la contrasenya',
+      subject: 'Restableix la contrasenya',
+      preheader: 'Aquest enllaç caduca d’aquí a 1 hora.',
+      title: 'Restableix la contrasenya',
+      intro: 'Hola, {{ contact.first_name }}. Hem rebut una sol·licitud per restablir la teva contrasenya. Fes clic al botó de sota per triar-ne una de nova. Aquest enllaç caduca d’aquí a 1 hora.',
+      button: 'Tria una contrasenya nova',
+      ignore: 'Si no ho has demanat tu, ignora aquest correu. La contrasenya no canviarà.'
+    },
+    confirm: {
+      name: 'Confirmació de subscripció',
+      subject: 'Confirma la teva subscripció',
+      preheader: 'Un clic i ja hi ets.',
+      title: 'Confirma la teva subscripció',
+      intro: 'Has demanat rebre {{ list.name }}. Fes clic al botó de sota per confirmar la teva adreça.',
+      button: 'Sí, vull subscriure’m',
+      ignore: 'Si no t’hi has registrat, ignora aquest correu: no s’activarà cap subscripció.'
+    },
+    invite: {
+      name: 'Invitació a l’equip',
+      subject: '{{ inviter_name }} t’ha convidat a unir-te a {{ team_name }}',
+      preheader: 'Accepta la invitació per començar.',
+      title: '{{ inviter_name }} t’ha convidat a unir-te a {{ team_name }}',
+      intro: 'Uneix-te a l’equip per col·laborar en projectes i compartir fitxers. La invitació caduca d’aquí a {{ expires_in_days }} dies.',
+      button: 'Accepta la invitació'
+    },
+    receipt: {
+      name: 'Rebut de pagament',
+      subject: 'El teu rebut d’Acme núm. {{ invoice.number }}',
+      preheader: 'Import pagat: {{ invoice.amount }}.',
+      title: 'Gràcies pel teu pagament',
+      intro: 'Aquí tens el teu rebut. Pots descarregar-ne una còpia en PDF des del teu compte.',
+      invoice: 'Factura',
+      date: 'Data',
+      description: 'Descripció',
+      paymentMethod: 'Mètode de pagament',
+      amountPaid: 'Import pagat',
+      button: 'Descarrega la factura'
+    },
+    order: {
+      name: 'Confirmació de comanda',
+      subject: 'La teva comanda núm. {{ order.number }} està confirmada',
+      preheader: 'Gràcies per la teva comanda. Aquí en tens el resum.',
+      tag: 'Comanda núm. {{ order.number }}',
+      title: 'Gràcies per la teva comanda, {{ contact.first_name }}',
+      intro: 'Ja l’estem preparant. Et tornarem a escriure quan l’enviem.',
+      quantity: 'Quant.',
+      subtotal: 'Subtotal',
+      shipping: 'Enviament',
+      total: 'Total',
+      shippingTo: 'Enviament a',
+      button: 'Consulta la comanda'
+    },
+    shipping: {
+      name: 'Comanda enviada',
+      subject: 'La teva comanda núm. {{ order.number }} és de camí',
+      preheader: 'Lliurament previst: {{ shipment.estimated_delivery }}.',
+      title: 'La teva comanda és de camí',
+      intro: 'La comanda núm. {{ order.number }} ha sortit del nostre magatzem. Lliurament previst: <b>{{ shipment.estimated_delivery }}</b>.',
+      carrier: 'Transportista',
+      trackingNumber: 'Número de seguiment',
+      button: 'Segueix el paquet'
+    },
+    cart: {
+      name: 'Cistella abandonada',
+      subject: 'T’has deixat alguna cosa a la cistella',
+      preheader: 'Hem desat els teus articles. Completa la comanda amb un clic.',
+      title: 'T’has deixat alguna cosa',
+      intro: 'Hola, {{ contact.first_name }}. Hem desat la teva cistella. Completa la comanda abans que s’exhaureixin els articles.',
+      quantity: 'Quant.',
+      button: 'Torna a la cistella',
+      alsoLiked: 'Als clients també els ha encantat',
+      product1: 'Gorra de llana',
+      product2: 'Cartera de pell',
+      shopNow: 'Compra ara'
+    },
+    promo: {
+      name: 'Rebaixes',
+      subject: 'Rebaixes d’hivern: 30 % de descompte en tot',
+      preheader: 'Només tres dies. Fes servir el codi WINTER30.',
+      tag: 'Només tres dies',
+      title: 'Rebaixes d’hivern: 30 % de descompte en tot',
+      intro: 'Han arribat les nostres rebaixes més grans de l’any. Fes-te amb els teus preferits abans de diumenge a mitjanit.',
+      useCode: 'Fes servir aquest codi en pagar',
+      ends: 'Acaba el 30 de novembre.',
+      product1: 'Camisa de lli',
+      product2: 'Bossa de tela',
+      shopNow: 'Compra ara',
+      button: 'Descobreix les rebaixes'
+    },
+    newsletter: {
+      name: 'Butlletí',
+      subject: 'El resum d’Acme',
+      preheader: 'Les nostres novetats, una guia i la història d’un client.',
+      greeting: 'Hola, {{ contact.first_name }}. Això és el que ha passat aquest mes.',
+      featuredTag: 'Novetats del producte',
+      featuredTitle: 'Cinc novetats d’aquest mes',
+      featuredText: 'Cerca més ràpida, una nova app mòbil i tres funcions que ens vas demanar. Això és el que ha canviat i com fer-ho servir.',
+      readArticle: 'Llegeix l’article →',
+      article1Tag: 'Guia',
+      article1Title: 'Com escriure un assumpte que la gent obri',
+      article1Text: 'Sis patrons dels nostres correus més oberts.',
+      article2Tag: 'Història d’un client',
+      article2Title: 'Com una botiga petita va doblar les comandes recurrents',
+      article2Text: 'Una sèrie de benvinguda i un recordatori en el moment just.',
+      readMore: 'Llegeix-ne més →',
+      quote: '«Vam reunir els butlletins i els rebuts en un sol lloc i vam reduir a la meitat els costos d’enviament.»',
+      quoteAuthor: '<b>Maria Lopez</b> · Responsable de creixement, Example Co.'
+    },
+    announce: {
+      name: 'Anunci de producte',
+      subject: 'Et presentem Smart Reports',
+      preheader: 'Les teves xifres de la setmana, redactades per a tu.',
+      tag: 'Nou',
+      title: 'Et presentem Smart Reports',
+      intro: 'Cada dilluns, un informe breu del que ha canviat en les teves xifres i per què, en paraules senzilles.',
+      feature1Title: 'Resums en llenguatge clar',
+      feature1Text: 'Els tres canvis que importen, sense haver de llegir cap tauler.',
+      feature2Title: 'Alertes que s’expliquen soles',
+      feature2Text: 'Quan una xifra es mou, l’informe et diu per què.',
+      feature3Title: 'Comparteix amb un clic',
+      feature3Text: 'Envia l’informe al teu equip com a enllaç o en PDF.',
+      button: 'Prova Smart Reports'
+    },
+    event: {
+      name: 'Invitació a un esdeveniment',
+      subject: 'T’hi convidem: planifica les teves campanyes de fi d’any',
+      preheader: 'Webinar en directe el 4 de desembre. Reserva la teva plaça.',
+      month: 'DES',
+      day: '04',
+      title: 'Planifica les teves campanyes de fi d’any',
+      when: 'Dijous, 17:00 CET · En línia · 45 minuts',
+      intro: 'Hola, {{ contact.first_name }}. Uneix-te al nostre equip en una sessió en directe per treure el màxim profit de la temporada amb més activitat de l’any.',
+      agenda1Time: '17:00',
+      agenda1: 'El que va funcionar l’any passat',
+      agenda2Time: '17:15',
+      agenda2: 'Crea el teu calendari',
+      agenda3Time: '17:35',
+      agenda3: 'Preguntes en directe',
+      button: 'Reserva la meva plaça',
+      recording: 'No hi pots assistir? Inscriu-t’hi igualment i t’enviarem l’enregistrament.'
+    },
+    unsub: {
+      name: 'Confirmació de baixa',
+      subject: 'T’has donat de baixa',
+      preheader: 'Ja no rebràs {{ list.name }}.',
+      title: 'T’has donat de baixa',
+      intro: 'Ja no rebràs {{ list.name }}. La resta de subscripcions no canvien.',
+      button: 'Gestiona les subscripcions',
+      mistake: 'T’has donat de baixa per error? Pots tornar a subscriure’t des de la mateixa pàgina.'
+    },
+    winback: {
+      name: 'Et trobem a faltar',
+      subject: 'Et trobem a faltar, {{ contact.first_name }}',
+      preheader: 'Aquí tens un 20 % de descompte per donar-te la benvinguda de nou.',
+      title: 'Et trobem a faltar, {{ contact.first_name }}',
+      intro: 'Fa temps que no ens veiem. Han canviat moltes coses des de la teva última visita: productes nous, lliuraments més ràpids i devolucions gratuïtes.',
+      tag: 'Ens alegra tornar a veure’t',
+      offer: '20 % de descompte en la teva propera comanda',
+      valid: 'Vàlid durant 14 dies.',
+      button: 'Descobreix les novetats'
+    }
+  }
+}
