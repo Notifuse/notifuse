@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
@@ -66,5 +66,43 @@ describe('BackfillStatus', () => {
     expect(screen.queryByText('cancelled by user')).toBeNull()
     expect(screen.getByRole('button', { name: /Run backfill/ })).toBeInTheDocument()
     expect(document.querySelector('.ant-alert-error')).toBeNull()
+  })
+
+  it('keeps Cancel and Run backfill again disabled for a member who cannot write, and sends nothing', async () => {
+    const renderStatus = () =>
+      render(
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+          <App>
+            <BackfillStatus workspaceId="ws1" filtersVersion="v2" hasRules readOnly />
+          </App>
+        </QueryClientProvider>
+      )
+
+    // A run under way: its progress shows, its Cancel cannot be used.
+    const running = renderStatus()
+    const cancel = await screen.findByRole('button', { name: /Cancel/ })
+    expect(screen.getByText('Backfill in progress')).toBeInTheDocument()
+    expect(cancel).toBeDisabled()
+    fireEvent.mouseEnter(cancel.parentElement as HTMLElement)
+    expect(await screen.findByText("You don't have write permission for web analytics")).toBeInTheDocument()
+    fireEvent.click(cancel)
+    fireEvent.click(cancel.parentElement as HTMLElement)
+    expect(screen.queryByText('Cancel backfill?')).toBeNull()
+    running.unmount()
+
+    // A failed run: offered again, but not to this member.
+    vi.mocked(webAnalyticsService.backfillStatus).mockResolvedValueOnce({
+      task_id: 'task-1',
+      status: 'failed',
+      progress: 40,
+      error_message: 'boom'
+    })
+    renderStatus()
+    const again = await screen.findByRole('button', { name: /Run backfill again/ })
+    expect(again).toBeDisabled()
+    fireEvent.click(again)
+
+    expect(webAnalyticsService.backfillCancel).not.toHaveBeenCalled()
+    expect(webAnalyticsService.backfillStart).not.toHaveBeenCalled()
   })
 })

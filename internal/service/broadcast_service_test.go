@@ -1718,7 +1718,7 @@ func TestBroadcastService_PauseBroadcast_InvalidStatus(t *testing.T) {
 
 	err := d.svc.PauseBroadcast(ctx, req)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "only broadcasts with sending or processed status can be paused")
+	assert.Contains(t, err.Error(), "only broadcasts that are sending can be paused")
 }
 
 func TestBroadcastService_ResumeBroadcast_AuthFailure(t *testing.T) {
@@ -1820,7 +1820,7 @@ func TestBroadcastService_CancelBroadcast_InvalidStatus(t *testing.T) {
 
 	err := d.svc.CancelBroadcast(ctx, req)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "only broadcasts with scheduled, paused, processing, or processed status can be cancelled")
+	assert.Contains(t, err.Error(), "only broadcasts that are scheduled, paused or sending can be cancelled")
 }
 
 // Phase-2 scenarios: pause/resume/cancel work once orchestrator has enqueued

@@ -104,6 +104,17 @@ describe('BroadcastsTable', () => {
     expect(screen.queryByText('Back to draft')).toBeNull()
   })
 
+  it('offers Pause on the row at every step of an A/B test', () => {
+    const onAction = vi.fn()
+    for (const status of ['testing', 'test_completed', 'winner_selected'] as const) {
+      const ab = broadcast({ id: status, status, started_at: '2026-11-15T09:00:00Z' } as Partial<Broadcast>)
+      const { unmount } = renderTable({ rows: [ab], onAction, permissions: { broadcasts: { read: true, write: true } } as never })
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+      expect(onAction).toHaveBeenLastCalledWith('pause', ab)
+      unmount()
+    }
+  })
+
   it('shows « A/B » after the name on the first line, its variants and test in a popover', async () => {
     renderTable({
       rows: [

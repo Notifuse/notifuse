@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { plural } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import { Button } from 'antd'
-import { CircleAlert, CircleCheck, ListChecks } from 'lucide-react'
+import { CircleAlert, CircleCheck, Info, ListChecks } from 'lucide-react'
 import { Panel } from '../layout'
 
 export interface SeoCheck {
@@ -13,6 +13,8 @@ export interface SeoCheck {
   why?: string
   /** The form field that settles it, brought into view by « Add ». */
   field?: string[]
+  /** `info`: a fact worth knowing rather than something to fix; not counted as to check. */
+  tone?: 'info'
 }
 
 export interface SeoChecksProps {
@@ -24,7 +26,7 @@ export interface SeoChecksProps {
 /** A page's checks before it goes out: each one met, or what is missing and what is used instead. */
 export function SeoChecks({ title, checks, onShowField }: SeoChecksProps) {
   const { t } = useLingui()
-  const toCheck = checks.filter((check) => !check.ok).length
+  const toCheck = checks.filter((check) => !check.ok && check.tone !== 'info').length
 
   return (
     <Panel
@@ -42,10 +44,21 @@ export function SeoChecks({ title, checks, onShowField }: SeoChecksProps) {
             key={check.key}
             data-check={check.key}
             data-ok={check.ok}
+            data-tone={check.tone}
             className="flex items-start gap-2 border-t border-line-soft py-1.5 first:border-t-0 first:pt-0 last:pb-0"
           >
-            <span className={`mt-0.5 flex shrink-0 ${check.ok ? 'text-success-fg' : 'text-warning-fg'}`}>
-              {check.ok ? <CircleCheck size={14} aria-hidden="true" /> : <CircleAlert size={14} aria-hidden="true" />}
+            <span
+              className={`mt-0.5 flex shrink-0 ${
+                check.ok ? 'text-success-fg' : check.tone === 'info' ? 'text-info-fg' : 'text-warning-fg'
+              }`}
+            >
+              {check.ok ? (
+                <CircleCheck size={14} aria-hidden="true" />
+              ) : check.tone === 'info' ? (
+                <Info size={14} aria-hidden="true" />
+              ) : (
+                <CircleAlert size={14} aria-hidden="true" />
+              )}
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="text-sm text-ink">{check.label}</span>

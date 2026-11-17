@@ -490,10 +490,11 @@ func TestBroadcastGap_CancelBranchesAndFailures(t *testing.T) {
 	req := &domain.CancelBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
 
 	t.Run("status guards reject without mutation", func(t *testing.T) {
+		// An A/B test can be cancelled in every status it sends in
+		// (broadcast_service_ab_stop_test.go).
 		for _, status := range []domain.BroadcastStatus{
 			domain.BroadcastStatusDraft, domain.BroadcastStatusFailed,
-			domain.BroadcastStatusTesting, domain.BroadcastStatusTestCompleted,
-			domain.BroadcastStatusWinnerSelected,
+			domain.BroadcastStatusCancelled,
 		} {
 			d := setupBroadcastSvc(t)
 			authOK(d.authService, ctx, "w1")
@@ -503,7 +504,7 @@ func TestBroadcastGap_CancelBranchesAndFailures(t *testing.T) {
 			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 			err := d.svc.CancelBroadcast(ctx, req)
 			assert.EqualError(t, err,
-				"only broadcasts with scheduled, paused, processing, or processed status can be cancelled, current status: "+string(status))
+				"only broadcasts that are scheduled, paused or sending can be cancelled, current status: "+string(status))
 			d.ctrl.Finish()
 		}
 	})

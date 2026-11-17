@@ -981,12 +981,12 @@ describe('UI tools', () => {
     })
 
     // An empty list and a threshold that hides nothing are how the two are cleared:
-    // both keys are written, as the absent params the dashboard reads as "no filter"
-    // and "no threshold".
+    // both keys are written. The filter bar as the absent param the dashboard reads as
+    // "no filter"; the threshold as 1, since an absent one reads as the default of 10.
     expect(navigation(applyUiState).search).toEqual({
       dimensions: 'landing_path',
       filters: undefined,
-      minSessions: undefined
+      minSessions: 1
     })
     expect(Object.keys(navigation(applyUiState).search ?? {}).sort()).toEqual([
       'dimensions',
@@ -996,6 +996,38 @@ describe('UI tools', () => {
     expect(result!.content).toBe(
       'explore report opened: drill-down landing_path, filters: none, minimum sessions per row: none'
     )
+  })
+
+  it('writes a threshold equal to the default as the absent param, and one below 1 as 1', async () => {
+    const { run, applyUiState } = createHarness({ currentMinSessions: 25 })
+
+    await run(WEB_TOOL_NAMES.SET_REPORT, { dimensions: ['landing_path'], min_sessions: 10 })
+    expect(navigation(applyUiState).search).toEqual({ dimensions: 'landing_path', minSessions: undefined })
+    expect(Object.keys(navigation(applyUiState).search ?? {})).toContain('minSessions')
+
+    applyUiState.mockClear()
+    await run(WEB_TOOL_NAMES.SET_REPORT, { dimensions: ['landing_path'], min_sessions: 0 })
+    expect(navigation(applyUiState).search).toEqual({ dimensions: 'landing_path', minSessions: 1 })
+  })
+
+  it('leaves the threshold alone when min_sessions is not a number, and says so', async () => {
+    const { run, applyUiState } = createHarness({ currentMinSessions: 25 })
+
+    for (const value of ['many', '', null, { at_least: 5 }]) {
+      applyUiState.mockClear()
+      const result = await run(WEB_TOOL_NAMES.SET_REPORT, { dimensions: ['landing_path'], min_sessions: value })
+      // Not written: the operator's floor of 25 stays, not a floor of 1.
+      expect(Object.keys(navigation(applyUiState).search ?? {})).toEqual(['dimensions'])
+      expect(result!.content).toContain('minimum sessions per row: 25')
+      expect(result!.content).toContain(
+        `(min_sessions ${JSON.stringify(value)} ignored: not a number, the threshold was left unchanged)`
+      )
+    }
+
+    // A number written as text still counts.
+    applyUiState.mockClear()
+    await run(WEB_TOOL_NAMES.SET_REPORT, { dimensions: ['landing_path'], min_sessions: '5' })
+    expect(navigation(applyUiState).search).toEqual({ dimensions: 'landing_path', minSessions: 5 })
   })
 
   it('withholds a contact_email value from the report acknowledgement it carried forward', async () => {

@@ -641,7 +641,7 @@ func TestUpdateBroadcastRequest_Validate_ExcludeUnsubscribedIsFixedOnceSent(t *t
 		})
 	}
 
-	// A broadcast scheduled for later keeps the scheduled status while its task sends.
+	// A broadcast already sending at the upgrade keeps the scheduled status until its next run.
 	t.Run("a scheduled broadcast that started sending refuses a change to either setting", func(t *testing.T) {
 		started := time.Now().Add(-time.Hour)
 		for _, body := range []string{

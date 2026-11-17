@@ -295,14 +295,17 @@ type Broadcast struct {
 	WinnerSentAt              *time.Time            `json:"winner_sent_at,omitempty"`
 	TestPhaseRecipientCount   int                   `json:"test_phase_recipient_count"`
 	WinnerPhaseRecipientCount int                   `json:"winner_phase_recipient_count"`
-	EnqueuedCount             int                   `json:"enqueued_count"` // Emails added to queue
-	CreatedAt                 time.Time             `json:"created_at"`
-	UpdatedAt                 time.Time             `json:"updated_at"`
-	StartedAt                 *time.Time            `json:"started_at,omitempty"`
-	CompletedAt               *time.Time            `json:"completed_at,omitempty"`
-	CancelledAt               *time.Time            `json:"cancelled_at,omitempty"`
-	PausedAt                  *time.Time            `json:"paused_at,omitempty"`
-	PauseReason               *string               `json:"pause_reason,omitempty"`
+	// TestPausedSeconds is the time an A/B test waiting for its winner spent paused: the
+	// automatic winner is picked once the test duration has passed without it.
+	TestPausedSeconds int        `json:"test_paused_seconds,omitempty"`
+	EnqueuedCount     int        `json:"enqueued_count"` // Emails added to queue
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+	StartedAt         *time.Time `json:"started_at,omitempty"`
+	CompletedAt       *time.Time `json:"completed_at,omitempty"`
+	CancelledAt       *time.Time `json:"cancelled_at,omitempty"`
+	PausedAt          *time.Time `json:"paused_at,omitempty"`
+	PauseReason       *string    `json:"pause_reason,omitempty"`
 
 	// Data feed settings (global and recipient feeds)
 	DataFeed *DataFeedSettings `json:"data_feed,omitempty"`
@@ -711,8 +714,8 @@ func CheckVariationSenders(provider *EmailProvider, variations []BroadcastVariat
 
 // HasStartedSending reports whether part of the audience may already have received the
 // broadcast: it is neither a draft nor scheduled, or it has a start date. A broadcast
-// scheduled for later keeps the scheduled status while its task sends, and its first sending
-// run records started_at.
+// scheduled for later leaves the scheduled status at its task's first sending run, which
+// records started_at; one already sending at the upgrade keeps it until its next run.
 func (b *Broadcast) HasStartedSending() bool {
 	if b.StartedAt != nil {
 		return true
@@ -1552,6 +1555,16 @@ type BroadcastRepository interface {
 	// MarkBroadcastStarted writes startedAt as the broadcast's start date if it has none
 	// yet, and touches no other column. A start date already stored is kept.
 	MarkBroadcastStarted(ctx context.Context, workspaceID, broadcastID string, startedAt time.Time) error
+	// StartScheduledBroadcast moves a broadcast that is still scheduled to the status its
+	// sending starts in: testing for an A/B test with no winner yet, processing otherwise. It
+	// decides on the row it writes and touches only the status and updated_at, and reports
+	// whether the broadcast was still scheduled.
+	StartScheduledBroadcast(ctx context.Context, workspaceID, broadcastID string, at time.Time) (bool, error)
+
+	// AddTestPauseTx adds seconds to test_paused_seconds of a broadcast still paused since
+	// pausedAt, inside tx, and reports whether it did: a resume counts the time an A/B test
+	// waiting for its winner spent paused, once.
+	AddTestPauseTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string, pausedAt time.Time, seconds int) (bool, error)
 	DeleteBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) error
 	ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params ListBroadcastsParams) (*BroadcastListResponse, error)
 	// HasSendActivityTx reports whether the broadcast has an email in the queue or in the

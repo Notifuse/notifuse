@@ -648,3 +648,9 @@ func TestInitializeWorkspaceDatabase_MessageHistoryRecentFailureIndexes(t *testi
 		})
 	}
 }
+
+// A fresh workspace creates broadcasts.test_paused_seconds as v44 adds it to existing ones.
+func TestInitializeWorkspaceDatabase_CreatesTheTestPauseColumn(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+	assert.Contains(t, rec.statementContaining(t, "CREATE TABLE IF NOT EXISTS broadcasts"), schema.BroadcastTestPausedSecondsColumn+",")
+}

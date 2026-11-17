@@ -18,8 +18,10 @@ import (
 // V44Migration, on workspaces that already exist, makes a click on a link write its own
 // timeline entry, adds the partial indexes of the dashboard's recent failures, dates the
 // broadcasts that started without a start date, removes the segment memberships of deleted
-// contacts and the instance's own links recorded in clicked_links, and recounts the exited
-// journeys of each automation.
+// contacts and the instance's own links recorded in clicked_links, recounts the exited
+// journeys of each automation, passes the event that started a journey to its emails, marks
+// processed the scheduled A/B broadcasts sent before 44 that stayed scheduled, and adds
+// broadcasts.test_paused_seconds.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -66,7 +68,7 @@ import (
 // After the builds and the purge, stats.exited of each automation is raised to the number of its journeys
 // that exited (v44ExitedRecountSQL). Until 44 a journey ended by a reply exited without being
 // counted there, so the counter fell short of the journeys it describes. The recount comes
-// last because it row-locks automations: a tracking write locks message_history first and
+// after the builds and the purge because it row-locks automations: a tracking write locks message_history first and
 // then, through the timeline trigger, updates automations, so taking automations before the
 // builds' SHARE lock could deadlock with it. This order holds only while no transaction
 // updates automations and then writes message_history: one that did could deadlock with the
@@ -104,7 +106,17 @@ import (
 // rerun takes the lock again and deletes only the memberships orphaned since the previous
 // run, without events either.
 //
-// Last, an automation's emails get the event that started the journey, as {{ trigger_event }}.
+// The system update reads the send_broadcast tasks that completed with no phase in their state
+// (v44FinishedSendsSQL), the mark of a scheduled A/B broadcast sent before 44: the run chose no
+// phase for a scheduled broadcast, sent every variation to the whole audience, completed its task
+// and left the broadcast scheduled. A broadcast has one task (idx_tasks_workspace_broadcast_id).
+// tasks.completed_at is a TIMESTAMP holding UTC, written out with its Z. The rows are kept on the
+// migration for the workspace updates that follow in the same run, replaced at each run. In each
+// workspace, before the start dates are backfilled (so that they are dated too), those still
+// scheduled become processed, completed when their task did (v44RepairSQL); a rerun finds none.
+// A scheduled broadcast whose task is still to run, or that only had test sends, has no such task.
+//
+// After the recount, an automation's emails get the event that started the journey, as {{ trigger_event }}.
 // The five-argument automation_enroll_contact stores it as contact_automations.context.trigger
 // (the column exists since v20 and nothing wrote it), and the four-argument signature becomes a
 // relay to it, for a trigger left with its old body. Then the function of every live
@@ -126,8 +138,44 @@ import (
 // above) keeps enrolling on those rows until the automation is paused and activated again; the
 // other two fixes reach it through the four-argument relay.
 //
-// No column is renamed or dropped, so no automation trigger function needs regenerating.
-type V44Migration struct{}
+// Last, after the trigger bodies, broadcasts gets test_paused_seconds, the time an A/B test
+// waiting for its winner spent paused (schema.BroadcastTestPausedSecondsColumn). With a constant
+// default the column is added without rewriting the table, but it takes an ACCESS EXCLUSIVE lock
+// on broadcasts until the workspace commits, upgrading the row locks the repair and the backfill
+// hold: reads of broadcasts by another instance wait for the commit, so the statement is the last
+// one. It waits for the lock under the same 5-second lock_timeout while this transaction holds the
+// builds' SHARE lock on message_history, contact_segments and automations rows. Pause, cancel,
+// resume and a sending run write email_queue and broadcasts, not message_history, under those,
+// so no cycle forms with them. When a transaction holding a lock on broadcasts waits for a row
+// the repair or the backfill locked, PostgreSQL's deadlock detection aborts one of the two; if it
+// is this one, the migration runs again at the next start.
+//
+// No column is renamed or dropped, so no trigger function needs regenerating for a schema change.
+type V44Migration struct {
+	// finishedSends are the send tasks completed with no phase, by workspace, read by
+	// UpdateSystem for the UpdateWorkspace calls of the same run.
+	finishedSends map[string][]v44FinishedSend
+}
+
+// v44FinishedSend is a broadcast whose send task completed with no phase, and when, as an
+// RFC 3339 UTC timestamp.
+type v44FinishedSend struct {
+	broadcastID string
+	completedAt string
+}
+
+// v44FinishedSendsSQL lists the send tasks that completed with no phase.
+const v44FinishedSendsSQL = `SELECT workspace_id, broadcast_id,
+       to_char(COALESCE(completed_at, updated_at), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+FROM tasks
+WHERE type = 'send_broadcast' AND status = 'completed' AND broadcast_id IS NOT NULL
+  AND COALESCE(state->'send_broadcast'->>'phase', '') = ''`
+
+// v44RepairSQL marks the broadcasts of $1 still scheduled as processed, completed at $2.
+const v44RepairSQL = `UPDATE broadcasts b
+SET status = 'processed', completed_at = COALESCE(b.completed_at, d.done::timestamptz, NOW()), updated_at = NOW()
+FROM unnest($1::text[], $2::text[]) AS d(id, done)
+WHERE b.id = d.id AND b.status = 'scheduled'`
 
 // v44StartedAtBackfillSQL dates each broadcast that sent without a start date from its first
 // message.
@@ -211,13 +259,31 @@ WHERE c.automation_id = a.id
 
 func (m *V44Migration) GetMajorVersion() float64 { return 44.0 }
 
-func (m *V44Migration) HasSystemUpdate() bool { return false }
+func (m *V44Migration) HasSystemUpdate() bool { return true }
 
 func (m *V44Migration) HasWorkspaceUpdate() bool { return true }
 
 func (m *V44Migration) ShouldRestartServer() bool { return false }
 
 func (m *V44Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
+	rows, err := db.QueryContext(ctx, v44FinishedSendsSQL)
+	if err != nil {
+		return fmt.Errorf("v44: failed to read the finished broadcast sends: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	finished := map[string][]v44FinishedSend{}
+	for rows.Next() {
+		var workspaceID string
+		var send v44FinishedSend
+		if err := rows.Scan(&workspaceID, &send.broadcastID, &send.completedAt); err != nil {
+			return fmt.Errorf("v44: failed to read a finished broadcast send: %w", err)
+		}
+		finished[workspaceID] = append(finished[workspaceID], send)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("v44: failed to read the finished broadcast sends: %w", err)
+	}
+	m.finishedSends = finished
 	return nil
 }
 
@@ -230,7 +296,7 @@ type v44WorkspaceStatement struct {
 
 // v44WorkspaceStatements are the workspace update's statements, run in this order. The purge
 // of the own links is left out when there is no own host to remove.
-func v44WorkspaceStatements(ownHosts []string) []v44WorkspaceStatement {
+func v44WorkspaceStatements(ownHosts []string, finished []v44FinishedSend) []v44WorkspaceStatement {
 	purge := []v44WorkspaceStatement{}
 	if len(ownHosts) > 0 {
 		purge = append(purge, v44WorkspaceStatement{v44OwnLinksPurgeSQL, []interface{}{pq.Array(ownHosts)}, "remove the instance's own links from clicked_links"})
@@ -239,11 +305,21 @@ func v44WorkspaceStatements(ownHosts []string) []v44WorkspaceStatement {
 		{schema.TrackMessageHistoryChangesFunction(), nil, "install the link click timeline step"},
 		{`SET LOCAL statement_timeout = 0`, nil, "lift the statement timeout"},
 		{`SET LOCAL lock_timeout = '5s'`, nil, "set the lock timeout"},
+	}
+	if len(finished) > 0 {
+		ids, done := make([]string, len(finished)), make([]string, len(finished))
+		for i, send := range finished {
+			ids[i], done[i] = send.broadcastID, send.completedAt
+		}
+		statements = append(statements, v44WorkspaceStatement{v44RepairSQL, []interface{}{pq.Array(ids), pq.Array(done)},
+			"mark the scheduled broadcasts whose send finished as processed"})
+	}
+	statements = append(statements, []v44WorkspaceStatement{
 		{v44StartedAtBackfillSQL, nil, "date the broadcasts that started without a start date"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_failed_recent ON message_history(created_at DESC, id DESC) WHERE failed_at IS NOT NULL`, nil, "create idx_message_history_failed_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_bounced_recent ON message_history(created_at DESC, id DESC) WHERE bounced_at IS NOT NULL`, nil, "create idx_message_history_bounced_recent"},
 		{`CREATE INDEX IF NOT EXISTS idx_message_history_complained_recent ON message_history(created_at DESC, id DESC) WHERE complained_at IS NOT NULL`, nil, "create idx_message_history_complained_recent"},
-	}
+	}...)
 	statements = append(statements, purge...)
 	statements = append(statements, []v44WorkspaceStatement{
 		{`ALTER TABLE contact_segments DISABLE TRIGGER contact_segment_changes_trigger`, nil, "disable contact_segment_changes_trigger"},
@@ -261,16 +337,20 @@ func v44WorkspaceStatements(ownHosts []string) []v44WorkspaceStatement {
 }
 
 func (m *V44Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, workspace *domain.Workspace, db DBExecutor) error {
-	for _, stmt := range v44WorkspaceStatements(v44OwnHosts(cfg, workspace)) {
+	for _, stmt := range v44WorkspaceStatements(v44OwnHosts(cfg, workspace), m.finishedSends[workspace.ID]) {
 		if _, err := db.ExecContext(ctx, stmt.sql, stmt.args...); err != nil {
 			return fmt.Errorf("v44: failed to %s for workspace %s: %w", stmt.step, workspace.ID, err)
 		}
 	}
-	// Last, once the five-argument enrolment exists: every live automation's trigger
+	// Then, once the five-argument enrolment exists: every live automation's trigger
 	// function is replaced by one that passes the event, bodies only (see the type comment).
 	generator := service.NewAutomationTriggerGenerator(service.NewQueryBuilder())
 	if err := regenerateAutomationTriggers(ctx, db, generator, "v44", "v44_automation_trigger_bodies", true); err != nil {
 		return fmt.Errorf("v44: failed to pass the trigger event in automation triggers for workspace %s: %w", workspace.ID, err)
+	}
+	// Last: its lock on broadcasts is held until the workspace commits (see the type comment).
+	if _, err := db.ExecContext(ctx, `ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS `+schema.BroadcastTestPausedSecondsColumn); err != nil {
+		return fmt.Errorf("v44: failed to add broadcasts.test_paused_seconds for workspace %s: %w", workspace.ID, err)
 	}
 	return nil
 }

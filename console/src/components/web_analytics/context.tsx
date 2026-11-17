@@ -19,6 +19,7 @@ import {
   WebDimensionFilter,
   WebMetricFilter
 } from './lib/types'
+import { DEFAULT_MIN_SESSIONS, minSessionsParam } from './lib/minSessions'
 
 // The tab tuple now lives in ./lib/types, the leaf module every web analytics
 // module already imports: the AI tool definitions need the names as a value, and
@@ -46,7 +47,7 @@ export interface WebAnalyticsSearch {
 
 export const DEFAULT_PERIOD: DatePreset = 'previous_7_days'
 export const DEFAULT_COMPARISON: ComparisonMode = 'previous_period'
-export const DEFAULT_MIN_SESSIONS = 10
+export { DEFAULT_MIN_SESSIONS }
 
 const PERIOD_STORAGE_KEY = 'web_analytics_period'
 const COMPARISON_STORAGE_KEY = 'web_analytics_comparison'
@@ -238,8 +239,8 @@ export function WebAnalyticsProvider(props: { workspaceId: string; children: Rea
     toggleFilter,
     setMetricFilters: (next) =>
       patchSearch({ metricFilters: next.length > 0 ? JSON.stringify(next) : undefined }),
-    setMinSessions: (next) =>
-      patchSearch({ minSessions: next > 1 ? next : undefined }),
+    // Only the default leaves the URL: 1 (no floor) is a choice of its own, not the absence of one.
+    setMinSessions: (next) => patchSearch({ minSessions: minSessionsParam(next) }),
     setDimensions: (next) =>
       patchSearch({ dimensions: next.length > 0 ? next.join(',') : undefined }),
     setTag: (next) => patchSearch({ tag: next })

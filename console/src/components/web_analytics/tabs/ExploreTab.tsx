@@ -5,7 +5,6 @@ import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { BreakdownDrawer } from '../explore/BreakdownDrawer'
 import { buildBreakdownQuery } from '../explore/breakdownQuery'
-import { BreakdownModal } from '../explore/BreakdownModal'
 import { ExploreSummary } from '../explore/ExploreSummary'
 import { ExploreTable } from '../explore/ExploreTable'
 import { ExploreTemplates } from '../explore/ExploreTemplates'
@@ -15,6 +14,7 @@ import {
   ExploreRow,
   ExploreTotals,
   findMaxMeasure,
+  findParentRow,
   insertChildrenIntoTree,
   mergeComparisonData,
   rowCoversDimensions,
@@ -30,6 +30,7 @@ import {
   webAnalyticsClient
 } from '../lib/query'
 import { ResolvedRange, SESSION_METRIC_KEYS, WebDimensionFilter } from '../lib/types'
+import { formatDimensionValue } from '../lib/dimensions'
 
 /** Rows fetched per level. Going deeper is how the report narrows, not paging. */
 const LEVEL_LIMIT = 100
@@ -38,7 +39,9 @@ interface BreakdownState {
   row: ExploreRow
   dimensions: string[]
   parentFilters: WebDimensionFilter[]
-  stage: 'modal' | 'drawer'
+  /** Sessions of the row's parent, or of the period for a top-level row. */
+  shareBase?: number
+  shareLabel: string
 }
 
 /**
@@ -49,7 +52,7 @@ interface BreakdownState {
  * operator actually opens, instead of the full cross-product.
  */
 export function ExploreTab() {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const context = useWebAnalytics()
   const queryClient = useQueryClient()
 
@@ -279,17 +282,28 @@ export function ExploreTab() {
     [dimensions, filters]
   )
 
+  // The eye opens the breakdown straight away, on the first two dimensions still free below the
+  // row: the ones the hover prefetched. Add dimension in the drawer changes them.
   const openBreakdown = useCallback(
     (row: ExploreRow) => {
       const { parentFilters, available } = breakdownContextFor(row)
+      const parent = findParentRow(reportData, row.key)
+      const parentDimension = parent ? dimensions[parent.dimensionIndex] : undefined
       setBreakdown({
         row,
         parentFilters,
         dimensions: available.slice(0, 2),
-        stage: 'modal'
+        shareBase: parent ? parent.sessions : totals?.sessions,
+        shareLabel:
+          parent && parentDimension
+            ? formatDimensionValue(parentDimension, parent[parentDimension], {
+                emptyLabel: t`(empty)`,
+                locale: i18n.locale
+              })
+            : t`all sessions`
       })
     },
-    [breakdownContextFor]
+    [breakdownContextFor, reportData, dimensions, totals, t, i18n.locale]
   )
 
   const prefetchBreakdown = useCallback(
@@ -383,28 +397,15 @@ export function ExploreTab() {
         onBreakdownHover={prefetchBreakdown}
       />
 
-      <BreakdownModal
-        open={breakdown?.stage === 'modal'}
-        initialDimensions={breakdown?.dimensions ?? []}
-        excludeDimensions={
-          breakdown ? dimensions.slice(0, breakdown.row.dimensionIndex + 1) : []
-        }
-        onCancel={() => setBreakdown(null)}
-        onSubmit={(selected) =>
-          setBreakdown((current) =>
-            current ? { ...current, dimensions: selected, stage: 'drawer' } : current
-          )
-        }
-      />
-
-      {breakdown?.stage === 'drawer' ? (
+      {breakdown ? (
         <BreakdownDrawer
-          open
           onClose={() => setBreakdown(null)}
           row={breakdown.row}
           breakdownDimensions={breakdown.dimensions}
           parentFilters={breakdown.parentFilters}
           dimensions={dimensions}
+          shareBase={breakdown.shareBase}
+          shareLabel={breakdown.shareLabel}
         />
       ) : null}
 

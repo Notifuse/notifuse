@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
+	"slices"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -521,6 +523,25 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 	return nil
 }
 
+// pausableBroadcastStatuses are the statuses of a broadcast that is sending: its task queues
+// recipients (processing, and an A/B test's testing and winner_selected), it waits for the
+// winner of its A/B test (test_completed), or the queue still sends what was queued
+// (processed). A pause stops all of it, and a resume goes back to where it was.
+var pausableBroadcastStatuses = []domain.BroadcastStatus{
+	domain.BroadcastStatusProcessing,
+	domain.BroadcastStatusProcessed,
+	domain.BroadcastStatusTesting,
+	domain.BroadcastStatusTestCompleted,
+	domain.BroadcastStatusWinnerSelected,
+}
+
+// cancellableBroadcastStatuses are the statuses a broadcast can be cancelled from: scheduled,
+// paused, or sending.
+var cancellableBroadcastStatuses = append([]domain.BroadcastStatus{
+	domain.BroadcastStatusScheduled,
+	domain.BroadcastStatusPaused,
+}, pausableBroadcastStatuses...)
+
 // PauseBroadcast pauses a sending broadcast
 func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.PauseBroadcastRequest) error {
 	// Authenticate user for workspace
@@ -558,11 +579,10 @@ func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.P
 			return err
 		}
 
-		// Only sending (Phase 1) or processed-with-remaining-drain (Phase 2) broadcasts can be paused.
-		// A/B intermediate states (testing/test_completed/winner_selected) are out of scope.
-		if broadcast.Status != domain.BroadcastStatusProcessing &&
-			broadcast.Status != domain.BroadcastStatusProcessed {
-			err := fmt.Errorf("only broadcasts with sending or processed status can be paused, current status: %s", broadcast.Status)
+		// Only a sending broadcast can be paused: its task queuing recipients (Phase 1), an
+		// A/B test at any step, or the queue draining what was queued (Phase 2, processed).
+		if !slices.Contains(pausableBroadcastStatuses, broadcast.Status) {
+			err := fmt.Errorf("only broadcasts that are sending can be paused, current status: %s", broadcast.Status)
 			s.logger.Error("Cannot pause broadcast with invalid status")
 			return err
 		}
@@ -723,6 +743,15 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 			// Do NOT set start_now — the task is completed and must not be re-run.
 			broadcast.Status = domain.BroadcastStatusProcessed
 			s.logger.Info("Broadcast resumed to processed status (Phase 2)")
+		} else if abStatus, ok := resumedABStatus(broadcast); ok {
+			// An A/B test goes back to the step it was paused at; its task, parked by the
+			// pause, is woken by the resume event.
+			broadcast.Status = abStatus
+			startNow = true
+			if err := s.countTestPause(ctx, tx, broadcast, now); err != nil {
+				return err
+			}
+			s.logger.WithField("status", string(abStatus)).Info("A/B test broadcast resumed")
 		} else if broadcast.Schedule.IsScheduled {
 			// Phase-1 pause: originally scheduled flow.
 			scheduledTime, err := broadcast.Schedule.ParseScheduledDateTime()
@@ -829,6 +858,52 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 	return nil
 }
 
+// resumedABStatus is the status a paused A/B test resumes in, when its sending started: the
+// winner chosen, winner_selected; its test sent and no winner yet, test_completed; its test
+// under way, testing. A winner and a test sent are written only once the sending started,
+// so they are enough whatever the start date; a test under way is told by the start date.
+// ok is false for a broadcast without an A/B test, or one that never started sending, which
+// resume as before.
+func resumedABStatus(broadcast *domain.Broadcast) (status domain.BroadcastStatus, ok bool) {
+	if !broadcast.TestSettings.Enabled {
+		return "", false
+	}
+	switch {
+	case broadcast.WinningTemplate != nil:
+		return domain.BroadcastStatusWinnerSelected, true
+	case broadcast.TestSentAt != nil:
+		return domain.BroadcastStatusTestCompleted, true
+	case broadcast.StartedAt != nil:
+		return domain.BroadcastStatusTesting, true
+	}
+	return "", false
+}
+
+// countTestPause adds the time a test waiting for its winner spent paused to its
+// test_paused_seconds, so the automatic winner is not picked on a sample whose emails the
+// pause held. The test's clock starts at test_sent_at, the end of its sample: a pause before
+// it, or once a winner is chosen, counts nothing. The write holds only while the broadcast is
+// the paused one this resume read (its read takes no lock): a second resume is refused.
+func (s *BroadcastService) countTestPause(ctx context.Context, tx *sql.Tx, broadcast *domain.Broadcast, now time.Time) error {
+	if broadcast.Status != domain.BroadcastStatusTestCompleted || broadcast.TestSentAt == nil || broadcast.PausedAt == nil {
+		return nil
+	}
+	seconds := int(math.Ceil(now.Sub(*broadcast.PausedAt).Seconds()))
+	if seconds <= 0 {
+		return nil
+	}
+	counted, err := s.repo.AddTestPauseTx(ctx, tx, broadcast.WorkspaceID, broadcast.ID, *broadcast.PausedAt, seconds)
+	if err != nil {
+		s.logger.WithField("broadcast_id", broadcast.ID).Error("Failed to count the time the A/B test spent paused")
+		return err
+	}
+	if !counted {
+		return domain.NewValidationError("the broadcast is no longer paused")
+	}
+	broadcast.TestPausedSeconds += seconds
+	return nil
+}
+
 // allRecipientsQueued reports whether the broadcast's task has queued every recipient: its
 // state is past the test phase and its cursor at the end of the list. No task (one that
 // could not be read) answers false, so the caller keeps its check.
@@ -878,16 +953,10 @@ func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.
 			return err
 		}
 
-		// Cancel is allowed from Scheduled, Paused, Processing (mid-enqueue),
-		// or Processed (mid-drain). A/B intermediate states are out of scope.
-		switch broadcast.Status {
-		case domain.BroadcastStatusScheduled,
-			domain.BroadcastStatusPaused,
-			domain.BroadcastStatusProcessing,
-			domain.BroadcastStatusProcessed:
-			// Allowed.
-		default:
-			err := fmt.Errorf("only broadcasts with scheduled, paused, processing, or processed status can be cancelled, current status: %s", broadcast.Status)
+		// Cancel is allowed from scheduled, paused, or any sending status: processing
+		// (mid-enqueue), an A/B test at any step, or processed (mid-drain).
+		if !slices.Contains(cancellableBroadcastStatuses, broadcast.Status) {
+			err := fmt.Errorf("only broadcasts that are scheduled, paused or sending can be cancelled, current status: %s", broadcast.Status)
 			s.logger.Error("Cannot cancel broadcast with invalid status")
 			return err
 		}
@@ -1006,9 +1075,13 @@ func taskShowsSendStarted(task *domain.Task, now time.Time) bool {
 // call deletes. The other commit order could leave a scheduled broadcast with no task, which
 // would never send.
 //
-// A scheduled broadcast keeps its status while its task sends, and its start date can be missing
-// (a failed write, a send under way at the v44 upgrade), so "not started" is read from the start
-// date, the emails queued or sent, and the task together.
+// A scheduled broadcast leaves scheduled when its task's first sending run starts, and its
+// start date can be missing (a failed write), while a send under way at the upgrade keeps
+// scheduled until its next run, so "not started" is read from the start date, the emails
+// queued or sent, and the task together. A broadcast in a sending status, or paused after its
+// start, started sending: it is refused with the error that sends to Cancel. One paused with no
+// start date (a run's last attempt before it started, or a start date that failed to be written)
+// is refused with its own error, which also points to Cancel.
 func (s *BroadcastService) UnscheduleBroadcast(ctx context.Context, request *domain.UnscheduleBroadcastRequest) error {
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
@@ -1053,6 +1126,15 @@ func (s *BroadcastService) UnscheduleBroadcast(ctx context.Context, request *dom
 			case domain.BroadcastStatusDraft:
 				// Already a draft: an earlier call whose task deletion failed. Only its task is
 				// left to delete, below.
+			case domain.BroadcastStatusPaused:
+				// No start date: a run's last attempt can pause a broadcast that never started.
+				if bcast.StartedAt == nil {
+					return domain.NewValidationError("the broadcast is paused: cancel it instead")
+				}
+				return errUnscheduleSendStarted
+			case domain.BroadcastStatusProcessing, domain.BroadcastStatusProcessed,
+				domain.BroadcastStatusTesting, domain.BroadcastStatusTestCompleted, domain.BroadcastStatusWinnerSelected:
+				return errUnscheduleSendStarted
 			default:
 				return domain.NewValidationError(fmt.Sprintf(
 					"only scheduled broadcasts can be sent back to draft, current status: %s", bcast.Status))
@@ -1179,9 +1261,9 @@ func (s *BroadcastService) PauseForCircuitBreaker(ctx context.Context, workspace
 			continue
 		}
 
-		// Only a broadcast that is actually going out can be stopped. Anything else
-		// either has not started or has already been dealt with.
-		if broadcast.Status != domain.BroadcastStatusProcessing && broadcast.Status != domain.BroadcastStatusProcessed {
+		// Only a broadcast that is actually going out can be stopped, an A/B test at any
+		// step included. Anything else either has not started or has already been dealt with.
+		if !slices.Contains(pausableBroadcastStatuses, broadcast.Status) {
 			continue
 		}
 

@@ -61,7 +61,7 @@ func TestBroadcastService_PauseBroadcast_StatusGuard(t *testing.T) {
 
 			err := d.svc.PauseBroadcast(ctx, req)
 			require.EqualError(t, err,
-				"only broadcasts with sending or processed status can be paused, current status: "+string(status))
+				"only broadcasts that are sending can be paused, current status: "+string(status))
 		})
 	}
 
@@ -145,7 +145,7 @@ func TestBroadcastService_CancelBroadcast_StatusGuard(t *testing.T) {
 
 		err := d.svc.CancelBroadcast(ctx, req)
 		require.EqualError(t, err,
-			"only broadcasts with scheduled, paused, processing, or processed status can be cancelled, current status: cancelled")
+			"only broadcasts that are scheduled, paused or sending can be cancelled, current status: cancelled")
 	})
 
 	t.Run("a scheduled broadcast cancels and its queue rows are deleted in-tx", func(t *testing.T) {
