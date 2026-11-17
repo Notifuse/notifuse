@@ -22,7 +22,7 @@ import (
 // Before 44, a scheduled A/B broadcast sent every variation to its whole audience, completed
 // its task with no phase and stayed scheduled. The upgrade, run by the migration manager from
 // 43, marks it processed, completed when its task did and started at its first message. Other
-// scheduled broadcasts are left as they are. The sessions are not in UTC.
+// scheduled broadcasts are left as they are. The workspace database's sessions are not in UTC.
 //
 // Plan: Notifuse/architecture plans/notifuse/fix-scheduled-ab-repair-and-pause-clock-plan.md
 func TestV44RepairsTheScheduledABBroadcastsSentBefore44(t *testing.T) {
@@ -64,7 +64,9 @@ func TestV44RepairsTheScheduledABBroadcastsSentBefore44(t *testing.T) {
 			})
 		require.NoError(t, err)
 		_, err = factory.CreateMessageHistory(workspace.ID, testutil.WithMessageTemplate(template.ID), testutil.WithMessageBroadcast(b.ID),
-			func(m *domain.MessageHistory) { m.CreatedAt, m.SentAt, m.UpdatedAt = firstMessage, firstMessage, firstMessage })
+			func(m *domain.MessageHistory) {
+				m.CreatedAt, m.SentAt, m.UpdatedAt = firstMessage, firstMessage, firstMessage
+			})
 		require.NoError(t, err)
 		return b.ID
 	}

@@ -361,12 +361,12 @@ func TestBroadcastService_ResumeBroadcast_ABTestCountsItsPause(t *testing.T) {
 		edit    func(b *domain.Broadcast)
 		counted bool
 	}{
-		"waiting for its winner: the pause is counted": {func(b *domain.Broadcast) {}, true},
-		"a winner chosen: not counted": {func(b *domain.Broadcast) { b.WinningTemplate = &winner }, false},
+		"waiting for its winner: the pause is counted":  {func(b *domain.Broadcast) {}, true},
+		"a winner chosen: not counted":                  {func(b *domain.Broadcast) { b.WinningTemplate = &winner }, false},
 		"the test under way: its clock has not started": {func(b *domain.Broadcast) { b.TestSentAt = nil }, false},
-		"every recipient queued: not counted":          {func(b *domain.Broadcast) { b.CompletedAt = &completed }, false},
-		"the test turned off: not counted":             {func(b *domain.Broadcast) { b.TestSettings.Enabled = false }, false},
-		"no pause date: nothing to count":              {func(b *domain.Broadcast) { b.PausedAt = nil }, false},
+		"every recipient queued: not counted":           {func(b *domain.Broadcast) { b.CompletedAt = &completed }, false},
+		"the test turned off: not counted":              {func(b *domain.Broadcast) { b.TestSettings.Enabled = false }, false},
+		"no pause date: nothing to count":               {func(b *domain.Broadcast) { b.PausedAt = nil }, false},
 	} {
 		t.Run(name, func(t *testing.T) {
 			d := setupBroadcastSvc(t)
