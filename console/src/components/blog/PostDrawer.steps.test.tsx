@@ -232,6 +232,35 @@ describe('PostDrawer steps', () => {
     expect(link).toHaveAttribute('href', 'https://blog.acme.com/guides/subject-lines')
   })
 
+  // A post created through the API without template_version is at 0: it renders the template's
+  // latest version, and templates.get answers with that version's real number.
+  const latestPost = {
+    ...post,
+    settings: { ...post.settings, template: { template_id: 'tpl1', template_version: 0 } }
+  } as BlogPost
+
+  it('opens the text of a post that follows the latest template version', async () => {
+    const user = userEvent.setup()
+    renderDrawer({ post: latestPost })
+    await user.click(within(bar()).getByText('Write'))
+    expect(await screen.findByTestId('editor')).toBeInTheDocument()
+    expect(screen.queryByText('Loading template...')).toBeNull()
+    expect(templatesApi.get).toHaveBeenCalledWith(expect.objectContaining({ id: 'tpl1', version: 0 }))
+  })
+
+  it('saves a post that follows the latest template version without pinning it', async () => {
+    const user = userEvent.setup()
+    renderDrawer({ post: latestPost })
+    await user.click(within(bar()).getByText('Write'))
+    await user.click(await screen.findByTestId('editor'))
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(blogPostsApi.update).toHaveBeenCalledTimes(1))
+    // The base is the revision the editor loaded, not 0, so a concurrent save is still caught.
+    expect(templatesApi.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'tpl1', base_version: 3 }))
+    expect(vi.mocked(blogPostsApi.update).mock.calls[0][1]).toMatchObject({ template_id: 'tpl1', template_version: 0 })
+  })
+
   it("takes the editor's first output as the text as loaded, and an edit in it as a change", async () => {
     const user = userEvent.setup()
     renderDrawer({ post })

@@ -350,12 +350,15 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       return
     }
 
-    // Only set content when template data matches the current post exactly
+    // Only set content when template data matches the current post exactly. A post at version 0
+    // (what the API stores when template_version is left out) renders the latest version, and
+    // templates.get answers with that version's own number, never 0.
+    const pinnedVersion = post.settings.template.template_version
     if (
       !templateLoading &&
       templateData?.template?.web?.content &&
       templateData.template.id === post.settings.template.template_id &&
-      templateData.template.version === post.settings.template.template_version
+      (pinnedVersion === 0 || templateData.template.version === pinnedVersion)
     ) {
       setBlogContent(templateData.template.web.content as TiptapNode)
       loadedDocRef.current = docKey(templateData.template.web.content)
@@ -487,7 +490,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         slug: values.slug,
         title: values.title,
         template_id: post!.settings.template.template_id,
-        template_version: updatedTemplate.template.version,
+        // A post following the latest version keeps doing so: pinning it here would leave the
+        // template edits made later through the API off the page.
+        template_version:
+          post!.settings.template.template_version === 0 ? 0 : updatedTemplate.template.version,
         excerpt: values.excerpt,
         featured_image_url: values.featured_image_url,
         authors: values.authors.filter((author: BlogAuthor) => author.name.trim() !== ''),
