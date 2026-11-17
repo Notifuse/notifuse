@@ -2821,7 +2821,7 @@
     "/api/broadcasts.pause": {
       "post": {
         "summary": "Pause a broadcast",
-        "description": "Pauses a broadcast that is currently sending.",
+        "description": "Pauses a broadcast that is sending: one that is processing, or that is processed while its emails are still going out. An A/B test broadcast can be paused at every step of its test: while its sample is sent (testing), while it waits for its winner (test_completed) and while the winner is sent (winner_selected). Any other status is refused with 400.\n",
         "operationId": "pauseBroadcast",
         "security": [
           {
@@ -2901,7 +2901,7 @@
     "/api/broadcasts.resume": {
       "post": {
         "summary": "Resume a broadcast",
-        "description": "Resumes a paused broadcast.",
+        "description": "Resumes a paused broadcast where it was. An A/B test broadcast goes back to the step it was paused at: sending its sample (testing), waiting for its winner (test_completed) or sending the winner (winner_selected).\n",
         "operationId": "resumeBroadcast",
         "security": [
           {
@@ -2981,7 +2981,7 @@
     "/api/broadcasts.cancel": {
       "post": {
         "summary": "Cancel a broadcast",
-        "description": "Cancels a scheduled broadcast.",
+        "description": "Cancels a broadcast that is scheduled, paused or sending, A/B test steps included (testing, test_completed and winner_selected). The emails still waiting in the queue are removed; the ones already sent stay sent. Any other status is refused with 400.\n",
         "operationId": "cancelBroadcast",
         "security": [
           {
@@ -3061,7 +3061,7 @@
     "/api/broadcasts.unschedule": {
       "post": {
         "summary": "Send a scheduled broadcast back to draft",
-        "description": "Sends a scheduled broadcast back to draft before it starts sending. It keeps its date, time and timezone, can be edited, and can be scheduled again; it will not be sent at its scheduled time.\n\nOnce the sending has started (emails queued or sent, or its send task under way), the request is refused with 400: cancel the broadcast instead. Pause does not apply to a scheduled broadcast. Not available in demo mode.\n",
+        "description": "Sends a scheduled broadcast back to draft before it starts sending. It keeps its date, time and timezone, can be edited, and can be scheduled again; it will not be sent at its scheduled time.\n\nOnce the sending has started (emails queued or sent, or its send task under way), the request is refused with 400: cancel the broadcast instead. A scheduled broadcast shows as sending once its sending starts, and can then be paused. Not available in demo mode.\n",
         "operationId": "unscheduleBroadcast",
         "security": [
           {

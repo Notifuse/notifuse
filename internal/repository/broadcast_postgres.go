@@ -396,6 +396,50 @@ func (r *broadcastRepository) MarkBroadcastStarted(ctx context.Context, workspac
 	return nil
 }
 
+// StartScheduledBroadcast moves a broadcast still scheduled to the status its sending starts
+// in, chosen on the row it writes: testing for an A/B test with no winner yet, processing
+// otherwise. Chosen on the row, a save committed after the caller read the broadcast is
+// taken into account, and the run that starts the sending never writes its own older copy
+// over it. READ COMMITTED whatever the server's default, as UpdateBroadcastStatusUnless: a
+// write waiting on the row lock re-checks the status once the holder commits, so a cancel or
+// a return to draft committed first leaves the row alone.
+func (r *broadcastRepository) StartScheduledBroadcast(ctx context.Context, workspaceID, broadcastID string, at time.Time) (bool, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return false, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	query := `
+		UPDATE broadcasts SET
+			status = CASE
+				WHEN COALESCE((test_settings->>'enabled')::boolean, false) AND winning_template IS NULL
+				THEN 'testing' ELSE 'processing' END,
+			updated_at = $3
+		WHERE id = $1 AND workspace_id = $2 AND status = 'scheduled'`
+
+	result, err := tx.ExecContext(ctx, query, broadcastID, workspaceID, at)
+	if err != nil {
+		return false, fmt.Errorf("failed to start the scheduled broadcast: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return false, nil
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return true, nil
+}
+
 // UpdateBroadcastStatusUnless writes the status, pause time and pause reason,
 // unless the stored status is one of unless. The condition sits in the UPDATE
 // itself: at READ COMMITTED, a write waiting on the row lock re-checks it once

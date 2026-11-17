@@ -2171,3 +2171,94 @@ func TestBroadcastRepository_HasSendActivityTx(t *testing.T) {
 		require.ErrorContains(t, err, "db down")
 	})
 }
+
+// The status a scheduled broadcast takes when its sending starts is chosen on the row being
+// written, in one statement that only matches a broadcast still scheduled, at READ COMMITTED:
+// a write waiting on the row lock re-checks the status once the holder commits.
+func TestBroadcastRepository_StartScheduledBroadcast(t *testing.T) {
+	workspaceID := "ws123"
+	at := time.Date(2026, 11, 17, 9, 0, 0, 0, time.UTC)
+	setup := func(t *testing.T) (*broadcastRepository, sqlmock.Sqlmock) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil).AnyTimes()
+		return NewBroadcastRepository(mockWorkspaceRepo).(*broadcastRepository), mock
+	}
+	const start = `UPDATE broadcasts SET\s+status = CASE\s+WHEN COALESCE\(\(test_settings->>'enabled'\)::boolean, false\) AND winning_template IS NULL\s+THEN 'testing' ELSE 'processing' END,\s+updated_at = \$3\s+WHERE id = \$1 AND workspace_id = \$2 AND status = 'scheduled'`
+
+	t.Run("moves a scheduled broadcast on and reports the write", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(start).
+			WithArgs("bc123", workspaceID, at).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		started, err := repo.StartScheduledBroadcast(context.Background(), workspaceID, "bc123", at)
+		require.NoError(t, err)
+		assert.True(t, started)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("reports no write when the broadcast is no longer scheduled", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(start).
+			WithArgs("bc123", workspaceID, at).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectRollback()
+
+		started, err := repo.StartScheduledBroadcast(context.Background(), workspaceID, "bc123", at)
+		require.NoError(t, err)
+		assert.False(t, started)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns the write error", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(start).WillReturnError(errors.New("db down"))
+		mock.ExpectRollback()
+
+		_, err := repo.StartScheduledBroadcast(context.Background(), workspaceID, "bc123", at)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to start the scheduled broadcast")
+		assert.Contains(t, err.Error(), "db down")
+	})
+
+	t.Run("returns the error of the transaction start", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin().WillReturnError(errors.New("no begin"))
+
+		_, err := repo.StartScheduledBroadcast(context.Background(), workspaceID, "bc123", at)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no begin")
+	})
+
+	t.Run("returns the commit error", func(t *testing.T) {
+		repo, mock := setup(t)
+		mock.ExpectBegin()
+		mock.ExpectExec(start).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit().WillReturnError(errors.New("no commit"))
+
+		_, err := repo.StartScheduledBroadcast(context.Background(), workspaceID, "bc123", at)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no commit")
+	})
+
+	t.Run("returns the connection error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(nil, errors.New("no connection"))
+		repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+		_, err := repo.StartScheduledBroadcast(context.Background(), workspaceID, "bc123", at)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no connection")
+	})
+}

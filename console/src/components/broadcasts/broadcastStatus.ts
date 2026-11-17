@@ -190,9 +190,16 @@ export function availableActions(
   progress?: ProgressStats
 ): BroadcastActionSet {
   const { status } = broadcast
-  const sendingNow = status === 'processing' || (status === 'processed' && verdict?.kind === 'sending')
-  // A scheduled broadcast keeps its status while it sends: its start date and its progress
-  // (emails queued, sent or failed) tell them apart. Before it, it can also go back to draft. The
+  // An A/B test sends, waits for its winner and sends the winner: each step can be paused.
+  const sendingNow =
+    status === 'processing' ||
+    status === 'testing' ||
+    status === 'test_completed' ||
+    status === 'winner_selected' ||
+    (status === 'processed' && verdict?.kind === 'sending')
+  // A scheduled broadcast leaves its status once it starts sending, but one already sending
+  // before that keeps it until its next run: its start date and its progress (emails queued,
+  // sent or failed) tell them apart. Before it, it can also go back to draft. The
   // server checks further (its task) and may still refuse: Cancel stays offered on every scheduled
   // broadcast, so one is never left with only an action the server refuses (nor in demo, where
   // going back to draft is not allowed).

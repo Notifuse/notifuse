@@ -267,13 +267,18 @@ describe('availableActions', () => {
     expect(on(availableActions({ status: 'scheduled' }, undefined, none))).toEqual(['edit', 'cancel', 'unschedule'])
   })
   it('offers back to draft on no other status', () => {
-    for (const status of ['draft', 'processing', 'paused', 'processed', 'failed', 'cancelled'] as const) {
+    for (const status of ['draft', 'processing', 'testing', 'test_completed', 'winner_selected', 'paused', 'processed', 'failed', 'cancelled'] as const) {
       expect(availableActions({ status }).unschedule).toBe(false)
     }
   })
   it('offers pause and cancel while sending, whether processing or draining', () => {
     expect(on(availableActions({ status: 'processing' }))).toEqual(['pause', 'cancel'])
     expect(on(availableActions({ status: 'processed' }, sending))).toEqual(['pause', 'cancel'])
+  })
+  it('offers pause and cancel at every step of an A/B test', () => {
+    for (const status of ['testing', 'test_completed', 'winner_selected'] as const) {
+      expect(on(availableActions({ status, started_at: '2026-11-15T09:00:00Z' }))).toEqual(['pause', 'cancel'])
+    }
   })
   it('offers resume and cancel when paused', () => {
     expect(on(availableActions({ status: 'paused' }))).toEqual(['resume', 'cancel'])

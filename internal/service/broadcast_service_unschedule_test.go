@@ -180,11 +180,33 @@ func TestBroadcastService_UnscheduleBroadcast(t *testing.T) {
 		assert.Contains(t, validation.Message, "not scheduled")
 	})
 
+	// A broadcast whose sending started (a scheduled one leaves scheduled when its sending
+	// starts) is refused with the error that sends the console to Cancel.
 	for _, status := range []domain.BroadcastStatus{
 		domain.BroadcastStatusPaused,
 		domain.BroadcastStatusProcessing,
 		domain.BroadcastStatusProcessed,
+		domain.BroadcastStatusTesting,
+		domain.BroadcastStatusTestCompleted,
+		domain.BroadcastStatusWinnerSelected,
+	} {
+		t.Run("refuses a broadcast "+string(status)+" as started", func(t *testing.T) {
+			d, ctx, req := unscheduleDeps(t)
+			b := testBroadcast("w1", "b1")
+			b.Status = status
+			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+
+			err := d.svc.UnscheduleBroadcast(ctx, req)
+			var validation domain.ValidationError
+			require.ErrorAs(t, err, &validation)
+			assert.Contains(t, validation.Message, "started sending")
+		})
+	}
+
+	// Cancel refuses these too, so the error does not send the console there.
+	for _, status := range []domain.BroadcastStatus{
 		domain.BroadcastStatusCancelled,
+		domain.BroadcastStatusFailed,
 	} {
 		t.Run("refuses a broadcast "+string(status), func(t *testing.T) {
 			d, ctx, req := unscheduleDeps(t)
@@ -196,6 +218,7 @@ func TestBroadcastService_UnscheduleBroadcast(t *testing.T) {
 			var validation domain.ValidationError
 			require.ErrorAs(t, err, &validation)
 			assert.Contains(t, validation.Message, string(status))
+			assert.NotContains(t, validation.Message, "started sending")
 		})
 	}
 
