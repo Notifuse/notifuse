@@ -116,7 +116,19 @@ import (
 // scheduled become processed, completed when their task did (v44RepairSQL); a rerun finds none.
 // A scheduled broadcast whose task is still to run, or that only had test sends, has no such task.
 //
-// After the recount, an automation's emails get the event that started the journey, as {{ trigger_event }}.
+// After the recount, the five-argument automation_enroll_contact with a VARCHAR p_list_id is
+// dropped (v44LegacyEnrolDropSQL). v20 and v21 created it; v25 meant to replace it with the
+// four-argument signature but CREATE OR REPLACE with other arguments adds an overload, so every
+// workspace created before v25 kept it. No trigger body calls it: pausing or deleting an
+// automation has dropped its trigger since automations exist, v25 rewrote every live one to the
+// four-argument call in one statement that failed the migration on any error, and the bodies
+// are replaced again below, after the drop. Beside the JSONB overload installed
+// next, a call whose fifth argument has no type, such as a bare NULL or a quoted literal, would
+// resolve to it without an error (PostgreSQL prefers the string type for an unknown argument),
+// reading the frequency as a list ID. A rerun, or a workspace created after v25, finds nothing
+// to drop.
+//
+// Then an automation's emails get the event that started the journey, as {{ trigger_event }}.
 // The five-argument automation_enroll_contact stores it as contact_automations.context.trigger
 // (the column exists since v20 and nothing wrote it), and the four-argument signature becomes a
 // relay to it, for a trigger left with its old body. Then the function of every live
@@ -170,6 +182,9 @@ const v44FinishedSendsSQL = `SELECT workspace_id, broadcast_id,
 FROM tasks
 WHERE type = 'send_broadcast' AND status = 'completed' AND broadcast_id IS NOT NULL
   AND COALESCE(state->'send_broadcast'->>'phase', '') = ''`
+
+// v44LegacyEnrolDropSQL drops the enrolment v20 and v21 created with a VARCHAR p_list_id.
+const v44LegacyEnrolDropSQL = `DROP FUNCTION IF EXISTS automation_enroll_contact(VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR)`
 
 // v44RepairSQL marks the broadcasts of $1 still scheduled as processed, completed at $2.
 const v44RepairSQL = `UPDATE broadcasts b
@@ -328,6 +343,7 @@ func v44WorkspaceStatements(ownHosts []string, finished []v44FinishedSend) []v44
 		{`ALTER TABLE contact_segments ENABLE TRIGGER webhook_contact_segments`, nil, "enable webhook_contact_segments"},
 		{`ALTER TABLE contact_segments ENABLE TRIGGER contact_segment_changes_trigger`, nil, "enable contact_segment_changes_trigger"},
 		{v44ExitedRecountSQL, nil, "recount the exited journeys of each automation"},
+		{v44LegacyEnrolDropSQL, nil, "drop the enrol function with p_list_id"},
 		// The enrolment that keeps the event that started a journey, then the four-argument
 		// signature as a relay to it (see the type comment).
 		{schema.AutomationEnrollContactWithTriggerFunction(), nil, "install the automation enrol function"},

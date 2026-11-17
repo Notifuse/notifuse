@@ -51,7 +51,9 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // deleted with the two membership triggers disabled, so no segment.left entry or webhook
 // delivery carries an erased address, and both triggers are enabled again. The exited recount
 // runs after the builds and the delete, so it never holds automations rows while waiting
-// for the message_history or contact_segments lock. No column is renamed or
+// for the message_history or contact_segments lock. The enrolment with a VARCHAR p_list_id,
+// left by v20 and v21 on workspaces created before v25, is dropped before the JSONB overload
+// is installed, so the two never coexist. No column is renamed or
 // dropped, so no trigger function needs regenerating for a schema change. Without any own host, as
 // here, the purge of the own links is not run (see the purge test below).
 var v44ExpectedWorkspaceStatements = []string{
@@ -84,6 +86,7 @@ WHERE c.automation_id = a.id
   AND (a.stats IS NULL OR jsonb_typeof(a.stats) = 'object')
   AND c.n > CASE WHEN a.stats->>'exited' ~ '^[0-9]{1,18}$'
                  THEN (a.stats->>'exited')::bigint ELSE 0 END`,
+	`DROP FUNCTION IF EXISTS automation_enroll_contact(VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR)`,
 	schema.AutomationEnrollContactWithTriggerFunction(),
 	schema.AutomationEnrollContactRelayFunction(),
 }
