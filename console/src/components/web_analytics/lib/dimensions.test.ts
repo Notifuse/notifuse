@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDimensionValue } from './dimensions'
+import { formatDimensionValue, namedCustomDimensions } from './dimensions'
 
 const en = { emptyLabel: '(empty)', locale: 'en' }
 
@@ -43,5 +43,27 @@ describe('formatDimensionValue', () => {
   it('stringifies every other dimension as-is', () => {
     expect(formatDimensionValue('country', 'FR', en)).toBe('FR')
     expect(formatDimensionValue('landing_path', '/pricing', en)).toBe('/pricing')
+  })
+})
+
+describe('namedCustomDimensions', () => {
+  it('lists the named slots in slot order, skipping blank labels and other keys', () => {
+    expect(
+      namedCustomDimensions({
+        custom_10: 'Plan',
+        custom_2: '  ',
+        custom_1: ' Product line ',
+        channel: 'Not a slot',
+        custom_11: 'Out of range'
+      })
+    ).toEqual([
+      { key: 'custom_1', label: 'Product line' },
+      { key: 'custom_10', label: 'Plan' }
+    ])
+  })
+
+  it('is empty without labels', () => {
+    expect(namedCustomDimensions(undefined)).toEqual([])
+    expect(namedCustomDimensions({})).toEqual([])
   })
 })

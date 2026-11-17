@@ -32,6 +32,7 @@ import {
   type ComparisonMode,
   type DatePreset,
 } from "./components/web_analytics/lib/types";
+import { parseMinSessions } from "./components/web_analytics/lib/minSessions";
 import {
   WEB_ANALYTICS_TABS,
   type WebAnalyticsSearch,
@@ -447,7 +448,6 @@ const workspaceWebAnalyticsRoute = createRoute({
     };
     const period = text(search.period);
     const comparison = text(search.comparison);
-    const minSessions = Number(search.minSessions);
 
     return {
       period:
@@ -465,10 +465,8 @@ const workspaceWebAnalyticsRoute = createRoute({
       customEnd: text(search.customEnd),
       filters: text(search.filters),
       metricFilters: text(search.metricFilters),
-      minSessions:
-        Number.isFinite(minSessions) && minSessions > 1
-          ? minSessions
-          : undefined,
+      // 1 is a valid floor (none at all); only an absent param means the default.
+      minSessions: parseMinSessions(search.minSessions),
       dimensions: text(search.dimensions),
       tag: text(search.tag),
     };

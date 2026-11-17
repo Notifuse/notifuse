@@ -5,6 +5,7 @@ import { normalizeTimezone } from '../../lib/timezoneNormalizer'
 import type { WebAnalyticsSearch, WebAnalyticsTab } from './context'
 import { filtersForSchema, mergeWidgetFilters } from './lib/dimensions'
 import { toNumber } from './lib/format'
+import { minSessionsParam } from './lib/minSessions'
 import { buildWebQuery, mergeComparisonRows, type WebQueryOptions } from './lib/query'
 import {
   DATE_PRESETS,
@@ -542,12 +543,22 @@ export function buildWebAnalyticsToolHandlers(deps: WebAnalyticsAiDeps): Map<str
       }
 
       let minSessions = pending.minSessions ?? deps.currentMinSessions
+      // A threshold that is not a number leaves the current one in place, and the
+      // result says so: reading it as 0 would quietly drop the floor to 1.
+      let ignoredMinSessions: string | undefined
       if (args.min_sessions !== undefined) {
-        const requested = Math.floor(toNumber(args.min_sessions))
-        // 1 or less hides nothing, which is how the dashboard itself encodes "no
-        // threshold" (context.tsx:288) - so it is written as an absent param.
-        minSessions = Number.isFinite(requested) && requested > 1 ? requested : undefined
-        search.minSessions = minSessions
+        const raw = args.min_sessions
+        const requested = Math.floor(
+          typeof raw === 'number' ? raw : typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : NaN
+        )
+        if (Number.isFinite(requested)) {
+          // 1 or less hides nothing: "no threshold" is a floor of 1. It has to be
+          // written as 1, since an absent param is the dashboard's default of 10.
+          minSessions = Math.max(1, requested)
+          search.minSessions = minSessionsParam(minSessions)
+        } else {
+          ignoredMinSessions = JSON.stringify(raw) ?? String(raw)
+        }
       }
 
       // The showcase for the single-write rule: a route param plus the search params
@@ -573,7 +584,10 @@ export function buildWebAnalyticsToolHandlers(deps: WebAnalyticsAiDeps): Map<str
         content:
           `explore report opened: drill-down ${dimensions.join(' > ')}` +
           `, filters: ${describeFilters(redactBlockedFilterValues(filters))}` +
-          `, minimum sessions per row: ${minSessions ?? 'none'}`,
+          `, minimum sessions per row: ${minSessions !== undefined && minSessions > 1 ? minSessions : 'none'}` +
+          (ignoredMinSessions !== undefined
+            ? ` (min_sessions ${ignoredMinSessions} ignored: not a number, the threshold was left unchanged)`
+            : ''),
         silent: true
       }
     } catch (error) {

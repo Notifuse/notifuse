@@ -1,11 +1,15 @@
-import { App, Alert, Button, Popconfirm, Progress, Space, Typography } from 'antd'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
+import { App, Alert, Button, Popconfirm, Progress, Space, Tooltip, Typography } from 'antd'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PlayCircleOutlined, StopOutlined, SyncOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { webAnalyticsService } from '../../../services/api/web_analytics'
 import { useNumberFormat } from '../../layout'
+import { describeBackfill } from '../lib/backfill'
 import { formatPercent } from '../lib/format'
 import { colors } from '../../../theme/tokens'
+import { BACKFILL_QUERY_KEY, useBackfillStatus } from './useBackfillStatus'
+import { useWebAnalyticsWriteReason } from './useWebAnalyticsWriteReason'
 
 const { Text } = Typography
 
@@ -15,9 +19,12 @@ export interface BackfillStatusProps {
   filtersVersion?: string
   /** The banner is pointless on a workspace that has no rules to apply. */
   hasRules: boolean
+  /**
+   * Starting and cancelling a run need the web analytics write permission: without it the buttons stay,
+   * disabled and saying why, and the progress still shows.
+   */
+  readOnly?: boolean
 }
-
-export const BACKFILL_QUERY_KEY = 'web-analytics-backfill'
 
 /**
  * Rule edits only affect new traffic; historical sessions and goals are
@@ -29,18 +36,17 @@ export function BackfillStatus(props: BackfillStatusProps) {
   const { int } = useNumberFormat()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
-  const { workspaceId, filtersVersion, hasRules } = props
+  const { workspaceId, filtersVersion, hasRules, readOnly = false } = props
+  const noWrite = useWebAnalyticsWriteReason()
 
-  const { data: status, isLoading } = useQuery({
-    queryKey: [BACKFILL_QUERY_KEY, workspaceId],
-    queryFn: () => webAnalyticsService.backfillStatus(workspaceId),
-    refetchInterval: (query) => {
-      const current = query.state.data?.status
-      // A long backfill parks in "paused" between runtime slices, so it has to
-      // keep polling or the progress bar freezes mid-run.
-      return current === 'pending' || current === 'running' || current === 'paused' ? 2000 : false
-    }
-  })
+  /** A disabled button gets no pointer events: the span carries the reason. */
+  const withoutWrite = (button: ReactNode) => (
+    <Tooltip title={noWrite}>
+      <span>{button}</span>
+    </Tooltip>
+  )
+
+  const { data: status, isLoading } = useBackfillStatus(workspaceId)
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: [BACKFILL_QUERY_KEY, workspaceId] })
@@ -65,10 +71,9 @@ export function BackfillStatus(props: BackfillStatusProps) {
 
   if (isLoading) return null
 
-  const isActive =
-    status?.status === 'pending' || status?.status === 'running' || status?.status === 'paused'
+  const backfill = describeBackfill(status)
 
-  if (isActive) {
+  if (status && backfill.state === 'active') {
     const state = status.state
     const partitionTotal = state?.partitions?.length ?? 0
     return (
@@ -80,21 +85,29 @@ export function BackfillStatus(props: BackfillStatusProps) {
               {status.status === 'pending' ? t`Preparing backfill...` : t`Backfill in progress`}
             </Text>
           </Space>
-          <Popconfirm
-            title={t`Cancel backfill?`}
-            description={t`Partitions already rewritten keep their new values.`}
-            onConfirm={() => cancelMutation.mutate()}
-            okText={t`Yes, cancel`}
-            cancelText={t`No`}
-          >
-            <Button size="small" icon={<StopOutlined />} loading={cancelMutation.isPending}>
-              {t`Cancel`}
-            </Button>
-          </Popconfirm>
+          {readOnly ? (
+            withoutWrite(
+              <Button size="small" icon={<StopOutlined />} disabled>
+                {t`Cancel`}
+              </Button>
+            )
+          ) : (
+            <Popconfirm
+              title={t`Cancel backfill?`}
+              description={t`Partitions already rewritten keep their new values.`}
+              onConfirm={() => cancelMutation.mutate()}
+              okText={t`Yes, cancel`}
+              cancelText={t`No`}
+            >
+              <Button size="small" icon={<StopOutlined />} loading={cancelMutation.isPending}>
+                {t`Cancel`}
+              </Button>
+            </Popconfirm>
+          )}
         </div>
 
         <Progress
-          percent={Math.round(status.progress ?? 0)}
+          percent={backfill.progress ?? 0}
           // antd writes "42%" in English otherwise
           format={(percent) => formatPercent(percent ?? 0, 0)}
           status="active"
@@ -116,9 +129,9 @@ export function BackfillStatus(props: BackfillStatusProps) {
   }
 
   // A cancelled run is recorded as failed, but nothing broke: it is offered again as a plain backfill.
-  const cancelled = status?.status === 'failed' && status.cancelled === true
+  const cancelled = backfill.state === 'cancelled'
 
-  if (status?.status === 'failed' && !cancelled) {
+  if (status && backfill.state === 'failed') {
     return (
       <Alert
         type="error"
@@ -128,14 +141,22 @@ export function BackfillStatus(props: BackfillStatusProps) {
         description={
           <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <Text type="secondary">{status.error_message || t`No error message was recorded.`}</Text>
-            <Button
-              type="primary"
-              icon={<PlayCircleOutlined />}
-              loading={startMutation.isPending}
-              onClick={() => startMutation.mutate()}
-            >
-              {t`Run backfill again`}
-            </Button>
+            {readOnly ? (
+              withoutWrite(
+                <Button type="primary" icon={<PlayCircleOutlined />} disabled>
+                  {t`Run backfill again`}
+                </Button>
+              )
+            ) : (
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                loading={startMutation.isPending}
+                onClick={() => startMutation.mutate()}
+              >
+                {t`Run backfill again`}
+              </Button>
+            )}
           </div>
         }
       />
@@ -144,8 +165,8 @@ export function BackfillStatus(props: BackfillStatusProps) {
 
   // Only a completed run proves which rule set the history was written with.
   const lastCompletedVersion =
-    status?.status === 'completed' ? status.state?.filters_version : undefined
-  const neverRan = !status
+    backfill.state === 'completed' ? status?.state?.filters_version : undefined
+  const neverRan = backfill.state === 'never'
   const needsBackfill = hasRules && (neverRan || lastCompletedVersion !== filtersVersion)
 
   if (!needsBackfill) return null
@@ -164,15 +185,23 @@ export function BackfillStatus(props: BackfillStatusProps) {
                 ? t`The last backfill was cancelled. Run one to apply these rules to all historical sessions and goals.`
                 : t`Historical sessions and goals were written with a different rule set.`}
           </Text>
-          <Button
-            type="primary"
-            size="small"
-            icon={<PlayCircleOutlined />}
-            loading={startMutation.isPending}
-            onClick={() => startMutation.mutate()}
-          >
-            {t`Run backfill`}
-          </Button>
+          {readOnly ? (
+            withoutWrite(
+              <Button type="primary" size="small" icon={<PlayCircleOutlined />} disabled>
+                {t`Run backfill`}
+              </Button>
+            )
+          ) : (
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlayCircleOutlined />}
+              loading={startMutation.isPending}
+              onClick={() => startMutation.mutate()}
+            >
+              {t`Run backfill`}
+            </Button>
+          )}
         </div>
       }
     />

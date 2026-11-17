@@ -5,7 +5,7 @@ import { Panel } from '../../layout'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { GoalCard, GoalMetricKey } from '../goals/GoalCard'
 import { GoalDashboardDrawer } from '../goals/GoalDashboardDrawer'
-import { GOAL_MEASURES, filtersForSchema } from '../goals/queries'
+import { conversionRate, GOAL_MEASURES, filtersForSchema } from '../goals/queries'
 import { changePercent, toNumber } from '../lib/format'
 import { buildWebQuery, mergeComparisonRows, readMeasure, useWebComparisonQuery } from '../lib/query'
 import { DimensionRow, MetricTotals } from '../lib/types'
@@ -31,7 +31,6 @@ export function GoalsTab() {
   const { t } = useLingui()
   const context = useWebAnalytics()
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const goalsBase = {
     schema: 'web_goals' as const,
@@ -75,6 +74,8 @@ export function GoalsTab() {
   const previousGoalRows = goalsResult.previous?.data
   const currentSessionRow = sessionsResult.current?.data?.[0]
   const previousSessionRow = sessionsResult.previous?.data?.[0]
+  const currentSessions = readMeasure(currentSessionRow, 'sessions')
+  const previousSessions = readMeasure(previousSessionRow, 'sessions')
 
   const goals: GoalSummary[] = useMemo(() => {
     const rows = mergeComparisonRows(
@@ -83,9 +84,6 @@ export function GoalsTab() {
       'goal_name',
       GOAL_MEASURES
     )
-    const currentSessions = readMeasure(currentSessionRow, 'sessions')
-    const previousSessions = readMeasure(previousSessionRow, 'sessions')
-
     return (
       rows
         // A goal with no name is not a goal anyone can act on, and it would
@@ -111,7 +109,7 @@ export function GoalsTab() {
           }
         })
     )
-  }, [currentGoalRows, previousGoalRows, currentSessionRow, previousSessionRow])
+  }, [currentGoalRows, previousGoalRows, currentSessions, previousSessions])
 
   const isLoading = goalsResult.isLoading || sessionsResult.isLoading
 
@@ -144,27 +142,21 @@ export function GoalsTab() {
               key={goal.name}
               goalName={goal.name}
               totals={goal.totals}
-              onOpenDashboard={() => {
-                setSelectedGoal(goal.name)
-                setDrawerOpen(true)
-              }}
+              onOpenDashboard={() => setSelectedGoal(goal.name)}
             />
           ))}
         </div>
       )}
 
-      {selectedGoal ? (
-        <GoalDashboardDrawer
-          open={drawerOpen}
-          goalName={selectedGoal}
-          onClose={() => setDrawerOpen(false)}
-          // Dropping the drawer only once it has finished closing keeps its
-          // animation, and stops its dozen widget queries from living on.
-          afterOpenChange={(open) => {
-            if (!open) setSelectedGoal(null)
-          }}
-        />
-      ) : null}
+      {/* Closed, it renders nothing, so its dozen widget queries do not live on. */}
+      <GoalDashboardDrawer
+        goalName={selectedGoal}
+        goals={goals.map((goal) => goal.name)}
+        onNavigate={setSelectedGoal}
+        onClose={() => setSelectedGoal(null)}
+        // The grid already read the period's sessions: the drawer's rate divides by the same.
+        sessionTotals={{ current: currentSessions, previous: previousSessions }}
+      />
     </div>
   )
 }
@@ -173,8 +165,4 @@ function measureTotals(row: DimensionRow, measure: string): MetricTotals {
   const current = toNumber(row[measure])
   const previous = toNumber(row[`prev_${measure}`])
   return { current, previous, changePercent: changePercent(current, previous) }
-}
-
-function conversionRate(conversions: number, sessions: number): number {
-  return sessions > 0 ? (conversions / sessions) * 100 : 0
 }

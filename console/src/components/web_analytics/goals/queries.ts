@@ -27,3 +27,12 @@ export function goalFilters(
     goalNameFilter(goalName)
   ]
 }
+
+/**
+ * A goal's conversion rate, as its card shows it: conversions of the goal over every session of
+ * the period, in percent. It counts goal events, so a goal reached twice in a session counts
+ * twice and the rate can pass 100%.
+ */
+export function conversionRate(conversions: number, sessions: number): number {
+  return sessions > 0 ? (conversions / sessions) * 100 : 0
+}

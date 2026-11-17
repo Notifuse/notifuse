@@ -78,6 +78,16 @@ export const DIMENSION_FILTER_OPERATORS = [
 
 export type DimensionFilterOperator = (typeof DIMENSION_FILTER_OPERATORS)[number]
 
+/**
+ * Dashboard filter operators that carry no value: the chip writes none and the builder asks for none.
+ * Attribution rule conditions spell theirs in snake_case: VALUELESS_RULE_OPERATORS in filterCatalog.ts.
+ */
+export const VALUELESS_DIMENSION_FILTER_OPERATORS: readonly DimensionFilterOperator[] = ['isEmpty', 'isNotEmpty']
+
+export function isValuelessDimensionFilterOperator(operator: string): boolean {
+  return (VALUELESS_DIMENSION_FILTER_OPERATORS as readonly string[]).includes(operator)
+}
+
 /** A filter on a dimension, applied to every widget of the current tab. */
 export interface WebDimensionFilter {
   dimension: string
@@ -135,6 +145,8 @@ export interface MetricConfig {
   /** Lower is better, so a negative change is rendered as an improvement. */
   invertTrend?: boolean
   tooltip?: string
+  /** `false`: a figure only, which the chart cannot plot (a rate of two series). */
+  selectable?: false
 }
 
 export const COMPARISON_COLOR = colors.chart.comparison

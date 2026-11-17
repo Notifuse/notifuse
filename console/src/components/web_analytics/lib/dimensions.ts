@@ -133,6 +133,23 @@ export function dimensionsForSchema(schema: WebSchema): DimensionInfo[] {
   return CATALOG.filter((dimension) => dimension.schemas.includes(schema))
 }
 
+/** A custom slot the workspace has named. */
+export interface NamedCustomDimension {
+  key: string
+  label: string
+}
+
+/** The custom slots the workspace has named, in slot order; an unnamed slot holds nothing to show. */
+export function namedCustomDimensions(labels?: Record<string, string>): NamedCustomDimension[] {
+  const named: NamedCustomDimension[] = []
+  for (let slot = 1; slot <= 10; slot++) {
+    const key = `custom_${slot}`
+    const label = labels?.[key]?.trim()
+    if (label) named.push({ key, label })
+  }
+  return named
+}
+
 /**
  * Display label for a dimension. Custom slots take the workspace's own label
  * when one is configured, so a dashboard reads "Plan" rather than "Custom 3".
