@@ -1297,3 +1297,90 @@ func TestTemplateCompilePreviewLinksFollowTestContact(t *testing.T) {
 	assert.Equal(t, "newsletter", query.Get("lid"))
 	assert.NotContains(t, *body.HTML, "john.doe", "the email itself carries the rebuilt link")
 }
+
+// TestTemplateCompileHeadingStyles compiles, through the API, a tree as the console
+// saves it once a Text block holds a heading: the heading styles in an inline
+// mj-style the editor manages. The compiled heading carries its level's rules and
+// its own style, and the values comment stays out of the email.
+func TestTemplateCompileHeadingStyles(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	token := performCompleteSignInFlow(t, client, "test@example.com")
+	client.SetToken(token)
+	workspaceID := createTestWorkspace(t, client, "Heading Styles Workspace")
+
+	managed := "/* notifuse:headings {\"2\":{\"fontSize\":\"22px\"}} */\n" +
+		"h2 { font-family: Georgia, serif; font-size: 22px; font-weight: bold; line-height: 1.3; color: #222222; margin: 0px 0 8px }"
+	compileReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"message_id":   "preview",
+		"visual_editor_tree": map[string]interface{}{
+			"id": "mjml-1", "type": "mjml", "attributes": map[string]interface{}{},
+			"children": []interface{}{
+				map[string]interface{}{
+					"id": "head-1", "type": "mj-head", "attributes": map[string]interface{}{},
+					"children": []interface{}{
+						map[string]interface{}{
+							"id": "style-1", "type": "mj-style",
+							"attributes": map[string]interface{}{"inline": "inline"},
+							"content":    managed,
+						},
+					},
+				},
+				map[string]interface{}{
+					"id": "body-1", "type": "mj-body", "attributes": map[string]interface{}{},
+					"children": []interface{}{
+						map[string]interface{}{
+							"id": "section-1", "type": "mj-section", "attributes": map[string]interface{}{},
+							"children": []interface{}{
+								map[string]interface{}{
+									"id": "column-1", "type": "mj-column", "attributes": map[string]interface{}{},
+									"children": []interface{}{
+										map[string]interface{}{
+											"id": "text-1", "type": "mj-text", "attributes": map[string]interface{}{},
+											"content": `<h2 style="text-align: center">Title</h2><p>Body text</p>`,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := client.CompileTemplate(compileReq)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body struct {
+		Success bool    `json:"success"`
+		HTML    *string `json:"html"`
+		Text    *string `json:"text"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	require.True(t, body.Success)
+	require.NotNil(t, body.HTML)
+
+	start := strings.Index(*body.HTML, `<h2 style="`)
+	require.GreaterOrEqual(t, start, 0, "the heading is compiled with an inline style")
+	end := strings.Index((*body.HTML)[start:], `">`)
+	style := strings.ReplaceAll((*body.HTML)[start:start+end], " ", "")
+	for _, declaration := range []string{"font-size:22px", "font-family:Georgia,serif", "color:#222222", "text-align:center"} {
+		assert.Contains(t, style, declaration)
+	}
+	assert.NotContains(t, *body.HTML, "notifuse:headings")
+	if assert.NotNil(t, body.Text, "the preview returns the automatic text version") {
+		assert.Contains(t, *body.Text, "Title")
+	}
+}

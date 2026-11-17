@@ -253,7 +253,7 @@ export const FormattingShortcuts = Extension.create({
   }
 })
 
-// The style of paragraphs, lists and quotes, kept as written: alignment, margins
+// The style of paragraphs, headings, lists and quotes, kept as written: alignment, margins
 // and the rest of what an imported or hand-written email puts on them.
 export const BlockStyle = Extension.create({
   name: 'blockStyle',
@@ -309,7 +309,7 @@ export const BlockStyle = Extension.create({
         }
       },
       {
-        types: ['bulletList', 'orderedList', 'listItem', 'blockquote'],
+        types: ['heading', 'bulletList', 'orderedList', 'listItem', 'blockquote'],
         attributes: {
           style: {
             default: null,
@@ -678,10 +678,13 @@ const withoutStyleRules = (extension: AnyExtension): AnyExtension =>
 
 // StarterKit's Markdown shortcuts (bold, italic, strike, code) and Typography's smart
 // punctuation, both kept out of Liquid markup.
-// A <div>, <center> or heading holding only text is loaded as a paragraph, so that
+// A <div> or <center> holding only text is loaded as a paragraph, so that
 // its alignment and box are kept on it (paragraphStyleOfElement).
 const withParagraphLikeElements = (extension: AnyExtension): AnyExtension =>
-  extension.name !== 'paragraph'
+  extension.name === 'listItem'
+    ? // A list item may open with a heading (<li><h3>Step 1</h3>…), as emails write them
+      extension.extend({ content: '(paragraph | heading) block*' })
+    : extension.name !== 'paragraph'
     ? extension
     : extension.extend({
         parseHTML() {
@@ -713,8 +716,9 @@ const TagOnlySuperscript = withoutStyleRules(Superscript)
 // Extensions for the rich text editor (Text blocks)
 export const createRichExtensions = () => [
   LiquidSafeStarterKit.configure({
-    // Headings stay off: a heading is loaded as a paragraph with a heading's look
-    heading: false,
+    heading: { levels: [1, 2, 3, 4, 5, 6] },
+    // No empty paragraph after a heading that ends the text
+    trailingNode: { notAfter: ['paragraph', 'heading'] },
     // The explicit CustomLink and Underline below are the only ones registered;
     // otherwise tiptap warns about duplicate extension names.
     link: false,

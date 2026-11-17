@@ -118,11 +118,35 @@ describe('loading and saving Text block HTML', () => {
     )
   })
 
-  it('loads consecutive headings as separate paragraphs with a heading look', () => {
-    expect(roundTrip('<h2>One</h2><h2 style="color: #ff0000">Two</h2>')).toBe(
-      '<p><span style="font-size: 24px; font-weight: bold; line-height: 1.3">One</span></p>' +
-        '<p><span style="font-size: 24px; font-weight: bold; line-height: 1.3; color: #ff0000">Two</span></p>'
+  it('keeps headings of every level as headings', () => {
+    const html = '<h1>One</h1><h2>Two</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5><h6>Six</h6>'
+    expect(roundTrip(html)).toBe(html)
+  })
+
+  it('keeps a heading’s style on the heading, as written', () => {
+    // Opening a Text block used to turn its headings into paragraphs
+    expect(roundTrip('<h2 style="color:red; text-align:center">Titre</h2><p>Corps</p>')).toBe(
+      '<h2 style="color:red; text-align:center">Titre</h2><p>Corps</p>'
     )
+    expect(roundTrip('<h2 style="font-size: 36px; {% if vip %}color: gold{% endif %}">Title</h2>')).toBe(
+      '<h2 style="font-size: 36px; {% if vip %}color: gold{% endif %}">Title</h2>'
+    )
+  })
+
+  it('keeps styled text inside a heading', () => {
+    expect(roundTrip('<h1><span style="color: red">Title</span> rest</h1>')).toBe(
+      '<h1><span style="color: red">Title</span> rest</h1>'
+    )
+  })
+
+  it('keeps a heading that opens a list item', () => {
+    expect(roundTrip('<ul><li><h3>Step 1</h3><p>Do this</p></li></ul>')).toBe(
+      '<ul><li><h3>Step 1</h3><p>Do this</p></li></ul>'
+    )
+  })
+
+  it('saves a heading-only text without an empty paragraph after it', () => {
+    expect(roundTrip('<h2>Only</h2>')).toBe('<h2>Only</h2>')
   })
 
   it('splits a styled <div> into a paragraph with its box and text with its text style', () => {
@@ -136,15 +160,9 @@ describe('loading and saving Text block HTML', () => {
       '<p style="text-align: center"><span style="color: red">centered</span></p>'
     )
     expect(roundTrip('<center>middle</center>')).toBe('<p style="text-align: center">middle</p>')
-    expect(roundTrip('<h2 style="text-align: right">Title</h2>')).toBe(
-      '<p style="text-align: right"><span style="font-size: 24px; font-weight: bold; line-height: 1.3">Title</span></p>'
-    )
   })
 
   it('combines the styles of nested elements', () => {
-    expect(roundTrip('<h1><span style="color: red">Title</span></h1>')).toBe(
-      '<p><span style="font-size: 32px; font-weight: bold; line-height: 1.2; color: red">Title</span></p>'
-    )
     expect(roundTrip('<div style="color: red"><span style="font-size: 20px">big</span> small</div>')).toBe(
       '<p><span style="color: red; font-size: 20px">big</span><span style="color: red"> small</span></p>'
     )
@@ -440,12 +458,6 @@ describe('fourth review', () => {
     )
     expect(roundTrip('<div style="{% if vip %}color: gold{% endif %}"><p>Hello</p></div>')).toBe(
       '<p><span style="{% if vip %}color: gold{% endif %}">Hello</span></p>'
-    )
-  })
-
-  it('lets a heading’s own size win over the heading look, its Liquid block on the paragraph', () => {
-    expect(roundTrip('<h2 style="font-size: 36px; {% if vip %}color: gold{% endif %}">Title</h2>')).toBe(
-      '<p style="{% if vip %}color: gold{% endif %}"><span style="font-size: 36px; font-weight: bold; line-height: 1.3">Title</span></p>'
     )
   })
 
