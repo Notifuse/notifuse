@@ -645,7 +645,8 @@ func (o *BroadcastOrchestrator) SaveProgressState(
 // resumed with its task, failed or not, where a failed one is never resumed. A
 // processed broadcast has finished sending. The list names the statuses to keep
 // rather than the sending ones: a broadcast scheduled for later keeps
-// "scheduled" while its task sends.
+// "scheduled" until its task's first sending run (startScheduledSend), and one
+// already sending when the upgrade ran keeps it until its next run.
 var statusesKeptOnLastAttempt = []domain.BroadcastStatus{
 	domain.BroadcastStatusCancelled,
 	domain.BroadcastStatusPaused,
@@ -1017,6 +1018,28 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	if refused, done, draftErr := o.refuseDraft(task, broadcast); refused {
 		err = draftErr
 		return done, err
+	}
+
+	// A scheduled broadcast starts sending with this run: it moves to testing (an A/B test)
+	// or processing before a phase is chosen, so an A/B test takes its test phase, as one
+	// sent right away does, and the run goes on with the broadcast read again after that
+	// write (a save committed just before it included).
+	if broadcast.Status == domain.BroadcastStatusScheduled {
+		broadcast, err = o.startScheduledSend(ctx, task, broadcast.ID)
+		if err != nil {
+			return false, err
+		}
+		if refused, done, draftErr := o.refuseDraft(task, broadcast); refused {
+			err = draftErr
+			return done, err
+		}
+		if broadcast.Status == domain.BroadcastStatusCancelled {
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"broadcast_id": broadcast.ID,
+			}).Info("Broadcast was cancelled before its sending started - task completed without sending")
+			return true, nil
+		}
 	}
 
 	// Check if we should perform auto winner evaluation
@@ -1633,6 +1656,45 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	return allDone, err
 }
 
+// startScheduledSend moves a scheduled broadcast to the status its sending starts in
+// (StartScheduledBroadcast: testing for an A/B test with no winner yet, processing
+// otherwise) and returns the broadcast read again after that write. A write that finds the
+// broadcast no longer scheduled writes nothing: the broadcast read again tells the run what
+// it became (back to draft, cancelled). One still scheduled after the write fails the run:
+// sent on, it would have no phase, which sent an A/B test's every variation to the whole
+// audience.
+func (o *BroadcastOrchestrator) startScheduledSend(ctx context.Context, task *domain.Task, broadcastID string) (*domain.Broadcast, error) {
+	started, err := o.broadcastRepo.StartScheduledBroadcast(ctx, task.WorkspaceID, broadcastID, time.Now().UTC())
+	if err != nil {
+		o.logger.WithFields(map[string]interface{}{
+			"task_id":      task.ID,
+			"broadcast_id": broadcastID,
+			"error":        err.Error(),
+		}).Error("Failed to start the scheduled broadcast")
+		if interrupted, ok := wrapIfInterrupted(err); ok {
+			return nil, interrupted
+		}
+		return nil, err
+	}
+	broadcast, err := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastID)
+	if err != nil {
+		if interrupted, ok := wrapIfInterrupted(err); ok {
+			return nil, interrupted
+		}
+		return nil, err
+	}
+	if broadcast.Status == domain.BroadcastStatusScheduled {
+		return nil, fmt.Errorf("broadcast %s is still scheduled after its sending started", broadcastID)
+	}
+	o.logger.WithFields(map[string]interface{}{
+		"task_id":      task.ID,
+		"broadcast_id": broadcastID,
+		"started":      started,
+		"status":       string(broadcast.Status),
+	}).Info("Scheduled broadcast started sending")
+	return broadcast, nil
+}
+
 // refreshProvider reads the workspace again for the next batch. A read that fails, or that
 // finds no marketing provider, keeps the run's copy (logged at Warn): the batch then goes as
 // it would have, and a provider that is really gone fails it there.
@@ -1879,8 +1941,16 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 		if latest.Status != domain.BroadcastStatusTesting && latest.Status != domain.BroadcastStatusProcessing {
 			// Paused or cancelled since this run last refreshed it. The run's copy
 			// is written whole, so writing it now would undo that; the next run's
-			// refresh handles the new status instead.
+			// refresh handles the new status instead. The last sample batch may have
+			// committed after the pause paused, or the cancel removed, the queue rows:
+			// they are settled here under the lock, as at the end of a run (finishRun).
 			left = latest.Status
+			switch latest.Status {
+			case domain.BroadcastStatusPaused:
+				return o.settleQueueEntriesTx(writeCtx, tx, broadcast.ID, o.emailQueuePauseTx, "paused_queue_count")
+			case domain.BroadcastStatusCancelled:
+				return o.settleQueueEntriesTx(writeCtx, tx, broadcast.ID, o.emailQueueDeleteTx, "cancelled_queue_count")
+			}
 			return nil
 		}
 
@@ -1964,8 +2034,9 @@ func (o *BroadcastOrchestrator) shouldEvaluateWinner(broadcast *domain.Broadcast
 		return false
 	}
 
-	// Calculate evaluation time and check if it has passed
-	evaluationTime := broadcast.TestSentAt.Add(time.Duration(broadcast.TestSettings.TestDurationHours) * time.Hour)
+	// The test lasts its duration from test_sent_at, the time it spent paused left out.
+	evaluationTime := broadcast.TestSentAt.Add(time.Duration(broadcast.TestSettings.TestDurationHours)*time.Hour +
+		time.Duration(broadcast.TestPausedSeconds)*time.Second)
 	now := o.timeProvider.Now()
 
 	if now.Before(evaluationTime) {

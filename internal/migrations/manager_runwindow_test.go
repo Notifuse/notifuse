@@ -44,6 +44,12 @@ func managerOneVersionBehind(t *testing.T) (*Manager, sqlmock.Sqlmock, *sql.DB, 
 	return NewManager(logger.NewLoggerWithLevel("disabled")), mock, db, codeVersion
 }
 
+// expectLatestSystemUpdate expects the system update of the latest migration, v44: the read of
+// the finished send tasks, here none.
+func expectLatestSystemUpdate(mock sqlmock.Sqlmock) {
+	mock.ExpectQuery("FROM tasks").WillReturnRows(sqlmock.NewRows([]string{"workspace_id", "broadcast_id", "done"}))
+}
+
 func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 	ctx := context.Background()
 	cfg := &config.Config{}
@@ -52,6 +58,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		manager, mock, db, codeVersion := managerOneVersionBehind(t)
 		sentinel := errors.New("workspaces table gone")
 		mock.ExpectBegin()
+		expectLatestSystemUpdate(mock)
 		mock.ExpectQuery("FROM workspaces").WillReturnError(sentinel)
 		mock.ExpectRollback()
 		mock.ExpectRollback() // the migration lock
@@ -69,6 +76,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		manager.connector = fakeWorkspaceConnector{err: sentinel}
 
 		mock.ExpectBegin()
+		expectLatestSystemUpdate(mock)
 		mock.ExpectQuery("FROM workspaces").WillReturnRows(
 			sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
 				AddRow("ws-1", "Demo", []byte("{}"), []byte("[]"), time.Now(), time.Now()))
@@ -89,6 +97,7 @@ func TestManager_RunMigrations_WindowFailures(t *testing.T) {
 		manager.connector = fakeWorkspaceConnector{db: wsDB}
 
 		mock.ExpectBegin()
+		expectLatestSystemUpdate(mock)
 		mock.ExpectQuery("FROM workspaces").WillReturnRows(
 			sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
 				AddRow("ws-1", "Demo", []byte("{}"), []byte("[]"), time.Now(), time.Now()))

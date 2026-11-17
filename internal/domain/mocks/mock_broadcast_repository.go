@@ -37,6 +37,21 @@ func (m *MockBroadcastRepository) EXPECT() *MockBroadcastRepositoryMockRecorder 
 	return m.recorder
 }
 
+// AddTestPauseTx mocks base method.
+func (m *MockBroadcastRepository) AddTestPauseTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string, arg4 time.Time, arg5 int) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddTestPauseTx", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddTestPauseTx indicates an expected call of AddTestPauseTx.
+func (mr *MockBroadcastRepositoryMockRecorder) AddTestPauseTx(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTestPauseTx", reflect.TypeOf((*MockBroadcastRepository)(nil).AddTestPauseTx), arg0, arg1, arg2, arg3, arg4, arg5)
+}
+
 // CreateBroadcast mocks base method.
 func (m *MockBroadcastRepository) CreateBroadcast(arg0 context.Context, arg1 *domain.Broadcast) error {
 	m.ctrl.T.Helper()
@@ -195,6 +210,21 @@ func (m *MockBroadcastRepository) MarkBroadcastStarted(arg0 context.Context, arg
 func (mr *MockBroadcastRepositoryMockRecorder) MarkBroadcastStarted(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBroadcastStarted", reflect.TypeOf((*MockBroadcastRepository)(nil).MarkBroadcastStarted), arg0, arg1, arg2, arg3)
+}
+
+// StartScheduledBroadcast mocks base method.
+func (m *MockBroadcastRepository) StartScheduledBroadcast(arg0 context.Context, arg1, arg2 string, arg3 time.Time) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartScheduledBroadcast", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StartScheduledBroadcast indicates an expected call of StartScheduledBroadcast.
+func (mr *MockBroadcastRepositoryMockRecorder) StartScheduledBroadcast(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartScheduledBroadcast", reflect.TypeOf((*MockBroadcastRepository)(nil).StartScheduledBroadcast), arg0, arg1, arg2, arg3)
 }
 
 // UpdateBroadcast mocks base method.

@@ -254,6 +254,7 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 			winner_sent_at TIMESTAMP WITH TIME ZONE,
 			test_phase_recipient_count INTEGER DEFAULT 0,
 			winner_phase_recipient_count INTEGER DEFAULT 0,
+			` + schema.BroadcastTestPausedSecondsColumn + `,
 			enqueued_count INTEGER DEFAULT 0,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL,

@@ -72,6 +72,10 @@ Broadcast:
     winner_phase_recipient_count:
       type: integer
       description: Number of recipients in winner phase
+    test_paused_seconds:
+      type: integer
+      description: Seconds an A/B test waiting for its winner spent paused. The automatic winner is picked once the test duration has passed without them. Omitted when 0.
+      example: 3600
     created_at:
       type: string
       format: date-time

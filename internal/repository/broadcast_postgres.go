@@ -36,7 +36,8 @@ const broadcastListColumns = `id,
 			data_feed,
 			tracking_mode,
 			COALESCE(test_phase_recipient_count, 0),
-			COALESCE(winner_phase_recipient_count, 0)`
+			COALESCE(winner_phase_recipient_count, 0),
+			COALESCE(test_paused_seconds, 0)`
 
 // escapeLikePattern escapes the characters that carry special meaning in a SQL
 // LIKE/ILIKE pattern so a user-provided search term is matched literally.
@@ -193,7 +194,8 @@ const getBroadcastQuery = `
 			data_feed,
 			tracking_mode,
 			COALESCE(test_phase_recipient_count, 0),
-			COALESCE(winner_phase_recipient_count, 0)
+			COALESCE(winner_phase_recipient_count, 0),
+			COALESCE(test_paused_seconds, 0)
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -394,6 +396,68 @@ func (r *broadcastRepository) MarkBroadcastStarted(ctx context.Context, workspac
 		return fmt.Errorf("failed to mark broadcast started: %w", err)
 	}
 	return nil
+}
+
+// AddTestPauseTx adds seconds to test_paused_seconds, inside tx, if the broadcast is still
+// paused since pausedAt, and reports whether it did. The increment is made on the row, not
+// from a copy, so a write that read the broadcast earlier does not undo it.
+func (r *broadcastRepository) AddTestPauseTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string, pausedAt time.Time, seconds int) (bool, error) {
+	query := `
+		UPDATE broadcasts SET test_paused_seconds = test_paused_seconds + $3
+		WHERE id = $1 AND workspace_id = $2 AND status = 'paused' AND paused_at = $4`
+	result, err := tx.ExecContext(ctx, query, broadcastID, workspaceID, seconds, pausedAt)
+	if err != nil {
+		return false, fmt.Errorf("failed to count the time the A/B test spent paused: %w", err)
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	return n > 0, nil
+}
+
+// StartScheduledBroadcast moves a broadcast still scheduled to the status its sending starts
+// in, chosen on the row it writes: testing for an A/B test with no winner yet, processing
+// otherwise. Chosen on the row, a save committed after the caller read the broadcast is
+// taken into account, and the run that starts the sending never writes its own older copy
+// over it. READ COMMITTED whatever the server's default, as UpdateBroadcastStatusUnless: a
+// write waiting on the row lock re-checks the status once the holder commits, so a cancel or
+// a return to draft committed first leaves the row alone.
+func (r *broadcastRepository) StartScheduledBroadcast(ctx context.Context, workspaceID, broadcastID string, at time.Time) (bool, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return false, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	query := `
+		UPDATE broadcasts SET
+			status = CASE
+				WHEN COALESCE((test_settings->>'enabled')::boolean, false) AND winning_template IS NULL
+				THEN 'testing' ELSE 'processing' END,
+			updated_at = $3
+		WHERE id = $1 AND workspace_id = $2 AND status = 'scheduled'`
+
+	result, err := tx.ExecContext(ctx, query, broadcastID, workspaceID, at)
+	if err != nil {
+		return false, fmt.Errorf("failed to start the scheduled broadcast: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return false, nil
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return true, nil
 }
 
 // UpdateBroadcastStatusUnless writes the status, pause time and pause reason,
@@ -682,6 +746,7 @@ func scanBroadcast(scanner interface {
 		&trackingMode,
 		&broadcast.TestPhaseRecipientCount,
 		&broadcast.WinnerPhaseRecipientCount,
+		&broadcast.TestPausedSeconds,
 	)
 
 	if err != nil {

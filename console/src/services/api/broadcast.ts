@@ -145,6 +145,8 @@ export interface Broadcast {
   winner_sent_at?: string
   test_phase_recipient_count: number
   winner_phase_recipient_count: number
+  /** Seconds an A/B test waiting for its winner spent paused; left out of its test duration. */
+  test_paused_seconds?: number
   created_at: string
   updated_at: string
   started_at?: string

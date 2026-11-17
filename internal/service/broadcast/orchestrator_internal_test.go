@@ -71,6 +71,15 @@ func TestShouldEvaluateWinner(t *testing.T) {
 	sentAt = fixedNow.Add(-2 * time.Hour)
 	b.TestSentAt = &sentAt
 	assert.True(t, orch.shouldEvaluateWinner(b))
+
+	// Case 5: the time the test spent paused does not count: 2 hours since the test, 90
+	// minutes of them paused, is 30 minutes of a 1-hour test.
+	b.TestPausedSeconds = 90 * 60
+	assert.False(t, orch.shouldEvaluateWinner(b))
+
+	// Case 6: the duration has passed once the pause is left out.
+	b.TestPausedSeconds = 30 * 60
+	assert.True(t, orch.shouldEvaluateWinner(b))
 }
 
 // fakeTimeProvider implements TimeProvider for deterministic tests
@@ -366,6 +375,47 @@ func TestHandleTestPhaseCompletion_LeftTheTestPhaseMeanwhile(t *testing.T) {
 			assert.Equal(t, "test", state.Phase)
 			assert.False(t, state.TestPhaseCompleted)
 			assert.Equal(t, domain.BroadcastStatusProcessing, b.Status, "the run's copy is left as it was")
+		})
+	}
+}
+
+// The last sample batch may commit after a pause paused, or a cancel removed, the queue
+// rows: the rows of a broadcast found paused are paused again and those of a cancelled one
+// removed, under the broadcast's lock, as at the end of a run.
+func TestHandleTestPhaseCompletion_SettlesTheQueueOfABroadcastThatLeftTheTestPhase(t *testing.T) {
+	for _, status := range []domain.BroadcastStatus{domain.BroadcastStatusPaused, domain.BroadcastStatusCancelled} {
+		t.Run(string(status), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			ctx := context.Background()
+			bcRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+			queue := domainmocks.NewMockEmailQueueRepository(ctrl)
+			logger := pkgmocks.NewMockLogger(ctrl)
+			logger.EXPECT().WithFields(gomock.Any()).Return(logger).AnyTimes()
+			logger.EXPECT().Info(gomock.Any()).AnyTimes()
+			logger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+			orch := minimalOrchestrator(ctrl, bcRepo, logger, NewRealTimeProvider(), nil)
+			orch.emailQueueRepo = queue
+
+			b := &domain.Broadcast{ID: "b1", WorkspaceID: "w1", Status: domain.BroadcastStatusTesting, TestSettings: domain.BroadcastTestSettings{Enabled: true}}
+			state := &domain.SendBroadcastState{Phase: "test"}
+
+			bcRepo.EXPECT().WithTransaction(gomock.Any(), b.WorkspaceID, gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ string, fn func(*sql.Tx) error) error { return fn(nil) },
+			)
+			bcRepo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), b.WorkspaceID, b.ID).Return(&domain.Broadcast{ID: b.ID, WorkspaceID: b.WorkspaceID, Status: status}, nil)
+			if status == domain.BroadcastStatusPaused {
+				queue.EXPECT().PauseBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, b.ID).Return(int64(3), nil)
+			} else {
+				queue.EXPECT().DeleteBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, b.ID).Return(int64(3), nil)
+			}
+			bcRepo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+			done := orch.handleTestPhaseCompletion(ctx, b, state)
+			assert.False(t, done)
+			assert.False(t, state.TestPhaseCompleted)
 		})
 	}
 }

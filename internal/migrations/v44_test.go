@@ -20,10 +20,9 @@ import (
 func TestV44Migration_Metadata(t *testing.T) {
 	m := &V44Migration{}
 	assert.Equal(t, 44.0, m.GetMajorVersion())
-	assert.False(t, m.HasSystemUpdate())
+	assert.True(t, m.HasSystemUpdate(), "it reads the finished send tasks")
 	assert.True(t, m.HasWorkspaceUpdate())
 	assert.False(t, m.ShouldRestartServer())
-	assert.NoError(t, m.UpdateSystem(context.Background(), &config.Config{}, nil))
 }
 
 func TestV44Migration_IsRegistered(t *testing.T) {
@@ -51,9 +50,9 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // rerun writes nothing. After the builds, the memberships whose contact no longer exists are
 // deleted with the two membership triggers disabled, so no segment.left entry or webhook
 // delivery carries an erased address, and both triggers are enabled again. The exited recount
-// runs last, after the builds and the delete, so it never holds automations rows while waiting
+// runs after the builds and the delete, so it never holds automations rows while waiting
 // for the message_history or contact_segments lock. No column is renamed or
-// dropped, so no automation trigger function needs regenerating. Without any own host, as
+// dropped, so no trigger function needs regenerating for a schema change. Without any own host, as
 // here, the purge of the own links is not run (see the purge test below).
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
@@ -89,10 +88,18 @@ WHERE c.automation_id = a.id
 	schema.AutomationEnrollContactRelayFunction(),
 }
 
-// expectV44TriggerBodies expects the last step of the workspace update: the live automations
+// expectV44TriggerBodies expects the step before the column is added: the live automations
 // with an installed trigger, whose function bodies are replaced. None here.
 func expectV44TriggerBodies(mock sqlmock.Sqlmock) {
 	mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows())
+}
+
+const v44TestPauseColumnSQL = `ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS test_paused_seconds INTEGER NOT NULL DEFAULT 0`
+
+// The column comes last, after the trigger bodies: its ACCESS EXCLUSIVE lock on broadcasts is
+// held until the workspace commits.
+func expectV44TestPauseColumn(mock sqlmock.Sqlmock) {
+	mock.ExpectExec("^" + regexp.QuoteMeta(v44TestPauseColumnSQL) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 }
 
 func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.T) {
@@ -104,6 +111,7 @@ func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	expectV44TriggerBodies(mock)
+	expectV44TestPauseColumn(mock)
 
 	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -183,6 +191,7 @@ func TestV44Migration_UpdateWorkspacePurgesTheOwnLinksBetweenTheBuildsAndTheMemb
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	expectV44TriggerBodies(mock)
+	expectV44TestPauseColumn(mock)
 
 	endpoint := "https://Mail.Brand.example./"
 	workspace := &domain.Workspace{ID: "ws1", Settings: domain.WorkspaceSettings{CustomEndpointURL: &endpoint}}
@@ -251,7 +260,7 @@ func v44CustomEventTriggerConfig(t *testing.T) []byte {
 	return b
 }
 
-// The last step replaces each live automation's trigger function, and nothing else: no DROP, no
+// The step before the column replaces each live automation's trigger function, and nothing else: no DROP, no
 // CREATE TRIGGER, so contact_timeline is not locked while the update holds message_history.
 func TestV44Migration_ReplacesTriggerBodiesToPassTheEvent(t *testing.T) {
 	rec := &v38StatementRecorder{}
@@ -268,6 +277,7 @@ func TestV44Migration_ReplacesTriggerBodiesToPassTheEvent(t *testing.T) {
 	mock.ExpectExec("^SAVEPOINT v44_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("^CREATE OR REPLACE FUNCTION automation_trigger_cartauto").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("^RELEASE SAVEPOINT v44_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
+	expectV44TestPauseColumn(mock)
 
 	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -286,4 +296,122 @@ func TestV44Migration_InstallsTheEnrolmentBeforeTheBodies(t *testing.T) {
 	n := len(v44ExpectedWorkspaceStatements)
 	assert.Equal(t, schema.AutomationEnrollContactWithTriggerFunction(), v44ExpectedWorkspaceStatements[n-2])
 	assert.Equal(t, schema.AutomationEnrollContactRelayFunction(), v44ExpectedWorkspaceStatements[n-1])
+}
+
+const v44ExpectedFinishedSendsSQL = `SELECT workspace_id, broadcast_id,
+       to_char(COALESCE(completed_at, updated_at), 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+FROM tasks
+WHERE type = 'send_broadcast' AND status = 'completed' AND broadcast_id IS NOT NULL
+  AND COALESCE(state->'send_broadcast'->>'phase', '') = ''`
+
+const v44ExpectedRepairSQL = `UPDATE broadcasts b
+SET status = 'processed', completed_at = COALESCE(b.completed_at, d.done::timestamptz, NOW()), updated_at = NOW()
+FROM unnest($1::text[], $2::text[]) AS d(id, done)
+WHERE b.id = d.id AND b.status = 'scheduled'`
+
+// The system update reads the send tasks that finished with no phase, the mark of a
+// scheduled A/B broadcast sent before 44, and keeps them by workspace for the workspace
+// update. A second read replaces the first.
+func TestV44Migration_UpdateSystemReadsTheFinishedSends(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	m := &V44Migration{finishedSends: map[string][]v44FinishedSend{"stale": {{broadcastID: "old"}}}}
+	mock.ExpectQuery("^" + regexp.QuoteMeta(v44ExpectedFinishedSendsSQL) + "$").WillReturnRows(
+		sqlmock.NewRows([]string{"workspace_id", "broadcast_id", "done"}).
+			AddRow("ws1", "b1", "2026-11-01T10:00:00.000000Z").
+			AddRow("ws1", "b2", "2026-11-02T10:00:00.000000Z").
+			AddRow("ws2", "b3", "2026-11-03T10:00:00.000000Z"))
+
+	require.NoError(t, m.UpdateSystem(context.Background(), &config.Config{}, db))
+	require.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, map[string][]v44FinishedSend{
+		"ws1": {{"b1", "2026-11-01T10:00:00.000000Z"}, {"b2", "2026-11-02T10:00:00.000000Z"}},
+		"ws2": {{"b3", "2026-11-03T10:00:00.000000Z"}},
+	}, m.finishedSends)
+}
+
+func TestV44Migration_UpdateSystemReturnsItsErrors(t *testing.T) {
+	t.Run("the read", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+		mock.ExpectQuery("^" + regexp.QuoteMeta(v44ExpectedFinishedSendsSQL) + "$").WillReturnError(errors.New("boom"))
+		err = (&V44Migration{}).UpdateSystem(context.Background(), &config.Config{}, db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "boom")
+	})
+	t.Run("a row", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+		mock.ExpectQuery("^" + regexp.QuoteMeta(v44ExpectedFinishedSendsSQL) + "$").WillReturnRows(
+			sqlmock.NewRows([]string{"workspace_id", "broadcast_id", "done"}).AddRow("ws1", "b1", "x").RowError(0, errors.New("row boom")))
+		err = (&V44Migration{}).UpdateSystem(context.Background(), &config.Config{}, db)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "row boom")
+	})
+}
+
+// A workspace with finished sends marks its broadcasts still scheduled as processed, before
+// the start dates are backfilled so that they get one too; the other statements follow as
+// without it.
+func TestV44Migration_UpdateWorkspaceRepairsTheFinishedScheduledSends(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	backfill := 3
+	require.True(t, strings.HasPrefix(v44ExpectedWorkspaceStatements[backfill], "UPDATE broadcasts b SET started_at"))
+	for _, stmt := range v44ExpectedWorkspaceStatements[:backfill] {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec("^"+regexp.QuoteMeta(v44ExpectedRepairSQL)+"$").
+		WithArgs(`{"b1","b2"}`, `{"2026-11-01T10:00:00.000000Z","2026-11-02T10:00:00.000000Z"}`).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+	for _, stmt := range v44ExpectedWorkspaceStatements[backfill:] {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	expectV44TriggerBodies(mock)
+	expectV44TestPauseColumn(mock)
+
+	m := &V44Migration{finishedSends: map[string][]v44FinishedSend{
+		"ws1":   {{"b1", "2026-11-01T10:00:00.000000Z"}, {"b2", "2026-11-02T10:00:00.000000Z"}},
+		"other": {{"b3", "2026-11-03T10:00:00.000000Z"}},
+	}}
+	require.NoError(t, m.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestV44Migration_TheRepairErrorNamesItsStep(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	for _, stmt := range v44ExpectedWorkspaceStatements[:3] {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	mock.ExpectExec("^" + regexp.QuoteMeta(v44ExpectedRepairSQL) + "$").WillReturnError(errors.New("boom"))
+
+	m := &V44Migration{finishedSends: map[string][]v44FinishedSend{"ws1": {{"b1", "2026-11-01T10:00:00.000000Z"}}}}
+	err = m.UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "scheduled broadcasts whose send finished")
+	assert.Contains(t, err.Error(), "boom")
+}
+
+func TestV44Migration_TheTestPauseColumnErrorNamesItsStep(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	for _, stmt := range v44ExpectedWorkspaceStatements {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	expectV44TriggerBodies(mock)
+	mock.ExpectExec("^" + regexp.QuoteMeta(v44TestPauseColumnSQL) + "$").WillReturnError(errors.New("boom"))
+
+	err = (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "test_paused_seconds")
+	assert.Contains(t, err.Error(), "ws1")
 }

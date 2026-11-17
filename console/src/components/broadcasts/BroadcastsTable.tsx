@@ -441,7 +441,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     align: 'right',
     render: (_, b) => {
       const verdict = pageStats.verdicts.get(b.id)
-      const sendingNow = b.status === 'processing' || (b.status === 'processed' && verdict?.kind === 'sending')
+      const sendingNow = availableActions(b, verdict, pageStats.progress.get(b.id)).pause
       // A cancelled broadcast that never started has nothing to offer: no "…" opening an empty menu.
       const items = rowMenu(b)
       return (
