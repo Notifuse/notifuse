@@ -137,7 +137,7 @@ type BuildSegmentState struct {
 	// Empty before the first batch, and in a state saved before it was recorded, where the build
 	// resumes once by ContactOffset.
 	LastEmail string `json:"last_email,omitempty"`
-	BatchSize int    `json:"batch_size"` // Process 1000 at a time
+	BatchSize int    `json:"batch_size"` // Contacts per batch
 	StartedAt string `json:"started_at"`
 }
 
