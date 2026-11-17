@@ -18,6 +18,7 @@ import {
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useLingui } from '@lingui/react/macro'
+import { useEditorState } from '@tiptap/react'
 import type {
   TiptapToolbarProps,
   ToolbarButtonProps,
@@ -32,12 +33,14 @@ import {
   getToolbarButtonClasses,
   toolbarSeparatorClasses
 } from '../shared/styles'
-import { applyFormattingWithNodeSelection, applyInlineFormatting } from '../shared/utils'
 import {
   handleTextColorChange as handleTextColorChangeUtil,
   handleBackgroundColorChange as handleBackgroundColorChangeUtil,
   getEffectiveTextColor,
   getEffectiveBackgroundColor,
+  isFormattingActive,
+  pickerColor,
+  toggleFormatting,
   createLinkWithStyleMerging,
   expandSelectionToLinkRange,
   parseLinkHref,
@@ -56,6 +59,8 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
     <Tooltip title={title}>
       <button
         type="button"
+        aria-label={title}
+        aria-pressed={isActive}
         onClick={onClick}
         disabled={disabled}
         style={{ width: 28, height: 28 }}
@@ -272,24 +277,23 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
   const [linkType, setLinkType] = React.useState<LinkType>('url')
   const [linkValue, setLinkValue] = React.useState('')
 
-  // Get current link if selection is inside a link
-  const getCurrentLink = () => {
-    const { href } = editor.getAttributes('link')
-    return href || ''
-  }
-
-  // Check if current selection is a link
-  const isActiveLink = editor.isActive('link')
+  // Follows the selection: the toolbar does not re-render on its own when it moves
+  const { isActiveLink, currentHref } = useEditorState({
+    editor,
+    selector: ({ editor: current }) => ({
+      isActiveLink: current.isActive('link'),
+      currentHref: (current.getAttributes('link').href as string | undefined) ?? ''
+    })
+  })
 
   React.useEffect(() => {
     if (visible) {
       // Determine the link type and value from the current href, if any
-      const { type, value } = parseLinkHref(getCurrentLink())
+      const { type, value } = parseLinkHref(currentHref)
       setLinkType(type)
       setLinkValue(value)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- getCurrentLink is stable
-  }, [visible, isActiveLink])
+  }, [visible, isActiveLink, currentHref])
 
   const isWebVersion = linkType === 'web_version'
 
@@ -306,8 +310,13 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
       if (isActiveLink) {
         expandSelectionToLinkRange(editor)
       }
-      // Use our enhanced link creation that merges textStyle attributes
-      createLinkWithStyleMerging(editor, linkValue, linkType)
+      // With nothing selected, the link is inserted with its own text
+      createLinkWithStyleMerging(
+        editor,
+        linkValue,
+        linkType,
+        isWebVersion ? t`View in browser` : undefined
+      )
     }
     setVisible(false)
     setLinkValue('')
@@ -425,9 +434,32 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
 }
 
 // Main Toolbar Component
-export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, mode = 'rich' }) => {
+export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons }) => {
   const { t } = useLingui()
-  if (!editor) {
+  // Read on every transaction, so active states and colours follow the selection
+  const state = useEditorState({
+    editor,
+    selector: ({ editor: current }) =>
+      current
+        ? {
+            canUndo: current.can().undo(),
+            canRedo: current.can().redo(),
+            canBold: current.can().toggleBold(),
+            canItalic: current.can().toggleItalic(),
+            canUnderline: current.can().toggleUnderline(),
+            canStrike: current.can().toggleStrike(),
+            bold: isFormattingActive(current, 'bold'),
+            italic: isFormattingActive(current, 'italic'),
+            underline: isFormattingActive(current, 'underline'),
+            strike: isFormattingActive(current, 'strike'),
+            superscript: current.isActive('superscript'),
+            subscript: current.isActive('subscript'),
+            textColor: getEffectiveTextColor(current),
+            backgroundColor: getEffectiveBackgroundColor(current)
+          }
+        : null
+  })
+  if (!editor || !state) {
     return null
   }
 
@@ -454,15 +486,6 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
     return activeButtons.includes(buttonName)
   }
 
-  // Get current text color and background color from editor (with link priority)
-  const getCurrentTextColor = () => {
-    return getEffectiveTextColor(editor)
-  }
-
-  const getCurrentBackgroundColor = () => {
-    return getEffectiveBackgroundColor(editor)
-  }
-
   const handleTextColorChange = (color: string) => {
     handleTextColorChangeUtil(editor, color)
   }
@@ -477,11 +500,6 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
     }
   }
 
-  const getFormattingHandler = (action: () => void) => {
-    return mode === 'inline'
-      ? () => applyInlineFormatting(editor, action)
-      : () => applyFormattingWithNodeSelection(editor, action)
-  }
 
   return (
     <span style={defaultToolbarStyle} className={`${defaultToolbarClasses} tiptap-toolbar`}>
@@ -492,7 +510,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
             {shouldShowButton('undo') && (
               <ToolbarButton
                 onClick={() => editor.chain().focus().undo().run()}
-                disabled={!editor.can().chain().focus().undo().run()}
+                disabled={!state.canUndo}
                 title={t`Undo`}
               >
                 <FontAwesomeIcon icon={faUndo} size="xs" />
@@ -501,7 +519,7 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
             {shouldShowButton('redo') && (
               <ToolbarButton
                 onClick={() => editor.chain().focus().redo().run()}
-                disabled={!editor.can().chain().focus().redo().run()}
+                disabled={!state.canRedo}
                 title={t`Redo`}
               >
                 <FontAwesomeIcon icon={faRedo} size="xs" />
@@ -521,9 +539,9 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
           <Space size="small">
             {shouldShowButton('bold') && (
               <ToolbarButton
-                onClick={getFormattingHandler(() => editor.chain().focus().toggleBold().run())}
-                disabled={!editor.can().chain().focus().toggleBold().run()}
-                isActive={editor.isActive('bold')}
+                onClick={() => toggleFormatting(editor, 'bold')}
+                disabled={!state.canBold}
+                isActive={state.bold}
                 title={t`Bold`}
               >
                 <FontAwesomeIcon icon={faBold} size="xs" />
@@ -531,9 +549,9 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
             )}
             {shouldShowButton('italic') && (
               <ToolbarButton
-                onClick={getFormattingHandler(() => editor.chain().focus().toggleItalic().run())}
-                disabled={!editor.can().chain().focus().toggleItalic().run()}
-                isActive={editor.isActive('italic')}
+                onClick={() => toggleFormatting(editor, 'italic')}
+                disabled={!state.canItalic}
+                isActive={state.italic}
                 title={t`Italic`}
               >
                 <FontAwesomeIcon icon={faItalic} size="xs" />
@@ -541,9 +559,9 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
             )}
             {shouldShowButton('underline') && (
               <ToolbarButton
-                onClick={getFormattingHandler(() => editor.chain().focus().toggleUnderline().run())}
-                disabled={!editor.can().chain().focus().toggleUnderline().run()}
-                isActive={editor.isActive('underline')}
+                onClick={() => toggleFormatting(editor, 'underline')}
+                disabled={!state.canUnderline}
+                isActive={state.underline}
                 title={t`Underline`}
               >
                 <FontAwesomeIcon icon={faUnderline} size="xs" />
@@ -551,9 +569,9 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
             )}
             {shouldShowButton('strikethrough') && (
               <ToolbarButton
-                onClick={getFormattingHandler(() => editor.chain().focus().toggleStrike().run())}
-                disabled={!editor.can().chain().focus().toggleStrike().run()}
-                isActive={editor.isActive('strike')}
+                onClick={() => toggleFormatting(editor, 'strike')}
+                disabled={!state.canStrike}
+                isActive={state.strike}
                 title={t`Strikethrough`}
               >
                 <FontAwesomeIcon icon={faStrikethrough} size="xs" />
@@ -571,19 +589,19 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
             {shouldShowButton('textColor') && (
               <ColorButton
                 icon={faFont}
-                currentColor={getCurrentTextColor()}
+                currentColor={pickerColor(state.textColor)}
                 onColorChange={handleTextColorChange}
                 title={t`Text Color`}
-                isActive={!!getCurrentTextColor()}
+                isActive={!!state.textColor}
               />
             )}
             {shouldShowButton('backgroundColor') && (
               <ColorButton
                 icon={faHighlighter}
-                currentColor={getCurrentBackgroundColor()}
+                currentColor={pickerColor(state.backgroundColor)}
                 onColorChange={handleBackgroundColorChange}
                 title={t`Background Color`}
-                isActive={!!getCurrentBackgroundColor()}
+                isActive={!!state.backgroundColor}
               />
             )}
           </Space>
@@ -617,10 +635,8 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
           <Space size="small">
             {shouldShowButton('superscript') && (
               <ToolbarButton
-                onClick={getFormattingHandler(() =>
-                  editor.chain().focus().toggleSuperscript().run()
-                )}
-                isActive={editor.isActive('superscript')}
+                onClick={() => editor.chain().focus().toggleSuperscript().run()}
+                isActive={state.superscript}
                 title={t`Superscript`}
               >
                 <FontAwesomeIcon icon={faSuperscript} size="xs" />
@@ -628,8 +644,8 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
             )}
             {shouldShowButton('subscript') && (
               <ToolbarButton
-                onClick={getFormattingHandler(() => editor.chain().focus().toggleSubscript().run())}
-                isActive={editor.isActive('subscript')}
+                onClick={() => editor.chain().focus().toggleSubscript().run()}
+                isActive={state.subscript}
                 title={t`Subscript`}
               >
                 <FontAwesomeIcon icon={faSubscript} size="xs" />

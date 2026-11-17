@@ -6,11 +6,9 @@ import {
   prepareInlineContent,
   sanitizeRichContent,
   getInitialInlineContent,
-  createLinkWithStyleMerging,
-  parseLinkHref,
-  WEB_VERSION_LINK_HREF
+  formatLinkHref,
+  parseLinkHref
 } from './utils'
-import type { Editor } from '@tiptap/react'
 import { parseHtmlInert } from '../../../../../utils/safeHtml'
 
 // The helpers below read and rewrite template HTML. They must do it away from the
@@ -60,7 +58,7 @@ describe.each([
     run: convertBlockToInline,
     input: '<h1 style="color: red">Title</h1><p>One<br>two</p><div data-x="1">Three</div>',
     expected:
-      '<span style="color: red">Title</span><span>One two </span><span data-x="1">Three</span>'
+      '<span style="color: red">Title </span><span>One<br>two </span><span data-x="1">Three</span>'
   },
   {
     name: 'processInlineContent (wrapped)',
@@ -74,7 +72,8 @@ describe.each([
     rewrites: true,
     run: processInlineContent,
     input: '<p style="text-align: center">Buy</p><p>now</p>',
-    expected: '<span style="text-align: center">Buy</span><span>now</span>'
+    // Separate blocks stay separate words
+    expected: '<span style="text-align: center">Buy </span><span>now</span>'
   },
   {
     name: 'getInitialInlineContent (blocks)',
@@ -177,39 +176,40 @@ describe('getInitialInlineContent text-only fallback', () => {
   })
 })
 
-// An editor that records the href each setLink call is given.
-const linkRecordingEditor = () => {
-  const hrefs: string[] = []
-  const chain = {
-    focus: () => chain,
-    setLink: ({ href }: { href: string }) => {
-      hrefs.push(href)
-      return chain
-    },
-    run: () => true
-  }
-  const editor = { chain: () => chain } as unknown as Editor
-  return { editor, hrefs }
-}
-
-describe('createLinkWithStyleMerging', () => {
-  it.each([
-    ['url', 'https://example.com', 'https://example.com'],
-    ['email', 'a@example.com', 'mailto:a@example.com'],
-    ['phone', '+331234', 'tel:+331234'],
-    ['anchor', 'top', '#top']
-  ])('formats a %s link', (linkType, value, expected) => {
-    const { editor, hrefs } = linkRecordingEditor()
-    createLinkWithStyleMerging(editor, value, linkType)
-    expect(hrefs).toEqual([expected])
+describe('getInitialInlineContent', () => {
+  it('keeps the text of nested blocks once', () => {
+    expect(getInitialInlineContent('<div><p>Hello</p></div>')).toBe(
+      '<span data-inline-doc="">Hello</span>'
+    )
   })
 
-  it('links the web version to its variable whatever the value', () => {
-    const { editor, hrefs } = linkRecordingEditor()
-    createLinkWithStyleMerging(editor, '', 'web_version')
-    createLinkWithStyleMerging(editor, 'https://ignored.example', 'web_version')
-    expect(hrefs).toEqual(['{{ view_in_browser_url }}', '{{ view_in_browser_url }}'])
-    expect(WEB_VERSION_LINK_HREF).toBe('{{ view_in_browser_url }}')
+  it('keeps text written between blocks', () => {
+    expect(getInitialInlineContent('Buy <p>now</p> today')).toBe(
+      '<span data-inline-doc="">Buy now today</span>'
+    )
+  })
+
+  it('keeps the style of a block it inlines', () => {
+    expect(getInitialInlineContent('<p style="color: red">Red</p>')).toBe(
+      '<span data-inline-doc=""><span style="color: red">Red</span></span>'
+    )
+  })
+
+  it('wraps plain text, and gives an empty document for nothing', () => {
+    expect(getInitialInlineContent('Click me')).toBe('<span data-inline-doc="">Click me</span>')
+    expect(getInitialInlineContent('')).toBe('<span data-inline-doc=""></span>')
+  })
+})
+
+describe('formatLinkHref', () => {
+  it.each([
+    ['url', ' https://example.com ', 'https://example.com'],
+    ['email', 'a@example.com', 'mailto:a@example.com'],
+    ['phone', '+331234', 'tel:+331234'],
+    ['anchor', 'top', '#top'],
+    ['web_version', 'https://ignored.example', '{{ view_in_browser_url }}']
+  ])('formats a %s target', (linkType, value, expected) => {
+    expect(formatLinkHref(value, linkType)).toBe(expected)
   })
 })
 

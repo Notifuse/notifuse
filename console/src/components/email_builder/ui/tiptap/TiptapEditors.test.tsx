@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { act, render, waitFor } from '@testing-library/react'
 import { TiptapRichEditor } from './TiptapRichEditor'
 import { TiptapInlineEditor } from './TiptapInlineEditor'
 
@@ -144,5 +144,48 @@ describe('TiptapInlineEditor', () => {
     await waitFor(() => expect(root.textContent).toBe('Other'))
     rerender(<TiptapInlineEditor content={content} onChange={onChange} />)
     await waitFor(() => expect(hrefs(root)).toEqual(markupLikeTargets))
+  })
+})
+
+describe('editing what was loaded', () => {
+  it('saves styled paragraphs of a Text block apart, with their style', async () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <TiptapRichEditor
+        content={'<p style="text-align: center">First</p><p style="text-align: center">Second</p>'}
+        onChange={onChange}
+      />
+    )
+    const root = await waitFor(() => editorRoot(container)) as HTMLElement & {
+      editor: import('@tiptap/react').Editor
+    }
+    act(() => {
+      root.editor.commands.insertContentAt(root.editor.state.doc.content.size - 1, '!')
+    })
+    expect(onChange).toHaveBeenLastCalledWith(
+      '<p style="text-align: center">First</p><p style="text-align: center">Second!</p>'
+    )
+  })
+
+  it('shows the text of a button held in nested blocks once', async () => {
+    const { container } = render(
+      <TiptapInlineEditor content="<div><p>Order now</p></div>" onChange={vi.fn()} />
+    )
+    const root = await waitFor(() => editorRoot(container))
+    await waitFor(() => expect(root.textContent).toBe('Order now'))
+  })
+
+  it('keeps the images and line breaks of a button', async () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <TiptapInlineEditor content={'<img src="https://x.example/i.png" alt="icon"> Buy<br>now'} onChange={onChange} />
+    )
+    const root = (await waitFor(() => editorRoot(container))) as HTMLElement & {
+      editor: import('@tiptap/react').Editor
+    }
+    act(() => {
+      root.editor.commands.insertContentAt(root.editor.state.doc.content.size, '!')
+    })
+    expect(onChange).toHaveBeenLastCalledWith('<img src="https://x.example/i.png" alt="icon"> Buy<br>now!')
   })
 })

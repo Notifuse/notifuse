@@ -5,7 +5,7 @@ import type { TiptapInlineEditorProps } from './shared/types'
 import { createInlineExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
 import { TiptapToolbar } from './components/TiptapToolbar'
-import { processInlineContent, prepareInlineContent, getInitialInlineContent } from './shared/utils'
+import { processInlineContent, prepareInlineContent, getInitialInlineContent, getEditorHTML } from './shared/utils'
 import { containedContentStyle, sanitizeEditorHtml, textOnlyHtml } from '../../../../utils/safeHtml'
 
 export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
@@ -52,7 +52,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
         }
       },
       onUpdate: ({ editor }) => {
-        const htmlContent = editor.getHTML()
+        const htmlContent = getEditorHTML(editor)
         handleContentChange(htmlContent)
       }
     },
@@ -62,7 +62,7 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
   // Update content when prop changes (but avoid loops)
   useEffect(() => {
     if (editor) {
-      const currentEditorContent = editor.getHTML()
+      const currentEditorContent = getEditorHTML(editor)
       const processedCurrentContent = processInlineContent(currentEditorContent)
 
       // Compare processed content to avoid unnecessary updates

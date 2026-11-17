@@ -1,132 +1,37 @@
 import { getMarkRange, type Editor } from '@tiptap/react'
-import type { Mark, Node } from '@tiptap/pm/model'
+import { DOMSerializer, type Mark, type Node } from '@tiptap/pm/model'
 import { parseHtmlInert, sanitizeEditorHtml, textOnlyHtml } from '../../../../../utils/safeHtml'
+import { LINK_STYLE_PROPERTIES, inlineStyleAt } from '../TiptapSchema'
+import { RAW_STYLE_ATTRIBUTE, getStyleProperty, omitStyleProperties, pickStyleProperties } from './inlineStyle'
 import type { LinkType } from './types'
 
-// Extend the ChainedCommands type to include our custom command
-declare module '@tiptap/core' {
-  interface Commands<ReturnType> {
-    customLink: {
-      updateLinkStyle: (attributes: Record<string, unknown>) => ReturnType
-    }
-  }
-}
 
-// Helper function to expand selection to mark range or current node
-export const expandSelectionToNode = (editor: Editor) => {
-  const { state } = editor
-  const { selection } = state
+/**
+ * The editor's content as HTML, styles as written. Use it instead of getHTML(),
+ * whose serializer rewrites every style through the CSSOM (see RAW_STYLE_ATTRIBUTE).
+ */
+// Documents are immutable: each one's HTML is computed once, however often the
+// editor and its parent ask for it while typing.
+const serializedDocuments = new WeakMap<Node, string>()
+let serializationDocument: Document | undefined
 
-  // If there's already a selection, don't expand
-  if (!selection.empty) {
-    return false
-  }
+export const getEditorHTML = (editor: Pick<Editor, 'schema' | 'state'>): string => {
+  const { doc } = editor.state
+  const cached = serializedDocuments.get(doc)
+  if (cached !== undefined) return cached
 
-  const { from } = selection
-  const { doc } = state
-
-  // Find the current node that contains the cursor
-  const $pos = doc.resolve(from)
-
-  // First, check if the current position has any marks
-  const marks = $pos.marks()
-
-  if (marks && marks.length > 0) {
-    // If we have marks, try to find the range for each mark and use the largest range
-    let markStart = from
-    let markEnd = from
-    let foundMarkRange = false
-
-    marks.forEach((mark: Mark) => {
-      try {
-        const markRange = getMarkRange($pos, mark.type)
-        if (markRange) {
-          // Expand to encompass all mark ranges
-          markStart = Math.min(markStart, markRange.from)
-          markEnd = Math.max(markEnd, markRange.to)
-          foundMarkRange = true
-        }
-      } catch (e) {
-        console.warn('Could not get mark range for', mark.type.name, e)
-      }
-    })
-
-    // If we found mark ranges, select that range
-    if (foundMarkRange && markStart < markEnd) {
-      editor.chain().focus().setTextSelection({ from: markStart, to: markEnd }).run()
-      return true
-    }
-  }
-
-  // If no marks or mark range selection failed, fall back to node selection
-  // Try to find a suitable node to select
-  for (let depth = $pos.depth; depth >= 0; depth--) {
-    const node = $pos.node(depth)
-    const nodeStart = $pos.start(depth)
-    const nodeEnd = $pos.end(depth)
-
-    // Skip the document node itself
-    if (depth === 0) continue
-
-    // Check if this is a selectable content node
-    if (node.isTextblock || (node.content && node.content.size > 0)) {
-      try {
-        // For text blocks, select the content within the node
-        if (node.isTextblock && nodeStart < nodeEnd) {
-          editor.chain().focus().setTextSelection({ from: nodeStart, to: nodeEnd }).run()
-          return true
-        }
-
-        // For other nodes, try NodeSelection if the node can be selected as a whole
-        if (!node.isTextblock && node.isLeaf) {
-          const nodePos = nodeStart - 1
-          if (nodePos >= 0) {
-            editor.chain().focus().setNodeSelection(nodePos).run()
-            return true
-          }
-        }
-      } catch (e) {
-        // If selection fails, continue to next depth level
-        console.warn('Selection failed at depth', depth, e)
-      }
-    }
-  }
-
-  // Final fallback: select current block content
-  const blockStart = $pos.start($pos.depth)
-  const blockEnd = $pos.end($pos.depth)
-
-  if (blockStart < blockEnd) {
-    editor.chain().focus().setTextSelection({ from: blockStart, to: blockEnd }).run()
-    return true
-  }
-
-  return false
-}
-
-// Helper function to apply formatting with node selection (for block content)
-export const applyFormattingWithNodeSelection = (editor: Editor, action: () => void) => {
-  const wasExpanded = expandSelectionToNode(editor)
-  action()
-
-  // If we expanded the selection, keep it active to show what was formatted
-  if (wasExpanded) {
-    // Keep the selection as is to show what was formatted
-  }
-}
-
-// Helper function for inline formatting - more conservative approach
-export const applyInlineFormatting = (editor: Editor, action: () => void) => {
-  const { selection } = editor.state
-
-  if (selection.empty) {
-    // For empty selection, just apply the formatting at cursor position
-    // This will affect new text typed at this position
-    action()
-  } else {
-    // For non-empty selection, apply formatting to selected text
-    action()
-  }
+  serializationDocument ??= document.implementation.createHTMLDocument()
+  const container = serializationDocument.createElement('div')
+  container.appendChild(
+    DOMSerializer.fromSchema(editor.schema).serializeFragment(doc.content, { document: serializationDocument })
+  )
+  container.querySelectorAll(`[${RAW_STYLE_ATTRIBUTE}]`).forEach((element) => {
+    element.setAttribute('style', element.getAttribute(RAW_STYLE_ATTRIBUTE) ?? '')
+    element.removeAttribute(RAW_STYLE_ATTRIBUTE)
+  })
+  const html = container.innerHTML
+  serializedDocuments.set(doc, html)
+  return html
 }
 
 // Helper function to strip plain spans (spans without style attributes) while preserving inner content
@@ -204,6 +109,9 @@ export const convertBlockToInline = (htmlContent: string): string => {
       'pre'
     ]
 
+    // Blocks already turned into spans: a block followed by one still needs a space
+    const convertedBlocks = new WeakSet<Element>()
+
     blockTags.forEach((tag) => {
       const elements = tempDiv.querySelectorAll(tag)
 
@@ -225,20 +133,17 @@ export const convertBlockToInline = (htmlContent: string): string => {
           // If this element has siblings that will also be converted,
           // add a space after it to prevent text concatenation
           const nextSibling = element.nextElementSibling
-          if (nextSibling && blockTags.includes(nextSibling.tagName.toLowerCase())) {
+          if (
+            nextSibling &&
+            (convertedBlocks.has(nextSibling) || blockTags.includes(nextSibling.tagName.toLowerCase()))
+          ) {
             span.innerHTML += ' '
           }
 
           // Replace the original element
           element.parentNode?.replaceChild(span, element)
+          convertedBlocks.add(span)
         })
-    })
-
-    // Convert <br> tags to spaces (since we're inline now)
-    const brElements = tempDiv.querySelectorAll('br')
-    brElements.forEach((br) => {
-      const textNode = tempDiv.ownerDocument.createTextNode(' ')
-      br.parentNode?.replaceChild(textNode, br)
     })
 
     // Clean up multiple consecutive spaces and normalize whitespace
@@ -349,258 +254,171 @@ export const sanitizeRichContent = (rawContent: string): string => {
   }
 }
 
-// Helper function to get initial content for inline editor, sanitized like
-// prepareInlineContent's
+// Initial content for the inline editor, sanitized and inlined like
+// prepareInlineContent's. Blocks become spans in place, so text between them and
+// text of nested blocks is kept once.
 export const getInitialInlineContent = (rawContent: string): string => {
+  const emptyDocument = '<span data-inline-doc=""></span>'
   if (!rawContent) {
-    return '<span data-inline-doc=""></span>'
+    return emptyDocument
   }
   const content = sanitizeEditorHtml(rawContent)
 
   try {
-    // First, strip plain spans to avoid TipTap errors
-    const processedContent = stripPlainSpans(content)
-
-    // Parse the content to check for block elements
-    const tempDiv = parseHtmlInert(processedContent)
-
-    // Check if we have block elements that need conversion
-    const blockElements = tempDiv.querySelectorAll(
-      'p, div, h1, h2, h3, h4, h5, h6, section, article, header, footer, main, aside, blockquote, pre'
-    )
-
-    if (blockElements.length > 0) {
-      // Extract just the text content and basic inline formatting
-      let textContent = ''
-      blockElements.forEach((element, index) => {
-        // Get the inner text but preserve basic inline formatting
-        const innerHTML = element.innerHTML
-
-        // Add space between block elements
-        if (index > 0) textContent += ' '
-        textContent += innerHTML
-      })
-
-      // Wrap in our inline document with the extracted content
-      return `<span data-inline-doc="">${textContent}</span>`
-    } else {
-      // No block elements, just wrap the content
-      return `<span data-inline-doc="">${processedContent}</span>`
-    }
+    // The spans standing for blocks without a style mean nothing inline
+    const inline = stripPlainSpans(convertBlockToInline(stripPlainSpans(content)))
+    return inline.includes('data-inline-doc') ? inline : `<span data-inline-doc="">${inline}</span>`
   } catch (error) {
     console.error('Error processing initial content:', error)
-
-    // Ultimate fallback: extract just the text content
     try {
       return `<span data-inline-doc="">${textOnlyHtml(content)}</span>`
     } catch (fallbackError) {
       console.error('Text extraction fallback failed:', fallbackError)
-      return '<span data-inline-doc=""></span>' // Ultimate safe fallback
+      return emptyDocument
     }
   }
 }
 
-// Helper function to expand selection to cover the full link range
-// This is specifically for updating links when cursor is inside a link with no selection
-// IMPORTANT: Only expands if selection is empty (cursor only) to respect user's intentional selections
+// Selects the whole link around the cursor. Only when nothing is selected: a
+// selection the user made is kept.
 export const expandSelectionToLinkRange = (editor: Editor): boolean => {
-  const { state } = editor
-  const { selection } = state
-
-  // Only expand if selection is empty (just a cursor, no text selected)
-  // If user has made an intentional selection, respect it
-  if (!selection.empty) {
-    return false
-  }
-
-  // Only expand if we're inside a link
-  if (!editor.isActive('link')) {
-    return false
-  }
-
-  const { from } = selection
-  const { doc } = state
-  const $pos = doc.resolve(from)
-
-  // Find the link mark at the current position
-  const linkMark = $pos.marks().find((mark: Mark) => mark.type.name === 'link')
-
-  if (linkMark) {
-    try {
-      const markRange = getMarkRange($pos, linkMark.type)
-      if (markRange && markRange.from < markRange.to) {
-        editor.chain().focus().setTextSelection({ from: markRange.from, to: markRange.to }).run()
-        return true
-      }
-    } catch (e) {
-      console.warn('Could not get link mark range:', e)
-    }
-  }
-
-  return false
-}
-
-// Utility functions for link styling
-export const isSelectionInsideLink = (editor: Editor): boolean => {
-  return editor.isActive('link')
-}
-
-export const getLinkAttributes = (editor: Editor): Record<string, unknown> => {
-  const linkAttrs = editor.getAttributes('link') as Record<string, unknown>
-  return linkAttrs || {}
-}
-
-export const updateLinkColor = (editor: Editor, color: string) => {
-  if (isSelectionInsideLink(editor)) {
-    const currentAttrs = getLinkAttributes(editor)
-    const newAttrs = { ...currentAttrs, color }
-
-    // Use our custom updateLinkStyle command
-    editor.chain().focus().updateLinkStyle(newAttrs).run()
-
-    // Also remove any textStyle marks that might have been applied
-    editor.chain().focus().unsetMark('textStyle').run()
-
-    return true
-  }
-  return false
-}
-
-export const updateLinkBackgroundColor = (editor: Editor, backgroundColor: string) => {
-  if (isSelectionInsideLink(editor)) {
-    const currentAttrs = getLinkAttributes(editor)
-    const newAttrs = { ...currentAttrs, backgroundColor }
-
-    // Use our custom updateLinkStyle command
-    editor.chain().focus().updateLinkStyle(newAttrs).run()
-
-    // Also remove any textStyle marks that might have been applied
-    editor.chain().focus().unsetMark('textStyle').run()
-
-    return true
-  }
-  return false
-}
-
-export const getCurrentLinkColor = (editor: Editor): string => {
-  if (isSelectionInsideLink(editor)) {
-    const linkAttrs = getLinkAttributes(editor)
-    return (linkAttrs.color as string) || ''
-  }
-  return ''
-}
-
-export const getCurrentLinkBackgroundColor = (editor: Editor): string => {
-  if (isSelectionInsideLink(editor)) {
-    const linkAttrs = getLinkAttributes(editor)
-    return (linkAttrs.backgroundColor as string) || ''
-  }
-  return ''
-}
-
-// Enhanced color handling that prioritizes link styling for email compatibility
-export const handleTextColorChange = (editor: Editor, color: string) => {
-  // First try to apply to link if selection is inside a link
-  if (updateLinkColor(editor, color)) {
-    return // Link color updated successfully
-  }
-
-  // Fallback to regular textStyle handling
   const { selection } = editor.state
-
-  if (selection.empty) {
-    if (color) {
-      editor.chain().focus().setMark('textStyle', { color }).run()
-    } else {
-      editor.chain().focus().unsetMark('textStyle').run()
-    }
-  } else {
-    if (color) {
-      editor.chain().focus().setMark('textStyle', { color }).run()
-    } else {
-      editor.chain().focus().unsetMark('textStyle').run()
-    }
+  if (!selection.empty || !editor.isActive('link')) {
+    return false
   }
+  const $pos = selection.$from
+  const linkMark = $pos.marks().find((mark: Mark) => mark.type.name === 'link')
+  if (!linkMark) {
+    return false
+  }
+  const range = getMarkRange($pos, linkMark.type, linkMark.attrs)
+  if (!range || range.from >= range.to) {
+    return false
+  }
+  editor.chain().focus().setTextSelection(range).run()
+  return true
+}
+
+// Text and background colours. Inside a link they go on the link (see setInlineStyle).
+export const handleTextColorChange = (editor: Editor, color: string) => {
+  editor.chain().focus().setInlineStyle('color', color || null).run()
 }
 
 export const handleBackgroundColorChange = (editor: Editor, backgroundColor: string) => {
-  // First try to apply to link if selection is inside a link
-  if (updateLinkBackgroundColor(editor, backgroundColor)) {
-    return // Link background color updated successfully
-  }
+  editor.chain().focus().setInlineStyle('background-color', backgroundColor || null).run()
+}
 
-  // Fallback to regular textStyle handling
-  const { selection } = editor.state
-
+// The marks the toolbar describes: those the next typed text gets, or those where
+// the selection starts.
+const marksAtSelection = (editor: Editor): readonly Mark[] => {
+  const { state } = editor
+  const { selection } = state
   if (selection.empty) {
-    if (backgroundColor) {
-      editor.chain().focus().setMark('textStyle', { backgroundColor }).run()
-    } else {
-      editor.chain().focus().unsetMark('textStyle').run()
-    }
-  } else {
-    if (backgroundColor) {
-      editor.chain().focus().setMark('textStyle', { backgroundColor }).run()
-    } else {
-      editor.chain().focus().unsetMark('textStyle').run()
-    }
+    return state.storedMarks ?? selection.$from.marks()
   }
-}
-
-// Get the current effective color (prioritizing link color over textStyle color)
-export const getEffectiveTextColor = (editor: Editor): string => {
-  // Check if we're in a link first
-  const linkColor = getCurrentLinkColor(editor)
-  if (linkColor) {
-    return linkColor
-  }
-
-  // Fallback to textStyle color
-  const textStyleAttrs = editor.getAttributes('textStyle') as Record<string, unknown>
-  return (textStyleAttrs.color as string) || ''
-}
-
-// Get the current effective background color (prioritizing link background over textStyle background)
-export const getEffectiveBackgroundColor = (editor: Editor): string => {
-  // Check if we're in a link first
-  const linkBackgroundColor = getCurrentLinkBackgroundColor(editor)
-  if (linkBackgroundColor) {
-    return linkBackgroundColor
-  }
-
-  // Fallback to textStyle background color
-  const textStyleAttrs = editor.getAttributes('textStyle') as Record<string, unknown>
-  return (textStyleAttrs.backgroundColor as string) || ''
-}
-
-// Debug utility to inspect current marks and their attributes
-export const debugCurrentMarks = (editor: Editor): void => {
-  const { selection } = editor.state
-  const { from, to } = selection
-
-  console.log('=== TipTap Mark Debug ===')
-  console.log('Selection:', { from, to })
-
-  editor.state.doc.nodesBetween(from, to, (node: Node, pos: number) => {
-    if (node.isText && node.marks) {
-      console.log(`Text node at ${pos}:`, {
-        text: node.text,
-        marks: node.marks.map((mark: Mark) => ({
-          type: mark.type.name,
-          attrs: mark.attrs
-        }))
-      })
-    }
+  // The first text of the selection (returning false from nodesBetween only skips
+  // a node's children, not its siblings)
+  let marks: readonly Mark[] | undefined
+  state.doc.nodesBetween(selection.from, selection.to, (node: Node) => {
+    if (marks) return false
+    if (node.isText) marks = node.marks
+    return !marks
   })
-
-  console.log('Active marks:', {
-    link: editor.isActive('link') ? editor.getAttributes('link') : false,
-    textStyle: editor.isActive('textStyle') ? editor.getAttributes('textStyle') : false
-  })
-  console.log('========================')
+  return marks ?? []
 }
 
-// Enhanced link creation that ensures style merging
+const blockStyleAtSelection = (editor: Editor): string | null =>
+  (editor.state.selection.$from.parent.attrs.style as string | null | undefined) ?? null
+
+export const getEffectiveTextColor = (editor: Editor): string =>
+  inlineStyleAt(marksAtSelection(editor), 'color', blockStyleAtSelection(editor))
+
+export const getEffectiveBackgroundColor = (editor: Editor): string =>
+  inlineStyleAt(marksAtSelection(editor), 'background-color', blockStyleAtSelection(editor))
+
+// Bold, italic, underline and strike-through, as a tag or as the CSS that draws it
+export type Formatting = 'bold' | 'italic' | 'underline' | 'strike'
+
+const FORMATTING_CSS: Record<Formatting, { property: string; draws: (value: string) => boolean }> = {
+  bold: { property: 'font-weight', draws: (value) => /^(bold|bolder|[6-9]00)$/.test(value) },
+  italic: { property: 'font-style', draws: (value) => value === 'italic' || value === 'oblique' },
+  underline: { property: 'text-decoration', draws: (value) => /\bunderline\b/.test(value) },
+  strike: { property: 'text-decoration', draws: (value) => /\bline-through\b/.test(value) }
+}
+
+const cssValueAtSelection = (editor: Editor, formatting: Formatting): string =>
+  inlineStyleAt(marksAtSelection(editor), FORMATTING_CSS[formatting].property, blockStyleAtSelection(editor))
+    .trim()
+    .toLowerCase()
+
+/**
+ * True when the formatting shows on the whole selection, by its tag or by CSS on
+ * the text, its link or its paragraph. At a cursor, where the next text goes.
+ */
+export const isFormattingActive = (editor: Editor, formatting: Formatting): boolean => {
+  const { property, draws } = FORMATTING_CSS[formatting]
+  const { selection, doc } = editor.state
+  if (selection.empty) {
+    return editor.isActive(formatting) || draws(cssValueAtSelection(editor, formatting))
+  }
+  let sawText = false
+  let everywhere = true
+  doc.nodesBetween(selection.from, selection.to, (node: Node, _pos: number, parent: Node | null) => {
+    if (!everywhere || !node.isText) return everywhere
+    sawText = true
+    const tagged = node.marks.some((mark) => mark.type.name === formatting)
+    const css = inlineStyleAt(node.marks, property, parent?.attrs.style as string | null | undefined)
+    if (!tagged && !draws(css.trim().toLowerCase())) everywhere = false
+    return false
+  })
+  return sawText && everywhere
+}
+
+// What turns a formatting off at a cursor where a paragraph or link draws it
+const NEUTRAL_CSS: Record<Formatting, string> = {
+  bold: 'normal',
+  italic: 'normal',
+  underline: 'none',
+  strike: 'none'
+}
+
+/**
+ * Toggles a formatting. Turning it off removes the tag and the CSS that draws it,
+ * so text styled `font-weight: bold` stops being bold too.
+ */
+export const toggleFormatting = (editor: Editor, formatting: Formatting) => {
+  if (!isFormattingActive(editor, formatting)) {
+    editor.chain().focus().setMark(formatting).run()
+    return
+  }
+  const { property, draws } = FORMATTING_CSS[formatting]
+  const value = cssValueAtSelection(editor, formatting)
+  const chain = editor.chain().focus().unsetMark(formatting)
+  if (editor.state.selection.empty) {
+    // Text typed next: a style of its own undoes the paragraph's or link's
+    const textStyle = marksAtSelection(editor).find((mark) => mark.type.name === 'textStyle')
+    const fromText = getStyleProperty(textStyle?.attrs.style as string | null, property).trim().toLowerCase()
+    if (draws(fromText)) chain.setInlineStyle(property, null)
+    else if (draws(value)) chain.setInlineStyle(property, NEUTRAL_CSS[formatting])
+  } else if (property !== 'text-decoration') {
+    // Off everywhere in the selection, whichever runs draw it
+    chain.setInlineStyle(property, null)
+  } else if (draws(value)) {
+    // text-decoration may also hold the other line, which stays
+    const other = property === 'text-decoration'
+      ? value.replace(formatting === 'underline' ? /\bunderline\b/ : /\bline-through\b/, '').trim()
+      : ''
+    chain.setInlineStyle(property, other || null)
+  }
+  chain.run()
+}
+
+/** A value the colour picker can show: Liquid or other expressions are not colours. */
+export const pickerColor = (value: string): string | undefined =>
+  /^#[0-9a-f]{3,8}$/i.test(value) || /^(rgb|hsl)a?\([^{}]*\)$/i.test(value) || /^[a-z]+$/i.test(value)
+    ? value
+    : undefined
+
 // The link to the web version of the email. Broadcasts and automations fill the variable
 // with the page's address when they send; elsewhere it is empty.
 export const WEB_VERSION_LINK_HREF = '{{ view_in_browser_url }}'
@@ -624,257 +442,64 @@ export const parseLinkHref = (href: string): { type: LinkType; value: string } =
   return { type: 'url', value: href }
 }
 
-export const createLinkWithStyleMerging = (editor: Editor, href: string, linkType: string = 'url') => {
-  // Format the href based on link type
-  let formattedHref = href.trim()
+// The link target for a value typed in the link popover.
+export const formatLinkHref = (value: string, linkType: string = 'url'): string => {
+  const trimmed = value.trim()
   switch (linkType) {
     case 'web_version':
-      formattedHref = WEB_VERSION_LINK_HREF
-      break
+      return WEB_VERSION_LINK_HREF
     case 'email':
-      formattedHref = `mailto:${formattedHref}`
-      break
+      return `mailto:${trimmed}`
     case 'phone':
-      formattedHref = `tel:${formattedHref}`
-      break
+      return `tel:${trimmed}`
     case 'anchor':
-      formattedHref = `#${formattedHref}`
-      break
-    case 'url':
+      return `#${trimmed}`
     default:
-      break
+      return trimmed
   }
-
-  // Use our enhanced setLink command which automatically merges textStyle
-  editor.chain().focus().setLink({ href: formattedHref }).run()
 }
 
-// Utility to check if textStyle and link marks are properly merged
-export const validateLinkStyleMerging = (editor: Editor): boolean => {
+/**
+ * Links the selection to the target typed in the link popover. With nothing
+ * selected and the cursor outside any link, it inserts `text` as the link's text:
+ * a link needs text to exist at all.
+ */
+export const createLinkWithStyleMerging = (
+  editor: Editor,
+  value: string,
+  linkType: string = 'url',
+  text?: string
+) => {
+  const href = formatLinkHref(value, linkType)
   const { selection } = editor.state
-  const { from, to } = selection
+  const label = (text ?? value).trim()
 
-  let hasProperMerging = true
-  let hasTextStyleWithLink = false
-
-  editor.state.doc.nodesBetween(from, to, (node: Node) => {
-    if (node.isText && node.marks) {
-      const linkMark = node.marks.find((mark: Mark) => mark.type.name === 'link')
-      const textStyleMark = node.marks.find((mark: Mark) => mark.type.name === 'textStyle')
-
-      // If we have both link and textStyle marks, that's not ideal for email HTML
-      if (linkMark && textStyleMark) {
-        hasTextStyleWithLink = true
-        hasProperMerging = false
-      }
-    }
-  })
-
-  if (hasTextStyleWithLink) {
-    console.warn(
-      'Warning: Found both link and textStyle marks on the same text. This will create nested HTML.'
-    )
+  if (selection.empty && !editor.isActive('link') && label) {
+    // The inserted text keeps the formatting at the cursor; its colours go on the link
+    const cursorMarks = editor.state.storedMarks ?? selection.$from.marks()
+    let linkStyle: string | null = null
+    const marks = cursorMarks.flatMap((mark: Mark) => {
+      if (mark.type.name !== 'textStyle') return [mark.toJSON()]
+      const style = mark.attrs.style as string | null
+      linkStyle = pickStyleProperties(style, LINK_STYLE_PROPERTIES)
+      const rest = omitStyleProperties(style, LINK_STYLE_PROPERTIES)
+      return rest ? [{ type: 'textStyle', attrs: { style: rest } }] : []
+    })
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'text',
+        text: label,
+        marks: [...marks, { type: 'link', attrs: { href, style: linkStyle } }]
+      })
+      // Text typed next continues after the link, not inside it
+      .command(({ tr }) => {
+        tr.setStoredMarks(tr.selection.$from.marks().filter((mark) => mark.type.name !== 'link'))
+        return true
+      })
+      .run()
+    return
   }
-
-  return hasProperMerging
-}
-
-// Get a summary of the current HTML structure for debugging
-export const getHtmlStructureSummary = (editor: Editor): string => {
-  const html = editor.getHTML()
-
-  // Count different patterns
-  const spanWrappedLinks = (html.match(/<span[^>]*style="[^"]*"><a[^>]*>/g) || []).length
-  const styledLinks = (html.match(/<a[^>]*style="[^"]*">/g) || []).length
-  const unstyledLinks = (html.match(/<a(?![^>]*style=)[^>]*>/g) || []).length
-
-  return `HTML Structure:
-- Span-wrapped links: ${spanWrappedLinks} ❌
-- Styled links: ${styledLinks} ✅
-- Unstyled links: ${unstyledLinks}
-${
-  spanWrappedLinks > 0
-    ? '\n⚠️  Warning: Found span-wrapped links (not email-friendly)'
-    : '\n✅ All links are email-friendly'
-}`
-}
-
-// Test link parsing with specific HTML content
-export const testLinkParsing = (editor: Editor, htmlContent: string): void => {
-  console.log('=== Link Parsing Test ===')
-  console.log('Input HTML:', htmlContent)
-
-  // Set the content and see what happens
-  editor.commands.setContent(htmlContent)
-
-  // Get the parsed content back
-  const parsedHTML = editor.getHTML()
-  console.log('Parsed HTML:', parsedHTML)
-
-  // Check what links are detected
-  const { doc } = editor.state
-  const links: { text?: string; pos: number; attrs: Record<string, unknown> }[] = []
-
-  doc.descendants((node: Node, pos: number) => {
-    if (node.isText && node.marks) {
-      const linkMark = node.marks.find((mark: Mark) => mark.type.name === 'link')
-      if (linkMark) {
-        links.push({
-          text: node.text || undefined,
-          pos,
-          attrs: linkMark.attrs
-        })
-      }
-    }
-  })
-
-  console.log('Detected links:', links)
-  console.log('========================')
-}
-
-// Debug specific HTML content with link
-export const debugSpecificContent = (editor: Editor): void => {
-  const testContent =
-    '<p>abc abc <a class="editor-link" href="https://mylink.com" style="color: #31c48d">link content</a> abc abc.</p>'
-
-  console.log('=== Debugging Specific Content ===')
-  console.log('Testing content:', testContent)
-
-  // Test if our CustomLink extension can parse this
-  testLinkParsing(editor, testContent)
-
-  // Also test a simpler case
-  const simpleContent = '<p><a href="https://example.com">simple link</a></p>'
-  console.log('\nTesting simple content:', simpleContent)
-  testLinkParsing(editor, simpleContent)
-
-  // Test with style only
-  const styledContent = '<p><a href="https://example.com" style="color: red;">styled link</a></p>'
-  console.log('\nTesting styled content:', styledContent)
-  testLinkParsing(editor, styledContent)
-
-  console.log('==================================')
-}
-
-// Comprehensive test for the specific user issue
-export const testUserSpecificContent = (editor: Editor): boolean => {
-  const userContent =
-    '<p>abc abc <a class="editor-link" href="https://mylink.com" style="color: #31c48d">link content</a> abc abc.</p>'
-
-  console.log('🔍 Testing User-Specific Link Parsing Issue')
-  console.log('==================================================')
-  console.log('Original HTML:', userContent)
-
-  try {
-    // Set the content
-    editor.commands.setContent(userContent)
-
-    // Wait a moment for parsing to complete
-    setTimeout(() => {
-      // Get the parsed HTML back
-      const parsedHTML = editor.getHTML()
-      console.log('Parsed HTML:', parsedHTML)
-
-      // Check if links are recognized
-      const linkDetected = editor.isActive('link')
-      console.log('Link detected by TipTap:', linkDetected)
-
-      // Check link attributes
-      if (linkDetected) {
-        const linkAttrs = editor.getAttributes('link')
-        console.log('Link attributes:', linkAttrs)
-
-        // Verify specific attributes
-        const hasHref = linkAttrs.href === 'https://mylink.com'
-        const hasClass = linkAttrs.class === 'editor-link'
-        const hasColor = linkAttrs.color === '#31c48d'
-
-        console.log('✅ Verification Results:')
-        console.log(`  - href correct: ${hasHref}`)
-        console.log(`  - class correct: ${hasClass}`)
-        console.log(`  - color correct: ${hasColor}`)
-
-        return hasHref && hasClass && hasColor
-      } else {
-        console.log('❌ No link detected!')
-        return false
-      }
-    }, 100)
-
-    return true
-  } catch (error) {
-    console.error('❌ Test failed with error:', error)
-    return false
-  }
-}
-
-// Test after content reload to verify persistence
-export const testContentReloadPersistence = (editor: Editor): boolean => {
-  const userContent =
-    '<p>abc abc <a class="editor-link" href="https://mylink.com" style="color: #31c48d">link content</a> abc abc.</p>'
-
-  console.log('🔄 Testing Content Reload Persistence')
-  console.log('====================================')
-
-  try {
-    // Set content first time
-    editor.commands.setContent(userContent)
-
-    // Get the HTML after first load
-    const firstHTML = editor.getHTML()
-    console.log('First load HTML:', firstHTML)
-
-    // Simulate reload by setting the content again with the generated HTML
-    editor.commands.setContent(firstHTML)
-
-    // Check if link is still recognized
-    const linkStillDetected = editor.isActive('link')
-    console.log('Link detected after reload:', linkStillDetected)
-
-    if (linkStillDetected) {
-      const linkAttrs = editor.getAttributes('link')
-      console.log('Link attributes after reload:', linkAttrs)
-
-      const persistedCorrectly =
-        linkAttrs.href === 'https://mylink.com' &&
-        linkAttrs.class === 'editor-link' &&
-        linkAttrs.color === '#31c48d'
-
-      console.log('✅ Link attributes persisted correctly:', persistedCorrectly)
-      return persistedCorrectly
-    } else {
-      console.log('❌ Link not detected after reload!')
-      return false
-    }
-  } catch (error) {
-    console.error('❌ Reload test failed:', error)
-    return false
-  }
-}
-
-// Quick verification function for the main bug
-export const verifyLinkParsingFix = (editor: Editor): void => {
-  console.log('🧪 Verifying Link Parsing Fix for User Issue')
-  console.log('==============================================')
-
-  // Test 1: Initial parsing
-  const initialTest = testUserSpecificContent(editor)
-
-  // Test 2: Reload persistence
-  setTimeout(() => {
-    const reloadTest = testContentReloadPersistence(editor)
-
-    setTimeout(() => {
-      console.log('\n📊 FINAL RESULTS:')
-      console.log('=================')
-      console.log(`Initial parsing: ${initialTest ? '✅ PASSED' : '❌ FAILED'}`)
-      console.log(`Reload persistence: ${reloadTest ? '✅ PASSED' : '❌ FAILED'}`)
-
-      if (initialTest && reloadTest) {
-        console.log('🎉 SUCCESS: Link parsing issue has been FIXED!')
-      } else {
-        console.log('⚠️  ISSUE: Some tests failed, link parsing needs more work.')
-      }
-    }, 200)
-  }, 200)
+  editor.chain().focus().setLink({ href }).run()
 }
