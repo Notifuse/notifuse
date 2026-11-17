@@ -189,7 +189,7 @@ func AutomationEnrollContactWithTriggerFunction() string {
 				-- first: this insert waited for it and added nothing, so the journey is theirs.
 				-- FOUND is this INSERT's result. The check must stay inside this block: on the
 				-- every_time path no statement sets FOUND, which stays false, so the same check
-				-- after END IF would stop every enrolment.
+				-- after END IF would stop every every_time enrolment.
 				IF NOT FOUND THEN
 					RETURN;
 				END IF;
