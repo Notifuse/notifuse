@@ -2,6 +2,7 @@ package domain_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -313,4 +314,11 @@ func TestEmailProvider_WithSparkPostSettings(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "endpoint is required")
 	})
+}
+
+func TestSparkPostMessageEvent_EventID(t *testing.T) {
+	var payload domain.SparkPostWebhookPayload
+	require.NoError(t, json.Unmarshal([]byte(`{"msys":{"message_event":{"type":"bounce","event_id":"92356927693813856"}}}`), &payload))
+	require.NotNil(t, payload.MSys.MessageEvent)
+	assert.Equal(t, "92356927693813856", payload.MSys.MessageEvent.EventID)
 }

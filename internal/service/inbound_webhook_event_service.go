@@ -360,7 +360,11 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		return nil
 	}
 
-	// Store the event
+	// Store the events. An event the provider delivers again has the ID it had the first
+	// time, so the row stored then makes the insert skip it, and the soft bounces counted
+	// below are counted once. The events are still applied, stored before or not: a delivery
+	// whose processing failed after the events were stored is repaired only by the provider's
+	// redelivery, and applying one again changes no message status.
 	if err := s.repo.StoreEvents(ctx, workspaceID, events); err != nil {
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, err)
@@ -950,8 +954,10 @@ func (s *InboundWebhookEventService) processSESWebhook(integrationID string, raw
 	events = make([]*domain.InboundWebhookEvent, 0, len(recipients))
 	for _, recipient := range recipients {
 		eventMessageID := messageID
+		// SNS sends a notification again with its MessageId, and a notification reports on
+		// every recipient it lists
 		event := domain.NewInboundWebhookEvent(
-			uuid.New().String(),
+			domain.ProviderEventID(integrationID, domain.WebhookSourceSES, eventType, snsPayload.MessageID, domain.NormalizeEmail(recipient.email)),
 			eventType,
 			domain.WebhookSourceSES,
 			integrationID,
@@ -1087,9 +1093,17 @@ func (s *InboundWebhookEventService) processPostmarkWebhook(integrationID string
 		messageID = notifuseMessageID
 	}
 
+	// A bounce or a spam complaint has its ID; a delivery has none, and is one recipient's
+	// delivery of the email at a time
+	eventKey := []string{payload.EventID()}
+	if eventType == domain.EmailEventDelivered {
+		deliveredAt, _ := jsonData["DeliveredAt"].(string)
+		eventKey = []string{payload.MessageID, domain.NormalizeEmail(recipientEmail), deliveredAt}
+	}
+
 	// Create the webhook event
 	event := domain.NewInboundWebhookEvent(
-		uuid.New().String(),
+		domain.ProviderEventID(integrationID, domain.WebhookSourcePostmark, eventType, eventKey...),
 		eventType,
 		domain.WebhookSourcePostmark,
 		integrationID,
@@ -1181,7 +1195,7 @@ func (s *InboundWebhookEventService) processMailgunWebhook(integrationID string,
 
 	// Create the webhook event
 	event := domain.NewInboundWebhookEvent(
-		uuid.New().String(),
+		domain.ProviderEventID(integrationID, domain.WebhookSourceMailgun, eventType, payload.EventData.ID),
 		eventType,
 		domain.WebhookSourceMailgun,
 		integrationID,
@@ -1286,7 +1300,7 @@ func (s *InboundWebhookEventService) processSparkPostWebhook(integrationID strin
 
 		// Create the webhook event
 		event := domain.NewInboundWebhookEvent(
-			uuid.New().String(),
+			domain.ProviderEventID(integrationID, domain.WebhookSourceSparkPost, eventType, payload.MSys.MessageEvent.EventID),
 			eventType,
 			domain.WebhookSourceSparkPost,
 			integrationID,
@@ -1424,9 +1438,19 @@ func (s *InboundWebhookEventService) processSingleMailjetEvent(integrationID str
 		messageID = notifuseMessageID
 	}
 
+	// Mailjet gives an event no ID of its own: its message ID, which is one recipient's, and
+	// its time make one
+	eventKey := []string{payload.Event, "", ""}
+	if payload.MessageID != 0 {
+		eventKey[1] = strconv.FormatInt(payload.MessageID, 10)
+	}
+	if payload.Time != 0 {
+		eventKey[2] = strconv.FormatInt(payload.Time, 10)
+	}
+
 	// Create the webhook event
 	event := domain.NewInboundWebhookEvent(
-		uuid.New().String(),
+		domain.ProviderEventID(integrationID, domain.WebhookSourceMailjet, eventType, eventKey...),
 		eventType,
 		domain.WebhookSourceMailjet,
 		integrationID,
@@ -1480,8 +1504,9 @@ func (s *InboundWebhookEventService) processSMTPWebhook(integrationID string, ra
 	}
 
 	// Create the webhook event
+	// The format has no event ID: the email, which is one recipient's, and the time make one
 	event := domain.NewInboundWebhookEvent(
-		uuid.New().String(),
+		domain.ProviderEventID(integrationID, domain.WebhookSourceSMTP, eventType, payload.Event, payload.MessageID, payload.Timestamp),
 		eventType,
 		domain.WebhookSourceSMTP,
 		integrationID,
@@ -1578,7 +1603,7 @@ func (s *InboundWebhookEventService) processSendGridWebhook(integrationID string
 
 		// Create the webhook event
 		event := domain.NewInboundWebhookEvent(
-			uuid.New().String(),
+			domain.ProviderEventID(integrationID, domain.WebhookSourceSendGrid, eventType, sgEvent.SGEventID),
 			eventType,
 			domain.WebhookSourceSendGrid,
 			integrationID,

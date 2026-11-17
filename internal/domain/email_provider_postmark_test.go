@@ -2,6 +2,7 @@ package domain_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -307,4 +308,25 @@ func TestEmailProvider_WithPostmarkSettings(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "postmark settings required")
 	})
+}
+
+// Postmark sends the ID of a bounce or a spam complaint as a JSON number
+func TestPostmarkWebhookPayload_EventID(t *testing.T) {
+	for name, c := range map[string]struct {
+		body string
+		want string
+	}{
+		"a number, as Postmark sends it": {`{"RecordType":"Bounce","ID":692560173}`, "692560173"},
+		"a number above 2^53 kept exact": {`{"RecordType":"Bounce","ID":4323372036854775807}`, "4323372036854775807"},
+		"a string":                       {`{"RecordType":"Bounce","ID":"12"}`, "12"},
+		"an empty string":                {`{"RecordType":"Bounce","ID":""}`, ""},
+		"null":                           {`{"RecordType":"Bounce","ID":null}`, ""},
+		"absent, as in a delivery":       {`{"RecordType":"Delivery"}`, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var payload domain.PostmarkWebhookPayload
+			require.NoError(t, json.Unmarshal([]byte(c.body), &payload))
+			assert.Equal(t, c.want, payload.EventID())
+		})
+	}
 }

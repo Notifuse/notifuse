@@ -2,7 +2,9 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 )
@@ -11,7 +13,7 @@ import (
 type PostmarkWebhookPayload struct {
 	RecordType    string            `json:"RecordType"`
 	MessageStream string            `json:"MessageStream"`
-	ID            string            `json:"ID"`
+	ID            json.RawMessage   `json:"ID,omitempty"` // a bounce's or a spam complaint's, a JSON number; see EventID
 	MessageID     string            `json:"MessageID"`
 	ServerID      int               `json:"ServerID"`
 	Metadata      map[string]string `json:"Metadata,omitempty"`
@@ -25,6 +27,16 @@ type PostmarkWebhookPayload struct {
 
 	// Complaint event specific fields
 	ComplaintFields *PostmarkComplaintFields `json:"-"`
+}
+
+// EventID returns the ID Postmark gives a bounce or a spam complaint, as written in the
+// payload, a number kept exact whatever its size. It is empty for a delivery, which has none.
+func (p PostmarkWebhookPayload) EventID() string {
+	id := strings.TrimSpace(string(p.ID))
+	if id == "null" {
+		return ""
+	}
+	return strings.Trim(id, `"`)
 }
 
 // PostmarkDeliveredFields contains fields specific to delivery events

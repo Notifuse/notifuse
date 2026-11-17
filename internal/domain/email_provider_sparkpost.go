@@ -21,6 +21,7 @@ type SparkPostMSys struct {
 
 type SparkPostMessageEvent struct {
 	Type          string                 `json:"type"`
+	EventID       string                 `json:"event_id"` // unique to the event, kept on a redelivery
 	CampaignID    string                 `json:"campaign_id"`
 	MessageID     string                 `json:"message_id"`
 	Timestamp     string                 `json:"timestamp"`
