@@ -682,10 +682,9 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 	// After segments (step 8), because two of the five trigger on segment ids that do not exist
 	// until then. And after everything else, because activating an automation installs an AFTER
 	// INSERT trigger on contact_timeline: installed any earlier it would enroll a contact for every
-	// row the rest of the seed writes, and with every_time frequency and repeat buyers that burst
-	// collides with contact_automations' UNIQUE(automation_id, contact_email, entered_at) inside the
-	// custom-events batch transaction — which would abort it and take the demo's whole conversion
-	// history with it.
+	// row the rest of the seed writes: with every_time frequency and repeat buyers, a journey for
+	// every purchase of the demo's conversion history, on top of the history the seed already
+	// writes for them.
 	if err := s.createSampleAutomations(ctx, workspaceID); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to create sample automations")
 		// Non-fatal: the rest of the demo is still usable without them.

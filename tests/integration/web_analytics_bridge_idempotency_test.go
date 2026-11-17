@@ -40,8 +40,8 @@ import (
 // since the skew-corrected timestamp the bridge deliberately does not use is
 // recomputed per beat and would look newer every time. Either way the timeline
 // trigger, which fires on INSERT *or* UPDATE and does no diffing, appends
-// another contact_timeline row and with it a segment recomputation and an
-// automation re-enrolment.
+// another contact_timeline row and with it a segment recomputation (and, through
+// an automation trigger body installed before 44.0, an automation re-enrolment).
 //
 // So each case here re-inserts a key that already exists with DIFFERENT payload
 // — including an occurred_at deliberately newer than the first, the only shape
@@ -171,7 +171,7 @@ func TestCustomEventBatchInsertNewIsImmutable(t *testing.T) {
 
 		assert.Equal(t, 1, eventRows(t, "order_1"))
 		assert.Equal(t, 1, timelineRows(t, "order_1"),
-			"a replayed goal must not append a second timeline row, segment recompute and automation enrolment")
+			"a replayed goal must not append a second timeline row and segment recompute")
 	})
 
 	t.Run("a soft-deleted event is not resurrected by a replay", func(t *testing.T) {

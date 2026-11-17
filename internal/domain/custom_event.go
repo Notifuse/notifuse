@@ -273,7 +273,8 @@ type CustomEventRepository interface {
 	// existing row completely untouched. Required for immutable event sources:
 	// the timeline trigger fires on UPDATE as well as INSERT and does no
 	// diffing, so re-upserting an unchanged event would append a duplicate
-	// timeline entry and re-enrol the contact in any matching automation.
+	// timeline entry (and, through an automation trigger body installed before
+	// 44.0, re-enrol the contact in any matching automation).
 	BatchInsertNew(ctx context.Context, workspaceID string, events []*CustomEvent) error
 	GetByID(ctx context.Context, workspaceID, eventName, externalID string) (*CustomEvent, error)
 	ListByEmail(ctx context.Context, workspaceID, email string, limit int, offset int) ([]*CustomEvent, error)

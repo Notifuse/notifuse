@@ -18,7 +18,8 @@ import (
 
 // BatchInsertNew must use ON CONFLICT DO NOTHING (never DO UPDATE): the
 // custom_events timeline trigger fires on UPDATE too, so re-writing an
-// existing row would duplicate timeline entries and re-enrol contacts.
+// existing row would duplicate timeline entries (and re-enrol contacts through an
+// automation trigger body installed before 44.0).
 
 func batchInsertEvent(id string) *domain.CustomEvent {
 	return &domain.CustomEvent{
