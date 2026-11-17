@@ -28,9 +28,6 @@ export type {
 
 // Shared utilities (for advanced usage)
 export {
-  expandSelectionToNode,
-  applyFormattingWithNodeSelection,
-  applyInlineFormatting,
   convertBlockToInline,
   processInlineContent,
   prepareInlineContent,

@@ -2732,11 +2732,11 @@ msgstr "una pagina sconosciuta"
 msgid "Analytics Assistant"
 msgstr "Assistente Analytics"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:328
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:337
 msgid "Anchor"
 msgstr "Ancora"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:377
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:386
 msgid "Anchor ID"
 msgstr "ID ancora"
 
@@ -3581,7 +3581,7 @@ msgstr "Colore di sfondo"
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:223
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:60
 #: src/components/email_builder/ui/BackgroundInput.tsx:264
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:585
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Background Color"
 msgstr "Colore di sfondo"
 
@@ -3886,7 +3886,7 @@ msgstr "Body:"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:287
 #: src/components/email_builder/ui/FontStyleInput.tsx:110
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:527
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:545
 msgid "Bold"
 msgstr "Grassetto"
 
@@ -4451,7 +4451,7 @@ msgstr "Non modificabile dopo la creazione del template"
 #: src/components/email_builder/ui/ImportFontInput.tsx:173
 #: src/components/email_builder/ui/SaveBlockModal.tsx:98
 #: src/components/email_builder/ui/StringPopoverInput.tsx:92
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:398
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:407
 #: src/components/file_manager/buttonSettings.tsx:307
 #: src/components/file_manager/context.tsx:212
 #: src/components/file_manager/DeleteFolderModal.tsx:56
@@ -8511,7 +8511,7 @@ msgstr "Padding elemento"
 #: src/components/contacts/sheet/activityLabel.ts:16
 #: src/components/contacts/sheet/describeActivity.tsx:129
 #: src/components/contacts/visits/webVisitSource.ts:27
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:326
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:335
 #: src/components/logs/InboundWebhooksTab.tsx:167
 #: src/components/logs/MessagesTab.tsx:300
 #: src/components/logs/MessagesTab.tsx:485
@@ -8533,7 +8533,7 @@ msgstr "Email (richiesta)"
 msgid "Email address"
 msgstr "Indirizzo email"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:372
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:381
 msgid "Email Address"
 msgstr "Indirizzo email"
 
@@ -11725,7 +11725,7 @@ msgstr "Inserisci"
 msgid "Insert a variable"
 msgstr "Inserisci una variabile"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:598
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:616
 msgid "Insert Emoji"
 msgstr "Inserisci Emoji"
 
@@ -11738,9 +11738,9 @@ msgid "Insert image"
 msgstr "Inserisci immagine"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:139
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:406
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:414
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:608
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:415
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:423
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:626
 msgid "Insert Link"
 msgstr "Inserisci Link"
 
@@ -12077,7 +12077,7 @@ msgstr "Non verrà mai inviato. Un broadcast annullato non può essere ripreso."
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:313
 #: src/components/email_builder/ui/FontStyleInput.tsx:124
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:537
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:555
 msgid "Italic"
 msgstr "Corsivo"
 
@@ -12599,11 +12599,11 @@ msgstr "Link copiato"
 msgid "Link Settings"
 msgstr "Impostazioni Link"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:376
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:385
 msgid "Link target"
 msgstr "Destinazione del link"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:355
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:364
 msgid "Link Type"
 msgstr "Tipo Link"
 
@@ -15603,7 +15603,7 @@ msgstr "Aperture attivate"
 msgid "Opens per day"
 msgstr "Aperture al giorno"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:392
 msgid "Opens this email in the browser. The link is filled in for broadcasts and automations, and left empty in other emails."
 msgstr "Apre questa email nel browser. Il link viene compilato per i broadcast e le automazioni e lasciato vuoto nelle altre email."
 
@@ -16144,12 +16144,12 @@ msgstr "Permessi aggiornati con successo"
 #: src/components/contacts/ContactsTable.tsx:314
 #: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/contacts/sheet/contactFieldLabels.ts:27
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:327
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:336
 #: src/components/segment/segmentSummary.ts:41
 msgid "Phone"
 msgstr "Telefono"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:374
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:383
 msgid "Phone Number"
 msgstr "Numero di Telefono"
 
@@ -17352,7 +17352,7 @@ msgstr "destinatario@esempio.com"
 msgid "Recipients"
 msgstr "Destinatari"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:100
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:105
 msgid "Recommended"
 msgstr "Consigliato"
 
@@ -17424,7 +17424,7 @@ msgstr "URI di reindirizzamento"
 #: src/components/blog/PostDrawer.tsx:787
 #: src/components/blog/PostDrawer.tsx:790
 #: src/components/email_builder/EmailBuilder.tsx:1040
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:505
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:523
 msgid "Redo"
 msgstr "Ripeti"
 
@@ -17696,7 +17696,7 @@ msgstr "Rimuovi dal workspace"
 msgid "Remove label"
 msgstr "Rimuovi etichetta"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:402
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:411
 msgid "Remove Link"
 msgstr "Rimuovi Link"
 
@@ -20820,7 +20820,7 @@ msgstr "Salva la città"
 msgid "Store the region"
 msgstr "Salva la regione"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:557
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:575
 msgid "Strikethrough"
 msgstr "Barrato"
 
@@ -20957,7 +20957,7 @@ msgstr "Iscritto a {list}"
 msgid "Subscribed to {name}"
 msgstr "Iscritto a {name}"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:633
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:649
 msgid "Subscript"
 msgstr "Pedice"
 
@@ -21082,7 +21082,7 @@ msgstr "Supabase invia le sue email di autenticazione tramite Notifuse"
 #~ msgid "Supabase, AI assistants, Firecrawl and Zapier"
 #~ msgstr "Supabase, assistenti IA, Firecrawl e Zapier"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:624
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:640
 msgid "Superscript"
 msgstr "Apice"
 
@@ -21612,7 +21612,7 @@ msgstr "Attributi testo"
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:111
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:184
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:261
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:576
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
 msgid "Text Color"
 msgstr "Colore testo"
 
@@ -23394,7 +23394,7 @@ msgstr "Sotto il titolo nei risultati di ricerca"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:330
 #: src/components/email_builder/ui/FontStyleInput.tsx:137
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:547
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:565
 msgid "Underline"
 msgstr "Sottolineato"
 
@@ -23408,7 +23408,7 @@ msgstr "Comprendi la qualità dei referral"
 #: src/components/blog/PostDrawer.tsx:781
 #: src/components/email_builder/EmailBuilder.tsx:981
 #: src/components/email_builder/EmailBuilder.tsx:1033
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:496
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:514
 msgid "Undo"
 msgstr "Annulla"
 
@@ -23663,7 +23663,7 @@ msgstr "Aggiorna contatto"
 #~ msgid "Update existing block"
 #~ msgstr "Aggiorna blocco esistente"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:406
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:415
 msgid "Update Link"
 msgstr "Aggiorna link"
 
@@ -23818,8 +23818,8 @@ msgstr "Carica file"
 msgid "UPPERCASE"
 msgstr "MAIUSCOLO"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:325
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:370
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:334
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:379
 msgid "URL"
 msgstr "URL"
 
@@ -24305,6 +24305,10 @@ msgstr "Visualizza statistiche flusso"
 msgid "View full dashboard"
 msgstr "Visualizza la dashboard completa"
 
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:318
+msgid "View in browser"
+msgstr "Visualizza nel browser"
+
 #: src/components/analytics/RecentFailures.tsx:98
 #: src/components/transactional/RecentSends.tsx:54
 #: src/components/transactional/TransactionalDetail.tsx:327
@@ -24552,7 +24556,7 @@ msgstr "Strumenti web per l'assistente IA"
 msgid "Web tracking"
 msgstr "Tracciamento web"
 
-#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:329
+#: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:338
 msgid "Web version of the email"
 msgstr "Versione web dell'email"
 
