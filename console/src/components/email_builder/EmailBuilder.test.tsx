@@ -522,6 +522,38 @@ describe('EmailBuilder library', () => {
     expect(screen.getByTestId('library-panel')).toBeInTheDocument()
   })
 
+  it('opens the structure when a block is selected on the canvas, keeping the selection', () => {
+    render(<Drawer />)
+    openLibrary()
+    expect(screen.getByTestId('library-panel')).toBeInTheDocument()
+
+    act(() => (mockEditPanelProps.onSelectBlock as (id: string | null) => void)('text-1'))
+
+    expect(screen.queryByTestId('library-panel')).not.toBeInTheDocument()
+    expect(mockTreePanelProps.selectedBlockId).toBe('text-1')
+    expect(current.selected).toBe('text-1')
+  })
+
+  it('stays on the library when the canvas clears the selection', () => {
+    render(<Drawer />)
+    select('text-1')
+    openLibrary()
+
+    act(() => (mockEditPanelProps.onSelectBlock as (id: string | null) => void)(null))
+
+    expect(screen.getByTestId('library-panel')).toBeInTheDocument()
+  })
+
+  it('stays on the library when it inserts a block, which selects it', () => {
+    render(<Drawer />)
+    select('text-1')
+    openLibrary()
+    insertCard('cta')
+
+    expect(current.selected).not.toBe('text-1')
+    expect(screen.getByTestId('library-panel')).toBeInTheDocument()
+  })
+
   it('selects the inserted block through the selection the drawer holds', () => {
     render(<Drawer />)
     select('text-1')

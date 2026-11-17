@@ -841,6 +841,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     setLibraryHighlight(null)
   }
 
+  // A block picked on the canvas shows in the structure, with its place in the email
+  const handleSelectOnCanvas = (blockId: string | null) => {
+    handleSelectBlock(blockId)
+    if (blockId && leftTab === 'library') changeLeftTab('structure')
+  }
+
   const saveDialogBlock = saveDialogBlockId
     ? EmailBlockClass.findBlockById(tree, saveDialogBlockId)
     : null
@@ -1187,7 +1193,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                   <EditPanel
                     emailTree={tree}
                     selectedBlockId={effectiveSelectedBlockId}
-                    onSelectBlock={handleSelectBlock}
+                    onSelectBlock={handleSelectOnCanvas}
                     onUpdateBlock={handleUpdateBlock}
                     onCloneBlock={handleCloneBlock}
                     onDeleteBlock={handleDeleteBlock}
