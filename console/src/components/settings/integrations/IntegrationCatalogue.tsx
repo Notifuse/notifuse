@@ -8,7 +8,7 @@ import { firecrawlProvider } from '../../integrations/FirecrawlProviders'
 import { zapierProvider } from '../../integrations/ZapierProviders'
 import { Pill } from '../../layout'
 import { IntegrationIcon } from './IntegrationCard'
-import { deprecatedEmailProviders, transactionalEmailOnly } from './providerDetails'
+import { isDeprecatedEmailProvider, transactionalEmailOnly } from './providerDetails'
 import { DeprecatedPill } from './DeprecatedPill'
 
 /** What the owner picked in the catalogue: the drawer to open. */
@@ -74,7 +74,7 @@ export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigu
         name: provider.name,
         description: emailDescriptions[kind],
         pill:
-          transactionalEmailOnly.includes(kind) || deprecatedEmailProviders.includes(kind) ? (
+          transactionalEmailOnly.includes(kind) || isDeprecatedEmailProvider(kind) ? (
             <span className="flex shrink-0 items-center gap-1.5">
               {transactionalEmailOnly.includes(kind) ? (
                 <Pill tone="neutral" dot={false}>

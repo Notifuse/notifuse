@@ -66,13 +66,17 @@ describe('LibraryPanel', () => {
     expect(screen.getByPlaceholderText('Search saved blocks')).toBeInTheDocument()
   })
 
-  it('drops the search when the library falls to ten blocks or fewer', async () => {
+  it('keeps a search under way when the library falls to ten blocks, and hides the box once it is cleared', async () => {
     const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn(), onOpenSaveDialog: vi.fn() }
     const { rerender } = render(<LibraryPanel {...props} savedBlocks={searchable(cta)} />)
     await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'elan')
     expect(cardNames()).toEqual(['cta'])
 
     rerender(<LibraryPanel {...props} savedBlocks={[cta, ...others.slice(1)]} />)
+    expect(screen.getByPlaceholderText('Search saved blocks')).toHaveValue('elan')
+    expect(cardNames()).toEqual(['cta'])
+
+    await userEvent.clear(screen.getByPlaceholderText('Search saved blocks'))
     expect(screen.queryByPlaceholderText('Search saved blocks')).toBeNull()
     expect(cardNames()).toHaveLength(10)
   })

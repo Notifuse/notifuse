@@ -1103,7 +1103,7 @@ msgstr "{pageviews, plural, one {# página} other {# páginas}}"
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews} páginas"
 
-#: src/components/settings/integrations/providerDetails.ts:166
+#: src/components/settings/integrations/providerDetails.ts:169
 msgid "{perMinuteText} emails/min"
 msgstr "{perMinuteText} correos/min"
 
@@ -1436,7 +1436,7 @@ msgid "+{hiddenCount} more"
 msgstr "+{hiddenCount} más"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:967
-#: src/components/settings/integrations/providerDetails.ts:167
+#: src/components/settings/integrations/providerDetails.ts:170
 msgid "≈ {perHour} per hour · ≈ {perDay} per day"
 msgstr "≈ {perHour} por hora · ≈ {perDay} por día"
 
@@ -2476,7 +2476,7 @@ msgstr "Alineación"
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:101
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:338
-#: src/components/email_builder/panels/LibraryPanel.tsx:267
+#: src/components/email_builder/panels/LibraryPanel.tsx:266
 #: src/components/logs/AuditLogTab.tsx:192
 #: src/components/logs/AuditLogTab.tsx:214
 #: src/components/logs/AuditLogTab.tsx:252
@@ -2892,7 +2892,7 @@ msgstr "Documentación de la API"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:707
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:708
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:709
-#: src/components/settings/integrations/providerDetails.ts:129
+#: src/components/settings/integrations/providerDetails.ts:132
 msgid "API endpoint"
 msgstr "Punto final de la API"
 
@@ -2929,10 +2929,10 @@ msgstr "El identificador API debe tener como máximo {TRANSACTIONAL_ID_MAX_LENGT
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:777
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:800
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:59
-#: src/components/settings/integrations/providerDetails.ts:31
-#: src/components/settings/integrations/providerDetails.ts:33
 #: src/components/settings/integrations/providerDetails.ts:34
 #: src/components/settings/integrations/providerDetails.ts:36
+#: src/components/settings/integrations/providerDetails.ts:37
+#: src/components/settings/integrations/providerDetails.ts:39
 #: src/components/settings/ZapierSettings.tsx:259
 msgid "API key"
 msgstr "Clave API"
@@ -3302,7 +3302,7 @@ msgstr "Hook de correo de autenticación"
 
 #: src/components/settings/Integrations.tsx:369
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:603
-#: src/components/settings/integrations/providerDetails.ts:63
+#: src/components/settings/integrations/providerDetails.ts:66
 msgid "Authentication"
 msgstr "Autenticación"
 
@@ -3511,7 +3511,7 @@ msgstr "AWS factura por tenant y mes. Al activarlo se pide confirmación y el te
 msgid "AWS keys, optional tenant isolation"
 msgstr "Claves de AWS, aislamiento de tenant opcional"
 
-#: src/components/settings/integrations/providerDetails.ts:82
+#: src/components/settings/integrations/providerDetails.ts:85
 msgid "AWS region"
 msgstr "Región de AWS"
 
@@ -3639,7 +3639,7 @@ msgstr "Clave privada TLS codificada en Base64"
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Clave privada TLS codificada en Base64. Ejecutar: cat privkey.pem | base64 -w 0"
 
-#: src/components/settings/integrations/providerDetails.ts:67
+#: src/components/settings/integrations/providerDetails.ts:70
 msgid "Basic (username and password)"
 msgstr "Básica (usuario y contraseña)"
 
@@ -3647,7 +3647,7 @@ msgstr "Básica (usuario y contraseña)"
 #~ msgid "Basic Authentication (Username/Password)"
 #~ msgstr "Autenticación básica (Usuario/Contraseña)"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:311
+#: src/components/email_builder/panels/LibraryPanel.tsx:310
 msgid "Basic blocks"
 msgstr "Bloques básicos"
 
@@ -5472,8 +5472,8 @@ msgstr "Condiciones"
 #~ msgstr "La configuración para {nodeType} no está disponible en la Fase 2"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:482
-#: src/components/settings/integrations/providerDetails.ts:87
-#: src/components/settings/integrations/providerDetails.ts:94
+#: src/components/settings/integrations/providerDetails.ts:90
+#: src/components/settings/integrations/providerDetails.ts:97
 msgid "Configuration set"
 msgstr "Conjunto de configuración"
 
@@ -5830,7 +5830,7 @@ msgid "contains"
 msgstr "contiene"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:123
-#: src/components/email_builder/panels/LibraryPanel.tsx:269
+#: src/components/email_builder/panels/LibraryPanel.tsx:268
 #: src/components/settings/SettingsSidebar.tsx:28
 #: src/components/templates/TemplateDrawerBar.tsx:83
 #: src/components/templates/TemplateSettingsAside.tsx:140
@@ -6510,7 +6510,7 @@ msgstr "Creada {0} · Actualizada {1} en {2}"
 msgid "Created At"
 msgstr "Creado el"
 
-#: src/components/settings/integrations/providerDetails.ts:99
+#: src/components/settings/integrations/providerDetails.ts:102
 msgid "Created by Register webhooks, in the menu"
 msgstr "Se crea con «Registrar webhooks», en el menú"
 
@@ -6628,7 +6628,7 @@ msgstr "Idioma actual"
 msgid "Current Segment Tree JSON"
 msgstr "JSON del árbol de segmento actual"
 
-#: src/components/settings/integrations/providerDetails.ts:90
+#: src/components/settings/integrations/providerDetails.ts:93
 msgid "custom"
 msgstr "personalizado"
 
@@ -7651,7 +7651,7 @@ msgstr "Denegado"
 msgid "Deployment"
 msgstr "Despliegue"
 
-#: src/components/settings/integrations/DeprecatedPill.tsx:19
+#: src/components/settings/integrations/DeprecatedPill.tsx:21
 msgid "Deprecated"
 msgstr "Obsoleto"
 
@@ -7774,7 +7774,7 @@ msgstr "Deshabilitar webhook"
 
 #: src/components/settings/BlogSettings.tsx:246
 #: src/components/settings/Integrations.tsx:408
-#: src/components/settings/integrations/providerDetails.ts:51
+#: src/components/settings/integrations/providerDetails.ts:54
 #: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/settings/WebhookDetail.tsx:267
 #: src/components/settings/WebhooksSettings.tsx:314
@@ -7926,7 +7926,7 @@ msgstr "no es igual a"
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:745
-#: src/components/settings/integrations/providerDetails.ts:141
+#: src/components/settings/integrations/providerDetails.ts:144
 #: src/pages/SetupWizard.tsx:605
 msgid "Domain"
 msgstr "Dominio"
@@ -8489,7 +8489,7 @@ msgid "Editor mode"
 msgstr "Modo de editor"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:595
-#: src/components/settings/integrations/providerDetails.ts:73
+#: src/components/settings/integrations/providerDetails.ts:76
 msgid "EHLO hostname"
 msgstr "Nombre de host EHLO"
 
@@ -8902,7 +8902,7 @@ msgstr "Habilitar webhook"
 
 #: src/components/settings/BlogSettings.tsx:241
 #: src/components/settings/Integrations.tsx:408
-#: src/components/settings/integrations/providerDetails.ts:51
+#: src/components/settings/integrations/providerDetails.ts:54
 #: src/components/settings/SystemSettingsDrawer.tsx:469
 #: src/components/settings/SystemSettingsDrawer.tsx:554
 #: src/components/settings/WebAnalyticsSettings.tsx:216
@@ -12083,11 +12083,11 @@ msgstr "está definido"
 msgid "is true"
 msgstr "es verdadero"
 
-#: src/components/settings/integrations/providerDetails.ts:108
+#: src/components/settings/integrations/providerDetails.ts:111
 msgid "isolated"
 msgstr "aislado"
 
-#: src/components/settings/integrations/providerDetails.ts:115
+#: src/components/settings/integrations/providerDetails.ts:118
 msgid "isolation requested but not provisioned"
 msgstr "aislamiento solicitado pero no aprovisionado"
 
@@ -12561,7 +12561,7 @@ msgstr "Espaciado de letras"
 #~ msgid "Letter Spacing"
 #~ msgstr "Espaciado de letras"
 
-#: src/components/email_builder/EmailBuilder.tsx:1136
+#: src/components/email_builder/EmailBuilder.tsx:1135
 msgid "Library"
 msgstr "Biblioteca"
 
@@ -13199,7 +13199,7 @@ msgstr "Gestionar campos personalizados"
 #~ msgid "Manage your workspace members"
 #~ msgstr "Administra los miembros de tu espacio de trabajo"
 
-#: src/components/settings/integrations/providerDetails.ts:90
+#: src/components/settings/integrations/providerDetails.ts:93
 msgid "managed"
 msgstr "gestionado"
 
@@ -13471,7 +13471,7 @@ msgid "Message not found"
 msgstr "Mensaje no encontrado"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:734
-#: src/components/settings/integrations/providerDetails.ts:147
+#: src/components/settings/integrations/providerDetails.ts:150
 msgid "Message stream"
 msgstr "Flujo de mensajes"
 
@@ -14106,7 +14106,7 @@ msgstr "Siguiente paso"
 #: src/components/settings/integrations/EmailProviderCard.tsx:158
 #: src/components/settings/integrations/EmailProviderCard.tsx:174
 #: src/components/settings/integrations/EmailRoles.tsx:35
-#: src/components/settings/integrations/providerDetails.ts:60
+#: src/components/settings/integrations/providerDetails.ts:63
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/WebhookDetail.tsx:290
 #: src/components/settings/WebhookDetail.tsx:394
@@ -14615,11 +14615,11 @@ msgstr "Ninguna regla coincide con esta visita"
 msgid "No sample values available"
 msgstr "No hay valores de muestra disponibles"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:290
+#: src/components/email_builder/panels/LibraryPanel.tsx:289
 msgid "No saved block matches."
 msgstr "Ningún bloque guardado coincide."
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:299
+#: src/components/email_builder/panels/LibraryPanel.tsx:298
 #: src/components/email_builder/ui/AddBlockPopover.tsx:316
 #: src/components/email_builder/ui/AddBlockPopover.tsx:388
 msgid "No saved blocks yet"
@@ -14930,7 +14930,7 @@ msgstr "No se cuentan más allá de {countMax}"
 msgid "Not created"
 msgstr "Sin crear"
 
-#: src/components/settings/integrations/providerDetails.ts:97
+#: src/components/settings/integrations/providerDetails.ts:100
 msgid "Not created yet"
 msgstr "Aún no creado"
 
@@ -15180,7 +15180,7 @@ msgstr "Número"
 #~ msgid "Number of posts to display per page on the homepage"
 #~ msgstr "Número de publicaciones a mostrar por página en la página de inicio"
 
-#: src/components/settings/integrations/providerDetails.ts:66
+#: src/components/settings/integrations/providerDetails.ts:69
 msgid "OAuth2 ({oauthProvider})"
 msgstr "OAuth2 ({oauthProvider})"
 
@@ -15188,7 +15188,7 @@ msgstr "OAuth2 ({oauthProvider})"
 #~ msgid "OAuth2 (Microsoft 365 / Google)"
 #~ msgstr "OAuth2 (Microsoft 365 / Google)"
 
-#: src/components/settings/integrations/providerDetails.ts:29
+#: src/components/settings/integrations/providerDetails.ts:32
 msgid "OAuth2 client secret"
 msgstr "Secreto de cliente OAuth2"
 
@@ -15205,7 +15205,7 @@ msgstr "Proveedor OAuth2"
 #~ msgid "OAuth2 Provider"
 #~ msgstr "Proveedor OAuth2"
 
-#: src/components/settings/integrations/providerDetails.ts:30
+#: src/components/settings/integrations/providerDetails.ts:33
 msgid "OAuth2 refresh token"
 msgstr "Token de actualización OAuth2"
 
@@ -15958,7 +15958,7 @@ msgid "Partitions already rewritten keep their new values."
 msgstr "Las particiones ya reescritas conservan sus nuevos valores."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:692
-#: src/components/settings/integrations/providerDetails.ts:28
+#: src/components/settings/integrations/providerDetails.ts:31
 #: src/components/transactional/ApiCommandDrawer.tsx:147
 msgid "Password"
 msgstr "Contraseña"
@@ -17087,7 +17087,7 @@ msgstr "Los correos en cola no se enviarán. Los envíos en curso se completará
 msgid "Rate for marketing"
 msgstr "Ritmo de envío para marketing"
 
-#: src/components/settings/integrations/providerDetails.ts:165
+#: src/components/settings/integrations/providerDetails.ts:168
 msgid "Rate limit for marketing"
 msgstr "Límite de envío para marketing"
 
@@ -17592,7 +17592,7 @@ msgstr "Regeneró el secreto del webhook <0>{target}</0>"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:427
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:756
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:759
-#: src/components/settings/integrations/providerDetails.ts:142
+#: src/components/settings/integrations/providerDetails.ts:145
 #: src/components/settings/WebAnalyticsSettings.tsx:358
 msgid "Region"
 msgstr "Región"
@@ -17968,9 +17968,9 @@ msgstr "Informar de un problema"
 #~ msgstr ""
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:451
-#: src/components/settings/integrations/providerDetails.ts:105
-#: src/components/settings/integrations/providerDetails.ts:114
-#: src/components/settings/integrations/providerDetails.ts:121
+#: src/components/settings/integrations/providerDetails.ts:108
+#: src/components/settings/integrations/providerDetails.ts:117
+#: src/components/settings/integrations/providerDetails.ts:124
 msgid "Reputation"
 msgstr "Reputación"
 
@@ -18469,8 +18469,8 @@ msgstr "Valores de muestra"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:719
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:791
-#: src/components/settings/integrations/providerDetails.ts:135
-#: src/components/settings/integrations/providerDetails.ts:154
+#: src/components/settings/integrations/providerDetails.ts:138
+#: src/components/settings/integrations/providerDetails.ts:157
 msgid "Sandbox mode"
 msgstr "Modo sandbox"
 
@@ -18581,7 +18581,7 @@ msgstr "Guarda primero la automatización"
 msgid "Save the broadcast first"
 msgstr "Primero guarda el envío masivo"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:305
+#: src/components/email_builder/panels/LibraryPanel.tsx:304
 msgid "Save the selected block"
 msgstr "Guardar el bloque seleccionado"
 
@@ -18649,7 +18649,7 @@ msgstr "Guardado como v{version}"
 msgid "Saved block: {0}"
 msgstr "Bloque guardado: {0}"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:260
+#: src/components/email_builder/panels/LibraryPanel.tsx:259
 msgid "Saved blocks"
 msgstr "Bloques guardados"
 
@@ -18815,7 +18815,7 @@ msgstr "La búsqueda mira los nombres y los asuntos."
 msgid "Search results"
 msgstr "Resultados de búsqueda"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:253
+#: src/components/email_builder/panels/LibraryPanel.tsx:252
 msgid "Search saved blocks"
 msgstr "Buscar bloques guardados"
 
@@ -18894,8 +18894,8 @@ msgid "Secret copied to clipboard"
 msgstr "Secreto copiado al portapapeles"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:784
-#: src/components/settings/integrations/providerDetails.ts:27
-#: src/components/settings/integrations/providerDetails.ts:35
+#: src/components/settings/integrations/providerDetails.ts:30
+#: src/components/settings/integrations/providerDetails.ts:38
 msgid "Secret key"
 msgstr "Clave secreta"
 
@@ -18921,7 +18921,7 @@ msgstr "Atributos de sección"
 #~ msgid "Section Attributes"
 #~ msgstr "Atributos de sección"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:268
+#: src/components/email_builder/panels/LibraryPanel.tsx:267
 msgid "Sections"
 msgstr "Secciones"
 
@@ -19036,15 +19036,15 @@ msgstr "Seleccionar"
 #~ msgid "Select {0}"
 #~ msgstr "Seleccionar {0}"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:183
+#: src/components/email_builder/panels/LibraryPanel.tsx:182
 msgid "Select a block in the email"
 msgstr "Selecciona un bloque en el correo"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:301
+#: src/components/email_builder/panels/LibraryPanel.tsx:300
 msgid "Select a block in the email, then use the save button in its toolbar. Saved blocks can be used in every template of the workspace."
 msgstr "Selecciona un bloque en el correo y luego usa el botón de guardar de su barra de herramientas. Los bloques guardados se pueden usar en todas las plantillas del espacio de trabajo."
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:184
+#: src/components/email_builder/panels/LibraryPanel.tsx:183
 msgid "Select a block of the same type"
 msgstr "Selecciona un bloque del mismo tipo"
 
@@ -19840,7 +19840,7 @@ msgid "Server restarted successfully! You can now sign in."
 msgstr "¡Servidor reiniciado exitosamente! Ahora puedes iniciar sesión."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:727
-#: src/components/settings/integrations/providerDetails.ts:32
+#: src/components/settings/integrations/providerDetails.ts:35
 msgid "Server token"
 msgstr "Token del servidor"
 
@@ -20157,7 +20157,7 @@ msgstr "Título para compartir"
 msgid "Shared"
 msgstr "Compartidos"
 
-#: src/components/settings/integrations/providerDetails.ts:122
+#: src/components/settings/integrations/providerDetails.ts:125
 msgid "shared with the rest of this AWS account"
 msgstr "compartido con el resto de esta cuenta de AWS"
 
@@ -20480,7 +20480,7 @@ msgstr "SMTP no informa de las entregas"
 msgid "SMTP domain"
 msgstr "Dominio SMTP"
 
-#: src/components/settings/integrations/providerDetails.ts:58
+#: src/components/settings/integrations/providerDetails.ts:61
 msgid "SMTP host"
 msgstr "Host SMTP"
 
@@ -20529,7 +20529,7 @@ msgstr "El proveedor SMTP no soporta webhooks de queja, por lo que las quejas de
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "El proveedor SMTP no soporta webhooks de entrega, por lo que el estado de entrega no puede ser rastreado"
 
-#: src/components/settings/integrations/providerDetails.ts:59
+#: src/components/settings/integrations/providerDetails.ts:62
 msgid "SMTP user"
 msgstr "Usuario SMTP"
 
@@ -22972,7 +22972,7 @@ msgstr "Título, slug y categoría"
 msgid "Title, slug and category required"
 msgstr "Título, slug y categoría obligatorios"
 
-#: src/components/settings/integrations/providerDetails.ts:60
+#: src/components/settings/integrations/providerDetails.ts:63
 #: src/components/settings/SMTPBridgeSettings.tsx:48
 msgid "TLS"
 msgstr "TLS"
@@ -25267,7 +25267,7 @@ msgstr "Anual"
 #: src/components/settings/integrations/EmailProviderCard.tsx:157
 #: src/components/settings/integrations/EmailProviderCard.tsx:173
 #: src/components/settings/integrations/EmailRoles.tsx:34
-#: src/components/settings/integrations/providerDetails.ts:60
+#: src/components/settings/integrations/providerDetails.ts:63
 #: src/components/settings/WebhookDetail.tsx:289
 #: src/components/settings/WebhookDetail.tsx:393
 #: src/components/web_analytics/filters/FilterTable.tsx:275

@@ -68,7 +68,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: The SparkPost and Mailjet integrations are marked deprecated in the console and will be removed in a later version: SparkPost no longer accepts new customers, and Mailjet does not allow sending marketing emails through its API.
 
-- **Improvement**: The AI integrations suggest current models: Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 for Anthropic, Gemini 4 Carbon, Argon and Hydrogen for Google, and GPT-6.1 Sol, GPT-6 Astra and GPT-6.1 Terra for OpenAI. A new integration starts on Claude Sonnet 5.5, Gemini 4 Argon or GPT-6.1 Sol; existing integrations keep their model.
+- **Improvement**: The AI integrations suggest current models: Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 for Anthropic, Gemini 4 Carbon, Argon and Hydrogen for Google, and GPT-6.1 Sol, GPT-6 Astra and GPT-6.1 Terra for OpenAI. A new integration starts on Claude Sonnet 5.5, Gemini 4 Argon or GPT-6.1 Sol Existing integrations keep the model they name; one saved without a model now uses the new default.
 
 - **Improvement**: Emails are rendered with safe-mjml v1.0.0, the new name of the MJML engine Notifuse used (gomjml). Their HTML is the HTML the official MJML 4.18 writes, inline `mj-style` applies every selector as MJML does, and Liquid tags are kept intact. A condition written in `mj-raw` tags between sections now applies to the plain-text version too, as it does to the HTML. A template without `mj-body` fails to compile instead of giving an empty email.
 

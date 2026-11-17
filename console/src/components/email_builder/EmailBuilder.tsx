@@ -1132,9 +1132,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                     options={[
                       { label: t`Structure`, value: 'structure' },
                       {
-                        label: (
-<span data-testid="library-tab">{t`Library`}</span>
-                        ),
+                        label: <span data-testid="library-tab">{t`Library`}</span>,
                         value: 'library'
                       }
                     ]}

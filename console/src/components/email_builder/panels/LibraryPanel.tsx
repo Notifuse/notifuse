@@ -120,9 +120,8 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const refusalText = useInsertRefusal()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
-  // A short library needs no search; one that becomes short again drops its search, never hidden
-  const searchShown = savedBlocks.length > SEARCH_ABOVE
-  if (!searchShown && search) setSearch('')
+  // A short library needs no search; a search under way stays until it is cleared
+  const searchShown = savedBlocks.length > SEARCH_ABOVE || search !== ''
   const headKey = useMemo(() => headKeyOf(emailTree), [emailTree])
 
   // A card just changed stays listed, highlighted, until the search or the filter changes, so a

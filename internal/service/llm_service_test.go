@@ -564,8 +564,6 @@ func TestLLMService_StreamChat_OpenAI_ReasoningEmitsThinking(t *testing.T) {
 	assert.NotContains(t, text, "layout", "reasoning must not leak into the answer text")
 }
 
-// A configured reasoning_effort must be sent to the OpenAI API; an empty one must
-// be omitted (some models/providers 400 on it).
 // An OpenAI integration saved without a model asks the recommended one
 func TestLLMService_StreamChat_OpenAI_DefaultModel(t *testing.T) {
 	service, mockAuthService, mockWorkspaceRepo := setupLLMServiceTest(t)
@@ -605,6 +603,8 @@ func TestLLMService_StreamChat_OpenAI_DefaultModel(t *testing.T) {
 	assert.Contains(t, body, `"model":"gpt-6.1-sol"`)
 }
 
+// A configured reasoning_effort must be sent to the OpenAI API; an empty one must
+// be omitted (some models/providers 400 on it).
 func TestLLMService_StreamChat_OpenAI_ReasoningEffortPassthrough(t *testing.T) {
 	cases := []struct {
 		name        string

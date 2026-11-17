@@ -6,8 +6,11 @@ import type { EmailProviderKind, Integration } from '../../../services/api/types
 // Provider types that only support transactional emails, not marketing emails
 export const transactionalEmailOnly: EmailProviderKind[] = ['mailjet']
 
-/** Email providers on their way out: their card and their catalogue entry say so. */
-export const deprecatedEmailProviders: EmailProviderKind[] = ['sparkpost', 'mailjet']
+/** Email providers on their way out: their card and their catalogue entry say so, with a reason each. */
+export const deprecatedEmailProviders = ['sparkpost', 'mailjet'] as const satisfies readonly EmailProviderKind[]
+export type DeprecatedEmailProviderKind = (typeof deprecatedEmailProviders)[number]
+export const isDeprecatedEmailProvider = (kind: EmailProviderKind): kind is DeprecatedEmailProviderKind =>
+  (deprecatedEmailProviders as readonly EmailProviderKind[]).includes(kind)
 
 /** One line of the body of an email provider card. Labels and values arrive translated. */
 export interface DetailRow {
