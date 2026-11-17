@@ -194,6 +194,8 @@ func TestBroadcastService_UnscheduleBroadcast(t *testing.T) {
 			d, ctx, req := unscheduleDeps(t)
 			b := testBroadcast("w1", "b1")
 			b.Status = status
+			started := time.Now().UTC().Add(-time.Hour)
+			b.StartedAt = &started
 			d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
 
 			err := d.svc.UnscheduleBroadcast(ctx, req)
@@ -202,6 +204,20 @@ func TestBroadcastService_UnscheduleBroadcast(t *testing.T) {
 			assert.Contains(t, validation.Message, "started sending")
 		})
 	}
+
+	// A run's last attempt can pause a broadcast that never started: it is not told it did.
+	t.Run("refuses a paused broadcast that never started, pointing to cancel", func(t *testing.T) {
+		d, ctx, req := unscheduleDeps(t)
+		b := testBroadcast("w1", "b1")
+		b.Status, b.StartedAt = domain.BroadcastStatusPaused, nil
+		d.repo.EXPECT().GetBroadcastForUpdateTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+
+		err := d.svc.UnscheduleBroadcast(ctx, req)
+		var validation domain.ValidationError
+		require.ErrorAs(t, err, &validation)
+		assert.Contains(t, validation.Message, "cancel it instead")
+		assert.NotContains(t, validation.Message, "started sending")
+	})
 
 	// Cancel refuses these too, so the error does not send the console there.
 	for _, status := range []domain.BroadcastStatus{

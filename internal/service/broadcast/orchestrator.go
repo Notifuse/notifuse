@@ -1941,8 +1941,16 @@ func (o *BroadcastOrchestrator) handleTestPhaseCompletion(ctx context.Context, b
 		if latest.Status != domain.BroadcastStatusTesting && latest.Status != domain.BroadcastStatusProcessing {
 			// Paused or cancelled since this run last refreshed it. The run's copy
 			// is written whole, so writing it now would undo that; the next run's
-			// refresh handles the new status instead.
+			// refresh handles the new status instead. The last sample batch may have
+			// committed after the pause paused, or the cancel removed, the queue rows:
+			// they are settled here under the lock, as at the end of a run (finishRun).
 			left = latest.Status
+			switch latest.Status {
+			case domain.BroadcastStatusPaused:
+				return o.settleQueueEntriesTx(writeCtx, tx, broadcast.ID, o.emailQueuePauseTx, "paused_queue_count")
+			case domain.BroadcastStatusCancelled:
+				return o.settleQueueEntriesTx(writeCtx, tx, broadcast.ID, o.emailQueueDeleteTx, "cancelled_queue_count")
+			}
 			return nil
 		}
 

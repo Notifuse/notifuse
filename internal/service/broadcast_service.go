@@ -1049,8 +1049,9 @@ func taskShowsSendStarted(task *domain.Task, now time.Time) bool {
 // A scheduled broadcast leaves scheduled when its task's first sending run starts, and its
 // start date can be missing (a failed write), while a send under way at the upgrade keeps
 // scheduled until its next run, so "not started" is read from the start date, the emails
-// queued or sent, and the task together. A broadcast in a sending or paused status started
-// sending: it is refused with the error that sends to Cancel.
+// queued or sent, and the task together. A broadcast in a sending status, or paused after its
+// start, started sending: it is refused with the error that sends to Cancel. One paused before
+// it started (a run's last attempt) is refused with its own error, which also points to Cancel.
 func (s *BroadcastService) UnscheduleBroadcast(ctx context.Context, request *domain.UnscheduleBroadcastRequest) error {
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
@@ -1095,7 +1096,13 @@ func (s *BroadcastService) UnscheduleBroadcast(ctx context.Context, request *dom
 			case domain.BroadcastStatusDraft:
 				// Already a draft: an earlier call whose task deletion failed. Only its task is
 				// left to delete, below.
-			case domain.BroadcastStatusPaused, domain.BroadcastStatusProcessing, domain.BroadcastStatusProcessed,
+			case domain.BroadcastStatusPaused:
+				// A run's last attempt can pause a broadcast that never started sending.
+				if bcast.StartedAt == nil {
+					return domain.NewValidationError("the broadcast is paused: cancel it instead")
+				}
+				return errUnscheduleSendStarted
+			case domain.BroadcastStatusProcessing, domain.BroadcastStatusProcessed,
 				domain.BroadcastStatusTesting, domain.BroadcastStatusTestCompleted, domain.BroadcastStatusWinnerSelected:
 				return errUnscheduleSendStarted
 			default:
