@@ -90,6 +90,17 @@ import (
 // message_history and automations rows, and no trigger can be broadened. One savepoint per
 // automation: one whose condition no longer resolves keeps its old body and enrols without the
 // event. Journeys already running have no event. A rerun rewrites the same bodies.
+//
+// The same two steps fix three enrolment defects, with no statement of their own. The new
+// enrolment enrols a 'once' automation only when its insert added the automation_trigger_log
+// row, so two transactions enrolling one contact at once start one journey; and it dates a
+// journey with clock_timestamp(), so two enrolments of one contact in one transaction (two
+// events of one name in a batch) start two journeys instead of failing on
+// UNIQUE(automation_id, contact_email, entered_at). The replaced body of a custom event trigger
+// enrols only for a timeline row whose operation is 'insert': an update, soft delete or restore
+// of the event no longer starts the automation again. A trigger whose body is not replaced (see
+// above) keeps enrolling on those rows until the automation is paused and activated again; the
+// other two fixes reach it through the four-argument relay.
 // Since then a deletion failing between the contact row and its memberships still leaves
 // some, as does a segment build or queue recomputation that matches a contact and adds its
 // membership just after a deletion removed it. contact_segments has no foreign key to

@@ -134,6 +134,13 @@ func AutomationEnrollContactFunction() string {
 // is stored as contact_automations.context.trigger, where the email node hands it to the
 // template as {{ trigger_event }}. A NULL p_trigger stores the column's default, '{}'.
 //
+// Unlike the v38 body, it enrols a 'once' automation only when its own insert added the
+// automation_trigger_log row, so two transactions enrolling the same contact at the same time
+// start one journey, and it dates a journey with clock_timestamp(), so two enrolments of one
+// contact in one transaction start two journeys instead of failing on the unique key. The
+// second relies on each call running several statements before the next, which separates
+// their clock_timestamp() values in practice.
+//
 // p_trigger is JSONB, which also keeps this overload apart from the five-argument one v20 and
 // v21 created with a VARCHAR p_list_id: v25 replaced it with the four-argument signature
 // without dropping it, so a workspace created before v25 still has it. Every caller passes a
@@ -177,12 +184,23 @@ func AutomationEnrollContactWithTriggerFunction() string {
 				INSERT INTO automation_trigger_log (id, automation_id, contact_email, triggered_at)
 				VALUES (gen_random_uuid()::text, p_automation_id, p_contact_email, NOW())
 				ON CONFLICT (automation_id, contact_email) DO NOTHING;
+
+				-- A transaction enrolling the same contact at the same time inserted the row
+				-- first: this insert waited for it and added nothing, so the journey is theirs.
+				-- Inside this block: FOUND is false on entry and nothing above sets it.
+				IF NOT FOUND THEN
+					RETURN;
+				END IF;
 			END IF;
 
 			-- 2. Generate new ID for contact_automation
 			v_new_id := gen_random_uuid()::text;
 
-			-- 3. Enroll contact in automation, with the event that started the journey
+			-- 3. Enroll contact in automation, with the event that started the journey.
+			-- entered_at is the time of this call, not of the transaction start, so that two
+			-- enrolments of one contact in one transaction (two events of one name in a batch)
+			-- are two journeys under UNIQUE(automation_id, contact_email, entered_at) rather
+			-- than an error that aborts the batch.
 			INSERT INTO contact_automations (
 				id, automation_id, contact_email, current_node_id,
 				status, entered_at, scheduled_at, context
@@ -192,7 +210,7 @@ func AutomationEnrollContactWithTriggerFunction() string {
 				p_contact_email,
 				p_root_node_id,
 				'active',
-				NOW(),
+				clock_timestamp(),
 				NOW(),
 				CASE WHEN p_trigger IS NULL THEN '{}'::jsonb
 				     ELSE jsonb_build_object('trigger', p_trigger) END
