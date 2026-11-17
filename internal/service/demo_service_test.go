@@ -534,10 +534,12 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 	}, nil).AnyTimes()
 
 	var created []string
+	var templates []*domain.Template
 	mockTemplateRepo.EXPECT().
 		CreateTemplate(ctx, "demo", gomock.Any()).
 		DoAndReturn(func(_ context.Context, _ string, template *domain.Template) error {
 			created = append(created, template.ID)
+			templates = append(templates, template)
 			return nil
 		}).
 		AnyTimes()
@@ -545,77 +547,24 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 	err := svc.createSampleTemplates(ctx, "demo")
 	assert.NoError(t, err)
 
+	// The console requires a preview text in every language: a demo template without one could
+	// not be duplicated and saved until each was typed in again.
+	for _, template := range templates {
+		if assert.NotNil(t, template.Email.SubjectPreview, "%s has no preview text", template.ID) {
+			assert.NotEmpty(t, *template.Email.SubjectPreview, "%s has no preview text", template.ID)
+		}
+		for lang, translation := range template.Translations {
+			if assert.NotNil(t, translation.Email.SubjectPreview, "%s (%s) has no preview text", template.ID, lang) {
+				assert.NotEmpty(t, *translation.Email.SubjectPreview, "%s (%s) has no preview text", template.ID, lang)
+			}
+		}
+	}
+
 	// A CreateTemplate failure is only Warn-logged, so an automation's email node can end up pointing
 	// at a template that was never created without anything failing.
 	assert.Subset(t, created, []string{
 		"newsletter-weekly", "newsletter-weekly-v2", "welcome-email", "password-reset",
 		demoTemplateCartRecoveryA, demoTemplateCartRecoveryB, demoTemplateOrderThankYou, demoTemplateWinbackOffer,
-	})
-}
-
-func TestDemoService_CreateNewsletterStructures_NotNil(t *testing.T) {
-	svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
-
-	b1 := svc.createNewsletterMJMLStructure(getNewsletterContents()["en"])
-	b2 := svc.createNewsletterV2MJMLStructure(getNewsletterV2Contents()["en"])
-	b3 := svc.createWelcomeMJMLStructure(getWelcomeContents()["en"])
-	b4 := svc.createPasswordResetMJMLStructure(getPasswordResetContents()["en"])
-
-	assert.NotNil(t, b1)
-	assert.NotNil(t, b2)
-	assert.NotNil(t, b3)
-	assert.NotNil(t, b4)
-	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, b1.GetType())
-	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, b2.GetType())
-	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, b3.GetType())
-	assert.Equal(t, notifuse_mjml.MJMLComponentMjml, b4.GetType())
-}
-
-func TestDemoService_ContentFactories(t *testing.T) {
-	langs := []string{"en", "fr", "es"}
-
-	t.Run("newsletter contents", func(t *testing.T) {
-		contents := getNewsletterContents()
-		for _, lang := range langs {
-			c, ok := contents[lang]
-			assert.True(t, ok, "missing language: %s", lang)
-			assert.NotEmpty(t, c.title)
-			assert.NotEmpty(t, c.mainText)
-			assert.Equal(t, lang, c.lang)
-		}
-	})
-
-	t.Run("newsletter v2 contents", func(t *testing.T) {
-		contents := getNewsletterV2Contents()
-		for _, lang := range langs {
-			c, ok := contents[lang]
-			assert.True(t, ok, "missing language: %s", lang)
-			assert.NotEmpty(t, c.title)
-			assert.NotEmpty(t, c.intro)
-			assert.Equal(t, lang, c.lang)
-		}
-	})
-
-	t.Run("welcome contents", func(t *testing.T) {
-		contents := getWelcomeContents()
-		for _, lang := range langs {
-			c, ok := contents[lang]
-			assert.True(t, ok, "missing language: %s", lang)
-			assert.NotEmpty(t, c.title)
-			assert.NotEmpty(t, c.welcome)
-			assert.Equal(t, lang, c.lang)
-		}
-	})
-
-	t.Run("password reset contents", func(t *testing.T) {
-		contents := getPasswordResetContents()
-		for _, lang := range langs {
-			c, ok := contents[lang]
-			assert.True(t, ok, "missing language: %s", lang)
-			assert.NotEmpty(t, c.title)
-			assert.NotEmpty(t, c.mainContent)
-			assert.Equal(t, lang, c.lang)
-		}
 	})
 }
 
@@ -962,6 +911,14 @@ func TestDemoService_GenerateMessageHistoryForContact_EngagementMetrics(t *testi
 		assert.NotNil(t, message.MessageData)
 		assert.False(t, message.SentAt.IsZero())
 
+		// Delivered or hard-bounced, never both, and a bounced email goes no further.
+		assert.NotEqual(t, engagement.shouldDeliver, engagement.shouldBounce)
+		if engagement.shouldBounce {
+			assert.False(t, engagement.shouldOpen)
+			assert.False(t, engagement.shouldClick)
+			assert.False(t, engagement.shouldComplain)
+		}
+
 		// Count engagement metrics from engagement struct
 		if engagement.shouldDeliver {
 			deliveredCount++
@@ -974,8 +931,8 @@ func TestDemoService_GenerateMessageHistoryForContact_EngagementMetrics(t *testi
 		}
 	}
 
-	// Verify all messages are delivered (100% delivery rate)
-	assert.Equal(t, iterations, deliveredCount, "All messages should be delivered (100%% delivery rate)")
+	// Nearly every message is delivered: SES hard-bounces a small share.
+	assert.Greater(t, deliveredCount, iterations*9/10)
 
 	// Verify some engagement is happening (with very wide tolerances for statistical variance)
 	assert.Greater(t, openedCount, 0, "At least some messages should be opened")
@@ -1020,6 +977,14 @@ func TestDemoService_GenerateTransactionalMessageHistoryForContact_PasswordReset
 		assert.True(t, ok)
 		assert.True(t, metadata.(bool))
 
+		// Delivered or hard-bounced, never both, and a bounced email goes no further.
+		assert.NotEqual(t, engagement.shouldDeliver, engagement.shouldBounce)
+		if engagement.shouldBounce {
+			assert.False(t, engagement.shouldOpen)
+			assert.False(t, engagement.shouldClick)
+			assert.False(t, engagement.shouldComplain)
+		}
+
 		// Count engagement metrics from engagement struct
 		if engagement.shouldDeliver {
 			deliveredCount++
@@ -1032,8 +997,8 @@ func TestDemoService_GenerateTransactionalMessageHistoryForContact_PasswordReset
 		}
 	}
 
-	// Verify all messages are delivered (100% delivery rate)
-	assert.Equal(t, iterations, deliveredCount, "All messages should be delivered (100%% delivery rate)")
+	// Nearly every message is delivered: SES hard-bounces a small share.
+	assert.Greater(t, deliveredCount, iterations*9/10)
 
 	// Verify some engagement is happening (with very wide tolerances for statistical variance)
 	assert.Greater(t, openedCount, 0, "At least some messages should be opened")
@@ -1455,7 +1420,7 @@ func TestDemoService_CreateSampleTemplates_RefusesLoudlyWhenUnlicensed(t *testin
 	require.Error(t, err, "an unlicensed demo must fail, not seed a half-built workspace")
 	// Fail-fast, at the FIRST refused template: a seeder that warned on the first and only
 	// errored on a later one would still return an error, and this is what tells them apart.
-	assert.Contains(t, err.Error(), "newsletter template")
+	assert.Contains(t, err.Error(), "newsletter-weekly template")
 	var refused *domain.ErrFeatureNotLicensed
 	assert.True(t, errors.As(err, &refused), "the error must name the licence, not a generic failure: %v", err)
 	if refused != nil {

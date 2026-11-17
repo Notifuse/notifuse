@@ -92,9 +92,24 @@ const renderExplorer = (props: Partial<FileExplorerProps> = {}, path = 'docs/') 
 const listCalls = () =>
   s3.send.mock.calls.filter(([command]) => command instanceof ListObjectsV2Command)
 
-// The open dropdown's menu: a closed one stays in the document, hidden.
-const openMenu = async (name: string) => {
-  fireEvent.click(screen.getByRole('button', { name: `Actions for ${name}` }))
+// The preview's delete confirmation, found by its question.
+const openPopconfirm = async () => {
+  const question = await screen.findByText(
+    'Do you want to permanently delete this file from your storage?'
+  )
+  return question.closest('.ant-popover') as HTMLElement
+}
+
+// The folders' rail: a card on the page, a column in the picker.
+const rail = () => screen.getByRole('navigation', { name: 'Folders' })
+
+// The open dropdown's menu: a closed one stays in the document, hidden. A folder shown in the rail
+// has a menu there too: `inRail` picks that one, the list's otherwise.
+const openMenu = async (name: string, inRail = false) => {
+  const buttons = screen.getAllByRole('button', { name: `Actions for ${name}` })
+  const button = buttons.find((candidate) => rail().contains(candidate) === inRail)
+  if (!button) throw new Error(`no menu for ${name}${inRail ? ' in the rail' : ''}`)
+  fireEvent.click(button)
   return waitFor(() => {
     const menu = document.querySelector<HTMLElement>(
       '.ant-dropdown:not(.ant-dropdown-hidden) [role="menu"]'
@@ -133,6 +148,120 @@ describe('FileExplorer page', () => {
     expect(within(tree).getByRole('button', { name: 'Root' })).toBeTruthy()
     expect(within(tree).getByText('media')).toBeTruthy()
     expect(within(tree).queryByText(/ · /)).toBeNull()
+  })
+
+  it('lays the folders out as a card beside the list, the Blog rail’s way', async () => {
+    listing()
+    renderExplorer()
+    await screen.findByText('a.png')
+
+    expect(rail().hasAttribute('data-rail-card')).toBe(true)
+    // The root on its own, then a "Folders" section with its "+".
+    expect(within(rail()).getByText('Folders')).toBeTruthy()
+    expect(within(rail()).getByRole('button', { name: 'New folder' })).toBeTruthy()
+    // The page header spans the width, above the card.
+    const heading = screen.getByRole('heading', { level: 1, name: 'docs' })
+    expect(rail().contains(heading)).toBe(false)
+    expect(heading.compareDocumentPosition(rail()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('nests sub-folders under their parent, collapsed off the open path', async () => {
+    listing()
+    renderExplorer({}, '')
+    await waitFor(() => expect(within(rail()).getByRole('button', { name: 'docs 3' })).toBeTruthy())
+
+    expect(within(rail()).queryByRole('button', { name: '2026 1' })).toBeNull()
+    fireEvent.click(within(rail()).getByRole('button', { name: 'Expand docs' }))
+    const child = within(rail()).getByRole('button', { name: '2026 1' })
+    // One level of indentation under docs, which has none.
+    const indents = (button: HTMLElement) =>
+      button.closest('[data-rail-item]')?.querySelectorAll('[data-folder-indent]').length
+    expect(indents(child)).toBe(1)
+    expect(indents(within(rail()).getByRole('button', { name: 'docs 3' }))).toBe(0)
+    // A folder without sub-folders has nothing to expand.
+    expect(within(rail()).queryByRole('button', { name: 'Expand photos' })).toBeNull()
+
+    fireEvent.click(within(rail()).getByRole('button', { name: 'Collapse docs' }))
+    expect(within(rail()).queryByRole('button', { name: '2026 1' })).toBeNull()
+  })
+
+  it('opens a folder from the rail and lists its files', async () => {
+    listing()
+    const { onPathChange, rerenderAt } = renderExplorer({}, '')
+    await waitFor(() =>
+      expect(within(rail()).getByRole('button', { name: 'photos 1' })).toBeTruthy()
+    )
+    expect(within(rail()).getByRole('button', { name: 'Root 5' }).getAttribute('aria-current')).toBe(
+      'page'
+    )
+
+    fireEvent.click(within(rail()).getByRole('button', { name: 'photos 1' }))
+    expect(onPathChange).toHaveBeenCalledWith('photos/')
+
+    rerenderAt('photos/')
+    expect(await screen.findByText('beach.jpg')).toBeTruthy()
+    expect(screen.queryByText('notes.txt')).toBeNull()
+    expect(
+      within(rail()).getByRole('button', { name: 'photos 1' }).getAttribute('aria-current')
+    ).toBe('page')
+    expect(screen.getByRole('heading', { level: 1, name: 'photos' })).toBeTruthy()
+
+    fireEvent.click(within(rail()).getByRole('button', { name: 'Root 5' }))
+    expect(onPathChange).toHaveBeenLastCalledWith('')
+  })
+
+  it('creates a folder in the open one from the rail’s +', async () => {
+    listing()
+    renderExplorer()
+    await screen.findByText('a.png')
+
+    fireEvent.click(within(rail()).getByRole('button', { name: 'New folder' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain('Create new folder')
+    // The name has the focus, the folder it goes in written before it, its label above it.
+    await waitFor(() => expect(within(dialog).getByRole('textbox', { name: 'Folder name' })).toHaveFocus())
+    expect(within(dialog).getByText('docs/')).toBeInTheDocument()
+    expect(dialog.querySelector('.ant-form-vertical')).not.toBeNull()
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Folder name' }), {
+      target: { value: 'drafts' }
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }))
+
+    expect(await screen.findByText('Folder created successfully.')).toBeTruthy()
+    const put = s3.send.mock.calls.find(([command]) => command instanceof PutObjectCommand)
+    expect(put?.[0].input.Key).toBe('docs/drafts/')
+  })
+
+  it('deletes a folder from its menu in the rail', async () => {
+    listing()
+    renderExplorer()
+    await screen.findByText('a.png')
+
+    const menu = await openMenu('2026', true)
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete folder' }))
+    expect(await screen.findByText('Delete the folder 2026 and its 1 file?')).toBeTruthy()
+    fireEvent.click(confirmButton())
+
+    expect(await screen.findByText('Folder deleted successfully.')).toBeTruthy()
+    const deleted = s3.send.mock.calls
+      .filter(([command]) => command instanceof DeleteObjectCommand)
+      .map(([command]) => command.input.Key)
+      .sort()
+    expect(deleted).toEqual(['docs/2026/', 'docs/2026/b.png'])
+  })
+
+  it('offers to create the first folder of a bucket without one', async () => {
+    listing([{ Key: 'notes.txt', LastModified: at(6), Size: 10 }])
+    renderExplorer({}, '')
+    fireEvent.click(await within(rail()).findByRole('button', { name: 'Create your first folder' }))
+    expect((await screen.findByRole('dialog')).textContent).toContain('Create new folder')
+  })
+
+  it('says there are no folders yet when it cannot create one', async () => {
+    listing([{ Key: 'notes.txt', LastModified: at(6), Size: 10 }])
+    renderExplorer({ readOnly: true }, '')
+    expect(await within(rail()).findByText('No folders yet')).toBeTruthy()
+    expect(within(rail()).queryByRole('button', { name: 'Create your first folder' })).toBeNull()
   })
 
   it('titles the page after the folder, with its file count', async () => {
@@ -214,6 +343,35 @@ describe('FileExplorer page', () => {
       target: { value: 'zzz' }
     })
     expect(await screen.findByText('No files match your search')).toBeTruthy()
+  })
+
+  it('shows each file’s folder in the grid’s search results too', async () => {
+    listing()
+    localStorage.setItem('notifuse.files.view.page', 'grid')
+    renderExplorer()
+    await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'File name' }), { target: { value: 'PNG' } })
+    await waitFor(() => expect(document.querySelector('[data-file-card="docs/2026/b.png"]')).not.toBeNull())
+    const card = document.querySelector('[data-file-card="docs/2026/b.png"]') as HTMLElement
+    expect(card.querySelector('[data-file-folder]')).toHaveTextContent('docs/2026/')
+  })
+
+  it('lists the folders in the rail’s order, by name, whatever their dates', async () => {
+    listing([
+      { Key: 'zebra/', LastModified: at(9) },
+      { Key: 'alpha/', LastModified: at(1) },
+      { Key: 'notes.txt', LastModified: at(6), Size: 10 }
+    ])
+    renderExplorer({}, '')
+    await screen.findByText('notes.txt')
+    const listed = screen.getAllByRole('row').slice(1).map((row) => row.textContent ?? '')
+    expect(listed[0]).toContain('alpha')
+    expect(listed[1]).toContain('zebra')
+    const inRail = within(rail()).getAllByRole('button').map((button) => button.textContent ?? '')
+    expect(inRail.findIndex((name) => name.startsWith('alpha'))).toBeLessThan(
+      inRail.findIndex((name) => name.startsWith('zebra'))
+    )
   })
 
   it('says when a folder is empty', async () => {
@@ -301,15 +459,23 @@ describe('FileExplorer page', () => {
     expect((screen.getByRole('button', { name: 'Upload' }) as HTMLButtonElement).disabled).toBe(
       true
     )
-    expect((screen.getByRole('button', { name: 'New folder' }) as HTMLButtonElement).disabled).toBe(
-      true
-    )
+    // New folder is the rail's "+".
+    const newFolder = within(rail()).getByRole('button', { name: 'New folder' })
+    expect((newFolder as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.mouseEnter(newFolder.parentElement as HTMLElement)
+    expect(await screen.findByText('New folder (Read-only mode)')).toBeTruthy()
     expect(
       (screen.getByRole('button', { name: 'Storage settings' }) as HTMLButtonElement).disabled
     ).toBe(true)
     const menu = await openMenu('a.png')
     expect(
       within(menu).getByRole('menuitem', { name: 'Delete' }).getAttribute('aria-disabled')
+    ).toBe('true')
+
+    // A folder's menu in the rail: Delete folder exists only there.
+    await openMenu('docs', true)
+    expect(
+      (await screen.findByRole('menuitem', { name: 'Delete folder' })).getAttribute('aria-disabled')
     ).toBe('true')
   })
 
@@ -348,6 +514,83 @@ describe('FileExplorer page', () => {
     expect(preview.textContent).toContain('report.pdf')
     expect(preview.textContent).toContain('application/pdf')
     expect(within(preview).getByRole('button', { name: 'Delete' })).toBeTruthy()
+  })
+
+  it('opens the file in a new tab and deletes it from icon buttons in the preview', async () => {
+    listing()
+    const onFileChange = vi.fn()
+    renderExplorer({ controlledFile: 'docs/report.pdf', onFileChange })
+    const preview = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>('[data-file-preview]')
+      expect(element).not.toBeNull()
+      return element as HTMLElement
+    })
+
+    // Icons only: their names are their aria-labels.
+    const open = within(preview).getByRole('link', { name: 'Open in a new tab' })
+    expect(open.getAttribute('href')).toMatch(/\/docs\/report\.pdf$/)
+    expect(open.getAttribute('target')).toBe('_blank')
+    expect(open.textContent).toBe('')
+    const trash = within(preview).getByRole('button', { name: 'Delete' })
+    expect(trash.textContent).toBe('')
+    // Copy URL and Download keep their text, on the same row.
+    expect(within(preview).getByRole('button', { name: 'Copy URL' }).parentElement).toBe(
+      trash.parentElement
+    )
+
+    fireEvent.click(trash)
+    const popconfirm = await openPopconfirm()
+    // Nothing goes before the confirmation.
+    expect(s3.send.mock.calls.some(([command]) => command instanceof DeleteObjectCommand)).toBe(
+      false
+    )
+    fireEvent.click(within(popconfirm).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText('File deleted successfully.')).toBeTruthy()
+    const deleted = s3.send.mock.calls
+      .filter(([command]) => command instanceof DeleteObjectCommand)
+      .map(([command]) => command.input.Key)
+    expect(deleted).toEqual(['docs/report.pdf'])
+    expect(onFileChange).toHaveBeenCalledWith(undefined)
+  })
+
+  it('keeps the file when the preview’s Popconfirm is cancelled', async () => {
+    listing()
+    renderExplorer({ controlledFile: 'docs/report.pdf', onFileChange: vi.fn() })
+    const preview = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>('[data-file-preview]')
+      expect(element).not.toBeNull()
+      return element as HTMLElement
+    })
+
+    fireEvent.click(within(preview).getByRole('button', { name: 'Delete' }))
+    const popconfirm = await openPopconfirm()
+    fireEvent.click(within(popconfirm).getByRole('button', { name: 'Cancel' }))
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
+    expect(s3.send.mock.calls.some(([command]) => command instanceof DeleteObjectCommand)).toBe(
+      false
+    )
+  })
+
+  it('disables the preview’s delete in read-only mode', async () => {
+    listing()
+    renderExplorer({ readOnly: true, controlledFile: 'docs/report.pdf', onFileChange: vi.fn() })
+    const preview = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>('[data-file-preview]')
+      expect(element).not.toBeNull()
+      return element as HTMLElement
+    })
+
+    const trash = within(preview).getByRole('button', { name: 'Delete' }) as HTMLButtonElement
+    expect(trash.disabled).toBe(true)
+    fireEvent.mouseEnter(trash.parentElement as HTMLElement)
+    expect(await screen.findByText('Delete file (Read-only mode)')).toBeTruthy()
+    fireEvent.click(trash)
+    expect(
+      screen.queryByText('Do you want to permanently delete this file from your storage?')
+    ).toBeNull()
+    // Opening in a new tab reads only.
+    expect(within(preview).getByRole('link', { name: 'Open in a new tab' })).toBeTruthy()
   })
 
   it('closes the preview of a file the bucket no longer holds', async () => {
@@ -510,6 +753,16 @@ describe('FileExplorer folder delete', () => {
     expect(
       screen.getByText('Images used in emails or blog posts will stop displaying.')
     ).toBeTruthy()
+  })
+
+  it('says an empty folder is empty rather than counting its 0 files', async () => {
+    listing([{ Key: 'empty/', LastModified: at(1) }])
+    renderExplorer({}, 'empty/')
+    await screen.findByText('Folder is empty')
+
+    await openFolderDelete()
+    expect(await screen.findByText('Delete the empty folder empty?')).toBeTruthy()
+    expect(screen.queryByText(/0 files/)).toBeNull()
   })
 
   it('shows the delete in progress and ignores a second confirmation', async () => {
@@ -703,6 +956,25 @@ describe('FileExplorer picker', () => {
     expect(onSelect).toHaveBeenCalledWith([expect.objectContaining({ key: 'docs/a.png' })])
   })
 
+  it('scrolls the selected file back into view once the preview column narrows the grid', async () => {
+    listing()
+    const scrolled: Element[] = []
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this)
+    }
+    try {
+      renderPicker()
+      await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+      fireEvent.click(document.querySelector('[data-file-card="docs/a.png"]') as HTMLElement)
+      await waitFor(() =>
+        expect(scrolled).toContain(document.querySelector('[data-file-card="docs/a.png"]'))
+      )
+    } finally {
+      Element.prototype.scrollIntoView = original
+    }
+  })
+
   it('leaves the target out of the footer when the caller names none', async () => {
     listing()
     renderPicker()
@@ -789,6 +1061,23 @@ describe('FileExplorer picker', () => {
     await waitFor(() => expect(footer().textContent).toContain('New-Logo.png'))
     const put = s3.send.mock.calls.find(([command]) => command instanceof PutObjectCommand)
     expect(put?.[0].input.Key).toBe('docs/New-Logo.png')
+  })
+
+  it('navigates and creates folders from the same rail, as a column', async () => {
+    listing()
+    const { onPathChange } = renderPicker()
+    await waitFor(() => expect(within(rail()).getByRole('button', { name: '2026 1' })).toBeTruthy())
+    expect(rail().hasAttribute('data-rail-card')).toBe(false)
+
+    fireEvent.click(within(rail()).getByRole('button', { name: '2026 1' }))
+    expect(onPathChange).toHaveBeenCalledWith('docs/2026/')
+    fireEvent.click(within(rail()).getByRole('button', { name: 'Root 5' }))
+    expect(onPathChange).toHaveBeenLastCalledWith('')
+
+    // One New folder: the rail's "+".
+    expect(screen.getAllByRole('button', { name: 'New folder' })).toHaveLength(1)
+    fireEvent.click(within(rail()).getByRole('button', { name: 'New folder' }))
+    expect((await screen.findByRole('dialog')).textContent).toContain('Create new folder')
   })
 
   it('cancels from the footer', async () => {

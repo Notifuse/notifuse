@@ -11,6 +11,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { blogThemesApi, BlogTheme } from '../../services/api/blog'
 import type { Workspace } from '../../services/api/types'
+import { Panel } from '../layout'
 import { ThemeEditorDrawer } from './ThemeEditorDrawer'
 import { ThemePreset, THEME_PRESETS } from './themePresets'
 import dayjs from '../../lib/dayjs'
@@ -198,64 +199,44 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
     }
   ]
 
-  if (themes.length === 0 && !isLoading) {
-    return (
-      <div style={{ marginTop: 24 }}>
+  const empty = themes.length === 0 && !isLoading
+
+  // A card like the other sections of Settings › Blog: the versions, newest first, with the
+  // button that starts a new one in its header.
+  return (
+    <Panel
+      title={t`Themes`}
+      flush={!empty}
+      extra={
+        empty ? undefined : (
+          <Button size="small" type="primary" ghost={hasPublishedTheme} icon={<PlusOutlined />} onClick={handleCreate}>
+            {t`New theme`}
+          </Button>
+        )
+      }
+      footer={
+        !empty && hasMore ? (
+          <Button size="small" onClick={handleLoadMore}>
+            {t`Show More (${totalCount - limit} remaining)`}
+          </Button>
+        ) : undefined
+      }
+    >
+      {empty ? (
         <Empty description={t`No themes yet`} image={Empty.PRESENTED_IMAGE_SIMPLE}>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             {t`Create First Theme`}
           </Button>
         </Empty>
-
-        <ThemeEditorDrawer
-          open={editorOpen}
-          onClose={() => {
-            setEditorOpen(false)
-            setSelectedPreset(null)
-          }}
-          theme={selectedTheme}
-          presetData={selectedPreset}
-          workspaceId={workspaceId}
-          workspace={workspace}
+      ) : (
+        <Table
+          columns={columns}
+          showHeader={false}
+          dataSource={themes}
+          rowKey="version"
+          loading={isLoading}
+          pagination={false}
         />
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 16
-        }}
-      >
-        <h3 style={{ margin: 0 }}>{t`Theme Versions`}</h3>
-        <Button
-          type="primary"
-          ghost={hasPublishedTheme}
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
-          {t`New Theme`}
-        </Button>
-      </div>
-
-      <Table
-        columns={columns}
-        showHeader={false}
-        dataSource={themes}
-        rowKey="version"
-        loading={isLoading}
-        pagination={false}
-      />
-
-      {hasMore && (
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Button onClick={handleLoadMore}>{t`Show More (${totalCount - limit} remaining)`}</Button>
-        </div>
       )}
 
       <ThemeEditorDrawer
@@ -269,6 +250,6 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
         workspaceId={workspaceId}
         workspace={workspace}
       />
-    </div>
+    </Panel>
   )
 }

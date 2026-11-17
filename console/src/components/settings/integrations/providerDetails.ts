@@ -89,8 +89,11 @@ export function providerDetails(integration: Integration, i18n: I18n): DetailRow
         : {
             key: 'configuration_set',
             label: t(msg`Configuration set`),
-            value: t(msg`not created yet — register webhooks`),
-            tone: 'warning'
+            // The state in the warning tone, the way out in the grey hint under it: "register
+            // webhooks" in orange read as a link that did nothing.
+            value: t(msg`Not created yet`),
+            tone: 'warning',
+            hint: t(msg`Created by Register webhooks, in the menu`)
           }
     )
     if (tenant) {

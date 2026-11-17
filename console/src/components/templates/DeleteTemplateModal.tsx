@@ -38,7 +38,7 @@ export function DeleteTemplateModal({
   })
 
   const groupTitles: Record<TemplateUsageType, string> = {
-    broadcasts: t`Newsletters`,
+    broadcasts: t`Broadcasts`,
     transactional_notifications: t`Transactional`,
     automations: t`Automations`,
     lists: t`Lists`

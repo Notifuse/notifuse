@@ -1,21 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { buildDefaultTestData } from './defaultTestData'
 import { useLingui } from '@lingui/react/macro'
-import {
-  Button,
-  Drawer,
-  Form,
-  Input,
-  Select,
-  Space,
-  App,
-  Tabs,
-  Row,
-  Col,
-  Dropdown,
-  Radio,
-  MenuProps
-} from 'antd'
+import { Button, Form, Input, App, Dropdown, MenuProps, Spin } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { templatesApi, type CreateTemplateRequest, type UpdateTemplateRequest } from '../../services/api/template'
 import { ApiError } from '../../services/api/client'
@@ -32,11 +18,8 @@ import type {
 import type { PreviewRef } from '../email_builder/panels/Preview'
 import { kebabCase } from 'lodash'
 import { truncateIdentifier } from '../../utils/identifiers'
-import { TEMPLATE_ID_MAX_LENGTH, TEMPLATE_NAME_MAX_LENGTH } from '../../constants/limits'
-import IphoneEmailPreview from './PhonePreview'
-import defaultTemplateData from './email-template.json'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faQuestion } from '@fortawesome/free-solid-svg-icons'
+import { TEMPLATE_ID_MAX_LENGTH } from '../../constants/limits'
+import { CircleHelp } from 'lucide-react'
 import { Tour } from 'antd'
 import { ImportExportButton } from './ImportExportButton'
 import { useAuth } from '../../contexts/AuthContext'
@@ -53,58 +36,27 @@ import type { TranslationEditorState } from './TemplateTranslationsTab'
 import type { EmailTemplate, TemplateTranslation } from '../../services/api/template'
 import { customTextOrUndefined, missingRequiredLink, seedTextVersion } from './textVersionSeed'
 import { TemplateCategoryTag } from './TemplateCategoryTag'
-
-/**
- * Validates liquid template tags in a string to ensure they are properly closed
- * @param text - The text to validate
- * @returns Object with isValid boolean and error message if invalid
- */
-const validateLiquidTags = (text: string): { isValid: boolean; error?: string } => {
-  if (!text) return { isValid: true }
-
-  // Find all opening double curly braces
-  const openingTags = text.match(/\{\{/g) || []
-  // Find all closing double curly braces
-  const closingTags = text.match(/\}\}/g) || []
-
-  if (openingTags.length !== closingTags.length) {
-    return {
-      isValid: false,
-      error: `Unclosed liquid tag detected. Found ${openingTags.length} opening tags ({{) but ${closingTags.length} closing tags (}})`
-    }
-  }
-
-  // Check for proper nesting by tracking position
-  let openCount = 0
-  let i = 0
-
-  while (i < text.length - 1) {
-    if (text.slice(i, i + 2) === '{{') {
-      openCount++
-      i += 2
-    } else if (text.slice(i, i + 2) === '}}') {
-      if (openCount === 0) {
-        return {
-          isValid: false,
-          error: 'Found closing liquid tag (}}) without matching opening tag ({{)'
-        }
-      }
-      openCount--
-      i += 2
-    } else {
-      i++
-    }
-  }
-
-  if (openCount > 0) {
-    return {
-      isValid: false,
-      error: `${openCount} liquid tag(s) not properly closed. Make sure each {{ has a matching }}`
-    }
-  }
-
-  return { isValid: true }
-}
+import { FullDrawer } from '../layout'
+import {
+  TemplateBarActions,
+  TemplateBarTitle,
+  TemplateStepSwitch,
+  type TemplateStep
+} from './TemplateDrawerBar'
+import { TemplateSettingsStep } from './TemplateSettingsStep'
+import { TemplateSettingsAside } from './TemplateSettingsAside'
+import SendTemplateModal from './SendTemplateModal'
+import { canSendTestEmail } from '../../services/api/permissions'
+import { useWorkspacePermissions } from '../../contexts/AuthContext'
+import { TemplateStartModal } from './TemplateStartModal'
+import { MODEL_LABELS } from './gallery/labels'
+import { useLanguageName } from './useLanguageName'
+import { withBrand, type GalleryStart } from './gallery/buildStartingPoint'
+import { useGalleryAssets, useGalleryModels } from './gallery/useGalleryModels'
+import { useLogoWidth } from './gallery/logoWidth'
+import { GALLERY_CONTENT } from './gallery/content'
+import { galleryModel } from './gallery/models'
+import { resolveGalleryLanguage } from './gallery/resolveGalleryLanguage'
 
 const COPY_ID_SUFFIX = '-copy'
 
@@ -117,7 +69,11 @@ interface CreateTemplateDrawerProps {
   fromTemplate?: Template
   buttonProps?: Record<string, unknown>
   buttonContent?: React.ReactNode
-  onClose?: () => void
+  /**
+   * Called when the drawer closes, with the template saved while it was open (the last revision),
+   * or nothing when it closes without a save (cancelled in the gallery, or discarded).
+   */
+  onClose?: (saved?: Template) => void
   forceCategory?: string
   // The member may rename, replace, duplicate and delete saved blocks from the editor's library
   canManageSavedBlocks?: boolean
@@ -131,7 +87,22 @@ interface CreateTemplateDrawerProps {
   initialTestData?: Record<string, unknown>
   /** A new template only: its name, from which its ID is derived. */
   initialName?: string
+  /** A new template only: the gallery model it starts from, the gallery itself skipped. */
+  startModelId?: string
+  /** A new template only: the message of a save that closes the drawer, instead of the default. */
+  successMessage?: string
 }
+
+// The fields of the Settings step: an error on one of them opens that step.
+const SETTINGS_FIELDS = [
+  'name',
+  'id',
+  'category',
+  'email.sender_id',
+  'email.subject',
+  'email.subject_preview',
+  'email.reply_to'
+]
 
 /**
  * What the drawer actually submits for a translation.
@@ -143,40 +114,27 @@ interface CreateTemplateDrawerProps {
  */
 type TranslationEmailPayload = Partial<EmailTemplate> & Pick<EmailTemplate, 'subject'>
 
-// The drawer header: 16px padding, the theme's 28px controls, 16px padding and its 1px rule.
-const HEADER_HEIGHT = 61
+// The drawer's bar: 40px and its 1px rule (FullDrawer).
+const HEADER_HEIGHT = 41
 
 // Liquid variables named in the custom text warnings, outside the translated sentences.
 const UNSUBSCRIBE_VARIABLE = '{{ unsubscribe_url }}'
 const CONFIRM_VARIABLE = '{{ confirm_subscription_url }}'
-/**
- * Creates default email blocks from the template JSON
- */
-const createDefaultBlocks = (): EmailBlock => {
-  return defaultTemplateData.emailTree as EmailBlock
-}
-
 // Help & Support dropdown component
 const HelpSupportDropdown: React.FC<{ onStartTour: () => void }> = ({ onStartTour }) => {
   const { t } = useLingui()
   const menuItems: MenuProps['items'] = [
     {
       key: 'tour',
-      label: t`Take a Tour`,
-      icon: <FontAwesomeIcon icon={faQuestion} />,
+      label: t`Take a tour`,
+      icon: <CircleHelp size={14} aria-hidden="true" />,
       onClick: onStartTour
     }
   ]
 
   return (
     <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
-      <Button
-        size="small"
-        title={t`Help & Support`}
-        type="primary"
-        ghost
-        icon={<FontAwesomeIcon icon={faQuestion} size="sm" />}
-      >
+      <Button title={t`Help & Support`} icon={<CircleHelp size={14} aria-hidden="true" />}>
         {t`Help`}
       </Button>
     </Dropdown>
@@ -201,9 +159,11 @@ export function CreateTemplateDrawer({
   open,
   initialTree,
   initialTestData,
-  initialName
+  initialName,
+  startModelId: initialModelId,
+  successMessage
 }: CreateTemplateDrawerProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [isOpen, setIsOpen] = useState(false)
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
@@ -214,11 +174,59 @@ export function CreateTemplateDrawer({
   // Whether the user has edited since the drawer opened. Guards the freshen-on-open
   // reseed so a background refetch never silently discards in-progress edits.
   const dirtyRef = useRef(false)
+  // The same, for what the bar shows ("Unsaved changes").
+  const [dirty, setDirty] = useState(false)
+  const markDirty = () => {
+    dirtyRef.current = true
+    setDirty(true)
+  }
+  const markClean = () => {
+    dirtyRef.current = false
+    setDirty(false)
+  }
+  // The last saved revision when the drawer stays open after a save (Save and send a test).
+  const [savedTemplate, setSavedTemplate] = useState<Template | undefined>(template)
+  // The last revision saved since the drawer opened, handed to onClose.
+  const savedSinceOpenRef = useRef<Template | undefined>(undefined)
+  const [testTemplate, setTestTemplate] = useState<Template | null>(null)
+  // Set by "Save and send": the save opens the test send instead of closing the drawer.
+  const sendAfterSaveRef = useRef(false)
+  const [stepsWithErrors, setStepsWithErrors] = useState<TemplateStep[]>([])
+  // The translation a save was refused for: the Translations step shows it with its empty fields marked.
+  const [translationMissing, setTranslationMissing] = useState<{ lang: string; attempt: number } | null>(null)
+  const missingAttemptRef = useRef(0)
+  const { permissions } = useWorkspacePermissions(workspace.id)
+  const languageName = useLanguageName()
+  const canTest = canSendTestEmail(permissions)
+  // The gallery: a new template starts from a model or a template chosen in the start modal.
+  const [startModalOpen, setStartModalOpen] = useState(false)
+  // What a new template started from, shown in the Content card with a Change button.
+  const [startInfo, setStartInfo] = useState<{ name: string; detail: string } | undefined>()
+  // The template a new one copies (Duplicate, or Your templates): its editor mode is kept.
+  const [cloneSource, setCloneSource] = useState<Template | undefined>(fromTemplate)
+  // The gallery model a new template started from: its visual content locks the editor mode.
+  const [startModelId, setStartModelId] = useState<string | undefined>()
+  // A pick is applied once: a second click while the first looks up a free ID is ignored.
+  const pickingRef = useRef(false)
+  // Each close starts a new round: a pick still being prepared from an earlier one applies nothing.
+  const startRoundRef = useRef(0)
+  // A model given before opening is being built: the drawer is open on a loading state.
+  const [preparing, setPreparing] = useState(false)
+  // The gallery's images, served by this instance's console.
+  const assets = useGalleryAssets()
+  // Blank, in the workspace's language: the content a template without one starts from.
+  const logoWidth = useLogoWidth(workspace.settings.logo_url || undefined)
+  const initialModel = initialModelId ? galleryModel(initialModelId) : undefined
+  const createDefaultBlocks = (): EmailBlock =>
+    galleryModel('blank')!.build(
+      withBrand(GALLERY_CONTENT[resolveGalleryLanguage(workspace.settings.default_language)], workspace.name),
+      { ...assets, logoUrl: workspace.settings.logo_url || undefined, logoWidth }
+    ).tree
   // The last submitted form values, so the conflict dialog can re-submit ("overwrite").
   const lastSubmittedValuesRef = useRef<Record<string, unknown> | null>(null)
-  const [tab, setTab] = useState<string>('settings')
+  const [tab, setTab] = useState<TemplateStep>('settings')
   const [loading, setLoading] = useState(false)
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const { refreshWorkspaces } = useAuth()
   const [tourOpen, setTourOpen] = useState(false)
   const [forcedViewMode, setForcedViewMode] = useState<'edit' | 'preview' | null>(null)
@@ -247,7 +255,7 @@ export function CreateTemplateDrawer({
   const textSessionRef = useRef(0)
   const changeEmailText = (value?: string) => {
     if (textSession !== textSessionRef.current) return
-    dirtyRef.current = true
+    markDirty()
     setEmailText(value)
   }
 
@@ -295,6 +303,8 @@ export function CreateTemplateDrawer({
   const senderID = Form.useWatch(['email', 'sender_id'], form)
   const emailSubject = Form.useWatch(['email', 'subject'], form)
   const emailPreview = Form.useWatch(['email', 'subject_preview'], form)
+  const watchedName = Form.useWatch(['name'], form)
+  const watchedTestData = Form.useWatch(['test_data'], form) as Record<string, unknown> | undefined
   const watchedCategory = Form.useWatch(['category'], form)
   const categoryValue = forceCategory || watchedCategory
 
@@ -336,16 +346,40 @@ export function CreateTemplateDrawer({
       codeEditorRef.current?.clearDraft()
       // Advance the base to the just-saved revision so a subsequent save isn't a false conflict.
       baseVersionRef.current = response.template.version
-      dirtyRef.current = false
-      message.success(template ? t`Template updated successfully` : t`Template created successfully`)
+      markClean()
+      savedSinceOpenRef.current = response.template
+      const version = response.template.version
+      message.success(
+        template
+          ? t`Saved as v${version}`
+          : (!sendAfterSaveRef.current && successMessage) || t`Template created successfully`
+      )
+      // Saving an existing template keeps the editor open on the new revision: the author goes
+      // on editing, and closes it when done. A new template still closes, as the field or page
+      // that opened it picks it up.
+      if (sendAfterSaveRef.current || template) {
+        // The drawer stays open on the new revision; after "Save and send", the test send,
+        // which sends what is saved, opens on it.
+        const sendTest = sendAfterSaveRef.current
+        sendAfterSaveRef.current = false
+        setSavedTemplate(response.template)
+        if (sendTest) setTestTemplate(response.template)
+        queryClient.invalidateQueries({
+          queryKey: ['templates', workspace.id]
+        })
+        if (template)
+          queryClient.invalidateQueries({
+            queryKey: ['template', workspace.id, template.id]
+          })
+        setLoading(false)
+        return
+      }
       handleClose()
       queryClient.invalidateQueries({ queryKey: ['templates', workspace.id] })
-      if (template) {
-        queryClient.invalidateQueries({ queryKey: ['template', workspace.id, template.id] })
-      }
       setLoading(false)
     },
     onError: (error) => {
+      sendAfterSaveRef.current = false
       // 409: the template advanced past our base while editing. Let the user decide
       // between keeping their work (overwrite) or loading the latest (discard theirs).
       if (error instanceof ApiError && error.status === 409) {
@@ -387,6 +421,8 @@ export function CreateTemplateDrawer({
       ),
     [workspace.settings.custom_endpoint_url, workspace.id]
   )
+  // A model chosen before the drawer opened (startModelId), built as the gallery builds it.
+  const gallery = useGalleryModels(workspace, assets, defaultTestData)
 
   const loadTranslations = (translations?: Record<string, TemplateTranslation>) => {
     if (!translations) return
@@ -458,7 +494,8 @@ export function CreateTemplateDrawer({
       if (force || !dirtyRef.current) {
         seedEditorFromLatest(latest)
         baseVersionRef.current = latest.version
-        dirtyRef.current = false
+        setSavedTemplate(latest)
+        markClean()
         if (!force) {
           message.info(t`Loaded the latest version of this template (v${latest.version}).`)
         }
@@ -469,6 +506,52 @@ export function CreateTemplateDrawer({
       // and the server-side 409 check still guards the save.
       if (force) {
         message.error(t`Could not load the latest version. Please try again.`)
+      }
+    }
+  }
+
+  // A new template copying another: Duplicate, or a template picked in Your templates.
+  const seedFromTemplate = (source: Template) => {
+    // Clone template functionality - lock to source template's editor mode
+    setEditorMode(source.email?.editor_mode === 'code' ? 'code' : 'visual')
+    if (source.email?.editor_mode === 'code' && source.email?.mjml_source) {
+      setMjmlSource(source.email.mjml_source)
+    }
+    // Append "copy" as suffix instead of "Copy of" prefix. The ID's base is cut so the
+    // suffix fits the limit, and a copy never takes the original's (cut) ID.
+    const copyIdBase = truncateIdentifier(
+      kebabCase(source.name),
+      TEMPLATE_ID_MAX_LENGTH - COPY_ID_SUFFIX.length
+    )
+    form.setFieldsValue({
+      name: `${source.name} copy`,
+      id: copyIdBase ? `${copyIdBase}${COPY_ID_SUFFIX}` : 'copy',
+      category: source.category || forceCategory || undefined,
+      email: {
+        sender_id: source.email?.sender_id || undefined,
+        reply_to: source.email?.reply_to || undefined,
+        subject: source.email?.subject || '',
+        subject_preview: source.email?.subject_preview || '',
+        content: source.email?.visual_editor_tree || '',
+        visual_editor_tree: source.email?.visual_editor_tree || createDefaultBlocks()
+      },
+      test_data: source.test_data || defaultTestData
+    })
+
+    setEmailText(customTextOrUndefined(source.email?.text))
+    loadTranslations(source.translations)
+
+    // Update the visual editor tree
+    if (source.email?.visual_editor_tree) {
+      if (typeof source.email.visual_editor_tree === 'object') {
+        setVisualEditorTree(source.email.visual_editor_tree as unknown as EmailBlock)
+      } else {
+        try {
+          setVisualEditorTree(JSON.parse(source.email.visual_editor_tree) as EmailBlock)
+        } catch (error) {
+          console.error('Error parsing visual editor tree:', error)
+          message.error(t`Error loading template: Invalid template data`)
+        }
       }
     }
   }
@@ -499,55 +582,33 @@ export function CreateTemplateDrawer({
       // Track the revision this content is based on, then freshen against the server
       // so a stale list snapshot doesn't lead to a silent overwrite of newer edits.
       baseVersionRef.current = template.version
-      dirtyRef.current = false
+      setSavedTemplate(template)
+      markClean()
       void freshenFromServer()
     } else if (fromTemplate) {
-      // Clone template functionality - lock to source template's editor mode
-      setEditorMode(fromTemplate.email?.editor_mode === 'code' ? 'code' : 'visual')
-      if (fromTemplate.email?.editor_mode === 'code' && fromTemplate.email?.mjml_source) {
-        setMjmlSource(fromTemplate.email.mjml_source)
-      }
-      // Append "copy" as suffix instead of "Copy of" prefix. The ID's base is cut so the
-      // suffix fits the limit, and a copy never takes the original's (cut) ID.
-      const copyIdBase = truncateIdentifier(
-        kebabCase(fromTemplate.name),
-        TEMPLATE_ID_MAX_LENGTH - COPY_ID_SUFFIX.length
-      )
-      form.setFieldsValue({
-        name: `${fromTemplate.name} copy`,
-        id: copyIdBase ? `${copyIdBase}${COPY_ID_SUFFIX}` : 'copy',
-        category: fromTemplate.category || forceCategory || undefined,
-        email: {
-          sender_id: fromTemplate.email?.sender_id || undefined,
-          reply_to: fromTemplate.email?.reply_to || undefined,
-          subject: fromTemplate.email?.subject || '',
-          subject_preview: fromTemplate.email?.subject_preview || '',
-          content: fromTemplate.email?.visual_editor_tree || '',
-          visual_editor_tree: fromTemplate.email?.visual_editor_tree || createDefaultBlocks()
-        },
-        test_data: fromTemplate.test_data || defaultTestData
+      seedFromTemplate(fromTemplate)
+    } else if (initialModel) {
+      // A model chosen before the drawer: it opens at once on a loading state, then on that model
+      // as a pick in the gallery would, once the logo's size and a free ID are known. Closed
+      // before then, nothing opens later.
+      const round = startRoundRef.current
+      setPreparing(true)
+      setIsOpen(true)
+      void gallery.start(initialModel).then((start) => {
+        if (round === startRoundRef.current) void pickModel(start)
       })
-
-      setEmailText(customTextOrUndefined(fromTemplate.email?.text))
-      loadTranslations(fromTemplate.translations)
-
-      // Update the visual editor tree
-      if (fromTemplate.email?.visual_editor_tree) {
-        if (typeof fromTemplate.email.visual_editor_tree === 'object') {
-          setVisualEditorTree(fromTemplate.email.visual_editor_tree as unknown as EmailBlock)
-        } else {
-          try {
-            setVisualEditorTree(JSON.parse(fromTemplate.email.visual_editor_tree) as EmailBlock)
-          } catch (error) {
-            console.error('Error parsing visual editor tree:', error)
-            message.error(t`Error loading template: Invalid template data`)
-          }
-        }
-      }
+      return
+    } else if (!initialTree) {
+      // A new template starts from a choice: the drawer opens once it is made.
+      setStartModalOpen(true)
+      return
     } else {
-      // A new template, possibly from an imported file: nothing is saved before Save.
+      // A new template from an imported file: nothing is saved before Save.
       if (initialName) {
-        form.setFieldsValue({ name: initialName, id: templateIdFromName(initialName) })
+        form.setFieldsValue({
+          name: initialName,
+          id: templateIdFromName(initialName)
+        })
       }
       if (initialTestData) form.setFieldsValue({ test_data: initialTestData })
       if (initialTree) {
@@ -564,18 +625,132 @@ export function CreateTemplateDrawer({
     }, 100)
   }
 
+  // The first free ID from a name: the name's, then -2, -3… A template made twice from the same
+  // model would otherwise be refused on Save for an ID it did not choose.
+  const freeTemplateId = async (base: string): Promise<string> => {
+    for (let n = 1; n < 10; n++) {
+      const candidate = n === 1 ? base : truncateIdentifier(`${base}-${n}`, TEMPLATE_ID_MAX_LENGTH)
+      try {
+        await templatesApi.get({ workspace_id: workspace.id, id: candidate })
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return candidate
+        return base
+      }
+    }
+    return base
+  }
+
+  const openAfterStart = () => {
+    setPreparing(false)
+    setStartModalOpen(false)
+    markClean()
+    setTab('settings')
+    setIsOpen(true)
+    setTimeout(() => setEmailBuilderHeight(`calc(100vh - ${HEADER_HEIGHT}px)`), 100)
+  }
+
+  const pickModel = async (start: GalleryStart) => {
+    if (pickingRef.current) return
+    pickingRef.current = true
+    try {
+      await applyModel(start)
+    } finally {
+      pickingRef.current = false
+    }
+  }
+
+  const applyModel = async (start: GalleryStart) => {
+    const round = startRoundRef.current
+    // Blank leaves the name, subject and preview text to write, as a new template always did.
+    const blank = start.modelId === 'blank'
+    const id = blank ? undefined : await freeTemplateId(templateIdFromName(start.name))
+    // Closed while the ID was looked up: the pick is dropped.
+    if (round !== startRoundRef.current) return
+    setCloneSource(undefined)
+    setEditorMode('visual')
+    setMjmlSource(STARTER_TEMPLATE)
+    setEmailText(undefined)
+    form.setFieldsValue({
+      name: blank ? undefined : start.name,
+      id,
+      category: forceCategory || start.category,
+      // A model sets no sender: one left by an earlier choice is not carried over.
+      email: {
+        sender_id: undefined,
+        reply_to: undefined,
+        subject: blank ? '' : start.subject,
+        subject_preview: blank ? '' : start.subjectPreview
+      },
+      test_data: start.testData
+    })
+    setVisualEditorTree(start.tree)
+    setTranslationsState({})
+    // Blank's translations would only repeat its placeholder; a model's are its content.
+    if (!blank) loadTranslations(start.translations)
+    setStartModelId(blank ? undefined : start.modelId)
+    const label = MODEL_LABELS[start.modelId as keyof typeof MODEL_LABELS]
+    const languages = [start.language, ...Object.keys(start.translations)]
+      .map(languageName)
+      .join(', ')
+    setStartInfo({
+      name: label ? i18n._(label.name) : start.name,
+      detail: t`Gallery · ${languages}`
+    })
+    openAfterStart()
+  }
+
+  const pickTemplate = (source: Template) => {
+    setStartModelId(undefined)
+    setCloneSource(source)
+    seedFromTemplate(source)
+    setStartInfo({ name: source.name, detail: t`Your templates` })
+    openAfterStart()
+  }
+
+  // Change, from the Content card: the content will be replaced, so ask over changes.
+  const changeStart = () => {
+    if (!dirtyRef.current) {
+      setStartModalOpen(true)
+      return
+    }
+    modal.confirm({
+      title: t`Replace the content?`,
+      content: t`The changes you made will be replaced by the model you choose.`,
+      okText: t`Choose another`,
+      cancelText: t`Keep editing`,
+      onOk: () => setStartModalOpen(true)
+    })
+  }
+
+  const cancelStart = () => {
+    setStartModalOpen(false)
+    // Cancelled before the drawer opened: nothing was created.
+    if (!isOpen) handleClose()
+  }
+
   const handleClose = (notify = true) => {
+    startRoundRef.current++
+    setPreparing(false)
     setIsOpen(false)
+    markClean()
+    setStepsWithErrors([])
+    setTranslationMissing(null)
     form.resetFields()
     setTab('settings')
     setEditorMode('visual')
     setMjmlSource(STARTER_TEMPLATE)
     setTranslationsState({})
     setEmailText(undefined)
+    setStartInfo(undefined)
+    setStartModelId(undefined)
+    setCloneSource(fromTemplate)
+    setSavedTemplate(template)
     textSessionRef.current++
     setTextSession(textSessionRef.current)
+    const saved = savedSinceOpenRef.current
+    savedSinceOpenRef.current = undefined
     if (notify && onClose) {
-      onClose()
+      onClose(saved)
     }
   }
 
@@ -594,8 +769,15 @@ export function CreateTemplateDrawer({
     if (!open && isOpenRef.current) handleCloseRef.current(false)
   }, [controlled, open])
 
+  // Test data is saved with the template: a change through the builders' Template data tab, which
+  // antd does not report as a form change, counts as one.
+  const changeTestData = (testData: Record<string, unknown>) => {
+    markDirty()
+    form.setFieldsValue({ test_data: testData })
+  }
+
   const handleImport = (tree: EmailBlock) => {
-    dirtyRef.current = true
+    markDirty()
     setVisualEditorTree(tree)
   }
 
@@ -665,7 +847,10 @@ export function CreateTemplateDrawer({
     try {
       // The API replaces the whole entry, so the block goes with the new name. It is read from the server
       // rather than from the loaded workspace: a block replaced elsewhere since keeps its new content.
-      const { block: current } = await templateBlocksApi.get({ workspace_id: workspace.id, id })
+      const { block: current } = await templateBlocksApi.get({
+        workspace_id: workspace.id,
+        id
+      })
       await templateBlocksApi.update({
         workspace_id: workspace.id,
         id,
@@ -699,102 +884,149 @@ export function CreateTemplateDrawer({
     await refreshSavedBlocks(t`Block deleted. Reload the page to update your saved blocks.`)
   }
 
-  const goNext = () => {
-    if (tab === 'settings') {
-      setTab('template')
-    } else if (tab === 'template' && showTranslationsTab) {
-      setTab('translations')
+  // Closing loses what changed since the drawer opened: ask first.
+  const requestClose = () => {
+    if (!dirtyRef.current) {
+      handleClose()
+      return
     }
+    modal.confirm({
+      title: t`Discard your changes?`,
+      content: t`The changes you made since opening this template will be lost.`,
+      okText: t`Discard`,
+      okButtonProps: { danger: true },
+      cancelText: t`Keep editing`,
+      onOk: () => handleClose()
+    })
   }
+
+  const savedVersion = template ? (baseVersionRef.current ?? template.version) : undefined
+  const testDisabledReason = !template
+    ? t`Create the template to send it as a test`
+    : !canTest
+      ? t`You need Templates read and Transactional write permissions to send test emails`
+      : undefined
+
+  // A test sends the saved version. With changes waiting, say so and offer to save them first.
+  const sendTest = () => {
+    const saved = savedTemplate ?? template
+    if (!saved) return
+    if (!dirtyRef.current) {
+      setTestTemplate(saved)
+      return
+    }
+    const next = (savedVersion ?? saved.version) + 1
+    const instance = modal.confirm({
+      title: t`Send the saved version?`,
+      // The test sends the template's latest saved revision, which may be newer than the one
+      // this drawer opened if someone saved since: say "the saved version", not a number.
+      content: t`Your changes are not saved yet. A test sends the saved version.`,
+      closable: true,
+      footer: (
+        <div className="mt-4 flex justify-end gap-2">
+          <Button onClick={() => instance.destroy()}>{t`Cancel`}</Button>
+          <Button
+            onClick={() => {
+              instance.destroy()
+              setTestTemplate(saved)
+            }}
+          >
+            {t`Send the saved version`}
+          </Button>
+          <Button
+            type="primary"
+            onClick={() => {
+              instance.destroy()
+              sendAfterSaveRef.current = true
+              form.submit()
+            }}
+          >
+            {t`Save v${next} and send`}
+          </Button>
+        </div>
+      )
+    })
+  }
+
+  const hasSettingsErrors = () =>
+    form
+      .getFieldsError()
+      .some((field) => field.errors.length > 0 && SETTINGS_FIELDS.includes(field.name.join('.')))
 
   return (
     <>
       {controlled ? null : (
         <Button type="primary" onClick={showDrawer} {...buttonProps}>
           {buttonContent ||
-            (template ? t`Edit Template` : fromTemplate ? t`Clone Template` : t`Create Template`)}
+            (template ? t`Edit template` : fromTemplate ? t`Clone template` : t`Create template`)}
         </Button>
       )}
       {isOpen && (
-        <Drawer
-          title={
-            <>
-              {template
-                ? t`Edit email template`
-                : fromTemplate
-                  ? t`Clone email template`
-                  : t`Create an email template`}
-            </>
-          }
-          closable={true}
-          keyboard={false}
-          mask={{ closable: false }}
-          size={'100%'}
-          rootClassName="app-drawer-instant"
+        <FullDrawer
           open={isOpen}
-          onClose={() => handleClose()}
-          className="drawer-body-no-padding"
-          extra={
-            <div className="text-right">
-              <Space>
-                <Button type="link" loading={loading} onClick={() => handleClose()}>
-                  {t`Cancel`}
-                </Button>
-
-                {tab === 'settings' && (
-                  <Button type="primary" onClick={goNext}>
-                    {t`Next`}
-                  </Button>
-                )}
-                {tab === 'template' && (
-                  <Button type="primary" ghost onClick={() => setTab('settings')}>
-                    {t`Previous`}
-                  </Button>
-                )}
-                {tab === 'template' && !showTranslationsTab && (
-                  <Button
-                    loading={loading || createTemplateMutation.isPending}
-                    onClick={() => {
-                      form.submit()
-                    }}
-                    type="primary"
-                  >
-                    {t`Save`}
-                  </Button>
-                )}
-                {tab === 'template' && showTranslationsTab && (
-                  <Button type="primary" onClick={goNext}>
-                    {t`Next`}
-                  </Button>
-                )}
-                {tab === 'translations' && (
-                  <Button type="primary" ghost onClick={() => setTab('template')}>
-                    {t`Previous`}
-                  </Button>
-                )}
-                {tab === 'translations' && (
-                  <Button
-                    loading={loading || createTemplateMutation.isPending}
-                    onClick={() => {
-                      form.submit()
-                    }}
-                    type="primary"
-                  >
-                    {t`Save`}
-                  </Button>
-                )}
-              </Space>
-            </div>
+          onClose={requestClose}
+          backLabel={t`Templates`}
+          ariaLabel={template ? t`Edit email template` : t`Create an email template`}
+          copyLink={false}
+          push={false}
+          keyboard={false}
+          fill
+          barTitle={
+            <TemplateBarTitle
+              name={watchedName ?? ''}
+              version={savedVersion}
+              updatedAt={(savedTemplate ?? template)?.updated_at}
+              dirty={dirty}
+            />
+          }
+          barCenter={
+            preparing ? undefined : (
+              <TemplateStepSwitch
+                step={tab}
+                onChange={setTab}
+                showTranslations={showTranslationsTab}
+                translationCount={
+                  Object.values(translationsState).filter((state) => state.enabled).length
+                }
+                stepsWithErrors={stepsWithErrors}
+              />
+            )
+          }
+          topActions={
+            preparing ? undefined : (
+              <TemplateBarActions
+                version={savedVersion}
+                dirty={dirty}
+                saving={loading || createTemplateMutation.isPending}
+                onSave={() => form.submit()}
+                testDisabledReason={testDisabledReason}
+                onSendTest={sendTest}
+              />
+            )
           }
         >
+          {/* A model given before opening is still being built: nothing to edit or save yet. */}
+          {preparing ? (
+            <div data-testid="template-preparing" className="flex flex-1 items-center justify-center gap-2 text-sm text-ink-3">
+              <Spin size="small" />
+              <span>{t`Loading...`}</span>
+            </div>
+          ) : null}
           <Form
             form={form}
             layout="vertical"
+            className={preparing ? 'hidden' : 'flex min-h-0 min-w-0 flex-1 flex-col'}
             onValuesChange={() => {
-              dirtyRef.current = true
+              markDirty()
+            }}
+            onFieldsChange={() => {
+              if (stepsWithErrors.includes('settings') && !hasSettingsErrors()) {
+                setStepsWithErrors((steps) => steps.filter((step) => step !== 'settings'))
+              }
             }}
             onFinish={(values) => {
               setLoading(true)
+              setStepsWithErrors([])
               if (editorMode === 'code') {
                 values.email.editor_mode = 'code'
                 values.email.mjml_source = mjmlSource
@@ -827,6 +1059,10 @@ export function CreateTemplateDrawer({
                     const langName = SUPPORTED_LANGUAGES[lang] || lang
                     message.error(t`${langName} translation is missing required fields (subject and preview)`)
                     setTab('translations')
+                    setStepsWithErrors(['translations'])
+                    missingAttemptRef.current += 1
+                    setTranslationMissing({ lang, attempt: missingAttemptRef.current })
+                    sendAfterSaveRef.current = false
                     setLoading(false)
                     return
                   }
@@ -873,25 +1109,16 @@ export function CreateTemplateDrawer({
               createTemplateMutation.mutate(values)
             }}
             onFinishFailed={(info) => {
-              if (info.errorFields) {
-                info.errorFields.forEach((field) => {
-                  // field.name can be an array, so we need to concatenate the array into a string
-                  const fieldName = field.name.join('.')
-                  if (
-                    [
-                      'name',
-                      'id',
-                      'category',
-                      'email.sender_id',
-                      'email.subject',
-                      'email.subject_preview',
-                      'email.reply_to'
-                    ].indexOf(fieldName) !== -1
-                  ) {
-                    setTab('settings')
-                  }
-                })
+              // Every step opens at any time, so a field in error may sit on another step:
+              // open the step that holds it and mark it.
+              const inSettings = (info.errorFields || []).some((field) =>
+                SETTINGS_FIELDS.includes(field.name.join('.'))
+              )
+              if (inSettings) {
+                setTab('settings')
+                setStepsWithErrors(['settings'])
               }
+              sendAfterSaveRef.current = false
               setLoading(false)
             }}
             initialValues={{
@@ -904,253 +1131,76 @@ export function CreateTemplateDrawer({
               <Input type="hidden" />
             </Form.Item>
 
-            <div className="flex justify-center">
-              <Tabs
-                activeKey={tab}
-                centered
-                onChange={(k) => setTab(k)}
-                style={{ display: 'inline-block' }}
-                className="tabs-in-header"
-                destroyOnHidden={false}
-                items={[
-                  {
-                    key: 'settings',
-                    label: t`1. Settings`
-                  },
-                  {
-                    key: 'template',
-                    label: showTranslationsTab
-                      ? t`2. Template (${workspace.settings.default_language})`
-                      : t`2. Template`
-                  },
-                  ...(showTranslationsTab
-                    ? [
-                        {
-                          key: 'translations',
-                          label: t`3. Translations`
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <div
+                className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-6"
+                style={{ display: tab === 'settings' ? 'block' : 'none' }}
+              >
+                <div className="flex flex-col gap-3 min-[1200px]:flex-row min-[1200px]:items-start">
+                  <div className="flex min-w-0 flex-1 flex-col gap-3">
+                    <TemplateSettingsStep
+                      isSaved={!!template}
+                      forceCategory={forceCategory}
+                      editorMode={editorMode}
+                      onEditorModeChange={setEditorMode}
+                      editorModeLocked={!!(template || cloneSource || startModelId)}
+                      showLanguage={showTranslationsTab}
+                      defaultLanguage={workspace.settings.default_language}
+                      senders={emailProvider?.email_provider?.senders ?? []}
+                      categoryValue={categoryValue}
+                      testData={watchedTestData}
+                      onDirty={markDirty}
+                      onNameChange={(name) => {
+                        if (!template) {
+                          form.setFieldsValue({ id: templateIdFromName(name) })
+                          void form.validateFields(['id']).catch(() => undefined)
                         }
-                      ]
-                    : [])
-                ]}
-              />
-            </div>
-            <div className="relative">
-              <div style={{ display: tab === 'settings' ? 'block' : 'none' }}>
-                <div className="p-8">
-                  <Row gutter={24}>
-                    <Col span={6}>
-                      <Form.Item
-                        name="name"
-                        label={t`Template name`}
-                        rules={[
-                          { required: true },
-                          {
-                            max: TEMPLATE_NAME_MAX_LENGTH,
-                            message: t`Template name must be at most ${TEMPLATE_NAME_MAX_LENGTH} characters long`
-                          }
-                        ]}
-                      >
-                        <Input
-                          placeholder={t`i.e: Welcome Email`}
-                          maxLength={TEMPLATE_NAME_MAX_LENGTH}
-                          showCount
-                          onChange={(e) => {
-                            if (!template) {
-                              const id = templateIdFromName(e.target.value)
-                              form.setFieldsValue({ id: id })
-                              form.validateFields(['id'])
-                            }
-                          }}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item
-                        name="id"
-                        label={t`Template ID (utm_content)`}
-                        tooltip={t`This is the ID that will be used as the utm_content parameter in the links URL to track the template`}
-                        rules={[
-                          {
-                            required: true,
-                            type: 'string',
-                            pattern: /^[a-z0-9_-]+$/,
-                            message:
-                              t`ID must contain only lowercase letters, numbers, underscores, and hyphens`
-                          },
-                          {
-                            max: TEMPLATE_ID_MAX_LENGTH,
-                            message: t`Template ID must be at most ${TEMPLATE_ID_MAX_LENGTH} characters long`
-                          },
-                          {
-                            validator: async (_rule, value) => {
-                              if (value && !template) {
-                                let existing: { template?: Template } | undefined
-                                try {
-                                  existing = await templatesApi.get({ workspace_id: workspace.id, id: value })
-                                } catch {
-                                  return Promise.resolve()
-                                }
-                                // A deleted template keeps its id and no list shows it, so
-                                // "already exists" alone sends the author looking for it.
-                                return Promise.reject(
-                                  existing?.template?.deleted_at
-                                    ? t`This ID belongs to a deleted template and can't be reused`
-                                    : t`Template ID already exists`
-                                )
-                              }
-                              return Promise.resolve()
-                            }
-                          }
-                        ]}
-                      >
-                        <Input
-                          disabled={template ? true : false}
-                          placeholder={t`i.e: welcome-email`}
-                          maxLength={TEMPLATE_ID_MAX_LENGTH}
-                          showCount
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item
-                        name="category"
-                        label={t`Category`}
-                        rules={[{ required: true, type: 'string' }]}
-                      >
-                        <Select
-                          placeholder={t`Select category`}
-                          disabled={forceCategory ? true : false}
-                          options={[
-                            {
-                              value: 'marketing',
-                              label: renderCategoryTag('marketing')
-                            },
-                            {
-                              value: 'transactional',
-                              label: renderCategoryTag('transactional')
-                            },
-                            {
-                              value: 'welcome',
-                              label: renderCategoryTag('welcome')
-                            },
-                            {
-                              value: 'opt_in',
-                              label: renderCategoryTag('opt_in')
-                            },
-                            {
-                              value: 'unsubscribe',
-                              label: renderCategoryTag('unsubscribe')
-                            },
-                            {
-                              value: 'bounce',
-                              label: renderCategoryTag('bounce')
-                            },
-                            {
-                              value: 'blocklist',
-                              label: renderCategoryTag('blocklist')
-                            }
-                          ]}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={6}>
-                      <Form.Item
-                        label={t`Editor mode`}
-                        tooltip={t`The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML.`}
-                      >
-                        <Radio.Group
-                          value={editorMode}
-                          onChange={(e) => setEditorMode(e.target.value as 'visual' | 'code')}
-                          optionType="button"
-                          disabled={!!(template || fromTemplate)}
-                          options={[
-                            { label: t`Visual`, value: 'visual' },
-                            { label: t`Code (MJML)`, value: 'code' }
-                          ]}
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <div className="text-lg my-8 font-bold">{t`Sender`}</div>
-                  <Row gutter={24}>
-                    <Col span={12}>
-                      <Form.Item
-                        name={['email', 'subject']}
-                        label={showTranslationsTab ? t`Email subject (${workspace.settings.default_language})` : t`Email subject`}
-                        rules={[
-                          { required: true, type: 'string' },
-                          {
-                            validator: (_, value) => {
-                              const validation = validateLiquidTags(value)
-                              if (!validation.isValid) {
-                                return Promise.reject(new Error(validation.error))
-                              }
-                              return Promise.resolve()
-                            }
-                          }
-                        ]}
-                      >
-                        <Input placeholder={t`Templating markup allowed`} />
-                      </Form.Item>
-                      <Form.Item
-                        name={['email', 'subject_preview']}
-                        label={showTranslationsTab ? t`Subject preview (${workspace.settings.default_language})` : t`Subject preview`}
-                        rules={[
-                          { required: true, type: 'string' },
-                          {
-                            validator: (_, value) => {
-                              const validation = validateLiquidTags(value)
-                              if (!validation.isValid) {
-                                return Promise.reject(new Error(validation.error))
-                              }
-                              return Promise.resolve()
-                            }
-                          }
-                        ]}
-                      >
-                        <Input placeholder={t`Templating markup allowed`} />
-                      </Form.Item>
-
-                      <Row gutter={24}>
-                        <Col span={12}>
-                          <Form.Item
-                            name={['email', 'reply_to']}
-                            label={t`Reply to`}
-                            rules={[{ required: false, type: 'email' }]}
-                          >
-                            <Input />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name={['email', 'sender_id']}
-                            label={categoryValue === 'marketing' ? t`Custom sender (marketing email provider)` : t`Custom sender (transactional email provider)`}
-                            rules={[{ required: false, type: 'string' }]}
-                          >
-                            <Select
-                              options={emailProvider?.email_provider?.senders.map((sender) => ({
-                                value: sender.id,
-                                label: `${sender.name} <${sender.email}>`
-                              }))}
-                              allowClear={true}
-                            />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-                    </Col>
-                    <Col span={12}>
-                      <div className="flex justify-center">
-                        <IphoneEmailPreview
-                          sender={emailSender?.name || t`Sender Name`}
-                          subject={emailSubject || t`Email Subject`}
-                          previewText={emailPreview || t`Preview text will appear here...`}
-                          timestamp={t`Now`}
-                          currentTime="12:12"
-                        />
-                      </div>
-                    </Col>
-                  </Row>
+                      }}
+                      validateId={async (value) => {
+                        if (!value || template) return
+                        let existing: { template?: Template } | undefined
+                        try {
+                          existing = await templatesApi.get({
+                            workspace_id: workspace.id,
+                            id: value
+                          })
+                        } catch {
+                          return
+                        }
+                        // A deleted template keeps its id and no list shows it, so
+                        // "already exists" alone sends the author looking for it.
+                        throw new Error(
+                          existing?.template?.deleted_at
+                            ? t`This ID belongs to a deleted template and can't be reused`
+                            : t`Template ID already exists`
+                        )
+                      }}
+                    />
+                  </div>
+                  <aside className="flex shrink-0 flex-col gap-3 min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:w-aside">
+                    {tab === 'settings' ? (
+                      <TemplateSettingsAside
+                        workspace={workspace}
+                        email={{
+                          subject: emailSubject,
+                          subject_preview: emailPreview,
+                          editor_mode: editorMode,
+                          ...(editorMode === 'code'
+                            ? { mjml_source: mjmlSource }
+                            : {
+                                visual_editor_tree:
+                                  visualEditorTree as unknown as EmailTemplate['visual_editor_tree']
+                              })
+                        }}
+                        testData={watchedTestData}
+                        senderName={emailSender?.name || workspace.name}
+                        onOpenContent={() => setTab('template')}
+                        startingPoint={
+                          startInfo ? { ...startInfo, onChange: changeStart } : undefined
+                        }
+                      />
+                    ) : null}
+                  </aside>
                 </div>
               </div>
 
@@ -1166,7 +1216,7 @@ export function CreateTemplateDrawer({
                           ref={codeEditorRef}
                           mjmlSource={mjmlSource}
                           onMjmlSourceChange={(source) => {
-                            dirtyRef.current = true
+                            markDirty()
                             setMjmlSource(source)
                           }}
                           onCompile={async (
@@ -1208,11 +1258,7 @@ export function CreateTemplateDrawer({
                             }
                           }}
                           testData={testData}
-                          onTestDataChange={(newTestData) => {
-                            form.setFieldsValue({
-                              test_data: newTestData
-                            })
-                          }}
+                          onTestDataChange={changeTestData}
                           height={emailBuilderHeight}
                           templateId={templateId || 'new'}
                           textVersion={{
@@ -1233,7 +1279,7 @@ export function CreateTemplateDrawer({
                         onTreeChange={(tree) => {
                           // Visual edits go through here; mark dirty so a freshen-on-open
                           // refetch never silently reseeds over in-progress work.
-                          dirtyRef.current = true
+                          markDirty()
                           setVisualEditorTree(tree)
                         }}
                         onCompile={async (
@@ -1276,16 +1322,16 @@ export function CreateTemplateDrawer({
                             return {
                               html: '',
                               mjml: '',
-                              errors: [{ message: err.message || 'Compilation failed' }]
+                              errors: [
+                                {
+                                  message: err.message || 'Compilation failed'
+                                }
+                              ]
                             }
                           }
                         }}
                         testData={testData}
-                        onTestDataChange={(newTestData) => {
-                          form.setFieldsValue({
-                            test_data: newTestData
-                          })
-                        }}
+                        onTestDataChange={changeTestData}
                         treePanelRef={treePanelRef as React.RefObject<HTMLDivElement>}
                         editPanelRef={editPanelRef as React.RefObject<HTMLDivElement>}
                         settingsPanelRef={settingsPanelRef as React.RefObject<HTMLDivElement>}
@@ -1317,7 +1363,7 @@ export function CreateTemplateDrawer({
                           }
                         }}
                         toolbarActions={
-                          <div className="flex gap-2 items-start">
+                          <div className="flex items-center gap-2">
                             <HelpSupportDropdown
                               onStartTour={() => {
                                 setTourOpen(true)
@@ -1348,15 +1394,23 @@ export function CreateTemplateDrawer({
                     editorMode={editorMode}
                     translationsState={translationsState}
                     onTranslationsStateChange={(s) => {
-                      dirtyRef.current = true
+                      markDirty()
                       setTranslationsState(s)
+                      // Every switched-on translation complete again: the step loses its error mark.
+                      if (
+                        translationMissing &&
+                        Object.values(s).every((state) => !state.enabled || (state.subject && state.subjectPreview))
+                      ) {
+                        setTranslationMissing(null)
+                        setStepsWithErrors((steps) => steps.filter((step) => step !== 'translations'))
+                      }
                     }}
                     defaultSubject={emailSubject}
                     defaultSubjectPreview={emailPreview}
                     defaultVisualEditorTree={visualEditorTree}
                     defaultMjmlSource={mjmlSource}
                     testData={form.getFieldValue('test_data')}
-                    onTestDataChange={(newTestData) => form.setFieldsValue({ test_data: newTestData })}
+                    onTestDataChange={changeTestData}
                     savedBlocks={workspace.settings.template_blocks || []}
                     onSaveBlock={handleSaveBlock}
                     canManageSavedBlocks={canManageSavedBlocks}
@@ -1364,6 +1418,8 @@ export function CreateTemplateDrawer({
                     onDeleteSavedBlock={handleDeleteSavedBlock}
                     category={categoryValue}
                     templateName={template?.name}
+                    missing={translationMissing}
+                    senderName={emailSender?.name || workspace.name}
                   />
                 </div>
               )}
@@ -1491,129 +1547,169 @@ export function CreateTemplateDrawer({
 
           {/* AI Email Assistant - persists across tab switches, hidden in code mode */}
           <EmailAIAssistant
-              hidden={tab !== 'template' || editorMode === 'code'}
-              workspace={workspace}
-              currentSubject={emailSubject}
-              currentPreviewText={emailPreview}
-              category={categoryValue}
-              onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
-              onUpdatePreviewText={(preview) => form.setFieldValue(['email', 'subject_preview'], preview)}
-              validateOnComplete={async () => {
-                // Compile the freshly-edited tree; surface MJML errors so a broken
-                // generation is never presented as success.
-                try {
-                  const response = await templatesApi.compile({
+            hidden={tab !== 'template' || editorMode === 'code'}
+            workspace={workspace}
+            currentSubject={emailSubject}
+            currentPreviewText={emailPreview}
+            category={categoryValue}
+            onUpdateSubject={(subject) => {
+              markDirty()
+              form.setFieldValue(['email', 'subject'], subject)
+            }}
+            onUpdatePreviewText={(preview) => {
+              markDirty()
+              form.setFieldValue(['email', 'subject_preview'], preview)
+            }}
+            validateOnComplete={async () => {
+              // Compile the freshly-edited tree; surface MJML errors so a broken
+              // generation is never presented as success.
+              try {
+                const response = await templatesApi.compile({
+                  workspace_id: workspace.id,
+                  message_id: 'preview',
+                  visual_editor_tree: visualEditorTreeRef.current,
+                  test_data: {},
+                  channel: 'email',
+                  tracking_settings: {
+                    enable_tracking: workspace.settings?.email_tracking_enabled || false,
+                    endpoint: workspace.settings?.custom_endpoint_url || undefined,
                     workspace_id: workspace.id,
-                    message_id: 'preview',
-                    visual_editor_tree: visualEditorTreeRef.current,
-                    test_data: {},
-                    channel: 'email',
-                    tracking_settings: {
-                      enable_tracking: workspace.settings?.email_tracking_enabled || false,
-                      endpoint: workspace.settings?.custom_endpoint_url || undefined,
-                      workspace_id: workspace.id,
-                      message_id: 'preview'
-                    }
-                  })
-                  if (response.error) {
-                    const details = (response.error.details || [])
-                      .map((d) => (d.line ? `• line ${d.line}: ${d.message}` : `• ${d.message}`))
-                      .join('\n')
-                    const errorText = [response.error.message, details].filter(Boolean).join('\n')
-                    return { ok: false, errorText: errorText || 'MJML compilation failed' }
+                    message_id: 'preview'
                   }
-                  return { ok: true }
-                } catch (error) {
-                  return { ok: false, errorText: (error as Error).message || 'Compilation failed' }
+                })
+                if (response.error) {
+                  const details = (response.error.details || [])
+                    .map((d) => (d.line ? `• line ${d.line}: ${d.message}` : `• ${d.message}`))
+                    .join('\n')
+                  const errorText = [response.error.message, details].filter(Boolean).join('\n')
+                  return {
+                    ok: false,
+                    errorText: errorText || 'MJML compilation failed'
+                  }
                 }
-              }}
-              callbacks={{
-                getEmailTree: () => visualEditorTreeRef.current,
-                setEmailTree: setVisualEditorTree,
-                onAddBlock: (parentId, blockType, position, content, attributes) => {
-                  dirtyRef.current = true
-                  // Use functional updater to ensure we have the latest state
-                  setVisualEditorTree(prevTree => {
-                    // Create a new block with defaults
-                    const newBlock = EmailBlockClass.createBlock(
-                      blockType as MJMLComponentType,
-                      undefined,
-                      content,
-                      prevTree
-                    )
-                    // Apply custom attributes if provided
-                    if (attributes) {
-                      newBlock.attributes = { ...newBlock.attributes, ...attributes }
-                    }
-                    // Insert into tree
-                    const updatedTree = EmailBlockClass.insertBlockIntoTree(
-                      prevTree,
-                      parentId,
-                      newBlock,
-                      position ?? (prevTree.children?.length || 0)
-                    )
-                    if (updatedTree) {
-                      // A column or a group takes its part as in the editor, the other columns keeping their ratio
-                      rebalanceAdded(updatedTree, parentId, newBlock.id)
-                      // Schedule selection update after state is applied
-                      setTimeout(() => setSelectedBlockId(newBlock.id), 0)
-                      return updatedTree
-                    }
-                    return prevTree
-                  })
-                },
-                onUpdateBlock: (blockId, updates) => {
-                  dirtyRef.current = true
-                  // Use functional updater to ensure atomic updates
-                  setVisualEditorTree(prevTree =>
-                    EmailBlockClass.mergeBlockUpdate(prevTree, blockId, updates)
+                return { ok: true }
+              } catch (error) {
+                return {
+                  ok: false,
+                  errorText: (error as Error).message || 'Compilation failed'
+                }
+              }
+            }}
+            callbacks={{
+              getEmailTree: () => visualEditorTreeRef.current,
+              setEmailTree: (tree) => {
+                markDirty()
+                setVisualEditorTree(tree)
+              },
+              onAddBlock: (parentId, blockType, position, content, attributes) => {
+                markDirty()
+                // Use functional updater to ensure we have the latest state
+                setVisualEditorTree((prevTree) => {
+                  // Create a new block with defaults
+                  const newBlock = EmailBlockClass.createBlock(
+                    blockType as MJMLComponentType,
+                    undefined,
+                    content,
+                    prevTree
                   )
-                },
-                onDeleteBlock: (blockId) => {
-                  dirtyRef.current = true
-                  setVisualEditorTree(prevTree => {
-                    const removedType = EmailBlockClass.findBlockById(prevTree, blockId)?.type
-                    const parentId = parentIdOf(prevTree, blockId)
-                    const updatedTree = EmailBlockClass.removeBlockFromTree(prevTree, blockId)
-                    if (updatedTree) {
-                      if (parentId) rebalanceRemoved(updatedTree, parentId, removedType)
-                      // Clear selection if deleted block was selected
-                      if (selectedBlockId === blockId) {
-                        setTimeout(() => setSelectedBlockId(null), 0)
-                      }
-                      return updatedTree
+                  // Apply custom attributes if provided
+                  if (attributes) {
+                    newBlock.attributes = {
+                      ...newBlock.attributes,
+                      ...attributes
                     }
-                    return prevTree
-                  })
-                },
-                onMoveBlock: (blockId, newParentId, position) => {
-                  dirtyRef.current = true
-                  setVisualEditorTree(prevTree => {
-                    const movedType = EmailBlockClass.findBlockById(prevTree, blockId)?.type
-                    const sourceId = parentIdOf(prevTree, blockId)
-                    const updatedTree = EmailBlockClass.moveBlockInTree(
-                      prevTree,
-                      blockId,
-                      newParentId,
-                      position
-                    )
-                    if (!updatedTree) return prevTree
-                    // Both containers keep their proportions; a reorder within one leaves the widths alone
-                    if (sourceId && sourceId !== newParentId) {
-                      rebalanceRemoved(updatedTree, sourceId, movedType)
-                      rebalanceAdded(updatedTree, newParentId, blockId)
+                  }
+                  // Insert into tree
+                  const updatedTree = EmailBlockClass.insertBlockIntoTree(
+                    prevTree,
+                    parentId,
+                    newBlock,
+                    position ?? (prevTree.children?.length || 0)
+                  )
+                  if (updatedTree) {
+                    // A column or a group takes its part as in the editor, the other columns keeping their ratio
+                    rebalanceAdded(updatedTree, parentId, newBlock.id)
+                    // Schedule selection update after state is applied
+                    setTimeout(() => setSelectedBlockId(newBlock.id), 0)
+                    return updatedTree
+                  }
+                  return prevTree
+                })
+              },
+              onUpdateBlock: (blockId, updates) => {
+                markDirty()
+                // Use functional updater to ensure atomic updates
+                setVisualEditorTree((prevTree) =>
+                  EmailBlockClass.mergeBlockUpdate(prevTree, blockId, updates)
+                )
+              },
+              onDeleteBlock: (blockId) => {
+                markDirty()
+                setVisualEditorTree((prevTree) => {
+                  const removedType = EmailBlockClass.findBlockById(prevTree, blockId)?.type
+                  const parentId = parentIdOf(prevTree, blockId)
+                  const updatedTree = EmailBlockClass.removeBlockFromTree(prevTree, blockId)
+                  if (updatedTree) {
+                    if (parentId) rebalanceRemoved(updatedTree, parentId, removedType)
+                    // Clear selection if deleted block was selected
+                    if (selectedBlockId === blockId) {
+                      setTimeout(() => setSelectedBlockId(null), 0)
                     }
                     return updatedTree
-                  })
-                },
-                onSelectBlock: (blockId) => {
-                  setSelectedBlockId(blockId)
-                }
-              }}
-            />
-        </Drawer>
+                  }
+                  return prevTree
+                })
+              },
+              onMoveBlock: (blockId, newParentId, position) => {
+                markDirty()
+                setVisualEditorTree((prevTree) => {
+                  const movedType = EmailBlockClass.findBlockById(prevTree, blockId)?.type
+                  const sourceId = parentIdOf(prevTree, blockId)
+                  const updatedTree = EmailBlockClass.moveBlockInTree(
+                    prevTree,
+                    blockId,
+                    newParentId,
+                    position
+                  )
+                  if (!updatedTree) return prevTree
+                  // Both containers keep their proportions; a reorder within one leaves the widths alone
+                  if (sourceId && sourceId !== newParentId) {
+                    rebalanceRemoved(updatedTree, sourceId, movedType)
+                    rebalanceAdded(updatedTree, newParentId, blockId)
+                  }
+                  return updatedTree
+                })
+              },
+              onSelectBlock: (blockId) => {
+                setSelectedBlockId(blockId)
+              }
+            }}
+          />
+        </FullDrawer>
       )}
       {conflictModal}
+      {startModalOpen ? (
+        <TemplateStartModal
+          open
+          workspace={workspace}
+          assets={assets}
+          defaultTestData={defaultTestData}
+          forceCategory={forceCategory}
+          canReadTemplates={!!permissions?.templates?.read}
+          onCancel={cancelStart}
+          onPickModel={(start) => void pickModel(start)}
+          onPickTemplate={pickTemplate}
+        />
+      ) : null}
+      {/* Outside the drawer: Save and send a test keeps it open, a later close must not cut the send. */}
+      <SendTemplateModal
+        isOpen={Boolean(testTemplate)}
+        onClose={() => setTestTemplate(null)}
+        template={testTemplate}
+        workspace={workspace}
+        canReadLists={!!permissions?.lists?.read}
+        canReadContacts={!!permissions?.contacts?.read}
+      />
     </>
   )
 }

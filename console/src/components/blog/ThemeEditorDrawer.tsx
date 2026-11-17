@@ -1,21 +1,33 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Drawer, Button, Input, App, Modal, Space, Tabs, Segmented } from 'antd'
+import { Button, Input, App, Modal, Segmented, Tooltip } from 'antd'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { Panel as ResizablePanel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { ExternalLink, Monitor, Smartphone } from 'lucide-react'
 import Editor from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
-import { BlogTheme, BlogThemeFiles, blogThemesApi } from '../../services/api/blog'
-import { useQueryClient, useMutation } from '@tanstack/react-query'
+import { BlogTheme, BlogThemeFiles, blogCategoriesApi, blogThemesApi } from '../../services/api/blog'
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query'
 import { ThemePreview } from './ThemePreview'
 import { useDebouncedCallback } from 'use-debounce'
 import { Workspace } from '../../services/api/types'
 import { ThemePreset, THEME_PRESETS } from './themePresets'
+import { FullDrawer, Pill } from '../layout'
 
 const { TextArea } = Input
 
-/** A tab's panel as tall as what its tab bar leaves: antd's body holder already takes that room. */
-const FILLING_TABS = { body: { height: '100%' }, content: { height: '100%' } }
+/** A save that went through and a publish that did not: the saved version must not be saved again. */
+class PublishAfterSaveError extends Error {
+  constructor(
+    readonly version: number,
+    readonly cause: unknown
+  ) {
+    super('publish failed after save')
+  }
+}
+
+type EditorView = 'code' | 'split' | 'preview'
+type PreviewPage = 'home' | 'category' | 'post'
 
 interface DraftWindow extends Window {
   __themeDraft?: DraftState
@@ -30,20 +42,11 @@ interface ThemeEditorDrawerProps {
   presetData?: ThemePreset | null
 }
 
-interface ThemeFileType {
-  key: keyof BlogThemeFiles
-  label: string
-}
-
-const THEME_FILES: ThemeFileType[] = [
-  { key: 'home.liquid', label: 'home.liquid' },
-  { key: 'category.liquid', label: 'category.liquid' },
-  { key: 'post.liquid', label: 'post.liquid' },
-  { key: 'header.liquid', label: 'header.liquid' },
-  { key: 'footer.liquid', label: 'footer.liquid' },
-  { key: 'shared.liquid', label: 'shared.liquid' },
-  { key: 'styles.css', label: 'styles.css' },
-  { key: 'scripts.js', label: 'scripts.js' }
+/** The theme's files by role: the three pages, the parts they include, then CSS and JS. */
+const FILE_GROUPS: { key: 'pages' | 'shared' | 'assets'; files: (keyof BlogThemeFiles)[] }[] = [
+  { key: 'pages', files: ['home.liquid', 'category.liquid', 'post.liquid'] },
+  { key: 'shared', files: ['header.liquid', 'footer.liquid', 'shared.liquid'] },
+  { key: 'assets', files: ['styles.css', 'scripts.js'] }
 ]
 
 interface DraftState {
@@ -67,14 +70,23 @@ export function ThemeEditorDrawer({
   const { t } = useLingui()
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
+  // The blog's categories, for the preview's navigation and pages.
+  const { data: categoriesData } = useQuery({
+    queryKey: ['blog-categories', workspaceId],
+    queryFn: () => blogCategoriesApi.list(workspaceId),
+    enabled: open
+  })
   const [selectedFile, setSelectedFile] = useState<keyof BlogThemeFiles>('home.liquid')
   const [files, setFiles] = useState<BlogThemeFiles>(THEME_PRESETS[0].files)
   const [notes, setNotes] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
   const [showSaveModal, setShowSaveModal] = useState(false)
-  const [previewPage, setPreviewPage] = useState<'home' | 'category' | 'post'>('home')
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [previewPage, setPreviewPage] = useState<PreviewPage>('home')
+  const [view, setView] = useState<EditorView>('split')
+  const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
+  // The save the notes window confirms: a save alone, or a save then a publish.
+  const [savePublishes, setSavePublishes] = useState(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
@@ -85,6 +97,7 @@ export function ThemeEditorDrawer({
   }, 300)
 
   const isPublished = theme?.published_at !== null && theme?.published_at !== undefined
+  const themeVersion = theme?.version
   const localStorageKey = getLocalStorageKey(workspaceId, theme?.version || null)
 
   // Helper function to load theme data - defined before useEffect that uses it
@@ -221,32 +234,30 @@ export function ThemeEditorDrawer({
   }
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      const isPublished = theme?.published_at !== null && theme?.published_at !== undefined
-
-      if (!theme) {
-        // Create new theme
-        return await blogThemesApi.create(workspaceId, { files, notes })
-      } else if (isPublished) {
-        // Published theme with changes: create new version
-        return await blogThemesApi.create(workspaceId, {
-          files,
-          notes: notes ? `Edited from v${theme.version}: ${notes}` : `Edited from v${theme.version}`
-        })
-      } else {
-        // Unpublished draft: update in place
-        return await blogThemesApi.update(workspaceId, {
-          version: theme.version,
-          files,
-          notes
-        })
+    mutationFn: async ({ publish }: { publish: boolean }) => {
+      // A draft with nothing new is published as it is, without a save.
+      if (publish && theme && !isPublished && !hasUnsavedChanges) {
+        await blogThemesApi.publish(workspaceId, { version: theme.version })
+        return { theme, published: true }
       }
+      const saved = await saveTheme()
+      if (publish) {
+        try {
+          await blogThemesApi.publish(workspaceId, { version: saved.theme.version })
+        } catch (error) {
+          // The version exists: a retry from here would save it again, as a further version (or
+          // a further theme). Close on what was saved and say where to publish it.
+          throw new PublishAfterSaveError(saved.theme.version, error)
+        }
+      }
+      return { theme: saved.theme, published: publish }
     },
-    onSuccess: (data) => {
-      const isPublished = theme?.published_at !== null && theme?.published_at !== undefined
-
-      if (isPublished) {
-        message.success(t`Created new version v${data.theme.version}`)
+    onSuccess: ({ theme: saved, published }) => {
+      const savedVersion = saved.version
+      if (published) {
+        message.success(t`Theme v${savedVersion} published`)
+      } else if (isPublished) {
+        message.success(t`Created new version v${savedVersion}`)
       } else if (theme) {
         message.success(t`Theme updated successfully`)
       } else {
@@ -259,17 +270,49 @@ export function ThemeEditorDrawer({
       onClose()
     },
     onError: (error: Error) => {
+      if (error instanceof PublishAfterSaveError) {
+        const savedVersion = error.version
+        message.error(t`Saved as v${savedVersion}, but it could not be published. Publish it from the Themes list.`)
+        setHasUnsavedChanges(false)
+        localStorage.removeItem(localStorageKey)
+        queryClient.invalidateQueries({ queryKey: ['blog-themes', workspaceId] })
+        onClose()
+        return
+      }
       message.error(error?.message || t`Failed to save theme`)
     }
   })
+  const saving = saveMutation.isPending
 
-  const handleSave = () => {
+  // Saves the files: a new theme, a new version of a published one, or the draft in place.
+  async function saveTheme() {
+    if (!theme) {
+      // Create new theme
+      return await blogThemesApi.create(workspaceId, { files, notes })
+    } else if (isPublished) {
+      // Published theme with changes: create new version
+      return await blogThemesApi.create(workspaceId, {
+        files,
+        notes: notes ? `Edited from v${theme.version}: ${notes}` : `Edited from v${theme.version}`
+      })
+    } else {
+      // Unpublished draft: update in place
+      return await blogThemesApi.update(workspaceId, {
+        version: theme.version,
+        files,
+        notes
+      })
+    }
+  }
+
+  const handleSave = (publish: boolean) => {
+    setSavePublishes(publish)
     setShowSaveModal(true)
   }
 
   const handleConfirmSave = () => {
     setShowSaveModal(false)
-    saveMutation.mutate()
+    saveMutation.mutate({ publish: savePublishes })
   }
 
   const handleCancel = () => {
@@ -292,162 +335,204 @@ export function ThemeEditorDrawer({
     }
   }
 
-  const leftPanelSize = 50
-  const rightPanelSize = 50
+  // What each file was when the editor opened, to mark the ones changed since.
+  const baseFiles = theme?.files ?? presetData?.files ?? THEME_PRESETS[0].files
+  const changedFile = (key: keyof BlogThemeFiles) => files[key] !== baseFiles[key]
+  // A draft with nothing new can still be published as it is; a published version cannot.
+  const canPublish = hasUnsavedChanges || (!!theme && !isPublished)
+  const previewUrl =
+    theme && workspace?.settings?.custom_endpoint_url
+      ? `${workspace.settings.custom_endpoint_url.replace(/\/+$/, '')}/?preview_theme_version=${theme.version}`
+      : undefined
+
+  const fileList = (
+    <nav
+      aria-label={t`Theme files`}
+      data-theme-files
+      className="flex w-[180px] shrink-0 flex-col gap-3 overflow-y-auto border-r border-line bg-subtle px-2 py-3"
+    >
+      {FILE_GROUPS.map((group) => (
+        <div key={group.key} className="flex flex-col gap-px">
+          <span className="px-2 pt-2 pb-1 text-overline font-semibold tracking-[0.06em] text-ink-3 uppercase">
+            {group.key === 'pages' ? t`Pages` : group.key === 'shared' ? t`Shared` : t`Assets`}
+          </span>
+          {group.files.map((key) => (
+            <button
+              key={key}
+              type="button"
+              data-file={key}
+              aria-current={selectedFile === key ? 'true' : undefined}
+              onClick={() => setSelectedFile(key)}
+              className={`flex cursor-pointer items-center gap-1.5 rounded-sm border-0 px-2 py-1 text-left font-mono text-xs focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none ${
+                selectedFile === key ? 'bg-primary-100 font-medium text-primary-700' : 'bg-transparent text-ink-2 hover:bg-fill'
+              }`}
+            >
+              <span className="truncate">{key}</span>
+              {changedFile(key) ? (
+                <>
+                  <span aria-hidden="true" className="ml-auto size-1.5 shrink-0 rounded-full bg-warning-fg" />
+                  <span className="sr-only">{t`(changed)`}</span>
+                </>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ))}
+    </nav>
+  )
+
+  const codePane = (
+    <div data-theme-editor-pane style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <Editor
+          height="100%"
+          path={selectedFile}
+          language={selectedFile === 'styles.css' ? 'css' : selectedFile === 'scripts.js' ? 'javascript' : 'html'}
+          value={files[selectedFile]}
+          onChange={handleEditorChange}
+          onMount={handleEditorDidMount}
+          theme="vs-light"
+          options={{
+            minimap: { enabled: false },
+            fontSize: 13,
+            lineNumbers: 'on',
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            automaticLayout: true,
+            tabSize: 2
+          }}
+        />
+      </div>
+    </div>
+  )
+
+  const previewPane = (
+    <div className="flex h-full min-w-0 flex-col bg-canvas">
+      <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-1.5">
+        <Segmented<PreviewPage>
+          size="small"
+          value={previewPage}
+          onChange={setPreviewPage}
+          aria-label={t`Page`}
+          options={[
+            { value: 'home', label: t`Home` },
+            { value: 'category', label: t`Category` },
+            { value: 'post', label: t`Post` }
+          ]}
+        />
+        <Segmented<'desktop' | 'mobile'>
+          size="small"
+          className="ml-auto"
+          value={device}
+          onChange={setDevice}
+          aria-label={t`Device`}
+          options={[
+            { value: 'desktop', label: <Monitor size={14} aria-label={t`Desktop`} /> },
+            { value: 'mobile', label: <Smartphone size={14} aria-label={t`Mobile`} /> }
+          ]}
+        />
+        {previewUrl ? (
+          <Tooltip title={t`The saved version, on your blog`}>
+            <Button
+              size="small"
+              type="text"
+              icon={<ExternalLink size={14} aria-hidden="true" />}
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t`Open`}
+            </Button>
+          </Tooltip>
+        ) : null}
+      </div>
+      <div data-theme-preview-pane style={{ height: '100%', overflow: 'auto' }} className="min-h-0 flex-1">
+        {/* A phone's width, centred; the desktop preview takes the pane. */}
+        <div className={device === 'mobile' ? 'mx-auto h-full w-[390px] max-w-full border-x border-line bg-surface' : 'h-full'}>
+          <ThemePreview
+            files={previewFiles}
+            workspace={workspace}
+            categories={categoriesData?.categories}
+            view={previewPage}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  const barTitle = (
+    <>
+      <span className="truncate text-sm font-semibold text-ink">
+        {theme ? t`Theme v${themeVersion}` : t`New theme`}
+      </span>
+      {!theme ? (
+        <Pill tone="primary">{t`Not created`}</Pill>
+      ) : isPublished ? (
+        <Pill tone="success">{t`Published`}</Pill>
+      ) : (
+        <Pill tone="neutral">{t`Draft`}</Pill>
+      )}
+      {hasUnsavedChanges ? <Pill tone="warning">{t`Unsaved changes`}</Pill> : null}
+    </>
+  )
+
+  const topActions = (
+    <>
+      <Button onClick={() => handleSave(false)} disabled={!hasUnsavedChanges} loading={saving && !savePublishes}>
+        {isPublished ? t`Save as a new version` : t`Save`}
+      </Button>
+      <Button type="primary" onClick={() => handleSave(true)} disabled={!canPublish} loading={saving && savePublishes}>
+        {hasUnsavedChanges ? t`Save and publish` : t`Publish`}
+      </Button>
+    </>
+  )
 
   return (
     <>
-      <Drawer
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>
-              {theme
-                ? t`Edit Theme v${theme.version}`
-                : presetData
-                  ? t`Create New Theme - ${presetData.name}`
-                  : t`Create New Theme`}
-              {hasUnsavedChanges && <span style={{ color: '#faad14', marginLeft: 8 }}>●</span>}
-            </span>
-            <Space>
-              <Button type="text" onClick={handleCancel}>
-                {t`Cancel`}
-              </Button>
-              <Button
-                type="primary"
-                onClick={handleSave}
-                loading={saveMutation.isPending}
-                disabled={!hasUnsavedChanges}
-              >
-                {t`Save`}
-              </Button>
-            </Space>
-          </div>
-        }
+      <FullDrawer
         open={open}
         onClose={handleCancel}
-        size="100%"
-        rootClassName="app-drawer-instant"
-        closable={false}
-        // A flex column down to the editor and the preview, so they fill what the header leaves
-        // whatever its height, with no band under them
-        styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
+        backLabel={t`Blog settings`}
+        copyLink={false}
+        // Escape belongs to the code editor (suggestions, find): closing by accident would lose work.
+        keyboard={false}
+        push={false}
+        fill
+        ariaLabel={theme ? t`Edit theme` : t`New theme`}
+        barTitle={barTitle}
+        barCenter={
+          <Segmented<EditorView>
+            value={view}
+            onChange={setView}
+            aria-label={t`View`}
+            options={[
+              { value: 'code', label: t`Code` },
+              { value: 'split', label: t`Split` },
+              { value: 'preview', label: t`Preview` }
+            ]}
+          />
+        }
+        topActions={topActions}
       >
-        <PanelGroup
-          direction="horizontal"
-          key={isFullscreen ? 'fullscreen' : 'split'}
-          style={{ flex: 1, minHeight: 0, height: 'auto' }}
-        >
-          {/* Left: File Editor */}
-          {!isFullscreen && (
-            <>
-              <Panel defaultSize={leftPanelSize} minSize={25} maxSize={80}>
-                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  {/* File Tabs */}
-                  <Tabs
-                    activeKey={selectedFile}
-                    onChange={(key) => setSelectedFile(key as keyof BlogThemeFiles)}
-                    type="card"
-                    size="small"
-                    style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-                    styles={FILLING_TABS}
-                    tabBarStyle={{ margin: 0 }}
-                    items={THEME_FILES.map((file) => ({
-                      key: file.key,
-                      label: file.label,
-                      children: (
-                        <div data-theme-editor-pane style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                          <div style={{ flex: 1, minHeight: 0 }}>
-                            <Editor
-                              height="100%"
-                              language={file.key === 'styles.css' ? 'css' : 'html'}
-                              value={files[file.key]}
-                              onChange={handleEditorChange}
-                              onMount={handleEditorDidMount}
-                              theme="vs-light"
-                              options={{
-                                minimap: { enabled: false },
-                                fontSize: 14,
-                                lineNumbers: 'on',
-                                scrollBeyondLastLine: false,
-                                wordWrap: 'on',
-                                automaticLayout: true,
-                                tabSize: 2
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    }))}
-                  />
-                </div>
-              </Panel>
-
-              <PanelResizeHandle
-                style={{
-                  width: 1,
-                  background: '#e0e0e0',
-                  cursor: 'col-resize',
-                  position: 'relative'
-                }}
-              />
-            </>
+        {view !== 'preview' ? fileList : null}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {view === 'split' ? (
+            <PanelGroup direction="horizontal" style={{ flex: 1, minHeight: 0, height: 'auto' }}>
+              <ResizablePanel defaultSize={50} minSize={25} maxSize={80}>
+                {codePane}
+              </ResizablePanel>
+              <PanelResizeHandle className="w-px cursor-col-resize bg-line" />
+              <ResizablePanel defaultSize={50} minSize={20}>
+                {previewPane}
+              </ResizablePanel>
+            </PanelGroup>
+          ) : view === 'code' ? (
+            <div className="min-h-0 flex-1">{codePane}</div>
+          ) : (
+            <div className="min-h-0 flex-1">{previewPane}</div>
           )}
-
-          {/* Right: Preview */}
-          <Panel defaultSize={isFullscreen ? 100 : rightPanelSize} minSize={20} maxSize={100}>
-            <Tabs
-              activeKey={previewPage}
-              onChange={(key) => setPreviewPage(key as 'home' | 'category' | 'post')}
-              type="card"
-              style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-              styles={FILLING_TABS}
-              tabBarStyle={{ margin: 0, paddingLeft: 16, paddingRight: 16 }}
-              tabBarExtraContent={{
-                right: (
-                  <Segmented
-                    size="small"
-                    value={isFullscreen ? 'fullscreen' : 'split'}
-                    onChange={(value) => setIsFullscreen(value === 'fullscreen')}
-                    options={[
-                      { label: t`Split`, value: 'split' },
-                      { label: t`Fullscreen`, value: 'fullscreen' }
-                    ]}
-                  />
-                )
-              }}
-              items={[
-                {
-                  key: 'home',
-                  label: t`Home`,
-                  children: (
-                    <div data-theme-preview-pane style={{ height: '100%', overflow: 'auto' }}>
-                      <ThemePreview files={previewFiles} workspace={workspace} view="home" />
-                    </div>
-                  )
-                },
-                {
-                  key: 'category',
-                  label: t`Category`,
-                  children: (
-                    <div data-theme-preview-pane style={{ height: '100%', overflow: 'auto' }}>
-                      <ThemePreview files={previewFiles} workspace={workspace} view="category" />
-                    </div>
-                  )
-                },
-                {
-                  key: 'post',
-                  label: t`Post`,
-                  children: (
-                    <div data-theme-preview-pane style={{ height: '100%', overflow: 'auto' }}>
-                      <ThemePreview files={previewFiles} workspace={workspace} view="post" />
-                    </div>
-                  )
-                }
-              ]}
-            />
-          </Panel>
-        </PanelGroup>
-      </Drawer>
+        </div>
+      </FullDrawer>
 
       {/* Restore Draft Modal */}
       <Modal
@@ -461,27 +546,36 @@ export function ThemeEditorDrawer({
         <p>{t`A newer draft was found in local storage. Would you like to restore it or discard it?`}</p>
       </Modal>
 
-      {/* Save Modal */}
+      {/* Save Modal: the version notes, and the publishing warning when it publishes */}
       <Modal
-        title={t`Save Theme`}
+        title={savePublishes ? (hasUnsavedChanges ? t`Save and publish` : t`Publish theme v${themeVersion}`) : t`Save Theme`}
         open={showSaveModal}
         onOk={handleConfirmSave}
         onCancel={() => setShowSaveModal(false)}
-        okText={t`Save`}
+        okText={savePublishes ? t`Publish` : t`Save`}
         cancelText={t`Cancel`}
-        confirmLoading={saveMutation.isPending}
+        confirmLoading={saving}
       >
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8 }}>
-            {t`VERSION NOTES (OPTIONAL)`}
-          </div>
-          <TextArea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={t`Add notes about this version...`}
-            rows={4}
-            style={{ resize: 'none' }}
-          />
+        <div className="flex flex-col gap-3">
+          {hasUnsavedChanges ? (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-overline font-semibold tracking-[0.06em] text-ink-3 uppercase">
+                {t`Version notes (optional)`}
+              </span>
+              <TextArea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t`Add notes about this version...`}
+                rows={4}
+                style={{ resize: 'none' }}
+              />
+            </div>
+          ) : null}
+          {savePublishes ? (
+            <p className="m-0 text-sm text-ink-2">
+              {t`It goes live on your blog; the currently published theme will be unpublished automatically.`}
+            </p>
+          ) : null}
         </div>
       </Modal>
     </>

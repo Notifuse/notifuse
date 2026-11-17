@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
+import { TriangleAlert } from 'lucide-react'
 import { Panel } from '../layout'
 import { emailProviders } from '../integrations/EmailProviders'
 import type { Integration, Workspace } from '../../services/api/workspace'
@@ -35,9 +36,32 @@ export function SendingCard({ workspace, canConfigure }: SendingCardProps) {
   const provider = (id?: string): Integration | undefined =>
     id ? workspace.integrations?.find((integration) => integration.id === id) : undefined
 
+  const configure = (
+    <Link
+      to="/console/workspace/$workspaceId/settings/$section"
+      params={{
+        workspaceId: workspace.id,
+        section: 'integrations'
+      }}
+    >
+      {t`Configure`}
+    </Link>
+  )
+  // Neither kind of email has a provider: nothing can go out, which the rows alone do not say.
+  const nothingSends = uses.every((use) => !provider(use.providerId))
+
   return (
     <Panel title={t({ message: 'Sending', context: 'section' })}>
       <div className="flex flex-col gap-3">
+        {nothingSends ? (
+          <div className="flex items-start gap-2 rounded-md bg-warning-bg px-2.5 py-2 text-sm text-warning-fg">
+            <TriangleAlert size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
+            <span>
+              {t`Nothing can be sent until an email provider is chosen for marketing or transactional emails.`}
+              {canConfigure ? <> {configure}</> : null}
+            </span>
+          </div>
+        ) : null}
         {uses.map((use) => {
           const integration = provider(use.providerId)
           const kind = integration?.email_provider?.kind
@@ -55,18 +79,9 @@ export function SendingCard({ workspace, canConfigure }: SendingCardProps) {
                 </div>
               ) : (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-ink-4">{t`Not configured`}</span>
-                  {canConfigure ? (
-                    <Link
-                      to="/console/workspace/$workspaceId/settings/$section"
-                      params={{
-                        workspaceId: workspace.id,
-                        section: 'integrations'
-                      }}
-                    >
-                      {t`Configure`}
-                    </Link>
-                  ) : null}
+                  <span className="text-ink-3">{t`Not configured`}</span>
+                  {/* Said once, in the warning, when neither use has a provider. */}
+                  {canConfigure && !nothingSends ? configure : null}
                 </div>
               )}
             </div>

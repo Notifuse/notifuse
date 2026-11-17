@@ -535,6 +535,46 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 			assert.Equal(t, "Updated Description", notificationData["description"])
 		})
 
+		// Reads the stored description back, so the check covers what was saved and not only
+		// what the update answered.
+		storedDescription := func(t *testing.T) interface{} {
+			t.Helper()
+			resp, err := client.GetTransactionalNotification(notification.ID)
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			var result map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+			return result["notification"].(map[string]interface{})["description"]
+		}
+
+		t.Run("an update without a description leaves it", func(t *testing.T) {
+			resp, err := client.UpdateTransactionalNotification(notification.ID, map[string]interface{}{
+				"name": "Renamed Again",
+			})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+
+			assert.Equal(t, "Updated Description", storedDescription(t))
+		})
+
+		// The console clears the field by sending it empty.
+		t.Run("an empty description clears it", func(t *testing.T) {
+			resp, err := client.UpdateTransactionalNotification(notification.ID, map[string]interface{}{
+				"name":        "Renamed Again",
+				"description": "",
+			})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+
+			var result map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+			assert.Equal(t, "", result["notification"].(map[string]interface{})["description"])
+			assert.Equal(t, "", storedDescription(t))
+		})
+
 		t.Run("should return 404 for non-existent notification", func(t *testing.T) {
 			updates := map[string]interface{}{
 				"name": "Updated Name",

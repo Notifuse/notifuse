@@ -142,21 +142,26 @@ beforeEach(() => {
   })
 })
 
-// openSESDrawer walks the path an operator takes: pick Amazon SES from the available providers.
+// The one way in: "Add integration" (the page's, first; an empty block repeats it), then the
+// catalogue entry.
+const openFromCatalogue = async (user: ReturnType<typeof userEvent.setup>, entry: string) => {
+  await user.click((await screen.findAllByRole('button', { name: /Add integration/ }))[0])
+  const catalogue = await screen.findByRole('dialog', { name: 'Add integration' })
+  await user.click(within(catalogue).getByRole('button', { name: new RegExp(`^${entry}`) }))
+}
+
+// openSESDrawer walks the path an operator takes: pick Amazon SES from the catalogue.
 // The tenant fields only exist once that drawer is open, so every test starts here.
 const openSESDrawer = async (options: RenderOptions = {}) => {
   const user = userEvent.setup()
   renderIntegrations(options)
-  await user.click(await screen.findByText('Amazon SES'))
-  await waitFor(() => expect(screen.getByText('SES tenant isolation')).toBeInTheDocument())
+  await openFromCatalogue(user, 'Amazon SES')
+  await waitFor(() => expect(screen.getByText('Tenant isolation')).toBeInTheDocument())
   return user
 }
 
 const sesTenantField = () => screen.getByLabelText('SES tenant')
-const isolationSwitch = () =>
-  within(screen.getByText('SES tenant isolation').closest('.ant-form-item') as HTMLElement).getByRole(
-    'switch'
-  )
+const isolationSwitch = () => screen.getByRole('switch', { name: 'Tenant isolation' })
 
 describe('Integrations — marketing rate limit', () => {
   // The queue now sends at this rate, so the field has to say what it governs and what it
@@ -164,12 +169,12 @@ describe('Integrations — marketing rate limit', () => {
   it('says what the rate applies to and what it must stay under', async () => {
     await openSESDrawer()
 
-    const field = screen.getByLabelText('Rate limit for marketing emails (emails per minute)')
-    const item = field.closest('.ant-form-item') as HTMLElement
+    const field = screen.getByLabelText('Rate for marketing')
+    expect(field).toHaveValue('25')
+    const row = field.closest('[data-settings-row]') as HTMLElement
+    expect(within(row).getByText('Broadcasts and automation emails go out at up to this rate')).toBeInTheDocument()
     expect(
-      within(item).getByText(
-        "Broadcasts and automation emails are sent at up to this rate. Keep it at or below your provider's sending limit, minus your transactional traffic."
-      )
+      within(row).getByText("Keep it at or below your provider's limit, minus your transactional traffic.")
     ).toBeInTheDocument()
   })
 })
@@ -185,8 +190,7 @@ describe('Integrations — marketing rate limit in the console language', () => 
     await openSESDrawer()
 
     // 25 per minute by default. French groups thousands with a narrow no-break space.
-    expect(screen.getByText(/^≈ 1\s500/)).toBeInTheDocument()
-    expect(screen.getByText(/^≈ 36\s000/)).toBeInTheDocument()
+    expect(screen.getByText(/^≈ 1\s500 per hour · ≈ 36\s000 per day$/)).toBeInTheDocument()
   })
 })
 
@@ -211,13 +215,14 @@ describe('Integrations — SES tenant isolation', () => {
   })
 
   it('shows the tenant fields without expanding anything', async () => {
-    // They used to live behind an "Advanced" collapse; the collapse is gone, so both must be on
-    // screen as soon as the SES form is.
+    // They used to live behind an "Advanced" collapse. The Advanced panel is a plain panel, not a
+    // collapse: both must be on screen as soon as the SES form is.
     await openSESDrawer()
 
     expect(screen.getByLabelText('Configuration set')).toBeVisible()
     expect(sesTenantField()).toBeVisible()
-    expect(screen.queryByText('Advanced')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Inbound topic ARN')).toBeVisible()
+    expect(document.querySelector('.ant-collapse')).toBeNull()
   })
 
   it('reveals the IAM permissions only once isolation is switched on', async () => {
@@ -293,21 +298,22 @@ describe('Integrations — SES tenant isolation', () => {
 })
 
 describe('Integrations — Zapier', () => {
-  it('offers Zapier in the empty-state catalogue', async () => {
-    // The Connect dropdown is hidden until the workspace has at least one integration,
-    // so on a fresh workspace the catalogue is the only way in.
+  it('offers Zapier in the catalogue of a fresh workspace', async () => {
+    const user = userEvent.setup()
     renderIntegrations()
 
-    expect(await screen.findByText('Zapier')).toBeInTheDocument()
+    await user.click((await screen.findAllByRole('button', { name: /Add integration/ }))[0])
+
+    expect(await screen.findByRole('button', { name: /^Zapier/ })).toBeInTheDocument()
   })
 
-  it('offers Zapier in the Connect dropdown once an integration exists', async () => {
+  it('still offers Zapier once a connection exists: several are allowed', async () => {
     const user = userEvent.setup()
     renderIntegrations({ integrations: [zapierIntegration] })
 
-    await user.click(screen.getByRole('button', { name: /Connect/ }))
+    await user.click(screen.getAllByRole('button', { name: /Add integration/ })[0])
 
-    expect(await screen.findByRole('menuitem', { name: /Zapier/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^Zapier/ })).toBeEnabled()
   })
 
   it('renders a connected Zapier card with its label and key address', async () => {
@@ -338,7 +344,7 @@ describe('Integrations — Zapier', () => {
     const user = userEvent.setup()
     const { onSave } = renderIntegrations()
 
-    await user.click(await screen.findByText('Zapier'))
+    await openFromCatalogue(user, 'Zapier')
     const label = await screen.findByLabelText('Label')
     await user.clear(label)
     await user.type(label, 'Marketing')
@@ -366,7 +372,7 @@ describe('Integrations — Zapier', () => {
     expect(await screen.findByText(ZAPIER_KEY_EMAIL)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Connect/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Add integration/ })).toBeNull()
   })
 
   it('warns that disconnecting Zapier revokes its key', async () => {
@@ -422,39 +428,44 @@ describe('Integrations — webhook registration', () => {
 })
 
 describe('Integrations — blocks', () => {
-  it('titles the catalogue of a workspace without integrations', async () => {
+  it('opens every integration from one catalogue, grouped by use', async () => {
+    const user = userEvent.setup()
     renderIntegrations()
 
-    expect(await screen.findByText('Available integrations')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Configure' }).length).toBeGreaterThan(0)
+    await user.click((await screen.findAllByRole('button', { name: /Add integration/ }))[0])
+    const catalogue = await screen.findByRole('dialog', { name: 'Add integration' })
+
+    expect(within(catalogue).getByText('Email sending')).toBeInTheDocument()
+    expect(within(catalogue).getByText('AI assistant')).toBeInTheDocument()
+    expect(within(catalogue).getByText('Connected apps')).toBeInTheDocument()
+    // The 7 email providers, the 3 AI models, Firecrawl, Supabase and Zapier.
+    expect(catalogue.querySelectorAll('[data-catalogue-entry]')).toHaveLength(13)
+    // The server refuses Mailjet for marketing: the catalogue says so before it is picked.
+    expect(within(catalogue).getByRole('button', { name: /^Mailjet/ })).toHaveTextContent('Transactional only')
   })
 
-  it('shows a member the catalogue without buttons, and opens nothing on a click', async () => {
-    const user = userEvent.setup()
+  it('shows a member no way to add an integration', async () => {
     renderIntegrations({ isOwner: false })
 
-    await screen.findByText('Available integrations')
-    expect(screen.queryByRole('button', { name: 'Configure' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Connect' })).toBeNull()
-
-    await user.click(screen.getByText('Amazon SES'))
-    expect(screen.queryByText('SES tenant isolation')).toBeNull()
+    expect(await screen.findByText('No email provider yet')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Add integration/ })).toBeNull()
+    expect(screen.getByRole('combobox', { name: 'Marketing emails' })).toBeDisabled()
   })
 
-  it('says which provider sends what, and which role has none', async () => {
+  it('says which role has no provider in its own row, without the blue box', async () => {
     renderIntegrations({ integrations: [mailjetIntegration] })
 
-    expect(await screen.findByText('Email providers')).toBeInTheDocument()
-    expect(screen.getByText('Marketing: not set')).toBeInTheDocument()
-    expect(screen.getByText('Email Provider Configuration Needed')).toBeInTheDocument()
+    const marketing = (await screen.findByText('Marketing emails')).closest('[data-settings-row]') as HTMLElement
+    expect(within(marketing).getByText('Not set')).toBeInTheDocument()
+    expect(screen.queryByText('Email Provider Configuration Needed')).toBeNull()
   })
 
   it('invites to add an email provider when only other integrations exist', async () => {
     renderIntegrations({ integrations: [zapierIntegration] })
 
     expect(await screen.findByText('No email provider yet')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /Add a provider/ }).length).toBeGreaterThan(0)
-    expect(screen.getByText('Other integrations')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Add integration/ }).length).toBeGreaterThan(1)
+    expect(screen.getByText('Connected apps')).toBeInTheDocument()
   })
 })
 
@@ -472,26 +483,22 @@ describe('Integrations — dates', () => {
 })
 
 describe('Integrations — drawer titles', () => {
-  const drawerTitle = () => document.querySelector('.ant-drawer-open .ant-drawer-title')?.textContent
-
-  it('names the email provider as the catalogue does', async () => {
-    const user = userEvent.setup()
-    renderIntegrations()
-    await user.click(await screen.findByText('Mailgun'))
-
-    await waitFor(() => expect(drawerTitle()).toBe('Add Mailgun integration'))
-  })
+  const drawerTitle = () => document.querySelector('[data-drawer-title]')?.textContent
 
   it.each([
+    ['Mailgun', 'Add Mailgun integration'],
+    ['Amazon SES', 'Add Amazon SES integration'],
     ['Supabase', 'Add Supabase integration'],
     ['OpenAI', 'Add OpenAI integration'],
-    ['Firecrawl', 'Add Firecrawl integration']
+    ['Firecrawl', 'Add Firecrawl integration'],
+    ['Zapier', 'Connect Zapier']
   ])('names %s in the title of its drawer', async (item, title) => {
     const user = userEvent.setup()
     renderIntegrations({ integrations: [zapierIntegration] })
-    await user.click(screen.getByRole('button', { name: /Connect/ }))
-    await user.click(await screen.findByRole('menuitem', { name: new RegExp(item) }))
+    await openFromCatalogue(user, item)
 
     await waitFor(() => expect(drawerTitle()).toBe(title))
+    // The bar's way back names the page it returns to.
+    expect(screen.getByRole('button', { name: /Integrations/ })).toBeInTheDocument()
   })
 })

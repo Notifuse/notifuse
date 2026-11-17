@@ -12,14 +12,16 @@ import { isFullEmail } from '../../lib/email'
 export const LOGS_TABS = ['messages', 'incoming-webhooks', 'outgoing-webhooks', 'audit'] as const
 export type LogsTab = (typeof LOGS_TABS)[number]
 
-// Messages and incoming webhooks: a rolling window up to now.
-export const LIVE_PERIODS = ['1h', '24h', '7d', '30d', 'all'] as const
-export type LivePeriod = (typeof LIVE_PERIODS)[number]
+// The periods of the Messages, Incoming webhooks and Audit log tabs, the same on each: a rolling
+// window up to now, all time, or a custom range of days. Outgoing webhooks has none: its endpoint
+// filters deliveries by subscription and status only.
+export const LOGS_PERIODS = ['1h', '24h', '7d', '30d', '90d', 'all', 'custom'] as const
+export type LogsPeriod = (typeof LOGS_PERIODS)[number]
 
-export const AUDIT_PERIODS = ['24h', '7d', '30d', '90d', 'all', 'custom'] as const
-export type AuditPeriod = (typeof AUDIT_PERIODS)[number]
-
-export type LogsPeriod = LivePeriod | AuditPeriod
+export const LIVE_PERIODS = LOGS_PERIODS
+export type LivePeriod = LogsPeriod
+export const AUDIT_PERIODS = LOGS_PERIODS
+export type AuditPeriod = LogsPeriod
 
 export const MESSAGE_ORIGINS = ['broadcast', 'automation', 'transactional', 'other'] as const
 export type MessageOrigin = (typeof MESSAGE_ORIGINS)[number]
@@ -154,8 +156,7 @@ export function parseLogsSearch(search: Record<string, unknown>): LogsSearch {
 
   // A tab without its own periods (outgoing webhooks) has none. Without a tab, the periods of the
   // messages apply: the first tab most members open.
-  const periods: readonly string[] =
-    tab === 'audit' ? AUDIT_PERIODS : tab === 'outgoing-webhooks' ? [] : LIVE_PERIODS
+  const periods: readonly string[] = tab === 'outgoing-webhooks' ? [] : LOGS_PERIODS
   const period = oneOf(periods as readonly LogsPeriod[], search.period)
   if (period) out.period = period
 

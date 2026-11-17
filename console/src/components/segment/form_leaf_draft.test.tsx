@@ -145,7 +145,7 @@ describe('leaf forms — draft reporting', () => {
     )
 
     openSelect(0)
-    fireEvent.click(await screen.findByTitle('Open email'))
+    fireEvent.click(await screen.findByTitle('Email opened'))
 
     await waitFor(() => expect(onDraftChange).toHaveBeenCalled())
     expect(lastDraft(onDraftChange).leaf?.contact_timeline?.kind).toBe('email.opened')

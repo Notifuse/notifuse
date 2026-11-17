@@ -24,7 +24,7 @@ export function TrackingConsentSummary({
 }) {
   const { t } = useLingui()
   return (
-    <Space size={4} direction="vertical">
+    <Space size={4} orientation="vertical">
       <span>
         {t`Opens`} <TrackingConsentTag consent={opens} />
       </span>

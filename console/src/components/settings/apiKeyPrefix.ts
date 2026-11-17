@@ -22,3 +22,18 @@ export function toApiKeyPrefix(name: string): string {
 export function finalApiKeyPrefix(typed: string): string {
   return toApiKeyPrefix(typed).replace(/^[_-]+|[_-]+$/g, '')
 }
+
+/**
+ * The domain of an API key's address, as the server mints it from the API endpoint: its host,
+ * without scheme, path or port ("key@localhost:4000" is no email address).
+ */
+export function apiKeyDomain(apiEndpoint: string | undefined): string {
+  const fallback = 'api.example.com'
+  if (!apiEndpoint) return fallback
+  const withScheme = /^https?:\/\//.test(apiEndpoint) ? apiEndpoint : `https://${apiEndpoint}`
+  try {
+    return new URL(withScheme).hostname.replace(/^\[|\]$/g, '') || fallback
+  } catch {
+    return fallback
+  }
+}

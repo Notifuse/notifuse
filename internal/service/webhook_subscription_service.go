@@ -648,6 +648,11 @@ func (s *WebhookSubscriptionService) GetDeliveries(ctx context.Context, workspac
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get webhook deliveries: %w", err)
 	}
+	// A page with no rows is an empty list, not a nil slice: encoded as null, it broke the
+	// console's Logs › Outgoing webhooks tab, which reads deliveries.length.
+	if deliveries == nil {
+		deliveries = []*domain.WebhookDelivery{}
+	}
 	return deliveries, total, nil
 }
 

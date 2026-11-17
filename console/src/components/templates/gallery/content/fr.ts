@@ -1,0 +1,215 @@
+import type { GalleryContent } from './en'
+
+// The gallery's email content in French, translated from en.ts.
+export const fr: GalleryContent = {
+  common: {
+    brand: 'Acme',
+    logoAlt: 'Logo Acme',
+    address: 'Acme · 12 Market Street, San Francisco, CA 94103',
+    signature: 'Merci,<br><b>L’équipe Acme</b>',
+    subscribedTo: 'Vous recevez cet e-mail car votre adresse est inscrite à {{ list.name }}.',
+    managePreferences: 'Gérer mes préférences',
+    unsubscribe: 'Se désabonner',
+    hasAccount: 'Vous recevez cet e-mail car vous avez un compte chez nous.',
+    placedOrder: 'Vous recevez cet e-mail car vous avez passé commande chez Acme.',
+    invited: 'Vous recevez cet e-mail car vous avez reçu une invitation à rejoindre Acme.',
+    questions: 'Une question ? Répondez à cet e-mail.',
+    navShop: 'Boutique',
+    navBlog: 'Blog',
+    navHelp: 'Aide',
+    linkFallback: 'Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :'
+  },
+  models: {
+    blank: {
+      name: 'Nouvel e-mail',
+      subject: 'Un message d’Acme',
+      preheader: 'Écrivez la ligne que la boîte de réception affiche après l’objet.',
+      greeting: 'Bonjour {{ contact.first_name }},',
+      body: 'Écrivez votre message ici. Utilisez les blocs à gauche pour ajouter des images, des boutons et des colonnes.'
+    },
+    welcome: {
+      name: 'Bienvenue',
+      subject: 'Bienvenue chez Acme, {{ contact.first_name }}',
+      preheader: 'Trois choses à faire pendant votre première semaine.',
+      title: 'Bienvenue à bord, {{ contact.first_name }}',
+      intro: 'Nous sommes ravis de vous compter parmi nous. Voici comment tirer le meilleur d’Acme dès votre première semaine.',
+      step1Title: 'Complétez votre profil',
+      step1Text: 'Dites-nous ce qui vous intéresse.',
+      step2Title: 'Parcourez les guides',
+      step2Text: 'Des lectures courtes pour démarrer vite.',
+      step3Title: 'Dites-nous bonjour',
+      step3Text: 'Répondez à cet e-mail : nous les lisons tous.',
+      button: 'Commencer'
+    },
+    verify: {
+      name: 'Code de vérification',
+      subject: 'Votre code de vérification : {{ code }}',
+      preheader: 'Il expire dans {{ expires_in_minutes }} minutes.',
+      title: 'Votre code de vérification',
+      intro: 'Saisissez ce code pour terminer votre connexion. Il expire dans {{ expires_in_minutes }} minutes.',
+      ignore: 'Si vous n’avez pas essayé de vous connecter, ignorez cet e-mail. Quelqu’un a peut-être saisi votre adresse par erreur.'
+    },
+    reset: {
+      name: 'Réinitialisation du mot de passe',
+      subject: 'Réinitialisez votre mot de passe',
+      preheader: 'Ce lien expire dans 1 heure.',
+      title: 'Réinitialisez votre mot de passe',
+      intro: 'Bonjour {{ contact.first_name }}, nous avons reçu une demande de réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour en choisir un nouveau. Ce lien expire dans 1 heure.',
+      button: 'Choisir un nouveau mot de passe',
+      ignore: 'Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail. Votre mot de passe ne changera pas.'
+    },
+    confirm: {
+      name: 'Confirmation d’inscription',
+      subject: 'Merci de confirmer votre inscription',
+      preheader: 'Un clic et c’est fait.',
+      title: 'Confirmez votre inscription',
+      intro: 'Vous avez demandé à recevoir {{ list.name }}. Cliquez sur le bouton ci-dessous pour confirmer votre adresse.',
+      button: 'Oui, je m’inscris',
+      ignore: 'Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : aucune inscription ne sera enregistrée.'
+    },
+    invite: {
+      name: 'Invitation d’équipe',
+      subject: '{{ inviter_name }} vous invite à rejoindre {{ team_name }}',
+      preheader: 'Acceptez l’invitation pour commencer.',
+      title: '{{ inviter_name }} vous invite à rejoindre {{ team_name }}',
+      intro: 'Rejoignez l’équipe pour collaborer sur vos projets et partager des fichiers. L’invitation expire dans {{ expires_in_days }} jours.',
+      button: 'Accepter l’invitation'
+    },
+    receipt: {
+      name: 'Reçu de paiement',
+      subject: 'Votre reçu Acme n° {{ invoice.number }}',
+      preheader: 'Montant payé : {{ invoice.amount }}.',
+      title: 'Merci pour votre paiement',
+      intro: 'Voici votre reçu. Une copie PDF est disponible dans votre compte.',
+      invoice: 'Facture',
+      date: 'Date',
+      description: 'Description',
+      paymentMethod: 'Moyen de paiement',
+      amountPaid: 'Montant payé',
+      button: 'Télécharger la facture'
+    },
+    order: {
+      name: 'Confirmation de commande',
+      subject: 'Votre commande n° {{ order.number }} est confirmée',
+      preheader: 'Merci pour votre commande. En voici le récapitulatif.',
+      tag: 'Commande n° {{ order.number }}',
+      title: 'Merci pour votre commande, {{ contact.first_name }}',
+      intro: 'Nous la préparons. Nous vous écrirons de nouveau dès son expédition.',
+      quantity: 'Qté',
+      subtotal: 'Sous-total',
+      shipping: 'Livraison',
+      total: 'Total',
+      shippingTo: 'Livraison à',
+      button: 'Voir ma commande'
+    },
+    shipping: {
+      name: 'Commande expédiée',
+      subject: 'Votre commande n° {{ order.number }} est en route',
+      preheader: 'Livraison estimée : {{ shipment.estimated_delivery }}.',
+      title: 'Votre commande est en route',
+      intro: 'La commande n° {{ order.number }} a quitté notre entrepôt. Livraison estimée : <b>{{ shipment.estimated_delivery }}</b>.',
+      carrier: 'Transporteur',
+      trackingNumber: 'Numéro de suivi',
+      button: 'Suivre mon colis'
+    },
+    cart: {
+      name: 'Panier abandonné',
+      subject: 'Vous avez oublié quelque chose dans votre panier',
+      preheader: 'Vos articles sont sauvegardés. Finalisez votre commande en un clic.',
+      title: 'Vous avez oublié quelque chose',
+      intro: 'Bonjour {{ contact.first_name }}, votre panier est sauvegardé. Finalisez votre commande avant que vos articles ne soient épuisés.',
+      quantity: 'Qté',
+      button: 'Revenir à mon panier',
+      alsoLiked: 'Les clients ont aussi adoré',
+      product1: 'Bonnet en laine',
+      product2: 'Portefeuille en cuir',
+      shopNow: 'Acheter'
+    },
+    promo: {
+      name: 'Promotion',
+      subject: 'Soldes d’hiver : -30 % sur tout',
+      preheader: 'Trois jours seulement. Utilisez le code WINTER30.',
+      tag: 'Trois jours seulement',
+      title: 'Soldes d’hiver : -30 % sur tout',
+      intro: 'Nos plus grandes soldes de l’année sont là. Faites le plein de vos favoris avant dimanche minuit.',
+      useCode: 'Utilisez ce code lors du paiement',
+      ends: 'Jusqu’au 30 novembre.',
+      product1: 'Chemise en lin',
+      product2: 'Tote bag en toile',
+      shopNow: 'Acheter',
+      button: 'Découvrir les soldes'
+    },
+    newsletter: {
+      name: 'Newsletter',
+      subject: 'L’essentiel d’Acme',
+      preheader: 'Nos nouveautés, un guide et un témoignage client.',
+      greeting: 'Bonjour {{ contact.first_name }}, voici ce qui s’est passé ce mois-ci.',
+      featuredTag: 'Nouveautés produit',
+      featuredTitle: 'Cinq nouveautés de ce mois-ci',
+      featuredText: 'Une recherche plus rapide, une nouvelle application mobile et trois fonctionnalités que vous nous aviez demandées. Voici ce qui a changé et comment en profiter.',
+      readArticle: 'Lire l’article →',
+      article1Tag: 'Guide',
+      article1Title: 'Comment écrire un objet qui donne envie d’ouvrir',
+      article1Text: 'Six recettes tirées de nos e-mails les plus ouverts.',
+      article2Tag: 'Témoignage client',
+      article2Title: 'Comment une petite boutique a doublé ses commandes récurrentes',
+      article2Text: 'Une série de bienvenue et un rappel bien placé.',
+      readMore: 'En savoir plus →',
+      quote: '« Nous avons regroupé nos newsletters et nos reçus au même endroit, et divisé nos coûts d’envoi par deux. »',
+      quoteAuthor: '<b>Maria Lopez</b> · Responsable croissance, Example Co.'
+    },
+    announce: {
+      name: 'Annonce produit',
+      subject: 'Découvrez Smart Reports',
+      preheader: 'Vos chiffres de la semaine, rédigés pour vous.',
+      tag: 'Nouveau',
+      title: 'Découvrez Smart Reports',
+      intro: 'Chaque lundi, un court rapport sur ce qui a changé dans vos chiffres et pourquoi, en termes simples.',
+      feature1Title: 'Des résumés en langage clair',
+      feature1Text: 'Les trois changements qui comptent, sans tableau de bord à déchiffrer.',
+      feature2Title: 'Des alertes qui s’expliquent',
+      feature2Text: 'Quand un chiffre bouge, le rapport vous dit pourquoi.',
+      feature3Title: 'Partage en un clic',
+      feature3Text: 'Envoyez le rapport à votre équipe sous forme de lien ou de PDF.',
+      button: 'Essayer Smart Reports'
+    },
+    event: {
+      name: 'Invitation à un événement',
+      subject: 'Invitation : préparez vos campagnes de fin d’année',
+      preheader: 'Webinaire en direct le 4 décembre. Réservez votre place.',
+      month: 'DÉC',
+      day: '04',
+      title: 'Préparer vos campagnes de fin d’année',
+      when: 'Jeudi, 17:00 CET · En ligne · 45 minutes',
+      intro: 'Bonjour {{ contact.first_name }}, retrouvez notre équipe pour une session en direct sur la meilleure façon de profiter de la période la plus chargée de l’année.',
+      agenda1Time: '17:00',
+      agenda1: 'Ce qui a marché l’an dernier',
+      agenda2Time: '17:15',
+      agenda2: 'Construire votre calendrier',
+      agenda3Time: '17:35',
+      agenda3: 'Questions en direct',
+      button: 'Réserver ma place',
+      recording: 'Vous ne pouvez pas venir ? Inscrivez-vous quand même, nous vous enverrons l’enregistrement.'
+    },
+    unsub: {
+      name: 'Confirmation de désabonnement',
+      subject: 'Votre désabonnement est confirmé',
+      preheader: 'Vous ne recevrez plus {{ list.name }}.',
+      title: 'Votre désabonnement est confirmé',
+      intro: 'Vous ne recevrez plus {{ list.name }}. Vos autres abonnements restent inchangés.',
+      button: 'Gérer mes abonnements',
+      mistake: 'Désabonnement par erreur ? Vous pouvez vous réabonner depuis la même page.'
+    },
+    winback: {
+      name: 'Vous nous manquez',
+      subject: 'Vous nous manquez, {{ contact.first_name }}',
+      preheader: 'Voici 20 % de réduction pour fêter votre retour.',
+      title: 'Vous nous manquez, {{ contact.first_name }}',
+      intro: 'Cela fait un moment. Beaucoup de choses ont changé depuis votre dernière visite : nouveaux produits, livraison plus rapide et retours gratuits.',
+      tag: 'Bon retour parmi nous',
+      offer: '-20 % sur votre prochaine commande',
+      valid: 'Valable 14 jours.',
+      button: 'Voir les nouveautés'
+    }
+  }
+}

@@ -95,7 +95,7 @@ func TestDemoService_AddSampleData_TemplateFailureAborts(t *testing.T) {
 		Return(context.Background(), nil, nil, sentinel).Times(1)
 
 	err := svc.addSampleData(context.Background(), "ws-1")
-	require.ErrorContains(t, err, "demo: newsletter template:")
+	require.ErrorContains(t, err, "demo: newsletter-weekly template:")
 	require.ErrorContains(t, err, "failed to authenticate user:")
 	assert.ErrorIs(t, err, sentinel)
 }

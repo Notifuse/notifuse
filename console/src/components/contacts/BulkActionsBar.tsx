@@ -97,6 +97,12 @@ export function BulkActionsBar({
           ? t`These contacts will be marked as unsubscribed from the selected list. They stay in the list with status "unsubscribed".`
           : ''
 
+  // A bulk add goes in as active on any list: on a double opt-in list no confirmation email
+  // leaves, the member's add standing as the contacts' consent. The dialog says so.
+  const pickedList = lists.find((l) => l.id === pickedListId)
+  const pickedListName = pickedList?.name ?? ''
+  const skipsOptIn = listPicker === 'add' && !!pickedList?.is_double_optin
+
   // Adding, removing and unsubscribing change list memberships: the server asks for lists write
   // as well as contacts write. Deleting only needs contacts write.
   const listDisabled = disabled || !canWriteContacts || !canWriteLists
@@ -196,6 +202,12 @@ export function BulkActionsBar({
               optionFilterProp="label"
             />
           </div>
+          {skipsOptIn ? (
+            <Alert
+              type="warning"
+              title={t`${pickedListName} uses double opt-in, but no confirmation email is sent: these contacts are added as active, your choice to add them standing as their consent.`}
+            />
+          ) : null}
         </div>
       </Modal>
 

@@ -1,0 +1,3079 @@
+{
+  "generated_by": "console/src/components/templates/gallery/demo/demoFixtures.ts — do not edit, run `npm run demo-fixtures` in console/",
+  "template_id": "newsletter-weekly",
+  "model": "newsletter",
+  "category": "marketing",
+  "default_language": "en",
+  "brand": {
+    "name": "Apple",
+    "logo_url": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+    "logo_width": 40
+  },
+  "test_data": {
+    "contact": {
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john.doe@example.com"
+    },
+    "list": {
+      "id": "newsletter",
+      "name": "Newsletter"
+    }
+  },
+  "languages": {
+    "en": {
+      "subject": "{{contact.first_name}}, Your Weekly Update is Here! 📧",
+      "subject_preview": "Your weekly dose of updates and insights",
+      "visual_editor_tree": {
+        "id": "newsletter-mjml-43",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "newsletter-head-41",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "newsletter-attributes-39",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "newsletter-text-36",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "newsletter-button-37",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "newsletter-section-38",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-preview-40",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Your weekly dose of updates and insights"
+              }
+            ]
+          },
+          {
+            "id": "newsletter-body-42",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "newsletter-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "newsletter-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Apple logo",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "newsletter-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "newsletter-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Shop</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Help</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-9",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-8",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Hi {{ contact.first_name }}, here is what happened this week.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-16",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-15",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-10",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Five things we shipped this month",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "32px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-newsletter.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "newsletter-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Product update</p>"
+                      },
+                      {
+                        "id": "newsletter-text-12",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "20px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Five things we shipped this month</p>"
+                      },
+                      {
+                        "id": "newsletter-text-13",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Faster search, a new mobile app and three features you asked for. Here is what changed and how to use it.</p>"
+                      },
+                      {
+                        "id": "newsletter-text-14",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">Read the article →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-divider-17",
+                "type": "mj-divider",
+                "attributes": {
+                  "align": "center",
+                  "borderColor": "#e4e6ec",
+                  "borderStyle": "solid",
+                  "borderWidth": "1px",
+                  "containerBackgroundColor": "transparent",
+                  "cssClass": "",
+                  "paddingTop": "10px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "10px",
+                  "paddingLeft": "32px",
+                  "width": "100%"
+                },
+                "children": []
+              },
+              {
+                "id": "newsletter-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "8px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-19",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "38%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-18",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "How to write a subject line people open",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "8px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/article-guide.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "newsletter-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "62%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-20",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "8px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:bold;color:#1d4ed8\">Guide</span><br><b style=\"font-size:16px\">How to write a subject line people open</b><br><span style=\"color:#5b6170;font-size:13px\">Six patterns from our most-opened emails.</span><br><a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">Read more →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-27",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "8px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-24",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "38%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-23",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "How a small shop doubled its repeat orders",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "8px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/article-story.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "newsletter-column-26",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "62%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-25",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "8px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:bold;color:#1d4ed8\">Customer story</span><br><b style=\"font-size:16px\">How a small shop doubled its repeat orders</b><br><span style=\"color:#5b6170;font-size:13px\">A welcome series and one well-timed reminder.</span><br><a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">Read more →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-divider-28",
+                "type": "mj-divider",
+                "attributes": {
+                  "align": "center",
+                  "borderColor": "#e4e6ec",
+                  "borderStyle": "solid",
+                  "borderWidth": "1px",
+                  "containerBackgroundColor": "transparent",
+                  "cssClass": "",
+                  "paddingTop": "10px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "10px",
+                  "paddingLeft": "32px",
+                  "width": "100%"
+                },
+                "children": []
+              },
+              {
+                "id": "newsletter-section-32",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-31",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-29",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "17px",
+                          "fontStyle": "italic",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>“We moved our newsletters and receipts to one place and cut our sending costs by half.”</p>"
+                      },
+                      {
+                        "id": "newsletter-text-30",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Maria Lopez</b> · Head of growth, Example Co."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-35",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-34",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-33",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>You are receiving this email because you subscribed to {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Manage preferences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Unsubscribe</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fr": {
+      "subject": "{{contact.first_name}}, Votre mise à jour hebdomadaire est arrivée ! 📧",
+      "subject_preview": "Votre dose hebdomadaire de mises à jour et d'informations",
+      "visual_editor_tree": {
+        "id": "newsletter-mjml-43",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "newsletter-head-41",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "newsletter-attributes-39",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "newsletter-text-36",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "newsletter-button-37",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "newsletter-section-38",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-preview-40",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Votre dose hebdomadaire de mises à jour et d'informations"
+              }
+            ]
+          },
+          {
+            "id": "newsletter-body-42",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "newsletter-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "newsletter-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Logo Apple",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "newsletter-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "newsletter-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Boutique</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Aide</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-9",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-8",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Bonjour {{ contact.first_name }}, voici ce qui s’est passé cette semaine.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-16",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-15",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-10",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Cinq nouveautés de ce mois-ci",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "32px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-newsletter.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "newsletter-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Nouveautés produit</p>"
+                      },
+                      {
+                        "id": "newsletter-text-12",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "20px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Cinq nouveautés de ce mois-ci</p>"
+                      },
+                      {
+                        "id": "newsletter-text-13",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Une recherche plus rapide, une nouvelle application mobile et trois fonctionnalités que vous nous aviez demandées. Voici ce qui a changé et comment en profiter.</p>"
+                      },
+                      {
+                        "id": "newsletter-text-14",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">Lire l’article →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-divider-17",
+                "type": "mj-divider",
+                "attributes": {
+                  "align": "center",
+                  "borderColor": "#e4e6ec",
+                  "borderStyle": "solid",
+                  "borderWidth": "1px",
+                  "containerBackgroundColor": "transparent",
+                  "cssClass": "",
+                  "paddingTop": "10px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "10px",
+                  "paddingLeft": "32px",
+                  "width": "100%"
+                },
+                "children": []
+              },
+              {
+                "id": "newsletter-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "8px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-19",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "38%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-18",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Comment écrire un objet qui donne envie d’ouvrir",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "8px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/article-guide.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "newsletter-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "62%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-20",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "8px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:bold;color:#1d4ed8\">Guide</span><br><b style=\"font-size:16px\">Comment écrire un objet qui donne envie d’ouvrir</b><br><span style=\"color:#5b6170;font-size:13px\">Six recettes tirées de nos e-mails les plus ouverts.</span><br><a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">En savoir plus →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-27",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "8px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-24",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "38%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-23",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Comment une petite boutique a doublé ses commandes récurrentes",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "8px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/article-story.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "newsletter-column-26",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "62%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-25",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "8px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:bold;color:#1d4ed8\">Témoignage client</span><br><b style=\"font-size:16px\">Comment une petite boutique a doublé ses commandes récurrentes</b><br><span style=\"color:#5b6170;font-size:13px\">Une série de bienvenue et un rappel bien placé.</span><br><a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">En savoir plus →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-divider-28",
+                "type": "mj-divider",
+                "attributes": {
+                  "align": "center",
+                  "borderColor": "#e4e6ec",
+                  "borderStyle": "solid",
+                  "borderWidth": "1px",
+                  "containerBackgroundColor": "transparent",
+                  "cssClass": "",
+                  "paddingTop": "10px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "10px",
+                  "paddingLeft": "32px",
+                  "width": "100%"
+                },
+                "children": []
+              },
+              {
+                "id": "newsletter-section-32",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-31",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-29",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "17px",
+                          "fontStyle": "italic",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>« Nous avons regroupé nos newsletters et nos reçus au même endroit, et divisé nos coûts d’envoi par deux. »</p>"
+                      },
+                      {
+                        "id": "newsletter-text-30",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Maria Lopez</b> · Responsable croissance, Example Co."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-35",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-34",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-33",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Vous recevez cet e-mail car votre adresse est inscrite à {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gérer mes préférences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Se désabonner</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "es": {
+      "subject": "{{contact.first_name}}, ¡Tu actualización semanal está aquí! 📧",
+      "subject_preview": "Tu dosis semanal de novedades e información",
+      "visual_editor_tree": {
+        "id": "newsletter-mjml-43",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "newsletter-head-41",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "newsletter-attributes-39",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "newsletter-text-36",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "newsletter-button-37",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "newsletter-section-38",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-preview-40",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Tu dosis semanal de novedades e información"
+              }
+            ]
+          },
+          {
+            "id": "newsletter-body-42",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "newsletter-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "newsletter-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Logotipo de Apple",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "newsletter-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "newsletter-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Tienda</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Ayuda</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-9",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-8",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Hola, {{ contact.first_name }}. Esto es lo que pasó esta semana.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-16",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-15",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-10",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Cinco novedades de este mes",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "32px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-newsletter.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "newsletter-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Novedades del producto</p>"
+                      },
+                      {
+                        "id": "newsletter-text-12",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "20px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Cinco novedades de este mes</p>"
+                      },
+                      {
+                        "id": "newsletter-text-13",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Búsqueda más rápida, una nueva app móvil y tres funciones que nos pediste. Esto es lo que cambió y cómo usarlo.</p>"
+                      },
+                      {
+                        "id": "newsletter-text-14",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">Leer el artículo →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-divider-17",
+                "type": "mj-divider",
+                "attributes": {
+                  "align": "center",
+                  "borderColor": "#e4e6ec",
+                  "borderStyle": "solid",
+                  "borderWidth": "1px",
+                  "containerBackgroundColor": "transparent",
+                  "cssClass": "",
+                  "paddingTop": "10px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "10px",
+                  "paddingLeft": "32px",
+                  "width": "100%"
+                },
+                "children": []
+              },
+              {
+                "id": "newsletter-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "8px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-19",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "38%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-18",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Cómo escribir un asunto que la gente abra",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "8px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/article-guide.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "newsletter-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "62%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-20",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "8px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:bold;color:#1d4ed8\">Guía</span><br><b style=\"font-size:16px\">Cómo escribir un asunto que la gente abra</b><br><span style=\"color:#5b6170;font-size:13px\">Seis patrones de nuestros correos más abiertos.</span><br><a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">Leer más →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-27",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "8px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-24",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "38%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-image-23",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Cómo una pequeña tienda duplicó sus pedidos recurrentes",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "8px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "32px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/article-story.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "newsletter-column-26",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "62%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-25",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "8px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:bold;color:#1d4ed8\">Historia de cliente</span><br><b style=\"font-size:16px\">Cómo una pequeña tienda duplicó sus pedidos recurrentes</b><br><span style=\"color:#5b6170;font-size:13px\">Una serie de bienvenida y un recordatorio en el momento justo.</span><br><a href=\"{{ workspace.website_url }}\" style=\"color:#1d4ed8;font-weight:bold;text-decoration:none\">Leer más →</a>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-divider-28",
+                "type": "mj-divider",
+                "attributes": {
+                  "align": "center",
+                  "borderColor": "#e4e6ec",
+                  "borderStyle": "solid",
+                  "borderWidth": "1px",
+                  "containerBackgroundColor": "transparent",
+                  "cssClass": "",
+                  "paddingTop": "10px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "10px",
+                  "paddingLeft": "32px",
+                  "width": "100%"
+                },
+                "children": []
+              },
+              {
+                "id": "newsletter-section-32",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-31",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-29",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "17px",
+                          "fontStyle": "italic",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>«Reunimos nuestros boletines y recibos en un solo lugar y redujimos a la mitad nuestros costos de envío».</p>"
+                      },
+                      {
+                        "id": "newsletter-text-30",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Maria Lopez</b> · Directora de crecimiento, Example Co."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "newsletter-section-35",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "newsletter-column-34",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "newsletter-text-33",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Recibes este correo porque te suscribiste a {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gestionar preferencias</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Cancelar suscripción</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

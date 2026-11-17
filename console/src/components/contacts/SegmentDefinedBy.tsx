@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Popconfirm, Tooltip } from 'antd'
 import { Pencil, RefreshCw } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 import dayjs from '../../lib/dayjs'
 import { rebuildSegment, type Segment } from '../../services/api/segment'
 import type { List } from '../../services/api/types'
@@ -83,6 +84,9 @@ export function SegmentDefinedBy({ workspaceId, segment, lists, customFieldLabel
   // db_updated_at also moves on a rename, a colour or a schedule change: "Updated", not
   // "Recomputed".
   const updatedAgo = updated.fromNow()
+  // The same sentence as the table's « +N », for one string in the catalogue.
+  const count = summary.more
+  const joined = summary.hidden.join(', ')
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
@@ -95,7 +99,16 @@ export function SegmentDefinedBy({ workspaceId, segment, lists, customFieldLabel
           </span>
         </Fragment>
       ))}
-      {summary.more > 0 ? <span className="text-xs text-ink-3">{t`+${summary.more}`}</span> : null}
+      {summary.more > 0 ? (
+        <Tooltip title={summary.hidden.join(` ${summary.joiner} `)}>
+          <span className="text-xs text-ink-3">
+            <span aria-hidden="true">{t`+${count}`}</span>
+            <span className="sr-only">
+              {plural(count, { one: `and # more: ${joined}`, other: `and # more: ${joined}` })}
+            </span>
+          </span>
+        </Tooltip>
+      ) : null}
       <span className="ml-auto flex items-center gap-2 text-xs text-ink-3">
         {segment.status === 'building' ? (
           <SegmentBuildingIndicator workspaceId={workspaceId} segment={segment} />

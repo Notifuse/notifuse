@@ -40,7 +40,7 @@ const MjBodySettingsPanel: React.FC<MjBodySettingsPanelProps> = ({
   const showWarning = widthValue !== undefined && widthValue > 650
 
   return (
-    <PanelLayout title={t`Body Attributes`}>
+    <PanelLayout title={t`Body attributes`}>
       <InputLayout label={t`Width`}>
         <WidthPxInput
           value={currentAttributes.width}

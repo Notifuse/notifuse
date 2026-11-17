@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Alert, Drawer, Tag } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { Panel } from '../../layout'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { ColumnConfig, DimensionTabConfig, DimensionTableWidget } from '../DimensionTableWidget'
 import { MetricChart, useAnnotations } from '../MetricChart'
@@ -10,7 +11,7 @@ import { CountryFlag, getDeviceIcon } from '../lib/icons'
 import { GOAL_BREAKDOWN_MEASURES, GOAL_MEASURES, goalFilters, goalNameFilter } from './queries'
 import { timeBucketColumn } from '../lib/dates'
 import { changePercent, formatRangeSeriesName, toNumber } from '../lib/format'
-import { buildWebQuery, useWebComparisonQuery } from '../lib/query'
+import { buildWebQuery, readTotals, useWebComparisonQuery } from '../lib/query'
 import { ChartDataPoint, MetricConfig, MetricTotals, PRIMARY_COLOR } from '../lib/types'
 
 /** The three series a goal has; labels are translated at render time. */
@@ -66,18 +67,39 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
     { enabled: props.open }
   )
 
+  // The KPI strip reads its own period aggregate, the query the goal cards run,
+  // rather than adding up the chart's buckets: a median cannot be rebuilt from
+  // per-day medians, so the strip and the card would show two different medians
+  // for the same goal and period.
+  const totalsBase = { ...base, granularity: undefined }
+  const periodTotals = useWebComparisonQuery(
+    context.workspaceId,
+    buildWebQuery({ ...totalsBase, range: context.resolved }),
+    context.showComparison && context.resolvedCompare
+      ? buildWebQuery({ ...totalsBase, range: context.resolvedCompare })
+      : null,
+    { enabled: props.open }
+  )
+
   const currentRows = series.current?.data
   const previousRows = series.previous?.data
+  const currentTotals = periodTotals.current
+  const previousTotals = periodTotals.previous
 
   const totals: Record<string, MetricTotals> = useMemo(() => {
+    const current = readTotals(currentTotals, GOAL_MEASURES)
+    const previous = readTotals(previousTotals, GOAL_MEASURES)
     return Object.fromEntries(
-      GOAL_MEASURES.map((measure) => {
-        const current = periodTotal(currentRows, measure)
-        const previous = periodTotal(previousRows, measure)
-        return [measure, { current, previous, changePercent: changePercent(current, previous) }]
-      })
+      GOAL_MEASURES.map((measure) => [
+        measure,
+        {
+          current: current[measure],
+          previous: previous[measure],
+          changePercent: changePercent(current[measure], previous[measure])
+        }
+      ])
     )
-  }, [currentRows, previousRows])
+  }, [currentTotals, previousTotals])
 
   const bucketColumn = timeBucketColumn('goal_at', context.granularity)
   const toPoints = (rows: Record<string, unknown>[] | undefined): ChartDataPoint[] =>
@@ -125,44 +147,45 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
           <Tag color="green" className="m-0">
             {props.goalName}
           </Tag>
-          <span className="font-normal text-gray-500">{t`Goal dashboard`}</span>
+          <span className="font-normal text-ink-3">{t`Goal dashboard`}</span>
         </div>
       }
     >
-      <div className={series.isFetching ? 'opacity-75 transition-opacity' : ''}>
-        {series.error ? (
-          <Alert type="error" showIcon title={t`Could not load this goal`} className="mb-4" />
+      <div
+        className={`flex flex-col gap-3 ${series.isFetching ? 'opacity-75 transition-opacity' : ''}`}
+      >
+        {series.error || periodTotals.error ? (
+          <Alert type="error" showIcon title={t`Could not load this goal`} />
         ) : null}
 
-        <div className="overflow-hidden rounded-md border border-gray-200">
-          <MetricSummary
-            metrics={GOAL_METRICS}
-            totals={series.isLoading ? {} : totals}
-            selected={selected}
-            onSelect={setSelected}
-            showComparison={context.showComparison}
-            loading={series.isLoading}
-            labels={labels}
-          />
-          <div className="pb-3 pl-2 pr-4 pt-4">
-            <MetricChart
-              metric={chartMetric}
-              current={toPoints(currentRows)}
-              previous={context.showComparison ? toPoints(previousRows) : []}
-              granularity={context.granularity}
-              currentLabel={formatRangeSeriesName(context.range)}
-              previousLabel={
-                context.compareRange ? formatRangeSeriesName(context.compareRange) : undefined
-              }
-              loading={series.isLoading}
-              height={200}
-              annotations={annotations}
-              timezone={context.timezone}
-            />
-          </div>
-        </div>
+        <MetricSummary
+          metrics={GOAL_METRICS}
+          totals={periodTotals.isLoading ? {} : totals}
+          selected={selected}
+          onSelect={setSelected}
+          showComparison={context.showComparison}
+          loading={periodTotals.isLoading}
+          labels={labels}
+        />
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Panel title={chartMetric.label}>
+          <MetricChart
+            metric={chartMetric}
+            current={toPoints(currentRows)}
+            previous={context.showComparison ? toPoints(previousRows) : []}
+            granularity={context.granularity}
+            currentLabel={formatRangeSeriesName(context.range)}
+            previousLabel={
+              context.compareRange ? formatRangeSeriesName(context.compareRange) : undefined
+            }
+            loading={series.isLoading}
+            height={200}
+            annotations={annotations}
+            timezone={context.timezone}
+          />
+        </Panel>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <DimensionTableWidget
             title={t`Top Sources`}
             columns={columns}
@@ -212,7 +235,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
           />
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <DimensionTableWidget
             title={t`Countries`}
             columns={columns}
@@ -258,7 +281,7 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
           />
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <TrafficHeatmapWidget
             title={t`Goals by day and hour`}
             schema="web_goals"
@@ -270,22 +293,4 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
       </div>
     </Drawer>
   )
-}
-
-/**
- * Period total for a measure, read off the bucketed series.
- *
- * Counts and sums add up. A median does not: the engine returns one median per
- * bucket with no way to recombine them, so the KPI shows the mean of the
- * buckets that actually held a conversion. Buckets the gap filler zero-filled
- * have no median at all, and averaging those in would only dilute the figure.
- */
-function periodTotal(rows: Record<string, unknown>[] | undefined, measure: string): number {
-  const all = rows ?? []
-  if (measure !== 'median_goal_value') {
-    return all.reduce((sum, row) => sum + toNumber(row[measure]), 0)
-  }
-  const observed = all.filter((row) => toNumber(row.goals) > 0)
-  if (observed.length === 0) return 0
-  return observed.reduce((sum, row) => sum + toNumber(row[measure]), 0) / observed.length
 }

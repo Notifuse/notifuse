@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -347,6 +348,27 @@ func TestTemplateCompileWithSubject(t *testing.T) {
 		assert.Equal(t, "Welcome Pierre", *body.SubjectPreview)
 	}
 	assert.NotNil(t, body.HTML, "response should still include compiled HTML")
+
+	// subject_only renders the subject and preview text alone: no body is sent, none compiled.
+	subjectOnly, err := client.CompileTemplate(map[string]interface{}{
+		"workspace_id":    workspaceID,
+		"message_id":      "preview",
+		"subject":         "Hi {{ contact.first_name }}",
+		"subject_preview": "Welcome {{ contact.first_name }}",
+		"test_data":       map[string]interface{}{"contact": map[string]interface{}{"first_name": "Pierre"}},
+		"subject_only":    true,
+	})
+	require.NoError(t, err)
+	defer func() { _ = subjectOnly.Body.Close() }()
+	require.Equal(t, http.StatusOK, subjectOnly.StatusCode, "a subject-only compile needs no body")
+	var raw map[string]interface{}
+	require.NoError(t, json.NewDecoder(subjectOnly.Body).Decode(&raw))
+	assert.Equal(t, true, raw["success"])
+	assert.Equal(t, "Hi Pierre", raw["subject"])
+	assert.Equal(t, "Welcome Pierre", raw["subject_preview"])
+	assert.NotContains(t, raw, "html")
+	assert.NotContains(t, raw, "mjml")
+	assert.NotContains(t, raw, "text")
 }
 
 // TestTemplateCompileInjectsWorkspaceURLs verifies the compile endpoint exposes
@@ -1202,4 +1224,76 @@ func TestTemplateIntegrationManagedDelete(t *testing.T) {
 		assert.Equal(t, string(domain.PermissionResourceTemplates), body["resource"])
 		assert.Equal(t, string(domain.PermissionTypeWrite), body["permission"])
 	})
+}
+
+// TestTemplateCompilePreviewLinksFollowTestContact sends the test data the template editor
+// sends — links the console made for john.doe@example.com — with another test contact, and
+// reads the links back from the compiled email: they name the test contact, as a send names its
+// contact, and keep the preview signature.
+func TestTemplateCompilePreviewLinksFollowTestContact(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	token := performCompleteSignInFlow(t, client, "test@example.com")
+	client.SetToken(token)
+	workspaceID := createTestWorkspaceWithWebsite(t, client, "Preview Links Test", "https://app.example.com")
+
+	johnDoeLink := "https://ignored.example.com/notification-center?action=unsubscribe&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=" + workspaceID + "&mid=preview&email_hmac=abc123"
+	compileReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"message_id":   "preview",
+		"test_data": map[string]interface{}{
+			"contact":         map[string]interface{}{"first_name": "Emma", "email": "emma.clarke@example.com"},
+			"list":            map[string]interface{}{"id": "newsletter", "name": "Newsletter"},
+			"unsubscribe_url": johnDoeLink,
+		},
+		"visual_editor_tree": map[string]interface{}{
+			"id": "mjml-1", "type": "mjml", "attributes": map[string]interface{}{},
+			"children": []interface{}{map[string]interface{}{
+				"id": "body-1", "type": "mj-body", "attributes": map[string]interface{}{},
+				"children": []interface{}{map[string]interface{}{
+					"id": "section-1", "type": "mj-section", "attributes": map[string]interface{}{},
+					"children": []interface{}{map[string]interface{}{
+						"id": "column-1", "type": "mj-column", "attributes": map[string]interface{}{},
+						"children": []interface{}{map[string]interface{}{
+							"id": "text-1", "type": "mj-text", "attributes": map[string]interface{}{},
+							"content": `<a href="{{ unsubscribe_url }}">Unsubscribe</a>`,
+						}},
+					}},
+				}},
+			}},
+		},
+	}
+
+	resp, err := client.CompileTemplate(compileReq)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body struct {
+		Success  bool                   `json:"success"`
+		HTML     *string                `json:"html"`
+		TestData map[string]interface{} `json:"test_data"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	require.True(t, body.Success)
+	require.NotNil(t, body.HTML)
+
+	link, ok := body.TestData["unsubscribe_url"].(string)
+	require.True(t, ok)
+	parsed, err := url.Parse(link)
+	require.NoError(t, err)
+	query := parsed.Query()
+	assert.Equal(t, "emma.clarke@example.com", query.Get("email"), "the link names the test contact")
+	assert.Equal(t, "abc123", query.Get("email_hmac"), "a preview link stays preview-signed")
+	assert.Equal(t, "preview", query.Get("mid"))
+	assert.Equal(t, "newsletter", query.Get("lid"))
+	assert.NotContains(t, *body.HTML, "john.doe", "the email itself carries the rebuilt link")
 }

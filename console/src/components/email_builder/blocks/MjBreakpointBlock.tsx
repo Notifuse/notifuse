@@ -24,7 +24,7 @@ const MjBreakpointSettingsPanel: React.FC<MjBreakpointSettingsPanelProps> = ({
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Breakpoint Attributes`}>
+    <PanelLayout title={t`Breakpoint attributes`}>
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="text-xs text-blue-700 font-medium mb-1">{t`Mobile Breakpoint`}</div>
         <div className="text-xs text-blue-600">

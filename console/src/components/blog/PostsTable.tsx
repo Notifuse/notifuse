@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { plural } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import {
@@ -60,6 +60,8 @@ interface PostsTableProps {
   editRefusal?: string
   /** Web analytics on in the workspace and readable by the member: the Views 30d column. */
   showViews: boolean
+  /** The categories card, beside the posts and under the header, as on the Contacts page. */
+  rail?: ReactNode
 }
 
 /** The blog's main column: header, status tabs and search, and the posts, 50 at a time. */
@@ -69,7 +71,8 @@ export function PostsTable({
   counts,
   canWritePosts,
   editRefusal,
-  showViews
+  showViews,
+  rail
 }: PostsTableProps) {
   const { t } = useLingui()
   const { message, modal } = App.useApp()
@@ -169,9 +172,9 @@ export function PostsTable({
   })
 
   const unpublishMutation = useMutation({
-    mutationFn: (id: string) => blogPostsApi.unpublish(workspaceId, { id }),
-    onSuccess: () => {
-      message.success(t`Post unpublished successfully`)
+    mutationFn: ({ id }: { id: string; scheduled: boolean }) => blogPostsApi.unpublish(workspaceId, { id }),
+    onSuccess: (_, { scheduled }) => {
+      message.success(scheduled ? t`Post unscheduled` : t`Post unpublished successfully`)
       void invalidatePosts()
     },
     onError: (error: Error) => message.error(error?.message || t`Failed to unpublish post`)
@@ -202,17 +205,23 @@ export function PostsTable({
 
   const fullDate = (date: string) => dayjs(date).tz(timezone).format('lll')
 
+  // A scheduled post is not live yet: taking it back cancels its date, said as such.
   const confirmUnpublish = (post: BlogPost) =>
-    modal.confirm({
-      title: t`Unpublish post`,
-      content:
-        postState(post) === 'scheduled'
-          ? t`The post goes back to drafts and will not be published on its date.`
-          : t`Are you sure you want to unpublish this post?`,
-      okText: t`Unpublish`,
-      cancelText: t`Cancel`,
-      onOk: () => unpublishMutation.mutateAsync(post.id)
-    })
+    postState(post) === 'scheduled'
+      ? modal.confirm({
+          title: t`Unschedule post`,
+          content: t`The post goes back to drafts and will not be published on its date.`,
+          okText: t`Unschedule`,
+          cancelText: t`Cancel`,
+          onOk: () => unpublishMutation.mutateAsync({ id: post.id, scheduled: true })
+        })
+      : modal.confirm({
+          title: t`Unpublish post`,
+          content: t`Are you sure you want to unpublish this post?`,
+          okText: t`Unpublish`,
+          cancelText: t`Cancel`,
+          onOk: () => unpublishMutation.mutateAsync({ id: post.id, scheduled: false })
+        })
 
   const rowMenu = (post: BlogPost): MenuProps['items'] => {
     const state = postState(post)
@@ -241,7 +250,11 @@ export function PostsTable({
         : []),
       state === 'draft'
         ? { key: 'publish', label: t`Publish`, onClick: () => setPostToPublish(post) }
-        : { key: 'unpublish', label: t`Unpublish`, onClick: () => confirmUnpublish(post) },
+        : {
+            key: 'unpublish',
+            label: state === 'scheduled' ? t`Unschedule` : t`Unpublish`,
+            onClick: () => confirmUnpublish(post)
+          },
       { type: 'divider' as const },
       { key: 'delete', label: t`Delete`, danger: true, onClick: () => setPostToDelete(post) }
     ]
@@ -334,7 +347,7 @@ export function PostsTable({
             ) : (
               <Pill tone="neutral">{t`Draft`}</Pill>
             )}
-            <MissingMetaTagsWarning seo={post.settings.seo} />
+            <MissingMetaTagsWarning seo={post.settings.seo} featuredImage={post.settings.featured_image_url} />
           </span>
         )
       }
@@ -492,7 +505,9 @@ export function PostsTable({
     <div className="flex flex-col gap-3">
       <PageHeader
         title={category ? category.settings.name : t`All posts`}
-        count={total}
+        // The posts of the blog or the category, as the rail counts them: not the tab nor the search,
+        // which the tabs and the footer count.
+        count={category ? (counts?.by_category?.[category.id] ?? undefined) : counts?.all_total}
         description={
           <span className="inline-flex flex-wrap items-center gap-1">
             {t`Blog published on`}
@@ -538,19 +553,24 @@ export function PostsTable({
         }
       />
 
-      <Panel flush footer={footer}>
-        <TableToolbar
-          start={<CountTabs<BlogPostStatus> options={tabs} value={status} onChange={setStatus} />}
-          end={
-            <TableToolbar.Search
-              value={searchInput}
-              onChange={setSearchInput}
-              placeholder={t`Title`}
+      <div className="flex items-start gap-3">
+        {rail}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Panel flush footer={footer}>
+            <TableToolbar
+              start={<CountTabs<BlogPostStatus> options={tabs} value={status} onChange={setStatus} />}
+              end={
+                <TableToolbar.Search
+                  value={searchInput}
+                  onChange={setSearchInput}
+                  placeholder={t`Title`}
+                />
+              }
             />
-          }
-        />
-        {renderBody()}
-      </Panel>
+            {renderBody()}
+          </Panel>
+        </div>
+      </div>
 
       <PostDrawer
         open={drawer !== null}

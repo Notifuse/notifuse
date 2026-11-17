@@ -12,7 +12,7 @@ import PanelLayout from '../panels/PanelLayout'
 const MjmlSettingsPanel: React.FC = () => {
   const { t } = useLingui()
 
-  return <PanelLayout title={t`Email Attributes`}>{t`TODO`}</PanelLayout>
+  return <PanelLayout title={t`Email attributes`}>{t`TODO`}</PanelLayout>
 }
 
 /**

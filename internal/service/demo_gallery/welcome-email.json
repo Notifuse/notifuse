@@ -1,0 +1,2500 @@
+{
+  "generated_by": "console/src/components/templates/gallery/demo/demoFixtures.ts — do not edit, run `npm run demo-fixtures` in console/",
+  "template_id": "welcome-email",
+  "model": "welcome",
+  "category": "welcome",
+  "default_language": "en",
+  "brand": {
+    "name": "Apple",
+    "logo_url": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+    "logo_width": 40
+  },
+  "test_data": {
+    "contact": {
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "email": "jane.smith@example.com"
+    },
+    "list": {
+      "id": "newsletter",
+      "name": "Newsletter"
+    }
+  },
+  "languages": {
+    "en": {
+      "subject": "Welcome to our community, {{contact.first_name}}! 🎉",
+      "subject_preview": "Thank you for joining us, {{contact.first_name}}!",
+      "visual_editor_tree": {
+        "id": "welcome-mjml-34",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "welcome-head-32",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "welcome-attributes-30",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "welcome-text-27",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "welcome-button-28",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "welcome-section-29",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "welcome-preview-31",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Thank you for joining us, {{contact.first_name}}!"
+              }
+            ]
+          },
+          {
+            "id": "welcome-body-33",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "welcome-section-3",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "24px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-2",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-image-1",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Apple logo",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "{{ workspace.website_url }}",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": "",
+                          "width": "40px"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-5",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-image-4",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "true",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-welcome.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-10",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-9",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Welcome aboard, {{ contact.first_name }}</p>"
+                      },
+                      {
+                        "id": "welcome-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>We are glad you are here. Here is how to get the most out of Apple in your first week.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-17",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "20px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "20px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-12",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">1</span><br><b>Complete your profile</b><br><span style=\"color:#5b6170;font-size:13px\">Tell us what you are interested in.</span>"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "welcome-column-14",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-13",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">2</span><br><b>Explore the guides</b><br><span style=\"color:#5b6170;font-size:13px\">Short reads to get started fast.</span>"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "welcome-column-16",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">3</span><br><b>Say hello</b><br><span style=\"color:#5b6170;font-size:13px\">Reply to this email, we read every one.</span>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-20",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-19",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-button-18",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Get started"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-23",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-22",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-21",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Thanks,<br><b>The Apple team</b></p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-26",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-25",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-24",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>You are receiving this email because you subscribed to {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Manage preferences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Unsubscribe</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fr": {
+      "subject": "Bienvenue dans notre communauté, {{contact.first_name}} ! 🎉",
+      "subject_preview": "Merci de nous rejoindre, {{contact.first_name}} !",
+      "visual_editor_tree": {
+        "id": "welcome-mjml-34",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "welcome-head-32",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "welcome-attributes-30",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "welcome-text-27",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "welcome-button-28",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "welcome-section-29",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "welcome-preview-31",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Merci de nous rejoindre, {{contact.first_name}} !"
+              }
+            ]
+          },
+          {
+            "id": "welcome-body-33",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "welcome-section-3",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "24px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-2",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-image-1",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Logo Apple",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "{{ workspace.website_url }}",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": "",
+                          "width": "40px"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-5",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-image-4",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "true",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-welcome.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-10",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-9",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Bienvenue à bord, {{ contact.first_name }}</p>"
+                      },
+                      {
+                        "id": "welcome-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Nous sommes ravis de vous compter parmi nous. Voici comment tirer le meilleur d’Apple dès votre première semaine.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-17",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "20px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "20px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-12",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">1</span><br><b>Complétez votre profil</b><br><span style=\"color:#5b6170;font-size:13px\">Dites-nous ce qui vous intéresse.</span>"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "welcome-column-14",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-13",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">2</span><br><b>Parcourez les guides</b><br><span style=\"color:#5b6170;font-size:13px\">Des lectures courtes pour démarrer vite.</span>"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "welcome-column-16",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">3</span><br><b>Dites-nous bonjour</b><br><span style=\"color:#5b6170;font-size:13px\">Répondez à cet e-mail : nous les lisons tous.</span>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-20",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-19",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-button-18",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Commencer"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-23",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-22",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-21",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Merci,<br><b>L’équipe Apple</b></p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-26",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-25",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-24",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Vous recevez cet e-mail car votre adresse est inscrite à {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gérer mes préférences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Se désabonner</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "es": {
+      "subject": "¡Bienvenido/a a nuestra comunidad, {{contact.first_name}}! 🎉",
+      "subject_preview": "Gracias por unirte, {{contact.first_name}}!",
+      "visual_editor_tree": {
+        "id": "welcome-mjml-34",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "welcome-head-32",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "welcome-attributes-30",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "welcome-text-27",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "welcome-button-28",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "welcome-section-29",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "welcome-preview-31",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Gracias por unirte, {{contact.first_name}}!"
+              }
+            ]
+          },
+          {
+            "id": "welcome-body-33",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "welcome-section-3",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "24px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-2",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-image-1",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Logotipo de Apple",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "{{ workspace.website_url }}",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": "",
+                          "width": "40px"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-5",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-image-4",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "true",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-welcome.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-10",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-9",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>¡Ya eres parte de Apple, {{ contact.first_name }}!</p>"
+                      },
+                      {
+                        "id": "welcome-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Nos alegra tenerte aquí. Así puedes sacar el máximo partido a Apple en tu primera semana.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-17",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "20px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "20px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-12",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">1</span><br><b>Completa tu perfil</b><br><span style=\"color:#5b6170;font-size:13px\">Cuéntanos qué te interesa.</span>"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "welcome-column-14",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-13",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">2</span><br><b>Explora las guías</b><br><span style=\"color:#5b6170;font-size:13px\">Lecturas breves para empezar rápido.</span>"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "welcome-column-16",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "33.33%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"display:inline-block;width:28px;height:28px;line-height:28px;border-radius:14px;background:#e8eefc;color:#1d4ed8;text-align:center;font-weight:bold\">3</span><br><b>Salúdanos</b><br><span style=\"color:#5b6170;font-size:13px\">Responde a este correo: los leemos todos.</span>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-20",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-19",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-button-18",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Empezar"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-23",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-22",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-21",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Gracias,<br><b>El equipo de Apple</b></p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "welcome-section-26",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "welcome-column-25",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "welcome-text-24",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Recibes este correo porque te suscribiste a {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gestionar preferencias</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Cancelar suscripción</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

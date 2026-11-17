@@ -70,6 +70,9 @@ type demoJourneyOutcome struct {
 type demoCohortMember struct {
 	Email      string
 	ListStatus string
+	// The contact's names, which its seeded emails are rendered with ("Welcome, Mary!").
+	FirstName string
+	LastName  string
 }
 
 type demoNodeVisit struct {
@@ -101,6 +104,8 @@ type demoJourney struct {
 	ID            string
 	AutomationID  string
 	Email         string
+	FirstName     string
+	LastName      string
 	CurrentNodeID string
 	Status        domain.ContactAutomationStatus
 	ExitReason    *string
@@ -199,6 +204,9 @@ func demoAutomationExitPath(automationID string) []string {
 // vip-concierge and winback-sunset derive from purchases rather than from contact_segments, because
 // segment membership is built asynchronously by the task scheduler and is still empty at this point
 // in the seed.
+// demoCohortNames are the names of each cohort member, from its contact row.
+const demoCohortNames = `COALESCE(c.first_name, ''), COALESCE(c.last_name, '')`
+
 func demoAutomationCohortSQL(automationID string) (string, []interface{}) {
 	const listStatus = `COALESCE((
 		SELECT cl.status FROM contact_lists cl
@@ -207,11 +215,12 @@ func demoAutomationCohortSQL(automationID string) (string, []interface{}) {
 
 	switch automationID {
 	case demoAutomationWelcome:
-		return `SELECT src.email, ` + listStatus + `
+		return `SELECT src.email, ` + listStatus + `, ` + demoCohortNames + `
 			FROM (
 				SELECT email FROM contact_lists
 				WHERE list_id = $1 AND deleted_at IS NULL AND status = 'active'
 			) src
+			LEFT JOIN contacts c ON c.email = src.email
 			ORDER BY src.email`, []interface{}{demoListNewsletter}
 
 	case demoAutomationCartRecovery, demoAutomationPostPurchase:
@@ -219,30 +228,33 @@ func demoAutomationCohortSQL(automationID string) (string, []interface{}) {
 		if automationID == demoAutomationPostPurchase {
 			goal = demoGoalPurchase
 		}
-		return `SELECT src.email, ` + listStatus + `
+		return `SELECT src.email, ` + listStatus + `, ` + demoCohortNames + `
 			FROM (
 				SELECT DISTINCT email FROM custom_events
 				WHERE event_name = $1 AND deleted_at IS NULL
 			) src
+			LEFT JOIN contacts c ON c.email = src.email
 			ORDER BY src.email`, []interface{}{goal}
 
 	case demoAutomationVIPConcierge:
-		return `SELECT src.email, ` + listStatus + `
+		return `SELECT src.email, ` + listStatus + `, ` + demoCohortNames + `
 			FROM (
 				SELECT DISTINCT email FROM custom_events
 				WHERE event_name = $1 AND deleted_at IS NULL
 			) src
+			LEFT JOIN contacts c ON c.email = src.email
 			ORDER BY src.email`, []interface{}{demoGoalPurchase}
 
 	case demoAutomationWinback:
 		// Bought at some point, but not lately — the same shape as the Win-back Opportunities segment.
-		return `SELECT src.email, ` + listStatus + `
+		return `SELECT src.email, ` + listStatus + `, ` + demoCohortNames + `
 			FROM (
 				SELECT email FROM custom_events
 				WHERE event_name = $1 AND deleted_at IS NULL
 				GROUP BY email
 				HAVING MAX(occurred_at) < NOW() - INTERVAL '90 days'
 			) src
+			LEFT JOIN contacts c ON c.email = src.email
 			ORDER BY src.email`, []interface{}{demoGoalPurchase}
 	}
 	return "", nil
@@ -360,7 +372,8 @@ func (s *DemoService) writeDemoJourneyMessages(ctx context.Context, workspaceID 
 			return fmt.Errorf("failed to create demo automation message: %w", err)
 		}
 	}
-	return nil
+	// SES reported each delivery, as for the demo's other emails (demo_ses_events.go).
+	return s.storeDemoDeliveredSESEvents(ctx, workspaceID, messages)
 }
 
 // demoJourneyMessages builds the message of each email step that queued one, with the step's
@@ -386,7 +399,13 @@ func demoJourneyMessages(automation *domain.Automation, journeys []demoJourney, 
 				TemplateVersion: 1,
 				Channel:         "email",
 				MessageData: domain.MessageData{
-					Data:     map[string]interface{}{"contact": map[string]interface{}{"email": j.Email}},
+					// The contact as the other seeded emails carry it: a send stores the contact it
+					// rendered for, and the email alone previewed as "Welcome, !".
+					Data: map[string]interface{}{"contact": map[string]interface{}{
+						"email":      j.Email,
+						"first_name": j.FirstName,
+						"last_name":  j.LastName,
+					}},
 					Metadata: map[string]interface{}{"demo_generated": true, "automation_id": automationID},
 				},
 				SentAt:    sentAt,
@@ -430,7 +449,7 @@ func (s *DemoService) loadDemoCohort(ctx context.Context, db *sql.DB, automation
 	var cohort []demoCohortMember
 	for rows.Next() {
 		var member demoCohortMember
-		if err := rows.Scan(&member.Email, &member.ListStatus); err != nil {
+		if err := rows.Scan(&member.Email, &member.ListStatus, &member.FirstName, &member.LastName); err != nil {
 			return nil, fmt.Errorf("failed to scan cohort row: %w", err)
 		}
 		cohort = append(cohort, member)
@@ -512,6 +531,8 @@ func buildDemoJourneys(automation *domain.Automation, cohort []demoCohortMember,
 			ID:             uuid.NewString(),
 			AutomationID:   automation.ID,
 			Email:          member.Email,
+			FirstName:      member.FirstName,
+			LastName:       member.LastName,
 			CurrentNodeID:  path[len(path)-1],
 			Status:         status,
 			ExitReason:     exitReason,

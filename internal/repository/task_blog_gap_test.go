@@ -974,7 +974,7 @@ func TestTaskBlogGap_BlogListPosts_Branches(t *testing.T) {
 		sentinel := errors.New("statement timeout")
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*)")).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(4))
-		mock.ExpectQuery(regexp.QuoteMeta("ORDER BY created_at DESC, id DESC")).WillReturnError(sentinel)
+		mock.ExpectQuery(regexp.QuoteMeta("ORDER BY COALESCE(published_at, updated_at) DESC, id DESC")).WillReturnError(sentinel)
 		_, err := repo.ListPosts(blogCtx(), domain.ListBlogPostsRequest{Limit: 10})
 		require.ErrorContains(t, err, "failed to list blog posts:")
 		assert.ErrorIs(t, err, sentinel)

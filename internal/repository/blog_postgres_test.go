@@ -641,10 +641,12 @@ func TestBlogPostRepository(t *testing.T) {
 	t.Run("ListPosts", func(t *testing.T) {
 		// Pages are LIMIT/OFFSET slices, so they are only disjoint if the order is total.
 		// published_at ties whenever posts are imported with the same backdated date.
-		t.Run("order has an id tiebreaker for every status", func(t *testing.T) {
+		// Each list follows the date its posts are shown with: publication (to come, for a
+		// scheduled post) or, for a draft, the last edit, newest first.
+		t.Run("order follows the date each post is shown with, with an id tiebreaker", func(t *testing.T) {
 			for status, wantOrder := range map[domain.BlogPostStatus]string{
-				domain.BlogPostStatusAll:       `ORDER BY created_at DESC, id DESC`,
-				domain.BlogPostStatusDraft:     `ORDER BY created_at DESC, id DESC`,
+				domain.BlogPostStatusAll:       `ORDER BY COALESCE(published_at, updated_at) DESC, id DESC`,
+				domain.BlogPostStatusDraft:     `ORDER BY updated_at DESC, id DESC`,
 				domain.BlogPostStatusPublished: `ORDER BY published_at DESC, id DESC`,
 			} {
 				t.Run(string(status), func(t *testing.T) {

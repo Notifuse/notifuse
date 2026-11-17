@@ -32,7 +32,7 @@ const MjSpacerSettingsPanel: React.FC<MjSpacerSettingsPanelProps> = ({
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Spacer Attributes`}>
+    <PanelLayout title={t`Spacer attributes`}>
       <InputLayout label={t`Height`}>
         <InputNumber
           size="small"

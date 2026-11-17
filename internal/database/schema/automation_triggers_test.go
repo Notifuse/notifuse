@@ -54,3 +54,41 @@ func TestAutomationEnrollContactFunction_GuardPrecedesEveryWrite(t *testing.T) {
 		assert.Lessf(t, guard, idx, "the live guard must precede %q", write)
 	}
 }
+
+// The generated triggers call the five-argument signature with the event that fired them,
+// which must land in contact_automations.context.trigger for the email node to read.
+func TestAutomationEnrollContactWithTriggerFunction_StoresTheTriggerInContext(t *testing.T) {
+	sql := AutomationEnrollContactWithTriggerFunction()
+
+	assert.Contains(t, sql, "p_trigger JSONB")
+	assert.Contains(t, sql, "status, entered_at, scheduled_at, context")
+	assert.Contains(t, sql, "jsonb_build_object('trigger', p_trigger)")
+	assert.Contains(t, sql, "WHEN p_trigger IS NULL THEN '{}'::jsonb",
+		"a call without an event must store the column's default, not {\"trigger\": null}")
+}
+
+// The five-argument overload carries the same guard as the four-argument body it replaces.
+func TestAutomationEnrollContactWithTriggerFunction_EnrolsOnlyForLiveAutomations(t *testing.T) {
+	sql := AutomationEnrollContactWithTriggerFunction()
+
+	guard := strings.Index(sql, "status = 'live'")
+	require.NotEqual(t, -1, guard)
+	assert.Contains(t, sql, "deleted_at IS NULL")
+	for _, write := range []string{"INSERT INTO automation_trigger_log", "INSERT INTO contact_automations", "UPDATE automations"} {
+		idx := strings.Index(sql, write)
+		require.NotEqualf(t, -1, idx, "%s missing", write)
+		assert.Lessf(t, guard, idx, "the live guard must precede %s", write)
+	}
+}
+
+// Triggers installed before 44.0 keep calling the four-argument signature until they are
+// regenerated. The relay keeps it, and passes an explicitly typed NULL: an untyped NULL could
+// also match the VARCHAR five-argument overload a pre-v25 workspace still has.
+func TestAutomationEnrollContactRelayFunction_KeepsTheOldSignatureAndRelays(t *testing.T) {
+	sql := AutomationEnrollContactRelayFunction()
+
+	assert.Contains(t, sql, "CREATE OR REPLACE FUNCTION automation_enroll_contact(")
+	assert.NotContains(t, sql, "p_trigger")
+	assert.Contains(t, sql, "p_automation_id, p_contact_email, p_root_node_id, p_frequency, NULL::jsonb")
+	assert.NotContains(t, sql, "INSERT INTO", "the relay must not carry a second copy of the enrolment")
+}

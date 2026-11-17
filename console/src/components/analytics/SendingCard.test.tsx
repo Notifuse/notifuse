@@ -111,4 +111,33 @@ describe('SendingCard', () => {
     expect(screen.getAllByText('Not configured')).toHaveLength(2)
     expect(screen.queryByText('Configure')).not.toBeInTheDocument()
   })
+
+  it('says nothing can be sent without any provider, with one link to configure', () => {
+    renderCard(workspace({}))
+
+    expect(
+      screen.getByText(/^Nothing can be sent until an email provider is chosen for marketing or transactional emails\./)
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('Configure')).toHaveLength(1)
+    expect(screen.getByText('Configure').closest('a')).toHaveAttribute('href', '/settings/integrations')
+  })
+
+  it('counts a role pointing to a deleted integration as none', () => {
+    renderCard(workspace({ marketing_email_provider_id: 'gone' }))
+    expect(screen.getByText(/^Nothing can be sent/)).toBeInTheDocument()
+  })
+
+  it('does not say nothing can be sent once one use has a provider', () => {
+    renderCard(workspace({ transactional_email_provider_id: 'smtp' }))
+
+    expect(screen.queryByText(/Nothing can be sent/)).not.toBeInTheDocument()
+    expect(screen.getByText('Configure')).toBeInTheDocument()
+  })
+
+  it('writes « Not configured » in a readable grey', () => {
+    renderCard(workspace({ marketing_email_provider_id: 'ses' }))
+
+    expect(screen.getByText('Not configured')).toHaveClass('text-ink-3')
+    expect(screen.getByText('Not configured')).not.toHaveClass('text-ink-4')
+  })
 })

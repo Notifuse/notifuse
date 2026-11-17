@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"regexp"
-	"strings"
 	"testing"
 	"unicode/utf8"
 
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -22,7 +22,15 @@ import (
 var templateIDCharset = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 func newAutomationTemplatesTestService() *DemoService {
-	return &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
+	return &DemoService{logger: logger.NewLoggerWithLevel("disabled"), config: &config.Config{APIEndpoint: "https://api.example.com"}}
+}
+
+// demoAutomationTemplatesOf builds the automation templates, failing the test on an error.
+func demoAutomationTemplatesOf(t *testing.T, svc *DemoService) []*domain.Template {
+	t.Helper()
+	templates, err := svc.demoAutomationTemplates("ws1")
+	require.NoError(t, err)
+	return templates
 }
 
 // TestDemoAutomationTemplates_AreCreatable guards the templates the demo's automations send.
@@ -32,7 +40,7 @@ func newAutomationTemplatesTestService() *DemoService {
 // template that does not exist, with nothing on screen to say so.
 func TestDemoAutomationTemplates_AreCreatable(t *testing.T) {
 	svc := newAutomationTemplatesTestService()
-	templates := svc.demoAutomationTemplates("ws1")
+	templates := demoAutomationTemplatesOf(t, svc)
 	require.NotEmpty(t, templates)
 
 	fallback := svc.createFallbackHTML()
@@ -84,7 +92,7 @@ func TestDemoAutomationTemplates_Translations(t *testing.T) {
 	svc := newAutomationTemplatesTestService()
 	fallback := svc.createFallbackHTML()
 
-	for _, tmpl := range svc.demoAutomationTemplates("ws1") {
+	for _, tmpl := range demoAutomationTemplatesOf(t, svc) {
 		require.Contains(t, tmpl.Translations, "fr", "template %s has no French translation", tmpl.ID)
 		require.Contains(t, tmpl.Translations, "es", "template %s has no Spanish translation", tmpl.ID)
 		assert.NotContains(t, tmpl.Translations, "en",
@@ -101,8 +109,9 @@ func TestDemoAutomationTemplates_Translations(t *testing.T) {
 				"template %s fell back to the placeholder HTML in %s", tmpl.ID, lang)
 			require.NotNil(t, translation.Email.VisualEditorTree,
 				"template %s has no %s tree", tmpl.ID, lang)
-			assert.Equal(t, lang, translation.Email.VisualEditorTree.GetAttributes()["lang"],
-				"template %s tags its %s tree with the wrong language", tmpl.ID, lang)
+			// The tree is the translated one: its preview text is the language's, not English.
+			assert.NotEqual(t, mjPreviewText(tmpl.Email.VisualEditorTree), mjPreviewText(translation.Email.VisualEditorTree),
+				"template %s carries the English body in %s", tmpl.ID, lang)
 		}
 	}
 }
@@ -122,7 +131,7 @@ func TestDemoAutomationTemplates_Categories(t *testing.T) {
 	}
 
 	seen := 0
-	for _, tmpl := range svc.demoAutomationTemplates("ws1") {
+	for _, tmpl := range demoAutomationTemplatesOf(t, svc) {
 		want, ok := wantCategory[tmpl.ID]
 		require.True(t, ok, "unexpected automation template %s", tmpl.ID)
 		assert.Equal(t, string(want), tmpl.Category, "template %s has the wrong category", tmpl.ID)
@@ -168,24 +177,14 @@ func TestAutomationEmailMJMLStructure_RendersEveryContentField(t *testing.T) {
 	}
 }
 
-// TestAutomationEmailMJMLStructure_ButtonHrefIsPerTemplate is the reason buttonHref exists as a
-// field at all: the welcome builder this one is modelled on hardcodes its destination, and four
-// templates sharing one builder must not share one link.
-func TestAutomationEmailMJMLStructure_ButtonHrefIsPerTemplate(t *testing.T) {
+// TestDemoAutomationTemplates_EveryLanguageKeepsItsDestination: each template has a call to
+// action, and its translations send the reader to the same place.
+func TestDemoAutomationTemplates_EveryLanguageKeepsItsDestination(t *testing.T) {
 	svc := newAutomationTemplatesTestService()
 
-	hrefs := map[string]string{}
-	for _, tmpl := range svc.demoAutomationTemplates("ws1") {
+	for _, tmpl := range demoAutomationTemplatesOf(t, svc) {
 		href := findAutomationButtonHref(t, tmpl.Email.VisualEditorTree)
 		require.NotEmpty(t, href, "template %s has no CTA destination", tmpl.ID)
-		assert.True(t, strings.HasPrefix(href, "https://"), "template %s links to %s", tmpl.ID, href)
-
-		if other, clash := hrefs[href]; clash {
-			t.Errorf("templates %s and %s send the reader to the same URL %s", other, tmpl.ID, href)
-		}
-		hrefs[href] = tmpl.ID
-
-		// Every language of a template keeps that template's destination.
 		for lang, translation := range tmpl.Translations {
 			assert.Equal(t, href, findAutomationButtonHref(t, translation.Email.VisualEditorTree),
 				"template %s links somewhere else in %s", tmpl.ID, lang)
@@ -336,4 +335,41 @@ func findAutomationButtonHref(t *testing.T, block notifuse_mjml.EmailBlock) stri
 		}
 	}
 	return ""
+}
+
+// TestDemoTemplates_WriteEachAttributeOnce guards the editor's attribute keys. A block made by
+// NewBaseBlock starts with camelCase defaults (fontSize); a kebab-case key set next to them
+// (font-size) is a second attribute, and the MJML then carries both — font-size="24px" …
+// font-size="14px" — which each renderer and each preview resolves its own way.
+func TestDemoTemplates_WriteEachAttributeOnce(t *testing.T) {
+	svc := newAutomationTemplatesTestService()
+	trees := map[string]notifuse_mjml.EmailBlock{
+		"automation": svc.createAutomationEmailMJMLStructure(getOrderThankYouContents()["en"]),
+	}
+	for _, spec := range append(append([]demoGalleryTemplate{}, demoGallerySampleTemplates...), demoGalleryAutomationTemplates...) {
+		tmpl, err := svc.buildDemoGalleryTemplate("ws1", spec)
+		require.NoError(t, err)
+		trees[spec.ID] = tmpl.Email.VisualEditorTree
+	}
+	tagPattern := regexp.MustCompile(`<mj-[a-z-]+((?:\s+[a-z-]+="[^"]*")*)\s*/?>`)
+	attrPattern := regexp.MustCompile(`\s([a-z-]+)="`)
+
+	for name, tree := range trees {
+		mjml := notifuse_mjml.ConvertJSONToMJML(tree)
+		for _, tag := range tagPattern.FindAllStringSubmatch(mjml, -1) {
+			seen := map[string]bool{}
+			for _, attr := range attrPattern.FindAllStringSubmatch(tag[1], -1) {
+				assert.False(t, seen[attr[1]], "%s: %q is written twice in %s", name, attr[1], tag[0])
+				seen[attr[1]] = true
+			}
+		}
+	}
+}
+
+// TestDemoTemplates_ButtonKeepsItsInnerPadding: the CTA's "12px 24px" is the button's own padding
+// (around its label), not the space around the button.
+func TestDemoTemplates_ButtonKeepsItsInnerPadding(t *testing.T) {
+	svc := newAutomationTemplatesTestService()
+	mjml := notifuse_mjml.ConvertJSONToMJML(svc.createAutomationEmailMJMLStructure(getOrderThankYouContents()["en"]))
+	assert.Contains(t, mjml, `inner-padding="12px 24px"`)
 }

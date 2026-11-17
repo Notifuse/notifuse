@@ -85,6 +85,16 @@ const lastNavigation = () =>
     search: Record<string, unknown>
   }
 
+
+const periodChoices = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /^Period / }))
+  const menu = await screen.findByRole('menu')
+  return within(menu)
+    .getAllByRole('menuitem')
+    .map((item) => item.textContent)
+}
+const SAME_PERIODS = ['Last hour', 'Last 24 hours', 'Last 7 days', 'Last 30 days', 'Last 90 days', 'All time']
+
 describe('InboundWebhooksTab', () => {
   beforeEach(() => {
     state.navigate.mockClear()
@@ -205,6 +215,39 @@ describe('InboundWebhooksTab', () => {
     expect(await screen.findByText('2 events')).toBeInTheDocument()
     expect(lastList()).toMatchObject({ cursor: 'c2' })
     expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull()
+  })
+
+  it('clears every filter but the period with Clear all, as the other Logs tabs do', async () => {
+    const { unmount } = renderTab({ tab: 'incoming-webhooks', period: '7d' })
+    await screen.findByText(/event/)
+    expect(screen.queryByRole('button', { name: 'Clear all' })).toBeNull()
+    unmount()
+    renderTab({ tab: 'incoming-webhooks', period: '7d', source: 'ses' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear all' }))
+    expect(lastNavigation().search).toEqual({ tab: 'incoming-webhooks', period: '7d' })
+  })
+
+  it('offers the periods of every Logs tab, and sends both bounds of a custom range', async () => {
+    const { unmount } = renderTab()
+    await waitFor(() => expect(state.list).toHaveBeenCalled())
+    // On the right, with the icons: the filters and "Clear all" keep the left of the toolbar.
+    expect(screen.getByRole('button', { name: 'Refresh' }).parentElement).toContainElement(
+      screen.getByRole('button', { name: /^Period / })
+    )
+    expect(await periodChoices()).toEqual(SAME_PERIODS)
+    unmount()
+    renderTab({
+      tab: 'incoming-webhooks',
+      period: 'custom',
+      from: '2026-11-09T00:00:00.000Z',
+      to: '2026-11-10T23:59:59.999Z'
+    })
+    await waitFor(() =>
+      expect(lastList()).toMatchObject({
+        timestamp_after: '2026-11-09T00:00:00.000Z',
+        timestamp_before: '2026-11-10T23:59:59.999Z'
+      })
+    )
   })
 
   it('says why the list is empty, with a way forward', async () => {

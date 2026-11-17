@@ -6,11 +6,12 @@ import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import type { Template, Workspace } from '../services/api/types'
 import type { GetTemplateUsageResponse } from '../services/api/template'
-import type { TemplatesSearch } from '../lib/searchParams'
+import { parseTemplatesSearch, type TemplatesSearch } from '../lib/searchParams'
 
 const state = vi.hoisted(() => ({
   search: {} as Record<string, unknown>,
-  permissions: {} as Record<string, { read: boolean; write: boolean }> | null
+  permissions: {} as Record<string, { read: boolean; write: boolean }> | null,
+  permissionsLoading: false
 }))
 const navigate = vi.hoisted(() => vi.fn())
 
@@ -33,7 +34,7 @@ const workspace = {
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ workspaces: [workspace] }),
-  useWorkspacePermissions: () => ({ permissions: state.permissions, loading: false })
+  useWorkspacePermissions: () => ({ permissions: state.permissions, loading: state.permissionsLoading })
 }))
 
 // The drawers are tested on their own; here they only say how the page opened them.
@@ -157,6 +158,7 @@ describe('TemplatesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     state.permissions = writer
+    state.permissionsLoading = false
     vi.mocked(templatesApi.list).mockResolvedValue({ templates })
     vi.mocked(templatesApi.usage).mockResolvedValue(usage())
   })
@@ -240,9 +242,12 @@ describe('TemplatesPage', () => {
       })
     )
     renderPage()
-    await screen.findByText('2 newsletters')
+    await screen.findByText('2 broadcasts')
     expect(rowOf('Promo')).toHaveTextContent('3 uses')
-    expect(rowOf('Receipt')).toHaveTextContent('Not used')
+    expect(rowOf('Receipt')).toHaveTextContent('Not in use')
+    // Sent broadcasts are not counted: the cell and the column header say so.
+    fireEvent.mouseEnter(within(rowOf('Receipt')).getByText('Not in use'))
+    expect(await screen.findByText("Broadcasts already sent aren't counted.")).toBeInTheDocument()
   })
 
   it('says in the column header that uses the member cannot see are not counted', async () => {
@@ -251,6 +256,13 @@ describe('TemplatesPage', () => {
     await screen.findByText('Newsletter')
     fireEvent.mouseEnter(screen.getByText('Used in'))
     expect(await screen.findByText(/Uses you can't see aren't counted/)).toBeInTheDocument()
+  })
+
+  it('says in the column header that broadcasts already sent are not counted', async () => {
+    renderPage()
+    await screen.findByText('Newsletter')
+    fireEvent.mouseEnter(screen.getByText('Used in'))
+    expect(await screen.findByText(/Broadcasts already sent and segment filters on a template aren't counted/)).toBeInTheDocument()
   })
 
   it('shows a dash when the uses could not be loaded', async () => {
@@ -522,7 +534,7 @@ describe('TemplatesPage', () => {
     vi.mocked(templatesApi.usage).mockResolvedValue({} as GetTemplateUsageResponse)
     renderPage()
     await screen.findByText('Newsletter')
-    expect(await screen.findAllByText('Not used')).not.toHaveLength(0)
+    expect(await screen.findAllByText('Not in use')).not.toHaveLength(0)
 
     fireEvent.click(within(await openMenu('Newsletter')).getByText('Delete'))
     expect(
@@ -555,5 +567,51 @@ describe('TemplatesPage', () => {
     renderPage()
     expect(await screen.findByText('No templates found')).toBeInTheDocument()
     expect(screen.getByText('Create your first template to get started')).toBeInTheDocument()
+  })
+
+  describe('opened with ?new=1', () => {
+    // The search as the route's validateSearch gives it, from the value the router parsed (1).
+    const fromUrl = () => parseTemplatesSearch({ new: 1 })
+
+    it('opens the gallery of a new template once, and leaves the URL', async () => {
+      renderPage(fromUrl())
+      const drawer = await screen.findByTestId('template-drawer')
+      expect(drawer).toHaveAttribute('data-template', '')
+      expect(drawer).toHaveAttribute('data-from', '')
+      expect(navigate).toHaveBeenCalledTimes(1)
+      expect(lastSearch()).toEqual({ new: undefined })
+      expect(navigate.mock.calls[0][0]).toMatchObject({ replace: true })
+    })
+
+    it('keeps the parameter while the rights load, then acts on it', async () => {
+      state.permissionsLoading = true
+      state.permissions = null
+      const view = renderPage(fromUrl())
+      await screen.findByText('Templates')
+      expect(screen.queryByTestId('template-drawer')).not.toBeInTheDocument()
+      expect(navigate).not.toHaveBeenCalled()
+
+      state.permissionsLoading = false
+      state.permissions = writer
+      view.rerender(
+        <QueryClientProvider client={new QueryClient()}>
+          <I18nProvider i18n={i18n}>
+            <App>
+              <TemplatesPage />
+            </App>
+          </I18nProvider>
+        </QueryClientProvider>
+      )
+      expect(await screen.findByTestId('template-drawer')).toBeInTheDocument()
+      expect(lastSearch()).toEqual({ new: undefined })
+    })
+
+    it('only leaves the URL without the right to write templates', async () => {
+      state.permissions = { templates: { read: true, write: false } }
+      renderPage(fromUrl())
+      await waitFor(() => expect(navigate).toHaveBeenCalledTimes(1))
+      expect(lastSearch()).toEqual({ new: undefined })
+      expect(screen.queryByTestId('template-drawer')).not.toBeInTheDocument()
+    })
   })
 })

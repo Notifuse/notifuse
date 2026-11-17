@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Tooltip } from 'antd'
 import { Link } from '@tanstack/react-router'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
@@ -10,6 +11,7 @@ import type { Workspace } from '../../services/api/types'
 import type { AnalyticsQuery } from '../../services/api/analytics'
 import { buildWebQuery } from '../web_analytics/lib/query'
 import type { ResolvedRange } from '../web_analytics/lib/types'
+import { deliveriesReported } from '../logs/messageProvider'
 import { DASHBOARD_REFRESH_MS, dashboardAnalytics } from './dashboardClient'
 import {
   computeDashboardKpis,
@@ -20,6 +22,8 @@ import {
   type MessageTotals
 } from './dashboardKpisModel'
 import type { DashboardPeriods } from './dashboardPeriods'
+import type { SendState } from './dashboardSendState'
+import { contactsTotalQuery } from './dashboardQueries'
 
 interface DashboardKpisProps {
   workspace: Workspace
@@ -32,6 +36,11 @@ interface DashboardKpisProps {
   /** The totals are still the previous period's, while the new one loads. */
   seriesPlaceholder?: boolean
   onRetrySeries: () => void
+  /**
+   * Before the first send, the email tiles say when they fill rather than 0 and « — »; with sends
+   * from today only, that they show tomorrow. `counted` (the default) shows the figures.
+   */
+  sendState?: SendState
 }
 
 const HOUR = 3_600_000
@@ -75,12 +84,13 @@ export function DashboardKpis({
   totals,
   seriesError,
   seriesPlaceholder = false,
-  onRetrySeries
+  onRetrySeries,
+  sendState = 'counted'
 }: DashboardKpisProps) {
   const { t } = useLingui()
   const { int, percent, points, compact } = useNumberFormat()
   const ws = workspace.id
-  const { current, previous, days } = periods
+  const { current, previous, recent, days } = periods
 
   const canContacts = Boolean(permissions.contacts?.read)
   const canWeb = Boolean(permissions.web_analytics?.read)
@@ -94,15 +104,15 @@ export function DashboardKpis({
     true,
     true
   )
-  const contactsTotal = useCount(
-    // Under ['contacts', ws], which the CSV import invalidates when it finishes.
-    ['contacts', ws, 'dashboard-total'],
-    { schema: 'contacts', measures: ['count'], dimensions: [], timezone },
-    ws,
-    canContacts
-  )
+  const contactsTotal = useQuery({
+    ...contactsTotalQuery(ws, timezone),
+    enabled: canContacts,
+    refetchInterval: DASHBOARD_REFRESH_MS,
+    placeholderData: keepPreviousData
+  })
+  // Today included: right after an import the other periods, which end yesterday, said « +0 ».
   const contactsNew = useCount(
-    ['contacts', ws, 'dashboard-new', timezone, current.startUtc, current.endUtc],
+    ['contacts', ws, 'dashboard-new', timezone, recent.startUtc, recent.endUtc],
     {
       schema: 'contacts',
       measures: ['count'],
@@ -112,7 +122,7 @@ export function DashboardKpis({
         {
           member: 'created_at',
           operator: 'inDateRange',
-          values: [current.startUtc, current.endUtc]
+          values: [recent.startUtc, recent.endUtc]
         }
       ]
     },
@@ -162,6 +172,8 @@ export function DashboardKpis({
       previousRates.data && !previousRates.isPlaceholderData && !seriesPlaceholder
         ? readTotals(previousRates.data)
         : undefined,
+    // As Logs reads it, origin by origin.
+    reportsDelivery: (origin) => deliveriesReported(workspace, origin, totals?.[origin]?.delivered),
     contactsTotal: toNumber(contactsTotal.data?.count),
     contactsNew: toNumber(contactsNew.data?.count),
     visits: visits.data ? toNumber(visits.data.sessions) : undefined,
@@ -190,8 +202,20 @@ export function DashboardKpis({
   const vsPrevious = (shown: string) =>
     t`${plural(days, { one: `${shown} vs prev. # d`, other: `${shown} vs prev. # d` })}`
 
+  // What an email tile says instead of its figure while there is none to show.
+  const waiting: Pick<KpiItem, 'placeholder' | 'hint'> | undefined =
+    sendState === 'never'
+      ? { placeholder: t`After your first send` }
+      : sendState === 'today'
+        ? {
+            placeholder: t`From tomorrow`,
+            hint: t`The dashboard counts complete days; today's emails show tomorrow`
+          }
+        : undefined
+
   const rateItem = (key: 'open' | 'click', label: string, kpi: typeof kpis.openRate, pending: string): KpiItem => {
     if (seriesError) return { key, label, ...failed(onRetrySeries) }
+    if (waiting) return { key, label, value: '', ...waiting }
     return {
       key,
       label,
@@ -231,12 +255,21 @@ export function DashboardKpis({
             value: contactsValue,
             // Nothing until the count of new contacts of this period arrives, rather than a false « +0 »
             // or the count of the period before, nor its tone.
-            sub: contactsNewPending
-              ? undefined
-              : t`${plural(days, {
-                  one: `+${int(kpis.contacts.added)} over # d`,
-                  other: `+${int(kpis.contacts.added)} over # d`
-                })}`,
+            sub: contactsNewPending ? undefined : (
+              <Tooltip
+                title={t`${plural(days, {
+                  one: 'Added in the last # day, today included',
+                  other: 'Added in the last # days, today included'
+                })}`}
+              >
+                <span>
+                  {t`${plural(days, {
+                    one: `+${int(kpis.contacts.added)} over # d`,
+                    other: `+${int(kpis.contacts.added)} over # d`
+                  })}`}
+                </span>
+              </Tooltip>
+            ),
             tone: contactsNewPending ? 'neutral' : kpis.contacts.tone
           }
     )
@@ -245,7 +278,9 @@ export function DashboardKpis({
   items.push(
     seriesError
       ? { key: 'sent', label: t`Emails sent`, ...failed(onRetrySeries) }
-      : {
+      : waiting
+        ? { key: 'sent', label: t`Emails sent`, value: '', ...waiting }
+        : {
           key: 'sent',
           label: t`Emails sent`,
           value: int(kpis.sent.total),
@@ -257,12 +292,16 @@ export function DashboardKpis({
   items.push(
     seriesError
       ? { key: 'delivered', label: t`Delivered`, ...failed(onRetrySeries) }
-      : {
+      : waiting
+        ? { key: 'delivered', label: t`Delivered`, value: '', ...waiting }
+        : {
           key: 'delivered',
           label: t`Delivered`,
           value: rate(delivered.rate),
           sub: titled(
-            delivered.noDeliveryEvents
+            delivered.notReported
+              ? t`Delivery isn't reported by SMTP providers`
+              : delivered.noDeliveryEvents
               ? t`No delivery events`
               : delivered.bounceRate === null
                 ? undefined
@@ -316,6 +355,7 @@ export function DashboardKpis({
       key: 'visits',
       label: t`Website visits`,
       value: dash,
+      placeholder: t`Once your site is tracked`,
       sub: (
         <Link
           to="/console/workspace/$workspaceId/settings/$section"
@@ -329,7 +369,8 @@ export function DashboardKpis({
   }
 
   const loading =
-    (!totals && !seriesError) ||
+    // Before the first send the email tiles need no figure.
+    (!totals && !seriesError && sendState !== 'never') ||
     (canContacts && (contactsTotal.isLoading || contactsNew.isLoading)) ||
     (canWeb && webConfigured && visits.isLoading)
   return <KpiStrip items={items} loading={loading} />

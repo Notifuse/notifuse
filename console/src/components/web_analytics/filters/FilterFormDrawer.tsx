@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Drawer, Form, Input, InputNumber, Select, Space, Switch } from 'antd'
+import { Button, ConfigProvider, Form, Input, InputNumber, Select, Switch } from 'antd'
 import { ExperimentOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import {
@@ -7,10 +7,15 @@ import {
   WebFilterCondition,
   WebFilterOperation
 } from '../../../services/api/web_analytics'
+import { Panel, SidePanel } from '../../layout'
 import { isValuelessOperator, SUGGESTED_TAGS } from '../lib/filterCatalog'
 import { ConditionsBuilder } from './ConditionsBuilder'
 import { OperationsBuilder } from './OperationsBuilder'
-import { TestFilterModal } from './TestFilterModal'
+import { TestFilterPanel } from './TestFilterPanel'
+
+// The panels space their fields themselves (gap-3): a form item drops the bottom margin antd gives
+// stacked labelled fields, and keeps its validation message under the field.
+const PANEL_FORM_THEME = { components: { Form: { itemMarginBottom: 0 } } }
 
 /** Everything the form owns; ids, order and timestamps stay with the caller. */
 export interface FilterDraft {
@@ -90,120 +95,138 @@ export function FilterFormDrawer(props: FilterFormDrawerProps) {
 
   return (
     <>
-      <Drawer
+      <SidePanel
         title={isEditing ? t`Edit rule` : t`Create rule`}
         open={open}
         onClose={props.onClose}
-        size={800}
-        placement="right"
-        destroyOnHidden
-        styles={{ wrapper: { maxWidth: '100%' } }}
+        // The rule being edited is not in the address, so a copied link would not reopen it.
+        copyLink={false}
         footer={
-          <div className="flex justify-between">
+          <div className="flex w-full items-center justify-between gap-2">
             <Button onClick={() => setTestModalOpen(true)} icon={<ExperimentOutlined />}>
               {t`Test`}
             </Button>
-            <Space>
+            <div className="flex items-center gap-2">
               <Button onClick={props.onClose}>{t`Cancel`}</Button>
               <Button type="primary" onClick={handleSubmit} loading={props.saving}>
                 {isEditing ? t`Save` : t`Create`}
               </Button>
-            </Space>
+            </div>
           </div>
         }
       >
-        <Form form={form} layout="vertical">
-          <div className="grid grid-cols-3 gap-4">
-            <Form.Item
-              name="name"
-              label={t`Name`}
-              rules={[{ required: true, message: t`Name is required` }]}
-              className="col-span-2"
-            >
-              <Input placeholder={t`e.g. Set channel for Google Ads`} />
-            </Form.Item>
-
-            <Form.Item
-              name="priority"
-              label={t`Priority`}
-              tooltip={t`Higher priority rules are evaluated first (0-1000)`}
-              rules={[{ required: true, message: t`Priority is required` }]}
-            >
-              <InputNumber min={0} max={1000} className="w-full" />
-            </Form.Item>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <Form.Item name="tags" label={t`Tags`} className="col-span-2">
-              <Select
-                mode="tags"
-                options={tagOptions}
-                placeholder={t`Add tags...`}
-                tokenSeparators={[',']}
-              />
-            </Form.Item>
-
-            <Form.Item name="enabled" label={t`Enabled`} valuePropName="checked">
-              <Switch />
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            name="conditions"
-            label={t`Conditions`}
-            validateTrigger={[]}
-            rules={[
-              {
-                validator: (_, conditions: WebFilterCondition[]) => {
-                  if (!conditions || conditions.length === 0) {
-                    return Promise.reject(new Error(t`At least one condition is required`))
-                  }
-                  for (const condition of conditions) {
-                    // is_empty / is_not_empty carry no value by design.
-                    if (isValuelessOperator(condition.operator)) continue
-                    if (!condition.value?.trim()) {
-                      return Promise.reject(new Error(t`All conditions must have a value`))
-                    }
-                  }
-                  return Promise.resolve()
+        <ConfigProvider theme={PANEL_FORM_THEME}>
+          <Form
+            form={form}
+            layout="vertical"
+            // The conditions and operations are checked on submit only (a row is added empty), but
+            // once their error shows, each edit checks them again so a fixed list clears it.
+            onValuesChange={(changed: Partial<FilterDraft>) => {
+              for (const name of ['conditions', 'operations'] as const) {
+                if (name in changed && form.getFieldError(name).length > 0) {
+                  form.validateFields([name]).catch(() => undefined)
                 }
               }
-            ]}
+            }}
           >
-            <ConditionsBuilder />
-          </Form.Item>
+            <div className="flex flex-col gap-3">
+              <Panel title={t`Details`}>
+                <div className="flex flex-col gap-3">
+                  <Form.Item
+                    name="name"
+                    label={t`Name`}
+                    rules={[{ required: true, message: t`Name is required` }]}
+                  >
+                    <Input placeholder={t`e.g. Set channel for Google Ads`} />
+                  </Form.Item>
 
-          <Form.Item
-            name="operations"
-            label={t`Operations`}
-            className="mt-6"
-            validateTrigger={[]}
-            rules={[
-              {
-                validator: (_, operations: WebFilterOperation[]) => {
-                  if (!operations || operations.length === 0) {
-                    return Promise.reject(new Error(t`At least one operation is required`))
-                  }
-                  for (const operation of operations) {
-                    const needsValue =
-                      operation.action === 'set_value' || operation.action === 'set_default_value'
-                    if (needsValue && !operation.value?.trim()) {
-                      return Promise.reject(
-                        new Error(t`Every "set" operation needs a value`)
-                      )
+                  <div className="grid grid-cols-2 gap-3">
+                    <Form.Item
+                      name="priority"
+                      label={t`Priority`}
+                      extra={t`Higher priority rules are evaluated first (0-1000)`}
+                      rules={[{ required: true, message: t`Priority is required` }]}
+                    >
+                      <InputNumber min={0} max={1000} style={{ width: '100%' }} />
+                    </Form.Item>
+
+                    <Form.Item name="enabled" label={t`Enabled`} valuePropName="checked">
+                      <Switch />
+                    </Form.Item>
+                  </div>
+
+                  <Form.Item name="tags" label={t`Tags`}>
+                    <Select
+                      mode="tags"
+                      options={tagOptions}
+                      placeholder={t`Add tags...`}
+                      tokenSeparators={[',']}
+                    />
+                  </Form.Item>
+                </div>
+              </Panel>
+
+              <Panel title={t`Conditions`}>
+                <Form.Item
+                  name="conditions"
+                  validateTrigger={[]}
+                  // No status for the whole list, which would outline every select in it: the message
+                  // shows under the list, and each row outlines its own empty value.
+                  validateStatus=""
+                  rules={[
+                    {
+                      validator: (_, conditions: WebFilterCondition[]) => {
+                        if (!conditions || conditions.length === 0) {
+                          return Promise.reject(new Error(t`At least one condition is required`))
+                        }
+                        for (const condition of conditions) {
+                          // is_empty / is_not_empty carry no value by design.
+                          if (isValuelessOperator(condition.operator)) continue
+                          if (!condition.value?.trim()) {
+                            return Promise.reject(new Error(t`All conditions must have a value`))
+                          }
+                        }
+                        return Promise.resolve()
+                      }
                     }
-                  }
-                  return Promise.resolve()
-                }
-              }
-            ]}
-          >
-            <OperationsBuilder customDimensionLabels={props.customDimensionLabels} />
-          </Form.Item>
-        </Form>
-      </Drawer>
+                  ]}
+                >
+                  <ConditionsBuilder />
+                </Form.Item>
+              </Panel>
 
-      <TestFilterModal
+              <Panel title={t`Operations`}>
+                <Form.Item
+                  name="operations"
+                  validateTrigger={[]}
+                  validateStatus=""
+                  rules={[
+                    {
+                      validator: (_, operations: WebFilterOperation[]) => {
+                        if (!operations || operations.length === 0) {
+                          return Promise.reject(new Error(t`At least one operation is required`))
+                        }
+                        for (const operation of operations) {
+                          const needsValue =
+                            operation.action === 'set_value' || operation.action === 'set_default_value'
+                          if (needsValue && !operation.value?.trim()) {
+                            return Promise.reject(new Error(t`Every "set" operation needs a value`))
+                          }
+                        }
+                        return Promise.resolve()
+                      }
+                    }
+                  ]}
+                >
+                  <OperationsBuilder customDimensionLabels={props.customDimensionLabels} />
+                </Form.Item>
+              </Panel>
+            </div>
+          </Form>
+        </ConfigProvider>
+      </SidePanel>
+
+      <TestFilterPanel
         open={testModalOpen}
         onClose={() => setTestModalOpen(false)}
         conditions={draftConditions}

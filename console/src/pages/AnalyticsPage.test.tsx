@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import type { StoredPermissions } from '../services/api/permissions'
@@ -11,8 +12,17 @@ const state = vi.hoisted(() => ({
   loading: false,
   navigate: vi.fn(),
   kpiPeriods: [] as DashboardPeriods[],
-  seriesEnabled: [] as boolean[]
+  seriesEnabled: [] as boolean[],
+  role: 'member' as 'root' | 'owner' | 'member' | undefined,
+  latestAt: null as string | null | undefined,
+  latestEnabled: [] as boolean[],
+  settings: { timezone: 'Europe/Paris' } as Record<string, unknown>,
+  props: {} as Record<string, Record<string, unknown>>
 }))
+/** Records the props a mocked block got, under its name. */
+const seen = (name: string, props: Record<string, unknown>) => {
+  state.props[name] = props
+}
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ workspaceId: 'ws1' }),
@@ -22,14 +32,50 @@ vi.mock('@tanstack/react-router', () => ({
     <div data-testid="redirect">{to.replace('$workspaceId', params.workspaceId)}</div>
   )
 }))
+// The API client imports the router, and through it every page: the dashboard asks nothing here.
+vi.mock('../services/api/client', () => ({ api: {}, ApiError: class extends Error {} }))
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
-    workspaces: [{ id: 'ws1', name: 'Acme', settings: { timezone: 'Europe/Paris' } }]
+    user: { id: 'u1', email: 'root@acme.com' },
+    workspaces: [
+      {
+        id: 'ws1',
+        name: 'Acme',
+        settings: state.settings,
+        integrations: [
+          {
+            id: 'ses1',
+            type: 'email',
+            email_provider: { kind: 'ses', senders: [{ id: 's', email: 'hi@acme.com', name: '', is_default: true }] }
+          }
+        ]
+      }
+    ]
   }),
   useWorkspacePermissions: () => ({
     permissions: state.permissions,
+    role: state.role,
     loading: state.loading
   })
+}))
+vi.mock('../components/analytics/useLatestMessage', () => ({
+  useLatestMessage: (_ws: string, enabled: boolean) => {
+    state.latestEnabled.push(enabled)
+    return { latestAt: enabled ? state.latestAt : undefined, isError: false }
+  }
+}))
+vi.mock('../components/analytics/GetStartedChecklist', () => ({
+  GetStartedChecklist: (props: Record<string, unknown>) => {
+    seen('checklist', props)
+    return <div data-testid="checklist" />
+  }
+}))
+vi.mock('../components/analytics/ButtonLink', () => ({
+  ButtonLink: ({ to, params, search, children }: { to: string; params: Record<string, string>; search?: Record<string, string>; children: ReactNode }) => {
+    let href = to
+    for (const [key, value] of Object.entries(params)) href = href.replace(`$${key}`, value)
+    return <a href={search ? `${href}?${new URLSearchParams(search).toString()}` : href}>{children}</a>
+  }
 }))
 vi.mock('../components/analytics/useOriginSeries', () => ({
   useOriginSeries: ({ enabled }: { enabled: boolean }) => {
@@ -38,20 +84,40 @@ vi.mock('../components/analytics/useOriginSeries', () => ({
   }
 }))
 vi.mock('../components/analytics/DashboardKpis', () => ({
-  DashboardKpis: ({ periods }: { periods: DashboardPeriods }) => {
-    state.kpiPeriods.push(periods)
+  DashboardKpis: (props: { periods: DashboardPeriods }) => {
+    state.kpiPeriods.push(props.periods)
+    seen('kpis', props)
     return <div data-testid="kpis" />
   }
 }))
 vi.mock('../components/analytics/OriginVolumeChart', () => ({
-  OriginVolumeChart: ({ metric, onMetricChange }: { metric: string; onMetricChange: (m: string) => void }) => (
-    <button type="button" data-testid="chart" onClick={() => onMetricChange('opens')}>
-      {metric}
-    </button>
+  OriginVolumeChart: ({
+    metric,
+    onMetricChange,
+    ghost
+  }: {
+    metric: string
+    onMetricChange: (m: string) => void
+    ghost?: { message: string; action?: ReactNode }
+  }) => (
+    <>
+      <button type="button" data-testid="chart" onClick={() => onMetricChange('opens')}>
+        {metric}
+      </button>
+      {ghost ? (
+        <div data-testid="ghost">
+          {ghost.message}
+          {ghost.action}
+        </div>
+      ) : null}
+    </>
   )
 }))
 vi.mock('../components/analytics/RecentFailures', () => ({
-  RecentFailures: () => <div data-testid="failures" />
+  RecentFailures: (props: Record<string, unknown>) => {
+    seen('failures', props)
+    return <div data-testid="failures" />
+  }
 }))
 vi.mock('../components/analytics/NewContactsTable', () => ({
   NewContactsTable: ({ canImport }: { canImport: boolean }) => <div data-testid="contacts">{String(canImport)}</div>
@@ -60,7 +126,10 @@ vi.mock('../components/analytics/SendingCard', () => ({
   SendingCard: ({ canConfigure }: { canConfigure: boolean }) => <div data-testid="sending">{String(canConfigure)}</div>
 }))
 vi.mock('../components/analytics/UpcomingSends', () => ({
-  UpcomingSends: () => <div data-testid="upcoming" />
+  UpcomingSends: (props: Record<string, unknown>) => {
+    seen('upcoming', props)
+    return <div data-testid="upcoming" />
+  }
 }))
 
 import { AnalyticsPage } from './AnalyticsPage'
@@ -101,6 +170,12 @@ beforeEach(() => {
   state.navigate.mockReset()
   state.kpiPeriods = []
   state.seriesEnabled = []
+  state.role = 'member'
+  // A workspace that has sent, in the period: the dashboard as it always was.
+  state.latestAt = '2026-01-01T00:00:00Z'
+  state.latestEnabled = []
+  state.settings = { timezone: 'Europe/Paris', marketing_email_provider_id: 'ses1' }
+  state.props = {}
 })
 
 describe('AnalyticsPage', () => {
@@ -112,6 +187,22 @@ describe('AnalyticsPage', () => {
     for (const block of ['kpis', 'failures', 'contacts', 'sending', 'upcoming']) {
       expect(screen.getByTestId(block)).toBeInTheDocument()
     }
+  })
+
+  it('says which days the period covers: complete days up to yesterday', () => {
+    // Logs counts a rolling "Last 7 days"; the dashboard's 7 d ends yesterday, and nothing said so.
+    state.search = { period: '7d' }
+    renderPage()
+    const { startDay, endDay } = state.kpiPeriods.at(-1)!.current
+    const shown = document.querySelector('[data-dashboard-days]')
+    const format = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+    expect(shown).toHaveTextContent(
+      format
+        .formatRange(new Date(`${startDay}T00:00:00Z`), new Date(`${endDay}T00:00:00Z`))
+        // The thin spaces around the dash, as the matcher reads the page's text.
+        .replace(/\s+/g, ' ')
+    )
+    expect(endDay < new Date().toISOString().slice(0, 10) || endDay === startDay).toBe(true)
   })
 
   it('reads the period and the metric from the URL', () => {
@@ -186,5 +277,102 @@ describe('AnalyticsPage', () => {
     expect(screen.queryByTestId('contacts')).not.toBeInTheDocument()
     expect(screen.queryByTestId('upcoming')).not.toBeInTheDocument()
     expect(screen.getByTestId('sending')).toHaveTextContent('false')
+  })
+
+  describe('before the first send', () => {
+    it('hides the period switch and the days it covers', () => {
+      state.latestAt = null
+      renderPage()
+
+      expect(screen.queryByText('30 d')).not.toBeInTheDocument()
+      expect(document.querySelector('[data-dashboard-days]')).toBeNull()
+      expect(state.props.kpis.sendState).toBe('never')
+      expect(state.props.failures.sendState).toBe('never')
+      expect(screen.getByTestId('ghost')).toHaveTextContent('Your emails will show here, day by day, from your first send.')
+    })
+
+    it('shows them once an email was sent', () => {
+      renderPage()
+
+      expect(screen.getByText('30 d')).toBeInTheDocument()
+      expect(document.querySelector('[data-dashboard-days]')).not.toBeNull()
+      expect(state.props.kpis.sendState).toBe('counted')
+      expect(state.props.failures.sendState).toBe('counted')
+      expect(screen.queryByTestId('ghost')).not.toBeInTheDocument()
+    })
+
+    it('keeps them while it is not known yet, so the header does not flicker', () => {
+      state.latestAt = undefined
+      renderPage()
+
+      expect(screen.getByText('30 d')).toBeInTheDocument()
+      expect(document.querySelector('[data-dashboard-days]')).not.toBeNull()
+      expect(state.props.kpis.sendState).toBe('loading')
+      expect(state.latestEnabled.at(-1)).toBe(true)
+    })
+
+    it('asks for the latest message only with the right to read message history', () => {
+      state.permissions = null
+      state.loading = true
+      renderPage()
+      expect(state.latestEnabled.every((enabled) => !enabled)).toBe(true)
+    })
+
+    it('offers a new broadcast from the chart when marketing can send', () => {
+      state.latestAt = null
+      renderPage()
+      expect(screen.getByText('New broadcast').closest('a')).toHaveAttribute(
+        'href',
+        '/console/workspace/ws1/broadcasts?compose=new'
+      )
+    })
+
+    it('offers an owner to connect a provider from the chart when marketing cannot send', () => {
+      state.latestAt = null
+      state.role = 'owner'
+      state.settings = { timezone: 'Europe/Paris' }
+      renderPage()
+      expect(screen.getByText('Connect an email provider').closest('a')).toHaveAttribute(
+        'href',
+        '/console/workspace/ws1/settings/integrations'
+      )
+      expect(screen.queryByText('New broadcast')).not.toBeInTheDocument()
+    })
+
+    it('offers nothing from the chart to a writer who is not an owner when marketing cannot send', () => {
+      state.latestAt = null
+      state.settings = { timezone: 'Europe/Paris' }
+      renderPage()
+      expect(screen.getByTestId('ghost')).not.toContainElement(screen.queryByRole('link'))
+      expect(screen.queryByText('Connect an email provider')).not.toBeInTheDocument()
+    })
+  })
+
+  it('puts the checklist above the KPIs, with the role and the user', () => {
+    state.role = 'owner'
+    state.latestAt = null
+    renderPage()
+
+    const checklist = screen.getByTestId('checklist')
+    expect(checklist.compareDocumentPosition(screen.getByTestId('kpis')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(state.props.checklist).toMatchObject({
+      role: 'owner',
+      user: { id: 'u1', email: 'root@acme.com' },
+      latestAt: null
+    })
+  })
+
+  it('lets only an owner configure providers from the cards, whatever the workspace rights', () => {
+    renderPage()
+    expect(screen.getByTestId('sending')).toHaveTextContent('false')
+    expect(state.props.upcoming.canConfigure).toBe(false)
+    expect(state.props.upcoming.marketingReady).toBe(true)
+  })
+
+  it('lets an owner configure providers from the cards', () => {
+    state.role = 'owner'
+    renderPage()
+    expect(screen.getByTestId('sending')).toHaveTextContent('true')
+    expect(state.props.upcoming.canConfigure).toBe(true)
   })
 })

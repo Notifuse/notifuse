@@ -22,8 +22,10 @@ vi.mock('../../services/api/blog', async (importOriginal) => ({
 // The editor, the assistant and the image field are not what this file tests: Tiptap does not run in
 // jsdom, and the image field needs the file manager.
 vi.mock('../blog_editor', () => ({
-  NotifuseEditor: () => <div data-testid="editor" />,
-  DEFAULT_INITIAL_CONTENT: { type: 'doc', content: [] }
+  NotifuseEditor: ({ initialContent }: { initialContent?: string }) => (
+    <div data-testid="editor" data-initial-content={initialContent ?? ''} />
+  ),
+  DEFAULT_INITIAL_CONTENT: '<h2>Editor demo</h2><p>Sample text</p>'
 }))
 vi.mock('./BlogAIAssistant', () => ({ BlogAIAssistant: () => null }))
 vi.mock('../common/ImageURLInput', () => ({ ImageURLInput: () => null }))
@@ -70,5 +72,13 @@ describe('PostDrawer in French', () => {
     expect(
       await screen.findByText(/^Found unsaved changes from 14 nov\. 2026 10:30$/)
     ).toBeInTheDocument()
+  })
+})
+
+describe('PostDrawer, new post', () => {
+  it('opens the editor of a new post empty, without the editor demo text', async () => {
+    renderDrawer()
+    const editor = await screen.findByTestId('editor')
+    expect(editor).toHaveAttribute('data-initial-content', '')
   })
 })

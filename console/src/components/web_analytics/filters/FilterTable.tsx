@@ -5,6 +5,8 @@ import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { ChevronDown } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { WebFilter, WebFilterCondition } from '../../../services/api/web_analytics'
+import { Panel } from '../../layout'
+import { PopconfirmWithTooltip } from '../../layout/PopconfirmWithTooltip'
 import { getDimensionLabel } from '../lib/dimensions'
 import { getSourceFieldLabel, useFilterVocabulary } from '../lib/filterCatalog'
 
@@ -55,10 +57,10 @@ function MobileFilterCard(props: MobileFilterCardProps) {
   const tags = props.filter.tags ?? []
 
   return (
-    <div className="mb-3 rounded-lg border border-gray-200 bg-white p-4">
+    <Panel className="mb-3">
       <div className="flex cursor-pointer items-center justify-between" onClick={props.onToggle}>
         <div className="min-w-0 flex-1">
-          <div className={`truncate font-medium ${props.filter.enabled ? '' : 'text-gray-400'}`}>
+          <div className={`truncate font-medium ${props.filter.enabled ? '' : 'text-ink-4'}`}>
             {props.filter.name}
           </div>
           {tags.length > 0 ? (
@@ -83,22 +85,22 @@ function MobileFilterCard(props: MobileFilterCardProps) {
           />
           <ChevronDown
             size={16}
-            className={`text-gray-400 transition-transform ${props.isExpanded ? 'rotate-180' : ''}`}
+            className={`text-ink-4 transition-transform ${props.isExpanded ? 'rotate-180' : ''}`}
           />
         </div>
       </div>
 
       {props.isExpanded ? (
-        <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
+        <div className="mt-4 space-y-4 border-t border-line-soft pt-4">
           <div className="text-sm">
-            <span className="text-gray-500">{t`Priority:`}</span>
+            <span className="text-ink-3">{t`Priority:`}</span>
             <span className="ml-1 font-medium">{props.filter.priority}</span>
           </div>
 
           <div>
-            <div className="mb-2 text-xs font-medium uppercase text-gray-400">{t`Conditions`}</div>
+            <div className="mb-2 text-xs font-medium uppercase text-ink-4">{t`Conditions`}</div>
             {props.filter.conditions.length === 0 ? (
-              <span className="text-sm italic text-gray-400">{t`(always matches)`}</span>
+              <span className="text-sm italic text-ink-4">{t`(always matches)`}</span>
             ) : (
               <div className="space-y-2">
                 <ConditionTags conditions={props.filter.conditions} />
@@ -107,7 +109,7 @@ function MobileFilterCard(props: MobileFilterCardProps) {
           </div>
 
           <div>
-            <div className="mb-2 text-xs font-medium uppercase text-gray-400">{t`Operations`}</div>
+            <div className="mb-2 text-xs font-medium uppercase text-ink-4">{t`Operations`}</div>
             <div className="space-y-2">
               {props.filter.operations.map((operation, index) => (
                 <div key={index} className="flex flex-wrap items-center gap-1 text-sm">
@@ -128,8 +130,10 @@ function MobileFilterCard(props: MobileFilterCardProps) {
           <div className="flex gap-2 pt-2">
             <Popconfirm
               title={t`Delete this rule?`}
+              description={t`New visits are no longer rewritten by it. Past ones keep its values until the next backfill.`}
               onConfirm={props.onDelete}
               okText={t`Delete`}
+              okButtonProps={{ danger: true }}
               cancelText={t`Cancel`}
             >
               <Button block size="small" icon={<DeleteOutlined />} disabled={props.disabled}>
@@ -142,7 +146,7 @@ function MobileFilterCard(props: MobileFilterCardProps) {
           </div>
         </div>
       ) : null}
-    </div>
+    </Panel>
   )
 }
 
@@ -186,14 +190,14 @@ export function FilterTable(props: FilterTableProps) {
       dataIndex: 'priority',
       key: 'priority',
       width: 80,
-      render: (priority: number) => <span className="text-gray-600">{priority}</span>
+      render: (priority: number) => <span className="text-ink-2">{priority}</span>
     },
     {
       title: t`Name`,
       dataIndex: 'name',
       key: 'name',
       render: (name: string, record) => (
-        <span className={record.enabled ? 'font-medium' : 'text-gray-400'}>{name}</span>
+        <span className={record.enabled ? 'font-medium' : 'text-ink-4'}>{name}</span>
       )
     },
     {
@@ -201,7 +205,7 @@ export function FilterTable(props: FilterTableProps) {
       key: 'conditions',
       render: (_, record) => {
         if (record.conditions.length === 0) {
-          return <span className="italic text-gray-400">{t`(always matches)`}</span>
+          return <span className="italic text-ink-4">{t`(always matches)`}</span>
         }
         const visible = record.conditions.slice(0, 2)
         const hidden = record.conditions.slice(2)
@@ -216,7 +220,7 @@ export function FilterTable(props: FilterTableProps) {
                   </div>
                 }
               >
-                <span className="cursor-pointer text-xs text-gray-400 hover:text-gray-600">
+                <span className="cursor-pointer text-xs text-ink-4 hover:text-ink-2">
                   {t`+${hidden.length} more`}
                 </span>
               </Popover>
@@ -285,20 +289,32 @@ export function FilterTable(props: FilterTableProps) {
           size="small"
           className="opacity-0 transition-opacity [.ant-table-row:hover_&]:opacity-100"
         >
-          <Popconfirm
+          <PopconfirmWithTooltip
+            tooltip={t`Delete rule`}
             title={t`Delete this rule?`}
+            description={t`New visits are no longer rewritten by it. Past ones keep its values until the next backfill.`}
             onConfirm={() => props.onDelete(record)}
             okText={t`Delete`}
+            okButtonProps={{ danger: true }}
             cancelText={t`Cancel`}
           >
-            <Button type="text" size="small" icon={<DeleteOutlined />} disabled={props.saving} />
-          </Popconfirm>
-          <Button
-            type="text"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => props.onEdit(record)}
-          />
+            <Button
+              type="text"
+              size="small"
+              aria-label={t`Delete rule`}
+              icon={<DeleteOutlined />}
+              disabled={props.saving}
+            />
+          </PopconfirmWithTooltip>
+          <Tooltip title={t`Edit rule`}>
+            <Button
+              type="text"
+              size="small"
+              aria-label={t`Edit rule`}
+              icon={<EditOutlined />}
+              onClick={() => props.onEdit(record)}
+            />
+          </Tooltip>
         </Space>
       )
     }
@@ -331,19 +347,20 @@ export function FilterTable(props: FilterTableProps) {
       </div>
 
       <div className="hidden md:block">
-        <Table
-          dataSource={displayFilters}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-          size="small"
-          loading={props.saving}
-          onRow={(record) => ({
-            onClick: (event) => handleRowClick(record, event),
-            className: 'cursor-pointer'
-          })}
-          className="border border-gray-200 rounded-md"
-        />
+        <Panel flush>
+          <Table
+            dataSource={displayFilters}
+            columns={columns}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            loading={props.saving}
+            onRow={(record) => ({
+              onClick: (event) => handleRowClick(record, event),
+              className: 'cursor-pointer'
+            })}
+          />
+        </Panel>
       </div>
     </>
   )

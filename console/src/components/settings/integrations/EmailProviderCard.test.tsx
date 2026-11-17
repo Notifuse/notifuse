@@ -306,19 +306,46 @@ describe('EmailProviderCard', () => {
 
     await openMenu()
     fireEvent.click(screen.getByText('Delete'))
-    await confirmWith('Delete this integration?')
+    expect((await screen.findAllByText('Delete this integration?')).length).toBeGreaterThan(0)
+    expect(screen.getByText('This action cannot be undone.')).toBeInTheDocument()
+    const remove = screen.getByRole('button', { name: 'Delete' })
+    expect(remove).toHaveClass('ant-btn-dangerous')
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    fireEvent.click(remove)
 
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('int_mg'))
   })
 
-  it('sends a test email from the menu', async () => {
+  it.each([
+    [
+      { marketing: 'int_mg', transactional: 'int_mg' },
+      "It sends the workspace's marketing and transactional emails: no email goes out until another provider is chosen. This cannot be undone."
+    ],
+    [
+      { marketing: 'int_mg' },
+      "It sends the workspace's marketing emails: broadcasts and automations stop until another provider is chosen. This cannot be undone."
+    ],
+    [
+      { transactional: 'int_mg' },
+      "It sends the workspace's transactional emails: notifications stop until another provider is chosen. This cannot be undone."
+    ]
+  ])('says what stops when the provider deleted is a default one (%o)', async (roles, warning) => {
+    renderCard({ roles })
+    await screen.findByText('Webhooks registered')
+    await openMenu()
+    fireEvent.click(screen.getByText('Delete'))
+    expect(await screen.findByText(warning)).toBeInTheDocument()
+  })
+
+  it('sends a test email from its own button, out of the menu', async () => {
     renderCard()
     await screen.findByText('Webhooks registered')
 
-    await openMenu()
-    fireEvent.click(screen.getByText('Send a test email'))
-
+    fireEvent.click(screen.getByRole('button', { name: /Send test/ }))
     expect(onTest).toHaveBeenCalledWith('int_mg')
+
+    await openMenu()
+    expect(screen.queryByText('Send a test email')).toBeNull()
   })
 
   it('shows a member the card without any button', async () => {
@@ -327,6 +354,7 @@ describe('EmailProviderCard', () => {
 
     expect(screen.queryByRole('button', { name: /Edit/ })).toBeNull()
     expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Send test/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /Add/ })).toBeNull()
   })
 })

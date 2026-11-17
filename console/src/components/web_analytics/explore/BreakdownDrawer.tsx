@@ -68,18 +68,18 @@ export function BreakdownDrawer(props: BreakdownDrawerProps) {
       rootClassName="app-drawer-instant"
       title={
         <div className="flex items-center gap-2">
-          <span className="text-gray-400">
+          <span className="text-ink-4">
             {getDimensionLabel(dimension, context.customDimensionLabels)}:
           </span>
           <span className="font-medium">{title}</span>
         </div>
       }
     >
-      <div className="rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
+      <div className="rounded-lg bg-subtle p-3 text-sm text-ink-2">
         <div className="mb-2">
           <span className="font-medium">{t`Filters:`}</span>{' '}
           {props.parentFilters.length === 0 ? (
-            <span className="text-gray-400">{t`None`}</span>
+            <span className="text-ink-4">{t`None`}</span>
           ) : (
             <Space size={[4, 4]} wrap>
               {props.parentFilters.map((filter, index) => (
@@ -132,6 +132,9 @@ function BreakdownTable(props: BreakdownTableProps) {
   const context = useWebAnalytics()
 
   const rows = props.data?.data ?? []
+  // Each row's position, as its key: a null and an empty value would share one, and antd no longer
+  // passes the index to rowKey.
+  const positions = new Map(rows.map((row, index) => [row, index]))
   const best = rows.reduce((max, row) => Math.max(max, toNumber(row.median_duration)), 0)
 
   if (props.error) {
@@ -145,7 +148,7 @@ function BreakdownTable(props: BreakdownTableProps) {
       size="small"
       loading={props.loading}
       dataSource={rows}
-      rowKey={(row, index) => `${index ?? 0}:${String(row[props.dimension] ?? '')}`}
+      rowKey={(row) => `${positions.get(row) ?? 0}:${String(row[props.dimension] ?? '')}`}
       pagination={{ pageSize: 10, size: 'small', showSizeChanger: false, hideOnSinglePage: true }}
       columns={[
         {
@@ -154,7 +157,7 @@ function BreakdownTable(props: BreakdownTableProps) {
           ellipsis: true,
           render: (value: unknown) => {
             if (value === null || value === '' || value === undefined) {
-              return <span className="text-gray-400">{t`(empty)`}</span>
+              return <span className="text-ink-4">{t`(empty)`}</span>
             }
             return formatDimensionValue(props.dimension, value, {
               emptyLabel: t`(empty)`,

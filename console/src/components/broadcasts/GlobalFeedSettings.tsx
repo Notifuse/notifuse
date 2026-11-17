@@ -39,6 +39,8 @@ export function GlobalFeedSettings({
   const [localFetchedData, setLocalFetchedData] = useState<Record<string, unknown> | null>(null)
   const [localFetchedAt, setLocalFetchedAt] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  // A feed just switched on has no URL yet: "URL is required" waits until the field is left empty.
+  const [urlTouched, setUrlTouched] = useState(false)
 
   const settings: GlobalFeedSettingsType = value || {
     enabled: false,
@@ -93,14 +95,16 @@ export function GlobalFeedSettings({
               </Space>
             }
             required
-            validateStatus={settings.enabled && !settings.url ? 'error' : undefined}
-            help={settings.enabled && !settings.url ? t`URL is required` : undefined}
+            colon={false}
+            validateStatus={urlTouched && !settings.url ? 'error' : undefined}
+            help={urlTouched && !settings.url ? t`URL is required` : undefined}
           >
             <Space.Compact className="w-full">
               <Input
                 placeholder="https://api.example.com/broadcast-data"
                 value={settings.url}
                 onChange={(e) => handleChange('url', e.target.value)}
+                onBlur={() => setUrlTouched(true)}
                 disabled={disabled}
               />
               {/* The test calls the feed for a stored broadcast; a disabled button fires no mouse event, hence the span. */}

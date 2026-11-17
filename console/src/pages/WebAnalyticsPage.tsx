@@ -139,11 +139,11 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
   // Everything the period applies to sits inside the gate, so an install
   // problem covers the controls that would only produce more empty reports.
   const body = (
-    <>
+    <div className="flex flex-col gap-3">
       {/* Dimensions above filters: the dimensions are the report, the filters
           only narrow it, so they read in the order they are applied. */}
       {showToolbar && settings && isExplore ? (
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <DimensionSelector value={dimensions} onChange={setDimensions} />
           <MinSessionsInput />
         </div>
@@ -153,7 +153,7 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
         // On the other tabs the period controls sit with the filter bar rather
         // than in the page header: both narrow the same question, and a reader
         // scanning a chart looks for "which range" beside "which segment".
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <FilterBuilder
             schema={activeTab === 'goals' ? 'web_goals' : 'web_sessions'}
             allowMetricFilters={activeTab === 'explore'}
@@ -163,7 +163,7 @@ function WebAnalyticsSection(props: { tab: WebAnalyticsTab }) {
       ) : null}
 
       {panes[activeTab]}
-    </>
+    </div>
   )
 
   return (

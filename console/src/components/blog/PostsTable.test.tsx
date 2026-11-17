@@ -197,6 +197,18 @@ describe('PostsTable', () => {
     }
   })
 
+  it('counts the posts of the blog in the header, whatever the tab or the search', async () => {
+    router.search = { status: 'draft', q: 'post' }
+    vi.mocked(blogPostsApi.list).mockResolvedValue(page(1, 2, 2))
+    renderTable({ counts })
+    await screen.findByText('Post 1')
+    // 9 posts in the blog, as the rail says; the tab and the search count 2 of them, in the footer.
+    const header = screen.getByRole('heading', { name: /All posts/ }).parentElement as HTMLElement
+    expect(header).toHaveTextContent('9')
+    expect(header).not.toHaveTextContent(/\b2\b/)
+    expect(screen.getByText('2 of 2 posts')).toBeInTheDocument()
+  })
+
   it('writes the status picked to the URL, and leaves it out for All', async () => {
     router.search = { status: 'draft' }
     renderTable({ counts })
@@ -293,9 +305,9 @@ describe('PostsTable', () => {
   })
 
   it('titles the view after its category, with the number of posts it holds', async () => {
-    router.search = { category_id: 'c2' }
-    vi.mocked(blogPostsApi.list).mockResolvedValue(page(1, 3, 42))
-    renderTable()
+    router.search = { category_id: 'c2', status: 'draft' }
+    vi.mocked(blogPostsApi.list).mockResolvedValue(page(1, 3, 3))
+    renderTable({ counts: { ...counts, by_category: { c2: 42 } } })
     await screen.findByText('Post 1')
     expect(screen.getByRole('heading', { name: 'Guides' }).parentElement).toHaveTextContent(
       'Guides42'
@@ -324,7 +336,7 @@ describe('PostsTable', () => {
     expect(screen.getByTestId('post-drawer')).toHaveAttribute('data-post', 'new')
   })
 
-  it('offers Open on web for a live post only, and Unpublish for a scheduled one', async () => {
+  it('offers Open on web for a live post only, and Unschedule for a scheduled one', async () => {
     const soon = new Date(Date.now() + 3 * DAY).toISOString()
     const past = new Date(Date.now() - 2 * DAY).toISOString()
     vi.mocked(blogPostsApi.list).mockResolvedValue({
@@ -336,10 +348,12 @@ describe('PostsTable', () => {
 
     const scheduled = await openMenu('Post 1')
     expect(within(scheduled).queryByRole('menuitem', { name: 'Open on web' })).toBeNull()
-    expect(within(scheduled).getByRole('menuitem', { name: 'Unpublish' })).toBeInTheDocument()
+    expect(within(scheduled).getByRole('menuitem', { name: 'Unschedule' })).toBeInTheDocument()
+    expect(within(scheduled).queryByRole('menuitem', { name: 'Unpublish' })).toBeNull()
 
     const live = await openMenu('Post 2')
     expect(within(live).getByRole('menuitem', { name: 'Open on web' })).toBeInTheDocument()
+    expect(within(live).getByRole('menuitem', { name: 'Unpublish' })).toBeInTheDocument()
 
     const draft = await openMenu('Post 3')
     fireEvent.click(within(draft).getByRole('menuitem', { name: 'Publish' }))
@@ -357,12 +371,12 @@ describe('PostsTable', () => {
     renderTable()
     await screen.findByText('Post 1')
 
-    fireEvent.click(within(await openMenu('Post 1')).getByRole('menuitem', { name: 'Unpublish' }))
+    fireEvent.click(within(await openMenu('Post 1')).getByRole('menuitem', { name: 'Unschedule' }))
     expect(
       await screen.findByText('The post goes back to drafts and will not be published on its date.')
     ).toBeInTheDocument()
     expect(blogPostsApi.unpublish).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Unpublish' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Unschedule' }))
     await waitFor(() =>
       expect(blogPostsApi.unpublish).toHaveBeenCalledWith('ws1', { id: 'post-1' })
     )

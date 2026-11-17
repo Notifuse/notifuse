@@ -342,8 +342,9 @@ export function WebhookDetail({
           title={t`Delete this webhook?`}
           description={t`This action cannot be undone.`}
           onConfirm={handleDelete}
-          okText={t`Yes`}
-          cancelText={t`No`}
+          okText={t`Delete`}
+          cancelText={t`Cancel`}
+          okButtonProps={{ danger: true }}
           disabled={!canManage}
         >
           {withPermission(

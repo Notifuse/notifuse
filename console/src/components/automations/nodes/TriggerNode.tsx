@@ -38,7 +38,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ id, data, selected }) 
 
   // Format event kind for display (e.g., "list.subscribed" -> "List Subscribed")
   const formatEventKind = (eventKind: string): string => {
-    if (eventKind === 'custom_event') return t`Custom Event`
+    if (eventKind === 'custom_event') return t`Custom event`
     if (eventKind === 'email.link_clicked') return t`Email Link Clicked`
     const parts = eventKind.split('.')
     return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')

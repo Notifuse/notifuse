@@ -18,6 +18,7 @@ import { InputEventPropertyFilters } from './input_event_property_filters'
 import TemplateSelectorInput from '../templates/TemplateSelectorInput'
 import BroadcastSelectorInput from './BroadcastSelectorInput'
 import Messages from './messages'
+import { TIMELINE_KIND_LABELS } from './timelineKindLabels'
 import { useLingui } from '@lingui/react/macro'
 
 export type LeafFormProps = {
@@ -201,6 +202,14 @@ export const LeafContactListForm = (props: LeafFormProps) => {
   // Get status field for options
   const statusField = props.schema.fields['status']
 
+  // « is in » by default, set on the form: a Form.Item initialValue beside the form's
+  // initialValues made antd warn that the field had two.
+  const editedLeaf = props.editingNodeLeaf.leaf
+  const contactListInitialValues = {
+    ...editedLeaf,
+    contact_list: { ...editedLeaf?.contact_list, operator: editedLeaf?.contact_list?.operator ?? 'in' }
+  }
+
   return (
     <Space style={{ alignItems: 'start' }}>
       <Tag variant="filled" color="cyan">
@@ -213,7 +222,7 @@ export const LeafContactListForm = (props: LeafFormProps) => {
         component="div"
         layout="inline"
         form={form}
-        initialValues={props.editingNodeLeaf.leaf}
+        initialValues={contactListInitialValues}
         onValuesChange={onValuesChange}
       >
         <Form.Item name="source" noStyle>
@@ -224,7 +233,6 @@ export const LeafContactListForm = (props: LeafFormProps) => {
         <Form.Item
           style={{ marginBottom: 0 }}
           name={['contact_list', 'operator']}
-          initialValue="in"
           rules={[{ required: true, message: Messages.RequiredField }]}
         >
           <Select style={{ width: 120 }} size="small">
@@ -296,7 +304,7 @@ export const LeafContactListForm = (props: LeafFormProps) => {
 }
 
 export const LeafActionForm = (props: LeafFormProps) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [form] = useForm()
   const onValuesChange = useLeafDraft(props, form)
 
@@ -380,16 +388,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
                 // custom_event.* condition validates, compiles and then renders
                 // blank in the UI. Custom events reach segments through the Custom
                 // Events Goal condition instead — do not document the Activity route.
-                options={[
-                  { value: 'email.sent', label: t`New message (email...)` },
-                  { value: 'email.opened', label: t`Open email` },
-                  { value: 'email.clicked', label: t`Click email` },
-                  { value: 'email.bounced', label: t`Bounce email` },
-                  { value: 'email.complained', label: t`Complain email` },
-                  { value: 'email.unsubscribed', label: t`Unsubscribe from list` },
-                  { value: 'web.pageview', label: t`View web page` },
-                  { value: 'web.session', label: t`Visit website` }
-                ]}
+                options={TIMELINE_KIND_LABELS.map(({ value, label }) => ({ value, label: i18n._(label) }))}
               />
             </Form.Item>
           </Space>
@@ -426,6 +425,8 @@ export const LeafActionForm = (props: LeafFormProps) => {
                       <TemplateSelectorInput
                         workspaceId={props.workspaceId}
                         placeholder={t`Any template`}
+                        anyLabel={t`Any template`}
+                        subtitle={t`The template of the emails this condition counts`}
                         clearable={true}
                         size="small"
                         canReadTemplates={props.canReadTemplates}
@@ -447,6 +448,8 @@ export const LeafActionForm = (props: LeafFormProps) => {
                         placeholder={t`Any broadcast`}
                         size="small"
                         style={{ minWidth: 180 }}
+                        // Only the broadcasts that sent the template chosen beside it.
+                        templateId={funcs.getFieldValue(['contact_timeline', 'template_id'])}
                       />
                     </Form.Item>
                   </Space>

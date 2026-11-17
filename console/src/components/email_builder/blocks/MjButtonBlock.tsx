@@ -170,7 +170,7 @@ const MjButtonSettingsPanel: React.FC<MjButtonSettingsPanelProps> = ({
   }
 
   return (
-    <PanelLayout title={t`Button Attributes`}>
+    <PanelLayout title={t`Button attributes`}>
       <InputLayout label={t`Link URL`}>
         <StringPopoverInput
           value={currentAttributes.href || ''}

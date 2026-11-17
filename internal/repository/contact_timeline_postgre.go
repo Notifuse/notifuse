@@ -52,7 +52,7 @@ func (r *ContactTimelineRepository) Create(ctx context.Context, workspaceID stri
 }
 
 // List retrieves timeline entries for a contact with cursor-based pagination
-func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string, email string, limit int, cursor *string, filter domain.TimelineEntityTypeFilter) ([]*domain.ContactTimelineEntry, *string, error) {
+func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string, loadSecretKey domain.TimelineSecretKeyLoader, email string, limit int, cursor *string, filter domain.TimelineEntityTypeFilter) ([]*domain.ContactTimelineEntry, *string, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -103,7 +103,10 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 					'delivered_at', mh.delivered_at,
 					'opened_at', mh.opened_at,
 					'clicked_at', mh.clicked_at,
-					'message_data', mh.message_data
+					'message_data', mh.message_data,
+					'broadcast_id', mh.broadcast_id,
+					'automation_id', mh.automation_id,
+					'transactional_notification_id', mh.transactional_notification_id
 				)
 			WHEN ct.entity_type = 'inbound_webhook_event' THEN json_build_object(
 				'id', we.id,
@@ -235,6 +238,16 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 		return nil, nil, fmt.Errorf("error iterating timeline rows: %w", err)
 	}
 
+	// Decrypted once the rows are read, so the workspace key is loaded (from the system
+	// database) only when an entry needs it, and not while this connection is busy.
+	keys := &timelineSecretKey{load: loadSecretKey}
+	for i, entry := range entries {
+		// The extra row fetched to detect a next page is not returned.
+		if i < limit && entry.EntityType == domain.TimelineEntityMessageHistory && entry.EntityData != nil {
+			decryptTimelineMessageData(ctx, entry.EntityData, keys)
+		}
+	}
+
 	// Determine if there's a next page
 	var nextCursor *string
 	if len(entries) > limit {
@@ -296,4 +309,56 @@ func (r *ContactTimelineRepository) DeleteForEmail(ctx context.Context, workspac
 	}
 
 	return nil
+}
+
+// timelineSecretKey loads the workspace key on first use and remembers the outcome, failure
+// included, for the rest of the page.
+type timelineSecretKey struct {
+	load   domain.TimelineSecretKeyLoader
+	loaded bool
+	key    string
+	err    error
+}
+
+func (k *timelineSecretKey) get(ctx context.Context) (string, error) {
+	if !k.loaded {
+		k.loaded = true
+		if k.load == nil {
+			k.err = fmt.Errorf("no secret key to decrypt message data")
+		} else {
+			k.key, k.err = k.load(ctx)
+		}
+	}
+	return k.key, k.err
+}
+
+// decryptTimelineMessageData replaces the stored message_data of a message_history entry with
+// its decrypted form: message history encrypts the data at rest, and the timeline reads the row
+// as stored. Data that cannot be decrypted, or whose key cannot be loaded, is left out rather
+// than shown as the encrypted blob, and does not fail the whole timeline.
+func decryptTimelineMessageData(ctx context.Context, entityData map[string]interface{}, keys *timelineSecretKey) {
+	raw, ok := entityData["message_data"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	data, ok := raw["data"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	if _, encrypted := data["_encrypted"]; !encrypted {
+		// Stored before message history encrypted its data: already readable.
+		return
+	}
+	secretKey, err := keys.get(ctx)
+	if err != nil {
+		delete(entityData, "message_data")
+		return
+	}
+	decrypted, err := decryptMessageData(domain.MessageData{Data: data}, secretKey)
+	if err != nil {
+		delete(entityData, "message_data")
+		return
+	}
+	// The metadata is not encrypted: it stays as stored.
+	raw["data"] = decrypted.Data
 }

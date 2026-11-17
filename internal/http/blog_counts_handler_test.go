@@ -79,8 +79,8 @@ func TestBlogHandler_HandleCountPosts(t *testing.T) {
 		counts := domain.NewBlogPostCounts()
 		counts.AllTotal, counts.Total, counts.Published, counts.Scheduled, counts.Draft = 8, 5, 3, 1, 2
 		counts.ByCategory[categoryID] = 5
-		mockService.EXPECT().CountPosts(gomock.Any(), categoryID).
-			DoAndReturn(func(ctx context.Context, _ string) (*domain.BlogPostCounts, error) {
+		mockService.EXPECT().CountPosts(gomock.Any(), categoryID, "").
+			DoAndReturn(func(ctx context.Context, _ string, _ string) (*domain.BlogPostCounts, error) {
 				assert.Equal(t, "ws-123", ctx.Value(domain.WorkspaceIDKey))
 				return &counts, nil
 			})
@@ -95,11 +95,31 @@ func TestBlogHandler_HandleCountPosts(t *testing.T) {
 		handler, mockService, _, ctrl := setupBlogHandler(t)
 		defer ctrl.Finish()
 		counts := domain.NewBlogPostCounts()
-		mockService.EXPECT().CountPosts(gomock.Any(), categoryID).Return(&counts, nil)
+		mockService.EXPECT().CountPosts(gomock.Any(), categoryID, "").Return(&counts, nil)
 
 		w := httptest.NewRecorder()
 		handler.HandleCountPosts(w, httptest.NewRequest(http.MethodGet, "/api/blogPosts.counts?workspace_id=ws-123&category_id={"+strings.ToUpper(categoryID)+"}", nil))
 		require.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("the list's search narrows the counts by status", func(t *testing.T) {
+		handler, mockService, _, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		counts := domain.NewBlogPostCounts()
+		mockService.EXPECT().CountPosts(gomock.Any(), "", "launch week").Return(&counts, nil)
+
+		w := httptest.NewRecorder()
+		handler.HandleCountPosts(w, httptest.NewRequest(http.MethodGet, "/api/blogPosts.counts?workspace_id=ws-123&search=launch+week", nil))
+		require.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("a search PostgreSQL cannot read is a 400", func(t *testing.T) {
+		handler, _, _, ctrl := setupBlogHandler(t)
+		defer ctrl.Finish()
+		w := httptest.NewRecorder()
+		handler.HandleCountPosts(w, httptest.NewRequest(http.MethodGet, "/api/blogPosts.counts?workspace_id=ws-123&search=a%00b", nil))
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "search must be valid UTF-8 text without NUL bytes")
 	})
 
 	t.Run("a service error is a 500", func(t *testing.T) {
@@ -107,7 +127,7 @@ func TestBlogHandler_HandleCountPosts(t *testing.T) {
 		defer ctrl.Finish()
 		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())
-		mockService.EXPECT().CountPosts(gomock.Any(), "").Return(nil, errors.New("db down"))
+		mockService.EXPECT().CountPosts(gomock.Any(), "", "").Return(nil, errors.New("db down"))
 
 		w := httptest.NewRecorder()
 		handler.HandleCountPosts(w, httptest.NewRequest(http.MethodGet, "/api/blogPosts.counts?workspace_id=ws-123", nil))

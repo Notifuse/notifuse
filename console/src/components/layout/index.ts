@@ -1,6 +1,15 @@
 export { PageHeader, type PageHeaderProps } from './PageHeader'
 export { MetaLine } from './MetaLine'
-export { RailLayout, RailSection, RailItem, type RailLayoutProps, type RailSectionProps, type RailItemProps } from './RailLayout'
+export {
+  RailLayout,
+  RailCard,
+  RailSection,
+  RailItem,
+  type RailLayoutProps,
+  type RailCardProps,
+  type RailSectionProps,
+  type RailItemProps
+} from './RailLayout'
 export { SaveBar, type SaveBarProps } from './SaveBar'
 export { Mono, type MonoProps } from './Mono'
 export { Panel, type PanelProps } from './Panel'

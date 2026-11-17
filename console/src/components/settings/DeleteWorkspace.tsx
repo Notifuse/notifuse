@@ -66,7 +66,7 @@ export function DeleteWorkspaceSection({
             disabled={confirmWorkspaceId !== workspace.id}
             onClick={handleDeleteWorkspace}
           >
-            {t`Delete Workspace`}
+            {t`Delete workspace`}
           </Button>
         </div>
       </Panel>

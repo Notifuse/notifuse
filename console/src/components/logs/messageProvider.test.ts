@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Workspace } from '../../services/api/workspace'
-import { countsDeliveries, messageOrigin, rowIsSmtp } from './messageProvider'
+import { countsDeliveries, deliveriesReported, messageOrigin, rowIsSmtp } from './messageProvider'
 
 const workspace = (marketing: 'smtp' | 'postmark', transactional: 'smtp' | 'postmark') =>
   ({
@@ -75,5 +75,19 @@ describe('countsDeliveries', () => {
     expect(countsDeliveries(ws, 'automation')).toBe(false)
     expect(countsDeliveries(ws, 'transactional')).toBe(true)
     expect(countsDeliveries(ws, 'other')).toBe(true)
+  })
+})
+
+describe('deliveriesReported', () => {
+  it('follows the providers while no delivery came back', () => {
+    expect(deliveriesReported(workspace('smtp', 'postmark'), 'broadcast', 0)).toBe(false)
+    expect(deliveriesReported(workspace('smtp', 'postmark'), 'broadcast', undefined)).toBe(false)
+    expect(deliveriesReported(workspace('smtp', 'postmark'), 'transactional', 0)).toBe(true)
+    expect(deliveriesReported(workspace('smtp', 'smtp'), undefined, 0)).toBe(false)
+  })
+
+  it('shows the deliveries of an SMTP provider that came back all the same', () => {
+    expect(deliveriesReported(workspace('smtp', 'smtp'), undefined, 3)).toBe(true)
+    expect(deliveriesReported(workspace('smtp', 'postmark'), 'broadcast', 1)).toBe(true)
   })
 })

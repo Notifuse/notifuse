@@ -252,6 +252,45 @@ func TestWebAnalyticsServiceBackfillRPCs(t *testing.T) {
 		require.NoError(t, svc.BackfillCancel(ctx, "ws1"))
 	})
 
+	t.Run("status tells a cancelled run from a failed one", func(t *testing.T) {
+		cancelledMessage := "cancelled by user"
+		brokenMessage := "partition web_sessions_2026_11: connection reset"
+		for _, tc := range []struct {
+			name      string
+			task      *domain.Task
+			cancelled bool
+		}{
+			{"cancelled", &domain.Task{ID: "t1", Status: domain.TaskStatusFailed, ErrorMessage: &cancelledMessage, CreatedAt: time.Now()}, true},
+			{"failed", &domain.Task{ID: "t2", Status: domain.TaskStatusFailed, ErrorMessage: &brokenMessage, CreatedAt: time.Now()}, false},
+			{"completed", &domain.Task{ID: "t3", Status: domain.TaskStatusCompleted, CreatedAt: time.Now()}, false},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				svc, auth, taskRepo := newService(t)
+				authorize(auth, readPerms)
+				taskRepo.EXPECT().List(gomock.Any(), "ws1", gomock.Any()).Return([]*domain.Task{tc.task}, 1, nil)
+
+				status, err := svc.BackfillStatus(ctx, "ws1")
+				require.NoError(t, err)
+				assert.Equal(t, tc.cancelled, status.Cancelled)
+			})
+		}
+	})
+
+	t.Run("a run cancelled through BackfillCancel reads back as cancelled", func(t *testing.T) {
+		svc, auth, taskRepo := newService(t)
+		authorize(auth, writePerms)
+		running := &domain.Task{ID: "t1", Status: domain.TaskStatusRunning, CreatedAt: time.Now()}
+		taskRepo.EXPECT().List(gomock.Any(), "ws1", gomock.Any()).Return([]*domain.Task{running}, 1, nil).Times(2)
+		taskRepo.EXPECT().Update(gomock.Any(), "ws1", gomock.Any()).Return(nil)
+		require.NoError(t, svc.BackfillCancel(ctx, "ws1"))
+
+		authorize(auth, readPerms)
+		status, err := svc.BackfillStatus(ctx, "ws1")
+		require.NoError(t, err)
+		assert.Equal(t, "failed", status.Status)
+		assert.True(t, status.Cancelled)
+	})
+
 	t.Run("cancel with nothing running errors", func(t *testing.T) {
 		svc, auth, taskRepo := newService(t)
 		authorize(auth, writePerms)

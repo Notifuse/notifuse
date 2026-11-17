@@ -1,5 +1,5 @@
-import React from 'react'
-import type { NodeProps } from '@xyflow/react'
+import React, { useEffect } from 'react'
+import { useUpdateNodeInternals, type NodeProps } from '@xyflow/react'
 import { useLingui } from '@lingui/react/macro'
 import { BaseNode } from './BaseNode'
 import { OutputNames } from './OutputNames'
@@ -15,6 +15,15 @@ export const ABTestNode: React.FC<ABTestNodeProps> = ({ id, data, selected }) =>
   const { t } = useLingui()
   const config = data.config as Structural<ABTestNodeConfig>
   const variants = config?.variants || []
+  const handleKey = variants.map((variant) => variant.id).join('|')
+
+  // ReactFlow measures a node's handles when the node mounts or resizes, not when a handle is
+  // added: a variant added from the panel keeps the node's size, so its handle stays unknown and
+  // every render of its "+" link warns, many times a second. Re-measure when the handles change.
+  const updateNodeInternals = useUpdateNodeInternals()
+  useEffect(() => {
+    updateNodeInternals(id)
+  }, [id, handleKey, updateNodeInternals])
 
   return (
     <>

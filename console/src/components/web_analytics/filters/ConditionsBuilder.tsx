@@ -1,8 +1,9 @@
 import { useCallback, useRef, useState } from 'react'
-import { Button, Input, Popconfirm, Select } from 'antd'
+import { Button, Form, Popconfirm, Select } from 'antd'
 import type { RefSelectProps } from 'antd/es/select'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { RuleValueInput } from './RuleValueInput'
 import { WebFilterCondition, WebFilterOperator } from '../../../services/api/web_analytics'
 import {
   isValuelessOperator,
@@ -49,63 +50,79 @@ function ConditionRow(props: ConditionRowProps) {
   )
 
   const showValueInput = !isValuelessOperator(props.value.operator)
+  // The list's error, once shown, outlines the value that causes it, not the whole row.
+  const { errors } = Form.Item.useStatus()
+  const valueMissing = errors.length > 0 && !props.value.value?.trim()
 
+  // Two lines, to fit a side panel: what is read and how, then the value it is compared with.
   return (
-    <div className="flex flex-col gap-2 md:flex-row md:items-center">
-      <div className="flex flex-1 items-center gap-2">
-        <span className="w-4 shrink-0 text-xs text-gray-400">{props.index + 1}.</span>
-        <Select
-          ref={handleSelectRef}
-          value={props.value.field}
-          onChange={(field) => props.onChange({ ...props.value, field })}
-          options={SOURCE_FIELD_OPTIONS}
-          placeholder={t`Select field`}
-          className="w-full md:!w-[180px] md:shrink-0"
-          showSearch
-          optionFilterProp="label"
-          open={isOpen}
-          onOpenChange={setIsOpen}
-        />
-      </div>
-      <Select
-        value={props.value.operator}
-        onChange={(operator: WebFilterOperator) => {
-          if (isValuelessOperator(operator)) {
-            props.onChange({ ...props.value, operator, value: undefined })
-            return
-          }
-          props.onChange({ ...props.value, operator })
-        }}
-        options={OPERATORS.map((operator) => ({
-          value: operator,
-          label: vocabulary.operators[operator]
-        }))}
-        className="w-full md:!w-[160px] md:shrink-0"
-      />
-      {showValueInput ? (
-        <Input
-          value={props.value.value ?? ''}
-          onChange={(event) => props.onChange({ ...props.value, value: event.target.value })}
-          placeholder={props.value.operator === 'regex' ? t`Regular expression` : t`Value`}
-          className="min-w-0 flex-1"
-        />
-      ) : (
-        <div className="hidden flex-1 md:block" />
-      )}
-      <Popconfirm
-        title={t`Delete this condition?`}
-        onConfirm={props.onRemove}
-        okText={t`Delete`}
-        cancelText={t`Cancel`}
-        disabled={props.isOnlyCondition}
-      >
-        <Button
-          type="text"
-          icon={<DeleteOutlined />}
+    <div
+      data-condition-row
+      className="flex flex-col gap-2 border-t border-line-soft py-2.5 first:border-t-0 first:pt-0"
+    >
+      <div className="flex items-center gap-2">
+        <span className="w-4 shrink-0 text-xs text-ink-4">{props.index + 1}.</span>
+        <div className="min-w-0 flex-1">
+          <Select
+            ref={handleSelectRef}
+            value={props.value.field}
+            onChange={(field) => props.onChange({ ...props.value, field })}
+            options={SOURCE_FIELD_OPTIONS}
+            placeholder={t`Select field`}
+            aria-label={t`Field`}
+            style={{ width: '100%' }}
+            showSearch
+            optionFilterProp="label"
+            open={isOpen}
+            onOpenChange={setIsOpen}
+          />
+        </div>
+        <div className="w-[140px] shrink-0">
+          <Select
+            value={props.value.operator}
+            onChange={(operator: WebFilterOperator) => {
+              if (isValuelessOperator(operator)) {
+                props.onChange({ ...props.value, operator, value: undefined })
+                return
+              }
+              props.onChange({ ...props.value, operator })
+            }}
+            options={OPERATORS.map((operator) => ({
+              value: operator,
+              label: vocabulary.operators[operator]
+            }))}
+            aria-label={t`Operator`}
+            style={{ width: '100%' }}
+          />
+        </div>
+        <Popconfirm
+          title={t`Delete this condition?`}
+          onConfirm={props.onRemove}
+          okText={t`Delete`}
+          okButtonProps={{ danger: true }}
+          cancelText={t`Cancel`}
           disabled={props.isOnlyCondition}
-          className="shrink-0 self-end md:self-auto"
-        />
-      </Popconfirm>
+        >
+          <Button
+            type="text"
+            aria-label={t`Delete condition`}
+            icon={<DeleteOutlined />}
+            disabled={props.isOnlyCondition}
+          />
+        </Popconfirm>
+      </div>
+      {showValueInput ? (
+        <div className="pl-6">
+          <RuleValueInput
+            // A pattern is typed whatever the field holds.
+            field={props.value.operator === 'regex' ? '' : props.value.field}
+            value={props.value.value ?? ''}
+            onChange={(value) => props.onChange({ ...props.value, value })}
+            placeholder={props.value.operator === 'regex' ? t`Regular expression` : t`Value`}
+            status={valueMissing ? 'error' : undefined}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -131,8 +148,8 @@ export function ConditionsBuilder(props: ConditionsBuilderProps) {
 
   return (
     <div>
-      <div className="mb-3 text-xs text-gray-500">{t`All conditions must match (AND logic):`}</div>
-      <div className="space-y-2">
+      <p className="m-0 mb-3 text-xs text-ink-3">{t`All conditions must match (AND logic):`}</p>
+      <div>
         {conditions.map((condition, index) => (
           <ConditionRow
             key={index}
@@ -148,17 +165,11 @@ export function ConditionsBuilder(props: ConditionsBuilderProps) {
           />
         ))}
       </div>
-      <Button
-        type="primary"
-        ghost
-        block
-        size="small"
-        icon={<PlusOutlined />}
-        onClick={addCondition}
-        className="!mt-4"
-      >
-        {t`Add condition`}
-      </Button>
+      <div className="mt-3">
+        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={addCondition}>
+          {t`Add condition`}
+        </Button>
+      </div>
     </div>
   )
 }

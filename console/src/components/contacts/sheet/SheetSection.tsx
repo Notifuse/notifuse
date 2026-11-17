@@ -26,7 +26,7 @@ export function SheetSection({ title, extra, children }: SheetSectionProps) {
 }
 
 /** Width of the label column in the sheet's attributes card. */
-export const SHEET_LABEL_WIDTH = 104
+export const SHEET_LABEL_WIDTH = 124
 
 /** The number next to a card's title: « Lists 4 ». */
 export function CountBadge({ count }: { count: string }) {

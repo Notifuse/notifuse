@@ -44,7 +44,8 @@ export function ListHeader({
 
   const items: KpiItem[] = LIST_STATUSES.map((key) => {
     const value = stats ? stats[LIST_STAT_KEYS[key]] : 0
-    const withShare = key !== 'active' && key !== 'pending'
+    // Active is the bulk of a list: the share is told for the others, Pending included.
+    const withShare = key !== 'active'
     return {
       key,
       label: labels[key],

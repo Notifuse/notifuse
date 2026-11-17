@@ -345,12 +345,11 @@ export function ExploreTab() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-3">
       {rootResult.error ? (
         <Alert
           type="error"
           showIcon
-          className="mb-4"
           title={t`Could not load this report`}
           description={
             rootResult.error instanceof Error ? rootResult.error.message : undefined

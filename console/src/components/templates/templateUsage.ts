@@ -11,7 +11,7 @@ import {
 function countLabel(type: TemplateUsageType, count: number): string {
   switch (type) {
     case 'broadcasts':
-      return plural(count, { one: '# newsletter', other: '# newsletters' })
+      return plural(count, { one: '# broadcast', other: '# broadcasts' })
     case 'transactional_notifications':
       return plural(count, { one: '# notification', other: '# notifications' })
     case 'automations':
@@ -37,7 +37,7 @@ export interface UsageSummary {
   details: string[]
 }
 
-/** "2 newsletters" for one type, "5 uses" with a line per type for several, null for none. */
+/** "2 broadcasts" for one type, "5 uses" with a line per type for several, null for none. */
 export function summarizeUsage(counts: TemplateUsageCounts | undefined): UsageSummary {
   const used = TEMPLATE_USAGE_TYPES.filter((type) => (counts?.[type] ?? 0) > 0)
   if (used.length === 0) return { total: 0, label: null, details: [] }

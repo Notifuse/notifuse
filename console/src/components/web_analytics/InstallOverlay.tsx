@@ -80,15 +80,15 @@ function InstallCard({ state, onDismiss }: InstallCardProps) {
           : t`Web analytics is not set up on this workspace yet.`
 
   return (
-    <div className="w-full max-w-2xl rounded-lg border border-gray-200 bg-white p-8 shadow-lg">
+    <div className="w-full max-w-2xl rounded-lg border border-line bg-surface p-8 shadow-popup">
       <div className="mb-4 flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-fill text-ink-3">
           {showSnippet ? <Code2 size={18} /> : <Settings2 size={18} />}
         </span>
-        <div className="text-lg font-medium">{title}</div>
+        <div className="text-subtitle font-semibold text-ink">{title}</div>
       </div>
 
-      <p className="mb-5 text-gray-500">{description}</p>
+      <p className="mb-5 text-ink-3">{description}</p>
 
       {showSnippet ? (
         <div className="mb-5">
@@ -171,7 +171,7 @@ export function WebAnalyticsGate({ mode = 'data', children }: WebAnalyticsGatePr
       >
         {children}
       </div>
-      <div className="absolute inset-0 z-10 flex items-start justify-center bg-white/60 px-4 py-10">
+      <div className="absolute inset-0 z-10 flex items-start justify-center bg-surface/60 px-4 py-10">
         <InstallCard state={state} onDismiss={dismiss} />
       </div>
     </div>

@@ -105,6 +105,20 @@ describe('AnnotationsTab', () => {
     expect(desktop().getByText('No annotations yet')).toBeInTheDocument()
   })
 
+  it('draws the table and the mobile cards inside panels', async () => {
+    vi.mocked(annotationService.list).mockResolvedValue([tokyoAnnotation, broadcastAnnotation])
+    renderTab()
+
+    const row = await desktop().findByText('Product launch')
+    const panel = row.closest('section') as HTMLElement
+    expect(panel).not.toBeNull()
+    expect(panel.querySelector('[data-panel-body]')).toContainElement(row)
+    expect(panel.querySelector('.ant-table-wrapper')?.className).not.toMatch(/border|rounded|shadow/)
+
+    const mobile = within(screen.getByTestId('annotations-mobile'))
+    expect(mobile.getByText('Product launch').closest('section')).not.toBeNull()
+  })
+
   it('renders one row per annotation, in the timezone it was entered in', async () => {
     vi.mocked(annotationService.list).mockResolvedValue([tokyoAnnotation, broadcastAnnotation])
     renderTab()

@@ -17,7 +17,7 @@ import { copyToClipboard } from '../lib/copyToClipboard'
 import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
-import { ApiCommandModal } from '../components/transactional/ApiCommandModal'
+import { ApiCommandDrawer } from '../components/transactional/ApiCommandDrawer'
 import { TransactionalDetail } from '../components/transactional/TransactionalDetail'
 import { TransactionalTable } from '../components/transactional/TransactionalTable'
 import {
@@ -40,7 +40,11 @@ import {
 const DOCS_URL = 'https://docs.notifuse.com/features/transactional-api'
 const SEARCH_DELAY_MS = 250
 
-type Overlay = { kind: 'test' | 'api' | 'edit' | 'preview'; notification: TransactionalNotification } | null
+type Overlay =
+  | { kind: 'test' | 'api' | 'edit' | 'preview'; notification: TransactionalNotification }
+  // A new notification, opened from the URL (?new=1); the header's button opens its own.
+  | { kind: 'create' }
+  | null
 
 const PERIODS: TransactionalPeriod[] = ['7d', '30d', '60d']
 
@@ -137,6 +141,18 @@ export function TransactionalNotificationsPage() {
 
   const [overlay, setOverlay] = useState<Overlay>(null)
   const closeOverlay = () => setOverlay(null)
+
+  // ?new=1 (the dashboard's "Get started") opens the editor of a new notification once the rights
+  // are known, then leaves the URL, so closing it and refreshing does not open it again. Without
+  // the rights to create one it only leaves the URL.
+  const openedFromUrl = useRef(false)
+  useEffect(() => {
+    if (!search.new || permissionsLoading || openedFromUrl.current) return
+    openedFromUrl.current = true
+    if (canCreateTransactionalNotification(permissions)) setOverlay({ kind: 'create' })
+    setSearch({ new: undefined }, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- acts once, when the rights are known
+  }, [search.new, permissionsLoading, permissions])
   const openSheet = (id: string, replace = false) => setSearch({ notification: id }, replace)
   const closeSheet = () => setSearch({ notification: undefined })
   const remove = useDeleteNotification(workspaceId, (id) => {
@@ -322,7 +338,6 @@ export function TransactionalNotificationsPage() {
   ) : null
   const periodSwitch = (
     <Segmented<TransactionalPeriod>
-      size="small"
       value={period}
       options={PERIODS.map((value) => ({
         value,
@@ -446,7 +461,15 @@ export function TransactionalNotificationsPage() {
 
       {/* Mounted only while open: each opening lies after the sheet in the page, so above it. */}
       {overlay?.kind === 'api' ? (
-        <ApiCommandModal open onClose={closeOverlay} notification={overlay.notification} workspaceId={workspaceId} />
+        <ApiCommandDrawer open onClose={closeOverlay} notification={overlay.notification} workspaceId={workspaceId} />
+      ) : null}
+      {overlay?.kind === 'create' ? (
+        <UpsertTransactionalNotificationDrawer
+          open
+          workspace={workspace}
+          canReadTemplates={Boolean(permissions?.templates?.read)}
+          onClose={closeOverlay}
+        />
       ) : null}
       {overlay?.kind === 'edit' ? (
         <UpsertTransactionalNotificationDrawer
@@ -454,6 +477,8 @@ export function TransactionalNotificationsPage() {
           workspace={workspace}
           notification={overlay.notification}
           canReadTemplates={Boolean(permissions?.templates?.read)}
+          // Back to the sheet it was opened from, else to the list.
+          backLabel={search.notification === overlay.notification.id ? overlay.notification.name : undefined}
           onClose={closeOverlay}
         />
       ) : null}

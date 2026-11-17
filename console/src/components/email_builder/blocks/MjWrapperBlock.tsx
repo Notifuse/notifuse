@@ -41,7 +41,7 @@ const MjWrapperSettingsPanel: React.FC<MjWrapperSettingsPanelProps> = ({
   }
 
   return (
-    <PanelLayout title={t`Wrapper Attributes`}>
+    <PanelLayout title={t`Wrapper attributes`}>
       <div className="space-y-4">
         {/* Background Settings */}
         <BackgroundInput

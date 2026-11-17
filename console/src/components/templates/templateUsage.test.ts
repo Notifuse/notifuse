@@ -16,8 +16,8 @@ describe('summarizeUsage', () => {
   })
 
   it.each([
-    [{ broadcasts: 1 }, '1 newsletter'],
-    [{ broadcasts: 3 }, '3 newsletters'],
+    [{ broadcasts: 1 }, '1 broadcast'],
+    [{ broadcasts: 3 }, '3 broadcasts'],
     [{ transactional_notifications: 1 }, '1 notification'],
     [{ transactional_notifications: 2 }, '2 notifications'],
     [{ automations: 1 }, '1 automation'],
@@ -34,7 +34,7 @@ describe('summarizeUsage', () => {
     const summary = summarizeUsage({ lists: 1, broadcasts: 2, automations: 0 })
     expect(summary.total).toBe(3)
     expect(summary.label).toBe('3 uses')
-    expect(summary.details).toEqual(['2 newsletters', '1 list'])
+    expect(summary.details).toEqual(['2 broadcasts', '1 list'])
   })
 })
 

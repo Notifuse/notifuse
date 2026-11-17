@@ -23,7 +23,9 @@ describe('getStatusesForGroup', () => {
       'winner_selected'
     ])
     expect(getStatusesForGroup('sent')).toEqual(['processed', 'test_completed'])
-    expect(getStatusesForGroup('failed')).toEqual(['failed', 'cancelled'])
+    expect(getStatusesForGroup('failed')).toEqual(['failed'])
+    // Stopped on purpose, so not a failure: its own group.
+    expect(getStatusesForGroup('cancelled')).toEqual(['cancelled'])
   })
 
   it('returns undefined for an unknown group', () => {

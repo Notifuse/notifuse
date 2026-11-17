@@ -5,8 +5,8 @@ import type { List } from '../../services/api/list'
 import { BulkActionsBar, type BulkActionsBarProps } from './BulkActionsBar'
 
 const lists = [
-  { id: 'news', name: 'Newsletter' },
-  { id: 'vip', name: 'VIP Club' }
+  { id: 'news', name: 'Newsletter', is_double_optin: true },
+  { id: 'vip', name: 'VIP Club', is_double_optin: false }
 ] as List[]
 
 function renderBar(props: Partial<BulkActionsBarProps> = {}) {
@@ -51,6 +51,25 @@ describe('BulkActionsBar', () => {
     const dialog = await pickList('VIP Club')
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm' }))
     expect(handlers[handler]).toHaveBeenCalledWith('vip')
+  })
+
+  it('says that a double opt-in list gets the contacts as active, without a confirmation email', async () => {
+    const { onAddToList } = renderBar()
+    fireEvent.click(button('Add to list'))
+    const note = 'Newsletter uses double opt-in, but no confirmation email is sent: these contacts are added as active, your choice to add them standing as their consent.'
+    let dialog = await pickList('VIP Club')
+    expect(within(dialog).queryByText(note)).toBeNull()
+    dialog = await pickList('Newsletter')
+    expect(within(dialog).getByText(note)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm' }))
+    expect(onAddToList).toHaveBeenCalledWith('news')
+  })
+
+  it('does not speak of opt-in when removing from a double opt-in list', async () => {
+    renderBar()
+    fireEvent.click(button('Remove from list'))
+    const dialog = await pickList('Newsletter')
+    expect(within(dialog).queryByText(/double opt-in/)).toBeNull()
   })
 
   it('deletes only once the count is typed', async () => {

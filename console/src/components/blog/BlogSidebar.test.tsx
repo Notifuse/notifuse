@@ -116,9 +116,35 @@ describe('BlogSidebar', () => {
     expect(screen.queryByRole('button', { name: 'Actions for News' })).not.toBeInTheDocument()
   })
 
-  it('says when there is no category yet', async () => {
-    renderSidebar({ withCategories: false })
+  it('offers to create the first category, or says there is none without Blog write', async () => {
+    const { onNewCategory } = renderSidebar({ withCategories: false })
+    fireEvent.click(await screen.findByRole('button', { name: 'Create your first category' }))
+    expect(onNewCategory).toHaveBeenCalledTimes(1)
+  })
+
+  it('says there is no category yet without Blog write', async () => {
+    renderSidebar({ withCategories: false, canManageCategories: false })
     expect(await screen.findByText('No categories yet')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Create your first category' })).not.toBeInTheDocument()
+  })
+
+  it('lists the categories by name, with placeholder rows while they load', async () => {
+    renderSidebar()
+    expect(document.querySelectorAll('[data-rail-skeleton]').length).toBeGreaterThan(0)
+    await screen.findByRole('button', { name: /^News/ })
+    expect(document.querySelector('[data-rail-skeleton]')).toBeNull()
+    const labels = [...document.querySelectorAll('[data-rail-item]')].map((item) => item.textContent)
+    expect(labels.indexOf('Guides')).toBeLessThan(labels.indexOf('News'))
+  })
+
+  it('shows the category names without an icon in front', async () => {
+    renderSidebar()
+    await screen.findByRole('button', { name: /^News/ })
+    // The icon slot before the label; the SEO warning inside the label and the menu keep theirs.
+    const iconSlot = (name: RegExp) =>
+      screen.getByRole('button', { name }).querySelector(':scope > span[aria-hidden="true"]') !== null
+    expect(iconSlot(/^News/)).toBe(false)
+    expect(iconSlot(/^All posts/)).toBe(true)
   })
 
   it('nests no button inside another', async () => {

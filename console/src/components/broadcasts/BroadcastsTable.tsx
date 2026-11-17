@@ -21,7 +21,7 @@ import { workspaceTimezone } from './access'
 import { broadcastCampaign } from './attribution'
 import { scheduledInstant, useBroadcastDates } from './useBroadcastDates'
 import type { PageStats } from './useBroadcastPageStats'
-import type { ConfirmedAction } from './useBroadcastActions'
+import type { BroadcastAction } from './useBroadcastActions'
 import { BROADCAST_NAME_MIN_WIDTH, minTableWidth } from './tableWidth'
 
 export const OPEN_RATE_SCALE = 0.7
@@ -44,7 +44,7 @@ export interface BroadcastsTableProps {
   /** A click on a row: the detail, or the composer for a draft. */
   onOpen: (broadcast: Broadcast) => void
   onCompose: (broadcast: Broadcast) => void
-  onAction: (action: ConfirmedAction, broadcast: Broadcast) => void
+  onAction: (action: BroadcastAction, broadcast: Broadcast) => void
   /** "Retry failed…" of a row without a queue: the detail loads it and offers the action. */
   onOpenDetail: (broadcast: Broadcast) => void
   onDelete: (broadcast: Broadcast) => void
@@ -198,8 +198,14 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     if (actions.edit) guarded('edit', t`Edit`, () => onCompose(b))
     if (actions.pause) guarded('pause', t`Pause`, () => onAction('pause', b))
     if (actions.resume) guarded('resume', t`Resume`, () => onAction('resume', b))
-    if (actions.unschedule) guarded('unschedule', t`Back to draft`, () => onAction('unschedule', b))
-    if (actions.cancel) guarded('cancel', t`Cancel`, () => onAction('cancel', b))
+    // Not started yet, a scheduled broadcast can still go back to draft: Cancel then asks which of
+    // the two ways out, going back to draft first, as on its page.
+    if (actions.unschedule && actions.cancel) {
+      guarded('cancel', t`Cancel`, () => onAction('cancelOrDraft', b))
+    } else {
+      if (actions.unschedule) guarded('unschedule', t`Back to draft`, () => onAction('unschedule', b))
+      if (actions.cancel) guarded('cancel', t`Cancel`, () => onAction('cancel', b))
+    }
     if (actions.retryFailed) guarded('retry', t`Retry failed`, () => onAction('retryFailed', b))
     else if ((b.status === 'processed' || b.status === 'failed') && !verdict && l2Failed > 0)
       items.push({ key: 'retry-detail', label: t`Retry failed…`, onClick: () => onOpenDetail(b) })
@@ -436,6 +442,8 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     render: (_, b) => {
       const verdict = pageStats.verdicts.get(b.id)
       const sendingNow = b.status === 'processing' || (b.status === 'processed' && verdict?.kind === 'sending')
+      // A cancelled broadcast that never started has nothing to offer: no "…" opening an empty menu.
+      const items = rowMenu(b)
       return (
         // The row opens on click: the actions keep their clicks.
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -462,9 +470,11 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
               />
             </Tooltip>
           ) : null}
-          <Dropdown menu={{ items: rowMenu(b) }} trigger={['click']} placement="bottomRight">
-            <Button type="text" size="small" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
-          </Dropdown>
+          {items && items.length > 0 ? (
+            <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
+              <Button type="text" size="small" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
+            </Dropdown>
+          ) : null}
         </div>
       )
     }

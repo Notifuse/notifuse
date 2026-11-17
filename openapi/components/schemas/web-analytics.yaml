@@ -407,3 +407,6 @@ WebAnalyticsBackfillResponse:
               type: integer
               format: int64
         error_message: { type: string }
+        cancelled:
+          type: boolean
+          description: True when the run was stopped through backfillCancel; it then reads as failed, with this flag to tell it from a run that broke.

@@ -1,13 +1,8 @@
 import { useState, useCallback, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { Splitter, Segmented, Tabs, Button, App, Space, Dropdown } from 'antd'
 import type { MenuProps } from 'antd'
-import {
-  DesktopOutlined,
-  MobileOutlined,
-  ExclamationCircleOutlined
-} from '@ant-design/icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronDown, faQuestion } from '@fortawesome/free-solid-svg-icons'
+import { ExclamationCircleOutlined } from '@ant-design/icons'
+import { ChevronDown, CircleHelp, Monitor, Smartphone } from 'lucide-react'
 import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import type { editor as MonacoEditor } from 'monaco-editor'
 import { useLingui } from '@lingui/react/macro'
@@ -700,30 +695,41 @@ const MjmlCodeEditor = forwardRef<MjmlCodeEditorRef, MjmlCodeEditorProps>(({
         tabBarExtraContent={
           <Space size="small">
             <Segmented
-              size="small"
               value={viewport}
               onChange={(v) => setViewport(v as 'desktop' | 'mobile')}
+              // The label has the item's height: centring in it puts the icon in the middle.
+              styles={{ label: { display: 'flex', alignItems: 'center', justifyContent: 'center' } }}
               options={[
-                { value: 'desktop', icon: <DesktopOutlined /> },
-                { value: 'mobile', icon: <MobileOutlined /> }
+                {
+                  value: 'desktop',
+                  label: (
+                    <span className="flex items-center justify-center">
+                      <Monitor size={14} aria-hidden="true" />
+                      <span className="sr-only">{t`Desktop`}</span>
+                    </span>
+                  ),
+                  title: t`Desktop`
+                },
+                {
+                  value: 'mobile',
+                  label: (
+                    <span className="flex items-center justify-center">
+                      <Smartphone size={14} aria-hidden="true" />
+                      <span className="sr-only">{t`Mobile`}</span>
+                    </span>
+                  ),
+                  title: t`Mobile`
+                }
               ]}
             />
             <div style={{ width: 300 }} />
             <Dropdown menu={{ items: importExportMenuItems }} placement="bottomRight" trigger={['click']}>
-              <Button size="small" type="primary" ghost>
-                <span>{t`Import / Export`}</span>
-                <FontAwesomeIcon icon={faChevronDown} className="ml-1" size="sm" />
+              <Button icon={<ChevronDown size={14} aria-hidden="true" />} iconPlacement="end">
+                {t`Import / Export`}
               </Button>
             </Dropdown>
             <Dropdown menu={{ items: helpMenuItems }} placement="bottomRight" trigger={['click']}>
-              <Button
-                size="small"
-                type="primary"
-                ghost
-                icon={<FontAwesomeIcon icon={faQuestion} size="sm" />}
-              >
-                {t`Help`}
-              </Button>
+              <Button icon={<CircleHelp size={14} aria-hidden="true" />}>{t`Help`}</Button>
             </Dropdown>
             {isCompiling && (
               <span style={{ fontSize: 12, color: '#999' }}>{t`Compiling...`}</span>

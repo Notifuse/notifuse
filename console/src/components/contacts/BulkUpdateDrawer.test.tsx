@@ -34,4 +34,12 @@ describe('BulkUpdateDrawer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
+
+  it('starts on Unsubscribe from list, the reversible action, with the list to pick', async () => {
+    render(<BulkUpdateDrawer workspaceId="ws" lists={[]} open onClose={vi.fn()} />, { wrapper })
+    expect(await screen.findByRole('radio', { name: 'Unsubscribe from list' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Delete contacts' })).not.toBeChecked()
+    // No list chosen yet: the select says what to do instead of showing an empty value.
+    expect(screen.getByText('Select list')).toBeInTheDocument()
+  })
 })

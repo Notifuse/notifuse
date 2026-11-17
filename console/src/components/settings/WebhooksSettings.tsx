@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
+  App,
   Button,
   Checkbox,
   Col,
@@ -14,8 +15,7 @@ import {
   Skeleton,
   Space,
   Table,
-  Tooltip,
-  message
+  Tooltip
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { ChevronRight, Globe, Plus, RefreshCw } from 'lucide-react'
@@ -82,6 +82,7 @@ export function WebhooksSettings({
   onOpenWebhook
 }: WebhooksSettingsProps) {
   const { t } = useLingui()
+  const { message } = App.useApp()
   const queryClient = useQueryClient()
   const relativeDate = useRelativeDate()
   const { percent } = useNumberFormat()
@@ -167,8 +168,14 @@ export function WebhooksSettings({
   }
 
   const handleSave = async () => {
+    // A form with errors shows them under its fields and stops here: it is not a failed save.
+    let values
     try {
-      const values = await form.validateFields()
+      values = await form.validateFields()
+    } catch {
+      return
+    }
+    try {
       setSaving(true)
 
       // Build custom_event_filters if any custom_event type is selected
@@ -228,8 +235,10 @@ export function WebhooksSettings({
       setDrawerVisible(false)
       await invalidateWebhookQueries(queryClient, workspaceId)
     } catch (error) {
-      console.error('Failed to save webhook subscription:', error)
-      message.error(t`Failed to save webhook subscription`)
+      const detail = error instanceof Error ? error.message : ''
+      message.error(
+        detail ? t`Failed to save webhook subscription: ${detail}` : t`Failed to save webhook subscription`
+      )
     } finally {
       setSaving(false)
     }
@@ -243,7 +252,9 @@ export function WebhooksSettings({
   // here leaves the Zap switched on in Zapier while it silently stops firing.
   const editingZapierSubscription = editingSubscription?.source === 'zapier'
 
-  const selectedEventTypes = Form.useWatch('event_types', form)
+  const selectedEventTypes: string[] | undefined = Form.useWatch('event_types', form)
+  const allSelected =
+    eventTypes.length > 0 && eventTypes.every((type) => selectedEventTypes?.includes(type))
   const showCustomEventFilters = selectedEventTypes?.some((t: string) =>
     t.startsWith('custom_event.')
   )
@@ -488,7 +499,7 @@ export function WebhooksSettings({
       {/* Above the detail panel it opens from: both are drawers at the same level, and the one
           whose portal comes last in the page would otherwise paint on top. */}
       <Drawer
-        title={editingSubscription ? t`Edit Webhook` : t`Create Webhook`}
+        title={editingSubscription ? t`Edit webhook` : t`Create webhook`}
         size={500}
         zIndex={EDIT_DRAWER_Z_INDEX}
         open={drawerVisible}
@@ -520,7 +531,7 @@ export function WebhooksSettings({
             label={t`Name`}
             rules={[{ required: true, message: t`Please enter a name` }]}
           >
-            <Input placeholder={t`My Webhook`} />
+            <Input placeholder={t`My webhook`} />
           </Form.Item>
 
           <Form.Item
@@ -538,15 +549,18 @@ export function WebhooksSettings({
             name="event_types"
             label={
               <div className="flex justify-between w-full">
-                <span>{t`Event Types`}</span>
-                <a
+                <span>{t`Event types`}</span>
+                {/* Toggles: once every type is ticked, it clears them. */}
+                <Button
+                  type="link"
+                  size="small"
                   onClick={(e) => {
                     e.preventDefault()
-                    form.setFieldsValue({ event_types: eventTypes })
+                    form.setFieldsValue({ event_types: allSelected ? [] : eventTypes })
                   }}
                 >
-                  {t`Select all`}
-                </a>
+                  {allSelected ? t`Clear all` : t`Select all`}
+                </Button>
               </div>
             }
             rules={[
@@ -590,9 +604,9 @@ export function WebhooksSettings({
           {showCustomEventFilters && (
             <>
               <Subtitle className="mb-6" borderBottom primary>
-                {t`Custom Event Filters (optional)`}
+                {t`Custom event filters (optional)`}
               </Subtitle>
-              <Form.Item name="custom_event_goal_types" label={t`Goal Types`}>
+              <Form.Item name="custom_event_goal_types" label={t`Goal types`}>
                 <Select
                   mode="multiple"
                   placeholder={t`Select goal types to filter`}
@@ -607,7 +621,7 @@ export function WebhooksSettings({
                   ]}
                 />
               </Form.Item>
-              <Form.Item name="custom_event_names" label={t`Event Names`}>
+              <Form.Item name="custom_event_names" label={t`Event names`}>
                 <Select
                   mode="tags"
                   placeholder={t`Enter event names to filter`}

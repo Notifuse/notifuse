@@ -140,6 +140,15 @@ const rows = () => document.querySelectorAll('.ant-table-tbody tr.ant-table-row'
 const lastSearch = () =>
   state.navigate.mock.calls.at(-1)?.[0] as { search: LogsSearch; replace?: boolean }
 const lastListParams = () => state.list.mock.calls.at(-1)?.[0] as Record<string, unknown>
+const periodChoices = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /^Period / }))
+  const menu = await screen.findByRole('menu')
+  return within(menu)
+    .getAllByRole('menuitem')
+    .map((item) => item.textContent)
+}
+const SAME_PERIODS = ['Last hour', 'Last 24 hours', 'Last 7 days', 'Last 30 days', 'Last 90 days', 'All time']
+
 
 describe('AuditLogTab', () => {
   beforeEach(() => {
@@ -499,12 +508,23 @@ describe('AuditLogTab', () => {
     expect(screen.queryByText('Change in Settings')).not.toBeInTheDocument()
   })
 
+  it('offers the periods of every Logs tab, the last hour included', async () => {
+    renderTab({ tab: 'audit', period: '1h' })
+    await waitFor(() => expect(state.list).toHaveBeenCalled())
+    expect(lastListParams().from).toBeDefined()
+    // On the right, with the icons: the filters and "Clear all" keep the left of the toolbar.
+    expect(screen.getByRole('button', { name: 'Refresh' }).parentElement).toContainElement(
+      screen.getByRole('button', { name: /^Period / })
+    )
+    expect(await periodChoices()).toEqual(SAME_PERIODS)
+  })
+
   it('sends nothing the URL holds outside its lists', async () => {
     renderTab({
       tab: 'audit',
       outcome: 'bogus',
       actor_type: 'robot',
-      period: '1h'
+      period: '2y'
     } as unknown as LogsSearch)
     await waitFor(() => expect(state.list).toHaveBeenCalled())
     expect(lastListParams().outcome).toBeUndefined()

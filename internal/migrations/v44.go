@@ -11,6 +11,7 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
 )
 
@@ -78,6 +79,17 @@ import (
 // Between the builds and the recount, the segment memberships whose contact no longer exists
 // are deleted (v44OrphanMembershipsSQL), with the two membership triggers of contact_segments
 // disabled around the delete. Until 38.0 deleting a contact left its memberships in place.
+//
+// Last, an automation's emails get the event that started the journey, as {{ trigger_event }}.
+// The five-argument automation_enroll_contact stores it as contact_automations.context.trigger
+// (the column exists since v20 and nothing wrote it), and the four-argument signature becomes a
+// relay to it, for a trigger left with its old body. Then the function of every live
+// automation's trigger is replaced by the current generator's, which builds the event from the
+// contact_timeline row and calls the five-argument signature. Bodies only: the triggers and their
+// WHEN clauses stay, so no lock is taken on contact_timeline while this transaction holds
+// message_history and automations rows, and no trigger can be broadened. One savepoint per
+// automation: one whose condition no longer resolves keeps its old body and enrols without the
+// event. Journeys already running have no event. A rerun rewrites the same bodies.
 // Since then a deletion failing between the contact row and its memberships still leaves
 // some, as does a segment build or queue recomputation that matches a contact and adds its
 // membership just after a deletion removed it. contact_segments has no foreign key to
@@ -228,6 +240,10 @@ func v44WorkspaceStatements(ownHosts []string) []v44WorkspaceStatement {
 		{`ALTER TABLE contact_segments ENABLE TRIGGER webhook_contact_segments`, nil, "enable webhook_contact_segments"},
 		{`ALTER TABLE contact_segments ENABLE TRIGGER contact_segment_changes_trigger`, nil, "enable contact_segment_changes_trigger"},
 		{v44ExitedRecountSQL, nil, "recount the exited journeys of each automation"},
+		// The enrolment that keeps the event that started a journey, then the four-argument
+		// signature as a relay to it (see the type comment).
+		{schema.AutomationEnrollContactWithTriggerFunction(), nil, "install the automation enrol function"},
+		{schema.AutomationEnrollContactRelayFunction(), nil, "install the automation enrol relay"},
 	}...)
 	return statements
 }
@@ -237,6 +253,12 @@ func (m *V44Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		if _, err := db.ExecContext(ctx, stmt.sql, stmt.args...); err != nil {
 			return fmt.Errorf("v44: failed to %s for workspace %s: %w", stmt.step, workspace.ID, err)
 		}
+	}
+	// Last, once the five-argument enrolment exists: every live automation's trigger
+	// function is replaced by one that passes the event, bodies only (see the type comment).
+	generator := service.NewAutomationTriggerGenerator(service.NewQueryBuilder())
+	if err := regenerateAutomationTriggers(ctx, db, generator, "v44", "v44_automation_trigger_bodies", true); err != nil {
+		return fmt.Errorf("v44: failed to pass the trigger event in automation triggers for workspace %s: %w", workspace.ID, err)
 	}
 	return nil
 }

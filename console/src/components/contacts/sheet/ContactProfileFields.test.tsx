@@ -17,12 +17,14 @@ vi.mock('../InlineEditableField', async () => {
       fieldKey,
       value,
       disabled,
-      hideLabel
+      hideLabel,
+      hint
     }: {
       fieldKey: string
       value: unknown
       disabled?: boolean
       hideLabel?: boolean
+      hint?: string
     }) => {
       // The field this instance was mounted for, as an open editor's state would remember it.
       const [mountedFor] = useState(fieldKey)
@@ -34,6 +36,7 @@ vi.mock('../InlineEditableField', async () => {
           data-hide-label={String(!!hideLabel)}
         >
           {value === undefined || value === null || value === '' ? '' : String(value)}
+          {hint ? <span>{hint}</span> : null}
         </span>
       )
     }

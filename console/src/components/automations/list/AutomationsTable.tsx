@@ -13,6 +13,10 @@ import { NODE_TYPES } from '../nodeTypes'
 import { orderedSteps, stepSummary } from '../stepIcons'
 import { getNodeDescription } from '../nodes/constants'
 import type { OpenRates } from './useAutomationOpenRates'
+import { minTableWidth } from '../../broadcasts/tableWidth'
+
+/** The Automation column takes the room the others leave, down to this width. */
+export const AUTOMATION_NAME_MIN_WIDTH = 160
 
 export interface AutomationsTableProps {
   rows: Automation[]
@@ -101,7 +105,7 @@ export function AutomationsTable({
       disabled: !canWrite || !editable,
       label: (
         <Tooltip title={!canWrite ? noWrite : !editable ? t`Pause the automation first` : undefined} placement="left">
-          <span>{t`Delete Automation`}</span>
+          <span>{t`Delete automation`}</span>
         </Tooltip>
       ),
       onClick: () => confirmDelete(a)
@@ -113,7 +117,7 @@ export function AutomationsTable({
     {
       title: t`Status`,
       key: 'status',
-      width: 100,
+      width: 92,
       render: (_, a) => <AutomationStatusPill status={a.status} />
     },
     {
@@ -146,7 +150,7 @@ export function AutomationsTable({
     {
       title: t`Steps`,
       key: 'steps',
-      width: 210,
+      width: 192,
       render: (_, a) => {
         const steps = orderedSteps(a)
         if (steps.length === 0) return dash
@@ -179,7 +183,7 @@ export function AutomationsTable({
     {
       title: t`List`,
       key: 'list',
-      width: 140,
+      width: 128,
       render: (_, a) =>
         a.list_id ? (
           <Pill tone="neutral" dot={false}>
@@ -199,7 +203,7 @@ export function AutomationsTable({
     {
       title: t`Entered`,
       key: 'entered',
-      width: 86,
+      width: 80,
       align: 'right',
       render: (_, a) => journeyCell(a, (c) => <span className="tabular-nums">{int(c.total)}</span>)
     },
@@ -224,7 +228,7 @@ export function AutomationsTable({
     {
       title: t`Exited`,
       key: 'exited',
-      width: 76,
+      width: 72,
       align: 'right',
       render: (_, a) =>
         journeyCell(a, (c) => {
@@ -235,7 +239,7 @@ export function AutomationsTable({
     {
       title: t`Failed`,
       key: 'failed',
-      width: 70,
+      width: 64,
       align: 'right',
       render: (_, a) =>
         journeyCell(a, (c) => (
@@ -245,7 +249,7 @@ export function AutomationsTable({
     {
       title: t`Open rate`,
       key: 'open',
-      width: 90,
+      width: 88,
       align: 'right',
       render: (_, a) => {
         if (!canReadHistory || !hasEmailStep(a)) return dash
@@ -263,27 +267,27 @@ export function AutomationsTable({
     },
     {
       key: 'actions',
-      width: 84,
+      width: 72,
       align: 'right',
       render: (_, a) => (
         <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
           {a.status === 'live' ? (
-            <Tooltip title={canWrite ? t`Pause Automation` : noWrite}>
+            <Tooltip title={canWrite ? t`Pause automation` : noWrite}>
               <Button
                 type="text"
                 size="small"
-                aria-label={t`Pause Automation`}
+                aria-label={t`Pause automation`}
                 disabled={!canWrite}
                 icon={<Pause size={14} aria-hidden="true" />}
                 onClick={() => confirm('pause', a)}
               />
             </Tooltip>
           ) : (
-            <Tooltip title={canWrite ? t`Activate Automation` : noWrite}>
+            <Tooltip title={canWrite ? t`Activate automation` : noWrite}>
               <Button
                 type="text"
                 size="small"
-                aria-label={t`Activate Automation`}
+                aria-label={t`Activate automation`}
                 disabled={!canWrite}
                 icon={<Play size={14} aria-hidden="true" />}
                 onClick={() => confirm('activate', a)}
@@ -306,7 +310,9 @@ export function AutomationsTable({
       pagination={false}
       size="middle"
       tableLayout="fixed"
-      scroll={{ x: 1250 }}
+      // Below the width that leaves the Automation column its minimum, the table scrolls: on a
+      // 1440 px screen the whole row, Activate and "…" included, fits without scrolling.
+      scroll={{ x: minTableWidth(columns, AUTOMATION_NAME_MIN_WIDTH) }}
       rowClassName={(a) => `cursor-pointer ${a.id === activeId ? 'is-hover' : ''}`}
       onRow={(a) => ({ onClick: () => onOpen(a, a.status !== 'draft') })}
       footer={footer ? () => footer : undefined}

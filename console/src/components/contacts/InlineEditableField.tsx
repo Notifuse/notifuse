@@ -27,6 +27,8 @@ interface InlineEditableFieldProps {
   disabled?: boolean
   /** The value alone, for a field whose label a KeyValueList already shows. */
   hideLabel?: boolean
+  /** A line under the value (« Local time 14:32 »), shown while the field is not edited. */
+  hint?: string
 }
 
 export function InlineEditableField({
@@ -41,7 +43,8 @@ export function InlineEditableField({
   onSave,
   isLoading = false,
   disabled = false,
-  hideLabel = false
+  hideLabel = false,
+  hint
 }: InlineEditableFieldProps) {
   const { t } = useLingui()
   const [isEditing, setIsEditing] = React.useState(false)
@@ -80,6 +83,14 @@ export function InlineEditableField({
     setEditValue(value)
     setJsonError(null)
     setIsEditing(false)
+  }
+
+  // Escape cancels the edit and stops there: the drawer around the field (the contact sheet) closes
+  // on an Escape that reaches it. An open dropdown or date picker keeps its Escape to itself.
+  const handleEditKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key !== 'Escape') return
+    event.stopPropagation()
+    if (!isSaving) handleCancel()
   }
 
   const handleSave = async () => {
@@ -299,7 +310,7 @@ export function InlineEditableField({
 
   if (hideLabel && isEditing) {
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5" onKeyDown={handleEditKeyDown}>
         {renderInput()}
         <div className="flex justify-end">
           <Space size={4}>
@@ -323,7 +334,10 @@ export function InlineEditableField({
         className={`group flex min-w-0 items-start justify-between gap-1 ${disabled ? '' : 'cursor-pointer'}`}
         onClick={disabled ? undefined : handleStartEdit}
       >
-        <span className="min-w-0 break-words">{formatDisplayValue()}</span>
+        <span className="min-w-0 break-words">
+          {formatDisplayValue()}
+          {hint ? <span className="block text-xs text-ink-3">{hint}</span> : null}
+        </span>
         {!disabled && (
           <span className="flex shrink-0 items-center text-ink-4 opacity-0 transition-opacity group-hover:opacity-100">
             {isLoading ? '…' : <EditOutlined />}
@@ -336,7 +350,7 @@ export function InlineEditableField({
   // Edit mode
   if (isEditing) {
     return (
-      <div className="py-2 px-4 bg-blue-50 border-b border-dashed border-gray-300">
+      <div className="py-2 px-4 bg-blue-50 border-b border-dashed border-gray-300" onKeyDown={handleEditKeyDown}>
         <div className="text-xs font-semibold text-slate-600 mb-2">{labelToDisplay}</div>
         <div className="mb-2">{renderInput()}</div>
         <div className="flex justify-end">

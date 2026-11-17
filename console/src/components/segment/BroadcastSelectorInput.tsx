@@ -1,8 +1,8 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Select } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
-import { broadcastApi } from '../../services/api/broadcast'
+import { broadcastApi, type Broadcast } from '../../services/api/broadcast'
 
 interface BroadcastSelectorInputProps {
   value?: string | null
@@ -11,7 +11,16 @@ interface BroadcastSelectorInputProps {
   placeholder?: string
   size?: 'small' | 'middle' | 'large'
   style?: React.CSSProperties
+  /**
+   * The template the condition already counts: only the broadcasts that sent it are offered,
+   * and a chosen broadcast that did not send it is dropped.
+   */
+  templateId?: string | null
 }
+
+/** A broadcast sent the template when one of its variations (one for a plain send) uses it. */
+const sentTemplate = (broadcast: Pick<Broadcast, 'test_settings'>, templateId: string) =>
+  (broadcast.test_settings?.variations ?? []).some((variation) => variation.template_id === templateId)
 
 // BroadcastSelectorInput is a searchable dropdown of the workspace's broadcasts, used to
 // scope a timeline segment/automation condition to a specific broadcast. Search is
@@ -24,7 +33,8 @@ const BroadcastSelectorInput: React.FC<BroadcastSelectorInputProps> = ({
   workspaceId,
   placeholder,
   size,
-  style
+  style,
+  templateId
 }) => {
   const { t } = useLingui()
   const [search, setSearch] = useState('')
@@ -50,13 +60,25 @@ const BroadcastSelectorInput: React.FC<BroadcastSelectorInputProps> = ({
     enabled: !!workspaceId && !!value
   })
 
+  // The broadcasts of the results page that sent the template. The narrowing reads the page
+  // the search returned (50 at most), as the search itself does.
   const options = useMemo(() => {
-    const list = (data?.broadcasts || []).map((b) => ({ value: b.id, label: b.name }))
+    const list = (data?.broadcasts || [])
+      .filter((b) => !templateId || sentTemplate(b, templateId))
+      .map((b) => ({ value: b.id, label: b.name }))
     if (selected?.broadcast && !list.some((o) => o.value === selected.broadcast.id)) {
       list.unshift({ value: selected.broadcast.id, label: selected.broadcast.name })
     }
     return list
-  }, [data, selected])
+  }, [data, selected, templateId])
+
+  // A template chosen after the broadcast, and not sent by it: the pair would count nothing.
+  const selectedBroadcast = selected?.broadcast
+  const mismatch =
+    !!templateId && !!value && selectedBroadcast?.id === value && !sentTemplate(selectedBroadcast, templateId)
+  useEffect(() => {
+    if (mismatch) onChange?.(null)
+  }, [mismatch, onChange])
 
   return (
     <Select

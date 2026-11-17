@@ -312,10 +312,12 @@ function EditorScreen({
   })
   useLayoutEffect(() => () => void (closeRef.current = null), [closeRef])
 
+  // A saved automation without changes has nothing to save: the button is off, ⌘S does nothing.
+  const nothingToSave = isEditing && !dirty
   const handleSave = useCallback(async () => {
-    if (readOnly) return
+    if (readOnly || nothingToSave) return
     if (!name.trim()) {
-      modal.error({ title: t`Validation Error`, content: t`Please enter an automation name` })
+      modal.error({ title: t`Validation error`, content: t`Please enter an automation name` })
       return
     }
     const warnings = validate().filter((e) => e.message.startsWith('Warning:'))
@@ -326,14 +328,14 @@ function EditorScreen({
       modal.confirm({
         title: t`Warning`,
         content: warnings.map((w) => w.message).join('\n'),
-        okText: t`Save Anyway`,
+        okText: t`Save anyway`,
         cancelText: t`Cancel`,
         onOk: run
       })
       return
     }
     await run()
-  }, [readOnly, name, validate, save, modal, t])
+  }, [readOnly, nothingToSave, name, validate, save, modal, t])
 
   // ⌘S / Ctrl+S saves; ⌘Z, ⇧⌘Z and Ctrl+Y undo and redo, outside fields and when on top.
   useEffect(() => {
@@ -433,7 +435,7 @@ function EditorScreen({
   }
   if (isEditing && canWrite && !live) {
     menuItems.push({ type: 'divider' })
-    menuItems.push({ key: 'delete', danger: true, label: t`Delete Automation`, onClick: confirmDelete })
+    menuItems.push({ key: 'delete', danger: true, label: t`Delete automation`, onClick: confirmDelete })
   }
 
   const statsDisabledReason = !isEditing ? t`Save the automation first` : neverRan ? t`No journeys yet` : undefined
@@ -448,7 +450,6 @@ function EditorScreen({
         <div className="w-64">
           <Input
             variant="borderless"
-            size="small"
             aria-label={t`Automation name`}
             placeholder={t`Automation name`}
             value={name}
@@ -475,10 +476,10 @@ function EditorScreen({
       {!readOnly ? (
         <span className="flex items-center">
           <Tooltip title={t`Undo (${undoKeys})`}>
-            <Button type="text" size="small" aria-label={t`Undo`} icon={<Undo2 size={14} aria-hidden="true" />} disabled={!canUndo} onClick={undo} />
+            <Button type="text" aria-label={t`Undo`} icon={<Undo2 size={14} aria-hidden="true" />} disabled={!canUndo} onClick={undo} />
           </Tooltip>
           <Tooltip title={t`Redo (${redoKeys})`}>
-            <Button type="text" size="small" aria-label={t`Redo`} icon={<Redo2 size={14} aria-hidden="true" />} disabled={!canRedo} onClick={redo} />
+            <Button type="text" aria-label={t`Redo`} icon={<Redo2 size={14} aria-hidden="true" />} disabled={!canRedo} onClick={redo} />
           </Tooltip>
         </span>
       ) : null}
@@ -486,7 +487,6 @@ function EditorScreen({
         live ? (
           <Tooltip title={canWrite ? undefined : noWrite}>
             <Button
-              size="small"
               icon={<Pause size={14} aria-hidden="true" />}
               disabled={!canWrite || busy !== null}
               loading={busy === 'pause'}
@@ -498,7 +498,6 @@ function EditorScreen({
         ) : (
           <Tooltip title={!canWrite ? noWrite : dirty ? t`Save your changes first` : undefined}>
             <Button
-              size="small"
               icon={<Play size={14} aria-hidden="true" />}
               disabled={!canWrite || dirty || busy !== null}
               loading={busy === 'activate'}
@@ -510,12 +509,14 @@ function EditorScreen({
         )
       ) : null}
       {!readOnly ? (
-        <Button type="primary" size="small" loading={isSaving} onClick={() => void handleSave()}>
-          {isEditing ? t`Save` : t`Create`}
-        </Button>
+        <Tooltip title={nothingToSave && !isSaving ? t`No changes to save` : undefined}>
+          <Button type="primary" loading={isSaving} disabled={nothingToSave && !isSaving} onClick={() => void handleSave()}>
+            {isEditing ? t`Save` : t`Create`}
+          </Button>
+        </Tooltip>
       ) : null}
       <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-        <Button type="text" size="small" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
+        <Button type="text" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
       </Dropdown>
     </>
   )

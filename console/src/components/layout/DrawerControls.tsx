@@ -21,7 +21,18 @@ export interface DrawerNav {
 }
 
 /** Previous and next buttons, then "4 of 12" when the position is known. */
-export function DrawerNavButtons({ nav, showPosition }: { nav: DrawerNav; showPosition?: boolean }) {
+/** Small in a side panel's header, the default size in the full drawer's bar. */
+export type DrawerControlSize = 'small' | 'middle'
+
+export function DrawerNavButtons({
+  nav,
+  showPosition,
+  size = 'small'
+}: {
+  nav: DrawerNav
+  showPosition?: boolean
+  size?: DrawerControlSize
+}) {
   const { t } = useLingui()
   const { int } = useNumberFormat()
   const buttons = nav.buttons !== false
@@ -36,7 +47,7 @@ export function DrawerNavButtons({ nav, showPosition }: { nav: DrawerNav; showPo
           <Tooltip title={t`Previous (K)`}>
             <Button
               type="text"
-              size="small"
+              size={size}
               aria-label={t`Previous`}
               icon={<ChevronUp size={15} aria-hidden="true" />}
               disabled={!nav.onPrev}
@@ -46,7 +57,7 @@ export function DrawerNavButtons({ nav, showPosition }: { nav: DrawerNav; showPo
           <Tooltip title={t`Next (J)`}>
             <Button
               type="text"
-              size="small"
+              size={size}
               aria-label={t`Next`}
               icon={<ChevronDown size={15} aria-hidden="true" />}
               disabled={!nav.onNext}
@@ -69,7 +80,7 @@ export function DrawerNavButtons({ nav, showPosition }: { nav: DrawerNav; showPo
 }
 
 /** Copies the page URL, which opens the same item again. */
-export function CopyLinkButton() {
+export function CopyLinkButton({ size = 'small' }: { size?: DrawerControlSize } = {}) {
   const { t } = useLingui()
   const { message } = App.useApp()
   const handleCopy = async () => {
@@ -80,7 +91,7 @@ export function CopyLinkButton() {
     <Tooltip title={t`Copy link`}>
       <Button
         type="text"
-        size="small"
+        size={size}
         aria-label={t`Copy link`}
         icon={<Link2 size={15} aria-hidden="true" />}
         onClick={handleCopy}
@@ -89,12 +100,12 @@ export function CopyLinkButton() {
   )
 }
 
-export function CloseButton({ onClose }: { onClose: () => void }) {
+export function CloseButton({ onClose, size = 'small' }: { onClose: () => void; size?: DrawerControlSize }) {
   const { t } = useLingui()
   return (
     <Button
       type="text"
-      size="small"
+      size={size}
       aria-label={t`Close`}
       icon={<X size={16} aria-hidden="true" />}
       onClick={onClose}

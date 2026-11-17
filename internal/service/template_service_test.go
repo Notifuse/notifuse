@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -2788,4 +2789,108 @@ func TestTemplateService_UpdateTemplate_AbsentFields(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "translation language 'de' is not in workspace's configured languages")
 	})
+}
+
+// A message really sent whose signature happens to start like the preview placeholder
+// ("abc123…") keeps its links, and its data, which carries the workspace object, costs no
+// workspace read.
+func TestCompileTemplate_RealSignatureStartingLikeThePreviewOne(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockAuthService := domainmocks.NewMockAuthService(ctrl)
+	// No GetByID expectation: reading the workspace fails the test.
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	svc := service.NewTemplateService(domainmocks.NewMockTemplateRepository(ctrl), mockWorkspaceRepo, mockAuthService, &MockLogger{}, "https://api.example.com", licensedForTranslations(ctrl))
+	ctx := context.Background()
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws_1").Return(ctx, &domain.User{ID: "u"}, &domain.UserWorkspace{
+		UserID: "u", WorkspaceID: "ws_1", Role: "member",
+		Permissions: domain.UserPermissions{domain.PermissionResourceTemplates: {Read: true}},
+	}, nil)
+
+	sent := "https://track.example.com/notification-center?email=john.doe@example.com&email_hmac=" + domain.PreviewEmailHMAC + "9f86d081884c7d65&wid=ws_1"
+	var data notifuse_mjml.MapOfAny
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"contact": {"email": "emma.clarke@example.com"},
+		"workspace": {"base_url": "https://track.example.com", "website_url": "https://example.com"},
+		"notification_center_url": "`+sent+`"
+	}`), &data))
+
+	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+		WorkspaceID:      "ws_1",
+		MessageID:        "m_1",
+		VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", `<a href="{{ notification_center_url }}">Preferences</a>`)),
+		TemplateData:     data,
+	})
+	require.NoError(t, err)
+	require.True(t, resp.Success)
+	assert.Equal(t, sent, resp.TemplateData["notification_center_url"])
+}
+
+// TestCompileTemplate_PreviewLinksFollowTheTestContact: the console seeds a template's test data
+// with links made for john.doe@example.com. A test contact changed since (emma.clarke) kept them,
+// so the preview's unsubscribe and notification center links named someone else. The links are
+// rebuilt for the test contact, as a send builds them; those of a message really sent are not.
+func TestCompileTemplate_PreviewLinksFollowTheTestContact(t *testing.T) {
+	const endpoint = "https://track.example.com"
+	consoleLink := func(query string) string { return endpoint + "/notification-center?" + query }
+	cases := []struct {
+		name        string
+		hmac        string
+		wantRebuilt bool
+	}{
+		{name: "preview links of the editor's test data", hmac: domain.PreviewEmailHMAC, wantRebuilt: true},
+		{name: "links of a message really sent", hmac: "f00dfeed", wantRebuilt: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockAuthService := domainmocks.NewMockAuthService(ctrl)
+			mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+			svc := service.NewTemplateService(domainmocks.NewMockTemplateRepository(ctrl), mockWorkspaceRepo, mockAuthService, &MockLogger{}, "https://api.example.com", licensedForTranslations(ctrl))
+			ctx := context.Background()
+			customEndpoint := endpoint
+			mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "ws_1").Return(ctx, &domain.User{ID: "u"}, &domain.UserWorkspace{
+				UserID: "u", WorkspaceID: "ws_1", Role: "member",
+				Permissions: domain.UserPermissions{domain.PermissionResourceTemplates: {Read: true}},
+			}, nil)
+			mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws_1").Return(&domain.Workspace{
+				ID: "ws_1", Settings: domain.WorkspaceSettings{CustomEndpointURL: &customEndpoint},
+			}, nil).AnyTimes()
+
+			// The test data as the console sends it: JSON, decoded into plain maps.
+			var data notifuse_mjml.MapOfAny
+			require.NoError(t, json.Unmarshal([]byte(`{
+				"contact": {"first_name": "Emma", "email": "emma.clarke@example.com"},
+				"list": {"id": "newsletter", "name": "Newsletter"},
+				"unsubscribe_url": "`+consoleLink("action=unsubscribe&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=ws_1&mid=preview&email_hmac="+tc.hmac)+`",
+				"notification_center_url": "`+consoleLink("email=john.doe@example.com&email_hmac="+tc.hmac+"&wid=ws_1")+`"
+			}`), &data))
+
+			resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
+				WorkspaceID:      "ws_1",
+				MessageID:        "preview",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", `<a href="{{ unsubscribe_url }}">Unsubscribe</a> <a href="{{ notification_center_url }}">Preferences</a>`)),
+				TemplateData:     data,
+			})
+			require.NoError(t, err)
+			require.True(t, resp.Success)
+
+			unsubscribe := resp.TemplateData["unsubscribe_url"].(string)
+			center := resp.TemplateData["notification_center_url"].(string)
+			if !tc.wantRebuilt {
+				assert.Contains(t, unsubscribe, "email=john.doe@example.com", "a sent message keeps the links it went out with")
+				assert.Contains(t, center, "email=john.doe@example.com")
+				return
+			}
+			// Built as a send builds them: same parameters, for the test contact, still preview-signed.
+			links := domain.ContactLinks{Endpoint: endpoint, WorkspaceID: "ws_1", MessageID: "preview", Email: "emma.clarke@example.com", EmailHMAC: domain.PreviewEmailHMAC, ListID: "newsletter", ListName: "Newsletter"}
+			assert.Equal(t, links.ListURLs()["unsubscribe_url"], unsubscribe)
+			assert.Equal(t, links.ContactURLs()["notification_center_url"], center)
+			assert.NotContains(t, *resp.HTML, "john.doe")
+			assert.Contains(t, *resp.HTML, "emma.clarke%40example.com")
+			// A link the data does not hold is not added.
+			assert.NotContains(t, resp.TemplateData, "confirm_subscription_url")
+		})
+	}
 }

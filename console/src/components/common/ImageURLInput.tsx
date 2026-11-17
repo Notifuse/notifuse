@@ -1,10 +1,13 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 import { Input, Avatar, Popover } from 'antd'
+import type { InputRef } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useFileManager } from '../file_manager/context'
 import type { StorageObject } from '../file_manager/interfaces'
 
 interface ImageURLInputProps {
+  /** Set by Form.Item, so `form.scrollToField` and `form.focusField` can find the field. */
+  id?: string
   value?: string
   onChange?: (value: string) => void
   placeholder?: string
@@ -15,7 +18,8 @@ interface ImageURLInputProps {
   buttonText?: string
 }
 
-export const ImageURLInput: React.FC<ImageURLInputProps> = ({
+export const ImageURLInput = forwardRef<InputRef, ImageURLInputProps>(function ImageURLInput({
+  id,
   value,
   onChange,
   placeholder,
@@ -24,7 +28,7 @@ export const ImageURLInput: React.FC<ImageURLInputProps> = ({
   acceptFileType = 'image/*',
   acceptItem = (item) => !item.is_folder && item.file_info?.content_type?.startsWith('image/'),
   buttonText
-}) => {
+}, ref) {
   const { t } = useLingui()
   const { SelectFileButton } = useFileManager()
 
@@ -41,6 +45,8 @@ export const ImageURLInput: React.FC<ImageURLInputProps> = ({
 
   return (
     <Input
+      ref={ref}
+      id={id}
       value={value}
       onChange={handleInputChange}
       placeholder={defaultPlaceholder}
@@ -73,6 +79,6 @@ export const ImageURLInput: React.FC<ImageURLInputProps> = ({
       }
     />
   )
-}
+})
 
 export default ImageURLInput

@@ -27,7 +27,7 @@ const MjFontSettingsPanel: React.FC<MjFontSettingsPanelProps> = ({
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Font Attributes`}>
+    <PanelLayout title={t`Font attributes`}>
       <Alert
         type="info"
         title={

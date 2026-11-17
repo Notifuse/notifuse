@@ -62,6 +62,13 @@ function feedIssue(
   return null
 }
 
+/** What is wrong with each data feed switched on, the global one first: the summary lists them all. */
+export function feedIssues(values: Pick<ComposeValues, 'globalFeed' | 'recipientFeed'>): DraftIssue[] {
+  return [feedIssue('global', values.globalFeed), feedIssue('recipient', values.recipientFeed)].filter(
+    (issue): issue is DraftIssue => issue !== null
+  )
+}
+
 /** The first reason the draft cannot be saved, or null. */
 export function validateDraft(values: ComposeValues, { senderIds }: DraftContext): DraftIssue | null {
   if (!values.name.trim()) return { code: 'name_missing' }

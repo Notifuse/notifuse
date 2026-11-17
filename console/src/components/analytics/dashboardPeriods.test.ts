@@ -45,4 +45,38 @@ describe('resolveDashboardPeriods', () => {
     expect(current.startUtc).toBe('2026-11-04T00:00:00.000Z')
     expect(current.endUtc).toBe('2026-11-10T23:59:59.999Z')
   })
+
+  describe('recent', () => {
+    it('covers the same number of days ending today, in the workspace time zone', () => {
+      const { recent } = resolveDashboardPeriods('30d', 'Europe/Paris')
+      expect([recent.startDay, recent.endDay]).toEqual(['2026-10-13', '2026-11-11'])
+      expect(recent.startUtc).toBe('2026-10-12T22:00:00.000Z')
+      expect(recent.endUtc).toBe('2026-11-11T22:59:59.999Z')
+      const week = resolveDashboardPeriods('7d', 'Europe/Paris').recent
+      expect([week.startDay, week.endDay]).toEqual(['2026-11-05', '2026-11-11'])
+    })
+
+    it('moves to the next day just after local midnight', () => {
+      // 00:05 on 12 November in Paris, still 11 November in UTC
+      vi.setSystemTime(new Date('2026-11-11T23:05:00Z'))
+      const { recent } = resolveDashboardPeriods('7d', 'Europe/Paris')
+      expect([recent.startDay, recent.endDay]).toEqual(['2026-11-06', '2026-11-12'])
+      expect(recent.endUtc).toBe('2026-11-12T22:59:59.999Z')
+    })
+
+    it('keeps whole local days across the end of summer time', () => {
+      // 25 October is 25 hours long in Paris
+      vi.setSystemTime(new Date('2026-10-27T09:00:00Z'))
+      const { recent } = resolveDashboardPeriods('7d', 'Europe/Paris')
+      expect([recent.startDay, recent.endDay]).toEqual(['2026-10-21', '2026-10-27'])
+      expect(recent.startUtc).toBe('2026-10-20T22:00:00.000Z')
+      expect(recent.endUtc).toBe('2026-10-27T22:59:59.999Z')
+    })
+
+    it('falls back to UTC without a timezone', () => {
+      const { recent } = resolveDashboardPeriods('7d', '')
+      expect(recent.startUtc).toBe('2026-11-05T00:00:00.000Z')
+      expect(recent.endUtc).toBe('2026-11-11T23:59:59.999Z')
+    })
+  })
 })

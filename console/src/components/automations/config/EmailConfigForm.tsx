@@ -83,6 +83,10 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
           onChange={handleTemplateChange}
           workspaceId={workspaceId}
           placeholder={t`Select email template...`}
+          subtitle={t`The email this step sends`}
+          listStatusNotice
+          // The step's own integration, else the workspace's marketing provider (automation_node_executor.go).
+          sendsWith={config.integration_id ? { integrationId: config.integration_id } : 'marketing'}
           canReadTemplates={canReadTemplates}
           disabled={readOnly}
         />

@@ -30,6 +30,16 @@ describe('validateTransactionalSearch', () => {
     expect(validateTransactionalSearch({ notification: '' }).notification).toBeUndefined()
   })
 
+  it('reads the new-notification flag as the router parses ?new=1 and ?new=true', () => {
+    expect(validateTransactionalSearch({ new: 1 }).new).toBe(true)
+    expect(validateTransactionalSearch({ new: true }).new).toBe(true)
+    expect(validateTransactionalSearch({ new: '1' }).new).toBe(true)
+    expect(validateTransactionalSearch({ new: 'true' }).new).toBe(true)
+    expect(validateTransactionalSearch({ new: 0 }).new).toBeUndefined()
+    expect(validateTransactionalSearch({ new: 'no' }).new).toBeUndefined()
+    expect('new' in validateTransactionalSearch({})).toBe(false)
+  })
+
   it('defaults to 30 days', () => {
     expect(transactionalPeriod({})).toBe('30d')
     expect(transactionalPeriod({ period: '60d' })).toBe('60d')

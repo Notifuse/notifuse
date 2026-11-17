@@ -110,7 +110,7 @@ async function pickList(name: string) {
 
 async function sendTo(email: string) {
   await userEvent.type(screen.getByPlaceholderText('recipient@example.com'), email)
-  const buttons = screen.getAllByRole('button', { name: /Send Test Email/i })
+  const buttons = screen.getAllByRole('button', { name: /Send test email/i })
   await userEvent.click(buttons[buttons.length - 1])
   await waitFor(() => expect(transactionalNotificationsApi.testTemplate).toHaveBeenCalled())
   return (transactionalNotificationsApi.testTemplate as Mock).mock.calls[0]
@@ -195,7 +195,7 @@ describe('SendTemplateModal mailing list', () => {
     renderModal({ canReadLists: true, defaultListId: 'news' })
 
     await userEvent.type(screen.getByPlaceholderText('recipient@example.com'), 'me@example.com')
-    const buttons = screen.getAllByRole('button', { name: /Send Test Email/i })
+    const buttons = screen.getAllByRole('button', { name: /Send test email/i })
     expect(buttons[buttons.length - 1]).toBeDisabled()
   })
 

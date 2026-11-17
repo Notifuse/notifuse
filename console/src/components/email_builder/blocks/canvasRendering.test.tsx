@@ -522,3 +522,15 @@ describe('editor canvas marks a block shown under a condition', () => {
     expect(other.querySelector(`[data-block-id="p-${type}"]`)?.hasAttribute('data-display-condition')).toBe(false)
   })
 })
+
+describe('editor canvas draws an image without a width across its column', () => {
+  it('lays it out as a table at 100 %, as MJML gives it the column width', () => {
+    // As a block, the table's rows sat in an anonymous table sized to the image: a new image was
+    // drawn at its natural size on the left while Align said center.
+    const block = { id: 'img', type: 'mj-image', attributes: { align: 'center', src: 'https://acme.com/a.png' } } as unknown as EmailBlock
+    const { container } = render(<>{new MjImageBlock(block).getEdit(previewProps())}</>)
+    const table = container.querySelector('table') as HTMLTableElement
+    expect(table.style.display).toBe('table')
+    expect(table.style.width).toBe('100%')
+  })
+})

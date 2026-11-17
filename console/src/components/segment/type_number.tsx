@@ -1,4 +1,4 @@
-import { FormInstance, Form, Select, Alert } from 'antd'
+import { FormInstance, Form, Alert } from 'antd'
 import Messages from './messages'
 import {
   DimensionFilter,
@@ -7,11 +7,13 @@ import {
   IOperator
 } from '../../services/api/segment'
 import { OperatorEquals } from './operator_equals'
+import { OperatorSelect } from './operator_select'
 import { OperatorSet, OperatorNotSet } from './operator_set_not_set'
 import { OperatorNumber } from './operator_number'
 
 // Note: This class contains string labels that cannot use useLingui as they are class properties.
-// The placeholder 'select a value' and error messages should be translated at the point of use if needed.
+// The error messages should be translated at the point of use if needed (the operator's
+// placeholder is, in OperatorSelect).
 export class FieldTypeNumber implements FieldTypeRenderer {
   operators: IOperator[] = [
     new OperatorSet(),
@@ -35,18 +37,7 @@ export class FieldTypeNumber implements FieldTypeRenderer {
     return (
       <>
         <Form.Item name="operator" rules={[{ required: true, message: Messages.RequiredField }]}>
-          <Select
-            // size="small"
-            placeholder="select a value"
-            // style={{ width: '150px' }}
-            popupMatchSelectWidth={false}
-            options={this.operators.map((op: IOperator) => {
-              return {
-                value: op.type,
-                label: op.label
-              }
-            })}
-          />
+          <OperatorSelect operators={this.operators} />
         </Form.Item>
 
         <Form.Item noStyle shouldUpdate>

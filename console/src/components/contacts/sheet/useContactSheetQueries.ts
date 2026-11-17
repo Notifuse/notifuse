@@ -9,10 +9,12 @@ export type ActivityFilter = 'all' | 'emails' | 'lists' | 'profile' | 'events' |
 /** The entity_types each activity filter sends to timeline.list (none for All). */
 export const ACTIVITY_ENTITY_TYPES: Record<ActivityFilter, TimelineEntityType[] | undefined> = {
   all: undefined,
-  emails: ['message_history'],
+  // The provider's webhooks (delivered, bounced, marked as spam) are about the emails;
+  // webhook_event is their name before v19.
+  emails: ['message_history', 'inbound_webhook_event', 'webhook_event'],
   lists: ['contact_list', 'contact_segment'],
   profile: ['contact'],
-  events: ['custom_event', 'inbound_webhook_event', 'webhook_event', 'automation'],
+  events: ['custom_event', 'automation'],
   web: ['web_session', 'web_page']
 }
 

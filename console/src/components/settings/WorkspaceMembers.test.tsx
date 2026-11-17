@@ -378,6 +378,8 @@ describe('WorkspaceMembers tables', () => {
     const row = rowFor({ ...human({}), email: 'root@example.com' })
     expect(row.textContent).toContain('Platform admin')
     expect(row.textContent).not.toContain('2026')
+    // A dash, not an empty cell that reads as a missing date.
+    expect(row.querySelector('[data-joined-none]')).toHaveTextContent('—')
     window.ROOT_EMAIL = ''
   })
 
@@ -459,9 +461,9 @@ describe('WorkspaceMembers tables', () => {
     api.inviteMember.mockRejectedValue(new ApiError('team member limit reached', 403))
     renderMembers([])
     fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
-    const drawer = await openDrawer('Invite Member')
+    const drawer = await openDrawer('Invite member')
     fireEvent.change(within(drawer).getByRole('textbox'), { target: { value: 'new@example.com' } })
-    fireEvent.click(within(footerOf(drawer)).getByRole('button', { name: 'Send Invitation' }))
+    fireEvent.click(within(footerOf(drawer)).getByRole('button', { name: 'Send invitation' }))
 
     expect(
       await screen.findByText('Team member limit reached. Please upgrade your plan to add more members.')
@@ -739,7 +741,7 @@ describe('invite member drawer', () => {
   const openInvite = async (licensedFor?: Entitlements['features']) => {
     renderMembers([], licensedFor)
     fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
-    return openDrawer('Invite Member')
+    return openDrawer('Invite member')
   }
 
   // An invite starts from a full grant, which the server never gates, so it can be sent as it
@@ -758,7 +760,7 @@ describe('invite member drawer', () => {
     }
     expect(within(drawer).getByRole('button', { name: 'Revoke all' })).toBeDisabled()
     expect(within(drawer).getByRole('button', { name: 'Grant all' })).toBeEnabled()
-    expect(within(footerOf(drawer)).getByRole('button', { name: 'Send Invitation' })).toBeEnabled()
+    expect(within(footerOf(drawer)).getByRole('button', { name: 'Send invitation' })).toBeEnabled()
   })
 
   it('sends a grant naming every canonical resource', async () => {
@@ -768,7 +770,7 @@ describe('invite member drawer', () => {
       target: { value: 'member@example.com' }
     })
     fireEvent.click(switchesFor(drawer, 'webhook_subscriptions').write)
-    fireEvent.click(within(footerOf(drawer)).getByRole('button', { name: 'Send Invitation' }))
+    fireEvent.click(within(footerOf(drawer)).getByRole('button', { name: 'Send invitation' }))
 
     await waitFor(() => expect(api.inviteMember).toHaveBeenCalled())
     const { permissions } = api.inviteMember.mock.calls[0][0]

@@ -10,7 +10,7 @@ const MjAttributesSettingsPanel: React.FC = () => {
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Default Attributes`}>
+    <PanelLayout title={t`Default attributes`}>
       <div className="text-sm text-gray-500 text-center py-8">
         {t`No settings available for the attributes container.`}
         <br />

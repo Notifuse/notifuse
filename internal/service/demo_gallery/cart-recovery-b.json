@@ -1,0 +1,2669 @@
+{
+  "generated_by": "console/src/components/templates/gallery/demo/demoFixtures.ts — do not edit, run `npm run demo-fixtures` in console/",
+  "template_id": "cart-recovery-b",
+  "model": "cart",
+  "category": "marketing",
+  "default_language": "en",
+  "brand": {
+    "name": "Apple",
+    "logo_url": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+    "logo_width": 40
+  },
+  "test_data": {
+    "contact": {
+      "first_name": "Liam",
+      "last_name": "Ferreira",
+      "email": "liam.ferreira@example.com"
+    },
+    "list": {
+      "id": "newsletter",
+      "name": "Newsletter"
+    },
+    "trigger_event": {
+      "kind": "custom_event.cart_abandoned",
+      "name": "cart_abandoned",
+      "external_id": "cart-42",
+      "properties": {
+        "items": [
+          {
+            "name": "Linen shirt",
+            "quantity": 1,
+            "price": "$59.00",
+            "image_url": "[[notifuse_gallery_base_url]]/product-shirt.jpg"
+          },
+          {
+            "name": "Canvas tote bag",
+            "quantity": 2,
+            "price": "$36.00",
+            "image_url": "[[notifuse_gallery_base_url]]/product-tote.jpg"
+          }
+        ],
+        "cart_url": "https://acme.com/cart/42"
+      }
+    }
+  },
+  "languages": {
+    "en": {
+      "subject": "{{contact.first_name}}, here's 10% off your cart 🎁",
+      "subject_preview": "{{contact.first_name}}, here is 10% off to finish your order",
+      "visual_editor_tree": {
+        "id": "cart-mjml-37",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "cart-head-35",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "cart-attributes-33",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "cart-text-30",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "cart-button-31",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "cart-section-32",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "cart-preview-34",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "{{contact.first_name}}, here is 10% off to finish your order"
+              }
+            ]
+          },
+          {
+            "id": "cart-body-36",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "cart-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "cart-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Apple logo",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "cart-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "cart-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Shop</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Help</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-10",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "4px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-9",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Here is 10% off to finish up</p>"
+                      },
+                      {
+                        "id": "cart-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Hi {{ contact.first_name }}, your cart is saved, and so is 10% off: use the code <b>APPLE10</b> at checkout. It is valid for 48 hours, accessories included.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-liquid-11",
+                "type": "mj-liquid",
+                "attributes": {
+                  "cssClass": ""
+                },
+                "content": "{% if trigger_event.properties.items %}\n{% for item in trigger_event.properties.items %}\n<mj-section background-color=\"#ffffff\" padding=\"0px 32px\">\n  <mj-group>\n    <mj-column width=\"20%\" vertical-align=\"middle\">\n      <mj-image src=\"{{ item.image_url }}\" alt=\"{{ item.name }}\" width=\"60px\" border-radius=\"6px\" padding=\"8px 0px\" />\n    </mj-column>\n    <mj-column width=\"55%\" vertical-align=\"middle\">\n      <mj-text padding=\"8px 12px\" font-size=\"15px\" color=\"#1f2430\"><b>{{ item.name }}</b><br /><span style=\"color:#5b6170;font-size:13px\">Qty {{ item.quantity }}</span></mj-text>\n    </mj-column>\n    <mj-column width=\"25%\" vertical-align=\"middle\">\n      <mj-text padding=\"8px 0px\" align=\"right\" font-size=\"15px\" font-weight=\"bold\" color=\"#1f2430\">{{ item.price }}</mj-text>\n    </mj-column>\n  </mj-group>\n</mj-section>\n{% endfor %}\n{% endif %}"
+              },
+              {
+                "id": "cart-section-14",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-13",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-button-12",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ trigger_event.properties.cart_url | default: workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Claim my 10% off"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-17",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-16",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "17px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Customers also loved</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-26",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "20px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "20px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "50%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-image-18",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Wool beanie",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "12px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/product-beanie.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "cart-text-19",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Wool beanie</b><br><b>$24.00</b>"
+                      },
+                      {
+                        "id": "cart-button-20",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "left",
+                          "backgroundColor": "#ffffff",
+                          "borderRadius": "4px",
+                          "border": "2px solid #1d4ed8",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Shop now"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cart-column-25",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "50%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-image-22",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Leather wallet",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "12px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/product-wallet.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "cart-text-23",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Leather wallet</b><br><b>$45.00</b>"
+                      },
+                      {
+                        "id": "cart-button-24",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "left",
+                          "backgroundColor": "#ffffff",
+                          "borderRadius": "4px",
+                          "border": "2px solid #1d4ed8",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Shop now"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-29",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-28",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-27",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>You are receiving this email because you subscribed to {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Manage preferences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Unsubscribe</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fr": {
+      "subject": "{{contact.first_name}}, 10 % de remise sur votre panier 🎁",
+      "subject_preview": "{{contact.first_name}}, voici 10 % de remise pour finaliser votre commande",
+      "visual_editor_tree": {
+        "id": "cart-mjml-37",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "cart-head-35",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "cart-attributes-33",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "cart-text-30",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "cart-button-31",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "cart-section-32",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "cart-preview-34",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "{{contact.first_name}}, voici 10 % de remise pour finaliser votre commande"
+              }
+            ]
+          },
+          {
+            "id": "cart-body-36",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "cart-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "cart-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Logo Apple",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "cart-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "cart-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Boutique</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Aide</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-10",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "4px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-9",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>10 % de remise pour conclure</p>"
+                      },
+                      {
+                        "id": "cart-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Bonjour {{ contact.first_name }}, votre panier est sauvegardé, et 10 % de remise vous attendent : utilisez le code <b>APPLE10</b> au moment du paiement. Il est valable 48 heures, accessoires compris.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-liquid-11",
+                "type": "mj-liquid",
+                "attributes": {
+                  "cssClass": ""
+                },
+                "content": "{% if trigger_event.properties.items %}\n{% for item in trigger_event.properties.items %}\n<mj-section background-color=\"#ffffff\" padding=\"0px 32px\">\n  <mj-group>\n    <mj-column width=\"20%\" vertical-align=\"middle\">\n      <mj-image src=\"{{ item.image_url }}\" alt=\"{{ item.name }}\" width=\"60px\" border-radius=\"6px\" padding=\"8px 0px\" />\n    </mj-column>\n    <mj-column width=\"55%\" vertical-align=\"middle\">\n      <mj-text padding=\"8px 12px\" font-size=\"15px\" color=\"#1f2430\"><b>{{ item.name }}</b><br /><span style=\"color:#5b6170;font-size:13px\">Qté {{ item.quantity }}</span></mj-text>\n    </mj-column>\n    <mj-column width=\"25%\" vertical-align=\"middle\">\n      <mj-text padding=\"8px 0px\" align=\"right\" font-size=\"15px\" font-weight=\"bold\" color=\"#1f2430\">{{ item.price }}</mj-text>\n    </mj-column>\n  </mj-group>\n</mj-section>\n{% endfor %}\n{% endif %}"
+              },
+              {
+                "id": "cart-section-14",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-13",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-button-12",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ trigger_event.properties.cart_url | default: workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Profiter des 10 %"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-17",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-16",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "17px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Les clients ont aussi adoré</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-26",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "20px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "20px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "50%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-image-18",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Bonnet en laine",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "12px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/product-beanie.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "cart-text-19",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Bonnet en laine</b><br><b>$24.00</b>"
+                      },
+                      {
+                        "id": "cart-button-20",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "left",
+                          "backgroundColor": "#ffffff",
+                          "borderRadius": "4px",
+                          "border": "2px solid #1d4ed8",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Acheter"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cart-column-25",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "50%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-image-22",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Portefeuille en cuir",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "12px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/product-wallet.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "cart-text-23",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Portefeuille en cuir</b><br><b>$45.00</b>"
+                      },
+                      {
+                        "id": "cart-button-24",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "left",
+                          "backgroundColor": "#ffffff",
+                          "borderRadius": "4px",
+                          "border": "2px solid #1d4ed8",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Acheter"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-29",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-28",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-27",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Vous recevez cet e-mail car votre adresse est inscrite à {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gérer mes préférences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Se désabonner</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "es": {
+      "subject": "{{contact.first_name}}, un 10 % de descuento en tu carrito 🎁",
+      "subject_preview": "{{contact.first_name}}, aquí tienes un 10 % para terminar tu pedido",
+      "visual_editor_tree": {
+        "id": "cart-mjml-37",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "cart-head-35",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "cart-attributes-33",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "cart-text-30",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "cart-button-31",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "cart-section-32",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "cart-preview-34",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "{{contact.first_name}}, aquí tienes un 10 % para terminar tu pedido"
+              }
+            ]
+          },
+          {
+            "id": "cart-body-36",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "cart-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "cart-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Logotipo de Apple",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "cart-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "cart-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Tienda</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Ayuda</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-10",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "4px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-9",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-7",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Un 10 % de descuento para terminar</p>"
+                      },
+                      {
+                        "id": "cart-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Hola, {{ contact.first_name }}. Guardamos tu carrito, y también un 10 % de descuento: usa el código <b>APPLE10</b> al finalizar la compra. Es válido durante 48 horas, accesorios incluidos.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-liquid-11",
+                "type": "mj-liquid",
+                "attributes": {
+                  "cssClass": ""
+                },
+                "content": "{% if trigger_event.properties.items %}\n{% for item in trigger_event.properties.items %}\n<mj-section background-color=\"#ffffff\" padding=\"0px 32px\">\n  <mj-group>\n    <mj-column width=\"20%\" vertical-align=\"middle\">\n      <mj-image src=\"{{ item.image_url }}\" alt=\"{{ item.name }}\" width=\"60px\" border-radius=\"6px\" padding=\"8px 0px\" />\n    </mj-column>\n    <mj-column width=\"55%\" vertical-align=\"middle\">\n      <mj-text padding=\"8px 12px\" font-size=\"15px\" color=\"#1f2430\"><b>{{ item.name }}</b><br /><span style=\"color:#5b6170;font-size:13px\">Cant. {{ item.quantity }}</span></mj-text>\n    </mj-column>\n    <mj-column width=\"25%\" vertical-align=\"middle\">\n      <mj-text padding=\"8px 0px\" align=\"right\" font-size=\"15px\" font-weight=\"bold\" color=\"#1f2430\">{{ item.price }}</mj-text>\n    </mj-column>\n  </mj-group>\n</mj-section>\n{% endfor %}\n{% endif %}"
+              },
+              {
+                "id": "cart-section-14",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-13",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-button-12",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ trigger_event.properties.cart_url | default: workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Aprovechar el 10 %"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-17",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-16",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "17px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>A otros clientes también les encantó</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-26",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "20px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "20px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "50%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-image-18",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Gorro de lana",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "12px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/product-beanie.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "cart-text-19",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Gorro de lana</b><br><b>$24.00</b>"
+                      },
+                      {
+                        "id": "cart-button-20",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "left",
+                          "backgroundColor": "#ffffff",
+                          "borderRadius": "4px",
+                          "border": "2px solid #1d4ed8",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Comprar ahora"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cart-column-25",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "50%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-image-22",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Billetera de cuero",
+                          "border": "none",
+                          "borderRadius": "6px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "12px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/product-wallet.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      },
+                      {
+                        "id": "cart-text-23",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<b>Billetera de cuero</b><br><b>$45.00</b>"
+                      },
+                      {
+                        "id": "cart-button-24",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "left",
+                          "backgroundColor": "#ffffff",
+                          "borderRadius": "4px",
+                          "border": "2px solid #1d4ed8",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "12px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "12px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Comprar ahora"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cart-section-29",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "cart-column-28",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "cart-text-27",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Recibes este correo porque te suscribiste a {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gestionar preferencias</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Cancelar suscripción</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

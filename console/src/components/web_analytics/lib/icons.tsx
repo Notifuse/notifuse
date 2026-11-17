@@ -47,7 +47,7 @@ const DEVICE_ICONS: Record<string, string> = {
   tablet: '/icons/devices/tablet.svg'
 }
 
-const FALLBACK_CLASS = 'w-4 h-4 text-gray-400 flex-shrink-0'
+const FALLBACK_CLASS = 'w-4 h-4 text-ink-4 flex-shrink-0'
 
 function hideOnError(event: { currentTarget: HTMLImageElement }): void {
   event.currentTarget.style.display = 'none'

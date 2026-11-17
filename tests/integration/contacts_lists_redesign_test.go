@@ -171,6 +171,29 @@ func TestContactsListsRedesign(t *testing.T) {
 			map[string]string{"email": "ann@example.com", "entity_types": "bogus"}, nil))
 	})
 
+	t.Run("timeline.list gives a message's data decrypted, as messages.list does", func(t *testing.T) {
+		// Message history encrypts its data at rest; the contact sheet previews an email from
+		// this data, which rendered without personalisation while it came encrypted.
+		var body struct {
+			Timeline []struct {
+				EntityType string                 `json:"entity_type"`
+				EntityID   string                 `json:"entity_id"`
+				EntityData map[string]interface{} `json:"entity_data"`
+			} `json:"timeline"`
+		}
+		require.Equal(t, http.StatusOK, get(t, "/api/timeline.list",
+			map[string]string{"email": "ann@example.com", "entity_types": "message_history"}, &body))
+		require.Len(t, body.Timeline, 1)
+		messageData, ok := body.Timeline[0].EntityData["message_data"].(map[string]interface{})
+		require.True(t, ok, "%v", body.Timeline[0].EntityData)
+		assert.Equal(t, map[string]interface{}{"subject": "Test Message", "body": "This is a test message"}, messageData["data"])
+		assert.Equal(t, map[string]interface{}{"test": true}, messageData["metadata"])
+		// What sent the message, for the sheet to name it as its Messages tab does.
+		for _, key := range []string{"broadcast_id", "automation_id", "transactional_notification_id"} {
+			assert.Contains(t, body.Timeline[0].EntityData, key)
+		}
+	})
+
 	t.Run("timeline.list of an email with no entry is an empty list, not null", func(t *testing.T) {
 		resp, err := client.Get("/api/timeline.list", map[string]string{"workspace_id": workspace.ID, "email": "nobody@example.com"})
 		require.NoError(t, err)

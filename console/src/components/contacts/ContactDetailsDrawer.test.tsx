@@ -1,4 +1,5 @@
 import '../../__tests__/resizeObserverMock'
+import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -150,6 +151,54 @@ describe('ContactDetailsDrawer', () => {
     rerender({ email: 'b@x.com', search: { limit: 52 }, onNavigate, onLoadMore })
     await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('c@x.com'))
     expect(screen.queryByText('Loading…')).toBeNull()
+  })
+
+  it('moves to the next contact once when the URL is an external store, as the router is', async () => {
+    // The router keeps the URL in a store read with useSyncExternalStore: each navigate, even to
+    // the URL already shown, re-renders synchronously, ahead of the state the sheet set in its
+    // effect. The sheet once navigated again from every such render and froze the tab.
+    let url = { email: 'b@x.com', limit: 2 }
+    const listeners = new Set<() => void>()
+    let writes = 0
+    const write = (next: Partial<typeof url>) => {
+      // A loop breaker for the test itself: past a few writes the store stops notifying.
+      if (++writes > 20) return
+      url = { ...url, ...next }
+      listeners.forEach((listener) => listener())
+    }
+    const onNavigate = vi.fn((email: string) => write({ email }))
+    const onLoadMore = vi.fn(() => write({ limit: url.limit + 50 }))
+    const subscribe = (listener: () => void) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    }
+    function StorePage() {
+      const current = React.useSyncExternalStore(subscribe, () => url)
+      return (
+        <Page
+          email={current.email}
+          search={{ limit: current.limit }}
+          onNavigate={onNavigate}
+          onLoadMore={onLoadMore}
+        />
+      )
+    }
+    render(
+      <QueryClientProvider client={queryClient}>
+        <App>
+          <StorePage />
+        </App>
+      </QueryClientProvider>
+    )
+    await waitFor(() => expect(position()).toBe('2 of 2+'))
+    fireEvent.keyDown(document, { key: 'j' })
+    await waitFor(() => expect(position()).toBe('3 of 3'))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+    expect(onLoadMore).toHaveBeenCalledTimes(1)
+    expect(onNavigate).toHaveBeenCalledTimes(1)
+    expect(onNavigate).toHaveBeenCalledWith('c@x.com')
   })
 
   it('gives up waiting for more rows when they fail, when K is pressed, or when the sheet closes', async () => {

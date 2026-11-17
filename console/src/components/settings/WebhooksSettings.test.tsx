@@ -418,14 +418,14 @@ describe('WebhooksSettings table', () => {
   it('opens the edit drawer above the detail panel', async () => {
     const { rerenderWith } = await renderSettings()
     fireEvent.click(screen.getByRole('button', { name: /Add endpoint/ }))
-    await screen.findByText('Create Webhook')
+    await screen.findByText('Create webhook')
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     rerenderWith({ openWebhookId: 'wh-user' })
     const heading = await screen.findByRole('heading', { name: 'My Own Webhook' })
     const panel = heading.closest('[role="dialog"]') as HTMLElement
     fireEvent.click(within(panel).getByRole('button', { name: 'Edit' }))
-    const title = await screen.findByText('Edit Webhook')
+    const title = await screen.findByText('Edit webhook')
 
     const zIndex = (el: Element | null) => Number((el as HTMLElement | null)?.style.zIndex || 1000)
     expect(zIndex(title.closest('.ant-drawer'))).toBeGreaterThan(
@@ -441,7 +441,7 @@ describe('WebhooksSettings table', () => {
     const heading = await screen.findByRole('heading', { name: 'My Own Webhook' })
     const panel = heading.closest('[role="dialog"]') as HTMLElement
     fireEvent.click(within(panel).getByRole('button', { name: 'Edit' }))
-    await screen.findByText('Edit Webhook')
+    await screen.findByText('Edit webhook')
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     rerenderWith({ openWebhookId: undefined })
@@ -449,7 +449,7 @@ describe('WebhooksSettings table', () => {
     const again = await screen.findByRole('heading', { name: 'My Own Webhook' })
     const reopened = again.closest('[role="dialog"]') as HTMLElement
     fireEvent.click(within(reopened).getByRole('button', { name: 'Edit' }))
-    await screen.findByText('Edit Webhook')
+    await screen.findByText('Edit webhook')
     onOpenWebhook.mockClear()
 
     fireEvent.keyDown(document.body, { key: 'j' })
@@ -497,6 +497,54 @@ describe('WebhooksSettings table', () => {
     expect(await screen.findByText('database is down')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByText('My Own Webhook')).toBeInTheDocument()
+  })
+
+  it('shows only the field errors when Save is pressed on an empty form', async () => {
+    // It also toasted "Failed to save webhook subscription" over the field errors.
+    await renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: /Add endpoint/ }))
+    await screen.findByText('Create webhook')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Please enter a name')).toBeInTheDocument()
+    expect(screen.getByText('Please enter a URL')).toBeInTheDocument()
+    expect(screen.queryByText(/Failed to save webhook subscription/)).toBeNull()
+    expect(webhookSubscriptionApi.create).not.toHaveBeenCalled()
+  })
+
+  it('says why a save failed when the server refuses it', async () => {
+    vi.mocked(webhookSubscriptionApi.create).mockRejectedValueOnce(new Error('url must be public'))
+    await renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: /Add endpoint/ }))
+    const drawer = (await screen.findByText('Create webhook')).closest('.ant-drawer') as HTMLElement
+    fireEvent.change(within(drawer).getByLabelText('Name'), { target: { value: 'Hook' } })
+    fireEvent.change(within(drawer).getByLabelText('Endpoint URL'), {
+      target: { value: 'https://example.com/h' }
+    })
+    fireEvent.click(await within(drawer).findByRole('checkbox', { name: 'contact.created' }))
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Save' }))
+    expect(
+      await screen.findByText('Failed to save webhook subscription: url must be public')
+    ).toBeInTheDocument()
+  })
+
+  it('toggles Select all into Clear all once every event type is ticked', async () => {
+    await renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: /Add endpoint/ }))
+    const drawer = (await screen.findByText('Create webhook')).closest('.ant-drawer') as HTMLElement
+    await within(drawer).findByRole('checkbox', { name: 'contact.created' })
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Select all' }))
+    await waitFor(() =>
+      within(drawer)
+        .getAllByRole('checkbox')
+        .forEach((box) => expect(box).toBeChecked())
+    )
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Clear all' }))
+    await waitFor(() =>
+      within(drawer)
+        .getAllByRole('checkbox')
+        .forEach((box) => expect(box).not.toBeChecked())
+    )
+    expect(within(drawer).getByRole('button', { name: 'Select all' })).toBeInTheDocument()
   })
 
   it('invites to add the first endpoint when there is none', async () => {

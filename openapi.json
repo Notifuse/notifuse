@@ -4887,7 +4887,7 @@
     "/api/blogPosts.list": {
       "get": {
         "summary": "List blog posts",
-        "description": "Returns posts page by page, drafts included unless filtered out. Posts come newest-created first; with `status=published`, most recently published first; with `status=scheduled`, soonest to publish first. Page through with `page` and `limit` until you have `total_count` posts. Requires the blog read permission.",
+        "description": "Returns posts page by page, drafts included unless filtered out. Posts come by the date they are known by, newest first: their publication date (a scheduled post's date to come included), or for a draft its last edit; with `status=draft`, most recently edited first; with `status=published`, most recently published first; with `status=scheduled`, soonest to publish first. Page through with `page` and `limit` until you have `total_count` posts. Requires the blog read permission.",
         "operationId": "listBlogPosts",
         "tags": [
           "Blog"
@@ -5058,7 +5058,7 @@
     "/api/blogPosts.counts": {
       "get": {
         "summary": "Count blog posts",
-        "description": "Counts the posts that are not deleted: in total, published (a post dated in the future included), scheduled (dated in the future) and draft. With `category_id`, these four follow that category, while `all_total` and `by_category` still cover every post. Requires the blog read permission.",
+        "description": "Counts the posts that are not deleted: in total, published (a post dated in the future included), scheduled (dated in the future) and draft. With `category_id`, these four follow that category, while `all_total` and `by_category` still cover every post. With `search`, the four follow the posts whose title contains it, as `blogPosts.list` filters them. Requires the blog read permission.",
         "operationId": "countBlogPosts",
         "tags": [
           "Blog"
@@ -5089,6 +5089,17 @@
             },
             "description": "Count the posts of this category only.",
             "example": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Count only the posts whose title contains this text, case-insensitively, as `blogPosts.list` searches.",
+            "example": "launch"
           }
         ],
         "responses": {
@@ -11112,7 +11123,7 @@
       },
       "CompileTemplateRequest": {
         "type": "object",
-        "description": "Provide `visual_editor_tree` for a visual-mode template, or `mjml_source` for a code-mode one.",
+        "description": "Provide `visual_editor_tree` for a visual-mode template, or `mjml_source` for a code-mode one; neither is needed with `subject_only`.",
         "required": [
           "workspace_id",
           "message_id"
@@ -11156,6 +11167,11 @@
             "type": "boolean",
             "default": false,
             "description": "When true, Liquid is not rendered: the body, `subject`, `subject_preview` and `text` are returned with their Liquid tags as written."
+          },
+          "subject_only": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, only `subject` and `subject_preview` are rendered and returned: the body is neither required nor compiled, and the response carries no `mjml`, `html` or `text`."
           },
           "test_data": {
             "type": "object",
@@ -13442,6 +13458,10 @@
               },
               "error_message": {
                 "type": "string"
+              },
+              "cancelled": {
+                "type": "boolean",
+                "description": "True when the run was stopped through backfillCancel; it then reads as failed, with this flag to tell it from a run that broke."
               }
             }
           }

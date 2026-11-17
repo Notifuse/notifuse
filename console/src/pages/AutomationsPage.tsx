@@ -10,7 +10,7 @@ import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { automationApi, type Automation } from '../services/api/automation'
 import { listsApi } from '../services/api/list'
 import { listSegments } from '../services/api/segment'
-import { templatesApi } from '../services/api/template'
+import { emailTemplatesQuery } from '../services/api/sharedQueries'
 import type { AutomationsSearch, AutomationStatusFilter } from '../router'
 import { AutomationsTable } from '../components/automations/list/AutomationsTable'
 import { automationsCountLabel } from '../components/automations/list/countLabel'
@@ -111,8 +111,7 @@ export function AutomationsPage() {
   // filter here would leave a non-marketing template (a welcome email) unnamed on the canvas.
   // Without Templates read it answers 403: the canvas then names templates by ID.
   const templatesQuery = useQuery({
-    queryKey: ['templates', workspaceId, 'email'],
-    queryFn: () => templatesApi.list({ workspace_id: workspaceId, channel: 'email' }),
+    ...emailTemplatesQuery(workspaceId),
     enabled: canReadTemplates
   })
   const lists = useMemo(() => listsQuery.data?.lists ?? [], [listsQuery.data])
@@ -244,7 +243,6 @@ export function AutomationsPage() {
                 <div className="w-64">
                   <Input
                     allowClear
-                    size="small"
                     aria-label={t`Search by name or trigger`}
                     placeholder={t`Search by name or trigger`}
                     prefix={<Search size={14} aria-hidden="true" />}

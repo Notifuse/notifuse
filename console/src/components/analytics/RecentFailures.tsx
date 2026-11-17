@@ -1,13 +1,14 @@
 import { useQueries } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Skeleton, Table } from 'antd'
-import { CircleCheck } from 'lucide-react'
+import { CircleCheck, Inbox } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { Panel, Pill, type PillTone } from '../layout'
 import { listMessages, type MessageListParams } from '../../services/api/messages_history'
 import { LOGS_TAB } from '../logs/logsUrl'
 import { BlockError } from './BlockError'
 import { DASHBOARD_REFRESH_MS } from './dashboardClient'
+import type { SendState } from './dashboardSendState'
 import { formatEventTime } from './dashboardFormat'
 import { openableRow } from './dashboardTable'
 import {
@@ -21,6 +22,11 @@ import {
 interface RecentFailuresProps {
   workspaceId: string
   timezone: string
+  /**
+   * Before the first send there is nothing to list, and a green « No failure » would read as a
+   * result: the card says what will show instead, and asks nothing. `counted` by default.
+   */
+  sendState?: SendState
 }
 
 const LISTS: { list: keyof FailureLists; params: MessageListParams }[] = [
@@ -36,7 +42,7 @@ const TONE: Record<FailureKind, PillTone> = {
 }
 
 /** The five latest complaints, bounces and failures, whatever sent them. */
-export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
+export function RecentFailures({ workspaceId, timezone, sendState = 'counted' }: RecentFailuresProps) {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
 
@@ -44,7 +50,8 @@ export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
     queries: LISTS.map(({ list, params }) => ({
       queryKey: ['dashboard', 'failures', workspaceId, list],
       queryFn: () => listMessages(workspaceId, { ...params, limit: RECENT_FAILURES_LIMIT }),
-      refetchInterval: DASHBOARD_REFRESH_MS
+      refetchInterval: DASHBOARD_REFRESH_MS,
+      enabled: sendState === 'counted' || sendState === 'today'
     }))
   })
 
@@ -93,7 +100,23 @@ export function RecentFailures({ workspaceId, timezone }: RecentFailuresProps) {
   )
 
   let body
-  if (failed) {
+  // Before isLoading: a query that is not enabled is not loading.
+  if (sendState === 'never') {
+    body = (
+      <div className="flex items-start gap-2.5 px-3.5 py-4 text-sm text-ink-2">
+        <span aria-hidden="true" className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-fill text-ink-3">
+          <Inbox size={14} />
+        </span>
+        <span>{t`Nothing has been sent yet. Bounces, complaints and failures will show here.`}</span>
+      </div>
+    )
+  } else if (sendState === 'loading') {
+    body = (
+      <div className="px-3.5 py-3">
+        <Skeleton active paragraph={{ rows: 3 }} title={false} />
+      </div>
+    )
+  } else if (failed) {
     body = (
       <BlockError
         error={failed.error}

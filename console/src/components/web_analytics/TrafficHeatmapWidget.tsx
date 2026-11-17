@@ -4,6 +4,7 @@ import { Empty, Spin } from 'antd'
 import { i18n } from '@lingui/core'
 import { useLingui } from '@lingui/react/macro'
 import { useWebAnalytics } from './useWebAnalytics'
+import { Panel } from '../layout'
 import { WidgetTabs } from './WidgetTabs'
 import { hourLabels, weekdayLabel } from './lib/dictionaries'
 import { formatValue, toNumber } from './lib/format'
@@ -11,7 +12,7 @@ import { mergeWidgetFilters } from './lib/dimensions'
 import { getTimescoreCellColor } from './lib/heatmap'
 import { buildWebQuery, readMeasure, useWebQuery } from './lib/query'
 import { PRIMARY_COLOR, WebDimensionFilter } from './lib/types'
-import { alpha, colors } from '../../theme/tokens'
+import { alpha, colors, typography } from '../../theme/tokens'
 
 export interface HeatmapTab {
   key: string
@@ -131,9 +132,9 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
       tooltip: {
         trigger: 'item',
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderColor: '#e5e7eb',
+        borderColor: colors.line,
         borderWidth: 1,
-        textStyle: { color: '#374151', fontSize: 12 },
+        textStyle: { color: colors.ink2, fontSize: typography.size.xs },
         formatter: (params: TooltipParams) => {
           const cell = coordinates(params)
           if (!cell) return ''
@@ -148,8 +149,8 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
         type: 'category',
         data: hours,
         splitArea: { show: true },
-        axisLine: { lineStyle: { color: '#e5e7eb' } },
-        axisLabel: { color: '#6b7280', fontSize: 10, interval: 2 }
+        axisLine: { lineStyle: { color: colors.line } },
+        axisLabel: { color: colors.ink3, fontSize: typography.size.overline, interval: 2 }
       },
       yAxis: {
         type: 'category',
@@ -158,8 +159,8 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
         // upside down.
         inverse: true,
         splitArea: { show: true },
-        axisLine: { lineStyle: { color: '#e5e7eb' } },
-        axisLabel: { color: '#6b7280', fontSize: 10 }
+        axisLine: { lineStyle: { color: colors.line } },
+        axisLabel: { color: colors.ink3, fontSize: typography.size.overline }
       },
       visualMap: perCellColor
         ? { show: false }
@@ -169,7 +170,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
             show: false,
             inRange: {
               color: [
-                '#f5f5f5',
+                colors.fill,
                 ...[0.2, 0.4, 0.6, 0.8, 1].map((opacity) => alpha(colors.primary[500], opacity))
               ]
             }
@@ -211,11 +212,7 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
   const hasData = (rows?.length ?? 0) > 0
 
   return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-4 pt-4 pb-4">
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-      </div>
-
+    <Panel title={title} flush>
       <WidgetTabs tabs={tabs} activeKey={activeTab.key} onChange={selectTab} />
 
       {isLoading && !hasData ? (
@@ -237,6 +234,6 @@ export function TrafficHeatmapWidget(props: TrafficHeatmapWidgetProps): ReactNod
           notMerge
         />
       )}
-    </div>
+    </Panel>
   )
 }

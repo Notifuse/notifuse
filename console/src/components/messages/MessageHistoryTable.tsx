@@ -434,7 +434,6 @@ export function MessageHistoryTable({
           <Tooltip title={t`Refresh`}>
             <Button
               type="text"
-              size="small"
               icon={<FontAwesomeIcon icon={faRefresh} />}
               onClick={onRefresh}
               className="opacity-70 hover:opacity-100"
