@@ -823,7 +823,7 @@ msgstr "{email}, el per defecte del proveïdor"
 msgid "{email}, the template's, on {providerName}"
 msgstr "{email}, el de la plantilla, a {providerName}"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:407
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:418
 msgid "{enabled} enabled · {disabled} disabled"
 msgstr "{enabled} activades · {disabled} desactivades"
 
@@ -3326,7 +3326,7 @@ msgid "Attempts"
 msgstr "Intents"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:170
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:415
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
 #: src/components/web_analytics/tabs/FiltersTab.tsx:137
 msgid "Attribution rules"
 msgstr "Regles d'atribució"
@@ -5088,8 +5088,8 @@ msgstr "Esborra la selecció"
 msgid "Clear value"
 msgstr "Esborrar valor"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:431
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:437
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:442
 msgid "Clear visit"
 msgstr "Esborrar la visita"
 
@@ -8542,7 +8542,7 @@ msgstr "Edita l'article"
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
 #: src/components/web_analytics/filters/FilterTable.tsx:368
 #: src/components/web_analytics/filters/FilterTable.tsx:372
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:415
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
 msgid "Edit rule"
 msgstr "Editar regla"
 
@@ -10553,7 +10553,7 @@ msgstr "Configuració d'emmagatzematge de fitxers"
 msgid "Fill fields"
 msgstr "Emplenar els camps"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:394
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:396
 msgid "Fill in the fields of a hypothetical visit; empty fields count as empty values."
 msgstr "Empleneu els camps d'una visita hipotètica; els camps buits compten com a valors buits."
 
@@ -18505,6 +18505,10 @@ msgstr "Resubscrit"
 msgid "Resubscribed to {list}"
 msgstr "Tornat a subscriure a {list}"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:402
+msgid "Result"
+msgstr "Resultat"
+
 #: src/components/web_analytics/filters/TestFilterModal.tsx:189
 #~ msgid "Result value"
 #~ msgstr "Valor del resultat"
@@ -21977,8 +21981,8 @@ msgstr "Termes"
 msgid "Test"
 msgstr "Provar"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:406
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:421
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:417
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test all rules"
 msgstr "Provar totes les regles"
 
@@ -22060,8 +22064,8 @@ msgstr "Proveu en diferents clients de correu ja que el suport varia"
 msgid "Test Recipient Feed"
 msgstr "Provar el feed de destinatari"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:401
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:421
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:412
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test rule"
 msgstr "Provar la regla"
 
@@ -24287,6 +24291,10 @@ msgstr "Actualitzat {updatedAgo}"
 #: src/components/blog/PostsTable.tsx:268
 msgid "Updated {updatedAt} in {timezone}"
 msgstr "Actualitzat {updatedAt} ({timezone})"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:404
+msgid "Updated as you type"
+msgstr "S'actualitza mentre escrius"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:297
 #: src/components/segment/segmentSummary.ts:51

@@ -264,11 +264,17 @@ describe('TestFilterPanel, one rule', () => {
     expect(await within(dialog).findByText('This visit: partner')).toBeInTheDocument()
     const [condition] = dialog.querySelectorAll<HTMLElement>('[data-condition-result]')
     expect(within(condition).getByText('No match')).toBeInTheDocument()
+    // One rule has its result where the all-rules tester puts its counters, so both columns start level.
+    expect(within(dialog.querySelector<HTMLElement>('[data-single-result]')!).getByText('No match')).toBeInTheDocument()
     expect(within(dialog).queryByText('Values written')).toBeNull()
 
     type(field(dialog, 'UTM Source', 'utm_source'), 'newsletter')
     expect(await within(dialog).findByText('Values written')).toBeInTheDocument()
-    expect(within(dialog).getAllByText('Matches')).toHaveLength(2)
+    // The result row facing the hint, the Conditions header and the condition itself.
+    expect(within(dialog).getAllByText('Matches')).toHaveLength(3)
+    const resultRow = dialog.querySelector<HTMLElement>('[data-single-result]')!
+    expect(within(resultRow).getByText('Result')).toBeInTheDocument()
+    expect(within(resultRow).getByText('Matches')).toBeInTheDocument()
     expect(within(dialog).getByText('Values written')).toBeInTheDocument()
     expect(within(dialog).getByText('Email')).toBeInTheDocument()
 

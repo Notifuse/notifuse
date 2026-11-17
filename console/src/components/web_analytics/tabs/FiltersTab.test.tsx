@@ -352,7 +352,8 @@ describe('FiltersTab', () => {
 
     fireEvent.change(source, { target: { value: 'newsletter' } })
     expect(await within(tester).findByText('Values written')).toBeInTheDocument()
-    expect(within(tester).getAllByText('Matches')).toHaveLength(2)
+    // The result row, the Conditions header and the condition.
+    expect(within(tester).getAllByText('Matches')).toHaveLength(3)
     expect(within(tester).getByText('Email')).toBeInTheDocument()
     expect(within(tester).getByText('Set value')).toBeInTheDocument()
   })

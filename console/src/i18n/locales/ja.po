@@ -823,7 +823,7 @@ msgstr "{email}（プロバイダーのデフォルト）"
 msgid "{email}, the template's, on {providerName}"
 msgstr "{email}（テンプレートの送信者、{providerName} 経由）"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:407
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:418
 msgid "{enabled} enabled · {disabled} disabled"
 msgstr "有効 {enabled} 件 · 無効 {disabled} 件"
 
@@ -3326,7 +3326,7 @@ msgid "Attempts"
 msgstr "試行回数"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:170
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:415
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
 #: src/components/web_analytics/tabs/FiltersTab.tsx:137
 msgid "Attribution rules"
 msgstr "アトリビューションルール"
@@ -5088,8 +5088,8 @@ msgstr "選択を解除"
 msgid "Clear value"
 msgstr "値をクリア"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:431
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:437
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:442
 msgid "Clear visit"
 msgstr "訪問をクリア"
 
@@ -8542,7 +8542,7 @@ msgstr "記事を編集"
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
 #: src/components/web_analytics/filters/FilterTable.tsx:368
 #: src/components/web_analytics/filters/FilterTable.tsx:372
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:415
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
 msgid "Edit rule"
 msgstr "ルールを編集"
 
@@ -10553,7 +10553,7 @@ msgstr "ファイルストレージ設定"
 msgid "Fill fields"
 msgstr "フィールドに入力"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:394
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:396
 msgid "Fill in the fields of a hypothetical visit; empty fields count as empty values."
 msgstr "仮想的な訪問のフィールドを入力してください。空欄は空の値として扱われます。"
 
@@ -18505,6 +18505,10 @@ msgstr "再購読"
 msgid "Resubscribed to {list}"
 msgstr "{list} に再登録"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:402
+msgid "Result"
+msgstr "結果"
+
 #: src/components/web_analytics/filters/TestFilterModal.tsx:189
 #~ msgid "Result value"
 #~ msgstr "結果の値"
@@ -21977,8 +21981,8 @@ msgstr "キーワード"
 msgid "Test"
 msgstr "テスト"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:406
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:421
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:417
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test all rules"
 msgstr "すべてのルールをテスト"
 
@@ -22060,8 +22064,8 @@ msgstr "サポート状況は異なるため、様々なメールクライアン
 msgid "Test Recipient Feed"
 msgstr "受信者フィードをテスト"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:401
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:421
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:412
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test rule"
 msgstr "ルールをテスト"
 
@@ -24287,6 +24291,10 @@ msgstr "{updatedAgo}に更新"
 #: src/components/blog/PostsTable.tsx:268
 msgid "Updated {updatedAt} in {timezone}"
 msgstr "更新 {updatedAt}（{timezone}）"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:404
+msgid "Updated as you type"
+msgstr "入力に合わせて更新"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:297
 #: src/components/segment/segmentSummary.ts:51

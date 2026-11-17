@@ -389,11 +389,22 @@ function RuleTester(props: TestFilterPanelProps) {
     </Panel>
   )
 
+  // The hint faces the results' first row (the counters, or the single rule's result), at the
+  // same height, so both columns' cards start level.
   const hint = (
-    <p className="m-0 text-sm text-ink-3">
+    <p className="m-0 flex min-h-8 items-center text-sm text-ink-3">
       {t`Fill in the fields of a hypothetical visit; empty fields count as empty values.`}
     </p>
   )
+
+  const singleResultRow = single ? (
+    <div data-single-result className="flex min-h-8 items-center gap-2 text-sm">
+      <span className="font-medium text-ink-2">{t`Result`}</span>
+      <RuleOutcomePill outcome={singleOutcome} />
+      <span className="text-ink-3">{t`Updated as you type`}</span>
+    </div>
+  ) : null
+  const resultsHead = counters ?? singleResultRow
 
   const name = props.ruleName?.trim()
   const barTitle = single ? (
@@ -446,9 +457,9 @@ function RuleTester(props: TestFilterPanelProps) {
           data-test-results
           className="contents min-[1200px]:sticky min-[1200px]:top-16 min-[1200px]:flex min-[1200px]:max-h-[calc(100vh-5rem)] min-[1200px]:min-w-0 min-[1200px]:flex-1 min-[1200px]:flex-col min-[1200px]:gap-3 min-[1200px]:overflow-y-auto"
         >
-          {counters ? (
-            <div className="sticky top-12 z-1 order-1 -mx-5 bg-canvas px-5 py-2 min-[1200px]:static min-[1200px]:order-none min-[1200px]:m-0 min-[1200px]:p-0">
-              {counters}
+          {resultsHead ? (
+            <div className="sticky top-12 z-1 order-1 -mx-5 flex min-h-8 items-center bg-canvas px-5 py-2 min-[1200px]:static min-[1200px]:order-none min-[1200px]:m-0 min-[1200px]:p-0">
+              {resultsHead}
             </div>
           ) : null}
           <div className="order-3 flex min-w-0 flex-col gap-3 min-[1200px]:order-none">
