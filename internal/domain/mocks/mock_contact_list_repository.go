@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -138,18 +139,18 @@ func (mr *MockContactListRepositoryMockRecorder) GetListsByEmail(arg0, arg1, arg
 }
 
 // MarkContactListUnsubscribed mocks base method.
-func (m *MockContactListRepository) MarkContactListUnsubscribed(arg0 context.Context, arg1, arg2, arg3 string) (bool, error) {
+func (m *MockContactListRepository) MarkContactListUnsubscribed(arg0 context.Context, arg1, arg2, arg3 string, arg4 time.Time) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkContactListUnsubscribed", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "MarkContactListUnsubscribed", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // MarkContactListUnsubscribed indicates an expected call of MarkContactListUnsubscribed.
-func (mr *MockContactListRepositoryMockRecorder) MarkContactListUnsubscribed(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockContactListRepositoryMockRecorder) MarkContactListUnsubscribed(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkContactListUnsubscribed", reflect.TypeOf((*MockContactListRepository)(nil).MarkContactListUnsubscribed), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkContactListUnsubscribed", reflect.TypeOf((*MockContactListRepository)(nil).MarkContactListUnsubscribed), arg0, arg1, arg2, arg3, arg4)
 }
 
 // RemoveContactFromList mocks base method.

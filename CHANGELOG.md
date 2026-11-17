@@ -130,6 +130,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: An email event that the provider posts again, after a timeout or an error, is recorded once, so a soft bounce posted again counts once toward marking the contact bounced.
 
+- **Fix**: A hard bounce, an unsubscribe or a soft bounce that the provider posts again no longer changes a list subscription changed since Notifuse first received it, so a contact whose bounce was cleared, or who subscribed again, stays subscribed.
+
 - **Improvement**: The soft bounce threshold counts emails: an email the provider tries to deliver several times, as Mailgun reports each attempt, counts once.
 
 - **Fix**: Bounces and spam complaints sent by Postmark are applied; their webhook was refused. Auto-replies and the other reports that do not say the address cannot be reached (address change, spam notification, DMARC rejection…) do not count toward marking the contact bounced, and a block by a mailbox provider counts as a soft bounce.

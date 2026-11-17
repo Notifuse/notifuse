@@ -298,8 +298,9 @@ func (r *contactListRepository) UpdateContactListStatus(ctx context.Context, wor
 // MarkContactListUnsubscribed records an opt-out without the read-then-write that would
 // let a complaint saved in between be overwritten: the statement's own WHERE keeps a
 // bounce or complaint. It leaves deleted_at alone, so an unsubscribe link in an email sent
-// before a contact's removal doesn't add them back to the list.
-func (r *contactListRepository) MarkContactListUnsubscribed(ctx context.Context, workspaceID string, email, listID string) (bool, error) {
+// before a contact's removal doesn't add them back to the list. A non-zero unchangedSince
+// also keeps a row changed after it.
+func (r *contactListRepository) MarkContactListUnsubscribed(ctx context.Context, workspaceID string, email, listID string, unchangedSince time.Time) (bool, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return false, fmt.Errorf("failed to get workspace connection: %w", err)
@@ -310,9 +311,15 @@ func (r *contactListRepository) MarkContactListUnsubscribed(ctx context.Context,
 		SET status = 'unsubscribed', updated_at = $1
 		WHERE email = $2 AND list_id = $3
 		AND status NOT IN ('bounced', 'complained')
+		AND ($4::timestamptz IS NULL OR updated_at <= $4::timestamptz)
 	`
 
-	result, err := workspaceDB.ExecContext(ctx, query, time.Now().UTC(), email, listID)
+	var since interface{}
+	if !unchangedSince.IsZero() {
+		since = unchangedSince
+	}
+
+	result, err := workspaceDB.ExecContext(ctx, query, time.Now().UTC(), email, listID, since)
 	if err != nil {
 		return false, fmt.Errorf("failed to unsubscribe contact from list: %w", err)
 	}
