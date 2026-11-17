@@ -4869,3 +4869,66 @@ func TestCompileTemplate_OutputHasNoSentinels(t *testing.T) {
 		}
 	}
 }
+
+// TestCompileTemplateHeadingStyles compiles a visual editor tree as the console saves
+// it once a Text block holds a heading: the email's heading styles in an inline
+// mj-style the editor manages, whose first line is a comment holding their values.
+// Each heading gets the rules of its level inlined, its own style kept on top, and
+// the comment is not part of the email.
+func TestCompileTemplateHeadingStyles(t *testing.T) {
+	managed := "/* notifuse:headings {\"2\":{\"fontFamily\":\"Georgia, serif\",\"fontSize\":\"22px\"}} */\n" +
+		"h1 { font-family: Georgia, serif; font-size: 28px; font-weight: bold; line-height: 1.3; color: #222222; margin: 0px 0 8px }\n" +
+		"h2 { font-family: Georgia, serif; font-size: 22px; font-weight: bold; line-height: 1.3; color: #222222; margin: 0px 0 8px }"
+
+	compile := func(t *testing.T, headStyles []string, includeText bool) CompileTemplateResponse {
+		t.Helper()
+		styles := make([]string, 0, len(headStyles))
+		for i, css := range headStyles {
+			content, err := json.Marshal(css)
+			require.NoError(t, err)
+			styles = append(styles, `{"id":"style-`+string(rune('a'+i))+`","type":"mj-style","attributes":{"inline":"inline"},"content":`+string(content)+`}`)
+		}
+		raw := `{"id":"root","type":"mjml","children":[` +
+			`{"id":"head","type":"mj-head","children":[` + strings.Join(styles, ",") + `]},` +
+			`{"id":"body","type":"mj-body","children":[{"id":"s","type":"mj-section","children":[` +
+			`{"id":"c","type":"mj-column","children":[{"id":"t","type":"mj-text",` +
+			`"content":"<h2 style=\"text-align: center\">Title</h2><p>Body text</p>"}]}]}]}]}`
+		tree, err := UnmarshalEmailBlock([]byte(raw))
+		require.NoError(t, err)
+		resp, err := CompileTemplate(CompileTemplateRequest{
+			WorkspaceID:      "ws",
+			MessageID:        "msg",
+			VisualEditorTree: tree,
+			IncludeText:      includeText,
+		})
+		require.NoError(t, err)
+		require.True(t, resp.Success, "error: %v", resp.Error)
+		require.NotNil(t, resp.HTML)
+		return *resp
+	}
+
+	h2Style := func(t *testing.T, document string) string {
+		t.Helper()
+		match := regexp.MustCompile(`<h2 style="([^"]*)"`).FindStringSubmatch(document)
+		require.NotNil(t, match, "no styled h2 in %s", document)
+		return strings.ReplaceAll(match[1], " ", "")
+	}
+
+	t.Run("inlines the level's rules and keeps the heading's own style", func(t *testing.T) {
+		resp := compile(t, []string{managed}, true)
+		style := h2Style(t, *resp.HTML)
+		for _, declaration := range []string{"font-size:22px", "font-family:Georgia,serif", "color:#222222", "text-align:center"} {
+			assert.Contains(t, style, declaration)
+		}
+		assert.NotContains(t, *resp.HTML, "notifuse:headings")
+		require.NotNil(t, resp.Text)
+		assert.Contains(t, *resp.Text, "Title\n")
+	})
+
+	t.Run("lets a style of the template after the managed one win", func(t *testing.T) {
+		resp := compile(t, []string{managed, "h2 { font-size: 12px }"}, false)
+		style := h2Style(t, *resp.HTML)
+		assert.Contains(t, style, "font-size:12px")
+		assert.NotContains(t, style, "font-size:22px")
+	})
+}

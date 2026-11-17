@@ -20,6 +20,7 @@ import FontStyleInput from '../ui/FontStyleInput'
 import HeightInput from '../ui/HeightInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import { TiptapRichEditor } from '../ui/tiptap'
+import { findSkips, headingLevelBeforeBlock, headingOutline } from '../utils/headingOutline'
 
 // Functional component for settings panel with i18n support
 interface MjTextSettingsPanelProps {
@@ -397,8 +398,10 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
   selectedBlockId,
   onSelectBlock,
   onUpdateBlock,
-  attributeDefaults
+  attributeDefaults,
+  emailTree
 }) => {
+  const { t } = useLingui()
   const key = block.id
   const isSelected = selectedBlockId === block.id
   const blockClasses = `email-block-hover email-text-preview ${isSelected ? 'selected' : ''}`.trim()
@@ -458,6 +461,15 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     prevSelectedRef.current = isSelected
   }, [isSelected, handleSave])
 
+  // Headings of the whole email: the level above this block, and a skip in it
+  const { levelBefore, skip } = React.useMemo(() => {
+    if (!emailTree?.children) return { levelBefore: null, skip: undefined }
+    return {
+      levelBefore: headingLevelBeforeBlock(emailTree, block.id),
+      skip: findSkips(headingOutline(emailTree)).find((found) => found.heading.blockId === block.id)
+    }
+  }, [emailTree, block.id])
+
   // Only shown while the block is not open in its editor, which has its own copy
   const canvasHtml = React.useMemo(
     () => (isSelected ? '' : sanitizeHtml(localContent)),
@@ -473,6 +485,11 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
       data-block-id={block.id}
         data-display-condition={block.display_condition ? "true" : undefined}
     >
+      {skip && (
+        <span className="email-heading-skip-badge">
+          ⚠ {t`H${skip.heading.level} after H${skip.previousLevel}`}
+        </span>
+      )}
       {isSelected ? (
         <div
           style={{
@@ -488,6 +505,7 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
             onChange={handleContentChange}
             readOnly={!isSelected}
             autoFocus={isSelected}
+            headingLevelBeforeBlock={levelBefore}
           />
         </div>
       ) : (

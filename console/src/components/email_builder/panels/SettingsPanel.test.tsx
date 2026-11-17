@@ -111,4 +111,10 @@ describe('SettingsPanel display condition', () => {
     // the tree itself is untouched
     expect(find('spacer-1')?.display_condition).toEqual(vip)
   })
+
+  it('lets the default attributes panel edit the head, through onUpdateBlock', () => {
+    renderPanel('attrs')
+    // The Headings section only shows when it can write the head
+    expect(screen.getByRole('radio', { name: 'H1' })).toBeTruthy()
+  })
 })

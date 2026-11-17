@@ -26,6 +26,7 @@ import type {
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
+import { ensureHeadingStyles } from './utils/headingStyles'
 import { rebalanceAdded, rebalanceRemoved } from './utils/layoutRebalance'
 import { countHiddenBlocks, liquidPlacementError } from './displayCondition'
 
@@ -317,7 +318,11 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   // The history index of the last change, for the undo of an insertion from the library
   const lastHistoryIndex = useRef(0)
 
-  const updateTreeWithHistory = (updatedTree: EmailBlock) => {
+  const updateTreeWithHistory = (changedTree: EmailBlock) => {
+    // The first heading of a Text block brings the email's heading styles, in the
+    // same undo step as the edit that made it
+    const updatedTree = ensureHeadingStyles(tree, changedTree)
+
     // Add to history for undo/redo support
     const newHistory = state.history.slice(0, state.historyIndex + 1)
     newHistory.push(updatedTree)

@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { Editor } from '@tiptap/core'
 import type { Extensions } from '@tiptap/core'
 import { createInlineExtensions, createRichExtensions, isInsideLiquidMarkup } from './extensions'
+import { getEditorHTML } from './utils'
 
 const mounted: HTMLElement[] = []
 
@@ -172,5 +173,44 @@ describe('isInsideLiquidMarkup', () => {
     ['', false]
   ])('%j → %s', (textBefore, expected) => {
     expect(isInsideLiquidMarkup(textBefore)).toBe(expected)
+  })
+})
+
+describe('headings in the rich text editor', () => {
+  let editor: Editor | undefined
+
+  afterEach(() => {
+    editor?.destroy()
+    editor = undefined
+  })
+
+  it('turns "# " and "### " typed at the start of a line into headings', () => {
+    editor = mountEditor(createRichExtensions(), '<p></p>')
+    typeText(editor, '# One')
+    expect(getEditorHTML(editor)).toBe('<h1>One</h1>')
+    editor.destroy()
+    editor = mountEditor(createRichExtensions(), '<p></p>')
+    typeText(editor, '### Three')
+    expect(getEditorHTML(editor)).toBe('<h3>Three</h3>')
+  })
+
+  it('keeps the text style of a paragraph turned into a heading', () => {
+    editor = mountEditor(createRichExtensions(), '<p><span style="color: red">Title</span></p>')
+    editor.commands.setTextSelection(2)
+    editor.commands.setHeading({ level: 2 })
+    expect(getEditorHTML(editor)).toBe('<h2><span style="color: red">Title</span></h2>')
+  })
+
+  it('keeps a list item turned into a heading in its list', () => {
+    editor = mountEditor(createRichExtensions(), '<ul><li><p>item</p></li></ul>')
+    editor.commands.setTextSelection(4)
+    editor.commands.setHeading({ level: 2 })
+    // The empty paragraph is the trailing one Tiptap adds after a list ending the text
+    expect(getEditorHTML(editor)).toBe('<ul><li><h2>item</h2></li></ul><p></p>')
+  })
+
+  it('has no heading in the button editor', () => {
+    editor = mountEditor(createInlineExtensions(), '<span data-inline-doc="">x</span>')
+    expect(editor.schema.nodes.heading).toBeUndefined()
   })
 })

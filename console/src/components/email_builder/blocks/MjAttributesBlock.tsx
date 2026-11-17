@@ -1,19 +1,22 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import type { MJMLComponentType } from '../types'
-import { BaseEmailBlock } from './BaseEmailBlock'
+import type { EmailBlock, MJMLComponentType, MergedBlockAttributes } from '../types'
+import { BaseEmailBlock, type OnUpdateAttributesFunction } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import PanelLayout from '../panels/PanelLayout'
+import HeadingStylesInput from '../ui/HeadingStylesInput'
 
 // Functional component for settings panel with i18n support
-const MjAttributesSettingsPanel: React.FC = () => {
+const MjAttributesSettingsPanel: React.FC<{
+  emailTree?: EmailBlock
+  onUpdateBlock?: (blockId: string, block: EmailBlock) => void
+}> = ({ emailTree, onUpdateBlock }) => {
   const { t } = useLingui()
 
   return (
     <PanelLayout title={t`Default attributes`}>
+      <HeadingStylesInput emailTree={emailTree} onUpdateBlock={onUpdateBlock} />
       <div className="text-sm text-gray-500 text-center py-8">
-        {t`No settings available for the attributes container.`}
-        <br />
         {t`Add child elements for specific components (mj-text, mj-button, etc.) to set their default values.`}
       </div>
     </PanelLayout>
@@ -61,8 +64,13 @@ export class MjAttributesBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the attributes block
    */
-  renderSettingsPanel(): React.ReactNode {
-    return <MjAttributesSettingsPanel />
+  renderSettingsPanel(
+    _onUpdate: OnUpdateAttributesFunction,
+    _defaults: MergedBlockAttributes,
+    emailTree?: EmailBlock,
+    onUpdateBlock?: (blockId: string, block: EmailBlock) => void
+  ): React.ReactNode {
+    return <MjAttributesSettingsPanel emailTree={emailTree} onUpdateBlock={onUpdateBlock} />
   }
 
   getEdit(): React.ReactNode {

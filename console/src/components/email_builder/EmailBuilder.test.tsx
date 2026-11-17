@@ -861,3 +861,63 @@ describe('EmailBuilder library', () => {
     })
   })
 })
+
+describe('EmailBuilder heading styles', () => {
+  let latestTree: EmailBlock
+  const Controlled = ({ initial }: { initial: EmailBlock }) => {
+    const [tree, setTree] = useState(initial)
+    React.useEffect(() => {
+      latestTree = tree
+    })
+    return <EmailBuilder {...props(tree, vi.fn(), null)} onTreeChange={setTree} />
+  }
+  const treeWithText = (content: string) =>
+    ({
+      id: 'root',
+      type: 'mjml',
+      children: [
+        { id: 'head', type: 'mj-head', children: [] },
+        {
+          id: 'body',
+          type: 'mj-body',
+          attributes: {},
+          children: [{ id: 'text-1', type: 'mj-text', attributes: {}, content }]
+        }
+      ]
+    }) as unknown as EmailBlock
+  const update = (changes: Record<string, unknown>) => {
+    const text = EmailBlockClass.findBlockById(latestTree, 'text-1')!
+    act(() =>
+      (mockEditPanelProps.onUpdateBlock as (id: string, block: EmailBlock) => void)('text-1', {
+        ...text,
+        ...changes
+      } as EmailBlock)
+    )
+  }
+  const managedStyles = () =>
+    (EmailBlockClass.findBlockById(latestTree, 'head')?.children ?? []).filter((child) =>
+      ((child as { content?: string }).content ?? '').startsWith('/* notifuse:headings')
+    )
+
+  it('adds the heading styles with the first heading, in the same undo step', () => {
+    render(<Controlled initial={treeWithText('<p>Title</p>')} />)
+    update({ content: '<h2>Title</h2>' })
+    expect(managedStyles()).toHaveLength(1)
+
+    fireEvent.click(screen.getByTitle('Undo').closest('button')!)
+    expect((EmailBlockClass.findBlockById(latestTree, 'text-1') as { content?: string }).content).toBe('<p>Title</p>')
+    expect(managedStyles()).toHaveLength(0)
+  })
+
+  it('adds nothing to an email without headings', () => {
+    render(<Controlled initial={treeWithText('<p>Title</p>')} />)
+    update({ content: '<p>Other</p>' })
+    expect(managedStyles()).toHaveLength(0)
+  })
+
+  it('adds nothing to an email that already had headings, on an unrelated edit', () => {
+    render(<Controlled initial={treeWithText('<h1>Title</h1>')} />)
+    update({ attributes: { paddingTop: '20px' } })
+    expect(managedStyles()).toHaveLength(0)
+  })
+})
