@@ -7,12 +7,14 @@ import { I18nProvider } from '@lingui/react'
 import type { ReactNode } from 'react'
 import type { Contact } from '../../services/api/contacts'
 
-const { list, navigate, openDrawer } = vi.hoisted(() => ({
+const { list, navigate, openDrawer, listLists } = vi.hoisted(() => ({
   list: vi.fn(),
   navigate: vi.fn(),
-  openDrawer: vi.fn()
+  openDrawer: vi.fn(),
+  listLists: vi.fn()
 }))
 vi.mock('../../services/api/contacts', () => ({ contactsApi: { list } }))
+vi.mock('../../services/api/list', () => ({ listsApi: { list: listLists } }))
 vi.mock('../contacts/ContactsCsvUploadProvider', () => ({
   useContactsCsvUpload: () => ({ openDrawer })
 }))
@@ -37,11 +39,15 @@ const contact = (email: string, extra: Partial<Contact> = {}): Contact =>
     ...extra
   }) as Contact
 
-const renderCard = (canImport = true, client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
+const renderCard = (
+  canImport = true,
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  extra: { canReadLists?: boolean; ownerEmails?: Set<string> } = {}
+) =>
   render(
     <QueryClientProvider client={client}>
       <I18nProvider i18n={i18n}>
-        <NewContactsTable workspaceId="ws1" canImport={canImport} />
+        <NewContactsTable workspaceId="ws1" canImport={canImport} {...extra} />
       </I18nProvider>
     </QueryClientProvider>
   )
@@ -50,6 +56,7 @@ beforeEach(() => {
   list.mockReset()
   navigate.mockReset()
   openDrawer.mockReset()
+  listLists.mockReset()
 })
 
 describe('NewContactsTable', () => {
@@ -109,7 +116,7 @@ describe('NewContactsTable', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Import contacts' }))
     expect(screen.getByText('No contact yet')).toBeInTheDocument()
-    expect(openDrawer).toHaveBeenCalledWith('ws1')
+    expect(openDrawer).toHaveBeenCalledWith('ws1', [], true)
   })
 
   it('shows no import button to a member who cannot write contacts', async () => {
@@ -118,5 +125,40 @@ describe('NewContactsTable', () => {
 
     expect(await screen.findByText('No contact yet')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Import contacts' })).not.toBeInTheDocument()
+  })
+
+  describe('when the owner is the only contact', () => {
+    const owners = new Set(['root@acme.com'])
+
+    it('says so and offers the import, which opens with the lists', async () => {
+      list.mockResolvedValue({ contacts: [contact('Root@Acme.com')] })
+      const newsletter = { id: 'news', name: 'Newsletter' }
+      listLists.mockResolvedValue({ lists: [newsletter] })
+      renderCard(true, undefined, { ownerEmails: owners, canReadLists: true })
+
+      expect(await screen.findByText(/^Only you so far/)).toBeInTheDocument()
+      expect(screen.getByText('Root@Acme.com')).toBeInTheDocument()
+      const button = await screen.findByRole('button', { name: 'Import contacts' })
+      await waitFor(() => expect(button).not.toHaveClass('ant-btn-loading'))
+      fireEvent.click(button)
+      expect(listLists).toHaveBeenCalledWith({ workspace_id: 'ws1' })
+      expect(openDrawer).toHaveBeenCalledWith('ws1', [newsletter], true)
+    })
+
+    it('lists a contact who is not the owner as usual', async () => {
+      list.mockResolvedValue({ contacts: [contact('jane@example.com')] })
+      renderCard(true, undefined, { ownerEmails: owners })
+      expect(await screen.findByText('jane@example.com')).toBeInTheDocument()
+      expect(screen.queryByText(/Only you so far/)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Import contacts' })).not.toBeInTheDocument()
+    })
+
+    it('offers no import to a member who cannot write contacts', async () => {
+      list.mockResolvedValue({ contacts: [contact('root@acme.com')] })
+      renderCard(false, undefined, { ownerEmails: owners })
+      expect(await screen.findByText(/Only you so far/)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Import contacts' })).not.toBeInTheDocument()
+      expect(listLists).not.toHaveBeenCalled()
+    })
   })
 })

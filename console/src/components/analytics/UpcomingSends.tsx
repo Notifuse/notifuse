@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Button, Empty, Skeleton } from 'antd'
+import { Button, Skeleton } from 'antd'
+import { CalendarClock } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import { Panel } from '../layout'
@@ -19,6 +20,10 @@ interface UpcomingSendsProps {
   canReadLists: boolean
   /** Shows the « New broadcast » button of the empty card. */
   canCreate: boolean
+  /** Marketing emails have a provider that can send; without one the empty card says so. */
+  marketingReady?: boolean
+  /** Shows the « Configure » link to the integrations settings. */
+  canConfigure?: boolean
 }
 
 const UPCOMING_LIMIT = 5
@@ -26,7 +31,14 @@ const UPCOMING_LIMIT = 5
 const SCHEDULED_FETCH_LIMIT = 100
 
 /** The next five scheduled broadcasts, soonest first. */
-export function UpcomingSends({ workspaceId, timezone, canReadLists, canCreate }: UpcomingSendsProps) {
+export function UpcomingSends({
+  workspaceId,
+  timezone,
+  canReadLists,
+  canCreate,
+  marketingReady = true,
+  canConfigure = false
+}: UpcomingSendsProps) {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
 
@@ -93,14 +105,39 @@ export function UpcomingSends({ workspaceId, timezone, canReadLists, canCreate }
     )
   } else if (shown.length === 0) {
     body = (
-      <div className="py-4">
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No broadcast scheduled`}>
-          {canCreate ? (
-            <Link to="/console/workspace/$workspaceId/broadcasts" params={{ workspaceId }}>
-              <Button size="small">{t`New broadcast`}</Button>
-            </Link>
+      <div className="flex items-start gap-2.5 px-3.5 py-4 text-sm text-ink-2">
+        <span aria-hidden="true" className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-fill text-ink-3">
+          <CalendarClock size={14} />
+        </span>
+        <div className="flex min-w-0 flex-col gap-2">
+          <span>{t`Scheduled broadcasts will show here.`}</span>
+          {canCreate || (!marketingReady && canConfigure) ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {canCreate ? (
+                // The Broadcasts page opens its composer on compose=new.
+                <Link to="/console/workspace/$workspaceId/broadcasts" params={{ workspaceId }} search={{ compose: 'new' }}>
+                  <Button size="small">{t`New broadcast`}</Button>
+                </Link>
+              ) : null}
+              {!marketingReady ? (
+                <span className="text-xs text-ink-3">
+                  {t`Sending it needs an email provider`}
+                  {canConfigure ? (
+                    <>
+                      {' · '}
+                      <Link
+                        to="/console/workspace/$workspaceId/settings/$section"
+                        params={{ workspaceId, section: 'integrations' }}
+                      >
+                        {t`Configure`}
+                      </Link>
+                    </>
+                  ) : null}
+                </span>
+              ) : null}
+            </div>
           ) : null}
-        </Empty>
+        </div>
       </div>
     )
   } else {

@@ -27,7 +27,7 @@ import {
   type AuditLog,
   type AuditScope
 } from '../../services/api/audit_log'
-import { workspaceService } from '../../services/api/workspace'
+import { membersQuery as workspaceMembersQuery } from '../../services/api/workspaceQueries'
 import { LicenceGateNotice } from '../license/LicenceGateNotice'
 import { Mono, Panel, Pill, TableToolbar, useNumberFormat } from '../layout'
 import { AuditActor } from './AuditActor'
@@ -115,8 +115,7 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
   // A4: the members and API keys, for the Actor choices. A member's access already loads it under
   // this key; a root, whose access skips it, loads it here in workspace view.
   const membersQuery = useQuery({
-    queryKey: ['workspace-members', workspaceId, user?.id],
-    queryFn: () => workspaceService.getMembers(workspaceId),
+    ...workspaceMembersQuery(workspaceId, user?.id),
     enabled: scope === 'workspace',
     staleTime: 60_000
   })

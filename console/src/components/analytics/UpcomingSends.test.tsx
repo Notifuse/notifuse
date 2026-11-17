@@ -22,8 +22,22 @@ vi.mock('./dashboardClient', () => ({
 }))
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigate,
-  Link: ({ search, children }: { search?: Record<string, string>; children: ReactNode }) => (
-    <a href={`/broadcasts${search ? `?${new URLSearchParams(search).toString()}` : ''}`}>{children}</a>
+  Link: ({
+    search,
+    params,
+    children
+  }: {
+    search?: Record<string, string>
+    params?: Record<string, string>
+    children: ReactNode
+  }) => (
+    <a
+      href={`${params?.section ? `/settings/${params.section}` : '/broadcasts'}${
+        search ? `?${new URLSearchParams(search).toString()}` : ''
+      }`}
+    >
+      {children}
+    </a>
   )
 }))
 
@@ -46,7 +60,7 @@ const broadcast = (id: string, date: string, extra: Partial<Broadcast> = {}): Br
   }) as unknown as Broadcast
 
 const renderCard = (
-  props: { canReadLists?: boolean; canCreate?: boolean } = {},
+  props: { canReadLists?: boolean; canCreate?: boolean; marketingReady?: boolean; canConfigure?: boolean } = {},
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 ) =>
   render(
@@ -57,6 +71,8 @@ const renderCard = (
           timezone="Europe/Paris"
           canReadLists={props.canReadLists ?? true}
           canCreate={props.canCreate ?? true}
+          marketingReady={props.marketingReady}
+          canConfigure={props.canConfigure}
         />
       </I18nProvider>
     </QueryClientProvider>
@@ -177,8 +193,11 @@ describe('UpcomingSends', () => {
     listBroadcasts.mockResolvedValue({ broadcasts: [], total_count: 0 })
     renderCard()
 
-    expect(await screen.findByText('No broadcast scheduled')).toBeInTheDocument()
+    expect(await screen.findByText('Scheduled broadcasts will show here.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New broadcast' })).toBeInTheDocument()
+    // Straight to the composer, not to the list of broadcasts.
+    expect(screen.getByText('New broadcast').closest('a')).toHaveAttribute('href', '/broadcasts?compose=new')
+    expect(screen.queryByText(/needs an email provider/)).not.toBeInTheDocument()
     await waitFor(() => expect(listLists).not.toHaveBeenCalled())
   })
 
@@ -186,7 +205,23 @@ describe('UpcomingSends', () => {
     listBroadcasts.mockResolvedValue({ broadcasts: [], total_count: 0 })
     renderCard({ canCreate: false })
 
-    expect(await screen.findByText('No broadcast scheduled')).toBeInTheDocument()
+    expect(await screen.findByText('Scheduled broadcasts will show here.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'New broadcast' })).not.toBeInTheDocument()
+  })
+
+  it('says a broadcast needs an email provider, with a link to configure one', async () => {
+    listBroadcasts.mockResolvedValue({ broadcasts: [], total_count: 0 })
+    renderCard({ marketingReady: false, canConfigure: true })
+
+    expect(await screen.findByText(/^Sending it needs an email provider/)).toBeInTheDocument()
+    expect(screen.getByText('Configure').closest('a')).toHaveAttribute('href', '/settings/integrations')
+  })
+
+  it('offers no configure link to a member who is not an owner', async () => {
+    listBroadcasts.mockResolvedValue({ broadcasts: [], total_count: 0 })
+    renderCard({ marketingReady: false, canConfigure: false })
+
+    expect(await screen.findByText('Sending it needs an email provider')).toBeInTheDocument()
+    expect(screen.queryByText('Configure')).not.toBeInTheDocument()
   })
 })

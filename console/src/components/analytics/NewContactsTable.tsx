@@ -1,22 +1,31 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Button, Empty, Skeleton, Table } from 'antd'
+import { Empty, Skeleton, Table } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Panel } from '../layout'
-import { contactsApi, type Contact } from '../../services/api/contacts'
-import { useContactsCsvUpload } from '../contacts/ContactsCsvUploadProvider'
+import type { Contact } from '../../services/api/contacts'
 import { BlockError } from './BlockError'
 import { DASHBOARD_REFRESH_MS } from './dashboardClient'
+import { latestContactsQuery } from './dashboardQueries'
 import { formatAge } from './dashboardFormat'
 import { openableRow } from './dashboardTable'
+import { hasOnlyOwnerContact } from './getStartedModel'
+import { ImportContactsAction } from './ImportContactsAction'
 
 interface NewContactsTableProps {
   workspaceId: string
   /** Shows the import button of the empty card. */
   canImport: boolean
+  /** Offers the workspace's lists in the import. */
+  canReadLists?: boolean
+  /**
+   * The owner's emails, lower-cased: a workspace starts with its creator as its only contact, and a
+   * card listing only them is as empty as one with none, so it offers the import too.
+   */
+  ownerEmails?: Set<string>
 }
 
-const NEW_CONTACTS_LIMIT = 5
+const NO_OWNERS = new Set<string>()
 
 function contactName(contact: Contact): string {
   const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim()
@@ -24,19 +33,17 @@ function contactName(contact: Contact): string {
 }
 
 /** The five latest contacts, newest first as contacts.list returns them. */
-export function NewContactsTable({ workspaceId, canImport }: NewContactsTableProps) {
+export function NewContactsTable({
+  workspaceId,
+  canImport,
+  canReadLists = false,
+  ownerEmails = NO_OWNERS
+}: NewContactsTableProps) {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
-  const { openDrawer } = useContactsCsvUpload()
 
   const contacts = useQuery({
-    // Under ['contacts', ws], which the CSV import invalidates when it finishes.
-    queryKey: ['contacts', workspaceId, 'dashboard-latest'],
-    queryFn: () =>
-      contactsApi.list({
-        workspace_id: workspaceId,
-        limit: NEW_CONTACTS_LIMIT
-      }),
+    ...latestContactsQuery(workspaceId),
     refetchInterval: DASHBOARD_REFRESH_MS
   })
 
@@ -56,6 +63,11 @@ export function NewContactsTable({ workspaceId, canImport }: NewContactsTablePro
 
   const rows = contacts.data?.contacts ?? []
   const now = new Date()
+  const importButton = canImport ? (
+    <ImportContactsAction workspaceId={workspaceId} canReadLists={canReadLists}>
+      {t`Import contacts`}
+    </ImportContactsAction>
+  ) : null
   let body
   if (contacts.isError && !contacts.data) {
     body = <BlockError error={contacts.error} onRetry={() => void contacts.refetch()} />
@@ -69,16 +81,14 @@ export function NewContactsTable({ workspaceId, canImport }: NewContactsTablePro
     body = (
       <div className="py-4">
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t`No contact yet`}>
-          {canImport ? (
-            <Button size="small" onClick={() => openDrawer(workspaceId)}>
-              {t`Import contacts`}
-            </Button>
-          ) : null}
+          {importButton}
         </Empty>
       </div>
     )
   } else {
+    const ownerOnly = hasOnlyOwnerContact(rows, ownerEmails)
     body = (
+      <>
       <Table<Contact>
         size="small"
         showHeader={false}
@@ -108,6 +118,15 @@ export function NewContactsTable({ workspaceId, canImport }: NewContactsTablePro
           }
         ]}
       />
+      {ownerOnly ? (
+        <div className="flex flex-col gap-2 border-t border-line-soft bg-subtle px-3.5 py-2.5">
+          <span className="text-sm text-ink-2">
+            {t`Only you so far. Import a CSV, or add contacts from your app through the API.`}
+          </span>
+          {importButton ? <div>{importButton}</div> : null}
+        </div>
+      ) : null}
+      </>
     )
   }
 

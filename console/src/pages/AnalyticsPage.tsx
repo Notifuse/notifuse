@@ -11,6 +11,12 @@ import { NewContactsTable } from '../components/analytics/NewContactsTable'
 import { SendingCard } from '../components/analytics/SendingCard'
 import { UpcomingSends } from '../components/analytics/UpcomingSends'
 import { useOriginSeries } from '../components/analytics/useOriginSeries'
+import { useLatestMessage } from '../components/analytics/useLatestMessage'
+import { GetStartedChecklist } from '../components/analytics/GetStartedChecklist'
+import { ButtonLink } from '../components/analytics/ButtonLink'
+import { sendStateOf } from '../components/analytics/dashboardSendState'
+import { ownerEmails, roleReady } from '../components/analytics/getStartedModel'
+import { MESSAGE_ORIGINS } from '../components/analytics/dashboardKpisModel'
 import { resolveDashboardPeriods } from '../components/analytics/dashboardPeriods'
 import {
   dashboardMetric,
@@ -21,6 +27,7 @@ import {
 } from '../components/analytics/dashboardSearch'
 import { canReadDashboard, dashboardFallback } from '../layouts/app-shell/menuItems'
 import type { UserPermissions } from '../services/api/types'
+import { parseRootEmails } from '../services/api/auth'
 
 /** Changes once a minute, so the periods move to the next day at midnight on an open tab. */
 function useMinuteTick(): number {
@@ -58,8 +65,8 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
   // Mounted on the workspace index and on /analytics: both validate the same search.
   const search = validateDashboardSearch(useSearch({ strict: false }))
   const navigate = useNavigate()
-  const { workspaces } = useAuth()
-  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
+  const { workspaces, user } = useAuth()
+  const { permissions, role, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
   const workspace = workspaces.find((candidate) => candidate.id === workspaceId)
   const timezone = workspace?.settings?.timezone || 'UTC'
 
@@ -77,6 +84,21 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
     range: periods.current,
     enabled: canRead
   })
+  // Whether the workspace ever sent: the empty states and the "Get started" checklist follow it.
+  const latest = useLatestMessage(workspaceId, canRead)
+  const periodSent = series.totals
+    ? MESSAGE_ORIGINS.reduce((sum, origin) => sum + (series.totals?.[origin]?.sent ?? 0), 0)
+    : undefined
+  const sendState = sendStateOf({
+    latestAt: latest.latestAt,
+    latestError: latest.isError,
+    periodEndUtc: periods.current.endUtc,
+    periodSent,
+    seriesError: series.isError
+  })
+  // Before the first send there is no period to choose. Kept while that is unknown, so the header
+  // does not flicker on a workspace that sends.
+  const showPeriod = sendState !== 'never'
 
   const setSearch = (change: { period?: DashboardPeriod; metric?: DashboardMetric }) =>
     void navigate({ to: '.', search: searchWith(change) })
@@ -107,6 +129,7 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
     <PageHeader
       title={t`Dashboard`}
       actions={
+        showPeriod ? (
         <div className="flex items-center gap-3">
           <Tooltip title={t`Complete days up to yesterday, in the workspace's time zone (${timezone})`}>
             <span data-dashboard-days className="text-xs text-ink-3 tabular-nums">
@@ -123,6 +146,7 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
             ]}
           />
         </div>
+        ) : undefined
       }
     />
   )
@@ -148,10 +172,48 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
 
   const can = (resource: keyof UserPermissions, verb: 'read' | 'write' = 'read') =>
     Boolean(permissions[resource]?.[verb])
+  // Providers and their uses are the owners' to set (integrations and workspace settings).
+  const isOwner = role === 'owner' || role === 'root'
+  const marketingReady = roleReady(workspace, 'marketing')
+
+  const chartGhost =
+    sendState === 'never'
+      ? {
+          message: t`Your emails will show here, day by day, from your first send.`,
+          action:
+            marketingReady && can('broadcasts', 'write') ? (
+              <ButtonLink
+                to="/console/workspace/$workspaceId/broadcasts"
+                params={{ workspaceId }}
+                search={{ compose: 'new' }}
+              >
+                {t`New broadcast`}
+              </ButtonLink>
+            ) : !marketingReady && isOwner ? (
+              <ButtonLink
+                to="/console/workspace/$workspaceId/settings/$section"
+                params={{ workspaceId, section: 'integrations' }}
+              >
+                {t`Connect an email provider`}
+              </ButtonLink>
+            ) : undefined
+        }
+      : sendState === 'today'
+        ? { message: t`Today's emails show here tomorrow: the chart counts complete days.` }
+        : undefined
 
   return (
     <div className="flex flex-col gap-3">
       {header}
+      {user ? (
+        <GetStartedChecklist
+          workspace={workspace}
+          permissions={permissions}
+          role={role}
+          user={{ id: user.id, email: user.email }}
+          latestAt={latest.isError ? undefined : latest.latestAt}
+        />
+      ) : null}
       <DashboardKpis
         workspace={workspace}
         permissions={permissions}
@@ -161,25 +223,38 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
         seriesError={series.isError}
         seriesPlaceholder={series.isPlaceholderData}
         onRetrySeries={series.refetch}
+        sendState={sendState}
       />
       <div className="grid grid-cols-1 items-start gap-3 min-[1200px]:grid-cols-[minmax(0,1fr)_var(--spacing-aside)]">
         <div className="flex min-w-0 flex-col gap-3">
-          <OriginVolumeChart data={series} metric={metric} onMetricChange={(value) => setSearch({ metric: value })} />
+          <OriginVolumeChart
+            data={series}
+            metric={metric}
+            onMetricChange={(value) => setSearch({ metric: value })}
+            ghost={chartGhost}
+          />
           <div className="grid grid-cols-1 items-start gap-3 min-[1000px]:grid-cols-2">
-            <RecentFailures workspaceId={workspaceId} timezone={timezone} />
+            <RecentFailures workspaceId={workspaceId} timezone={timezone} sendState={sendState} />
             {can('contacts') ? (
-              <NewContactsTable workspaceId={workspaceId} canImport={can('contacts', 'write')} />
+              <NewContactsTable
+                workspaceId={workspaceId}
+                canImport={can('contacts', 'write')}
+                canReadLists={can('lists')}
+                ownerEmails={ownerEmails(parseRootEmails(window.ROOT_EMAIL))}
+              />
             ) : null}
           </div>
         </div>
         <div className="flex min-w-0 flex-col gap-3">
-          <SendingCard workspace={workspace} canConfigure={can('workspace', 'write')} />
+          <SendingCard workspace={workspace} canConfigure={isOwner} />
           {can('broadcasts') ? (
             <UpcomingSends
               workspaceId={workspaceId}
               timezone={timezone}
               canReadLists={can('lists')}
               canCreate={can('broadcasts', 'write')}
+              marketingReady={marketingReady}
+              canConfigure={isOwner}
             />
           ) : null}
         </div>

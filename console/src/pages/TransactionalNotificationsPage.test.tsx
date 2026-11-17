@@ -66,7 +66,10 @@ vi.mock('../components/transactional/UpsertTransactionalNotificationDrawer', () 
     backLabel?: string
   }) =>
     open ? (
-      <div data-testid={`edit-drawer-${notification?.id}`} data-back-label={backLabel ?? ''} />
+      <div
+        data-testid={notification ? `edit-drawer-${notification.id}` : 'new-notification-drawer'}
+        data-back-label={backLabel ?? ''}
+      />
     ) : (
       <button data-testid="create" disabled={!!buttonProps?.disabled}>
         {buttonProps?.icon}
@@ -102,6 +105,7 @@ vi.mock('../services/api/transactional_notifications', () => ({
 }))
 
 import { TransactionalNotificationsPage } from './TransactionalNotificationsPage'
+import { validateTransactionalSearch } from '../components/transactional/transactionalSearch'
 import { ApiError } from '../services/api/client'
 
 const notification = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
@@ -643,6 +647,52 @@ describe('TransactionalNotificationsPage rights', () => {
     renderPage()
     expect(await screen.findByTestId('create')).toBeEnabled()
     expect(screen.getByTestId('create').querySelector('svg.lucide-plus')).not.toBeNull()
+  })
+})
+
+describe('TransactionalNotificationsPage opened with ?new=1', () => {
+  // The search as the route's validateSearch gives it, from the value the router parsed (1).
+  const fromUrl = () => validateTransactionalSearch({ new: 1 }) as Record<string, unknown>
+  /** The search of the navigate call that removed the parameter, applied to the URL's. */
+  const removal = () => {
+    const call = navigate.mock.calls.find(([options]) => {
+      const search = (options as { search: (prev: Record<string, unknown>) => Record<string, unknown> }).search
+      return 'new' in search({ new: true })
+    })?.[0] as { replace?: boolean; search: (prev: Record<string, unknown>) => Record<string, unknown> } | undefined
+    return call && { replace: call.replace, search: call.search(fromUrl()) }
+  }
+
+  it('opens the editor of a new notification once, and leaves the URL', async () => {
+    state.search = fromUrl()
+    renderPage()
+    expect(await screen.findByTestId('new-notification-drawer')).toBeInTheDocument()
+    expect(screen.getAllByTestId('new-notification-drawer')).toHaveLength(1)
+    expect(removal()).toEqual({ replace: true, search: { new: undefined } })
+  })
+
+  it('keeps the parameter while the rights load', async () => {
+    state.search = fromUrl()
+    state.permissionsLoading = true
+    renderPage()
+    await act(async () => {})
+    expect(screen.queryByTestId('new-notification-drawer')).not.toBeInTheDocument()
+    expect(removal()).toBeUndefined()
+  })
+
+  it('only leaves the URL without templates read', async () => {
+    state.search = fromUrl()
+    state.permissions = { ...full, templates: { read: false, write: false } }
+    renderPage()
+    await waitFor(() => expect(removal()).toEqual({ replace: true, search: { new: undefined } }))
+    expect(screen.queryByTestId('new-notification-drawer')).not.toBeInTheDocument()
+  })
+
+  it('only leaves the URL without transactional write', async () => {
+    state.search = fromUrl()
+    state.permissions = { ...full, transactional: { read: true, write: false } }
+    renderPage()
+    await waitFor(() => expect(removal()).toBeDefined())
+    expect(screen.queryByTestId('new-notification-drawer')).not.toBeInTheDocument()
   })
 })
 

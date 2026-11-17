@@ -16,6 +16,11 @@ export interface KpiItem {
   trend?: ReactNode
   /** A tooltip on the value ("partial tracking"). */
   hint?: ReactNode
+  /**
+   * Said instead of the value when there is nothing to count yet ("After your first send"), in
+   * smaller, quieter text than a figure.
+   */
+  placeholder?: ReactNode
   /** Makes the cell a toggle button. */
   onClick?: () => void
   active?: boolean
@@ -120,7 +125,14 @@ interface KpiCellProps {
 }
 
 function KpiCell({ item, loading, arrow, gridColumn }: KpiCellProps) {
-  const value = <span className="text-kpi font-semibold text-ink tabular-nums">{item.value}</span>
+  const value =
+    item.placeholder !== undefined ? (
+      <span data-kpi-placeholder className="truncate text-sm text-ink-3">
+        {item.placeholder}
+      </span>
+    ) : (
+      <span className="text-kpi font-semibold text-ink tabular-nums">{item.value}</span>
+    )
 
   const content = (
     <>

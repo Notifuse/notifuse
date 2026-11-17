@@ -95,7 +95,8 @@ vi.mock('../services/api/auth', () => ({
     getSecretKey: vi.fn().mockResolvedValue({ secret_key: 'test-key' }),
     resetSecretKey: vi.fn().mockResolvedValue({ secret_key: 'new-key' })
   },
-  isRootUser: () => true
+  isRootUser: () => true,
+  parseRootEmails: (setting?: string) => (setting ? setting.split(/[\s,;]+/).filter(Boolean) : [])
 }))
 
 // Mock workspace service
@@ -207,6 +208,18 @@ vi.mock('../services/api/transactional_notifications', () => ({
     delete: vi.fn().mockResolvedValue({})
   }
 }))
+
+// The dashboard asks for the latest message (whether the workspace ever sent) and its failures.
+vi.mock('../services/api/messages_history', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../services/api/messages_history')>()),
+  listMessages: vi.fn().mockResolvedValue({ messages: [], has_more: false })
+}))
+
+// The dashboard's "Get started" counts the email templates.
+vi.mock('../services/api/template', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api/template')>()
+  return { ...actual, templatesApi: { ...actual.templatesApi, list: vi.fn().mockResolvedValue({ templates: [] }) } }
+})
 
 // Mock message history API
 vi.mock('../services/api/message_history', () => ({

@@ -215,4 +215,43 @@ describe('OriginVolumeChart', () => {
     await screen.findByTestId('echart')
     warn.mockRestore()
   })
+
+  describe('ghost', () => {
+    function GhostHarness() {
+      const data = useOriginSeries({ workspaceId: 'ws1', timezone: 'Europe/Paris', range, enabled: true })
+      return (
+        <OriginVolumeChart
+          data={data}
+          metric="sent"
+          onMetricChange={() => {}}
+          ghost={{ message: 'Your emails will show here', action: <a href="/compose">New broadcast</a> }}
+        />
+      )
+    }
+
+    it('shows its message and action instead of the chart, without the metric switch', async () => {
+      query.mockImplementation(async () => rows(() => ({ count_sent: 0 })))
+      render(
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+          <I18nProvider i18n={i18n}>
+            <GhostHarness />
+          </I18nProvider>
+        </QueryClientProvider>
+      )
+      expect(screen.getByText('Your emails will show here')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'New broadcast' })).toHaveAttribute('href', '/compose')
+      expect(screen.queryByText('Opens')).not.toBeInTheDocument()
+      await waitFor(() => expect(query).toHaveBeenCalled())
+      expect(screen.queryByText('No email sent in this period')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('echart')).not.toBeInTheDocument()
+    })
+
+    it('leaves the empty period as it was without a ghost', async () => {
+      query.mockImplementation(async () => rows(() => ({ count_sent: 0 })))
+      renderChart()
+      expect(await screen.findByText('No email sent in this period')).toBeInTheDocument()
+      expect(screen.getByText('Opens')).toBeInTheDocument()
+      expect(screen.queryByTestId('chart-ghost')).not.toBeInTheDocument()
+    })
+  })
 })

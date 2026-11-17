@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Empty, Segmented, Skeleton } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Panel, useNumberFormat } from '../layout'
 import { colors, typography } from '../../theme/tokens'
 import { BlockError } from './BlockError'
+import { ChartGhost } from './ChartGhost'
 import { buildOriginChart } from './originChart'
 import type { DashboardMetric } from './dashboardSearch'
 import type { OriginSeries } from './useOriginSeries'
@@ -14,6 +15,11 @@ interface OriginVolumeChartProps {
   data: OriginSeries
   metric: DashboardMetric
   onMetricChange: (metric: DashboardMetric) => void
+  /**
+   * Shown instead of the chart while there is nothing to draw yet (no email ever sent, or only
+   * today's): grey bars behind the message, and the metric switch hidden.
+   */
+  ghost?: { message: ReactNode; action?: ReactNode }
 }
 
 const CHART_HEIGHT = 250
@@ -35,7 +41,7 @@ interface TooltipParam {
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`)
 
 /** Emails per day by origin: broadcasts as bars, the other origins as lines. */
-export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolumeChartProps) {
+export function OriginVolumeChart({ data, metric, onMetricChange, ghost }: OriginVolumeChartProps) {
   const { t, i18n } = useLingui()
   const { int, compact } = useNumberFormat()
 
@@ -154,7 +160,8 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
   }, [chart, i18n.locale, int, compact, ofSentThatDay])
 
   let body
-  if (data.isError) body = <BlockError onRetry={data.refetch} error={data.error} />
+  if (ghost) body = <ChartGhost message={ghost.message} action={ghost.action} />
+  else if (data.isError) body = <BlockError onRetry={data.refetch} error={data.error} />
   else if (!chart || !option)
     body = (
       <div data-testid="chart-loading" className="h-[250px]">
@@ -173,6 +180,7 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
     <Panel
       title={titles[metric]}
       extra={
+        ghost ? undefined : (
         <Segmented
           size="small"
           value={metric}
@@ -183,6 +191,7 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
             { value: 'clicks', label: t`Clicks` }
           ]}
         />
+        )
       }
     >
       {body}

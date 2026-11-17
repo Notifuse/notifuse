@@ -1,3 +1,5 @@
+import { searchFlag } from '../../lib/searchParams'
+
 export type TransactionalPeriod = '7d' | '30d' | '60d'
 
 /**
@@ -10,6 +12,8 @@ export interface TransactionalSearch {
   period?: Exclude<TransactionalPeriod, '30d'>
   /** The notification whose sheet is open. */
   notification?: string
+  /** Opens the editor of a new notification, then leaves the URL. */
+  new?: boolean
 }
 
 /** A string the router may have parsed as a number or an array; anything else goes. */
@@ -24,7 +28,7 @@ export function validateTransactionalSearch(search: Record<string, unknown>): Tr
   const q = text(search.q)?.trim() || undefined
   const period = search.period === '7d' || search.period === '60d' ? search.period : undefined
   const notification = text(search.notification) || undefined
-  return { q, period, notification }
+  return { q, period, notification, ...(searchFlag(search.new) ? { new: true } : {}) }
 }
 
 export function transactionalPeriod(search: TransactionalSearch): TransactionalPeriod {

@@ -6,6 +6,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { MoreHorizontal, Plus, SquareTerminal, Upload } from 'lucide-react'
 import { templatesApi } from '../services/api/template'
+import { emailTemplatesQuery } from '../services/api/sharedQueries'
 import { ApiError } from '../services/api/errors'
 import type { Template, Workspace } from '../services/api/types'
 import { canSendTestEmail } from '../services/api/permissions'
@@ -70,7 +71,7 @@ export function TemplatesPage() {
   const navigate = useNavigate({ from: ROUTE })
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
-  const { permissions } = useWorkspacePermissions(workspaceId)
+  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
   const workspace: Workspace | undefined = workspaces.find((w) => w.id === workspaceId)
   const canWrite = Boolean(permissions?.templates?.write)
   const canTest = canSendTestEmail(permissions)
@@ -128,8 +129,7 @@ export function TemplatesPage() {
 
   // T1: every email template at once; the category is filtered here so each tab has its count.
   const listQuery = useQuery({
-    queryKey: ['templates', workspaceId, 'email'],
-    queryFn: () => templatesApi.list({ workspace_id: workspaceId, channel: 'email' })
+    ...emailTemplatesQuery(workspaceId)
   })
   const allTemplates = useMemo(() => listQuery.data?.templates ?? [], [listQuery.data])
 
@@ -215,6 +215,18 @@ export function TemplatesPage() {
     drawerKey.current += 1
     setDrawer({ ...opening, key: drawerKey.current })
   }
+
+  // ?new=1 (the dashboard's "Get started") opens the gallery of a new template once the rights are
+  // known, then leaves the URL, so closing the drawer and refreshing does not open it again. Without
+  // the right to write templates it only leaves the URL.
+  const openedFromUrl = useRef(false)
+  useEffect(() => {
+    if (!search.new || permissionsLoading || openedFromUrl.current) return
+    openedFromUrl.current = true
+    if (canWrite) openDrawer({ mode: 'create' })
+    navigate({ replace: true, search: (prev: TemplatesSearch) => ({ ...prev, new: undefined }) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- acts once, when the rights are known
+  }, [search.new, permissionsLoading, canWrite])
 
   const [testTemplate, setTestTemplate] = useState<Template | null>(null)
   const [toDelete, setToDelete] = useState<Template | null>(null)
