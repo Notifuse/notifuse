@@ -63,22 +63,24 @@ type BlogTemplateRenderer struct {
 
 // NewBlogTemplateRenderer creates a new liquidgo renderer for blog templates
 func NewBlogTemplateRenderer() *BlogTemplateRenderer {
-	env := liquid.NewEnvironment()
-
-	// Set error mode to lax (render errors inline, don't fail)
-	env.SetErrorMode("lax")
-
-	// Register standard tags (CRITICAL - required for if, for, assign, etc.)
-	tags.RegisterStandardTags(env)
-
-	env.SetDefaultResourceLimits(map[string]interface{}{
-		"render_length_limit": BlogMaxRenderLength,
-		"render_score_limit":  BlogMaxRenderScore,
-		"assign_score_limit":  BlogMaxAssignScore,
+	length, score, assign := BlogMaxRenderLength, BlogMaxRenderScore, BlogMaxAssignScore
+	env, err := liquid.NewEnvironment(liquid.EnvironmentConfig{
+		// the standard tags (if, for, assign...), required by every theme
+		Tags: tags.Standard(),
+		// lax: render errors inline, don't fail
+		ErrorMode: "lax",
+		Limits: liquid.ResourceLimitsConfig{
+			RenderLengthLimit: &length,
+			RenderScoreLimit:  &score,
+			AssignScoreLimit:  &assign,
+		},
+		// Custom filters, if ever needed, are declared here:
+		// Filters: []liquid.FilterDef{liquid.Filter("name", fn)},
 	})
-
-	// Custom filters, if ever needed, are declared:
-	// env.RegisterFilter(liquid.Filter("name", fn))
+	if err != nil {
+		// the config above is fixed: an error is a bug of this code
+		panic(fmt.Sprintf("liquid environment: %v", err))
+	}
 
 	return &BlogTemplateRenderer{
 		env: env,
