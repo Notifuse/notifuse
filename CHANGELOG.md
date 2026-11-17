@@ -122,6 +122,12 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: A temporary database error while updating segment members, or in an automation's "Add to list" or "Remove from list" step, is now retried instead of leaving the contact out of the segment or the list.
 
+- **Fix**: An automation started by a custom event no longer starts again when that event is updated, deleted or restored. To start it for a new occurrence, send the event with a new `external_id`.
+
+- **Improvement**: An import of custom events that holds several events of the same name for one contact is no longer refused when an automation runs on every occurrence: each event starts its own journey.
+
+- **Improvement**: An automation set to run once per contact no longer starts twice when two events for the same contact arrive at the same time.
+
 - **Security**: Liquid outputs (`{{ }}`, `echo`, `cycle`) in the HTML of emails are HTML-escaped, so a value of the data, such as a contact field filled in a public form, can no longer add markup or links to an email. Data meant to be HTML, such as a feed that holds an HTML block, needs the new `raw` filter: `{{ global_feed.html | raw }}`; so does a value written into CSS (`mj-style`, a `<style>`) or a script, for data you trust only. Outputs already escaped with `escape` are not escaped twice, also through `newline_to_br`, `strip` or `truncate`; the text of a `capture` is not escaped; the subject and the text version are not escaped. A filter that writes HTML from the data, such as `{{ bio | newline_to_br }}`, now shows its `<br />` as text: write `{{ bio | escape | newline_to_br }}`. Notifuse renders emails with safe-mjml v1.0.1, where escaped text placed between components can no longer become a component.
 - **Fix**: Liquid's `url_decode` filter keeps a value that holds a lone `%` (as in `50%`) instead of rendering nothing, and `escape` writes quotes as `&quot;`. Notifuse renders Liquid with liquidgo v5.11.3.
 - **Fix**: In Liquid, `{{ list[-1] }}` reads the last item of a list, a `{% comment -%}` no longer removes the space after its `{% endcomment %}`, and `{{ list['1'] }}` (an index in quotes) reads nothing, as in Shopify Liquid; `{{ order.items.0.sku }}` still reads the first item.
