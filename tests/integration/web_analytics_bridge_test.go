@@ -23,8 +23,9 @@ import (
 // "Exactly once" is the whole contract. The timeline trigger fires on INSERT and
 // on UPDATE with no diffing, and every timeline row queues a segment
 // recomputation — so a bridge that re-emits on each flush would amplify one
-// conversion into a stream of duplicate timeline entries and repeated automation
-// enrolments, which is both wrong and the failure mode that once froze the
+// conversion into a stream of duplicate timeline entries (and, through an
+// automation trigger body installed before 44.0, repeated automation
+// enrolments), which is both wrong and the failure mode that once froze the
 // segment queue in production.
 func TestWebAnalyticsBridgeExactlyOnce(t *testing.T) {
 	testutil.SkipIfShort(t)

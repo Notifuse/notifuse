@@ -1532,3 +1532,78 @@ func TestAutomationTriggerGenerator_WithoutTriggerEventCallsTheFourArgumentEnrol
 	assert.NotContains(t, result.FunctionBody, "jsonb_build_object")
 	assert.NotContains(t, result.FunctionBody, "custom_events")
 }
+
+// customEventAutomation is an every_time automation on a custom event, with optional conditions.
+func customEventAutomation(id string, conditions *domain.TreeNode) *domain.Automation {
+	name := "order_placed"
+	return &domain.Automation{
+		ID:         id,
+		RootNodeID: "root1",
+		Trigger: &domain.TimelineTriggerConfig{
+			EventKind:       "custom_event",
+			CustomEventName: &name,
+			Frequency:       domain.TriggerFrequencyEveryTime,
+			Conditions:      conditions,
+		},
+	}
+}
+
+// An update, a soft delete or a restore of a custom event writes a timeline row of the same kind
+// as its insertion, with operation 'update'. Only the insertion is a new occurrence: the body
+// returns before anything else for any other row, so an every_time automation does not send its
+// journey again when an order is updated or deleted.
+func TestAutomationTriggerGenerator_CustomEventEnrolsOnlyOnInsert(t *testing.T) {
+	gen := NewAutomationTriggerGenerator(NewQueryBuilder())
+	const check = "IF NEW.operation IS DISTINCT FROM 'insert' THEN\n        RETURN NEW;\n    END IF;"
+
+	for name, conditions := range map[string]*domain.TreeNode{
+		"without conditions": nil,
+		"with conditions":    contactsLeaf("US"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			result, err := gen.Generate(customEventAutomation("order1", conditions))
+			require.NoError(t, err)
+			body := result.FunctionBody
+
+			checkIdx := strings.Index(body, check)
+			require.NotEqual(t, -1, checkIdx, "the body must return early for a row that is not an insertion")
+			assert.Equal(t, checkIdx, strings.LastIndex(body, check), "one check")
+			assert.Less(t, strings.Index(body, "BEGIN"), checkIdx)
+			assert.Less(t, checkIdx, strings.Index(body, "PERFORM automation_enroll_contact"))
+			if conditions != nil {
+				guardIdx := strings.Index(body, "IF ("+result.ConditionGuard+") THEN")
+				require.NotEqual(t, -1, guardIdx)
+				assert.Less(t, checkIdx, guardIdx, "the check runs before the conditions are evaluated")
+			}
+			// The WHEN clause still matches the kind only: replacing a body must be enough.
+			assert.Equal(t, "NEW.kind = 'custom_event.order_placed'", result.WHENClause)
+		})
+	}
+}
+
+// Every other kind describes one occurrence per row (contact.updated is itself an update), so
+// their bodies read no operation.
+func TestAutomationTriggerGenerator_OtherKindsDoNotCheckTheOperation(t *testing.T) {
+	gen := NewAutomationTriggerGenerator(NewQueryBuilder())
+	listID, segmentID := "list1", "seg1"
+	for _, trigger := range []*domain.TimelineTriggerConfig{
+		{EventKind: "contact.created"},
+		{EventKind: "contact.updated"},
+		{EventKind: "list.subscribed", ListID: &listID},
+		{EventKind: "segment.joined", SegmentID: &segmentID},
+		{EventKind: "email.link_clicked"},
+	} {
+		trigger.Frequency = domain.TriggerFrequencyEveryTime
+		result, err := gen.Generate(&domain.Automation{ID: "a1", RootNodeID: "root1", Trigger: trigger})
+		require.NoErrorf(t, err, trigger.EventKind)
+		assert.NotContainsf(t, result.FunctionBody, "NEW.operation", trigger.EventKind)
+	}
+}
+
+// The pre-44 generator keeps the bodies as v38 shipped them; v44 replaces them right after.
+func TestAutomationTriggerGenerator_WithoutTriggerEventKeepsThePre44CustomEventBody(t *testing.T) {
+	gen := NewAutomationTriggerGenerator(NewQueryBuilder()).WithoutTriggerEvent()
+	result, err := gen.Generate(customEventAutomation("old1", nil))
+	require.NoError(t, err)
+	assert.NotContains(t, result.FunctionBody, "NEW.operation")
+}

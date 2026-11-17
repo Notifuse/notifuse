@@ -274,6 +274,8 @@ func TestV44Migration_ReplacesTriggerBodiesToPassTheEvent(t *testing.T) {
 
 	body := rec.firstWithPrefix(t, "CREATE OR REPLACE FUNCTION automation_trigger_cartauto")
 	assert.Contains(t, body, "ce.event_name = substring(NEW.kind from 14)")
+	// An update, soft delete or restore of the event no longer starts the automation.
+	assert.Contains(t, body, "IF NEW.operation IS DISTINCT FROM 'insert' THEN")
 	assert.NotContains(t, rec.all(), "DROP TRIGGER")
 	assert.NotContains(t, rec.all(), "CREATE TRIGGER automation_trigger_cartauto")
 }

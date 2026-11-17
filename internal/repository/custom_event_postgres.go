@@ -68,7 +68,7 @@ func (r *customEventRepository) Upsert(ctx context.Context, workspaceID string, 
 // the column is NOT NULL so a proposed row cannot carry a NULL to COALESCE away.
 // Overwriting on absence is not a lost edit but a wipe — it clears every property
 // at once, and because it lands as an UPDATE the timeline trigger records each one
-// going null, which feeds segment recomputation and automation enrolment.
+// going null, which feeds segment recomputation.
 //
 // integration_id needs no such flag: it is already a nullable pointer, so it joins
 // the goal_* columns on COALESCE. An event created by an integration keeps that
@@ -134,9 +134,10 @@ func encodeEventProperties(event *domain.CustomEvent) (payload []byte, provided 
 // DO NOTHING rather than the mutable DO UPDATE that BatchUpsert uses. The
 // custom_events timeline trigger fires on INSERT *or* UPDATE and does no
 // diffing, so re-writing an unchanged event appends a second contact_timeline
-// row, queues another segment recomputation and re-enrols the contact in any
-// matching automation. For a source that re-sends its whole history on every
-// beat, that turns one conversion into an endless stream.
+// row and queues another segment recomputation (and, through an automation
+// trigger body installed before 44.0, re-enrols the contact in any matching
+// automation). For a source that re-sends its whole history on every beat,
+// that turns one conversion into an endless stream.
 //
 // It also protects against two subtler cases the mutable clause allows: an
 // occurred_at that drifts between beats (clock-skew correction is recomputed
