@@ -50,9 +50,9 @@ func TestV44Migration_IsWhatLetsTheStampReachFortyFour(t *testing.T) {
 // rerun writes nothing. After the builds, the memberships whose contact no longer exists are
 // deleted with the two membership triggers disabled, so no segment.left entry or webhook
 // delivery carries an erased address, and both triggers are enabled again. The exited recount
-// runs last, after the builds and the delete, so it never holds automations rows while waiting
+// runs after the builds and the delete, so it never holds automations rows while waiting
 // for the message_history or contact_segments lock. No column is renamed or
-// dropped, so no automation trigger function needs regenerating. Without any own host, as
+// dropped, so no trigger function needs regenerating for a schema change. Without any own host, as
 // here, the purge of the own links is not run (see the purge test below).
 var v44ExpectedWorkspaceStatements = []string{
 	schema.TrackMessageHistoryChangesFunction(),
@@ -88,7 +88,7 @@ WHERE c.automation_id = a.id
 	schema.AutomationEnrollContactRelayFunction(),
 }
 
-// expectV44TriggerBodies expects the last step of the workspace update: the live automations
+// expectV44TriggerBodies expects the step before the column is added: the live automations
 // with an installed trigger, whose function bodies are replaced. None here.
 func expectV44TriggerBodies(mock sqlmock.Sqlmock) {
 	mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows())
@@ -260,7 +260,7 @@ func v44CustomEventTriggerConfig(t *testing.T) []byte {
 	return b
 }
 
-// The last step replaces each live automation's trigger function, and nothing else: no DROP, no
+// The step before the column replaces each live automation's trigger function, and nothing else: no DROP, no
 // CREATE TRIGGER, so contact_timeline is not locked while the update holds message_history.
 func TestV44Migration_ReplacesTriggerBodiesToPassTheEvent(t *testing.T) {
 	rec := &v38StatementRecorder{}

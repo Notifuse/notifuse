@@ -18,8 +18,10 @@ import (
 // V44Migration, on workspaces that already exist, makes a click on a link write its own
 // timeline entry, adds the partial indexes of the dashboard's recent failures, dates the
 // broadcasts that started without a start date, removes the segment memberships of deleted
-// contacts and the instance's own links recorded in clicked_links, and recounts the exited
-// journeys of each automation.
+// contacts and the instance's own links recorded in clicked_links, recounts the exited
+// journeys of each automation, passes the event that started a journey to its emails, marks
+// processed the scheduled A/B broadcasts sent before 44 that stayed scheduled, and adds
+// broadcasts.test_paused_seconds.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -66,7 +68,7 @@ import (
 // After the builds and the purge, stats.exited of each automation is raised to the number of its journeys
 // that exited (v44ExitedRecountSQL). Until 44 a journey ended by a reply exited without being
 // counted there, so the counter fell short of the journeys it describes. The recount comes
-// last because it row-locks automations: a tracking write locks message_history first and
+// after the builds and the purge because it row-locks automations: a tracking write locks message_history first and
 // then, through the timeline trigger, updates automations, so taking automations before the
 // builds' SHARE lock could deadlock with it. This order holds only while no transaction
 // updates automations and then writes message_history: one that did could deadlock with the
@@ -114,7 +116,7 @@ import (
 // scheduled become processed, completed when their task did (v44RepairSQL); a rerun finds none.
 // A scheduled broadcast whose task is still to run, or that only had test sends, has no such task.
 //
-// Next, an automation's emails get the event that started the journey, as {{ trigger_event }}.
+// After the recount, an automation's emails get the event that started the journey, as {{ trigger_event }}.
 // The five-argument automation_enroll_contact stores it as contact_automations.context.trigger
 // (the column exists since v20 and nothing wrote it), and the four-argument signature becomes a
 // relay to it, for a trigger left with its old body. Then the function of every live
@@ -144,11 +146,11 @@ import (
 // one. It waits for the lock under the same 5-second lock_timeout while this transaction holds the
 // builds' SHARE lock on message_history, contact_segments and automations rows. Pause, cancel,
 // resume and a sending run write email_queue and broadcasts, not message_history, under those,
-// so no cycle forms with them. When a transaction holding a broadcasts row this one locked waits
-// for this one, PostgreSQL's deadlock detection aborts one of the two; if it is this one, the
-// migration runs again at the next start.
+// so no cycle forms with them. When a transaction holding a lock on broadcasts waits for a row
+// the repair or the backfill locked, PostgreSQL's deadlock detection aborts one of the two; if it
+// is this one, the migration runs again at the next start.
 //
-// No column is renamed or dropped, so no automation trigger function needs regenerating.
+// No column is renamed or dropped, so no trigger function needs regenerating for a schema change.
 type V44Migration struct {
 	// finishedSends are the send tasks completed with no phase, by workspace, read by
 	// UpdateSystem for the UpdateWorkspace calls of the same run.
