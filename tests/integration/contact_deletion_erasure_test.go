@@ -267,7 +267,7 @@ func TestContactDeletionErasure(t *testing.T) {
 	//                    twenty of them.
 	//
 	// Both carry the address, which is why webhook_deliveries is deliberately not
-	// purged — see plans/known-issues.md.
+	// purged — see Notifuse/architecture plans/notifuse/known-issues.md.
 	// The queue needs a BEHAVIOURAL assertion, not a row count.
 	//
 	// The probes above check `count(*) = 0` and a payload LIKE — and both pass

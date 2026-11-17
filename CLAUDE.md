@@ -84,7 +84,7 @@ GET  /api/contact.list
 
 ## Plans directory
 
-AI-generated implementation plans are saved in `plans/` as kebab-case markdown: `feature-name-plan.md`, `fix-description-plan.md`, `refactor-component-plan.md`, `migration-v7-plan.md`. Keep completed plans for historical reference (archive old ones under `plans/archive/` if needed). Every plan must specify, for each implementation file, the corresponding test file and test cases, and must end with a step that runs the relevant test commands for the layers touched.
+Plans and specs are not kept in this repository: never commit them here. They live in the private repository `Notifuse/architecture` (checked out at `../architecture`), under `plans/notifuse/`, as kebab-case markdown: `feature-name-plan.md`, `fix-description-plan.md`, `refactor-component-plan.md`, `migration-v7-plan.md`. `plans/` is ignored here so that a draft never gets staged by accident. Every plan must specify, for each implementation file, the corresponding test file and test cases, and must end with a step that runs the relevant test commands for the layers touched.
 
 ## 🤖 Claude Agent Rules
 

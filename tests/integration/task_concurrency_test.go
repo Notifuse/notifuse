@@ -22,7 +22,7 @@ import (
 // dispatching connection: a task now outlives the request that started it, so
 // overlapping triggers are likelier than they were.
 //
-// Plan: plans/task-orchestrator-test-coverage-plan.md
+// Plan: Notifuse/architecture plans/notifuse/task-orchestrator-test-coverage-plan.md
 
 // taskExecutePath is the one endpoint these helpers have to sign.
 const taskExecutePath = "/api/tasks.execute"

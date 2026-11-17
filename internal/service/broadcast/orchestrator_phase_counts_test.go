@@ -19,7 +19,7 @@ import (
 // put on the copy it writes, not only on the one it held when it worked them out:
 // GetBroadcast returns a fresh copy on every call here, as the database does.
 //
-// Plan: plans/fix-console-capture-bugs-plan.md (fix 1)
+// Plan: Notifuse/architecture plans/notifuse/fix-console-capture-bugs-plan.md (fix 1)
 
 func TestOrchestrator_Process_StoresABPhaseCountsOnTheBroadcast(t *testing.T) {
 	// abAudience has four recipients and abBroadcast tests on half of them.

@@ -22,7 +22,7 @@ import (
 // broadcast marked failed one attempt early was then sent to the rest of its
 // list by the retry and flipped back to processed.
 //
-// Plan: plans/fix-broadcast-last-attempt-plan.md
+// Plan: Notifuse/architecture plans/notifuse/fix-broadcast-last-attempt-plan.md
 
 // lastAttemptRun describes one failing run: the counts it starts with, what the
 // finalizer reads back, and how the run fails.

@@ -28,7 +28,7 @@ import (
 // off autoExecuteImmediate, so nothing executes tasks behind our back — all
 // progress observed after a stimulus was made by the run that stimulus started.
 //
-// Plan: plans/broadcast-interruption-resilience-plan.md
+// Plan: Notifuse/architecture plans/notifuse/broadcast-interruption-resilience-plan.md
 
 // callWithClientTimeout issues a request whose client gives up after timeout,
 // tearing down the connection while the server may still be working. This is
