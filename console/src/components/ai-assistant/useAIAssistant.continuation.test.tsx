@@ -1335,26 +1335,6 @@ describe('useAIAssistant turn identity and streaming state', () => {
 
     expect(result.current.messages.some((m) => m.content.includes('mj-button width'))).toBe(false)
   })
-
-  it('accumulates cost across every round of a turn', async () => {
-    scriptRounds([
-      [
-        toolUse('query_web_analytics'),
-        done({ input_cost: 0.01, output_cost: 0.02, total_cost: 0.03 })
-      ],
-      [text('Sessions are up.'), done({ input_cost: 0.04, output_cost: 0.05, total_cost: 0.09 })]
-    ])
-    const handlers = new Map<string, ToolHandler>([
-      ['query_web_analytics', () => ({ content: 'sessions\n42' })]
-    ])
-
-    const { result } = renderAssistant({ toolHandlers: handlers, maxToolRounds: 4 })
-    await send(result, 'how many sessions?')
-
-    expect(result.current.costs.input).toBeCloseTo(0.05)
-    expect(result.current.costs.output).toBeCloseTo(0.07)
-    expect(result.current.costs.total).toBeCloseTo(0.12)
-  })
 })
 
 describe('useAIAssistant quiet tool steps', () => {

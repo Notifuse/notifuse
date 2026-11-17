@@ -51,7 +51,7 @@ func (s *LLMService) streamChatOpenAI(
 	}
 	model := settings.Model
 	if model == "" {
-		model = "gpt-4.1" // Default model
+		model = "gpt-6.1-sol" // Default model
 	}
 
 	s.logger.WithFields(map[string]interface{}{

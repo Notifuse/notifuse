@@ -26,11 +26,20 @@ var modelPricing = map[string]struct {
 	InputPerMTok  float64
 	OutputPerMTok float64
 }{
+	// Anthropic - https://platform.claude.com/docs/en/about-claude/pricing
+	"claude-opus-5-5":   {4.0, 20.0},
+	"claude-sonnet-5-5": {2.0, 10.0},
+	// Prompts up to 100K tokens; longer ones cost $0.50 / $2.50
+	"claude-haiku-5-5":          {0.10, 0.50},
 	"claude-opus-4-6":           {5.0, 25.0},
 	"claude-sonnet-4-6":         {3.0, 15.0},
 	"claude-haiku-4-5-20251001": {1.0, 5.0},
-	// Google Gemini (Gemini Developer API) - https://ai.google.dev/gemini-api/docs/pricing
-	// Pro models priced at the <=200k context tier.
+	// Google Gemini (Gemini Developer API) - https://aistudio.google.com/docs/pricing
+	// Pro models priced at the <=200k context tier. Gemini 4 Carbon and Argon at their
+	// price from 2026-12-01 (introductory $2 / $10 until then).
+	"gemini-4-carbon":        {4.0, 20.0},
+	"gemini-4-argon":         {4.0, 20.0},
+	"gemini-4-hydrogen":      {1.50, 7.50},
 	"gemini-2.5-flash":       {0.30, 2.50},
 	"gemini-2.5-flash-lite":  {0.10, 0.40},
 	"gemini-2.5-pro":         {1.25, 10.0},
@@ -178,7 +187,7 @@ func (s *LLMService) streamChatAnthropic(
 	}
 	model := settings.Model
 	if model == "" {
-		model = "claude-sonnet-4-6" // Default model
+		model = "claude-sonnet-5-5" // Default model
 	}
 
 	// Create Anthropic client

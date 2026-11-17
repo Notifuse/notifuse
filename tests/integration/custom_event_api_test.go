@@ -950,7 +950,8 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 // its row. Bodies here are raw maps with keys deliberately left out: a typed
 // request cannot express a missing key, which is how the omission came to mean
 // "empty it". The wipe lands as an UPDATE, so it also reaches contact_timeline and
-// from there segment recomputation and automation enrolment.
+// from there segment recomputation (and, through an automation trigger body
+// installed before 44.0, automation enrolment).
 func testPartialUpsert(t *testing.T, client *testutil.APIClient, workspaceID string, db *sql.DB) {
 	t.Run("omitting properties leaves the stored ones alone", func(t *testing.T) {
 		email := testutil.GenerateTestEmail()

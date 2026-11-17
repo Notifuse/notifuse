@@ -293,9 +293,22 @@ func (g *AutomationTriggerGenerator) buildFunctionBody(functionName string, auto
 		payload = ""
 	}
 
+	// A custom event writes a timeline row of its kind for its insertion and for each update,
+	// soft delete and restore, with operation 'update'. Only the insertion is a new occurrence,
+	// so the body returns for any other row. The check sits in the body rather than in the WHEN
+	// clause so that replacing a body applies it without recreating the trigger (see
+	// regenerateAutomationTriggers). The pre-44 bodies stay as v38 installs them.
+	onlyOnInsert := ""
+	if !g.withoutTriggerEvent && automation.Trigger.EventKind == "custom_event" {
+		onlyOnInsert = `
+    IF NEW.operation IS DISTINCT FROM 'insert' THEN
+        RETURN NEW;
+    END IF;`
+	}
+
 	var body string
 	if guard == "" {
-		body = fmt.Sprintf(`BEGIN
+		body = fmt.Sprintf(`BEGIN%s
     PERFORM automation_enroll_contact(
         %s,
         NEW.email,
@@ -304,6 +317,7 @@ func (g *AutomationTriggerGenerator) buildFunctionBody(functionName string, auto
     );
     RETURN NEW;
 END;`,
+			onlyOnInsert,
 			sqlLiteral(automation.ID),
 			sqlLiteral(automation.RootNodeID),
 			sqlLiteral(frequency),
@@ -312,7 +326,7 @@ END;`,
 	} else {
 		// An AFTER INSERT body can already see the row that fired it, so a
 		// contact_timeline count condition counts the triggering event itself.
-		body = fmt.Sprintf(`BEGIN
+		body = fmt.Sprintf(`BEGIN%s
     IF (%s) THEN
         PERFORM automation_enroll_contact(
             %s,
@@ -323,6 +337,7 @@ END;`,
     END IF;
     RETURN NEW;
 END;`,
+			onlyOnInsert,
 			guard,
 			sqlLiteral(automation.ID),
 			sqlLiteral(automation.RootNodeID),

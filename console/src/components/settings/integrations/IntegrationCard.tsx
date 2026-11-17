@@ -23,7 +23,7 @@ export interface IntegrationCardProps {
 /** A provider's logo in a 28px-high tile that widens for a wordmark: on a card and in the catalogue. */
 export function IntegrationIcon({ children }: { children: ReactNode }) {
   return (
-    <span className="flex h-7 min-w-7 max-w-[88px] shrink-0 items-center justify-center overflow-hidden rounded-md border border-line-soft bg-surface px-1 [&_img]:max-h-4 [&_img]:max-w-full [&_img]:object-contain">
+    <span className="flex h-7 min-w-7 max-w-[88px] shrink-0 items-center justify-center overflow-hidden px-1 [&_img]:max-h-4 [&_img]:max-w-full [&_img]:object-contain">
       {children}
     </span>
   )

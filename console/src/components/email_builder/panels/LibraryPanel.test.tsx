@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, onTestFinished, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DndContext } from '@dnd-kit/core'
 import { LibraryPanel, type LibraryManage } from './LibraryPanel'
@@ -25,6 +25,11 @@ const footer = saved('footer', 'Pied de page', 'mj-section', {
   updated: '2026-10-01T00:00:00Z'
 })
 const cta = saved('cta', 'Élan CTA', 'mj-button', { created: '2026-08-01T00:00:00Z' })
+// Enough older blocks for the search to show, matched by none of the searches below
+const others = Array.from({ length: 10 }, (_, i) =>
+  saved(`block-${i + 1}`, `Block ${i + 1}`, 'mj-text', { created: '2020-01-01T00:00:00Z' })
+)
+const searchable = (...blocks: SavedBlock[]) => [...blocks, ...others]
 
 const tree = email([b('section-1', 'mj-section', [b('column-1', 'mj-column', [text('text-1')])])])
 
@@ -53,15 +58,38 @@ describe('LibraryPanel', () => {
     expect(cardNames()).toEqual(['footer', 'header', 'cta'])
   })
 
+  it('shows the search only above ten saved blocks', () => {
+    renderPanel({ savedBlocks: others })
+    expect(screen.queryByPlaceholderText('Search saved blocks')).toBeNull()
+    cleanup()
+    renderPanel({ savedBlocks: searchable(cta) })
+    expect(screen.getByPlaceholderText('Search saved blocks')).toBeInTheDocument()
+  })
+
+  it('keeps a search under way when the library falls to ten blocks, and hides the box once it is cleared', async () => {
+    const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn(), onOpenSaveDialog: vi.fn() }
+    const { rerender } = render(<LibraryPanel {...props} savedBlocks={searchable(cta)} />)
+    await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'elan')
+    expect(cardNames()).toEqual(['cta'])
+
+    rerender(<LibraryPanel {...props} savedBlocks={[cta, ...others.slice(1)]} />)
+    expect(screen.getByPlaceholderText('Search saved blocks')).toHaveValue('elan')
+    expect(cardNames()).toEqual(['cta'])
+
+    await userEvent.clear(screen.getByPlaceholderText('Search saved blocks'))
+    expect(screen.queryByPlaceholderText('Search saved blocks')).toBeNull()
+    expect(cardNames()).toHaveLength(10)
+  })
+
   it('counts the blocks it shows', async () => {
-    renderPanel()
-    expect(screen.getByText('Saved blocks').parentElement).toHaveTextContent('Saved blocks (3)')
+    renderPanel({ savedBlocks: searchable(header, cta, footer) })
+    expect(screen.getByText('Saved blocks').parentElement).toHaveTextContent('Saved blocks (13)')
     await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'head')
     expect(screen.getByText('Saved blocks').parentElement).toHaveTextContent('Saved blocks (1)')
   })
 
   it('searches names whatever their case and accents', async () => {
-    renderPanel()
+    renderPanel({ savedBlocks: searchable(header, cta, footer) })
     await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'elan')
     expect(cardNames()).toEqual(['cta'])
     await userEvent.clear(screen.getByPlaceholderText('Search saved blocks'))
@@ -167,12 +195,14 @@ describe('LibraryPanel', () => {
 
     it('keeps a renamed card that leaves the search listed, until the search changes', async () => {
       const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn(), onOpenSaveDialog: vi.fn(), manage: manage() }
-      const { rerender } = render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
+      const { rerender } = render(<LibraryPanel {...props} savedBlocks={searchable(header, cta, footer)} />)
       await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'head')
       expect(cardNames()).toEqual(['header'])
 
       const renamed = { ...header, name: 'Banner', updated: '2026-11-01T00:00:00Z' }
-      rerender(<LibraryPanel {...props} savedBlocks={[renamed, cta, footer]} highlight={{ id: 'header', kind: 'updated' }} />)
+      rerender(
+        <LibraryPanel {...props} savedBlocks={searchable(renamed, cta, footer)} highlight={{ id: 'header', kind: 'updated' }} />
+      )
       expect(cardNames()).toEqual(['header'])
 
       await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'e')
@@ -204,19 +234,19 @@ describe('LibraryPanel', () => {
       expect(moreOf('footer', 'Pied de page')).toHaveFocus()
 
       // The only card shown, others hidden by the search: the list
-      rerender(<LibraryPanel {...props} savedBlocks={[header, footer]} />)
+      rerender(<LibraryPanel {...props} savedBlocks={searchable(header, footer)} />)
       await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'pied')
       expect(cardNames()).toEqual(['footer'])
       await menuOf('footer', 'Pied de page')
       await userEvent.click(item('Delete'))
-      rerender(<LibraryPanel {...props} savedBlocks={[header]} />)
+      rerender(<LibraryPanel {...props} savedBlocks={searchable(header)} />)
       expect(screen.getByTestId('library-saved-blocks')).toHaveFocus()
     })
 
     it('leaves the focus where it is after a delete cancelled in its confirmation', async () => {
       const onDelete = vi.fn()
       const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn(), onOpenSaveDialog: vi.fn(), manage: manage({ onDelete }) }
-      render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
+      render(<LibraryPanel {...props} savedBlocks={searchable(header, cta, footer)} />)
       await menuOf('cta', 'Élan CTA')
       await userEvent.click(item('Delete'))
       // The confirmation is cancelled: the library does not change
@@ -308,11 +338,11 @@ describe('LibraryPanel', () => {
         Element.prototype.scrollIntoView = original
       })
       const props = { emailTree: tree, selectedBlockId: null, onInsert: vi.fn() }
-      const { rerender } = render(<LibraryPanel {...props} savedBlocks={[header, cta, footer]} />)
+      const { rerender } = render(<LibraryPanel {...props} savedBlocks={searchable(header, cta, footer)} />)
       await userEvent.type(screen.getByPlaceholderText('Search saved blocks'), 'elan')
       const highlight = { id: 'header', kind: 'updated' as const }
       rerender(
-        <LibraryPanel {...props} savedBlocks={[header, cta, footer]} highlight={highlight} />
+        <LibraryPanel {...props} savedBlocks={searchable(header, cta, footer)} highlight={highlight} />
       )
       // Changed from this editor: listed despite the search, until the search changes
       expect(cardNames()).toEqual(['header', 'cta'])
