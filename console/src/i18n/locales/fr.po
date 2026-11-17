@@ -298,6 +298,16 @@ msgstr "{0, plural, one {# texte} other {# textes}}"
 msgid "{0, plural, one {# unsubscribe} other {# unsubscribes}}"
 msgstr "{0, plural, one {# désabonnement} other {# désabonnements}}"
 
+#. placeholder {0}: data.behind
+#: src/components/updates/UpdateCard.tsx:31
+msgid "{0, plural, one {# version behind} other {# versions behind}}"
+msgstr "{0, plural, one {# version de retard} other {# versions de retard}}"
+
+#. placeholder {0}: data.behind
+#: src/components/updates/UpdateDrawer.tsx:20
+msgid "{0, plural, one {# version} other {# versions}}"
+msgstr "{0, plural, one {# version} other {# versions}}"
+
 #. placeholder {0}: stats.waiting
 #: src/components/automations/stats/NodeStatsFooter.tsx:63
 msgid "{0, plural, one {# waiting} other {# waiting}}"
@@ -769,6 +779,10 @@ msgstr "{deleted, plural, one {# fichier supprimé} other {# fichiers supprimés
 #: src/components/file_manager/FileExplorer.tsx:360
 msgid "{deletedFiles, plural, one {Deleted # file, {failedFiles} failed} other {Deleted # files, {failedFiles} failed}}"
 msgstr "{deletedFiles, plural, one {# fichier supprimé, {failedFiles} en échec} other {# fichiers supprimés, {failedFiles} en échec}}"
+
+#: src/components/updates/UpdateFooter.tsx:24
+msgid "{dismissedLatest} available"
+msgstr "{dismissedLatest} disponible"
 
 #: src/components/analytics/GetStartedChecklist.tsx:404
 msgid "{done, plural, one {# of {total} done} other {# of {total} done}}"
@@ -1300,9 +1314,17 @@ msgstr "{value} pts"
 msgid "{warnings, plural, one {# missing} other {# missing}}"
 msgstr "{warnings, plural, one {# manquant} other {# manquants}}"
 
+#: src/components/updates/UpdateCard.tsx:32
+msgid "{warnings, plural, one {# point to read before upgrading} other {# points to read before upgrading}}"
+msgstr "{warnings, plural, one {# point à lire avant de mettre à jour} other {# points à lire avant de mettre à jour}}"
+
 #: src/components/transactional/NotificationChecks.tsx:233
 msgid "{warnings, plural, one {# to check} other {# to check}}"
 msgstr "{warnings, plural, one {# à vérifier} other {# à vérifier}}"
+
+#: src/components/updates/UpdateDrawer.tsx:53
+msgid "{warnings, plural, one {# warning} other {# warnings}}"
+msgstr "{warnings, plural, one {# avertissement} other {# avertissements}}"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:184
 msgid "{weekday} at {time} {zone}"
@@ -1663,7 +1685,7 @@ msgstr "Le consentement propre d'un contact prime toujours."
 msgid "A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent."
 msgstr "Le consentement propre à un contact l'emporte toujours. Ce choix s'applique aux contacts dont le consentement au tracking des ouvertures et des clics n'est pas enregistré. Certaines autorités, comme le Garante italien et la CNIL, considèrent que ce tracking requiert un consentement."
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:719
+#: src/components/email_builder/ui/AddBlockPopover.tsx:725
 msgid "A copy is inserted. Later changes to the saved block do not change it."
 msgstr "Une copie est insérée. Les modifications ultérieures du bloc enregistré ne la changent pas."
 
@@ -2023,12 +2045,12 @@ msgstr "Ajouter"
 
 #. placeholder {0}: selectedBlock.label
 #. placeholder {0}: selectedSavedBlock.name
-#: src/components/email_builder/ui/AddBlockPopover.tsx:477
-#: src/components/email_builder/ui/AddBlockPopover.tsx:497
+#: src/components/email_builder/ui/AddBlockPopover.tsx:483
+#: src/components/email_builder/ui/AddBlockPopover.tsx:503
 msgid "Add {0}"
 msgstr "Ajouter {0}"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:724
+#: src/components/email_builder/ui/AddBlockPopover.tsx:730
 msgid "Add {name}"
 msgstr "Ajouter {name}"
 
@@ -3463,7 +3485,7 @@ msgstr "L'écriture Automations est une lecture indirecte des contacts que la le
 msgid "Available after saving"
 msgstr "Disponible après l'enregistrement"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:439
+#: src/components/email_builder/ui/AddBlockPopover.tsx:445
 msgid "Available Blocks"
 msgstr "Blocs disponibles"
 
@@ -3699,6 +3721,10 @@ msgstr "Hook avant création utilisateur"
 msgid "Before you create"
 msgstr "Avant de créer"
 
+#: src/components/updates/UpdateDrawer.tsx:87
+msgid "Before you upgrade:"
+msgstr "Avant de mettre à jour :"
+
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:568
 #~ msgid "Belonging to at least one of the following segments"
 #~ msgstr "Appartenant à au moins un des segments suivants"
@@ -3823,7 +3849,7 @@ msgstr "Bloc mis à jour"
 msgid "Blocklist"
 msgstr "Liste de blocage"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:414
+#: src/components/email_builder/ui/AddBlockPopover.tsx:420
 msgid "Blocks"
 msgstr "Blocs"
 
@@ -4498,6 +4524,7 @@ msgstr "Non modifiable une fois le modèle créé"
 #: src/components/templates/TemplateSelectorModal.tsx:218
 #: src/components/templates/TemplateTranslationsTab.tsx:363
 #: src/components/transactional/notificationRules.ts:94
+#: src/components/updates/UpdateCard.tsx:48
 #: src/components/web_analytics/explore/BreakdownModal.tsx:76
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
 #: src/components/web_analytics/filters/BackfillStatus.tsx:91
@@ -5221,6 +5248,7 @@ msgstr "Cloner le modèle"
 #: src/components/settings/WorkspaceMembers.tsx:616
 #: src/components/templates/ImportErrorsModal.tsx:36
 #: src/components/transactional/ApiCommandDrawer.tsx:212
+#: src/components/updates/UpdateDrawer.tsx:31
 msgid "Close"
 msgstr "Fermer"
 
@@ -5278,7 +5306,7 @@ msgstr "Replier {label}"
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:42
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:244
 #: src/components/email_builder/ui/BackgroundInput.tsx:257
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:125
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:127
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:162
 msgid "Color"
 msgstr "Couleur"
@@ -10744,7 +10772,7 @@ msgid "From platform.openai.com, or your endpoint's own key"
 msgstr "Depuis platform.openai.com, ou la clé propre à votre endpoint"
 
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:83
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:128
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:130
 msgid "From the text block"
 msgstr "Celle du bloc de texte"
 
@@ -10763,6 +10791,10 @@ msgstr "Accès complet"
 #: src/components/settings/WorkspaceMembers.tsx:146
 #~ msgid "Full Access"
 #~ msgstr "Accès complet"
+
+#: src/components/updates/UpdateDrawer.tsx:92
+msgid "Full changelog"
+msgstr "Changelog complet"
 
 #: src/components/settings/BlogSettings.tsx:442
 #~ msgid "Full content"
@@ -10996,17 +11028,17 @@ msgid "Goals reached"
 msgstr "Objectifs atteints"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:10
-#: src/components/email_builder/ui/AddBlockPopover.tsx:154
+#: src/components/email_builder/ui/AddBlockPopover.tsx:157
 msgid "Goes inside a column"
 msgstr "Se place dans une colonne"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:11
-#: src/components/email_builder/ui/AddBlockPopover.tsx:156
+#: src/components/email_builder/ui/AddBlockPopover.tsx:159
 msgid "Goes inside a section"
 msgstr "Se place dans une section"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:12
-#: src/components/email_builder/ui/AddBlockPopover.tsx:158
+#: src/components/email_builder/ui/AddBlockPopover.tsx:161
 msgid "Goes inside a social block"
 msgstr "Se place dans un bloc social"
 
@@ -11123,7 +11155,7 @@ msgstr "Valeur du header"
 msgid "Header value is required"
 msgstr "La valeur du header est requise"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:171
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:173
 msgid "Heading {level}"
 msgstr "Titre {level}"
 
@@ -11248,7 +11280,7 @@ msgstr "Horaire"
 msgid "Hours"
 msgstr "Heures"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:515
+#: src/components/email_builder/ui/AddBlockPopover.tsx:521
 msgid "Hover over a block to see details"
 msgstr "Survolez un bloc pour voir les détails"
 
@@ -11271,6 +11303,10 @@ msgstr "Comment la page de la catégorie apparaît dans les résultats de recher
 #: src/components/blog/PostDrawer.tsx:994
 msgid "How the post appears in search results"
 msgstr "Comment l'article apparaît dans les résultats de recherche"
+
+#: src/components/updates/UpdateDrawer.tsx:37
+msgid "How to upgrade"
+msgstr "Comment mettre à jour"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:38
 msgid "How to use:"
@@ -11406,7 +11442,7 @@ msgstr "L'ID doit faire moins de 32 caractères"
 msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 msgstr "L'ID ne doit contenir que des lettres minuscules, des chiffres, des tirets bas et des tirets"
 
-#: src/pages/DashboardPage.tsx:109
+#: src/pages/DashboardPage.tsx:129
 msgid "ID:"
 msgstr "ID :"
 
@@ -11483,6 +11519,18 @@ msgstr "Si un contact avec cet email existe déjà, les champs fournis seront é
 #: src/components/transactional/ApiCommandDrawer.tsx:111
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "Si l'email du contact n'existe pas dans votre espace de travail, il sera automatiquement créé."
+
+#: src/components/updates/UpdateCard.tsx:47
+msgid "Ignore"
+msgstr "Ignorer"
+
+#: src/components/updates/UpdateCard.tsx:45
+msgid "Ignore {latest}?"
+msgstr "Ignorer la {latest} ?"
+
+#: src/components/updates/UpdateCard.tsx:51
+msgid "Ignore this version"
+msgstr "Ignorer cette version"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:43
 #: src/components/email_builder/ui/BackgroundInput.tsx:258
@@ -11699,6 +11747,10 @@ msgstr "Inclure un appel à l'action clair"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:162
 msgid "Included"
 msgstr "Inclus"
+
+#: src/components/updates/UpdateCard.tsx:60
+msgid "Includes a security fix ({securityVersion})"
+msgstr "Inclut un correctif de sécurité ({securityVersion})"
 
 #: src/pages/LogsPage.tsx:92
 msgid "Incoming webhooks"
@@ -12599,8 +12651,8 @@ msgstr "Ligne {0} ({1}) : {2}"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:350
 #: src/components/email_builder/ui/FontStyleInput.tsx:253
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:113
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:116
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:115
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:118
 #: src/components/email_builder/ui/LineHeightInput.tsx:76
 msgid "Line height"
 msgstr "Hauteur de ligne"
@@ -14028,8 +14080,8 @@ msgstr "Nouvelle fenêtre"
 
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:99
 #: src/pages/CreateWorkspacePage.tsx:108
-#: src/pages/DashboardPage.tsx:40
-#: src/pages/DashboardPage.tsx:44
+#: src/pages/DashboardPage.tsx:60
+#: src/pages/DashboardPage.tsx:64
 msgid "New workspace"
 msgstr "Nouvel espace de travail"
 
@@ -14604,8 +14656,8 @@ msgid "No saved block matches."
 msgstr "Aucun bloc enregistré ne correspond."
 
 #: src/components/email_builder/panels/LibraryPanel.tsx:291
-#: src/components/email_builder/ui/AddBlockPopover.tsx:310
-#: src/components/email_builder/ui/AddBlockPopover.tsx:382
+#: src/components/email_builder/ui/AddBlockPopover.tsx:316
+#: src/components/email_builder/ui/AddBlockPopover.tsx:388
 msgid "No saved blocks yet"
 msgstr "Pas encore de blocs enregistrés"
 
@@ -14796,7 +14848,7 @@ msgstr "Aucun événement de webhook reçu pour l'instant"
 msgid "No webhooks yet"
 msgstr "Aucun webhook pour l'instant"
 
-#: src/pages/DashboardPage.tsx:56
+#: src/pages/DashboardPage.tsx:76
 msgid "No workspaces"
 msgstr "Aucun espace de travail"
 
@@ -14859,13 +14911,13 @@ msgid "Not all visitors come with the same intent. This rate should be interpret
 msgstr "Tous les visiteurs n'arrivent pas avec la même intention. Ce taux doit être interprété avec prudence, car il inclut l'ensemble du trafic quel qu'en soit l'objet."
 
 #: src/components/email_builder/panels/dropRefusalText.ts:13
-#: src/components/email_builder/ui/AddBlockPopover.tsx:160
+#: src/components/email_builder/ui/AddBlockPopover.tsx:163
 #: src/components/email_builder/utils/library.ts:74
 msgid "Not allowed here"
 msgstr "Non autorisé ici"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:9
-#: src/components/email_builder/ui/AddBlockPopover.tsx:179
+#: src/components/email_builder/ui/AddBlockPopover.tsx:182
 #: src/components/email_builder/utils/library.ts:65
 msgid "Not allowed inside a conditional block"
 msgstr "Non autorisé dans un bloc conditionnel"
@@ -14878,7 +14930,7 @@ msgstr "Non appliqué"
 msgid "Not assigned"
 msgstr "Non attribué"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:336
+#: src/components/email_builder/ui/AddBlockPopover.tsx:342
 msgid "Not available here"
 msgstr "Non disponible ici"
 
@@ -15110,6 +15162,10 @@ msgstr "Notification mise à jour avec succès"
 #: src/components/settings/integrations/EmailRoles.tsx:51
 msgid "Notifications sent through the API, Zapier or Supabase"
 msgstr "Notifications envoyées via l'API, Zapier ou Supabase"
+
+#: src/components/updates/UpdateCard.tsx:55
+msgid "Notifuse {latest} is available"
+msgstr "Notifuse {latest} est disponible"
 
 #: src/components/settings/WebhookDetail.tsx:443
 msgid "Notifuse disabled this webhook automatically"
@@ -16158,8 +16214,8 @@ msgstr "Période — {detail}"
 #~ msgstr ""
 
 #: src/pages/SetupWizard.tsx:567
-msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
-msgstr "Vérifier périodiquement les nouvelles versions de Notifuse et les mises à jour de sécurité. Une popup listera les nouvelles versions disponibles."
+#~ msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
+#~ msgstr "Vérifier périodiquement les nouvelles versions de Notifuse et les mises à jour de sécurité. Une popup listera les nouvelles versions disponibles."
 
 #: src/services/api/permissions.ts:215
 msgid "Permanently delete any contact"
@@ -18041,7 +18097,7 @@ msgstr "Réinitialiser une tâche de synchronisation d'intégration pour qu'elle
 msgid "Reset formatting"
 msgstr "Réinitialiser le formatage"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:175
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:177
 msgid "Reset H{level}"
 msgstr "Réinitialiser H{level}"
 
@@ -18421,7 +18477,7 @@ msgstr "Promotion"
 msgid "Same Window"
 msgstr "Même fenêtre"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:160
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:162
 msgid "Sample"
 msgstr "Aperçu"
 
@@ -18493,7 +18549,7 @@ msgstr "Enregistrer"
 msgid "Save & Restart"
 msgstr "Enregistrer et redémarrer"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:312
+#: src/components/email_builder/ui/AddBlockPopover.tsx:318
 msgid "Save a block from its toolbar to reuse it in every template."
 msgstr "Enregistrez un bloc depuis sa barre d’outils pour le réutiliser dans tous les modèles."
 
@@ -18607,7 +18663,7 @@ msgid "Saved"
 msgstr "Enregistré"
 
 #. placeholder {0}: savedBlockOptions.length
-#: src/components/email_builder/ui/AddBlockPopover.tsx:428
+#: src/components/email_builder/ui/AddBlockPopover.tsx:434
 msgid "Saved ({0})"
 msgstr "Enregistrés ({0})"
 
@@ -18629,7 +18685,7 @@ msgid "Saved as v{version}"
 msgstr "Enregistré en v{version}"
 
 #. placeholder {0}: savedBlock.name
-#: src/components/email_builder/ui/AddBlockPopover.tsx:266
+#: src/components/email_builder/ui/AddBlockPopover.tsx:272
 msgid "Saved block: {0}"
 msgstr "Bloc enregistré : {0}"
 
@@ -18637,7 +18693,7 @@ msgstr "Bloc enregistré : {0}"
 msgid "Saved blocks"
 msgstr "Blocs enregistrés"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:422
+#: src/components/email_builder/ui/AddBlockPopover.tsx:428
 msgid "Saved blocks ({savedCount})"
 msgstr "Blocs enregistrés ({savedCount})"
 
@@ -18911,8 +18967,13 @@ msgstr "Sections"
 
 #: src/components/settings/SettingsSidebar.tsx:32
 #: src/components/transactional/ApiCommandDrawer.tsx:145
+#: src/components/updates/UpdateDrawer.tsx:63
 msgid "Security"
 msgstr "Sécurité"
+
+#: src/components/updates/UpdateDrawer.tsx:82
+msgid "Security:"
+msgstr "Sécurité :"
 
 #: src/services/api/permissions.ts:555
 msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
@@ -18957,6 +19018,10 @@ msgstr "Voir les schémas d'analyse web listés dans le catalogue interrogeable"
 #: src/services/api/permissions.ts:800
 msgid "See web analytics backfill tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Voir les tâches de recalcul historique d'analyse web ; une liste qui ne nomme aucun type est restreinte aux types que vous êtes autorisé à lire"
+
+#: src/components/updates/UpdateCard.tsx:78
+msgid "See what's new"
+msgstr "Voir les nouveautés"
 
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:172
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:176
@@ -19349,7 +19414,7 @@ msgstr "Sélectionner le segment auquel ce déclencheur s'applique"
 #~ msgid "Select Winner"
 #~ msgstr "Sélectionner le gagnant"
 
-#: src/pages/DashboardPage.tsx:32
+#: src/pages/DashboardPage.tsx:39
 msgid "Select workspace"
 msgstr "Sélectionner un espace de travail"
 
@@ -20246,6 +20311,10 @@ msgstr "Affichée à côté de la clé API"
 msgid "Shown under a condition"
 msgstr "Affiché sous condition"
 
+#: src/pages/SetupWizard.tsx:567
+msgid "Shows new Notifuse versions and security fixes on the workspace list."
+msgstr "Affiche les nouvelles versions de Notifuse et les correctifs de sécurité sur la liste des espaces de travail."
+
 #: src/pages/SignInPage.tsx:244
 msgid "Sign In"
 msgstr "Connexion"
@@ -20365,7 +20434,7 @@ msgstr "Visites site"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:175
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:90
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:93
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:94
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/file_manager/FileTable.tsx:101
 msgid "Size"
@@ -20636,13 +20705,13 @@ msgstr "Sources"
 msgid "Space"
 msgstr "Espace"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:134
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:137
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:135
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:139
 msgid "Space above"
 msgstr "Espace au-dessus"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:146
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:149
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:148
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:152
 msgid "Space below"
 msgstr "Espace en dessous"
 
@@ -21814,6 +21883,10 @@ msgstr "La diffusion ne sera pas envoyée à l'heure prévue. Elle redevient un 
 #: src/components/broadcasts/useBroadcastActions.tsx:160
 msgid "The broadcast will stop sending and can be resumed later."
 msgstr "La diffusion cessera d'envoyer et pourra être reprise plus tard."
+
+#: src/components/updates/UpdateCard.tsx:46
+msgid "The card will come back with the next version. This choice applies to this browser."
+msgstr "La carte réapparaîtra à la prochaine version. Ce choix vaut pour ce navigateur."
 
 #: src/components/templates/TemplateStartModal.tsx:154
 msgid "The category {forcedLabel} is imposed where this template is created: the models of other categories are hidden."
@@ -23733,6 +23806,10 @@ msgstr "Envois à venir"
 msgid "Update"
 msgstr "Mettre à jour"
 
+#: src/components/updates/UpdateCard.tsx:39
+msgid "Update available"
+msgstr "Mise à jour disponible"
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:503
 #: src/components/contacts/ContactUpsertDrawer.tsx:508
 msgid "Update Contact"
@@ -23999,7 +24076,7 @@ msgstr "Utiliser la version automatique ?"
 msgid "Use the font name in text elements:"
 msgstr "Utilisez le nom de la police dans les éléments de texte :"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:384
+#: src/components/email_builder/ui/AddBlockPopover.tsx:390
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "Utilisez le bouton enregistrer dans la barre d'outils du bloc pour sauvegarder les blocs"
 
@@ -24799,8 +24876,8 @@ msgstr "Hebdomadaire"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:278
 #: src/components/email_builder/ui/FontStyleInput.tsx:198
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:103
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:106
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:104
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:108
 msgid "Weight"
 msgstr "Épaisseur"
 
@@ -24833,6 +24910,10 @@ msgstr "Ce qu'un lecteur de flux montre de chaque article"
 #: src/components/web_analytics/explore/CsvExportModal.tsx:151
 msgid "What gets exported"
 msgstr "Ce qui est exporté"
+
+#: src/components/updates/UpdateDrawer.tsx:26
+msgid "What's new since {current}"
+msgstr "Nouveautés depuis la {current}"
 
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:40
 msgid "When"

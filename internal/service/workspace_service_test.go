@@ -7117,3 +7117,64 @@ func TestWorkspaceService_RBACLicenceGate_NilPermissions(t *testing.T) {
 		assert.True(t, grantsFullPermissions(written.Permissions))
 	})
 }
+
+func TestWorkspaceService_UserOwnsAWorkspace(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	service := NewWorkspaceService(
+		mockRepo,
+		mocks.NewMockUserRepository(ctrl),
+		mocks.NewMockTaskRepository(ctrl),
+		pkgmocks.NewMockLogger(ctrl),
+		mocks.NewMockUserServiceInterface(ctrl),
+		mocks.NewMockAuthService(ctrl),
+		pkgmocks.NewMockMailer(ctrl),
+		&config.Config{RootEmail: "root@example.com"},
+		mocks.NewMockContactService(ctrl),
+		mocks.NewMockListService(ctrl),
+		mocks.NewMockContactListService(ctrl),
+		mocks.NewMockTemplateService(ctrl),
+		mocks.NewMockWebhookRegistrationService(ctrl),
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+		fullyLicensedProvider(ctrl),
+	)
+	ctx := context.Background()
+
+	t.Run("owner of one workspace among several", func(t *testing.T) {
+		mockRepo.EXPECT().GetUserWorkspaces(ctx, "u1").Return([]*domain.UserWorkspace{
+			{WorkspaceID: "a", Role: "member"},
+			{WorkspaceID: "b", Role: "owner"},
+		}, nil)
+		owns, err := service.UserOwnsAWorkspace(ctx, "u1")
+		require.NoError(t, err)
+		assert.True(t, owns)
+	})
+
+	t.Run("member everywhere", func(t *testing.T) {
+		mockRepo.EXPECT().GetUserWorkspaces(ctx, "u2").Return([]*domain.UserWorkspace{
+			{WorkspaceID: "a", Role: "member"},
+		}, nil)
+		owns, err := service.UserOwnsAWorkspace(ctx, "u2")
+		require.NoError(t, err)
+		assert.False(t, owns)
+	})
+
+	t.Run("no membership", func(t *testing.T) {
+		mockRepo.EXPECT().GetUserWorkspaces(ctx, "u3").Return(nil, nil)
+		owns, err := service.UserOwnsAWorkspace(ctx, "u3")
+		require.NoError(t, err)
+		assert.False(t, owns)
+	})
+
+	t.Run("repository error is returned", func(t *testing.T) {
+		mockRepo.EXPECT().GetUserWorkspaces(ctx, "u4").Return(nil, errors.New("db down"))
+		owns, err := service.UserOwnsAWorkspace(ctx, "u4")
+		require.Error(t, err)
+		assert.False(t, owns)
+	})
+}

@@ -62,7 +62,7 @@ type InitializeRequest struct {
 	SMTPUseTLS              *bool  `json:"smtp_use_tls"`
 	SMTPEHLOHostname        string `json:"smtp_ehlo_hostname"`
 	TelemetryEnabled        bool   `json:"telemetry_enabled"`
-	CheckForUpdates         bool   `json:"check_for_updates"`
+	CheckForUpdates         *bool  `json:"check_for_updates"`
 	SMTPBridgeEnabled       bool   `json:"smtp_bridge_enabled"`
 	SMTPBridgeHost          string `json:"smtp_bridge_domain"`
 	SMTPBridgePort          int    `json:"smtp_bridge_port"`
@@ -184,6 +184,13 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		smtpUseTLS = *req.SMTPUseTLS
 	}
 
+	// Absent means on, as the setup wizard and the documentation default it: a plain bool
+	// would install a JSON client that leaves the field out with it off.
+	checkForUpdates := true
+	if req.CheckForUpdates != nil {
+		checkForUpdates = *req.CheckForUpdates
+	}
+
 	// Convert request to service config
 	setupConfig := &service.SetupConfig{
 		RootEmail:               req.RootEmail,
@@ -197,7 +204,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		SMTPUseTLS:              smtpUseTLS,
 		SMTPEHLOHostname:        req.SMTPEHLOHostname,
 		TelemetryEnabled:        req.TelemetryEnabled,
-		CheckForUpdates:         req.CheckForUpdates,
+		CheckForUpdates:         checkForUpdates,
 		SMTPBridgeEnabled:       req.SMTPBridgeEnabled,
 		SMTPBridgeDomain:        req.SMTPBridgeHost,
 		SMTPBridgePort:          req.SMTPBridgePort,

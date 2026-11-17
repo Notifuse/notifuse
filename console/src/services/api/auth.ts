@@ -39,6 +39,13 @@ export interface GetCurrentUserResponse {
   // write. Absent means "not told", never "unlicensed": LicenseProvider falls back to the
   // root-only endpoint and then to the 402s themselves rather than assuming anything.
   entitlements?: Entitlements
+  // Whether this console asks updates.notifuse.com for the releases it is missing: true for the
+  // root user and workspace owners when CHECK_FOR_UPDATES is on. Absent (an older server, an
+  // API key) means no.
+  check_for_updates?: boolean
+  // The release this server was built as, sent with that question. Not window.VERSION, which
+  // the VERSION environment variable can change.
+  version?: string
 }
 
 /**
