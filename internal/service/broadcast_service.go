@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"time"
 
@@ -747,6 +748,9 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 			// pause, is woken by the resume event.
 			broadcast.Status = abStatus
 			startNow = true
+			if err := s.countTestPause(ctx, tx, broadcast, now); err != nil {
+				return err
+			}
 			s.logger.WithField("status", string(abStatus)).Info("A/B test broadcast resumed")
 		} else if broadcast.Schedule.IsScheduled {
 			// Phase-1 pause: originally scheduled flow.
@@ -873,6 +877,31 @@ func resumedABStatus(broadcast *domain.Broadcast) (status domain.BroadcastStatus
 		return domain.BroadcastStatusTesting, true
 	}
 	return "", false
+}
+
+// countTestPause adds the time a test waiting for its winner spent paused to its
+// test_paused_seconds, so the automatic winner is not picked on a sample whose emails the
+// pause held. The test's clock starts at test_sent_at, the end of its sample: a pause before
+// it, or once a winner is chosen, counts nothing. The write holds only while the broadcast is
+// the paused one this resume read (its read takes no lock): a second resume is refused.
+func (s *BroadcastService) countTestPause(ctx context.Context, tx *sql.Tx, broadcast *domain.Broadcast, now time.Time) error {
+	if broadcast.Status != domain.BroadcastStatusTestCompleted || broadcast.TestSentAt == nil || broadcast.PausedAt == nil {
+		return nil
+	}
+	seconds := int(math.Ceil(now.Sub(*broadcast.PausedAt).Seconds()))
+	if seconds <= 0 {
+		return nil
+	}
+	counted, err := s.repo.AddTestPauseTx(ctx, tx, broadcast.WorkspaceID, broadcast.ID, *broadcast.PausedAt, seconds)
+	if err != nil {
+		s.logger.WithField("broadcast_id", broadcast.ID).Error("Failed to count the time the A/B test spent paused")
+		return err
+	}
+	if !counted {
+		return domain.NewValidationError("the broadcast is no longer paused")
+	}
+	broadcast.TestPausedSeconds += seconds
+	return nil
 }
 
 // allRecipientsQueued reports whether the broadcast's task has queued every recipient: its

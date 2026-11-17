@@ -36,7 +36,8 @@ const broadcastListColumns = `id,
 			data_feed,
 			tracking_mode,
 			COALESCE(test_phase_recipient_count, 0),
-			COALESCE(winner_phase_recipient_count, 0)`
+			COALESCE(winner_phase_recipient_count, 0),
+			COALESCE(test_paused_seconds, 0)`
 
 // escapeLikePattern escapes the characters that carry special meaning in a SQL
 // LIKE/ILIKE pattern so a user-provided search term is matched literally.
@@ -193,7 +194,8 @@ const getBroadcastQuery = `
 			data_feed,
 			tracking_mode,
 			COALESCE(test_phase_recipient_count, 0),
-			COALESCE(winner_phase_recipient_count, 0)
+			COALESCE(winner_phase_recipient_count, 0),
+			COALESCE(test_paused_seconds, 0)
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -394,6 +396,24 @@ func (r *broadcastRepository) MarkBroadcastStarted(ctx context.Context, workspac
 		return fmt.Errorf("failed to mark broadcast started: %w", err)
 	}
 	return nil
+}
+
+// AddTestPauseTx adds seconds to test_paused_seconds, inside tx, if the broadcast is still
+// paused since pausedAt, and reports whether it did. The increment is made on the row, not
+// from a copy, so a write that read the broadcast earlier does not undo it.
+func (r *broadcastRepository) AddTestPauseTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string, pausedAt time.Time, seconds int) (bool, error) {
+	query := `
+		UPDATE broadcasts SET test_paused_seconds = test_paused_seconds + $3
+		WHERE id = $1 AND workspace_id = $2 AND status = 'paused' AND paused_at = $4`
+	result, err := tx.ExecContext(ctx, query, broadcastID, workspaceID, seconds, pausedAt)
+	if err != nil {
+		return false, fmt.Errorf("failed to count the time the A/B test spent paused: %w", err)
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	return n > 0, nil
 }
 
 // StartScheduledBroadcast moves a broadcast still scheduled to the status its sending starts
@@ -726,6 +746,7 @@ func scanBroadcast(scanner interface {
 		&trackingMode,
 		&broadcast.TestPhaseRecipientCount,
 		&broadcast.WinnerPhaseRecipientCount,
+		&broadcast.TestPausedSeconds,
 	)
 
 	if err != nil {

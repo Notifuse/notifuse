@@ -2901,7 +2901,7 @@
     "/api/broadcasts.resume": {
       "post": {
         "summary": "Resume a broadcast",
-        "description": "Resumes a paused broadcast where it was. An A/B test broadcast goes back to the step it was paused at: sending its sample (testing), waiting for its winner (test_completed) or sending the winner (winner_selected). An automatic winner is picked once the test duration, counted from when the test was sent, has passed, the time paused included.\n",
+        "description": "Resumes a paused broadcast where it was. An A/B test broadcast goes back to the step it was paused at: sending its sample (testing), waiting for its winner (test_completed) or sending the winner (winner_selected). The time a test waiting for its winner spends paused does not count toward its test duration (`test_paused_seconds`).\n",
         "operationId": "resumeBroadcast",
         "security": [
           {
@@ -9775,6 +9775,11 @@
           "winner_phase_recipient_count": {
             "type": "integer",
             "description": "Number of recipients in winner phase"
+          },
+          "test_paused_seconds": {
+            "type": "integer",
+            "description": "Seconds an A/B test waiting for its winner spent paused. The automatic winner is picked once the test duration has passed without them. Omitted when 0.",
+            "example": 3600
           },
           "created_at": {
             "type": "string",

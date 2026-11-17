@@ -71,6 +71,15 @@ func TestShouldEvaluateWinner(t *testing.T) {
 	sentAt = fixedNow.Add(-2 * time.Hour)
 	b.TestSentAt = &sentAt
 	assert.True(t, orch.shouldEvaluateWinner(b))
+
+	// Case 5: the time the test spent paused does not count: 2 hours since the test, 90
+	// minutes of them paused, is 30 minutes of a 1-hour test.
+	b.TestPausedSeconds = 90 * 60
+	assert.False(t, orch.shouldEvaluateWinner(b))
+
+	// Case 6: the duration has passed once the pause is left out.
+	b.TestPausedSeconds = 30 * 60
+	assert.True(t, orch.shouldEvaluateWinner(b))
 }
 
 // fakeTimeProvider implements TimeProvider for deterministic tests

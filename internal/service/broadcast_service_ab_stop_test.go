@@ -347,3 +347,101 @@ func TestBroadcastService_ResumeBroadcast_ABTest(t *testing.T) {
 		})
 	}
 }
+
+// A test waiting for its winner does not count the time it spent paused: the resume adds it
+// to test_paused_seconds, through a write that holds only while the broadcast is still the
+// paused one this resume read, so two resumes add it once.
+func TestBroadcastService_ResumeBroadcast_ABTestCountsItsPause(t *testing.T) {
+	testSent := time.Now().UTC().Add(-3 * time.Hour)
+	pausedAt := time.Now().UTC().Add(-2 * time.Hour).Truncate(time.Microsecond)
+	winner := "tplB"
+	completed := time.Now().UTC().Add(-time.Minute)
+
+	for name, tc := range map[string]struct {
+		edit    func(b *domain.Broadcast)
+		counted bool
+	}{
+		"waiting for its winner: the pause is counted": {func(b *domain.Broadcast) {}, true},
+		"a winner chosen: not counted": {func(b *domain.Broadcast) { b.WinningTemplate = &winner }, false},
+		"the test under way: its clock has not started": {func(b *domain.Broadcast) { b.TestSentAt = nil }, false},
+		"every recipient queued: not counted":          {func(b *domain.Broadcast) { b.CompletedAt = &completed }, false},
+		"the test turned off: not counted":             {func(b *domain.Broadcast) { b.TestSettings.Enabled = false }, false},
+		"no pause date: nothing to count":              {func(b *domain.Broadcast) { b.PausedAt = nil }, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			defer d.ctrl.Finish()
+			ctx := context.Background()
+			req := &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+			authOK(d.authService, ctx, req.WorkspaceID)
+			noTaskStateYet(d)
+			inTransaction(d, req.WorkspaceID)
+
+			b := abTestBroadcast(domain.BroadcastStatusPaused)
+			b.TestSettings.AutoSendWinner, b.TestSettings.TestDurationHours = true, 1
+			sent, paused := testSent, pausedAt
+			b.TestSentAt, b.PausedAt = &sent, &paused
+			tc.edit(b)
+			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+			var seconds int
+			if tc.counted {
+				d.repo.EXPECT().AddTestPauseTx(gomock.Any(), gomock.Any(), "w1", "b1", pausedAt, gomock.Any()).DoAndReturn(
+					func(_ context.Context, _ *sql.Tx, _, _ string, _ time.Time, s int) (bool, error) {
+						seconds = s
+						return true, nil
+					})
+			} else {
+				d.repo.EXPECT().AddTestPauseTx(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			}
+			d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			d.emailQueueRepo.EXPECT().ResumeBySourceTx(gomock.Any(), gomock.Any(), domain.EmailQueueSourceBroadcast, "b1").Return(int64(2), nil)
+			ackEvent(d, nil)
+
+			require.NoError(t, d.svc.ResumeBroadcast(ctx, req))
+			if tc.counted {
+				assert.InDelta(t, (2 * time.Hour).Seconds(), float64(seconds), 60, "the time paused, in seconds")
+				assert.Equal(t, seconds, b.TestPausedSeconds, "the copy carries it")
+				assert.Equal(t, testSent, *b.TestSentAt, "the test date is kept")
+			}
+		})
+	}
+}
+
+// The resume reads the broadcast without its lock: a second resume finds the pause already
+// counted and is refused, with nothing else written.
+func TestBroadcastService_ResumeBroadcast_ABTestPauseCountedOnce(t *testing.T) {
+	for name, tc := range map[string]struct {
+		written bool
+		err     error
+	}{
+		"another resume went first": {false, nil},
+		"the write fails":           {false, assert.AnError},
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := setupBroadcastSvc(t)
+			defer d.ctrl.Finish()
+			ctx := context.Background()
+			req := &domain.ResumeBroadcastRequest{WorkspaceID: "w1", ID: "b1"}
+			authOK(d.authService, ctx, req.WorkspaceID)
+			noTaskStateYet(d)
+			inTransaction(d, req.WorkspaceID)
+
+			b := abTestBroadcast(domain.BroadcastStatusPaused)
+			testSent, paused := time.Now().UTC().Add(-3*time.Hour), time.Now().UTC().Add(-time.Hour)
+			b.TestSentAt, b.PausedAt = &testSent, &paused
+			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), "w1", "b1").Return(b, nil)
+			d.repo.EXPECT().AddTestPauseTx(gomock.Any(), gomock.Any(), "w1", "b1", paused, gomock.Any()).Return(tc.written, tc.err)
+			d.repo.EXPECT().UpdateBroadcastStatusTx(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+			err := d.svc.ResumeBroadcast(ctx, req)
+			require.Error(t, err)
+			if tc.err != nil {
+				assert.ErrorIs(t, err, tc.err)
+			} else {
+				var validation domain.ValidationError
+				require.ErrorAs(t, err, &validation)
+				assert.Contains(t, validation.Message, "no longer paused")
+			}
+		})
+	}
+}

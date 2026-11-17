@@ -2034,8 +2034,9 @@ func (o *BroadcastOrchestrator) shouldEvaluateWinner(broadcast *domain.Broadcast
 		return false
 	}
 
-	// Calculate evaluation time and check if it has passed
-	evaluationTime := broadcast.TestSentAt.Add(time.Duration(broadcast.TestSettings.TestDurationHours) * time.Hour)
+	// The test lasts its duration from test_sent_at, the time it spent paused left out.
+	evaluationTime := broadcast.TestSentAt.Add(time.Duration(broadcast.TestSettings.TestDurationHours)*time.Hour +
+		time.Duration(broadcast.TestPausedSeconds)*time.Second)
 	now := o.timeProvider.Now()
 
 	if now.Before(evaluationTime) {
