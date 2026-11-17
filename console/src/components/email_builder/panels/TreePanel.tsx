@@ -705,7 +705,8 @@ export const TreePanel: React.FC<TreePanelProps> = ({
       {/* Head Section */}
       {headTreeData.length > 0 && (
         <div className="flex-shrink-0">
-          <div className="p-4">
+          {/* Same side inset as the body, so the Head and Body chevrons line up */}
+          <div className="px-2 py-4">
             <Tree
               {...commonTreeProps}
               expandedKeys={expandedKeys}

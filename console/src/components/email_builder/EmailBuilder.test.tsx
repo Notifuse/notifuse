@@ -453,6 +453,14 @@ describe('EmailBuilder library', () => {
     created: '2026-09-01T00:00:00Z'
   }
 
+  // Enough more saved blocks for the library to show its search, matched by none of the searches below
+  const moreBlocks: SavedBlock[] = Array.from({ length: 9 }, (_, i) => ({
+    id: `block-${i + 1}`,
+    name: `Block ${i + 1}`,
+    block: blk(`saved-text-${i + 1}`, 'mj-text', undefined, { content: 'Text' }),
+    created: '2020-01-01T00:00:00Z'
+  }))
+
   // Holds the tree, the selection and the saved blocks the way the template drawer does
   let current: { tree: EmailBlock; selected: string | null; onSelectBlock: Mock }
   function Drawer({
@@ -460,17 +468,19 @@ describe('EmailBuilder library', () => {
     initialTree = libraryTree,
     canManage = false,
     onRename,
-    onDelete
+    onDelete,
+    otherSavedBlocks = []
   }: {
     onSaveBlock?: (add: (saved: SavedBlock) => void) => SaveBlockHandler
     initialTree?: () => EmailBlock
     canManage?: boolean
     onRename?: RenameSavedBlockHandler
     onDelete?: DeleteSavedBlockHandler
+    otherSavedBlocks?: SavedBlock[]
   }) {
     const [tree, setTree] = useState(initialTree)
     const [selected, setSelected] = useState<string | null>(null)
-    const [savedBlocks, setSavedBlocks] = useState<SavedBlock[]>([ctaBlock, headerBlock])
+    const [savedBlocks, setSavedBlocks] = useState<SavedBlock[]>([ctaBlock, headerBlock, ...otherSavedBlocks])
     const onSelectBlock = React.useMemo(() => vi.fn((id: string | null) => setSelected(id)), [])
     React.useEffect(() => {
       current = { tree, selected, onSelectBlock }
@@ -512,9 +522,9 @@ describe('EmailBuilder library', () => {
     document.body.innerHTML = ''
   })
 
-  it('opens on the structure, with the number of saved blocks on the library tab', () => {
+  it('opens on the structure, with no count on the library tab', () => {
     render(<Drawer />)
-    expect(screen.getByTestId('library-count')).toHaveTextContent('2')
+    expect(screen.getByTestId('library-tab')).toHaveTextContent(/^Library$/)
     expect(mockTreePanelProps.emailTree).toBeDefined()
     expect(screen.queryByTestId('library-panel')).not.toBeInTheDocument()
 
@@ -703,6 +713,7 @@ describe('EmailBuilder library', () => {
     }
     render(
       <Drawer
+        otherSavedBlocks={moreBlocks}
         onSaveBlock={(add) => async () => {
           add(created)
           return 'new-id'
@@ -765,6 +776,7 @@ describe('EmailBuilder library', () => {
       render(
         <Drawer
           canManage
+          otherSavedBlocks={moreBlocks}
           onSaveBlock={(add) => {
             addSaved = add
             return handler as unknown as SaveBlockHandler

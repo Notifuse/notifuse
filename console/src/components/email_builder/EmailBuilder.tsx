@@ -1133,17 +1133,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                       { label: t`Structure`, value: 'structure' },
                       {
                         label: (
-                          <span data-testid="library-tab">
-                            {t`Library`}{' '}
-                            <span
-                              data-testid="library-count"
-                              className={`ml-0.5 inline-block min-w-[18px] rounded-full px-1 text-center text-[10px] leading-4 ${
-                                savedBlocks?.length ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
-                              }`}
-                            >
-                              {savedBlocks?.length ?? 0}
-                            </span>
-                          </span>
+<span data-testid="library-tab">{t`Library`}</span>
                         ),
                         value: 'library'
                       }
