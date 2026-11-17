@@ -298,6 +298,16 @@ msgstr "{0, plural, one {# text} other {# textos}}"
 msgid "{0, plural, one {# unsubscribe} other {# unsubscribes}}"
 msgstr "{0, plural, one {# baixa} other {# baixes}}"
 
+#. placeholder {0}: data.behind
+#: src/components/updates/UpdateCard.tsx:31
+msgid "{0, plural, one {# version behind} other {# versions behind}}"
+msgstr "{0, plural, one {# versió de retard} other {# versions de retard}}"
+
+#. placeholder {0}: data.behind
+#: src/components/updates/UpdateDrawer.tsx:20
+msgid "{0, plural, one {# version} other {# versions}}"
+msgstr "{0, plural, one {# versió} other {# versions}}"
+
 #. placeholder {0}: stats.waiting
 #: src/components/automations/stats/NodeStatsFooter.tsx:63
 msgid "{0, plural, one {# waiting} other {# waiting}}"
@@ -769,6 +779,10 @@ msgstr "{deleted, plural, one {# fitxer eliminat} other {# fitxers eliminats}}"
 #: src/components/file_manager/FileExplorer.tsx:360
 msgid "{deletedFiles, plural, one {Deleted # file, {failedFiles} failed} other {Deleted # files, {failedFiles} failed}}"
 msgstr "{deletedFiles, plural, one {# fitxer eliminat, {failedFiles} amb error} other {# fitxers eliminats, {failedFiles} amb error}}"
+
+#: src/components/updates/UpdateFooter.tsx:25
+msgid "{dismissedLatest} available"
+msgstr "{dismissedLatest} disponible"
 
 #: src/components/analytics/GetStartedChecklist.tsx:404
 msgid "{done, plural, one {# of {total} done} other {# of {total} done}}"
@@ -1300,9 +1314,17 @@ msgstr "{value} p. p."
 msgid "{warnings, plural, one {# missing} other {# missing}}"
 msgstr "{warnings, plural, one {Falta #} other {Falten #}}"
 
+#: src/components/updates/UpdateCard.tsx:32
+msgid "{warnings, plural, one {# point to read before upgrading} other {# points to read before upgrading}}"
+msgstr "{warnings, plural, one {# punt per llegir abans d'actualitzar} other {# punts per llegir abans d'actualitzar}}"
+
 #: src/components/transactional/NotificationChecks.tsx:233
 msgid "{warnings, plural, one {# to check} other {# to check}}"
 msgstr "{warnings, plural, one {# per revisar} other {# per revisar}}"
+
+#: src/components/updates/UpdateDrawer.tsx:53
+msgid "{warnings, plural, one {# warning} other {# warnings}}"
+msgstr "{warnings, plural, one {# avís} other {# avisos}}"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:184
 msgid "{weekday} at {time} {zone}"
@@ -3699,6 +3721,10 @@ msgstr "Ganxo abans de crear usuari"
 msgid "Before you create"
 msgstr "Abans de crear"
 
+#: src/components/updates/UpdateDrawer.tsx:87
+msgid "Before you upgrade:"
+msgstr "Abans d'actualitzar:"
+
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:568
 #~ msgid "Belonging to at least one of the following segments"
 #~ msgstr "Pertany com a mínim a un dels segments següents"
@@ -4498,6 +4524,7 @@ msgstr "No es pot canviar un cop creada la plantilla"
 #: src/components/templates/TemplateSelectorModal.tsx:218
 #: src/components/templates/TemplateTranslationsTab.tsx:363
 #: src/components/transactional/notificationRules.ts:94
+#: src/components/updates/UpdateCard.tsx:48
 #: src/components/web_analytics/explore/BreakdownModal.tsx:76
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
 #: src/components/web_analytics/filters/BackfillStatus.tsx:91
@@ -5221,6 +5248,7 @@ msgstr "Clonar plantilla"
 #: src/components/settings/WorkspaceMembers.tsx:616
 #: src/components/templates/ImportErrorsModal.tsx:36
 #: src/components/transactional/ApiCommandDrawer.tsx:212
+#: src/components/updates/UpdateDrawer.tsx:31
 msgid "Close"
 msgstr "Tancar"
 
@@ -10768,6 +10796,10 @@ msgstr "Accés complet"
 #~ msgid "Full Access"
 #~ msgstr "Accés complet"
 
+#: src/components/updates/UpdateDrawer.tsx:92
+msgid "Full changelog"
+msgstr "Registre de canvis complet"
+
 #: src/components/settings/BlogSettings.tsx:442
 #~ msgid "Full content"
 #~ msgstr "Contingut complet"
@@ -11288,6 +11320,10 @@ msgstr "Com apareix la pàgina de la categoria als resultats de cerca"
 msgid "How the post appears in search results"
 msgstr "Com apareix l'article als resultats de cerca"
 
+#: src/components/updates/UpdateDrawer.tsx:37
+msgid "How to upgrade"
+msgstr "Com actualitzar"
+
 #: src/components/email_builder/blocks/MjFontBlock.tsx:38
 msgid "How to use:"
 msgstr "Com utilitzar:"
@@ -11422,7 +11458,7 @@ msgstr "L'ID ha de tenir menys de 32 caràcters"
 msgid "ID must contain only lowercase letters, numbers, underscores, and hyphens"
 msgstr "L'ID només pot contenir lletres minúscules, números, guions baixos i guions"
 
-#: src/pages/DashboardPage.tsx:109
+#: src/pages/DashboardPage.tsx:129
 msgid "ID:"
 msgstr "ID:"
 
@@ -11499,6 +11535,18 @@ msgstr "Si ja existeix un contacte amb aquest correu, els camps proporcionats se
 #: src/components/transactional/ApiCommandDrawer.tsx:111
 msgid "If the contact email doesn't exist in your workspace, it will be automatically created."
 msgstr "Si el correu del contacte no existeix al vostre espai de treball, es crearà automàticament."
+
+#: src/components/updates/UpdateCard.tsx:47
+msgid "Ignore"
+msgstr "Ignora"
+
+#: src/components/updates/UpdateCard.tsx:45
+msgid "Ignore {latest}?"
+msgstr "Vols ignorar la {latest}?"
+
+#: src/components/updates/UpdateCard.tsx:51
+msgid "Ignore this version"
+msgstr "Ignora aquesta versió"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:43
 #: src/components/email_builder/ui/BackgroundInput.tsx:258
@@ -11715,6 +11763,10 @@ msgstr "Incloeu una crida a l'acció clara"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:162
 msgid "Included"
 msgstr "Inclosos"
+
+#: src/components/updates/UpdateCard.tsx:60
+msgid "Includes a security fix ({securityVersion})"
+msgstr "Inclou una correcció de seguretat ({securityVersion})"
 
 #: src/pages/LogsPage.tsx:92
 msgid "Incoming webhooks"
@@ -14044,8 +14096,8 @@ msgstr "Nova finestra"
 
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:99
 #: src/pages/CreateWorkspacePage.tsx:108
-#: src/pages/DashboardPage.tsx:40
-#: src/pages/DashboardPage.tsx:44
+#: src/pages/DashboardPage.tsx:60
+#: src/pages/DashboardPage.tsx:64
 msgid "New workspace"
 msgstr "Nou espai de treball"
 
@@ -14812,7 +14864,7 @@ msgstr "Encara no s'ha rebut cap esdeveniment de webhook"
 msgid "No webhooks yet"
 msgstr "Encara no hi ha webhooks"
 
-#: src/pages/DashboardPage.tsx:56
+#: src/pages/DashboardPage.tsx:76
 msgid "No workspaces"
 msgstr "Cap espai de treball"
 
@@ -15126,6 +15178,10 @@ msgstr "Notificació actualitzada correctament"
 #: src/components/settings/integrations/EmailRoles.tsx:51
 msgid "Notifications sent through the API, Zapier or Supabase"
 msgstr "Notificacions enviades a través de l'API, Zapier o Supabase"
+
+#: src/components/updates/UpdateCard.tsx:55
+msgid "Notifuse {latest} is available"
+msgstr "Notifuse {latest} està disponible"
 
 #: src/components/settings/WebhookDetail.tsx:443
 msgid "Notifuse disabled this webhook automatically"
@@ -16174,8 +16230,8 @@ msgstr "Període — {detail}"
 #~ msgstr ""
 
 #: src/pages/SetupWizard.tsx:567
-msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
-msgstr "Comproveu periòdicament noves versions de Notifuse i actualitzacions de seguretat. Una finestra emergent llistarà les noves versions disponibles."
+#~ msgid "Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
+#~ msgstr "Comproveu periòdicament noves versions de Notifuse i actualitzacions de seguretat. Una finestra emergent llistarà les noves versions disponibles."
 
 #: src/services/api/permissions.ts:215
 msgid "Permanently delete any contact"
@@ -18927,8 +18983,13 @@ msgstr "Seccions"
 
 #: src/components/settings/SettingsSidebar.tsx:32
 #: src/components/transactional/ApiCommandDrawer.tsx:145
+#: src/components/updates/UpdateDrawer.tsx:63
 msgid "Security"
 msgstr "Seguretat"
+
+#: src/components/updates/UpdateDrawer.tsx:82
+msgid "Security:"
+msgstr "Seguretat:"
 
 #: src/services/api/permissions.ts:555
 msgid "See broadcast send tasks; a listing that names no type is narrowed to the types you may read"
@@ -18973,6 +19034,10 @@ msgstr "Veure els esquemes d'analítica web llistats al catàleg consultable"
 #: src/services/api/permissions.ts:800
 msgid "See web analytics backfill tasks; a listing that names no type is narrowed to the types you may read"
 msgstr "Veure les tasques de reompliment d'analítica web; un llistat que no indica cap tipus es restringeix als tipus que podeu llegir"
+
+#: src/components/updates/UpdateCard.tsx:78
+msgid "See what's new"
+msgstr "Mostra les novetats"
 
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:172
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:176
@@ -19365,7 +19430,7 @@ msgstr "Seleccioneu a quin segment s'aplica aquest activador"
 #~ msgid "Select Winner"
 #~ msgstr "Seleccionar guanyador"
 
-#: src/pages/DashboardPage.tsx:32
+#: src/pages/DashboardPage.tsx:39
 msgid "Select workspace"
 msgstr "Seleccionar espai de treball"
 
@@ -20261,6 +20326,10 @@ msgstr "Es mostra al costat de la clau API"
 #: src/components/email_builder/panels/TreePanel.tsx:279
 msgid "Shown under a condition"
 msgstr "Visible sota una condició"
+
+#: src/pages/SetupWizard.tsx:567
+msgid "Shows new Notifuse versions and security fixes on the workspace list."
+msgstr "Mostra les noves versions de Notifuse i les correccions de seguretat a la llista d'espais de treball."
 
 #: src/pages/SignInPage.tsx:244
 msgid "Sign In"
@@ -21830,6 +21899,10 @@ msgstr "La difusió no s'enviarà a l'hora programada. Torna a ser un esborrany 
 #: src/components/broadcasts/useBroadcastActions.tsx:160
 msgid "The broadcast will stop sending and can be resumed later."
 msgstr "La difusió deixarà d'enviar i es pot reprendre més tard."
+
+#: src/components/updates/UpdateCard.tsx:46
+msgid "The card will come back with the next version. This choice applies to this browser."
+msgstr "La targeta tornarà a aparèixer amb la propera versió. Aquesta elecció s'aplica a aquest navegador."
 
 #: src/components/templates/TemplateStartModal.tsx:154
 msgid "The category {forcedLabel} is imposed where this template is created: the models of other categories are hidden."
@@ -23757,6 +23830,10 @@ msgstr "Propers enviaments"
 msgid "Update"
 msgstr "Actualitzar"
 
+#: src/components/updates/UpdateCard.tsx:39
+msgid "Update available"
+msgstr "Actualització disponible"
+
 #: src/components/contacts/ContactUpsertDrawer.tsx:503
 #: src/components/contacts/ContactUpsertDrawer.tsx:508
 msgid "Update Contact"
@@ -24857,6 +24934,10 @@ msgstr "El que un lector de feeds mostra de cada article"
 #: src/components/web_analytics/explore/CsvExportModal.tsx:151
 msgid "What gets exported"
 msgstr "Què s'exporta"
+
+#: src/components/updates/UpdateDrawer.tsx:26
+msgid "What's new since {current}"
+msgstr "Novetats des de la {current}"
 
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:40
 msgid "When"

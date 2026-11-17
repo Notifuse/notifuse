@@ -165,6 +165,49 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('workspaces-count')).toHaveTextContent('0')
   })
 
+  describe('update check flag', () => {
+    const UpdateProbe = () => {
+      const { checkForUpdates, serverVersion, signout, loading } = useAuth()
+      return (
+        <div>
+          <div data-testid="loading">{loading ? 'Loading' : 'Not Loading'}</div>
+          <div data-testid="check">{String(checkForUpdates)}</div>
+          <div data-testid="version">{serverVersion ?? 'none'}</div>
+          <button data-testid="signout" onClick={() => signout()}>
+            Sign Out
+          </button>
+        </div>
+      )
+    }
+
+    it('is off when user.me does not send it', async () => {
+      localStorageMock.setItem('auth_token', 'existing-token')
+      render(<UpdateProbe />, { wrapper })
+      await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('Not Loading'))
+      expect(screen.getByTestId('check')).toHaveTextContent('false')
+      expect(screen.getByTestId('version')).toHaveTextContent('none')
+    })
+
+    it('follows user.me, and is cleared on sign-out', async () => {
+      vi.mocked(authService.getCurrentUser).mockResolvedValueOnce({
+        user: { id: '123', email: 'root@example.com', timezone: 'UTC', language: 'en' },
+        workspaces: [],
+        check_for_updates: true,
+        version: '44.0'
+      })
+      localStorageMock.setItem('auth_token', 'existing-token')
+      render(<UpdateProbe />, { wrapper })
+      await waitFor(() => expect(screen.getByTestId('check')).toHaveTextContent('true'))
+      expect(screen.getByTestId('version')).toHaveTextContent('44.0')
+
+      await act(async () => {
+        screen.getByTestId('signout').click()
+      })
+      await waitFor(() => expect(screen.getByTestId('check')).toHaveTextContent('false'))
+      expect(screen.getByTestId('version')).toHaveTextContent('none')
+    })
+  })
+
   it('throws error when useAuth is used outside AuthProvider', () => {
     // Suppress console.error for this test
     const originalConsoleError = console.error

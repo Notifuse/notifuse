@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -1157,4 +1158,95 @@ func TestUserHandler_GetCurrentUserRefusesEveryMethodButGET(t *testing.T) {
 			assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
 		})
 	}
+}
+
+// user.me tells a console whether to ask updates.notifuse.com for the releases it is missing.
+// Only the people who can upgrade ask: the root user, and the owners of a workspace.
+func TestUserHandler_GetCurrentUserCheckForUpdates(t *testing.T) {
+	const userID = "test-user"
+	const sessionID = "test-session"
+	user := &domain.User{ID: userID, Email: "u@example.com"}
+
+	type setup struct {
+		userType  string
+		setting   bool
+		rootEmail string
+		owns      *bool // nil: UserOwnsAWorkspace must not be called
+		ownsErr   error
+	}
+	call := func(t *testing.T, s setup) map[string]interface{} {
+		t.Helper()
+		handler, mockUserSvc, mockWorkspaceSvc, _ := setupUserHandlerTest(t)
+		handler.config.CheckForUpdates = s.setting
+		handler.config.RootEmail = s.rootEmail
+		// Config.Version follows the VERSION environment variable; user.me must not.
+		handler.config.Version = "44.0-custom"
+
+		ctx := context.WithValue(context.Background(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, s.userType)
+		if s.userType == string(domain.UserTypeUser) {
+			ctx = context.WithValue(ctx, domain.SessionIDKey, sessionID)
+			mockUserSvc.EXPECT().VerifyUserSession(gomock.Any(), userID, sessionID).Return(user, nil)
+		}
+		mockUserSvc.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
+		mockWorkspaceSvc.EXPECT().ListWorkspaces(gomock.Any()).Return([]*domain.Workspace{}, nil)
+		if s.owns != nil || s.ownsErr != nil {
+			owns := s.owns != nil && *s.owns
+			mockWorkspaceSvc.EXPECT().UserOwnsAWorkspace(gomock.Any(), userID).Return(owns, s.ownsErr)
+		}
+		if s.ownsErr != nil {
+			ctrl := gomock.NewController(t)
+			lg := pkgmocks.NewMockLogger(ctrl)
+			lg.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(lg)
+			lg.EXPECT().Warn(gomock.Any())
+			handler.logger = lg
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil).WithContext(ctx)
+		rec := httptest.NewRecorder()
+		handler.GetCurrentUser(rec, req)
+		require.Equal(t, http.StatusOK, rec.Code, "a failed membership read must not fail the sign-in")
+
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(rec.Body).Decode(&body))
+		return body
+	}
+	yes, no := true, false
+	session := string(domain.UserTypeUser)
+
+	t.Run("root asks, without reading memberships", func(t *testing.T) {
+		body := call(t, setup{userType: session, setting: true, rootEmail: user.Email})
+		assert.Equal(t, true, body["check_for_updates"])
+	})
+
+	t.Run("a workspace owner asks", func(t *testing.T) {
+		body := call(t, setup{userType: session, setting: true, owns: &yes})
+		assert.Equal(t, true, body["check_for_updates"])
+	})
+
+	t.Run("a member who owns nothing does not ask", func(t *testing.T) {
+		body := call(t, setup{userType: session, setting: true, owns: &no})
+		assert.Equal(t, false, body["check_for_updates"])
+	})
+
+	t.Run("CHECK_FOR_UPDATES off: nobody asks, root included", func(t *testing.T) {
+		body := call(t, setup{userType: session, setting: false, rootEmail: user.Email})
+		assert.Equal(t, false, body["check_for_updates"])
+	})
+
+	t.Run("a failed membership read answers false and still signs in", func(t *testing.T) {
+		body := call(t, setup{userType: session, setting: true, ownsErr: errors.New("db down")})
+		assert.Equal(t, false, body["check_for_updates"])
+	})
+
+	t.Run("the version is the compiled constant, not the VERSION variable", func(t *testing.T) {
+		body := call(t, setup{userType: session, setting: true, owns: &no})
+		assert.Equal(t, config.VERSION, body["version"])
+	})
+
+	t.Run("an API key is told neither", func(t *testing.T) {
+		body := call(t, setup{userType: string(domain.UserTypeAPIKey), setting: true, rootEmail: user.Email})
+		assert.NotContains(t, body, "check_for_updates")
+		assert.NotContains(t, body, "version")
+	})
 }

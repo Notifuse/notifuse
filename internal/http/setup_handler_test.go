@@ -578,3 +578,43 @@ func TestSetupHandler_RegisterRoutes(t *testing.T) {
 		})
 	}
 }
+
+// An installation through the API that leaves check_for_updates out turns the update check on,
+// as the setup wizard and the documentation default it. The bodies are raw JSON on purpose: a
+// struct literal cannot leave a field out.
+func TestSetupHandler_InitializeCheckForUpdatesDefault(t *testing.T) {
+	base := `"root_email":"admin@example.com","api_endpoint":"https://api.example.com","smtp_host":"smtp.example.com","smtp_port":587,"smtp_from_email":"noreply@example.com","smtp_from_name":"Test"`
+	cases := map[string]struct {
+		body string
+		want string
+	}{
+		"field absent": {`{` + base + `}`, "true"},
+		"field false":  {`{` + base + `,"check_for_updates":false}`, "false"},
+		"field true":   {`{` + base + `,"check_for_updates":true}`, "true"},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			settingRepo := newMockSettingRepository()
+			settingService := service.NewSettingService(settingRepo)
+			setupService := service.NewSetupService(
+				settingService,
+				&service.UserService{},
+				newMockUserRepository(),
+				logger.NewLogger(),
+				"secret-key",
+				func() error { return nil },
+				nil,
+			)
+			handler := NewSetupHandler(setupService, settingService, logger.NewLogger(), newMockAppShutdowner())
+
+			req := httptest.NewRequest(http.MethodPost, "/api/setup.initialize", bytes.NewBufferString(c.body))
+			w := httptest.NewRecorder()
+			handler.Initialize(w, req)
+			require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+			stored, err := settingRepo.Get(context.Background(), "check_for_updates")
+			require.NoError(t, err, "the installation must store check_for_updates")
+			assert.Equal(t, c.want, stored.Value)
+		})
+	}
+}
