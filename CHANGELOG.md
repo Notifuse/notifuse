@@ -128,9 +128,11 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: An automation set to run once per contact no longer starts twice when two events for the same contact arrive at the same time.
 
-- **Improvement**: An email event that the provider posts again, after a timeout or an error, is recorded once, so a soft bounce posted again counts once toward marking the contact bounced. Events recorded twice before the upgrade stay as they are.
+- **Improvement**: An email event that the provider posts again, after a timeout or an error, is recorded once, so a soft bounce posted again counts once toward marking the contact bounced.
 
-- **Fix**: Bounces and spam complaints sent by Postmark are applied; their webhook was refused.
+- **Improvement**: The soft bounce threshold counts emails: an email the provider tries to deliver several times, as Mailgun reports each attempt, counts once.
+
+- **Fix**: Bounces and spam complaints sent by Postmark are applied; their webhook was refused. Auto-replies and the other reports that do not say the address cannot be reached (address change, spam notification, DMARC rejection…) do not count toward marking the contact bounced, and a block by a mailbox provider counts as a soft bounce.
 
 - **Improvement**: Building a segment takes the same time for each batch of contacts, however far the build has gone, instead of slowing down as it goes (#571). On a workspace with hundreds of thousands of contacts, the daily update of segments with relative dates no longer keeps the database busy for over an hour. Contacts created or deleted during a build no longer make it skip or repeat others.
 

@@ -422,7 +422,7 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 				s.logger.WithField("recipient_email", event.RecipientEmail).
 					WithField("bounce_type", event.BounceType).
 					WithField("bounce_category", event.BounceCategory).
-					Debug("ignoring message-level soft bounce")
+					Debug("ignoring a bounce report that says nothing against the recipient")
 			}
 
 		case domain.EmailEventComplaint:
