@@ -124,8 +124,11 @@ export const OPERATORS: readonly WebFilterOperator[] = [
   'regex'
 ]
 
-/** Operators that carry no value; their input is hidden and the value cleared. */
-export const VALUELESS_OPERATORS: readonly WebFilterOperator[] = ['is_empty', 'is_not_empty']
+/**
+ * Rule condition operators that carry no value; their input is hidden and the value cleared. The
+ * dashboard's own filters spell theirs in camelCase: VALUELESS_DIMENSION_FILTER_OPERATORS in types.ts.
+ */
+export const VALUELESS_RULE_OPERATORS: readonly WebFilterOperator[] = ['is_empty', 'is_not_empty']
 
 export const FILTER_ACTIONS: readonly WebFilterAction[] = [
   'set_value',
@@ -149,8 +152,9 @@ export const SUGGESTED_TAGS: readonly string[] = [
   'funnel'
 ]
 
-export function isValuelessOperator(operator: WebFilterOperator): boolean {
-  return VALUELESS_OPERATORS.includes(operator)
+/** Takes any string: a condition row being filled may have no operator yet. */
+export function isValuelessRuleOperator(operator: string | undefined): boolean {
+  return (VALUELESS_RULE_OPERATORS as readonly string[]).includes(operator ?? '')
 }
 
 export interface FilterFieldOption {

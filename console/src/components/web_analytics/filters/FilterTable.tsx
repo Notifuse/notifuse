@@ -1,4 +1,4 @@
-import { MouseEvent, useMemo, useState } from 'react'
+import { MouseEvent, ReactNode, useMemo, useState } from 'react'
 import { Button, Popconfirm, Popover, Space, Switch, Table, Tag, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
@@ -9,6 +9,7 @@ import { Panel } from '../../layout'
 import { PopconfirmWithTooltip } from '../../layout/PopconfirmWithTooltip'
 import { getDimensionLabel } from '../lib/dimensions'
 import { getSourceFieldLabel, useFilterVocabulary } from '../lib/filterCatalog'
+import { useWebAnalyticsWriteReason } from './useWebAnalyticsWriteReason'
 
 export interface FilterTableProps {
   filters: WebFilter[]
@@ -16,9 +17,30 @@ export interface FilterTableProps {
   customDimensionLabels?: Record<string, string>
   /** Every mutation rewrites the whole rule array, so one flag covers them all. */
   saving?: boolean
+  /**
+   * The member cannot write web analytics settings: the toggle and delete stay in place, disabled and
+   * saying why, since either would only end in a 403. The editor still opens, read only.
+   */
+  readOnly?: boolean
+  /** The permissions are still loading: the toggle and delete stay disabled, saying nothing yet. */
+  permissionsLoading?: boolean
   onEdit: (filter: WebFilter) => void
   onDelete: (filter: WebFilter) => void
   onToggleEnabled: (filter: WebFilter) => void
+}
+
+/**
+ * A disabled control that says why on hover. A disabled button or switch gets no pointer events, so the
+ * span carries the tooltip; it also keeps the click from reaching the row or card underneath.
+ */
+function NoWriteTooltip(props: { reason: string; children: ReactNode }) {
+  return (
+    <Tooltip title={props.reason}>
+      <span className="inline-flex" onClick={(event) => event.stopPropagation()}>
+        {props.children}
+      </span>
+    </Tooltip>
+  )
 }
 
 function ConditionTags(props: { conditions: WebFilterCondition[] }) {
@@ -44,6 +66,8 @@ interface MobileFilterCardProps {
   filter: WebFilter
   isExpanded: boolean
   disabled?: boolean
+  /** Why the toggle and delete are disabled for a member who cannot write; unset when they can. */
+  noWriteReason?: string
   customDimensionLabels?: Record<string, string>
   onToggle: () => void
   onEdit: () => void
@@ -74,15 +98,21 @@ function MobileFilterCard(props: MobileFilterCardProps) {
           ) : null}
         </div>
         <div className="flex items-center gap-2">
-          <Switch
-            checked={props.filter.enabled}
-            size="small"
-            disabled={props.disabled}
-            onClick={(_, event) => {
-              event.stopPropagation()
-              props.onToggleEnabled()
-            }}
-          />
+          {props.noWriteReason ? (
+            <NoWriteTooltip reason={props.noWriteReason}>
+              <Switch checked={props.filter.enabled} size="small" disabled />
+            </NoWriteTooltip>
+          ) : (
+            <Switch
+              checked={props.filter.enabled}
+              size="small"
+              disabled={props.disabled}
+              onClick={(_, event) => {
+                event.stopPropagation()
+                props.onToggleEnabled()
+              }}
+            />
+          )}
           <ChevronDown
             size={16}
             className={`text-ink-4 transition-transform ${props.isExpanded ? 'rotate-180' : ''}`}
@@ -128,18 +158,28 @@ function MobileFilterCard(props: MobileFilterCardProps) {
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Popconfirm
-              title={t`Delete this rule?`}
-              description={t`New visits are no longer rewritten by it. Past ones keep its values until the next backfill.`}
-              onConfirm={props.onDelete}
-              okText={t`Delete`}
-              okButtonProps={{ danger: true }}
-              cancelText={t`Cancel`}
-            >
-              <Button block size="small" icon={<DeleteOutlined />} disabled={props.disabled}>
-                {t`Delete`}
-              </Button>
-            </Popconfirm>
+            {props.noWriteReason ? (
+              <Tooltip title={props.noWriteReason}>
+                <span className="flex-1">
+                  <Button block size="small" icon={<DeleteOutlined />} disabled>
+                    {t`Delete`}
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : (
+              <Popconfirm
+                title={t`Delete this rule?`}
+                description={t`New visits are no longer rewritten by it. Past ones keep its values until the next backfill.`}
+                onConfirm={props.onDelete}
+                okText={t`Delete`}
+                okButtonProps={{ danger: true }}
+                cancelText={t`Cancel`}
+              >
+                <Button block size="small" icon={<DeleteOutlined />} disabled={props.disabled}>
+                  {t`Delete`}
+                </Button>
+              </Popconfirm>
+            )}
             <Button block size="small" icon={<EditOutlined />} onClick={props.onEdit}>
               {t`Edit`}
             </Button>
@@ -156,6 +196,8 @@ export function FilterTable(props: FilterTableProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const { filters, searchText = '', customDimensionLabels } = props
+  const writeReason = useWebAnalyticsWriteReason()
+  const noWriteReason = props.readOnly ? writeReason : undefined
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((previous) => {
@@ -268,16 +310,21 @@ export function FilterTable(props: FilterTableProps) {
       title: t`Status`,
       key: 'status',
       width: 80,
-      render: (_, record) => (
-        <Popconfirm
-          title={record.enabled ? t`Disable this rule?` : t`Enable this rule?`}
-          onConfirm={() => props.onToggleEnabled(record)}
-          okText={t`Yes`}
-          cancelText={t`No`}
-        >
-          <Switch checked={record.enabled} size="small" disabled={props.saving} />
-        </Popconfirm>
-      )
+      render: (_, record) =>
+        noWriteReason ? (
+          <NoWriteTooltip reason={noWriteReason}>
+            <Switch checked={record.enabled} size="small" disabled />
+          </NoWriteTooltip>
+        ) : (
+          <Popconfirm
+            title={record.enabled ? t`Disable this rule?` : t`Enable this rule?`}
+            onConfirm={() => props.onToggleEnabled(record)}
+            okText={t`Yes`}
+            cancelText={t`No`}
+          >
+            <Switch checked={record.enabled} size="small" disabled={props.saving || props.permissionsLoading} />
+          </Popconfirm>
+        )
     },
     {
       title: '',
@@ -289,23 +336,35 @@ export function FilterTable(props: FilterTableProps) {
           size="small"
           className="opacity-0 transition-opacity [.ant-table-row:hover_&]:opacity-100"
         >
-          <PopconfirmWithTooltip
-            tooltip={t`Delete rule`}
-            title={t`Delete this rule?`}
-            description={t`New visits are no longer rewritten by it. Past ones keep its values until the next backfill.`}
-            onConfirm={() => props.onDelete(record)}
-            okText={t`Delete`}
-            okButtonProps={{ danger: true }}
-            cancelText={t`Cancel`}
-          >
-            <Button
-              type="text"
-              size="small"
-              aria-label={t`Delete rule`}
-              icon={<DeleteOutlined />}
-              disabled={props.saving}
-            />
-          </PopconfirmWithTooltip>
+          {noWriteReason ? (
+            <NoWriteTooltip reason={noWriteReason}>
+              <Button
+                type="text"
+                size="small"
+                aria-label={t`Delete rule`}
+                icon={<DeleteOutlined />}
+                disabled
+              />
+            </NoWriteTooltip>
+          ) : (
+            <PopconfirmWithTooltip
+              tooltip={t`Delete rule`}
+              title={t`Delete this rule?`}
+              description={t`New visits are no longer rewritten by it. Past ones keep its values until the next backfill.`}
+              onConfirm={() => props.onDelete(record)}
+              okText={t`Delete`}
+              okButtonProps={{ danger: true }}
+              cancelText={t`Cancel`}
+            >
+              <Button
+                type="text"
+                size="small"
+                aria-label={t`Delete rule`}
+                icon={<DeleteOutlined />}
+                disabled={props.saving || props.permissionsLoading}
+              />
+            </PopconfirmWithTooltip>
+          )}
           <Tooltip title={t`Edit rule`}>
             <Button
               type="text"
@@ -336,7 +395,8 @@ export function FilterTable(props: FilterTableProps) {
             key={filter.id}
             filter={filter}
             isExpanded={expandedIds.has(filter.id)}
-            disabled={props.saving}
+            disabled={props.saving || props.permissionsLoading}
+            noWriteReason={noWriteReason}
             customDimensionLabels={customDimensionLabels}
             onToggle={() => toggleExpanded(filter.id)}
             onEdit={() => props.onEdit(filter)}

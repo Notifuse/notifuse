@@ -57,70 +57,54 @@ function OperationRow(props: OperationRowProps) {
   const { errors } = Form.Item.useStatus()
   const valueMissing = errors.length > 0 && !props.value.value?.trim()
 
-  // Two lines, to fit a side panel: what is written and how, then the value written.
+  // One line when the card is wide enough (dimension, action, value, delete); on a narrow card the
+  // value goes under them.
   return (
     <div
       data-operation-row
-      className="flex flex-col gap-2 border-t border-line-soft py-2.5 first:border-t-0 first:pt-0"
+      className="flex flex-wrap items-center gap-2 border-t border-line-soft py-2.5 first:border-t-0 first:pt-0"
     >
-      <div className="flex items-center gap-2">
-        <span className="w-4 shrink-0 text-xs text-ink-4">{props.index + 1}.</span>
-        <div className="min-w-0 flex-1">
-          <Select
-            ref={handleSelectRef}
-            value={props.value.dimension}
-            onChange={(dimension) => props.onChange({ ...props.value, dimension })}
-            options={props.dimensionOptions}
-            placeholder={t`Select dimension`}
-            aria-label={t`Dimension`}
-            style={{ width: '100%' }}
-            showSearch
-            optionFilterProp="label"
-            open={isOpen}
-            onOpenChange={setIsOpen}
-          />
-        </div>
-        <div className="w-[140px] shrink-0">
-          <Select<WebFilterAction, ActionOption>
-            value={props.value.action}
-            onChange={(action) =>
-              props.onChange({
-                ...props.value,
-                action,
-                value: action === 'unset_value' ? '' : props.value.value
-              })
-            }
-            options={props.actionOptions}
-            aria-label={t`Action`}
-            style={{ width: '100%' }}
-            // Wider than the select, so each action's description reads on one or two lines.
-            popupMatchSelectWidth={260}
-            optionRender={(option) => (
-              <div>
-                <div>{option.label}</div>
-                <div className="text-xs text-ink-4">{option.data.description}</div>
-              </div>
-            )}
-          />
-        </div>
-        <Popconfirm
-          title={t`Delete this operation?`}
-          onConfirm={props.onRemove}
-          okText={t`Delete`}
-          okButtonProps={{ danger: true }}
-          cancelText={t`Cancel`}
-          disabled={props.isOnlyOperation}
-        >
-          <Button
-            type="text"
-            aria-label={t`Delete operation`}
-            icon={<DeleteOutlined />}
-            disabled={props.isOnlyOperation}
-          />
-        </Popconfirm>
+      <span className="w-4 shrink-0 text-xs text-ink-4">{props.index + 1}.</span>
+      <div className="min-w-0 flex-1">
+        <Select
+          ref={handleSelectRef}
+          value={props.value.dimension}
+          onChange={(dimension) => props.onChange({ ...props.value, dimension })}
+          options={props.dimensionOptions}
+          placeholder={t`Select dimension`}
+          aria-label={t`Dimension`}
+          style={{ width: '100%' }}
+          showSearch
+          optionFilterProp="label"
+          open={isOpen}
+          onOpenChange={setIsOpen}
+        />
+      </div>
+      <div className="w-[140px] shrink-0">
+        <Select<WebFilterAction, ActionOption>
+          value={props.value.action}
+          onChange={(action) =>
+            props.onChange({
+              ...props.value,
+              action,
+              value: action === 'unset_value' ? '' : props.value.value
+            })
+          }
+          options={props.actionOptions}
+          aria-label={t`Action`}
+          style={{ width: '100%' }}
+          // Wider than the select, so each action's description reads on one or two lines.
+          popupMatchSelectWidth={260}
+          optionRender={(option) => (
+            <div>
+              <div>{option.label}</div>
+              <div className="text-xs text-ink-4">{option.data.description}</div>
+            </div>
+          )}
+        />
       </div>
       {showValueInput ? (
-        <div className="pl-6">
+        <div className="order-last basis-full pl-6 @min-[480px]:order-none @min-[480px]:basis-0 @min-[480px]:flex-1 @min-[480px]:pl-0">
           <RuleValueInput
             field={props.value.dimension}
             value={props.value.value ?? ''}
@@ -130,6 +114,21 @@ function OperationRow(props: OperationRowProps) {
           />
         </div>
       ) : null}
+      <Popconfirm
+        title={t`Delete this operation?`}
+        onConfirm={props.onRemove}
+        okText={t`Delete`}
+        okButtonProps={{ danger: true }}
+        cancelText={t`Cancel`}
+        disabled={props.isOnlyOperation}
+      >
+        <Button
+          type="text"
+          aria-label={t`Delete operation`}
+          icon={<DeleteOutlined />}
+          disabled={props.isOnlyOperation}
+        />
+      </Popconfirm>
     </div>
   )
 }
@@ -168,8 +167,7 @@ export function OperationsBuilder(props: OperationsBuilderProps) {
   }
 
   return (
-    <div>
-      <p className="m-0 mb-3 text-xs text-ink-3">{t`When matched, execute these operations:`}</p>
+    <div className="@container">
       <div>
         {operations.map((operation, index) => (
           <OperationRow

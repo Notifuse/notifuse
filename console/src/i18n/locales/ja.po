@@ -47,6 +47,10 @@ msgstr "- キャンセル済み"
 msgid "... and {0} more emails"
 msgstr "... 他{0}件のメール"
 
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:49
+msgid "· applies to the whole Web Analytics section. Click a row or a country to add one."
+msgstr "· Webアナリティクスのセクション全体に適用されます。行または国をクリックするとフィルターを追加できます。"
+
 #: src/components/settings/WorkspaceMembers.tsx:111
 msgid "· read only"
 msgstr "· 読み取り専用"
@@ -66,10 +70,10 @@ msgstr "「{name}」"
 msgid "\"{segmentName}\" will be deleted. Its contacts stay in the workspace. This action cannot be undone."
 msgstr "「{segmentName}」を削除します。コンタクトはワークスペースに残ります。この操作は元に戻せません。"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:103
-#: src/components/web_analytics/filters/FilterTable.tsx:208
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:148
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:237
+#: src/components/web_analytics/filters/FilterTable.tsx:133
+#: src/components/web_analytics/filters/FilterTable.tsx:250
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:157
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:275
 msgid "(always matches)"
 msgstr "(常に一致)"
 
@@ -87,13 +91,14 @@ msgid "(default)"
 msgstr "（デフォルト）"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:360
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:41
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:88
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:160
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:163
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:57
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:166
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:168
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:120
 #: src/components/web_analytics/explore/CsvExportModal.tsx:98
 #: src/components/web_analytics/explore/ExploreSummary.tsx:73
 #: src/components/web_analytics/explore/ExploreTable.tsx:63
+#: src/components/web_analytics/tabs/ExploreTab.tsx:300
 msgid "(empty)"
 msgstr "(空)"
 
@@ -272,6 +277,16 @@ msgstr "{0, plural, other {# 件のリソース}}"
 #: src/components/automations/stats/NodeStatsFooter.tsx:98
 msgid "{0, plural, one {# retrying} other {# retrying}}"
 msgstr "{0, plural, other {# 件再試行中}}"
+
+#. placeholder {0}: overrides.before.length
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:227
+msgid "{0, plural, one {# rule runs first and can keep this rule from writing {beforeList}} other {# rules run first and can keep this rule from writing {beforeList}}}"
+msgstr "{0, plural, one {# 件のルールが先に実行され、このルールによる {beforeList} の書き込みを妨げる可能性があります} other {# 件のルールが先に実行され、このルールによる {beforeList} の書き込みを妨げる可能性があります}}"
+
+#. placeholder {0}: overrides.after.length
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:240
+msgid "{0, plural, one {# rule runs later and can overwrite this rule on {afterList}} other {# rules run later and can overwrite this rule on {afterList}}}"
+msgstr "{0, plural, one {# 件のルールが後で実行され、{afterList} でこのルールを上書きする可能性があります} other {# 件のルールが後で実行され、{afterList} でこのルールを上書きする可能性があります}}"
 
 #. placeholder {0}: checkedFiles.length
 #: src/components/file_manager/FileExplorer.tsx:724
@@ -468,8 +483,8 @@ msgstr "{0}はこのイベントには適用されません"
 #. placeholder {0}: matchingRules.length
 #. placeholder {1}: enabledResults.length
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:299
-msgid "{0} of {1} rules match"
-msgstr "{1}件中{0}件のルールが一致"
+#~ msgid "{0} of {1} rules match"
+#~ msgstr "{1}件中{0}件のルールが一致"
 
 #. placeholder {0}: int(shown)
 #: src/pages/BroadcastsPage.tsx:230
@@ -487,7 +502,7 @@ msgstr "{0} 件開封"
 #~ msgstr "{0} 件の宛先を再送のためキューに追加しました"
 
 #. placeholder {0}: int(state.rows_updated)
-#: src/components/web_analytics/filters/BackfillStatus.tsx:110
+#: src/components/web_analytics/filters/BackfillStatus.tsx:123
 msgid "{0} rows rewritten"
 msgstr "{0}行を書き換えました"
 
@@ -582,6 +597,10 @@ msgstr "{0}秒"
 #: src/pages/BroadcastsPage.tsx:1757
 #~ msgid "{0}-{1} of {total} broadcasts"
 #~ msgstr "{total}件のブロードキャスト中 {0}-{1}"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:78
+msgid "{above, plural, one {# rule above and {below} below this one} other {# rules above and {below} below this one}}"
+msgstr "{above, plural, one {このルールの上に # 件、下に {below} 件} other {このルールの上に # 件、下に {below} 件}}"
 
 #: src/components/segment/segmentSummary.ts:196
 msgid "{action} at least {count} times"
@@ -689,6 +708,10 @@ msgstr "{count, plural, one {# 件の通知} other {# 件の通知}}"
 msgid "{count, plural, one {# recipient} other {# recipients}}"
 msgstr "{count, plural, one {# 件の宛先} other {# 件の宛先}}"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:57
+msgid "{count, plural, one {# value} other {# values}}"
+msgstr "{count, plural, one {# 件の値} other {# 件の値}}"
+
 #: src/components/broadcasts/BroadcastsTable.tsx:317
 msgid "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
 msgstr "{count, plural, one {A/B · # パターン} other {A/B · # パターン}}"
@@ -786,6 +809,10 @@ msgstr "{email}（プロバイダーのデフォルト）"
 msgid "{email}, the template's, on {providerName}"
 msgstr "{email}（テンプレートの送信者、{providerName} 経由）"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:407
+msgid "{enabled} enabled · {disabled} disabled"
+msgstr "有効 {enabled} 件 · 無効 {disabled} 件"
+
 #: src/pages/ContactsPage.tsx:510
 msgid "{exactTotal, plural, one {{shownCount} of # contact} other {{shownCount} of # contacts}}"
 msgstr "{exactTotal, plural, one {# 件中 {shownCount} 件のコンタクト} other {# 件中 {shownCount} 件のコンタクト}}"
@@ -872,6 +899,10 @@ msgstr "{field} が過去 {days} 日以内ではない"
 #: src/components/segment/segmentSummary.ts:104
 msgid "{field} starts with {value}"
 msgstr "{field} が {value} で始まる"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:325
+msgid "{filled} of {total} filled"
+msgstr "{total} 件中 {filled} 件入力済み"
 
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:294
 msgid "{full} ({timezone})"
@@ -1083,6 +1114,14 @@ msgstr "{total} 枠中 {named} 枠に名前あり"
 #~ msgid "{notAppliedNames} filters not applied to the session figures and chart"
 #~ msgstr "{notAppliedNames} フィルターはセッションの数値とグラフに適用されていません"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:186
+msgid "{onPage} of {total} sessions"
+msgstr "{total} セッション中 {onPage}"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:185
+msgid "{onPage} of {total} sessions on this page"
+msgstr "このページ: {total} セッション中 {onPage}"
+
 #: src/components/templates/TemplateSettingsStep.tsx:80
 msgid "{open} Liquid tags are not closed: each {OPEN_TAG} needs a matching {CLOSE_TAG}"
 msgstr "{open} 個の Liquid タグが閉じられていません。各 {OPEN_TAG} には対応する {CLOSE_TAG} が必要です"
@@ -1136,6 +1175,10 @@ msgstr "{providerName} にはデフォルト送信者がありません"
 msgid "{readingTime} min read"
 msgstr "{readingTime}分で読めます"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:181
+msgid "{regexCount, plural, one {The regular expression is valid} other {The # regular expressions are valid}}"
+msgstr "{regexCount, plural, one {正規表現は有効です} other {# 件の正規表現はすべて有効です}}"
+
 #: src/components/broadcasts/useBroadcastActions.tsx:67
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# 件の宛先を再試行キューに追加しました} other {# 件の宛先を再試行キューに追加しました}}"
@@ -1186,6 +1229,10 @@ msgstr "{selectedCount, plural, one {#件のコンタクトを完全に削除し
 #: src/components/broadcasts/VariationSenderSelect.tsx:69
 msgid "{senderId} (deleted)"
 msgstr "{senderId}（削除済み）"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:207
+msgid "{share} of {parent}"
+msgstr "{parent} の {share}"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:242
 msgid "{share}% tracked"
@@ -1242,7 +1289,7 @@ msgid "{time} local time"
 msgstr "現地時間 {time}"
 
 #: src/components/blog/PostDrawer.tsx:1109
-#: src/components/seo/SeoChecks.tsx:35
+#: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, other {確認が必要: #}}"
 
@@ -1365,6 +1412,10 @@ msgstr "1年あたりの{what}"
 msgid "{when} in {zone}"
 msgstr "{when}（{zone}）"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:196
+#~ msgid "{winnerCount, plural, one {# rule can override this rule on {takenList}} other {# rules can override this rule on {takenList}}}"
+#~ msgstr "{winnerCount, plural, one {# 件のルールが {takenList} でこのルールを上書きできます} other {# 件のルールが {takenList} でこのルールを上書きできます}}"
+
 #: src/components/analytics/GetStartedChecklist.tsx:132
 msgid "{workspaceName} is ready, with you as its first contact in the Test List."
 msgstr "{workspaceName} の準備ができました。あなたが Test List の最初のコンタクトです。"
@@ -1422,7 +1473,7 @@ msgid "+{0}"
 msgstr "+{0}"
 
 #. placeholder {0}: hidden.length
-#: src/components/web_analytics/filters/FilterTable.tsx:224
+#: src/components/web_analytics/filters/FilterTable.tsx:266
 msgid "+{0} more"
 msgstr "+他{0}件"
 
@@ -1432,8 +1483,8 @@ msgid "+{count}"
 msgstr "+{count}"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:157
-msgid "+{hiddenCount} more"
-msgstr "+他{hiddenCount}件"
+#~ msgid "+{hiddenCount} more"
+#~ msgstr "+他{hiddenCount}件"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:967
 #: src/components/settings/integrations/providerDetails.ts:164
@@ -1663,7 +1714,7 @@ msgstr "連絡先自身の同意が常に優先されます。"
 msgid "A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent."
 msgstr "連絡先自身の同意が常に優先されます。この設定は、開封とクリックのトラッキングへの同意が記録されていない連絡先に適用されます。イタリアの Garante やフランスの CNIL など、このトラッキングに同意を求める規制当局もあります。"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:719
+#: src/components/email_builder/ui/AddBlockPopover.tsx:725
 msgid "A copy is inserted. Later changes to the saved block do not change it."
 msgstr "コピーが挿入されます。保存済みブロックを後で変更しても、このコピーは変わりません。"
 
@@ -2012,23 +2063,23 @@ msgstr "実行者のメール"
 #: src/components/broadcasts/HeadersEditor.tsx:54
 #: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
-#: src/components/seo/SeoChecks.tsx:60
+#: src/components/seo/SeoChecks.tsx:73
 #: src/components/settings/integrations/EmailProviderCard.tsx:307
 #: src/components/transactional/NotificationChecks.tsx:88
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:113
-#: src/components/web_analytics/tabs/FiltersTab.tsx:130
+#: src/components/web_analytics/tabs/FiltersTab.tsx:144
 msgid "Add"
 msgstr "追加"
 
 #. placeholder {0}: selectedBlock.label
 #. placeholder {0}: selectedSavedBlock.name
-#: src/components/email_builder/ui/AddBlockPopover.tsx:477
-#: src/components/email_builder/ui/AddBlockPopover.tsx:497
+#: src/components/email_builder/ui/AddBlockPopover.tsx:483
+#: src/components/email_builder/ui/AddBlockPopover.tsx:503
 msgid "Add {0}"
 msgstr "{0}を追加"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:724
+#: src/components/email_builder/ui/AddBlockPopover.tsx:730
 msgid "Add {name}"
 msgstr "{name}を追加"
 
@@ -2128,7 +2179,7 @@ msgstr "mj-font、mj-style、mj-previewなどの子要素を追加してメー�
 msgid "Add column in group"
 msgstr "グループに列を追加"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:170
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:172
 msgid "Add condition"
 msgstr "条件を追加"
 
@@ -2157,6 +2208,8 @@ msgstr "カスタムヘッダーを追加"
 msgid "Add Custom Header"
 msgstr "カスタムヘッダーを追加"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:129
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:131
 #: src/components/web_analytics/explore/DimensionSelector.tsx:241
 msgid "Add dimension"
 msgstr "ディメンションを追加"
@@ -2169,7 +2222,7 @@ msgstr "エンドポイントを追加"
 msgid "Add entry conditions"
 msgstr "登録条件を追加"
 
-#: src/components/web_analytics/FilterBuilder.tsx:151
+#: src/components/web_analytics/FilterBuilder.tsx:123
 msgid "Add filter"
 msgstr "フィルターを追加"
 
@@ -2208,7 +2261,7 @@ msgstr "このバージョンについてメモを追加..."
 #~ msgid "Add one or more email senders. The first sender will be used as the default."
 #~ msgstr "1つ以上のメール送信者を追加してください。最初の送信者がデフォルトとして使用されます。"
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:193
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:191
 msgid "Add operation"
 msgstr "操作を追加"
 
@@ -2239,7 +2292,7 @@ msgstr "ソーシャル要素を追加"
 msgid "Add social elements to this social block"
 msgstr "このソーシャルブロックにソーシャル要素を追加"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:162
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:224
 msgid "Add tags..."
 msgstr "タグを追加..."
 
@@ -2397,6 +2450,10 @@ msgstr "変更後"
 msgid "after {date}"
 msgstr "{date} 以降"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:382
+msgid "After a backfill, run from Attribution rules"
+msgstr "バックフィル後（アトリビューションルールから実行）"
+
 #: src/components/segment/form_leaf.tsx:525
 #: src/components/segment/form_leaf.tsx:900
 msgid "after date"
@@ -2493,7 +2550,7 @@ msgstr "配置"
 #: src/components/logs/OutgoingWebhooksTab.tsx:142
 #: src/components/templates/TemplateStartModal.tsx:159
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:122
-#: src/components/web_analytics/tabs/FiltersTab.tsx:152
+#: src/components/web_analytics/tabs/FiltersTab.tsx:170
 #: src/pages/AutomationsPage.tsx:137
 #: src/pages/TemplatesPage.tsx:152
 msgid "All"
@@ -2528,13 +2585,13 @@ msgstr "すべてのカテゴリ"
 msgid "All click events, including repeat clicks. May be inflated by bots and prefetching."
 msgstr "重複クリックを含むすべてのクリックイベント。ボットやプリフェッチにより水増しされる場合があります。"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:186
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:78
 msgid "All conditions must have a value"
 msgstr "すべての条件に値が必要です"
 
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:151
-msgid "All conditions must match (AND logic):"
-msgstr "すべての条件が一致する必要があります (AND条件):"
+#~ msgid "All conditions must match (AND logic):"
+#~ msgstr "すべての条件が一致する必要があります (AND条件):"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:116
 msgid "All contact fields are optional except email."
@@ -2565,6 +2622,10 @@ msgstr "すべての言語"
 msgid "All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
 msgstr "今後、すべてのマーケティングメール (ブロードキャスト、キャンペーン) はこのプロバイダーを通じて送信されます。"
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
+msgid "All must match"
+msgstr "すべて一致する必要があります"
+
 #: src/components/blog/BlogSidebar.tsx:66
 #: src/components/blog/PostsTable.tsx:507
 msgid "All posts"
@@ -2576,8 +2637,12 @@ msgstr "すべての記事"
 #~ msgid "All Posts"
 #~ msgstr "すべての投稿"
 
+#: src/components/web_analytics/tabs/ExploreTab.tsx:303
+msgid "all sessions"
+msgstr "全セッション"
+
 #: src/components/blog/PostDrawer.tsx:1112
-#: src/components/seo/SeoChecks.tsx:35
+#: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
 msgstr "すべて設定済み"
@@ -2649,11 +2714,20 @@ msgstr "代替テキスト (アクセシビリティ用)"
 #~ msgid "always"
 #~ msgstr ""
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:126
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:166
+msgid "Always matches"
+msgstr "常に一致"
+
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:152
+msgid "Always matches: with no condition, this rule runs on every session."
+msgstr "常に一致: 条件がないため、このルールはすべてのセッションで実行されます。"
+
 #: src/components/email_builder/blocks/MjFontBlock.tsx:48
 msgid "Always provide fallback fonts for better compatibility"
 msgstr "互換性向上のため、常にフォールバックフォントを指定してください"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:230
+#: src/components/web_analytics/lib/filterCatalog.ts:234
 msgid "Always set to the specified value"
 msgstr "常に指定した値を設定"
 
@@ -3011,6 +3085,7 @@ msgstr "次回以降の送信に適用されます"
 #: src/components/contacts/ContactsFilters.tsx:139
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:293
 #: src/components/logs/TextFilter.tsx:28
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:255
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:49
 #: src/components/web_analytics/toolbar.tsx:93
 msgid "Apply"
@@ -3020,8 +3095,8 @@ msgstr "適用"
 msgid "Apply & Recompile"
 msgstr "適用して再コンパイル"
 
-#: src/components/web_analytics/FilterBuilder.tsx:383
-#: src/components/web_analytics/FilterBuilder.tsx:424
+#: src/components/web_analytics/FilterBuilder.tsx:353
+#: src/components/web_analytics/FilterBuilder.tsx:394
 msgid "Apply filter"
 msgstr "フィルターを適用"
 
@@ -3202,14 +3277,14 @@ msgid "AT LEAST ONE"
 msgstr "いずれか"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:180
-msgid "At least one condition is required"
-msgstr "少なくとも1つの条件が必要です"
+#~ msgid "At least one condition is required"
+#~ msgstr "少なくとも1つの条件が必要です"
 
 #: src/pages/SetupWizard.tsx:766
 msgid "At least one domain is required when auto-create is enabled"
 msgstr "自動作成が有効な場合、少なくとも1つのドメインが必要です"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:207
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:80
 msgid "At least one operation is required"
 msgstr "少なくとも1つの操作が必要です"
 
@@ -3232,7 +3307,9 @@ msgstr "添付ファイル"
 msgid "Attempts"
 msgstr "試行回数"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:124
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:170
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:415
+#: src/components/web_analytics/tabs/FiltersTab.tsx:137
 msgid "Attribution rules"
 msgstr "アトリビューションルール"
 
@@ -3463,7 +3540,7 @@ msgstr "オートメーションの書き込みは、コンタクトの読み取
 msgid "Available after saving"
 msgstr "保存後に利用できます"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:439
+#: src/components/email_builder/ui/AddBlockPopover.tsx:445
 msgid "Available Blocks"
 msgstr "利用可能なブロック"
 
@@ -3525,9 +3602,8 @@ msgstr "AWS リージョン"
 
 #: src/components/contacts/ContactsFilters.tsx:115
 #: src/components/layout/FullDrawer.tsx:93
-#: src/components/web_analytics/FilterBuilder.tsx:323
-#: src/components/web_analytics/FilterBuilder.tsx:394
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:392
+#: src/components/web_analytics/FilterBuilder.tsx:293
+#: src/components/web_analytics/FilterBuilder.tsx:364
 msgid "Back"
 msgstr "戻る"
 
@@ -3558,15 +3634,15 @@ msgstr "下書きに戻しますか？"
 msgid "Back to Transactional"
 msgstr "トランザクションに戻る"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:61
+#: src/components/web_analytics/filters/BackfillStatus.tsx:67
 msgid "Backfill cancelled"
 msgstr "バックフィルをキャンセルしました"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:80
+#: src/components/web_analytics/filters/BackfillStatus.tsx:85
 msgid "Backfill in progress"
 msgstr "バックフィルを実行中"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:52
+#: src/components/web_analytics/filters/BackfillStatus.tsx:58
 msgid "Backfill started"
 msgstr "バックフィルを開始しました"
 
@@ -3823,7 +3899,7 @@ msgstr "ブロックを更新しました"
 msgid "Blocklist"
 msgstr "ブロックリスト"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:414
+#: src/components/email_builder/ui/AddBlockPopover.tsx:420
 msgid "Blocks"
 msgstr "ブロック"
 
@@ -3958,7 +4034,7 @@ msgstr "右下"
 #: src/components/contacts/sheet/activityLabel.ts:23
 #: src/components/logs/labels.ts:72
 #: src/components/templates/templateCategories.ts:25
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:190
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:158
 msgid "Bounce"
 msgstr "バウンス"
 
@@ -3983,15 +4059,17 @@ msgstr "バウンスの診断"
 #~ msgid "Bounce email"
 #~ msgstr "バウンスメール"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:65
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:70
 #: src/components/web_analytics/explore/ExploreSummary.tsx:53
 #: src/components/web_analytics/explore/ExploreTable.tsx:142
-#: src/components/web_analytics/FilterBuilder.tsx:119
+#: src/components/web_analytics/FilterBuilder.tsx:101
 #: src/components/web_analytics/tabs/DashboardTab.tsx:32
 msgid "Bounce Rate"
 msgstr "バウンス率"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:49
-#: src/components/web_analytics/FilterBuilder.tsx:234
+#: src/components/web_analytics/FilterBuilder.tsx:204
 msgid "Bounce Rate (%)"
 msgstr "バウンス率 (%)"
 
@@ -4082,9 +4160,13 @@ msgstr "パンくずリスト"
 msgid "Breakdown by"
 msgstr "内訳の基準"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:143
+msgid "Breakdown of {valueLabel}"
+msgstr "{valueLabel} の内訳"
+
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:95
-msgid "Breaking down by:"
-msgstr "内訳の基準:"
+#~ msgid "Breaking down by:"
+#~ msgstr "内訳の基準:"
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:27
 msgid "Breakpoint attributes"
@@ -4274,6 +4356,10 @@ msgstr "まだ送信される可能性のあるブロードキャスト、トラ
 msgid "Broadcasts write sends. The same switch that lets someone draft a campaign lets them push it to the entire audience — through /api/broadcasts.schedule, and again through /api/tasks.trigger and /api/tasks.reset on the underlying send task. Note that Broadcasts read does NOT give delivery statistics: open/click/bounce numbers come from /api/messages.broadcastStats and siblings, which are gated on Message History read. It also does not grant the recipient list — that is Contacts read."
 msgstr "ブロードキャストの書き込みは送信を行います。キャンペーンの下書きを作れるのと同じスイッチで、オーディエンス全体へ配信できます — /api/broadcasts.schedule 経由で、さらに配下の送信タスクに対する /api/tasks.trigger と /api/tasks.reset 経由でも可能です。ブロードキャストの読み取りでは配信統計は得られないことにご注意ください: 開封・クリック・バウンスの数値は /api/messages.broadcastStats とその同系エンドポイントから得られ、これらはメッセージ履歴の読み取りで制御されています。受信者リストも付与されません — それはコンタクトの読み取りです。"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:179
+msgid "Broken down by"
+msgstr "内訳の基準"
+
 #: src/services/api/permissions.ts:910
 msgid "Browse and filter the audit log, including every member's email address and IP address"
 msgstr "各メンバーのメールアドレスと IP アドレスを含む監査ログの閲覧と絞り込み"
@@ -4303,12 +4389,12 @@ msgstr "ログ → 監査ログ で閲覧、絞り込み、エクスポートで
 #~ msgid "Browse, filter and export the log under Logs → Audit."
 #~ msgstr "ログ → 監査 で、ログの閲覧・絞り込み・エクスポートができます。"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:276
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:272
 msgid "Browser"
 msgstr "ブラウザ"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:275
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:271
 msgid "Browsers"
 msgstr "ブラウザ"
@@ -4386,7 +4472,7 @@ msgstr "訪問者が誰かわかったら identify() を呼び出します。署
 msgid "Campaign"
 msgstr "キャンペーン"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:220
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:268
 #: src/components/web_analytics/tabs/DashboardTab.tsx:226
 #: src/pages/WebAnalyticsLivePage.tsx:199
 #: src/pages/WebAnalyticsLivePage.tsx:206
@@ -4400,6 +4486,15 @@ msgstr "変更できません"
 #: src/components/templates/TemplateSettingsStep.tsx:134
 msgid "Can't change after the template is created"
 msgstr "テンプレート作成後は変更できません"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:244
+msgid "Can't test"
+msgstr "テスト不可"
+
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:12
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:232
+msgid "Can't test in the browser"
+msgstr "ブラウザでテストできません"
 
 #: src/components/automations/AutomationEditor.tsx:273
 #: src/components/automations/AutomationEditor.tsx:296
@@ -4501,11 +4596,11 @@ msgstr "テンプレート作成後は変更できません"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:76
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
 #: src/components/web_analytics/filters/BackfillStatus.tsx:91
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:103
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
-#: src/components/web_analytics/filters/FilterTable.tsx:137
-#: src/components/web_analytics/filters/FilterTable.tsx:299
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:111
+#: src/components/web_analytics/filters/BackfillStatus.tsx:103
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:120
+#: src/components/web_analytics/filters/FilterTable.tsx:176
+#: src/components/web_analytics/filters/FilterTable.tsx:357
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:122
 #: src/components/web_analytics/toolbar.tsx:94
 msgid "Cancel"
 msgstr "キャンセル"
@@ -4518,7 +4613,7 @@ msgstr "ブロードキャストをキャンセルする"
 msgid "Cancel a running backfill"
 msgstr "実行中のバックフィルをキャンセルする"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:84
+#: src/components/web_analytics/filters/BackfillStatus.tsx:96
 msgid "Cancel backfill?"
 msgstr "バックフィルをキャンセルしますか？"
 
@@ -4552,6 +4647,7 @@ msgstr "アップロードをキャンセルしますか?"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:222
 #: src/components/broadcasts/detail/BroadcastAside.tsx:279
+#: src/components/web_analytics/lib/backfill.ts:31
 msgid "Cancelled"
 msgstr "キャンセル済み"
 
@@ -4564,6 +4660,10 @@ msgstr "キャンセル済み"
 msgctxt "newsletter status"
 msgid "Cancelled"
 msgstr "キャンセル済み"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:319
+#~ msgid "cancelled by user"
+#~ msgstr "ユーザーによりキャンセル"
 
 #: src/components/logs/auditPhrases.ts:91
 msgid "Cancelled the invitation <0>{target}</0>"
@@ -4765,26 +4865,26 @@ msgstr "ドメインの変更"
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/web_analytics/explore/BreakdownModal.tsx:31
 #: src/components/web_analytics/explore/DimensionSelector.tsx:107
-#: src/components/web_analytics/FilterBuilder.tsx:56
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:79
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:203
+#: src/components/web_analytics/FilterBuilder.tsx:38
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:110
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
 #: src/components/web_analytics/tabs/DashboardTab.tsx:206
 msgid "Channel"
 msgstr "チャネル"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:209
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:257
 #: src/components/web_analytics/tabs/DashboardTab.tsx:212
 #: src/pages/WebAnalyticsLivePage.tsx:224
 msgid "Channel group"
 msgstr "チャネルグループ"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:208
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
 #: src/components/web_analytics/tabs/DashboardTab.tsx:211
 msgid "Channel groups"
 msgstr "チャネルグループ"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:202
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
 #: src/components/web_analytics/tabs/DashboardTab.tsx:205
 #: src/pages/WebAnalyticsLivePage.tsx:216
 #: src/pages/WebAnalyticsLivePage.tsx:223
@@ -4804,9 +4904,17 @@ msgstr "更新を確認"
 msgid "Check the MJML hierarchy and that every tag is closed."
 msgstr "MJML の階層と、すべてのタグが閉じられているかを確認してください。"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:193
+msgid "Checked as you type; the server checks again on save."
+msgstr "入力中にチェックされ、保存時にサーバーが再度チェックします。"
+
 #: src/components/settings/integrations/EmailProviderCard.tsx:127
 msgid "Checking webhooks…"
 msgstr "Webhook を確認中…"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:249
+msgid "Checks"
+msgstr "チェック"
 
 #: src/components/logs/MessagesTab.tsx:402
 #: src/components/transactional/NotificationChecks.tsx:118
@@ -4957,13 +5065,22 @@ msgstr "検索をクリア"
 msgid "Clear selection"
 msgstr "選択を解除"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:226
+#: src/components/web_analytics/lib/filterCatalog.ts:230
 msgid "Clear value"
 msgstr "値をクリア"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:431
+msgid "Clear visit"
+msgstr "訪問をクリア"
 
 #: src/components/contacts/sheet/activityLabel.ts:13
 msgid "Click"
 msgstr "クリック"
+
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:24
+msgid "Click a row or a country to filter the whole Web Analytics section."
+msgstr "行または国をクリックすると、Webアナリティクスのセクション全体を絞り込めます。"
 
 #: src/components/segment/form_leaf.tsx:386
 #: src/components/segment/input.tsx:791
@@ -5278,7 +5395,7 @@ msgstr "{label} を折りたたむ"
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:42
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:244
 #: src/components/email_builder/ui/BackgroundInput.tsx:257
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:125
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:127
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:162
 msgid "Color"
 msgstr "色"
@@ -5304,7 +5421,7 @@ msgstr "列幅 (例: '50%'、'300px'、'auto')"
 msgid "Comma-separated list of email domains permitted to auto-create accounts"
 msgstr "アカウントの自動作成を許可するメールドメインのカンマ区切りリスト"
 
-#: src/components/web_analytics/FilterBuilder.tsx:363
+#: src/components/web_analytics/FilterBuilder.tsx:333
 msgid "Comma-separated values"
 msgstr "カンマ区切りの値"
 
@@ -5421,6 +5538,7 @@ msgstr "件数を更新するには条件を完成させてください"
 #: src/components/automations/stats/StepStats.tsx:21
 #: src/components/broadcasts/detail/BroadcastAside.tsx:220
 #: src/components/broadcasts/detail/BroadcastAside.tsx:277
+#: src/components/web_analytics/lib/backfill.ts:28
 msgid "Completed"
 msgstr "完了"
 
@@ -5448,14 +5566,26 @@ msgstr "条件"
 msgid "Condition"
 msgstr "条件"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:188
+msgid "Condition {position} can't be tested in the browser; the server checks it on save"
+msgstr "条件 {position} はブラウザでテストできません。保存時にサーバーがチェックします"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:189
+msgid "Condition {position} is not a valid regular expression and may be refused on save"
+msgstr "条件 {position} は有効な正規表現ではなく、保存時に拒否される可能性があります"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:186
+msgid "Condition {position} uses a lookaround or a backreference, which the server refuses"
+msgstr "条件 {position} は先読み・後読み (lookaround) または後方参照を使用しており、サーバーが拒否します"
+
 #: src/components/automations/nodes/FilterNode.tsx:49
 msgid "conditions"
 msgstr "条件"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:169
-#: src/components/web_analytics/filters/FilterTable.tsx:101
-#: src/components/web_analytics/filters/FilterTable.tsx:204
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:235
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
+#: src/components/web_analytics/filters/FilterTable.tsx:131
+#: src/components/web_analytics/filters/FilterTable.tsx:246
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:270
 msgid "Conditions"
 msgstr "条件"
 
@@ -5824,8 +5954,8 @@ msgstr "コンテナパディング"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
-#: src/components/web_analytics/FilterBuilder.tsx:40
-#: src/components/web_analytics/lib/filterCatalog.ts:218
+#: src/components/web_analytics/lib/filterCatalog.ts:222
+#: src/components/web_analytics/lib/filterLabels.ts:12
 msgid "contains"
 msgstr "含む"
 
@@ -5861,6 +5991,7 @@ msgstr "コンテンツ"
 #~ msgstr "検索エンジンがブログをインデックス・リンクフォローする方法を設定"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:46
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:60
 msgid "Conv. Rate"
 msgstr "コンバージョン率"
 
@@ -5990,7 +6121,7 @@ msgstr "ダッシュボードを読み込めませんでした"
 msgid "Could not load the email sent"
 msgstr "送信されたメールを読み込めませんでした"
 
-#: src/components/web_analytics/tabs/GoalsTab.tsx:123
+#: src/components/web_analytics/tabs/GoalsTab.tsx:121
 msgid "Could not load the goals"
 msgstr "ゴールを読み込めませんでした"
 
@@ -5999,15 +6130,15 @@ msgstr "ゴールを読み込めませんでした"
 msgid "Could not load the latest version. Please try again."
 msgstr "最新バージョンを読み込めませんでした。もう一度お試しください。"
 
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:142
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:64
 msgid "Could not load this breakdown"
 msgstr "この内訳を読み込めませんでした"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:158
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:200
 msgid "Could not load this goal"
 msgstr "このゴールを読み込めませんでした"
 
-#: src/components/web_analytics/tabs/ExploreTab.tsx:353
+#: src/components/web_analytics/tabs/ExploreTab.tsx:367
 msgid "Could not load this report"
 msgstr "このレポートを読み込めませんでした"
 
@@ -6137,8 +6268,8 @@ msgid "count"
 msgstr "回数"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:45
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:42
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:119
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:59
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:138
 #: src/components/web_analytics/tabs/DashboardTab.tsx:286
 msgid "Count"
 msgstr "件数"
@@ -6179,7 +6310,7 @@ msgstr "プロバイダーの配信 Webhook から集計"
 msgid "Counting…"
 msgstr "集計中…"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:296
 #: src/components/web_analytics/tabs/DashboardTab.tsx:243
 msgid "Countries"
 msgstr "国"
@@ -6192,8 +6323,8 @@ msgstr "国"
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
 #: src/components/segment/segmentSummary.ts:42
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:248
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:304
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
 #: src/components/web_analytics/tabs/DashboardTab.tsx:251
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 msgid "Country"
@@ -6230,7 +6361,6 @@ msgstr "テンプレート以外にも及びます: 再利用可能なブロッ�
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:112
 msgid "Create"
 msgstr "作成"
 
@@ -6389,8 +6519,8 @@ msgstr "通知を作成"
 msgid "Create post"
 msgstr "記事を作成"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:99
-#: src/components/web_analytics/tabs/FiltersTab.tsx:192
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:158
+#: src/components/web_analytics/tabs/FiltersTab.tsx:213
 msgid "Create rule"
 msgstr "ルールを作成"
 
@@ -6637,7 +6767,7 @@ msgstr "カスタム"
 #: src/components/email_builder/panels/TextVersionPanel.tsx:326
 #: src/components/email_builder/ui/BackgroundInput.tsx:113
 #: src/components/templates/TemplatePreviewDrawer.tsx:235
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:85
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:116
 msgid "Custom"
 msgstr "カスタム"
 
@@ -6692,7 +6822,8 @@ msgstr "カスタム日付フィールド"
 #: src/components/settings/WebAnalyticsSettings.tsx:396
 #: src/components/web_analytics/explore/BreakdownModal.tsx:41
 #: src/components/web_analytics/explore/DimensionSelector.tsx:117
-#: src/components/web_analytics/FilterBuilder.tsx:66
+#: src/components/web_analytics/FilterBuilder.tsx:48
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:328
 msgid "Custom dimensions"
 msgstr "カスタムディメンション"
 
@@ -7039,7 +7170,7 @@ msgstr "デフォルト送信者"
 msgid "Default theme created and published"
 msgstr "デフォルトテーマを作成・公開しました"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:237
+#: src/components/web_analytics/lib/filterCatalog.ts:241
 msgid "default to"
 msgstr "デフォルト値にする"
 
@@ -7166,11 +7297,12 @@ msgstr "遅延"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:87
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:139
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:143
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:101
-#: src/components/web_analytics/filters/FilterTable.tsx:135
-#: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/components/web_analytics/filters/FilterTable.tsx:297
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:109
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:118
+#: src/components/web_analytics/filters/FilterTable.tsx:165
+#: src/components/web_analytics/filters/FilterTable.tsx:174
+#: src/components/web_analytics/filters/FilterTable.tsx:179
+#: src/components/web_analytics/filters/FilterTable.tsx:355
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:120
 #: src/pages/TemplatesPage.tsx:337
 #: src/pages/TemplatesPage.tsx:340
 msgid "Delete"
@@ -7301,7 +7433,7 @@ msgstr "カテゴリを削除"
 msgid "Delete Category"
 msgstr "カテゴリを削除"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:108
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:122
 msgid "Delete condition"
 msgstr "条件を削除"
 
@@ -7375,7 +7507,7 @@ msgstr "リストを削除"
 msgid "Delete node"
 msgstr "ノードを削除"
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:116
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:127
 msgid "Delete operation"
 msgstr "操作を削除"
 
@@ -7384,8 +7516,9 @@ msgid "Delete Post"
 msgstr "投稿を削除"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:155
-#: src/components/web_analytics/filters/FilterTable.tsx:293
-#: src/components/web_analytics/filters/FilterTable.tsx:304
+#: src/components/web_analytics/filters/FilterTable.tsx:344
+#: src/components/web_analytics/filters/FilterTable.tsx:351
+#: src/components/web_analytics/filters/FilterTable.tsx:362
 msgid "Delete rule"
 msgstr "ルールを削除"
 
@@ -7426,7 +7559,7 @@ msgstr "通知を削除しますか？"
 msgid "Delete this API key?"
 msgstr "この APIキーを削除しますか？"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:99
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:116
 msgid "Delete this condition?"
 msgstr "この条件を削除しますか？"
 
@@ -7439,12 +7572,12 @@ msgstr "この接続を削除しますか？"
 msgid "Delete this integration?"
 msgstr "この連携を削除しますか？"
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:107
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:118
 msgid "Delete this operation?"
 msgstr "この操作を削除しますか？"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:132
-#: src/components/web_analytics/filters/FilterTable.tsx:294
+#: src/components/web_analytics/filters/FilterTable.tsx:171
+#: src/components/web_analytics/filters/FilterTable.tsx:352
 msgid "Delete this rule?"
 msgstr "このルールを削除しますか？"
 
@@ -7687,7 +7820,7 @@ msgid "Desktop view (100%)"
 msgstr "デスクトップ表示（100%）"
 
 #: src/components/blog/PostDrawer.tsx:843
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:133
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "詳細"
 
@@ -7703,16 +7836,16 @@ msgstr "ウェブサイトから検出"
 #: src/components/contacts/visits/ContactWebVisits.tsx:296
 #: src/components/web_analytics/explore/BreakdownModal.tsx:35
 #: src/components/web_analytics/explore/DimensionSelector.tsx:111
-#: src/components/web_analytics/FilterBuilder.tsx:60
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:83
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:270
+#: src/components/web_analytics/FilterBuilder.tsx:42
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:114
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
 #: src/components/web_analytics/tabs/DashboardTab.tsx:268
 #: src/pages/WebAnalyticsLivePage.tsx:195
 msgid "Device"
 msgstr "デバイス"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:262
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:269
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:285
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
 #: src/components/web_analytics/tabs/DashboardTab.tsx:264
 #: src/components/web_analytics/tabs/DashboardTab.tsx:268
 #: src/pages/WebAnalyticsLivePage.tsx:190
@@ -7755,7 +7888,7 @@ msgstr "ダイレクト"
 #~ msgid "Disable Blog?"
 #~ msgstr "ブログを無効化しますか？"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:273
+#: src/components/web_analytics/filters/FilterTable.tsx:320
 msgid "Disable this rule?"
 msgstr "このルールを無効にしますか？"
 
@@ -7774,6 +7907,8 @@ msgstr "Webhookを無効化"
 #: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/settings/WebhookDetail.tsx:267
 #: src/components/settings/WebhooksSettings.tsx:314
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:123
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:246
 msgid "Disabled"
 msgstr "無効"
 
@@ -7782,7 +7917,7 @@ msgstr "無効"
 msgid "Disabled for this notification"
 msgstr "この通知では無効"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:360
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:233
 msgid "Disabled rules"
 msgstr "無効なルール"
 
@@ -7795,6 +7930,8 @@ msgstr "無効なルール"
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:111
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:151
 msgid "Discard"
 msgstr "破棄"
 
@@ -7812,6 +7949,7 @@ msgstr "保存されていない変更を破棄しますか？"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Discard your changes?"
 msgstr "変更を破棄しますか？"
 
@@ -8106,7 +8244,7 @@ msgstr "例: password_reset"
 msgid "e.g. Product launch"
 msgstr "例: 製品ローンチ"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:140
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:207
 msgid "e.g. Set channel for Google Ads"
 msgstr "例: Google Ads のチャネルを設定"
 
@@ -8218,7 +8356,7 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #: src/components/transactional/TransactionalTable.tsx:288
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:92
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:152
-#: src/components/web_analytics/filters/FilterTable.tsx:144
+#: src/components/web_analytics/filters/FilterTable.tsx:184
 #: src/pages/TemplatesPage.tsx:308
 msgid "Edit"
 msgstr "編集"
@@ -8376,9 +8514,11 @@ msgstr "記事を編集"
 #~ msgstr "投稿を編集"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:163
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:99
-#: src/components/web_analytics/filters/FilterTable.tsx:309
-#: src/components/web_analytics/filters/FilterTable.tsx:313
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:175
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
+#: src/components/web_analytics/filters/FilterTable.tsx:368
+#: src/components/web_analytics/filters/FilterTable.tsx:372
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:415
 msgid "Edit rule"
 msgstr "ルールを編集"
 
@@ -8821,6 +8961,15 @@ msgstr "通/分"
 msgid "Emoji Suggestions"
 msgstr "絵文字候補"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "empty"
+msgstr "空"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:308
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:340
+msgid "Empty"
+msgstr "空"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:205
 msgid "Empty column. Add text, button, or image content."
 msgstr "空のカラムです。テキスト、ボタン、または画像を追加してください。"
@@ -8850,6 +8999,10 @@ msgstr "デフォルトで字幕を有効化"
 #~ msgid "Enable geo-location tracking"
 #~ msgstr "位置情報トラッキングを有効にする"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:209
+msgid "Enable it to see which rules would override it."
+msgstr "有効にすると、このルールを上書きするルールを確認できます。"
+
 #: src/services/api/permissions.ts:893
 msgid "Enable or disable a subscription"
 msgstr "サブスクリプションを有効または無効にする"
@@ -8866,7 +9019,7 @@ msgstr "SMTPリレーサーバーを有効化"
 #~ msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 #~ msgstr "ブログ機能を有効にして、カスタムドメインのホームページに記事とコンテンツを公開します。ブログは以下でアクセス可能になります"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:273
+#: src/components/web_analytics/filters/FilterTable.tsx:320
 msgid "Enable this rule?"
 msgstr "このルールを有効にしますか？"
 
@@ -8902,7 +9055,7 @@ msgstr "Webhookを有効化"
 #: src/components/settings/SystemSettingsDrawer.tsx:469
 #: src/components/settings/SystemSettingsDrawer.tsx:554
 #: src/components/settings/WebAnalyticsSettings.tsx:216
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:153
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:219
 msgid "Enabled"
 msgstr "有効"
 
@@ -8974,7 +9127,7 @@ msgstr "小数点より前が 15 桁以内の数値を入力してください�
 msgid "Enter a unique alphanumeric ID"
 msgstr "一意の英数字IDを入力"
 
-#: src/components/web_analytics/FilterBuilder.tsx:379
+#: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter a value"
 msgstr "値を入力してください"
 
@@ -8990,7 +9143,7 @@ msgstr "order.total のような変数パスを入力してください（英数
 #~ msgid "Enter an email address to receive a test email:"
 #~ msgstr "テストメールを受け取るメールアドレスを入力:"
 
-#: src/components/web_analytics/FilterBuilder.tsx:379
+#: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter at least one value"
 msgstr "値を1つ以上入力してください"
 
@@ -9199,10 +9352,14 @@ msgid "Envelope"
 msgstr "エンベロープ"
 
 #: src/components/email_builder/ui/displayConditionLabels.ts:14
-#: src/components/web_analytics/FilterBuilder.tsx:38
-#: src/components/web_analytics/lib/filterCatalog.ts:216
+#: src/components/web_analytics/lib/filterCatalog.ts:220
+#: src/components/web_analytics/lib/filterLabels.ts:10
 msgid "equals"
 msgstr "等しい"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "error"
+msgstr "エラー"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:257
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:943
@@ -9348,9 +9505,13 @@ msgstr "イベントタイプ"
 msgid "Events"
 msgstr "イベント"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:213
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:81
 msgid "Every \"set\" operation needs a value"
 msgstr "「set」操作にはすべて値が必要です"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:158
+msgid "Every condition and every operation has a value"
+msgstr "すべての条件と操作に値があります"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:236
 msgid "Every domain"
@@ -9359,6 +9520,18 @@ msgstr "すべてのドメイン"
 #: src/components/email_builder/panels/TextVersionPanel.tsx:124
 msgid "Every email is sent with an HTML version and a text version. Mail clients show the text version when HTML is blocked or not supported."
 msgstr "すべてのメールはHTML版とテキスト版の両方で送信されます。HTMLがブロックされている場合やサポートされていない場合、メールクライアントはテキスト版を表示します。"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:226
+msgid "Every enabled rule can be tested in the browser"
+msgstr "有効なすべてのルールをブラウザでテストできます"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:225
+msgid "Every enabled rule matches this visit"
+msgstr "有効なすべてのルールがこの訪問に一致します"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:287
+msgid "Every field of the visit"
+msgstr "訪問のすべてのフィールド"
 
 #: src/components/license/LicenceGateNotice.tsx:64
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
@@ -9512,6 +9685,7 @@ msgstr ""
 msgid "Expires:"
 msgstr "有効期限:"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:140
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:346
 #: src/layouts/app-shell/menuItems.ts:220
 #: src/pages/WebAnalyticsPage.tsx:96
@@ -9626,6 +9800,7 @@ msgstr "非常に高い"
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
 #: src/components/transactional/TransactionalDetail.tsx:220
+#: src/components/web_analytics/lib/backfill.ts:32
 #: src/pages/TransactionalNotificationsPage.tsx:298
 msgid "Failed"
 msgstr "失敗"
@@ -10284,7 +10459,7 @@ msgstr "取得中: {0}"
 #: src/components/logs/AuditEntryDetail.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:184
 #: src/components/settings/CustomFieldsConfiguration.tsx:326
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:72
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:74
 msgid "Field"
 msgstr "フィールド"
 
@@ -10350,9 +10525,17 @@ msgstr "ファイルストレージが設定されていません。"
 msgid "File storage settings"
 msgstr "ファイルストレージ設定"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:184
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:372
+msgid "Fill fields"
+msgstr "フィールドに入力"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:394
 msgid "Fill in the fields of a hypothetical visit; empty fields count as empty values."
 msgstr "仮想的な訪問のフィールドを入力してください。空欄は空の値として扱われます。"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:386
+msgid "Fills the Pages fields, the UTM fields and UTM ID From from the address, with the click ids the tracking snippet knows by default. The referrer and device stay as typed."
+msgstr "アドレスから「ページ」のフィールド、UTM のフィールド、UTM ID From を入力します。クリック ID はトラッキングスニペットが標準で認識するものを使います。リファラーとデバイスは入力したままです。"
 
 #: src/components/automations/nodeTypes.ts:34
 #: src/components/contacts/ContactsFilters.tsx:235
@@ -10388,6 +10571,10 @@ msgstr "フィルター条件"
 msgid "Filter on an event property"
 msgstr "イベントプロパティでフィルター"
 
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:30
+msgid "Filtered by"
+msgstr "絞り込み条件"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
 #: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
@@ -10411,8 +10598,8 @@ msgstr "フィルター — クリア済み"
 #~ msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:80
-msgid "Filters:"
-msgstr "フィルター:"
+#~ msgid "Filters:"
+#~ msgstr "フィルター:"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:648
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
@@ -10743,8 +10930,12 @@ msgstr "差出人名（上書き）"
 msgid "From platform.openai.com, or your endpoint's own key"
 msgstr "platform.openai.com で取得、またはエンドポイント独自のキー"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:381
+msgid "From the moment you save"
+msgstr "保存した時点から"
+
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:83
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:128
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:130
 msgid "From the text block"
 msgstr "テキストブロックと同じ"
 
@@ -10866,7 +11057,7 @@ msgstr "生成されたSQL:"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:36
 #: src/components/web_analytics/explore/DimensionSelector.tsx:112
-#: src/components/web_analytics/FilterBuilder.tsx:61
+#: src/components/web_analytics/FilterBuilder.tsx:43
 msgid "Geo"
 msgstr "地域"
 
@@ -10929,7 +11120,7 @@ msgstr "サインインへ"
 #: src/components/segment/input.tsx:635
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
-#: src/components/web_analytics/FilterBuilder.tsx:64
+#: src/components/web_analytics/FilterBuilder.tsx:46
 #: src/components/web_analytics/tabs/DashboardTab.tsx:293
 msgid "Goal"
 msgstr "ゴール"
@@ -10942,14 +11133,26 @@ msgstr "目標 {goalName}"
 msgid "Goal conversions and their total value"
 msgstr "ゴールのコンバージョンとその合計値"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:150
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
 msgid "Goal dashboard"
 msgstr "ゴールダッシュボード"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:180
+msgid "Goal dashboard: {goalName}"
+msgstr "ゴールダッシュボード: {goalName}"
 
 #: src/components/segment/form_leaf.tsx:784
 #: src/components/segment/input.tsx:649
 msgid "goal name"
 msgstr "ゴール名"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:323
+msgid "Goal pages"
+msgstr "ゴールページ"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:323
+msgid "Goal path"
+msgstr "ゴールのパス"
 
 #: src/components/segment/form_leaf.tsx:762
 #: src/components/segment/input.tsx:643
@@ -10974,7 +11177,8 @@ msgstr "ゴールの種類：{0}"
 #~ msgstr "ゴール:"
 
 #: src/components/web_analytics/CountryMapView.tsx:69
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:175
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:237
 #: src/components/web_analytics/tabs/DashboardTab.tsx:282
 #: src/components/web_analytics/tabs/DashboardTab.tsx:292
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:347
@@ -10987,7 +11191,7 @@ msgstr "ゴール"
 #~ msgid "Goals by Channel"
 #~ msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:286
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:233
 msgid "Goals by day and hour"
 msgstr "曜日・時間帯別のゴール"
 
@@ -10996,17 +11200,17 @@ msgid "Goals reached"
 msgstr "達成したゴール"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:10
-#: src/components/email_builder/ui/AddBlockPopover.tsx:154
+#: src/components/email_builder/ui/AddBlockPopover.tsx:157
 msgid "Goes inside a column"
 msgstr "カラムの中にのみ配置できます"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:11
-#: src/components/email_builder/ui/AddBlockPopover.tsx:156
+#: src/components/email_builder/ui/AddBlockPopover.tsx:159
 msgid "Goes inside a section"
 msgstr "セクションの中にのみ配置できます"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:12
-#: src/components/email_builder/ui/AddBlockPopover.tsx:158
+#: src/components/email_builder/ui/AddBlockPopover.tsx:161
 msgid "Goes inside a social block"
 msgstr "ソーシャルブロックの中にのみ配置できます"
 
@@ -11123,7 +11327,7 @@ msgstr "ヘッダーの値"
 msgid "Header value is required"
 msgstr "ヘッダーの値は必須です"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:171
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:173
 msgid "Heading {level}"
 msgstr "見出し {level}"
 
@@ -11177,7 +11381,6 @@ msgstr "非表示"
 
 #: src/components/analytics/GetStartedChecklist.tsx:411
 #: src/components/settings/WebhookDetail.tsx:378
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:336
 msgid "Hide"
 msgstr "非表示"
 
@@ -11199,14 +11402,22 @@ msgid "High-level channel performance"
 msgstr "チャネルパフォーマンスの概要"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:147
-msgid "Higher priority rules are evaluated first (0-1000)"
-msgstr "優先度の高いルールが先に評価されます (0〜1000)"
+#~ msgid "Higher priority rules are evaluated first (0-1000)"
+#~ msgstr "優先度の高いルールが先に評価されます (0〜1000)"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:227
+msgid "Higher priority rules are evaluated first (0-1000). On the same dimension, the higher priority wins; at equal priority, the rule lower in the list wins."
+msgstr "優先度の高いルールから評価されます (0-1000)。同じディメンションでは優先度の高いほうが勝ち、優先度が同じ場合はリストで下にあるルールが勝ちます。"
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:275
 #~ msgid "Higher rules win (0-1000)."
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:165
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:252
+msgid "Highest priority first"
+msgstr "優先度の高い順"
+
+#: src/components/web_analytics/filters/BackfillStatus.tsx:186
 msgid "Historical sessions and goals were written with a different rule set."
 msgstr "過去のセッションとゴールは、異なるルールセットで記録されています。"
 
@@ -11248,7 +11459,7 @@ msgstr "時間別"
 msgid "Hours"
 msgstr "時間"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:515
+#: src/components/email_builder/ui/AddBlockPopover.tsx:521
 msgid "Hover over a block to see details"
 msgstr "ブロックにカーソルを合わせると詳細が表示されます"
 
@@ -11622,7 +11833,7 @@ msgstr "インポート済みフォント"
 msgid "Importing files..."
 msgstr "ファイルをインポート中..."
 
-#: src/components/web_analytics/FilterBuilder.tsx:44
+#: src/components/web_analytics/lib/filterLabels.ts:16
 msgid "in"
 msgstr "いずれかに一致"
 
@@ -12015,8 +12226,8 @@ msgstr "IP アドレス、実行者のメールアドレス、または対象 ID
 msgid "is"
 msgstr "である"
 
-#: src/components/web_analytics/FilterBuilder.tsx:42
-#: src/components/web_analytics/lib/filterCatalog.ts:220
+#: src/components/web_analytics/lib/filterCatalog.ts:224
+#: src/components/web_analytics/lib/filterLabels.ts:14
 msgid "is empty"
 msgstr "空である"
 
@@ -12045,8 +12256,8 @@ msgstr "より小さい"
 msgid "is less than or equal to"
 msgstr "以下"
 
-#: src/components/web_analytics/FilterBuilder.tsx:43
-#: src/components/web_analytics/lib/filterCatalog.ts:221
+#: src/components/web_analytics/lib/filterCatalog.ts:225
+#: src/components/web_analytics/lib/filterLabels.ts:15
 msgid "is not empty"
 msgstr "空でない"
 
@@ -12111,6 +12322,10 @@ msgstr "この連携はワークスペースのマーケティングメールを
 #: src/components/settings/integrations/EmailProviderCard.tsx:188
 msgid "It sends the workspace's transactional emails: notifications stop until another provider is chosen. This cannot be undone."
 msgstr "この連携はワークスペースのトランザクションメールを送信しています。別のプロバイダーを選択するまで、通知は停止します。この操作は元に戻せません。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:192
+msgid "It uses syntax only the server's regular expressions read, so the Quick test and the tester skip it."
+msgstr "サーバーの正規表現だけが読める構文を使用しているため、クイックテストとテスターではスキップされます。"
 
 #: src/components/broadcasts/useBroadcastActions.tsx:144
 msgid "It will never be sent. A cancelled broadcast can't be resumed."
@@ -12223,6 +12438,7 @@ msgstr "両端揃え"
 #: src/components/templates/CreateTemplateDrawer.tsx:898
 #: src/components/templates/useTemplateConflictModal.tsx:43
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:227
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:113
 msgid "Keep editing"
 msgstr "編集を続ける"
 
@@ -12283,6 +12499,8 @@ msgid "Label must be at most 100 characters"
 msgstr "ラベルは100文字以下である必要があります"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:313
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:319
 #: src/components/web_analytics/tabs/DashboardTab.tsx:181
 #: src/pages/WebAnalyticsLivePage.tsx:157
 msgid "Landing pages"
@@ -12291,6 +12509,14 @@ msgstr "ランディングページ"
 #: src/pages/WebAnalyticsLivePage.tsx:57
 #~ msgid "Landing Pages"
 #~ msgstr ""
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:320
+msgid "Landing path"
+msgstr "ランディングパス"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:356
+msgid "Landing URL"
+msgstr "ランディング URL"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:101
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
@@ -12373,6 +12599,10 @@ msgstr "最終アクティビティ"
 #: src/components/logs/OutgoingWebhooksTab.tsx:409
 msgid "Last attempt"
 msgstr "最終試行"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:383
+msgid "Last backfill"
+msgstr "前回のバックフィル"
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:150
 #~ msgid "Last backfill rewrote"
@@ -12599,8 +12829,8 @@ msgstr "行 {0} ({1}): {2}"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:350
 #: src/components/email_builder/ui/FontStyleInput.tsx:253
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:113
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:116
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:115
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:118
 #: src/components/email_builder/ui/LineHeightInput.tsx:76
 msgid "Line height"
 msgstr "行の高さ"
@@ -12739,7 +12969,7 @@ msgstr "セクションやカラムのブロック間に置かれた Liquid は�
 #: src/components/messages/MessageHistoryTable.tsx:285
 #: src/components/messages/MessageHistoryTable.tsx:299
 #: src/components/templates/TemplateSelectorModal.tsx:710
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 msgid "List"
 msgstr "リスト"
@@ -12971,6 +13201,10 @@ msgstr "ワークスペースのレコードを読み込む。読み取りと書
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "このテンプレートの最新バージョン (v{0}) を読み込みました。"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "loading"
+msgstr "読み込み中"
+
 #: src/components/file_manager/FileExplorer.tsx:823
 msgid "Loading"
 msgstr "読み込み中"
@@ -13030,7 +13264,7 @@ msgid "Locate visitors"
 msgstr "訪問者の所在地を特定"
 
 #: src/components/contacts/ContactsFilters.tsx:28
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:84
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:115
 msgid "Location"
 msgstr "所在地"
 
@@ -13223,12 +13457,12 @@ msgstr "Zapierが管理"
 msgid "Manual"
 msgstr "手動"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:247
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:303
 #: src/components/web_analytics/tabs/DashboardTab.tsx:250
 msgid "Map"
 msgstr "マップ"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:135
+#: src/components/web_analytics/tabs/FiltersTab.tsx:150
 msgid "Map traffic to channels, fill custom dimensions and rewrite traffic source fields as sessions come in."
 msgstr "セッションが届くたびに、トラフィックをチャネルに割り当て、カスタムディメンションを埋め、トラフィックソースのフィールドを書き換えます。"
 
@@ -13311,20 +13545,24 @@ msgstr "一致"
 msgid "Matched on:"
 msgstr "一致した項目:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:229
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:254
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:11
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:47
 msgid "Matches"
 msgstr "一致"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:222
+#: src/components/web_analytics/lib/filterCatalog.ts:226
 msgid "matches regex"
 msgstr "正規表現に一致"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:241
+msgid "Matching"
+msgstr "一致する"
 
 #: src/components/segment/button_upsert.tsx:704
 msgid "Matching contacts:"
 msgstr "一致するコンタクト:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:303
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:230
 msgid "Matching rules"
 msgstr "一致するルール"
 
@@ -13365,15 +13603,17 @@ msgstr "中央値"
 msgid "Median {0}"
 msgstr "中央値 {0}"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:66
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:71
 #: src/components/web_analytics/explore/ExploreSummary.tsx:54
 #: src/components/web_analytics/explore/ExploreTable.tsx:158
-#: src/components/web_analytics/FilterBuilder.tsx:120
+#: src/components/web_analytics/FilterBuilder.tsx:102
 #: src/components/web_analytics/tabs/DashboardTab.tsx:33
 msgid "Median Scroll Depth"
 msgstr "スクロール深度の中央値"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:50
-#: src/components/web_analytics/FilterBuilder.tsx:235
+#: src/components/web_analytics/FilterBuilder.tsx:205
 msgid "Median Scroll Depth (%)"
 msgstr "スクロール深度の中央値 (%)"
 
@@ -13389,12 +13629,13 @@ msgstr "スクロール深度の中央値 (前期間)"
 msgid "Median session duration. Green meets the reference, cyan exceeds it."
 msgstr "セッション時間の中央値。緑は基準を満たし、シアンは基準を上回っています。"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:64
 #: src/components/web_analytics/explore/ExploreSummary.tsx:52
 #: src/components/web_analytics/tabs/DashboardTab.tsx:31
 msgid "Median TimeScore"
 msgstr "TimeScoreの中央値"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:44
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:62
 msgid "Median Value"
 msgstr "値の中央値"
 
@@ -13403,7 +13644,7 @@ msgstr "値の中央値"
 msgid "Medium"
 msgstr "中"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:222
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:270
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
 msgid "Mediums"
 msgstr "メディア"
@@ -13506,7 +13747,7 @@ msgstr "メタデータ"
 msgid "Method"
 msgstr "方式"
 
-#: src/components/web_analytics/FilterBuilder.tsx:465
+#: src/components/web_analytics/FilterBuilder.tsx:435
 msgid "Metrics"
 msgstr "指標"
 
@@ -13527,6 +13768,10 @@ msgstr "中央"
 #: src/components/blog/PostDrawer.tsx:907
 msgid "min"
 msgstr "分"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:177
+msgid "Min. sessions: {minSessions}"
+msgstr "最小セッション数: {minSessions}"
 
 #: src/components/integrations/LLMIntegration.tsx:255
 #: src/components/settings/Integrations.tsx:341
@@ -13799,8 +14044,8 @@ msgstr "N/A"
 #: src/components/settings/WorkspaceMembers.tsx:294
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:137
-#: src/components/web_analytics/filters/FilterTable.tsx:196
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:204
+#: src/components/web_analytics/filters/FilterTable.tsx:238
 msgid "Name"
 msgstr "名前"
 
@@ -13829,7 +14074,7 @@ msgid "Name and slug required"
 msgstr "名前とスラッグは必須です"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1006
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:138
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:205
 msgid "Name is required"
 msgstr "名前は必須です"
 
@@ -13890,6 +14135,10 @@ msgstr "先に必要: ブログはそのルートで配信されます"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:467
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "次の追加のIAM権限が必要です: ses:CreateTenant、ses:CreateTenantResourceAssociation、ses:GetTenant、ses:PutTenantSuppressionAttributes、ses:ListEmailIdentities。下の選択リストのために ses:ListTenants と ses:ListTenantResources を、またテナントが永久に課金され続けるのではなくインテグレーションとともに削除されるように ses:DeleteTenant と ses:DeleteTenantResourceAssociation を追加してください。"
+
+#: src/components/web_analytics/lib/backfill.ts:25
+msgid "Never run"
+msgstr "未実行"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
 #: src/components/templates/TemplateDrawerBar.tsx:35
@@ -13981,9 +14230,12 @@ msgstr "新しい記事"
 #~ msgid "New Post"
 #~ msgstr "新規投稿"
 
-#: src/pages/WebAnalyticsFiltersPage.tsx:264
-#~ msgid "New rule"
-#~ msgstr ""
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:123
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:175
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:120
+msgid "New rule"
+msgstr "新しいルール"
 
 #: src/components/contacts/ContactsRail.tsx:121
 #: src/components/segment/button_upsert.tsx:419
@@ -13993,6 +14245,10 @@ msgstr "新規セグメント"
 #: src/components/templates/DeleteTemplateModal.tsx:96
 msgid "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 msgstr "これらの項目からの新しい送信は、別のテンプレートを選ぶまで削除されたテンプレートを使い続けます。送信済みのメッセージはログに残りますが、Web版は表示されなくなります。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:381
+msgid "New sessions"
+msgstr "新しいセッション"
 
 #: src/components/integrations/SupabaseIntegration.tsx:207
 msgid "New Supabase users become contacts"
@@ -14017,8 +14273,8 @@ msgstr "新しいテーマ"
 #~ msgid "New Theme"
 #~ msgstr "新規テーマ"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:133
-#: src/components/web_analytics/filters/FilterTable.tsx:295
+#: src/components/web_analytics/filters/FilterTable.tsx:172
+#: src/components/web_analytics/filters/FilterTable.tsx:353
 msgid "New visits are no longer rewritten by it. Past ones keep its values until the next backfill."
 msgstr "新しい訪問はこのフィルターで書き換えられなくなります。過去の訪問は次回のバックフィルまでこのフィルターの値を保持します。"
 
@@ -14094,10 +14350,10 @@ msgstr "次のステップ"
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/WebhookDetail.tsx:290
 #: src/components/settings/WebhookDetail.tsx:394
-#: src/components/web_analytics/filters/BackfillStatus.tsx:88
-#: src/components/web_analytics/filters/FilterTable.tsx:276
+#: src/components/web_analytics/filters/BackfillStatus.tsx:100
+#: src/components/web_analytics/filters/FilterTable.tsx:323
 #: src/components/web_analytics/filters/RuleValueInput.tsx:30
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:208
+#: src/components/web_analytics/filters/VisitFieldInput.tsx:30
 msgid "No"
 msgstr "いいえ"
 
@@ -14140,7 +14396,7 @@ msgstr "API キーなし"
 msgid "No API keys yet. Create one to call the API or connect Zapier."
 msgstr "APIキーはまだありません。API の呼び出しや Zapier との接続のために作成してください。"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:186
+#: src/components/web_analytics/tabs/FiltersTab.tsx:206
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "アトリビューションルールはまだありません。最初のルールを作成して、トラフィックデータの整形を始めましょう。"
 
@@ -14160,7 +14416,7 @@ msgstr "一致するオートメーションはありません"
 msgid "No automations yet"
 msgstr "オートメーションがまだありません"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:162
+#: src/components/web_analytics/filters/BackfillStatus.tsx:183
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "バックフィルはまだ実行されていません。過去のセッションとゴールにこれらのルールを適用するには、バックフィルを実行してください。"
 
@@ -14184,7 +14440,7 @@ msgstr "一致するブロードキャストはありません"
 msgid "No broadcasts yet"
 msgstr "ブロードキャストはまだありません"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:217
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:265
 #: src/components/web_analytics/tabs/DashboardTab.tsx:223
 #: src/pages/WebAnalyticsLivePage.tsx:202
 msgid "No campaign data"
@@ -14260,7 +14516,7 @@ msgid "No content yet"
 msgstr "コンテンツはまだありません"
 
 #: src/components/web_analytics/CountryMapView.tsx:165
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:242
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:298
 #: src/components/web_analytics/tabs/DashboardTab.tsx:245
 msgid "No country data"
 msgstr "国のデータがありません"
@@ -14274,6 +14530,7 @@ msgid "No custom field is named yet"
 msgstr "名前の付いたカスタムフィールドはまだありません"
 
 #: src/components/logs/MessageDetail.tsx:840
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:330
 msgid "No data"
 msgstr "データなし"
 
@@ -14302,7 +14559,7 @@ msgstr "デフォルトの差出人が設定されていません"
 msgid "No delivery events"
 msgstr "配信イベントはありません"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:264
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:287
 #: src/pages/WebAnalyticsLivePage.tsx:193
 msgid "No device data"
 msgstr "デバイスのデータがありません"
@@ -14341,7 +14598,8 @@ msgstr "この期間に送信されたメールはありません"
 msgid "No email template"
 msgstr "メールテンプレートなし"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:130
+#: src/components/web_analytics/filters/BackfillStatus.tsx:143
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:365
 msgid "No error message was recorded."
 msgstr "エラーメッセージは記録されませんでした。"
 
@@ -14385,7 +14643,7 @@ msgstr "テンプレートで絞り込みません。どのテンプレートで
 msgid "No folders yet"
 msgstr "フォルダはまだありません"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:288
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:235
 msgid "No goal data"
 msgstr "ゴールのデータがありません"
 
@@ -14397,7 +14655,7 @@ msgstr "まだゴールはありません"
 msgid "No goals data"
 msgstr "ゴールのデータがありません"
 
-#: src/components/web_analytics/tabs/GoalsTab.tsx:137
+#: src/components/web_analytics/tabs/GoalsTab.tsx:135
 msgid "No goals tracked yet"
 msgstr "まだゴールが記録されていません"
 
@@ -14454,8 +14712,8 @@ msgstr "まだリストがありません"
 msgid "No marketing email provider"
 msgstr "マーケティングメールプロバイダーがありません"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:231
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:256
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:13
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:49
 msgid "No match"
 msgstr "一致なし"
 
@@ -14516,9 +14774,21 @@ msgstr "そのIDに紐づくNotifuseアカウントはありません。招待�
 msgid "No open or click tracking, keep UTM parameters"
 msgstr "開封・クリックをトラッキングしない（UTM は保持）"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:280
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:305
 msgid "No operations defined"
 msgstr "操作が定義されていません"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:219
+msgid "No other rule overrides what this rule writes"
+msgstr "このルールが書き込む値を上書きするルールはほかにありません"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:77
+msgid "No other rule writes these dimensions"
+msgstr "これらのディメンションに書き込むルールはほかにありません"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:315
+msgid "No page data"
+msgstr "ページのデータがありません"
 
 #: src/pages/WebAnalyticsLivePage.tsx:153
 msgid "No pages"
@@ -14576,7 +14846,7 @@ msgstr "繰り返しなし"
 msgid "No response"
 msgstr "レスポンスなし"
 
-#: src/components/web_analytics/FilterBuilder.tsx:485
+#: src/components/web_analytics/FilterBuilder.tsx:455
 msgid "No results found"
 msgstr "結果が見つかりません"
 
@@ -14587,11 +14857,15 @@ msgstr "結果が見つかりません"
 msgid "No results match"
 msgstr "一致する結果はありません"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:180
+#: src/components/web_analytics/tabs/FiltersTab.tsx:200
 msgid "No rule carries the selected tag"
 msgstr "選択したタグを持つルールはありません"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:305
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:227
+msgid "No rule is disabled"
+msgstr "無効なルールはありません"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:224
 msgid "No rule matches this visit"
 msgstr "この訪問に一致するルールはありません"
 
@@ -14604,8 +14878,8 @@ msgid "No saved block matches."
 msgstr "一致する保存済みブロックはありません。"
 
 #: src/components/email_builder/panels/LibraryPanel.tsx:291
-#: src/components/email_builder/ui/AddBlockPopover.tsx:310
-#: src/components/email_builder/ui/AddBlockPopover.tsx:382
+#: src/components/email_builder/ui/AddBlockPopover.tsx:316
+#: src/components/email_builder/ui/AddBlockPopover.tsx:388
 msgid "No saved blocks yet"
 msgstr "保存されたブロックがまだありません"
 
@@ -14637,6 +14911,14 @@ msgstr "この期間に送信はありません"
 msgid "No sends yet"
 msgstr "まだ送信はありません"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:86
+msgid "No session above the minimum for this dimension"
+msgstr "このディメンションで最小値を超えるセッションはありません"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:87
+msgid "No session for this dimension"
+msgstr "このディメンションのセッションはありません"
+
 #: src/components/contacts/visits/ContactWebVisits.tsx:346
 msgid "No sessions match this filter"
 msgstr "このフィルターに一致するセッションはありません"
@@ -14663,7 +14945,7 @@ msgstr "共有画像なし"
 msgid "No share title"
 msgstr "共有タイトルなし"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
 msgid "No source data"
 msgstr "ソースのデータがありません"
 
@@ -14812,6 +15094,10 @@ msgstr "非アクティブ"
 msgid "Non-Active"
 msgstr "非アクティブ"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:125
+msgid "none"
+msgstr "なし"
+
 #: src/components/broadcasts/detail/BroadcastAside.tsx:157
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:66
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:215
@@ -14827,7 +15113,6 @@ msgstr "非アクティブ"
 #: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:82
 msgid "None"
 msgstr "なし"
 
@@ -14855,22 +15140,23 @@ msgid "Not added while tracking is disabled: links are never rewritten. Kept for
 msgstr "トラッキングが無効の間は追加されず、リンクは書き換えられません。再度有効にしたときのために保持されます。"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:97
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:65
 msgid "Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose."
 msgstr "すべての訪問者が同じ意図を持っているわけではありません。この率は目的を問わずすべてのトラフィックを含むため、解釈には注意が必要です。"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:13
-#: src/components/email_builder/ui/AddBlockPopover.tsx:160
+#: src/components/email_builder/ui/AddBlockPopover.tsx:163
 #: src/components/email_builder/utils/library.ts:74
 msgid "Not allowed here"
 msgstr "ここには配置できません"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:9
-#: src/components/email_builder/ui/AddBlockPopover.tsx:179
+#: src/components/email_builder/ui/AddBlockPopover.tsx:182
 #: src/components/email_builder/utils/library.ts:65
 msgid "Not allowed inside a conditional block"
 msgstr "条件付きブロックの中には配置できません"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:169
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:194
 msgid "Not applied"
 msgstr "未適用"
 
@@ -14878,7 +15164,7 @@ msgstr "未適用"
 msgid "Not assigned"
 msgstr "未割り当て"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:336
+#: src/components/email_builder/ui/AddBlockPopover.tsx:342
 msgid "Not available here"
 msgstr "ここでは使用できません"
 
@@ -14898,8 +15184,8 @@ msgstr "未設定"
 msgid "Not connected"
 msgstr "未接続"
 
-#: src/components/web_analytics/FilterBuilder.tsx:41
-#: src/components/web_analytics/lib/filterCatalog.ts:219
+#: src/components/web_analytics/lib/filterCatalog.ts:223
+#: src/components/web_analytics/lib/filterLabels.ts:13
 msgid "not contains"
 msgstr "含まない"
 
@@ -14911,6 +15197,7 @@ msgstr "{countMax} を超える分はカウントしません"
 #: src/components/blog/PostDrawer.tsx:746
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
 msgid "Not created"
 msgstr "未作成"
 
@@ -14928,8 +15215,8 @@ msgstr "未作成"
 msgid "Not delivered"
 msgstr "未配信"
 
-#: src/components/web_analytics/FilterBuilder.tsx:39
-#: src/components/web_analytics/lib/filterCatalog.ts:217
+#: src/components/web_analytics/lib/filterCatalog.ts:221
+#: src/components/web_analytics/lib/filterLabels.ts:11
 msgid "not equals"
 msgstr "等しくない"
 
@@ -14937,7 +15224,7 @@ msgstr "等しくない"
 #~ msgid "Not failed"
 #~ msgstr "失敗していない"
 
-#: src/components/web_analytics/FilterBuilder.tsx:45
+#: src/components/web_analytics/lib/filterLabels.ts:17
 msgid "not in"
 msgstr "いずれにも一致しない"
 
@@ -14961,7 +15248,8 @@ msgstr "テストデータにありません。変数が空であるものとし
 msgid "Not in use"
 msgstr "未使用"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:325
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:231
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:242
 msgid "Not matching"
 msgstr "一致しない"
 
@@ -15007,6 +15295,10 @@ msgstr "未設定"
 #: src/components/settings/integrations/EmailProviderCard.tsx:260
 msgid "Not set up"
 msgstr "未設定"
+
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:43
+msgid "Not tested"
+msgstr "未テスト"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:196
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:41
@@ -15519,6 +15811,10 @@ msgstr "チームと APIキーを開く"
 #~ msgid "Open template"
 #~ msgstr "テンプレートを開く"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:289
+msgid "Open tester"
+msgstr "テスターを開く"
+
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:42
 msgid "Open the audit log"
 msgstr "監査ログを開く"
@@ -15685,14 +15981,14 @@ msgstr "操作完了"
 #~ msgid "Operation results:"
 #~ msgstr "操作の結果:"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
-#: src/components/web_analytics/filters/FilterTable.tsx:112
-#: src/components/web_analytics/filters/FilterTable.tsx:233
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:254
+#: src/components/web_analytics/filters/FilterTable.tsx:142
+#: src/components/web_analytics/filters/FilterTable.tsx:275
 msgid "Operations"
 msgstr "操作"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:233
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:94
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
 msgid "Operator"
 msgstr "演算子"
 
@@ -15710,6 +16006,7 @@ msgstr "任意"
 #: src/components/settings/SystemSettingsDrawer.tsx:400
 #: src/components/settings/SystemSettingsDrawer.tsx:455
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:353
 msgid "Optional"
 msgstr "任意"
 
@@ -15781,8 +16078,8 @@ msgstr "オーガニックソーシャル"
 msgid "Origin"
 msgstr "発生元"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:279
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:279
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:292
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:292
 #: src/components/web_analytics/tabs/DashboardTab.tsx:275
 #: src/components/web_analytics/tabs/DashboardTab.tsx:275
 msgid "OS"
@@ -15876,6 +16173,10 @@ msgstr "パディング設定"
 msgid "Page"
 msgstr "ページ"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:176
+msgid "Page filters: {pageFilterList}"
+msgstr "ページフィルター: {pageFilterList}"
+
 #: src/components/contacts/sheet/activityLabel.ts:26
 msgid "Page view"
 msgstr "ページビュー"
@@ -15887,8 +16188,8 @@ msgstr "過去 30 日間のこの記事のパスのページビュー（ウェ�
 #: src/components/blog/ThemeEditorDrawer.tsx:357
 #: src/components/web_analytics/explore/BreakdownModal.tsx:34
 #: src/components/web_analytics/explore/DimensionSelector.tsx:110
-#: src/components/web_analytics/FilterBuilder.tsx:59
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:82
+#: src/components/web_analytics/FilterBuilder.tsx:41
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:113
 msgid "Pages"
 msgstr "ページ"
 
@@ -15933,11 +16234,11 @@ msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any l
 msgstr "リンクURLの一部（大文字と小文字は区別しません）。空欄にすると、どのリンクでも開始します。"
 
 #. placeholder {0}: state.partition_index
-#: src/components/web_analytics/filters/BackfillStatus.tsx:108
+#: src/components/web_analytics/filters/BackfillStatus.tsx:121
 msgid "Partition {0} of {partitionTotal}"
 msgstr "パーティション {partitionTotal} 件中 {0} 件目"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:85
+#: src/components/web_analytics/filters/BackfillStatus.tsx:97
 msgid "Partitions already rewritten keep their new values."
 msgstr "すでに書き換えられたパーティションは、新しい値を保持します。"
 
@@ -15954,6 +16255,10 @@ msgstr "パスワード (任意)"
 #: src/components/templates/gallery/labels.ts:10
 msgid "Password reset"
 msgstr "パスワードのリセット"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:382
+msgid "Past sessions"
+msgstr "過去のセッション"
 
 #: src/components/settings/LicenseSettings.tsx:80
 #~ msgid "Paste a licence key first"
@@ -16251,6 +16556,10 @@ msgstr "勝者に選ぶ"
 #: src/components/integrations/LLMIntegration.tsx:214
 msgid "Pick one, or type any Anthropic model ID"
 msgstr "いずれかを選択するか、任意の Anthropic モデル ID を入力してください"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:226
+msgid "Pick the dimensions to break this row down by: each one gets its own table."
+msgstr "この行の内訳に使うディメンションを選んでください。ディメンションごとに表が作成されます。"
 
 #: src/components/integrations/LLMIntegration.tsx:270
 msgid "Pick the suggestion, or type any Gemini model ID"
@@ -16684,7 +16993,7 @@ msgstr "ホームページの記事数"
 #~ msgid "Preferred URL for this content (advanced)"
 #~ msgstr "このコンテンツの優先URL（上級）"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:80
+#: src/components/web_analytics/filters/BackfillStatus.tsx:85
 msgid "Preparing backfill..."
 msgstr "バックフィルを準備中..."
 
@@ -16882,17 +17191,27 @@ msgstr "前週"
 msgid "Previous year"
 msgstr "前年"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
-#: src/components/web_analytics/filters/FilterTable.tsx:189
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:213
+#: src/components/web_analytics/filters/FilterTable.tsx:231
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:95
 msgid "Priority"
 msgstr "優先度"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:148
+#. placeholder {0}: rule.priority
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:187
+#~ msgid "Priority {0}"
+#~ msgstr ""
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:126
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:200
+msgid "Priority {priority}"
+msgstr "優先度 {priority}"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:214
 msgid "Priority is required"
 msgstr "優先度は必須です"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:96
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:174
+#: src/components/web_analytics/filters/FilterTable.tsx:126
 msgid "Priority:"
 msgstr "優先度:"
 
@@ -17066,6 +17385,10 @@ msgstr "プッシュ"
 #: src/components/broadcasts/useBroadcastActions.tsx:172
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr "キューに入っているメールは送信されません。送信中のものは完了します。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:283
+msgid "Quick test"
+msgstr "クイックテスト"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:955
 msgid "Rate for marketing"
@@ -17241,6 +17564,10 @@ msgstr "scripts.js を含む、1件のテーマのバージョンを読み取る
 msgid "Read one transactional notification's channel and template configuration"
 msgstr "1件のトランザクション通知のチャネルとテンプレートの設定を読み取る"
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:131
+msgid "Read only"
+msgstr "読み取り専用"
+
 #: src/services/api/permissions.ts:755
 msgid "Read per-link click counts for one broadcast template"
 msgstr "1件のブロードキャストテンプレートのリンク別クリック数を読み取る"
@@ -17309,6 +17636,10 @@ msgstr "読了時間"
 #: src/components/blog/PostDrawer.tsx:887
 #~ msgid "Reading Time"
 #~ msgstr "読了時間"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:97
+msgid "Reads"
+msgstr "読み取り"
 
 #: src/components/transactional/NotificationChecks.tsx:231
 msgid "Ready"
@@ -17487,7 +17818,7 @@ msgstr "やり直す ({redoKeys})"
 msgid "Referral traffic"
 msgstr "リファラルトラフィック"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:197
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:250
 #: src/components/web_analytics/tabs/DashboardTab.tsx:200
 #: src/pages/WebAnalyticsLivePage.tsx:181
 msgid "Referrer domain"
@@ -17497,7 +17828,7 @@ msgstr "リファラーのドメイン"
 #~ msgid "Referrer:"
 #~ msgstr "リファラー:"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:196
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:249
 #: src/components/web_analytics/tabs/DashboardTab.tsx:199
 #: src/pages/WebAnalyticsLivePage.tsx:180
 msgid "Referrers"
@@ -17614,7 +17945,7 @@ msgstr "Webhookを登録しますか？"
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "<0>{target}</0> のプロバイダー Webhook を登録しました"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:121
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:109
 msgid "Regular expression"
 msgstr "正規表現"
 
@@ -17677,6 +18008,11 @@ msgstr "{0} を {1} から削除しますか？"
 #: src/components/templates/SendTemplateModal.tsx:490
 msgid "Remove {filename}"
 msgstr "{filename} を削除"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:187
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:39
+msgid "Remove {label}"
+msgstr "{label} を削除"
 
 #: src/components/blog/AuthorsField.tsx:151
 #: src/components/blog/AuthorsField.tsx:162
@@ -18041,7 +18377,7 @@ msgstr "インテグレーションの同期タスクをリセットし、最初
 msgid "Reset formatting"
 msgstr "書式をリセット"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:175
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:177
 msgid "Reset H{level}"
 msgstr "H{level} をリセット"
 
@@ -18119,15 +18455,14 @@ msgid "Result with the test data"
 msgstr "テストデータでの結果"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:227
-msgid "Result:"
-msgstr "結果:"
+#~ msgid "Result:"
+#~ msgstr "結果:"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:731
 msgid "Results"
 msgstr "結果"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:128
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:297
 msgid "Results:"
 msgstr "結果:"
 
@@ -18202,6 +18537,7 @@ msgstr "ニュースレター <0>{target}</0> の失敗した送信を再試行�
 #: src/components/settings/WorkspaceMembers.tsx:497
 #: src/components/templates/TemplateSelectorModal.tsx:234
 #: src/components/transactional/LoadError.tsx:22
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
 #: src/pages/AutomationsPage.tsx:208
 #: src/pages/BroadcastsPage.tsx:245
 #: src/pages/TemplatesPage.tsx:507
@@ -18294,33 +18630,46 @@ msgstr "行"
 msgid "RSS and JSON feeds, newest first"
 msgstr "RSS と JSON フィード、新しい順"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:96
+msgid "Rule"
+msgstr "ルール"
+
 #: src/pages/WebAnalyticsFiltersPage.tsx:143
 #~ msgid "Rule changes apply to new traffic immediately"
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:157
+#: src/components/web_analytics/filters/BackfillStatus.tsx:178
 msgid "Rule changes only apply to new traffic"
 msgstr "ルールの変更は新しいトラフィックにのみ適用されます"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:83
+#: src/components/web_analytics/tabs/FiltersTab.tsx:92
 msgid "Rule created"
 msgstr "ルールを作成しました"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:90
+#: src/components/web_analytics/tabs/FiltersTab.tsx:102
 msgid "Rule deleted"
 msgstr "ルールを削除しました"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:101
+#: src/components/web_analytics/tabs/FiltersTab.tsx:114
 msgid "Rule disabled"
 msgstr "ルールを無効にしました"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:101
+#: src/components/web_analytics/tabs/FiltersTab.tsx:114
 msgid "Rule enabled"
 msgstr "ルールを有効にしました"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:83
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:60
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:70
+msgid "Rule order"
+msgstr "ルールの順序"
+
+#: src/components/web_analytics/tabs/FiltersTab.tsx:92
 msgid "Rule updated"
 msgstr "ルールを更新しました"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:55
+msgid "Rules that also write {dimensionList}"
+msgstr "{dimensionList} にも書き込むルール"
 
 #: src/services/api/permissions.ts:836
 msgid "Run a backfill task immediately"
@@ -18358,25 +18707,35 @@ msgstr "`webhook_deliveries` スキーマに対して集計クエリを実行す
 msgid "Run an integration sync task immediately"
 msgstr "インテグレーションの同期タスクを直ちに実行する"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:174
+#: src/components/web_analytics/filters/BackfillStatus.tsx:191
+#: src/components/web_analytics/filters/BackfillStatus.tsx:202
 msgid "Run backfill"
 msgstr "バックフィルを実行"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:137
+#: src/components/web_analytics/filters/BackfillStatus.tsx:147
+#: src/components/web_analytics/filters/BackfillStatus.tsx:157
 msgid "Run backfill again"
 msgstr "バックフィルを再実行"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:395
-msgid "Run test"
-msgstr "テストを実行"
+#~ msgid "Run test"
+#~ msgstr "テストを実行"
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:163
 msgid "Run Test"
 msgstr "テストを実行"
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:255
+msgid "Run when the rule matches"
+msgstr "ルールが一致したときに実行"
+
 #: src/components/broadcasts/detail/BroadcastAside.tsx:219
 msgid "Running"
 msgstr "実行中"
+
+#: src/components/web_analytics/lib/backfill.ts:37
+msgid "Running · {progress}"
+msgstr "実行中 · {progress}"
 
 #: src/components/file_manager/buttonSettings.tsx:261
 msgid "S3 access key"
@@ -18421,7 +18780,7 @@ msgstr "セール"
 msgid "Same Window"
 msgstr "同じウィンドウ"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:160
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:162
 msgid "Sample"
 msgstr "サンプル"
 
@@ -18485,7 +18844,6 @@ msgstr "サンドボックスモード"
 #: src/components/settings/SystemSettingsDrawer.tsx:249
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:112
 msgid "Save"
 msgstr "保存"
 
@@ -18493,7 +18851,7 @@ msgstr "保存"
 msgid "Save & Restart"
 msgstr "保存して再起動"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:312
+#: src/components/email_builder/ui/AddBlockPopover.tsx:318
 msgid "Save a block from its toolbar to reuse it in every template."
 msgstr "ブロックのツールバーから保存すると、すべてのテンプレートで再利用できます。"
 
@@ -18527,6 +18885,8 @@ msgstr "新しいバージョンとして保存"
 #: src/components/blog/PostDrawer.tsx:816
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:153
 msgid "Save changes"
 msgstr "変更を保存"
 
@@ -18607,7 +18967,7 @@ msgid "Saved"
 msgstr "保存済み"
 
 #. placeholder {0}: savedBlockOptions.length
-#: src/components/email_builder/ui/AddBlockPopover.tsx:428
+#: src/components/email_builder/ui/AddBlockPopover.tsx:434
 msgid "Saved ({0})"
 msgstr "保存済み ({0})"
 
@@ -18629,7 +18989,7 @@ msgid "Saved as v{version}"
 msgstr "v{version} として保存しました"
 
 #. placeholder {0}: savedBlock.name
-#: src/components/email_builder/ui/AddBlockPopover.tsx:266
+#: src/components/email_builder/ui/AddBlockPopover.tsx:272
 msgid "Saved block: {0}"
 msgstr "保存済みブロック: {0}"
 
@@ -18637,7 +18997,7 @@ msgstr "保存済みブロック: {0}"
 msgid "Saved blocks"
 msgstr "保存済みブロック"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:422
+#: src/components/email_builder/ui/AddBlockPopover.tsx:428
 msgid "Saved blocks ({savedCount})"
 msgstr "保存済みブロック ({savedCount})"
 
@@ -18736,9 +19096,13 @@ msgstr "URLをスクレイピングしてマークダウン形式でコンテン
 msgid "Screen width below which mobile layout is activated. Common values: 480px, 600px, 768px"
 msgstr "モバイルレイアウトが有効になる画面幅。一般的な値: 480px、600px、768px"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:167
+msgid "Scroll"
+msgstr "スクロール"
+
 #: src/components/contacts/ExportContactsModal.tsx:60
 #: src/components/seo/SeoPreview.tsx:44
-#: src/components/web_analytics/FilterBuilder.tsx:436
+#: src/components/web_analytics/FilterBuilder.tsx:406
 msgid "Search"
 msgstr "検索"
 
@@ -18828,7 +19192,7 @@ msgstr "Webhook イベントを検索"
 msgid "Search your templates"
 msgstr "自分のテンプレートを検索"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:159
+#: src/components/web_analytics/tabs/FiltersTab.tsx:177
 msgid "Search..."
 msgstr "検索..."
 
@@ -19212,7 +19576,7 @@ msgstr "テストするイベントタイプを選択:"
 #~ msgid "Select feed size"
 #~ msgstr "フィードのサイズを選択"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:71
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:73
 msgid "Select field"
 msgstr "フィールドを選択"
 
@@ -19856,13 +20220,14 @@ msgstr ""
 #: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:38
 #: src/components/web_analytics/explore/DimensionSelector.tsx:114
-#: src/components/web_analytics/FilterBuilder.tsx:63
+#: src/components/web_analytics/FilterBuilder.tsx:45
 msgid "Session"
 msgstr "セッション"
 
 #: src/components/web_analytics/CountryMapView.tsx:66
 #: src/components/web_analytics/DimensionTableWidget.tsx:94
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:169
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:63
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:127
 #: src/components/web_analytics/explore/CsvExportModal.tsx:45
 #: src/components/web_analytics/explore/ExploreSummary.tsx:51
 #: src/components/web_analytics/explore/ExploreTable.tsx:90
@@ -19900,6 +20265,14 @@ msgstr "ブロードキャストの UTM キャンペーンからの送信後 7 �
 #: src/components/settings/BlogSettings.tsx:270
 #~ msgid "Set a domain in General, under Custom domain, before enabling the blog."
 #~ msgstr "ブログを有効にする前に、一般 の カスタムドメイン でドメインを設定してください。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:61
+msgid "Set a priority to place this rule among the others."
+msgstr "優先度を設定すると、ほかのルールの中でのこのルールの位置が決まります。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:216
+msgid "Set a priority to see which rules override this one"
+msgstr "優先度を設定すると、このルールを上書きするルールを確認できます"
 
 #: src/components/settings/Integrations.tsx:121
 msgid "Set as default marketing email provider"
@@ -19963,7 +20336,7 @@ msgstr "クラスを設定"
 msgid "Set content"
 msgstr "コンテンツを設定"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:227
+#: src/components/web_analytics/lib/filterCatalog.ts:231
 msgid "Set default"
 msgstr "デフォルトに設定"
 
@@ -20001,7 +20374,7 @@ msgstr "リンクURLを設定"
 msgid "Set Liquid Content"
 msgstr "Liquidコンテンツを設定"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:232
+#: src/components/web_analytics/lib/filterCatalog.ts:236
 msgid "Set only when currently empty"
 msgstr "現在空の場合のみ設定"
 
@@ -20018,11 +20391,11 @@ msgstr "公開日を設定"
 msgid "Set the licence <0>{target}</0>"
 msgstr "ライセンス <0>{target}</0> を設定しました"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:235
+#: src/components/web_analytics/lib/filterCatalog.ts:239
 msgid "set to"
 msgstr "次の値に設定"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:231
+#: src/components/web_analytics/lib/filterCatalog.ts:235
 msgid "Set to null"
 msgstr "nullに設定"
 
@@ -20053,7 +20426,7 @@ msgstr "Web アナリティクスを設定"
 
 #: src/components/email_builder/ui/StringPopoverInput.tsx:27
 #: src/components/email_builder/ui/StringPopoverInput.tsx:164
-#: src/components/web_analytics/lib/filterCatalog.ts:225
+#: src/components/web_analytics/lib/filterCatalog.ts:229
 msgid "Set value"
 msgstr "値を設定"
 
@@ -20116,6 +20489,10 @@ msgstr "セットアップ完了！"
 msgid "Several senders"
 msgstr "複数の送信者"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:136
+msgid "Share"
+msgstr "割合"
+
 #: src/components/seo/SeoCards.tsx:61
 #: src/components/settings/BlogSettings.tsx:492
 msgid "Share description"
@@ -20146,9 +20523,12 @@ msgid "shared with the rest of this AWS account"
 msgstr "このAWSアカウントの他の部分と共有"
 
 #: src/components/settings/WebhookDetail.tsx:378
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:336
 msgid "Show"
 msgstr "表示"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:85
+msgid "Show all rules"
+msgstr "すべてのルールを表示"
 
 #: src/components/logs/AuditLogTab.tsx:566
 #: src/components/logs/InboundWebhooksTab.tsx:286
@@ -20175,6 +20555,10 @@ msgstr "完了したステップを表示"
 #: src/components/web_analytics/toolbar.tsx:168
 msgid "Show evolution"
 msgstr "推移を表示"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:85
+msgid "Show fewer rules"
+msgstr "表示するルールを減らす"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:150
 msgid "Show in the preview"
@@ -20365,7 +20749,7 @@ msgstr "訪問"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:175
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:90
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:93
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:94
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/file_manager/FileTable.tsx:101
 msgid "Size"
@@ -20627,7 +21011,7 @@ msgstr "ソース {0} が見つかりません"
 #~ msgid "Source:"
 #~ msgstr "ソース:"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:221
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:269
 #: src/components/web_analytics/tabs/DashboardTab.tsx:227
 msgid "Sources"
 msgstr "ソース"
@@ -20636,13 +21020,13 @@ msgstr "ソース"
 msgid "Space"
 msgstr "間隔"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:134
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:137
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:135
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:139
 msgid "Space above"
 msgstr "上の余白"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:146
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:149
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:148
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:152
 msgid "Space below"
 msgstr "下の余白"
 
@@ -20705,6 +21089,10 @@ msgstr "開始日を未来の日付にすることはできません"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:869
 msgid "Start Fresh"
 msgstr "最初から開始"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:353
+msgid "Start from a link"
+msgstr "リンクから始める"
 
 #: src/components/analytics/GetStartedChecklist.tsx:181
 msgid "Start from a model in the gallery, then edit it in the visual editor. Every email, broadcast or transactional, uses one."
@@ -20810,7 +21198,7 @@ msgstr "ブロードキャストの送信が始まると統計が表示されま
 #: src/components/settings/LicenseSettings.tsx:150
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
-#: src/components/web_analytics/filters/FilterTable.tsx:268
+#: src/components/web_analytics/filters/FilterTable.tsx:310
 msgid "Status"
 msgstr "ステータス"
 
@@ -21202,8 +21590,8 @@ msgstr "システムSMTP"
 msgid "Table of Contents"
 msgstr "目次"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:158
-#: src/components/web_analytics/filters/FilterTable.tsx:256
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:223
+#: src/components/web_analytics/filters/FilterTable.tsx:298
 msgid "Tags"
 msgstr "タグ"
 
@@ -21513,12 +21901,12 @@ msgstr "キーワード"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:120
 #: src/components/broadcasts/RecipientFeedSettings.tsx:121
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:107
-#: src/components/web_analytics/tabs/FiltersTab.tsx:127
+#: src/components/web_analytics/tabs/FiltersTab.tsx:140
 msgid "Test"
 msgstr "テスト"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:385
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:406
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:421
 msgid "Test all rules"
 msgstr "すべてのルールをテスト"
 
@@ -21600,7 +21988,8 @@ msgstr "サポート状況は異なるため、様々なメールクライアン
 msgid "Test Recipient Feed"
 msgstr "受信者フィードをテスト"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:385
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:401
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:421
 msgid "Test rule"
 msgstr "ルールをテスト"
 
@@ -21831,6 +22220,10 @@ msgstr "この通知を開いてから行った変更は失われます。"
 msgid "The changes you made since opening this template will be lost."
 msgstr "このテンプレートを開いてから行った変更は失われます。"
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
+msgid "The changes you made to this rule will be lost."
+msgstr "このルールに加えた変更は失われます。"
+
 #: src/components/templates/CreateTemplateDrawer.tsx:718
 msgid "The changes you made will be replaced by the model you choose."
 msgstr "行った変更は、選択したテンプレートで置き換えられます。"
@@ -21935,6 +22328,10 @@ msgstr "エクスポートに失敗しました。もう一度お試しくださ
 msgid "The featured image"
 msgstr "アイキャッチ画像"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:295
+msgid "The fields this rule reads, for one visit. Nothing is saved or sent."
+msgstr "このルールが読み取るフィールド (1 回の訪問分)。保存も送信もされません。"
+
 #: src/components/file_manager/FileExplorer.tsx:351
 msgid "The folder held nothing to delete."
 msgstr "フォルダーには削除するものがありませんでした。"
@@ -21993,11 +22390,11 @@ msgstr "このキーは設定 → チームと APIキー に {0} として表示
 #~ msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
 #~ msgstr "このキーは設定 → チームに {0} として表示され、そこで権限を広げられます。"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:127
+#: src/components/web_analytics/filters/BackfillStatus.tsx:140
 msgid "The last backfill failed"
 msgstr "前回のバックフィルは失敗しました"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:164
+#: src/components/web_analytics/filters/BackfillStatus.tsx:185
 msgid "The last backfill was cancelled. Run one to apply these rules to all historical sessions and goals."
 msgstr "前回のバックフィルはキャンセルされました。過去のすべてのセッションとゴールにこれらのルールを適用するには、バックフィルを実行してください。"
 
@@ -22383,6 +22780,10 @@ msgstr "この操作により{0}件のコンタクトが完全に削除されま
 msgid "This action will unsubscribe {0} contact(s)"
 msgstr "この操作により{0}件のコンタクトが購読解除されます"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:382
+msgid "This address has a % not followed by two hexadecimal digits. The server cannot read it and stores an empty landing domain and path, as filled here."
+msgstr "このアドレスには、後ろに 2 桁の 16 進数が続かない % が含まれています。サーバーはこれを読み取れず、ここに入力されたとおり、空のランディングドメインとパスを保存します。"
+
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:29
 msgid "This annotation was created automatically when a broadcast started. Deleting it will not affect the broadcast."
 msgstr "この注釈は、ブロードキャストの開始時に自動的に作成されました。削除してもブロードキャストには影響しません。"
@@ -22529,6 +22930,10 @@ msgstr "この連携はまだ作成されていません。"
 msgid "This invitation link is invalid or has expired."
 msgstr "この招待リンクは無効または期限切れです。"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:377
+msgid "This is not a web address. Paste a link such as https://example.com/page."
+msgstr "Web アドレスではありません。https://example.com/page のようなリンクを貼り付けてください。"
+
 #: src/components/templates/TemplateSettingsStep.tsx:133
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "これはテンプレートを追跡するためにリンクURLのutm_contentパラメータとして使用されるIDです"
@@ -22629,6 +23034,22 @@ msgstr "このプロパティにはすでにフィルターが設定されてい
 msgid "This quarter"
 msgstr "今四半期"
 
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:41
+msgid "This regular expression uses syntax the browser cannot run. The server checks it on save."
+msgstr "この正規表現は、ブラウザで実行できない構文を使用しています。保存時にサーバーがチェックします。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:122
+msgid "This rule"
+msgstr "このルール"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:208
+msgid "This rule is disabled: it does not run, so it writes nothing"
+msgstr "このルールは無効です。実行されないため、何も書き込みません"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
+msgid "This rule is not created yet."
+msgstr "このルールはまだ作成されていません。"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:112
 msgid "This rule is not valid."
 msgstr "このルールは無効です。"
@@ -22720,11 +23141,15 @@ msgstr "この動詞は現在、何も制御していません。APIが提供す
 msgid "This verb gates nothing today. Exactly one inbound webhook event call is permission-checked and it is a read; the rows themselves arrive on the provider callback routes /webhooks/email and /webhooks/email/inbound, which carry no workspace session and so consult no grant. Unlike the two verbs the matrix locks on, this one is still yours to switch — turning it off simply changes nothing today."
 msgstr "この動詞は現在、何も制御していません。受信Webhookイベントの呼び出しのうち権限がチェックされるのはちょうど1つだけで、それは読み取りです。行そのものはプロバイダーのコールバックルート /webhooks/email および /webhooks/email/inbound に届きますが、これらはワークスペースのセッションを持たないため、どの付与も参照しません。マトリクスがオンで固定している2つの動詞とは異なり、これは自由に切り替えられます — オフにしても、現時点では何も変わらないというだけです。"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:250
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:38
+#~ msgid "This visit: {value}"
+#~ msgstr ""
+
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:57
 msgid "This visit: {visitValue}"
 msgstr "この訪問: {visitValue}"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:250
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:57
 msgid "This visit: empty"
 msgstr "この訪問: 空"
 
@@ -22801,7 +23226,7 @@ msgstr "許可ドメインで、追跡付きメールリンクのクリックを
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:154
 #: src/components/web_analytics/explore/BreakdownModal.tsx:37
 #: src/components/web_analytics/explore/DimensionSelector.tsx:113
-#: src/components/web_analytics/FilterBuilder.tsx:62
+#: src/components/web_analytics/FilterBuilder.tsx:44
 msgid "Time"
 msgstr "時間"
 
@@ -22838,10 +23263,11 @@ msgid "Times the font size"
 msgstr "フォントサイズに対する倍率"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:95
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:176
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:69
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:144
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
 #: src/components/web_analytics/explore/ExploreTable.tsx:123
-#: src/components/web_analytics/FilterBuilder.tsx:118
+#: src/components/web_analytics/FilterBuilder.tsx:100
 #: src/components/web_analytics/tabs/DashboardTab.tsx:114
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:57
 msgid "TimeScore"
@@ -22856,7 +23282,7 @@ msgid "TimeScore (previous)"
 msgstr "TimeScore (前期間)"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:48
-#: src/components/web_analytics/FilterBuilder.tsx:233
+#: src/components/web_analytics/FilterBuilder.tsx:203
 msgid "TimeScore (seconds)"
 msgstr "TimeScore (秒)"
 
@@ -23076,7 +23502,7 @@ msgstr "ツールチップテキスト"
 msgid "Top"
 msgstr "上"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:215
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:263
 #: src/components/web_analytics/tabs/DashboardTab.tsx:221
 msgid "Top Campaigns"
 msgstr "上位キャンペーン"
@@ -23110,7 +23536,7 @@ msgstr "上位リファラー"
 msgid "Top Right"
 msgstr "右上"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:190
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:243
 #: src/components/web_analytics/tabs/DashboardTab.tsx:194
 msgid "Top Sources"
 msgstr "上位ソース"
@@ -23145,7 +23571,7 @@ msgstr "添付ファイルの合計サイズが10MBの制限を超えていま�
 #~ msgid "Total Contacts"
 #~ msgstr "コンタクト総数"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:43
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:61
 msgid "Total Value"
 msgstr "合計値"
 
@@ -23208,8 +23634,8 @@ msgstr "トラッキング無効"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:33
 #: src/components/web_analytics/explore/DimensionSelector.tsx:109
-#: src/components/web_analytics/FilterBuilder.tsx:58
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:81
+#: src/components/web_analytics/FilterBuilder.tsx:40
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:112
 msgid "Traffic"
 msgstr "トラフィック"
 
@@ -23610,6 +24036,7 @@ msgstr "ブログ記事 <0>{target}</0> を非公開にしました"
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:252
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:134
 msgid "Unsaved changes"
 msgstr "未保存の変更"
 
@@ -23632,7 +24059,7 @@ msgstr "予約を解除"
 msgid "Unschedule post"
 msgstr "投稿の予約を解除"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:236
+#: src/components/web_analytics/lib/filterCatalog.ts:240
 msgid "unset"
 msgstr "未設定"
 
@@ -23999,7 +24426,7 @@ msgstr "自動版を使用しますか？"
 msgid "Use the font name in text elements:"
 msgstr "テキスト要素でフォント名を使用:"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:384
+#: src/components/email_builder/ui/AddBlockPopover.tsx:390
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "ブロックツールバーの保存ボタンを使用してブロックを保存"
 
@@ -24059,7 +24486,7 @@ msgstr "メール内のリンク、通知センター、ウェブページで使
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:40
 #: src/components/web_analytics/explore/DimensionSelector.tsx:116
-#: src/components/web_analytics/FilterBuilder.tsx:65
+#: src/components/web_analytics/FilterBuilder.tsx:47
 msgid "User"
 msgstr "ユーザー"
 
@@ -24160,8 +24587,8 @@ msgstr "{0}を使用中..."
 #: src/components/transactional/TransactionalDetail.tsx:418
 #: src/components/web_analytics/explore/BreakdownModal.tsx:32
 #: src/components/web_analytics/explore/DimensionSelector.tsx:108
-#: src/components/web_analytics/FilterBuilder.tsx:57
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:80
+#: src/components/web_analytics/FilterBuilder.tsx:39
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:111
 msgid "UTM"
 msgstr "UTM"
 
@@ -24225,13 +24652,13 @@ msgstr "検証エラー"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:251
 #: src/components/segment/form_leaf.tsx:845
 #: src/components/settings/GeneralSettings.tsx:199
-#: src/components/web_analytics/FilterBuilder.tsx:354
-#: src/components/web_analytics/FilterBuilder.tsx:363
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:121
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:128
+#: src/components/web_analytics/FilterBuilder.tsx:324
+#: src/components/web_analytics/FilterBuilder.tsx:333
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:109
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:112
 #: src/components/web_analytics/filters/RuleValueInput.tsx:33
 #: src/components/web_analytics/goals/GoalCard.tsx:47
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:120
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:139
 #: src/components/web_analytics/tabs/DashboardTab.tsx:287
 msgid "Value"
 msgstr "値"
@@ -24252,7 +24679,9 @@ msgstr "値の種類"
 #~ msgid "Value:"
 #~ msgstr "値:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:265
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:329
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:205
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:290
 msgid "Values written"
 msgstr "書き込まれる値"
 
@@ -24532,6 +24961,10 @@ msgstr "ビジュアル"
 msgid "Visual Email Editor"
 msgstr "ビジュアルメールエディター"
 
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
+msgid "vs {comparedTo}"
+msgstr "{comparedTo} との比較"
+
 #: src/components/web_analytics/toolbar.tsx:121
 msgid "vs."
 msgstr "対"
@@ -24799,8 +25232,8 @@ msgstr "週次"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:278
 #: src/components/email_builder/ui/FontStyleInput.tsx:198
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:103
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:106
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:104
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:108
 msgid "Weight"
 msgstr "太さ"
 
@@ -24894,13 +25327,29 @@ msgstr "有効にすると、これらのスタイルはメール内のすべて
 msgid "When engagement is at its best"
 msgstr "エンゲージメントが最も高い時間帯"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:377
+msgid "When it applies"
+msgstr "適用されるタイミング"
+
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:172
-msgid "When matched, execute these operations:"
-msgstr "一致した場合、次の操作を実行します:"
+#~ msgid "When matched, execute these operations:"
+#~ msgstr "一致した場合、次の操作を実行します:"
 
 #: src/pages/SetupWizard.tsx:754
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "オフ (推奨) の場合、SSOでサインインできるのはすでに招待済みのユーザーのみです。オンの場合、許可されたドメインの検証済みメールアドレスがあれば自動的にアカウントが作成されます。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:244
+msgid "When one of them also matches a session, its value replaces this rule's."
+msgstr "そのいずれかがセッションにも一致すると、その値がこのルールの値を置き換えます。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:231
+msgid "When one of them also matches a session, this rule's value is not written."
+msgstr "そのいずれかがセッションにも一致すると、このルールの値は書き込まれません。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:200
+#~ msgid "When one of them matches a session, its values win."
+#~ msgstr "いずれかがセッションに一致すると、その値が優先されます。"
 
 #: src/components/broadcasts/compose/SendingCard.tsx:87
 msgid "When to send"
@@ -25042,6 +25491,14 @@ msgstr "ゴールあり"
 msgid "with filters"
 msgstr "フィルター付き"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:297
+msgid "With no condition, this rule matches every visit."
+msgstr "条件がないため、このルールはすべての訪問に一致します。"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:167
+msgid "With no condition, this rule runs on every session."
+msgstr "条件がないため、このルールはすべてのセッションで実行されます。"
+
 #: src/components/segment/form_leaf.tsx:1004
 #: src/components/segment/input.tsx:737
 msgid "with properties"
@@ -25064,6 +25521,10 @@ msgstr "テストデータでは:"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:129
 msgid "With:"
 msgstr "含む内容:"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:158
+msgid "Within"
+msgstr "対象"
 
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
@@ -25211,6 +25672,10 @@ msgstr "書き込みには、完全な削除と一括上書きが含まれます
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Liquidのテンプレートタグを使ってMJMLマークアップを記述します。このコンテンツはメールに直接挿入され、MJMLのコンパイル前にLiquidエンジンによって処理されます。for ループ、条件分岐、変数を使って、動的な構造コンテンツを生成できます。"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:98
+msgid "Writes"
+msgstr "書き込み"
+
 #: src/pages/BlogPage.tsx:34
 msgid "Writing or editing a post also needs Templates read and write: its content is a template."
 msgstr "投稿の作成や編集にはテンプレートの読み取りと書き込み権限も必要です。投稿の内容はテンプレートです。"
@@ -25246,9 +25711,9 @@ msgstr "年次"
 #: src/components/settings/integrations/providerDetails.ts:57
 #: src/components/settings/WebhookDetail.tsx:289
 #: src/components/settings/WebhookDetail.tsx:393
-#: src/components/web_analytics/filters/FilterTable.tsx:275
+#: src/components/web_analytics/filters/FilterTable.tsx:322
 #: src/components/web_analytics/filters/RuleValueInput.tsx:29
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:207
+#: src/components/web_analytics/filters/VisitFieldInput.tsx:29
 msgid "Yes"
 msgstr "はい"
 
@@ -25262,7 +25727,7 @@ msgid "Yes, back to draft"
 msgstr "はい、下書きに戻します"
 
 #: src/components/broadcasts/useBroadcastActions.tsx:173
-#: src/components/web_analytics/filters/BackfillStatus.tsx:87
+#: src/components/web_analytics/filters/BackfillStatus.tsx:99
 msgid "Yes, cancel"
 msgstr "はい、キャンセルします"
 
@@ -25384,6 +25849,10 @@ msgstr "テンプレートの書き込み権限がありません"
 #: src/pages/TransactionalNotificationsPage.tsx:453
 #~ msgid "You don't have write permission for transactional notifications"
 #~ msgstr "トランザクション通知の書き込み権限がありません"
+
+#: src/components/web_analytics/filters/useWebAnalyticsWriteReason.ts:6
+msgid "You don't have write permission for web analytics"
+msgstr "Webアナリティクスの書き込み権限がありません"
 
 #: src/components/settings/SettingsSaveBar.tsx:82
 #~ msgid "You have unsaved changes"

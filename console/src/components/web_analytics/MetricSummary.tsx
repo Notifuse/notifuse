@@ -1,4 +1,5 @@
 import { Tooltip } from 'antd'
+import type { ReactNode } from 'react'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { KpiStrip, type KpiItem } from '../layout'
 import { Delta } from './Delta'
@@ -20,6 +21,8 @@ interface MetricSummaryProps {
   tooltips?: Record<string, string>
   /** Inside a card: the strip draws neither border nor shadow. */
   embedded?: boolean
+  /** A line under a value that has no change to show ("21.4% of search-paid"), keyed by metric. */
+  subs?: Record<string, ReactNode>
 }
 
 /**
@@ -46,15 +49,21 @@ export function MetricSummary(props: MetricSummaryProps) {
           ) : null}
         </span>
       ),
-      value: formatValue(totals?.current ?? 0, metric.format, props.currency),
+      // No value is no amount, as on the goal cards: a currency 0 reads "-".
+      value:
+        metric.format === 'currency' && (totals?.current ?? 0) === 0
+          ? '-'
+          : formatValue(totals?.current ?? 0, metric.format, props.currency),
       // Nothing to print for a zero or missing change: no empty sub line under the value.
       sub:
-        tone === 'neutral' ? undefined : (
+        tone === 'neutral' ? (
+          props.subs?.[metric.key]
+        ) : (
           <Delta change={change} invertTrend={metric.invertTrend} decimals={1} />
         ),
       tone,
-      onClick: () => props.onSelect(metric.key),
-      active: props.selected === metric.key
+      onClick: metric.selectable === false ? undefined : () => props.onSelect(metric.key),
+      active: metric.selectable === false ? undefined : props.selected === metric.key
     }
   })
 

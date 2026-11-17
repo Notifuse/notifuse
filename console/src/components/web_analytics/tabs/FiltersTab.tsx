@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { App, Button, Empty, Input, Segmented, Space } from 'antd'
 import { ExperimentOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
-import { useAuth } from '../../../contexts/AuthContext'
+import { useAuth, useWorkspacePermissions } from '../../../contexts/AuthContext'
 import { WebFilter, webAnalyticsService } from '../../../services/api/web_analytics'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { BackfillStatus } from '../filters/BackfillStatus'
@@ -17,6 +17,14 @@ export function FiltersTab() {
   const { message } = App.useApp()
   const { refreshWorkspaces } = useAuth()
   const { workspaceId, settings, customDimensionLabels, tag, setTag } = useWebAnalytics()
+  // Saving rules needs the web analytics write permission (the owner always has it): without it,
+  // rules open read only, nothing offers to create one, and the toggle, delete and backfill controls
+  // stay disabled with the reason. While the permissions load, the answer is unknown: nothing says
+  // read only (an owner would see it flash), Add waits, and the write controls stay disabled
+  // without a reason until it lands.
+  const { permissions, role, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
+  const canWrite = role === 'owner' || role === 'root' || Boolean(permissions?.web_analytics?.write)
+  const readOnly = !permissionsLoading && !canWrite
 
   const [searchText, setSearchText] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -65,6 +73,7 @@ export function FiltersTab() {
   }
 
   const handleSubmit = async (draft: FilterDraft) => {
+    if (!canWrite) return
     const now = new Date().toISOString()
     let next: WebFilter[]
 
@@ -84,7 +93,10 @@ export function FiltersTab() {
     if (saved) closeDrawer()
   }
 
+  // The table disables both for a member who cannot write; the guards keep any other path from sending a
+  // request the server would refuse.
   const handleDelete = (rule: WebFilter) => {
+    if (!canWrite) return
     void persist(
       rules.filter((candidate) => candidate.id !== rule.id),
       t`Rule deleted`
@@ -92,6 +104,7 @@ export function FiltersTab() {
   }
 
   const handleToggleEnabled = (rule: WebFilter) => {
+    if (!canWrite) return
     void persist(
       rules.map((candidate) =>
         candidate.id === rule.id
@@ -126,9 +139,11 @@ export function FiltersTab() {
             <Button type="text" icon={<ExperimentOutlined />} onClick={() => setTestModalOpen(true)}>
               {t`Test`}
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              {t`Add`}
-            </Button>
+            {canWrite ? (
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                {t`Add`}
+              </Button>
+            ) : null}
           </Space>
         </div>
         <p className="mt-3 text-ink-3 md:mt-1">
@@ -136,11 +151,14 @@ export function FiltersTab() {
         </p>
       </div>
 
-      <BackfillStatus
-        workspaceId={workspaceId}
-        filtersVersion={settings?.filters_version}
-        hasRules={rules.length > 0}
-      />
+      {permissionsLoading ? null : (
+        <BackfillStatus
+          workspaceId={workspaceId}
+          filtersVersion={settings?.filters_version}
+          hasRules={rules.length > 0}
+          readOnly={readOnly}
+        />
+      )}
 
       {rules.length > 0 ? (
         <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center">
@@ -172,6 +190,8 @@ export function FiltersTab() {
           searchText={searchText}
           customDimensionLabels={customDimensionLabels}
           saving={saving}
+          readOnly={readOnly}
+          permissionsLoading={permissionsLoading}
           onEdit={openEdit}
           onDelete={handleDelete}
           onToggleEnabled={handleToggleEnabled}
@@ -188,15 +208,21 @@ export function FiltersTab() {
           }
           className="py-12"
         >
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t`Create rule`}
-          </Button>
+          {canWrite ? (
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+              {t`Create rule`}
+            </Button>
+          ) : null}
         </Empty>
       )}
 
       <FilterFormDrawer
         open={drawerOpen}
         filter={editingFilter}
+        rules={rules}
+        workspaceId={workspaceId}
+        readOnly={readOnly}
+        permissionsLoading={permissionsLoading}
         existingTags={tags}
         customDimensionLabels={customDimensionLabels}
         saving={saving}
@@ -207,6 +233,7 @@ export function FiltersTab() {
       <TestFilterPanel
         open={testModalOpen}
         onClose={() => setTestModalOpen(false)}
+        mode="all"
         filters={rules}
         customDimensionLabels={customDimensionLabels}
       />
