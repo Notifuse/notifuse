@@ -35,8 +35,19 @@ vi.mock('../goals/GoalCard', () => ({
     </button>
   )
 }))
+const { drawerProps } = vi.hoisted(() => ({ drawerProps: { current: null as Record<string, unknown> | null } }))
 vi.mock('../goals/GoalDashboardDrawer', () => ({
-  GoalDashboardDrawer: ({ goalName }: { goalName: string }) => <div data-testid="drawer">{goalName}</div>
+  GoalDashboardDrawer: (props: { goalName: string | null; onNavigate: (goal: string) => void }) => {
+    drawerProps.current = props
+    return props.goalName ? (
+      <div data-testid="drawer">
+        {props.goalName}
+        <button type="button" onClick={() => props.onNavigate('purchase')}>
+          next
+        </button>
+      </div>
+    ) : null
+  }
 }))
 
 import { GoalsTab } from './GoalsTab'
@@ -76,6 +87,26 @@ describe('GoalsTab', () => {
     renderTab()
     fireEvent.click(await screen.findByTestId('goal-card'))
     expect(screen.getByTestId('drawer')).toHaveTextContent('signup')
+  })
+
+  it('hands the drawer the goals in grid order and the sessions it divides by, then lets it walk them', async () => {
+    answer([
+      { goal_name: 'signup', goals: 5, sum_goal_value: 0, median_goal_value: 0 },
+      { goal_name: 'purchase', goals: 2, sum_goal_value: 80, median_goal_value: 40 }
+    ])
+    renderTab()
+    expect(screen.queryByTestId('drawer')).toBeNull()
+    fireEvent.click((await screen.findAllByTestId('goal-card'))[0])
+
+    expect(drawerProps.current).toMatchObject({
+      goalName: 'signup',
+      goals: ['signup', 'purchase'],
+      sessionTotals: { current: 100, previous: 0 }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'next' }))
+    expect(screen.getByTestId('drawer')).toHaveTextContent('purchase')
+    // The grid asked for the sessions once, for the cards; the drawer reuses them.
+    expect(query.mock.calls.filter(([q]) => (q as AnalyticsQuery).schema === 'web_sessions')).toHaveLength(1)
   })
 
   it('shows the empty state inside a panel when no goal was tracked', async () => {

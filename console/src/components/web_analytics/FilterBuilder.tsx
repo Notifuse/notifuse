@@ -11,9 +11,10 @@ import {
   groupByCategory
 } from './lib/dimensions'
 import { DIMENSION_VALUE_OPTIONS } from './lib/dictionaries'
-import { formatDuration, formatPercent } from './lib/format'
+import { describeDimensionFilter, describeMetricFilter, useOperatorLabels } from './lib/filterLabels'
 import {
   DimensionFilterOperator,
+  isValuelessDimensionFilterOperator,
   MetricFilterOperator,
   WebDimensionFilter,
   WebMetricFilter,
@@ -26,29 +27,10 @@ const OPERATORS_BY_TYPE: Record<string, DimensionFilterOperator[]> = {
   boolean: ['equals', 'notEquals']
 }
 
-const VALUELESS_OPERATORS: DimensionFilterOperator[] = ['isEmpty', 'isNotEmpty']
 const MULTI_VALUE_OPERATORS: DimensionFilterOperator[] = ['in', 'notIn']
 
 /** Measures a threshold can be set on; session count has its own control. */
 const FILTERABLE_METRICS = ['median_duration', 'bounce_rate', 'median_scroll'] as const
-
-function useOperatorLabels(): Record<string, string> {
-  const { t } = useLingui()
-  return {
-    equals: t`equals`,
-    notEquals: t`not equals`,
-    contains: t`contains`,
-    notContains: t`not contains`,
-    isEmpty: t`is empty`,
-    isNotEmpty: t`is not empty`,
-    in: t`in`,
-    notIn: t`not in`,
-    gt: '>',
-    gte: '>=',
-    lt: '<',
-    lte: '<='
-  }
-}
 
 function useCategoryLabels(): Record<string, string> {
   const { t } = useLingui()
@@ -120,16 +102,6 @@ export function FilterBuilder(props: FilterBuilderProps) {
     median_scroll: t`Median Scroll Depth`
   }
 
-  const describeValues = (filter: WebDimensionFilter) =>
-    VALUELESS_OPERATORS.includes(filter.operator) ? '' : filter.values.join(', ')
-
-  // The threshold as typed. Ten decimals at most: formatPercent divides by 100 and Intl multiplies
-  // back, which turns 12.3 into "12.300000000000001%" when twenty are allowed.
-  const describeMetricValue = (filter: WebMetricFilter) =>
-    filter.metric === 'median_duration'
-      ? formatDuration(filter.values[0])
-      : formatPercent(filter.values[0], 10, 0)
-
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Popover
@@ -165,8 +137,7 @@ export function FilterBuilder(props: FilterBuilderProps) {
                 context.setFilters(context.filters.filter((_, position) => position !== index))
               }}
             >
-              {getDimensionLabel(filter.dimension, context.customDimensionLabels)}{' '}
-              {operatorLabels[filter.operator]} {describeValues(filter)}
+              {describeDimensionFilter(filter, operatorLabels, context.customDimensionLabels)}
             </Tag>
           </Popover>
         ))}
@@ -184,8 +155,7 @@ export function FilterBuilder(props: FilterBuilderProps) {
                     )
                   }}
                 >
-                  {metricLabels[filter.metric] ?? filter.metric} {operatorLabels[filter.operator]}{' '}
-                  {describeMetricValue(filter)}
+                  {describeMetricFilter(filter, operatorLabels, metricLabels)}
                 </Tag>
               </Popover>
             ))
@@ -271,14 +241,14 @@ function FilterPicker(props: {
       ? (operator as DimensionFilterOperator)
       : 'equals'
     const typed = values.filter((value) => value.trim() !== '')
-    if (!VALUELESS_OPERATORS.includes(chosen) && typed.length === 0) {
+    if (!isValuelessDimensionFilterOperator(chosen) && typed.length === 0) {
       setValueMissing(true)
       return
     }
     const next: WebDimensionFilter = {
       dimension: dimension.name,
       operator: chosen,
-      values: VALUELESS_OPERATORS.includes(chosen) ? [] : typed
+      values: isValuelessDimensionFilterOperator(chosen) ? [] : typed
     }
     context.setFilters(
       editedFilter && edit
@@ -345,7 +315,7 @@ function FilterPicker(props: {
             </button>
           ))}
         </div>
-        {!VALUELESS_OPERATORS.includes(operator as DimensionFilterOperator) ? (
+        {!isValuelessDimensionFilterOperator(operator) ? (
           dictionary ? (
             <Select
               className="w-full"

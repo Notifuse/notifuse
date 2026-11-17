@@ -25,9 +25,11 @@ const RULES: WebFilter[] = [
   }
 ]
 
-function renderTable() {
+const NO_WRITE = "You don't have write permission for web analytics"
+
+function renderTable(options: { readOnly?: boolean } = {}) {
   const handlers = { onEdit: vi.fn(), onDelete: vi.fn(), onToggleEnabled: vi.fn() }
-  render(<FilterTable filters={RULES} {...handlers} />)
+  render(<FilterTable filters={RULES} readOnly={options.readOnly} {...handlers} />)
   const desktop = document.querySelector('.hidden.md\\:block') as HTMLElement
   const rows = () => [...desktop.querySelectorAll<HTMLElement>('.ant-table-tbody tr.ant-table-row')]
   return { ...handlers, desktop, rows }
@@ -74,6 +76,53 @@ describe('FilterTable', () => {
     fireEvent.click(within(rows()[0]).getByRole('switch'))
     fireEvent.click(await screen.findByRole('button', { name: 'Yes' }))
     expect(onToggleEnabled).toHaveBeenCalledWith(RULES[1])
+  })
+
+  it('keeps the toggle and delete disabled for a member who cannot write, says why, and calls nothing', async () => {
+    const { rows, onDelete, onToggleEnabled, onEdit } = renderTable({ readOnly: true })
+    const toggle = within(rows()[0]).getByRole('switch')
+    const remove = within(rows()[0]).getByRole('button', { name: 'Delete rule' })
+    expect(toggle).toBeDisabled()
+    expect(remove).toBeDisabled()
+
+    // The reason shows on hover of either control.
+    fireEvent.mouseEnter(toggle.parentElement as HTMLElement)
+    expect(await screen.findByText(NO_WRITE)).toBeInTheDocument()
+
+    // Clicking either opens no confirmation, calls no handler and does not open the editor.
+    fireEvent.click(toggle)
+    fireEvent.click(toggle.parentElement as HTMLElement)
+    fireEvent.click(remove)
+    fireEvent.click(remove.parentElement as HTMLElement)
+    expect(screen.queryByRole('button', { name: 'Yes' })).toBeNull()
+    expect(screen.queryByText('Delete this rule?')).toBeNull()
+    expect(onToggleEnabled).not.toHaveBeenCalled()
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(onEdit).not.toHaveBeenCalled()
+
+    // The editor still opens from the row, read only being its own concern.
+    fireEvent.click(within(rows()[0]).getByText('Paused rule'))
+    expect(onEdit).toHaveBeenCalledWith(RULES[1])
+  })
+
+  it('keeps the mobile toggle and delete disabled for a member who cannot write', () => {
+    const onToggleEnabled = vi.fn()
+    const onDelete = vi.fn()
+    render(
+      <FilterTable filters={RULES} readOnly onEdit={vi.fn()} onDelete={onDelete} onToggleEnabled={onToggleEnabled} />
+    )
+    const mobile = document.querySelector('.md\\:hidden') as HTMLElement
+    const card = within(mobile).getByText('Newsletter traffic').closest('section') as HTMLElement
+    const toggle = within(card).getByRole('switch')
+    expect(toggle).toBeDisabled()
+    fireEvent.click(toggle)
+    fireEvent.click(within(card).getByText('Newsletter traffic'))
+    const remove = within(card).getByRole('button', { name: /Delete/ })
+    expect(remove).toBeDisabled()
+    fireEvent.click(remove)
+    expect(screen.queryByText('Delete this rule?')).toBeNull()
+    expect(onToggleEnabled).not.toHaveBeenCalled()
+    expect(onDelete).not.toHaveBeenCalled()
   })
 
   it('draws each mobile card as a panel that unfolds its conditions', () => {
