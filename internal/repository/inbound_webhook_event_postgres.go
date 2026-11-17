@@ -362,9 +362,11 @@ func (r *inboundWebhookEventRepository) ListEvents(ctx context.Context, workspac
 	}, nil
 }
 
-// countConsecutiveSoftBouncesSQL counts bounce events that count toward the
-// soft-bounce threshold for each recipient email since that email's last
-// successful delivery.
+// countConsecutiveSoftBouncesSQL counts, for each recipient email, the emails
+// sent to it that bounced since its last successful delivery, toward the
+// soft-bounce threshold. It counts emails, not events: a provider that reports
+// each attempt to deliver one email (Mailgun's temporary failures) or reports
+// it twice counts it once.
 //
 // We do not filter on bounce_type because the per-provider string varies
 // (`Transient` for SES, `Failed` for Mailgun, `Bounce` for SparkPost/SMTP,
@@ -382,8 +384,8 @@ func (r *inboundWebhookEventRepository) ListEvents(ctx context.Context, workspac
 // stores no other event, so this only leaves out what was stored before it checked
 // that. Its addresses are the ones stored on the emails, so the match is exact.
 //
-// The ignored-subtype filter must stay in sync with the SoftIgnore branch of
-// ClassifyBounce.
+// The ignored-subtype filters, SES's and Postmark's, must stay in sync with the
+// SoftIgnore branches of ClassifyBounce.
 const countConsecutiveSoftBouncesSQL = `
 WITH last_delivery AS (
   SELECT contact_email AS email, MAX(delivered_at) AS ts
@@ -392,7 +394,7 @@ WITH last_delivery AS (
      AND delivered_at IS NOT NULL
    GROUP BY contact_email
 )
-SELECT e.recipient_email, COUNT(*)::int
+SELECT e.recipient_email, COUNT(DISTINCT e.message_id)::int
   FROM inbound_webhook_events e
   JOIN message_history mh ON mh.id = e.message_id AND mh.contact_email = e.recipient_email
   LEFT JOIN last_delivery d ON d.email = e.recipient_email
@@ -400,11 +402,16 @@ SELECT e.recipient_email, COUNT(*)::int
    AND e.type = 'bounce'
    AND lower(coalesce(e.bounce_category, '')) NOT IN
         ('messagetoolarge','contentrejected','attachmentrejected')
+   AND NOT (e.source = 'postmark' AND lower(coalesce(e.bounce_category, '')) IN
+        ('autoresponder','addresschange','subscribe','unsubscribe','spamnotification',
+         'openrelaytest','virusnotification','challengeverification','smtpapierror',
+         'inbounderror','dmarcpolicy','templaterenderingfailed','unconfirmed',
+         'manuallydeactivated','spamcomplaint','messagecontent','ruleblocked'))
    AND e.timestamp > COALESCE(d.ts, 'epoch'::timestamptz)
  GROUP BY e.recipient_email`
 
-// CountConsecutiveSoftBounces returns, per email, the number of countable soft
-// bounces recorded since that email's last successful delivery.
+// CountConsecutiveSoftBounces returns, per email, the number of emails sent to it
+// with a countable soft bounce recorded since its last successful delivery.
 func (r *inboundWebhookEventRepository) CountConsecutiveSoftBounces(ctx context.Context, workspaceID string, emails []string) (map[string]int, error) {
 	// codecov:ignore:start
 	ctx, span := tracing.StartServiceSpan(ctx, "InboundWebhookEventRepository", "CountConsecutiveSoftBounces")

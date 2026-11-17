@@ -128,7 +128,9 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: An email event that the provider posts again, after a timeout or an error, is recorded once, so a soft bounce posted again counts once toward marking the contact bounced. Events recorded twice before the upgrade stay as they are.
 
-- **Fix**: Bounces and spam complaints sent by Postmark are applied; their webhook was refused.
+- **Improvement**: The soft bounce threshold counts emails: an email the provider tries to deliver several times, as Mailgun reports each attempt, counts once.
+
+- **Fix**: Bounces and spam complaints sent by Postmark are applied; their webhook was refused. Auto-replies and the other reports that do not say the address cannot be reached (address change, spam notification, DMARC rejection…) do not count as bounces, and a block by a mailbox provider counts as a soft bounce.
 
 - **Security**: Liquid outputs (`{{ }}`, `echo`, `cycle`) in the HTML of emails are HTML-escaped, so a value of the data, such as a contact field filled in a public form, can no longer add markup or links to an email. Data meant to be HTML, such as a feed that holds an HTML block, needs the new `raw` filter: `{{ global_feed.html | raw }}`; so does a value written into CSS (`mj-style`, a `<style>`) or a script, for data you trust only. Outputs already escaped with `escape` are not escaped twice, also through `newline_to_br`, `strip` or `truncate`; the text of a `capture` is not escaped; the subject and the text version are not escaped. A filter that writes HTML from the data, such as `{{ bio | newline_to_br }}`, now shows its `<br />` as text: write `{{ bio | escape | newline_to_br }}`. Notifuse renders emails with safe-mjml v1.0.1, where escaped text placed between components can no longer become a component.
 - **Fix**: Liquid's `url_decode` filter keeps a value that holds a lone `%` (as in `50%`) instead of rendering nothing, and `escape` writes quotes as `&quot;`. Notifuse renders Liquid with liquidgo v5.11.3.

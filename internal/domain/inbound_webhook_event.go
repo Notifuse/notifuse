@@ -331,12 +331,14 @@ type InboundWebhookEventRepository interface {
 	DeleteForEmail(ctx context.Context, workspaceID, email string) error
 
 	// CountConsecutiveSoftBounces returns, for each given recipient email, the
-	// number of countable soft-bounce events recorded since that email's last
-	// successful delivery (or all-time if it has never been delivered to).
+	// number of emails sent to it with a countable bounce recorded since that
+	// address's last successful delivery (or all-time if it has never been
+	// delivered to); several bounces of one email count once.
 	// Only bounces of emails sent to that address count: an event's message ID
 	// must name a message_history row whose contact_email is the address.
-	// Events whose bounce subtype describes a message-level rejection
-	// (MessageTooLarge, ContentRejected, AttachmentRejected) are excluded.
+	// SES message-level rejections (MessageTooLarge, ContentRejected,
+	// AttachmentRejected) and the Postmark reports ClassifyBounce ignores are
+	// excluded.
 	// The returned map only contains entries with a positive count.
 	CountConsecutiveSoftBounces(ctx context.Context, workspaceID string, emails []string) (map[string]int, error)
 }

@@ -22,9 +22,11 @@
 //   - Mailgun    — `hardbounce`/`permanent` → Hard. `softbounce`/`temporary` →
 //     SoftCount.
 //   - Mailjet    — `hardbounce` → Hard. `softbounce` → SoftCount.
-//   - Postmark   — `HardBounce`/`Blocked`, or any value containing "hard" → Hard.
-//     `MessageContent`/`RuleBlocked` (message-level rejections) → SoftIgnore.
-//     `SoftBounce` and other "soft" values → SoftCount.
+//   - Postmark   — `HardBounce`, `BadEmailAddress`, or any value containing "hard" →
+//     Hard. Reports that say nothing of the address (`AutoResponder`,
+//     `AddressChange`, `SpamNotification`, `DMARCPolicy`, … and the message-level
+//     `MessageContent`/`RuleBlocked`) → SoftIgnore. `Blocked` (an ISP block),
+//     `SoftBounce`, `Transient`, `DnsError` and other values → SoftCount.
 //   - SparkPost  — bounce class codes 10/30/90 → Hard. 1/20-25/40/50-54/60/70/
 //     80/100 → SoftCount.
 //   - SendGrid   — `bounce` or category "invalid address" → Hard.
@@ -135,13 +137,21 @@ func ClassifyBounce(in BounceInput) BounceClassification {
 		}
 
 	case EmailProviderKindPostmark:
-		// Message-level rejections — the recipient is fine, the payload isn't.
+		// Reports that say nothing of whether the address can be reached: replies,
+		// notices, and rejections of the message or of the sender. countConsecutiveSoftBouncesSQL
+		// leaves out the same types, as its stored rows are counted whatever their kind.
 		switch bounceType {
-		case "messagecontent", "ruleblocked":
+		case "autoresponder", "addresschange", "subscribe", "unsubscribe", "spamnotification",
+			"openrelaytest", "virusnotification", "challengeverification", "smtpapierror",
+			"inbounderror", "dmarcpolicy", "templaterenderingfailed", "unconfirmed",
+			"manuallydeactivated", "spamcomplaint", "messagecontent", "ruleblocked":
 			return BounceClassificationSoftIgnore
-		}
-		if bounceType == "blocked" || subtype == "blocked" {
+		case "bademailaddress":
 			return BounceClassificationHard
+		case "blocked":
+			// An ISP blocking the email for its content or the sender's reputation: counted,
+			// as SendGrid's and Mailjet's blocks are, so that repeated blocks still escalate
+			return BounceClassificationSoftCount
 		}
 		if strings.Contains(bounceType, "hard") || strings.Contains(subtype, "hard") {
 			return BounceClassificationHard

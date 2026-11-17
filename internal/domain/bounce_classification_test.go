@@ -188,9 +188,29 @@ func TestClassifyBounce(t *testing.T) {
 			expected: BounceClassificationHard,
 		},
 		{
-			name:     "Postmark Blocked",
-			in:       BounceInput{Provider: EmailProviderKindPostmark, Type: "Blocked"},
+			name:     "Postmark Blocked (an ISP block) → SoftCount",
+			in:       BounceInput{Provider: EmailProviderKindPostmark, Type: "Blocked", Subtype: "Blocked"},
+			expected: BounceClassificationSoftCount,
+		},
+		{
+			name:     "Postmark BadEmailAddress → Hard",
+			in:       BounceInput{Provider: EmailProviderKindPostmark, Type: "BadEmailAddress", Subtype: "BadEmailAddress"},
 			expected: BounceClassificationHard,
+		},
+		{
+			name:     "Postmark Transient → SoftCount",
+			in:       BounceInput{Provider: EmailProviderKindPostmark, Type: "Transient", Subtype: "Transient"},
+			expected: BounceClassificationSoftCount,
+		},
+		{
+			name:     "Postmark DnsError → SoftCount",
+			in:       BounceInput{Provider: EmailProviderKindPostmark, Type: "DnsError", Subtype: "DnsError"},
+			expected: BounceClassificationSoftCount,
+		},
+		{
+			name:     "Postmark Unknown → SoftCount",
+			in:       BounceInput{Provider: EmailProviderKindPostmark, Type: "Unknown", Subtype: "Unknown"},
+			expected: BounceClassificationSoftCount,
 		},
 		{
 			name:     "Postmark SoftBounce",
@@ -323,4 +343,21 @@ func TestIsRetryExhaustedDiagnostic(t *testing.T) {
 
 func TestDefaultSoftBounceThreshold(t *testing.T) {
 	assert.Equal(t, 5, DefaultSoftBounceThreshold)
+}
+
+// Postmark reports in its bounce webhook replies and notices that say nothing of whether
+// the address can be reached: they never count toward the soft bounce threshold. The
+// parser puts Postmark's Type in both fields.
+func TestClassifyBounce_PostmarkReportsUnrelatedToTheAddressAreIgnored(t *testing.T) {
+	for _, postmarkType := range []string{
+		"AutoResponder", "AddressChange", "Subscribe", "Unsubscribe", "SpamNotification",
+		"OpenRelayTest", "VirusNotification", "ChallengeVerification", "SMTPApiError",
+		"InboundError", "DMARCPolicy", "TemplateRenderingFailed", "Unconfirmed",
+		"ManuallyDeactivated", "SpamComplaint", "MessageContent", "RuleBlocked",
+	} {
+		t.Run(postmarkType, func(t *testing.T) {
+			got := ClassifyBounce(BounceInput{Provider: EmailProviderKindPostmark, Type: postmarkType, Subtype: postmarkType})
+			assert.Equal(t, BounceClassificationSoftIgnore, got)
+		})
+	}
 }

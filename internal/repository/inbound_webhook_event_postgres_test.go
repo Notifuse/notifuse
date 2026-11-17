@@ -876,3 +876,21 @@ func TestInboundWebhookEventRepository_ListEvents_Source(t *testing.T) {
 		})
 	}
 }
+
+// The threshold counts the emails that bounced, so a provider that reports each attempt
+// to deliver one email (Mailgun) counts it once, and it leaves out the Postmark reports
+// that ClassifyBounce ignores, which are stored like any bounce. Pins the query text; the
+// behaviour is proven against Postgres in tests/integration.
+func TestCountConsecutiveSoftBounces_CountsEmailsAndLeavesOutIgnoredPostmarkReports(t *testing.T) {
+	assert.Contains(t, countConsecutiveSoftBouncesSQL, "COUNT(DISTINCT e.message_id)")
+	assert.NotContains(t, countConsecutiveSoftBouncesSQL, "COUNT(*)")
+	assert.Contains(t, countConsecutiveSoftBouncesSQL, "e.source = 'postmark'")
+	for _, postmarkType := range []string{
+		"autoresponder", "addresschange", "subscribe", "unsubscribe", "spamnotification",
+		"openrelaytest", "virusnotification", "challengeverification", "smtpapierror",
+		"inbounderror", "dmarcpolicy", "templaterenderingfailed", "unconfirmed",
+		"manuallydeactivated", "spamcomplaint", "messagecontent", "ruleblocked",
+	} {
+		assert.Contains(t, countConsecutiveSoftBouncesSQL, "'"+postmarkType+"'")
+	}
+}
