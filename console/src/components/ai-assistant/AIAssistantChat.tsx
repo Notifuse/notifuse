@@ -1,4 +1,4 @@
-import { Avatar, Button, Popover, Select } from 'antd'
+import { Avatar, Button, Select } from 'antd'
 import { CloseOutlined } from '@ant-design/icons'
 import { Sparkles, User } from 'lucide-react'
 import { Bubble, Sender } from '@ant-design/x'
@@ -37,7 +37,6 @@ export function AIAssistantChat({
   inputValue,
   setInputValue,
   isStreaming,
-  costs,
   inputContainerRef,
   llmIntegration,
   llmIntegrations,
@@ -377,20 +376,6 @@ export function AIAssistantChat({
               >
                 {t`New conversation`}
               </Button>
-              {llmIntegration?.llm_provider?.kind !== 'openai' && (
-                <Popover
-                  content={
-                    <div style={{ fontSize: 12 }}>
-                      <div>{t`Input`}: ${costs.input.toFixed(4)}</div>
-                      <div>{t`Output`}: ${costs.output.toFixed(4)}</div>
-                    </div>
-                  }
-                  trigger="hover"
-                  placement="top"
-                >
-                  <span style={{ cursor: 'help' }}>{t`Cost`}: ${costs.total.toFixed(4)}</span>
-                </Popover>
-              )}
             </div>
           </div>
         </div>

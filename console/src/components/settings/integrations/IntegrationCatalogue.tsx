@@ -8,7 +8,8 @@ import { firecrawlProvider } from '../../integrations/FirecrawlProviders'
 import { zapierProvider } from '../../integrations/ZapierProviders'
 import { Pill } from '../../layout'
 import { IntegrationIcon } from './IntegrationCard'
-import { transactionalEmailOnly } from './providerDetails'
+import { deprecatedEmailProviders, transactionalEmailOnly } from './providerDetails'
+import { DeprecatedPill } from './DeprecatedPill'
 
 /** What the owner picked in the catalogue: the drawer to open. */
 export type CatalogueSelection =
@@ -72,11 +73,17 @@ export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigu
         icon: provider.getIcon('', 14),
         name: provider.name,
         description: emailDescriptions[kind],
-        pill: transactionalEmailOnly.includes(kind) ? (
-          <Pill tone="neutral" dot={false}>
-            {t`Transactional only`}
-          </Pill>
-        ) : undefined,
+        pill:
+          transactionalEmailOnly.includes(kind) || deprecatedEmailProviders.includes(kind) ? (
+            <span className="flex shrink-0 items-center gap-1.5">
+              {transactionalEmailOnly.includes(kind) ? (
+                <Pill tone="neutral" dot={false}>
+                  {t`Transactional only`}
+                </Pill>
+              ) : null}
+              <DeprecatedPill kind={kind} />
+            </span>
+          ) : undefined,
         selection: { type: 'email', kind }
       }
     ]

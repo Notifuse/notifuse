@@ -13,15 +13,15 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:355
+#: src/components/ai-assistant/useAIAssistant.tsx:354
 msgid " - Done"
 msgstr " - Fet"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:355
+#: src/components/ai-assistant/useAIAssistant.tsx:354
 msgid " - Failed"
 msgstr " - Fallat"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:263
+#: src/components/ai-assistant/useAIAssistant.tsx:262
 msgid " · {seconds}s"
 msgstr " · {seconds}s"
 
@@ -33,7 +33,7 @@ msgstr " (còpia)"
 msgid " (Paused)"
 msgstr " (Pausat)"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:211
+#: src/components/ai-assistant/useAIAssistant.tsx:210
 msgid "- cancelled"
 msgstr "- cancel·lat"
 
@@ -73,7 +73,7 @@ msgstr "«{segmentName}» s'eliminarà. Els seus contactes es queden a l'espai d
 msgid "(always matches)"
 msgstr "(sempre coincideix)"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:212
+#: src/components/ai-assistant/useAIAssistant.tsx:211
 msgid "(Cancelled)"
 msgstr "(Cancel·lat)"
 
@@ -931,7 +931,7 @@ msgstr "Filtre {ignoredList} no aplicat en aquest tauler"
 msgid "{ignoredList} filters not applied on this dashboard"
 msgstr "Filtres {ignoredList} no aplicats en aquest tauler"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:133
+#: src/components/settings/integrations/EmailProviderCard.tsx:134
 msgid "{inactive, plural, one {# webhook inactive} other {# webhooks inactive}}"
 msgstr "{inactive, plural, one {# webhook inactiu} other {# webhooks inactius}}"
 
@@ -1103,7 +1103,7 @@ msgstr "{pageviews, plural, one {# pàgina} other {# pàgines}}"
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews} pàgines"
 
-#: src/components/settings/integrations/providerDetails.ts:163
+#: src/components/settings/integrations/providerDetails.ts:166
 msgid "{perMinuteText} emails/min"
 msgstr "{perMinuteText} correus/min"
 
@@ -1436,7 +1436,7 @@ msgid "+{hiddenCount} more"
 msgstr "+{hiddenCount} més"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:967
-#: src/components/settings/integrations/providerDetails.ts:164
+#: src/components/settings/integrations/providerDetails.ts:167
 msgid "≈ {perHour} per hour · ≈ {perDay} per day"
 msgstr "≈ {perHour} per hora · ≈ {perDay} per dia"
 
@@ -1958,7 +1958,7 @@ msgstr "Activar automatització?"
 msgid "Activated the automation <0>{target}</0>"
 msgstr "Ha activat l'automatització <0>{target}</0>"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:113
+#: src/components/settings/integrations/EmailProviderCard.tsx:114
 msgid "active"
 msgstr "actiu"
 
@@ -2013,7 +2013,7 @@ msgstr "Correu de l'actor"
 #: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
 #: src/components/seo/SeoChecks.tsx:60
-#: src/components/settings/integrations/EmailProviderCard.tsx:307
+#: src/components/settings/integrations/EmailProviderCard.tsx:309
 #: src/components/transactional/NotificationChecks.tsx:88
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:113
@@ -2178,7 +2178,7 @@ msgid "Add filter conditions"
 msgstr "Afegir condicions de filtre"
 
 #: src/components/settings/Integrations.tsx:579
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:154
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:161
 msgid "Add integration"
 msgstr "Afegir integració"
 
@@ -2416,11 +2416,11 @@ msgstr "Agregar"
 
 #: src/components/settings/Integrations.tsx:438
 #: src/components/settings/Integrations.tsx:747
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:158
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:165
 msgid "AI assistant"
 msgstr "Assistent d'IA"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:138
+#: src/components/ai-assistant/AIAssistantChat.tsx:137
 msgid "AI Assistant Not Configured"
 msgstr "Assistent IA no configurat"
 
@@ -2560,7 +2560,7 @@ msgstr "S'han enviat tots els correus."
 msgid "All languages"
 msgstr "Tots els llenguatges"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:170
+#: src/components/settings/integrations/EmailProviderCard.tsx:171
 #: src/components/settings/integrations/EmailRoles.tsx:32
 msgid "All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
 msgstr "Tots els correus de màrqueting (difusions, campanyes) s'enviaran a través d'aquest proveïdor a partir d'ara."
@@ -2593,7 +2593,7 @@ msgstr "Tots els costats"
 msgid "All time"
 msgstr "Tot el temps"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:171
+#: src/components/settings/integrations/EmailProviderCard.tsx:172
 #: src/components/settings/integrations/EmailRoles.tsx:33
 msgid "All transactional emails (notifications, password resets, etc.) will be sent through this provider from now on."
 msgstr "Tots els correus transaccionals (notificacions, restabliments de contrasenya, etc.) s'enviaran a través d'aquest proveïdor a partir d'ara."
@@ -2665,7 +2665,7 @@ msgstr "Sempre visible"
 msgid "Amazon SES"
 msgstr "Amazon SES"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:247
+#: src/components/settings/integrations/EmailProviderCard.tsx:249
 msgid "Amazon SES (inbound-smtp.<region>.amazonaws.com, in a region that supports email receiving)"
 msgstr "Amazon SES (inbound-smtp.<region>.amazonaws.com, en una regió que admeti la recepció de correu)"
 
@@ -2845,7 +2845,7 @@ msgstr "Qualsevol membre"
 msgid "Any send"
 msgstr "Qualsevol enviament"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:53
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:54
 msgid "Any SMTP server, basic or OAuth2 login"
 msgstr "Qualsevol servidor SMTP, inici de sessió bàsic o OAuth2"
 
@@ -2867,7 +2867,7 @@ msgstr "en qualsevol moment"
 msgid "API"
 msgstr "API"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:57
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:58
 msgid "API and secret keys"
 msgstr "Claus API i secreta"
 
@@ -2892,7 +2892,7 @@ msgstr "Documentació de l'API"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:707
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:708
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:709
-#: src/components/settings/integrations/providerDetails.ts:126
+#: src/components/settings/integrations/providerDetails.ts:129
 msgid "API endpoint"
 msgstr "Punt final de l'API"
 
@@ -2928,11 +2928,11 @@ msgstr "L'identificador API ha de tenir com a màxim {TRANSACTIONAL_ID_MAX_LENGT
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:750
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:777
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:800
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:58
-#: src/components/settings/integrations/providerDetails.ts:28
-#: src/components/settings/integrations/providerDetails.ts:30
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:59
 #: src/components/settings/integrations/providerDetails.ts:31
 #: src/components/settings/integrations/providerDetails.ts:33
+#: src/components/settings/integrations/providerDetails.ts:34
+#: src/components/settings/integrations/providerDetails.ts:36
 #: src/components/settings/ZapierSettings.tsx:259
 msgid "API key"
 msgstr "Clau API"
@@ -2977,7 +2977,7 @@ msgstr "Nom de la clau API"
 msgid "API key token"
 msgstr "Token de la clau API"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:54
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:55
 msgid "API key, US or EU"
 msgstr "Clau API, US o EU"
 
@@ -3164,7 +3164,7 @@ msgstr "Pregunteu sobre el vostre trànsit..."
 msgid "Ask me to design your email..."
 msgstr "Demana’m que dissenyi el teu correu..."
 
-#: src/components/ai-assistant/useAIAssistant.tsx:899
+#: src/components/ai-assistant/useAIAssistant.tsx:891
 msgid "Ask me to fix these issues."
 msgstr "Demaneu-me que corregeixi aquests problemes."
 
@@ -3302,7 +3302,7 @@ msgstr "Ganxo de correu d'autenticació"
 
 #: src/components/settings/Integrations.tsx:369
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:603
-#: src/components/settings/integrations/providerDetails.ts:60
+#: src/components/settings/integrations/providerDetails.ts:63
 msgid "Authentication"
 msgstr "Autenticació"
 
@@ -3507,11 +3507,11 @@ msgstr "Compte d'AWS"
 msgid "AWS bills per tenant per month. Turning it on asks to confirm, then creates the tenant after saving."
 msgstr "AWS factura per tenant i per mes. En activar-ho es demana confirmació i el tenant es crea en desar."
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:52
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:53
 msgid "AWS keys, optional tenant isolation"
 msgstr "Claus d'AWS, aïllament de tenant opcional"
 
-#: src/components/settings/integrations/providerDetails.ts:79
+#: src/components/settings/integrations/providerDetails.ts:82
 msgid "AWS region"
 msgstr "Regió d'AWS"
 
@@ -3639,7 +3639,7 @@ msgstr "Clau privada TLS codificada en Base64"
 msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
 msgstr "Clau privada TLS codificada en Base64. Executeu: cat privkey.pem | base64 -w 0"
 
-#: src/components/settings/integrations/providerDetails.ts:64
+#: src/components/settings/integrations/providerDetails.ts:67
 msgid "Basic (username and password)"
 msgstr "Bàsica (usuari i contrasenya)"
 
@@ -4479,7 +4479,7 @@ msgstr "No es pot canviar un cop creada la plantilla"
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
 #: src/components/settings/EditPermissionsDrawer.tsx:101
 #: src/components/settings/Integrations.tsx:272
-#: src/components/settings/integrations/EmailProviderCard.tsx:191
+#: src/components/settings/integrations/EmailProviderCard.tsx:192
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:926
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:988
 #: src/components/settings/integrations/TestEmailModal.tsx:68
@@ -4804,7 +4804,7 @@ msgstr "Comprovar actualitzacions"
 msgid "Check the MJML hierarchy and that every tag is closed."
 msgstr "Comproveu la jerarquia MJML i que cada etiqueta estigui tancada."
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:127
+#: src/components/settings/integrations/EmailProviderCard.tsx:128
 msgid "Checking webhooks…"
 msgstr "Comprovant els webhooks…"
 
@@ -4909,7 +4909,7 @@ msgstr "La ciutat està desactivada: les coordenades es desen amb precisió regi
 msgid "City precision needs City on"
 msgstr "La precisió de ciutat requereix la ciutat activada"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:61
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:62
 msgid "Claude models"
 msgstr "Models Claude"
 
@@ -5472,8 +5472,8 @@ msgstr "Condicions"
 #~ msgstr "La configuració per a {nodeType} no està disponible a la Fase 2"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:482
-#: src/components/settings/integrations/providerDetails.ts:84
-#: src/components/settings/integrations/providerDetails.ts:91
+#: src/components/settings/integrations/providerDetails.ts:87
+#: src/components/settings/integrations/providerDetails.ts:94
 msgid "Configuration set"
 msgstr "Conjunt de configuració"
 
@@ -5505,7 +5505,7 @@ msgstr "Configureu conjuntament el nom de la font i l'URL del fitxer CSS"
 #~ msgid "Configure how your blog's RSS and JSON feeds are generated."
 #~ msgstr "Configureu com es generen els feeds RSS i JSON del vostre blog."
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:150
+#: src/components/ai-assistant/AIAssistantChat.tsx:149
 msgid "Configure Integration"
 msgstr "Configurar integració"
 
@@ -5534,7 +5534,7 @@ msgstr "Configurar proveïdor"
 
 #: src/components/settings/Integrations.tsx:297
 #: src/components/settings/Integrations.tsx:307
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:100
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:107
 msgid "Configured"
 msgstr "Configurat"
 
@@ -5610,7 +5610,7 @@ msgid "Connected"
 msgstr "Connectat el"
 
 #: src/components/settings/Integrations.tsx:748
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:159
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:166
 msgid "Connected apps"
 msgstr "Aplicacions connectades"
 
@@ -5961,8 +5961,8 @@ msgid "Core Fields"
 msgstr "Camps principals"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:391
-msgid "Cost"
-msgstr "Cost"
+#~ msgid "Cost"
+#~ msgstr "Cost"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:210
 msgid "Could not copy the external ID"
@@ -6510,7 +6510,7 @@ msgstr "Creada {0} · Actualitzada {1} a {2}"
 msgid "Created At"
 msgstr "Creat el"
 
-#: src/components/settings/integrations/providerDetails.ts:96
+#: src/components/settings/integrations/providerDetails.ts:99
 msgid "Created by Register webhooks, in the menu"
 msgstr "Es crea amb «Registra els webhooks», al menú"
 
@@ -6628,7 +6628,7 @@ msgstr "Idioma actual"
 msgid "Current Segment Tree JSON"
 msgstr "JSON de l'arbre de segment actual"
 
-#: src/components/settings/integrations/providerDetails.ts:87
+#: src/components/settings/integrations/providerDetails.ts:90
 msgid "custom"
 msgstr "personalitzat"
 
@@ -6983,7 +6983,7 @@ msgstr "Deduplicació:"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:203
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
-#: src/components/settings/integrations/EmailProviderCard.tsx:294
+#: src/components/settings/integrations/EmailProviderCard.tsx:296
 #: src/components/templates/SendTemplateModal.tsx:99
 #: src/pages/TemplatesPage.tsx:455
 msgid "default"
@@ -7022,7 +7022,7 @@ msgstr "Idioma per defecte"
 msgid "Default language: {languageName}"
 msgstr "Idioma per defecte: {languageName}"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:326
+#: src/components/settings/integrations/EmailProviderCard.tsx:329
 msgid "Default marketing"
 msgstr "Màrqueting per defecte"
 
@@ -7043,7 +7043,7 @@ msgstr "Tema per defecte creat i publicat"
 msgid "default to"
 msgstr "per defecte a"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:331
+#: src/components/settings/integrations/EmailProviderCard.tsx:334
 msgid "Default transactional"
 msgstr "Transaccional per defecte"
 
@@ -7152,8 +7152,8 @@ msgstr "Retard"
 #: src/components/segment/input.tsx:405
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
-#: src/components/settings/integrations/EmailProviderCard.tsx:190
-#: src/components/settings/integrations/EmailProviderCard.tsx:228
+#: src/components/settings/integrations/EmailProviderCard.tsx:191
+#: src/components/settings/integrations/EmailProviderCard.tsx:229
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:925
 #: src/components/settings/WebhookDetail.tsx:337
 #: src/components/settings/WebhookDetail.tsx:345
@@ -7435,7 +7435,7 @@ msgid "Delete this connection?"
 msgstr "Eliminar aquesta connexió?"
 
 #: src/components/settings/Integrations.tsx:291
-#: src/components/settings/integrations/EmailProviderCard.tsx:181
+#: src/components/settings/integrations/EmailProviderCard.tsx:182
 msgid "Delete this integration?"
 msgstr "Eliminar aquesta integració?"
 
@@ -7608,7 +7608,7 @@ msgstr "Lliurat"
 #~ msgid "delivered, bounce and complaint events are not registered"
 #~ msgstr "els esdeveniments de lliurament, rebot i queixa no estan registrats"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:122
+#: src/components/settings/integrations/EmailProviderCard.tsx:123
 msgid "Delivered, bounce and complaint events are not registered"
 msgstr "Els esdeveniments de lliurament, rebot i queixa no estan registrats"
 
@@ -7652,8 +7652,8 @@ msgid "Deployment"
 msgstr "Desplegament"
 
 #: src/components/settings/integrations/DeprecatedPill.tsx:19
-#~ msgid "Deprecated"
-#~ msgstr "Obsolet"
+msgid "Deprecated"
+msgstr "Obsolet"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:320
 msgid "Describe this image..."
@@ -7774,7 +7774,7 @@ msgstr "Desactivar webhook"
 
 #: src/components/settings/BlogSettings.tsx:246
 #: src/components/settings/Integrations.tsx:408
-#: src/components/settings/integrations/providerDetails.ts:48
+#: src/components/settings/integrations/providerDetails.ts:51
 #: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/settings/WebhookDetail.tsx:267
 #: src/components/settings/WebhooksSettings.tsx:314
@@ -7926,12 +7926,12 @@ msgstr "no és igual a"
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:745
-#: src/components/settings/integrations/providerDetails.ts:138
+#: src/components/settings/integrations/providerDetails.ts:141
 #: src/pages/SetupWizard.tsx:605
 msgid "Domain"
 msgstr "Domini"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:56
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:57
 msgid "Domain and API key, US or EU"
 msgstr "Domini i clau API, US o EU"
 
@@ -8213,7 +8213,7 @@ msgstr "Cada variació conserva el remitent de la seva plantilla, tret que en tr
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:261
-#: src/components/settings/integrations/EmailProviderCard.tsx:198
+#: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
 #: src/components/templates/TemplateSettingsAside.tsx:144
 #: src/components/transactional/NotificationChecks.tsx:97
@@ -8489,7 +8489,7 @@ msgid "Editor mode"
 msgstr "Mode de l'editor"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:595
-#: src/components/settings/integrations/providerDetails.ts:70
+#: src/components/settings/integrations/providerDetails.ts:73
 msgid "EHLO hostname"
 msgstr "Nom d'amfitrió EHLO"
 
@@ -8687,7 +8687,7 @@ msgid "Email providers and connected services"
 msgstr "Proveïdors de correu i serveis connectats"
 
 #: src/components/settings/integrations/EmailRoles.tsx:78
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:156
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:163
 msgid "Email sending"
 msgstr "Enviament de correus"
 
@@ -8902,7 +8902,7 @@ msgstr "Activar webhook"
 
 #: src/components/settings/BlogSettings.tsx:241
 #: src/components/settings/Integrations.tsx:408
-#: src/components/settings/integrations/providerDetails.ts:48
+#: src/components/settings/integrations/providerDetails.ts:51
 #: src/components/settings/SystemSettingsDrawer.tsx:469
 #: src/components/settings/SystemSettingsDrawer.tsx:554
 #: src/components/settings/WebAnalyticsSettings.tsx:216
@@ -9245,9 +9245,9 @@ msgstr "Error:"
 
 #. placeholder {0}: event.error
 #. placeholder {0}: toErrorText(error)
-#: src/components/ai-assistant/useAIAssistant.tsx:408
-#: src/components/ai-assistant/useAIAssistant.tsx:677
-#: src/components/ai-assistant/useAIAssistant.tsx:681
+#: src/components/ai-assistant/useAIAssistant.tsx:400
+#: src/components/ai-assistant/useAIAssistant.tsx:669
+#: src/components/ai-assistant/useAIAssistant.tsx:673
 msgid "Error: {0}"
 msgstr "Error: {0}"
 
@@ -9978,7 +9978,7 @@ msgstr "No s'ha pogut actualitzar el feed global: {0}"
 msgid "Failed to regenerate webhook secret"
 msgstr "No s'ha pogut regenerar el secret del webhook"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:94
+#: src/components/settings/integrations/EmailProviderCard.tsx:95
 msgid "Failed to register webhooks"
 msgstr "No s'han pogut registrar els webhooks"
 
@@ -10281,7 +10281,7 @@ msgid "Fetching data..."
 msgstr "Obtenint dades..."
 
 #. placeholder {0}: toolInput.url
-#: src/components/ai-assistant/useAIAssistant.tsx:339
+#: src/components/ai-assistant/useAIAssistant.tsx:338
 msgid "Fetching: {0}"
 msgstr "Obtenint: {0}"
 
@@ -10679,7 +10679,7 @@ msgstr "Format"
 #~ msgid "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the Mailgun route; you must also point your domain's MX records at Mailgun."
 #~ msgstr ""
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:252
+#: src/components/settings/integrations/EmailProviderCard.tsx:254
 msgid "Forwards inbound replies to Notifuse so automations can stop when a contact replies (Exit on reply). Registering webhooks creates the provider-side route; you must also point your domain's MX records at your email provider."
 msgstr "Reenvia les respostes entrants a Notifuse perquè les automatitzacions es puguin aturar quan un contacte respon (Sortir en respondre). Registrar els webhooks crea la ruta al costat del proveïdor; també heu d'apuntar els registres MX del vostre domini al vostre proveïdor de correu."
 
@@ -10812,7 +10812,7 @@ msgstr "Galeria"
 msgid "Gallery · {languages}"
 msgstr "Galeria · {languages}"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:63
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:64
 msgid "Gemini models"
 msgstr "Models Gemini"
 
@@ -11331,7 +11331,7 @@ msgstr "https://exemple.com o {{ url }}"
 msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
 msgstr "https://fonts.googleapis.com/css?family=... o {{ font_url }}"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:881
+#: src/components/ai-assistant/useAIAssistant.tsx:873
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
 msgstr "He executat {maxRounds} rondes de crides a eines sense arribar a una resposta i m'he aturat aquí. Feu una pregunta més acotada i ho tornaré a provar."
 
@@ -11692,7 +11692,7 @@ msgstr "a la càrrega."
 msgid "In use"
 msgstr "En ús"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:113
+#: src/components/settings/integrations/EmailProviderCard.tsx:114
 msgid "inactive"
 msgstr "inactiu"
 
@@ -11769,8 +11769,8 @@ msgid "Inner border radius"
 msgstr "Radi de vora interior"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:384
-msgid "Input"
-msgstr "Entrada"
+#~ msgid "Input"
+#~ msgstr "Entrada"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:123
 #: src/components/email_builder/ui/SavedBlockCard.tsx:230
@@ -12083,11 +12083,11 @@ msgstr "està definit"
 msgid "is true"
 msgstr "és cert"
 
-#: src/components/settings/integrations/providerDetails.ts:105
+#: src/components/settings/integrations/providerDetails.ts:108
 msgid "isolated"
 msgstr "aïllat"
 
-#: src/components/settings/integrations/providerDetails.ts:112
+#: src/components/settings/integrations/providerDetails.ts:115
 msgid "isolation requested but not provisioned"
 msgstr "aïllament sol·licitat però no aprovisionat"
 
@@ -12116,15 +12116,15 @@ msgstr "No s’envia a l’hora prevista. La podreu modificar i tornar a program
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "Es treu per a totes les plantilles de l’espai de treball. Les plantilles que ja contenen aquest bloc no canvien."
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:184
+#: src/components/settings/integrations/EmailProviderCard.tsx:185
 msgid "It sends the workspace's marketing and transactional emails: no email goes out until another provider is chosen. This cannot be undone."
 msgstr "Aquesta integració envia els correus de màrqueting i transaccionals de l'espai de treball: no surt cap correu fins que s'esculli un altre proveïdor. Això no es pot desfer."
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:186
+#: src/components/settings/integrations/EmailProviderCard.tsx:187
 msgid "It sends the workspace's marketing emails: broadcasts and automations stop until another provider is chosen. This cannot be undone."
 msgstr "Aquesta integració envia els correus de màrqueting de l'espai de treball: les difusions i les automatitzacions s'aturen fins que s'esculli un altre proveïdor. Això no es pot desfer."
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:188
+#: src/components/settings/integrations/EmailProviderCard.tsx:189
 msgid "It sends the workspace's transactional emails: notifications stop until another provider is chosen. This cannot be undone."
 msgstr "Aquesta integració envia els correus transaccionals de l'espai de treball: les notificacions s'aturen fins que s'esculli un altre proveïdor. Això no es pot desfer."
 
@@ -12549,7 +12549,7 @@ msgstr "Permet als usuaris iniciar sessió amb un proveïdor d'identitat extern 
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
 msgstr "Fem un ràpid recorregut per ajudar-vos a començar a construir correus bonics utilitzant MJML."
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:97
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:104
 msgid "Lets the assistant read web pages and search"
 msgstr "Permet a l'assistent llegir pàgines web i cercar"
 
@@ -13131,7 +13131,7 @@ msgstr "Adreça de la bústia"
 msgid "Mailgun"
 msgstr "Mailgun"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:248
+#: src/components/settings/integrations/EmailProviderCard.tsx:250
 msgid "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 msgstr "Mailgun (mxa.mailgun.org / mxb.mailgun.org)"
 
@@ -13199,7 +13199,7 @@ msgstr "Gestiona els camps personalitzats"
 #~ msgid "Manage your workspace members"
 #~ msgstr "Gestioneu els membres del vostre espai de treball"
 
-#: src/components/settings/integrations/providerDetails.ts:87
+#: src/components/settings/integrations/providerDetails.ts:90
 msgid "managed"
 msgstr "gestionat"
 
@@ -13471,7 +13471,7 @@ msgid "Message not found"
 msgstr "Missatge no trobat"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:734
-#: src/components/settings/integrations/providerDetails.ts:144
+#: src/components/settings/integrations/providerDetails.ts:147
 msgid "Message stream"
 msgstr "Flux de missatges"
 
@@ -13729,7 +13729,7 @@ msgstr "Mensual"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:260
 #: src/components/file_manager/FileExplorer.tsx:1093
 #: src/components/settings/Integrations.tsx:282
-#: src/components/settings/integrations/EmailProviderCard.tsx:351
+#: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:350
 #: src/pages/TemplatesPage.tsx:484
@@ -13950,7 +13950,7 @@ msgstr "Contactes nous"
 #~ msgid "New Contacts"
 #~ msgstr "Nous contactes"
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:378
+#: src/components/ai-assistant/AIAssistantChat.tsx:377
 msgid "New conversation"
 msgstr "Nova conversa"
 
@@ -14103,10 +14103,10 @@ msgstr "Següent pas"
 #: src/components/contacts/SegmentDefinedBy.tsx:54
 #: src/components/logs/MessagesTab.tsx:370
 #: src/components/logs/MessagesTab.tsx:374
-#: src/components/settings/integrations/EmailProviderCard.tsx:157
-#: src/components/settings/integrations/EmailProviderCard.tsx:173
+#: src/components/settings/integrations/EmailProviderCard.tsx:158
+#: src/components/settings/integrations/EmailProviderCard.tsx:174
 #: src/components/settings/integrations/EmailRoles.tsx:35
-#: src/components/settings/integrations/providerDetails.ts:57
+#: src/components/settings/integrations/providerDetails.ts:60
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/WebhookDetail.tsx:290
 #: src/components/settings/WebhookDetail.tsx:394
@@ -14143,7 +14143,7 @@ msgstr "Encara no hi ha activitat"
 msgid "No annotations yet"
 msgstr "Encara no hi ha anotacions"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:791
+#: src/components/ai-assistant/useAIAssistant.tsx:783
 msgid "No answer was returned. Please try again."
 msgstr "No s'ha retornat cap resposta. Torneu-ho a provar."
 
@@ -14640,7 +14640,7 @@ msgstr "Encara no hi ha segments"
 msgid "No sender"
 msgstr "Sense remitent"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:298
+#: src/components/settings/integrations/EmailProviderCard.tsx:300
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:942
 msgid "No senders configured"
 msgstr "No s'han configurat remitents"
@@ -14890,7 +14890,7 @@ msgstr "No permès dins d’un bloc condicional"
 msgid "Not applied"
 msgstr "No aplicat"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:234
+#: src/components/settings/integrations/EmailProviderCard.tsx:236
 msgid "Not assigned"
 msgstr "No assignat"
 
@@ -14930,7 +14930,7 @@ msgstr "No es compten més enllà de {countMax}"
 msgid "Not created"
 msgstr "Sense crear"
 
-#: src/components/settings/integrations/providerDetails.ts:94
+#: src/components/settings/integrations/providerDetails.ts:97
 msgid "Not created yet"
 msgstr "Encara no creat"
 
@@ -15020,7 +15020,7 @@ msgstr "No enviat"
 msgid "Not set"
 msgstr "No establert"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:260
+#: src/components/settings/integrations/EmailProviderCard.tsx:262
 msgid "Not set up"
 msgstr "Sense configurar"
 
@@ -15180,7 +15180,7 @@ msgstr "Número"
 #~ msgid "Number of posts to display per page on the homepage"
 #~ msgstr "Nombre de publicacions per mostrar per pàgina a la pàgina d'inici"
 
-#: src/components/settings/integrations/providerDetails.ts:63
+#: src/components/settings/integrations/providerDetails.ts:66
 msgid "OAuth2 ({oauthProvider})"
 msgstr "OAuth2 ({oauthProvider})"
 
@@ -15188,7 +15188,7 @@ msgstr "OAuth2 ({oauthProvider})"
 #~ msgid "OAuth2 (Microsoft 365 / Google)"
 #~ msgstr "OAuth2 (Microsoft 365 / Google)"
 
-#: src/components/settings/integrations/providerDetails.ts:26
+#: src/components/settings/integrations/providerDetails.ts:29
 msgid "OAuth2 client secret"
 msgstr "Secret de client OAuth2"
 
@@ -15205,7 +15205,7 @@ msgstr "Proveïdor OAuth2"
 #~ msgid "OAuth2 Provider"
 #~ msgstr "Proveïdor OAuth2"
 
-#: src/components/settings/integrations/providerDetails.ts:27
+#: src/components/settings/integrations/providerDetails.ts:30
 msgid "OAuth2 refresh token"
 msgstr "Testimoni d'actualització OAuth2"
 
@@ -15764,7 +15764,7 @@ msgstr "Opcions"
 msgid "or"
 msgstr "o"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:62
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:63
 msgid "Or any OpenAI-compatible endpoint"
 msgstr "O qualsevol endpoint compatible amb OpenAI"
 
@@ -15842,8 +15842,8 @@ msgstr "Webhooks sortints"
 #~ msgstr "Webhooks sortints"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:385
-msgid "Output"
-msgstr "Sortida"
+#~ msgid "Output"
+#~ msgstr "Sortida"
 
 #: src/components/email_builder/ui/BorderInput.tsx:63
 msgid "Outset"
@@ -15958,7 +15958,7 @@ msgid "Partitions already rewritten keep their new values."
 msgstr "Les particions ja reescrites mantenen els seus valors nous."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:692
-#: src/components/settings/integrations/providerDetails.ts:25
+#: src/components/settings/integrations/providerDetails.ts:28
 #: src/components/transactional/ApiCommandDrawer.tsx:147
 msgid "Password"
 msgstr "Contrasenya"
@@ -17087,7 +17087,7 @@ msgstr "Els correus en cua no s'enviaran. Els enviaments en curs es completaran.
 msgid "Rate for marketing"
 msgstr "Ritme d'enviament per al màrqueting"
 
-#: src/components/settings/integrations/providerDetails.ts:162
+#: src/components/settings/integrations/providerDetails.ts:165
 msgid "Rate limit for marketing"
 msgstr "Límit d'enviament per al màrqueting"
 
@@ -17139,7 +17139,7 @@ msgstr "Contingut en brut"
 #~ msgid "Re-register"
 #~ msgstr "Tornar a registrar"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:203
+#: src/components/settings/integrations/EmailProviderCard.tsx:204
 msgid "Re-register webhooks"
 msgstr "Torna a registrar els webhooks"
 
@@ -17592,7 +17592,7 @@ msgstr "Ha regenerat el secret del webhook <0>{target}</0>"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:427
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:756
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:759
-#: src/components/settings/integrations/providerDetails.ts:139
+#: src/components/settings/integrations/providerDetails.ts:142
 #: src/components/settings/WebAnalyticsSettings.tsx:358
 msgid "Region"
 msgstr "Regió"
@@ -17609,7 +17609,7 @@ msgstr "La regió i la ciutat estan desactivades: les coordenades es desen amb p
 #~ msgid "Regional (~11km precision)"
 #~ msgstr "Regional (~11 km de precisió)"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:203
+#: src/components/settings/integrations/EmailProviderCard.tsx:204
 msgid "Register webhooks"
 msgstr "Registra els webhooks"
 
@@ -17618,11 +17618,11 @@ msgstr "Registra els webhooks"
 #~ msgid "Register Webhooks"
 #~ msgstr "Registrar webhooks"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:264
+#: src/components/settings/integrations/EmailProviderCard.tsx:266
 msgid "Register webhooks to set up reply forwarding, then point your domain's MX records at {mxTarget}."
 msgstr "Registreu els webhooks per configurar el reenviament de respostes i després apunteu els registres MX del vostre domini a {mxTarget}."
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:154
+#: src/components/settings/integrations/EmailProviderCard.tsx:155
 msgid "Register webhooks?"
 msgstr "Registrar webhooks?"
 
@@ -17919,11 +17919,11 @@ msgstr "Ha respost a un correu"
 msgid "Reply"
 msgstr "Resposta"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:254
+#: src/components/settings/integrations/EmailProviderCard.tsx:256
 msgid "Reply forwarding"
 msgstr "Reenviament de respostes"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:263
+#: src/components/settings/integrations/EmailProviderCard.tsx:265
 msgid "Reply forwarding is set up. Inbound replies also require your domain's MX records to point at {mxTarget}."
 msgstr "El reenviament de respostes està configurat. Les respostes entrants també requereixen que els registres MX del vostre domini apuntin a {mxTarget}."
 
@@ -17968,9 +17968,9 @@ msgstr "Informar d'un problema"
 #~ msgstr ""
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:451
-#: src/components/settings/integrations/providerDetails.ts:102
-#: src/components/settings/integrations/providerDetails.ts:111
-#: src/components/settings/integrations/providerDetails.ts:118
+#: src/components/settings/integrations/providerDetails.ts:105
+#: src/components/settings/integrations/providerDetails.ts:114
+#: src/components/settings/integrations/providerDetails.ts:121
 msgid "Reputation"
 msgstr "Reputació"
 
@@ -18469,8 +18469,8 @@ msgstr "Valors de mostra"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:719
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:791
-#: src/components/settings/integrations/providerDetails.ts:132
-#: src/components/settings/integrations/providerDetails.ts:151
+#: src/components/settings/integrations/providerDetails.ts:135
+#: src/components/settings/integrations/providerDetails.ts:154
 msgid "Sandbox mode"
 msgstr "Mode sandbox"
 
@@ -18865,7 +18865,7 @@ msgid "Searching by target ID"
 msgstr "Cercant per ID de destinació"
 
 #. placeholder {0}: toolInput.query
-#: src/components/ai-assistant/useAIAssistant.tsx:341
+#: src/components/ai-assistant/useAIAssistant.tsx:340
 msgid "Searching: \"{0}\""
 msgstr "Cercant: \"{0}\""
 
@@ -18894,8 +18894,8 @@ msgid "Secret copied to clipboard"
 msgstr "Secret copiat al porta-retalls"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:784
-#: src/components/settings/integrations/providerDetails.ts:24
-#: src/components/settings/integrations/providerDetails.ts:32
+#: src/components/settings/integrations/providerDetails.ts:27
+#: src/components/settings/integrations/providerDetails.ts:35
 msgid "Secret key"
 msgstr "Clau secreta"
 
@@ -19450,7 +19450,7 @@ msgstr "Envieu una notificació transaccional utilitzant Python:"
 msgid "Send a transactional notification using TypeScript/JavaScript:"
 msgstr "Envieu una notificació transaccional utilitzant TypeScript/JavaScript:"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:113
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:120
 msgid "Send auth emails, add new users as contacts"
 msgstr "Envia els correus d'autenticació i afegeix els nous usuaris com a contactes"
 
@@ -19493,7 +19493,7 @@ msgstr "Envia ara"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:416
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:299
-#: src/components/settings/integrations/EmailProviderCard.tsx:346
+#: src/components/settings/integrations/EmailProviderCard.tsx:350
 #: src/components/settings/WebhookDetail.tsx:324
 #: src/components/templates/TemplateDrawerBar.tsx:115
 #: src/components/transactional/TransactionalDetail.tsx:352
@@ -19590,7 +19590,7 @@ msgstr "Nom del remitent"
 msgid "Sender of variation {name}"
 msgstr "Remitent de la variant {name}"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:285
+#: src/components/settings/integrations/EmailProviderCard.tsx:287
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:880
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:883
 msgid "Senders"
@@ -19840,7 +19840,7 @@ msgid "Server restarted successfully! You can now sign in."
 msgstr "Servidor reiniciat correctament! Ara podeu iniciar sessió."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:727
-#: src/components/settings/integrations/providerDetails.ts:29
+#: src/components/settings/integrations/providerDetails.ts:32
 msgid "Server token"
 msgstr "Testimoni del servidor"
 
@@ -19848,7 +19848,7 @@ msgstr "Testimoni del servidor"
 msgid "Server Token"
 msgstr "Token del servidor"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:55
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:56
 msgid "Server token, message stream"
 msgstr "Token del servidor, flux de missatges"
 
@@ -19929,12 +19929,12 @@ msgstr "Establir com a proveïdor de correu de màrqueting predeterminat"
 msgid "Set as default transactional email provider"
 msgstr "Establir com a proveïdor de correu transaccional predeterminat"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:166
+#: src/components/settings/integrations/EmailProviderCard.tsx:167
 #: src/components/settings/integrations/EmailRoles.tsx:29
 msgid "Set as marketing email provider?"
 msgstr "Establir com a proveïdor de correu de màrqueting?"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:167
+#: src/components/settings/integrations/EmailProviderCard.tsx:168
 #: src/components/settings/integrations/EmailRoles.tsx:29
 msgid "Set as transactional email provider?"
 msgstr "Establir com a proveïdor de correu transaccional?"
@@ -20042,7 +20042,7 @@ msgstr "establir a"
 msgid "Set to null"
 msgstr "Establir a null"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:258
+#: src/components/settings/integrations/EmailProviderCard.tsx:260
 msgid "Set up"
 msgstr "Configurat"
 
@@ -20157,7 +20157,7 @@ msgstr "Títol per compartir"
 msgid "Shared"
 msgstr "Compartits"
 
-#: src/components/settings/integrations/providerDetails.ts:119
+#: src/components/settings/integrations/providerDetails.ts:122
 msgid "shared with the rest of this AWS account"
 msgstr "compartit amb la resta d'aquest compte d'AWS"
 
@@ -20480,7 +20480,7 @@ msgstr "SMTP no informa de les entregues"
 msgid "SMTP domain"
 msgstr "Domini SMTP"
 
-#: src/components/settings/integrations/providerDetails.ts:55
+#: src/components/settings/integrations/providerDetails.ts:58
 msgid "SMTP host"
 msgstr "Amfitrió SMTP"
 
@@ -20529,7 +20529,7 @@ msgstr "El proveïdor SMTP no suporta webhooks de queixes, per tant les queixes 
 msgid "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
 msgstr "El proveïdor SMTP no suporta webhooks de lliurament, per tant l'estat de lliurament no es pot rastrejar"
 
-#: src/components/settings/integrations/providerDetails.ts:56
+#: src/components/settings/integrations/providerDetails.ts:59
 msgid "SMTP user"
 msgstr "Usuari SMTP"
 
@@ -21963,7 +21963,7 @@ msgstr "La carpeta no contenia res per eliminar."
 msgid "The From addresses of this provider. The default one is used when a template names none"
 msgstr "Les adreces de remitent d'aquest proveïdor. S'utilitza la predeterminada quan una plantilla no n'indica cap"
 
-#: src/components/ai-assistant/useAIAssistant.tsx:896
+#: src/components/ai-assistant/useAIAssistant.tsx:888
 msgid "The generated email has issues that prevent it from rendering:"
 msgstr "El correu generat té problemes que n'impedeixen la renderització:"
 
@@ -22131,7 +22131,7 @@ msgstr "La regió o l'estat"
 msgid "The requested workspace could not be found."
 msgstr "No s'ha pogut trobar l'espai de treball sol·licitat."
 
-#: src/components/ai-assistant/useAIAssistant.tsx:382
+#: src/components/ai-assistant/useAIAssistant.tsx:374
 msgid "The response was cut off because it reached the token limit. Lower the reasoning effort, simplify the request, or raise the token limit, then try again."
 msgstr "La resposta s'ha tallat perquè ha arribat al límit de tokens. Reduïu l'esforç de raonament, simplifiqueu la sol·licitud o augmenteu el límit de tokens, i torneu-ho a provar."
 
@@ -22362,7 +22362,7 @@ msgstr "Aquests estils s’han editat a mà. Edita’ls al bloc mj-style."
 msgid "They will be sent the same email again. Fix whatever the provider objected to first, or they will fail a second time."
 msgstr "Se'ls tornarà a enviar el mateix correu. Corregiu primer allò que el proveïdor ha rebutjat o tornarà a fallar."
 
-#: src/components/ai-assistant/AIAssistantChat.tsx:316
+#: src/components/ai-assistant/AIAssistantChat.tsx:315
 msgid "Thinking"
 msgstr "Pensant"
 
@@ -22375,7 +22375,7 @@ msgstr "Aquest compte ja està vinculat a una identitat d'inici de sessió únic
 #: src/components/blog/DeletePostModal.tsx:36
 #: src/components/settings/DeleteWorkspace.tsx:44
 #: src/components/settings/Integrations.tsx:292
-#: src/components/settings/integrations/EmailProviderCard.tsx:189
+#: src/components/settings/integrations/EmailProviderCard.tsx:190
 #: src/components/settings/WebhookDetail.tsx:343
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:30
 msgid "This action cannot be undone."
@@ -22542,12 +22542,12 @@ msgid "This integration is not created yet."
 msgstr "Aquesta integració encara no està creada."
 
 #: src/components/settings/integrations/DeprecatedPill.tsx:14
-#~ msgid "This integration will be removed soon: Mailjet does not allow sending marketing emails through its API."
-#~ msgstr "Aquesta integració s'eliminarà aviat: Mailjet no permet enviar correus de màrqueting per API."
+msgid "This integration will be removed soon: Mailjet does not allow sending marketing emails through its API."
+msgstr "Aquesta integració s'eliminarà aviat: Mailjet no permet enviar correus de màrqueting per API."
 
 #: src/components/settings/integrations/DeprecatedPill.tsx:13
-#~ msgid "This integration will be removed soon: SparkPost no longer accepts new customers."
-#~ msgstr "Aquesta integració s'eliminarà aviat: SparkPost ja no accepta clients nous."
+msgid "This integration will be removed soon: SparkPost no longer accepts new customers."
+msgstr "Aquesta integració s'eliminarà aviat: SparkPost ja no accepta clients nous."
 
 #: src/pages/AcceptInvitationPage.tsx:123
 msgid "This invitation link is invalid or has expired."
@@ -22782,7 +22782,7 @@ msgstr "Això eliminarà permanentment l'espai de treball \"{0}\" i totes les se
 msgid "This will permanently remove the contact and their subscriptions."
 msgstr "Això eliminarà permanentment el contacte i les seves subscripcions."
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:155
+#: src/components/settings/integrations/EmailProviderCard.tsx:156
 msgid "This will register or update webhook endpoints for this email provider."
 msgstr "Això registrarà o actualitzarà els punts finals de webhook per a aquest proveïdor de correu."
 
@@ -22972,7 +22972,7 @@ msgstr "Títol, slug i categoria"
 msgid "Title, slug and category required"
 msgstr "Títol, slug i categoria obligatoris"
 
-#: src/components/settings/integrations/providerDetails.ts:57
+#: src/components/settings/integrations/providerDetails.ts:60
 #: src/components/settings/SMTPBridgeSettings.tsx:48
 msgid "TLS"
 msgstr "TLS"
@@ -23039,7 +23039,7 @@ msgid "To stop these events, turn the Zap off in Zapier instead. Zapier then rem
 msgstr "Per aturar aquests esdeveniments, desactiveu el Zap a Zapier. Zapier eliminarà aleshores aquest webhook per vosaltres."
 
 #. placeholder {0}: config.title
-#: src/components/ai-assistant/AIAssistantChat.tsx:140
+#: src/components/ai-assistant/AIAssistantChat.tsx:139
 msgid "To use the {0}, you need to configure the Anthropic integration in your workspace settings."
 msgstr "Per utilitzar el {0}, heu de configurar la integració d'Anthropic a la configuració de l'espai de treball."
 
@@ -23296,7 +23296,7 @@ msgstr "Notificació transaccional eliminada correctament"
 #~ msgid "Transactional Notifications"
 #~ msgstr "Notificacions transaccionals"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:77
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:81
 msgid "Transactional only"
 msgstr "Només transaccional"
 
@@ -23363,7 +23363,7 @@ msgstr "Activar amb canvis de camp específics"
 msgid "Triggers and actions"
 msgstr "Activadors i accions"
 
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:120
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:127
 msgid "Triggers and actions in your Zaps"
 msgstr "Activadors i accions als vostres Zaps"
 
@@ -23987,7 +23987,7 @@ msgstr "Utilitzar igualment"
 msgid "Use cases"
 msgstr "Casos d'ús"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:213
+#: src/components/settings/integrations/EmailProviderCard.tsx:214
 msgid "Use for marketing"
 msgstr "Utilitza per al màrqueting"
 
@@ -23995,7 +23995,7 @@ msgstr "Utilitza per al màrqueting"
 #~ msgid "Use for Marketing"
 #~ msgstr "Utilitzar per a màrqueting"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:222
+#: src/components/settings/integrations/EmailProviderCard.tsx:223
 msgid "Use for transactional"
 msgstr "Utilitza per al transaccional"
 
@@ -24177,7 +24177,7 @@ msgid "Uses you can't see aren't counted."
 msgstr "No es compten els usos que no podeu veure."
 
 #. placeholder {0}: event.tool_name
-#: src/components/ai-assistant/useAIAssistant.tsx:337
+#: src/components/ai-assistant/useAIAssistant.tsx:336
 msgid "Using {0}..."
 msgstr "Utilitzant {0}..."
 
@@ -24703,7 +24703,7 @@ msgstr "Esdeveniments de webhooks"
 msgid "Webhook secret regenerated"
 msgstr "Secret del webhook regenerat"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:128
+#: src/components/settings/integrations/EmailProviderCard.tsx:129
 msgid "Webhook status unavailable"
 msgstr "Estat dels webhooks no disponible"
 
@@ -24734,15 +24734,15 @@ msgstr "URL del webhook"
 msgid "Webhooks"
 msgstr "Webhooks"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:130
+#: src/components/settings/integrations/EmailProviderCard.tsx:131
 msgid "Webhooks not registered"
 msgstr "Webhooks no registrats"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:136
+#: src/components/settings/integrations/EmailProviderCard.tsx:137
 msgid "Webhooks registered"
 msgstr "Webhooks registrats"
 
-#: src/components/settings/integrations/EmailProviderCard.tsx:91
+#: src/components/settings/integrations/EmailProviderCard.tsx:92
 msgid "Webhooks registered successfully"
 msgstr "Webhooks registrats correctament"
 
@@ -25264,10 +25264,10 @@ msgstr "Anual"
 #: src/components/contacts/SegmentDefinedBy.tsx:53
 #: src/components/logs/MessagesTab.tsx:370
 #: src/components/logs/MessagesTab.tsx:373
-#: src/components/settings/integrations/EmailProviderCard.tsx:156
-#: src/components/settings/integrations/EmailProviderCard.tsx:172
+#: src/components/settings/integrations/EmailProviderCard.tsx:157
+#: src/components/settings/integrations/EmailProviderCard.tsx:173
 #: src/components/settings/integrations/EmailRoles.tsx:34
-#: src/components/settings/integrations/providerDetails.ts:57
+#: src/components/settings/integrations/providerDetails.ts:60
 #: src/components/settings/WebhookDetail.tsx:289
 #: src/components/settings/WebhookDetail.tsx:393
 #: src/components/web_analytics/filters/FilterTable.tsx:275

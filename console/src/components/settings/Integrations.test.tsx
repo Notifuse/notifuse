@@ -444,6 +444,22 @@ describe('Integrations — blocks', () => {
     expect(within(catalogue).getByRole('button', { name: /^Mailjet/ })).toHaveTextContent('Transactional only')
   })
 
+  it('marks SparkPost and Mailjet deprecated in the catalogue, and says why', async () => {
+    const user = userEvent.setup()
+    renderIntegrations()
+
+    await user.click((await screen.findAllByRole('button', { name: /Add integration/ }))[0])
+    const catalogue = await screen.findByRole('dialog', { name: 'Add integration' })
+    const entry = (name: RegExp) => within(catalogue).getByRole('button', { name })
+
+    expect(entry(/^Postmark/)).not.toHaveTextContent('Deprecated')
+    expect(entry(/^Mailjet/)).toHaveTextContent('Deprecated')
+    await user.hover(within(entry(/^SparkPost/)).getByText('Deprecated'))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'This integration will be removed soon: SparkPost no longer accepts new customers.'
+    )
+  })
+
   it('shows a member no way to add an integration', async () => {
     renderIntegrations({ isOwner: false })
 

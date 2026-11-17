@@ -179,6 +179,51 @@ describe('EmailProviderCard', () => {
     expect(screen.queryByText('Webhooks not registered')).toBeNull()
   })
 
+  it('names no provider under the title of an SMTP server', () => {
+    const smtp = (name: string) =>
+      mailgun({
+        name,
+        email_provider: {
+          kind: 'smtp',
+          senders: [],
+          rate_limit_per_minute: 25,
+          smtp: { host: 'smtp.acme.io', port: 587, username: 'u', use_tls: true }
+        }
+      })
+    renderCard({ integration: smtp('Office relay'), roles: { marketing: 'int_mg' } })
+    expect(screen.getByText('Office relay')).toBeInTheDocument()
+    expect(screen.queryByText('SMTP')).toBeNull()
+  })
+
+  it('marks a Mailjet card deprecated, and says why', async () => {
+    renderCard({
+      integration: mailgun({
+        name: 'Mailjet',
+        email_provider: {
+          kind: 'mailjet',
+          senders: [],
+          rate_limit_per_minute: 25,
+          mailjet: { sandbox_mode: false }
+        } as unknown as EmailIntegration['email_provider']
+      })
+    })
+    fireEvent.mouseEnter(screen.getByText('Deprecated'))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'This integration will be removed soon: Mailjet does not allow sending marketing emails through its API.'
+    )
+  })
+
+  it('marks no other provider deprecated', () => {
+    renderCard()
+    expect(screen.queryByText('Deprecated')).toBeNull()
+  })
+
+  it('draws the send test button as a primary ghost button', () => {
+    renderCard()
+    const button = screen.getByRole('button', { name: /Send test/ })
+    expect(button).toHaveClass('ant-btn-color-primary', 'ant-btn-background-ghost')
+  })
+
   it('checks no webhook for an SMTP server, which has none', () => {
     renderCard({
       integration: mailgun({
