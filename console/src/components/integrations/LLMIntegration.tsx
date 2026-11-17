@@ -3,7 +3,13 @@ import { App, AutoComplete, Form, Input, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Integration, LLMProviderKind, Workspace } from '../../services/api/types'
 import { llmProviders } from './LLMProviders'
-import { anthropicModels, geminiModels, OPENAI_DEFAULT_MODEL } from './llmModels'
+import {
+  ANTHROPIC_DEFAULT_MODEL,
+  anthropicModels,
+  GEMINI_DEFAULT_MODEL,
+  geminiModels,
+  OPENAI_DEFAULT_MODEL
+} from './llmModels'
 import { Panel } from '../layout'
 import { SettingsRow, SettingsRows } from '../settings/SettingsRow'
 import { useSecretPlaceholder } from '../settings/integrations/secrets'
@@ -70,12 +76,12 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
         const provider = integration.llm_provider.gemini
         form.setFieldsValue({
           name: integration.name,
-          model: provider.model || providerInfo?.defaultModel || 'gemini-3.1-pro-preview'
+          model: provider.model || providerInfo?.defaultModel || GEMINI_DEFAULT_MODEL
         })
       } else {
         form.setFieldsValue({
           name: providerInfo?.name || 'Google Gemini',
-          model: providerInfo?.defaultModel || 'gemini-3.1-pro-preview'
+          model: providerInfo?.defaultModel || GEMINI_DEFAULT_MODEL
         })
       }
     } else {
@@ -88,7 +94,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
       } else {
         form.setFieldsValue({
           name: providerInfo?.name || 'Anthropic',
-          model: providerInfo?.defaultModel || 'claude-sonnet-4-6'
+          model: providerInfo?.defaultModel || ANTHROPIC_DEFAULT_MODEL
         })
       }
     }
@@ -134,7 +140,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
                 isString(values.api_key) && values.api_key !== '' ? values.api_key : undefined,
               model: isString(values.model)
                 ? values.model
-                : providerInfo?.defaultModel || 'gemini-3.1-pro-preview'
+                : providerInfo?.defaultModel || GEMINI_DEFAULT_MODEL
             }
           })
         },
@@ -224,11 +230,11 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
             <>
               <SettingsRow
                 label={<RequiredLabel>{t`Model`}</RequiredLabel>}
-                help={t`gpt-4.1, gpt-5.4, o4-mini, or the name your endpoint uses`}
+                help={t`gpt-6.1-sol, gpt-6-astra, gpt-6.1-terra, or the name your endpoint uses`}
                 htmlFor="model"
               >
                 <Form.Item name="model" rules={[{ required: true, message: t`Please enter a model name` }]}>
-                  <Input placeholder={t`gpt-4.1, gpt-5.4, o4-mini, or custom model name`} />
+                  <Input placeholder={t`gpt-6.1-sol, gpt-6-astra, gpt-6.1-terra, or custom model name`} />
                 </Form.Item>
               </SettingsRow>
 
@@ -273,7 +279,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
               <Form.Item name="model" rules={[{ required: true, message: t`Please select or enter a model` }]}>
                 <AutoComplete
                   options={geminiModels}
-                  placeholder={t`gemini-3.1-pro-preview or a custom model ID`}
+                  placeholder={t`gemini-4-argon or a custom model ID`}
                   filterOption={filterByValue}
                 />
               </Form.Item>

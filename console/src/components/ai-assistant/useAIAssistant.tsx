@@ -118,7 +118,6 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
-  const [costs, setCosts] = useState({ input: 0, output: 0, total: 0 })
   const abortControllerRef = useRef<AbortController | null>(null)
   const inputContainerRef = useRef<HTMLDivElement | null>(null)
 
@@ -360,13 +359,6 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
   }
 
   const handleDoneEvent = (event: LLMChatEvent, assistantKey: string) => {
-    if (event.input_cost !== undefined || event.output_cost !== undefined) {
-      setCosts((prev) => ({
-        input: prev.input + (event.input_cost || 0),
-        output: prev.output + (event.output_cost || 0),
-        total: prev.total + (event.total_cost || 0)
-      }))
-    }
     setMessages((prev) => prev.map((m) => (m.key === assistantKey ? { ...m, loading: false } : m)))
     // isStreaming is owned by handleSend, which clears it the moment the round loop
     // exits: a turn can span several rounds, and this event fires once per round. It
@@ -927,7 +919,6 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     // As in handleCancel: the orphaned turn will no longer clear this for us.
     sendingRef.current = false
     setMessages([])
-    setCosts({ input: 0, output: 0, total: 0 })
     setIsStreaming(false)
   }
 
@@ -989,7 +980,6 @@ export function useAIAssistant(options: UseAIAssistantOptions): UseAIAssistantRe
     inputValue,
     setInputValue,
     isStreaming,
-    costs,
     inputContainerRef,
     llmIntegration,
     llmIntegrations,

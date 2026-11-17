@@ -412,3 +412,30 @@ describe('TreePanel drag and drop', () => {
     expect(fire(row('S1'), 'dragStart', { clientX: GRAB_X, clientY: 0 })).toBe(true)
   })
 })
+
+describe('TreePanel layout', () => {
+  it('lines up the Head and Body rows, their chevrons one above the other', () => {
+    render(
+      <TreePanel
+        emailTree={build(c3())}
+        selectedBlockId={null}
+        onSelectBlock={vi.fn()}
+        onAddBlock={vi.fn()}
+        onAddSavedBlock={vi.fn()}
+        onDeleteBlock={vi.fn()}
+        onCloneBlock={vi.fn()}
+        onMoveBlock={vi.fn()}
+        expandedKeys={[]}
+        onTreeExpand={vi.fn()}
+      />
+    )
+    // jsdom lays nothing out: the horizontal inset each tree gets from its container's classes
+    const inset = (tree: Element) =>
+      (tree.parentElement?.className ?? '').split(/\s+/).filter((name) => /^(p|px|pl|pr|ps|pe)-/.test(name))
+    const [head, body] = Array.from(document.querySelectorAll('.ant-tree'))
+    expect(head).toHaveTextContent('Head')
+    expect(body).toHaveTextContent('Body')
+    expect(inset(head).filter((name) => !name.startsWith('p-'))).toEqual(['px-2'])
+    expect(inset(body)).toEqual(['p-2'])
+  })
+})

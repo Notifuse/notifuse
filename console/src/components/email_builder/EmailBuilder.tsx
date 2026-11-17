@@ -841,6 +841,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     setLibraryHighlight(null)
   }
 
+  // A block picked on the canvas shows in the structure, with its place in the email
+  const handleSelectOnCanvas = (blockId: string | null) => {
+    handleSelectBlock(blockId)
+    if (blockId && leftTab === 'library') changeLeftTab('structure')
+  }
+
   const saveDialogBlock = saveDialogBlockId
     ? EmailBlockClass.findBlockById(tree, saveDialogBlockId)
     : null
@@ -1126,19 +1132,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                     options={[
                       { label: t`Structure`, value: 'structure' },
                       {
-                        label: (
-                          <span data-testid="library-tab">
-                            {t`Library`}{' '}
-                            <span
-                              data-testid="library-count"
-                              className={`ml-0.5 inline-block min-w-[18px] rounded-full px-1 text-center text-[10px] leading-4 ${
-                                savedBlocks?.length ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
-                              }`}
-                            >
-                              {savedBlocks?.length ?? 0}
-                            </span>
-                          </span>
-                        ),
+                        label: <span data-testid="library-tab">{t`Library`}</span>,
                         value: 'library'
                       }
                     ]}
@@ -1187,7 +1181,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                   <EditPanel
                     emailTree={tree}
                     selectedBlockId={effectiveSelectedBlockId}
-                    onSelectBlock={handleSelectBlock}
+                    onSelectBlock={handleSelectOnCanvas}
                     onUpdateBlock={handleUpdateBlock}
                     onCloneBlock={handleCloneBlock}
                     onDeleteBlock={handleDeleteBlock}

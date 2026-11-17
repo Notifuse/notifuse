@@ -9,7 +9,7 @@ import (
 // OpenAISettings contains configuration for OpenAI or OpenAI-compatible providers
 type OpenAISettings struct {
 	EncryptedAPIKey string `json:"encrypted_api_key,omitempty"`
-	Model           string `json:"model"`              // free text - e.g. gpt-4o, gpt-4.1, or custom model name
+	Model           string `json:"model"`              // free text - e.g. gpt-6.1-sol, gpt-6-astra, or custom model name
 	BaseURL         string `json:"base_url,omitempty"` // optional custom endpoint for OpenAI-compatible providers
 	// ReasoningEffort controls how much a reasoning model thinks. Empty = provider
 	// default (param omitted); one of none/minimal/low/medium/high/xhigh otherwise.
