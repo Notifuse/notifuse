@@ -123,7 +123,7 @@ describe('ConditionSentence', () => {
         filters: [{ field_name: 'currency', field_type: 'string', operator: 'equals', string_values: ['EUR'] }]
       }
     })
-    expect(screen.getByText('has not')).toBeTruthy()
+    expect(screen.getByText('has not reached')).toBeTruthy()
     expect(screen.getByText('Purchase')).toBeTruthy()
     expect(screen.getByText('total')).toBeTruthy()
     expect(screen.getByText('≥')).toBeTruthy()

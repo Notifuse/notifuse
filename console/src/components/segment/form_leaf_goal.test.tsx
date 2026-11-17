@@ -61,7 +61,7 @@ describe('LeafCustomEventsGoalForm', () => {
     renderForm(baseGoal, onChange)
 
     // The negation is a segmented control opening the condition
-    fireEvent.click(screen.getByTitle('has not'))
+    fireEvent.click(screen.getByTitle('has not reached'))
     submit()
 
     await waitFor(() => expect(onChange).toHaveBeenCalled())
@@ -115,14 +115,14 @@ describe('LeafCustomEventsGoalForm', () => {
 
   it('renders "has not" for a stored negated condition', () => {
     renderForm({ ...baseGoal, negate: true }, vi.fn())
-    expect(selectedNegation()).toBe('has not')
+    expect(selectedNegation()).toBe('has not reached')
   })
 })
 
 describe('LeafCustomEventsGoalForm negation control', () => {
   it('renders "has" when the condition is not negated', () => {
     renderForm({ ...baseGoal, negate: false }, vi.fn())
-    expect(selectedNegation()).toBe('has')
+    expect(selectedNegation()).toBe('has reached')
   })
 
   it('renders "has" for a segment saved before negation existed', () => {
@@ -132,7 +132,7 @@ describe('LeafCustomEventsGoalForm negation control', () => {
     delete (legacy as { negate?: boolean }).negate
 
     renderForm(legacy, vi.fn())
-    expect(selectedNegation()).toBe('has')
+    expect(selectedNegation()).toBe('has reached')
   })
 
   it('does not invent a negate value for an untouched legacy condition', async () => {

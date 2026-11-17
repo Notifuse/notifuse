@@ -174,3 +174,25 @@ describe('TreeNodeInput — deleting', () => {
     expect(latest.tree.branch?.leaves).toEqual([listLeaf('news')])
   })
 })
+
+describe('TreeNodeInput — keyboard focus', () => {
+  it('lands on the first field of a condition as it opens, and back on its pen as it closes', async () => {
+    renderTree(treeOf(listLeaf('news')))
+    const pen = screen.getByRole('button', { name: 'Edit' })
+    pen.focus()
+    fireEvent.click(pen)
+    await screen.findByText('Confirm')
+    await waitFor(() => expect(document.activeElement?.tagName).toBe('INPUT'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit' })))
+  })
+
+  it('goes back to the add button when a new condition is cancelled', async () => {
+    renderTree(treeOf())
+    fireEvent.click((await openAddMenu())[1])
+    await screen.findByText('Confirm')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(document.activeElement).toBe(addButton()))
+  })
+})

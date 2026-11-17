@@ -41,18 +41,43 @@ describe('SegmentCountCard', () => {
   it('shows the count and its share of the workspace', () => {
     renderCard({ response, totalContacts: 18342 })
     expect(screen.getByText('1288 contacts')).toBeTruthy()
-    expect(screen.getByText('7 % of the 18,342 contacts')).toBeTruthy()
+    expect(screen.getByText('7 % of 18,342 contacts')).toBeTruthy()
   })
 
-  it('puts the query behind « See the query »', async () => {
+  it('never says more than the whole workspace, nor 0 % of a few', () => {
+    const { rerender } = renderCard({ response: { ...response, total_count: 150 }, totalContacts: 100 })
+    expect(screen.getByText('100 % of 100 contacts')).toBeTruthy()
+    rerender(
+      <I18nProvider i18n={i18n}>
+        <SegmentCountCard
+          response={{ ...response, total_count: 3 }}
+          totalContacts={100000}
+          refreshing={false}
+          stale={false}
+          blocked={false}
+          canCount={true}
+          onCount={vi.fn()}
+        />
+      </I18nProvider>
+    )
+    expect(screen.getByText('< 0.1 % of 100,000 contacts')).toBeTruthy()
+  })
+
+  it('puts the query behind « See the query », opened by a click too', async () => {
     renderCard({ response })
-    fireEvent.mouseEnter(screen.getByText('See the query'))
+    fireEvent.click(screen.getByText('See the query'))
     expect(await screen.findByText('SELECT 1')).toBeTruthy()
   })
 
   it('dims a count that no longer answers the form, and says why', () => {
     const { container } = renderCard({ response, stale: true, blocked: true })
     expect(container.querySelector('.opacity-40')).toBeTruthy()
+    expect(screen.getByText('Complete the condition to refresh the count')).toBeTruthy()
+  })
+
+  it('offers no retry while the tree cannot be counted', () => {
+    renderCard({ response, error: 'boom', canCount: false })
+    expect(screen.queryByText('Retry')).toBeNull()
     expect(screen.getByText('Complete the condition to refresh the count')).toBeTruthy()
   })
 

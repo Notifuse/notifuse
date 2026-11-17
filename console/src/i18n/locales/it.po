@@ -139,6 +139,11 @@ msgstr "(tu)"
 msgid "{0, plural, one {{1} email} other {{2} emails}}"
 msgstr "{0, plural, one {{1} email} other {{2} email}}"
 
+#. placeholder {0}: totalContacts ?? 0
+#: src/components/segment/SegmentCountCard.tsx:119
+msgid "{0, plural, one {{percent} % of {total} contact} other {{percent} % of {total} contacts}}"
+msgstr "{0, plural, one {{percent} % di {total} contatto} other {{percent} % di {total} contatti}}"
+
 #. placeholder {0}: rows.length
 #: src/components/logs/InboundWebhooksTab.tsx:340
 msgid "{0, plural, one {{shown} event} other {{shown} events}}"
@@ -371,6 +376,11 @@ msgstr "{0, plural, one {Mostra tutti (#)} other {Mostra tutti (#)}}"
 #: src/components/broadcasts/BroadcastStatusPill.tsx:60
 #~ msgid "{0, plural, one {The provider refused # recipient and every retry was used up. Open the logs to see why, then retry it.} other {The provider refused # recipients and every retry was used up. Open the logs to see why, then retry them.}}"
 #~ msgstr "{0, plural, one {Il provider ha rifiutato # destinatario e tutti i tentativi sono esauriti. Apri i log per vedere il motivo, poi riprova.} other {Il provider ha rifiutato # destinatari e tutti i tentativi sono esauriti. Apri i log per vedere il motivo, poi riprova.}}"
+
+#. placeholder {0}: condition.count_value
+#: src/components/segment/ConditionSentence.tsx:242
+msgid "{0, plural, one {time} other {times}}"
+msgstr "{0, plural, one {volta} other {volte}}"
 
 #. placeholder {0}: template.name
 #: src/components/logs/MessageDetail.tsx:248
@@ -696,7 +706,7 @@ msgstr "{count, plural, one {# automazione} other {# automazioni}}"
 msgid "{count, plural, one {# broadcast} other {# broadcasts}}"
 msgstr "{count, plural, one {# broadcast} other {# broadcast}}"
 
-#: src/components/segment/SegmentCountCard.tsx:88
+#: src/components/segment/SegmentCountCard.tsx:94
 msgid "{count, plural, one {# contact} other {# contacts}}"
 msgstr "{count, plural, one {# contatto} other {# contatti}}"
 
@@ -1164,8 +1174,8 @@ msgstr "{pageviews, plural, one {# pagina} other {# pagine}}"
 #~ msgstr "{pageviews} pagine"
 
 #: src/components/segment/SegmentCountCard.tsx:113
-msgid "{percent} % of the {total} contacts"
-msgstr "{percent} % dei {total} contatti"
+#~ msgid "{percent} % of the {total} contacts"
+#~ msgstr "{percent} % dei {total} contatti"
 
 #: src/components/settings/integrations/providerDetails.ts:169
 msgid "{perMinuteText} emails/min"
@@ -1699,7 +1709,7 @@ msgstr "90 giorni"
 msgid "900 - Black"
 msgstr "900 - Nero"
 
-#: src/components/segment/input.tsx:410
+#: src/components/segment/input.tsx:425
 msgid "A branch condition is required..."
 msgstr "È richiesta una condizione di diramazione..."
 
@@ -1855,7 +1865,7 @@ msgstr "Un’immagine quadrata, mostrata accanto al nome del workspace"
 msgid "A tree is required"
 msgstr "È richiesto un albero"
 
-#: src/components/segment/input.tsx:510
+#: src/components/segment/input.tsx:526
 msgid "A value is required..."
 msgstr "È richiesto un valore..."
 
@@ -2072,7 +2082,7 @@ msgstr "Filtri attivi"
 #~ msgstr "Iscritto attivo"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:310
-#: src/components/segment/form_leaf.tsx:466
+#: src/components/segment/form_leaf.tsx:473
 #: src/components/segment/input.tsx:64
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
@@ -2166,7 +2176,7 @@ msgstr "Aggiungi un campo opzionale"
 msgid "Add annotation"
 msgstr "Aggiungi annotazioni"
 
-#: src/components/segment/form_leaf.tsx:325
+#: src/components/segment/form_leaf.tsx:332
 msgid "Add at least one filter"
 msgstr "Aggiungi almeno un filtro"
 
@@ -2472,7 +2482,7 @@ msgstr "Impostazioni avanzate"
 msgid "Affects how columns stack on mobile devices"
 msgstr "Influisce su come le colonne si impilano sui dispositivi mobili"
 
-#: src/components/segment/ConditionSentence.tsx:175
+#: src/components/segment/ConditionSentence.tsx:180
 #: src/components/segment/segmentLabels.ts:230
 msgid "after"
 msgstr "dopo"
@@ -2503,7 +2513,7 @@ msgstr "dopo la data"
 msgid "After your first send"
 msgstr "Dopo il tuo primo invio"
 
-#: src/components/segment/form_leaf.tsx:723
+#: src/components/segment/form_leaf.tsx:729
 msgid "Aggregate"
 msgstr "Aggrega"
 
@@ -2569,7 +2579,7 @@ msgstr "Allinea in alto"
 msgid "Alignment"
 msgstr "Allineamento"
 
-#: src/components/segment/input.tsx:423
+#: src/components/segment/input.tsx:438
 msgid "all"
 msgstr "tutte le"
 
@@ -2870,18 +2880,18 @@ msgstr "ID ancora"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
-#: src/components/segment/ConditionSentence.tsx:65
-#: src/components/segment/ConditionSentence.tsx:161
-#: src/components/segment/ConditionSentence.tsx:296
-#: src/components/segment/form_leaf.tsx:759
+#: src/components/segment/ConditionSentence.tsx:66
+#: src/components/segment/ConditionSentence.tsx:166
+#: src/components/segment/ConditionSentence.tsx:305
+#: src/components/segment/form_leaf.tsx:765
 #: src/components/segment/segmentSummary.ts:214
 #: src/components/segment/segmentSummary.ts:242
 msgid "and"
 msgstr "e"
 
-#: src/components/segment/ConditionSentence.tsx:136
+#: src/components/segment/ConditionSentence.tsx:141
 #: src/components/segment/input_dimension_filters.tsx:49
-#: src/components/segment/input.tsx:415
+#: src/components/segment/input.tsx:430
 msgid "AND"
 msgstr "E"
 
@@ -2942,11 +2952,11 @@ msgid "Any API key"
 msgstr "Qualsiasi API Key"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:371
-#: src/components/segment/form_leaf.tsx:581
+#: src/components/segment/form_leaf.tsx:588
 msgid "Any broadcast"
 msgstr "Qualsiasi broadcast"
 
-#: src/components/segment/form_leaf.tsx:710
+#: src/components/segment/form_leaf.tsx:716
 msgid "Any event"
 msgstr "Qualsiasi evento"
 
@@ -2958,7 +2968,7 @@ msgstr "Qualsiasi modifica del campo attiva l'automazione"
 msgid "Any goal"
 msgstr "Qualsiasi obiettivo"
 
-#: src/components/segment/form_leaf.tsx:707
+#: src/components/segment/form_leaf.tsx:713
 msgid "Any goal name"
 msgstr "Qualsiasi nome obiettivo"
 
@@ -2980,12 +2990,12 @@ msgstr "Qualsiasi server SMTP, accesso basic o OAuth2"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:380
 #: src/components/automations/config/TriggerConfigForm.tsx:381
-#: src/components/segment/form_leaf.tsx:562
-#: src/components/segment/form_leaf.tsx:563
+#: src/components/segment/form_leaf.tsx:569
+#: src/components/segment/form_leaf.tsx:570
 msgid "Any template"
 msgstr "Qualsiasi template"
 
-#: src/components/segment/ConditionSentence.tsx:180
+#: src/components/segment/ConditionSentence.tsx:186
 #: src/components/segment/segmentLabels.ts:312
 msgid "anytime"
 msgstr "in qualsiasi momento"
@@ -3321,7 +3331,7 @@ msgstr "Alla data e all'ora che scegli"
 msgid "at least"
 msgstr "almeno"
 
-#: src/components/segment/input.tsx:424
+#: src/components/segment/input.tsx:439
 msgid "at least one"
 msgstr "almeno una delle"
 
@@ -3800,7 +3810,7 @@ msgstr "Destinatari BCC"
 #~ msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
 #~ msgstr ""
 
-#: src/components/segment/ConditionSentence.tsx:168
+#: src/components/segment/ConditionSentence.tsx:173
 #: src/components/segment/segmentLabels.ts:229
 msgid "before"
 msgstr "prima"
@@ -3854,8 +3864,8 @@ msgstr "Migliori pratiche:"
 msgid "Best TimeScore"
 msgstr "Miglior TimeScore"
 
-#: src/components/segment/ConditionSentence.tsx:159
-#: src/components/segment/ConditionSentence.tsx:294
+#: src/components/segment/ConditionSentence.tsx:164
+#: src/components/segment/ConditionSentence.tsx:303
 #: src/components/segment/segmentLabels.ts:231
 #: src/components/segment/segmentLabels.ts:294
 msgid "between"
@@ -4271,7 +4281,7 @@ msgstr "Breve riassunto del post"
 msgid "Brings inactive contacts back with an offer."
 msgstr "Riconquista i contatti inattivi con un'offerta."
 
-#: src/components/segment/ConditionSentence.tsx:247
+#: src/components/segment/ConditionSentence.tsx:255
 msgid "broadcast"
 msgstr "broadcast"
 
@@ -4279,7 +4289,7 @@ msgstr "broadcast"
 #: src/components/broadcasts/BroadcastsTable.tsx:243
 #: src/components/messages/MessageHistoryTable.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:255
-#: src/components/segment/form_leaf.tsx:571
+#: src/components/segment/form_leaf.tsx:578
 #: src/components/templates/TemplateSelectorModal.tsx:707
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:64
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:121
@@ -4633,8 +4643,8 @@ msgstr "Impossibile da testare nel browser"
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/button_upsert.tsx:403
-#: src/components/segment/form_leaf.tsx:183
-#: src/components/segment/input.tsx:278
+#: src/components/segment/form_leaf.tsx:190
+#: src/components/segment/input.tsx:300
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5271,11 +5281,11 @@ msgid "Clicked in an email"
 msgstr "Ha cliccato in un’email"
 
 #: src/components/logs/MessagesTab.tsx:297
-#: src/components/segment/form_leaf.tsx:590
+#: src/components/segment/form_leaf.tsx:597
 msgid "Clicked link"
 msgstr "Link cliccato"
 
-#: src/components/segment/ConditionSentence.tsx:255
+#: src/components/segment/ConditionSentence.tsx:263
 msgid "clicked link contains"
 msgstr "il link cliccato contiene"
 
@@ -5527,7 +5537,7 @@ msgstr "Confronta questo periodo con il precedente e spiega i principali fattori
 msgid "Compare TimeScore across campaign sources"
 msgstr "Confronta il TimeScore tra le sorgenti delle campagne"
 
-#: src/components/segment/form_leaf.tsx:738
+#: src/components/segment/form_leaf.tsx:744
 msgid "Comparison"
 msgstr "Confronto"
 
@@ -5611,7 +5621,7 @@ msgstr "Completa o rimuovi i filtri incompleti"
 msgid "Complete Setup"
 msgstr "Completa configurazione"
 
-#: src/components/segment/SegmentCountCard.tsx:107
+#: src/components/segment/SegmentCountCard.tsx:113
 msgid "Complete the condition to refresh the count"
 msgstr "Completa la condizione per aggiornare il conteggio"
 
@@ -5648,7 +5658,7 @@ msgstr "condizione"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:361
 #: src/components/segment/FilterRow.tsx:206
-#: src/components/segment/input.tsx:491
+#: src/components/segment/input.tsx:507
 msgid "Condition"
 msgstr "Condizione"
 
@@ -5763,7 +5773,7 @@ msgstr "Configurazione {0}"
 #: src/components/contacts/BulkActionsBar.tsx:187
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:203
 #: src/components/segment/button_upsert.tsx:412
-#: src/components/segment/form_leaf.tsx:186
+#: src/components/segment/form_leaf.tsx:193
 msgid "Confirm"
 msgstr "Conferma"
 
@@ -5949,7 +5959,7 @@ msgstr "Il contatto non è iscritto a questa lista"
 msgid "Contact not found"
 msgstr "Contatto non trovato"
 
-#: src/components/segment/form_leaf.tsx:316
+#: src/components/segment/form_leaf.tsx:323
 #: src/components/segment/input.tsx:62
 #: src/components/segment/table_tag.tsx:20
 msgid "Contact property"
@@ -5992,7 +6002,7 @@ msgstr "Contatto aggiornato con successo"
 msgid "Contacts"
 msgstr "Contatti"
 
-#: src/components/segment/input.tsx:440
+#: src/components/segment/input.tsx:455
 msgid "Contacts matching"
 msgstr "Contatti che soddisfano"
 
@@ -6045,7 +6055,7 @@ msgstr "Padding contenitore"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
-#: src/components/segment/form_leaf.tsx:591
+#: src/components/segment/form_leaf.tsx:598
 #: src/components/segment/segmentLabels.ts:221
 #: src/components/web_analytics/lib/filterCatalog.ts:222
 #: src/components/web_analytics/lib/filterLabels.ts:12
@@ -7201,11 +7211,11 @@ msgstr "La data è obbligatoria"
 msgid "Day"
 msgstr "Giorno"
 
-#: src/components/segment/ConditionSentence.tsx:73
-#: src/components/segment/ConditionSentence.tsx:153
+#: src/components/segment/ConditionSentence.tsx:74
+#: src/components/segment/ConditionSentence.tsx:158
 #: src/components/segment/FilterValueInput.tsx:141
 #: src/components/segment/FilterValueInput.tsx:146
-#: src/components/segment/form_leaf.tsx:229
+#: src/components/segment/form_leaf.tsx:236
 msgid "days"
 msgstr "giorni"
 
@@ -7213,7 +7223,7 @@ msgstr "giorni"
 msgid "Days"
 msgstr "Giorni"
 
-#: src/components/segment/ConditionSentence.tsx:73
+#: src/components/segment/ConditionSentence.tsx:74
 #: src/components/segment/FilterValueInput.tsx:146
 msgid "days (or never)"
 msgstr "giorni (o mai)"
@@ -7406,7 +7416,7 @@ msgstr "Ritardo"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:276
+#: src/components/segment/input.tsx:298
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -8158,7 +8168,7 @@ msgstr "La verifica DNS previene il domain squatting"
 #~ msgid "Do you really want to remove this branch?"
 #~ msgstr "Vuoi davvero rimuovere questo ramo?"
 
-#: src/components/segment/input.tsx:274
+#: src/components/segment/input.tsx:296
 msgid "Do you really want to remove this condition?"
 msgstr "Vuoi davvero rimuovere questa condizione?"
 
@@ -8167,7 +8177,7 @@ msgstr "Vuoi davvero rimuovere questa condizione?"
 #~ msgid "Do you really want to remove this filter?"
 #~ msgstr "Vuoi davvero rimuovere questo filtro?"
 
-#: src/components/segment/input.tsx:274
+#: src/components/segment/input.tsx:296
 msgid "Do you really want to remove this group?"
 msgstr "Vuoi davvero rimuovere questo gruppo?"
 
@@ -8361,7 +8371,7 @@ msgid "e.g. {0}"
 msgstr "es. {0}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:360
-#: src/components/segment/form_leaf.tsx:599
+#: src/components/segment/form_leaf.tsx:606
 msgid "e.g. /pricing"
 msgstr "es. /pricing"
 
@@ -8503,8 +8513,8 @@ msgstr "Ogni variante mantiene il mittente del suo template, a meno che tu non n
 #: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
-#: src/components/segment/input.tsx:365
-#: src/components/segment/input.tsx:369
+#: src/components/segment/input.tsx:379
+#: src/components/segment/input.tsx:383
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -8739,8 +8749,8 @@ msgstr "Modifica tema"
 #~ msgstr "Modifica tema v{0}"
 
 #: src/components/segment/input.tsx:336
-msgid "Edit this condition"
-msgstr "Modifica questa condizione"
+#~ msgid "Edit this condition"
+#~ msgstr "Modifica questa condizione"
 
 #: src/components/contacts/TrackingConsent.tsx:213
 msgid "Edit tracking consent"
@@ -9077,8 +9087,8 @@ msgid "Email:"
 msgstr "Email:"
 
 #: src/components/contacts/sheet/ContactActivityTab.tsx:36
-#: src/components/segment/form_leaf.tsx:500
-#: src/components/segment/form_leaf.tsx:501
+#: src/components/segment/form_leaf.tsx:507
+#: src/components/segment/form_leaf.tsx:508
 msgid "Emails"
 msgstr "Email"
 
@@ -9149,7 +9159,7 @@ msgstr "Vuoto"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Colonna vuota. Aggiungi contenuto testo, bottone o immagine."
 
-#: src/components/segment/input.tsx:457
+#: src/components/segment/input.tsx:472
 msgid "Empty: add a condition or a subgroup."
 msgstr "Vuoto: aggiungi una condizione o un sottogruppo."
 
@@ -9628,7 +9638,7 @@ msgstr "Errori"
 msgid "Errors ({0} of {1} shown)"
 msgstr "Errori ({0} di {1} mostrati)"
 
-#: src/components/segment/ConditionSentence.tsx:285
+#: src/components/segment/ConditionSentence.tsx:294
 msgid "event"
 msgstr "evento"
 
@@ -9671,7 +9681,7 @@ msgstr "ID evento"
 msgid "Event invitation"
 msgstr "Invito a un evento"
 
-#: src/components/segment/form_leaf.tsx:710
+#: src/components/segment/form_leaf.tsx:716
 msgid "event name"
 msgstr "nome evento"
 
@@ -10784,7 +10794,7 @@ msgstr "Condizioni di Filtro"
 msgid "Filtered by"
 msgstr "Filtrato per"
 
-#: src/components/segment/form_leaf.tsx:611
+#: src/components/segment/form_leaf.tsx:618
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
 #: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
@@ -11277,7 +11287,7 @@ msgstr "Generato dal nome finché non lo modifichi"
 msgid "Generated HTML"
 msgstr "HTML generato"
 
-#: src/components/segment/SegmentCountCard.tsx:55
+#: src/components/segment/SegmentCountCard.tsx:61
 msgid "Generated SQL:"
 msgstr "SQL Generato:"
 
@@ -11342,7 +11352,7 @@ msgid "Go to Sign In"
 msgstr "Vai al Login"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:311
-#: src/components/segment/form_leaf.tsx:663
+#: src/components/segment/form_leaf.tsx:670
 #: src/components/segment/input.tsx:65
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
@@ -11367,8 +11377,8 @@ msgstr "Dashboard degli obiettivi"
 msgid "Goal dashboard: {goalName}"
 msgstr "Dashboard dell'obiettivo: {goalName}"
 
-#: src/components/segment/ConditionSentence.tsx:279
-#: src/components/segment/form_leaf.tsx:707
+#: src/components/segment/ConditionSentence.tsx:288
+#: src/components/segment/form_leaf.tsx:713
 msgid "goal name"
 msgstr "nome obiettivo"
 
@@ -11502,7 +11512,7 @@ msgstr "Griglia"
 msgid "Groove"
 msgstr "Scanalato"
 
-#: src/components/segment/input.tsx:501
+#: src/components/segment/input.tsx:517
 msgid "Group"
 msgstr "Gruppo"
 
@@ -11526,7 +11536,7 @@ msgstr "Attributi gruppo"
 msgid "Group the acquisition channel belongs to"
 msgstr "Gruppo a cui appartiene il canale di acquisizione"
 
-#: src/components/segment/input.tsx:447
+#: src/components/segment/input.tsx:462
 msgid "Group:"
 msgstr "Gruppo:"
 
@@ -11547,8 +11557,8 @@ msgstr "Ha avuto un’email respinta"
 
 #: src/components/segment/ConditionSentence.tsx:274
 #: src/components/segment/form_leaf.tsx:681
-msgid "has"
-msgstr "ha"
+#~ msgid "has"
+#~ msgstr "ha"
 
 #: src/components/messages/MessageHistoryTab.tsx:233
 #~ msgid "Has Error"
@@ -11556,8 +11566,18 @@ msgstr "ha"
 
 #: src/components/segment/ConditionSentence.tsx:274
 #: src/components/segment/form_leaf.tsx:682
-msgid "has not"
-msgstr "non ha"
+#~ msgid "has not"
+#~ msgstr "non ha"
+
+#: src/components/segment/ConditionSentence.tsx:283
+#: src/components/segment/form_leaf.tsx:689
+msgid "has not reached"
+msgstr "non ha raggiunto"
+
+#: src/components/segment/ConditionSentence.tsx:283
+#: src/components/segment/form_leaf.tsx:688
+msgid "has reached"
+msgstr "ha raggiunto"
 
 #. placeholder {0}: int(context.minSessions)
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:56
@@ -11732,8 +11752,8 @@ msgstr "Come funziona:"
 msgid "How long to wait before proceeding to the next step"
 msgstr "Quanto tempo aspettare prima di procedere al passaggio successivo"
 
-#: src/components/segment/form_leaf.tsx:518
-#: src/components/segment/form_leaf.tsx:523
+#: src/components/segment/form_leaf.tsx:525
+#: src/components/segment/form_leaf.tsx:530
 msgid "How many"
 msgstr "Quante"
 
@@ -12159,7 +12179,7 @@ msgstr "In corso"
 msgid "In the header. Without one, the workspace logo"
 msgstr "Nell'intestazione. Senza, il logo del workspace"
 
-#: src/components/segment/ConditionSentence.tsx:151
+#: src/components/segment/ConditionSentence.tsx:156
 #: src/components/segment/segmentLabels.ts:233
 #: src/components/segment/segmentLabels.ts:316
 msgid "in the last"
@@ -12535,8 +12555,8 @@ msgstr "è maggiore di"
 msgid "is greater than or equal to"
 msgstr "è maggiore o uguale a"
 
-#: src/components/segment/ConditionSentence.tsx:200
-#: src/components/segment/form_leaf.tsx:387
+#: src/components/segment/ConditionSentence.tsx:208
+#: src/components/segment/form_leaf.tsx:394
 msgid "is in"
 msgstr "è in"
 
@@ -12557,8 +12577,8 @@ msgstr "è minore o uguale a"
 msgid "is not empty"
 msgstr "non è vuoto"
 
-#: src/components/segment/ConditionSentence.tsx:200
-#: src/components/segment/form_leaf.tsx:388
+#: src/components/segment/ConditionSentence.tsx:208
+#: src/components/segment/form_leaf.tsx:395
 msgid "is not in"
 msgstr "non è in"
 
@@ -13363,7 +13383,7 @@ msgstr "Stato nella lista"
 msgid "List Status"
 msgstr "Stato Lista"
 
-#: src/components/segment/form_leaf.tsx:373
+#: src/components/segment/form_leaf.tsx:380
 #: src/components/segment/input.tsx:63
 #: src/components/segment/table_tag.tsx:25
 msgid "List subscription"
@@ -13870,11 +13890,11 @@ msgstr "corrisponde alla regex"
 msgid "Matching"
 msgstr "Corrispondenti"
 
-#: src/components/segment/SegmentCountCard.tsx:75
+#: src/components/segment/SegmentCountCard.tsx:81
 msgid "Matching contacts"
 msgstr "Contatti corrispondenti"
 
-#: src/components/segment/SegmentCountCard.tsx:51
+#: src/components/segment/SegmentCountCard.tsx:57
 msgid "Matching contacts:"
 msgstr "Contatti corrispondenti:"
 
@@ -13910,7 +13930,7 @@ msgstr "L'intervallo massimo è di 2 anni. Le date sono lette nel fuso orario {t
 msgid "Me"
 msgstr "Io"
 
-#: src/components/segment/form_leaf.tsx:714
+#: src/components/segment/form_leaf.tsx:720
 msgid "Measure"
 msgstr "Misura"
 
@@ -14448,7 +14468,7 @@ msgstr "Nomi che gestisci tu in AWS"
 #~ msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 #~ msgstr "Dare un nome a uno slot lo rinomina ovunque compaia: dashboard, selettore di esplorazione e regole di attribuzione."
 
-#: src/components/segment/form_leaf.tsx:705
+#: src/components/segment/form_leaf.tsx:711
 msgid "Narrowed to"
 msgstr "Limitato a"
 
@@ -15873,11 +15893,11 @@ msgstr "Di un utente IAM autorizzato a inviare con SES"
 #~ msgid "of emails sent that day"
 #~ msgstr "delle email inviate quel giorno"
 
-#: src/components/segment/input.tsx:449
+#: src/components/segment/input.tsx:464
 msgid "of the conditions"
 msgstr "condizioni"
 
-#: src/components/segment/input.tsx:442
+#: src/components/segment/input.tsx:457
 msgid "of the following conditions"
 msgstr "condizioni seguenti"
 
@@ -16403,13 +16423,13 @@ msgstr "Opzioni"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
-#: src/components/segment/ConditionSentence.tsx:81
+#: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:242
 #: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "o"
 
-#: src/components/segment/input.tsx:415
+#: src/components/segment/input.tsx:430
 msgid "OR"
 msgstr "O"
 
@@ -17198,7 +17218,7 @@ msgstr "Seleziona una data"
 #~ msgid "Please select a field"
 #~ msgstr "Seleziona un campo"
 
-#: src/components/segment/form_leaf.tsx:690
+#: src/components/segment/form_leaf.tsx:696
 msgid "Please select a goal type"
 msgstr "Seleziona un tipo di obiettivo"
 
@@ -17207,7 +17227,7 @@ msgid "Please select a JSON file"
 msgstr "Seleziona un file JSON"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:203
-#: src/components/segment/form_leaf.tsx:396
+#: src/components/segment/form_leaf.tsx:403
 msgid "Please select a list"
 msgstr "Seleziona una lista"
 
@@ -17225,7 +17245,7 @@ msgid "Please select a page size"
 msgstr "Seleziona una dimensione pagina"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:231
-#: src/components/segment/form_leaf.tsx:420
+#: src/components/segment/form_leaf.tsx:427
 msgid "Please select a status"
 msgstr "Seleziona uno stato"
 
@@ -17246,7 +17266,7 @@ msgstr "Seleziona un orario"
 msgid "Please select a timezone"
 msgstr "Seleziona un fuso orario"
 
-#: src/components/segment/form_leaf.tsx:718
+#: src/components/segment/form_leaf.tsx:724
 msgid "Please select aggregate"
 msgstr "Seleziona un aggregato"
 
@@ -17254,7 +17274,7 @@ msgstr "Seleziona un aggregato"
 msgid "Please select an email template"
 msgstr "Seleziona un template email"
 
-#: src/components/segment/form_leaf.tsx:475
+#: src/components/segment/form_leaf.tsx:482
 msgid "Please select an event type"
 msgstr "Seleziona un tipo di evento"
 
@@ -17274,7 +17294,7 @@ msgstr "Seleziona un'operazione"
 msgid "Please select at least one event type"
 msgstr "Seleziona almeno un tipo di evento"
 
-#: src/components/segment/form_leaf.tsx:733
+#: src/components/segment/form_leaf.tsx:739
 msgid "Please select operator"
 msgstr "Seleziona un operatore"
 
@@ -17429,7 +17449,7 @@ msgstr "Premi Invio per confermare, Esc per annullare"
 #: src/components/common/ImageURLInput.tsx:58
 #: src/components/email_builder/EmailBuilder.tsx:1067
 #: src/components/file_manager/FileExplorer.tsx:1118
-#: src/components/segment/SegmentCountCard.tsx:110
+#: src/components/segment/SegmentCountCard.tsx:116
 #: src/components/seo/SeoPreview.tsx:36
 #: src/components/templates/TemplateSelectorInput.tsx:190
 #: src/components/templates/TemplateSelectorModal.tsx:368
@@ -17476,7 +17496,7 @@ msgstr "Anteprima di {0}"
 msgid "Preview of {templateName}"
 msgstr "Anteprima di {templateName}"
 
-#: src/components/segment/SegmentCountCard.tsx:77
+#: src/components/segment/SegmentCountCard.tsx:83
 msgid "Preview Results"
 msgstr "Anteprima Risultati"
 
@@ -17684,7 +17704,7 @@ msgstr "Profilo aggiornato: {diffs}"
 msgid "Progress"
 msgstr "Progresso"
 
-#: src/components/segment/form_leaf.tsx:794
+#: src/components/segment/form_leaf.tsx:800
 msgid "Properties"
 msgstr "Proprietà"
 
@@ -17863,8 +17883,8 @@ msgstr "Raggiungi il tuo pubblico"
 
 #: src/components/segment/ConditionSentence.tsx:275
 #: src/components/segment/form_leaf.tsx:686
-msgid "reached"
-msgstr "raggiunto"
+#~ msgid "reached"
+#~ msgstr "raggiunto"
 
 #: src/components/automations/stats/StepStats.tsx:20
 msgid "Reached"
@@ -18522,8 +18542,8 @@ msgstr "Rimuovere la condizione di visualizzazione?"
 msgid "Remove this author?"
 msgstr "Rimuovere questo autore?"
 
-#: src/components/segment/input.tsx:280
-#: src/components/segment/input.tsx:284
+#: src/components/segment/input.tsx:302
+#: src/components/segment/input.tsx:306
 msgid "Remove this condition"
 msgstr "Rimuovi questa condizione"
 
@@ -18534,8 +18554,8 @@ msgstr "Rimuovi questa condizione"
 msgid "Remove this filter"
 msgstr "Rimuovi questo filtro"
 
-#: src/components/segment/input.tsx:280
-#: src/components/segment/input.tsx:284
+#: src/components/segment/input.tsx:302
+#: src/components/segment/input.tsx:306
 msgid "Remove this group"
 msgstr "Rimuovi questo gruppo"
 
@@ -18970,7 +18990,7 @@ msgstr "Ha ritentato gli invii non riusciti della newsletter <0>{target}</0>"
 #: src/components/logs/MessageDetail.tsx:91
 #: src/components/logs/MessagesTab.tsx:798
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
-#: src/components/segment/SegmentCountCard.tsx:102
+#: src/components/segment/SegmentCountCard.tsx:108
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
 #: src/components/settings/WorkspaceMembers.tsx:497
@@ -19665,7 +19685,7 @@ msgstr "Ricerca: \"{0}\""
 msgid "Second line of the contact's address"
 msgstr "Seconda riga dell'indirizzo del contatto"
 
-#: src/components/segment/form_leaf.tsx:769
+#: src/components/segment/form_leaf.tsx:775
 msgid "Second value must be greater than first value"
 msgstr "Il secondo valore deve essere maggiore del primo valore"
 
@@ -19767,7 +19787,7 @@ msgstr "Visualizza gli schemi `message_history` ed `email_queue` elencati nel ca
 msgid "See the `webhook_deliveries` schema listed in the queryable catalogue"
 msgstr "Visualizza lo schema `webhook_deliveries` elencato nel catalogo interrogabile"
 
-#: src/components/segment/SegmentCountCard.tsx:79
+#: src/components/segment/SegmentCountCard.tsx:85
 msgid "See the query"
 msgstr "Vedi la query"
 
@@ -19889,7 +19909,7 @@ msgstr "Seleziona un file"
 #: src/components/broadcasts/compose/AudienceCard.tsx:71
 #: src/components/contacts/BulkActionsBar.tsx:197
 #: src/components/contacts/sheet/ContactListsCard.tsx:207
-#: src/components/segment/form_leaf.tsx:402
+#: src/components/segment/form_leaf.tsx:409
 msgid "Select a list"
 msgstr "Seleziona una lista"
 
@@ -20024,7 +20044,7 @@ msgstr "Seleziona template email"
 msgid "Select email template..."
 msgstr "Seleziona template email..."
 
-#: src/components/segment/form_leaf.tsx:482
+#: src/components/segment/form_leaf.tsx:489
 msgid "Select event"
 msgstr "Seleziona evento"
 
@@ -20103,7 +20123,7 @@ msgstr "Seleziona liste a cui aggiungere contatti"
 msgid "Select segments (optional)"
 msgstr "Seleziona segmenti (opzionale)"
 
-#: src/components/segment/form_leaf.tsx:426
+#: src/components/segment/form_leaf.tsx:433
 msgid "Select status"
 msgstr "Seleziona stato"
 
@@ -20145,7 +20165,7 @@ msgstr "Seleziona fuso orario"
 msgid "Select timezone..."
 msgstr "Seleziona fuso orario..."
 
-#: src/components/segment/form_leaf.tsx:695
+#: src/components/segment/form_leaf.tsx:701
 msgid "Select type"
 msgstr "Seleziona tipo"
 
@@ -21471,7 +21491,7 @@ msgstr "Sorgente"
 #~ msgid "source {0} not found"
 #~ msgstr "sorgente {0} non trovata"
 
-#: src/components/segment/input.tsx:301
+#: src/components/segment/input.tsx:323
 msgid "source {source} not found"
 msgstr "origine {source} non trovata"
 
@@ -21518,7 +21538,7 @@ msgstr "SparkPost"
 msgid "Split"
 msgstr "Dividi"
 
-#: src/components/segment/SegmentCountCard.tsx:63
+#: src/components/segment/SegmentCountCard.tsx:69
 msgid "SQL Arguments:"
 msgstr "Argomenti SQL:"
 
@@ -22135,7 +22155,7 @@ msgstr "Telemetria"
 msgid "Tell your systems when something changes"
 msgstr "Avvisa i tuoi sistemi quando qualcosa cambia"
 
-#: src/components/segment/ConditionSentence.tsx:241
+#: src/components/segment/ConditionSentence.tsx:249
 msgid "template"
 msgstr "template"
 
@@ -22146,7 +22166,7 @@ msgstr "template"
 #: src/components/logs/MessagesTab.tsx:474
 #: src/components/messages/MessageHistoryTable.tsx:156
 #: src/components/messages/MessageHistoryTable.tsx:242
-#: src/components/segment/form_leaf.tsx:558
+#: src/components/segment/form_leaf.tsx:565
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
 #: src/pages/TemplatesPage.tsx:380
@@ -22718,7 +22738,7 @@ msgstr "Il periodo di confronto come colonne aggiuntive"
 msgid "The confirmation email each new subscriber receives"
 msgstr "L'email di conferma che riceve ogni nuovo iscritto"
 
-#: src/components/segment/form_leaf.tsx:668
+#: src/components/segment/form_leaf.tsx:675
 msgid "The contact"
 msgstr "Il contatto"
 
@@ -22770,11 +22790,11 @@ msgstr "Lo stato o la regione del contatto"
 msgid "The contact's time zone"
 msgstr "Il fuso orario del contatto"
 
-#: src/components/segment/SegmentCountCard.tsx:100
+#: src/components/segment/SegmentCountCard.tsx:106
 msgid "The count failed."
 msgstr "Il conteggio non è riuscito."
 
-#: src/components/segment/form_leaf.tsx:180
+#: src/components/segment/form_leaf.tsx:187
 msgid "The count follows what you write."
 msgstr "Il conteggio segue ciò che scrivi."
 
@@ -23125,7 +23145,7 @@ msgstr "Il template di questo messaggio non è disponibile"
 msgid "The template has no unsubscribe link ({languages})"
 msgstr "Il modello non ha un link di disiscrizione ({languages})"
 
-#: src/components/segment/form_leaf.tsx:564
+#: src/components/segment/form_leaf.tsx:571
 msgid "The template of the emails this condition counts"
 msgstr "Il template delle email conteggiate da questa condizione"
 
@@ -23431,10 +23451,10 @@ msgstr "Questo evento si attiva spesso. Queste condizioni vengono valutate per o
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Questa funzionalità effettua una richiesta HTTP per ogni destinatario prima di inviare la sua email. Questo può rallentare significativamente l'elaborazione del broadcast. Se la richiesta del feed fallisce dopo i tentativi, il broadcast verrà messo in pausa automaticamente."
 
-#: src/components/segment/form_leaf.tsx:196
-#: src/components/segment/form_leaf.tsx:382
-#: src/components/segment/form_leaf.tsx:533
-#: src/components/segment/form_leaf.tsx:647
+#: src/components/segment/form_leaf.tsx:203
+#: src/components/segment/form_leaf.tsx:389
+#: src/components/segment/form_leaf.tsx:540
+#: src/components/segment/form_leaf.tsx:654
 msgid "This field is required"
 msgstr "Questo campo è obbligatorio"
 
@@ -23803,8 +23823,7 @@ msgstr "Andamenti temporali"
 #~ msgid "Timeline"
 #~ msgstr "Cronologia"
 
-#: src/components/segment/ConditionSentence.tsx:234
-#: src/components/segment/form_leaf.tsx:537
+#: src/components/segment/form_leaf.tsx:544
 msgid "times"
 msgstr "volte"
 
@@ -25237,7 +25256,7 @@ msgstr "Errore di validazione"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:251
-#: src/components/segment/form_leaf.tsx:750
+#: src/components/segment/form_leaf.tsx:756
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
 #: src/components/web_analytics/FilterBuilder.tsx:333
@@ -25254,7 +25273,7 @@ msgstr "Valore"
 msgid "Value {value}"
 msgstr "Valore {value}"
 
-#: src/components/segment/form_leaf.tsx:780
+#: src/components/segment/form_leaf.tsx:786
 msgid "Value 2"
 msgstr "Valore 2"
 
@@ -25751,8 +25770,8 @@ msgid "Webhooks registered successfully"
 msgstr "Webhook registrati con successo"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:113
-#: src/components/segment/form_leaf.tsx:507
-#: src/components/segment/form_leaf.tsx:508
+#: src/components/segment/form_leaf.tsx:514
+#: src/components/segment/form_leaf.tsx:515
 #: src/components/settings/GeneralSettings.tsx:228
 #: src/components/settings/GeneralSettings.tsx:344
 msgid "Website"
@@ -25851,7 +25870,7 @@ msgstr "Benvenuto nell'Email Builder!"
 msgid "Welcomes a new subscriber with three first steps."
 msgstr "Accoglie un nuovo iscritto con tre primi passi."
 
-#: src/components/segment/form_leaf.tsx:471
+#: src/components/segment/form_leaf.tsx:478
 msgid "What"
 msgstr "Cosa"
 
@@ -25872,9 +25891,9 @@ msgstr "Cosa viene esportato"
 msgid "What's new since {current}"
 msgstr "Novità dalla {current}"
 
-#: src/components/segment/form_leaf.tsx:203
-#: src/components/segment/form_leaf.tsx:540
-#: src/components/segment/form_leaf.tsx:788
+#: src/components/segment/form_leaf.tsx:210
+#: src/components/segment/form_leaf.tsx:547
+#: src/components/segment/form_leaf.tsx:794
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:40
 msgid "When"
 msgstr "Quando"
@@ -26114,7 +26133,7 @@ msgstr "Con un obiettivo"
 #~ msgid "With Errors"
 #~ msgstr "Con errori"
 
-#: src/components/segment/ConditionSentence.tsx:262
+#: src/components/segment/ConditionSentence.tsx:270
 msgid "with filters"
 msgstr "con filtri"
 
@@ -26126,7 +26145,7 @@ msgstr "Senza condizioni, questa regola corrisponde a ogni visita."
 msgid "With no condition, this rule runs on every session."
 msgstr "Senza condizioni, questa regola viene eseguita su ogni sessione."
 
-#: src/components/segment/ConditionSentence.tsx:308
+#: src/components/segment/ConditionSentence.tsx:317
 msgid "with properties"
 msgstr "con proprietà"
 
@@ -26134,8 +26153,8 @@ msgstr "con proprietà"
 #~ msgid "With stats"
 #~ msgstr "Con statistiche"
 
-#: src/components/segment/ConditionSentence.tsx:204
-#: src/components/segment/form_leaf.tsx:416
+#: src/components/segment/ConditionSentence.tsx:212
+#: src/components/segment/form_leaf.tsx:423
 msgid "with status"
 msgstr "con stato"
 

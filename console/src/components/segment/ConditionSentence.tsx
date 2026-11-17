@@ -3,6 +3,7 @@ import { Fragment } from 'react'
 import { Tooltip } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 import type {
   ContactListCondition,
   ContactTimelineCondition,
@@ -13,7 +14,7 @@ import type {
 } from '../../services/api/segment'
 import { broadcastApi } from '../../services/api/broadcast'
 import { JsonPathTokens, SentenceLine, Token, Word } from './conditionUi'
-import { valueKindOf } from './filterOperators'
+import { isKnownOperator, valueKindOf } from './filterOperators'
 import {
   AGGREGATE_LABELS,
   COUNT_OPERATOR_LABELS,
@@ -111,7 +112,11 @@ export function FilterSentence({
         </span>
       </Tooltip>
       <JsonPathTokens path={filter.json_path} />
-      <Word>{operatorLabel(filter.operator, i18n)}</Word>
+      {isKnownOperator(filter.operator) ? (
+        <Word>{operatorLabel(filter.operator, i18n)}</Word>
+      ) : (
+        <Token tone="negative">{filter.operator}</Token>
+      )}
       <FilterValues filter={filter} schema={schema} />
     </>
   )
@@ -176,8 +181,11 @@ function Timeframe({ operator, values }: { operator?: string; values?: string[] 
           <Token tone="value">{formatInstant(values?.[0], i18n)}</Token>
         </>
       )
-    default:
+    case undefined:
+    case 'anytime':
       return <Word>{t`anytime`}</Word>
+    default:
+      return <Token tone="negative">{operator}</Token>
   }
 }
 
@@ -231,7 +239,7 @@ function ActivitySentence({ condition, props }: { condition: ContactTimelineCond
         <Token tone={kindLabel ? 'field' : 'negative'}>{kindLabel ? i18n._(kindLabel) : condition.kind || '?'}</Token>
         <Token tone="plain">{labelOf(COUNT_OPERATOR_LABELS, condition.count_operator, i18n)}</Token>
         <Token tone="value">{condition.count_value}</Token>
-        <Word>{t`times`}</Word>
+        <Word>{plural(condition.count_value, { one: 'time', other: 'times' })}</Word>
         <Timeframe operator={condition.timeframe_operator} values={condition.timeframe_values} />
       </SentenceLine>
       {narrowing && (
@@ -271,8 +279,9 @@ function GoalSentence({ condition }: { condition: CustomEventsGoalCondition }) {
   return (
     <>
       <SentenceLine>
-        <Token tone={condition.negate ? 'negative' : 'plain'}>{condition.negate ? t`has not` : t`has`}</Token>
-        <Word>{t`reached`}</Word>
+        <Token tone={condition.negate ? 'negative' : 'plain'}>
+          {condition.negate ? t`has not reached` : t`has reached`}
+        </Token>
         <Token tone="field">{labelOf(GOAL_LABELS, condition.goal_type, i18n)}</Token>
         {condition.goal_name && (
           <>

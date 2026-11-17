@@ -1,4 +1,4 @@
-import { Dispatch, ReactNode, SetStateAction, useEffect, useState } from 'react'
+import { Dispatch, ReactNode, SetStateAction, useEffect, useRef, useState } from 'react'
 import { cloneDeep } from 'lodash'
 import { Button, DatePicker, Form, Input, InputNumber, Segmented, Select } from 'antd'
 import type { FormInstance } from 'antd'
@@ -168,13 +168,20 @@ function EditorShell({
   showsDraftHint: boolean
 }) {
   const { t } = useLingui()
+  // The keyboard lands on the first field of the condition as it opens.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    bodyRef.current?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled])')?.focus()
+  }, [])
   return (
     <div className="rounded-lg border border-primary-400 bg-surface shadow-card">
       <div className="flex items-center gap-2.5 border-b border-line-soft px-3 py-2.5">
         <ConditionIcon tone={tone} icon={icon} />
         <span className="font-semibold text-ink">{title}</span>
       </div>
-      <div className="p-3">{children}</div>
+      <div ref={bodyRef} className="p-3">
+        {children}
+      </div>
       <div className="flex items-center justify-end gap-2 rounded-b-lg border-t border-line-soft bg-subtle px-3 py-2.5">
         {showsDraftHint && (
           <span className="mr-auto text-xs text-ink-3">{t`The count follows what you write.`}</span>
@@ -678,12 +685,11 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
             <Segmented
               size="small"
               options={[
-                { value: 'has', label: t`has` },
-                { value: 'has_not', label: t`has not` }
+                { value: 'has', label: t`has reached` },
+                { value: 'has_not', label: t`has not reached` }
               ]}
             />
           </Form.Item>
-          <span className="text-ink-2">{t`reached`}</span>
           <Form.Item
             noStyle
             name={['custom_events_goal', 'goal_type']}

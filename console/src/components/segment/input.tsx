@@ -98,6 +98,28 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     onDraftTreeChangeRef.current?.(undefined)
   }, [editingNodeLeaf])
 
+  // Where the keyboard goes back to once the open condition closes: its pen button, or the add
+  // button of its group when it is gone (a new condition cancelled, a condition deleted).
+  const rootRef = useRef<HTMLDivElement>(null)
+  const lastOpenedRef = useRef<{ path: string; key: number } | undefined>(undefined)
+  useEffect(() => {
+    if (editingNodeLeaf) {
+      lastOpenedRef.current = { path: editingNodeLeaf.path, key: editingNodeLeaf.key }
+      return
+    }
+    const last = lastOpenedRef.current
+    lastOpenedRef.current = undefined
+    const root = rootRef.current
+    if (!last || !root) return
+    // Only when focus went down with the editor that just closed: never steal it from elsewhere.
+    const active = document.activeElement
+    if (active && active !== document.body) return
+    const target =
+      root.querySelector<HTMLElement>(`[data-edit-condition="${last.path}[${last.key}]"]`) ??
+      root.querySelector<HTMLElement>(`[data-add-condition="${last.path}"]`)
+    target?.focus()
+  }, [editingNodeLeaf])
+
   const onDraftLeafChange = (draftLeaf: TreeNode, path: string, pathKey: number) => {
     if (!props.onDraftTreeChange || !props.value) return
 
@@ -330,23 +352,15 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
     const title = SOURCE_TITLES[source]
     return (
+      // A mouse convenience: the pen button is how a keyboard (or a screen reader, which reads the
+      // sentence as it is) opens the condition.
       <div
-        role="button"
-        tabIndex={0}
-        aria-label={t`Edit this condition`}
         className="group flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-primary-300"
         // Only clicks on the row itself: the delete confirmation renders in a portal, and React
         // bubbles its Delete and Cancel through here, which opened the row on a stale tree.
         onClick={(event) => {
           if (!event.currentTarget.contains(event.target as Node)) return
           editNode(path, pathKey)
-        }}
-        onKeyDown={(event) => {
-          if (event.target !== event.currentTarget) return
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            editNode(path, pathKey)
-          }
         }}
       >
         <ConditionIcon tone={source as ConditionTone} icon={schema.icon} />
@@ -367,6 +381,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               type="text"
               size="small"
               aria-label={t`Edit`}
+              data-edit-condition={`${path}[${pathKey}]`}
               icon={<FontAwesomeIcon icon={faPenToSquare} />}
               onClick={(event) => {
                 event.stopPropagation()
@@ -486,6 +501,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                 type="primary"
                 ghost={node.branch.leaves.length > 0}
                 disabled={isEditing}
+                data-add-condition={conditionPath}
                 icon={<FontAwesomeIcon icon={faPlus} />}
               >
                 {t`Condition`}
@@ -510,5 +526,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     return <span>{t`A value is required...`}</span>
   }
 
-  return <div className="pt-2">{renderBranch(props.value, '', 0, 0)}</div>
+  return (
+    <div ref={rootRef} className="pt-2">
+      {renderBranch(props.value, '', 0, 0)}
+    </div>
+  )
 }

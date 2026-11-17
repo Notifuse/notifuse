@@ -40,10 +40,16 @@ export function SegmentCountCard({
 }: SegmentCountCardProps) {
   const { t, i18n } = useLingui()
   const count = response?.total_count
-  const ratio = count !== undefined && totalContacts ? count / totalContacts : undefined
+  // The workspace total is cached, the count is fresh: a segment can briefly hold more than it
+  const ratio = count !== undefined && totalContacts ? Math.min(1, count / totalContacts) : undefined
   const format = new Intl.NumberFormat(i18n.locale, { maximumFractionDigits: 1 })
-  const percent = ratio !== undefined ? format.format(ratio * 100) : undefined
-  const total = totalContacts !== undefined ? format.format(totalContacts) : undefined
+  const percent =
+    ratio === undefined
+      ? undefined
+      : ratio > 0 && ratio < 0.001
+        ? `< ${format.format(0.1)}`
+        : format.format(ratio * 100)
+  const total = totalContacts !== undefined ? format.format(totalContacts) : ''
 
   const query = response ? (
     <div className="flex max-h-[600px] w-[600px] flex-col gap-2 overflow-auto">
@@ -74,7 +80,7 @@ export function SegmentCountCard({
       <div className="flex items-center justify-between gap-2">
         <span className="text-overline font-semibold tracking-wide text-ink-3 uppercase">{t`Matching contacts`}</span>
         {query && (
-          <Popover title={t`Preview Results`} placement="left" content={query}>
+          <Popover title={t`Preview Results`} placement="left" content={query} trigger={['hover', 'focus', 'click']}>
             <button type="button" className="cursor-pointer text-xs text-ink-3 hover:text-primary-700">
               {t`See the query`}
             </button>
@@ -93,7 +99,7 @@ export function SegmentCountCard({
 
       {/* One line, whatever the state, so the card keeps its height */}
       <div className="min-h-5 text-xs text-ink-3">
-        {error ? (
+        {error && canCount ? (
           <Tooltip title={error}>
             <span className="inline-flex items-center gap-1.5 text-warning-fg">
               <FontAwesomeIcon icon={faTriangleExclamation} />
@@ -103,14 +109,17 @@ export function SegmentCountCard({
               </button>
             </span>
           </Tooltip>
-        ) : blocked ? (
+        ) : blocked || error ? (
           t`Complete the condition to refresh the count`
         ) : count === undefined ? (
           <Button size="small" onClick={onCount} disabled={!canCount || refreshing}>
             {t`Preview`}
           </Button>
         ) : percent !== undefined ? (
-          t`${percent} % of the ${total} contacts`
+          plural(totalContacts ?? 0, {
+            one: `${percent} % of ${total} contact`,
+            other: `${percent} % of ${total} contacts`
+          })
         ) : null}
       </div>
     </div>
