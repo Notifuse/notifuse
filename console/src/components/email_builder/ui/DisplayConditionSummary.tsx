@@ -130,7 +130,8 @@ export const DisplayConditionSummary: React.FC<DisplayConditionSummaryProps> = (
             <Tooltip title={liquidInside ? liquidMessage : undefined}>
               <Button
                 size="small"
-                type="dashed"
+                type="primary"
+                ghost
                 disabled={liquidInside}
                 icon={<FontAwesomeIcon icon={faPlus} />}
                 onClick={() => setOpen(true)}

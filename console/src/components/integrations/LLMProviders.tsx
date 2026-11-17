@@ -1,5 +1,6 @@
 import React from 'react'
 import { IntegrationType, LLMProviderKind } from '../../services/api/types'
+import { ANTHROPIC_DEFAULT_MODEL, GEMINI_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL } from './llmModels'
 
 export interface LLMProviderInfo {
   type: IntegrationType
@@ -38,7 +39,7 @@ export const llmProviders: LLMProviderInfo[] = [
     type: 'llm',
     kind: 'anthropic',
     name: 'Anthropic',
-    defaultModel: 'claude-sonnet-4-6',
+    defaultModel: ANTHROPIC_DEFAULT_MODEL,
     getIcon: (className = '', size: 'small' | 'large' | number = 'small') => {
       const height = typeof size === 'number' ? size : size === 'small' ? 12 : 18
       // Wide wordmark logo needs max-width to prevent it being too wide
@@ -57,7 +58,7 @@ export const llmProviders: LLMProviderInfo[] = [
     type: 'llm',
     kind: 'openai',
     name: 'OpenAI',
-    defaultModel: 'gpt-4.1',
+    defaultModel: OPENAI_DEFAULT_MODEL,
     getIcon: (className = '', size: 'small' | 'large' | number = 'small') => {
       const height = typeof size === 'number' ? size : size === 'small' ? 12 : 18
       const maxWidth = height * 5
@@ -75,7 +76,7 @@ export const llmProviders: LLMProviderInfo[] = [
     type: 'llm',
     kind: 'gemini',
     name: 'Google Gemini',
-    defaultModel: 'gemini-3.1-pro-preview',
+    defaultModel: GEMINI_DEFAULT_MODEL,
     getIcon: (className = '', size: 'small' | 'large' | number = 'small') => {
       const height = typeof size === 'number' ? size : size === 'small' ? 12 : 18
       // Wide wordmark logo (the spark + "Gemini"); constrain width like the other providers

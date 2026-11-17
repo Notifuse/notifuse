@@ -71,7 +71,6 @@ const baseProps: AIAssistantChatProps = {
   inputValue: '',
   setInputValue: vi.fn(),
   isStreaming: false,
-  costs: { input: 0, output: 0, total: 0 },
   inputContainerRef: { current: null },
   llmIntegration,
   llmIntegrations: [llmIntegration],
@@ -107,6 +106,12 @@ describe('AIAssistantChat', () => {
     // The user bubble is placed at the end of the row, the assistant one at the start.
     expect(container.querySelectorAll('.ant-bubble-end')).toHaveLength(1)
     expect(container.querySelectorAll('.ant-bubble-start')).toHaveLength(1)
+  })
+
+  it('shows no cost under the conversation', () => {
+    renderChat({ bubbleItems: [{ key: 'm1', role: 'ai', content: 'Here is a draft.' }] })
+    expect(screen.getByRole('button', { name: 'New conversation' })).toBeInTheDocument()
+    expect(screen.queryByText(/Cost/)).toBeNull()
   })
 
   it('renders assistant content as markdown', () => {

@@ -32,7 +32,7 @@ func (s *LLMService) streamChatGemini(
 	}
 	model := settings.Model
 	if model == "" {
-		model = "gemini-3.1-pro-preview" // Default model
+		model = "gemini-4-argon" // Default model
 	}
 
 	// Create Gemini client (Gemini Developer API backend)

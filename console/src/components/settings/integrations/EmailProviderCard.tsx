@@ -14,6 +14,7 @@ import { INBOUND_REPLY_PROVIDER_KINDS } from '../../../services/api/automation'
 import { emailProviders, getProviderName } from '../../integrations/EmailProviders'
 import { KeyValueList, Mono, Pill } from '../../layout'
 import { IntegrationCard } from './IntegrationCard'
+import { DeprecatedPill } from './DeprecatedPill'
 import { providerDetails, transactionalEmailOnly } from './providerDetails'
 
 export type EmailIntegration = Integration & { email_provider: EmailProvider }
@@ -229,8 +230,9 @@ export function EmailProviderCard({
   ]
 
   const providerName = getProviderName(provider.kind)
+  // An SMTP server's card names no provider: "SMTP" says nothing its logo does not
   const subtitle = [
-    integration.name !== providerName ? providerName : null,
+    provider.kind !== 'smtp' && integration.name !== providerName ? providerName : null,
     !isMarketing && !isTransactional ? t`Not assigned` : null
   ]
     .filter(Boolean)
@@ -321,6 +323,7 @@ export function EmailProviderCard({
       titleTooltip={integration.id}
       pills={
         <>
+          <DeprecatedPill kind={provider.kind} />
           {isMarketing ? (
             <Pill tone="primary" dot={false}>
               {t`Default marketing`}
@@ -339,7 +342,8 @@ export function EmailProviderCard({
         isOwner ? (
           <>
             <Button
-              type="text"
+              type="primary"
+              ghost
               icon={<Send size={14} aria-hidden="true" />}
               onClick={() => onTest(integration.id)}
             >

@@ -33,6 +33,9 @@ const BASIC_TYPES: MJMLComponentType[] = [
   'mj-liquid'
 ]
 
+// The search shows once the library holds more saved blocks than this
+const SEARCH_ABOVE = 10
+
 // Case and accents do not count in a search
 const searchable = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
@@ -117,6 +120,8 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
   const refusalText = useInsertRefusal()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  // A short library needs no search; a search under way stays until it is cleared
+  const searchShown = savedBlocks.length > SEARCH_ABOVE || search !== ''
   const headKey = useMemo(() => headKeyOf(emailTree), [emailTree])
 
   // A card just changed stays listed, highlighted, until the search or the filter changes, so a
@@ -239,14 +244,16 @@ export const LibraryPanel: React.FC<LibraryPanelProps> = ({
     <div ref={rootRef} className="px-4 pb-8" data-testid="library-panel">
       {savedBlocks.length > 0 ? (
         <>
-          <Input
-            allowClear
-            size="small"
-            className="!mb-3"
-            placeholder={t`Search saved blocks`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          {searchShown && (
+            <Input
+              allowClear
+              size="small"
+              className="!mb-3"
+              placeholder={t`Search saved blocks`}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          )}
           <div className="mb-2 flex items-center justify-between">
             <div className="text-sm font-bold text-gray-900">
               {t`Saved blocks`} <span className="font-normal text-gray-500">({items.length})</span>
