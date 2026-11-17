@@ -72,7 +72,7 @@ export function SegmentCountCard({
   return (
     <div className="rounded-lg border border-line bg-subtle px-3.5 py-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-overline font-semibold tracking-wide text-ink-3 uppercase">{t`Contacts matching`}</span>
+        <span className="text-overline font-semibold tracking-wide text-ink-3 uppercase">{t`Matching contacts`}</span>
         {query && (
           <Popover title={t`Preview Results`} placement="left" content={query}>
             <button type="button" className="cursor-pointer text-xs text-ink-3 hover:text-primary-700">

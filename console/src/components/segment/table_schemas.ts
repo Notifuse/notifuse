@@ -499,10 +499,10 @@ export const CustomEventsGoalsTableSchema: TableSchema = {
  * internal/repository/web_analytics_timeline_projection.go.
  *
  * Boolean keys (is_landing, is_exit, is_direct) are deliberately absent. The
- * filter UI has no boolean renderer and never reads a field's `options`, so they
- * would render as free text matching only the literals 'true'/'false' — and
- * each is already expressible as a string: entry and exit pages through the
- * visit's landing_path / exit_path, a direct visit through channel.
+ * filter UI has no boolean input, so they would render as free text matching only
+ * the literals 'true'/'false' — and each is already expressible as a string:
+ * entry and exit pages through the visit's landing_path / exit_path, a direct
+ * visit through channel. A field's `options` turn its value into a list.
  */
 
 export const WebPageviewChangesSchema: TableSchema = {
@@ -693,7 +693,9 @@ export const WebSessionChangesSchema: TableSchema = {
       title: 'Country',
       description: 'Country the visit came from',
       type: 'string',
-      shown: true
+      shown: true,
+      // The projection writes the two-letter code, as the contact's country holds it
+      options: CountriesFormOptions
     }
   }
 }

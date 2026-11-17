@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { FilterRow } from './FilterRow'
-import { ContactsTableSchema } from './table_schemas'
+import { ContactsTableSchema, WebSessionChangesSchema } from './table_schemas'
 import type { DimensionFilter } from '../../services/api/segment'
 
 class ResizeObserverStub {
@@ -102,6 +102,47 @@ describe('FilterRow', () => {
     fireEvent.change(input, { target: { value: 'yahoo' } })
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
     await waitFor(() => expect(latest.value.string_values).toEqual(['gmail', 'yahoo']))
+  })
+
+  it('keeps each value as typed, trimmed, commas included', async () => {
+    const { latest } = renderRow({ field_name: 'job_title', field_type: 'string', operator: 'contains' })
+    const input = comboboxes()[2]
+    fireEvent.change(input, { target: { value: 'Director, Sales ' } })
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
+    await waitFor(() => expect(latest.value.string_values).toEqual(['Director, Sales']))
+  })
+
+  it('picks the country of a web visit from the list', async () => {
+    const latest: { value?: DimensionFilter } = {}
+    const Wrapper = () => {
+      const [filter, setFilter] = useState<DimensionFilter>({
+        field_name: 'country',
+        field_type: 'string',
+        operator: 'equals'
+      })
+      return (
+        <FilterRow
+          schema={WebSessionChangesSchema}
+          filter={filter}
+          onChange={(next) => {
+            latest.value = next
+            setFilter(next)
+          }}
+          onDelete={vi.fn()}
+        />
+      )
+    }
+    render(
+      <I18nProvider i18n={i18n}>
+        <Wrapper />
+      </I18nProvider>
+    )
+    openAt(2)
+    fireEvent.change(comboboxes()[2], { target: { value: 'France' } })
+    fireEvent.click(await screen.findByTitle('FR - France'))
+    await waitFor(() => expect(latest.value?.string_values).toEqual(['FR']))
   })
 
   it('picks a country from the list', async () => {

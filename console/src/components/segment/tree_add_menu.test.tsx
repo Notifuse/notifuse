@@ -138,3 +138,39 @@ describe('TreeNodeInput — while a condition is open', () => {
     expect(screen.queryByRole('button', { name: 'Remove this group' })).toBeNull()
   })
 })
+
+describe('TreeNodeInput — deleting', () => {
+  const confirmDelete = async (index: number) => {
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove this condition' })[index])
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+  }
+
+  // The confirmation renders in a portal, but React bubbles its clicks through the clickable row:
+  // they used to open the row being deleted, on the tree from before the delete.
+  it('deletes the condition confirmed, and opens nothing', async () => {
+    const latest = renderTree(treeOf(listLeaf('news'), listLeaf('beta')))
+    await confirmDelete(0)
+
+    await waitFor(() => expect(latest.tree.branch?.leaves).toEqual([listLeaf('beta')]))
+    expect(screen.queryByText('Confirm')).toBeNull()
+    expect(addButton()).toBeEnabled()
+  })
+
+  it('leaves the editor closed after deleting the last condition', async () => {
+    const latest = renderTree(treeOf(listLeaf('news')))
+    await confirmDelete(0)
+
+    await waitFor(() => expect(latest.tree.branch?.leaves).toEqual([]))
+    expect(addButton()).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Group' })).toBeEnabled()
+  })
+
+  it('opens nothing when the delete is cancelled', async () => {
+    const latest = renderTree(treeOf(listLeaf('news')))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove this condition' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByText('Confirm')).toBeNull()
+    expect(latest.tree.branch?.leaves).toEqual([listLeaf('news')])
+  })
+})

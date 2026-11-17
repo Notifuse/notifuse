@@ -267,6 +267,8 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
   }
 
   const deleteButton = (path: string, pathKey: number, isBranch: boolean) => (
+    // Stops the clicks of the confirmation too, so they never reach a clickable row around it
+    <span onClick={(event) => event.stopPropagation()}>
     <Popconfirm
       placement="left"
       title={isBranch ? t`Do you really want to remove this group?` : t`Do you really want to remove this condition?`}
@@ -281,10 +283,10 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
           size="small"
           aria-label={isBranch ? t`Remove this group` : t`Remove this condition`}
           icon={<FontAwesomeIcon icon={faTrashCan} />}
-          onClick={(event) => event.stopPropagation()}
         />
       </Tooltip>
     </Popconfirm>
+    </span>
   )
 
   const renderLeaf = (node: TreeNode, path: string, pathKey: number) => {
@@ -333,7 +335,12 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
         tabIndex={0}
         aria-label={t`Edit this condition`}
         className="group flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-primary-300"
-        onClick={() => editNode(path, pathKey)}
+        // Only clicks on the row itself: the delete confirmation renders in a portal, and React
+        // bubbles its Delete and Cancel through here, which opened the row on a stale tree.
+        onClick={(event) => {
+          if (!event.currentTarget.contains(event.target as Node)) return
+          editNode(path, pathKey)
+        }}
         onKeyDown={(event) => {
           if (event.target !== event.currentTarget) return
           if (event.key === 'Enter' || event.key === ' ') {

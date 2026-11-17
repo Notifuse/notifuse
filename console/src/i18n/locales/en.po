@@ -1699,7 +1699,7 @@ msgstr "90 days"
 msgid "900 - Black"
 msgstr "900 - Black"
 
-#: src/components/segment/input.tsx:403
+#: src/components/segment/input.tsx:410
 msgid "A branch condition is required..."
 msgstr "A branch condition is required..."
 
@@ -1855,7 +1855,7 @@ msgstr "A square image, shown next to the workspace name"
 msgid "A tree is required"
 msgstr "A tree is required"
 
-#: src/components/segment/input.tsx:503
+#: src/components/segment/input.tsx:510
 msgid "A value is required..."
 msgstr "A value is required..."
 
@@ -2569,7 +2569,7 @@ msgstr "Align to top"
 msgid "Alignment"
 msgstr "Alignment"
 
-#: src/components/segment/input.tsx:416
+#: src/components/segment/input.tsx:423
 msgid "all"
 msgstr "all"
 
@@ -2881,7 +2881,7 @@ msgstr "and"
 
 #: src/components/segment/ConditionSentence.tsx:136
 #: src/components/segment/input_dimension_filters.tsx:49
-#: src/components/segment/input.tsx:408
+#: src/components/segment/input.tsx:415
 msgid "AND"
 msgstr "AND"
 
@@ -3321,7 +3321,7 @@ msgstr "At a date and time you choose"
 msgid "at least"
 msgstr "at least"
 
-#: src/components/segment/input.tsx:417
+#: src/components/segment/input.tsx:424
 msgid "at least one"
 msgstr "at least one"
 
@@ -4634,7 +4634,7 @@ msgstr "Can't test in the browser"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/button_upsert.tsx:403
 #: src/components/segment/form_leaf.tsx:183
-#: src/components/segment/input.tsx:276
+#: src/components/segment/input.tsx:278
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5648,7 +5648,7 @@ msgstr "condition"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:361
 #: src/components/segment/FilterRow.tsx:206
-#: src/components/segment/input.tsx:484
+#: src/components/segment/input.tsx:491
 msgid "Condition"
 msgstr "Condition"
 
@@ -5992,8 +5992,7 @@ msgstr "Contact updated successfully"
 msgid "Contacts"
 msgstr "Contacts"
 
-#: src/components/segment/input.tsx:433
-#: src/components/segment/SegmentCountCard.tsx:75
+#: src/components/segment/input.tsx:440
 msgid "Contacts matching"
 msgstr "Contacts matching"
 
@@ -7204,8 +7203,8 @@ msgstr "Day"
 
 #: src/components/segment/ConditionSentence.tsx:73
 #: src/components/segment/ConditionSentence.tsx:153
-#: src/components/segment/FilterValueInput.tsx:138
-#: src/components/segment/FilterValueInput.tsx:143
+#: src/components/segment/FilterValueInput.tsx:141
+#: src/components/segment/FilterValueInput.tsx:146
 #: src/components/segment/form_leaf.tsx:229
 msgid "days"
 msgstr "days"
@@ -7215,7 +7214,7 @@ msgid "Days"
 msgstr "Days"
 
 #: src/components/segment/ConditionSentence.tsx:73
-#: src/components/segment/FilterValueInput.tsx:143
+#: src/components/segment/FilterValueInput.tsx:146
 msgid "days (or never)"
 msgstr "days (or never)"
 
@@ -7407,7 +7406,7 @@ msgstr "Delay"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:274
+#: src/components/segment/input.tsx:276
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -8159,7 +8158,7 @@ msgstr "DNS verification prevents domain squatting"
 #~ msgid "Do you really want to remove this branch?"
 #~ msgstr "Do you really want to remove this branch?"
 
-#: src/components/segment/input.tsx:272
+#: src/components/segment/input.tsx:274
 msgid "Do you really want to remove this condition?"
 msgstr "Do you really want to remove this condition?"
 
@@ -8168,7 +8167,7 @@ msgstr "Do you really want to remove this condition?"
 #~ msgid "Do you really want to remove this filter?"
 #~ msgstr "Do you really want to remove this filter?"
 
-#: src/components/segment/input.tsx:272
+#: src/components/segment/input.tsx:274
 msgid "Do you really want to remove this group?"
 msgstr "Do you really want to remove this group?"
 
@@ -8504,8 +8503,8 @@ msgstr "Each variation keeps its template's sender unless you choose another one
 #: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
-#: src/components/segment/input.tsx:358
-#: src/components/segment/input.tsx:362
+#: src/components/segment/input.tsx:365
+#: src/components/segment/input.tsx:369
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -8739,7 +8738,7 @@ msgstr "Edit theme"
 #~ msgid "Edit Theme v{0}"
 #~ msgstr "Edit Theme v{0}"
 
-#: src/components/segment/input.tsx:334
+#: src/components/segment/input.tsx:336
 msgid "Edit this condition"
 msgstr "Edit this condition"
 
@@ -9150,7 +9149,7 @@ msgstr "Empty"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Empty column. Add text, button, or image content."
 
-#: src/components/segment/input.tsx:450
+#: src/components/segment/input.tsx:457
 msgid "Empty: add a condition or a subgroup."
 msgstr "Empty: add a condition or a subgroup."
 
@@ -9311,7 +9310,7 @@ msgstr "Enter a name for this integration"
 msgid "Enter a name for your workspace"
 msgstr "Enter a name for your workspace"
 
-#: src/components/segment/FilterValueInput.tsx:92
+#: src/components/segment/FilterValueInput.tsx:95
 msgid "Enter a number"
 msgstr "Enter a number"
 
@@ -11503,7 +11502,7 @@ msgstr "Grid"
 msgid "Groove"
 msgstr "Groove"
 
-#: src/components/segment/input.tsx:494
+#: src/components/segment/input.tsx:501
 msgid "Group"
 msgstr "Group"
 
@@ -11527,7 +11526,7 @@ msgstr "Group attributes"
 msgid "Group the acquisition channel belongs to"
 msgstr "Group the acquisition channel belongs to"
 
-#: src/components/segment/input.tsx:440
+#: src/components/segment/input.tsx:447
 msgid "Group:"
 msgstr "Group:"
 
@@ -13871,6 +13870,10 @@ msgstr "matches regex"
 msgid "Matching"
 msgstr "Matching"
 
+#: src/components/segment/SegmentCountCard.tsx:75
+msgid "Matching contacts"
+msgstr "Matching contacts"
+
 #: src/components/segment/SegmentCountCard.tsx:51
 msgid "Matching contacts:"
 msgstr "Matching contacts:"
@@ -15870,11 +15873,11 @@ msgstr "Of an IAM user allowed to send with SES"
 #~ msgid "of emails sent that day"
 #~ msgstr "of emails sent that day"
 
-#: src/components/segment/input.tsx:442
+#: src/components/segment/input.tsx:449
 msgid "of the conditions"
 msgstr "of the conditions"
 
-#: src/components/segment/input.tsx:435
+#: src/components/segment/input.tsx:442
 msgid "of the following conditions"
 msgstr "of the following conditions"
 
@@ -16406,7 +16409,7 @@ msgstr "Options"
 msgid "or"
 msgstr "or"
 
-#: src/components/segment/input.tsx:408
+#: src/components/segment/input.tsx:415
 msgid "OR"
 msgstr "OR"
 
@@ -18519,8 +18522,8 @@ msgstr "Remove the display condition?"
 msgid "Remove this author?"
 msgstr "Remove this author?"
 
-#: src/components/segment/input.tsx:278
-#: src/components/segment/input.tsx:282
+#: src/components/segment/input.tsx:280
+#: src/components/segment/input.tsx:284
 msgid "Remove this condition"
 msgstr "Remove this condition"
 
@@ -18531,8 +18534,8 @@ msgstr "Remove this condition"
 msgid "Remove this filter"
 msgstr "Remove this filter"
 
-#: src/components/segment/input.tsx:278
-#: src/components/segment/input.tsx:282
+#: src/components/segment/input.tsx:280
+#: src/components/segment/input.tsx:284
 msgid "Remove this group"
 msgstr "Remove this group"
 
@@ -21468,7 +21471,7 @@ msgstr "Source"
 #~ msgid "source {0} not found"
 #~ msgstr "source {0} not found"
 
-#: src/components/segment/input.tsx:299
+#: src/components/segment/input.tsx:301
 msgid "source {source} not found"
 msgstr "source {source} not found"
 

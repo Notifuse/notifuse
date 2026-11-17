@@ -78,8 +78,11 @@ export function FilterValueInput({ kind, filter, onChange, options, status }: Fi
           options={translatedOptions}
           filterOption={translatedOptions ? filterOption : undefined}
           open={translatedOptions ? undefined : false}
-          tokenSeparators={translatedOptions ? undefined : [',']}
-          onChange={(values: string[]) => setStrings(values)}
+          // Each value is matched as typed, spaces and commas included, but a value made of spaces
+          // alone or typed twice means nothing.
+          onChange={(values: string[]) =>
+            setStrings([...new Set(values.map((value) => value.trim()).filter((value) => value !== ''))])
+          }
         />
       )
 

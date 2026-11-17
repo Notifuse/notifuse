@@ -1699,7 +1699,7 @@ msgstr "90 Tage"
 msgid "900 - Black"
 msgstr "900 - Schwarz"
 
-#: src/components/segment/input.tsx:403
+#: src/components/segment/input.tsx:410
 msgid "A branch condition is required..."
 msgstr "Eine Verzweigungsbedingung ist erforderlich..."
 
@@ -1855,7 +1855,7 @@ msgstr "Ein quadratisches Bild, neben dem Namen des Arbeitsbereichs angezeigt"
 msgid "A tree is required"
 msgstr "Ein Baum ist erforderlich"
 
-#: src/components/segment/input.tsx:503
+#: src/components/segment/input.tsx:510
 msgid "A value is required..."
 msgstr "Ein Wert ist erforderlich..."
 
@@ -2569,7 +2569,7 @@ msgstr "Oben ausrichten"
 msgid "Alignment"
 msgstr "Ausrichtung"
 
-#: src/components/segment/input.tsx:416
+#: src/components/segment/input.tsx:423
 msgid "all"
 msgstr "allen"
 
@@ -2881,7 +2881,7 @@ msgstr "und"
 
 #: src/components/segment/ConditionSentence.tsx:136
 #: src/components/segment/input_dimension_filters.tsx:49
-#: src/components/segment/input.tsx:408
+#: src/components/segment/input.tsx:415
 msgid "AND"
 msgstr "UND"
 
@@ -3321,7 +3321,7 @@ msgstr "Zu einem Datum und einer Uhrzeit Ihrer Wahl"
 msgid "at least"
 msgstr "mindestens"
 
-#: src/components/segment/input.tsx:417
+#: src/components/segment/input.tsx:424
 msgid "at least one"
 msgstr "mindestens einer der"
 
@@ -4634,7 +4634,7 @@ msgstr "Im Browser nicht testbar"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/button_upsert.tsx:403
 #: src/components/segment/form_leaf.tsx:183
-#: src/components/segment/input.tsx:276
+#: src/components/segment/input.tsx:278
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5648,7 +5648,7 @@ msgstr "Bedingung"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:361
 #: src/components/segment/FilterRow.tsx:206
-#: src/components/segment/input.tsx:484
+#: src/components/segment/input.tsx:491
 msgid "Condition"
 msgstr "Bedingung"
 
@@ -5992,8 +5992,7 @@ msgstr "Kontakt erfolgreich aktualisiert"
 msgid "Contacts"
 msgstr "Kontakte"
 
-#: src/components/segment/input.tsx:433
-#: src/components/segment/SegmentCountCard.tsx:75
+#: src/components/segment/input.tsx:440
 msgid "Contacts matching"
 msgstr "Kontakte, die"
 
@@ -7204,8 +7203,8 @@ msgstr "Tag"
 
 #: src/components/segment/ConditionSentence.tsx:73
 #: src/components/segment/ConditionSentence.tsx:153
-#: src/components/segment/FilterValueInput.tsx:138
-#: src/components/segment/FilterValueInput.tsx:143
+#: src/components/segment/FilterValueInput.tsx:141
+#: src/components/segment/FilterValueInput.tsx:146
 #: src/components/segment/form_leaf.tsx:229
 msgid "days"
 msgstr "Tage"
@@ -7215,7 +7214,7 @@ msgid "Days"
 msgstr "Tage"
 
 #: src/components/segment/ConditionSentence.tsx:73
-#: src/components/segment/FilterValueInput.tsx:143
+#: src/components/segment/FilterValueInput.tsx:146
 msgid "days (or never)"
 msgstr "Tagen (oder nie)"
 
@@ -7407,7 +7406,7 @@ msgstr "Verzögerung"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:274
+#: src/components/segment/input.tsx:276
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -8159,7 +8158,7 @@ msgstr "DNS-Verifizierung verhindert Domain-Squatting"
 #~ msgid "Do you really want to remove this branch?"
 #~ msgstr "Möchten Sie diese Verzweigung wirklich entfernen?"
 
-#: src/components/segment/input.tsx:272
+#: src/components/segment/input.tsx:274
 msgid "Do you really want to remove this condition?"
 msgstr "Möchten Sie diese Bedingung wirklich entfernen?"
 
@@ -8168,7 +8167,7 @@ msgstr "Möchten Sie diese Bedingung wirklich entfernen?"
 #~ msgid "Do you really want to remove this filter?"
 #~ msgstr "Möchten Sie diesen Filter wirklich entfernen?"
 
-#: src/components/segment/input.tsx:272
+#: src/components/segment/input.tsx:274
 msgid "Do you really want to remove this group?"
 msgstr "Möchten Sie diese Gruppe wirklich entfernen?"
 
@@ -8504,8 +8503,8 @@ msgstr "Jede Variante behält den Absender ihrer Vorlage, es sei denn, Sie wähl
 #: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
-#: src/components/segment/input.tsx:358
-#: src/components/segment/input.tsx:362
+#: src/components/segment/input.tsx:365
+#: src/components/segment/input.tsx:369
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -8739,7 +8738,7 @@ msgstr "Theme bearbeiten"
 #~ msgid "Edit Theme v{0}"
 #~ msgstr "Theme v{0} bearbeiten"
 
-#: src/components/segment/input.tsx:334
+#: src/components/segment/input.tsx:336
 msgid "Edit this condition"
 msgstr "Diese Bedingung bearbeiten"
 
@@ -9150,7 +9149,7 @@ msgstr "Leer"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Leere Spalte. Text-, Schaltflächen- oder Bildinhalt hinzufügen."
 
-#: src/components/segment/input.tsx:450
+#: src/components/segment/input.tsx:457
 msgid "Empty: add a condition or a subgroup."
 msgstr "Leer: Fügen Sie eine Bedingung oder eine Untergruppe hinzu."
 
@@ -9311,7 +9310,7 @@ msgstr "Namen für diese Integration eingeben"
 msgid "Enter a name for your workspace"
 msgstr "Namen für Ihren Arbeitsbereich eingeben"
 
-#: src/components/segment/FilterValueInput.tsx:92
+#: src/components/segment/FilterValueInput.tsx:95
 msgid "Enter a number"
 msgstr "Zahl eingeben"
 
@@ -11503,7 +11502,7 @@ msgstr "Raster"
 msgid "Groove"
 msgstr "Groove"
 
-#: src/components/segment/input.tsx:494
+#: src/components/segment/input.tsx:501
 msgid "Group"
 msgstr "Gruppe"
 
@@ -11527,7 +11526,7 @@ msgstr "Gruppen-Attribute"
 msgid "Group the acquisition channel belongs to"
 msgstr "Gruppe, zu der der Akquisekanal gehört"
 
-#: src/components/segment/input.tsx:440
+#: src/components/segment/input.tsx:447
 msgid "Group:"
 msgstr "Gruppe:"
 
@@ -13871,6 +13870,10 @@ msgstr "entspricht Regex"
 msgid "Matching"
 msgstr "Passend"
 
+#: src/components/segment/SegmentCountCard.tsx:75
+msgid "Matching contacts"
+msgstr "Passende Kontakte"
+
 #: src/components/segment/SegmentCountCard.tsx:51
 msgid "Matching contacts:"
 msgstr "Übereinstimmende Kontakte:"
@@ -15870,11 +15873,11 @@ msgstr "Eines IAM-Benutzers, der über SES senden darf"
 #~ msgid "of emails sent that day"
 #~ msgstr "der an diesem Tag gesendeten E-Mails"
 
-#: src/components/segment/input.tsx:442
+#: src/components/segment/input.tsx:449
 msgid "of the conditions"
 msgstr "Bedingungen entsprechen"
 
-#: src/components/segment/input.tsx:435
+#: src/components/segment/input.tsx:442
 msgid "of the following conditions"
 msgstr "folgenden Bedingungen entsprechen"
 
@@ -16406,7 +16409,7 @@ msgstr "Optionen"
 msgid "or"
 msgstr "oder"
 
-#: src/components/segment/input.tsx:408
+#: src/components/segment/input.tsx:415
 msgid "OR"
 msgstr "ODER"
 
@@ -18519,8 +18522,8 @@ msgstr "Anzeigebedingung entfernen?"
 msgid "Remove this author?"
 msgstr "Diesen Autor entfernen?"
 
-#: src/components/segment/input.tsx:278
-#: src/components/segment/input.tsx:282
+#: src/components/segment/input.tsx:280
+#: src/components/segment/input.tsx:284
 msgid "Remove this condition"
 msgstr "Diese Bedingung entfernen"
 
@@ -18531,8 +18534,8 @@ msgstr "Diese Bedingung entfernen"
 msgid "Remove this filter"
 msgstr "Diesen Filter entfernen"
 
-#: src/components/segment/input.tsx:278
-#: src/components/segment/input.tsx:282
+#: src/components/segment/input.tsx:280
+#: src/components/segment/input.tsx:284
 msgid "Remove this group"
 msgstr "Diese Gruppe entfernen"
 
@@ -21468,7 +21471,7 @@ msgstr "Quelle"
 #~ msgid "source {0} not found"
 #~ msgstr "Quelle {0} nicht gefunden"
 
-#: src/components/segment/input.tsx:299
+#: src/components/segment/input.tsx:301
 msgid "source {source} not found"
 msgstr "Quelle {source} nicht gefunden"
 

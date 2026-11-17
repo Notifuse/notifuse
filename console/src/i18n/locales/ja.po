@@ -1699,7 +1699,7 @@ msgstr "90 日間"
 msgid "900 - Black"
 msgstr "900 - 最太"
 
-#: src/components/segment/input.tsx:403
+#: src/components/segment/input.tsx:410
 msgid "A branch condition is required..."
 msgstr "分岐条件が必要です..."
 
@@ -1855,7 +1855,7 @@ msgstr "ワークスペース名の横に表示される正方形の画像"
 msgid "A tree is required"
 msgstr "ツリーが必要です"
 
-#: src/components/segment/input.tsx:503
+#: src/components/segment/input.tsx:510
 msgid "A value is required..."
 msgstr "値が必要です..."
 
@@ -2569,7 +2569,7 @@ msgstr "上揃え"
 msgid "Alignment"
 msgstr "配置"
 
-#: src/components/segment/input.tsx:416
+#: src/components/segment/input.tsx:423
 msgid "all"
 msgstr "すべて"
 
@@ -2881,7 +2881,7 @@ msgstr "かつ"
 
 #: src/components/segment/ConditionSentence.tsx:136
 #: src/components/segment/input_dimension_filters.tsx:49
-#: src/components/segment/input.tsx:408
+#: src/components/segment/input.tsx:415
 msgid "AND"
 msgstr "かつ"
 
@@ -3321,7 +3321,7 @@ msgstr "指定した日時に送信"
 msgid "at least"
 msgstr "少なくとも"
 
-#: src/components/segment/input.tsx:417
+#: src/components/segment/input.tsx:424
 msgid "at least one"
 msgstr "いずれか"
 
@@ -4634,7 +4634,7 @@ msgstr "ブラウザでテストできません"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/button_upsert.tsx:403
 #: src/components/segment/form_leaf.tsx:183
-#: src/components/segment/input.tsx:276
+#: src/components/segment/input.tsx:278
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5648,7 +5648,7 @@ msgstr "条件"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:361
 #: src/components/segment/FilterRow.tsx:206
-#: src/components/segment/input.tsx:484
+#: src/components/segment/input.tsx:491
 msgid "Condition"
 msgstr "条件"
 
@@ -5992,8 +5992,7 @@ msgstr "コンタクトを更新しました"
 msgid "Contacts"
 msgstr "コンタクト"
 
-#: src/components/segment/input.tsx:433
-#: src/components/segment/SegmentCountCard.tsx:75
+#: src/components/segment/input.tsx:440
 msgid "Contacts matching"
 msgstr "次の条件の"
 
@@ -7204,8 +7203,8 @@ msgstr "日"
 
 #: src/components/segment/ConditionSentence.tsx:73
 #: src/components/segment/ConditionSentence.tsx:153
-#: src/components/segment/FilterValueInput.tsx:138
-#: src/components/segment/FilterValueInput.tsx:143
+#: src/components/segment/FilterValueInput.tsx:141
+#: src/components/segment/FilterValueInput.tsx:146
 #: src/components/segment/form_leaf.tsx:229
 msgid "days"
 msgstr "日"
@@ -7215,7 +7214,7 @@ msgid "Days"
 msgstr "日"
 
 #: src/components/segment/ConditionSentence.tsx:73
-#: src/components/segment/FilterValueInput.tsx:143
+#: src/components/segment/FilterValueInput.tsx:146
 msgid "days (or never)"
 msgstr "日間 (または一度もない)"
 
@@ -7407,7 +7406,7 @@ msgstr "遅延"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:274
+#: src/components/segment/input.tsx:276
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -8159,7 +8158,7 @@ msgstr "DNS検証によりドメインスクワッティングを防止"
 #~ msgid "Do you really want to remove this branch?"
 #~ msgstr "この分岐を削除してもよろしいですか？"
 
-#: src/components/segment/input.tsx:272
+#: src/components/segment/input.tsx:274
 msgid "Do you really want to remove this condition?"
 msgstr "この条件を削除してもよろしいですか？"
 
@@ -8168,7 +8167,7 @@ msgstr "この条件を削除してもよろしいですか？"
 #~ msgid "Do you really want to remove this filter?"
 #~ msgstr "このフィルターを削除してもよろしいですか？"
 
-#: src/components/segment/input.tsx:272
+#: src/components/segment/input.tsx:274
 msgid "Do you really want to remove this group?"
 msgstr "このグループを削除してもよろしいですか？"
 
@@ -8504,8 +8503,8 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
-#: src/components/segment/input.tsx:358
-#: src/components/segment/input.tsx:362
+#: src/components/segment/input.tsx:365
+#: src/components/segment/input.tsx:369
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -8739,7 +8738,7 @@ msgstr "テーマを編集"
 #~ msgid "Edit Theme v{0}"
 #~ msgstr "テーマ v{0} を編集"
 
-#: src/components/segment/input.tsx:334
+#: src/components/segment/input.tsx:336
 msgid "Edit this condition"
 msgstr "この条件を編集"
 
@@ -9150,7 +9149,7 @@ msgstr "空"
 msgid "Empty column. Add text, button, or image content."
 msgstr "空のカラムです。テキスト、ボタン、または画像を追加してください。"
 
-#: src/components/segment/input.tsx:450
+#: src/components/segment/input.tsx:457
 msgid "Empty: add a condition or a subgroup."
 msgstr "空です: 条件またはサブグループを追加してください。"
 
@@ -9311,7 +9310,7 @@ msgstr "この連携の名前を入力"
 msgid "Enter a name for your workspace"
 msgstr "ワークスペース名を入力"
 
-#: src/components/segment/FilterValueInput.tsx:92
+#: src/components/segment/FilterValueInput.tsx:95
 msgid "Enter a number"
 msgstr "数値を入力"
 
@@ -11503,7 +11502,7 @@ msgstr "グリッド"
 msgid "Groove"
 msgstr "グルーブ"
 
-#: src/components/segment/input.tsx:494
+#: src/components/segment/input.tsx:501
 msgid "Group"
 msgstr "グループ"
 
@@ -11527,7 +11526,7 @@ msgstr "グループ属性"
 msgid "Group the acquisition channel belongs to"
 msgstr "集客チャネルが属するグループ"
 
-#: src/components/segment/input.tsx:440
+#: src/components/segment/input.tsx:447
 msgid "Group:"
 msgstr "グループ:"
 
@@ -13871,6 +13870,10 @@ msgstr "正規表現に一致"
 msgid "Matching"
 msgstr "一致する"
 
+#: src/components/segment/SegmentCountCard.tsx:75
+msgid "Matching contacts"
+msgstr "該当するコンタクト"
+
 #: src/components/segment/SegmentCountCard.tsx:51
 msgid "Matching contacts:"
 msgstr "一致するコンタクト:"
@@ -15870,11 +15873,11 @@ msgstr "SES での送信が許可された IAM ユーザーのもの"
 #~ msgid "of emails sent that day"
 #~ msgstr "（その日の送信メールに対する割合）"
 
-#: src/components/segment/input.tsx:442
+#: src/components/segment/input.tsx:449
 msgid "of the conditions"
 msgstr "の条件"
 
-#: src/components/segment/input.tsx:435
+#: src/components/segment/input.tsx:442
 msgid "of the following conditions"
 msgstr "を満たすコンタクト"
 
@@ -16406,7 +16409,7 @@ msgstr "オプション"
 msgid "or"
 msgstr "または"
 
-#: src/components/segment/input.tsx:408
+#: src/components/segment/input.tsx:415
 msgid "OR"
 msgstr "または"
 
@@ -18519,8 +18522,8 @@ msgstr "表示条件を削除しますか？"
 msgid "Remove this author?"
 msgstr "この著者を削除しますか？"
 
-#: src/components/segment/input.tsx:278
-#: src/components/segment/input.tsx:282
+#: src/components/segment/input.tsx:280
+#: src/components/segment/input.tsx:284
 msgid "Remove this condition"
 msgstr "この条件を削除"
 
@@ -18531,8 +18534,8 @@ msgstr "この条件を削除"
 msgid "Remove this filter"
 msgstr "このフィルターを削除"
 
-#: src/components/segment/input.tsx:278
-#: src/components/segment/input.tsx:282
+#: src/components/segment/input.tsx:280
+#: src/components/segment/input.tsx:284
 msgid "Remove this group"
 msgstr "このグループを削除"
 
@@ -21468,7 +21471,7 @@ msgstr "流入元"
 #~ msgid "source {0} not found"
 #~ msgstr "ソース {0} が見つかりません"
 
-#: src/components/segment/input.tsx:299
+#: src/components/segment/input.tsx:301
 msgid "source {source} not found"
 msgstr "ソース {source} が見つかりません"
 

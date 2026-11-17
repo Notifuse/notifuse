@@ -27,6 +27,8 @@ describe('SegmentCountCard', () => {
   it('offers to count before anything is counted', () => {
     const { onCount } = renderCard()
     expect(screen.getByText('—')).toBeTruthy()
+    // Its own message: the tree's sentence starts with « Contacts matching », translated as a fragment
+    expect(screen.getByText('Matching contacts')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
     expect(onCount).toHaveBeenCalled()
   })
