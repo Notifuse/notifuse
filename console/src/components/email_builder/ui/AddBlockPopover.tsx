@@ -77,6 +77,9 @@ const storeTab = (tab: PopoverTab) => {
 }
 
 const headerBlockTypes: MJMLComponentType[] = [
+  // Offered while the head has none: it holds the email's default attributes and
+  // its Headings section (an imported email may come without it)
+  'mj-attributes',
   'mj-breakpoint',
   'mj-font',
   'mj-style',
@@ -193,9 +196,12 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
 
   const getBlockOptions = (): BlockOption[] => {
     if (mode === 'header') {
+      const head = emailTree?.children?.find((child) => child.type === 'mj-head')
+      const hasDefaultAttributes = !!head?.children?.some((child) => child.type === 'mj-attributes')
       const headerOptions = headerBlockTypes
         .filter((type) => EmailBlockFactory.hasBlockType(type))
         .filter((type) => !hiddenBlocks?.includes(type))
+        .filter((type) => type !== 'mj-attributes' || !hasDefaultAttributes)
         .map((type) => {
           // Create a temporary block instance to get metadata
           const tempBlock = EmailBlockFactory.createBlock({

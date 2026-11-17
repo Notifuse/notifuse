@@ -73,7 +73,7 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
         options={HEADING_LEVELS.map((value) => ({ value, label: `H${value}` }))}
       />
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <label className="text-xs text-ink-3">
+        <label className="flex flex-col gap-1 text-xs text-ink-3">
           {t`Font`}
           <Input
             size="small"
@@ -86,10 +86,11 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
             onBlur={(event) => typed('fontFamily', event.target.value.trim() || undefined)}
           />
         </label>
-        <label className="text-xs text-ink-3">
+        <label className="flex flex-col gap-1 text-xs text-ink-3">
           {t`Size`}
           <InputNumber
             size="small"
+            style={{ width: '100%' }}
             aria-label={t`Size`}
             min={1}
             max={200}
@@ -99,17 +100,18 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
             onChange={(value) => value && change({ fontSize: `${value}px` })}
           />
         </label>
-        <label className="text-xs text-ink-3">
+        <label className="flex flex-col gap-1 text-xs text-ink-3">
           {t`Weight`}
           <Select
             size="small"
+            style={{ width: '100%' }}
             aria-label={t`Weight`}
             value={current.fontWeight}
             onChange={(value) => change({ fontWeight: value })}
             options={WEIGHTS.map((value) => ({ value, label: value }))}
           />
         </label>
-        <label className="text-xs text-ink-3">
+        <label className="flex flex-col gap-1 text-xs text-ink-3">
           {t`Line height`}
           <Input
             size="small"
@@ -121,7 +123,7 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
             onBlur={(event) => typed('lineHeight', event.target.value.trim())}
           />
         </label>
-        <div className="text-xs text-ink-3">
+        <div className="flex flex-col gap-1 text-xs text-ink-3">
           {t`Color`}
           <ColorPickerWithPresets
             value={current.color}
@@ -129,32 +131,32 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
             onChange={(color) => change({ color: colorFromPicker(color) })}
           />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="text-xs text-ink-3">
-            {t`Space above`}
-            <InputNumber
-              size="small"
-              aria-label={t`Space above`}
-              min={0}
-              max={200}
-              precision={0}
-              value={px(current.marginTop)}
-              onChange={(value) => value !== null && change({ marginTop: `${value}px` })}
-            />
-          </label>
-          <label className="text-xs text-ink-3">
-            {t`Space below`}
-            <InputNumber
-              size="small"
-              aria-label={t`Space below`}
-              min={0}
-              max={200}
-              precision={0}
-              value={px(current.marginBottom)}
-              onChange={(value) => value !== null && change({ marginBottom: `${value}px` })}
-            />
-          </label>
-        </div>
+        <label className="flex flex-col gap-1 text-xs text-ink-3">
+          {t`Space above`}
+          <InputNumber
+            size="small"
+            style={{ width: '100%' }}
+            aria-label={t`Space above`}
+            min={0}
+            max={200}
+            precision={0}
+            value={px(current.marginTop)}
+            onChange={(value) => value !== null && change({ marginTop: `${value}px` })}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-ink-3">
+          {t`Space below`}
+          <InputNumber
+            size="small"
+            style={{ width: '100%' }}
+            aria-label={t`Space below`}
+            min={0}
+            max={200}
+            precision={0}
+            value={px(current.marginBottom)}
+            onChange={(value) => value !== null && change({ marginBottom: `${value}px` })}
+          />
+        </label>
       </div>
       <div className="mt-3 rounded-md border border-dashed border-ink-4/40 px-3 py-2">
         <div className="text-xs text-ink-4">{t`Sample`}</div>

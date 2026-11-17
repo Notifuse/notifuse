@@ -499,7 +499,7 @@ export const TextStyleMenu: React.FC<{
       <button
         type="button"
         aria-label={`${t`Text style`}: ${labelOf(level)}`}
-        className="flex items-center justify-between gap-2 h-7 px-2 min-w-28 rounded-xs border border-white/30 text-white text-xs cursor-pointer bg-transparent hover:bg-white/10"
+        className="flex items-center justify-between gap-2 h-7 px-2 min-w-28 rounded-xs text-white text-xs cursor-pointer bg-transparent hover:bg-white/10"
       >
         <span>{labelOf(level)}</span>
         <FontAwesomeIcon icon={faChevronDown} size="xs" />
