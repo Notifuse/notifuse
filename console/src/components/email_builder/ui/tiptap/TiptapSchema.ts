@@ -8,6 +8,7 @@ import {
   omitStyleProperties,
   pickStyleProperties,
   readStyleAttribute,
+  dataAttributesOf,
   liquidBlocksOf,
   setStyleProperty,
   styleAttributes,
@@ -201,9 +202,14 @@ const cancelsItsFormatting = (element: HTMLElement): boolean =>
 // Elements loaded as paragraphs when they hold no block of their own
 export const PARAGRAPH_LIKE_SELECTOR = 'div, center'
 
-const NESTED_BLOCK_SELECTOR =
-  'address, article, aside, blockquote, center, div, dl, fieldset, figure, footer, form, ' +
-  'h1, h2, h3, h4, h5, h6, header, hr, li, main, nav, ol, p, pre, section, table, ul'
+// Elements that are blocks of their own in a Text block's content
+export const BLOCK_TAGS = new Set([
+  'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'CENTER', 'DIV', 'DL', 'FIELDSET', 'FIGURE',
+  'FOOTER', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HEADER', 'HR', 'LI', 'MAIN', 'NAV',
+  'OL', 'P', 'PRE', 'SECTION', 'TABLE', 'UL'
+])
+
+const NESTED_BLOCK_SELECTOR = Array.from(BLOCK_TAGS, (tag) => tag.toLowerCase()).join(', ')
 
 /** True when an element holds a block, so its content is more than one paragraph. */
 export const holdsBlocks = (element: HTMLElement): boolean =>
@@ -246,6 +252,41 @@ function inheritedAlignment(element: HTMLElement): string | null {
   return null
 }
 
+const isSpan = (element: HTMLElement) => element.tagName.toUpperCase() === 'SPAN'
+
+// The spans an element's text sits in, outermost first, the element included
+const spansAround = (element: HTMLElement): HTMLElement[] => {
+  const spans: HTMLElement[] = []
+  for (let current: HTMLElement | null = element; current; current = current.parentElement) {
+    if (isSpan(current)) spans.unshift(current)
+  }
+  return spans
+}
+
+// Text in nested spans gets one mark, the innermost's: it carries the classes and
+// data-* of every span around it. An id stays on its own span only.
+const inheritedClass = (element: HTMLElement): string | null => {
+  const names = spansAround(element).flatMap((span) => (span.getAttribute('class') ?? '').split(/\s+/))
+  const unique = Array.from(new Set(names.filter(Boolean)))
+  return unique.length > 0 ? unique.join(' ') : null
+}
+
+const inheritedDataAttributes = (element: HTMLElement): Record<string, string> | null => {
+  const merged = Object.assign({}, ...spansAround(element).map((span) => dataAttributesOf(span) ?? {}))
+  return Object.keys(merged).length > 0 ? merged : null
+}
+
+const spanAttribute = (name: string, read: (element: HTMLElement) => string | null) => ({
+  default: null,
+  keepOnSplit: name !== 'id',
+  parseHTML: read,
+  renderHTML: (attributes: Record<string, unknown>) => (attributes[name] ? { [name]: attributes[name] } : {})
+})
+
+// A text style still worth a mark: a style, or a span's own attributes
+export const keepsTextStyle = (attrs: Record<string, unknown>) =>
+  !!(attrs.style || attrs.class || attrs.id || attrs.dataAttributes)
+
 /** Sets or removes one property on the mark of `type` over [from, to) of `node`. */
 const restyleMark = (
   tr: Transaction,
@@ -259,10 +300,9 @@ const restyleMark = (
   const current = type.isInSet(marks)
   const style = setStyleProperty(current?.attrs.style as string | null, property, value)
   if (current) tr.removeMark(from, to, type)
-  if (current && type.name !== 'textStyle') {
-    tr.addMark(from, to, type.create({ ...current.attrs, style }))
-  } else if (style) {
-    tr.addMark(from, to, type.create({ ...(current?.attrs ?? {}), style }))
+  const attrs = { ...(current?.attrs ?? {}), style }
+  if ((current && type.name !== 'textStyle') || keepsTextStyle(attrs)) {
+    tr.addMark(from, to, type.create(attrs))
   }
 }
 
@@ -283,6 +323,15 @@ export const TextStyleMark = Mark.create({
         default: null,
         parseHTML: (element) => textStyleAttributeOf(element),
         renderHTML: (attributes) => styleAttributes(attributes.style)
+      },
+      // A span's own attributes, kept as written; other elements pass only a style
+      class: spanAttribute('class', inheritedClass),
+      id: spanAttribute('id', (element) => (isSpan(element) ? element.getAttribute('id') || null : null)),
+      dataAttributes: {
+        default: null,
+        parseHTML: (element: HTMLElement) => inheritedDataAttributes(element),
+        renderHTML: (attributes: Record<string, unknown>) =>
+          (attributes.dataAttributes as Record<string, string> | null) ?? {}
       }
     }
   },
@@ -292,10 +341,13 @@ export const TextStyleMark = Mark.create({
       // A style that cancels bold, italic, underline or strike-through removes that
       // formatting from the text inside, as the browser shows it.
       ...CANCELLING_STYLE_RULES,
-      // A styled span means nothing but its style.
+      // A span means nothing but its style and its own attributes.
       {
         tag: 'span',
-        getAttrs: (element) => (textStyleOfElement(element as HTMLElement) ? null : false)
+        getAttrs: (element) => {
+          const el = element as HTMLElement
+          return textStyleOfElement(el) || el.id || el.className || dataAttributesOf(el) ? null : false
+        }
       },
       // A formatting element whose style cancels its meaning is only that style.
       {
@@ -347,8 +399,9 @@ export const TextStyleMark = Mark.create({
               const marks = state.storedMarks ?? $pos.marks()
               const current = textStyleType.isInSet(marks)
               const style = setStyleProperty(current?.attrs.style as string | null, name, value)
+              const attrs = { ...(current?.attrs ?? {}), style }
               tr.removeStoredMark(textStyleType)
-              if (style) tr.addStoredMark(textStyleType.create({ style }))
+              if (keepsTextStyle(attrs)) tr.addStoredMark(textStyleType.create(attrs))
               return true
             }
           }

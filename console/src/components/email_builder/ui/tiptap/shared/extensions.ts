@@ -7,17 +7,20 @@ import { Extension, Node, Mark, InputRule, PasteRule, getMarkRange } from '@tipt
 import type { AnyExtension, RawCommands } from '@tiptap/core'
 import type { MarkType } from '@tiptap/pm/model'
 import type { Editor as ReactEditor } from '@tiptap/react'
-import { toggleFormatting, type Formatting } from './utils'
+import { toggleFormatting, wrapLooseInlineContent, type Formatting } from './utils'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import {
   LINK_STYLE_PROPERTIES,
   PARAGRAPH_LIKE_SELECTOR,
+  keepsTextStyle,
   TEXT_PROPERTIES,
   TextStyleMark,
   holdsBlocks,
   paragraphStyleOfElement
 } from '../TiptapSchema'
+import { parseHtmlInert, sanitizeEditorHtml } from '../../../../../utils/safeHtml'
 import {
+  dataAttributesOf,
   mergeStyles,
   omitStyleProperties,
   pickStyleProperties,
@@ -38,8 +41,9 @@ const linkClassOf = (element: HTMLElement): string | null => {
   return classes.length > 0 ? classes.join(' ') : null
 }
 
-const optionalAttribute = (name: string) => ({
+const optionalAttribute = (name: string, keepOnSplit = true) => ({
   default: null,
+  keepOnSplit,
   parseHTML: (element: HTMLElement) => element.getAttribute(name),
   // An empty value is kept: alt="" says an image is decorative
   renderHTML: (attributes: Record<string, unknown>) =>
@@ -66,6 +70,8 @@ export const CustomLink = Mark.create({
       href: optionalAttribute('href'),
       target: optionalAttribute('target'),
       rel: optionalAttribute('rel'),
+      id: optionalAttribute('id'),
+      title: optionalAttribute('title'),
       class: {
         default: null,
         parseHTML: (element: HTMLElement) => linkClassOf(element),
@@ -143,8 +149,9 @@ export const CustomLink = Mark.create({
                 }
                 if (textStyle) {
                   const rest = omitStyleProperties(textStyle.attrs.style as string | null, LINK_STYLE_PROPERTIES)
+                  const attrs = { ...textStyle.attrs, style: rest }
                   tr.removeMark(start, end, textStyleType)
-                  if (rest) tr.addMark(start, end, textStyleType.create({ style: rest }))
+                  if (keepsTextStyle(attrs)) tr.addMark(start, end, textStyleType.create(attrs))
                 }
               })
               return true
@@ -189,7 +196,10 @@ export const CustomLink = Mark.create({
                 tr.addMark(
                   start,
                   end,
-                  textStyleType.create({ style: mergeStyles(colours, current?.attrs.style as string | null) })
+                  textStyleType.create({
+                    ...(current?.attrs ?? {}),
+                    style: mergeStyles(colours, current?.attrs.style as string | null)
+                  })
                 )
               }
             })
@@ -248,8 +258,46 @@ export const FormattingShortcuts = Extension.create({
 export const BlockStyle = Extension.create({
   name: 'blockStyle',
 
+  // An id names one element. A paragraph split in its middle (ProseMirror copies its
+  // attributes) or pasted twice would repeat it: the later blocks lose it, with the
+  // data-* attributes that came along.
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('uniqueBlockIds'),
+        appendTransaction: (transactions, _oldState, newState) => {
+          if (!transactions.some((transaction) => transaction.docChanged)) return null
+          const seen = new Set<string>()
+          const tr = newState.tr
+          newState.doc.descendants((node, pos) => {
+            const id = node.attrs?.id as string | null | undefined
+            if (!node.isBlock || !id) return
+            if (seen.has(id)) tr.setNodeMarkup(pos, undefined, { ...node.attrs, id: null, dataAttributes: null })
+            else seen.add(id)
+          })
+          return tr.docChanged ? tr : null
+        }
+      })
+    ]
+  },
+
   addGlobalAttributes() {
     return [
+      {
+        types: ['paragraph', 'bulletList', 'orderedList', 'listItem', 'blockquote'],
+        attributes: {
+          // A split paragraph keeps its class; its id and data-* stay on the first half
+          id: optionalAttribute('id', false),
+          class: optionalAttribute('class'),
+          dataAttributes: {
+            default: null,
+            keepOnSplit: false,
+            parseHTML: (element: HTMLElement) => dataAttributesOf(element),
+            renderHTML: (attributes: Record<string, unknown>) =>
+              (attributes.dataAttributes as Record<string, string> | null) ?? {}
+          }
+        }
+      },
       {
         types: ['paragraph'],
         attributes: {
@@ -274,6 +322,129 @@ export const BlockStyle = Extension.create({
   }
 })
 
+// An anchor without target (<a name="top"></a>) that links point to. It holds no
+// text, so it is a node of its own rather than a link.
+export const InlineAnchor = Node.create({
+  name: 'anchor',
+  inline: true,
+  group: 'inline',
+  atom: true,
+
+  addAttributes() {
+    return {
+      name: optionalAttribute('name'),
+      id: optionalAttribute('id')
+    }
+  },
+
+  parseHTML() {
+    // An anchor holding text keeps its text, which an atom node would drop
+    const empty = (element: HTMLElement) => ((element.textContent ?? '').trim() || element.children.length ? false : null)
+    return [
+      { tag: 'a[name]:not([href])', getAttrs: empty },
+      { tag: 'a[id]:not([href])', getAttrs: empty }
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['a', HTMLAttributes]
+  }
+})
+
+/**
+ * A table, kept whole as its HTML: the editor shows it and saves it as written but
+ * does not edit it (tables are edited in a Raw HTML block or in code mode). Its HTML
+ * is sanitized when loaded, as the rest of the content is.
+ */
+export const HtmlTable = Node.create({
+  name: 'htmlTable',
+  group: 'block',
+  atom: true,
+  selectable: true,
+
+  addAttributes() {
+    return {
+      html: { default: '', rendered: false }
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'table',
+        priority: 70,
+        getAttrs: (element: HTMLElement) => {
+          // ProseMirror marks the first element it copies; that mark is not the author's
+          const table = element.cloneNode(true) as HTMLElement
+          table.removeAttribute('data-pm-slice')
+          return { html: sanitizeEditorHtml(table.outerHTML) }
+        }
+      }
+    ]
+  },
+
+  renderHTML({ node }) {
+    return tableElement(node.attrs.html as string).cloneNode(true) as HTMLElement
+  }
+})
+
+// Tables are rendered on every save: each one's HTML is parsed once
+const parsedTables = new Map<string, Element>()
+
+const tableElement = (html: string): Element => {
+  let element = parsedTables.get(html)
+  if (!element) {
+    const holder = document.createElement('template')
+    holder.innerHTML = html
+    element = holder.content.firstElementChild ?? document.createElement('table')
+    if (parsedTables.size > 200) parsedTables.clear()
+    parsedTables.set(html, element)
+  }
+  return element
+}
+
+/**
+ * Pasted HTML. What the editor copied itself keeps everything (ProseMirror marks it
+ * with data-pm-slice). HTML from elsewhere (Word, Outlook, a web page, a chat) loses
+ * its classes, ids and data-* attributes, which mean nothing in the email, and its
+ * tables are unfolded into their cells' text, as editable paragraphs.
+ */
+export const preparePastedHtml = (html: string): string => {
+  const root = parseHtmlInert(html)
+  if (!root.querySelector('[data-pm-slice]')) {
+    root.querySelectorAll('*').forEach((element) => {
+      element.getAttributeNames().forEach((name) => {
+        if (name === 'class' || name === 'id' || name.startsWith('data-')) element.removeAttribute(name)
+      })
+    })
+    Array.from(root.querySelectorAll('table'))
+      .reverse()
+      .forEach((table) => {
+        const cells = Array.from(table.querySelectorAll('td, th')).filter((cell) => cell.closest('table') === table)
+        const unfolded = cells.map((cell) => {
+          const block = root.ownerDocument.createElement('div')
+          while (cell.firstChild) block.appendChild(cell.firstChild)
+          return block
+        })
+        table.replaceWith(...unfolded)
+      })
+  }
+  return wrapLooseInlineContent(root.innerHTML)
+}
+
+export const PasteCleanup = Extension.create({
+  name: 'pasteCleanup',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('pasteCleanup'),
+        props: { transformPastedHTML: (html) => preparePastedHtml(html) }
+      })
+    ]
+  }
+})
+
 // Images inside text, kept with their attributes. The toolbar inserts none: the
 // node exists so that opening a text holding one does not delete it.
 export const InlineImage = Node.create({
@@ -290,6 +461,11 @@ export const InlineImage = Node.create({
       title: optionalAttribute('title'),
       width: optionalAttribute('width'),
       height: optionalAttribute('height'),
+      srcset: optionalAttribute('srcset'),
+      id: optionalAttribute('id'),
+      class: optionalAttribute('class'),
+      border: optionalAttribute('border'),
+      align: optionalAttribute('align'),
       style: {
         default: null,
         parseHTML: (element: HTMLElement) => readStyleAttribute(element),
@@ -552,6 +728,9 @@ export const createRichExtensions = () => [
   FormattingShortcuts,
   BlockStyle,
   InlineImage,
+  InlineAnchor,
+  HtmlTable,
+  PasteCleanup,
   TagOnlyUnderline,
   TagOnlySubscript,
   TagOnlySuperscript,

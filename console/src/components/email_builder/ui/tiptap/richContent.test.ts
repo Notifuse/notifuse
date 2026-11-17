@@ -3,6 +3,7 @@ import { Editor } from '@tiptap/core'
 import { createRichExtensions } from './shared/extensions'
 import {
   getEditorHTML,
+  sanitizeRichContent,
   handleBackgroundColorChange,
   handleTextColorChange,
   getEffectiveTextColor,
@@ -494,5 +495,165 @@ describe('fourth review', () => {
     select(editor, 'bold')
     editor.commands.keyboardShortcut('Mod-b')
     expect(getEditorHTML(editor)).toBe('<p>bold</p>')
+  })
+})
+
+describe('tables in a Text block', () => {
+  const table =
+    '<table style="width: 100%" cellpadding="4"><tbody><tr>' +
+    '<td style="color: red" colspan="2">Total: {{ order.total | money }}</td>' +
+    '</tr></tbody></table>'
+
+  it('keeps a table as written, between paragraphs', () => {
+    expect(roundTrip(`<p>before</p>${table}<p>after</p>`)).toBe(`<p>before</p>${table}<p>after</p>`)
+  })
+
+  it('leaves a table untouched when the colour of everything is changed', () => {
+    const editor = load(`<p>before</p>${table}<p>after</p>`)
+    editor.commands.selectAll()
+    handleTextColorChange(asReactEditor(editor), '#0000ff')
+    expect(getEditorHTML(editor)).toContain(table)
+  })
+
+  it('drops handlers from a table it loads', () => {
+    const html = roundTrip('<table><tbody><tr><td><img src="x" onerror="window.__probe = 1">x</td></tr></tbody></table>')
+    expect(html).not.toContain('onerror')
+    expect(html).toContain('<table>')
+  })
+})
+
+describe('attributes the editor keeps', () => {
+  it('keeps id, class and data-* on paragraphs and spans', () => {
+    // Attributes come out in the editor's order, which HTML gives no meaning
+    expect(
+      roundTrip(
+        '<p id="intro" class="lead" data-track="hero">A <span class="brand" data-x="1">brand</span> ' +
+          '<span id="note" style="color: red">note</span></p>'
+      )
+    ).toBe(
+      '<p id="intro" class="lead" data-track="hero">A <span class="brand" data-x="1">brand</span> ' +
+        '<span style="color: red" id="note">note</span></p>'
+    )
+  })
+
+  it('keeps a link’s id and title', () => {
+    const html = '<p><a href="#top" id="back" title="Back to the top">Top</a></p>'
+    expect(roundTrip(html)).toBe(html)
+  })
+
+  it('keeps an empty anchor that links point to', () => {
+    const html = '<p><a name="top"></a>Title <a id="details"></a></p>'
+    expect(roundTrip(html)).toBe(html)
+  })
+
+  it('keeps srcset, class, border and align on images', () => {
+    expect(
+      roundTrip(
+        '<p><img src="https://x.example/a.png" srcset="https://x.example/a@2x.png 2x" class="logo" border="0" align="left" alt="Logo"></p>'
+      )
+    ).toBe(
+      '<p><img src="https://x.example/a.png" alt="Logo" srcset="https://x.example/a@2x.png 2x" class="logo" border="0" align="left"></p>'
+    )
+  })
+
+  it('keeps a span’s class when its colour changes', () => {
+    const editor = load('<p><span class="brand" style="color: red">brand</span> x</p>')
+    select(editor, 'brand')
+    handleTextColorChange(asReactEditor(editor), '')
+    expect(getEditorHTML(editor)).toBe('<p><span class="brand">brand</span> x</p>')
+  })
+})
+
+describe('loose text in a wrapper that also holds blocks', () => {
+  // As the Text block loads content: sanitized and prepared, then parsed
+  const loaded = (html: string) => getEditorHTML(load(sanitizeRichContent(html)))
+
+  it('keeps the wrapper’s alignment on its loose text', () => {
+    expect(loaded('<div style="text-align: center">First<div>Second</div></div>')).toBe(
+      '<p style="text-align: center">First</p><p style="text-align: center">Second</p>'
+    )
+  })
+
+  it('makes one paragraph of each run of loose text, between blocks', () => {
+    expect(loaded('<div style="text-align: right"><p>A</p>loose <b>bold</b><p>B</p></div>')).toBe(
+      '<p style="text-align: right">A</p><p style="text-align: right">loose <strong>bold</strong></p>' +
+        '<p style="text-align: right">B</p>'
+    )
+  })
+
+  it('changes nothing for a wrapper without alignment', () => {
+    expect(loaded('<div>First<div>Second</div></div>')).toBe('<p>First</p><p>Second</p>')
+  })
+})
+
+describe('fourth pass on kept attributes', () => {
+  // ProseMirror builds a ClipboardEvent for a paste, which jsdom lacks
+  const withClipboardEvent = (run: () => void) => {
+    const original = (globalThis as { ClipboardEvent?: unknown }).ClipboardEvent
+    if (!original) {
+      ;(globalThis as { ClipboardEvent?: unknown }).ClipboardEvent = class extends Event {
+        clipboardData = null
+      }
+    }
+    try {
+      run()
+    } finally {
+      if (!original) delete (globalThis as { ClipboardEvent?: unknown }).ClipboardEvent
+    }
+  }
+
+  it('keeps the text of a named anchor that holds some', () => {
+    expect(roundTrip('<p><a name="sec1">Section 1</a> text</p>')).toBe('<p>Section 1 text</p>')
+  })
+
+  it('does not copy an id or data-* attributes onto the second half of a split paragraph', () => {
+    const editor = load('<p id="intro" class="lead" data-track="x">Hello world</p>')
+    editor.commands.setTextSelection(rangeOf(editor, 'Hello').to)
+    editor.commands.splitBlock()
+    expect(getEditorHTML(editor)).toBe(
+      '<p id="intro" class="lead" data-track="x">Hello</p><p class="lead"> world</p>'
+    )
+  })
+
+  it('drops the classes, ids and data-* of HTML pasted from elsewhere, and unfolds its tables', () => {
+    withClipboardEvent(() => {
+      const editor = load('<p></p>')
+      editor.view.pasteHTML(
+        '<p class="MsoNormal" id="x1" data-start="0">Hi <span class="SpellE">there</span></p>' +
+          '<table class="MsoTableGrid"><tbody><tr><td>Cell 1</td><td>Cell 2</td></tr></tbody></table>'
+      )
+      expect(getEditorHTML(editor)).toBe('<p>Hi there</p><p>Cell 1</p><p>Cell 2</p>')
+    })
+  })
+
+  it('keeps everything of HTML copied from the editor itself, but its paste marker', () => {
+    withClipboardEvent(() => {
+      const editor = load('<p></p>')
+      editor.view.pasteHTML(
+        '<table data-pm-slice="0 0 []"><tbody><tr><td class="c">x</td></tr></tbody></table>' +
+          '<p class="lead">y</p>'
+      )
+      const html = getEditorHTML(editor)
+      expect(html).toContain('<table><tbody><tr><td class="c">x</td></tr></tbody></table>')
+      expect(html).toContain('<p class="lead">y</p>')
+      expect(html).not.toContain('data-pm-slice')
+    })
+  })
+
+  it('keeps the class of the outer span on text in a nested styled span', () => {
+    expect(roundTrip('<p><span class="brand">a <span style="color:red">b</span></span></p>')).toBe(
+      '<p><span class="brand">a </span><span style="color: red" class="brand">b</span></p>'
+    )
+  })
+
+  it('keeps a span’s class when its text is linked or unlinked, and on an inserted link', () => {
+    const editor = load('<p><span class="brand" style="color: red">brand</span> x</p>')
+    select(editor, 'brand')
+    editor.commands.setLink({ href: 'https://x.example' })
+    expect(getEditorHTML(editor)).toBe(
+      '<p><a href="https://x.example" style="color: red"><span class="brand">brand</span></a> x</p>'
+    )
+    editor.commands.unsetLink()
+    expect(getEditorHTML(editor)).toBe('<p><span style="color: red" class="brand">brand</span> x</p>')
   })
 })

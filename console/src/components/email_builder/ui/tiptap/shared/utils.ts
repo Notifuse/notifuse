@@ -1,8 +1,14 @@
 import { getMarkRange, type Editor } from '@tiptap/react'
 import { DOMSerializer, type Mark, type Node } from '@tiptap/pm/model'
 import { parseHtmlInert, sanitizeEditorHtml, textOnlyHtml } from '../../../../../utils/safeHtml'
-import { LINK_STYLE_PROPERTIES, inlineStyleAt } from '../TiptapSchema'
-import { RAW_STYLE_ATTRIBUTE, getStyleProperty, omitStyleProperties, pickStyleProperties } from './inlineStyle'
+import { BLOCK_TAGS, LINK_STYLE_PROPERTIES, inlineStyleAt, keepsTextStyle } from '../TiptapSchema'
+import {
+  RAW_STYLE_ATTRIBUTE,
+  dataAttributesOf,
+  getStyleProperty,
+  omitStyleProperties,
+  pickStyleProperties
+} from './inlineStyle'
 import type { LinkType } from './types'
 
 
@@ -43,7 +49,16 @@ export const stripPlainSpans = (htmlContent: string): string => {
   try {
     // Use DOM parsing for accurate manipulation
     const tempDiv = parseHtmlInert(htmlContent)
+    stripPlainSpansIn(tempDiv)
+    return tempDiv.innerHTML
+  } catch (error) {
+    console.error('Error during plain span stripping:', error)
+    return htmlContent
+  }
+}
 
+// Unwraps, in place, the spans that carry nothing of their own
+const stripPlainSpansIn = (tempDiv: Element) => {
     // Recursively process all span elements
     const processSpans = (element: Element) => {
       const spans = Array.from(element.querySelectorAll('span'))
@@ -55,9 +70,11 @@ export const stripPlainSpans = (htmlContent: string): string => {
         const hasStyle = span.hasAttribute('style') && span.getAttribute('style')?.trim()
         const hasDataInlineDoc = span.hasAttribute('data-inline-doc')
         const hasClass = span.hasAttribute('class') && span.getAttribute('class')?.trim()
+        // An id or data-* attributes the author wrote are kept too
+        const hasOwnAttributes = !!span.id || dataAttributesOf(span as HTMLElement) !== null
 
         // Strip the span if it has no styling attributes
-        if (!hasStyle && !hasDataInlineDoc && !hasClass) {
+        if (!hasStyle && !hasDataInlineDoc && !hasClass && !hasOwnAttributes) {
           // Create a document fragment with the span's children
           const fragment = tempDiv.ownerDocument.createDocumentFragment()
           while (span.firstChild) {
@@ -71,12 +88,6 @@ export const stripPlainSpans = (htmlContent: string): string => {
     }
 
     processSpans(tempDiv)
-
-    return tempDiv.innerHTML
-  } catch (error) {
-    console.error('Error during plain span stripping:', error)
-    return htmlContent
-  }
 }
 
 // Helper function to convert block-level HTML to inline spans
@@ -236,6 +247,50 @@ export const prepareInlineContent = (rawContent: string): string => {
   }
 }
 
+const isLooseInline = (node: ChildNode) =>
+  node.nodeType === 3
+    ? /[^ \t\r\n\f]/.test(node.nodeValue ?? '')
+    : node.nodeType === 1 && !BLOCK_TAGS.has((node as Element).tagName)
+
+/**
+ * Gives each run of loose inline content of a wrapper that also holds blocks a <p>
+ * of its own. The parser would otherwise make that paragraph itself, without the
+ * wrapper's alignment, which paragraphs read from their ancestors.
+ */
+export const wrapLooseInlineContent = (htmlContent: string): string => {
+  if (!htmlContent) return htmlContent
+  const root = parseHtmlInert(htmlContent)
+  wrapLooseInlineIn(root)
+  return root.innerHTML
+}
+
+const wrapLooseInlineIn = (root: Element) => {
+  const visit = (element: Element) => {
+    const children = Array.from(element.childNodes)
+    const isBlock = (child: ChildNode) => child.nodeType === 1 && BLOCK_TAGS.has((child as Element).tagName)
+    if (children.some(isBlock) && element !== root && !['P', 'LI', 'TABLE'].includes(element.tagName)) {
+      let run: ChildNode[] = []
+      const flush = () => {
+        if (run.some(isLooseInline)) {
+          const paragraph = element.ownerDocument.createElement('p')
+          run[0].before(paragraph)
+          run.forEach((node) => paragraph.appendChild(node))
+        }
+        run = []
+      }
+      children.forEach((child) => {
+        if (isBlock(child)) flush()
+        else run.push(child)
+      })
+      flush()
+    }
+    Array.from(element.children).forEach((child) => {
+      if (child.tagName !== 'TABLE') visit(child)
+    })
+  }
+  visit(root)
+}
+
 // Helper function to sanitize content for rich text editor (sanitizes it for the
 // console, strips plain spans, preserves styled content)
 export const sanitizeRichContent = (rawContent: string): string => {
@@ -245,9 +300,11 @@ export const sanitizeRichContent = (rawContent: string): string => {
   const htmlContent = sanitizeEditorHtml(rawContent)
 
   try {
-    // Strip plain spans while preserving styled spans and other valid HTML
-    const sanitized = stripPlainSpans(htmlContent)
-    return sanitized
+    // One parse for both: plain spans unwrapped, loose text given its paragraphs
+    const root = parseHtmlInert(htmlContent)
+    stripPlainSpansIn(root)
+    wrapLooseInlineIn(root)
+    return root.innerHTML
   } catch (error) {
     console.error('Error during rich content sanitization:', error)
     return htmlContent
@@ -482,8 +539,8 @@ export const createLinkWithStyleMerging = (
       if (mark.type.name !== 'textStyle') return [mark.toJSON()]
       const style = mark.attrs.style as string | null
       linkStyle = pickStyleProperties(style, LINK_STYLE_PROPERTIES)
-      const rest = omitStyleProperties(style, LINK_STYLE_PROPERTIES)
-      return rest ? [{ type: 'textStyle', attrs: { style: rest } }] : []
+      const attrs = { ...mark.attrs, style: omitStyleProperties(style, LINK_STYLE_PROPERTIES) }
+      return keepsTextStyle(attrs) ? [{ type: 'textStyle', attrs }] : []
     })
     editor
       .chain()

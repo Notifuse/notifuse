@@ -202,3 +202,15 @@ export const omitStyleProperties = (
 /** The properties a style declares, lower-cased, in order. */
 export const stylePropertyNames = (style: string | null | undefined): string[] =>
   parseDeclarations(style).flatMap((d) => (d.property ? [d.property] : []))
+
+// data-* attributes the editors use for themselves, never kept as the author's
+const EDITOR_DATA_ATTRIBUTES = new Set([RAW_STYLE_ATTRIBUTE, 'data-inline-doc', 'data-pm-slice'])
+
+/** The author's data-* attributes of an element, or null when it has none. */
+export const dataAttributesOf = (element: HTMLElement): Record<string, string> | null => {
+  const found = Array.from(element.attributes).filter(
+    (attribute) => attribute.name.startsWith('data-') && !EDITOR_DATA_ATTRIBUTES.has(attribute.name)
+  )
+  return found.length > 0 ? Object.fromEntries(found.map((attribute) => [attribute.name, attribute.value])) : null
+}
+
