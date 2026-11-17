@@ -381,8 +381,11 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 	// still applied, stored before or not: a delivery whose processing failed after the
 	// events were stored is repaired only by the provider's redelivery, and applying one
 	// again changes no message status. A bounce or an unsubscribe received before only
-	// changes a list subscription that has not changed since Notifuse first received it,
-	// so a bounce cleared or a contact subscribed again in between is kept.
+	// changes, through the contact's lists, a list subscription that has not changed since
+	// Notifuse first received it, so a bounce cleared or a contact subscribed again in
+	// between is kept. One exception: when the first delivery failed before the message
+	// statuses below were set, setting them now fires the trigger that bounces the row
+	// of the list the email was sent for, with no such condition.
 	if err := s.repo.StoreEvents(ctx, workspaceID, events); err != nil {
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, err)
@@ -492,8 +495,8 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		}
 	}
 
-	// An address bounced by an event received for the first time is bounced whatever its
-	// rows say. One bounced only by events received before keeps a row changed since the
+	// An address bounced by an event received for the first time is bounced with no
+	// updated_at condition. One bounced only by events received before keeps a row changed since the
 	// last of them was first received.
 	var newlyBounced []string
 	bouncedBefore := map[string]time.Time{}

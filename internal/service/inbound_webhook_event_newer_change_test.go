@@ -89,7 +89,7 @@ func TestProcessWebhook_RedeliveredEventsKeepNewerSubscriptionChanges(t *testing
 		return service, &mockRepos{repo: repo, contactRepo: contactRepo}, sendGrid(t, c.events...)
 	}
 
-	t.Run("a hard bounce received for the first time bounces the address whatever its rows say", func(t *testing.T) {
+	t.Run("a hard bounce received for the first time bounces the address with no updated_at condition", func(t *testing.T) {
 		service, m, raw := setup(t, sendGridCase{
 			events:     [][3]string{{"bounce", "msg-1", "a@example.com"}},
 			recipients: map[string]string{"msg-1": "a@example.com"},
@@ -111,7 +111,7 @@ func TestProcessWebhook_RedeliveredEventsKeepNewerSubscriptionChanges(t *testing
 		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, raw))
 	})
 
-	t.Run("an address with one new and one received hard bounce is bounced whatever its rows say", func(t *testing.T) {
+	t.Run("an address with one new and one received hard bounce is bounced with no updated_at condition", func(t *testing.T) {
 		service, m, raw := setup(t, sendGridCase{
 			events:     [][3]string{{"bounce", "msg-1", "a@example.com"}, {"bounce", "msg-2", "a@example.com"}},
 			recipients: map[string]string{"msg-1": "a@example.com", "msg-2": "a@example.com"},
@@ -175,7 +175,7 @@ func TestProcessWebhook_RedeliveredEventsKeepNewerSubscriptionChanges(t *testing
 		require.NoError(t, service.ProcessWebhook(context.Background(), workspaceID, integrationID, raw))
 	})
 
-	t.Run("a threshold reached with a new soft bounce bounces the address whatever its rows say", func(t *testing.T) {
+	t.Run("a threshold reached with a new soft bounce bounces the address with no updated_at condition", func(t *testing.T) {
 		service, m, raw := setup(t, sendGridCase{
 			events:     [][3]string{{"blocked", "msg-1", "a@example.com"}, {"blocked", "msg-2", "a@example.com"}},
 			recipients: map[string]string{"msg-1": "a@example.com", "msg-2": "a@example.com"},
