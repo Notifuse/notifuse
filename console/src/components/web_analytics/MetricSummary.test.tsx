@@ -84,3 +84,42 @@ describe('MetricSummary', () => {
     expect(screen.queryByText('1.2K')).toBeNull()
   })
 })
+
+describe('MetricSummary, figures the chart cannot plot', () => {
+  const metrics = [
+    ...SESSION_METRICS.slice(0, 1),
+    { key: 'conversion_rate', label: 'Conv. Rate', format: 'percentage' as const, color: '#000', selectable: false as const },
+    { key: 'sum_goal_value', label: 'Total Value', format: 'currency' as const, color: '#000' }
+  ]
+  const totals: Record<string, MetricTotals> = {
+    sessions: TOTALS.sessions,
+    conversion_rate: { current: 6, previous: 0, changePercent: 0 },
+    sum_goal_value: { current: 0, previous: 0, changePercent: 0 }
+  }
+
+  it('renders a metric that cannot be selected as a plain cell, deaf to clicks', () => {
+    const { onSelect, cell } = renderSummary({ metrics, totals, labels: { conversion_rate: 'Conv. Rate' } })
+    const rate = cell('Conv. Rate')
+    expect(rate.tagName).not.toBe('BUTTON')
+    expect(rate).not.toHaveAttribute('aria-pressed')
+    fireEvent.click(rate)
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('writes a currency of 0 as "-", as the goal cards do', () => {
+    const { cell } = renderSummary({ metrics, totals, currency: 'EUR' })
+    expect(cell('Total Value')).toHaveTextContent('-')
+    expect(cell('Total Value')).not.toHaveTextContent('€')
+  })
+
+  it('prints the sub line given for a metric that has no change to show', () => {
+    renderSummary({ subs: { sessions: '21.4% of search-paid' } })
+    expect(screen.getByText('21.4% of search-paid')).toBeInTheDocument()
+  })
+
+  it('keeps the change over the sub line while comparing', () => {
+    renderSummary({ showComparison: true, subs: { sessions: '21.4% of search-paid' } })
+    expect(screen.queryByText('21.4% of search-paid')).toBeNull()
+    expect(screen.getByText('20.0%')).toBeInTheDocument()
+  })
+})

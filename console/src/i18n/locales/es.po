@@ -47,6 +47,10 @@ msgstr "- cancelado"
 msgid "... and {0} more emails"
 msgstr "... y {0} correos más"
 
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:49
+msgid "· applies to the whole Web Analytics section. Click a row or a country to add one."
+msgstr "· se aplica a toda la sección Analíticas web. Haz clic en una fila o en un país para añadir un filtro."
+
 #: src/components/settings/WorkspaceMembers.tsx:111
 msgid "· read only"
 msgstr "· solo lectura"
@@ -66,10 +70,10 @@ msgstr "«{name}»"
 msgid "\"{segmentName}\" will be deleted. Its contacts stay in the workspace. This action cannot be undone."
 msgstr "«{segmentName}» se eliminará. Sus contactos permanecen en el espacio de trabajo. Esta acción no se puede deshacer."
 
-#: src/components/web_analytics/filters/FilterTable.tsx:103
-#: src/components/web_analytics/filters/FilterTable.tsx:208
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:148
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:237
+#: src/components/web_analytics/filters/FilterTable.tsx:133
+#: src/components/web_analytics/filters/FilterTable.tsx:250
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:157
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:275
 msgid "(always matches)"
 msgstr "(siempre coincide)"
 
@@ -87,13 +91,14 @@ msgid "(default)"
 msgstr "(predeterminado)"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:360
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:41
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:88
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:160
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:163
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:57
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:166
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:168
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:120
 #: src/components/web_analytics/explore/CsvExportModal.tsx:98
 #: src/components/web_analytics/explore/ExploreSummary.tsx:73
 #: src/components/web_analytics/explore/ExploreTable.tsx:63
+#: src/components/web_analytics/tabs/ExploreTab.tsx:300
 msgid "(empty)"
 msgstr "(vacío)"
 
@@ -272,6 +277,16 @@ msgstr "{0, plural, one {# recurso} other {# recursos}}"
 #: src/components/automations/stats/NodeStatsFooter.tsx:98
 msgid "{0, plural, one {# retrying} other {# retrying}}"
 msgstr "{0, plural, one {# reintentando} other {# reintentando}}"
+
+#. placeholder {0}: overrides.before.length
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:227
+msgid "{0, plural, one {# rule runs first and can keep this rule from writing {beforeList}} other {# rules run first and can keep this rule from writing {beforeList}}}"
+msgstr "{0, plural, one {# regla se ejecuta antes y puede impedir que esta escriba {beforeList}} other {# reglas se ejecutan antes y pueden impedir que esta escriba {beforeList}}}"
+
+#. placeholder {0}: overrides.after.length
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:240
+msgid "{0, plural, one {# rule runs later and can overwrite this rule on {afterList}} other {# rules run later and can overwrite this rule on {afterList}}}"
+msgstr "{0, plural, one {# regla se ejecuta después y puede sobrescribir esta regla en {afterList}} other {# reglas se ejecutan después y pueden sobrescribir esta regla en {afterList}}}"
 
 #. placeholder {0}: checkedFiles.length
 #: src/components/file_manager/FileExplorer.tsx:724
@@ -478,8 +493,8 @@ msgstr "{0} no se aplica a este evento"
 #. placeholder {0}: matchingRules.length
 #. placeholder {1}: enabledResults.length
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:299
-msgid "{0} of {1} rules match"
-msgstr "{0} de {1} reglas coinciden"
+#~ msgid "{0} of {1} rules match"
+#~ msgstr "{0} de {1} reglas coinciden"
 
 #. placeholder {0}: int(shown)
 #: src/pages/BroadcastsPage.tsx:230
@@ -497,7 +512,7 @@ msgstr "{0} abiertos"
 #~ msgstr "{0} destinatarios en cola para otro intento"
 
 #. placeholder {0}: int(state.rows_updated)
-#: src/components/web_analytics/filters/BackfillStatus.tsx:110
+#: src/components/web_analytics/filters/BackfillStatus.tsx:123
 msgid "{0} rows rewritten"
 msgstr "{0} filas reescritas"
 
@@ -592,6 +607,10 @@ msgstr "{0} segundos"
 #: src/pages/BroadcastsPage.tsx:1757
 #~ msgid "{0}-{1} of {total} broadcasts"
 #~ msgstr "{0}-{1} de {total} envíos masivos"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:78
+msgid "{above, plural, one {# rule above and {below} below this one} other {# rules above and {below} below this one}}"
+msgstr "{above, plural, one {# regla por encima y {below} por debajo de esta} other {# reglas por encima y {below} por debajo de esta}}"
 
 #: src/components/segment/segmentSummary.ts:196
 msgid "{action} at least {count} times"
@@ -699,6 +718,10 @@ msgstr "{count, plural, one {# notificación} other {# notificaciones}}"
 msgid "{count, plural, one {# recipient} other {# recipients}}"
 msgstr "{count, plural, one {# destinatario} other {# destinatarios}}"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:57
+msgid "{count, plural, one {# value} other {# values}}"
+msgstr "{count, plural, one {# valor} other {# valores}}"
+
 #: src/components/broadcasts/BroadcastsTable.tsx:317
 msgid "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
 msgstr "{count, plural, one {A/B · # variante} other {A/B · # variantes}}"
@@ -800,6 +823,10 @@ msgstr "{email}, el predeterminado del proveedor"
 msgid "{email}, the template's, on {providerName}"
 msgstr "{email}, el de la plantilla, en {providerName}"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:418
+msgid "{enabled} enabled · {disabled} disabled"
+msgstr "{enabled} habilitadas · {disabled} deshabilitadas"
+
 #: src/pages/ContactsPage.tsx:510
 msgid "{exactTotal, plural, one {{shownCount} of # contact} other {{shownCount} of # contacts}}"
 msgstr "{exactTotal, plural, one {{shownCount} de # contacto} other {{shownCount} de # contactos}}"
@@ -886,6 +913,10 @@ msgstr "{field} no en los últimos {days} días"
 #: src/components/segment/segmentSummary.ts:104
 msgid "{field} starts with {value}"
 msgstr "{field} empieza por {value}"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:325
+msgid "{filled} of {total} filled"
+msgstr "{filled} de {total} rellenados"
 
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:294
 msgid "{full} ({timezone})"
@@ -1097,6 +1128,14 @@ msgstr "{named} de {total} espacios con nombre"
 #~ msgid "{notAppliedNames} filters not applied to the session figures and chart"
 #~ msgstr "Filtros {notAppliedNames} no aplicados a las cifras de sesiones ni al gráfico"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:186
+msgid "{onPage} of {total} sessions"
+msgstr "{onPage} de {total} sesiones"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:185
+msgid "{onPage} of {total} sessions on this page"
+msgstr "{onPage} de {total} sesiones en esta página"
+
 #: src/components/templates/TemplateSettingsStep.tsx:80
 msgid "{open} Liquid tags are not closed: each {OPEN_TAG} needs a matching {CLOSE_TAG}"
 msgstr "{open} etiquetas Liquid no están cerradas: cada {OPEN_TAG} necesita su {CLOSE_TAG}"
@@ -1150,6 +1189,10 @@ msgstr "{providerName} no tiene remitente predeterminado"
 msgid "{readingTime} min read"
 msgstr "{readingTime} min de lectura"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:181
+msgid "{regexCount, plural, one {The regular expression is valid} other {The # regular expressions are valid}}"
+msgstr "{regexCount, plural, one {La expresión regular es válida} other {Las # expresiones regulares son válidas}}"
+
 #: src/components/broadcasts/useBroadcastActions.tsx:67
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# destinatario en cola para otro intento} other {# destinatarios en cola para otro intento}}"
@@ -1200,6 +1243,10 @@ msgstr "{selectedCount, plural, one {Esto eliminará permanentemente # contacto.
 #: src/components/broadcasts/VariationSenderSelect.tsx:69
 msgid "{senderId} (deleted)"
 msgstr "{senderId} (eliminado)"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:207
+msgid "{share} of {parent}"
+msgstr "{share} de {parent}"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:242
 msgid "{share}% tracked"
@@ -1256,7 +1303,7 @@ msgid "{time} local time"
 msgstr "{time} hora local"
 
 #: src/components/blog/PostDrawer.tsx:1109
-#: src/components/seo/SeoChecks.tsx:35
+#: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, one {# por revisar} other {# por revisar}}"
 
@@ -1444,7 +1491,7 @@ msgid "+{0}"
 msgstr "+{0}"
 
 #. placeholder {0}: hidden.length
-#: src/components/web_analytics/filters/FilterTable.tsx:224
+#: src/components/web_analytics/filters/FilterTable.tsx:266
 msgid "+{0} more"
 msgstr "+{0} más"
 
@@ -1454,8 +1501,8 @@ msgid "+{count}"
 msgstr "+{count}"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:157
-msgid "+{hiddenCount} more"
-msgstr "+{hiddenCount} más"
+#~ msgid "+{hiddenCount} more"
+#~ msgstr "+{hiddenCount} más"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:967
 #: src/components/settings/integrations/providerDetails.ts:170
@@ -2034,12 +2081,12 @@ msgstr "Email del actor"
 #: src/components/broadcasts/HeadersEditor.tsx:54
 #: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
-#: src/components/seo/SeoChecks.tsx:60
+#: src/components/seo/SeoChecks.tsx:73
 #: src/components/settings/integrations/EmailProviderCard.tsx:309
 #: src/components/transactional/NotificationChecks.tsx:88
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:113
-#: src/components/web_analytics/tabs/FiltersTab.tsx:130
+#: src/components/web_analytics/tabs/FiltersTab.tsx:144
 msgid "Add"
 msgstr "Añadir"
 
@@ -2150,7 +2197,7 @@ msgstr "Añade elementos secundarios como mj-font, mj-style o mj-preview para co
 msgid "Add column in group"
 msgstr "Añadir columna en grupo"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:170
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:172
 msgid "Add condition"
 msgstr "Añadir condición"
 
@@ -2179,6 +2226,8 @@ msgstr "Añadir cabecera personalizada"
 msgid "Add Custom Header"
 msgstr "Añadir cabecera personalizada"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:129
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:131
 #: src/components/web_analytics/explore/DimensionSelector.tsx:241
 msgid "Add dimension"
 msgstr "Añadir dimensión"
@@ -2191,7 +2240,7 @@ msgstr "Añadir punto final"
 msgid "Add entry conditions"
 msgstr "Añadir condiciones de entrada"
 
-#: src/components/web_analytics/FilterBuilder.tsx:151
+#: src/components/web_analytics/FilterBuilder.tsx:123
 msgid "Add filter"
 msgstr "Añadir filtro"
 
@@ -2230,7 +2279,7 @@ msgstr "Añadir notas sobre esta versión..."
 #~ msgid "Add one or more email senders. The first sender will be used as the default."
 #~ msgstr "Añade uno o más remitentes de correo. El primer remitente se usará como predeterminado."
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:193
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:191
 msgid "Add operation"
 msgstr "Añadir operación"
 
@@ -2261,7 +2310,7 @@ msgstr "Añadir elemento social"
 msgid "Add social elements to this social block"
 msgstr "Añade elementos sociales a este bloque social"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:162
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:224
 msgid "Add tags..."
 msgstr "Añadir etiquetas..."
 
@@ -2419,6 +2468,10 @@ msgstr "Después"
 msgid "after {date}"
 msgstr "después del {date}"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:382
+msgid "After a backfill, run from Attribution rules"
+msgstr "Tras un relleno retroactivo, lanzado desde Reglas de atribución"
+
 #: src/components/segment/form_leaf.tsx:525
 #: src/components/segment/form_leaf.tsx:900
 msgid "after date"
@@ -2515,7 +2568,7 @@ msgstr "Alineación"
 #: src/components/logs/OutgoingWebhooksTab.tsx:142
 #: src/components/templates/TemplateStartModal.tsx:159
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:122
-#: src/components/web_analytics/tabs/FiltersTab.tsx:152
+#: src/components/web_analytics/tabs/FiltersTab.tsx:170
 #: src/pages/AutomationsPage.tsx:137
 #: src/pages/TemplatesPage.tsx:152
 msgid "All"
@@ -2550,13 +2603,13 @@ msgstr "Todas las categorías"
 msgid "All click events, including repeat clicks. May be inflated by bots and prefetching."
 msgstr "Todos los eventos de clic, incluidos los clics repetidos. Puede estar inflado por bots y precarga."
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:186
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:78
 msgid "All conditions must have a value"
 msgstr "Todas las condiciones deben tener un valor"
 
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:151
-msgid "All conditions must match (AND logic):"
-msgstr "Todas las condiciones deben coincidir (lógica AND):"
+#~ msgid "All conditions must match (AND logic):"
+#~ msgstr "Todas las condiciones deben coincidir (lógica AND):"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:116
 msgid "All contact fields are optional except email."
@@ -2587,6 +2640,10 @@ msgstr "Todos los lenguajes"
 msgid "All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
 msgstr "Todos los correos de marketing (envíos masivos, campañas) se enviarán a través de este proveedor a partir de ahora."
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
+msgid "All must match"
+msgstr "Todas deben coincidir"
+
 #: src/components/blog/BlogSidebar.tsx:66
 #: src/components/blog/PostsTable.tsx:507
 msgid "All posts"
@@ -2598,8 +2655,12 @@ msgstr "Todos los artículos"
 #~ msgid "All Posts"
 #~ msgstr "Todas las publicaciones"
 
+#: src/components/web_analytics/tabs/ExploreTab.tsx:303
+msgid "all sessions"
+msgstr "todas las sesiones"
+
 #: src/components/blog/PostDrawer.tsx:1112
-#: src/components/seo/SeoChecks.tsx:35
+#: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
 msgstr "Todo listo"
@@ -2671,11 +2732,20 @@ msgstr "Texto alternativo (para accesibilidad)"
 #~ msgid "always"
 #~ msgstr ""
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:126
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:166
+msgid "Always matches"
+msgstr "Coincide siempre"
+
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:152
+msgid "Always matches: with no condition, this rule runs on every session."
+msgstr "Coincide siempre: sin condiciones, esta regla se ejecuta en cada sesión."
+
 #: src/components/email_builder/blocks/MjFontBlock.tsx:48
 msgid "Always provide fallback fonts for better compatibility"
 msgstr "Siempre proporciona fuentes alternativas para mejor compatibilidad"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:230
+#: src/components/web_analytics/lib/filterCatalog.ts:234
 msgid "Always set to the specified value"
 msgstr "Establecer siempre al valor especificado"
 
@@ -3033,6 +3103,7 @@ msgstr "Se aplica a los próximos envíos"
 #: src/components/contacts/ContactsFilters.tsx:139
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:293
 #: src/components/logs/TextFilter.tsx:28
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:255
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:49
 #: src/components/web_analytics/toolbar.tsx:93
 msgid "Apply"
@@ -3042,8 +3113,8 @@ msgstr "Aplicar"
 msgid "Apply & Recompile"
 msgstr "Aplicar y recompilar"
 
-#: src/components/web_analytics/FilterBuilder.tsx:383
-#: src/components/web_analytics/FilterBuilder.tsx:424
+#: src/components/web_analytics/FilterBuilder.tsx:353
+#: src/components/web_analytics/FilterBuilder.tsx:394
 msgid "Apply filter"
 msgstr "Aplicar filtro"
 
@@ -3224,14 +3295,14 @@ msgid "AT LEAST ONE"
 msgstr "AL MENOS UNA"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:180
-msgid "At least one condition is required"
-msgstr "Se requiere al menos una condición"
+#~ msgid "At least one condition is required"
+#~ msgstr "Se requiere al menos una condición"
 
 #: src/pages/SetupWizard.tsx:766
 msgid "At least one domain is required when auto-create is enabled"
 msgstr "Se requiere al menos un dominio cuando la creación automática está habilitada"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:207
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:80
 msgid "At least one operation is required"
 msgstr "Se requiere al menos una operación"
 
@@ -3254,7 +3325,9 @@ msgstr "Adjuntos"
 msgid "Attempts"
 msgstr "Intentos"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:124
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:170
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
+#: src/components/web_analytics/tabs/FiltersTab.tsx:137
 msgid "Attribution rules"
 msgstr "Reglas de atribución"
 
@@ -3547,9 +3620,8 @@ msgstr "Región de AWS"
 
 #: src/components/contacts/ContactsFilters.tsx:115
 #: src/components/layout/FullDrawer.tsx:93
-#: src/components/web_analytics/FilterBuilder.tsx:323
-#: src/components/web_analytics/FilterBuilder.tsx:394
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:392
+#: src/components/web_analytics/FilterBuilder.tsx:293
+#: src/components/web_analytics/FilterBuilder.tsx:364
 msgid "Back"
 msgstr "Atrás"
 
@@ -3580,15 +3652,15 @@ msgstr "¿Volver a borrador?"
 msgid "Back to Transactional"
 msgstr "Volver a Transaccional"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:61
+#: src/components/web_analytics/filters/BackfillStatus.tsx:67
 msgid "Backfill cancelled"
 msgstr "Relleno retroactivo cancelado"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:80
+#: src/components/web_analytics/filters/BackfillStatus.tsx:85
 msgid "Backfill in progress"
 msgstr "Relleno retroactivo en curso"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:52
+#: src/components/web_analytics/filters/BackfillStatus.tsx:58
 msgid "Backfill started"
 msgstr "Relleno retroactivo iniciado"
 
@@ -3984,7 +4056,7 @@ msgstr "Inferior derecha"
 #: src/components/contacts/sheet/activityLabel.ts:23
 #: src/components/logs/labels.ts:72
 #: src/components/templates/templateCategories.ts:25
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:190
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:158
 msgid "Bounce"
 msgstr "Rebote"
 
@@ -4009,15 +4081,17 @@ msgstr "Diagnóstico del rebote"
 #~ msgid "Bounce email"
 #~ msgstr "Correo rebotado"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:65
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:70
 #: src/components/web_analytics/explore/ExploreSummary.tsx:53
 #: src/components/web_analytics/explore/ExploreTable.tsx:142
-#: src/components/web_analytics/FilterBuilder.tsx:119
+#: src/components/web_analytics/FilterBuilder.tsx:101
 #: src/components/web_analytics/tabs/DashboardTab.tsx:32
 msgid "Bounce Rate"
 msgstr "Tasa de rebote"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:49
-#: src/components/web_analytics/FilterBuilder.tsx:234
+#: src/components/web_analytics/FilterBuilder.tsx:204
 msgid "Bounce Rate (%)"
 msgstr "Tasa de rebote (%)"
 
@@ -4108,9 +4182,13 @@ msgstr "Ruta de navegación"
 msgid "Breakdown by"
 msgstr "Desglose por"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:143
+msgid "Breakdown of {valueLabel}"
+msgstr "Desglose de {valueLabel}"
+
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:95
-msgid "Breaking down by:"
-msgstr "Desglosando por:"
+#~ msgid "Breaking down by:"
+#~ msgstr "Desglosando por:"
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:27
 msgid "Breakpoint attributes"
@@ -4300,6 +4378,10 @@ msgstr "Envíos masivos que aún pueden enviarse, notificaciones transaccionales
 msgid "Broadcasts write sends. The same switch that lets someone draft a campaign lets them push it to the entire audience — through /api/broadcasts.schedule, and again through /api/tasks.trigger and /api/tasks.reset on the underlying send task. Note that Broadcasts read does NOT give delivery statistics: open/click/bounce numbers come from /api/messages.broadcastStats and siblings, which are gated on Message History read. It also does not grant the recipient list — that is Contacts read."
 msgstr "La escritura de Envíos masivos envía. El mismo interruptor que permite a alguien redactar una campaña le permite lanzarla a toda la audiencia, a través de /api/broadcasts.schedule y también a través de /api/tasks.trigger y /api/tasks.reset sobre la tarea de envío subyacente. Ten en cuenta que la lectura de Envíos masivos NO da estadísticas de entrega: las cifras de aperturas, clics y rebotes vienen de /api/messages.broadcastStats y sus equivalentes, que dependen de la lectura de Historial de mensajes. Tampoco concede la lista de destinatarios: eso es la lectura de Contactos."
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:179
+msgid "Broken down by"
+msgstr "Desglosado por"
+
 #: src/services/api/permissions.ts:910
 msgid "Browse and filter the audit log, including every member's email address and IP address"
 msgstr "Explorar y filtrar el registro de auditoría, incluidas la dirección de email y la IP de cada miembro"
@@ -4329,12 +4411,12 @@ msgstr "Consulta, filtra y exporta el registro en Logs → Registro de auditorí
 #~ msgid "Browse, filter and export the log under Logs → Audit."
 #~ msgstr "Explore, filtre y exporte el registro en Logs → Auditoría."
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:276
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:272
 msgid "Browser"
 msgstr "Navegador"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:275
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:271
 msgid "Browsers"
 msgstr "Navegadores"
@@ -4412,7 +4494,7 @@ msgstr "Llama a identify() en cuanto sepas quién es el visitante. La firma debe
 msgid "Campaign"
 msgstr "Campaña"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:220
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:268
 #: src/components/web_analytics/tabs/DashboardTab.tsx:226
 #: src/pages/WebAnalyticsLivePage.tsx:199
 #: src/pages/WebAnalyticsLivePage.tsx:206
@@ -4426,6 +4508,15 @@ msgstr "Ya no se puede cambiar"
 #: src/components/templates/TemplateSettingsStep.tsx:134
 msgid "Can't change after the template is created"
 msgstr "No se puede cambiar una vez creada la plantilla"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:244
+msgid "Can't test"
+msgstr "No se pueden probar"
+
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:12
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:232
+msgid "Can't test in the browser"
+msgstr "No se puede probar en el navegador"
 
 #: src/components/automations/AutomationEditor.tsx:273
 #: src/components/automations/AutomationEditor.tsx:296
@@ -4528,11 +4619,11 @@ msgstr "No se puede cambiar una vez creada la plantilla"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:76
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
 #: src/components/web_analytics/filters/BackfillStatus.tsx:91
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:103
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
-#: src/components/web_analytics/filters/FilterTable.tsx:137
-#: src/components/web_analytics/filters/FilterTable.tsx:299
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:111
+#: src/components/web_analytics/filters/BackfillStatus.tsx:103
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:120
+#: src/components/web_analytics/filters/FilterTable.tsx:176
+#: src/components/web_analytics/filters/FilterTable.tsx:357
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:122
 #: src/components/web_analytics/toolbar.tsx:94
 msgid "Cancel"
 msgstr "Cancelar"
@@ -4545,7 +4636,7 @@ msgstr "Cancelar un envío masivo"
 msgid "Cancel a running backfill"
 msgstr "Cancelar un relleno retroactivo en curso"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:84
+#: src/components/web_analytics/filters/BackfillStatus.tsx:96
 msgid "Cancel backfill?"
 msgstr "¿Cancelar el relleno retroactivo?"
 
@@ -4579,6 +4670,7 @@ msgstr "¿Cancelar subida?"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:222
 #: src/components/broadcasts/detail/BroadcastAside.tsx:279
+#: src/components/web_analytics/lib/backfill.ts:31
 msgid "Cancelled"
 msgstr "Cancelado"
 
@@ -4792,26 +4884,26 @@ msgstr "Cambiar de dominio"
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/web_analytics/explore/BreakdownModal.tsx:31
 #: src/components/web_analytics/explore/DimensionSelector.tsx:107
-#: src/components/web_analytics/FilterBuilder.tsx:56
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:79
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:203
+#: src/components/web_analytics/FilterBuilder.tsx:38
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:110
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
 #: src/components/web_analytics/tabs/DashboardTab.tsx:206
 msgid "Channel"
 msgstr "Canal"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:209
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:257
 #: src/components/web_analytics/tabs/DashboardTab.tsx:212
 #: src/pages/WebAnalyticsLivePage.tsx:224
 msgid "Channel group"
 msgstr "Grupo de canales"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:208
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
 #: src/components/web_analytics/tabs/DashboardTab.tsx:211
 msgid "Channel groups"
 msgstr "Grupos de canales"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:202
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
 #: src/components/web_analytics/tabs/DashboardTab.tsx:205
 #: src/pages/WebAnalyticsLivePage.tsx:216
 #: src/pages/WebAnalyticsLivePage.tsx:223
@@ -4831,9 +4923,17 @@ msgstr "Buscar actualizaciones"
 msgid "Check the MJML hierarchy and that every tag is closed."
 msgstr "Comprueba la jerarquía MJML y que cada etiqueta esté cerrada."
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:193
+msgid "Checked as you type; the server checks again on save."
+msgstr "Se comprueba mientras escribes; el servidor vuelve a comprobarlo al guardar."
+
 #: src/components/settings/integrations/EmailProviderCard.tsx:128
 msgid "Checking webhooks…"
 msgstr "Comprobando webhooks…"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:249
+msgid "Checks"
+msgstr "Comprobaciones"
 
 #: src/components/logs/MessagesTab.tsx:402
 #: src/components/transactional/NotificationChecks.tsx:118
@@ -4984,13 +5084,22 @@ msgstr "Borrar búsqueda"
 msgid "Clear selection"
 msgstr "Borrar selección"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:226
+#: src/components/web_analytics/lib/filterCatalog.ts:230
 msgid "Clear value"
 msgstr "Borrar valor"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:437
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:442
+msgid "Clear visit"
+msgstr "Borrar la visita"
 
 #: src/components/contacts/sheet/activityLabel.ts:13
 msgid "Click"
 msgstr "Clic"
+
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:24
+msgid "Click a row or a country to filter the whole Web Analytics section."
+msgstr "Haz clic en una fila o en un país para filtrar toda la sección Analíticas web."
 
 #: src/components/segment/form_leaf.tsx:386
 #: src/components/segment/input.tsx:791
@@ -5332,7 +5441,7 @@ msgstr "Ancho de columna (ej., '50%', '300px', 'auto')"
 msgid "Comma-separated list of email domains permitted to auto-create accounts"
 msgstr "Lista separada por comas de dominios de correo autorizados a crear cuentas automáticamente"
 
-#: src/components/web_analytics/FilterBuilder.tsx:363
+#: src/components/web_analytics/FilterBuilder.tsx:333
 msgid "Comma-separated values"
 msgstr "Valores separados por comas"
 
@@ -5449,6 +5558,7 @@ msgstr "Completa la condición para actualizar el recuento"
 #: src/components/automations/stats/StepStats.tsx:21
 #: src/components/broadcasts/detail/BroadcastAside.tsx:220
 #: src/components/broadcasts/detail/BroadcastAside.tsx:277
+#: src/components/web_analytics/lib/backfill.ts:28
 msgid "Completed"
 msgstr "Completado"
 
@@ -5476,14 +5586,26 @@ msgstr "condición"
 msgid "Condition"
 msgstr "Condición"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:188
+msgid "Condition {position} can't be tested in the browser; the server checks it on save"
+msgstr "La condición {position} no se puede probar en el navegador; el servidor la comprueba al guardar"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:189
+msgid "Condition {position} is not a valid regular expression and may be refused on save"
+msgstr "La condición {position} no es una expresión regular válida y puede rechazarse al guardar"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:186
+msgid "Condition {position} uses a lookaround or a backreference, which the server refuses"
+msgstr "La condición {position} usa un lookaround o una referencia inversa, que el servidor rechaza"
+
 #: src/components/automations/nodes/FilterNode.tsx:49
 msgid "conditions"
 msgstr "condiciones"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:169
-#: src/components/web_analytics/filters/FilterTable.tsx:101
-#: src/components/web_analytics/filters/FilterTable.tsx:204
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:235
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
+#: src/components/web_analytics/filters/FilterTable.tsx:131
+#: src/components/web_analytics/filters/FilterTable.tsx:246
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:270
 msgid "Conditions"
 msgstr "Condiciones"
 
@@ -5852,8 +5974,8 @@ msgstr "Relleno del contenedor"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
-#: src/components/web_analytics/FilterBuilder.tsx:40
-#: src/components/web_analytics/lib/filterCatalog.ts:218
+#: src/components/web_analytics/lib/filterCatalog.ts:222
+#: src/components/web_analytics/lib/filterLabels.ts:12
 msgid "contains"
 msgstr "contiene"
 
@@ -5889,6 +6011,7 @@ msgstr "Contenidos"
 #~ msgstr "Controla cómo los motores de búsqueda indexan y siguen los enlaces de tu blog"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:46
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:60
 msgid "Conv. Rate"
 msgstr "Tasa de conv."
 
@@ -6018,7 +6141,7 @@ msgstr "No se pudo cargar el panel"
 msgid "Could not load the email sent"
 msgstr "No se pudo cargar el email enviado"
 
-#: src/components/web_analytics/tabs/GoalsTab.tsx:123
+#: src/components/web_analytics/tabs/GoalsTab.tsx:121
 msgid "Could not load the goals"
 msgstr "No se pudieron cargar los objetivos"
 
@@ -6027,15 +6150,15 @@ msgstr "No se pudieron cargar los objetivos"
 msgid "Could not load the latest version. Please try again."
 msgstr "No se pudo cargar la última versión. Inténtalo de nuevo."
 
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:142
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:64
 msgid "Could not load this breakdown"
 msgstr "No se pudo cargar este desglose"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:158
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:200
 msgid "Could not load this goal"
 msgstr "No se pudo cargar este objetivo"
 
-#: src/components/web_analytics/tabs/ExploreTab.tsx:353
+#: src/components/web_analytics/tabs/ExploreTab.tsx:367
 msgid "Could not load this report"
 msgstr "No se pudo cargar este informe"
 
@@ -6165,8 +6288,8 @@ msgid "count"
 msgstr "número"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:45
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:42
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:119
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:59
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:138
 #: src/components/web_analytics/tabs/DashboardTab.tsx:286
 msgid "Count"
 msgstr "Recuento"
@@ -6207,7 +6330,7 @@ msgstr "Contado a partir de los webhooks de entrega de tus proveedores"
 msgid "Counting…"
 msgstr "Contando…"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:296
 #: src/components/web_analytics/tabs/DashboardTab.tsx:243
 msgid "Countries"
 msgstr "Países"
@@ -6220,8 +6343,8 @@ msgstr "Países"
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
 #: src/components/segment/segmentSummary.ts:42
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:248
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:304
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
 #: src/components/web_analytics/tabs/DashboardTab.tsx:251
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 msgid "Country"
@@ -6258,7 +6381,6 @@ msgstr "Abarca más que las plantillas: los bloques reutilizables responden al m
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:112
 msgid "Create"
 msgstr "Crear"
 
@@ -6417,8 +6539,8 @@ msgstr "Crear notificación"
 msgid "Create post"
 msgstr "Crear artículo"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:99
-#: src/components/web_analytics/tabs/FiltersTab.tsx:192
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:158
+#: src/components/web_analytics/tabs/FiltersTab.tsx:213
 msgid "Create rule"
 msgstr "Crear regla"
 
@@ -6665,7 +6787,7 @@ msgstr "personalizado"
 #: src/components/email_builder/panels/TextVersionPanel.tsx:326
 #: src/components/email_builder/ui/BackgroundInput.tsx:113
 #: src/components/templates/TemplatePreviewDrawer.tsx:235
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:85
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:116
 msgid "Custom"
 msgstr "Personalizado"
 
@@ -6720,7 +6842,8 @@ msgstr "Campos de fecha personalizados"
 #: src/components/settings/WebAnalyticsSettings.tsx:396
 #: src/components/web_analytics/explore/BreakdownModal.tsx:41
 #: src/components/web_analytics/explore/DimensionSelector.tsx:117
-#: src/components/web_analytics/FilterBuilder.tsx:66
+#: src/components/web_analytics/FilterBuilder.tsx:48
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:328
 msgid "Custom dimensions"
 msgstr "Dimensiones personalizadas"
 
@@ -7067,7 +7190,7 @@ msgstr "Remitente predeterminado"
 msgid "Default theme created and published"
 msgstr "Tema predeterminado creado y publicado"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:237
+#: src/components/web_analytics/lib/filterCatalog.ts:241
 msgid "default to"
 msgstr "usar por defecto"
 
@@ -7194,11 +7317,12 @@ msgstr "Retraso"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:87
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:139
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:143
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:101
-#: src/components/web_analytics/filters/FilterTable.tsx:135
-#: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/components/web_analytics/filters/FilterTable.tsx:297
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:109
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:118
+#: src/components/web_analytics/filters/FilterTable.tsx:165
+#: src/components/web_analytics/filters/FilterTable.tsx:174
+#: src/components/web_analytics/filters/FilterTable.tsx:179
+#: src/components/web_analytics/filters/FilterTable.tsx:355
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:120
 #: src/pages/TemplatesPage.tsx:337
 #: src/pages/TemplatesPage.tsx:340
 msgid "Delete"
@@ -7329,7 +7453,7 @@ msgstr "Eliminar categoría"
 msgid "Delete Category"
 msgstr "Eliminar categoría"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:108
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:122
 msgid "Delete condition"
 msgstr "Eliminar condición"
 
@@ -7403,7 +7527,7 @@ msgstr "Eliminar lista"
 msgid "Delete node"
 msgstr "Eliminar nodo"
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:116
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:127
 msgid "Delete operation"
 msgstr "Eliminar operación"
 
@@ -7412,8 +7536,9 @@ msgid "Delete Post"
 msgstr "Eliminar publicación"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:155
-#: src/components/web_analytics/filters/FilterTable.tsx:293
-#: src/components/web_analytics/filters/FilterTable.tsx:304
+#: src/components/web_analytics/filters/FilterTable.tsx:344
+#: src/components/web_analytics/filters/FilterTable.tsx:351
+#: src/components/web_analytics/filters/FilterTable.tsx:362
 msgid "Delete rule"
 msgstr "Eliminar regla"
 
@@ -7454,7 +7579,7 @@ msgstr "¿Eliminar la notificación?"
 msgid "Delete this API key?"
 msgstr "¿Eliminar esta clave API?"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:99
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:116
 msgid "Delete this condition?"
 msgstr "¿Eliminar esta condición?"
 
@@ -7467,12 +7592,12 @@ msgstr "¿Eliminar esta conexión?"
 msgid "Delete this integration?"
 msgstr "¿Eliminar esta integración?"
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:107
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:118
 msgid "Delete this operation?"
 msgstr "¿Eliminar esta operación?"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:132
-#: src/components/web_analytics/filters/FilterTable.tsx:294
+#: src/components/web_analytics/filters/FilterTable.tsx:171
+#: src/components/web_analytics/filters/FilterTable.tsx:352
 msgid "Delete this rule?"
 msgstr "¿Eliminar esta regla?"
 
@@ -7719,7 +7844,7 @@ msgid "Desktop view (100%)"
 msgstr "Vista de escritorio (100%)"
 
 #: src/components/blog/PostDrawer.tsx:843
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:133
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "Detalles"
 
@@ -7735,16 +7860,16 @@ msgstr "Detectar desde el sitio web"
 #: src/components/contacts/visits/ContactWebVisits.tsx:296
 #: src/components/web_analytics/explore/BreakdownModal.tsx:35
 #: src/components/web_analytics/explore/DimensionSelector.tsx:111
-#: src/components/web_analytics/FilterBuilder.tsx:60
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:83
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:270
+#: src/components/web_analytics/FilterBuilder.tsx:42
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:114
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
 #: src/components/web_analytics/tabs/DashboardTab.tsx:268
 #: src/pages/WebAnalyticsLivePage.tsx:195
 msgid "Device"
 msgstr "Dispositivo"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:262
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:269
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:285
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
 #: src/components/web_analytics/tabs/DashboardTab.tsx:264
 #: src/components/web_analytics/tabs/DashboardTab.tsx:268
 #: src/pages/WebAnalyticsLivePage.tsx:190
@@ -7787,7 +7912,7 @@ msgstr "Directo"
 #~ msgid "Disable Blog?"
 #~ msgstr "¿Deshabilitar blog?"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:273
+#: src/components/web_analytics/filters/FilterTable.tsx:320
 msgid "Disable this rule?"
 msgstr "¿Deshabilitar esta regla?"
 
@@ -7806,6 +7931,8 @@ msgstr "Deshabilitar webhook"
 #: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/settings/WebhookDetail.tsx:267
 #: src/components/settings/WebhooksSettings.tsx:314
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:123
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:246
 msgid "Disabled"
 msgstr "Deshabilitado"
 
@@ -7814,7 +7941,7 @@ msgstr "Deshabilitado"
 msgid "Disabled for this notification"
 msgstr "Deshabilitado para esta notificación"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:360
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:233
 msgid "Disabled rules"
 msgstr "Reglas deshabilitadas"
 
@@ -7827,6 +7954,8 @@ msgstr "Reglas deshabilitadas"
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:111
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:151
 msgid "Discard"
 msgstr "Descartar"
 
@@ -7844,6 +7973,7 @@ msgstr "¿Descartar los cambios sin guardar?"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Discard your changes?"
 msgstr "¿Descartar los cambios?"
 
@@ -8138,7 +8268,7 @@ msgstr "Ej. password_reset"
 msgid "e.g. Product launch"
 msgstr "ej. Lanzamiento de producto"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:140
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:207
 msgid "e.g. Set channel for Google Ads"
 msgstr "ej. Establecer canal para Google Ads"
 
@@ -8250,7 +8380,7 @@ msgstr "Cada variación conserva el remitente de su plantilla, salvo que elijas 
 #: src/components/transactional/TransactionalTable.tsx:288
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:92
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:152
-#: src/components/web_analytics/filters/FilterTable.tsx:144
+#: src/components/web_analytics/filters/FilterTable.tsx:184
 #: src/pages/TemplatesPage.tsx:308
 msgid "Edit"
 msgstr "Editar"
@@ -8408,9 +8538,11 @@ msgstr "Editar artículo"
 #~ msgstr "Editar publicación"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:163
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:99
-#: src/components/web_analytics/filters/FilterTable.tsx:309
-#: src/components/web_analytics/filters/FilterTable.tsx:313
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:175
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
+#: src/components/web_analytics/filters/FilterTable.tsx:368
+#: src/components/web_analytics/filters/FilterTable.tsx:372
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
 msgid "Edit rule"
 msgstr "Editar regla"
 
@@ -8853,6 +8985,15 @@ msgstr "correos/min"
 msgid "Emoji Suggestions"
 msgstr "Sugerencias de emojis"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "empty"
+msgstr "vacío"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:308
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:340
+msgid "Empty"
+msgstr "Vacío"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:205
 msgid "Empty column. Add text, button, or image content."
 msgstr "Columna vacía. Añade contenido de texto, botón o imagen."
@@ -8882,6 +9023,10 @@ msgstr "Habilitar subtítulos por defecto"
 #~ msgid "Enable geo-location tracking"
 #~ msgstr "Habilitar el seguimiento de geolocalización"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:209
+msgid "Enable it to see which rules would override it."
+msgstr "Actívala para ver qué reglas prevalecerían sobre ella."
+
 #: src/services/api/permissions.ts:893
 msgid "Enable or disable a subscription"
 msgstr "Habilitar o deshabilitar una suscripción"
@@ -8898,7 +9043,7 @@ msgstr "Habilitar servidor de retransmisión SMTP"
 #~ msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 #~ msgstr "Habilita la función de blog para publicar artículos y contenido en la página de inicio de tu dominio personalizado. Tu blog será accesible en"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:273
+#: src/components/web_analytics/filters/FilterTable.tsx:320
 msgid "Enable this rule?"
 msgstr "¿Habilitar esta regla?"
 
@@ -8934,7 +9079,7 @@ msgstr "Habilitar webhook"
 #: src/components/settings/SystemSettingsDrawer.tsx:469
 #: src/components/settings/SystemSettingsDrawer.tsx:554
 #: src/components/settings/WebAnalyticsSettings.tsx:216
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:153
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:219
 msgid "Enabled"
 msgstr "Habilitado"
 
@@ -9006,7 +9151,7 @@ msgstr "Introduce un número con 15 dígitos como máximo antes del separador de
 msgid "Enter a unique alphanumeric ID"
 msgstr "Introduce un ID alfanumérico único"
 
-#: src/components/web_analytics/FilterBuilder.tsx:379
+#: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter a value"
 msgstr "Introduce un valor"
 
@@ -9022,7 +9167,7 @@ msgstr "Introduce una ruta de variable como order.total: letras, dígitos y guio
 #~ msgid "Enter an email address to receive a test email:"
 #~ msgstr "Introduce una dirección de correo para recibir un correo de prueba:"
 
-#: src/components/web_analytics/FilterBuilder.tsx:379
+#: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter at least one value"
 msgstr "Introduce al menos un valor"
 
@@ -9231,10 +9376,14 @@ msgid "Envelope"
 msgstr "Sobre"
 
 #: src/components/email_builder/ui/displayConditionLabels.ts:14
-#: src/components/web_analytics/FilterBuilder.tsx:38
-#: src/components/web_analytics/lib/filterCatalog.ts:216
+#: src/components/web_analytics/lib/filterCatalog.ts:220
+#: src/components/web_analytics/lib/filterLabels.ts:10
 msgid "equals"
 msgstr "es igual a"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "error"
+msgstr "error"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:257
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:943
@@ -9380,9 +9529,13 @@ msgstr "Tipos de eventos"
 msgid "Events"
 msgstr "Eventos"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:213
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:81
 msgid "Every \"set\" operation needs a value"
 msgstr "Cada operación \"set\" necesita un valor"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:158
+msgid "Every condition and every operation has a value"
+msgstr "Cada condición y cada operación tiene un valor"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:236
 msgid "Every domain"
@@ -9391,6 +9544,18 @@ msgstr "Todos los dominios"
 #: src/components/email_builder/panels/TextVersionPanel.tsx:124
 msgid "Every email is sent with an HTML version and a text version. Mail clients show the text version when HTML is blocked or not supported."
 msgstr "Cada email se envía con una versión HTML y una versión de texto. Los clientes de correo muestran la versión de texto cuando el HTML está bloqueado o no es compatible."
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:226
+msgid "Every enabled rule can be tested in the browser"
+msgstr "Todas las reglas habilitadas se pueden probar en el navegador"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:225
+msgid "Every enabled rule matches this visit"
+msgstr "Todas las reglas habilitadas coinciden con esta visita"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:287
+msgid "Every field of the visit"
+msgstr "Todos los campos de la visita"
 
 #: src/components/license/LicenceGateNotice.tsx:64
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
@@ -9544,6 +9709,7 @@ msgstr ""
 msgid "Expires:"
 msgstr "Expira:"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:140
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:346
 #: src/layouts/app-shell/menuItems.ts:220
 #: src/pages/WebAnalyticsPage.tsx:96
@@ -9658,6 +9824,7 @@ msgstr "Muy alto"
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
 #: src/components/transactional/TransactionalDetail.tsx:220
+#: src/components/web_analytics/lib/backfill.ts:32
 #: src/pages/TransactionalNotificationsPage.tsx:298
 msgid "Failed"
 msgstr "Fallido"
@@ -10316,7 +10483,7 @@ msgstr "Obteniendo: {0}"
 #: src/components/logs/AuditEntryDetail.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:184
 #: src/components/settings/CustomFieldsConfiguration.tsx:326
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:72
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:74
 msgid "Field"
 msgstr "Campo"
 
@@ -10382,9 +10549,17 @@ msgstr "El almacenamiento de archivos no está configurado."
 msgid "File storage settings"
 msgstr "Configuración de almacenamiento de archivos"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:184
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:372
+msgid "Fill fields"
+msgstr "Rellenar campos"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:396
 msgid "Fill in the fields of a hypothetical visit; empty fields count as empty values."
 msgstr "Rellena los campos de una visita hipotética; los campos vacíos cuentan como valores vacíos."
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:386
+msgid "Fills the Pages fields, the UTM fields and UTM ID From from the address, with the click ids the tracking snippet knows by default. The referrer and device stay as typed."
+msgstr "Rellena los campos de Páginas, los campos UTM y UTM ID From a partir de la dirección, con los identificadores de clic que el fragmento de seguimiento conoce por defecto. El referente y el dispositivo se quedan como se escribieron."
 
 #: src/components/automations/nodeTypes.ts:34
 #: src/components/contacts/ContactsFilters.tsx:235
@@ -10420,6 +10595,10 @@ msgstr "Condiciones de filtro"
 msgid "Filter on an event property"
 msgstr "Filtrar por una propiedad del evento"
 
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:30
+msgid "Filtered by"
+msgstr "Filtrado por"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
 #: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
@@ -10443,8 +10622,8 @@ msgstr "Filtros — limpiados"
 #~ msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:80
-msgid "Filters:"
-msgstr "Filtros:"
+#~ msgid "Filters:"
+#~ msgstr "Filtros:"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:648
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
@@ -10775,6 +10954,10 @@ msgstr "Nombre del remitente (anular)"
 msgid "From platform.openai.com, or your endpoint's own key"
 msgstr "Desde platform.openai.com o la clave propia de tu endpoint"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:381
+msgid "From the moment you save"
+msgstr "Desde el momento en que guardas"
+
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:83
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:130
 msgid "From the text block"
@@ -10906,7 +11089,7 @@ msgstr "SQL generado:"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:36
 #: src/components/web_analytics/explore/DimensionSelector.tsx:112
-#: src/components/web_analytics/FilterBuilder.tsx:61
+#: src/components/web_analytics/FilterBuilder.tsx:43
 msgid "Geo"
 msgstr "Geo"
 
@@ -10969,7 +11152,7 @@ msgstr "Ir a iniciar sesión"
 #: src/components/segment/input.tsx:635
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
-#: src/components/web_analytics/FilterBuilder.tsx:64
+#: src/components/web_analytics/FilterBuilder.tsx:46
 #: src/components/web_analytics/tabs/DashboardTab.tsx:293
 msgid "Goal"
 msgstr "Objetivo"
@@ -10982,14 +11165,26 @@ msgstr "Objetivo {goalName}"
 msgid "Goal conversions and their total value"
 msgstr "Conversiones de objetivos y su valor total"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:150
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
 msgid "Goal dashboard"
 msgstr "Panel de objetivos"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:180
+msgid "Goal dashboard: {goalName}"
+msgstr "Panel del objetivo: {goalName}"
 
 #: src/components/segment/form_leaf.tsx:784
 #: src/components/segment/input.tsx:649
 msgid "goal name"
 msgstr "nombre del objetivo"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:323
+msgid "Goal pages"
+msgstr "Páginas de objetivo"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:323
+msgid "Goal path"
+msgstr "Ruta del objetivo"
 
 #: src/components/segment/form_leaf.tsx:762
 #: src/components/segment/input.tsx:643
@@ -11014,7 +11209,8 @@ msgstr "Tipos de objetivo: {0}"
 #~ msgstr "Objetivo:"
 
 #: src/components/web_analytics/CountryMapView.tsx:69
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:175
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:237
 #: src/components/web_analytics/tabs/DashboardTab.tsx:282
 #: src/components/web_analytics/tabs/DashboardTab.tsx:292
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:347
@@ -11027,7 +11223,7 @@ msgstr "Objetivos"
 #~ msgid "Goals by Channel"
 #~ msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:286
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:233
 msgid "Goals by day and hour"
 msgstr "Objetivos por día y hora"
 
@@ -11225,7 +11421,6 @@ msgstr "oculto"
 
 #: src/components/analytics/GetStartedChecklist.tsx:411
 #: src/components/settings/WebhookDetail.tsx:378
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:336
 msgid "Hide"
 msgstr "Ocultar"
 
@@ -11247,14 +11442,22 @@ msgid "High-level channel performance"
 msgstr "Rendimiento de canales a alto nivel"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:147
-msgid "Higher priority rules are evaluated first (0-1000)"
-msgstr "Las reglas de mayor prioridad se evalúan primero (0-1000)"
+#~ msgid "Higher priority rules are evaluated first (0-1000)"
+#~ msgstr "Las reglas de mayor prioridad se evalúan primero (0-1000)"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:227
+msgid "Higher priority rules are evaluated first (0-1000). On the same dimension, the higher priority wins; at equal priority, the rule lower in the list wins."
+msgstr "Las reglas de mayor prioridad se evalúan primero (0-1000). En la misma dimensión, gana la prioridad más alta; a igual prioridad, gana la regla que está más abajo en la lista."
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:275
 #~ msgid "Higher rules win (0-1000)."
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:165
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:252
+msgid "Highest priority first"
+msgstr "Mayor prioridad primero"
+
+#: src/components/web_analytics/filters/BackfillStatus.tsx:186
 msgid "Historical sessions and goals were written with a different rule set."
 msgstr "Las sesiones y los objetivos históricos se escribieron con otro conjunto de reglas."
 
@@ -11686,7 +11889,7 @@ msgstr "Fuentes importadas"
 msgid "Importing files..."
 msgstr "Importando archivos..."
 
-#: src/components/web_analytics/FilterBuilder.tsx:44
+#: src/components/web_analytics/lib/filterLabels.ts:16
 msgid "in"
 msgstr "está en"
 
@@ -12083,8 +12286,8 @@ msgstr "Dirección IP, email del actor o ID de destino"
 msgid "is"
 msgstr "es"
 
-#: src/components/web_analytics/FilterBuilder.tsx:42
-#: src/components/web_analytics/lib/filterCatalog.ts:220
+#: src/components/web_analytics/lib/filterCatalog.ts:224
+#: src/components/web_analytics/lib/filterLabels.ts:14
 msgid "is empty"
 msgstr "está vacío"
 
@@ -12113,8 +12316,8 @@ msgstr "es menor que"
 msgid "is less than or equal to"
 msgstr "es menor o igual que"
 
-#: src/components/web_analytics/FilterBuilder.tsx:43
-#: src/components/web_analytics/lib/filterCatalog.ts:221
+#: src/components/web_analytics/lib/filterCatalog.ts:225
+#: src/components/web_analytics/lib/filterLabels.ts:15
 msgid "is not empty"
 msgstr "no está vacío"
 
@@ -12179,6 +12382,10 @@ msgstr "Esta integración envía los correos de marketing del espacio de trabajo
 #: src/components/settings/integrations/EmailProviderCard.tsx:189
 msgid "It sends the workspace's transactional emails: notifications stop until another provider is chosen. This cannot be undone."
 msgstr "Esta integración envía los correos transaccionales del espacio de trabajo: las notificaciones se detienen hasta que se elija otro proveedor. Esto no se puede deshacer."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:192
+msgid "It uses syntax only the server's regular expressions read, so the Quick test and the tester skip it."
+msgstr "Usa una sintaxis que solo leen las expresiones regulares del servidor, así que la Prueba rápida y el probador la omiten."
 
 #: src/components/broadcasts/useBroadcastActions.tsx:144
 msgid "It will never be sent. A cancelled broadcast can't be resumed."
@@ -12291,6 +12498,7 @@ msgstr "Justificar"
 #: src/components/templates/CreateTemplateDrawer.tsx:898
 #: src/components/templates/useTemplateConflictModal.tsx:43
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:227
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:113
 msgid "Keep editing"
 msgstr "Seguir editando"
 
@@ -12351,6 +12559,8 @@ msgid "Label must be at most 100 characters"
 msgstr "La etiqueta debe tener como máximo 100 caracteres"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:313
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:319
 #: src/components/web_analytics/tabs/DashboardTab.tsx:181
 #: src/pages/WebAnalyticsLivePage.tsx:157
 msgid "Landing pages"
@@ -12359,6 +12569,14 @@ msgstr "Páginas de destino"
 #: src/pages/WebAnalyticsLivePage.tsx:57
 #~ msgid "Landing Pages"
 #~ msgstr ""
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:320
+msgid "Landing path"
+msgstr "Ruta de destino"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:356
+msgid "Landing URL"
+msgstr "URL de destino"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:101
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
@@ -12441,6 +12659,10 @@ msgstr "Última actividad"
 #: src/components/logs/OutgoingWebhooksTab.tsx:409
 msgid "Last attempt"
 msgstr "Último intento"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:383
+msgid "Last backfill"
+msgstr "Último relleno retroactivo"
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:150
 #~ msgid "Last backfill rewrote"
@@ -12807,7 +13029,7 @@ msgstr "El Liquid colocado entre los bloques de una sección o una columna puede
 #: src/components/messages/MessageHistoryTable.tsx:285
 #: src/components/messages/MessageHistoryTable.tsx:299
 #: src/components/templates/TemplateSelectorModal.tsx:710
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 msgid "List"
 msgstr "Lista"
@@ -13039,6 +13261,10 @@ msgstr "Cargar el registro del espacio de trabajo, al que dan acceso tanto la le
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "Se ha cargado la última versión de esta plantilla (v{0})."
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "loading"
+msgstr "cargando"
+
 #: src/components/file_manager/FileExplorer.tsx:823
 msgid "Loading"
 msgstr "Cargando"
@@ -13098,7 +13324,7 @@ msgid "Locate visitors"
 msgstr "Localizar a los visitantes"
 
 #: src/components/contacts/ContactsFilters.tsx:28
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:84
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:115
 msgid "Location"
 msgstr "Ubicación"
 
@@ -13291,12 +13517,12 @@ msgstr "Gestionado por Zapier"
 msgid "Manual"
 msgstr "Manual"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:247
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:303
 #: src/components/web_analytics/tabs/DashboardTab.tsx:250
 msgid "Map"
 msgstr "Mapa"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:135
+#: src/components/web_analytics/tabs/FiltersTab.tsx:150
 msgid "Map traffic to channels, fill custom dimensions and rewrite traffic source fields as sessions come in."
 msgstr "Asigna el tráfico a canales, rellena dimensiones personalizadas y reescribe los campos de fuente de tráfico a medida que llegan las sesiones."
 
@@ -13379,20 +13605,24 @@ msgstr "Coincidió"
 msgid "Matched on:"
 msgstr "Coincidió en:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:229
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:254
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:11
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:47
 msgid "Matches"
 msgstr "Coincidencias"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:222
+#: src/components/web_analytics/lib/filterCatalog.ts:226
 msgid "matches regex"
 msgstr "coincide con la regex"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:241
+msgid "Matching"
+msgstr "Coinciden"
 
 #: src/components/segment/button_upsert.tsx:704
 msgid "Matching contacts:"
 msgstr "Contactos coincidentes:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:303
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:230
 msgid "Matching rules"
 msgstr "Reglas que coinciden"
 
@@ -13433,15 +13663,17 @@ msgstr "Mediana"
 msgid "Median {0}"
 msgstr "Mediana {0}"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:66
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:71
 #: src/components/web_analytics/explore/ExploreSummary.tsx:54
 #: src/components/web_analytics/explore/ExploreTable.tsx:158
-#: src/components/web_analytics/FilterBuilder.tsx:120
+#: src/components/web_analytics/FilterBuilder.tsx:102
 #: src/components/web_analytics/tabs/DashboardTab.tsx:33
 msgid "Median Scroll Depth"
 msgstr "Profundidad de desplazamiento mediana"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:50
-#: src/components/web_analytics/FilterBuilder.tsx:235
+#: src/components/web_analytics/FilterBuilder.tsx:205
 msgid "Median Scroll Depth (%)"
 msgstr "Profundidad de desplazamiento mediana (%)"
 
@@ -13457,12 +13689,13 @@ msgstr "Profundidad de desplazamiento mediana (anterior)"
 msgid "Median session duration. Green meets the reference, cyan exceeds it."
 msgstr "Duración mediana de la sesión. El verde alcanza la referencia, el cian la supera."
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:64
 #: src/components/web_analytics/explore/ExploreSummary.tsx:52
 #: src/components/web_analytics/tabs/DashboardTab.tsx:31
 msgid "Median TimeScore"
 msgstr "TimeScore mediano"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:44
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:62
 msgid "Median Value"
 msgstr "Valor mediano"
 
@@ -13471,7 +13704,7 @@ msgstr "Valor mediano"
 msgid "Medium"
 msgstr "Medio"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:222
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:270
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
 msgid "Mediums"
 msgstr "Medios"
@@ -13574,7 +13807,7 @@ msgstr "Metadatos"
 msgid "Method"
 msgstr "Método"
 
-#: src/components/web_analytics/FilterBuilder.tsx:465
+#: src/components/web_analytics/FilterBuilder.tsx:435
 msgid "Metrics"
 msgstr "Métricas"
 
@@ -13595,6 +13828,10 @@ msgstr "Medio"
 #: src/components/blog/PostDrawer.tsx:907
 msgid "min"
 msgstr "min"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:177
+msgid "Min. sessions: {minSessions}"
+msgstr "Sesiones mín.: {minSessions}"
 
 #: src/components/integrations/LLMIntegration.tsx:261
 #: src/components/settings/Integrations.tsx:341
@@ -13867,8 +14104,8 @@ msgstr "N/D"
 #: src/components/settings/WorkspaceMembers.tsx:294
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:137
-#: src/components/web_analytics/filters/FilterTable.tsx:196
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:204
+#: src/components/web_analytics/filters/FilterTable.tsx:238
 msgid "Name"
 msgstr "Nombre"
 
@@ -13897,7 +14134,7 @@ msgid "Name and slug required"
 msgstr "Nombre y slug obligatorios"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1006
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:138
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:205
 msgid "Name is required"
 msgstr "El nombre es obligatorio"
 
@@ -13958,6 +14195,10 @@ msgstr "Necesario primero: el blog se sirve en su raíz"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:467
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "Necesita estos permisos IAM adicionales: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Añade ses:ListTenants y ses:ListTenantResources para los selectores de abajo, y ses:DeleteTenant más ses:DeleteTenantResourceAssociation para que el tenant se elimine junto con la integración en lugar de facturar para siempre."
+
+#: src/components/web_analytics/lib/backfill.ts:25
+msgid "Never run"
+msgstr "Nunca ejecutado"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
 #: src/components/templates/TemplateDrawerBar.tsx:35
@@ -14049,9 +14290,12 @@ msgstr "Nuevo artículo"
 #~ msgid "New Post"
 #~ msgstr "Nueva publicación"
 
-#: src/pages/WebAnalyticsFiltersPage.tsx:264
-#~ msgid "New rule"
-#~ msgstr ""
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:123
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:175
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:120
+msgid "New rule"
+msgstr "Nueva regla"
 
 #: src/components/contacts/ContactsRail.tsx:121
 #: src/components/segment/button_upsert.tsx:419
@@ -14061,6 +14305,10 @@ msgstr "Nuevo segmento"
 #: src/components/templates/DeleteTemplateModal.tsx:96
 msgid "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 msgstr "Los nuevos envíos de estos elementos seguirán usando la plantilla eliminada hasta que elija otra. Los mensajes ya enviados permanecen en los registros, pero su versión web deja de funcionar."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:381
+msgid "New sessions"
+msgstr "Sesiones nuevas"
 
 #: src/components/integrations/SupabaseIntegration.tsx:207
 msgid "New Supabase users become contacts"
@@ -14085,8 +14333,8 @@ msgstr "Nuevo tema"
 #~ msgid "New Theme"
 #~ msgstr "Nuevo tema"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:133
-#: src/components/web_analytics/filters/FilterTable.tsx:295
+#: src/components/web_analytics/filters/FilterTable.tsx:172
+#: src/components/web_analytics/filters/FilterTable.tsx:353
 msgid "New visits are no longer rewritten by it. Past ones keep its values until the next backfill."
 msgstr "Las nuevas visitas ya no se reescriben con este filtro. Las anteriores conservan sus valores hasta el próximo relleno retroactivo."
 
@@ -14162,10 +14410,10 @@ msgstr "Siguiente paso"
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/WebhookDetail.tsx:290
 #: src/components/settings/WebhookDetail.tsx:394
-#: src/components/web_analytics/filters/BackfillStatus.tsx:88
-#: src/components/web_analytics/filters/FilterTable.tsx:276
+#: src/components/web_analytics/filters/BackfillStatus.tsx:100
+#: src/components/web_analytics/filters/FilterTable.tsx:323
 #: src/components/web_analytics/filters/RuleValueInput.tsx:30
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:208
+#: src/components/web_analytics/filters/VisitFieldInput.tsx:30
 msgid "No"
 msgstr "No"
 
@@ -14208,7 +14456,7 @@ msgstr "Sin clave API"
 msgid "No API keys yet. Create one to call the API or connect Zapier."
 msgstr "Aún no hay claves API. Crea una para llamar a la API o conectar Zapier."
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:186
+#: src/components/web_analytics/tabs/FiltersTab.tsx:206
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "Aún no hay reglas de atribución. Crea la primera para empezar a dar forma a tus datos de tráfico."
 
@@ -14228,7 +14476,7 @@ msgstr "Ninguna automatización coincide"
 msgid "No automations yet"
 msgstr "Sin automatizaciones aún"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:162
+#: src/components/web_analytics/filters/BackfillStatus.tsx:183
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "Aún no se ha ejecutado ningún relleno retroactivo. Ejecuta uno para aplicar estas reglas a las sesiones y objetivos históricos."
 
@@ -14252,7 +14500,7 @@ msgstr "Ningún envío masivo coincide"
 msgid "No broadcasts yet"
 msgstr "Aún no hay envíos masivos"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:217
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:265
 #: src/components/web_analytics/tabs/DashboardTab.tsx:223
 #: src/pages/WebAnalyticsLivePage.tsx:202
 msgid "No campaign data"
@@ -14328,7 +14576,7 @@ msgid "No content yet"
 msgstr "Aún no hay contenido"
 
 #: src/components/web_analytics/CountryMapView.tsx:165
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:242
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:298
 #: src/components/web_analytics/tabs/DashboardTab.tsx:245
 msgid "No country data"
 msgstr "Sin datos de países"
@@ -14342,6 +14590,7 @@ msgid "No custom field is named yet"
 msgstr "Aún no hay ningún campo personalizado con nombre"
 
 #: src/components/logs/MessageDetail.tsx:840
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:330
 msgid "No data"
 msgstr "Sin datos"
 
@@ -14370,7 +14619,7 @@ msgstr "No hay remitente predeterminado configurado"
 msgid "No delivery events"
 msgstr "Sin eventos de entrega"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:264
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:287
 #: src/pages/WebAnalyticsLivePage.tsx:193
 msgid "No device data"
 msgstr "Sin datos de dispositivos"
@@ -14409,7 +14658,8 @@ msgstr "Ningún email enviado en este periodo"
 msgid "No email template"
 msgstr "Sin plantilla de correo"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:130
+#: src/components/web_analytics/filters/BackfillStatus.tsx:143
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:365
 msgid "No error message was recorded."
 msgstr "No se registró ningún mensaje de error."
 
@@ -14453,7 +14703,7 @@ msgstr "Sin filtro de plantilla: coinciden los correos enviados con cualquier pl
 msgid "No folders yet"
 msgstr "Aún no hay carpetas"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:288
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:235
 msgid "No goal data"
 msgstr "Sin datos de objetivos"
 
@@ -14465,7 +14715,7 @@ msgstr "Aún no hay objetivos"
 msgid "No goals data"
 msgstr "Sin datos de objetivos"
 
-#: src/components/web_analytics/tabs/GoalsTab.tsx:137
+#: src/components/web_analytics/tabs/GoalsTab.tsx:135
 msgid "No goals tracked yet"
 msgstr "Aún no se ha registrado ningún objetivo"
 
@@ -14522,8 +14772,8 @@ msgstr "Aún no hay listas"
 msgid "No marketing email provider"
 msgstr "Ningún proveedor de correo de marketing"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:231
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:256
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:13
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:49
 msgid "No match"
 msgstr "Sin coincidencia"
 
@@ -14584,9 +14834,21 @@ msgstr "Ninguna cuenta de Notifuse está vinculada a esa identidad. Si te han in
 msgid "No open or click tracking, keep UTM parameters"
 msgstr "Sin seguimiento de aperturas ni clics, conservar UTM"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:280
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:305
 msgid "No operations defined"
 msgstr "No hay operaciones definidas"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:219
+msgid "No other rule overrides what this rule writes"
+msgstr "Ninguna otra regla sobrescribe lo que escribe esta regla"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:77
+msgid "No other rule writes these dimensions"
+msgstr "Ninguna otra regla escribe estas dimensiones"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:315
+msgid "No page data"
+msgstr "No hay datos de páginas"
 
 #: src/pages/WebAnalyticsLivePage.tsx:153
 msgid "No pages"
@@ -14644,7 +14906,7 @@ msgstr "Sin repetición"
 msgid "No response"
 msgstr "Sin respuesta"
 
-#: src/components/web_analytics/FilterBuilder.tsx:485
+#: src/components/web_analytics/FilterBuilder.tsx:455
 msgid "No results found"
 msgstr "No se encontraron resultados"
 
@@ -14655,11 +14917,15 @@ msgstr "No se encontraron resultados"
 msgid "No results match"
 msgstr "Ningún resultado coincide"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:180
+#: src/components/web_analytics/tabs/FiltersTab.tsx:200
 msgid "No rule carries the selected tag"
 msgstr "Ninguna regla lleva la etiqueta seleccionada"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:305
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:227
+msgid "No rule is disabled"
+msgstr "Ninguna regla está deshabilitada"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:224
 msgid "No rule matches this visit"
 msgstr "Ninguna regla coincide con esta visita"
 
@@ -14705,6 +14971,14 @@ msgstr "Sin envíos en este periodo"
 msgid "No sends yet"
 msgstr "Aún no hay envíos"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:86
+msgid "No session above the minimum for this dimension"
+msgstr "Ninguna sesión por encima del mínimo para esta dimensión"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:87
+msgid "No session for this dimension"
+msgstr "Ninguna sesión para esta dimensión"
+
 #: src/components/contacts/visits/ContactWebVisits.tsx:346
 msgid "No sessions match this filter"
 msgstr "Ninguna sesión coincide con este filtro"
@@ -14731,7 +15005,7 @@ msgstr "Sin imagen para compartir"
 msgid "No share title"
 msgstr "Sin título para compartir"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
 msgid "No source data"
 msgstr "Sin datos de fuentes"
 
@@ -14880,6 +15154,10 @@ msgstr "No activo"
 msgid "Non-Active"
 msgstr "No activo"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:125
+msgid "none"
+msgstr "ninguno"
+
 #: src/components/broadcasts/detail/BroadcastAside.tsx:157
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:66
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:215
@@ -14895,7 +15173,6 @@ msgstr "No activo"
 #: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:82
 msgid "None"
 msgstr "Ninguno"
 
@@ -14923,6 +15200,7 @@ msgid "Not added while tracking is disabled: links are never rewritten. Kept for
 msgstr "No se añaden mientras el seguimiento está desactivado: los enlaces nunca se reescriben. Se conservan para cuando lo vuelvas a activar."
 
 #: src/components/web_analytics/goals/GoalCard.tsx:97
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:65
 msgid "Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose."
 msgstr "No todos los visitantes llegan con la misma intención. Esta tasa debe interpretarse con cautela, ya que incluye todo el tráfico sea cual sea su propósito."
 
@@ -14938,7 +15216,7 @@ msgstr "No permitido aquí"
 msgid "Not allowed inside a conditional block"
 msgstr "No permitido dentro de un bloque condicional"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:169
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:194
 msgid "Not applied"
 msgstr "No aplicado"
 
@@ -14966,8 +15244,8 @@ msgstr "No configurado"
 msgid "Not connected"
 msgstr "No conectado"
 
-#: src/components/web_analytics/FilterBuilder.tsx:41
-#: src/components/web_analytics/lib/filterCatalog.ts:219
+#: src/components/web_analytics/lib/filterCatalog.ts:223
+#: src/components/web_analytics/lib/filterLabels.ts:13
 msgid "not contains"
 msgstr "no contiene"
 
@@ -14979,6 +15257,7 @@ msgstr "No se cuentan más allá de {countMax}"
 #: src/components/blog/PostDrawer.tsx:746
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
 msgid "Not created"
 msgstr "Sin crear"
 
@@ -14996,8 +15275,8 @@ msgstr "Aún no creado"
 msgid "Not delivered"
 msgstr "No entregado"
 
-#: src/components/web_analytics/FilterBuilder.tsx:39
-#: src/components/web_analytics/lib/filterCatalog.ts:217
+#: src/components/web_analytics/lib/filterCatalog.ts:221
+#: src/components/web_analytics/lib/filterLabels.ts:11
 msgid "not equals"
 msgstr "no es igual a"
 
@@ -15005,7 +15284,7 @@ msgstr "no es igual a"
 #~ msgid "Not failed"
 #~ msgstr "Sin fallos"
 
-#: src/components/web_analytics/FilterBuilder.tsx:45
+#: src/components/web_analytics/lib/filterLabels.ts:17
 msgid "not in"
 msgstr "no está en"
 
@@ -15029,7 +15308,8 @@ msgstr "No está en los datos de prueba: la regla se evalúa como si la variable
 msgid "Not in use"
 msgstr "Sin uso"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:325
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:231
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:242
 msgid "Not matching"
 msgstr "No coinciden"
 
@@ -15075,6 +15355,10 @@ msgstr "No establecido"
 #: src/components/settings/integrations/EmailProviderCard.tsx:262
 msgid "Not set up"
 msgstr "Sin configurar"
+
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:43
+msgid "Not tested"
+msgstr "No probada"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:196
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:41
@@ -15591,6 +15875,10 @@ msgstr "Abrir Equipo y claves API"
 #~ msgid "Open template"
 #~ msgstr "Abrir plantilla"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:289
+msgid "Open tester"
+msgstr "Abrir el probador"
+
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:42
 msgid "Open the audit log"
 msgstr "Abrir el registro de auditoría"
@@ -15757,14 +16045,14 @@ msgstr "Operación completada"
 #~ msgid "Operation results:"
 #~ msgstr "Resultados de la operación:"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
-#: src/components/web_analytics/filters/FilterTable.tsx:112
-#: src/components/web_analytics/filters/FilterTable.tsx:233
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:254
+#: src/components/web_analytics/filters/FilterTable.tsx:142
+#: src/components/web_analytics/filters/FilterTable.tsx:275
 msgid "Operations"
 msgstr "Operaciones"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:233
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:94
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
 msgid "Operator"
 msgstr "Operador"
 
@@ -15782,6 +16070,7 @@ msgstr "opcional"
 #: src/components/settings/SystemSettingsDrawer.tsx:400
 #: src/components/settings/SystemSettingsDrawer.tsx:455
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:353
 msgid "Optional"
 msgstr "Opcional"
 
@@ -15853,8 +16142,8 @@ msgstr "Social orgánico"
 msgid "Origin"
 msgstr "Origen"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:279
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:279
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:292
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:292
 #: src/components/web_analytics/tabs/DashboardTab.tsx:275
 #: src/components/web_analytics/tabs/DashboardTab.tsx:275
 msgid "OS"
@@ -15948,6 +16237,10 @@ msgstr "Configuración de relleno"
 msgid "Page"
 msgstr "Página"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:176
+msgid "Page filters: {pageFilterList}"
+msgstr "Filtros de página: {pageFilterList}"
+
 #: src/components/contacts/sheet/activityLabel.ts:26
 msgid "Page view"
 msgstr "Vista de página"
@@ -15959,8 +16252,8 @@ msgstr "Visitas a la ruta de este artículo en los últimos 30 días, contadas p
 #: src/components/blog/ThemeEditorDrawer.tsx:357
 #: src/components/web_analytics/explore/BreakdownModal.tsx:34
 #: src/components/web_analytics/explore/DimensionSelector.tsx:110
-#: src/components/web_analytics/FilterBuilder.tsx:59
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:82
+#: src/components/web_analytics/FilterBuilder.tsx:41
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:113
 msgid "Pages"
 msgstr "Páginas"
 
@@ -16005,11 +16298,11 @@ msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any l
 msgstr "Parte de la URL del enlace, sin distinguir mayúsculas y minúsculas. Déjalo vacío para empezar con cualquier enlace."
 
 #. placeholder {0}: state.partition_index
-#: src/components/web_analytics/filters/BackfillStatus.tsx:108
+#: src/components/web_analytics/filters/BackfillStatus.tsx:121
 msgid "Partition {0} of {partitionTotal}"
 msgstr "Partición {0} de {partitionTotal}"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:85
+#: src/components/web_analytics/filters/BackfillStatus.tsx:97
 msgid "Partitions already rewritten keep their new values."
 msgstr "Las particiones ya reescritas conservan sus nuevos valores."
 
@@ -16026,6 +16319,10 @@ msgstr "Contraseña (opcional)"
 #: src/components/templates/gallery/labels.ts:10
 msgid "Password reset"
 msgstr "Restablecimiento de contraseña"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:382
+msgid "Past sessions"
+msgstr "Sesiones pasadas"
 
 #: src/components/settings/LicenseSettings.tsx:80
 #~ msgid "Paste a licence key first"
@@ -16323,6 +16620,10 @@ msgstr "Elegir como ganador"
 #: src/components/integrations/LLMIntegration.tsx:220
 msgid "Pick one, or type any Anthropic model ID"
 msgstr "Elige uno o escribe cualquier ID de modelo de Anthropic"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:226
+msgid "Pick the dimensions to break this row down by: each one gets its own table."
+msgstr "Elige las dimensiones por las que desglosar esta fila: cada una tiene su propia tabla."
 
 #: src/components/integrations/LLMIntegration.tsx:276
 msgid "Pick the suggestion, or type any Gemini model ID"
@@ -16756,7 +17057,7 @@ msgstr "Artículos en la página de inicio"
 #~ msgid "Preferred URL for this content (advanced)"
 #~ msgstr "URL preferida para este contenido (avanzado)"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:80
+#: src/components/web_analytics/filters/BackfillStatus.tsx:85
 msgid "Preparing backfill..."
 msgstr "Preparando el relleno retroactivo..."
 
@@ -16954,17 +17255,22 @@ msgstr "Semana anterior"
 msgid "Previous year"
 msgstr "Año anterior"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
-#: src/components/web_analytics/filters/FilterTable.tsx:189
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:213
+#: src/components/web_analytics/filters/FilterTable.tsx:231
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:95
 msgid "Priority"
 msgstr "Prioridad"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:148
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:126
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:200
+msgid "Priority {priority}"
+msgstr "Prioridad {priority}"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:214
 msgid "Priority is required"
 msgstr "La prioridad es obligatoria"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:96
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:174
+#: src/components/web_analytics/filters/FilterTable.tsx:126
 msgid "Priority:"
 msgstr "Prioridad:"
 
@@ -17138,6 +17444,10 @@ msgstr "Push"
 #: src/components/broadcasts/useBroadcastActions.tsx:172
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr "Los correos en cola no se enviarán. Los envíos en curso se completarán."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:283
+msgid "Quick test"
+msgstr "Prueba rápida"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:955
 msgid "Rate for marketing"
@@ -17313,6 +17623,10 @@ msgstr "Leer una versión de tema, incluido su scripts.js"
 msgid "Read one transactional notification's channel and template configuration"
 msgstr "Leer la configuración de canal y de plantilla de una notificación transaccional"
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:131
+msgid "Read only"
+msgstr "Solo lectura"
+
 #: src/services/api/permissions.ts:755
 msgid "Read per-link click counts for one broadcast template"
 msgstr "Leer los recuentos de clics por enlace de una plantilla de envío masivo"
@@ -17381,6 +17695,10 @@ msgstr "Tiempo de lectura"
 #: src/components/blog/PostDrawer.tsx:887
 #~ msgid "Reading Time"
 #~ msgstr "Tiempo de lectura"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:97
+msgid "Reads"
+msgstr "Lee"
 
 #: src/components/transactional/NotificationChecks.tsx:231
 msgid "Ready"
@@ -17559,7 +17877,7 @@ msgstr "Rehacer ({redoKeys})"
 msgid "Referral traffic"
 msgstr "Tráfico de referencia"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:197
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:250
 #: src/components/web_analytics/tabs/DashboardTab.tsx:200
 #: src/pages/WebAnalyticsLivePage.tsx:181
 msgid "Referrer domain"
@@ -17569,7 +17887,7 @@ msgstr "Dominio referente"
 #~ msgid "Referrer:"
 #~ msgstr "Referente:"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:196
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:249
 #: src/components/web_analytics/tabs/DashboardTab.tsx:199
 #: src/pages/WebAnalyticsLivePage.tsx:180
 msgid "Referrers"
@@ -17686,7 +18004,7 @@ msgstr "¿Registrar webhooks?"
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "Registró los webhooks del proveedor de <0>{target}</0>"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:121
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:109
 msgid "Regular expression"
 msgstr "Expresión regular"
 
@@ -17749,6 +18067,11 @@ msgstr "¿Quitar a {0} de {1}?"
 #: src/components/templates/SendTemplateModal.tsx:490
 msgid "Remove {filename}"
 msgstr "Quitar {filename}"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:187
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:39
+msgid "Remove {label}"
+msgstr "Quitar {label}"
 
 #: src/components/blog/AuthorsField.tsx:151
 #: src/components/blog/AuthorsField.tsx:162
@@ -18182,6 +18505,10 @@ msgstr "Resuscrito"
 msgid "Resubscribed to {list}"
 msgstr "Volvió a suscribirse a {list}"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:402
+msgid "Result"
+msgstr "Resultado"
+
 #: src/components/web_analytics/filters/TestFilterModal.tsx:189
 #~ msgid "Result value"
 #~ msgstr "Valor del resultado"
@@ -18191,15 +18518,14 @@ msgid "Result with the test data"
 msgstr "Resultado con los datos de prueba"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:227
-msgid "Result:"
-msgstr "Resultado:"
+#~ msgid "Result:"
+#~ msgstr "Resultado:"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:731
 msgid "Results"
 msgstr "Resultados"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:128
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:297
 msgid "Results:"
 msgstr "Resultados:"
 
@@ -18274,6 +18600,7 @@ msgstr "Reintentó los envíos fallidos de la newsletter <0>{target}</0>"
 #: src/components/settings/WorkspaceMembers.tsx:497
 #: src/components/templates/TemplateSelectorModal.tsx:234
 #: src/components/transactional/LoadError.tsx:22
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
 #: src/pages/AutomationsPage.tsx:208
 #: src/pages/BroadcastsPage.tsx:245
 #: src/pages/TemplatesPage.tsx:507
@@ -18366,33 +18693,46 @@ msgstr "filas"
 msgid "RSS and JSON feeds, newest first"
 msgstr "Feeds RSS y JSON, los más recientes primero"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:96
+msgid "Rule"
+msgstr "Regla"
+
 #: src/pages/WebAnalyticsFiltersPage.tsx:143
 #~ msgid "Rule changes apply to new traffic immediately"
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:157
+#: src/components/web_analytics/filters/BackfillStatus.tsx:178
 msgid "Rule changes only apply to new traffic"
 msgstr "Los cambios de reglas solo se aplican al tráfico nuevo"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:83
+#: src/components/web_analytics/tabs/FiltersTab.tsx:92
 msgid "Rule created"
 msgstr "Regla creada"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:90
+#: src/components/web_analytics/tabs/FiltersTab.tsx:102
 msgid "Rule deleted"
 msgstr "Regla eliminada"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:101
+#: src/components/web_analytics/tabs/FiltersTab.tsx:114
 msgid "Rule disabled"
 msgstr "Regla deshabilitada"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:101
+#: src/components/web_analytics/tabs/FiltersTab.tsx:114
 msgid "Rule enabled"
 msgstr "Regla habilitada"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:83
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:60
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:70
+msgid "Rule order"
+msgstr "Orden de las reglas"
+
+#: src/components/web_analytics/tabs/FiltersTab.tsx:92
 msgid "Rule updated"
 msgstr "Regla actualizada"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:55
+msgid "Rules that also write {dimensionList}"
+msgstr "Reglas que también escriben {dimensionList}"
 
 #: src/services/api/permissions.ts:836
 msgid "Run a backfill task immediately"
@@ -18430,25 +18770,35 @@ msgstr "Ejecutar consultas agregadas sobre el esquema `webhook_deliveries`"
 msgid "Run an integration sync task immediately"
 msgstr "Ejecutar una tarea de sincronización de integración inmediatamente"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:174
+#: src/components/web_analytics/filters/BackfillStatus.tsx:191
+#: src/components/web_analytics/filters/BackfillStatus.tsx:202
 msgid "Run backfill"
 msgstr "Ejecutar relleno retroactivo"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:137
+#: src/components/web_analytics/filters/BackfillStatus.tsx:147
+#: src/components/web_analytics/filters/BackfillStatus.tsx:157
 msgid "Run backfill again"
 msgstr "Ejecutar el relleno retroactivo de nuevo"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:395
-msgid "Run test"
-msgstr "Ejecutar prueba"
+#~ msgid "Run test"
+#~ msgstr "Ejecutar prueba"
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:163
 msgid "Run Test"
 msgstr "Ejecutar prueba"
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:255
+msgid "Run when the rule matches"
+msgstr "Se ejecutan cuando la regla coincide"
+
 #: src/components/broadcasts/detail/BroadcastAside.tsx:219
 msgid "Running"
 msgstr "Ejecutando"
+
+#: src/components/web_analytics/lib/backfill.ts:37
+msgid "Running · {progress}"
+msgstr "Ejecutando · {progress}"
 
 #: src/components/file_manager/buttonSettings.tsx:261
 msgid "S3 access key"
@@ -18557,7 +18907,6 @@ msgstr "Modo sandbox"
 #: src/components/settings/SystemSettingsDrawer.tsx:249
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:112
 msgid "Save"
 msgstr "Guardar"
 
@@ -18599,6 +18948,8 @@ msgstr "Guardar como nueva versión"
 #: src/components/blog/PostDrawer.tsx:816
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:153
 msgid "Save changes"
 msgstr "Guardar cambios"
 
@@ -18808,9 +19159,13 @@ msgstr "Extrae una URL y devuelve su contenido como markdown"
 msgid "Screen width below which mobile layout is activated. Common values: 480px, 600px, 768px"
 msgstr "Ancho de pantalla por debajo del cual se activa el diseño móvil. Valores comunes: 480px, 600px, 768px"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:167
+msgid "Scroll"
+msgstr "Desplazamiento"
+
 #: src/components/contacts/ExportContactsModal.tsx:60
 #: src/components/seo/SeoPreview.tsx:44
-#: src/components/web_analytics/FilterBuilder.tsx:436
+#: src/components/web_analytics/FilterBuilder.tsx:406
 msgid "Search"
 msgstr "Buscar"
 
@@ -18900,7 +19255,7 @@ msgstr "Buscar en los eventos de webhook"
 msgid "Search your templates"
 msgstr "Buscar en tus plantillas"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:159
+#: src/components/web_analytics/tabs/FiltersTab.tsx:177
 msgid "Search..."
 msgstr "Buscar..."
 
@@ -19293,7 +19648,7 @@ msgstr "Selecciona tipo de evento para probar:"
 #~ msgid "Select feed size"
 #~ msgstr "Selecciona el tamaño del feed"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:71
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:73
 msgid "Select field"
 msgstr "Selecciona un campo"
 
@@ -19937,13 +20292,14 @@ msgstr ""
 #: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:38
 #: src/components/web_analytics/explore/DimensionSelector.tsx:114
-#: src/components/web_analytics/FilterBuilder.tsx:63
+#: src/components/web_analytics/FilterBuilder.tsx:45
 msgid "Session"
 msgstr "Sesión"
 
 #: src/components/web_analytics/CountryMapView.tsx:66
 #: src/components/web_analytics/DimensionTableWidget.tsx:94
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:169
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:63
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:127
 #: src/components/web_analytics/explore/CsvExportModal.tsx:45
 #: src/components/web_analytics/explore/ExploreSummary.tsx:51
 #: src/components/web_analytics/explore/ExploreTable.tsx:90
@@ -19981,6 +20337,14 @@ msgstr "Sesiones de la campaña UTM de un envío masivo durante los 7 días post
 #: src/components/settings/BlogSettings.tsx:270
 #~ msgid "Set a domain in General, under Custom domain, before enabling the blog."
 #~ msgstr "Define un dominio en General, en Dominio personalizado, antes de activar el blog."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:61
+msgid "Set a priority to place this rule among the others."
+msgstr "Define una prioridad para situar esta regla entre las demás."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:216
+msgid "Set a priority to see which rules override this one"
+msgstr "Define una prioridad para ver qué reglas prevalecen sobre esta"
 
 #: src/components/settings/Integrations.tsx:121
 msgid "Set as default marketing email provider"
@@ -20044,7 +20408,7 @@ msgstr "Establecer clase"
 msgid "Set content"
 msgstr "Establecer contenido"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:227
+#: src/components/web_analytics/lib/filterCatalog.ts:231
 msgid "Set default"
 msgstr "Establecer como predeterminado"
 
@@ -20082,7 +20446,7 @@ msgstr "Establecer URL del enlace"
 msgid "Set Liquid Content"
 msgstr "Establecer contenido Liquid"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:232
+#: src/components/web_analytics/lib/filterCatalog.ts:236
 msgid "Set only when currently empty"
 msgstr "Establecer solo cuando esté vacío"
 
@@ -20099,11 +20463,11 @@ msgstr "Establecer fecha de publicación"
 msgid "Set the licence <0>{target}</0>"
 msgstr "Estableció la licencia <0>{target}</0>"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:235
+#: src/components/web_analytics/lib/filterCatalog.ts:239
 msgid "set to"
 msgstr "establecer a"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:231
+#: src/components/web_analytics/lib/filterCatalog.ts:235
 msgid "Set to null"
 msgstr "Establecer a null"
 
@@ -20134,7 +20498,7 @@ msgstr "Configurar la analítica web"
 
 #: src/components/email_builder/ui/StringPopoverInput.tsx:27
 #: src/components/email_builder/ui/StringPopoverInput.tsx:164
-#: src/components/web_analytics/lib/filterCatalog.ts:225
+#: src/components/web_analytics/lib/filterCatalog.ts:229
 msgid "Set value"
 msgstr "Establecer valor"
 
@@ -20197,6 +20561,10 @@ msgstr "¡Configuración completa!"
 msgid "Several senders"
 msgstr "Varios remitentes"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:136
+msgid "Share"
+msgstr "Proporción"
+
 #: src/components/seo/SeoCards.tsx:61
 #: src/components/settings/BlogSettings.tsx:492
 msgid "Share description"
@@ -20227,9 +20595,12 @@ msgid "shared with the rest of this AWS account"
 msgstr "compartido con el resto de esta cuenta de AWS"
 
 #: src/components/settings/WebhookDetail.tsx:378
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:336
 msgid "Show"
 msgstr "Mostrar"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:85
+msgid "Show all rules"
+msgstr "Mostrar todas las reglas"
 
 #: src/components/logs/AuditLogTab.tsx:566
 #: src/components/logs/InboundWebhooksTab.tsx:286
@@ -20256,6 +20627,10 @@ msgstr "Mostrar los pasos completados"
 #: src/components/web_analytics/toolbar.tsx:168
 msgid "Show evolution"
 msgstr "Mostrar la evolución"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:85
+msgid "Show fewer rules"
+msgstr "Mostrar menos reglas"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:150
 msgid "Show in the preview"
@@ -20712,7 +21087,7 @@ msgstr "fuente {0} no encontrada"
 #~ msgid "Source:"
 #~ msgstr "Fuente:"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:221
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:269
 #: src/components/web_analytics/tabs/DashboardTab.tsx:227
 msgid "Sources"
 msgstr "Fuentes"
@@ -20790,6 +21165,10 @@ msgstr "La fecha de inicio no puede estar en el futuro"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:869
 msgid "Start Fresh"
 msgstr "Empezar de nuevo"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:353
+msgid "Start from a link"
+msgstr "Empezar desde un enlace"
 
 #: src/components/analytics/GetStartedChecklist.tsx:181
 msgid "Start from a model in the gallery, then edit it in the visual editor. Every email, broadcast or transactional, uses one."
@@ -20895,7 +21274,7 @@ msgstr "Las estadísticas aparecen cuando el envío masivo empieza a enviarse"
 #: src/components/settings/LicenseSettings.tsx:150
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
-#: src/components/web_analytics/filters/FilterTable.tsx:268
+#: src/components/web_analytics/filters/FilterTable.tsx:310
 msgid "Status"
 msgstr "Estado"
 
@@ -21287,8 +21666,8 @@ msgstr "SMTP del sistema"
 msgid "Table of Contents"
 msgstr "Tabla de contenidos"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:158
-#: src/components/web_analytics/filters/FilterTable.tsx:256
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:223
+#: src/components/web_analytics/filters/FilterTable.tsx:298
 msgid "Tags"
 msgstr "Etiquetas"
 
@@ -21598,12 +21977,12 @@ msgstr "Términos"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:120
 #: src/components/broadcasts/RecipientFeedSettings.tsx:121
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:107
-#: src/components/web_analytics/tabs/FiltersTab.tsx:127
+#: src/components/web_analytics/tabs/FiltersTab.tsx:140
 msgid "Test"
 msgstr "Prueba"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:385
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:417
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test all rules"
 msgstr "Probar todas las reglas"
 
@@ -21685,7 +22064,8 @@ msgstr "Prueba en diferentes clientes de correo ya que el soporte varía"
 msgid "Test Recipient Feed"
 msgstr "Probar el feed de destinatario"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:385
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:412
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test rule"
 msgstr "Probar regla"
 
@@ -21920,6 +22300,10 @@ msgstr "Se perderán los cambios que hiciste desde que abriste esta notificació
 msgid "The changes you made since opening this template will be lost."
 msgstr "Se perderán los cambios que hiciste desde que abriste esta plantilla."
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
+msgid "The changes you made to this rule will be lost."
+msgstr "Se perderán los cambios que hiciste en esta regla."
+
 #: src/components/templates/CreateTemplateDrawer.tsx:718
 msgid "The changes you made will be replaced by the model you choose."
 msgstr "Los cambios que hiciste se reemplazarán por el modelo que elijas."
@@ -22024,6 +22408,10 @@ msgstr "La exportación ha fallado. Inténtalo de nuevo."
 msgid "The featured image"
 msgstr "La imagen destacada"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:295
+msgid "The fields this rule reads, for one visit. Nothing is saved or sent."
+msgstr "Los campos que lee esta regla, para una visita. No se guarda ni se envía nada."
+
 #: src/components/file_manager/FileExplorer.tsx:351
 msgid "The folder held nothing to delete."
 msgstr "La carpeta no contenía nada que eliminar."
@@ -22082,11 +22470,11 @@ msgstr "La clave aparece en Configuración → Equipo y claves API como {0}, don
 #~ msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
 #~ msgstr "La clave aparece en Configuración → Equipo como {0}, donde puedes ampliar sus permisos."
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:127
+#: src/components/web_analytics/filters/BackfillStatus.tsx:140
 msgid "The last backfill failed"
 msgstr "El último relleno retroactivo ha fallado"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:164
+#: src/components/web_analytics/filters/BackfillStatus.tsx:185
 msgid "The last backfill was cancelled. Run one to apply these rules to all historical sessions and goals."
 msgstr "El último relleno retroactivo se canceló. Ejecuta uno para aplicar estas reglas a todas las sesiones y objetivos históricos."
 
@@ -22472,6 +22860,10 @@ msgstr "Esta acción eliminará permanentemente {0} contacto(s)"
 msgid "This action will unsubscribe {0} contact(s)"
 msgstr "Esta acción cancelará la suscripción de {0} contacto(s)"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:382
+msgid "This address has a % not followed by two hexadecimal digits. The server cannot read it and stores an empty landing domain and path, as filled here."
+msgstr "Esta dirección tiene un % que no va seguido de dos dígitos hexadecimales. El servidor no puede leerla y guarda un dominio y una ruta de destino vacíos, tal como se han rellenado aquí."
+
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:29
 msgid "This annotation was created automatically when a broadcast started. Deleting it will not affect the broadcast."
 msgstr "Esta anotación se creó automáticamente cuando comenzó un envío masivo. Eliminarla no afectará al envío masivo."
@@ -22626,6 +23018,10 @@ msgstr "Esta integración se eliminará pronto: SparkPost ya no acepta nuevos cl
 msgid "This invitation link is invalid or has expired."
 msgstr "Este enlace de invitación es inválido o ha expirado."
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:377
+msgid "This is not a web address. Paste a link such as https://example.com/page."
+msgstr "Esto no es una dirección web. Pega un enlace como https://example.com/page."
+
 #: src/components/templates/TemplateSettingsStep.tsx:133
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "Este es el ID que se usará como parámetro utm_content en la URL de los enlaces para rastrear la plantilla"
@@ -22726,6 +23122,22 @@ msgstr "Esta propiedad ya está filtrada"
 msgid "This quarter"
 msgstr "Este trimestre"
 
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:41
+msgid "This regular expression uses syntax the browser cannot run. The server checks it on save."
+msgstr "Esta expresión regular usa una sintaxis que el navegador no puede ejecutar. El servidor la comprueba al guardar."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:122
+msgid "This rule"
+msgstr "Esta regla"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:208
+msgid "This rule is disabled: it does not run, so it writes nothing"
+msgstr "Esta regla está deshabilitada: no se ejecuta, así que no escribe nada"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
+msgid "This rule is not created yet."
+msgstr "Esta regla aún no se ha creado."
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:112
 msgid "This rule is not valid."
 msgstr "Esta regla no es válida."
@@ -22817,11 +23229,11 @@ msgstr "Este verbo no controla nada hoy en día. Todas las llamadas de historial
 msgid "This verb gates nothing today. Exactly one inbound webhook event call is permission-checked and it is a read; the rows themselves arrive on the provider callback routes /webhooks/email and /webhooks/email/inbound, which carry no workspace session and so consult no grant. Unlike the two verbs the matrix locks on, this one is still yours to switch — turning it off simply changes nothing today."
 msgstr "Este verbo no controla nada hoy en día. Exactamente una llamada de eventos de webhook entrantes tiene comprobación de permisos y es una lectura; las filas en sí llegan por las rutas de callback del proveedor /webhooks/email y /webhooks/email/inbound, que no llevan sesión de espacio de trabajo y por tanto no consultan ninguna concesión. A diferencia de los dos verbos que la matriz deja bloqueados, este sigue siendo tuyo para cambiarlo: desactivarlo simplemente no cambia nada hoy en día."
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:250
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:57
 msgid "This visit: {visitValue}"
 msgstr "Esta visita: {visitValue}"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:250
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:57
 msgid "This visit: empty"
 msgstr "Esta visita: vacío"
 
@@ -22898,7 +23310,7 @@ msgstr "Vincula un clic en un enlace rastreado de un email con el contacto, en d
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:154
 #: src/components/web_analytics/explore/BreakdownModal.tsx:37
 #: src/components/web_analytics/explore/DimensionSelector.tsx:113
-#: src/components/web_analytics/FilterBuilder.tsx:62
+#: src/components/web_analytics/FilterBuilder.tsx:44
 msgid "Time"
 msgstr "Hora"
 
@@ -22935,10 +23347,11 @@ msgid "Times the font size"
 msgstr "Múltiplo del tamaño de fuente"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:95
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:176
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:69
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:144
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
 #: src/components/web_analytics/explore/ExploreTable.tsx:123
-#: src/components/web_analytics/FilterBuilder.tsx:118
+#: src/components/web_analytics/FilterBuilder.tsx:100
 #: src/components/web_analytics/tabs/DashboardTab.tsx:114
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:57
 msgid "TimeScore"
@@ -22953,7 +23366,7 @@ msgid "TimeScore (previous)"
 msgstr "TimeScore (anterior)"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:48
-#: src/components/web_analytics/FilterBuilder.tsx:233
+#: src/components/web_analytics/FilterBuilder.tsx:203
 msgid "TimeScore (seconds)"
 msgstr "TimeScore (segundos)"
 
@@ -23173,7 +23586,7 @@ msgstr "Texto de información"
 msgid "Top"
 msgstr "Superior"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:215
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:263
 #: src/components/web_analytics/tabs/DashboardTab.tsx:221
 msgid "Top Campaigns"
 msgstr "Campañas principales"
@@ -23207,7 +23620,7 @@ msgstr "Referentes principales"
 msgid "Top Right"
 msgstr "Superior derecha"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:190
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:243
 #: src/components/web_analytics/tabs/DashboardTab.tsx:194
 msgid "Top Sources"
 msgstr "Fuentes principales"
@@ -23242,7 +23655,7 @@ msgstr "El tamaño total de adjuntos excede el límite de 10MB"
 #~ msgid "Total Contacts"
 #~ msgstr "Contactos totales"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:43
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:61
 msgid "Total Value"
 msgstr "Valor total"
 
@@ -23305,8 +23718,8 @@ msgstr "Seguimiento desactivado"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:33
 #: src/components/web_analytics/explore/DimensionSelector.tsx:109
-#: src/components/web_analytics/FilterBuilder.tsx:58
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:81
+#: src/components/web_analytics/FilterBuilder.tsx:40
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:112
 msgid "Traffic"
 msgstr "Tráfico"
 
@@ -23707,6 +24120,7 @@ msgstr "Despublicó la entrada del blog <0>{target}</0>"
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:252
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:134
 msgid "Unsaved changes"
 msgstr "Cambios sin guardar"
 
@@ -23729,7 +24143,7 @@ msgstr "Desprogramar"
 msgid "Unschedule post"
 msgstr "Desprogramar publicación"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:236
+#: src/components/web_analytics/lib/filterCatalog.ts:240
 msgid "unset"
 msgstr "sin establecer"
 
@@ -23877,6 +24291,10 @@ msgstr "Actualizado {updatedAgo}"
 #: src/components/blog/PostsTable.tsx:268
 msgid "Updated {updatedAt} in {timezone}"
 msgstr "Actualizado {updatedAt} ({timezone})"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:404
+msgid "Updated as you type"
+msgstr "Se actualiza mientras escribes"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:297
 #: src/components/segment/segmentSummary.ts:51
@@ -24160,7 +24578,7 @@ msgstr "Se usa en los enlaces de los correos, el centro de notificaciones y las 
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:40
 #: src/components/web_analytics/explore/DimensionSelector.tsx:116
-#: src/components/web_analytics/FilterBuilder.tsx:65
+#: src/components/web_analytics/FilterBuilder.tsx:47
 msgid "User"
 msgstr "Usuario"
 
@@ -24261,8 +24679,8 @@ msgstr "Usando {0}..."
 #: src/components/transactional/TransactionalDetail.tsx:418
 #: src/components/web_analytics/explore/BreakdownModal.tsx:32
 #: src/components/web_analytics/explore/DimensionSelector.tsx:108
-#: src/components/web_analytics/FilterBuilder.tsx:57
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:80
+#: src/components/web_analytics/FilterBuilder.tsx:39
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:111
 msgid "UTM"
 msgstr "UTM"
 
@@ -24326,13 +24744,13 @@ msgstr "Error de validación"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:251
 #: src/components/segment/form_leaf.tsx:845
 #: src/components/settings/GeneralSettings.tsx:199
-#: src/components/web_analytics/FilterBuilder.tsx:354
-#: src/components/web_analytics/FilterBuilder.tsx:363
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:121
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:128
+#: src/components/web_analytics/FilterBuilder.tsx:324
+#: src/components/web_analytics/FilterBuilder.tsx:333
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:109
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:112
 #: src/components/web_analytics/filters/RuleValueInput.tsx:33
 #: src/components/web_analytics/goals/GoalCard.tsx:47
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:120
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:139
 #: src/components/web_analytics/tabs/DashboardTab.tsx:287
 msgid "Value"
 msgstr "Valor"
@@ -24353,7 +24771,9 @@ msgstr "Tipo de valor"
 #~ msgid "Value:"
 #~ msgstr "Valor:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:265
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:329
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:205
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:290
 msgid "Values written"
 msgstr "Valores escritos"
 
@@ -24632,6 +25052,10 @@ msgstr "Visual"
 #: src/components/templates/CreateTemplateDrawer.tsx:1492
 msgid "Visual Email Editor"
 msgstr "Editor visual de correo"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
+msgid "vs {comparedTo}"
+msgstr "vs. {comparedTo}"
 
 #: src/components/web_analytics/toolbar.tsx:121
 msgid "vs."
@@ -24999,13 +25423,25 @@ msgstr "Cuando está habilitado, estos estilos se añadirán como atributos de e
 msgid "When engagement is at its best"
 msgstr "Cuándo la interacción es mejor"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:377
+msgid "When it applies"
+msgstr "Cuándo se aplica"
+
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:172
-msgid "When matched, execute these operations:"
-msgstr "Cuando coincida, ejecuta estas operaciones:"
+#~ msgid "When matched, execute these operations:"
+#~ msgstr "Cuando coincida, ejecuta estas operaciones:"
 
 #: src/pages/SetupWizard.tsx:754
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "Cuando está desactivado (recomendado), solo los usuarios ya invitados pueden iniciar sesión mediante SSO. Cuando está activado, un correo verificado de un dominio permitido crea una cuenta automáticamente."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:244
+msgid "When one of them also matches a session, its value replaces this rule's."
+msgstr "Cuando una de ellas también coincide con una sesión, su valor sustituye al de esta regla."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:231
+msgid "When one of them also matches a session, this rule's value is not written."
+msgstr "Cuando una de ellas también coincide con una sesión, el valor de esta regla no se escribe."
 
 #: src/components/broadcasts/compose/SendingCard.tsx:87
 msgid "When to send"
@@ -25147,6 +25583,14 @@ msgstr "Con un objetivo"
 msgid "with filters"
 msgstr "con filtros"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:297
+msgid "With no condition, this rule matches every visit."
+msgstr "Sin condiciones, esta regla coincide con todas las visitas."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:167
+msgid "With no condition, this rule runs on every session."
+msgstr "Sin condiciones, esta regla se ejecuta en cada sesión."
+
 #: src/components/segment/form_leaf.tsx:1004
 #: src/components/segment/input.tsx:737
 msgid "with properties"
@@ -25169,6 +25613,10 @@ msgstr "Con los datos de prueba:"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:129
 msgid "With:"
 msgstr "Con:"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:158
+msgid "Within"
+msgstr "Dentro de"
 
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
@@ -25316,6 +25764,10 @@ msgstr "La escritura incluye la eliminación permanente y la sobrescritura masiv
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Escribe marcado MJML con etiquetas de plantilla Liquid. Este contenido se inyecta directamente en el correo y lo procesa el motor Liquid antes de la compilación MJML. Usa bucles for, condicionales y variables para generar contenido estructural dinámico."
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:98
+msgid "Writes"
+msgstr "Escribe"
+
 #: src/pages/BlogPage.tsx:34
 msgid "Writing or editing a post also needs Templates read and write: its content is a template."
 msgstr "Escribir o editar una entrada también requiere lectura y escritura de plantillas: su contenido es una plantilla."
@@ -25351,9 +25803,9 @@ msgstr "Anual"
 #: src/components/settings/integrations/providerDetails.ts:63
 #: src/components/settings/WebhookDetail.tsx:289
 #: src/components/settings/WebhookDetail.tsx:393
-#: src/components/web_analytics/filters/FilterTable.tsx:275
+#: src/components/web_analytics/filters/FilterTable.tsx:322
 #: src/components/web_analytics/filters/RuleValueInput.tsx:29
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:207
+#: src/components/web_analytics/filters/VisitFieldInput.tsx:29
 msgid "Yes"
 msgstr "Sí"
 
@@ -25367,7 +25819,7 @@ msgid "Yes, back to draft"
 msgstr "Sí, volver a borrador"
 
 #: src/components/broadcasts/useBroadcastActions.tsx:173
-#: src/components/web_analytics/filters/BackfillStatus.tsx:87
+#: src/components/web_analytics/filters/BackfillStatus.tsx:99
 msgid "Yes, cancel"
 msgstr "Sí, cancelar"
 
@@ -25489,6 +25941,10 @@ msgstr "No tienes permiso de escritura para plantillas"
 #: src/pages/TransactionalNotificationsPage.tsx:453
 #~ msgid "You don't have write permission for transactional notifications"
 #~ msgstr "No tienes permiso de escritura para notificaciones transaccionales"
+
+#: src/components/web_analytics/filters/useWebAnalyticsWriteReason.ts:6
+msgid "You don't have write permission for web analytics"
+msgstr "No tienes permiso de escritura para las analíticas web"
 
 #: src/components/settings/SettingsSaveBar.tsx:82
 #~ msgid "You have unsaved changes"

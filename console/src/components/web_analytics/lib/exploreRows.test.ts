@@ -10,7 +10,8 @@ import {
   isBestPathRow,
   mergeComparisonData,
   rowCoversDimensions,
-  setRowLoading
+  setRowLoading,
+  findParentRow
 } from './exploreRows'
 import { WebDimensionFilter } from './types'
 
@@ -427,5 +428,37 @@ describe('isBestPathRow', () => {
     // A stale winner from a shorter report has no column for a dimension just
     // added. Skipping it would mark a path the current report never produced.
     expect(isBestPathRow(row(1, { channel: 'referral', utm_source: 'hn' }), dimensions, { channel: 'referral' })).toBe(false)
+  })
+})
+
+describe('findParentRow', () => {
+  const node = (key: string, sessions: number, children?: ExploreRow[]): ExploreRow => ({
+    key,
+    dimensionIndex: key.split('|').length - 1,
+    childrenLoaded: Boolean(children),
+    children,
+    sessions,
+    median_duration: 0,
+    bounce_rate: 0,
+    median_scroll: 0
+  })
+
+  it('finds the parent of a row whose value contains ":"', () => {
+    const child = node('google:https://shop.example.com/a:b', 12)
+    const parent = node('google', 120, [child])
+    const tree = [node('bing', 5), parent]
+    expect(findParentRow(tree, child.key)).toBe(parent)
+  })
+
+  it('finds a parent two levels down', () => {
+    const grandchild = node('a:b:c', 1)
+    const child = node('a:b', 10, [grandchild])
+    const tree = [node('a', 100, [child])]
+    expect(findParentRow(tree, grandchild.key)).toBe(child)
+  })
+
+  it('answers undefined for a top-level row', () => {
+    const tree = [node('google', 120, [node('google:x', 1)])]
+    expect(findParentRow(tree, 'google')).toBeUndefined()
   })
 })

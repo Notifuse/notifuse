@@ -47,6 +47,10 @@ msgstr "- cancel·lat"
 msgid "... and {0} more emails"
 msgstr "... i {0} correus més"
 
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:49
+msgid "· applies to the whole Web Analytics section. Click a row or a country to add one."
+msgstr "· s'aplica a tota la secció Analítica web. Fes clic en una fila o en un país per afegir-ne un."
+
 #: src/components/settings/WorkspaceMembers.tsx:111
 msgid "· read only"
 msgstr "· només lectura"
@@ -66,10 +70,10 @@ msgstr "«{name}»"
 msgid "\"{segmentName}\" will be deleted. Its contacts stay in the workspace. This action cannot be undone."
 msgstr "«{segmentName}» s'eliminarà. Els seus contactes es queden a l'espai de treball. Aquesta acció no es pot desfer."
 
-#: src/components/web_analytics/filters/FilterTable.tsx:103
-#: src/components/web_analytics/filters/FilterTable.tsx:208
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:148
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:237
+#: src/components/web_analytics/filters/FilterTable.tsx:133
+#: src/components/web_analytics/filters/FilterTable.tsx:250
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:157
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:275
 msgid "(always matches)"
 msgstr "(sempre coincideix)"
 
@@ -87,13 +91,14 @@ msgid "(default)"
 msgstr "(per defecte)"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:360
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:41
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:88
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:160
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:163
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:57
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:166
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:168
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:120
 #: src/components/web_analytics/explore/CsvExportModal.tsx:98
 #: src/components/web_analytics/explore/ExploreSummary.tsx:73
 #: src/components/web_analytics/explore/ExploreTable.tsx:63
+#: src/components/web_analytics/tabs/ExploreTab.tsx:300
 msgid "(empty)"
 msgstr "(buit)"
 
@@ -272,6 +277,16 @@ msgstr "{0, plural, one {# recurs} other {# recursos}}"
 #: src/components/automations/stats/NodeStatsFooter.tsx:98
 msgid "{0, plural, one {# retrying} other {# retrying}}"
 msgstr "{0, plural, one {# en reintent} other {# en reintent}}"
+
+#. placeholder {0}: overrides.before.length
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:227
+msgid "{0, plural, one {# rule runs first and can keep this rule from writing {beforeList}} other {# rules run first and can keep this rule from writing {beforeList}}}"
+msgstr "{0, plural, one {# regla s'executa abans i pot impedir que aquesta escrigui {beforeList}} other {# regles s'executen abans i poden impedir que aquesta escrigui {beforeList}}}"
+
+#. placeholder {0}: overrides.after.length
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:240
+msgid "{0, plural, one {# rule runs later and can overwrite this rule on {afterList}} other {# rules run later and can overwrite this rule on {afterList}}}"
+msgstr "{0, plural, one {# regla s'executa després i pot sobreescriure aquesta regla a {afterList}} other {# regles s'executen després i poden sobreescriure aquesta regla a {afterList}}}"
 
 #. placeholder {0}: checkedFiles.length
 #: src/components/file_manager/FileExplorer.tsx:724
@@ -478,8 +493,8 @@ msgstr "{0} no s'aplica a aquest esdeveniment"
 #. placeholder {0}: matchingRules.length
 #. placeholder {1}: enabledResults.length
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:299
-msgid "{0} of {1} rules match"
-msgstr "{0} de {1} regles coincideixen"
+#~ msgid "{0} of {1} rules match"
+#~ msgstr "{0} de {1} regles coincideixen"
 
 #. placeholder {0}: int(shown)
 #: src/pages/BroadcastsPage.tsx:230
@@ -497,7 +512,7 @@ msgstr "{0} oberts"
 #~ msgstr "{0} destinataris a la cua per a un altre intent"
 
 #. placeholder {0}: int(state.rows_updated)
-#: src/components/web_analytics/filters/BackfillStatus.tsx:110
+#: src/components/web_analytics/filters/BackfillStatus.tsx:123
 msgid "{0} rows rewritten"
 msgstr "{0} files reescrites"
 
@@ -592,6 +607,10 @@ msgstr "{0} segons"
 #: src/pages/BroadcastsPage.tsx:1757
 #~ msgid "{0}-{1} of {total} broadcasts"
 #~ msgstr "{0}-{1} de {total} difusions"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:78
+msgid "{above, plural, one {# rule above and {below} below this one} other {# rules above and {below} below this one}}"
+msgstr "{above, plural, one {# regla per sobre i {below} per sota d'aquesta} other {# regles per sobre i {below} per sota d'aquesta}}"
 
 #: src/components/segment/segmentSummary.ts:196
 msgid "{action} at least {count} times"
@@ -699,6 +718,10 @@ msgstr "{count, plural, one {# notificació} other {# notificacions}}"
 msgid "{count, plural, one {# recipient} other {# recipients}}"
 msgstr "{count, plural, one {# destinatari} other {# destinataris}}"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:57
+msgid "{count, plural, one {# value} other {# values}}"
+msgstr "{count, plural, one {# valor} other {# valors}}"
+
 #: src/components/broadcasts/BroadcastsTable.tsx:317
 msgid "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
 msgstr "{count, plural, one {A/B · # variant} other {A/B · # variants}}"
@@ -800,6 +823,10 @@ msgstr "{email}, el per defecte del proveïdor"
 msgid "{email}, the template's, on {providerName}"
 msgstr "{email}, el de la plantilla, a {providerName}"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:418
+msgid "{enabled} enabled · {disabled} disabled"
+msgstr "{enabled} activades · {disabled} desactivades"
+
 #: src/pages/ContactsPage.tsx:510
 msgid "{exactTotal, plural, one {{shownCount} of # contact} other {{shownCount} of # contacts}}"
 msgstr "{exactTotal, plural, one {{shownCount} de # contacte} other {{shownCount} de # contactes}}"
@@ -886,6 +913,10 @@ msgstr "{field} no en els últims {days} dies"
 #: src/components/segment/segmentSummary.ts:104
 msgid "{field} starts with {value}"
 msgstr "{field} comença per {value}"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:325
+msgid "{filled} of {total} filled"
+msgstr "{filled} de {total} emplenats"
 
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:294
 msgid "{full} ({timezone})"
@@ -1097,6 +1128,14 @@ msgstr "{named} de {total} espais amb nom"
 #~ msgid "{notAppliedNames} filters not applied to the session figures and chart"
 #~ msgstr "Filtres {notAppliedNames} no aplicats a les xifres de sessions ni al gràfic"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:186
+msgid "{onPage} of {total} sessions"
+msgstr "{onPage} de {total} sessions"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:185
+msgid "{onPage} of {total} sessions on this page"
+msgstr "{onPage} de {total} sessions en aquesta pàgina"
+
 #: src/components/templates/TemplateSettingsStep.tsx:80
 msgid "{open} Liquid tags are not closed: each {OPEN_TAG} needs a matching {CLOSE_TAG}"
 msgstr "{open} etiquetes Liquid no estan tancades: cada {OPEN_TAG} necessita el seu {CLOSE_TAG}"
@@ -1150,6 +1189,10 @@ msgstr "{providerName} no té remitent per defecte"
 msgid "{readingTime} min read"
 msgstr "{readingTime} min de lectura"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:181
+msgid "{regexCount, plural, one {The regular expression is valid} other {The # regular expressions are valid}}"
+msgstr "{regexCount, plural, one {L'expressió regular és vàlida} other {Les # expressions regulars són vàlides}}"
+
 #: src/components/broadcasts/useBroadcastActions.tsx:67
 msgid "{requeued, plural, one {# recipient queued for another attempt} other {# recipients queued for another attempt}}"
 msgstr "{requeued, plural, one {# destinatari a la cua per a un altre intent} other {# destinataris a la cua per a un altre intent}}"
@@ -1200,6 +1243,10 @@ msgstr "{selectedCount, plural, one {Això eliminarà permanentment # contacte. 
 #: src/components/broadcasts/VariationSenderSelect.tsx:69
 msgid "{senderId} (deleted)"
 msgstr "{senderId} (eliminat)"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:207
+msgid "{share} of {parent}"
+msgstr "{share} de {parent}"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:242
 msgid "{share}% tracked"
@@ -1256,7 +1303,7 @@ msgid "{time} local time"
 msgstr "{time} hora local"
 
 #: src/components/blog/PostDrawer.tsx:1109
-#: src/components/seo/SeoChecks.tsx:35
+#: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, one {# per revisar} other {# per revisar}}"
 
@@ -1444,7 +1491,7 @@ msgid "+{0}"
 msgstr "+{0}"
 
 #. placeholder {0}: hidden.length
-#: src/components/web_analytics/filters/FilterTable.tsx:224
+#: src/components/web_analytics/filters/FilterTable.tsx:266
 msgid "+{0} more"
 msgstr "+{0} més"
 
@@ -1454,8 +1501,8 @@ msgid "+{count}"
 msgstr "+{count}"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:157
-msgid "+{hiddenCount} more"
-msgstr "+{hiddenCount} més"
+#~ msgid "+{hiddenCount} more"
+#~ msgstr "+{hiddenCount} més"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:967
 #: src/components/settings/integrations/providerDetails.ts:170
@@ -2034,12 +2081,12 @@ msgstr "Correu de l'actor"
 #: src/components/broadcasts/HeadersEditor.tsx:54
 #: src/components/broadcasts/HeadersEditor.tsx:102
 #: src/components/segment/input_json_path.tsx:98
-#: src/components/seo/SeoChecks.tsx:60
+#: src/components/seo/SeoChecks.tsx:73
 #: src/components/settings/integrations/EmailProviderCard.tsx:309
 #: src/components/transactional/NotificationChecks.tsx:88
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:113
-#: src/components/web_analytics/tabs/FiltersTab.tsx:130
+#: src/components/web_analytics/tabs/FiltersTab.tsx:144
 msgid "Add"
 msgstr "Afegir"
 
@@ -2150,7 +2197,7 @@ msgstr "Afegiu elements fills com mj-font, mj-style o mj-preview per configurar 
 msgid "Add column in group"
 msgstr "Afegir columna al grup"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:170
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:172
 msgid "Add condition"
 msgstr "Afegir condició"
 
@@ -2179,6 +2226,8 @@ msgstr "Afegir capçalera personalitzada"
 msgid "Add Custom Header"
 msgstr "Afegir capçalera personalitzada"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:129
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:131
 #: src/components/web_analytics/explore/DimensionSelector.tsx:241
 msgid "Add dimension"
 msgstr "Afegir dimensió"
@@ -2191,7 +2240,7 @@ msgstr "Afegeix un punt final"
 msgid "Add entry conditions"
 msgstr "Afegir condicions d'entrada"
 
-#: src/components/web_analytics/FilterBuilder.tsx:151
+#: src/components/web_analytics/FilterBuilder.tsx:123
 msgid "Add filter"
 msgstr "Afegir filtre"
 
@@ -2230,7 +2279,7 @@ msgstr "Afegir notes sobre aquesta versió..."
 #~ msgid "Add one or more email senders. The first sender will be used as the default."
 #~ msgstr "Afegiu un o més remitents de correu. El primer remitent s'utilitzarà per defecte."
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:193
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:191
 msgid "Add operation"
 msgstr "Afegir operació"
 
@@ -2261,7 +2310,7 @@ msgstr "Afegir element social"
 msgid "Add social elements to this social block"
 msgstr "Afegiu elements socials a aquest bloc social"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:162
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:224
 msgid "Add tags..."
 msgstr "Afegir etiquetes..."
 
@@ -2419,6 +2468,10 @@ msgstr "Després"
 msgid "after {date}"
 msgstr "després del {date}"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:382
+msgid "After a backfill, run from Attribution rules"
+msgstr "Després d'un reompliment, llançat des de Regles d'atribució"
+
 #: src/components/segment/form_leaf.tsx:525
 #: src/components/segment/form_leaf.tsx:900
 msgid "after date"
@@ -2515,7 +2568,7 @@ msgstr "Alineació"
 #: src/components/logs/OutgoingWebhooksTab.tsx:142
 #: src/components/templates/TemplateStartModal.tsx:159
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:122
-#: src/components/web_analytics/tabs/FiltersTab.tsx:152
+#: src/components/web_analytics/tabs/FiltersTab.tsx:170
 #: src/pages/AutomationsPage.tsx:137
 #: src/pages/TemplatesPage.tsx:152
 msgid "All"
@@ -2550,13 +2603,13 @@ msgstr "Totes les categories"
 msgid "All click events, including repeat clicks. May be inflated by bots and prefetching."
 msgstr "Tots els esdeveniments de clic, incloent-hi els clics repetits. Es poden inflar per bots i precàrrega."
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:186
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:78
 msgid "All conditions must have a value"
 msgstr "Totes les condicions han de tenir un valor"
 
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:151
-msgid "All conditions must match (AND logic):"
-msgstr "Totes les condicions han de coincidir (lògica AND):"
+#~ msgid "All conditions must match (AND logic):"
+#~ msgstr "Totes les condicions han de coincidir (lògica AND):"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:116
 msgid "All contact fields are optional except email."
@@ -2587,6 +2640,10 @@ msgstr "Tots els llenguatges"
 msgid "All marketing emails (broadcasts, campaigns) will be sent through this provider from now on."
 msgstr "Tots els correus de màrqueting (difusions, campanyes) s'enviaran a través d'aquest proveïdor a partir d'ara."
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
+msgid "All must match"
+msgstr "Totes han de coincidir"
+
 #: src/components/blog/BlogSidebar.tsx:66
 #: src/components/blog/PostsTable.tsx:507
 msgid "All posts"
@@ -2598,8 +2655,12 @@ msgstr "Tots els articles"
 #~ msgid "All Posts"
 #~ msgstr "Totes les publicacions"
 
+#: src/components/web_analytics/tabs/ExploreTab.tsx:303
+msgid "all sessions"
+msgstr "totes les sessions"
+
 #: src/components/blog/PostDrawer.tsx:1112
-#: src/components/seo/SeoChecks.tsx:35
+#: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
 msgstr "Tot a punt"
@@ -2671,11 +2732,20 @@ msgstr "Text alternatiu (per accessibilitat)"
 #~ msgid "always"
 #~ msgstr ""
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:126
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:166
+msgid "Always matches"
+msgstr "Coincideix sempre"
+
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:152
+msgid "Always matches: with no condition, this rule runs on every session."
+msgstr "Coincideix sempre: sense cap condició, aquesta regla s'executa a cada sessió."
+
 #: src/components/email_builder/blocks/MjFontBlock.tsx:48
 msgid "Always provide fallback fonts for better compatibility"
 msgstr "Proporcioneu sempre fonts alternatives per a una millor compatibilitat"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:230
+#: src/components/web_analytics/lib/filterCatalog.ts:234
 msgid "Always set to the specified value"
 msgstr "Establir sempre al valor especificat"
 
@@ -3033,6 +3103,7 @@ msgstr "S'aplica als propers enviaments"
 #: src/components/contacts/ContactsFilters.tsx:139
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:293
 #: src/components/logs/TextFilter.tsx:28
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:255
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:49
 #: src/components/web_analytics/toolbar.tsx:93
 msgid "Apply"
@@ -3042,8 +3113,8 @@ msgstr "Aplicar"
 msgid "Apply & Recompile"
 msgstr "Aplicar i recompilar"
 
-#: src/components/web_analytics/FilterBuilder.tsx:383
-#: src/components/web_analytics/FilterBuilder.tsx:424
+#: src/components/web_analytics/FilterBuilder.tsx:353
+#: src/components/web_analytics/FilterBuilder.tsx:394
 msgid "Apply filter"
 msgstr "Aplicar filtre"
 
@@ -3224,14 +3295,14 @@ msgid "AT LEAST ONE"
 msgstr "ALMENYS UNA"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:180
-msgid "At least one condition is required"
-msgstr "Cal com a mínim una condició"
+#~ msgid "At least one condition is required"
+#~ msgstr "Cal com a mínim una condició"
 
 #: src/pages/SetupWizard.tsx:766
 msgid "At least one domain is required when auto-create is enabled"
 msgstr "Cal com a mínim un domini quan la creació automàtica està activada"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:207
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:80
 msgid "At least one operation is required"
 msgstr "Cal com a mínim una operació"
 
@@ -3254,7 +3325,9 @@ msgstr "Adjunts"
 msgid "Attempts"
 msgstr "Intents"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:124
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:170
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
+#: src/components/web_analytics/tabs/FiltersTab.tsx:137
 msgid "Attribution rules"
 msgstr "Regles d'atribució"
 
@@ -3547,9 +3620,8 @@ msgstr "Regió d'AWS"
 
 #: src/components/contacts/ContactsFilters.tsx:115
 #: src/components/layout/FullDrawer.tsx:93
-#: src/components/web_analytics/FilterBuilder.tsx:323
-#: src/components/web_analytics/FilterBuilder.tsx:394
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:392
+#: src/components/web_analytics/FilterBuilder.tsx:293
+#: src/components/web_analytics/FilterBuilder.tsx:364
 msgid "Back"
 msgstr "Enrere"
 
@@ -3580,15 +3652,15 @@ msgstr "Tornar a esborrany?"
 msgid "Back to Transactional"
 msgstr "Tornar a Transaccional"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:61
+#: src/components/web_analytics/filters/BackfillStatus.tsx:67
 msgid "Backfill cancelled"
 msgstr "Reompliment cancel·lat"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:80
+#: src/components/web_analytics/filters/BackfillStatus.tsx:85
 msgid "Backfill in progress"
 msgstr "Reompliment en curs"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:52
+#: src/components/web_analytics/filters/BackfillStatus.tsx:58
 msgid "Backfill started"
 msgstr "Reompliment iniciat"
 
@@ -3984,7 +4056,7 @@ msgstr "Inferior dreta"
 #: src/components/contacts/sheet/activityLabel.ts:23
 #: src/components/logs/labels.ts:72
 #: src/components/templates/templateCategories.ts:25
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:190
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:158
 msgid "Bounce"
 msgstr "Rebot"
 
@@ -4009,15 +4081,17 @@ msgstr "Diagnòstic del rebot"
 #~ msgid "Bounce email"
 #~ msgstr "Correu de rebot"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:65
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:70
 #: src/components/web_analytics/explore/ExploreSummary.tsx:53
 #: src/components/web_analytics/explore/ExploreTable.tsx:142
-#: src/components/web_analytics/FilterBuilder.tsx:119
+#: src/components/web_analytics/FilterBuilder.tsx:101
 #: src/components/web_analytics/tabs/DashboardTab.tsx:32
 msgid "Bounce Rate"
 msgstr "Taxa de rebot"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:49
-#: src/components/web_analytics/FilterBuilder.tsx:234
+#: src/components/web_analytics/FilterBuilder.tsx:204
 msgid "Bounce Rate (%)"
 msgstr "Taxa de rebot (%)"
 
@@ -4108,9 +4182,13 @@ msgstr "Ruta de navegació"
 msgid "Breakdown by"
 msgstr "Desglossar per"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:143
+msgid "Breakdown of {valueLabel}"
+msgstr "Desglossament de {valueLabel}"
+
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:95
-msgid "Breaking down by:"
-msgstr "Desglossant per:"
+#~ msgid "Breaking down by:"
+#~ msgstr "Desglossant per:"
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:27
 msgid "Breakpoint attributes"
@@ -4300,6 +4378,10 @@ msgstr "Difusions que encara es poden enviar, notificacions transaccionals, auto
 msgid "Broadcasts write sends. The same switch that lets someone draft a campaign lets them push it to the entire audience — through /api/broadcasts.schedule, and again through /api/tasks.trigger and /api/tasks.reset on the underlying send task. Note that Broadcasts read does NOT give delivery statistics: open/click/bounce numbers come from /api/messages.broadcastStats and siblings, which are gated on Message History read. It also does not grant the recipient list — that is Contacts read."
 msgstr "L'escriptura de Difusions envia. El mateix interruptor que permet a algú redactar una campanya li permet enviar-la a tot el públic — mitjançant /api/broadcasts.schedule, i també mitjançant /api/tasks.trigger i /api/tasks.reset sobre la tasca d'enviament subjacent. Tingueu en compte que la lectura de Difusions NO dona estadístiques de lliurament: les xifres d'obertures/clics/rebots venen de /api/messages.broadcastStats i similars, que estan protegides per la lectura d'Historial de missatges. Tampoc no concedeix la llista de destinataris — això és la lectura de Contactes."
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:179
+msgid "Broken down by"
+msgstr "Desglossat per"
+
 #: src/services/api/permissions.ts:910
 msgid "Browse and filter the audit log, including every member's email address and IP address"
 msgstr "Explorar i filtrar el registre d'auditoria, incloent-hi l'adreça de correu i la IP de cada membre"
@@ -4329,12 +4411,12 @@ msgstr "Consulta, filtra i exporta el registre a Logs → Registre d'auditoria."
 #~ msgid "Browse, filter and export the log under Logs → Audit."
 #~ msgstr "Exploreu, filtreu i exporteu el registre a Logs → Auditoria."
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:276
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:272
 msgid "Browser"
 msgstr "Navegador"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:275
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:271
 msgid "Browsers"
 msgstr "Navegadors"
@@ -4412,7 +4494,7 @@ msgstr "Crideu identify() un cop sapigueu qui és el visitant. La signatura s'ha
 msgid "Campaign"
 msgstr "Campanya"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:220
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:268
 #: src/components/web_analytics/tabs/DashboardTab.tsx:226
 #: src/pages/WebAnalyticsLivePage.tsx:199
 #: src/pages/WebAnalyticsLivePage.tsx:206
@@ -4426,6 +4508,15 @@ msgstr "Ja no es pot canviar"
 #: src/components/templates/TemplateSettingsStep.tsx:134
 msgid "Can't change after the template is created"
 msgstr "No es pot canviar un cop creada la plantilla"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:244
+msgid "Can't test"
+msgstr "No es poden provar"
+
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:12
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:232
+msgid "Can't test in the browser"
+msgstr "No es pot provar al navegador"
 
 #: src/components/automations/AutomationEditor.tsx:273
 #: src/components/automations/AutomationEditor.tsx:296
@@ -4528,11 +4619,11 @@ msgstr "No es pot canviar un cop creada la plantilla"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:76
 #: src/components/web_analytics/explore/CsvExportModal.tsx:134
 #: src/components/web_analytics/filters/BackfillStatus.tsx:91
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:103
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
-#: src/components/web_analytics/filters/FilterTable.tsx:137
-#: src/components/web_analytics/filters/FilterTable.tsx:299
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:111
+#: src/components/web_analytics/filters/BackfillStatus.tsx:103
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:120
+#: src/components/web_analytics/filters/FilterTable.tsx:176
+#: src/components/web_analytics/filters/FilterTable.tsx:357
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:122
 #: src/components/web_analytics/toolbar.tsx:94
 msgid "Cancel"
 msgstr "Cancel·lar"
@@ -4545,7 +4636,7 @@ msgstr "Cancel·lar una difusió"
 msgid "Cancel a running backfill"
 msgstr "Cancel·lar un reompliment en curs"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:84
+#: src/components/web_analytics/filters/BackfillStatus.tsx:96
 msgid "Cancel backfill?"
 msgstr "Cancel·lar el reompliment?"
 
@@ -4579,6 +4670,7 @@ msgstr "Cancel·lar pujada?"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:222
 #: src/components/broadcasts/detail/BroadcastAside.tsx:279
+#: src/components/web_analytics/lib/backfill.ts:31
 msgid "Cancelled"
 msgstr "Cancel·lat"
 
@@ -4792,26 +4884,26 @@ msgstr "Canviar de domini"
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/web_analytics/explore/BreakdownModal.tsx:31
 #: src/components/web_analytics/explore/DimensionSelector.tsx:107
-#: src/components/web_analytics/FilterBuilder.tsx:56
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:79
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:203
+#: src/components/web_analytics/FilterBuilder.tsx:38
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:110
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
 #: src/components/web_analytics/tabs/DashboardTab.tsx:206
 msgid "Channel"
 msgstr "Canal"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:209
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:257
 #: src/components/web_analytics/tabs/DashboardTab.tsx:212
 #: src/pages/WebAnalyticsLivePage.tsx:224
 msgid "Channel group"
 msgstr "Grup de canals"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:208
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
 #: src/components/web_analytics/tabs/DashboardTab.tsx:211
 msgid "Channel groups"
 msgstr "Grups de canals"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:55
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:202
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:253
 #: src/components/web_analytics/tabs/DashboardTab.tsx:205
 #: src/pages/WebAnalyticsLivePage.tsx:216
 #: src/pages/WebAnalyticsLivePage.tsx:223
@@ -4831,9 +4923,17 @@ msgstr "Comprovar actualitzacions"
 msgid "Check the MJML hierarchy and that every tag is closed."
 msgstr "Comproveu la jerarquia MJML i que cada etiqueta estigui tancada."
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:193
+msgid "Checked as you type; the server checks again on save."
+msgstr "Es comprova mentre escrius; el servidor ho torna a comprovar en desar."
+
 #: src/components/settings/integrations/EmailProviderCard.tsx:128
 msgid "Checking webhooks…"
 msgstr "Comprovant els webhooks…"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:249
+msgid "Checks"
+msgstr "Comprovacions"
 
 #: src/components/logs/MessagesTab.tsx:402
 #: src/components/transactional/NotificationChecks.tsx:118
@@ -4984,13 +5084,22 @@ msgstr "Esborra la cerca"
 msgid "Clear selection"
 msgstr "Esborra la selecció"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:226
+#: src/components/web_analytics/lib/filterCatalog.ts:230
 msgid "Clear value"
 msgstr "Esborrar valor"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:437
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:442
+msgid "Clear visit"
+msgstr "Esborrar la visita"
 
 #: src/components/contacts/sheet/activityLabel.ts:13
 msgid "Click"
 msgstr "Clic"
+
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:24
+msgid "Click a row or a country to filter the whole Web Analytics section."
+msgstr "Fes clic en una fila o en un país per filtrar tota la secció Analítica web."
 
 #: src/components/segment/form_leaf.tsx:386
 #: src/components/segment/input.tsx:791
@@ -5332,7 +5441,7 @@ msgstr "Amplada de columna (p. ex., '50%', '300px', 'auto')"
 msgid "Comma-separated list of email domains permitted to auto-create accounts"
 msgstr "Llista separada per comes de dominis de correu autoritzats a crear comptes automàticament"
 
-#: src/components/web_analytics/FilterBuilder.tsx:363
+#: src/components/web_analytics/FilterBuilder.tsx:333
 msgid "Comma-separated values"
 msgstr "Valors separats per comes"
 
@@ -5449,6 +5558,7 @@ msgstr "Completeu la condició per actualitzar el recompte"
 #: src/components/automations/stats/StepStats.tsx:21
 #: src/components/broadcasts/detail/BroadcastAside.tsx:220
 #: src/components/broadcasts/detail/BroadcastAside.tsx:277
+#: src/components/web_analytics/lib/backfill.ts:28
 msgid "Completed"
 msgstr "Completat"
 
@@ -5476,14 +5586,26 @@ msgstr "Condició"
 msgid "Condition"
 msgstr "Condició"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:188
+msgid "Condition {position} can't be tested in the browser; the server checks it on save"
+msgstr "La condició {position} no es pot provar al navegador; el servidor la comprova en desar"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:189
+msgid "Condition {position} is not a valid regular expression and may be refused on save"
+msgstr "La condició {position} no és una expressió regular vàlida i es pot rebutjar en desar"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:186
+msgid "Condition {position} uses a lookaround or a backreference, which the server refuses"
+msgstr "La condició {position} fa servir un lookaround o una referència inversa, que el servidor rebutja"
+
 #: src/components/automations/nodes/FilterNode.tsx:49
 msgid "conditions"
 msgstr "Condicions"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:169
-#: src/components/web_analytics/filters/FilterTable.tsx:101
-#: src/components/web_analytics/filters/FilterTable.tsx:204
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:235
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
+#: src/components/web_analytics/filters/FilterTable.tsx:131
+#: src/components/web_analytics/filters/FilterTable.tsx:246
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:270
 msgid "Conditions"
 msgstr "Condicions"
 
@@ -5852,8 +5974,8 @@ msgstr "Farciment del contenidor"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
-#: src/components/web_analytics/FilterBuilder.tsx:40
-#: src/components/web_analytics/lib/filterCatalog.ts:218
+#: src/components/web_analytics/lib/filterCatalog.ts:222
+#: src/components/web_analytics/lib/filterLabels.ts:12
 msgid "contains"
 msgstr "conté"
 
@@ -5889,6 +6011,7 @@ msgstr "Continguts"
 #~ msgstr "Controleu com els motors de cerca indexen i segueixen els enllaços del vostre blog"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:46
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:60
 msgid "Conv. Rate"
 msgstr "Taxa de conv."
 
@@ -6018,7 +6141,7 @@ msgstr "No s'ha pogut carregar el tauler"
 msgid "Could not load the email sent"
 msgstr "No s’ha pogut carregar el correu enviat"
 
-#: src/components/web_analytics/tabs/GoalsTab.tsx:123
+#: src/components/web_analytics/tabs/GoalsTab.tsx:121
 msgid "Could not load the goals"
 msgstr "No s'han pogut carregar els objectius"
 
@@ -6027,15 +6150,15 @@ msgstr "No s'han pogut carregar els objectius"
 msgid "Could not load the latest version. Please try again."
 msgstr "No s'ha pogut carregar la darrera versió. Torneu-ho a provar."
 
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:142
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:64
 msgid "Could not load this breakdown"
 msgstr "No s'ha pogut carregar aquest desglossament"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:158
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:200
 msgid "Could not load this goal"
 msgstr "No s'ha pogut carregar aquest objectiu"
 
-#: src/components/web_analytics/tabs/ExploreTab.tsx:353
+#: src/components/web_analytics/tabs/ExploreTab.tsx:367
 msgid "Could not load this report"
 msgstr "No s'ha pogut carregar aquest informe"
 
@@ -6165,8 +6288,8 @@ msgid "count"
 msgstr "nombre"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:45
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:42
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:119
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:59
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:138
 #: src/components/web_analytics/tabs/DashboardTab.tsx:286
 msgid "Count"
 msgstr "Recompte"
@@ -6207,7 +6330,7 @@ msgstr "Comptat a partir dels webhooks de lliurament dels teus proveïdors"
 msgid "Counting…"
 msgstr "S'està comptant…"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:240
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:296
 #: src/components/web_analytics/tabs/DashboardTab.tsx:243
 msgid "Countries"
 msgstr "Països"
@@ -6220,8 +6343,8 @@ msgstr "Països"
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
 #: src/components/segment/segmentSummary.ts:42
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:248
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:256
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:304
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
 #: src/components/web_analytics/tabs/DashboardTab.tsx:251
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 msgid "Country"
@@ -6258,7 +6381,6 @@ msgstr "Abasta més que les plantilles: els blocs reutilitzables responen al mat
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:112
 msgid "Create"
 msgstr "Crear"
 
@@ -6417,8 +6539,8 @@ msgstr "Crear notificació"
 msgid "Create post"
 msgstr "Crea l'article"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:99
-#: src/components/web_analytics/tabs/FiltersTab.tsx:192
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:158
+#: src/components/web_analytics/tabs/FiltersTab.tsx:213
 msgid "Create rule"
 msgstr "Crear regla"
 
@@ -6665,7 +6787,7 @@ msgstr "personalitzat"
 #: src/components/email_builder/panels/TextVersionPanel.tsx:326
 #: src/components/email_builder/ui/BackgroundInput.tsx:113
 #: src/components/templates/TemplatePreviewDrawer.tsx:235
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:85
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:116
 msgid "Custom"
 msgstr "Personalitzat"
 
@@ -6720,7 +6842,8 @@ msgstr "Camps de data personalitzats"
 #: src/components/settings/WebAnalyticsSettings.tsx:396
 #: src/components/web_analytics/explore/BreakdownModal.tsx:41
 #: src/components/web_analytics/explore/DimensionSelector.tsx:117
-#: src/components/web_analytics/FilterBuilder.tsx:66
+#: src/components/web_analytics/FilterBuilder.tsx:48
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:328
 msgid "Custom dimensions"
 msgstr "Dimensions personalitzades"
 
@@ -7067,7 +7190,7 @@ msgstr "Remitent per defecte"
 msgid "Default theme created and published"
 msgstr "Tema per defecte creat i publicat"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:237
+#: src/components/web_analytics/lib/filterCatalog.ts:241
 msgid "default to"
 msgstr "per defecte a"
 
@@ -7194,11 +7317,12 @@ msgstr "Retard"
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:87
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:139
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:143
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:101
-#: src/components/web_analytics/filters/FilterTable.tsx:135
-#: src/components/web_analytics/filters/FilterTable.tsx:140
-#: src/components/web_analytics/filters/FilterTable.tsx:297
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:109
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:118
+#: src/components/web_analytics/filters/FilterTable.tsx:165
+#: src/components/web_analytics/filters/FilterTable.tsx:174
+#: src/components/web_analytics/filters/FilterTable.tsx:179
+#: src/components/web_analytics/filters/FilterTable.tsx:355
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:120
 #: src/pages/TemplatesPage.tsx:337
 #: src/pages/TemplatesPage.tsx:340
 msgid "Delete"
@@ -7329,7 +7453,7 @@ msgstr "Elimina la categoria"
 msgid "Delete Category"
 msgstr "Eliminar categoria"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:108
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:122
 msgid "Delete condition"
 msgstr "Elimina la condició"
 
@@ -7403,7 +7527,7 @@ msgstr "Suprimeix la llista"
 msgid "Delete node"
 msgstr "Eliminar node"
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:116
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:127
 msgid "Delete operation"
 msgstr "Elimina l'operació"
 
@@ -7412,8 +7536,9 @@ msgid "Delete Post"
 msgstr "Eliminar publicació"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:155
-#: src/components/web_analytics/filters/FilterTable.tsx:293
-#: src/components/web_analytics/filters/FilterTable.tsx:304
+#: src/components/web_analytics/filters/FilterTable.tsx:344
+#: src/components/web_analytics/filters/FilterTable.tsx:351
+#: src/components/web_analytics/filters/FilterTable.tsx:362
 msgid "Delete rule"
 msgstr "Suprimeix la regla"
 
@@ -7454,7 +7579,7 @@ msgstr "Eliminar la notificació?"
 msgid "Delete this API key?"
 msgstr "Voleu eliminar aquesta clau API?"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:99
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:116
 msgid "Delete this condition?"
 msgstr "Eliminar aquesta condició?"
 
@@ -7467,12 +7592,12 @@ msgstr "Eliminar aquesta connexió?"
 msgid "Delete this integration?"
 msgstr "Eliminar aquesta integració?"
 
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:107
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:118
 msgid "Delete this operation?"
 msgstr "Eliminar aquesta operació?"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:132
-#: src/components/web_analytics/filters/FilterTable.tsx:294
+#: src/components/web_analytics/filters/FilterTable.tsx:171
+#: src/components/web_analytics/filters/FilterTable.tsx:352
 msgid "Delete this rule?"
 msgstr "Eliminar aquesta regla?"
 
@@ -7719,7 +7844,7 @@ msgid "Desktop view (100%)"
 msgstr "Vista d'escriptori (100%)"
 
 #: src/components/blog/PostDrawer.tsx:843
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:133
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "Detalls"
 
@@ -7735,16 +7860,16 @@ msgstr "Detecta des del lloc web"
 #: src/components/contacts/visits/ContactWebVisits.tsx:296
 #: src/components/web_analytics/explore/BreakdownModal.tsx:35
 #: src/components/web_analytics/explore/DimensionSelector.tsx:111
-#: src/components/web_analytics/FilterBuilder.tsx:60
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:83
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:270
+#: src/components/web_analytics/FilterBuilder.tsx:42
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:114
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
 #: src/components/web_analytics/tabs/DashboardTab.tsx:268
 #: src/pages/WebAnalyticsLivePage.tsx:195
 msgid "Device"
 msgstr "Dispositiu"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:262
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:269
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:285
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
 #: src/components/web_analytics/tabs/DashboardTab.tsx:264
 #: src/components/web_analytics/tabs/DashboardTab.tsx:268
 #: src/pages/WebAnalyticsLivePage.tsx:190
@@ -7787,7 +7912,7 @@ msgstr "Directe"
 #~ msgid "Disable Blog?"
 #~ msgstr "Desactivar blog?"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:273
+#: src/components/web_analytics/filters/FilterTable.tsx:320
 msgid "Disable this rule?"
 msgstr "Desactivar aquesta regla?"
 
@@ -7806,6 +7931,8 @@ msgstr "Desactivar webhook"
 #: src/components/settings/WebAnalyticsSettings.tsx:221
 #: src/components/settings/WebhookDetail.tsx:267
 #: src/components/settings/WebhooksSettings.tsx:314
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:123
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:246
 msgid "Disabled"
 msgstr "Desactivat"
 
@@ -7814,7 +7941,7 @@ msgstr "Desactivat"
 msgid "Disabled for this notification"
 msgstr "Desactivat per a aquesta notificació"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:360
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:233
 msgid "Disabled rules"
 msgstr "Regles desactivades"
 
@@ -7827,6 +7954,8 @@ msgstr "Regles desactivades"
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:111
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:151
 msgid "Discard"
 msgstr "Descartar"
 
@@ -7844,6 +7973,7 @@ msgstr "Descartar els canvis no desats?"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
 msgid "Discard your changes?"
 msgstr "Voleu descartar els canvis?"
 
@@ -8138,7 +8268,7 @@ msgstr "P. ex. password_reset"
 msgid "e.g. Product launch"
 msgstr "p. ex. Llançament de producte"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:140
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:207
 msgid "e.g. Set channel for Google Ads"
 msgstr "p. ex. Establir el canal per a Google Ads"
 
@@ -8250,7 +8380,7 @@ msgstr "Cada variació conserva el remitent de la seva plantilla, tret que en tr
 #: src/components/transactional/TransactionalTable.tsx:288
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:92
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:152
-#: src/components/web_analytics/filters/FilterTable.tsx:144
+#: src/components/web_analytics/filters/FilterTable.tsx:184
 #: src/pages/TemplatesPage.tsx:308
 msgid "Edit"
 msgstr "Editar"
@@ -8408,9 +8538,11 @@ msgstr "Edita l'article"
 #~ msgstr "Editar publicació"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:163
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:99
-#: src/components/web_analytics/filters/FilterTable.tsx:309
-#: src/components/web_analytics/filters/FilterTable.tsx:313
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:175
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
+#: src/components/web_analytics/filters/FilterTable.tsx:368
+#: src/components/web_analytics/filters/FilterTable.tsx:372
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:426
 msgid "Edit rule"
 msgstr "Editar regla"
 
@@ -8853,6 +8985,15 @@ msgstr "correus/min"
 msgid "Emoji Suggestions"
 msgstr "Suggeriments d'emojis"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "empty"
+msgstr "buit"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:308
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:340
+msgid "Empty"
+msgstr "Buit"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:205
 msgid "Empty column. Add text, button, or image content."
 msgstr "Columna buida. Afegiu contingut de text, botó o imatge."
@@ -8882,6 +9023,10 @@ msgstr "Activar subtítols per defecte"
 #~ msgid "Enable geo-location tracking"
 #~ msgstr "Activar el seguiment de geolocalització"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:209
+msgid "Enable it to see which rules would override it."
+msgstr "Activa-la per veure quines regles la sobreescriurien."
+
 #: src/services/api/permissions.ts:893
 msgid "Enable or disable a subscription"
 msgstr "Activar o desactivar una subscripció"
@@ -8898,7 +9043,7 @@ msgstr "Activar servidor de retransmissió SMTP"
 #~ msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 #~ msgstr "Activeu la funció de blog per publicar articles i contingut a la pàgina d'inici del vostre domini personalitzat. El vostre blog serà accessible a"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:273
+#: src/components/web_analytics/filters/FilterTable.tsx:320
 msgid "Enable this rule?"
 msgstr "Activar aquesta regla?"
 
@@ -8934,7 +9079,7 @@ msgstr "Activar webhook"
 #: src/components/settings/SystemSettingsDrawer.tsx:469
 #: src/components/settings/SystemSettingsDrawer.tsx:554
 #: src/components/settings/WebAnalyticsSettings.tsx:216
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:153
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:219
 msgid "Enabled"
 msgstr "Activat"
 
@@ -9006,7 +9151,7 @@ msgstr "Introdueix un nombre amb 15 xifres com a màxim abans del separador deci
 msgid "Enter a unique alphanumeric ID"
 msgstr "Introduïu un ID alfanumèric únic"
 
-#: src/components/web_analytics/FilterBuilder.tsx:379
+#: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter a value"
 msgstr "Introdueix un valor"
 
@@ -9022,7 +9167,7 @@ msgstr "Introdueix un camí de variable com order.total: lletres, xifres i guion
 #~ msgid "Enter an email address to receive a test email:"
 #~ msgstr "Introduïu una adreça de correu per rebre un correu de prova:"
 
-#: src/components/web_analytics/FilterBuilder.tsx:379
+#: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter at least one value"
 msgstr "Introdueix almenys un valor"
 
@@ -9231,10 +9376,14 @@ msgid "Envelope"
 msgstr "Sobre"
 
 #: src/components/email_builder/ui/displayConditionLabels.ts:14
-#: src/components/web_analytics/FilterBuilder.tsx:38
-#: src/components/web_analytics/lib/filterCatalog.ts:216
+#: src/components/web_analytics/lib/filterCatalog.ts:220
+#: src/components/web_analytics/lib/filterLabels.ts:10
 msgid "equals"
 msgstr "igual a"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "error"
+msgstr "error"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:257
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:943
@@ -9380,9 +9529,13 @@ msgstr "Tipus d'esdeveniments"
 msgid "Events"
 msgstr "Esdeveniments"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:213
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:81
 msgid "Every \"set\" operation needs a value"
 msgstr "Cada operació \"set\" necessita un valor"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:158
+msgid "Every condition and every operation has a value"
+msgstr "Cada condició i cada operació té un valor"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:236
 msgid "Every domain"
@@ -9391,6 +9544,18 @@ msgstr "Tots els dominis"
 #: src/components/email_builder/panels/TextVersionPanel.tsx:124
 msgid "Every email is sent with an HTML version and a text version. Mail clients show the text version when HTML is blocked or not supported."
 msgstr "Cada correu s'envia amb una versió HTML i una versió de text. Els clients de correu mostren la versió de text quan l'HTML està bloquejat o no és compatible."
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:226
+msgid "Every enabled rule can be tested in the browser"
+msgstr "Totes les regles activades es poden provar al navegador"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:225
+msgid "Every enabled rule matches this visit"
+msgstr "Totes les regles activades coincideixen amb aquesta visita"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:287
+msgid "Every field of the visit"
+msgstr "Tots els camps de la visita"
 
 #: src/components/license/LicenceGateNotice.tsx:64
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
@@ -9544,6 +9709,7 @@ msgstr ""
 msgid "Expires:"
 msgstr "Caduca:"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:140
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:346
 #: src/layouts/app-shell/menuItems.ts:220
 #: src/pages/WebAnalyticsPage.tsx:96
@@ -9658,6 +9824,7 @@ msgstr "Molt alta"
 #: src/components/transactional/RecentSends.tsx:38
 #: src/components/transactional/SendsPerDayChart.tsx:51
 #: src/components/transactional/TransactionalDetail.tsx:220
+#: src/components/web_analytics/lib/backfill.ts:32
 #: src/pages/TransactionalNotificationsPage.tsx:298
 msgid "Failed"
 msgstr "Fallat"
@@ -10316,7 +10483,7 @@ msgstr "Obtenint: {0}"
 #: src/components/logs/AuditEntryDetail.tsx:205
 #: src/components/settings/CustomFieldsConfiguration.tsx:184
 #: src/components/settings/CustomFieldsConfiguration.tsx:326
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:72
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:74
 msgid "Field"
 msgstr "Camp"
 
@@ -10382,9 +10549,17 @@ msgstr "L'emmagatzematge de fitxers no està configurat."
 msgid "File storage settings"
 msgstr "Configuració d'emmagatzematge de fitxers"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:184
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:372
+msgid "Fill fields"
+msgstr "Emplenar els camps"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:396
 msgid "Fill in the fields of a hypothetical visit; empty fields count as empty values."
 msgstr "Empleneu els camps d'una visita hipotètica; els camps buits compten com a valors buits."
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:386
+msgid "Fills the Pages fields, the UTM fields and UTM ID From from the address, with the click ids the tracking snippet knows by default. The referrer and device stay as typed."
+msgstr "Emplena els camps de Pàgines, els camps UTM i UTM ID From a partir de l'adreça, amb els identificadors de clic que el fragment de seguiment coneix per defecte. El referent i el dispositiu es queden tal com s'han escrit."
 
 #: src/components/automations/nodeTypes.ts:34
 #: src/components/contacts/ContactsFilters.tsx:235
@@ -10420,6 +10595,10 @@ msgstr "Condicions de filtre"
 msgid "Filter on an event property"
 msgstr "Filtrar per una propietat de l'esdeveniment"
 
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:30
+msgid "Filtered by"
+msgstr "Filtrat per"
+
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
 #: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
@@ -10443,8 +10622,8 @@ msgstr "Filtres — esborrats"
 #~ msgstr ""
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:80
-msgid "Filters:"
-msgstr "Filtres:"
+#~ msgid "Filters:"
+#~ msgstr "Filtres:"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:648
 msgid "Find this in Azure Portal > App registrations > Your App > Overview"
@@ -10775,6 +10954,10 @@ msgstr "Nom del remitent (anul·lar)"
 msgid "From platform.openai.com, or your endpoint's own key"
 msgstr "Des de platform.openai.com o la clau pròpia del vostre endpoint"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:381
+msgid "From the moment you save"
+msgstr "Des del moment en què deses"
+
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:83
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:130
 msgid "From the text block"
@@ -10906,7 +11089,7 @@ msgstr "SQL generat:"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:36
 #: src/components/web_analytics/explore/DimensionSelector.tsx:112
-#: src/components/web_analytics/FilterBuilder.tsx:61
+#: src/components/web_analytics/FilterBuilder.tsx:43
 msgid "Geo"
 msgstr "Geo"
 
@@ -10969,7 +11152,7 @@ msgstr "Anar a iniciar sessió"
 #: src/components/segment/input.tsx:635
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
-#: src/components/web_analytics/FilterBuilder.tsx:64
+#: src/components/web_analytics/FilterBuilder.tsx:46
 #: src/components/web_analytics/tabs/DashboardTab.tsx:293
 msgid "Goal"
 msgstr "Objectiu"
@@ -10982,14 +11165,26 @@ msgstr "Objectiu {goalName}"
 msgid "Goal conversions and their total value"
 msgstr "Conversions d'objectius i el seu valor total"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:150
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:185
 msgid "Goal dashboard"
 msgstr "Tauler d'objectius"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:180
+msgid "Goal dashboard: {goalName}"
+msgstr "Tauler de l'objectiu: {goalName}"
 
 #: src/components/segment/form_leaf.tsx:784
 #: src/components/segment/input.tsx:649
 msgid "goal name"
 msgstr "nom de l'objectiu"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:323
+msgid "Goal pages"
+msgstr "Pàgines d'objectiu"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:323
+msgid "Goal path"
+msgstr "Camí de l'objectiu"
 
 #: src/components/segment/form_leaf.tsx:762
 #: src/components/segment/input.tsx:643
@@ -11014,7 +11209,8 @@ msgstr "Tipus d'objectiu: {0}"
 #~ msgstr "Objectiu:"
 
 #: src/components/web_analytics/CountryMapView.tsx:69
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:175
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:237
 #: src/components/web_analytics/tabs/DashboardTab.tsx:282
 #: src/components/web_analytics/tabs/DashboardTab.tsx:292
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:347
@@ -11027,7 +11223,7 @@ msgstr "Objectius"
 #~ msgid "Goals by Channel"
 #~ msgstr ""
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:286
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:233
 msgid "Goals by day and hour"
 msgstr "Objectius per dia i hora"
 
@@ -11225,7 +11421,6 @@ msgstr "ocult"
 
 #: src/components/analytics/GetStartedChecklist.tsx:411
 #: src/components/settings/WebhookDetail.tsx:378
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:336
 msgid "Hide"
 msgstr "Amagar"
 
@@ -11247,14 +11442,22 @@ msgid "High-level channel performance"
 msgstr "Rendiment dels canals a alt nivell"
 
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:147
-msgid "Higher priority rules are evaluated first (0-1000)"
-msgstr "Les regles amb més prioritat s'avaluen primer (0-1000)"
+#~ msgid "Higher priority rules are evaluated first (0-1000)"
+#~ msgstr "Les regles amb més prioritat s'avaluen primer (0-1000)"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:227
+msgid "Higher priority rules are evaluated first (0-1000). On the same dimension, the higher priority wins; at equal priority, the rule lower in the list wins."
+msgstr "Les regles de prioritat més alta s'avaluen primer (0-1000). En la mateixa dimensió, guanya la prioritat més alta; a igual prioritat, guanya la regla que és més avall a la llista."
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:275
 #~ msgid "Higher rules win (0-1000)."
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:165
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:252
+msgid "Highest priority first"
+msgstr "Prioritat més alta primer"
+
+#: src/components/web_analytics/filters/BackfillStatus.tsx:186
 msgid "Historical sessions and goals were written with a different rule set."
 msgstr "Les sessions i els objectius històrics es van escriure amb un conjunt de regles diferent."
 
@@ -11686,7 +11889,7 @@ msgstr "Fonts importades"
 msgid "Importing files..."
 msgstr "Important fitxers..."
 
-#: src/components/web_analytics/FilterBuilder.tsx:44
+#: src/components/web_analytics/lib/filterLabels.ts:16
 msgid "in"
 msgstr "a"
 
@@ -12083,8 +12286,8 @@ msgstr "Adreça IP, correu de l'actor o ID de destinació"
 msgid "is"
 msgstr "és"
 
-#: src/components/web_analytics/FilterBuilder.tsx:42
-#: src/components/web_analytics/lib/filterCatalog.ts:220
+#: src/components/web_analytics/lib/filterCatalog.ts:224
+#: src/components/web_analytics/lib/filterLabels.ts:14
 msgid "is empty"
 msgstr "està buit"
 
@@ -12113,8 +12316,8 @@ msgstr "és més petit que"
 msgid "is less than or equal to"
 msgstr "és més petit o igual que"
 
-#: src/components/web_analytics/FilterBuilder.tsx:43
-#: src/components/web_analytics/lib/filterCatalog.ts:221
+#: src/components/web_analytics/lib/filterCatalog.ts:225
+#: src/components/web_analytics/lib/filterLabels.ts:15
 msgid "is not empty"
 msgstr "no està buit"
 
@@ -12179,6 +12382,10 @@ msgstr "Aquesta integració envia els correus de màrqueting de l'espai de treba
 #: src/components/settings/integrations/EmailProviderCard.tsx:189
 msgid "It sends the workspace's transactional emails: notifications stop until another provider is chosen. This cannot be undone."
 msgstr "Aquesta integració envia els correus transaccionals de l'espai de treball: les notificacions s'aturen fins que s'esculli un altre proveïdor. Això no es pot desfer."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:192
+msgid "It uses syntax only the server's regular expressions read, so the Quick test and the tester skip it."
+msgstr "Fa servir una sintaxi que només llegeixen les expressions regulars del servidor, així que la Prova ràpida i el provador l'ometen."
 
 #: src/components/broadcasts/useBroadcastActions.tsx:144
 msgid "It will never be sent. A cancelled broadcast can't be resumed."
@@ -12291,6 +12498,7 @@ msgstr "Justificar"
 #: src/components/templates/CreateTemplateDrawer.tsx:898
 #: src/components/templates/useTemplateConflictModal.tsx:43
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:227
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:113
 msgid "Keep editing"
 msgstr "Continuar editant"
 
@@ -12351,6 +12559,8 @@ msgid "Label must be at most 100 characters"
 msgstr "L'etiqueta ha de tenir com a màxim 100 caràcters"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:61
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:313
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:319
 #: src/components/web_analytics/tabs/DashboardTab.tsx:181
 #: src/pages/WebAnalyticsLivePage.tsx:157
 msgid "Landing pages"
@@ -12359,6 +12569,14 @@ msgstr "Pàgines d'aterratge"
 #: src/pages/WebAnalyticsLivePage.tsx:57
 #~ msgid "Landing Pages"
 #~ msgstr ""
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:320
+msgid "Landing path"
+msgstr "Camí d'aterratge"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:356
+msgid "Landing URL"
+msgstr "URL d'aterratge"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:101
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
@@ -12441,6 +12659,10 @@ msgstr "Darrera activitat"
 #: src/components/logs/OutgoingWebhooksTab.tsx:409
 msgid "Last attempt"
 msgstr "Últim intent"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:383
+msgid "Last backfill"
+msgstr "Últim reompliment"
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:150
 #~ msgid "Last backfill rewrote"
@@ -12807,7 +13029,7 @@ msgstr "El Liquid col·locat entre els blocs d’una secció o d’una columna p
 #: src/components/messages/MessageHistoryTable.tsx:285
 #: src/components/messages/MessageHistoryTable.tsx:299
 #: src/components/templates/TemplateSelectorModal.tsx:710
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:255
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
 #: src/components/web_analytics/tabs/DashboardTab.tsx:256
 msgid "List"
 msgstr "Llista"
@@ -13039,6 +13261,10 @@ msgstr "Carregar el registre de l'espai de treball, cosa que admeten tant la lec
 msgid "Loaded the latest version of this template (v{0})."
 msgstr "S'ha carregat la darrera versió d'aquesta plantilla (v{0})."
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:47
+msgid "loading"
+msgstr "carregant"
+
 #: src/components/file_manager/FileExplorer.tsx:823
 msgid "Loading"
 msgstr "Carregant"
@@ -13098,7 +13324,7 @@ msgid "Locate visitors"
 msgstr "Localitza els visitants"
 
 #: src/components/contacts/ContactsFilters.tsx:28
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:84
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:115
 msgid "Location"
 msgstr "Ubicació"
 
@@ -13291,12 +13517,12 @@ msgstr "Gestionat per Zapier"
 msgid "Manual"
 msgstr "Manual"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:247
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:303
 #: src/components/web_analytics/tabs/DashboardTab.tsx:250
 msgid "Map"
 msgstr "Mapa"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:135
+#: src/components/web_analytics/tabs/FiltersTab.tsx:150
 msgid "Map traffic to channels, fill custom dimensions and rewrite traffic source fields as sessions come in."
 msgstr "Assigneu el trànsit a canals, ompliu dimensions personalitzades i reescriviu els camps de font de trànsit a mesura que arriben les sessions."
 
@@ -13379,20 +13605,24 @@ msgstr "Coincideix"
 msgid "Matched on:"
 msgstr "Coincideix amb:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:229
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:254
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:11
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:47
 msgid "Matches"
 msgstr "Coincidències"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:222
+#: src/components/web_analytics/lib/filterCatalog.ts:226
 msgid "matches regex"
 msgstr "coincideix amb la regex"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:241
+msgid "Matching"
+msgstr "Coincideixen"
 
 #: src/components/segment/button_upsert.tsx:704
 msgid "Matching contacts:"
 msgstr "Contactes coincidents:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:303
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:230
 msgid "Matching rules"
 msgstr "Regles que coincideixen"
 
@@ -13433,15 +13663,17 @@ msgstr "Mediana"
 msgid "Median {0}"
 msgstr "Mediana {0}"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:66
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:71
 #: src/components/web_analytics/explore/ExploreSummary.tsx:54
 #: src/components/web_analytics/explore/ExploreTable.tsx:158
-#: src/components/web_analytics/FilterBuilder.tsx:120
+#: src/components/web_analytics/FilterBuilder.tsx:102
 #: src/components/web_analytics/tabs/DashboardTab.tsx:33
 msgid "Median Scroll Depth"
 msgstr "Profunditat de desplaçament mediana"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:50
-#: src/components/web_analytics/FilterBuilder.tsx:235
+#: src/components/web_analytics/FilterBuilder.tsx:205
 msgid "Median Scroll Depth (%)"
 msgstr "Profunditat de desplaçament mediana (%)"
 
@@ -13457,12 +13689,13 @@ msgstr "Profunditat de desplaçament mediana (anterior)"
 msgid "Median session duration. Green meets the reference, cyan exceeds it."
 msgstr "Durada mediana de la sessió. El verd assoleix la referència, el cian la supera."
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:64
 #: src/components/web_analytics/explore/ExploreSummary.tsx:52
 #: src/components/web_analytics/tabs/DashboardTab.tsx:31
 msgid "Median TimeScore"
 msgstr "TimeScore mediana"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:44
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:62
 msgid "Median Value"
 msgstr "Valor mediana"
 
@@ -13471,7 +13704,7 @@ msgstr "Valor mediana"
 msgid "Medium"
 msgstr "Mitjana"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:222
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:270
 #: src/components/web_analytics/tabs/DashboardTab.tsx:228
 msgid "Mediums"
 msgstr "Mitjans"
@@ -13574,7 +13807,7 @@ msgstr "Metadades"
 msgid "Method"
 msgstr "Mètode"
 
-#: src/components/web_analytics/FilterBuilder.tsx:465
+#: src/components/web_analytics/FilterBuilder.tsx:435
 msgid "Metrics"
 msgstr "Mètriques"
 
@@ -13595,6 +13828,10 @@ msgstr "Mig"
 #: src/components/blog/PostDrawer.tsx:907
 msgid "min"
 msgstr "Mínim"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:177
+msgid "Min. sessions: {minSessions}"
+msgstr "Sessions mín.: {minSessions}"
 
 #: src/components/integrations/LLMIntegration.tsx:261
 #: src/components/settings/Integrations.tsx:341
@@ -13867,8 +14104,8 @@ msgstr "N/D"
 #: src/components/settings/WorkspaceMembers.tsx:294
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:395
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:137
-#: src/components/web_analytics/filters/FilterTable.tsx:196
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:204
+#: src/components/web_analytics/filters/FilterTable.tsx:238
 msgid "Name"
 msgstr "Nom"
 
@@ -13897,7 +14134,7 @@ msgid "Name and slug required"
 msgstr "Nom i slug obligatoris"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:1006
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:138
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:205
 msgid "Name is required"
 msgstr "El nom és obligatori"
 
@@ -13958,6 +14195,10 @@ msgstr "Cal primer: el blog se serveix a la seva arrel"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:467
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "Necessita aquests permisos IAM addicionals: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Afegiu ses:ListTenants i ses:ListTenantResources per als selectors de sota, i ses:DeleteTenant més ses:DeleteTenantResourceAssociation perquè el tenant s'elimini amb la integració en lloc de facturar per sempre."
+
+#: src/components/web_analytics/lib/backfill.ts:25
+msgid "Never run"
+msgstr "Mai executat"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
 #: src/components/templates/TemplateDrawerBar.tsx:35
@@ -14049,9 +14290,12 @@ msgstr "Nou article"
 #~ msgid "New Post"
 #~ msgstr "Nova publicació"
 
-#: src/pages/WebAnalyticsFiltersPage.tsx:264
-#~ msgid "New rule"
-#~ msgstr ""
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:123
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:175
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:120
+msgid "New rule"
+msgstr "Nova regla"
 
 #: src/components/contacts/ContactsRail.tsx:121
 #: src/components/segment/button_upsert.tsx:419
@@ -14061,6 +14305,10 @@ msgstr "Nou segment"
 #: src/components/templates/DeleteTemplateModal.tsx:96
 msgid "New sends from these items will keep using the deleted template until you pick another one. Messages already sent stay in the logs, but their web version stops working."
 msgstr "Els nous enviaments d'aquests elements continuaran utilitzant la plantilla eliminada fins que en trieu una altra. Els missatges ja enviats es queden als registres, però la seva versió web deixa de funcionar."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:381
+msgid "New sessions"
+msgstr "Sessions noves"
 
 #: src/components/integrations/SupabaseIntegration.tsx:207
 msgid "New Supabase users become contacts"
@@ -14085,8 +14333,8 @@ msgstr "Tema nou"
 #~ msgid "New Theme"
 #~ msgstr "Nou tema"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:133
-#: src/components/web_analytics/filters/FilterTable.tsx:295
+#: src/components/web_analytics/filters/FilterTable.tsx:172
+#: src/components/web_analytics/filters/FilterTable.tsx:353
 msgid "New visits are no longer rewritten by it. Past ones keep its values until the next backfill."
 msgstr "Les visites noves ja no es reescriuen amb aquest filtre. Les anteriors conserven els seus valors fins al proper reompliment."
 
@@ -14162,10 +14410,10 @@ msgstr "Següent pas"
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/WebhookDetail.tsx:290
 #: src/components/settings/WebhookDetail.tsx:394
-#: src/components/web_analytics/filters/BackfillStatus.tsx:88
-#: src/components/web_analytics/filters/FilterTable.tsx:276
+#: src/components/web_analytics/filters/BackfillStatus.tsx:100
+#: src/components/web_analytics/filters/FilterTable.tsx:323
 #: src/components/web_analytics/filters/RuleValueInput.tsx:30
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:208
+#: src/components/web_analytics/filters/VisitFieldInput.tsx:30
 msgid "No"
 msgstr "No"
 
@@ -14208,7 +14456,7 @@ msgstr "Sense clau API"
 msgid "No API keys yet. Create one to call the API or connect Zapier."
 msgstr "Encara no hi ha claus API. Creeu-ne una per cridar l'API o connectar Zapier."
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:186
+#: src/components/web_analytics/tabs/FiltersTab.tsx:206
 msgid "No attribution rules yet. Create the first one to start shaping your traffic data."
 msgstr "Encara no hi ha regles d'atribució. Creeu la primera per començar a donar forma a les vostres dades de trànsit."
 
@@ -14228,7 +14476,7 @@ msgstr "Cap automatització no coincideix"
 msgid "No automations yet"
 msgstr "Encara no hi ha automatitzacions"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:162
+#: src/components/web_analytics/filters/BackfillStatus.tsx:183
 msgid "No backfill has run yet. Run one to apply these rules to historical sessions and goals."
 msgstr "Encara no s'ha executat cap reompliment. Executeu-ne un per aplicar aquestes regles a les sessions i els objectius històrics."
 
@@ -14252,7 +14500,7 @@ msgstr "Cap difusió coincideix"
 msgid "No broadcasts yet"
 msgstr "Encara no hi ha difusions"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:217
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:265
 #: src/components/web_analytics/tabs/DashboardTab.tsx:223
 #: src/pages/WebAnalyticsLivePage.tsx:202
 msgid "No campaign data"
@@ -14328,7 +14576,7 @@ msgid "No content yet"
 msgstr "Encara no hi ha contingut"
 
 #: src/components/web_analytics/CountryMapView.tsx:165
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:242
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:298
 #: src/components/web_analytics/tabs/DashboardTab.tsx:245
 msgid "No country data"
 msgstr "No hi ha dades de país"
@@ -14342,6 +14590,7 @@ msgid "No custom field is named yet"
 msgstr "Encara no hi ha cap camp personalitzat amb nom"
 
 #: src/components/logs/MessageDetail.tsx:840
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:330
 msgid "No data"
 msgstr "Sense dades"
 
@@ -14370,7 +14619,7 @@ msgstr "No s'ha configurat cap remitent per defecte"
 msgid "No delivery events"
 msgstr "Cap esdeveniment de lliurament"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:264
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:287
 #: src/pages/WebAnalyticsLivePage.tsx:193
 msgid "No device data"
 msgstr "No hi ha dades de dispositiu"
@@ -14409,7 +14658,8 @@ msgstr "Cap correu enviat en aquest període"
 msgid "No email template"
 msgstr "Sense plantilla de correu"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:130
+#: src/components/web_analytics/filters/BackfillStatus.tsx:143
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:365
 msgid "No error message was recorded."
 msgstr "No s'ha registrat cap missatge d'error."
 
@@ -14453,7 +14703,7 @@ msgstr "Sense filtre de plantilla: coincideixen els correus enviats amb qualsevo
 msgid "No folders yet"
 msgstr "Encara no hi ha carpetes"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:288
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:235
 msgid "No goal data"
 msgstr "No hi ha dades d'objectius"
 
@@ -14465,7 +14715,7 @@ msgstr "Encara cap objectiu"
 msgid "No goals data"
 msgstr "No hi ha dades d'objectius"
 
-#: src/components/web_analytics/tabs/GoalsTab.tsx:137
+#: src/components/web_analytics/tabs/GoalsTab.tsx:135
 msgid "No goals tracked yet"
 msgstr "Encara no hi ha cap objectiu amb seguiment"
 
@@ -14522,8 +14772,8 @@ msgstr "Encara no hi ha llistes"
 msgid "No marketing email provider"
 msgstr "Cap proveïdor de correu de màrqueting"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:231
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:256
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:13
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:49
 msgid "No match"
 msgstr "Cap coincidència"
 
@@ -14584,9 +14834,21 @@ msgstr "No hi ha cap compte de Notifuse vinculat a aquesta identitat. Si us han 
 msgid "No open or click tracking, keep UTM parameters"
 msgstr "Sense seguiment d'obertures ni clics, conservar UTM"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:280
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:305
 msgid "No operations defined"
 msgstr "No hi ha operacions definides"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:219
+msgid "No other rule overrides what this rule writes"
+msgstr "Cap altra regla no sobreescriu el que escriu aquesta regla"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:77
+msgid "No other rule writes these dimensions"
+msgstr "Cap altra regla no escriu aquestes dimensions"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:315
+msgid "No page data"
+msgstr "No hi ha dades de pàgines"
 
 #: src/pages/WebAnalyticsLivePage.tsx:153
 msgid "No pages"
@@ -14644,7 +14906,7 @@ msgstr "Sense repetició"
 msgid "No response"
 msgstr "Sense resposta"
 
-#: src/components/web_analytics/FilterBuilder.tsx:485
+#: src/components/web_analytics/FilterBuilder.tsx:455
 msgid "No results found"
 msgstr "No s'han trobat resultats"
 
@@ -14655,11 +14917,15 @@ msgstr "No s'han trobat resultats"
 msgid "No results match"
 msgstr "Cap resultat no coincideix"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:180
+#: src/components/web_analytics/tabs/FiltersTab.tsx:200
 msgid "No rule carries the selected tag"
 msgstr "Cap regla porta l'etiqueta seleccionada"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:305
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:227
+msgid "No rule is disabled"
+msgstr "Cap regla no està desactivada"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:224
 msgid "No rule matches this visit"
 msgstr "Cap regla coincideix amb aquesta visita"
 
@@ -14705,6 +14971,14 @@ msgstr "Cap enviament en aquest període"
 msgid "No sends yet"
 msgstr "Encara no hi ha enviaments"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:86
+msgid "No session above the minimum for this dimension"
+msgstr "Cap sessió per sobre del mínim per a aquesta dimensió"
+
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:87
+msgid "No session for this dimension"
+msgstr "Cap sessió per a aquesta dimensió"
+
 #: src/components/contacts/visits/ContactWebVisits.tsx:346
 msgid "No sessions match this filter"
 msgstr "Cap sessió coincideix amb aquest filtre"
@@ -14731,7 +15005,7 @@ msgstr "Sense imatge per compartir"
 msgid "No share title"
 msgstr "Sense títol per compartir"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:245
 msgid "No source data"
 msgstr "No hi ha dades de font"
 
@@ -14880,6 +15154,10 @@ msgstr "No actiu"
 msgid "Non-Active"
 msgstr "No actiu"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:125
+msgid "none"
+msgstr "cap"
+
 #: src/components/broadcasts/detail/BroadcastAside.tsx:157
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:66
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:215
@@ -14895,7 +15173,6 @@ msgstr "No actiu"
 #: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:82
 msgid "None"
 msgstr "Cap"
 
@@ -14923,6 +15200,7 @@ msgid "Not added while tracking is disabled: links are never rewritten. Kept for
 msgstr "No s'afegeixen mentre el seguiment està desactivat: els enllaços no es reescriuen mai. Es conserven per quan el torneu a activar."
 
 #: src/components/web_analytics/goals/GoalCard.tsx:97
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:65
 msgid "Not all visitors come with the same intent. This rate should be interpreted with caution as it includes all traffic regardless of purpose."
 msgstr "No tots els visitants arriben amb la mateixa intenció. Aquesta taxa s'ha d'interpretar amb prudència, ja que inclou tot el trànsit independentment del propòsit."
 
@@ -14938,7 +15216,7 @@ msgstr "No permès aquí"
 msgid "Not allowed inside a conditional block"
 msgstr "No permès dins d’un bloc condicional"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:169
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:194
 msgid "Not applied"
 msgstr "No aplicat"
 
@@ -14966,8 +15244,8 @@ msgstr "No configurat"
 msgid "Not connected"
 msgstr "No connectat"
 
-#: src/components/web_analytics/FilterBuilder.tsx:41
-#: src/components/web_analytics/lib/filterCatalog.ts:219
+#: src/components/web_analytics/lib/filterCatalog.ts:223
+#: src/components/web_analytics/lib/filterLabels.ts:13
 msgid "not contains"
 msgstr "no conté"
 
@@ -14979,6 +15257,7 @@ msgstr "No es compten més enllà de {countMax}"
 #: src/components/blog/PostDrawer.tsx:746
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
 msgid "Not created"
 msgstr "Sense crear"
 
@@ -14996,8 +15275,8 @@ msgstr "Encara no creat"
 msgid "Not delivered"
 msgstr "No lliurat"
 
-#: src/components/web_analytics/FilterBuilder.tsx:39
-#: src/components/web_analytics/lib/filterCatalog.ts:217
+#: src/components/web_analytics/lib/filterCatalog.ts:221
+#: src/components/web_analytics/lib/filterLabels.ts:11
 msgid "not equals"
 msgstr "no igual a"
 
@@ -15005,7 +15284,7 @@ msgstr "no igual a"
 #~ msgid "Not failed"
 #~ msgstr "Sense error"
 
-#: src/components/web_analytics/FilterBuilder.tsx:45
+#: src/components/web_analytics/lib/filterLabels.ts:17
 msgid "not in"
 msgstr "no a"
 
@@ -15029,7 +15308,8 @@ msgstr "No és a les dades de prova: la regla s'avalua com si la variable fos bu
 msgid "Not in use"
 msgstr "Sense ús"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:325
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:231
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:242
 msgid "Not matching"
 msgstr "No coincideixen"
 
@@ -15075,6 +15355,10 @@ msgstr "No establert"
 #: src/components/settings/integrations/EmailProviderCard.tsx:262
 msgid "Not set up"
 msgstr "Sense configurar"
+
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:43
+msgid "Not tested"
+msgstr "No provada"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:196
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:41
@@ -15591,6 +15875,10 @@ msgstr "Obre Equip i claus API"
 #~ msgid "Open template"
 #~ msgstr "Obre la plantilla"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:289
+msgid "Open tester"
+msgstr "Obrir el provador"
+
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:42
 msgid "Open the audit log"
 msgstr "Obre el registre d'auditoria"
@@ -15757,14 +16045,14 @@ msgstr "Operació completada"
 #~ msgid "Operation results:"
 #~ msgstr "Resultats de l'operació:"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
-#: src/components/web_analytics/filters/FilterTable.tsx:112
-#: src/components/web_analytics/filters/FilterTable.tsx:233
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:254
+#: src/components/web_analytics/filters/FilterTable.tsx:142
+#: src/components/web_analytics/filters/FilterTable.tsx:275
 msgid "Operations"
 msgstr "Operacions"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:233
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:94
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
 msgid "Operator"
 msgstr "Operador"
 
@@ -15782,6 +16070,7 @@ msgstr "opcional"
 #: src/components/settings/SystemSettingsDrawer.tsx:400
 #: src/components/settings/SystemSettingsDrawer.tsx:455
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:353
 msgid "Optional"
 msgstr "Opcional"
 
@@ -15853,8 +16142,8 @@ msgstr "Social orgànic"
 msgid "Origin"
 msgstr "Origen"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:279
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:279
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:292
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:292
 #: src/components/web_analytics/tabs/DashboardTab.tsx:275
 #: src/components/web_analytics/tabs/DashboardTab.tsx:275
 msgid "OS"
@@ -15948,6 +16237,10 @@ msgstr "Configuració de farciment"
 msgid "Page"
 msgstr "Pàgina"
 
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:176
+msgid "Page filters: {pageFilterList}"
+msgstr "Filtres de pàgina: {pageFilterList}"
+
 #: src/components/contacts/sheet/activityLabel.ts:26
 msgid "Page view"
 msgstr "Visualització de pàgina"
@@ -15959,8 +16252,8 @@ msgstr "Visites a la ruta d'aquest article els darrers 30 dies, comptades per l'
 #: src/components/blog/ThemeEditorDrawer.tsx:357
 #: src/components/web_analytics/explore/BreakdownModal.tsx:34
 #: src/components/web_analytics/explore/DimensionSelector.tsx:110
-#: src/components/web_analytics/FilterBuilder.tsx:59
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:82
+#: src/components/web_analytics/FilterBuilder.tsx:41
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:113
 msgid "Pages"
 msgstr "Pàgines"
 
@@ -16005,11 +16298,11 @@ msgid "Part of the link's URL, not case-sensitive. Leave empty to start on any l
 msgstr "Part de l'URL de l'enllaç, sense distingir majúscules i minúscules. Deixeu-ho buit per començar amb qualsevol enllaç."
 
 #. placeholder {0}: state.partition_index
-#: src/components/web_analytics/filters/BackfillStatus.tsx:108
+#: src/components/web_analytics/filters/BackfillStatus.tsx:121
 msgid "Partition {0} of {partitionTotal}"
 msgstr "Partició {0} de {partitionTotal}"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:85
+#: src/components/web_analytics/filters/BackfillStatus.tsx:97
 msgid "Partitions already rewritten keep their new values."
 msgstr "Les particions ja reescrites mantenen els seus valors nous."
 
@@ -16026,6 +16319,10 @@ msgstr "Contrasenya (opcional)"
 #: src/components/templates/gallery/labels.ts:10
 msgid "Password reset"
 msgstr "Restabliment de la contrasenya"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:382
+msgid "Past sessions"
+msgstr "Sessions passades"
 
 #: src/components/settings/LicenseSettings.tsx:80
 #~ msgid "Paste a licence key first"
@@ -16323,6 +16620,10 @@ msgstr "Tria com a guanyador"
 #: src/components/integrations/LLMIntegration.tsx:220
 msgid "Pick one, or type any Anthropic model ID"
 msgstr "Trieu-ne un o escriviu qualsevol ID de model d'Anthropic"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:226
+msgid "Pick the dimensions to break this row down by: each one gets its own table."
+msgstr "Tria les dimensions per desglossar aquesta fila: cadascuna té la seva pròpia taula."
 
 #: src/components/integrations/LLMIntegration.tsx:276
 msgid "Pick the suggestion, or type any Gemini model ID"
@@ -16756,7 +17057,7 @@ msgstr "Articles a la pàgina d'inici"
 #~ msgid "Preferred URL for this content (advanced)"
 #~ msgstr "URL preferida per a aquest contingut (avançat)"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:80
+#: src/components/web_analytics/filters/BackfillStatus.tsx:85
 msgid "Preparing backfill..."
 msgstr "Preparant el reompliment..."
 
@@ -16954,17 +17255,22 @@ msgstr "Setmana anterior"
 msgid "Previous year"
 msgstr "Any anterior"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:146
-#: src/components/web_analytics/filters/FilterTable.tsx:189
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:213
+#: src/components/web_analytics/filters/FilterTable.tsx:231
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:95
 msgid "Priority"
 msgstr "Prioritat"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:148
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:126
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:200
+msgid "Priority {priority}"
+msgstr "Prioritat {priority}"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:214
 msgid "Priority is required"
 msgstr "La prioritat és obligatòria"
 
-#: src/components/web_analytics/filters/FilterTable.tsx:96
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:174
+#: src/components/web_analytics/filters/FilterTable.tsx:126
 msgid "Priority:"
 msgstr "Prioritat:"
 
@@ -17138,6 +17444,10 @@ msgstr "Enviar"
 #: src/components/broadcasts/useBroadcastActions.tsx:172
 msgid "Queued emails will not be sent. In-flight sends will complete."
 msgstr "Els correus en cua no s'enviaran. Els enviaments en curs es completaran."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:283
+msgid "Quick test"
+msgstr "Prova ràpida"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:955
 msgid "Rate for marketing"
@@ -17313,6 +17623,10 @@ msgstr "Llegir una versió de tema, inclòs el seu scripts.js"
 msgid "Read one transactional notification's channel and template configuration"
 msgstr "Llegir la configuració de canal i de plantilla d'una notificació transaccional"
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:131
+msgid "Read only"
+msgstr "Només lectura"
+
 #: src/services/api/permissions.ts:755
 msgid "Read per-link click counts for one broadcast template"
 msgstr "Llegir els recomptes de clics per enllaç d'una plantilla de difusió"
@@ -17381,6 +17695,10 @@ msgstr "Temps de lectura"
 #: src/components/blog/PostDrawer.tsx:887
 #~ msgid "Reading Time"
 #~ msgstr "Temps de lectura"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:97
+msgid "Reads"
+msgstr "Llegeix"
 
 #: src/components/transactional/NotificationChecks.tsx:231
 msgid "Ready"
@@ -17559,7 +17877,7 @@ msgstr "Refer ({redoKeys})"
 msgid "Referral traffic"
 msgstr "Trànsit de referència"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:197
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:250
 #: src/components/web_analytics/tabs/DashboardTab.tsx:200
 #: src/pages/WebAnalyticsLivePage.tsx:181
 msgid "Referrer domain"
@@ -17569,7 +17887,7 @@ msgstr "Domini del referent"
 #~ msgid "Referrer:"
 #~ msgstr "Referent:"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:196
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:249
 #: src/components/web_analytics/tabs/DashboardTab.tsx:199
 #: src/pages/WebAnalyticsLivePage.tsx:180
 msgid "Referrers"
@@ -17686,7 +18004,7 @@ msgstr "Registrar webhooks?"
 msgid "Registered the provider webhooks of <0>{target}</0>"
 msgstr "Ha registrat els webhooks del proveïdor de <0>{target}</0>"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:121
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:109
 msgid "Regular expression"
 msgstr "Expressió regular"
 
@@ -17749,6 +18067,11 @@ msgstr "Vols treure {0} de {1}?"
 #: src/components/templates/SendTemplateModal.tsx:490
 msgid "Remove {filename}"
 msgstr "Treu {filename}"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:187
+#: src/components/web_analytics/goals/GoalFiltersLine.tsx:39
+msgid "Remove {label}"
+msgstr "Treure {label}"
 
 #: src/components/blog/AuthorsField.tsx:151
 #: src/components/blog/AuthorsField.tsx:162
@@ -18182,6 +18505,10 @@ msgstr "Resubscrit"
 msgid "Resubscribed to {list}"
 msgstr "Tornat a subscriure a {list}"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:402
+msgid "Result"
+msgstr "Resultat"
+
 #: src/components/web_analytics/filters/TestFilterModal.tsx:189
 #~ msgid "Result value"
 #~ msgstr "Valor del resultat"
@@ -18191,15 +18518,14 @@ msgid "Result with the test data"
 msgstr "Resultat amb les dades de prova"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:227
-msgid "Result:"
-msgstr "Resultat:"
+#~ msgid "Result:"
+#~ msgstr "Resultat:"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:731
 msgid "Results"
 msgstr "Resultats"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:128
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:297
 msgid "Results:"
 msgstr "Resultats:"
 
@@ -18274,6 +18600,7 @@ msgstr "Ha reintentat els enviaments fallits del butlletí <0>{target}</0>"
 #: src/components/settings/WorkspaceMembers.tsx:497
 #: src/components/templates/TemplateSelectorModal.tsx:234
 #: src/components/transactional/LoadError.tsx:22
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
 #: src/pages/AutomationsPage.tsx:208
 #: src/pages/BroadcastsPage.tsx:245
 #: src/pages/TemplatesPage.tsx:507
@@ -18366,33 +18693,46 @@ msgstr "Files"
 msgid "RSS and JSON feeds, newest first"
 msgstr "Feeds RSS i JSON, els més recents primer"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:96
+msgid "Rule"
+msgstr "Regla"
+
 #: src/pages/WebAnalyticsFiltersPage.tsx:143
 #~ msgid "Rule changes apply to new traffic immediately"
 #~ msgstr ""
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:157
+#: src/components/web_analytics/filters/BackfillStatus.tsx:178
 msgid "Rule changes only apply to new traffic"
 msgstr "Els canvis de regles només s'apliquen al trànsit nou"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:83
+#: src/components/web_analytics/tabs/FiltersTab.tsx:92
 msgid "Rule created"
 msgstr "Regla creada"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:90
+#: src/components/web_analytics/tabs/FiltersTab.tsx:102
 msgid "Rule deleted"
 msgstr "Regla eliminada"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:101
+#: src/components/web_analytics/tabs/FiltersTab.tsx:114
 msgid "Rule disabled"
 msgstr "Regla desactivada"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:101
+#: src/components/web_analytics/tabs/FiltersTab.tsx:114
 msgid "Rule enabled"
 msgstr "Regla activada"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:83
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:60
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:70
+msgid "Rule order"
+msgstr "Ordre de les regles"
+
+#: src/components/web_analytics/tabs/FiltersTab.tsx:92
 msgid "Rule updated"
 msgstr "Regla actualitzada"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:55
+msgid "Rules that also write {dimensionList}"
+msgstr "Regles que també escriuen {dimensionList}"
 
 #: src/services/api/permissions.ts:836
 msgid "Run a backfill task immediately"
@@ -18430,25 +18770,35 @@ msgstr "Executar consultes agregades sobre l'esquema `webhook_deliveries`"
 msgid "Run an integration sync task immediately"
 msgstr "Executar una tasca de sincronització d'integració immediatament"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:174
+#: src/components/web_analytics/filters/BackfillStatus.tsx:191
+#: src/components/web_analytics/filters/BackfillStatus.tsx:202
 msgid "Run backfill"
 msgstr "Executar el reompliment"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:137
+#: src/components/web_analytics/filters/BackfillStatus.tsx:147
+#: src/components/web_analytics/filters/BackfillStatus.tsx:157
 msgid "Run backfill again"
 msgstr "Tornar a executar el reompliment"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:395
-msgid "Run test"
-msgstr "Executar la prova"
+#~ msgid "Run test"
+#~ msgstr "Executar la prova"
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:163
 msgid "Run Test"
 msgstr "Executar la prova"
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:255
+msgid "Run when the rule matches"
+msgstr "S'executen quan la regla coincideix"
+
 #: src/components/broadcasts/detail/BroadcastAside.tsx:219
 msgid "Running"
 msgstr "En execució"
+
+#: src/components/web_analytics/lib/backfill.ts:37
+msgid "Running · {progress}"
+msgstr "En execució · {progress}"
 
 #: src/components/file_manager/buttonSettings.tsx:261
 msgid "S3 access key"
@@ -18557,7 +18907,6 @@ msgstr "Mode sandbox"
 #: src/components/settings/SystemSettingsDrawer.tsx:249
 #: src/components/settings/WebhooksSettings.tsx:512
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:136
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:112
 msgid "Save"
 msgstr "Desar"
 
@@ -18599,6 +18948,8 @@ msgstr "Desa com a versió nova"
 #: src/components/blog/PostDrawer.tsx:816
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:153
 msgid "Save changes"
 msgstr "Desa els canvis"
 
@@ -18808,9 +19159,13 @@ msgstr "Extreu una URL i retorna el seu contingut com a markdown"
 msgid "Screen width below which mobile layout is activated. Common values: 480px, 600px, 768px"
 msgstr "Amplada de pantalla per sota de la qual s'activa el disseny mòbil. Valors comuns: 480px, 600px, 768px"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:167
+msgid "Scroll"
+msgstr "Desplaçament"
+
 #: src/components/contacts/ExportContactsModal.tsx:60
 #: src/components/seo/SeoPreview.tsx:44
-#: src/components/web_analytics/FilterBuilder.tsx:436
+#: src/components/web_analytics/FilterBuilder.tsx:406
 msgid "Search"
 msgstr "Cercar"
 
@@ -18900,7 +19255,7 @@ msgstr "Cerca als esdeveniments de webhook"
 msgid "Search your templates"
 msgstr "Cercar a les vostres plantilles"
 
-#: src/components/web_analytics/tabs/FiltersTab.tsx:159
+#: src/components/web_analytics/tabs/FiltersTab.tsx:177
 msgid "Search..."
 msgstr "Cercar..."
 
@@ -19293,7 +19648,7 @@ msgstr "Seleccioneu el tipus d'esdeveniment per provar:"
 #~ msgid "Select feed size"
 #~ msgstr "Seleccionar la mida del feed"
 
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:71
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:73
 msgid "Select field"
 msgstr "Seleccionar camp"
 
@@ -19937,13 +20292,14 @@ msgstr ""
 #: src/components/contacts/visits/ContactWebVisits.tsx:259
 #: src/components/web_analytics/explore/BreakdownModal.tsx:38
 #: src/components/web_analytics/explore/DimensionSelector.tsx:114
-#: src/components/web_analytics/FilterBuilder.tsx:63
+#: src/components/web_analytics/FilterBuilder.tsx:45
 msgid "Session"
 msgstr "Sessió"
 
 #: src/components/web_analytics/CountryMapView.tsx:66
 #: src/components/web_analytics/DimensionTableWidget.tsx:94
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:169
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:63
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:127
 #: src/components/web_analytics/explore/CsvExportModal.tsx:45
 #: src/components/web_analytics/explore/ExploreSummary.tsx:51
 #: src/components/web_analytics/explore/ExploreTable.tsx:90
@@ -19981,6 +20337,14 @@ msgstr "Sessions de la campanya UTM d'una difusió durant els 7 dies posteriors 
 #: src/components/settings/BlogSettings.tsx:270
 #~ msgid "Set a domain in General, under Custom domain, before enabling the blog."
 #~ msgstr "Definiu un domini a General, a Domini personalitzat, abans d'activar el blog."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:61
+msgid "Set a priority to place this rule among the others."
+msgstr "Defineix una prioritat per situar aquesta regla entre les altres."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:216
+msgid "Set a priority to see which rules override this one"
+msgstr "Defineix una prioritat per veure quines regles prevalen sobre aquesta"
 
 #: src/components/settings/Integrations.tsx:121
 msgid "Set as default marketing email provider"
@@ -20044,7 +20408,7 @@ msgstr "Establir classe"
 msgid "Set content"
 msgstr "Establir contingut"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:227
+#: src/components/web_analytics/lib/filterCatalog.ts:231
 msgid "Set default"
 msgstr "Establir com a predeterminat"
 
@@ -20082,7 +20446,7 @@ msgstr "Establir URL de l'enllaç"
 msgid "Set Liquid Content"
 msgstr "Establir contingut Liquid"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:232
+#: src/components/web_analytics/lib/filterCatalog.ts:236
 msgid "Set only when currently empty"
 msgstr "Establir només quan actualment està buit"
 
@@ -20099,11 +20463,11 @@ msgstr "Establir data de publicació"
 msgid "Set the licence <0>{target}</0>"
 msgstr "Ha establert la llicència <0>{target}</0>"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:235
+#: src/components/web_analytics/lib/filterCatalog.ts:239
 msgid "set to"
 msgstr "establir a"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:231
+#: src/components/web_analytics/lib/filterCatalog.ts:235
 msgid "Set to null"
 msgstr "Establir a null"
 
@@ -20134,7 +20498,7 @@ msgstr "Configura l'analítica web"
 
 #: src/components/email_builder/ui/StringPopoverInput.tsx:27
 #: src/components/email_builder/ui/StringPopoverInput.tsx:164
-#: src/components/web_analytics/lib/filterCatalog.ts:225
+#: src/components/web_analytics/lib/filterCatalog.ts:229
 msgid "Set value"
 msgstr "Establir valor"
 
@@ -20197,6 +20561,10 @@ msgstr "Configuració completada!"
 msgid "Several senders"
 msgstr "Diversos remitents"
 
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:136
+msgid "Share"
+msgstr "Proporció"
+
 #: src/components/seo/SeoCards.tsx:61
 #: src/components/settings/BlogSettings.tsx:492
 msgid "Share description"
@@ -20227,9 +20595,12 @@ msgid "shared with the rest of this AWS account"
 msgstr "compartit amb la resta d'aquest compte d'AWS"
 
 #: src/components/settings/WebhookDetail.tsx:378
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:336
 msgid "Show"
 msgstr "Mostrar"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:85
+msgid "Show all rules"
+msgstr "Mostra totes les regles"
 
 #: src/components/logs/AuditLogTab.tsx:566
 #: src/components/logs/InboundWebhooksTab.tsx:286
@@ -20256,6 +20627,10 @@ msgstr "Mostra els passos fets"
 #: src/components/web_analytics/toolbar.tsx:168
 msgid "Show evolution"
 msgstr "Mostrar l'evolució"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:85
+msgid "Show fewer rules"
+msgstr "Mostra menys regles"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:150
 msgid "Show in the preview"
@@ -20712,7 +21087,7 @@ msgstr "origen {0} no trobat"
 #~ msgid "Source:"
 #~ msgstr "Font:"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:221
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:269
 #: src/components/web_analytics/tabs/DashboardTab.tsx:227
 msgid "Sources"
 msgstr "Fonts"
@@ -20790,6 +21165,10 @@ msgstr "La data d'inici no pot ser en el futur"
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:869
 msgid "Start Fresh"
 msgstr "Començar de nou"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:353
+msgid "Start from a link"
+msgstr "Començar des d'un enllaç"
 
 #: src/components/analytics/GetStartedChecklist.tsx:181
 msgid "Start from a model in the gallery, then edit it in the visual editor. Every email, broadcast or transactional, uses one."
@@ -20895,7 +21274,7 @@ msgstr "Les estadístiques apareixen quan la difusió comença a enviar-se"
 #: src/components/settings/LicenseSettings.tsx:150
 #: src/components/settings/WebAnalyticsSettings.tsx:281
 #: src/components/transactional/RecentSends.tsx:107
-#: src/components/web_analytics/filters/FilterTable.tsx:268
+#: src/components/web_analytics/filters/FilterTable.tsx:310
 msgid "Status"
 msgstr "Estat"
 
@@ -21287,8 +21666,8 @@ msgstr "SMTP del sistema"
 msgid "Table of Contents"
 msgstr "Taula de continguts"
 
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:158
-#: src/components/web_analytics/filters/FilterTable.tsx:256
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:223
+#: src/components/web_analytics/filters/FilterTable.tsx:298
 msgid "Tags"
 msgstr "Etiquetes"
 
@@ -21598,12 +21977,12 @@ msgstr "Termes"
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:120
 #: src/components/broadcasts/RecipientFeedSettings.tsx:121
-#: src/components/web_analytics/filters/FilterFormDrawer.tsx:107
-#: src/components/web_analytics/tabs/FiltersTab.tsx:127
+#: src/components/web_analytics/tabs/FiltersTab.tsx:140
 msgid "Test"
 msgstr "Provar"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:385
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:417
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test all rules"
 msgstr "Provar totes les regles"
 
@@ -21685,7 +22064,8 @@ msgstr "Proveu en diferents clients de correu ja que el suport varia"
 msgid "Test Recipient Feed"
 msgstr "Provar el feed de destinatari"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:385
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:412
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test rule"
 msgstr "Provar la regla"
 
@@ -21920,6 +22300,10 @@ msgstr "Es perdran els canvis que has fet des que has obert aquesta notificació
 msgid "The changes you made since opening this template will be lost."
 msgstr "Es perdran els canvis que heu fet des que heu obert aquesta plantilla."
 
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
+msgid "The changes you made to this rule will be lost."
+msgstr "Es perdran els canvis que has fet en aquesta regla."
+
 #: src/components/templates/CreateTemplateDrawer.tsx:718
 msgid "The changes you made will be replaced by the model you choose."
 msgstr "Els canvis que heu fet se substituiran pel model que trieu."
@@ -22024,6 +22408,10 @@ msgstr "L'exportació ha fallat. Torneu-ho a provar."
 msgid "The featured image"
 msgstr "La imatge destacada"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:295
+msgid "The fields this rule reads, for one visit. Nothing is saved or sent."
+msgstr "Els camps que llegeix aquesta regla, per a una visita. No es desa ni s'envia res."
+
 #: src/components/file_manager/FileExplorer.tsx:351
 msgid "The folder held nothing to delete."
 msgstr "La carpeta no contenia res per eliminar."
@@ -22082,11 +22470,11 @@ msgstr "La clau apareix a Configuració → Equip i claus API com a {0}, on pode
 #~ msgid "The key is listed in Settings → Team as {0}, where its permissions can be widened."
 #~ msgstr "La clau apareix a Configuració → Equip com a {0}, on podeu ampliar-ne els permisos."
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:127
+#: src/components/web_analytics/filters/BackfillStatus.tsx:140
 msgid "The last backfill failed"
 msgstr "El darrer reompliment ha fallat"
 
-#: src/components/web_analytics/filters/BackfillStatus.tsx:164
+#: src/components/web_analytics/filters/BackfillStatus.tsx:185
 msgid "The last backfill was cancelled. Run one to apply these rules to all historical sessions and goals."
 msgstr "El darrer reompliment es va cancel·lar. Executa'n un per aplicar aquestes regles a totes les sessions i objectius històrics."
 
@@ -22472,6 +22860,10 @@ msgstr "Aquesta acció eliminarà permanentment {0} contacte(s)"
 msgid "This action will unsubscribe {0} contact(s)"
 msgstr "Aquesta acció cancel·larà la subscripció de {0} contacte(s)"
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:382
+msgid "This address has a % not followed by two hexadecimal digits. The server cannot read it and stores an empty landing domain and path, as filled here."
+msgstr "Aquesta adreça té un % que no va seguit de dos dígits hexadecimals. El servidor no la pot llegir i desa un domini i un camí d'aterratge buits, tal com s'han emplenat aquí."
+
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:29
 msgid "This annotation was created automatically when a broadcast started. Deleting it will not affect the broadcast."
 msgstr "Aquesta anotació es va crear automàticament quan es va iniciar una difusió. Eliminar-la no afectarà la difusió."
@@ -22626,6 +23018,10 @@ msgstr "Aquesta integració s'eliminarà aviat: SparkPost ja no accepta clients 
 msgid "This invitation link is invalid or has expired."
 msgstr "Aquest enllaç d'invitació no és vàlid o ha caducat."
 
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:377
+msgid "This is not a web address. Paste a link such as https://example.com/page."
+msgstr "Això no és una adreça web. Enganxa un enllaç com ara https://example.com/page."
+
 #: src/components/templates/TemplateSettingsStep.tsx:133
 msgid "This is the ID that will be used as the utm_content parameter in the links URL to track the template"
 msgstr "Aquest és l'ID que s'utilitzarà com a paràmetre utm_content a l'URL dels enllaços per rastrejar la plantilla"
@@ -22726,6 +23122,22 @@ msgstr "Aquesta propietat ja està filtrada"
 msgid "This quarter"
 msgstr "Aquest trimestre"
 
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:41
+msgid "This regular expression uses syntax the browser cannot run. The server checks it on save."
+msgstr "Aquesta expressió regular fa servir una sintaxi que el navegador no pot executar. El servidor la comprova en desar."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:122
+msgid "This rule"
+msgstr "Aquesta regla"
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:208
+msgid "This rule is disabled: it does not run, so it writes nothing"
+msgstr "Aquesta regla està desactivada: no s'executa, així que no escriu res"
+
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:110
+msgid "This rule is not created yet."
+msgstr "Aquesta regla encara no s'ha creat."
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:112
 msgid "This rule is not valid."
 msgstr "Aquesta regla no és vàlida."
@@ -22817,11 +23229,11 @@ msgstr "Aquest verb no protegeix res actualment. Totes les crides d'historial de
 msgid "This verb gates nothing today. Exactly one inbound webhook event call is permission-checked and it is a read; the rows themselves arrive on the provider callback routes /webhooks/email and /webhooks/email/inbound, which carry no workspace session and so consult no grant. Unlike the two verbs the matrix locks on, this one is still yours to switch — turning it off simply changes nothing today."
 msgstr "Aquest verb no protegeix res actualment. Exactament una crida d'esdeveniments de webhook entrants té comprovació de permisos i és de lectura; les files mateixes arriben per les rutes de crida de retorn del proveïdor /webhooks/email i /webhooks/email/inbound, que no porten cap sessió d'espai de treball i, per tant, no consulten cap concessió. A diferència dels dos verbs que la matriu bloqueja, aquest encara el podeu canviar — desactivar-lo simplement no canvia res actualment."
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:250
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:57
 msgid "This visit: {visitValue}"
 msgstr "Aquesta visita: {visitValue}"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:250
+#: src/components/web_analytics/filters/ConditionResultRow.tsx:57
 msgid "This visit: empty"
 msgstr "Aquesta visita: buit"
 
@@ -22898,7 +23310,7 @@ msgstr "Vincula un clic en un enllaç seguit d'un correu amb el contacte, en dom
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:154
 #: src/components/web_analytics/explore/BreakdownModal.tsx:37
 #: src/components/web_analytics/explore/DimensionSelector.tsx:113
-#: src/components/web_analytics/FilterBuilder.tsx:62
+#: src/components/web_analytics/FilterBuilder.tsx:44
 msgid "Time"
 msgstr "Hora"
 
@@ -22935,10 +23347,11 @@ msgid "Times the font size"
 msgstr "Múltiple de la mida de la font"
 
 #: src/components/web_analytics/DimensionTableWidget.tsx:95
-#: src/components/web_analytics/explore/BreakdownDrawer.tsx:176
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:69
+#: src/components/web_analytics/explore/BreakdownTableCard.tsx:144
 #: src/components/web_analytics/explore/CsvExportModal.tsx:47
 #: src/components/web_analytics/explore/ExploreTable.tsx:123
-#: src/components/web_analytics/FilterBuilder.tsx:118
+#: src/components/web_analytics/FilterBuilder.tsx:100
 #: src/components/web_analytics/tabs/DashboardTab.tsx:114
 #: src/components/web_analytics/TrafficHeatmapWidget.tsx:57
 msgid "TimeScore"
@@ -22953,7 +23366,7 @@ msgid "TimeScore (previous)"
 msgstr "TimeScore (anterior)"
 
 #: src/components/web_analytics/explore/CsvExportModal.tsx:48
-#: src/components/web_analytics/FilterBuilder.tsx:233
+#: src/components/web_analytics/FilterBuilder.tsx:203
 msgid "TimeScore (seconds)"
 msgstr "TimeScore (segons)"
 
@@ -23173,7 +23586,7 @@ msgstr "Text de l'indicador"
 msgid "Top"
 msgstr "Superior"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:215
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:263
 #: src/components/web_analytics/tabs/DashboardTab.tsx:221
 msgid "Top Campaigns"
 msgstr "Campanyes principals"
@@ -23207,7 +23620,7 @@ msgstr "Referents principals"
 msgid "Top Right"
 msgstr "Superior dreta"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:190
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:243
 #: src/components/web_analytics/tabs/DashboardTab.tsx:194
 msgid "Top Sources"
 msgstr "Fonts principals"
@@ -23242,7 +23655,7 @@ msgstr "La mida total dels fitxers adjunts supera el límit de 10MB"
 #~ msgid "Total Contacts"
 #~ msgstr "Contactes totals"
 
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:43
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:61
 msgid "Total Value"
 msgstr "Valor total"
 
@@ -23305,8 +23718,8 @@ msgstr "Seguiment desactivat"
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:33
 #: src/components/web_analytics/explore/DimensionSelector.tsx:109
-#: src/components/web_analytics/FilterBuilder.tsx:58
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:81
+#: src/components/web_analytics/FilterBuilder.tsx:40
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:112
 msgid "Traffic"
 msgstr "Trànsit"
 
@@ -23707,6 +24120,7 @@ msgstr "Ha despublicat l'entrada del blog <0>{target}</0>"
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:252
+#: src/components/web_analytics/filters/FilterFormDrawer.tsx:134
 msgid "Unsaved changes"
 msgstr "Canvis no desats"
 
@@ -23729,7 +24143,7 @@ msgstr "Desprogramar"
 msgid "Unschedule post"
 msgstr "Desprogramar la publicació"
 
-#: src/components/web_analytics/lib/filterCatalog.ts:236
+#: src/components/web_analytics/lib/filterCatalog.ts:240
 msgid "unset"
 msgstr "sense establir"
 
@@ -23877,6 +24291,10 @@ msgstr "Actualitzat {updatedAgo}"
 #: src/components/blog/PostsTable.tsx:268
 msgid "Updated {updatedAt} in {timezone}"
 msgstr "Actualitzat {updatedAt} ({timezone})"
+
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:404
+msgid "Updated as you type"
+msgstr "S'actualitza mentre escrius"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:297
 #: src/components/segment/segmentSummary.ts:51
@@ -24160,7 +24578,7 @@ msgstr "S'utilitza als enllaços dels correus, al centre de notificacions i a le
 
 #: src/components/web_analytics/explore/BreakdownModal.tsx:40
 #: src/components/web_analytics/explore/DimensionSelector.tsx:116
-#: src/components/web_analytics/FilterBuilder.tsx:65
+#: src/components/web_analytics/FilterBuilder.tsx:47
 msgid "User"
 msgstr "Usuari"
 
@@ -24261,8 +24679,8 @@ msgstr "Utilitzant {0}..."
 #: src/components/transactional/TransactionalDetail.tsx:418
 #: src/components/web_analytics/explore/BreakdownModal.tsx:32
 #: src/components/web_analytics/explore/DimensionSelector.tsx:108
-#: src/components/web_analytics/FilterBuilder.tsx:57
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:80
+#: src/components/web_analytics/FilterBuilder.tsx:39
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:111
 msgid "UTM"
 msgstr "UTM"
 
@@ -24326,13 +24744,13 @@ msgstr "Error de validació"
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:251
 #: src/components/segment/form_leaf.tsx:845
 #: src/components/settings/GeneralSettings.tsx:199
-#: src/components/web_analytics/FilterBuilder.tsx:354
-#: src/components/web_analytics/FilterBuilder.tsx:363
-#: src/components/web_analytics/filters/ConditionsBuilder.tsx:121
-#: src/components/web_analytics/filters/OperationsBuilder.tsx:128
+#: src/components/web_analytics/FilterBuilder.tsx:324
+#: src/components/web_analytics/FilterBuilder.tsx:333
+#: src/components/web_analytics/filters/ConditionsBuilder.tsx:109
+#: src/components/web_analytics/filters/OperationsBuilder.tsx:112
 #: src/components/web_analytics/filters/RuleValueInput.tsx:33
 #: src/components/web_analytics/goals/GoalCard.tsx:47
-#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:120
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:139
 #: src/components/web_analytics/tabs/DashboardTab.tsx:287
 msgid "Value"
 msgstr "Valor"
@@ -24353,7 +24771,9 @@ msgstr "Tipus de valor"
 #~ msgid "Value:"
 #~ msgstr "Valor:"
 
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:265
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:329
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:205
+#: src/components/web_analytics/filters/TestFilterPanel.tsx:290
 msgid "Values written"
 msgstr "Valors escrits"
 
@@ -24632,6 +25052,10 @@ msgstr "Visual"
 #: src/components/templates/CreateTemplateDrawer.tsx:1492
 msgid "Visual Email Editor"
 msgstr "Editor visual de correu"
+
+#: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:192
+msgid "vs {comparedTo}"
+msgstr "vs. {comparedTo}"
 
 #: src/components/web_analytics/toolbar.tsx:121
 msgid "vs."
@@ -24999,13 +25423,25 @@ msgstr "Quan està habilitat, aquests estils s'afegiran com a atributs d'estil e
 msgid "When engagement is at its best"
 msgstr "Quan la interacció és millor"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:377
+msgid "When it applies"
+msgstr "Quan s'aplica"
+
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:172
-msgid "When matched, execute these operations:"
-msgstr "Quan hi hagi coincidència, executeu aquestes operacions:"
+#~ msgid "When matched, execute these operations:"
+#~ msgstr "Quan hi hagi coincidència, executeu aquestes operacions:"
 
 #: src/pages/SetupWizard.tsx:754
 msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
 msgstr "Quan està desactivat (recomanat), només els usuaris ja convidats poden iniciar sessió amb SSO. Quan està activat, un correu verificat d'un domini permès crea un compte automàticament."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:244
+msgid "When one of them also matches a session, its value replaces this rule's."
+msgstr "Quan una d'elles també coincideix amb una sessió, el seu valor substitueix el d'aquesta regla."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:231
+msgid "When one of them also matches a session, this rule's value is not written."
+msgstr "Quan una d'elles també coincideix amb una sessió, el valor d'aquesta regla no s'escriu."
 
 #: src/components/broadcasts/compose/SendingCard.tsx:87
 msgid "When to send"
@@ -25147,6 +25583,14 @@ msgstr "Amb un objectiu"
 msgid "with filters"
 msgstr "amb filtres"
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:297
+msgid "With no condition, this rule matches every visit."
+msgstr "Sense cap condició, aquesta regla coincideix amb totes les visites."
+
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:167
+msgid "With no condition, this rule runs on every session."
+msgstr "Sense cap condició, aquesta regla s'executa a cada sessió."
+
 #: src/components/segment/form_leaf.tsx:1004
 #: src/components/segment/input.tsx:737
 msgid "with properties"
@@ -25169,6 +25613,10 @@ msgstr "Amb les dades de prova:"
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:129
 msgid "With:"
 msgstr "Amb:"
+
+#: src/components/web_analytics/explore/BreakdownDrawer.tsx:158
+msgid "Within"
+msgstr "Dins de"
 
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
@@ -25316,6 +25764,10 @@ msgstr "L'escriptura inclou l'eliminació permanent i la sobreescriptura massiva
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Escriviu marcatge MJML amb etiquetes de plantilla Liquid. Aquest contingut s'injecta directament al correu i el processa el motor Liquid abans de la compilació MJML. Utilitzeu bucles for, condicionals i variables per generar contingut estructural dinàmic."
 
+#: src/components/web_analytics/filters/RuleEditorCards.tsx:98
+msgid "Writes"
+msgstr "Escriu"
+
 #: src/pages/BlogPage.tsx:34
 msgid "Writing or editing a post also needs Templates read and write: its content is a template."
 msgstr "Escriure o editar una entrada també requereix lectura i escriptura de plantilles: el seu contingut és una plantilla."
@@ -25351,9 +25803,9 @@ msgstr "Anual"
 #: src/components/settings/integrations/providerDetails.ts:63
 #: src/components/settings/WebhookDetail.tsx:289
 #: src/components/settings/WebhookDetail.tsx:393
-#: src/components/web_analytics/filters/FilterTable.tsx:275
+#: src/components/web_analytics/filters/FilterTable.tsx:322
 #: src/components/web_analytics/filters/RuleValueInput.tsx:29
-#: src/components/web_analytics/filters/TestFilterPanel.tsx:207
+#: src/components/web_analytics/filters/VisitFieldInput.tsx:29
 msgid "Yes"
 msgstr "Sí"
 
@@ -25367,7 +25819,7 @@ msgid "Yes, back to draft"
 msgstr "Sí, torna a esborrany"
 
 #: src/components/broadcasts/useBroadcastActions.tsx:173
-#: src/components/web_analytics/filters/BackfillStatus.tsx:87
+#: src/components/web_analytics/filters/BackfillStatus.tsx:99
 msgid "Yes, cancel"
 msgstr "Sí, cancel·la"
 
@@ -25489,6 +25941,10 @@ msgstr "No teniu permís d'escriptura per a plantilles"
 #: src/pages/TransactionalNotificationsPage.tsx:453
 #~ msgid "You don't have write permission for transactional notifications"
 #~ msgstr "No teniu permís d'escriptura per a notificacions transaccionals"
+
+#: src/components/web_analytics/filters/useWebAnalyticsWriteReason.ts:6
+msgid "You don't have write permission for web analytics"
+msgstr "No teniu permís d'escriptura per a l'analítica web"
 
 #: src/components/settings/SettingsSaveBar.tsx:82
 #~ msgid "You have unsaved changes"

@@ -67,7 +67,10 @@ const context = {
   minSessions: 1,
   customDimensionLabels: {},
   toggleFilter: vi.fn(),
-  setMinSessions: vi.fn()
+  setMinSessions: vi.fn(),
+  setFilters: vi.fn(),
+  availableGranularities: ['day' as const],
+  setGranularity: vi.fn()
 }
 vi.mock('./useWebAnalytics', () => ({ useWebAnalytics: () => context }))
 
@@ -177,31 +180,44 @@ describe('web analytics in French', () => {
   })
 
   it('BreakdownDrawer writes each breakdown row in French', async () => {
-    answer.mockReturnValue([{ day_of_week: 2, sessions: 12345, median_duration: 75, bounce_rate: 33.3 }])
+    answer.mockImplementation((q) =>
+      q.dimensions?.includes('day_of_week')
+        ? [{ day_of_week: 2, sessions: 2345, median_duration: 75, bounce_rate: 33.3, median_scroll: 61.2 }]
+        : []
+    )
     const row: ExploreRow = {
       key: '1',
       dimensionIndex: 0,
       childrenLoaded: false,
       device: 'desktop',
-      sessions: 1,
-      median_duration: 0,
-      bounce_rate: 0,
-      median_scroll: 0
+      sessions: 12345,
+      median_duration: 312,
+      bounce_rate: 45.67,
+      median_scroll: 50
     }
     renderFr(
       <BreakdownDrawer
-        open
         onClose={() => {}}
         row={row}
         breakdownDimensions={['day_of_week']}
-        parentFilters={[]}
+        parentFilters={[{ dimension: 'device', operator: 'equals', values: ['desktop'] }]}
         dimensions={['device']}
+        shareBase={49380}
+        shareLabel="toutes les sessions"
       />
     )
     expect(await screen.findByText('mardi')).toBeInTheDocument()
-    expect(screen.getByText(fr('12,3 k'))).toBeInTheDocument()
+    // The table: the row's sessions, its share of the row broken down, its TimeScore, bounce and scroll.
+    expect(screen.getByText(fr('2,3 k'))).toBeInTheDocument()
+    expect(screen.getByText(fr('19,0 %'))).toBeInTheDocument()
     expect(screen.getByText('1 min 15 s')).toBeInTheDocument()
     expect(screen.getByText(fr('33,3 %'))).toBeInTheDocument()
+    expect(screen.getByText(fr('61,2 %'))).toBeInTheDocument()
+    // The strip: the row's own figures and its share of its parent.
+    expect(screen.getByText(fr('12,3 k'))).toBeInTheDocument()
+    expect(screen.getByText('5 min 12 s')).toBeInTheDocument()
+    expect(screen.getByText(fr('45,7 %'))).toBeInTheDocument()
+    expect(screen.getByText(/^25,0\s%/)).toBeInTheDocument()
   })
 
   it('the CSV keeps machine-readable numbers in French, and the duration in words', () => {
@@ -249,10 +265,20 @@ describe('web analytics in French', () => {
           ? [{ goals: 1234, sum_goal_value: 12345.6, median_goal_value: 45.5 }]
           : []
     )
-    renderFr(<GoalDashboardDrawer open goalName="Signup" onClose={() => {}} />)
+    renderFr(
+      <GoalDashboardDrawer
+        goalName="Signup"
+        goals={['Signup']}
+        onNavigate={() => {}}
+        onClose={() => {}}
+        sessionTotals={{ current: 98765, previous: 0 }}
+      />
+    )
     expect(await screen.findByText(fr('1,2 k'))).toBeInTheDocument()
     expect(screen.getByText(fr('12 346'))).toBeInTheDocument()
     expect(screen.getByText(fr('45,5'))).toBeInTheDocument()
+    // The conversion rate: 1 234 goals over 98 765 sessions.
+    expect(screen.getByText(fr('1,2 %'))).toBeInTheDocument()
   })
 
   it('DimensionTableWidget writes its cells in French', async () => {

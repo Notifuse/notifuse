@@ -30,20 +30,31 @@ import (
 
 const sdkUTMSourcePath = "../../web_analytics_sdk/src/utils/utm.ts"
 
+// The console's rule tester fills a visit from a pasted link with the SDK's
+// default list. The console image is built from console/ alone, so it keeps its
+// own copy, held to the SDK's here.
+const consoleClickIDSourcePath = "../../console/src/components/web_analytics/lib/adClickIds.ts"
+
 var sdkClickIDArrayRE = regexp.MustCompile(`(?s)export const DEFAULT_AD_CLICK_IDS\s*=\s*\[(.*?)\]`)
 var sdkClickIDEntryRE = regexp.MustCompile(`'([^']+)'`)
 
 // sdkDefaultClickIDs parses DEFAULT_AD_CLICK_IDS out of the SDK source.
 func sdkDefaultClickIDs(t *testing.T) []string {
 	t.Helper()
-
-	raw, err := os.ReadFile(filepath.Clean(sdkUTMSourcePath))
-	require.NoError(t, err,
+	return parseClickIDList(t, sdkUTMSourcePath,
 		"cannot read the SDK's click-id list; if utm.ts moved, this test must follow it rather than be deleted")
+}
+
+// parseClickIDList reads the DEFAULT_AD_CLICK_IDS array literal out of a TypeScript file.
+func parseClickIDList(t *testing.T, path string, missing string) []string {
+	t.Helper()
+
+	raw, err := os.ReadFile(filepath.Clean(path))
+	require.NoError(t, err, missing)
 
 	block := sdkClickIDArrayRE.FindSubmatch(raw)
 	require.NotNil(t, block,
-		"DEFAULT_AD_CLICK_IDS is no longer a plain array literal in %s — update the parser here, and do not silently stop checking", sdkUTMSourcePath)
+		"DEFAULT_AD_CLICK_IDS is no longer a plain array literal in %s — update the parser here, and do not silently stop checking", path)
 
 	var ids []string
 	for _, m := range sdkClickIDEntryRE.FindAllSubmatch(block[1], -1) {
@@ -135,4 +146,14 @@ func TestSDKClickIDParserActuallyParses(t *testing.T) {
 		assert.NotContains(t, id, " ", "%q looks like prose, not a URL parameter", id)
 		assert.NotEmpty(t, id)
 	}
+}
+
+// The console's copy must be the SDK's list, in the same order: the order is the
+// priority when a link carries two ids, so a reordered copy would have the tester
+// report a different utm_id_from than the SDK sends.
+func TestConsoleClickIDsMatchTheSDK(t *testing.T) {
+	console := parseClickIDList(t, consoleClickIDSourcePath,
+		"cannot read the console's click-id list; if adClickIds.ts moved, this test must follow it rather than be deleted")
+	assert.Equal(t, sdkDefaultClickIDs(t), console,
+		"console/src/components/web_analytics/lib/adClickIds.ts has drifted from the SDK's DEFAULT_AD_CLICK_IDS — copy the SDK list, in its order")
 }

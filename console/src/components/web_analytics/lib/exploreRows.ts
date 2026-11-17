@@ -310,3 +310,17 @@ export function isBestPathRow(
     return row[dimension] === bestValue
   })
 }
+
+/**
+ * The row whose children include the row keyed `key`, undefined for a top-level row. Walks the
+ * tree rather than splitting the key: keys join values with ":", which a landing page contains.
+ */
+export function findParentRow(tree: ExploreRow[], key: string): ExploreRow | undefined {
+  for (const row of tree) {
+    if (!row.children) continue
+    if (row.children.some((child) => child.key === key)) return row
+    const found = findParentRow(row.children, key)
+    if (found) return found
+  }
+  return undefined
+}
