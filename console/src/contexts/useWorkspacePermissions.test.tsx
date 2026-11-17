@@ -87,7 +87,9 @@ const renderPermissions = (
           signout: vi.fn(),
           loading: false,
           refreshWorkspaces: vi.fn(),
-          licenseEntitlements: null
+          licenseEntitlements: null,
+          checkForUpdates: false,
+          serverVersion: null
         }}
       >
         {children}

@@ -27,6 +27,10 @@ interface AuthContextType {
   // than this bundle, or one that keeps the licence on its root-only endpoint. Null is "not
   // told", not "unlicensed"; LicenseProvider is what turns either into an answer.
   licenseEntitlements: Entitlements | null
+  // Whether this console asks updates.notifuse.com for the releases it is missing, and the
+  // server's compiled version to ask with (null when user.me did not say).
+  checkForUpdates: boolean
+  serverVersion: string | null
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- Context co-located with provider
@@ -37,12 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [loading, setLoading] = useState(true)
   const [licenseEntitlements, setLicenseEntitlements] = useState<Entitlements | null>(null)
+  const [checkForUpdates, setCheckForUpdates] = useState(false)
+  const [serverVersion, setServerVersion] = useState<string | null>(null)
 
   // Kept next to the setter it always accompanies, so a fourth call site of getCurrentUser()
-  // cannot pick up the workspaces and forget the licence — which is precisely how
-  // refreshWorkspaces() would have gone stale.
-  const adoptLicense = (payload: { entitlements?: Entitlements }) => {
+  // cannot pick up the workspaces and forget the licence or the update-check flag — which is
+  // precisely how refreshWorkspaces() would have gone stale.
+  const adoptServerState = (payload: {
+    entitlements?: Entitlements
+    check_for_updates?: boolean
+    version?: string
+  }) => {
     setLicenseEntitlements(payload.entitlements ?? null)
+    setCheckForUpdates(payload.check_for_updates === true)
+    setServerVersion(payload.version || null)
   }
 
   const checkAuth = useCallback(async () => {
@@ -59,14 +71,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authService.getCurrentUser()
       setUser(response.user)
       setWorkspaces(response.workspaces ?? [])
-      adoptLicense(response)
+      adoptServerState(response)
       setLoading(false)
     } catch {
       // If there's an error (like an expired token), clear the storage
       localStorage.removeItem('auth_token')
       setUser(null)
       setWorkspaces([])
-      adoptLicense({})
+      adoptServerState({})
       setLoading(false)
     }
   }, [])
@@ -87,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authService.getCurrentUser()
       setUser(response.user)
       setWorkspaces(response.workspaces ?? [])
-      adoptLicense(response)
+      adoptServerState(response)
     } catch (error) {
       // If there's an error, clear the storage
       localStorage.removeItem('auth_token')
@@ -110,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear user data
     setUser(null)
     setWorkspaces([])
-    adoptLicense({})
+    adoptServerState({})
   }
 
   const refreshWorkspaces = async () => {
@@ -118,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // getCurrentUser declares workspaces as Workspace[] | null; normalize before it reaches
     // state that consumers index and map over.
     setWorkspaces(response.workspaces ?? [])
-    adoptLicense(response)
+    adoptServerState(response)
   }
 
   // console.log('user', user)
@@ -133,7 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signout,
         loading,
         refreshWorkspaces,
-        licenseEntitlements
+        licenseEntitlements,
+        checkForUpdates,
+        serverVersion
       }}
     >
       {children}

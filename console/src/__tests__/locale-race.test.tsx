@@ -134,6 +134,8 @@ describe('LocaleProvider with a stale stored locale', () => {
           loading: false,
           refreshWorkspaces: vi.fn(),
           licenseEntitlements: null,
+          checkForUpdates: false,
+          serverVersion: null,
         }}
       >
         <LocaleProvider>

@@ -30,6 +30,13 @@ describe('DisplayConditionSummary', () => {
     expect(await screen.findByText(/of the following conditions match/)).toBeTruthy()
   })
 
+  it('draws the add button as a primary ghost button', () => {
+    render(<DisplayConditionSummary block={block(false)} onChange={vi.fn()} />)
+    const button = screen.getByRole('button', { name: /Add a condition/ })
+    expect(button).toHaveClass('ant-btn-color-primary', 'ant-btn-background-ghost')
+    expect(button).not.toHaveClass('ant-btn-dashed')
+  })
+
   it('reads the rules and their result with the test data', () => {
     const { rerender } = render(
       <DisplayConditionSummary

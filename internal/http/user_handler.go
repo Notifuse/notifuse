@@ -373,10 +373,36 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 			entitlements.Sub = ""
 		}
 		response["entitlements"] = entitlements
+
+		// Whether this console asks updates.notifuse.com for the releases it is missing,
+		// and the version to ask with. Only the root user and workspace owners can act on
+		// an upgrade, so only their consoles ask. The version is the compiled constant:
+		// Config.Version follows the VERSION environment variable, and a value such as
+		// "44.0-custom" would be refused by the update service and hide the answer.
+		response["check_for_updates"] = h.consoleChecksForUpdates(ctx, user)
+		response["version"] = config.VERSION
 	}
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+// consoleChecksForUpdates is CHECK_FOR_UPDATES narrowed to the people who can upgrade: the
+// root user, and the owners of at least one workspace. A failure to read the memberships
+// answers false: a missed announcement is better than a failed sign-in.
+func (h *UserHandler) consoleChecksForUpdates(ctx context.Context, user *domain.User) bool {
+	if h.config == nil || !h.config.CheckForUpdates {
+		return false
+	}
+	if h.config.IsRootEmail(user.Email) {
+		return true
+	}
+	owns, err := h.workspaceService.UserOwnsAWorkspace(ctx, user.ID)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Warn("Could not tell whether the user owns a workspace; not checking for updates")
+		return false
+	}
+	return owns
 }
 
 // Logout logs out the current user by deleting all their sessions

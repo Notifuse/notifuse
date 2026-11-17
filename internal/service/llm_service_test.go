@@ -564,6 +564,45 @@ func TestLLMService_StreamChat_OpenAI_ReasoningEmitsThinking(t *testing.T) {
 	assert.NotContains(t, text, "layout", "reasoning must not leak into the answer text")
 }
 
+// An OpenAI integration saved without a model asks the recommended one
+func TestLLMService_StreamChat_OpenAI_DefaultModel(t *testing.T) {
+	service, mockAuthService, mockWorkspaceRepo := setupLLMServiceTest(t)
+
+	var body string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		body = string(b)
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `data: {"id":"1","object":"chat.completion.chunk","created":1,"model":"gpt-6.1-sol","choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`+"\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer srv.Close()
+
+	req := &domain.LLMChatRequest{
+		WorkspaceID:   "workspace123",
+		IntegrationID: "llm-integration",
+		Messages:      []domain.LLMMessage{{Role: "user", Content: "Hi"}},
+	}
+	ctx := setupLLMContextWithAuth(mockAuthService, "workspace123", true, true)
+	workspace := &domain.Workspace{
+		ID: "workspace123",
+		Integrations: []domain.Integration{{
+			ID:   "llm-integration",
+			Type: domain.IntegrationTypeLLM,
+			LLMProvider: &domain.LLMProvider{
+				Kind:   domain.LLMProviderKindOpenAI,
+				OpenAI: &domain.OpenAISettings{APIKey: "test-key", BaseURL: srv.URL},
+			},
+		}},
+	}
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace123").Return(workspace, nil).Times(1)
+
+	err := service.StreamChat(ctx, req, func(domain.LLMChatEvent) error { return nil })
+	assert.NoError(t, err)
+	assert.Contains(t, body, `"model":"gpt-6.1-sol"`)
+}
+
 // A configured reasoning_effort must be sent to the OpenAI API; an empty one must
 // be omitted (some models/providers 400 on it).
 func TestLLMService_StreamChat_OpenAI_ReasoningEffortPassthrough(t *testing.T) {
@@ -772,6 +811,33 @@ func TestCalculateCost(t *testing.T) {
 			wantInputCost:  0.001,  // 1K/1M * $1 = $0.001
 			wantOutputCost: 0.0025, // 500/1M * $5 = $0.0025
 			wantTotalCost:  0.0035,
+		},
+		{
+			name:           "Opus 5.5 - 1M input, 500K output",
+			model:          "claude-opus-5-5",
+			inputTokens:    1_000_000,
+			outputTokens:   500_000,
+			wantInputCost:  4.0,  // 1M * $4/MTok
+			wantOutputCost: 10.0, // 500K * $20/MTok
+			wantTotalCost:  14.0,
+		},
+		{
+			name:           "Sonnet 5.5 - 1M input, 500K output",
+			model:          "claude-sonnet-5-5",
+			inputTokens:    1_000_000,
+			outputTokens:   500_000,
+			wantInputCost:  2.0, // 1M * $2/MTok
+			wantOutputCost: 5.0, // 500K * $10/MTok
+			wantTotalCost:  7.0,
+		},
+		{
+			name:           "Haiku 5.5 - 1M input, 500K output",
+			model:          "claude-haiku-5-5",
+			inputTokens:    1_000_000,
+			outputTokens:   500_000,
+			wantInputCost:  0.10, // 1M * $0.10/MTok
+			wantOutputCost: 0.25, // 500K * $0.50/MTok
+			wantTotalCost:  0.35,
 		},
 		{
 			name:           "Unknown model - returns zero",
