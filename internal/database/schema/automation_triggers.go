@@ -141,10 +141,11 @@ func AutomationEnrollContactFunction() string {
 // second relies on each call running several statements before the next, which separates
 // their clock_timestamp() values in practice.
 //
-// p_trigger is JSONB, which also keeps this overload apart from the five-argument one v20 and
-// v21 created with a VARCHAR p_list_id: v25 replaced it with the four-argument signature
-// without dropping it, so a workspace created before v25 still has it. Every caller passes a
-// jsonb value (jsonb_build_object, or NULL::jsonb), which resolves to this overload only.
+// Every caller passes a typed jsonb value (jsonb_build_object, or NULL::jsonb): for an argument
+// of unknown type, such as a bare NULL or a quoted literal, PostgreSQL prefers a string-typed
+// overload, so beside another five-argument function with a VARCHAR last parameter the call
+// would go there without an error. v20 and v21 created one, with p_list_id, that v25 left in
+// place when it moved to four arguments; v44 drops it before installing this one.
 func AutomationEnrollContactWithTriggerFunction() string {
 	return `CREATE OR REPLACE FUNCTION automation_enroll_contact(
 			p_automation_id VARCHAR(36),
