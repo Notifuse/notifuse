@@ -24,7 +24,7 @@ import (
 // this harness), with enqueue failures injected by a trigger on email_queue
 // (failEnqueue, broadcast_ab_failure_test.go).
 //
-// Plan: plans/fix-broadcast-last-attempt-plan.md
+// Plan: Notifuse/architecture plans/notifuse/fix-broadcast-last-attempt-plan.md
 
 // heldEnqueueLock is the advisory lock key the held-enqueue trigger waits on.
 const heldEnqueueLock = 74260001

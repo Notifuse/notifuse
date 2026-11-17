@@ -23,7 +23,7 @@ import (
 // validation, authorization, and the derived-state preservation that a client payload must not
 // be able to erase. Anything that requires SES itself — provisioning a tenant, associating a
 // configuration set, sending — is covered by unit tests against a mocked SES v2 client and by
-// the manual verification steps in plans/ses-tenant-and-configuration-set-plan.md.
+// the manual verification steps in Notifuse/architecture plans/notifuse/ses-tenant-and-configuration-set-plan.md.
 func TestSESTenantIsolationE2E(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()

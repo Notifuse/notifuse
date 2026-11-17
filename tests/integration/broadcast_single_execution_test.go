@@ -31,7 +31,7 @@ import (
 // interleaving is fixed. The last one runs the real pipeline, live scheduler,
 // queue worker and SMTP delivery to Mailpit, and counts what was received.
 //
-// Plan: plans/fix-broadcast-duplicate-sends-plan.md
+// Plan: Notifuse/architecture plans/notifuse/fix-broadcast-duplicate-sends-plan.md
 
 type singleExecHarness struct {
 	t           *testing.T
