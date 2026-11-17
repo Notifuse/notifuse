@@ -21,9 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestAutomationEnrolmentDuplicatesEmails runs the cases of TestAutomationEnrolmentDuplicates to
-// the end: the automation scheduler and the email queue worker run, the workspace sends through
-// Mailpit, and each case counts the emails a contact received rather than the journeys started.
+// TestAutomationEnrolmentDuplicatesEmails runs the custom event update, two-event import and
+// forced 'once' race cases of TestAutomationEnrolmentDuplicates to the end: the automation
+// scheduler and the email queue worker run, the workspace sends through Mailpit, and each case
+// counts the emails a contact received rather than the journeys started.
 func TestAutomationEnrolmentDuplicatesEmails(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -105,7 +106,7 @@ func TestAutomationEnrolmentDuplicatesEmails(t *testing.T) {
 
 	newEventName := func(prefix string) string { return prefix + "_" + uuid.New().String()[:8] }
 
-	// member creates a contact subscribed to the automation's list, so its email node sends.
+	// member creates a contact on the automation's list.
 	member := func(t *testing.T, prefix string) string {
 		t.Helper()
 		email := fmt.Sprintf("%s-%s@example.com", prefix, uuid.New().String()[:8])
@@ -128,14 +129,22 @@ func TestAutomationEnrolmentDuplicatesEmails(t *testing.T) {
 		require.Less(t, resp.StatusCode, 300, "customEvents.upsert: %s", body)
 	}
 
+	mailpit := &http.Client{Timeout: 5 * time.Second}
+
 	// received counts the emails Mailpit holds for one recipient.
-	received := func(t *testing.T, email string) int {
-		t.Helper()
-		resp, err := http.Get("http://localhost:8025/api/v1/messages?limit=10000")
-		require.NoError(t, err)
+	received := func(email string) (int, error) {
+		resp, err := mailpit.Get("http://localhost:8025/api/v1/messages?limit=10000")
+		if err != nil {
+			return 0, err
+		}
 		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusOK {
+			return 0, fmt.Errorf("mailpit answered %d", resp.StatusCode)
+		}
 		var listing testutil.MailpitMessagesResponse
-		require.NoError(t, json.NewDecoder(resp.Body).Decode(&listing))
+		if err := json.NewDecoder(resp.Body).Decode(&listing); err != nil {
+			return 0, err
+		}
 		n := 0
 		for _, msg := range listing.Messages {
 			for _, to := range msg.To {
@@ -144,18 +153,36 @@ func TestAutomationEnrolmentDuplicatesEmails(t *testing.T) {
 				}
 			}
 		}
-		return n
+		return n, nil
 	}
 
-	// settled waits for want emails to email, then for the scheduler and the email queue to run
-	// a few more rounds, and returns what was received by then: a duplicate journey would have
-	// sent its email in that time.
+	// pending counts what is still on its way to email: active journeys and queued emails. Every
+	// journey, a duplicate included, exists once the write that enrolled it has returned.
+	pending := func(email string) (int, error) {
+		var n int
+		err := workspaceDB.QueryRowContext(ctx, `SELECT
+			(SELECT COUNT(*) FROM contact_automations WHERE contact_email = $1 AND status = 'active') +
+			(SELECT COUNT(*) FROM email_queue WHERE contact_email = $1)`, email).Scan(&n)
+		return n, err
+	}
+
+	// settled waits until email has received at least want emails and nothing is left to send to
+	// it, and returns what it received: a duplicate journey has sent its email by then.
 	settled := func(t *testing.T, email string, want int) int {
 		t.Helper()
-		require.Eventually(t, func() bool { return received(t, email) >= want }, 30*time.Second, 250*time.Millisecond,
-			"%s should receive %d emails", email, want)
-		time.Sleep(5 * time.Second)
-		return received(t, email)
+		require.Eventually(t, func() bool {
+			left, err := pending(email)
+			if err != nil || left > 0 {
+				return false
+			}
+			n, err := received(email)
+			return err == nil && n >= want
+		}, 30*time.Second, 250*time.Millisecond, "%s should receive %d emails and have none left to send", email, want)
+		// Mailpit lists a message once it has stored it, which can trail the send by a moment.
+		time.Sleep(time.Second)
+		n, err := received(email)
+		require.NoError(t, err)
+		return n
 	}
 
 	t.Run("an event sends one email, and its update, deletion and restore none", func(t *testing.T) {
@@ -175,8 +202,7 @@ func TestAutomationEnrolmentDuplicatesEmails(t *testing.T) {
 			"deleted_at": time.Now().UTC().Format(time.RFC3339)})
 		upsert(t, map[string]interface{}{"email": email, "event_name": eventName, "external_id": externalID,
 			"occurred_at": recorded.Add(time.Hour).Format(time.RFC3339)})
-		time.Sleep(5 * time.Second)
-		assert.Equal(t, 1, received(t, email), "the update, the deletion and the restore send nothing")
+		assert.Equal(t, 1, settled(t, email, 1), "the update, the deletion and the restore send nothing")
 
 		upsert(t, map[string]interface{}{"email": email, "event_name": eventName, "external_id": "order-" + uuid.New().String()[:8]})
 		assert.Equal(t, 2, settled(t, email, 2), "a new external_id sends the email again")
