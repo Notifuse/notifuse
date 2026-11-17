@@ -18,13 +18,14 @@ import { AuthorsField } from './AuthorsField'
 
 i18n.loadAndActivate({ locale: 'en', messages: {} })
 
-function renderField(initial: BlogAuthor[]) {
+function renderField(initial: BlogAuthor[], knownAuthors?: BlogAuthor[]) {
   const changes: BlogAuthor[][] = []
   function Host() {
     const [value, setValue] = useState(initial)
     return (
       <AuthorsField
         value={value}
+        knownAuthors={knownAuthors}
         onChange={(next) => {
           changes.push(next)
           setValue(next)
@@ -79,9 +80,36 @@ describe('AuthorsField', () => {
     const changes = renderField([{ name: 'Aiko Tanaka' }, { name: 'Tom Becker' }])
     await user.click(screen.getByRole('button', { name: 'Remove Aiko Tanaka' }))
     expect(await screen.findByText('Remove this author?')).toBeInTheDocument()
+    expect(screen.getByText('The post no longer credits Aiko Tanaka once it is saved.')).toBeInTheDocument()
     expect(changes).toHaveLength(0)
-    await user.click(screen.getByRole('button', { name: 'Yes' }))
+    const remove = screen.getByRole('button', { name: 'Remove' })
+    expect(remove).toHaveClass('ant-btn-dangerous')
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await user.click(remove)
     await waitFor(() => expect(changes.at(-1)).toEqual([{ name: 'Tom Becker' }]))
+  })
+
+  it("offers the blog's other authors by name, with their photo, leaving out those already credited", async () => {
+    const user = userEvent.setup()
+    const changes = renderField([{ name: 'Tom Becker' }], [
+      { name: 'Aiko Tanaka', avatar_url: 'https://cdn.example.com/aiko.png' },
+      { name: 'tom becker' },
+      { name: 'Aiko Tanaka' }
+    ])
+    await user.click(screen.getByRole('button', { name: 'Add author' }))
+    const name = await screen.findByLabelText('Name')
+    await waitFor(() => expect(name).toHaveFocus())
+    await user.type(name, 'ai')
+    const options = await screen.findAllByRole('option')
+    expect(options.map((option) => option.textContent)).toEqual(['Aiko Tanaka'])
+    await user.click(screen.getByTitle('Aiko Tanaka'))
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() =>
+      expect(changes.at(-1)).toEqual([
+        { name: 'Tom Becker' },
+        { name: 'Aiko Tanaka', avatar_url: 'https://cdn.example.com/aiko.png' }
+      ])
+    )
   })
 
   it('shows the initials when the photo does not load', () => {

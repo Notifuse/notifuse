@@ -106,9 +106,15 @@ func backfillStatusFromTask(task *domain.Task) *domain.WebAnalyticsBackfillStatu
 	}
 	if task.ErrorMessage != nil {
 		status.ErrorMessage = *task.ErrorMessage
+		status.Cancelled = task.Status == domain.TaskStatusFailed && *task.ErrorMessage == backfillCancelledMessage
 	}
 	return status
 }
+
+// backfillCancelledMessage is the error a cancelled run is recorded with. The
+// task system has no cancelled status, so the status endpoint recognises a
+// cancel by it; runs cancelled before Cancelled existed carry it too.
+const backfillCancelledMessage = "cancelled by user"
 
 func (s *WebAnalyticsService) authorizeBackfill(ctx context.Context, workspaceID string, write bool) (context.Context, error) {
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
@@ -208,7 +214,7 @@ func (s *WebAnalyticsService) BackfillCancel(ctx context.Context, workspaceID st
 		return fmt.Errorf("no backfill in progress")
 	}
 	latest.Status = domain.TaskStatusFailed
-	cancelled := "cancelled by user"
+	cancelled := backfillCancelledMessage
 	latest.ErrorMessage = &cancelled
 	if err := s.taskRepo.Update(ctx, workspaceID, latest); err != nil {
 		return fmt.Errorf("failed to cancel backfill: %w", err)

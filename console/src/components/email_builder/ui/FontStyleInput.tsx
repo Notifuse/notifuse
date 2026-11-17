@@ -250,19 +250,23 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
         <Row gutter={16}>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Line Height`}</span>
+              <span className="text-xs text-gray-500">{t`Line height`}</span>
               <div style={{ marginTop: '4px' }}>
                 <LineHeightInput
                   value={localValue.lineHeight || ''}
                   onChange={(value) => handleValueChange('lineHeight', value)}
                   placeholder={defaultValue.lineHeight || '120%'}
+                  fontSize={
+                    getFontSizeNumber(localValue.fontSize) ??
+                    getFontSizeNumber(defaultValue.fontSize)
+                  }
                 />
               </div>
             </div>
           </Col>
           <Col span={12}>
             <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Letter Spacing`}</span>
+              <span className="text-xs text-gray-500">{t`Letter spacing`}</span>
               <div style={{ marginTop: '4px' }}>
                 <LetterSpacingInput
                   value={localValue.letterSpacing || ''}

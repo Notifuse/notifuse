@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams, useSearch } from '@tanstack/react-router'
-import { Segmented, Skeleton } from 'antd'
+import { Segmented, Skeleton, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { KpiStrip, PageHeader, Panel } from '../components/layout'
@@ -54,7 +54,7 @@ export function AnalyticsPage() {
 }
 
 function Dashboard({ workspaceId }: { workspaceId: string }) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   // Mounted on the workspace index and on /analytics: both validate the same search.
   const search = validateDashboardSearch(useSearch({ strict: false }))
   const navigate = useNavigate()
@@ -94,19 +94,35 @@ function Dashboard({ workspaceId }: { workspaceId: string }) {
     return <Navigate {...dashboardFallback(permissions, workspaceId).target} replace />
   }
 
+  // The days the period covers, said beside it: complete days up to yesterday, which is not the
+  // rolling "Last 7 days" of Logs, so the two counts differed with nothing to tell why.
+  const day = (value: string) => new Date(`${value}T00:00:00Z`)
+  const coveredDays = new Intl.DateTimeFormat(i18n.locale, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC'
+  }).formatRange(day(periods.current.startDay), day(periods.current.endDay))
+
   const header = (
     <PageHeader
       title={t`Dashboard`}
       actions={
-        <Segmented<DashboardPeriod>
-          value={period}
-          onChange={(value) => setSearch({ period: value })}
-          options={[
-            { label: t`7 d`, value: '7d' },
-            { label: t`30 d`, value: '30d' },
-            { label: t`90 d`, value: '90d' }
-          ]}
-        />
+        <div className="flex items-center gap-3">
+          <Tooltip title={t`Complete days up to yesterday, in the workspace's time zone (${timezone})`}>
+            <span data-dashboard-days className="text-xs text-ink-3 tabular-nums">
+              {coveredDays}
+            </span>
+          </Tooltip>
+          <Segmented<DashboardPeriod>
+            value={period}
+            onChange={(value) => setSearch({ period: value })}
+            options={[
+              { label: t`7 d`, value: '7d' },
+              { label: t`30 d`, value: '30d' },
+              { label: t`90 d`, value: '90d' }
+            ]}
+          />
+        </div>
       }
     />
   )

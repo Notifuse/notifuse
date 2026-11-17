@@ -356,7 +356,9 @@ DeleteTemplateRequest:
 
 CompileTemplateRequest:
   type: object
-  description: Provide `visual_editor_tree` for a visual-mode template, or `mjml_source` for a code-mode one.
+  description: >-
+    Provide `visual_editor_tree` for a visual-mode template, or `mjml_source` for a code-mode
+    one; neither is needed with `subject_only`.
   required:
     - workspace_id
     - message_id
@@ -410,6 +412,13 @@ CompileTemplateRequest:
       description: >-
         When true, Liquid is not rendered: the body, `subject`, `subject_preview` and
         `text` are returned with their Liquid tags as written.
+    subject_only:
+      type: boolean
+      default: false
+      description: >-
+        When true, only `subject` and `subject_preview` are rendered and returned: the body
+        is neither required nor compiled, and the response carries no `mjml`, `html` or
+        `text`.
     test_data:
       type: object
       description: Data to use for Liquid templating

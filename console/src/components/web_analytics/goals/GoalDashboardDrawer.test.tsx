@@ -68,13 +68,22 @@ const chartTitle = () => chartPanel().querySelector('[data-panel-head] h3')?.tex
 beforeEach(() => {
   captured.option = null
   context.range = { start: dayjs.utc('2026-11-01'), end: dayjs.utc('2026-11-02') }
-  query.mockReset().mockResolvedValue({
-    data: [
-      { goal_at_day: '2026-11-01T00:00:00Z', goals: 5, sum_goal_value: 100, median_goal_value: 50 },
-      { goal_at_day: '2026-11-02T00:00:00Z', goals: 7, sum_goal_value: 150, median_goal_value: 75 }
-    ],
-    meta: { total: 0, query: '', params: [] }
-  })
+  query.mockReset().mockImplementation(async (sent: { timeDimensions?: unknown[] }) =>
+    sent.timeDimensions
+      ? {
+          data: [
+            { goal_at_day: '2026-11-01T00:00:00Z', goals: 5, sum_goal_value: 100, median_goal_value: 50 },
+            { goal_at_day: '2026-11-02T00:00:00Z', goals: 7, sum_goal_value: 150, median_goal_value: 75 }
+          ],
+          meta: { total: 0, query: '', params: [] }
+        }
+      : {
+          // The period aggregate: the engine's median over every conversion,
+          // which no combination of the daily medians above reproduces.
+          data: [{ goals: 12, sum_goal_value: 250, median_goal_value: 80 }],
+          meta: { total: 0, query: '', params: [] }
+        }
+  )
 })
 
 describe('GoalDashboardDrawer', () => {
@@ -86,6 +95,26 @@ describe('GoalDashboardDrawer', () => {
     expect(chartTitle()).toBe('Count')
     // The period total of a count is the sum of its buckets.
     expect(screen.getByText('12')).toBeInTheDocument()
+  })
+
+  it('shows the period median the goal card shows, not an average of daily medians', async () => {
+    renderDrawer()
+    await screen.findByTestId('echart')
+    const median = screen.getByText('Median Value').closest('[data-kpi-cell]') as HTMLElement
+    await waitFor(() => expect(median.textContent).toContain('80'))
+    expect(median.textContent).not.toContain('62.5')
+    // The strip asks for the whole period in one row, the same query a goal card runs.
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        schema: 'web_goals',
+        dimensions: [],
+        filters: expect.arrayContaining([
+          expect.objectContaining({ member: 'goal_at', operator: 'inDateRange' }),
+          expect.objectContaining({ member: 'goal_name', operator: 'equals', values: ['signup'] })
+        ])
+      }),
+      'ws1'
+    )
   })
 
   it('retitles the chart panel and plots the figure picked in the strip', async () => {

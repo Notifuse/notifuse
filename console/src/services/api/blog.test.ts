@@ -49,4 +49,9 @@ describe('blogPostsApi.counts', () => {
     await blogPostsApi.counts('ws1', 'c1')
     expect(api.get).toHaveBeenCalledWith('/api/blogPosts.counts?workspace_id=ws1&category_id=c1')
   })
+
+  it("sends the list's search, so each status counts what its tab lists", async () => {
+    await blogPostsApi.counts('ws1', undefined, '50% off')
+    expect(api.get).toHaveBeenCalledWith('/api/blogPosts.counts?workspace_id=ws1&search=50%25+off')
+  })
 })

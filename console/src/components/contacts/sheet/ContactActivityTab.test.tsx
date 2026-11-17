@@ -65,9 +65,14 @@ describe('ContactActivityTab', () => {
     fireEvent.click(screen.getByText('Events'))
     await waitFor(() =>
       expect(contactTimelineApi.list).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          entity_types: ['custom_event', 'inbound_webhook_event', 'webhook_event', 'automation']
-        })
+        expect.objectContaining({ entity_types: ['custom_event', 'automation'] })
+      )
+    )
+    // The provider's delivery, bounce and complaint webhooks are emails' activity.
+    fireEvent.click(screen.getByText('Emails'))
+    await waitFor(() =>
+      expect(contactTimelineApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ entity_types: ['message_history', 'inbound_webhook_event', 'webhook_event'] })
       )
     )
   })

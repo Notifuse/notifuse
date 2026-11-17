@@ -223,6 +223,7 @@ export function ContactUpsertDrawer({
   const [selectedFields, setSelectedFields] = React.useState<string[]>([])
   const [selectedFieldToAdd, setSelectedFieldToAdd] = React.useState<string | null>(null)
   const [form] = Form.useForm()
+  const formAreaRef = React.useRef<HTMLDivElement>(null)
   const [loading, setLoading] = React.useState(false)
   const { message } = App.useApp()
 
@@ -519,101 +520,112 @@ export function ContactUpsertDrawer({
           </Space>
         }
       >
-        <Alert
-          description={t`If a contact with this email already exists, the provided fields will be overwritten. Fields not included in the form will remain unchanged.`}
-          type="info"
-          style={{ marginBottom: '16px' }}
-        />
-        <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={loading}>
-          <Form.Item
-            name="email"
-            label={t`Email`}
-            rules={[
-              { required: true, message: t`Email is required` },
-              { type: 'email', message: t`Please enter a valid email` }
-            ]}
-          >
-            <Input placeholder={t`Enter email address`} disabled={!!contact} />
-          </Form.Item>
+        {/* With the email locked to this contact there is no other contact to overwrite. */}
+        {contact ? null : (
+          <Alert
+            description={t`If a contact with this email already exists, the provided fields will be overwritten. Fields not included in the form will remain unchanged.`}
+            type="info"
+            style={{ marginBottom: '16px' }}
+          />
+        )}
+        <div ref={formAreaRef}>
+          <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={loading}>
+            <Form.Item
+              name="email"
+              label={t`Email`}
+              rules={[
+                { required: true, message: t`Email is required` },
+                { type: 'email', message: t`Please enter a valid email` }
+              ]}
+            >
+              <Input placeholder={t`Enter email address`} disabled={!!contact} />
+            </Form.Item>
 
-          {selectedFields.map((field) => {
-            const fieldInfo = optionalFields.find((f) => f.key === field)
-            if (!fieldInfo) return null // Skip rendering if fieldInfo is undefined
+            {selectedFields.map((field) => {
+              const fieldInfo = optionalFields.find((f) => f.key === field)
+              if (!fieldInfo) return null // Skip rendering if fieldInfo is undefined
 
-            return (
-              <Form.Item
-                key={field}
-                name={field}
-                label={
-                  <Space>
-                    <span>{fieldInfo.label}</span>
-                    <Popconfirm
-                      title={t`Remove field`}
-                      description={t`Are you sure you want to remove this field?`}
-                      onConfirm={() => handleRemoveField(field)}
-                      okText={t`Yes`}
-                      cancelText={t`No`}
-                    >
-                      <Button type="text" size="small" icon={<DeleteOutlined />} />
-                    </Popconfirm>
-                  </Space>
-                }
-              >
-                {renderFieldInput(field, fieldInfo)}
-              </Form.Item>
-            )
-          })}
-
-          <Divider />
-
-          <div>
-            <Text strong>{t`Add an optional field`}</Text>
-            <div className="mt-2">
-              <Select
-                placeholder={t`Select a field`}
-                style={{ width: '100%' }}
-                value={selectedFieldToAdd}
-                showSearch
-                filterOption={(input: string, option: DefaultOptionType | undefined) =>
-                  String(option?.label ?? '')
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                onChange={(value) => {
-                  if (value && !selectedFields.includes(value)) {
-                    setSelectedFields([...selectedFields, value])
-                    setSelectedFieldToAdd(null)
+              return (
+                <Form.Item
+                  key={field}
+                  name={field}
+                  label={
+                    <Space>
+                      <span>{fieldInfo.label}</span>
+                      <Popconfirm
+                        title={t`Remove field`}
+                        description={t`Are you sure you want to remove this field?`}
+                        onConfirm={() => handleRemoveField(field)}
+                        okText={t`Yes`}
+                        cancelText={t`No`}
+                      >
+                        <Button type="text" size="small" icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    </Space>
                   }
-                }}
-              >
-                {optionalFields
-                  .filter((field) => !selectedFields.includes(field.key))
-                  .map((field) => {
-                    // Check if this is a custom field with a custom label
-                    const isCustomField = field.key.startsWith('custom_')
-                    const hasCustomLabel =
-                      isCustomField && workspace?.settings?.custom_field_labels?.[field.key]
+                >
+                  {renderFieldInput(field, fieldInfo)}
+                </Form.Item>
+              )
+            })}
 
-                    if (hasCustomLabel) {
-                      return (
-                        <Option key={field.key} value={field.key} label={field.label}>
-                          <Tooltip title={field.key} placement="left">
-                            {field.label}
-                          </Tooltip>
-                        </Option>
+            <Divider />
+
+            <div>
+              <Text strong>{t`Add an optional field`}</Text>
+              <div className="mt-2">
+                <Select
+                  placeholder={t`Select a field`}
+                  style={{ width: '100%' }}
+                  value={selectedFieldToAdd}
+                  showSearch
+                  filterOption={(input: string, option: DefaultOptionType | undefined) =>
+                    String(option?.label ?? '')
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  onChange={(value) => {
+                    if (value && !selectedFields.includes(value)) {
+                      setSelectedFields([...selectedFields, value])
+                      setSelectedFieldToAdd(null)
+                      // The field just added is the one to fill: the focus goes to it, once rendered.
+                      // Its control carries the field's name as id (the nullable inputs pass it on).
+                      window.setTimeout(
+                        () => formAreaRef.current?.querySelector<HTMLElement>(`#${CSS.escape(value)}`)?.focus(),
+                        0
                       )
                     }
+                  }}
+                >
+                  {optionalFields
+                    .filter((field) => !selectedFields.includes(field.key))
+                    .map((field) => {
+                      // Check if this is a custom field with a custom label
+                      const isCustomField = field.key.startsWith('custom_')
+                      const hasCustomLabel =
+                        isCustomField && workspace?.settings?.custom_field_labels?.[field.key]
 
-                    return (
-                      <Option key={field.key} value={field.key} label={field.label}>
-                        {field.label}
-                      </Option>
-                    )
-                  })}
-              </Select>
+                      if (hasCustomLabel) {
+                        return (
+                          <Option key={field.key} value={field.key} label={field.label}>
+                            <Tooltip title={field.key} placement="left">
+                              {field.label}
+                            </Tooltip>
+                          </Option>
+                        )
+                      }
+
+                      return (
+                        <Option key={field.key} value={field.key} label={field.label}>
+                          {field.label}
+                        </Option>
+                      )
+                    })}
+                </Select>
+              </div>
             </div>
-          </div>
-        </Form>
+          </Form>
+        </div>
       </Drawer>
     </>
   )

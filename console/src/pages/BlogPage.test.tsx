@@ -136,8 +136,16 @@ describe('BlogPage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('posts-table')).toHaveAttribute('data-total', '6')
     )
-    expect(blogPostsApi.counts).toHaveBeenCalledWith('ws1', 'c1')
+    expect(blogPostsApi.counts).toHaveBeenCalledWith('ws1', 'c1', undefined)
     // All posts keeps the count of every post inside a category
+    expect(screen.getByRole('button', { name: /^All posts/ })).toHaveTextContent('9')
+  })
+
+  it("counts the tabs with the list's search, the rail still over every post", async () => {
+    state.search = { q: ' launch ' }
+    renderPage()
+    await screen.findByTestId('posts-table')
+    await waitFor(() => expect(blogPostsApi.counts).toHaveBeenCalledWith('ws1', undefined, 'launch'))
     expect(screen.getByRole('button', { name: /^All posts/ })).toHaveTextContent('9')
   })
 
@@ -229,7 +237,7 @@ describe('BlogPage', () => {
     vi.mocked(blogPostsApi.counts).mockRejectedValue(new Error('boom'))
     const { client } = renderPage()
     await waitFor(() =>
-      expect(client.getQueryState(['blog-posts', 'ws1', 'counts', null])?.status).toBe('error')
+      expect(client.getQueryState(['blog-posts', 'ws1', 'counts', null, null])?.status).toBe('error')
     )
     expect(screen.getByTestId('posts-table')).toHaveAttribute('data-total', '')
   })
@@ -244,7 +252,7 @@ describe('BlogPage', () => {
     )
     state.search = { category_id: 'c1' }
     view.rerender(view.tree())
-    await waitFor(() => expect(blogPostsApi.counts).toHaveBeenCalledWith('ws1', 'c1'))
+    await waitFor(() => expect(blogPostsApi.counts).toHaveBeenCalledWith('ws1', 'c1', undefined))
     expect(screen.getByRole('button', { name: /^All posts/ })).toHaveTextContent('9')
     expect(screen.getByTestId('posts-table')).toHaveAttribute('data-total', '')
   })

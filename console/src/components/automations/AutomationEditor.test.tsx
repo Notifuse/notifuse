@@ -235,14 +235,18 @@ describe('AutomationEditor, unsaved changes', () => {
     renderEditor({ onClose })
     await loaded()
     expect(unsaved()).not.toBeInTheDocument()
+    // Nothing to save yet: Save is off (it used to be on with no change).
+    expect(button('Save')).toBeDisabled()
 
     fireEvent.change(nameInput(), { target: { value: 'Welcome again' } })
     expect(unsaved()).toBeInTheDocument()
+    expect(button('Save')).toBeEnabled()
     fireEvent.click(button('Save'))
     await waitFor(() => expect(update).toHaveBeenCalled())
     expect(await screen.findByText('Saved')).toBeInTheDocument()
     expect(unsaved()).not.toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
+    await waitFor(() => expect(button('Save')).toBeDisabled())
   })
 
   it('marks an edge change and clears it after undoing back to the saved state', async () => {
@@ -450,7 +454,7 @@ describe('AutomationEditor, server answers', () => {
     renderEditor({ onClose })
     await loaded()
     fireEvent.click(button('More actions'))
-    fireEvent.click(await screen.findByText('Delete Automation'))
+    fireEvent.click(await screen.findByText('Delete automation'))
     fireEvent.click(await screen.findByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(automationApi.delete).toHaveBeenCalledWith({ workspace_id: 'ws1', automation_id: 'auto-1' })
@@ -581,6 +585,6 @@ describe('AutomationEditor, review fixes', () => {
     expect(button(/Pause/)).toBeDisabled()
     fireEvent.click(button('More actions'))
     expect(await screen.findByText('Copy ID')).toBeInTheDocument()
-    expect(screen.queryByText('Delete Automation')).not.toBeInTheDocument()
+    expect(screen.queryByText('Delete automation')).not.toBeInTheDocument()
   })
 })

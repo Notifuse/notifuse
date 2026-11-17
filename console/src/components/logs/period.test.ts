@@ -80,6 +80,16 @@ describe('canCountMessages', () => {
     expect(canCountMessages({ broadcast_id: 'b1' }, '30d')).toBe(true)
   })
 
+  it('counts a custom range no longer than COUNT_MAX_PERIOD, and a longer one with an indexed filter', () => {
+    const week = { from: '2026-11-09T00:00:00.000Z', to: '2026-11-15T23:59:59.999Z' }
+    const month = { from: '2026-10-16T00:00:00.000Z', to: '2026-11-15T23:59:59.999Z' }
+    expect(canCountMessages(week, 'custom')).toBe(true)
+    expect(canCountMessages(month, 'custom')).toBe(false)
+    expect(canCountMessages({ ...month, template_id: 't' }, 'custom')).toBe(true)
+    expect(canCountMessages({}, 'custom')).toBe(false)
+    expect(canCountMessages({}, '90d')).toBe(false)
+  })
+
   it('counts all time only with an indexed filter', () => {
     expect(canCountMessages({}, 'all')).toBe(false)
     expect(canCountMessages({ external_id: 'x' }, 'all')).toBe(false)

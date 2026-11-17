@@ -1,9 +1,11 @@
 import { useLingui } from '@lingui/react/macro'
-import { Button, Form, Input, Modal, Popconfirm, Tooltip } from 'antd'
+import { AutoComplete, Button, Form, Modal, Tooltip } from 'antd'
+import type { RefSelectProps } from 'antd'
 import { Pencil, Plus, X } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { BlogAuthor } from '../../services/api/blog'
 import { ImageURLInput } from '../common/ImageURLInput'
+import { PopconfirmWithTooltip } from '../layout/PopconfirmWithTooltip'
 
 const initials = (name: string) =>
   name
@@ -40,14 +42,31 @@ function AuthorAvatar({ author }: { author: BlogAuthor }) {
 interface AuthorsFieldProps {
   value?: BlogAuthor[]
   onChange?: (value: BlogAuthor[]) => void
+  /** Authors of the blog's other posts, offered by name when adding one, photo included. */
+  knownAuthors?: BlogAuthor[]
 }
 
+const authorKey = (name: string) => name.trim().toLowerCase()
+
 /** The post's authors as fixed-width cards in a row, the last one adding an author. */
-export function AuthorsField({ value = [], onChange }: AuthorsFieldProps) {
+export function AuthorsField({ value = [], onChange, knownAuthors = [] }: AuthorsFieldProps) {
   const { t } = useLingui()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editForm] = Form.useForm()
+  const nameRef = useRef<RefSelectProps>(null)
+
+  // The blog's authors this post does not credit yet, once each.
+  const suggestions = useMemo(() => {
+    const credited = new Set(value.map((author) => authorKey(author.name)))
+    const seen = new Set<string>()
+    return knownAuthors.filter((author) => {
+      const key = authorKey(author.name)
+      if (!key || credited.has(key) || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }, [knownAuthors, value])
 
   const handleAdd = () => {
     setEditingIndex(null)
@@ -128,12 +147,14 @@ export function AuthorsField({ value = [], onChange }: AuthorsFieldProps) {
                 icon={<Pencil size={13} aria-hidden="true" />}
                 onClick={() => handleEdit(index)}
               />
-              <Popconfirm
+              <PopconfirmWithTooltip
+                tooltip={t`Remove ${name}`}
                 title={t`Remove this author?`}
-                description={t`Are you sure you want to remove this author from the post?`}
+                description={t`The post no longer credits ${name} once it is saved.`}
                 onConfirm={() => handleDelete(index)}
-                okText={t`Yes`}
-                cancelText={t`No`}
+                okText={t`Remove`}
+                okButtonProps={{ danger: true }}
+                cancelText={t`Cancel`}
               >
                 <Button
                   type="text"
@@ -141,7 +162,7 @@ export function AuthorsField({ value = [], onChange }: AuthorsFieldProps) {
                   aria-label={t`Remove ${name}`}
                   icon={<X size={13} aria-hidden="true" />}
                 />
-              </Popconfirm>
+              </PopconfirmWithTooltip>
             </div>
           </div>
           )
@@ -157,11 +178,15 @@ export function AuthorsField({ value = [], onChange }: AuthorsFieldProps) {
       </div>
 
       <Modal
-        title={editingIndex !== null ? t`Edit Author` : t`Add Author`}
+        title={editingIndex !== null ? t`Edit author` : t`Add author`}
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}
         okText={editingIndex !== null ? t`Save` : t`Add`}
+        // The name is what the dialog is for: it has the focus once the dialog is shown.
+        afterOpenChange={(open) => {
+          if (open) nameRef.current?.focus()
+        }}
       >
         <Form form={editForm} layout="vertical">
           <Form.Item
@@ -169,7 +194,23 @@ export function AuthorsField({ value = [], onChange }: AuthorsFieldProps) {
             label={t`Name`}
             rules={[{ required: true, message: t`Author name is required` }]}
           >
-            <Input placeholder={t`Enter author name`} />
+            <AutoComplete
+              ref={nameRef}
+              placeholder={t`Enter author name`}
+              // Typed, a name narrows the blog's authors; picked, one brings its photo along.
+              options={
+                editingIndex === null
+                  ? suggestions.map((author) => ({ value: author.name, label: author.name }))
+                  : []
+              }
+              filterOption={(input, option) =>
+                String(option?.value ?? '').toLowerCase().includes(input.trim().toLowerCase())
+              }
+              onSelect={(name: string) => {
+                const picked = suggestions.find((author) => author.name === name)
+                if (picked?.avatar_url) editForm.setFieldValue('avatar_url', picked.avatar_url)
+              }}
+            />
           </Form.Item>
           <Form.Item name="avatar_url" label={t`Avatar URL`}>
             <ImageURLInput placeholder={t`Enter avatar URL (optional)`} buttonText={t`Select Avatar`} />

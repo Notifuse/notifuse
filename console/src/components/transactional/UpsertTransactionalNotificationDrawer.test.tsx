@@ -250,6 +250,30 @@ describe('UpsertTransactionalNotificationDrawer: creating', () => {
     expect(createPayload().notification.tracking_settings.tracking_mode).toBe('disabled')
   })
 
+  it('says once what an invalid identifier needs, and the checks send to it rather than ask to add it', async () => {
+    await openCreate()
+    await userEvent.type(nameInput(), 'Order')
+    await userEvent.clear(idInput())
+    await userEvent.type(idInput(), 'Order-Shipped')
+
+    // The error alone: the hint under the field said the same thing a second time.
+    expect(await screen.findByText('ID can only contain lowercase letters, numbers, and underscores')).toBeInTheDocument()
+    expect(screen.queryByText('Lowercase letters, numbers and underscores')).toBeNull()
+    // Typed, so not "Required … Add".
+    expect(within(check('identity')).getByText('The API identifier is not valid')).toBeInTheDocument()
+    expect(within(check('identity')).queryByText('Required to create the notification')).toBeNull()
+    expect(within(check('identity')).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+  })
+
+  it('drops the template hint once a template is chosen', async () => {
+    await openCreate()
+    expect(screen.getByText('Transactional templates. Its subject, sender and languages show here once chosen.')).toBeInTheDocument()
+    await userEvent.type(screen.getByTestId('template-selector'), 'tmpl1')
+    await waitFor(() =>
+      expect(screen.queryByText('Transactional templates. Its subject, sender and languages show here once chosen.')).toBeNull()
+    )
+  })
+
   it('stops following the name once the identifier is typed in, and utm_content follows the identifier', async () => {
     await openCreate()
     await userEvent.type(nameInput(), 'Order')
@@ -629,6 +653,23 @@ describe('UpsertTransactionalNotificationDrawer: tracking effect', () => {
     expect(pills()).toEqual(['Opens off (workspace)', 'Clicks on', 'UTM added'])
   })
 
+  it('colours "UTM added" the same in every mode, and says what each mode does', async () => {
+    // The pill was grey following the workspace and green without tracking; the help under the
+    // mode said the same thing whatever the mode.
+    renderEditor({ notification: makeNotification() })
+    await screen.findByDisplayValue('Welcome Email')
+    const utmPill = () => within(screen.getByTestId('tracking-effect')).getByText('UTM added').closest('span[class]')!
+    const followingClass = utmPill().className
+    expect(screen.getByText("Following the workspace setting also respects each contact's tracking consent.")).toBeInTheDocument()
+
+    await chooseMode('No open or click tracking, keep UTM parameters')
+    expect(utmPill().className).toBe(followingClass)
+    expect(screen.getByText('Opens and clicks are not tracked; links keep their UTM parameters.')).toBeInTheDocument()
+
+    await chooseMode('Disabled for this notification')
+    expect(screen.getByText('Links are left as written: no tracking and no UTM parameters.')).toBeInTheDocument()
+  })
+
   it('keeps UTM parameters without opens and clicks, and greys them out when disabled', async () => {
     renderEditor({ notification: makeNotification('no_tracking') })
     await screen.findByDisplayValue('Welcome Email')
@@ -693,10 +734,16 @@ describe('UpsertTransactionalNotificationDrawer: opening and closing', () => {
     await userEvent.type(nameInput(), '!')
 
     await userEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(await screen.findByText('You have unsaved changes. Are you sure you want to close this drawer?')).toBeInTheDocument()
+    // The template editor's question and buttons, not "close this drawer" with No and Yes.
+    expect(await screen.findByText('Discard your changes?', { selector: '.ant-modal-confirm-title' })).toBeInTheDocument()
+    expect(screen.getByText('The changes you made since opening this notification will be lost.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Yes' })).toBeNull()
     expect(onClose).not.toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+    expect(onClose).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await userEvent.click((await screen.findAllByRole('button', { name: 'Discard' })).at(-1)!)
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 

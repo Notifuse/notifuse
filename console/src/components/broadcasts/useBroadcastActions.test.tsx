@@ -121,7 +121,7 @@ describe('useBroadcastActions cancel or back to draft', () => {
     expect(config.title).toBe('Cancel the scheduled send?')
     expect(config.footer).toBeNull()
     expect(config.closable).toBe(true)
-    expect(config.maskClosable).toBe(true)
+    expect(config.mask).toEqual({ closable: true })
     const buttons = screen.getAllByRole('button').map((button) => button.textContent)
     expect(buttons).toEqual([expect.stringMatching(/^Back to draft/), expect.stringMatching(/^Cancel broadcast/)])
   })

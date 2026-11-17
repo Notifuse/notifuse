@@ -163,7 +163,10 @@ describe('PostDrawer steps', () => {
     expect(screen.queryByLabelText('Indexing')).not.toBeInTheDocument()
     await waitFor(() => expect(screen.getByLabelText('Title')).toHaveValue('Subject lines'))
 
+    // Nothing changed yet: nothing to save.
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
     await user.type(screen.getByLabelText('Meta title'), 'Better subject lines')
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(blogPostsApi.update).toHaveBeenCalledTimes(1))

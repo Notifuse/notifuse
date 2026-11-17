@@ -25,7 +25,8 @@ export function StepStats({ nodeType, config, stats }: StepStatsProps) {
   if (stats.retrying > 0) items.push({ key: 'retrying', label: t`Retrying`, value: <span className="text-warning-fg">{int(stats.retrying)}</span> })
   items.push({
     key: 'failed',
-    label: t`Failed`,
+    // Journeys: an email step also counts its emails that failed, under another name.
+    label: t`Failed journeys`,
     value: <span className={stats.failed_journeys > 0 ? 'text-danger-fg' : undefined}>{int(stats.failed_journeys)}</span>
   })
   if (stats.errors > 0) items.push({ key: 'errors', label: t`Errors`, value: <span className="text-warning-fg">{int(stats.errors)}</span> })

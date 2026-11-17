@@ -24,7 +24,7 @@ const { query, answer, context } = vi.hoisted(() => ({
       endUtc: string
     },
     showComparison: false,
-    filters: [],
+    filters: [] as unknown[],
     toggleFilter: vi.fn()
   }
 }))
@@ -94,6 +94,7 @@ const lastQuery = () => queries()[queries().length - 1]
 const isCompare = (q: AnalyticsQuery) => JSON.stringify(q.filters).includes(COMPARE.startUtc)
 
 beforeEach(() => {
+  context.filters = []
   context.showComparison = false
   context.resolvedCompare = null
   context.toggleFilter.mockReset()
@@ -167,6 +168,36 @@ describe('DimensionTableWidget', () => {
     expect(document.querySelector('.ant-drawer-open')).not.toBeNull()
   })
 
+  it('brings the drawer back to its first page when a filter narrows the rows from page 2', async () => {
+    const many = Array.from({ length: 30 }, (_, index) => ({
+      landing_path: `/page-${index}`,
+      sessions: 100 - index,
+      median_duration: 10
+    }))
+    answer.mockReturnValue(many)
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <DimensionTableWidget title="Top Pages" emptyText="Nothing here" tabs={PAGE_TABS} />
+      </QueryClientProvider>
+    )
+    const view = render(tree())
+    await screen.findByText('/page-0')
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
+    const drawer = await waitFor(() => document.querySelector('.ant-drawer-open') as HTMLElement)
+    await within(drawer).findByText('/page-19')
+    fireEvent.click(within(drawer).getByTitle('2'))
+    await within(drawer).findByText('/page-25')
+
+    // Clicking a row filters the page; the filtered result fits on one page.
+    answer.mockReturnValue([many[25]])
+    context.filters = [{ dimension: 'landing_path', operator: 'equals', values: ['/page-25'] }]
+    view.rerender(tree())
+    const reopened = await waitFor(() => document.querySelector('.ant-drawer-open') as HTMLElement)
+    await waitFor(() => expect(within(reopened).getByText('/page-25')).toBeInTheDocument())
+    expect(within(reopened).queryByText('Nothing here')).toBeNull()
+  })
+
   it('has no expand button on the map tab, and filters by the country clicked on the map', async () => {
     renderWidget({ title: 'Countries', tabs: COUNTRY_TABS })
     fireEvent.click(await screen.findByRole('button', { name: 'map' }))
@@ -178,6 +209,18 @@ describe('DimensionTableWidget', () => {
     })
     fireEvent.click(screen.getByRole('tab', { name: 'List' }))
     expect(await screen.findByRole('button', { name: 'Expand' })).toBeInTheDocument()
+  })
+
+  it('names the countries of the list tab rather than printing their codes', async () => {
+    answer.mockReturnValue([{ country: 'FR', sessions: 30, median_duration: 40 }])
+    renderWidget({ title: 'Countries', tabs: COUNTRY_TABS })
+    fireEvent.click(await screen.findByRole('tab', { name: 'List' }))
+    const name = await screen.findByText('France')
+    expect(name).toHaveAttribute('title', 'FR')
+    expect(screen.queryByText('FR')).toBeNull()
+    // The filter still speaks the code the data holds.
+    fireEvent.click(name)
+    expect(context.toggleFilter).toHaveBeenCalledWith({ dimension: 'country', operator: 'equals', values: ['FR'] })
   })
 
   it('shows the change of each cell against the comparison period', async () => {

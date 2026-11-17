@@ -13,7 +13,7 @@ import {
   Popover,
   Spin,
   Tooltip,
-  message
+  App
 } from 'antd'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { debounce } from 'lodash'
@@ -41,6 +41,7 @@ import { TableSchemas } from './table_schemas'
 import { treeHasRelativeDates } from './relative_dates'
 import { isTreeQueryable } from './tree_completeness'
 import { useLingui } from '@lingui/react/macro'
+import { plural } from '@lingui/core/macro'
 
 const PREVIEW_LIMIT = 100
 // Long enough that a burst of typing inside a condition costs a single count query.
@@ -92,12 +93,16 @@ const ButtonUpsertSegment = (props: {
 // Exported for the Contacts rail, which opens it from its own "+" button.
 export const DrawerSegment = (props: {
   segment?: Segment
+  /** The conditions a new segment starts with (the Contacts filters); ignored when editing. */
+  initialTree?: TreeNode
   totalContacts?: number
   setDrawserVisible: (visible: boolean) => void
   onSuccess?: () => void
   canReadTemplates: boolean
 }) => {
   const { t } = useLingui()
+  // The App's message, which follows the theme (the static one warned it had no context).
+  const { message } = App.useApp()
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { workspaces } = useAuth()
   const [form] = Form.useForm()
@@ -301,7 +306,7 @@ export const DrawerSegment = (props: {
     {
       color: 'blue',
       timezone: workspace?.settings.timezone || 'UTC',
-      tree: {
+      tree: props.initialTree ?? {
         kind: 'branch',
         branch: {
           operator: 'and',
@@ -445,7 +450,8 @@ export const DrawerSegment = (props: {
           <Row gutter={24}>
             <Col span={18}>
               <Form.Item label={t`Name`} required>
-                <Space.Compact style={{ width: '100%' }}>
+                {/* Top-aligned: the name's error under it stretched the colour select down. */}
+                <Space.Compact style={{ width: '100%', alignItems: 'flex-start' }}>
                   <Form.Item
                     name="name"
                     rules={[{ required: true, type: 'string' }]}
@@ -463,7 +469,7 @@ export const DrawerSegment = (props: {
                     style={{ flex: 1, marginBottom: 0 }}
                   >
                     <Input
-                      placeholder={t`i.e: Big spenders...`}
+                      placeholder={t`e.g. Big spenders`}
                       onChange={(e) => checkIdExists(e.target.value)}
                     />
                   </Form.Item>
@@ -636,13 +642,13 @@ export const DrawerSegment = (props: {
                   >
                     {hasPreview ? (
                       <Progress
-                        format={() =>
-                          previewResponse!.total_count === 0 ? (
-                            <>{t`0 contacts`}</>
-                          ) : (
-                            <span className="text-base">{t`${previewResponse!.total_count} contacts`}</span>
-                          )
-                        }
+                        // One size whatever the count: « 0 contacts » in the ring's default size
+                        // overflowed it.
+                        format={() => (
+                          <span className="text-base">
+                            {plural(previewResponse!.total_count, { one: '# contact', other: '# contacts' })}
+                          </span>
+                        )}
                         type="circle"
                         percent={previewPercent}
                         size={150}

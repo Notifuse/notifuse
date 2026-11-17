@@ -117,7 +117,7 @@ export function DeleteListModal({ workspaceId, list, open, onClose, onDeleted }:
 
   return (
     <Modal
-      title={t`Delete List`}
+      title={t`Delete list`}
       open={open}
       onCancel={close}
       footer={[
@@ -139,6 +139,7 @@ export function DeleteListModal({ workspaceId, list, open, onClose, onDeleted }:
       {list && (
         <>
           <p>{t`Are you sure you want to delete the list "${list.name}"?`}</p>
+          <p>{t`Its subscriptions are deleted with it; the contacts stay in the workspace.`}</p>
           <p>
             {t`This action cannot be undone. To confirm, please enter the list ID:`}{' '}
             <Text code>{list.id}</Text>

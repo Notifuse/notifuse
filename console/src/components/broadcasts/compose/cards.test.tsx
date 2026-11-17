@@ -45,6 +45,14 @@ vi.mock('../../templates/TemplateSelectorInput', () => ({
     </select>
   )
 }))
+// The template editor opened by the pencil: only which template it edits matters here.
+vi.mock('../../templates/CreateTemplateDrawer', () => ({
+  CreateTemplateDrawer: ({ template, onClose }: { template: { id: string }; onClose: () => void }) => (
+    <div data-testid="template-editor" data-template={template.id}>
+      <button onClick={onClose}>close editor</button>
+    </div>
+  )
+}))
 vi.mock('../VariationSenderSelect', () => ({
   VariationSenderSelect: ({ value, onChange, canReadTemplates }: { value?: string; onChange?: (v?: string) => void; canReadTemplates?: boolean }) => (
     <select
@@ -165,7 +173,13 @@ describe('AudienceCard', () => {
 })
 
 describe('ContentCard', () => {
-  const renderCard = (initial: ComposeValues, workspace = workspaceWith(), onPreview = vi.fn(), canReadTemplates = true) =>
+  const renderCard = (
+    initial: ComposeValues,
+    workspace = workspaceWith(),
+    onPreview = vi.fn(),
+    canReadTemplates = true,
+    canWriteTemplates = true
+  ) =>
     render(
       <Harness initial={initial}>
         {(v, u) => (
@@ -178,6 +192,7 @@ describe('ContentCard', () => {
             onPreview={onPreview}
             estimateCount={1000}
             canReadTemplates={canReadTemplates}
+            canWriteTemplates={canWriteTemplates}
           />
         )}
       </Harness>
@@ -189,11 +204,21 @@ describe('ContentCard', () => {
     expect(screen.getByRole('combobox', { name: 'Sender' })).toHaveAttribute('data-can-read-templates', String(canRead))
   })
 
-  it('shows the subject and preview text of the chosen template, read only, with a link to edit it', () => {
+  it('shows the subject and preview text of the chosen template, read only, and opens its editor from the pencil', async () => {
+    // The pencil used to open the Templates list in a new tab, not the template's editor.
     renderCard(base({ variants: [{ variation_name: 'A', template_id: 'tpl-a' }] }))
     expect(screen.getByText('Hello')).toBeInTheDocument()
     expect(screen.getByText('Read me')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Edit the template' })).toHaveAttribute('href', '/console/workspace/ws1/templates?q=Alpha')
+    expect(screen.queryByRole('link', { name: 'Edit the template' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Edit the template' }))
+    expect(screen.getByTestId('template-editor')).toHaveAttribute('data-template', 'tpl-a')
+    await userEvent.click(screen.getByRole('button', { name: 'close editor' }))
+    expect(screen.queryByTestId('template-editor')).toBeNull()
+  })
+
+  it('locks the pencil without Templates write', () => {
+    renderCard(base({ variants: [{ variation_name: 'A', template_id: 'tpl-a' }] }), workspaceWith(), vi.fn(), true, false)
+    expect(screen.getByRole('button', { name: 'Edit the template' })).toBeDisabled()
   })
 
   it('adds an empty variant B when the A/B test is turned on', async () => {

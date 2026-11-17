@@ -188,6 +188,13 @@ describe('ContactMessagesTab', () => {
     )
   })
 
+  it('opens the sent email from anywhere on its row, not only from the icon', async () => {
+    state.pages = [{ messages: [message('m1', { broadcast_id: 'b1', message_data: sentTo('fr') })], has_more: false }]
+    renderTab()
+    fireEvent.click(await screen.findByText('Bonjour Ann'))
+    expect(await screen.findByText('preview drawer: Bonjour {{ contact.first_name }}')).toBeInTheDocument()
+  })
+
   it('shows the subject sent: in the contact language, rendered with the message data', async () => {
     state.pages = [
       {

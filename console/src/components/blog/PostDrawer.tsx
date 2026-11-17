@@ -31,8 +31,7 @@ import { AuthorsField } from './AuthorsField'
 import {
   NotifuseEditor,
   type NotifuseEditorRef,
-  type TOCAnchor,
-  DEFAULT_INITIAL_CONTENT
+  type TOCAnchor
 } from '../blog_editor'
 import { jsonToHtml, extractTextContent } from './utils'
 import type { Workspace } from '../../services/api/types'
@@ -240,6 +239,20 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     queryFn: () => blogCategoriesApi.list(workspace.id),
     enabled: open
   })
+
+  // The authors of the latest posts, offered when one is added: a post's authors are typed per
+  // post, so this is how the blog's regular authors come back with their photo. Under the posts'
+  // key, so a saved post refreshes it.
+  const { data: recentPosts } = useQuery({
+    queryKey: ['blog-posts', workspace.id, 'authors'],
+    queryFn: () => blogPostsApi.list(workspace.id, { status: 'all', limit: 100 }),
+    enabled: open,
+    staleTime: 60_000
+  })
+  const knownAuthors = useMemo(
+    () => (recentPosts?.posts ?? []).flatMap((recent) => recent.settings.authors ?? []),
+    [recentPosts]
+  )
 
   // Fetch template for editing existing posts
   const { data: templateData, isLoading: templateLoading } = useQuery({
@@ -666,7 +679,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   }, [editorKey])
   // The editor reads its initial content once, when it mounts: not rebuilt on every keystroke.
   const initialHtml = useMemo(
-    () => (blogContent ? jsonToHtml(blogContent) : !post && import.meta.env.DEV ? DEFAULT_INITIAL_CONTENT : ''),
+    () => (blogContent ? jsonToHtml(blogContent) : ''),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- on a mount, and when the text first arrives
     [editorKey, blogContent === null]
   )
@@ -793,7 +806,13 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           {t`View post`}
         </Button>
       ) : null}
-      <Button type="primary" loading={saving} onClick={() => form.submit()}>
+      <Button
+        type="primary"
+        loading={saving}
+        // An untouched post has nothing to save; a new one is created from the defaults.
+        disabled={isEditMode && !formTouched}
+        onClick={() => form.submit()}
+      >
         {isEditMode ? t`Save changes` : t`Create post`}
       </Button>
     </>
@@ -968,7 +987,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                       }
                     ]}
                   >
-                    <AuthorsField />
+                    <AuthorsField knownAuthors={knownAuthors} />
                   </Form.Item>
                 </Panel>
                 <SearchEnginesCard

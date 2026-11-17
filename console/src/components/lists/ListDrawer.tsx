@@ -190,13 +190,16 @@ export function CreateListDrawer({
           body: { paddingBottom: 80 }
         }}
         extra={
-          <Button
-            type="primary"
-            onClick={() => form.submit()}
-            loading={isEditMode ? updateListMutation.isPending : createListMutation.isPending}
-          >
-            {isEditMode ? t`Save` : t`Create`}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={onClose}>{t`Cancel`}</Button>
+            <Button
+              type="primary"
+              onClick={() => form.submit()}
+              loading={isEditMode ? updateListMutation.isPending : createListMutation.isPending}
+            >
+              {isEditMode ? t`Save` : t`Create`}
+            </Button>
+          </div>
         }
       >
         <Form

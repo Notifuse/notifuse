@@ -18,6 +18,7 @@ import { groupReferences, referenceStatusLabel, summarizeUsage } from './templat
 import { ownVariablePaths } from './liquidVariablePaths'
 import { useLanguageName } from './useLanguageName'
 import { LazyVisible } from './LazyVisible'
+import { NotInUse } from './NotInUse'
 import { buildDefaultTestData } from './defaultTestData'
 import { GALLERY_MODELS } from './gallery/models'
 import { MODEL_LABELS } from './gallery/labels'
@@ -59,7 +60,8 @@ export interface TemplateSelectorModalProps {
   onDuplicate: (template: Template) => void
   /** A gallery model, from the models shown when the imposed category has no template. */
   onStartModel: (modelId: string) => void
-  onFullPreview: (template: Template) => void
+  /** The full preview, in the language the pane shows when it comes from there. */
+  onFullPreview: (template: Template, language?: string) => void
 }
 
 /**
@@ -122,7 +124,9 @@ export function TemplateSelectorModal({
     if (list.isSuccess) currentRef.current?.scrollIntoView?.({ block: 'nearest' })
   }, [list.isSuccess])
 
-  const previewed = previewId === ANY ? ANY : all.find((template) => template.id === previewId)
+  // Only a row on screen is previewed: a template a search or the category filter hides is not
+  // left in the pane with "Use this template" still choosing it. Clearing them brings it back.
+  const previewed = previewId === ANY ? (showAny ? ANY : undefined) : templates.find((template) => template.id === previewId)
 
   const point = (id: string) => {
     window.clearTimeout(hoverTimer.current)
@@ -158,7 +162,7 @@ export function TemplateSelectorModal({
     if (usage.isPending) return null
     if (usage.isError) return <span className="text-ink-4">—</span>
     const summary = summarizeUsage(usage.data.usage?.[template.id])
-    return summary.label ? <span className="text-ink-2">{summary.label}</span> : <span className="text-ink-4">{t`Not used`}</span>
+    return summary.label ? <span className="text-ink-2">{summary.label}</span> : <NotInUse />
   }
 
   const newButton = canWrite ? (
@@ -384,7 +388,7 @@ export function TemplateSelectorModal({
               sendsWith={sendsWith}
               senderOverrideId={senderOverrideId}
               onUse={() => onPick(previewed)}
-              onFullPreview={() => onFullPreview(previewed)}
+              onFullPreview={(language) => onFullPreview(previewed, language)}
             />
           ) : (
             <EmptyState
@@ -424,18 +428,22 @@ export function TemplateSelectorModal({
           />
         </div>
         <div className="w-56 shrink-0">
-          <Tooltip title={category ? t`The category is set by where this template is used` : undefined}>
-            <Select
-              style={{ width: '100%' }}
-              allowClear={!category}
-              disabled={Boolean(category)}
-              prefix={category ? <Lock size={14} aria-hidden="true" /> : undefined}
-              placeholder={t`All categories`}
-              value={filter}
-              onChange={(next: string | undefined) => setFilter(next)}
-              options={TEMPLATE_CATEGORIES.map((key) => ({ value: key, label: i18n._(TEMPLATE_CATEGORY_LABELS[key]) }))}
-              aria-label={t`Category`}
-            />
+          {/* A disabled select sends no leave event: the span ends the tooltip when the pointer goes,
+              instead of leaving it over the window's header. */}
+          <Tooltip title={category ? t`The category is set by where this template is used` : undefined} placement="bottom">
+            <span className="block">
+              <Select
+                style={{ width: '100%' }}
+                allowClear={!category}
+                disabled={Boolean(category)}
+                prefix={category ? <Lock size={14} aria-hidden="true" /> : undefined}
+                placeholder={t`All categories`}
+                value={filter}
+                onChange={(next: string | undefined) => setFilter(next)}
+                options={TEMPLATE_CATEGORIES.map((key) => ({ value: key, label: i18n._(TEMPLATE_CATEGORY_LABELS[key]) }))}
+                aria-label={t`Category`}
+              />
+            </span>
           </Tooltip>
         </div>
       </div>
@@ -453,7 +461,11 @@ function CurrentPill() {
   )
 }
 
-/** A row's main button: the pointer previews it after a rest, a click at once, a double click uses it. */
+/**
+ * A row's main button: the pointer previews it after a rest, a click at once, a double click uses it.
+ * The pointer counts once it moves: a window opening under a resting pointer (the field that opened
+ * it sat there) gets an enter event in Chrome, and must not replace the current template's preview.
+ */
 function RowButton({
   pressed,
   onPoint,
@@ -472,7 +484,7 @@ function RowButton({
       type="button"
       data-row
       aria-pressed={pressed}
-      onMouseEnter={onPoint}
+      onMouseMove={onPoint}
       onFocus={onShow}
       onClick={onShow}
       onDoubleClick={onUse}
@@ -531,7 +543,8 @@ function CategoryModels({ workspace, category, onStart }: { workspace: Workspace
             <span className="flex flex-col gap-1 border-t border-line-soft px-2.5 py-2">
               <span className="truncate text-sm font-semibold text-ink">{i18n._(MODEL_LABELS[model.id].name)}</span>
               <span className="flex h-5 items-center">
-                {model.category ? <TemplateCategoryTag category={model.category} /> : <span className="text-xs text-ink-3">{t`Category to choose`}</span>}
+                {/* Blank takes the imposed category, as the template made from it will. */}
+                <TemplateCategoryTag category={model.category ?? category} />
               </span>
             </span>
           </button>
@@ -549,7 +562,8 @@ interface TemplatePaneProps {
   sendsWith?: SendingProvider
   senderOverrideId?: string
   onUse: () => void
-  onFullPreview: () => void
+  /** Opens the full preview on the language shown. */
+  onFullPreview: (language: string) => void
 }
 
 /** The previewed template: its render, desktop or mobile, in each of its languages, and what it needs. */
@@ -669,7 +683,7 @@ function TemplatePane({
         ) : null}
       </div>
       <div className="flex items-center justify-between gap-2">
-        <Button type="link" icon={<ExternalLink size={14} aria-hidden="true" />} onClick={onFullPreview}>
+        <Button type="link" icon={<ExternalLink size={14} aria-hidden="true" />} onClick={() => onFullPreview(language)}>
           {t`Full preview`}
         </Button>
         <Button type="primary" onClick={onUse}>
@@ -690,7 +704,7 @@ function UsedBy({ workspaceId, templateId }: { workspaceId: string; templateId: 
   if (references.isPending) return <Spin size="small" />
   if (references.isError) return <span className="text-ink-4">—</span>
   const typeLabels: Record<TemplateUsageReference['type'], string> = {
-    broadcast: t`Newsletter`,
+    broadcast: t`Broadcast`,
     transactional_notification: t`Notification`,
     automation: t`Automation`,
     list: t`List`

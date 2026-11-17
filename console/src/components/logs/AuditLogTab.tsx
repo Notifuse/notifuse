@@ -3,7 +3,6 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import {
   App,
   Button,
-  DatePicker,
   Dropdown,
   Empty,
   Input,
@@ -15,7 +14,6 @@ import {
   type MenuProps
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import type { Dayjs } from 'dayjs'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import { Link } from '@tanstack/react-router'
@@ -41,11 +39,10 @@ import {
   auditScope,
   auditSearchKey,
   auditSearchShown,
-  dayBound,
-  dayInZone,
   hasAuditFilters
 } from './auditSearch'
 import { FilterChip } from './FilterChip'
+import { PeriodChip } from './PeriodChip'
 import { AUDIT_CATEGORY_LABELS } from './labels'
 import { AUDIT_ACTOR_TYPES, AUDIT_OUTCOMES, type AuditPeriod, type LogsSearch } from './logsSearch'
 import { formatLogDateTime, formatLogTime } from './logTime'
@@ -178,37 +175,6 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
     actor_email: t`Searching by actor email`,
     target_id: t`Searching by target ID`
   }
-
-  // Period
-  const periodLabels: Record<AuditPeriod, string> = {
-    '24h': t`Last 24 hours`,
-    '7d': t`Last 7 days`,
-    '30d': t`Last 30 days`,
-    '90d': t`Last 90 days`,
-    all: t`All time`,
-    custom: t`Custom range`
-  }
-  const [periodOpen, setPeriodOpen] = useState(false)
-  const periodMenu: MenuProps = {
-    items: (['24h', '7d', '30d', '90d', 'all'] as const).map((key) => ({
-      key,
-      label: periodLabels[key]
-    })),
-    selectable: true,
-    selectedKeys: [period],
-    onClick: ({ key }) => {
-      setPeriodOpen(false)
-      update({ period: key as AuditPeriod, from: undefined, to: undefined })
-    }
-  }
-  const customValue: [Dayjs, Dayjs] | null =
-    period === 'custom' && search.from && search.to
-      ? [dayInZone(search.from, timezone), dayInZone(search.to, timezone)]
-      : null
-  const periodValue =
-    period === 'custom' && customValue
-      ? `${customValue[0].format('ll')} → ${customValue[1].format('ll')}`
-      : periodLabels[period]
 
   // Actor
   const actorTypeLabels: Record<(typeof AUDIT_ACTOR_TYPES)[number], string> = {
@@ -439,35 +405,6 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
           {/* Actor, Resource, then Period, the mockup's order */}
           <FilterChip label={t`Actor`} value={actorValue} menu={actorMenu} />
           <FilterChip label={t`Resource`} value={resourceValue} menu={resourceMenu} />
-          <FilterChip
-            label={t`Period`}
-            value={periodValue}
-            menu={periodMenu}
-            open={periodOpen}
-            onOpenChange={setPeriodOpen}
-            popupRender={(menu) => (
-              <div className="rounded-lg bg-surface p-1 shadow-popup">
-                {menu}
-                <div className="flex flex-col gap-1 border-t border-line-soft px-2 pt-2 pb-1">
-                  <span className="text-xs text-ink-3">{periodLabels.custom}</span>
-                  <DatePicker.RangePicker
-                    size="small"
-                    aria-label={periodLabels.custom}
-                    value={customValue}
-                    onChange={(range) => {
-                      if (!range || !range[0] || !range[1]) return
-                      setPeriodOpen(false)
-                      update({
-                        period: 'custom',
-                        from: dayBound(range[0], 'start', timezone),
-                        to: dayBound(range[1], 'end', timezone)
-                      })
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          />
           {added.map(addedChip)}
           {addMenu.items && addMenu.items.length > 0 ? (
             <FilterChip label={t`+ Filter`} dashed menu={addMenu} />
@@ -481,6 +418,8 @@ export function AuditLogTab({ workspaceId, timezone, isRoot }: AuditLogTabProps)
       }
       end={
         <>
+          {/* The period sits on the right, with the icons: the filters keep the left. */}
+          <PeriodChip period={period} search={search} timezone={timezone} onChange={update} />
           {isRoot ? (
             // A menu rather than two buttons, so the toolbar keeps to one line at 1440
             <FilterChip

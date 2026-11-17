@@ -22,10 +22,11 @@ import {
 import {
   TEMPLATE_CATEGORIES,
   TEMPLATE_CATEGORY_LABELS,
-  isTemplateCategory,
   type TemplateCategory
 } from '../components/templates/templateCategories'
 import { summarizeUsage } from '../components/templates/templateUsage'
+import { TemplateCategoryTag } from '../components/templates/TemplateCategoryTag'
+import { NotInUse } from '../components/templates/NotInUse'
 import type { EmailBlock } from '../components/email_builder/types'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { copyToClipboard } from '../lib/copyToClipboard'
@@ -344,7 +345,7 @@ export function TemplatesPage() {
       )
     }
     const summary = summarizeUsage(usageQuery.data.usage?.[template.id])
-    if (!summary.label) return <span className="text-ink-4">{t`Not used`}</span>
+    if (!summary.label) return <NotInUse />
     return summary.details.length > 1 ? (
       <Tooltip
         title={
@@ -409,20 +410,14 @@ export function TemplatesPage() {
     {
       title: t`Category`,
       key: 'category',
-      render: (_: unknown, template: Template) => (
-        <Pill tone={template.category === 'marketing' ? 'primary' : 'neutral'} dot={false}>
-          {isTemplateCategory(template.category)
-            ? i18n._(TEMPLATE_CATEGORY_LABELS[template.category])
-            : template.category}
-        </Pill>
-      )
+      render: (_: unknown, template: Template) => <TemplateCategoryTag category={template.category} />
     },
     {
       title: (
         <Tooltip
           title={
             <div className="flex flex-col gap-1">
-              <span>{t`Newsletters that may still send, transactional notifications, automations and double opt-in lists. Segment filters on a template aren't counted.`}</span>
+              <span>{t`Broadcasts that may still send, transactional notifications, automations and double opt-in lists. Broadcasts already sent and segment filters on a template aren't counted.`}</span>
               {hiddenUsage ? <span>{t`Uses you can't see aren't counted.`}</span> : null}
             </div>
           }

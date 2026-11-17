@@ -22,7 +22,7 @@ import { templatesApi, type Template } from '../../services/api/template'
 import type { UserPermissions, Workspace } from '../../services/api/types'
 import { SUPPORTED_LANGUAGES } from '../../lib/languages'
 import { messageStatus } from '../../lib/messageStatus'
-import { compileTemplatePreview } from '../templates/compileTemplatePreview'
+import { compileTemplatePreview, renderSubjectPreview } from '../templates/compileTemplatePreview'
 import type { CompileTemplateResponse } from '../../services/api/template'
 import { KeyValueList, Mono, Pill, SidePanel, type DrawerNav } from '../layout'
 import { CodeBlock } from './CodeBlock'
@@ -138,7 +138,7 @@ function LoadedMessage({
   const canReadTemplates = Boolean(permissions?.templates?.read)
   const canReadContacts = Boolean(permissions?.contacts?.read)
   // The tab shown, back to Events for each message; the preview compiles once "Sent content" was
-  // opened, and the subject then comes from it. Reset here rather than by remounting the panel, so
+  // opened. Reset here rather than by remounting the panel, so
   // J and K keep it and the focus on its header buttons; only its body is remounted (bodyKey),
   // which scrolls it back to the top and drops a focus held inside it.
   const [view, setView] = useState({ id: message.id, tab: 'events', previewWanted: false })
@@ -177,6 +177,31 @@ function LoadedMessage({
   const email = template
     ? resolveEmail(template, language, workspace?.settings?.default_language ?? '')
     : undefined
+  const renderable = Boolean(workspace) && Boolean(template) && !erased
+  // A subject written with Liquid ("{{ contact.first_name }}, …") is rendered on open: shown as
+  // written it read as the subject sent. Only the subject and preview text are rendered (by the
+  // server, with the Liquid engine of the send), not the whole email, which J and K would
+  // otherwise compile for every message stepped through. A plain subject needs no request.
+  const subjectHasLiquid =
+    canReadTemplates && (hasLiquid(email?.subject) || hasLiquid(email?.subject_preview))
+  const subjectEnabled = subjectHasLiquid && renderable
+  const renderedSubject = useQuery<CompileTemplateResponse>({
+    queryKey: [
+      'message-subject',
+      workspaceId,
+      message.template_id,
+      message.template_version,
+      language ?? null,
+      message.id
+    ],
+    queryFn: () => renderSubjectPreview({ workspace: workspace!, email, testData: previewData }),
+    enabled: subjectEnabled,
+    staleTime: 5 * 60_000,
+    retry: false
+  })
+  const subjectRendered =
+    renderedSubject.data && !renderedSubject.data.error ? renderedSubject.data : undefined
+  const previewEnabled = previewWanted && renderable
   const preview = useQuery<CompileTemplateResponse>({
     queryKey: [
       'message-preview',
@@ -187,7 +212,7 @@ function LoadedMessage({
       message.id
     ],
     queryFn: () => compileTemplatePreview({ workspace: workspace!, email, testData: previewData }),
-    enabled: previewWanted && Boolean(workspace) && Boolean(template) && !erased,
+    enabled: previewEnabled,
     staleTime: 5 * 60_000,
     retry: false
   })
@@ -262,12 +287,9 @@ function LoadedMessage({
               permissions={permissions}
               templateMissing={templateMissing}
               canReadTemplates={canReadTemplates}
-              compiledSubject={
-                preview.data && !preview.data.error ? preview.data.subject : undefined
-              }
-              compiledPreview={
-                preview.data && !preview.data.error ? preview.data.subject_preview : undefined
-              }
+              compiledSubject={subjectRendered?.subject}
+              compiledPreview={subjectRendered?.subject_preview}
+              rendering={subjectEnabled && renderedSubject.isPending}
               names={names}
             />
           </div>
@@ -487,7 +509,14 @@ interface MessageFieldsProps {
   canReadTemplates: boolean
   compiledSubject?: string
   compiledPreview?: string
+  /** The subject is being rendered with the message's data. */
+  rendering?: boolean
   names: MessageNames
+}
+
+/** Whether a template string carries Liquid output or tags to render. */
+function hasLiquid(value?: string): boolean {
+  return Boolean(value && (value.includes('{{') || value.includes('{%')))
 }
 
 /**
@@ -545,6 +574,7 @@ function MessageFields({
   canReadTemplates,
   compiledSubject,
   compiledPreview,
+  rendering,
   names
 }: MessageFieldsProps) {
   const { t } = useLingui()
@@ -562,11 +592,20 @@ function MessageFields({
         <span className="text-xs text-ink-3">{t`Set at send time`}</span>
       </span>
     ) : undefined
+  // Raw Liquid is never shown as the subject while it renders.
+  const fromTemplate = (compiledValue?: string, written?: string) =>
+    compiledValue ??
+    (rendering && hasLiquid(written) ? (
+      <span className="text-ink-3">{t`Rendering…`}</span>
+    ) : (
+      written
+    ))
   const subject =
-    forced(options?.subject) ?? (canReadTemplates ? (compiledSubject ?? email?.subject) : undefined)
+    forced(options?.subject) ??
+    (canReadTemplates ? fromTemplate(compiledSubject, email?.subject) : undefined)
   const subjectPreview =
     forced(options?.subject_preview) ??
-    (canReadTemplates ? (compiledPreview ?? email?.subject_preview) : undefined)
+    (canReadTemplates ? fromTemplate(compiledPreview, email?.subject_preview) : undefined)
 
   const tracked = (value?: boolean) => (value === false ? t`off` : t`on`)
   const tracking =

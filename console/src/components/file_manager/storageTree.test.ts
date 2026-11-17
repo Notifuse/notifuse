@@ -69,6 +69,12 @@ describe('childrenOf', () => {
     ])
   })
 
+  it('orders the folders by name, as the folder tree does, not by date', () => {
+    const named = toStorageItems([object('zebra/', 9), object('alpha/', 1), object('notes.txt', 6)], settings)
+    expect(childrenOf(named, '').map((item) => item.key)).toEqual(['alpha/', 'zebra/', 'notes.txt'])
+    expect(folderTree(named).map((node) => node.key)).toEqual(['alpha/', 'zebra/'])
+  })
+
   it('shows an implicit folder like a folder with a marker', () => {
     const docs = childrenOf(items, 'docs/')
     expect(docs.map((item) => item.key)).toEqual(['docs/2026/'])

@@ -92,6 +92,8 @@ export function TemplateStepSwitch({
 export interface TemplateBarActionsProps {
   /** The saved version, or none for a new template. */
   version?: number
+  /** Changes wait to be saved. A saved template without any has nothing to save. */
+  dirty?: boolean
   saving: boolean
   onSave: () => void
   /** Why a test can't be sent now; the button is disabled with this as its tooltip. */
@@ -100,9 +102,10 @@ export interface TemplateBarActionsProps {
 }
 
 /** The right of the bar: a test send, then the save button, which says what it writes. */
-export function TemplateBarActions({ version, saving, onSave, testDisabledReason, onSendTest }: TemplateBarActionsProps) {
+export function TemplateBarActions({ version, dirty, saving, onSave, testDisabledReason, onSendTest }: TemplateBarActionsProps) {
   const { t } = useLingui()
   const nextVersion = (version ?? 0) + 1
+  const nothingToSave = version !== undefined && dirty === false
 
   return (
     <>
@@ -113,9 +116,13 @@ export function TemplateBarActions({ version, saving, onSave, testDisabledReason
           </Button>
         </span>
       </Tooltip>
-      <Button type="primary" icon={<Save size={14} aria-hidden="true" />} loading={saving} onClick={onSave}>
-        {version === undefined ? t`Create template` : t`Save v${nextVersion}`}
-      </Button>
+      <Tooltip title={nothingToSave ? t`No changes to save` : undefined}>
+        <span className="inline-flex">
+          <Button type="primary" icon={<Save size={14} aria-hidden="true" />} loading={saving} disabled={nothingToSave} onClick={onSave}>
+            {version === undefined ? t`Create template` : t`Save v${nextVersion}`}
+          </Button>
+        </span>
+      </Tooltip>
     </>
   )
 }

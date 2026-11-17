@@ -454,9 +454,12 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
                   </Form.Item>
                 </SettingsRow>
                 <SettingsRow label={t`Meta description`} help={t`Under the title in search results`} htmlFor="blog_settings_seo_meta_description">
-                  <Form.Item name={['blog_settings', 'seo', 'meta_description']}>
-                    <Input.TextArea rows={2} maxLength={160} showCount placeholder={t`Brief description for search results`} />
-                  </Form.Item>
+                  {/* Room for the count antd sets under a text area: it sat on the row's divider. */}
+                  <div data-count-room className="pb-3">
+                    <Form.Item name={['blog_settings', 'seo', 'meta_description']}>
+                      <Input.TextArea rows={2} maxLength={160} showCount placeholder={t`Brief description for search results`} />
+                    </Form.Item>
+                  </div>
                 </SettingsRow>
                 <SettingsRow label={t`Keywords`}>
                   <Form.Item name={['blog_settings', 'seo', 'keywords']}>
@@ -487,9 +490,12 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, canManage }: BlogSe
                   </Form.Item>
                 </SettingsRow>
                 <SettingsRow label={t`Share description`} htmlFor="blog_settings_seo_og_description">
-                  <Form.Item name={['blog_settings', 'seo', 'og_description']}>
-                    <Input.TextArea rows={2} maxLength={160} showCount />
-                  </Form.Item>
+                  {/* Room for the count antd sets under a text area: it sat on the row's divider. */}
+                  <div data-count-room className="pb-3">
+                    <Form.Item name={['blog_settings', 'seo', 'og_description']}>
+                      <Input.TextArea rows={2} maxLength={160} showCount />
+                    </Form.Item>
+                  </div>
                 </SettingsRow>
                 <SettingsRow
                   label={t`Share image`}

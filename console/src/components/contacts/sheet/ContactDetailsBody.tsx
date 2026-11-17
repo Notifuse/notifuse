@@ -238,7 +238,7 @@ export function ContactDetailsBody({
             />
             {/* The place and the date on a line of their own. */}
             <MetaLine
-              items={[place || null, t`Added on ${dayjs(contact.created_at).tz(workspaceTimezone).format('ll')}`]}
+              items={[place || null, t`Added on ${dayjs(contact.created_at).tz(timezone).format('ll')}`]}
             />
           </div>
         </div>
@@ -288,13 +288,14 @@ export function ContactDetailsBody({
             <KeyValueList
               labelWidth={SHEET_LABEL_WIDTH}
               items={[
+                // In the zone the activity is dated in (« Times in … »), named after the time.
                 {
                   label: t`Created At`,
-                  value: dayjs(contact.created_at).tz(workspaceTimezone).format('lll')
+                  value: <ZonedTime at={contact.created_at} timezone={timezone} />
                 },
                 {
                   label: t`Updated At`,
-                  value: dayjs(contact.updated_at).tz(workspaceTimezone).format('lll')
+                  value: <ZonedTime at={contact.updated_at} timezone={timezone} />
                 }
               ]}
             />
@@ -369,5 +370,14 @@ export function ContactDetailsBody({
         ) : null}
       </div>
     </>
+  )
+}
+
+/** A date and time in the given zone, the zone named after it. */
+function ZonedTime({ at, timezone }: { at: string; timezone: string }) {
+  return (
+    <span>
+      {dayjs(at).tz(timezone).format('lll')} <span className="text-ink-3">{timezone}</span>
+    </span>
   )
 }

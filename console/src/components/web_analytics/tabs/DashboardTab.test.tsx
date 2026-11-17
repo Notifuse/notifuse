@@ -162,13 +162,22 @@ describe('DashboardTab', () => {
     }
   })
 
-  it('says which filter the session figures and chart leave out, and nothing without one', async () => {
+  it('says a goal filter only narrows the Goals table, and nothing without one', async () => {
     context.filters = [{ dimension: 'goal_name', operator: 'equals', values: ['add_to_cart'] }]
     const { container, unmount } = renderTab()
     await screen.findByTestId('echart')
+    // Top Pages, Campaigns, Devices and the heatmap read sessions too: the note covers them all.
     expect(container.querySelector('[data-filters-not-applied]')).toHaveTextContent(
-      'Goal Name filter not applied to the session figures and chart'
+      'Goal Name filter only applies to the Goals table'
     )
+    unmount()
+    context.filters = [{ dimension: 'page_path', operator: 'equals', values: ['/pricing'] }]
+    const pages = renderTab()
+    await screen.findByTestId('echart')
+    expect(pages.container.querySelector('[data-filters-not-applied]')).toHaveTextContent(
+      'Page Path filter not applied on this dashboard'
+    )
+    pages.unmount()
     unmount()
     context.filters = [{ dimension: 'device', operator: 'equals', values: ['mobile'] }]
     const second = renderTab()

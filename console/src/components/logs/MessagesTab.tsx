@@ -19,9 +19,19 @@ import { automationApi } from '../../services/api/automation'
 import { listsApi } from '../../services/api/list'
 import { messageStatus } from '../../lib/messageStatus'
 import { MessageColumnsSelector } from '../messages/MessageColumnsSelector'
-import { Mono, Panel, Pill, TableToolbar, useNumberFormat, useRelativeDate } from '../layout'
+import {
+  HelpTip,
+  Mono,
+  Panel,
+  Pill,
+  TableToolbar,
+  useNumberFormat,
+  useRelativeDate
+} from '../layout'
 import type { PillTone } from '../layout'
 import { FilterChip } from './FilterChip'
+import { PeriodChip } from './PeriodChip'
+import { customRangeValue, usePeriodLabels } from './periodLabels'
 import { LogsSearchBox } from './LogsSearchBox'
 import { MessageDetail } from './MessageDetail'
 import { TextFilter } from './TextFilter'
@@ -43,7 +53,7 @@ import {
   type MessageColumnKey,
   type MessageColumns
 } from './messageColumns'
-import { ERASED_EMAIL, countsDeliveries, messageOrigin, rowIsSmtp } from './messageProvider'
+import { ERASED_EMAIL, deliveriesReported, messageOrigin, rowIsSmtp } from './messageProvider'
 import {
   COUNT_MAX_PERIOD,
   canCountMessages,
@@ -126,7 +136,8 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
     '1h': t`1 hour`,
     '24h': t`24 hours`,
     '7d': t`7 days`,
-    '30d': t`30 days`
+    '30d': t`30 days`,
+    '90d': t`90 days`
   }
   const countMax = countedDurations[COUNT_MAX_PERIOD]
   const { int } = useNumberFormat()
@@ -156,8 +167,9 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
       const value = search[key]
       if (value !== undefined) Object.assign(out, { [key]: value })
     }
-    const after = periodBounds(period, now).from
-    if (after) out.created_after = after
+    const bounds = periodBounds(period, now, { from: search.from, to: search.to })
+    if (bounds.from) out.created_after = bounds.from
+    if (bounds.to) out.created_before = bounds.to
     return out
     // `search` is new on every render; its content is the key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,7 +196,7 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
   )
 
   // M2: the counts, without the statuses, so each counter shows what a click on it lists.
-  const countable = canCountMessages(search, period)
+  const countable = canCountMessages(search, period, now)
   const countQuery = useQuery({
     queryKey: ['logs', 'messages-count', workspaceId, filters],
     queryFn: () => countMessages(workspaceId, filters),
@@ -246,13 +258,11 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
   }
 
   // Labels
-  const periodLabels: Record<LivePeriod, string> = {
-    '1h': t`Last hour`,
-    '24h': t`Last 24 hours`,
-    '7d': t`Last 7 days`,
-    '30d': t`Last 30 days`,
-    all: t`All time`
-  }
+  const periodLabels = usePeriodLabels()
+  const customRange = period === 'custom' ? customRangeValue(search, timezone) : null
+  const periodText = customRange
+    ? `${customRange[0].format('ll')} → ${customRange[1].format('ll')}`
+    : periodLabels[period]
   const originFilterLabels: Record<MessageOrigin, string> = {
     broadcast: t`Newsletters`,
     automation: t`Automations`,
@@ -293,15 +303,6 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
   }
 
   // Toolbar
-  const periodMenu: MenuProps = {
-    items: (['1h', '24h', '7d', '30d', 'all'] as const).map((key) => ({
-      key,
-      label: periodLabels[key]
-    })),
-    selectable: true,
-    selectedKeys: [period],
-    onClick: ({ key }) => update({ period: key as LivePeriod })
-  }
   const originMenu: MenuProps = {
     items: [
       { key: '', label: t`All` },
@@ -462,7 +463,7 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
     FILTER_KEYS.filter((key) => search[key] !== undefined).length +
     MESSAGE_FLAGS.filter((flag) => search[flag] !== undefined).length
   // The period is not a filter: clearing keeps it.
-  const clearFilters = () => clear(['period'])
+  const clearFilters = () => clear(['period', 'from', 'to'])
 
   const columnTitles: Record<MessageColumnKey, string> = {
     recipient: t`Recipient`,
@@ -490,7 +491,6 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
             ariaLabel={t`Search the messages`}
             placeholder={t`Exact value`}
           />
-          <FilterChip label={t`Period`} value={periodLabels[period]} menu={periodMenu} />
           <FilterChip
             label={t`Origin`}
             value={search.origin ? originFilterLabels[search.origin] : t`All`}
@@ -499,7 +499,8 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
           {shownFlags.map(flagChip)}
           {shownEntities.map(entityChip)}
           {addable.length > 0 ? <FilterChip label={t`+ Filter`} dashed menu={addMenu} /> : null}
-          {filterCount >= 2 ? (
+          {/* As on every Logs tab: as soon as a filter is set. */}
+          {filterCount > 0 ? (
             <Button type="link" onClick={clearFilters}>
               {t`Clear all`}
             </Button>
@@ -508,6 +509,8 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
       }
       end={
         <>
+          {/* The period sits on the right, with the icons: the filters keep the left. */}
+          <PeriodChip period={period} search={search} timezone={timezone} onChange={update} />
           <MessageColumnsSelector
             storageKey={MESSAGE_COLUMNS_KEY}
             columns={(Object.keys(columnTitles) as MessageColumnKey[]).map((key) => ({
@@ -533,10 +536,10 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
   )
 
   // Counters
-  const deliveriesReported = countsDeliveries(workspace, search.origin)
+  const deliveredShown = deliveriesReported(workspace, search.origin, countQuery.data?.delivered)
   const counterNumber = (item: Counter): ReactNode => {
     if (!countable) return null
-    if (item.count === 'delivered' && !deliveriesReported) {
+    if (item.count === 'delivered' && !deliveredShown) {
       return (
         <Tooltip title={t`Delivery isn't reported by SMTP providers`}>
           <span className="text-ink-3">—</span>
@@ -560,6 +563,7 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
     }
     return <span className="tabular-nums">{int(countQuery.data[item.count])}</span>
   }
+  const notCountedHelp = t`Counts cover ${countMax} at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template`
   const setCounter = (item: Counter) => {
     const patch: Partial<LogsSearch> = {}
     for (const flag of MESSAGE_FLAGS) patch[flag] = undefined
@@ -588,16 +592,20 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
         return countable ? (
           button
         ) : (
-          <Tooltip
-            key={item.count}
-            title={t`Counts cover ${countMax} at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template`}
-          >
+          <Tooltip key={item.count} title={notCountedHelp}>
             {button}
           </Tooltip>
         )
       })}
+      {/* Said in the bar, not only on hover: the numbers otherwise just vanish past the limit. */}
+      {countable ? null : (
+        <span data-not-counted className="inline-flex items-center gap-1 text-xs text-ink-3">
+          {t`Not counted beyond ${countMax}`}
+          <HelpTip label={t`About these counts`}>{notCountedHelp}</HelpTip>
+        </span>
+      )}
       <span className="ml-auto text-xs text-ink-3">
-        {periodLabels[period]}
+        {periodText}
         {timezone ? ` · ${timezone}` : ''}
       </span>
     </div>
@@ -835,7 +843,7 @@ export function MessagesTab({ workspaceId, permissions }: MessagesTabProps) {
     countable &&
     counter &&
     countQuery.data &&
-    !(counter.count === 'delivered' && !deliveriesReported)
+    !(counter.count === 'delivered' && !deliveredShown)
       ? countQuery.data[counter.count]
       : undefined
   const shown = int(rows.length)

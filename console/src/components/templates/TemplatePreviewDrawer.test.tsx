@@ -232,6 +232,27 @@ describe('TemplatePreviewDrawer custom text version', () => {
     vi.mocked(templatesApi.compile).mockRejectedValue(new Error('no preview in tests'))
   })
 
+  it('opens on the language it is given, and compiles that translation', async () => {
+    // The template selector's Full preview opened in English after Spanish was picked there.
+    vi.mocked(templatesApi.compile).mockResolvedValue({ html: '<p>Hello</p>', mjml: '<mjml></mjml>', text: 'x' })
+    render(
+      <ConfigProvider>
+        <App>
+          <TemplatePreviewDrawer
+            record={withText('Default text', french('Salut'))}
+            workspace={{ ...workspace, settings: { timezone: 'UTC', default_language: 'en' } } as unknown as Workspace}
+            initialLanguage="fr"
+            open
+          />
+        </App>
+      </ConfigProvider>
+    )
+    await waitFor(() => expect(lastRequest().subject).toBe('Bonjour'))
+    expect(vi.mocked(templatesApi.compile).mock.calls.some(([request]) => request.text === 'Default text')).toBe(false)
+    vi.mocked(templatesApi.compile).mockReset()
+    vi.mocked(templatesApi.compile).mockRejectedValue(new Error('no preview in tests'))
+  })
+
   it('previews a translation without a text with the automatic version, never the default text', async () => {
     vi.mocked(templatesApi.compile).mockResolvedValue({ html: '<p>Hello</p>', mjml: '<mjml></mjml>', text: 'x' })
     renderMultilingual(withText('Default text', french('Salut')))

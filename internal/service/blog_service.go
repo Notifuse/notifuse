@@ -701,8 +701,9 @@ func (s *BlogService) ListPosts(ctx context.Context, params *domain.ListBlogPost
 	return s.postRepo.ListPosts(ctx, *params)
 }
 
-// CountPosts counts the posts by status, overall or in one category, and per category.
-func (s *BlogService) CountPosts(ctx context.Context, categoryID string) (*domain.BlogPostCounts, error) {
+// CountPosts counts the posts by status, overall or in one category, and per category; a
+// search narrows the counts by status to the matching titles.
+func (s *BlogService) CountPosts(ctx context.Context, categoryID string, search string) (*domain.BlogPostCounts, error) {
 	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
@@ -721,7 +722,7 @@ func (s *BlogService) CountPosts(ctx context.Context, categoryID string) (*domai
 		)
 	}
 
-	counts, err := s.postRepo.CountPosts(ctx, workspaceID, categoryID, time.Now().UTC())
+	counts, err := s.postRepo.CountPosts(ctx, workspaceID, categoryID, strings.TrimSpace(search), time.Now().UTC())
 	if err != nil {
 		return nil, fmt.Errorf("failed to count blog posts: %w", err)
 	}

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Alert, App, Button, ConfigProvider, Form, InputNumber, Segmented, Slider, Switch, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
@@ -7,6 +8,7 @@ import type { Template } from '../../../services/api/template'
 import type { Workspace } from '../../../services/api/types'
 import { getEmailTrackingPolicy } from '../../../lib/emailTracking'
 import TemplateSelectorInput from '../../templates/TemplateSelectorInput'
+import { CreateTemplateDrawer } from '../../templates/CreateTemplateDrawer'
 import { VariationSenderSelect } from '../VariationSenderSelect'
 import { getMarketingSenders } from '../variationSender'
 import { MAX_VARIANTS, VARIANT_LETTERS, type ComposeValues, type ComposeVariant, type WinnerMetric } from './composeValues'
@@ -32,6 +34,8 @@ export interface ContentCardProps {
   estimateCount?: number
   /** Without Templates read the template fields show the stored IDs, locked. */
   canReadTemplates: boolean
+  /** Templates write: the pencil by a subject opens the template's editor over the composer. */
+  canWriteTemplates?: boolean
 }
 
 const letterOf = (index: number) => VARIANT_LETTERS[index] ?? String(index + 1)
@@ -51,9 +55,12 @@ export function ContentCard({
   previewIndex,
   onPreview,
   estimateCount,
-  canReadTemplates
+  canReadTemplates,
+  canWriteTemplates = false
 }: ContentCardProps) {
   const { t } = useLingui()
+  // The template whose editor is open over the composer; saving it refreshes the subject here.
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
   const { modal } = App.useApp()
   const policy = getEmailTrackingPolicy(workspace.settings)
   const workspaceTracks = policy.opens_enabled || policy.clicks_enabled
@@ -96,8 +103,6 @@ export function ContentCard({
 
   const sample = values.samplePercentage
   const sampleContacts = estimateCount === undefined ? null : Math.round((estimateCount * sample) / 100)
-  const templatesUrl = (name: string) =>
-    `/console/workspace/${workspace.id}/templates?${new URLSearchParams({ q: name }).toString()}`
 
   const abSwitch = (
     <Tooltip title={workspaceTracks ? undefined : t`Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features.`}>
@@ -184,16 +189,17 @@ export function ContentCard({
                           <span className="truncate text-xs text-ink-3">{template.email.subject_preview}</span>
                         ) : null}
                       </span>
-                      <Tooltip title={t`Edit the subject in the template`}>
-                        <a
-                          href={templatesUrl(template.name)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      <Tooltip
+                        title={canWriteTemplates ? t`Edit the subject in the template` : t`You don't have write permission for templates`}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
                           aria-label={t`Edit the template`}
-                          className="flex shrink-0 items-center p-0.5 text-ink-3 hover:text-ink"
-                        >
-                          <Pencil size={12} aria-hidden="true" />
-                        </a>
+                          disabled={!canWriteTemplates}
+                          icon={<Pencil size={12} aria-hidden="true" />}
+                          onClick={() => setEditingTemplate(template)}
+                        />
                       </Tooltip>
                     </>
                   ) : (
@@ -354,6 +360,15 @@ export function ContentCard({
           </div>
         ) : null}
       </div>
+      {editingTemplate ? (
+        <CreateTemplateDrawer
+          open
+          workspace={workspace}
+          template={editingTemplate}
+          canManageSavedBlocks={canWriteTemplates}
+          onClose={() => setEditingTemplate(null)}
+        />
+      ) : null}
     </Panel>
   )
 }

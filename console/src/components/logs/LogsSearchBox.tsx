@@ -118,7 +118,8 @@ export function LogsSearchBox<K extends string>({
             onChange={(event) => onChange(event.target.value)}
             onPressEnter={flush}
             status={incomplete ? 'warning' : undefined}
-            style={{ width: 300 }}
+            // 240: at 1440px the toolbar keeps four chips and "Clear all" on one line.
+            style={{ width: 240 }}
           />
         </Tooltip>
       </Space.Compact>

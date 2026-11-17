@@ -3299,3 +3299,40 @@ func TestTemplate_EmailContentForLanguage(t *testing.T) {
 
 	assert.Nil(t, (&Template{Translations: tmpl.Translations}).EmailContentForLanguage("fr"), "no email")
 }
+
+func TestPreviewContactLinks(t *testing.T) {
+	johnDoe := "https://api.example.com/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=ws1"
+	endpoint := func(value string) func() string { return func() string { return value } }
+
+	t.Run("rebuilds a preview link for the test contact", func(t *testing.T) {
+		data := map[string]any{
+			"contact":                 MapOfAny{"email": "emma.clarke@example.com"},
+			"notification_center_url": johnDoe,
+		}
+		assert.True(t, PreviewContactLinks(data, endpoint("https://api.example.com/"), "ws1", ""))
+		want := ContactLinks{Endpoint: "https://api.example.com", WorkspaceID: "ws1", MessageID: "preview", Email: "emma.clarke@example.com", EmailHMAC: PreviewEmailHMAC}
+		assert.Equal(t, want.ContactURLs()["notification_center_url"], data["notification_center_url"])
+	})
+
+	t.Run("leaves the data alone without a test contact email", func(t *testing.T) {
+		data := map[string]any{"contact": map[string]any{}, "notification_center_url": johnDoe}
+		assert.False(t, PreviewContactLinks(data, endpoint("https://api.example.com"), "ws1", "preview"))
+		assert.Equal(t, johnDoe, data["notification_center_url"])
+	})
+
+	t.Run("adds no list link without a list in the test data", func(t *testing.T) {
+		data := map[string]any{"contact": map[string]any{"email": "emma@example.com"}, "unsubscribe_url": johnDoe}
+		PreviewContactLinks(data, endpoint("https://api.example.com"), "ws1", "preview")
+		assert.Equal(t, johnDoe, data["unsubscribe_url"])
+	})
+
+	t.Run("a real signature that starts like the placeholder is no preview link, and needs no endpoint", func(t *testing.T) {
+		sent := "https://api.example.com/notification-center?email=john.doe@example.com&email_hmac=abc123f00dfeed&wid=ws1"
+		data := map[string]any{"contact": map[string]any{"email": "emma@example.com"}, "notification_center_url": sent}
+		asked := false
+		changed := PreviewContactLinks(data, func() string { asked = true; return "https://api.example.com" }, "ws1", "preview")
+		assert.False(t, changed)
+		assert.False(t, asked, "the endpoint is loaded only for a preview link")
+		assert.Equal(t, sent, data["notification_center_url"])
+	})
+}

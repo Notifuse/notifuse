@@ -46,11 +46,13 @@ export function BlogPage() {
   })
   const categories = categoriesQuery.data?.categories ?? []
   const activeCategoryId = search.category_id ?? null
+  const titleSearch = search.q?.trim() || undefined
 
-  // B1, under the posts' key so every post change refreshes it.
+  // B1, under the posts' key so every post change refreshes it. The tabs count what they list, so
+  // the counts follow the search too; the rail's all_total and by_category never do.
   const countsQuery = useQuery({
-    queryKey: ['blog-posts', workspaceId, 'counts', activeCategoryId],
-    queryFn: () => blogPostsApi.counts(workspaceId, activeCategoryId ?? undefined),
+    queryKey: ['blog-posts', workspaceId, 'counts', activeCategoryId, titleSearch ?? null],
+    queryFn: () => blogPostsApi.counts(workspaceId, activeCategoryId ?? undefined, titleSearch),
     // The rail's counts do not change with the category: keep them while another category's
     // load. The status tabs do, so the table gets none until they arrive.
     placeholderData: keepPreviousData

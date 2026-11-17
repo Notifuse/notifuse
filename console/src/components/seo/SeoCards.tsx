@@ -59,7 +59,7 @@ export function SocialShareCard({ hint, titlePlaceholder, descriptionPlaceholder
           <Input maxLength={60} showCount placeholder={titlePlaceholder} />
         </Form.Item>
         <Form.Item name={['seo', 'og_description']} label={t`Share description`}>
-          <TextArea rows={1} maxLength={160} showCount placeholder={descriptionPlaceholder} />
+          <TextArea autoSize={{ minRows: 2, maxRows: 4 }} maxLength={160} showCount placeholder={descriptionPlaceholder} />
         </Form.Item>
         <div className="col-span-2 flex items-start gap-3">
           <div className="min-w-0 flex-1">

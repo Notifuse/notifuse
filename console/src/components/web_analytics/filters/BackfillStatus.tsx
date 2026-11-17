@@ -115,7 +115,10 @@ export function BackfillStatus(props: BackfillStatusProps) {
     )
   }
 
-  if (status?.status === 'failed') {
+  // A cancelled run is recorded as failed, but nothing broke: it is offered again as a plain backfill.
+  const cancelled = status?.status === 'failed' && status.cancelled === true
+
+  if (status?.status === 'failed' && !cancelled) {
     return (
       <Alert
         type="error"
@@ -157,7 +160,9 @@ export function BackfillStatus(props: BackfillStatusProps) {
           <Text type="secondary">
             {neverRan
               ? t`No backfill has run yet. Run one to apply these rules to historical sessions and goals.`
-              : t`Historical sessions and goals were written with a different rule set.`}
+              : cancelled
+                ? t`The last backfill was cancelled. Run one to apply these rules to all historical sessions and goals.`
+                : t`Historical sessions and goals were written with a different rule set.`}
           </Text>
           <Button
             type="primary"

@@ -499,6 +499,10 @@ type CompileTemplateRequest struct {
 	PreserveLiquid         bool             `json:"preserve_liquid,omitempty"`          // When true, skip Liquid template processing and preserve raw syntax
 	SubjectPreviewOverride *string          `json:"subject_preview_override,omitempty"` // Override mj-preview content before compilation
 	Text                   *string          `json:"text,omitempty"`                     // Source of a custom plain-text version, with Liquid; nil for the automatic version
+	// SubjectOnly renders the subject and the preview text alone, without the body: a caller
+	// that shows only the subject (the console's message detail) gets it without compiling
+	// the whole email. The body (visual_editor_tree / mjml_source) is then not required.
+	SubjectOnly bool `json:"subject_only,omitempty"`
 
 	// IncludeText asks for the automatic plain-text version in the response; a custom text
 	// that renders is returned without it. Only the preview endpoint sets it: a send
@@ -550,6 +554,11 @@ func (r *CompileTemplateRequest) Validate() error {
 	// whichever source the email comes from.
 	if text := NormalizeCustomText(r.Text); text != nil && len(*text) > MaxCustomTextSize {
 		return fmt.Errorf("invalid compile template request: text version must be at most %d bytes", MaxCustomTextSize)
+	}
+
+	// Only the subject is rendered: no body to validate.
+	if r.SubjectOnly {
+		return nil
 	}
 
 	// Accept either MjmlSource or VisualEditorTree
@@ -792,6 +801,9 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	renderedSubjectPreview, previewErr := renderSubjectField(req.SubjectPreview, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview")
 	if previewErr != nil {
 		return &CompileTemplateResponse{Success: false, Subject: renderedSubject, Error: previewErr}, nil
+	}
+	if req.SubjectOnly {
+		return &CompileTemplateResponse{Success: true, Subject: renderedSubject, SubjectPreview: renderedSubjectPreview}, nil
 	}
 
 	// If MjmlSource is provided (code mode), use it directly; an empty one compiles the tree.

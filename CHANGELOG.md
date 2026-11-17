@@ -260,6 +260,16 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: When Notifuse stops normally, a broadcast being sent records the batch it has just queued before its task is handed back, and one started by "Send now", a winner selection, a resume, `/api/cron` or `tasks.execute` is stopped and waited for: no batch of it is sent twice after the restart.
 - **Fix**: A blog's canonical URL set in Settings › Blog, or a category's, no longer reaches every page under it. Themes received them as fallbacks, so the default theme told search engines that each post was a copy of the category page or of that one address; each page now keeps its own canonical, else its own address. Settings › Blog no longer has a blog-wide canonical field.
+- **Fix**: Adding a third variant to an automation's A/B test step no longer makes the editor redraw without end.
+- **Fix**: In the email editor, a unitless line height such as 1.5 is shown as it is instead of "2 %", and an image without a width fills its column as it does once sent.
+- **Fix**: Cancelled broadcasts are no longer listed under Failed, and a data feed no longer says its URL is required as soon as it is switched on.
+- **Fix**: The links of a template preview (unsubscribe, preferences, notification center) are built for the test data's contact instead of john.doe@example.com.
+- **Fix**: Pressing Escape while editing a contact's field cancels the edit instead of closing the contact. An email previewed from a contact's timeline shows its personalisation: `timeline.list` returns message data decrypted, as `messages.list` does.
+- **Fix**: A web analytics goal's dashboard shows the period's median, as its card does, instead of an average of daily medians. Filtering from page 2 of an expanded table no longer leaves an empty page, attribution rule errors clear once fixed, and a cancelled backfill is no longer shown as failed.
+- **Fix**: Blog themes made from the default theme keep the space in "Mar 14, 2024 · 8 min read" and no longer cut post text on phones; existing themes keep their own CSS.
+- **Fix**: Settings › Webhooks no longer reports a failed save when Save is pressed with fields missing, renaming a custom field label can no longer move it to another field, and new API keys get an address without the API endpoint's port.
+- **Improvement**: `blogPosts.list` returns all posts by the date they are shown with (publication date, or a draft's last edit), newest first, and drafts by their last edit.
+- **Improvement**: Demo data: the email templates are built from the template gallery's models, and delivery, bounce and complaint events read as Amazon SES notifications, with bounced and complained contacts no longer receiving later emails.
 
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again. A custom domain URL whose domain cannot be read is refused.
 

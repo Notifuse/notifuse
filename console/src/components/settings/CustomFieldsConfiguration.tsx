@@ -84,10 +84,9 @@ export function CustomFieldsConfiguration({
   const freeOf = (type: CustomFieldType) =>
     CUSTOM_FIELDS_BY_TYPE[type].filter((key) => !customFieldLabels[key]).length
 
-  // Get available fields for selection (fields not yet mapped)
-  const availableFields = ALL_CUSTOM_FIELDS.filter(
-    (field) => !customFieldLabels[field.key] || editingField === field.key
-  )
+  // The fields a new label can name: those not named yet
+  const availableFields = ALL_CUSTOM_FIELDS.filter((field) => !customFieldLabels[field.key])
+  const editingType = ALL_CUSTOM_FIELDS.find((field) => field.key === editingField)?.type
 
   const handleOpenModal = (fieldKey?: string) => {
     if (fieldKey) {
@@ -114,9 +113,11 @@ export function CustomFieldsConfiguration({
 
     setSaving(true)
     try {
+      // Rename only renames: the slot is the one being edited, whatever the form holds.
+      const fieldKey = editingField ?? values.fieldKey
       const updatedLabels = {
         ...customFieldLabels,
-        [values.fieldKey]: values.label.trim()
+        [fieldKey]: values.label.trim()
       }
 
       await workspaceService.setCustomFieldLabels({
@@ -167,8 +168,8 @@ export function CustomFieldsConfiguration({
     modal.confirm({
       title: t`Remove custom field label`,
       content: t`The values stay on your contacts; only the label is removed.`,
-      okText: t`Yes`,
-      cancelText: t`No`,
+      okText: t`Remove`,
+      cancelText: t`Cancel`,
       okButtonProps: { danger: true },
       onOk: () => handleDelete(slot.key)
     })
@@ -311,54 +312,68 @@ export function CustomFieldsConfiguration({
       </Panel>
 
       <Modal
-        title={editingField ? t`Edit Custom Field Label` : t`Add Custom Field Label`}
+        title={editingField ? t`Rename custom field` : t`Name a slot`}
         open={modalVisible}
         onCancel={handleCloseModal}
         footer={null}
-        width={800}
+        width={editingField ? 520 : 800}
       >
-        <div className="py-8">
+        <div className="py-4">
           <Form form={form} onFinish={handleSave} layout="vertical">
-            <Form.Item
-              name="fieldKey"
-              rules={[{ required: true, message: t`Please select a custom field` }]}
-            >
-              <Radio.Group disabled={!!editingField} style={{ width: '100%' }}>
-                <Row gutter={[24, 24]}>
-                  {Object.entries(CUSTOM_FIELDS_BY_TYPE).map(([type, fields]) => (
-                    <Col span={6} key={type}>
-                      <div style={{ fontWeight: 'bold', marginBottom: 8 }}>{type}</div>
-                      <Space orientation="vertical">
-                        {fields.map((fieldKey) => {
-                          const isAvailable =
-                            availableFields.some((f) => f.key === fieldKey) ||
-                            editingField === fieldKey
-                          const radioButton = (
-                            <Radio key={fieldKey} value={fieldKey} disabled={!isAvailable}>
-                              <code style={{ fontSize: '11px' }}>{fieldKey}</code>
-                            </Radio>
-                          )
-
-                          if (!isAvailable) {
-                            return (
-                              <Tooltip key={fieldKey} title={t`already set`}>
-                                {radioButton}
-                              </Tooltip>
+            {editingField ? (
+              // The slot is shown, not offered: moving a label is removing it and naming another.
+              <div className="mb-4 flex items-center gap-2 text-sm">
+                <span className="text-ink-3">{t`Field`}</span>
+                <Mono>{editingField}</Mono>
+                {editingType ? (
+                  <span className="text-ink-3">{i18n._(TYPE_LABELS[editingType])}</span>
+                ) : null}
+              </div>
+            ) : (
+              <Form.Item
+                name="fieldKey"
+                rules={[{ required: true, message: t`Please select a custom field` }]}
+              >
+                <Radio.Group style={{ width: '100%' }}>
+                  <Row gutter={[24, 24]}>
+                    {(Object.keys(CUSTOM_FIELDS_BY_TYPE) as CustomFieldType[]).map((type) => (
+                      <Col span={6} key={type}>
+                        <div className="mb-2 font-semibold text-ink">
+                          {i18n._(TYPE_LABELS[type])}
+                        </div>
+                        <Space orientation="vertical">
+                          {CUSTOM_FIELDS_BY_TYPE[type].map((fieldKey) => {
+                            const isAvailable = availableFields.some((f) => f.key === fieldKey)
+                            const radioButton = (
+                              <Radio key={fieldKey} value={fieldKey} disabled={!isAvailable}>
+                                <code className="font-mono text-xs">{fieldKey}</code>
+                              </Radio>
                             )
-                          }
 
-                          return radioButton
-                        })}
-                      </Space>
-                    </Col>
-                  ))}
-                </Row>
-              </Radio.Group>
-            </Form.Item>
+                            if (!isAvailable) {
+                              return (
+                                <Tooltip
+                                  key={fieldKey}
+                                  title={t`Named ${customFieldLabels[fieldKey]}`}
+                                >
+                                  {radioButton}
+                                </Tooltip>
+                              )
+                            }
+
+                            return radioButton
+                          })}
+                        </Space>
+                      </Col>
+                    ))}
+                  </Row>
+                </Radio.Group>
+              </Form.Item>
+            )}
 
             <Form.Item
               name="label"
-              label={t`Custom Label`}
+              label={t`Label`}
               rules={[
                 { required: true, message: t`Please enter a custom label` },
                 { max: 100, message: t`Label must be at most 100 characters` }

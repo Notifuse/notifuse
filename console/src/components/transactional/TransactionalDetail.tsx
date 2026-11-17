@@ -383,7 +383,7 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
       t`None`
     ) : (
       <div className="flex flex-col items-start gap-1">
-        {(['utm_source', 'utm_medium', 'utm_campaign'] as const).map((field) =>
+        {(['utm_source', 'utm_medium', 'utm_campaign', 'utm_term'] as const).map((field) =>
           settings?.[field] ? (
             <span key={field} className="min-w-0">
               <Mono>{`${field}=${settings[field]}`}</Mono>

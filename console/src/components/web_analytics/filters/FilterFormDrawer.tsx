@@ -116,7 +116,19 @@ export function FilterFormDrawer(props: FilterFormDrawerProps) {
         }
       >
         <ConfigProvider theme={PANEL_FORM_THEME}>
-          <Form form={form} layout="vertical">
+          <Form
+            form={form}
+            layout="vertical"
+            // The conditions and operations are checked on submit only (a row is added empty), but
+            // once their error shows, each edit checks them again so a fixed list clears it.
+            onValuesChange={(changed: Partial<FilterDraft>) => {
+              for (const name of ['conditions', 'operations'] as const) {
+                if (name in changed && form.getFieldError(name).length > 0) {
+                  form.validateFields([name]).catch(() => undefined)
+                }
+              }
+            }}
+          >
             <div className="flex flex-col gap-3">
               <Panel title={t`Details`}>
                 <div className="flex flex-col gap-3">
@@ -158,6 +170,9 @@ export function FilterFormDrawer(props: FilterFormDrawerProps) {
                 <Form.Item
                   name="conditions"
                   validateTrigger={[]}
+                  // No status for the whole list, which would outline every select in it: the message
+                  // shows under the list, and each row outlines its own empty value.
+                  validateStatus=""
                   rules={[
                     {
                       validator: (_, conditions: WebFilterCondition[]) => {
@@ -184,6 +199,7 @@ export function FilterFormDrawer(props: FilterFormDrawerProps) {
                 <Form.Item
                   name="operations"
                   validateTrigger={[]}
+                  validateStatus=""
                   rules={[
                     {
                       validator: (_, operations: WebFilterOperation[]) => {

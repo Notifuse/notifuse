@@ -21,6 +21,9 @@ function createLiquidEngineWithTemplates(files: BlogThemeFiles): Liquid {
     strictVariables: false,
     // SECURITY: Explicit timezone
     timezoneOffset: 0,
+    // Month and day names in English, as the server's renderer writes them: without it they follow
+    // the browser's language, and a French browser previewed "mars 14, 2024" for "Mar 14, 2024".
+    locale: 'en-US',
     // Allow lenient if statements
     lenientIf: true,
     // Preserve whitespace

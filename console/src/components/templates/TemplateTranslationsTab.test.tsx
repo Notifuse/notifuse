@@ -443,3 +443,40 @@ describe('TemplateTranslationsTab master-detail', () => {
     expect(screen.getByRole('button', { name: 'Enable' })).toBeDisabled()
   })
 })
+
+describe('TemplateTranslationsTab after a save refused for a missing field', () => {
+  const fr: TranslationEditorState = { enabled: true, subject: 'Bonjour', subjectPreview: 'Aperçu' }
+  const de: TranslationEditorState = { enabled: true, subject: 'Hallo', subjectPreview: '' }
+
+  it('shows the language the save was refused for, with its empty field marked', () => {
+    // The save used to leave a red dot on the step and a short toast: nothing said which field
+    // of which language was missing, and the detail stayed on another language.
+    const { rerender } = renderTab(['template_i18n'], { fr, de })
+    expect(screen.getByRole('heading', { name: 'French translation' })).toBeInTheDocument()
+    expect(screen.queryByText('Enter the German preview text')).toBeNull()
+
+    rerender(
+      <LicenseContext.Provider value={{ ...UNKNOWN_LICENSE, entitlements: licensedFor(['template_i18n']) }}>
+        <TemplateTranslationsTab
+          workspace={workspace}
+          editorMode="visual"
+          translationsState={{ fr, de }}
+          onTranslationsStateChange={vi.fn()}
+          defaultSubject="Hello"
+          defaultSubjectPreview=""
+          defaultVisualEditorTree={tree}
+          defaultMjmlSource=""
+          onTestDataChange={vi.fn()}
+          savedBlocks={[]}
+          onSaveBlock={vi.fn()}
+          missing={{ lang: 'de', attempt: 1 }}
+        />
+      </LicenseContext.Provider>
+    )
+
+    expect(screen.getByRole('heading', { name: 'German translation' })).toBeInTheDocument()
+    expect(screen.getByText('Enter the German preview text')).toBeInTheDocument()
+    expect(screen.queryByText('Enter the German subject')).toBeNull()
+    expect(screen.getByLabelText('Subject preview').closest('.ant-input-status-error, .ant-input-outlined')).toHaveClass('ant-input-status-error')
+  })
+})

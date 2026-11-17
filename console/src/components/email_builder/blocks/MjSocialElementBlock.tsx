@@ -77,7 +77,7 @@ const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> 
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Social Element Attributes`}>
+    <PanelLayout title={t`Social element attributes`}>
       <InputLayout label={t`Social Network`}>
         <Select
           size="small"
@@ -347,7 +347,7 @@ const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> 
         />
       </InputLayout>
 
-      <InputLayout label={t`Line Height`}>
+      <InputLayout label={t`Line height`}>
         <StringPopoverInput
           value={currentAttributes.lineHeight || ''}
           onChange={(value) => onUpdate({ lineHeight: value || undefined })}

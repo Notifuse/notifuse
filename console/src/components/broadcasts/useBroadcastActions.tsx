@@ -121,7 +121,7 @@ export function useBroadcastActions(workspaceId: string) {
       title: t`Cancel the scheduled send?`,
       icon: null,
       closable: true,
-      maskClosable: true,
+      mask: { closable: true },
       footer: null,
       content: (
         <div className="mt-3 flex flex-col gap-2">

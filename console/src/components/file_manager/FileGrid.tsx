@@ -18,6 +18,8 @@ export interface FileGridProps {
   /** A double click or Enter on a file (the picker inserts it). */
   onActivate?: (item: StorageObject) => void
   menuFor: (item: StorageObject) => MenuProps['items']
+  /** Search results: each card says which folder its file is in. */
+  showFolder?: boolean
 }
 
 function Card({
@@ -26,7 +28,8 @@ function Card({
   refused,
   onOpen,
   onActivate,
-  menu
+  menu,
+  showFolder
 }: {
   item: StorageObject
   selected: boolean
@@ -34,6 +37,7 @@ function Card({
   onOpen: () => void
   onActivate?: () => void
   menu: MenuProps['items']
+  showFolder?: boolean
 }) {
   const { t } = useLingui()
   const kind = fileKind(item)
@@ -91,6 +95,11 @@ function Card({
           <MiddleTruncate text={item.name} />
         </span>
         <span className="truncate text-xs text-ink-3">{caption}</span>
+        {showFolder ? (
+          <span data-file-folder className="truncate text-xs text-ink-3" title={item.path || t`Root`}>
+            {item.path || t`Root`}
+          </span>
+        ) : null}
       </div>
       {menu && menu.length > 0 ? (
         <span
@@ -115,7 +124,7 @@ function Card({
 }
 
 /** The items of a folder as cards of 180px or more, with a thumbnail for images. */
-export function FileGrid({ items, selectedKey, isRefused, onOpen, onActivate, menuFor }: FileGridProps) {
+export function FileGrid({ items, selectedKey, isRefused, onOpen, onActivate, menuFor, showFolder }: FileGridProps) {
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 p-3">
       {items.map((item) => (
@@ -127,6 +136,7 @@ export function FileGrid({ items, selectedKey, isRefused, onOpen, onActivate, me
           onOpen={() => onOpen(item)}
           onActivate={onActivate ? () => onActivate(item) : undefined}
           menu={menuFor(item)}
+          showFolder={showFolder}
         />
       ))}
     </div>

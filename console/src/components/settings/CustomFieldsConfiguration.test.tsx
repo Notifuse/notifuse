@@ -157,6 +157,39 @@ describe('CustomFieldsConfiguration', () => {
     )
   })
 
+  it('renames only: the slot of a label cannot be changed from Rename', async () => {
+    // The slot radios stayed clickable: picking another one named it too, and the label then
+    // stood on two slots.
+    renderComponent(true, { custom_string_1: 'Company', custom_number_1: 'Score' })
+
+    await openMenuOf('Company')
+    fireEvent.click(await screen.findByText('Rename'))
+    const dialog = await screen.findByRole('dialog', { name: 'Rename custom field' })
+    expect(within(dialog).queryAllByRole('radio')).toHaveLength(0)
+    expect(within(dialog).getByText('custom_string_1')).toBeInTheDocument()
+    expect(within(dialog).getByText('Text')).toBeInTheDocument()
+    fireEvent.change(within(dialog).getByLabelText('Label'), { target: { value: 'Employer' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Save$/i }))
+
+    await waitFor(() =>
+      expect(workspaceService.setCustomFieldLabels).toHaveBeenCalledWith({
+        workspace_id: 'ws1',
+        custom_field_labels: { custom_string_1: 'Employer', custom_number_1: 'Score' }
+      })
+    )
+  })
+
+  it('names the slot types as the table does', async () => {
+    renderComponent(true, { custom_string_1: 'Company' })
+    fireEvent.click(screen.getByRole('button', { name: /Name a free slot/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Name a slot' })
+    for (const type of ['Text', 'Number', 'Date', 'JSON']) {
+      expect(within(dialog).getByText(type)).toBeInTheDocument()
+    }
+    expect(within(dialog).queryByText('String')).toBeNull()
+    expect(within(dialog).queryByText('Datetime')).toBeNull()
+  })
+
   it('removes a label after saying the contact values stay', async () => {
     renderComponent(true, { custom_string_1: 'Company', custom_number_1: 'Score' })
 
@@ -164,7 +197,10 @@ describe('CustomFieldsConfiguration', () => {
     fireEvent.click(await screen.findByText('Remove label'))
     expect(await screen.findByText('The values stay on your contacts; only the label is removed.')).toBeInTheDocument()
     expect(workspaceService.setCustomFieldLabels).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    const remove = screen.getByRole('button', { name: 'Remove' })
+    expect(remove).toHaveClass('ant-btn-dangerous')
+    fireEvent.click(remove)
 
     await waitFor(() =>
       expect(workspaceService.setCustomFieldLabels).toHaveBeenCalledWith({

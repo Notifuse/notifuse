@@ -169,3 +169,31 @@ func TestTheConsoleHasAPhraseForEveryAuditedAction(t *testing.T) {
 	assert.Contains(t, phrases, "user.oidc.callback")
 	assert.Contains(t, phrases, "user.oidc.exchange")
 }
+
+func TestAuditCatalogue_WebAnalyticsActionsHaveTheirOwnCategory(t *testing.T) {
+	// The attribution backfill and the annotations were filed under Contacts, the settings (goals,
+	// filter rules) under Workspace.
+	for _, action := range []string{
+		"workspaces.setWebAnalyticsSettings",
+		"annotations.create", "annotations.update", "annotations.delete",
+		"webAnalytics.backfillStart", "webAnalytics.backfillCancel",
+	} {
+		spec, ok := AuditedActions[action]
+		require.True(t, ok, action)
+		assert.Equal(t, AuditCategoryWebAnalytics, spec.Category, action)
+	}
+	assert.Contains(t, AuditCategories, AuditCategoryWebAnalytics)
+}
+
+func TestTheConsoleHasALabelForEveryAuditCategory(t *testing.T) {
+	source, err := os.ReadFile(filepath.Join(repoRoot(t), "console", "src", "components", "logs", "labels.ts"))
+	require.NoError(t, err)
+	text := string(source)
+	start := strings.Index(text, "export const AUDIT_CATEGORY_LABELS")
+	require.NotEqual(t, -1, start, "labels.ts has no AUDIT_CATEGORY_LABELS")
+	block := text[start:]
+	block = block[:strings.Index(block, "\n}")]
+	for _, category := range AuditCategories {
+		assert.Regexp(t, `(?m)^\s+`+category+`: msg`+"`", block, "the console has no label for the %s category", category)
+	}
+}

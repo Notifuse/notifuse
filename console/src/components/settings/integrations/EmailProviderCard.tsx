@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, App, Button, Dropdown, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
-import { Mail, MoreHorizontal, Pencil, Plus } from 'lucide-react'
+import { Mail, MoreHorizontal, Plus, Send } from 'lucide-react'
 import { plural } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
 import type { EmailProvider, Integration, Workspace } from '../../../services/api/types'
@@ -119,7 +119,7 @@ export function EmailProviderCard({
         ))}
       </div>
     ) : (
-      t`delivered, bounce and complaint events are not registered`
+      t`Delivered, bounce and complaint events are not registered`
     )
 
   const webhookPill = () => {
@@ -174,18 +174,28 @@ export function EmailProviderCard({
       onOk: () => onSetDefault(integration.id, purpose)
     })
 
+  // The provider a role sends with says what stops: the server clears the role with it, and
+  // nothing of that kind goes out until another provider takes it.
   const confirmDelete = () =>
     modal.confirm({
       title: t`Delete this integration?`,
-      content: t`This action cannot be undone.`,
-      okText: t`Yes`,
-      cancelText: t`No`,
+      content:
+        isMarketing && isTransactional
+          ? t`It sends the workspace's marketing and transactional emails: no email goes out until another provider is chosen. This cannot be undone.`
+          : isMarketing
+            ? t`It sends the workspace's marketing emails: broadcasts and automations stop until another provider is chosen. This cannot be undone.`
+            : isTransactional
+              ? t`It sends the workspace's transactional emails: notifications stop until another provider is chosen. This cannot be undone.`
+              : t`This action cannot be undone.`,
+      okText: t`Delete`,
+      cancelText: t`Cancel`,
       okButtonProps: { danger: true },
       onOk: () => onDelete(integration.id)
     })
 
+  // Send a test email is the card's own button; the menu holds the rest, Edit first and Delete last.
   const menuItems: MenuProps['items'] = [
-    { key: 'test', label: t`Send a test email`, onClick: () => onTest(integration.id) },
+    { key: 'edit', label: t`Edit`, onClick: () => onEdit(integration) },
     ...(hasWebhooks
       ? [
           {
@@ -330,10 +340,10 @@ export function EmailProviderCard({
           <>
             <Button
               type="text"
-              icon={<Pencil size={14} aria-hidden="true" />}
-              onClick={() => onEdit(integration)}
+              icon={<Send size={14} aria-hidden="true" />}
+              onClick={() => onTest(integration.id)}
             >
-              {t`Edit`}
+              {t`Send test`}
             </Button>
             <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: menuItems }}>
               <Button

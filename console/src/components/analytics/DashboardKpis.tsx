@@ -10,6 +10,7 @@ import type { Workspace } from '../../services/api/types'
 import type { AnalyticsQuery } from '../../services/api/analytics'
 import { buildWebQuery } from '../web_analytics/lib/query'
 import type { ResolvedRange } from '../web_analytics/lib/types'
+import { deliveriesReported } from '../logs/messageProvider'
 import { DASHBOARD_REFRESH_MS, dashboardAnalytics } from './dashboardClient'
 import {
   computeDashboardKpis,
@@ -162,6 +163,8 @@ export function DashboardKpis({
       previousRates.data && !previousRates.isPlaceholderData && !seriesPlaceholder
         ? readTotals(previousRates.data)
         : undefined,
+    // As Logs reads it, origin by origin.
+    reportsDelivery: (origin) => deliveriesReported(workspace, origin, totals?.[origin]?.delivered),
     contactsTotal: toNumber(contactsTotal.data?.count),
     contactsNew: toNumber(contactsNew.data?.count),
     visits: visits.data ? toNumber(visits.data.sessions) : undefined,
@@ -262,7 +265,9 @@ export function DashboardKpis({
           label: t`Delivered`,
           value: rate(delivered.rate),
           sub: titled(
-            delivered.noDeliveryEvents
+            delivered.notReported
+              ? t`Delivery isn't reported by SMTP providers`
+              : delivered.noDeliveryEvents
               ? t`No delivery events`
               : delivered.bounceRate === null
                 ? undefined

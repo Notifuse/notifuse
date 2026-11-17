@@ -126,7 +126,7 @@ const HelpSupportDropdown: React.FC<{ onStartTour: () => void }> = ({ onStartTou
   const menuItems: MenuProps['items'] = [
     {
       key: 'tour',
-      label: t`Take a Tour`,
+      label: t`Take a tour`,
       icon: <CircleHelp size={14} aria-hidden="true" />,
       onClick: onStartTour
     }
@@ -192,6 +192,9 @@ export function CreateTemplateDrawer({
   // Set by "Save and send": the save opens the test send instead of closing the drawer.
   const sendAfterSaveRef = useRef(false)
   const [stepsWithErrors, setStepsWithErrors] = useState<TemplateStep[]>([])
+  // The translation a save was refused for: the Translations step shows it with its empty fields marked.
+  const [translationMissing, setTranslationMissing] = useState<{ lang: string; attempt: number } | null>(null)
+  const missingAttemptRef = useRef(0)
   const { permissions } = useWorkspacePermissions(workspace.id)
   const languageName = useLanguageName()
   const canTest = canSendTestEmail(permissions)
@@ -345,17 +348,22 @@ export function CreateTemplateDrawer({
       baseVersionRef.current = response.template.version
       markClean()
       savedSinceOpenRef.current = response.template
+      const version = response.template.version
       message.success(
         template
-          ? t`Template updated successfully`
+          ? t`Saved as v${version}`
           : (!sendAfterSaveRef.current && successMessage) || t`Template created successfully`
       )
-      if (sendAfterSaveRef.current) {
-        // Save and send a test: the drawer stays open on the new revision, and the test
-        // send, which sends what is saved, opens on it.
+      // Saving an existing template keeps the editor open on the new revision: the author goes
+      // on editing, and closes it when done. A new template still closes, as the field or page
+      // that opened it picks it up.
+      if (sendAfterSaveRef.current || template) {
+        // The drawer stays open on the new revision; after "Save and send", the test send,
+        // which sends what is saved, opens on it.
+        const sendTest = sendAfterSaveRef.current
         sendAfterSaveRef.current = false
         setSavedTemplate(response.template)
-        setTestTemplate(response.template)
+        if (sendTest) setTestTemplate(response.template)
         queryClient.invalidateQueries({
           queryKey: ['templates', workspace.id]
         })
@@ -368,11 +376,6 @@ export function CreateTemplateDrawer({
       }
       handleClose()
       queryClient.invalidateQueries({ queryKey: ['templates', workspace.id] })
-      if (template) {
-        queryClient.invalidateQueries({
-          queryKey: ['template', workspace.id, template.id]
-        })
-      }
       setLoading(false)
     },
     onError: (error) => {
@@ -731,6 +734,7 @@ export function CreateTemplateDrawer({
     setIsOpen(false)
     markClean()
     setStepsWithErrors([])
+    setTranslationMissing(null)
     form.resetFields()
     setTab('settings')
     setEditorMode('visual')
@@ -764,6 +768,13 @@ export function CreateTemplateDrawer({
     if (open && !isOpenRef.current) showDrawerRef.current()
     if (!open && isOpenRef.current) handleCloseRef.current(false)
   }, [controlled, open])
+
+  // Test data is saved with the template: a change through the builders' Template data tab, which
+  // antd does not report as a form change, counts as one.
+  const changeTestData = (testData: Record<string, unknown>) => {
+    markDirty()
+    form.setFieldsValue({ test_data: testData })
+  }
 
   const handleImport = (tree: EmailBlock) => {
     markDirty()
@@ -947,7 +958,7 @@ export function CreateTemplateDrawer({
       {controlled ? null : (
         <Button type="primary" onClick={showDrawer} {...buttonProps}>
           {buttonContent ||
-            (template ? t`Edit Template` : fromTemplate ? t`Clone Template` : t`Create Template`)}
+            (template ? t`Edit template` : fromTemplate ? t`Clone template` : t`Create template`)}
         </Button>
       )}
       {isOpen && (
@@ -985,6 +996,7 @@ export function CreateTemplateDrawer({
             preparing ? undefined : (
               <TemplateBarActions
                 version={savedVersion}
+                dirty={dirty}
                 saving={loading || createTemplateMutation.isPending}
                 onSave={() => form.submit()}
                 testDisabledReason={testDisabledReason}
@@ -1048,6 +1060,8 @@ export function CreateTemplateDrawer({
                     message.error(t`${langName} translation is missing required fields (subject and preview)`)
                     setTab('translations')
                     setStepsWithErrors(['translations'])
+                    missingAttemptRef.current += 1
+                    setTranslationMissing({ lang, attempt: missingAttemptRef.current })
                     sendAfterSaveRef.current = false
                     setLoading(false)
                     return
@@ -1244,11 +1258,7 @@ export function CreateTemplateDrawer({
                             }
                           }}
                           testData={testData}
-                          onTestDataChange={(newTestData) => {
-                            form.setFieldsValue({
-                              test_data: newTestData
-                            })
-                          }}
+                          onTestDataChange={changeTestData}
                           height={emailBuilderHeight}
                           templateId={templateId || 'new'}
                           textVersion={{
@@ -1321,11 +1331,7 @@ export function CreateTemplateDrawer({
                           }
                         }}
                         testData={testData}
-                        onTestDataChange={(newTestData) => {
-                          form.setFieldsValue({
-                            test_data: newTestData
-                          })
-                        }}
+                        onTestDataChange={changeTestData}
                         treePanelRef={treePanelRef as React.RefObject<HTMLDivElement>}
                         editPanelRef={editPanelRef as React.RefObject<HTMLDivElement>}
                         settingsPanelRef={settingsPanelRef as React.RefObject<HTMLDivElement>}
@@ -1390,13 +1396,21 @@ export function CreateTemplateDrawer({
                     onTranslationsStateChange={(s) => {
                       markDirty()
                       setTranslationsState(s)
+                      // Every switched-on translation complete again: the step loses its error mark.
+                      if (
+                        translationMissing &&
+                        Object.values(s).every((state) => !state.enabled || (state.subject && state.subjectPreview))
+                      ) {
+                        setTranslationMissing(null)
+                        setStepsWithErrors((steps) => steps.filter((step) => step !== 'translations'))
+                      }
                     }}
                     defaultSubject={emailSubject}
                     defaultSubjectPreview={emailPreview}
                     defaultVisualEditorTree={visualEditorTree}
                     defaultMjmlSource={mjmlSource}
                     testData={form.getFieldValue('test_data')}
-                    onTestDataChange={(newTestData) => form.setFieldsValue({ test_data: newTestData })}
+                    onTestDataChange={changeTestData}
                     savedBlocks={workspace.settings.template_blocks || []}
                     onSaveBlock={handleSaveBlock}
                     canManageSavedBlocks={canManageSavedBlocks}
@@ -1404,6 +1418,8 @@ export function CreateTemplateDrawer({
                     onDeleteSavedBlock={handleDeleteSavedBlock}
                     category={categoryValue}
                     templateName={template?.name}
+                    missing={translationMissing}
+                    senderName={emailSender?.name || workspace.name}
                   />
                 </div>
               )}
@@ -1536,10 +1552,14 @@ export function CreateTemplateDrawer({
             currentSubject={emailSubject}
             currentPreviewText={emailPreview}
             category={categoryValue}
-            onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
-            onUpdatePreviewText={(preview) =>
+            onUpdateSubject={(subject) => {
+              markDirty()
+              form.setFieldValue(['email', 'subject'], subject)
+            }}
+            onUpdatePreviewText={(preview) => {
+              markDirty()
               form.setFieldValue(['email', 'subject_preview'], preview)
-            }
+            }}
             validateOnComplete={async () => {
               // Compile the freshly-edited tree; surface MJML errors so a broken
               // generation is never presented as success.
@@ -1577,7 +1597,10 @@ export function CreateTemplateDrawer({
             }}
             callbacks={{
               getEmailTree: () => visualEditorTreeRef.current,
-              setEmailTree: setVisualEditorTree,
+              setEmailTree: (tree) => {
+                markDirty()
+                setVisualEditorTree(tree)
+              },
               onAddBlock: (parentId, blockType, position, content, attributes) => {
                 markDirty()
                 // Use functional updater to ensure we have the latest state

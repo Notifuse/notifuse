@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { emailProviderFormValues, providerFromFormValues } from './emailProviderForm'
+import { emailProviderFormValues, labelInSentence, providerFromFormValues } from './emailProviderForm'
 import type { EmailIntegration } from './EmailProviderCard'
 
 const stored = (provider: Record<string, unknown>) =>
@@ -66,5 +66,16 @@ describe('providerFromFormValues', () => {
       rate_limit_per_minute: 25,
       mailgun: { domain: 'mg.acme.com', region: 'EU' }
     })
+  })
+})
+
+describe('labelInSentence', () => {
+  it('lowers the first letter of a label read mid-sentence, not an acronym nor in German', () => {
+    // antd wrote "Please enter Server token".
+    expect(labelInSentence('Server token', 'en')).toBe('server token')
+    expect(labelInSentence('Secret access key', 'fr')).toBe('secret access key')
+    expect(labelInSentence('API key', 'en')).toBe('API key')
+    expect(labelInSentence('Domain', 'pt-BR')).toBe('domain')
+    expect(labelInSentence('Server-Token', 'de')).toBe('Server-Token')
   })
 })

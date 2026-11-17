@@ -218,11 +218,13 @@ function NotificationEditor({ workspace, notification, canReadTemplates, backLab
       onClose()
       return
     }
+    // The template editor's question, with buttons that say what they do.
     modal.confirm({
-      title: t`Unsaved changes`,
-      content: t`You have unsaved changes. Are you sure you want to close this drawer?`,
-      okText: t`Yes`,
-      cancelText: t`No`,
+      title: t`Discard your changes?`,
+      content: t`The changes you made since opening this notification will be lost.`,
+      okText: t`Discard`,
+      okButtonProps: { danger: true },
+      cancelText: t`Keep editing`,
       onOk: onClose
     })
   }
@@ -280,9 +282,13 @@ function NotificationEditor({ workspace, notification, canReadTemplates, backLab
     ? t`Managed by ${integration.name} (${integration.type} integration)`
     : t`Managed by an integration`
 
-  const idExtra = idEdited
-    ? t`Lowercase letters, numbers and underscores`
-    : t`Follows the name until you edit it. Lowercase letters, numbers and underscores`
+  // An identifier refused by its pattern gets the error alone: the hint would say it a second time.
+  const idRefused = typedId !== '' && !API_ID_PATTERN.test(typedId)
+  const idExtra = idRefused
+    ? undefined
+    : idEdited
+      ? t`Lowercase letters, numbers and underscores`
+      : t`Follows the name until you edit it. Lowercase letters, numbers and underscores`
   // The checks' message, with the same variable, so both read one translation.
   const id = typedId
   const idTaken = idStatus === 'taken' ? t`${id} is already used by another notification` : undefined
@@ -336,7 +342,7 @@ function NotificationEditor({ workspace, notification, canReadTemplates, backLab
     ? t`You need Templates read permission to see this template's name and preview`
     : managed
       ? templateSetBy
-      : editing
+      : editing || draft.channels.email.template_id
         ? undefined
         : t`Transactional templates. Its subject, sender and languages show here once chosen.`
 
@@ -523,7 +529,13 @@ function NotificationEditor({ workspace, notification, canReadTemplates, backLab
               <SettingsRows>
                 <SettingsRow
                   label={t`Tracking`}
-                  help={t`Following the workspace setting also respects each contact's tracking consent.`}
+                  help={
+                    mode === 'disabled'
+                      ? t`Links are left as written: no tracking and no UTM parameters.`
+                      : mode === 'no_tracking'
+                        ? t`Opens and clicks are not tracked; links keep their UTM parameters.`
+                        : t`Following the workspace setting also respects each contact's tracking consent.`
+                  }
                 >
                   <div className="flex flex-col gap-1.5">
                     <Form.Item name={['tracking_settings', 'tracking_mode']}>
@@ -644,8 +656,8 @@ function TrackingPills({ effect }: { effect: TrackingEffect }) {
     <div data-testid="tracking-effect" className="flex flex-wrap gap-1.5">
       <Pill tone={effect.opens === 'on' ? 'success' : 'neutral'}>{opens}</Pill>
       <Pill tone={effect.clicks === 'on' ? 'success' : 'neutral'}>{clicks}</Pill>
-      {/* Following the workspace, UTM parameters are a given; turning tracking off, they are what stays. */}
-      <Pill tone={effect.utm && effect.opens === 'off' ? 'success' : 'neutral'}>
+      {/* Green whenever they are added, as the opens and clicks pills are when on. */}
+      <Pill tone={effect.utm ? 'success' : 'neutral'}>
         {effect.utm ? t`UTM added` : t`No UTM`}
       </Pill>
     </div>

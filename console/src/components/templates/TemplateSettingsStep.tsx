@@ -164,6 +164,14 @@ export function TemplateSettingsStep({
             <Form.Item
               label={t`Editor mode`}
               tooltip={t`The editor mode can't be changed after the template is created. To use the other editor, create a new template and copy the content with Import MJML or Export MJML.`}
+              // A locked mode says why under the cards: the other one is greyed out, not hidden.
+              extra={
+                editorModeLocked
+                  ? isSaved
+                    ? t`Fixed once the template is saved`
+                    : t`Kept from the template or model it starts from`
+                  : undefined
+              }
             >
               <div role="radiogroup" aria-label={t`Editor mode`} className="grid grid-cols-2 gap-2">
                 {modes.map((mode) => {

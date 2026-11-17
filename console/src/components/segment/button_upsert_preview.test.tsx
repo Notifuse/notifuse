@@ -349,8 +349,8 @@ describe('segment drawer — contacts preview', { timeout: 20_000 }, () => {
     await screen.findByText('1243 contacts')
 
     editFirstCondition()
-    fireEvent.mouseDown(selectShowing('Click email'))
-    fireEvent.click(await screen.findByTitle('Open email'))
+    fireEvent.mouseDown(selectShowing('Email clicked'))
+    fireEvent.click(await screen.findByTitle('Email opened'))
 
     await waitFor(() => expect(previewSegmentMock).toHaveBeenCalledTimes(2), { timeout: 3000 })
 

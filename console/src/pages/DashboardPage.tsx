@@ -1,4 +1,4 @@
-import { Card, Typography, Button, Empty } from 'antd'
+import { Card, Typography, Button, Empty, Tooltip } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
@@ -37,13 +37,16 @@ export function DashboardPage() {
                   where SSO is switched on and off, and it is where a deployment running SSO
                   without a licence for it is told so. */}
               <SystemSettingsDrawer workspaceId={workspaces[0]?.id} />
-              <Button
-                type="primary"
-                ghost
-                icon={<PlusOutlined />}
-                onClick={handleCreateWorkspace}
-                style={{ padding: '4px', lineHeight: 1 }}
-              />
+              <Tooltip title={t`New workspace`}>
+                <Button
+                  type="primary"
+                  ghost
+                  aria-label={t`New workspace`}
+                  icon={<PlusOutlined />}
+                  onClick={handleCreateWorkspace}
+                  style={{ padding: '4px', lineHeight: 1 }}
+                />
+              </Tooltip>
             </div>
           ) : undefined
         }
@@ -59,6 +62,16 @@ export function DashboardPage() {
                 hoverable
                 size="small"
                 onClick={() => handleWorkspaceClick(workspace.id)}
+                // Reached and opened from the keyboard, as a link would be.
+                role="link"
+                tabIndex={0}
+                aria-label={workspace.name}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    handleWorkspaceClick(workspace.id)
+                  }
+                }}
                 style={{ marginBottom: '8px' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

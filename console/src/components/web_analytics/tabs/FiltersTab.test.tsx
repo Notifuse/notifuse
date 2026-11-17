@@ -204,6 +204,56 @@ describe('FiltersTab', () => {
     expect(settingsRequests()).toHaveLength(0)
   })
 
+  it('clears a condition or operation error once its value is typed, and marks only the empty field', async () => {
+    renderTab()
+    fireEvent.click(screen.getByRole('button', { name: /Add$/ }))
+    const editor = panel('Create rule')
+    fireEvent.click(within(editor).getByRole('button', { name: 'Create' }))
+    expect(await within(editor).findByText('All conditions must have a value')).toBeInTheDocument()
+
+    const [conditionValue, operationValue] = within(editor).getAllByPlaceholderText('Value')
+    // The empty value is the field in error; the field and operator picked beside it are not.
+    expect(conditionValue).toHaveClass('ant-input-status-error')
+    const conditionRow = editor.querySelector('[data-condition-row]') as HTMLElement
+    expect(conditionRow.querySelector('.ant-select-status-error')).toBeNull()
+
+    fireEvent.change(conditionValue, { target: { value: 'google' } })
+    await waitFor(() => expect(within(editor).queryByText('All conditions must have a value')).toBeNull())
+    expect(conditionValue).not.toHaveClass('ant-input-status-error')
+    // The operation still has no value, so its error stays until it gets one.
+    expect(within(editor).getByText('Every "set" operation needs a value')).toBeInTheDocument()
+    fireEvent.change(operationValue, { target: { value: 'Search' } })
+    await waitFor(() => expect(within(editor).queryByText('Every "set" operation needs a value')).toBeNull())
+    expect(settingsRequests()).toHaveLength(0)
+  })
+
+  it('writes "Is Direct" as true or false, picked from a list rather than typed', async () => {
+    renderTab()
+    fireEvent.click(screen.getByRole('button', { name: /Add$/ }))
+    const editor = panel('Create rule')
+    fireEvent.change(within(editor).getByPlaceholderText('e.g. Set channel for Google Ads'), {
+      target: { value: 'Newsletter is not direct' }
+    })
+    fireEvent.change(within(editor).getAllByPlaceholderText('Value')[0], { target: { value: 'newsletter' } })
+
+    const operation = editor.querySelector('[data-operation-row]') as HTMLElement
+    const dimension = within(operation).getByRole('combobox', { name: 'Dimension' })
+    fireEvent.mouseDown(dimension)
+    fireEvent.change(dimension, { target: { value: 'Is Direct' } })
+    fireEvent.click(await screen.findByTitle('Is Direct'))
+
+    // No text box to type "No" or "FALSE" in: the value is one of the two the engine compares.
+    expect(within(operation).queryByPlaceholderText('Value')).toBeNull()
+    const value = within(operation).getByRole('combobox', { name: 'Value' })
+    fireEvent.mouseDown(value)
+    fireEvent.click(await screen.findByTitle('No'))
+    fireEvent.click(within(editor).getByRole('button', { name: 'Create' }))
+
+    await waitFor(() => expect(settingsRequests()).toHaveLength(1))
+    const created = settingsRequests()[0].settings.filters.at(-1)
+    expect(created.operations).toEqual([{ dimension: 'is_direct', action: 'set_value', value: 'false' }])
+  })
+
   it('tests every rule in a side panel and lists, per rule, whether it matched and what it writes', async () => {
     renderTab()
     fireEvent.click(screen.getByRole('button', { name: /Test$/ }))
@@ -215,18 +265,22 @@ describe('FiltersTab', () => {
     fireEvent.change(within(tester).getByPlaceholderText('UTM Source'), { target: { value: ' newsletter ' } })
     fireEvent.click(within(tester).getByRole('button', { name: 'Run test' }))
 
-    expect(within(tester).getByText('2 of 3 rules match')).toBeInTheDocument()
+    // Only the enabled rules run on a visit: the disabled one is neither counted nor matched.
+    expect(within(tester).getByText('1 of 2 rules match')).toBeInTheDocument()
     const matched = [...tester.querySelectorAll<HTMLElement>('[data-rule-result="matched"]')]
-    // Highest priority first, as the engine evaluates them.
     expect(matched.map((row) => row.querySelector('.font-medium')?.textContent)).toEqual([
-      'Paused fallback',
       'Newsletter traffic'
     ])
-    expect(within(matched[0]).getByText('Disabled')).toBeInTheDocument()
-    expect(within(matched[0]).getByText('(always matches)')).toBeInTheDocument()
-    expect(matched[0].querySelector('[data-written-value]')).toHaveTextContent('Channel Groupunset')
-    expect(within(matched[1]).getByText('newsletter')).toBeInTheDocument()
-    expect(matched[1].querySelector('[data-written-value]')).toHaveTextContent('Channelset toEmail')
+    expect(within(matched[0]).getByText('newsletter')).toBeInTheDocument()
+    expect(matched[0].querySelector('[data-written-value]')).toHaveTextContent('Channelset toEmail')
+
+    // The disabled rule is listed apart, greyed, said not applied, and writes nothing.
+    const disabled = [...tester.querySelectorAll<HTMLElement>('[data-rule-result="disabled"]')]
+    expect(disabled).toHaveLength(1)
+    expect(disabled[0]).toHaveTextContent('Paused fallback')
+    expect(within(disabled[0]).getByText('Not applied')).toBeInTheDocument()
+    expect(disabled[0]).toHaveClass('opacity-60')
+    expect(disabled[0].querySelector('[data-written-value]')).toBeNull()
 
     // The rules that did not match wait behind a toggle.
     expect(tester.querySelector('[data-rule-result="unmatched"]')).toBeNull()
@@ -238,6 +292,15 @@ describe('FiltersTab', () => {
     // Back returns to the visit as it was typed.
     fireEvent.click(within(tester).getByRole('button', { name: 'Back' }))
     expect(within(tester).getByPlaceholderText('UTM Source')).toHaveValue(' newsletter ')
+  })
+
+  it('takes "Is Direct" from a yes/no list in the tester, not as free text', async () => {
+    renderTab()
+    fireEvent.click(screen.getByRole('button', { name: /Test$/ }))
+    const tester = panel('Test all rules')
+    const item = within(tester).getByText('is_direct').closest('.ant-form-item') as HTMLElement
+    expect(item.querySelector('.ant-select')).not.toBeNull()
+    expect(item.querySelector('input.ant-input')).toBeNull()
   })
 
   it('tests the draft from the editor, condition by condition', async () => {

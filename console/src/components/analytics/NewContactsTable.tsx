@@ -40,11 +40,12 @@ export function NewContactsTable({ workspaceId, canImport }: NewContactsTablePro
     refetchInterval: DASHBOARD_REFRESH_MS
   })
 
+  // The contact's sheet, over the whole list: an email filter left a list of one behind it.
   const openContact = (contact: Contact) =>
     void navigate({
       to: '/console/workspace/$workspaceId/contacts',
       params: { workspaceId },
-      search: { email: contact.email }
+      search: { contact: contact.email }
     })
 
   const extra = (

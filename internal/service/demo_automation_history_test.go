@@ -30,6 +30,8 @@ func demoTestCohort(size int) []demoCohortMember {
 		cohort = append(cohort, demoCohortMember{
 			Email:      fmt.Sprintf("contact%04d@example.com", i),
 			ListStatus: statuses[i%len(statuses)],
+			FirstName:  fmt.Sprintf("First%04d", i),
+			LastName:   "Tester",
 		})
 	}
 	return cohort
@@ -377,6 +379,14 @@ func TestDemoAutomationCohortSQL(t *testing.T) {
 		assert.Equal(t, []interface{}{demoGoalPurchase}, args)
 	})
 
+	t.Run("every cohort reads its members' names from their contact", func(t *testing.T) {
+		for _, id := range []string{demoAutomationWelcome, demoAutomationCartRecovery, demoAutomationPostPurchase, demoAutomationVIPConcierge, demoAutomationWinback} {
+			query, _ := demoAutomationCohortSQL(id)
+			assert.Contains(t, query, demoCohortNames, id)
+			assert.Contains(t, query, "LEFT JOIN contacts c ON c.email = src.email", id)
+		}
+	})
+
 	t.Run("unknown automation has no cohort query", func(t *testing.T) {
 		query, args := demoAutomationCohortSQL("no-such-automation")
 		assert.Equal(t, "", query)
@@ -538,15 +548,15 @@ func TestSeedDemoAutomationHistory_Orchestration(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
 		mock.ExpectQuery(regexp.QuoteMeta("FROM contact_lists")).
-			WillReturnRows(sqlmock.NewRows([]string{"email", "status"}).
-				AddRow("a@example.com", "active").
-				AddRow("b@example.com", "unsubscribed"))
+			WillReturnRows(sqlmock.NewRows([]string{"email", "status", "first_name", "last_name"}).
+				AddRow("a@example.com", "active", "Ann", "Lee").
+				AddRow("b@example.com", "unsubscribed", "", ""))
 
 		svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
 		cohort, err := svc.loadDemoCohort(ctx, db, demoAutomationWelcome)
 		require.NoError(t, err)
 		assert.Equal(t, []demoCohortMember{
-			{Email: "a@example.com", ListStatus: "active"},
+			{Email: "a@example.com", ListStatus: "active", FirstName: "Ann", LastName: "Lee"},
 			{Email: "b@example.com", ListStatus: "unsubscribed"},
 		}, cohort)
 	})
@@ -666,6 +676,10 @@ func TestDemoJourneyMessages(t *testing.T) {
 	for _, automation := range demoAutomations("ws1") {
 		journeys := demoTestJourneys(t, automation, 200)
 		messages := demoJourneyMessages(automation, journeys, rand.New(rand.NewSource(1)), now)
+		names := map[string]interface{}{}
+		for _, j := range journeys {
+			names[j.Email] = j.FirstName
+		}
 
 		queued := map[string]string{}
 		for _, j := range journeys {
@@ -686,6 +700,11 @@ func TestDemoJourneyMessages(t *testing.T) {
 			assert.Nil(t, m.BroadcastID)
 			assert.Equal(t, "email", m.Channel)
 			assert.False(t, m.SentAt.After(now))
+			// Rendered for its contact: the email alone previewed as "Welcome, !".
+			contact, _ := m.MessageData.Data["contact"].(map[string]interface{})
+			require.NotNil(t, contact)
+			assert.Equal(t, names[m.ContactEmail], contact["first_name"], m.ContactEmail)
+			assert.NotEmpty(t, contact["first_name"])
 			if m.OpenedAt != nil {
 				opened++
 				require.NotNil(t, m.DeliveredAt, "opened without being delivered")

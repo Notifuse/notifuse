@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { App, Button, Dropdown, Empty } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { Blocks, MoreHorizontal, Pencil, Plus } from 'lucide-react'
+import { Blocks, MoreHorizontal, Plus } from 'lucide-react'
 
 import type {
   EmailProviderKind,
@@ -253,14 +253,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   ) =>
     isOwner ? (
       <>
-        <Button type="text" icon={<Pencil size={14} aria-hidden="true" />} onClick={onEdit}>
-          {t`Edit`}
-        </Button>
         <Dropdown
           trigger={['click']}
           placement="bottomRight"
           menu={{
             items: [
+              { key: 'edit', label: t`Edit`, onClick: onEdit },
+              { type: 'divider' as const },
               {
                 key: 'delete',
                 label: remove.label,
@@ -269,8 +268,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   modal.confirm({
                     title: remove.title,
                     content: remove.content,
-                    okText: t`Yes`,
-                    cancelText: t`No`,
+                    okText: t`Delete`,
+                    cancelText: t`Cancel`,
                     okButtonProps: { danger: true },
                     onOk: () => deleteIntegration(integration.id)
                   })

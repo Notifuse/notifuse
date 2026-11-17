@@ -142,6 +142,12 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
             value={status ? i18n._(DELIVERY_STATUS_LABELS[status]) : t`All`}
             menu={statusMenu}
           />
+          {/* As on every Logs tab: as soon as a filter is set. */}
+          {filtered ? (
+            <Button type="link" onClick={() => clear()}>
+              {t`Clear all`}
+            </Button>
+          ) : null}
         </>
       }
       end={
@@ -243,7 +249,8 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
                 })
               }
             >
-              {t`Add a webhook`}
+              {/* With an endpoint already set up, adding one is not what is missing. */}
+              {subscriptions.length > 0 ? t`Open webhook settings` : t`Add a webhook`}
             </Button>
           </Empty>
         )}

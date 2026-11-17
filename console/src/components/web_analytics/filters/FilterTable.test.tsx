@@ -51,15 +51,21 @@ describe('FilterTable', () => {
     fireEvent.click(within(rows()[1]).getByText('Newsletter traffic'))
     expect(onEdit).toHaveBeenLastCalledWith(RULES[0])
     onEdit.mockClear()
-    fireEvent.click(within(rows()[1]).getByRole('button', { name: 'edit' }))
+    fireEvent.click(within(rows()[1]).getByRole('button', { name: 'Edit rule' }))
     expect(onEdit).toHaveBeenCalledWith(RULES[0])
   })
 
   it('deletes a rule once the prompt is confirmed', async () => {
     const { rows, onDelete, onEdit } = renderTable()
-    fireEvent.click(within(rows()[1]).getByRole('button', { name: 'delete' }))
+    fireEvent.click(within(rows()[1]).getByRole('button', { name: 'Delete rule' }))
     expect(onEdit).not.toHaveBeenCalled()
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+    // The prompt says what the deletion does, and its Delete is the danger one.
+    expect(
+      await screen.findByText('New visits are no longer rewritten by it. Past ones keep its values until the next backfill.')
+    ).toBeInTheDocument()
+    const confirm = screen.getByRole('button', { name: 'Delete' })
+    expect(confirm).toHaveClass('ant-btn-dangerous')
+    fireEvent.click(confirm)
     expect(onDelete).toHaveBeenCalledWith(RULES[0])
   })
 

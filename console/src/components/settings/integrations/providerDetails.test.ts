@@ -129,8 +129,9 @@ describe('providerDetails', () => {
     )
 
     expect(rows.configuration_set).toMatchObject({
-      value: 'not created yet — register webhooks',
-      tone: 'warning'
+      value: 'Not created yet',
+      tone: 'warning',
+      hint: 'Created by Register webhooks, in the menu'
     })
     expect(rows.reputation).toMatchObject({
       value: 'isolation requested but not provisioned',

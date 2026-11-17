@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { App, Button, Dropdown, Tooltip } from 'antd'
+import { App, Button, Dropdown, Popconfirm, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
 import { Braces, Download, MoreHorizontal, Pencil, Plus, Upload } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
@@ -56,12 +56,13 @@ export function ContactsViewHeader({
   onViewDeleted
 }: ContactsViewHeaderProps) {
   const { t } = useLingui()
-  const { message, modal } = App.useApp()
+  const { message } = App.useApp()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { openDrawer, openDrawerWithSelectedList } = useContactsCsvUpload()
   const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false)
   const [deleteListOpen, setDeleteListOpen] = useState(false)
+  const [confirmSegmentDelete, setConfirmSegmentDelete] = useState(false)
 
   const workspaceId = workspace.id
   const canReadContacts = !!permissions?.contacts?.read
@@ -115,15 +116,8 @@ export function ContactsViewHeader({
         key: 'delete',
         label: t`Delete segment`,
         danger: true,
-        onClick: () =>
-          modal.confirm({
-            title: t`Delete segment`,
-            content: t`Are you sure you want to delete "${segment.name}"?`,
-            okText: t`Yes`,
-            cancelText: t`No`,
-            okButtonProps: { danger: true },
-            onOk: () => remove.mutateAsync(segment.id)
-          })
+        // One object: a popconfirm over « More actions » (a list or many contacts get a dialog).
+        onClick: () => setConfirmSegmentDelete(true)
       }
     ])
   }
@@ -131,12 +125,44 @@ export function ContactsViewHeader({
     .filter((group) => group.length > 0)
     .flatMap((group, index) => (index > 0 ? [{ type: 'divider' as const }, ...group] : group))
 
-  const moreMenu =
+  const moreButton =
     menu.length > 0 ? (
       <Dropdown menu={{ items: menu }} trigger={['click']} placement="bottomRight">
         <Button aria-label={t`More actions`} icon={<MoreHorizontal size={15} aria-hidden="true" />} />
       </Dropdown>
     ) : null
+  const segmentName = segment?.name ?? ''
+  // Always the same tree around the button, so that the segment loading does not remount the
+  // menu while it is open.
+  const moreMenu = moreButton ? (
+    <Popconfirm
+      open={confirmSegmentDelete && view.kind === 'segment' && !!segment}
+      // Only Delete segment opens it: a click on « More actions » opens the menu.
+      onOpenChange={(open) => {
+        if (!open) setConfirmSegmentDelete(false)
+      }}
+      title={t`Delete segment`}
+      description={
+        <div className="max-w-72">
+          {t`"${segmentName}" will be deleted. Its contacts stay in the workspace. This action cannot be undone.`}
+        </div>
+      }
+      okText={t`Delete`}
+      cancelText={t`Cancel`}
+      okButtonProps={{ danger: true, loading: remove.isPending }}
+      placement="bottomRight"
+      // A refusal is toasted by the mutation; the confirmation closes either way.
+      onConfirm={() =>
+        remove
+          .mutateAsync(segment?.id ?? '')
+          .catch(() => undefined)
+          .finally(() => setConfirmSegmentDelete(false))
+      }
+    >
+      {/* The anchor of the confirmation: the menu keeps its own trigger on the button. */}
+      <span className="inline-flex">{moreButton}</span>
+    </Popconfirm>
+  ) : null
 
   // The number is stale while a segment is computed: none, as in the rail.
   const count = view.kind === 'segment' && segment?.status === 'building' ? undefined : total

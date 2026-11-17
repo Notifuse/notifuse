@@ -40,7 +40,7 @@ export function DeleteBroadcastModal({ broadcast, onClose, onDelete }: DeleteBro
 
   return (
     <Modal
-      title={t`Delete Broadcast`}
+      title={t`Delete broadcast`}
       open={broadcast !== null}
       onCancel={close}
       footer={[

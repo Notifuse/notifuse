@@ -312,7 +312,7 @@ export default function SendTemplateModal({
     <SidePanel
       open={isOpen}
       onClose={onClose}
-      title={t`Send Test Email`}
+      title={t`Send test email`}
       copyLink={false}
       footer={
         <div className="flex items-center justify-end gap-2">
@@ -324,7 +324,7 @@ export default function SendTemplateModal({
             disabled={!email || !selectedIntegrationId || loading || sendLoading || waitingForDefaultList}
             loading={loading || sendLoading}
           >
-            {t`Send Test Email`}
+            {t`Send test email`}
           </Button>
         </div>
       }

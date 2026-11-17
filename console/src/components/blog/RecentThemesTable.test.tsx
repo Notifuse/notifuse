@@ -54,12 +54,12 @@ describe('RecentThemesTable last edited tooltip', () => {
 })
 
 describe('RecentThemesTable card', () => {
-  it('shows the versions in a Themes card, New Theme in its header', async () => {
+  it('shows the versions in a Themes card, New theme in its header', async () => {
     renderTable()
     const version = await screen.findByText('3')
     const card = screen.getByText('Themes').closest('section') as HTMLElement
     expect(card).not.toBeNull()
-    expect(card).toHaveTextContent('New Theme')
+    expect(card).toHaveTextContent('New theme')
     expect(card).toContainElement(version)
   })
 

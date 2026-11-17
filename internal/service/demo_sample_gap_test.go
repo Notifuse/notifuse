@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -405,11 +404,18 @@ func TestDemoService_DeliveredWebhookGap_NoProviderOrNothingDelivered(t *testing
 }
 
 func TestDemoService_DeliveredWebhookGap_ExactBatchRows(t *testing.T) {
+	// The demo reads as sent through SES: each email's delivery, hard bounce or spam complaint is
+	// the SNS notification SES posts, which the real parser reads back as the same event, and the
+	// message carries the same event. It once stored "SMTP · Delivered" webhooks beside messages
+	// that stayed "Sent".
 	ctrl := gomock.NewController(t)
 	events := mocks.NewMockInboundWebhookEventRepository(ctrl)
 	wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	wsRepo.EXPECT().GetByID(gomock.Any(), "ws-gap").
-		Return(&domain.Workspace{ID: "ws-gap", Settings: domain.WorkspaceSettings{TransactionalEmailProviderID: "int-42"}}, nil).Times(1)
+		Return(&domain.Workspace{ID: "ws-gap", Settings: domain.WorkspaceSettings{
+			TransactionalEmailProviderID: "int-42",
+			MarketingEmailProviderID:     "int-7",
+		}}, nil).Times(1)
 
 	var stored []*domain.InboundWebhookEvent
 	var storedWS string
@@ -420,34 +426,137 @@ func TestDemoService_DeliveredWebhookGap_ExactBatchRows(t *testing.T) {
 			return nil
 		}).Times(1)
 
+	msgHistory := mocks.NewMockMessageHistoryRepository(ctrl)
+	var recorded []domain.MessageEventUpdate
+	msgHistory.EXPECT().SetStatusesIfNotSet(gomock.Any(), "ws-gap", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, updates []domain.MessageEventUpdate) error {
+			recorded = updates
+			return nil
+		}).Times(1)
+
+	// As ProcessWebhook does, the hard-bounced address is bounced on every list it is on.
+	contacts := mocks.NewMockContactRepository(ctrl)
+	contacts.EXPECT().MarkEmailsAsBounced(gomock.Any(), "ws-gap", []string{"d@example.com"}, gomock.Any()).Return(nil).Times(1)
+
 	svc := demoGapWebhookSvc(t, wsRepo, events, true)
+	svc.messageHistoryRepo = msgHistory
+	svc.contactRepo = contacts
+	bouncedAt := demoGapDeliveredAt.Add(-time.Minute)
+	complainedAt := demoGapDeliveredAt.Add(time.Hour)
+	newsletter := "bc-1"
+	bounced := demoGapMsg("msg-4", "d@example.com", false)
+	bounced.engagement.shouldBounce = true
+	bounced.engagement.bouncedTime = bouncedAt
+	complained := demoGapMsg("msg-3", "c@example.com", true)
+	complained.message.BroadcastID = &newsletter
+	complained.engagement.shouldComplain = true
+	complained.engagement.complainedTime = complainedAt
 	batch := []messageEngagementData{
 		demoGapMsg("msg-1", "a@example.com", true),
-		demoGapMsg("msg-2", "b@example.com", false), // bounced/failed: no event
-		demoGapMsg("msg-3", "c@example.com", true),
+		demoGapMsg("msg-2", "b@example.com", false), // nothing reported yet: no event
+		complained,
+		bounced,
 	}
 	require.NoError(t, svc.generateDeliveredInboundWebhookEventsForBatch(demoGapSystemCtx(), "ws-gap", batch))
 
 	assert.Equal(t, "ws-gap", storedWS)
-	require.Len(t, stored, 2, "only delivered messages produce events")
+	reason := demoSESBounceStatusInfo()
+	assert.Equal(t, []domain.MessageEventUpdate{
+		{ID: "msg-1", Event: domain.MessageEventDelivered, Timestamp: demoGapDeliveredAt},
+		{ID: "msg-3", Event: domain.MessageEventDelivered, Timestamp: demoGapDeliveredAt},
+		{ID: "msg-3", Event: domain.MessageEventComplained, Timestamp: complainedAt},
+		{ID: "msg-4", Event: domain.MessageEventBounced, Timestamp: bouncedAt, StatusInfo: &reason},
+	}, recorded)
 
-	want := []struct{ id, email string }{{"msg-1", "a@example.com"}, {"msg-3", "c@example.com"}}
+	want := []struct {
+		id, email, integration string
+		eventType              domain.EmailEventType
+		at                     time.Time
+	}{
+		{"msg-1", "a@example.com", "int-42", domain.EmailEventDelivered, demoGapDeliveredAt},
+		// A newsletter went through the marketing provider.
+		{"msg-3", "c@example.com", "int-7", domain.EmailEventDelivered, demoGapDeliveredAt},
+		{"msg-3", "c@example.com", "int-7", domain.EmailEventComplaint, complainedAt},
+		{"msg-4", "d@example.com", "int-42", domain.EmailEventBounce, bouncedAt},
+	}
+	require.Len(t, stored, len(want))
+	parser := &InboundWebhookEventService{logger: logger.NewLoggerWithLevel("disabled")}
 	seenIDs := map[string]bool{}
 	for i, evt := range stored {
-		assert.Equal(t, domain.EmailEventDelivered, evt.Type)
-		assert.Equal(t, domain.WebhookSourceSMTP, evt.Source)
-		assert.Equal(t, "int-42", evt.IntegrationID)
+		assert.Equal(t, want[i].eventType, evt.Type)
+		assert.Equal(t, domain.WebhookSourceSES, evt.Source)
+		assert.Equal(t, want[i].integration, evt.IntegrationID)
 		assert.Equal(t, want[i].email, evt.RecipientEmail)
 		require.NotNil(t, evt.MessageID)
 		assert.Equal(t, want[i].id, *evt.MessageID)
-		assert.Equal(t, demoGapDeliveredAt, evt.Timestamp)
-		assert.Equal(t, demoGapDeliveredAt, evt.CreatedAt)
-		assert.Equal(t, fmt.Sprintf(`{"event":"delivered","message_id":"%s","recipient":"%s","timestamp":"%s"}`,
-			want[i].id, want[i].email, demoGapDeliveredAt.Format(time.RFC3339)), evt.RawPayload)
+		assert.Equal(t, want[i].at, evt.Timestamp)
+		assert.Equal(t, want[i].at, evt.CreatedAt)
 		assert.NotEmpty(t, evt.ID)
 		assert.False(t, seenIDs[evt.ID], "event IDs must be unique")
 		seenIDs[evt.ID] = true
+
+		// What SES would have posted: the real parser reads the same event out of it.
+		parsed, err := parser.processSESWebhook(evt.IntegrationID, []byte(evt.RawPayload))
+		require.NoError(t, err)
+		require.Len(t, parsed, 1, "event %d", i)
+		assert.Equal(t, evt.Type, parsed[0].Type)
+		assert.Equal(t, domain.WebhookSourceSES, parsed[0].Source)
+		assert.Equal(t, evt.RecipientEmail, parsed[0].RecipientEmail)
+		assert.Equal(t, *evt.MessageID, *parsed[0].MessageID)
+		assert.True(t, evt.Timestamp.Equal(parsed[0].Timestamp))
+		assert.Equal(t, evt.BounceType, parsed[0].BounceType)
+		assert.Equal(t, evt.BounceCategory, parsed[0].BounceCategory)
+		assert.Equal(t, evt.BounceDiagnostic, parsed[0].BounceDiagnostic)
+		assert.Equal(t, evt.ComplaintFeedbackType, parsed[0].ComplaintFeedbackType)
 	}
+	// The bounce reads as hard, as ProcessWebhook classifies it.
+	assert.Equal(t, domain.BounceClassificationHard, domain.ClassifyBounce(domain.BounceInput{
+		Provider: domain.EmailProviderKindSES, Type: stored[3].BounceType, Subtype: stored[3].BounceCategory, Diagnostic: stored[3].BounceDiagnostic,
+	}))
+}
+
+func TestDemoBounceOrDeliver(t *testing.T) {
+	sent := demoGapDeliveredAt
+	var bounced messageEngagement
+	demoBounceOrDeliver(&bounced, sent, 1)
+	assert.True(t, bounced.shouldBounce)
+	assert.False(t, bounced.shouldDeliver, "a bounced email is never delivered")
+	assert.True(t, bounced.bouncedTime.After(sent))
+
+	var delivered messageEngagement
+	demoBounceOrDeliver(&delivered, sent, 0)
+	assert.True(t, delivered.shouldDeliver)
+	assert.False(t, delivered.shouldBounce)
+	assert.False(t, delivered.deliveredTime.Before(sent))
+}
+
+func TestDemoService_StoreDemoDeliveredSESEvents(t *testing.T) {
+	// The automation history writes delivered_at itself: SES reported each of those deliveries.
+	ctrl := gomock.NewController(t)
+	events := mocks.NewMockInboundWebhookEventRepository(ctrl)
+	wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	wsRepo.EXPECT().GetByID(gomock.Any(), "ws-gap").
+		Return(&domain.Workspace{ID: "ws-gap", Settings: domain.WorkspaceSettings{MarketingEmailProviderID: "int-7"}}, nil).Times(1)
+	var stored []*domain.InboundWebhookEvent
+	events.EXPECT().StoreEvents(gomock.Any(), "ws-gap", gomock.Any()).
+		DoAndReturn(func(_ context.Context, _ string, evts []*domain.InboundWebhookEvent) error {
+			stored = evts
+			return nil
+		}).Times(1)
+
+	automation := "auto-1"
+	at := demoGapDeliveredAt
+	svc := demoGapWebhookSvc(t, wsRepo, events, true)
+	require.NoError(t, svc.storeDemoDeliveredSESEvents(demoGapSystemCtx(), "ws-gap", []*domain.MessageHistory{
+		{ID: "m-1", ContactEmail: "a@example.com", AutomationID: &automation, DeliveredAt: &at},
+		{ID: "m-2", ContactEmail: "b@example.com", AutomationID: &automation}, // not delivered: no event
+	}))
+	require.Len(t, stored, 1)
+	assert.Equal(t, domain.EmailEventDelivered, stored[0].Type)
+	assert.Equal(t, domain.WebhookSourceSES, stored[0].Source)
+	assert.Equal(t, "int-7", stored[0].IntegrationID)
+	assert.Equal(t, "m-1", *stored[0].MessageID)
+	assert.Equal(t, at, stored[0].Timestamp)
 }
 
 func TestDemoService_DeliveredWebhookGap_StoreFailure(t *testing.T) {
@@ -463,5 +572,24 @@ func TestDemoService_DeliveredWebhookGap_StoreFailure(t *testing.T) {
 	err := svc.generateDeliveredInboundWebhookEventsForBatch(
 		demoGapSystemCtx(), "ws-gap", []messageEngagementData{demoGapMsg("m1", "a@example.com", true)})
 	require.EqualError(t, err, "failed to store inbound webhook events: insert failed")
+	assert.ErrorIs(t, err, sentinel)
+}
+
+func TestDemoService_DeliveredWebhookGap_RecordFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	events := mocks.NewMockInboundWebhookEventRepository(ctrl)
+	wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	wsRepo.EXPECT().GetByID(gomock.Any(), "ws-gap").
+		Return(&domain.Workspace{ID: "ws-gap", Settings: domain.WorkspaceSettings{TransactionalEmailProviderID: "int-42"}}, nil).Times(1)
+	events.EXPECT().StoreEvents(gomock.Any(), "ws-gap", gomock.Any()).Return(nil).Times(1)
+	msgHistory := mocks.NewMockMessageHistoryRepository(ctrl)
+	sentinel := errors.New("update failed")
+	msgHistory.EXPECT().SetStatusesIfNotSet(gomock.Any(), "ws-gap", gomock.Any()).Return(sentinel).Times(1)
+
+	svc := demoGapWebhookSvc(t, wsRepo, events, true)
+	svc.messageHistoryRepo = msgHistory
+	err := svc.generateDeliveredInboundWebhookEventsForBatch(
+		demoGapSystemCtx(), "ws-gap", []messageEngagementData{demoGapMsg("m1", "a@example.com", true)})
+	require.EqualError(t, err, "failed to record deliveries: update failed")
 	assert.ErrorIs(t, err, sentinel)
 }

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"net"
 	"sort"
 	"strings"
 	"time"
@@ -1509,6 +1510,26 @@ const (
 	scopeFixedByProduct
 )
 
+// apiKeyEmailDomain is the domain of the address an API key is minted with: the host of the API
+// endpoint, without its scheme, path or port. "key@localhost:4000" is no email address, and a
+// self-hosted endpoint often carries a port ("http://203.0.113.7:8080").
+func apiKeyEmailDomain(apiEndpoint string) string {
+	host := apiEndpoint
+	if strings.HasPrefix(host, "http://") {
+		host = strings.TrimPrefix(host, "http://")
+	} else if strings.HasPrefix(host, "https://") {
+		host = strings.TrimPrefix(host, "https://")
+	}
+	if idx := strings.Index(host, "/"); idx != -1 {
+		host = host[:idx]
+	}
+	if hostname, _, err := net.SplitHostPort(host); err == nil {
+		return strings.Trim(hostname, "[]")
+	}
+	// No port: an IPv6 host still comes bracketed ("[::1]").
+	return strings.Trim(host, "[]")
+}
+
 // CreateAPIKey creates an API key for a workspace. A nil permissions map grants the key
 // full access, which is the pre-scoping contract for callers that omit the field.
 //
@@ -1562,17 +1583,7 @@ func (s *WorkspaceService) createAPIKey(ctx context.Context, workspaceID string,
 	}
 
 	// Generate an API email using the prefix
-	// Extract domainName from API endpoint by removing any protocol prefix and path suffix
-	domainName := s.config.APIEndpoint
-	if strings.HasPrefix(domainName, "http://") {
-		domainName = strings.TrimPrefix(domainName, "http://")
-	} else if strings.HasPrefix(domainName, "https://") {
-		domainName = strings.TrimPrefix(domainName, "https://")
-	}
-	if idx := strings.Index(domainName, "/"); idx != -1 {
-		domainName = domainName[:idx]
-	}
-	apiEmail := emailPrefix + "@" + domainName
+	apiEmail := emailPrefix + "@" + apiKeyEmailDomain(s.config.APIEndpoint)
 
 	// Defense-in-depth, mirroring InviteMember: a configured platform admin (ROOT_EMAIL) has
 	// owner access to every workspace, so a prefix that lands on a root address would mint a

@@ -1,5 +1,5 @@
 import { useLingui } from '@lingui/react/macro'
-import { Popover, List } from 'antd'
+import { Popover } from 'antd'
 import { WarningOutlined } from '@ant-design/icons'
 import type { SEOSettings } from '../../services/api/blog'
 import { seoGaps, type SeoGap } from './seoGaps'
@@ -54,33 +54,21 @@ export function MissingMetaTagsWarning({ seo, featuredImage, className }: Missin
     return null
   }
 
+  // A plain list: antd's List is deprecated.
   const content = (
-    <div style={{ maxWidth: 300 }}>
-      <List
-        size="small"
-        dataSource={missingTags}
-        renderItem={(item) => (
-          <List.Item style={{ padding: '4px 0', border: 'none' }}>
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 12 }}>{item.name}</div>
-              <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{item.description}</div>
-            </div>
-          </List.Item>
-        )}
-      />
-    </div>
+    <ul data-unreset className="m-0 flex max-w-[300px] list-none flex-col gap-2 p-0">
+      {missingTags.map((item) => (
+        <li key={item.name}>
+          <div className="text-xs font-medium text-ink">{item.name}</div>
+          <div className="mt-0.5 text-2xs text-ink-3">{item.description}</div>
+        </li>
+      ))}
+    </ul>
   )
 
   return (
     <Popover content={content} title={t`Missing Tags`} trigger="hover">
-      <WarningOutlined
-        style={{
-          color: '#ff9800',
-          fontSize: 16,
-          cursor: 'pointer'
-        }}
-        className={className}
-      />
+      <WarningOutlined className={`cursor-pointer text-base text-warning-fg ${className ?? ''}`} />
     </Popover>
   )
 }

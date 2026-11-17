@@ -21,7 +21,7 @@ export default function SendTestEmailButton({ permissions, onClick, size }: Send
     <Tooltip
       title={
         allowed
-          ? t`Send Test Email`
+          ? t`Send test email`
           : t`You need Templates read and Transactional write permissions to send test emails`
       }
     >

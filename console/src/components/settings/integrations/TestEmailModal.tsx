@@ -12,6 +12,11 @@ export interface TestEmailTarget {
    * still holds what was typed.
    */
   integrationId?: string
+  /**
+   * Sent from the drawer, with what its form holds, saved or not. A card tests the saved
+   * integration, and its dialog says so.
+   */
+  fromForm?: boolean
 }
 
 export interface TestEmailModalProps {
@@ -79,7 +84,11 @@ export function TestEmailModal({ workspaceId, target, onClose }: TestEmailModalP
           onChange={(e) => setTo(e.target.value)}
           onPressEnter={send}
         />
-        <div className="text-xs text-ink-3">{t`A real email, sent through these settings, saved or not.`}</div>
+        <div className="text-xs text-ink-3">
+          {target?.fromForm
+            ? t`A real email, sent through these settings, saved or not.`
+            : t`A real email, sent through this integration's saved settings.`}
+        </div>
       </div>
     </Modal>
   )

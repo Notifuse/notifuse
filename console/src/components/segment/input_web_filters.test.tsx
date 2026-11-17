@@ -79,6 +79,8 @@ describe('saved Activity conditions carrying web filters', () => {
     expect(screen.getByText('View web page')).toBeInTheDocument()
     // The field's display title comes from the kind's schema, not the table's.
     expect(screen.getByText('Path')).toBeInTheDocument()
+    // Worded as the editor words it.
+    expect(screen.getByText('with filters')).toBeInTheDocument()
   })
 
   it('renders a web.session condition filtered on its own keys', () => {

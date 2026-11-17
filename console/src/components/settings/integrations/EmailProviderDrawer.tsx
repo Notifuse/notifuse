@@ -8,11 +8,11 @@ import {
   Input,
   InputNumber,
   Modal,
-  Popconfirm,
   Radio,
   Segmented,
   Select,
   Switch,
+  theme,
   type FormRule
 } from 'antd'
 import { Pencil, Plus, Send, Trash2 } from 'lucide-react'
@@ -31,6 +31,7 @@ import { useLicense } from '../../../hooks/useLicense'
 import { LicenceGateNotice } from '../../license/LicenceGateNotice'
 import { getProviderName } from '../../integrations/EmailProviders'
 import { Panel, Pill, useNumberFormat } from '../../layout'
+import { PopconfirmWithTooltip } from '../../layout/PopconfirmWithTooltip'
 import { SettingsRow, SettingsRows } from '../SettingsRow'
 import { useSESDiscovery } from '../useSESDiscovery'
 import type { EmailIntegration } from './EmailProviderCard'
@@ -39,6 +40,7 @@ import { useSecretPlaceholder } from './secrets'
 import {
   DEFAULT_RATE_LIMIT,
   emailProviderFormValues,
+  labelInSentence,
   providerFromFormValues,
   type EmailProviderFormValues
 } from './emailProviderForm'
@@ -119,7 +121,7 @@ export function EmailProviderDrawer({
   onSaved,
   onTest
 }: EmailProviderDrawerProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const { message, modal } = App.useApp()
   const { int } = useNumberFormat()
   const [form] = Form.useForm<EmailProviderFormValues>()
@@ -127,6 +129,11 @@ export function EmailProviderDrawer({
   const [initialValues] = useState(() => emailProviderFormValues(kind, integration))
   const [senders, setSenders] = useState<Sender[]>(initialValues.senders)
   const [senderModalOpen, setSenderModalOpen] = useState(addSenderOnOpen)
+  // The sender dialog sits beside the drawer, so antd does not stack it above it: opened with the
+  // drawer (the card's "+ Add"), it mounted first and stayed hidden behind it at the same z-index,
+  // and Add sender or Edit then changed nothing visible. One level above the drawer's.
+  const { token } = theme.useToken()
+  const senderModalZ = token.zIndexPopupBase + 1
   const [editingSenderIndex, setEditingSenderIndex] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const secretPlaceholder = useSecretPlaceholder(integration)
@@ -211,22 +218,27 @@ export function EmailProviderDrawer({
     updateSenders(senders.map((sender, i) => ({ ...sender, is_default: i === index })))
 
   const saveSender = () => {
-    senderForm.validateFields().then((values) => {
-      const next = [...senders]
-      // The first sender, or the first one while none is the default, becomes the default.
-      const needsDefault = next.length === 0 || !next.some((sender) => sender.is_default)
-      if (editingSenderIndex !== null) {
-        next[editingSenderIndex] = {
-          ...values,
-          id: next[editingSenderIndex].id || uuidv4(),
-          is_default: next[editingSenderIndex].is_default || needsDefault
+    senderForm
+      .validateFields()
+      .then((values) => {
+        const next = [...senders]
+        // The first sender, or the first one while none is the default, becomes the default.
+        const needsDefault = next.length === 0 || !next.some((sender) => sender.is_default)
+        if (editingSenderIndex !== null) {
+          next[editingSenderIndex] = {
+            ...values,
+            id: next[editingSenderIndex].id || uuidv4(),
+            is_default: next[editingSenderIndex].is_default || needsDefault
+          }
+        } else {
+          next.push({ ...values, id: uuidv4(), is_default: needsDefault })
         }
-      } else {
-        next.push({ ...values, id: uuidv4(), is_default: needsDefault })
-      }
-      updateSenders(next)
-      setSenderModalOpen(false)
-    })
+        updateSenders(next)
+        setSenderModalOpen(false)
+      })
+      // A field in error is shown under it; uncaught, antd's { errorFields } rejection reached
+      // the console as "Uncaught (in promise) [object Object]".
+      .catch(() => undefined)
   }
 
   // Provision managed SES tenant isolation after the integration itself is saved.
@@ -335,7 +347,13 @@ export function EmailProviderDrawer({
   const testFromDrawer = () => {
     form
       .validateFields()
-      .then((values) => onTest({ provider: providerFromFormValues({ ...values, kind }), integrationId: integration?.id }))
+      .then((values) =>
+        onTest({
+          provider: providerFromFormValues({ ...values, kind }),
+          integrationId: integration?.id,
+          fromForm: true
+        })
+      )
       .catch(() => message.error(t`Please fill in all required fields before testing`))
   }
 
@@ -361,7 +379,7 @@ export function EmailProviderDrawer({
       help={options.help}
       htmlFor={name.join('_')}
     >
-      <Form.Item name={name} rules={options.rules} extra={options.extra} messageVariables={{ label }}>
+      <Form.Item name={name} rules={options.rules} extra={options.extra} messageVariables={{ label: labelInSentence(label, i18n.locale) }}>
         <Input placeholder={options.placeholder} disabled={!isOwner} />
       </Form.Item>
     </SettingsRow>
@@ -382,7 +400,7 @@ export function EmailProviderDrawer({
         name={name}
         rules={options.rules}
         extra={keepsStored(options.stored || hasHint(options.hintKey))}
-        messageVariables={{ label }}
+        messageVariables={{ label: labelInSentence(label, i18n.locale) }}
       >
         <Input.Password
           placeholder={secretPlaceholder(options.hintKey, options.stored, options.fallback)}
@@ -800,6 +818,27 @@ export function EmailProviderDrawer({
     sendgrid: renderSendGrid
   }
 
+  // X, Escape and the back link ask first when something was changed: they dropped an added
+  // sender or a typed key without a word. A save closes the drawer directly.
+  const requestClose = () => {
+    const dirty =
+      form.isFieldsTouched() || JSON.stringify(senders) !== JSON.stringify(initialValues.senders)
+    if (!dirty) {
+      onClose()
+      return
+    }
+    modal.confirm({
+      title: t`Close without saving?`,
+      content: integration
+        ? t`Your changes to this integration will be lost.`
+        : t`This integration is not created yet.`,
+      okText: t`Close`,
+      cancelText: t`Keep editing`,
+      okButtonProps: { danger: true },
+      onOk: onClose
+    })
+  }
+
   const rate = rateLimitPerMinute || DEFAULT_RATE_LIMIT
   const perHour = int(rate * 60)
   const perDay = int(rate * 60 * 24)
@@ -817,7 +856,7 @@ export function EmailProviderDrawer({
 
   return (
     <>
-      <IntegrationDrawer onClose={onClose} title={title} topActions={topActions}>
+      <IntegrationDrawer onClose={requestClose} title={title} topActions={topActions}>
         <Form form={form} layout="vertical" component={false} initialValues={initialValues} onFinish={save} scrollToFirstError>
           <Form.Item name="kind" hidden>
             <Input />
@@ -878,12 +917,14 @@ export function EmailProviderDrawer({
                             disabled={!isOwner}
                           />
                           {senders.length > 1 ? (
-                            <Popconfirm
+                            <PopconfirmWithTooltip
+                              tooltip={t`Delete sender`}
                               title={t`Delete this sender?`}
                               description={t`Templates using this sender will need to be updated to use a different sender.`}
                               onConfirm={() => deleteSender(index)}
-                              okText={t`Yes`}
-                              cancelText={t`No`}
+                              okText={t`Delete`}
+                              cancelText={t`Cancel`}
+                              okButtonProps={{ danger: true }}
                             >
                               <Button
                                 type="text"
@@ -892,7 +933,7 @@ export function EmailProviderDrawer({
                                 icon={<Trash2 size={14} aria-hidden="true" />}
                                 disabled={!isOwner}
                               />
-                            </Popconfirm>
+                            </PopconfirmWithTooltip>
                           ) : null}
                         </li>
                       ))}
@@ -940,6 +981,7 @@ export function EmailProviderDrawer({
       <Modal
         title={editingSenderIndex !== null ? t`Edit sender` : t`Add sender`}
         open={senderModalOpen}
+        zIndex={senderModalZ}
         onCancel={() => setSenderModalOpen(false)}
         footer={[
           <Button key="cancel" onClick={() => setSenderModalOpen(false)}>
@@ -962,7 +1004,7 @@ export function EmailProviderDrawer({
             <Input placeholder="sender@example.com" disabled={!isOwner} />
           </Form.Item>
           <Form.Item name="name" label={t`Name`} rules={[{ required: true, message: t`Name is required` }]}>
-            <Input placeholder={t`Sender Name`} disabled={!isOwner} />
+            <Input placeholder={t`Sender name`} disabled={!isOwner} />
           </Form.Item>
         </Form>
       </Modal>

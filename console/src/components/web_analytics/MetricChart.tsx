@@ -59,7 +59,9 @@ export function MetricChart(props: MetricChartProps) {
   const { metric, current, previous = [], granularity, height = 200 } = props
 
   const option = useMemo(() => {
-    const labels = current.map((point) => formatXAxisLabel(point.timestamp, granularity))
+    const firstDay = current[0]?.timestamp.slice(0, 10)
+    const withDate = granularity === 'hour' && current.some((point) => point.timestamp.slice(0, 10) !== firstDay)
+    const labels = current.map((point) => formatXAxisLabel(point.timestamp, granularity, { withDate }))
     // Long ranges would print a tick per bucket; thin them out instead of
     // letting echarts drop labels at arbitrary positions.
     const labelInterval = labels.length > 14 ? Math.floor(labels.length / 7) - 1 : 0
@@ -119,6 +121,24 @@ export function MetricChart(props: MetricChartProps) {
     // follows the x-order it exists to separate.
     const collapsed = [...annotationsByIndex.entries()].sort(([a], [b]) => a - b)
 
+    // A title prints beside its line: left ("Top") or right ("Bottom") on a vertical one. Each
+    // takes the other side from the previous one, so two annotations a few buckets apart do not
+    // print their titles over each other; but the first bucket has the y-axis labels on its left
+    // and the last one the chart's edge on its right, so those print inward.
+    const sides: string[] = []
+    for (const [index] of collapsed) {
+      const previous = sides[sides.length - 1]
+      sides.push(
+        index === 0
+          ? 'insideEndBottom'
+          : index === current.length - 1
+            ? 'insideEndTop'
+            : previous === 'insideEndTop'
+              ? 'insideEndBottom'
+              : 'insideEndTop'
+      )
+    }
+
     if (collapsed.length > 0) {
       series[0].markLine = {
         silent: true,
@@ -133,9 +153,7 @@ export function MetricChart(props: MetricChartProps) {
             lineStyle: { color: first.color, type: 'dotted', width: 1 },
             label: {
               show: true,
-              // Alternating keeps two annotations a few buckets apart from
-              // printing their titles over each other.
-              position: position % 2 === 0 ? 'insideEndTop' : 'insideEndBottom',
+              position: sides[position],
               // A rich label, so `{`, `}` and `|` in the title are markup here
               // and have to go — a different problem from the HTML escaping the
               // tooltip needs. "+N" stands for the rest of the bucket, which
@@ -260,7 +278,11 @@ export function MetricChart(props: MetricChartProps) {
           color: colors.ink3,
           fontSize: typography.size.overline,
           interval: labelInterval,
-          rotate: labelRotate
+          rotate: labelRotate,
+          // Centred on the first and last points, the end labels ran past the plot and were cut
+          // ("Nov 1" for "Nov 15"): they align inward instead.
+          alignMinLabel: 'left',
+          alignMaxLabel: 'right'
         }
       },
       yAxis: {

@@ -41,7 +41,9 @@ export function DeleteFolderModal({
   const question =
     count.data === undefined
       ? t`Delete the folder ${name} and its files?`
-      : plural(count.data, {
+      : count.data === 0
+        ? t`Delete the empty folder ${name}?`
+        : plural(count.data, {
           one: `Delete the folder ${name} and its # file?`,
           other: `Delete the folder ${name} and its # files?`
         })

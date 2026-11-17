@@ -121,7 +121,7 @@ export function TemplateStartModal({
           onBack={() => setView({ kind: 'grid' })}
           title={name(view.model)}
           description={i18n._(MODEL_LABELS[view.model.id].description)}
-          category={view.model.category}
+          category={view.model.category ?? forceCategory}
           sentBy={i18n._(SENT_BY_LABELS[view.model.sentBy])}
           // The variables a model needs on top of those every send fills in.
           variables={ownVariablePaths(previewTemplate(view.model).test_data as Record<string, unknown>)}
@@ -211,8 +211,9 @@ export function TemplateStartModal({
                       <span className="truncate text-sm font-semibold text-ink">{name(model)}</span>
                       {/* The height of a category tag, so Blank's card lines up with the others. */}
                       <span className="flex h-5 items-center">
-                        {model.category ? (
-                          <TemplateCategoryTag category={model.category} />
+                        {/* Blank has no category of its own: an imposed one is the one it gets. */}
+                        {model.category || forceCategory ? (
+                          <TemplateCategoryTag category={model.category ?? forceCategory ?? ''} />
                         ) : (
                           <span className="text-xs text-ink-3">{t`Category to choose`}</span>
                         )}

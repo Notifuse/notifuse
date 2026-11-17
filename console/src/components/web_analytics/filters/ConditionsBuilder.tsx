@@ -1,8 +1,9 @@
 import { useCallback, useRef, useState } from 'react'
-import { Button, Input, Popconfirm, Select } from 'antd'
+import { Button, Form, Popconfirm, Select } from 'antd'
 import type { RefSelectProps } from 'antd/es/select'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { RuleValueInput } from './RuleValueInput'
 import { WebFilterCondition, WebFilterOperator } from '../../../services/api/web_analytics'
 import {
   isValuelessOperator,
@@ -49,6 +50,9 @@ function ConditionRow(props: ConditionRowProps) {
   )
 
   const showValueInput = !isValuelessOperator(props.value.operator)
+  // The list's error, once shown, outlines the value that causes it, not the whole row.
+  const { errors } = Form.Item.useStatus()
+  const valueMissing = errors.length > 0 && !props.value.value?.trim()
 
   // Two lines, to fit a side panel: what is read and how, then the value it is compared with.
   return (
@@ -95,6 +99,7 @@ function ConditionRow(props: ConditionRowProps) {
           title={t`Delete this condition?`}
           onConfirm={props.onRemove}
           okText={t`Delete`}
+          okButtonProps={{ danger: true }}
           cancelText={t`Cancel`}
           disabled={props.isOnlyCondition}
         >
@@ -108,10 +113,13 @@ function ConditionRow(props: ConditionRowProps) {
       </div>
       {showValueInput ? (
         <div className="pl-6">
-          <Input
+          <RuleValueInput
+            // A pattern is typed whatever the field holds.
+            field={props.value.operator === 'regex' ? '' : props.value.field}
             value={props.value.value ?? ''}
-            onChange={(event) => props.onChange({ ...props.value, value: event.target.value })}
+            onChange={(value) => props.onChange({ ...props.value, value })}
             placeholder={props.value.operator === 'regex' ? t`Regular expression` : t`Value`}
+            status={valueMissing ? 'error' : undefined}
           />
         </div>
       ) : null}

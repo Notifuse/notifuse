@@ -240,9 +240,12 @@ describe('TemplatesPage', () => {
       })
     )
     renderPage()
-    await screen.findByText('2 newsletters')
+    await screen.findByText('2 broadcasts')
     expect(rowOf('Promo')).toHaveTextContent('3 uses')
-    expect(rowOf('Receipt')).toHaveTextContent('Not used')
+    expect(rowOf('Receipt')).toHaveTextContent('Not in use')
+    // Sent broadcasts are not counted: the cell and the column header say so.
+    fireEvent.mouseEnter(within(rowOf('Receipt')).getByText('Not in use'))
+    expect(await screen.findByText("Broadcasts already sent aren't counted.")).toBeInTheDocument()
   })
 
   it('says in the column header that uses the member cannot see are not counted', async () => {
@@ -251,6 +254,13 @@ describe('TemplatesPage', () => {
     await screen.findByText('Newsletter')
     fireEvent.mouseEnter(screen.getByText('Used in'))
     expect(await screen.findByText(/Uses you can't see aren't counted/)).toBeInTheDocument()
+  })
+
+  it('says in the column header that broadcasts already sent are not counted', async () => {
+    renderPage()
+    await screen.findByText('Newsletter')
+    fireEvent.mouseEnter(screen.getByText('Used in'))
+    expect(await screen.findByText(/Broadcasts already sent and segment filters on a template aren't counted/)).toBeInTheDocument()
   })
 
   it('shows a dash when the uses could not be loaded', async () => {
@@ -522,7 +532,7 @@ describe('TemplatesPage', () => {
     vi.mocked(templatesApi.usage).mockResolvedValue({} as GetTemplateUsageResponse)
     renderPage()
     await screen.findByText('Newsletter')
-    expect(await screen.findAllByText('Not used')).not.toHaveLength(0)
+    expect(await screen.findAllByText('Not in use')).not.toHaveLength(0)
 
     fireEvent.click(within(await openMenu('Newsletter')).getByText('Delete'))
     expect(

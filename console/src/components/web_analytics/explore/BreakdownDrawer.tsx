@@ -132,6 +132,9 @@ function BreakdownTable(props: BreakdownTableProps) {
   const context = useWebAnalytics()
 
   const rows = props.data?.data ?? []
+  // Each row's position, as its key: a null and an empty value would share one, and antd no longer
+  // passes the index to rowKey.
+  const positions = new Map(rows.map((row, index) => [row, index]))
   const best = rows.reduce((max, row) => Math.max(max, toNumber(row.median_duration)), 0)
 
   if (props.error) {
@@ -145,7 +148,7 @@ function BreakdownTable(props: BreakdownTableProps) {
       size="small"
       loading={props.loading}
       dataSource={rows}
-      rowKey={(row, index) => `${index ?? 0}:${String(row[props.dimension] ?? '')}`}
+      rowKey={(row) => `${positions.get(row) ?? 0}:${String(row[props.dimension] ?? '')}`}
       pagination={{ pageSize: 10, size: 'small', showSizeChanger: false, hideOnSinglePage: true }}
       columns={[
         {

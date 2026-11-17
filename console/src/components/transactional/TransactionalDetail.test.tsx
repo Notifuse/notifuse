@@ -632,6 +632,21 @@ describe('TransactionalDetail', () => {
     expect(screen.getByText('utm_content=tpl')).toBeInTheDocument()
   })
 
+  it('lists every UTM parameter the editor saves, utm_term included', async () => {
+    getNotification.mockImplementation(({ id }: { id: string }) =>
+      Promise.resolve({
+        notification: notification(id, {
+          tracking_settings: { enable_tracking: true, utm_source: 'acme', utm_campaign: 'reset', utm_term: 'password' }
+        })
+      })
+    )
+    renderDetail()
+    await screen.findByText('Name reset')
+
+    expect(screen.getByText('utm_campaign=reset')).toBeInTheDocument()
+    expect(screen.getByText('utm_term=password')).toBeInTheDocument()
+  })
+
   it('turns opens and clicks off without tracking, and UTM off when disabled', async () => {
     getNotification.mockImplementation(({ id }: { id: string }) =>
       Promise.resolve({

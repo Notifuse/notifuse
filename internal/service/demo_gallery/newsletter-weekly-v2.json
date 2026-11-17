@@ -1,0 +1,2347 @@
+{
+  "generated_by": "console/src/components/templates/gallery/demo/demoFixtures.ts — do not edit, run `npm run demo-fixtures` in console/",
+  "template_id": "newsletter-weekly-v2",
+  "model": "announce",
+  "category": "marketing",
+  "default_language": "en",
+  "brand": {
+    "name": "Apple",
+    "logo_url": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+    "logo_width": 40
+  },
+  "test_data": {
+    "contact": {
+      "first_name": "Sarah",
+      "last_name": "Wilson",
+      "email": "sarah.wilson@example.com"
+    },
+    "list": {
+      "id": "newsletter",
+      "name": "Newsletter"
+    }
+  },
+  "languages": {
+    "en": {
+      "subject": "🚀 {{contact.first_name}}, This Week's Top Stories & Updates!",
+      "subject_preview": "Your personalized weekly roundup of insights and updates",
+      "visual_editor_tree": {
+        "id": "announce-mjml-33",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "announce-head-31",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "announce-attributes-29",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "announce-text-26",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "announce-button-27",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "announce-section-28",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "announce-preview-30",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Your personalized weekly roundup of insights and updates"
+              }
+            ]
+          },
+          {
+            "id": "announce-body-32",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "announce-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "announce-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Apple logo",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "announce-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "announce-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Shop</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Help</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-9",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-8",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-image-7",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Stay ahead of the curve",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "true",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-announce.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-14",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-13",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-10",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Weekly digest</p>"
+                      },
+                      {
+                        "id": "announce-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Stay ahead of the curve</p>"
+                      },
+                      {
+                        "id": "announce-text-12",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Hey {{ contact.first_name }}, here is your weekly digest: the latest trends, insights and updates, picked for you.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-19",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-18",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Featured story</b><br><span style=\"color:#5b6170;font-size:14px\">New industry standards are reshaping how we approach digital transformation. Here is what you need to know.</span>"
+                      },
+                      {
+                        "id": "announce-text-16",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Quick tips</b><br><span style=\"color:#5b6170;font-size:14px\">Five productivity habits successful professionals swear by. Simple changes, big impact.</span>"
+                      },
+                      {
+                        "id": "announce-text-17",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Trending now</b><br><span style=\"color:#5b6170;font-size:14px\">The tools and strategies everyone is talking about this week.</span>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-button-20",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Explore more"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-25",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-24",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-23",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>You are receiving this email because you subscribed to {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Manage preferences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Unsubscribe</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fr": {
+      "subject": "🚀 {{contact.first_name}}, Les articles et nouveautés de la semaine !",
+      "subject_preview": "Votre sélection hebdomadaire personnalisée d'informations et de mises à jour",
+      "visual_editor_tree": {
+        "id": "announce-mjml-33",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "announce-head-31",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "announce-attributes-29",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "announce-text-26",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "announce-button-27",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "announce-section-28",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "announce-preview-30",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Votre sélection hebdomadaire personnalisée d'informations et de mises à jour"
+              }
+            ]
+          },
+          {
+            "id": "announce-body-32",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "announce-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "announce-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Logo Apple",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "announce-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "announce-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Boutique</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Aide</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-9",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-8",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-image-7",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Gardez une longueur d’avance",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "true",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-announce.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-14",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-13",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-10",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Résumé hebdomadaire</p>"
+                      },
+                      {
+                        "id": "announce-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Gardez une longueur d’avance</p>"
+                      },
+                      {
+                        "id": "announce-text-12",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Bonjour {{ contact.first_name }}, voici votre résumé de la semaine : les dernières tendances, informations et nouveautés, choisies pour vous.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-19",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-18",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Article vedette</b><br><span style=\"color:#5b6170;font-size:14px\">De nouvelles normes redéfinissent notre approche de la transformation numérique. Voici ce qu’il faut savoir.</span>"
+                      },
+                      {
+                        "id": "announce-text-16",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Astuces rapides</b><br><span style=\"color:#5b6170;font-size:14px\">Cinq habitudes de productivité adoptées par les professionnels qui réussissent. De petits changements, un grand impact.</span>"
+                      },
+                      {
+                        "id": "announce-text-17",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Tendances du moment</b><br><span style=\"color:#5b6170;font-size:14px\">Les outils et stratégies dont tout le monde parle cette semaine.</span>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-button-20",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "En savoir plus"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-25",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-24",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-23",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Vous recevez cet e-mail car votre adresse est inscrite à {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gérer mes préférences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Se désabonner</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "es": {
+      "subject": "🚀 {{contact.first_name}}, ¡Las mejores historias y novedades de la semana!",
+      "subject_preview": "Tu selección semanal personalizada de novedades y actualizaciones",
+      "visual_editor_tree": {
+        "id": "announce-mjml-33",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "announce-head-31",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "announce-attributes-29",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "announce-text-26",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "announce-button-27",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "announce-section-28",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "announce-preview-30",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "Tu selección semanal personalizada de novedades y actualizaciones"
+              }
+            ]
+          },
+          {
+            "id": "announce-body-32",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "announce-section-6",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-group-5",
+                    "type": "mj-group",
+                    "attributes": {
+                      "verticalAlign": "top",
+                      "backgroundColor": "transparent",
+                      "direction": "ltr",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-column-2",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "40%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "announce-image-1",
+                            "type": "mj-image",
+                            "attributes": {
+                              "align": "left",
+                              "alt": "Logotipo de Apple",
+                              "border": "none",
+                              "borderRadius": "0px",
+                              "containerBackgroundColor": "transparent",
+                              "cssClass": "",
+                              "fluidOnMobile": "false",
+                              "height": "auto",
+                              "href": "{{ workspace.website_url }}",
+                              "paddingTop": "0px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "0px",
+                              "paddingLeft": "0px",
+                              "rel": "noopener noreferrer",
+                              "sizes": "",
+                              "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                              "srcset": "",
+                              "target": "_blank",
+                              "title": "",
+                              "usemap": "",
+                              "width": "40px"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "announce-column-4",
+                        "type": "mj-column",
+                        "attributes": {
+                          "width": "60%",
+                          "verticalAlign": "middle",
+                          "direction": "ltr",
+                          "backgroundColor": "transparent",
+                          "innerBackgroundColor": "transparent",
+                          "border": "none",
+                          "borderTop": "none",
+                          "borderRight": "none",
+                          "borderBottom": "none",
+                          "borderLeft": "none",
+                          "borderRadius": "0px",
+                          "innerBorder": "none",
+                          "innerBorderTop": "none",
+                          "innerBorderRight": "none",
+                          "innerBorderBottom": "none",
+                          "innerBorderLeft": "none",
+                          "innerBorderRadius": "0px",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "cssClass": ""
+                        },
+                        "children": [
+                          {
+                            "id": "announce-text-3",
+                            "type": "mj-text",
+                            "attributes": {
+                              "align": "right",
+                              "color": "#1f2430",
+                              "containerBackgroundColor": "transparent",
+                              "fontFamily": "Arial, Helvetica, sans-serif",
+                              "fontSize": "14px",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                              "lineHeight": "1.6",
+                              "textDecoration": "none",
+                              "textTransform": "none",
+                              "paddingTop": "10px",
+                              "paddingRight": "0px",
+                              "paddingBottom": "10px",
+                              "paddingLeft": "0px",
+                              "backgroundColor": "transparent",
+                              "cssClass": ""
+                            },
+                            "content": "<a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Tienda</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Blog</a> &nbsp; <a href=\"{{ workspace.website_url }}\" style=\"color:#1f2430;text-decoration:none\">Ayuda</a>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-9",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "0px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-8",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-image-7",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Mantente a la vanguardia",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "true",
+                          "height": "auto",
+                          "href": "",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "[[notifuse_gallery_base_url]]/hero-announce.jpg",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": ""
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-14",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-13",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-10",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Resumen semanal</p>"
+                      },
+                      {
+                        "id": "announce-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Mantente a la vanguardia</p>"
+                      },
+                      {
+                        "id": "announce-text-12",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Hola, {{ contact.first_name }}. Aquí tienes tu resumen semanal: las últimas tendencias, novedades y actualizaciones, elegidas para ti.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-19",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-18",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-15",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Artículo destacado</b><br><span style=\"color:#5b6170;font-size:14px\">Nuevos estándares están transformando nuestra forma de abordar la transformación digital. Esto es lo que debes saber.</span>"
+                      },
+                      {
+                        "id": "announce-text-16",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Consejos rápidos</b><br><span style=\"color:#5b6170;font-size:14px\">Cinco hábitos de productividad que usan los profesionales de éxito. Cambios sencillos, gran impacto.</span>"
+                      },
+                      {
+                        "id": "announce-text-17",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<span style=\"color:#1d4ed8;font-weight:bold\">✓</span> <b>Tendencias del momento</b><br><span style=\"color:#5b6170;font-size:14px\">Las herramientas y estrategias de las que todos hablan esta semana.</span>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-button-20",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Explorar más"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "announce-section-25",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "announce-column-24",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "announce-text-23",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Recibes este correo porque te suscribiste a {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gestionar preferencias</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Cancelar suscripción</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

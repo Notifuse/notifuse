@@ -67,6 +67,8 @@ export interface WebAnalyticsBackfillStatus {
   progress: number
   state?: WebAnalyticsBackfillState
   error_message?: string
+  /** A run stopped from the console: its status reads failed. */
+  cancelled?: boolean
 }
 
 export const WEB_FILTER_SOURCE_FIELDS = [

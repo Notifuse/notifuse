@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { Button, Input, Popconfirm, Select } from 'antd'
+import { Button, Form, Popconfirm, Select } from 'antd'
 import type { RefSelectProps } from 'antd/es/select'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
+import { RuleValueInput } from './RuleValueInput'
 import { WebFilterAction, WebFilterOperation } from '../../../services/api/web_analytics'
 import { buildDimensionOptions, FILTER_ACTIONS, useFilterVocabulary } from '../lib/filterCatalog'
 
@@ -52,6 +53,9 @@ function OperationRow(props: OperationRowProps) {
 
   const showValueInput =
     props.value.action === 'set_value' || props.value.action === 'set_default_value'
+  // The list's error, once shown, outlines the value that causes it, not the whole row.
+  const { errors } = Form.Item.useStatus()
+  const valueMissing = errors.length > 0 && !props.value.value?.trim()
 
   // Two lines, to fit a side panel: what is written and how, then the value written.
   return (
@@ -103,6 +107,7 @@ function OperationRow(props: OperationRowProps) {
           title={t`Delete this operation?`}
           onConfirm={props.onRemove}
           okText={t`Delete`}
+          okButtonProps={{ danger: true }}
           cancelText={t`Cancel`}
           disabled={props.isOnlyOperation}
         >
@@ -116,10 +121,12 @@ function OperationRow(props: OperationRowProps) {
       </div>
       {showValueInput ? (
         <div className="pl-6">
-          <Input
+          <RuleValueInput
+            field={props.value.dimension}
             value={props.value.value ?? ''}
-            onChange={(event) => props.onChange({ ...props.value, value: event.target.value })}
+            onChange={(value) => props.onChange({ ...props.value, value })}
             placeholder={t`Value`}
+            status={valueMissing ? 'error' : undefined}
           />
         </div>
       ) : null}

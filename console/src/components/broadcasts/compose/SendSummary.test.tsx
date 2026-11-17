@@ -93,8 +93,18 @@ describe('summaryChecks', () => {
   })
 
   it('adds the reason validateDraft gives, unless a line already says it', () => {
-    expect(summaryChecks(input({ issue: { code: 'feed_url_missing', feed: 'global' } })).find((c) => c.key === 'issue')).toBeDefined()
+    expect(summaryChecks(input({ issue: { code: 'name_missing' } })).find((c) => c.key === 'issue')).toBeDefined()
     expect(summaryChecks(input({ issue: { code: 'list_missing' } })).find((c) => c.key === 'issue')).toBeUndefined()
+  })
+
+  it('lists every data feed without a URL, not only the first one', () => {
+    // validateDraft stops at the global feed: the per-recipient one was never named.
+    const feeds = values({
+      globalFeed: { enabled: true, url: '', headers: [] },
+      recipientFeed: { enabled: true, url: '', headers: [] }
+    })
+    const checks = summaryChecks(input({ values: feeds, issue: { code: 'feed_url_missing', feed: 'global' } }))
+    expect(checks.filter((c) => c.key.startsWith('feed-') || c.key === 'issue').map((c) => c.key)).toEqual(['feed-global', 'feed-recipient'])
   })
 
   it('notes an untracked broadcast as information', () => {
@@ -121,6 +131,14 @@ describe('SendSummary', () => {
     expect(screen.getByText('Newsletter, VIP · ≈ 1200 recipients')).toBeInTheDocument()
     expect(screen.getByText('1 template')).toBeInTheDocument()
     expect(screen.getByText('Now')).toBeInTheDocument()
+  })
+
+  it('starts each data feed line with a capital', () => {
+    renderSummary({
+      values: values({ globalFeed: { enabled: true, url: '', headers: [] }, recipientFeed: { enabled: true, url: '', headers: [] } })
+    })
+    expect(screen.getByText('The global data feed has no URL')).toBeInTheDocument()
+    expect(screen.getByText('The per-recipient data feed has no URL')).toBeInTheDocument()
   })
 
   it('says no template is chosen yet', () => {
@@ -151,7 +169,7 @@ describe('SendSummary', () => {
     })
     expect(screen.getByText('The template has no unsubscribe link (default, fr)')).toBeInTheDocument()
     expect(screen.getByText('No marketing email provider')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Configure Provider' })).toHaveAttribute('href', '/console/workspace/ws1/settings/integrations')
+    expect(screen.getByRole('link', { name: 'Configure provider' })).toHaveAttribute('href', '/console/workspace/ws1/settings/integrations')
     expect(screen.getByText('Variant A: sender gone no longer exists')).toBeInTheDocument()
   })
 })

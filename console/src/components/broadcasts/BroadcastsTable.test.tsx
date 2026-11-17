@@ -88,6 +88,12 @@ describe('BroadcastsTable', () => {
     expect(onAction).toHaveBeenCalledWith('cancelOrDraft', scheduled)
   })
 
+  it('offers no "More actions" on a cancelled broadcast with nothing to do', () => {
+    // It used to open an empty menu.
+    renderTable({ rows: [broadcast({ status: 'cancelled' } as Partial<Broadcast>)], permissions: { broadcasts: { read: true, write: true } } as never })
+    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull()
+  })
+
   it('cancels a broadcast whose sending started straight from Cancel', async () => {
     const onAction = vi.fn()
     const started = broadcast({ status: 'scheduled', started_at: '2026-11-15T09:00:00Z' } as Partial<Broadcast>)

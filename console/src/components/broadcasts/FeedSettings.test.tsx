@@ -33,3 +33,22 @@ describe.each([
     expect(screen.getByRole('button', { name: 'Test' })).toBeEnabled()
   })
 })
+
+describe.each([
+  ['GlobalFeedSettings', () => <GlobalFeedSettings workspaceId="ws1" broadcastId="bc1" value={{ enabled: true, url: '', headers: [] }} />],
+  ['RecipientFeedSettings', () => <RecipientFeedSettings workspaceId="ws1" broadcastId="bc1" value={{ enabled: true, url: '', headers: [] }} />]
+])('%s URL field', (_name, element) => {
+  it('waits for the field to be left empty before saying the URL is required', () => {
+    // The error showed as soon as the feed was switched on, before anything could be typed.
+    wrap(element())
+    expect(screen.queryByText('URL is required')).toBeNull()
+    fireEvent.blur(screen.getByPlaceholderText(/^https:\/\/api\.example\.com/))
+    expect(screen.getByText('URL is required')).toBeInTheDocument()
+  })
+
+  it('has no colon after its label', () => {
+    wrap(element())
+    // antd writes the colon from CSS unless the label carries this class.
+    expect(screen.getByText('Feed URL').closest('label')).toHaveClass('ant-form-item-no-colon')
+  })
+})

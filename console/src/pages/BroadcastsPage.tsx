@@ -26,7 +26,7 @@ import { PAGE_SIZE, groupCount, useBroadcastsList } from '../components/broadcas
 type StatusGroup = 'all' | keyof typeof BROADCAST_STATUS_GROUPS
 
 // Valid status groups of the URL; anything else falls back to 'all'.
-const STATUS_GROUP_VALUES: StatusGroup[] = ['all', 'draft', 'scheduled', 'sending', 'sent', 'failed']
+const STATUS_GROUP_VALUES: StatusGroup[] = ['all', 'draft', 'scheduled', 'sending', 'sent', 'failed', 'cancelled']
 const SEARCH_DELAY_MS = 300
 const ROUTE = '/console/workspace/$workspaceId/broadcasts'
 
@@ -203,6 +203,10 @@ export function BroadcastsPage() {
   const failedCount = groupCount(counts, BROADCAST_STATUS_GROUPS.failed) ?? 0
   if (failedCount > 0 || statusGroup === 'failed')
     tabs.push({ value: 'failed', label: t({ message: 'Failed', context: 'newsletter filter' }), count: failedCount })
+  // Cancelled broadcasts have their own tab, shown like Failed only when there are some.
+  const cancelledCount = groupCount(counts, BROADCAST_STATUS_GROUPS.cancelled) ?? 0
+  if (cancelledCount > 0 || statusGroup === 'cancelled')
+    tabs.push({ value: 'cancelled', label: t({ message: 'Cancelled', context: 'newsletter filter' }), count: cancelledCount })
 
   const hasMarketingProvider = !!workspace?.settings?.marketing_email_provider_id
   // Nothing at all in the workspace: no search, and the counts of every status are zero.
@@ -260,7 +264,7 @@ export function BroadcastsPage() {
           description={t`You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts.`}
           action={
             <Button size="small" href={`/console/workspace/${workspaceId}/settings/integrations`}>
-              {t`Configure Provider`}
+              {t`Configure provider`}
             </Button>
           }
         />

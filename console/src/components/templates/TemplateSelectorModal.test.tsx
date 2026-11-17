@@ -113,7 +113,9 @@ describe('TemplateSelectorModal', () => {
     expect(within(resetRow).getByText('EN · FR')).toBeInTheDocument()
     expect(await within(resetRow).findByText('1 notification')).toBeInTheDocument()
     expect(within(row(/^Cart Recovery B/)).getByText('1 automation')).toBeInTheDocument()
-    expect(within(row(/^Welcome Email/)).getByText('Not used')).toBeInTheDocument()
+    // « Not in use »: a sent broadcast is not counted, and the tooltip says so.
+    expect(within(row(/^Welcome Email/)).getByText('Not in use')).toBeInTheDocument()
+    expect(within(row(/^Welcome Email/)).queryByText('Not used')).toBeNull()
     expect(screen.getByText('3 templates')).toBeInTheDocument()
     // Every template's counts in one call, without a template_id.
     expect(templatesApi.usage).toHaveBeenCalledWith({ workspace_id: 'ws1' })
@@ -144,6 +146,26 @@ describe('TemplateSelectorModal', () => {
     expect(screen.getByText('No template matches “refund”')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Clear search' }))
     expect(rowNames()).toHaveLength(3)
+  })
+
+  it('does not keep a template the search hides in the preview', async () => {
+    // The pane used to keep the previewed template, with "Use this template" choosing it, after a
+    // search had taken it out of the list.
+    const { onPick } = renderModal({ value: 'pwd' })
+    await list()
+    expect(within(pane()).getByRole('heading', { name: 'Password Reset' })).toBeInTheDocument()
+
+    const search = screen.getByRole('textbox', { name: 'Search by name or subject' })
+    await userEvent.type(search, 'community')
+    expect(rowNames()).toEqual(['Welcome Email'])
+    expect(within(pane()).queryByRole('heading', { name: 'Password Reset' })).toBeNull()
+    expect(within(pane()).queryByRole('button', { name: 'Use this template' })).toBeNull()
+    expect(within(pane()).getByText('Pick a template to preview it')).toBeInTheDocument()
+
+    // Clearing the search brings the template, and its preview, back.
+    await userEvent.clear(search)
+    expect(within(pane()).getByRole('heading', { name: 'Password Reset' })).toBeInTheDocument()
+    expect(onPick).not.toHaveBeenCalled()
   })
 
   it('locks the category the caller imposes, and asks the API for it alone', async () => {
@@ -206,12 +228,37 @@ describe('TemplateSelectorModal', () => {
     expect(templatesApi.usage).toHaveBeenCalledWith({ workspace_id: 'ws1', template_id: 'pwd' })
   })
 
+  it('names a broadcast that uses the template a broadcast', async () => {
+    // "Used by" called it a Newsletter, a word the Broadcasts screens don't use.
+    ;(templatesApi.usage as Mock).mockImplementation(({ template_id }: { template_id?: string }) =>
+      Promise.resolve(
+        template_id
+          ? { usage: { 'cart-b': { broadcasts: 1 } }, references: [{ type: 'broadcast', id: 'b1', name: 'Black Friday', status: 'draft' }], hidden_types: [] }
+          : { usage: { 'cart-b': { broadcasts: 1 } }, hidden_types: [] }
+      )
+    )
+    renderModal({ value: 'cart-b' })
+    await list()
+    expect(await within(row(/^Cart Recovery B/)).findByText('1 broadcast')).toBeInTheDocument()
+    expect(await within(pane()).findByText('Black Friday')).toBeInTheDocument()
+    expect(within(pane()).getByText('(Broadcast · Draft)')).toBeInTheDocument()
+  })
+
   it('previews a translation in its own language', async () => {
     renderModal({ value: 'pwd' })
     await list()
     await userEvent.click(within(pane()).getByText('French'))
     expect(await within(pane()).findByText('Rendered: Réinitialisez votre mot de passe')).toBeInTheDocument()
     expect(within(pane()).getByTestId('frame')).toHaveAttribute('data-template', 'pwd@fr')
+  })
+
+  it('opens the full preview in the language the pane shows', async () => {
+    // It opened in the default language after a translation had been picked.
+    const { onFullPreview } = renderModal({ value: 'pwd' })
+    await list()
+    await userEvent.click(within(pane()).getByText('French'))
+    await userEvent.click(within(pane()).getByRole('button', { name: 'Full preview' }))
+    expect(onFullPreview).toHaveBeenCalledWith(reset, 'fr')
   })
 
   it('does not ask what uses a template nothing uses', async () => {
@@ -348,6 +395,23 @@ describe('TemplateSelectorModal', () => {
       expect(onPick).toHaveBeenCalledWith(null)
     })
 
+    it('keeps Any template previewed when the window opens under a resting pointer', async () => {
+      // Opened from a segment condition, the window put a row under the pointer that had clicked
+      // the field: Chrome sent it an enter event and the pane previewed that template while "Any
+      // template" was Current, with "Use this template" choosing it.
+      renderModal({ anyLabel: 'Any template' })
+      await list()
+      fireEvent.mouseOver(row(/^Cart Recovery B/))
+      fireEvent.mouseEnter(row(/^Cart Recovery B/))
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      expect(within(pane()).getByText('Every template')).toBeInTheDocument()
+      expect(within(pane()).queryByRole('button', { name: 'Use this template' })).toBeNull()
+
+      // Once the pointer moves, the preview follows it.
+      fireEvent.mouseMove(row(/^Cart Recovery B/))
+      await waitFor(() => expect(within(pane()).getByRole('heading', { name: 'Cart Recovery B' })).toBeInTheDocument())
+    })
+
     it('chooses null on a double click of Any template', async () => {
       const { onPick } = renderModal({ anyLabel: 'Any template', value: 'pwd' })
       await list()
@@ -386,6 +450,14 @@ describe('TemplateSelectorModal', () => {
       expect(names).toEqual(['confirm', 'blank'])
       await userEvent.click(within(models).getByRole('button', { name: /Subscription confirmation/ }))
       expect(onStartModel).toHaveBeenCalledWith('confirm')
+    })
+
+    it('shows Blank under the imposed category, not a category to choose', async () => {
+      renderModal({ category: 'opt_in' })
+      const models = await screen.findByRole('list', { name: 'Models' })
+      const blank = within(models).getByRole('button', { name: /Blank/ })
+      expect(within(blank).getByText('Opt-in')).toBeInTheDocument()
+      expect(within(models).queryByText('Category to choose')).toBeNull()
     })
 
     it('says a member without Templates write cannot create one, and shows no models', async () => {

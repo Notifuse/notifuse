@@ -167,12 +167,17 @@ export function formatRangeSeriesName(range: DayjsRange): string {
  * shifts every label by the gap between the workspace's timezone and the
  * viewer's, labelling a whole day of traffic as the day before.
  */
-export function formatXAxisLabel(timestamp: string, granularity: Granularity): string {
+export function formatXAxisLabel(
+  timestamp: string,
+  granularity: Granularity,
+  options?: { withDate?: boolean }
+): string {
   const parsed = dayjs.utc(timestamp)
   if (!parsed.isValid()) return timestamp
   switch (granularity) {
     case 'hour':
-      return formatHour(parsed)
+      // Over several days an hour alone repeats ("3:00 AM" once a day): the day goes with it.
+      return options?.withDate ? `${formatMonthDay(parsed)} ${formatHour(parsed)}` : formatHour(parsed)
     case 'month':
       return formatMonthYear(parsed)
     case 'year':

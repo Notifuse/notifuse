@@ -42,6 +42,7 @@ import { timelineChangesSchema } from './table_schemas'
 import { FieldTypeNumber } from './type_number'
 import { FieldTypeJSON } from './type_json'
 import styles from './input.module.css'
+import { timelineKindLabel } from './timelineKindLabels'
 
 // Defined in ./tree_completeness so pure callers can use it without importing this module,
 // which pulls in antd and the whole editor. Re-exported here for the existing importers.
@@ -91,7 +92,7 @@ const getColorClass = (colorID: number): string => {
 // })
 
 export const TreeNodeInput = (props: TreeNodeInputProps) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [editingNodeLeaf, setEditingNodeLeaf] = useState<EditingNodeLeaf | undefined>(undefined)
 
   const onDraftTreeChangeRef = useRef(props.onDraftTreeChange)
@@ -787,16 +788,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                   <div className="mb-2">
                     <span className="opacity-60 pr-3">{t`type`}</span>
                     <Tag variant="filled" color="blue">
-                      {node.leaf?.contact_timeline.kind === 'email.opened' && t`Open email`}
-                      {node.leaf?.contact_timeline.kind === 'email.clicked' && t`Click email`}
-                      {node.leaf?.contact_timeline.kind === 'email.bounced' && t`Bounce email`}
-                      {node.leaf?.contact_timeline.kind === 'email.complained' && t`Complain email`}
-                      {node.leaf?.contact_timeline.kind === 'email.unsubscribed' &&
-                        t`Unsubscribe from list`}
-                      {node.leaf?.contact_timeline.kind === 'email.sent' &&
-                        t`New message (email...)`}
-                      {node.leaf?.contact_timeline.kind === 'web.pageview' && t`View web page`}
-                      {node.leaf?.contact_timeline.kind === 'web.session' && t`Visit website`}
+                      {timelineKindLabel(node.leaf?.contact_timeline.kind)
+                        ? i18n._(timelineKindLabel(node.leaf?.contact_timeline.kind)!)
+                        : null}
                     </Tag>
                   </div>
                   {node.leaf?.contact_timeline?.template_id && (
@@ -873,6 +867,8 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               )}
               {filtersToShow && filtersToShow.length > 0 && (
                 <Space style={{ alignItems: 'start' }}>
+                  {/* An activity's filters read as the editor words them; a contact's are the condition. */}
+                  {isContactTimelineSource ? <span className="opacity-60">{t`with filters`}</span> : null}
                   <table>
                     <tbody>
                       {filtersToShow.map((filter, key) => {

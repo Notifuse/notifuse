@@ -29,7 +29,7 @@ const MjSocialSettingsPanel: React.FC<MjSocialSettingsPanelProps> = ({
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Social Attributes`}>
+    <PanelLayout title={t`Social attributes`}>
       <InputLayout label={t`Container color`}>
         <ColorPickerWithPresets
           value={currentAttributes.containerBackgroundColor || undefined}

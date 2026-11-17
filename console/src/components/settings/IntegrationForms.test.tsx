@@ -171,10 +171,26 @@ describe('email providers — common parts', () => {
   )
 
   it(
+    "stacks the sender dialog above the drawer when the card's + Add opens both at once",
+    async () => {
+      // Opened with the drawer, the dialog mounted first at the same z-index and stayed hidden
+      // behind it; Add sender and Edit then changed nothing visible.
+      renderPage([sesIntegration])
+      fireEvent.click(screen.getByRole('button', { name: /^Add$/ }))
+      const dialog = await screen.findByRole('dialog', { name: 'Add sender' })
+      const wrap = dialog.closest('.ant-modal-wrap') as HTMLElement
+      const drawer = document.querySelector('.app-full-drawer') as HTMLElement
+      const z = (el: HTMLElement) => Number(el.style.zIndex || getComputedStyle(el).zIndex || 1000)
+      expect(z(wrap)).toBeGreaterThan(z(drawer))
+    }
+  )
+
+  it(
     'adds, edits, makes default and removes senders, and saves them with the rate',
     async () => {
       renderPage([sesIntegration])
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
       await screen.findByRole('button', { name: 'Save' })
 
       await addSender('team@acme.com', 'Acme Team')
@@ -192,7 +208,7 @@ describe('email providers — common parts', () => {
       await waitFor(() => expect(document.querySelector('[data-senders]')).toHaveTextContent('Acme Support'))
 
       fireEvent.click(screen.getByRole('button', { name: 'Remove sender news@acme.com' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Yes' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
       await waitFor(() => expect(rows()).toHaveLength(1))
       // The last sender cannot be removed.
       expect(screen.queryByRole('button', { name: /Remove sender/ })).toBeNull()
@@ -212,17 +228,96 @@ describe('email providers — common parts', () => {
   )
 
   it(
+    'asks before closing on an added sender, and closes at once when nothing changed',
+    async () => {
+      // X and Escape dropped an added sender without a word.
+      const closeDrawer = () =>
+        fireEvent.click(
+          // The last one: a drawer just closed can linger in the page while it animates out.
+          within([...document.querySelectorAll<HTMLElement>('.app-full-drawer')].at(-1)!).getByRole(
+            'button',
+            { name: 'Close' }
+          )
+        )
+      renderPage([sesIntegration])
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
+      await screen.findByRole('button', { name: 'Save' })
+      closeDrawer()
+      await waitFor(() => expect(document.querySelector('[data-drawer-title]')).toBeNull())
+      expect(screen.queryByText('Close without saving?', { selector: '.ant-modal-confirm-title' })).toBeNull()
+
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
+      await screen.findByRole('button', { name: 'Save' })
+      await addSender('team@acme.com', 'Acme Team')
+      closeDrawer()
+      const confirm = (
+        await screen.findByText('Close without saving?', { selector: '.ant-modal-confirm-title' })
+      ).closest(
+        '.ant-modal'
+      ) as HTMLElement
+      expect(confirm).toHaveTextContent('Your changes to this integration will be lost.')
+      fireEvent.click(within(confirm).getByRole('button', { name: 'Keep editing' }))
+      await waitFor(() =>
+        expect(
+          screen.queryByText('Close without saving?', { selector: '.ant-modal-confirm-title' })
+        ).toBeNull()
+      )
+      expect(document.querySelector('[data-senders]')).toHaveTextContent('team@acme.com')
+
+      closeDrawer()
+      const again = (
+        await screen.findByText('Close without saving?', { selector: '.ant-modal-confirm-title' })
+      ).closest(
+        '.ant-modal'
+      ) as HTMLElement
+      fireEvent.click(within(again).getByRole('button', { name: 'Close' }))
+      await waitFor(() => expect(document.querySelector('[data-drawer-title]')).toBeNull())
+      expect(posted('/api/workspaces.updateIntegration')).toHaveLength(0)
+    }
+  )
+
+  it(
+    'keeps the sender dialog open on an invalid address, with no unhandled rejection',
+    async () => {
+      // antd rejects validateFields with { errorFields }: uncaught, it reached the console as
+      // "Uncaught (in promise) [object Object]".
+      const rejections: unknown[] = []
+      const onRejection = (reason: unknown) => rejections.push(reason)
+      process.on('unhandledRejection', onRejection)
+      try {
+        renderPage([sesIntegration])
+        fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+        fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
+        await screen.findByRole('button', { name: 'Save' })
+        fireEvent.click(screen.getByRole('button', { name: /Add sender/ }))
+        const modal = await screen.findByRole('dialog', { name: 'Add sender' })
+        fireEvent.change(within(modal).getByLabelText('Email'), { target: { value: 'not-an-address' } })
+        fireEvent.click(within(modal).getByRole('button', { name: 'Save' }))
+        await waitFor(() => expect(modal.querySelector('.ant-form-item-explain-error')).not.toBeNull())
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        expect(rejections).toEqual([])
+        expect(screen.getByRole('dialog', { name: 'Add sender' })).toBeInTheDocument()
+      } finally {
+        process.off('unhandledRejection', onRejection)
+      }
+    }
+  )
+
+  it(
     'makes the sender left the default when the default one is removed',
     async () => {
       renderPage([sesIntegration])
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
       await screen.findByRole('button', { name: 'Save' })
       await addSender('team@acme.com', 'Acme Team')
       const rows = () => document.querySelectorAll('[data-sender-row]')
       expect(within(rows()[0] as HTMLElement).getByText('Default')).toBeInTheDocument()
 
       fireEvent.click(screen.getByRole('button', { name: 'Remove sender news@acme.com' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Yes' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
       await waitFor(() => expect(rows()).toHaveLength(1))
       expect(within(rows()[0] as HTMLElement).getByText('Default')).toBeInTheDocument()
       save()
@@ -239,7 +334,8 @@ describe('email providers — common parts', () => {
     'tests what the form holds, naming the saved integration so the server fills the blank secret',
     async () => {
       renderPage([sesIntegration])
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
       fireEvent.click(await screen.findByRole('button', { name: /Send a test email/ }))
 
       const modal = await screen.findByRole('dialog', { name: 'Send a test email' })
@@ -271,9 +367,13 @@ describe('email providers — common parts', () => {
     'tests a saved provider from its card with what is stored',
     async () => {
       renderPage([mailjetIntegration])
-      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
-      fireEvent.click(await screen.findByText('Send a test email'))
+      fireEvent.click(screen.getByRole('button', { name: /Send test/ }))
       const modal = await screen.findByRole('dialog', { name: 'Send a test email' })
+      // It tests what is saved: "saved or not" was the drawer's wording.
+      expect(
+        within(modal).getByText("A real email, sent through this integration's saved settings.")
+      ).toBeInTheDocument()
+      expect(within(modal).queryByText(/saved or not/)).toBeNull()
       fireEvent.change(within(modal).getByLabelText('Send to'), { target: { value: 'pierre@acme.com' } })
       fireEvent.click(within(modal).getByRole('button', { name: 'Send test email' }))
 
@@ -418,7 +518,8 @@ describe('SMTP', () => {
         { credential_hints: { 'smtp.oauth2_client_secret': 'Qw2Z', 'smtp.oauth2_refresh_token': 'rT9k' } }
       )
       renderPage([google])
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
 
       expect(await screen.findByLabelText('Refresh token')).toHaveAttribute('placeholder', '••••••••rT9k')
       expect(screen.getByLabelText('Client secret')).toHaveAttribute('placeholder', '••••••••Qw2Z')
@@ -448,6 +549,46 @@ describe('SMTP', () => {
       })
     }
   )
+
+  it(
+    'shows the end of a stored password, or says one is kept, and nothing when none is stored',
+    async () => {
+      const relay = (encrypted: boolean, hints?: Record<string, string>) =>
+        email(
+          'int_smtp',
+          'Relay',
+          {
+            kind: 'smtp',
+            smtp: {
+              host: 'smtp.acme.com',
+              port: 587,
+              use_tls: true,
+              username: 'me@acme.com',
+              auth_type: 'basic',
+              ...(encrypted ? { encrypted_password: 'x' } : {})
+            }
+          },
+          hints ? { credential_hints: hints } : {}
+        )
+      const openEdit = async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+        fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
+        return screen.findByLabelText('Password')
+      }
+
+      const hinted = renderPage([relay(true, { 'smtp.password': 'pW9x' })])
+      expect(await openEdit()).toHaveAttribute('placeholder', '••••••••pW9x')
+      hinted.unmount()
+
+      const unhinted = renderPage([relay(true)])
+      expect(await openEdit()).toHaveAttribute('placeholder', 'Leave blank to keep the current value')
+      unhinted.unmount()
+
+      // The demo's Mailpit relay: a username and no password at all.
+      renderPage([relay(false)])
+      expect(await openEdit()).not.toHaveAttribute('placeholder', 'Leave blank to keep the current value')
+    }
+  )
 })
 
 describe('Amazon SES', () => {
@@ -462,7 +603,7 @@ describe('Amazon SES', () => {
       type('Inbound topic ARN', 'arn:aws:sns:eu-west-1:1:replies')
       await addSender('news@acme.com', 'Acme')
       save()
-      await expectRequiredError('Please enter Secret access key')
+      await expectRequiredError('Please enter secret access key')
 
       type('Secret access key', 'secret-1')
       save()
@@ -487,7 +628,8 @@ describe('Amazon SES', () => {
     'keeps the stored secret and the server-owned names out of an edit',
     async () => {
       renderPage([sesIntegration])
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
 
       const secret = await screen.findByLabelText('Secret access key')
       expect(secret).toHaveAttribute('placeholder', '••••••••K7MD')
@@ -523,7 +665,8 @@ describe('Amazon SES', () => {
             }
           : routePost(path)) as typeof api.post)
       renderPage([sesIntegration])
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
       fireEvent.click(await screen.findByRole('button', { name: 'Verify' }))
 
       expect(
@@ -606,7 +749,7 @@ describe('SparkPost, Postmark, Mailgun, Mailjet and SendGrid', () => {
       expect(screen.getByLabelText('Message stream')).toHaveValue('outbound')
       await addSender('news@acme.com', 'Acme')
       save()
-      await expectRequiredError('Please enter Server token')
+      await expectRequiredError('Please enter server token')
       type('Server token', 'pm-token')
       save()
 
@@ -625,7 +768,7 @@ describe('SparkPost, Postmark, Mailgun, Mailjet and SendGrid', () => {
       await openFromCatalogue('Mailgun')
       await addSender('news@mg.acme.com', 'Acme')
       save()
-      await expectRequiredError('Please enter Domain')
+      await expectRequiredError('Please enter domain')
       await expectRequiredError('Please enter API key')
       type('Domain', 'mg.acme.com')
       type('API key', 'mg-key')
@@ -651,7 +794,7 @@ describe('SparkPost, Postmark, Mailgun, Mailjet and SendGrid', () => {
       await addSender('orders@acme.com', 'Acme')
       save()
       await expectRequiredError('Please enter API key')
-      await expectRequiredError('Please enter Secret key')
+      await expectRequiredError('Please enter secret key')
       type('API key', 'mj-key')
       type('Secret key', 'mj-secret')
       save()
@@ -687,7 +830,8 @@ describe('SparkPost, Postmark, Mailgun, Mailjet and SendGrid', () => {
     async () => {
       const mailjet = { ...mailjetIntegration, credential_hints: { 'mailjet.api_key': 'a81f', 'mailjet.secret_key': '0e6d' } }
       renderPage([mailjet])
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
 
       expect(await screen.findByLabelText('API key')).toHaveAttribute('placeholder', '••••••••a81f')
       expect(screen.getByLabelText('Secret key')).toHaveAttribute('placeholder', '••••••••0e6d')
@@ -783,7 +927,8 @@ describe('AI assistant', () => {
       expect(screen.getByText('••••r5Tn')).toBeInTheDocument()
       expect(screen.getByText('Low')).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
       expect(await screen.findByLabelText('API key')).toHaveAttribute('placeholder', '••••••••r5Tn')
       save()
       await waitFor(() => expect(posted('/api/workspaces.updateIntegration')).toHaveLength(1))
@@ -934,7 +1079,8 @@ describe('Supabase', () => {
       expect(screen.getByText('••••Hk8w')).toBeInTheDocument()
       expect(screen.getByText('••••p2Ve')).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
       await screen.findByRole('button', { name: 'Save' })
       const drawer = document.querySelector('.ant-drawer-open') as HTMLElement
       expect(within(drawer).getByText(/\/webhooks\/supabase\/auth-email\?workspace_id=ws1&integration_id=int_sb/)).toBeInTheDocument()
@@ -974,7 +1120,7 @@ describe('Supabase', () => {
         "Its 6 templates and 6 transactional notifications are deleted with it, and Supabase's hooks stop working. This cannot be undone."
       )
     ).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() =>
       expect(posted('/api/workspaces.deleteIntegration')).toEqual([{ workspace_id: 'ws1', integration_id: 'int_sb' }])
     )
@@ -1009,7 +1155,8 @@ describe('Zapier', () => {
         updated_at: '2026-08-01T10:00:00Z'
       } as unknown as Integration
       renderPage([zapier])
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
       await screen.findByRole('button', { name: 'Save' })
       expect(screen.queryByRole('button', { name: /Connect Zapier/ })).toBeNull()
       type('Label', 'Sales')

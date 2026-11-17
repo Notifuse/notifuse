@@ -82,7 +82,7 @@ describe('NewContactsTable', () => {
     expect(anonymous?.textContent).toBe('3 hranon@example.com')
   })
 
-  it('opens the contact', async () => {
+  it('opens the contact sheet over the whole list, not a list filtered to it', async () => {
     list.mockResolvedValue({ contacts: [contact('ada@example.com')] })
     renderCard()
 
@@ -90,7 +90,7 @@ describe('NewContactsTable', () => {
     expect(navigate).toHaveBeenCalledWith({
       to: '/console/workspace/$workspaceId/contacts',
       params: { workspaceId: 'ws1' },
-      search: { email: 'ada@example.com' }
+      search: { contact: 'ada@example.com' }
     })
   })
 

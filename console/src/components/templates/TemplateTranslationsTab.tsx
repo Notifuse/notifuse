@@ -54,6 +54,11 @@ interface TemplateTranslationsTabProps {
   category?: string
   // The template's name, which an exported translation's file is named after, with its language
   templateName?: string
+  // Set by a save refused for a translation missing its subject or preview text: the detail
+  // shows that language and marks its empty fields. A new attempt shows it again.
+  missing?: { lang: string; attempt: number } | null
+  // The sender the inbox mockup names, as on the Settings step: the template's sender or the workspace.
+  senderName?: string
 }
 
 const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
@@ -73,7 +78,9 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   onRenameSavedBlock,
   onDeleteSavedBlock,
   category,
-  templateName
+  templateName,
+  missing,
+  senderName
 }) => {
   const { t, i18n } = useLingui()
   const [editorDrawerLang, setEditorDrawerLang] = useState<string | null>(null)
@@ -85,6 +92,12 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
     )
     return languages.find((lang) => translationsState[lang]?.enabled) ?? languages[0] ?? null
   })
+  // A refused save brings the language it is about into the detail, once per attempt.
+  const [shownAttempt, setShownAttempt] = useState(0)
+  if (missing && missing.attempt !== shownAttempt) {
+    setShownAttempt(missing.attempt)
+    setChosenLang(missing.lang)
+  }
   // Advisory only; the server's TranslationsWiden check is the gate. What is locked here
   // mirrors what that check refuses: switching a language ON and editing what a translation
   // says. Switching one OFF stays open, because removing a translation never needs a licence
@@ -297,13 +310,16 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
   )
 
   /** The default language's text beside the field that translates it. */
-  const sourcePair = (sourceLabel: string, sourceText: string, field: React.ReactNode) => (
+  const sourcePair = (sourceLabel: string, sourceText: string, field: React.ReactNode, error?: string) => (
     <div className="grid grid-cols-2 gap-4">
       <div className="flex flex-col gap-1 rounded-md bg-subtle px-3 py-2">
         <span className="text-xs text-ink-3">{sourceLabel}</span>
         <span className="text-sm break-words text-ink-2">{sourceText || '—'}</span>
       </div>
-      <div className="flex flex-col gap-1">{field}</div>
+      <div className="flex flex-col gap-1">
+        {field}
+        {error ? <span className="text-sm text-danger-fg">{error}</span> : null}
+      </div>
     </div>
   )
 
@@ -313,6 +329,9 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
     const name = languageName(lang)
     const defaultName = languageName(defaultLanguage)
     const title = t`${name} translation`
+    // After a refused save, the empty required fields are marked.
+    const subjectMissing = Boolean(missing) && !langState?.subject
+    const previewMissing = Boolean(missing) && !langState?.subjectPreview
 
     if (!enabled || !langState) {
       return (
@@ -362,10 +381,12 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                 id={`translation-subject-${lang}`}
                 value={langState.subject}
                 disabled={locked}
+                status={subjectMissing ? 'error' : undefined}
                 onChange={(e) => updateLangState(lang, { subject: e.target.value })}
                 placeholder={t`Email subject`}
               />
-            </>
+            </>,
+            subjectMissing ? t`Enter the ${name} subject` : undefined
           )}
           {sourcePair(
             t`Subject preview · ${defaultName}`,
@@ -378,21 +399,24 @@ const TemplateTranslationsTab: React.FC<TemplateTranslationsTabProps> = ({
                 id={`translation-preview-${lang}`}
                 value={langState.subjectPreview}
                 disabled={locked}
+                status={previewMissing ? 'error' : undefined}
                 onChange={(e) => updateLangState(lang, { subjectPreview: e.target.value })}
                 placeholder={t`Preview text`}
               />
-            </>
+            </>,
+            previewMissing ? t`Enter the ${name} preview text` : undefined
           )}
           <div className="flex gap-4 border-t border-line-soft pt-4">
             {/* The inbox line of this language, where the mockup has a thumbnail of the content */}
             <div className="w-80 shrink-0 overflow-hidden">
               <div style={{ transform: 'scale(0.8)', transformOrigin: 'top left', height: 208 }}>
                 <IphoneEmailPreview
-                  sender={t`Sender Name`}
-                  subject={langState.subject || t`Email Subject`}
+                  sender={senderName || workspace.name}
+                  subject={langState.subject || t`Email subject`}
                   previewText={langState.subjectPreview || t`Preview text will appear here...`}
                   timestamp={t`Now`}
-                  currentTime="12:12"
+                  // The Settings step's mockup: same clock, same sender.
+                  currentTime="9:41"
                 />
               </div>
             </div>

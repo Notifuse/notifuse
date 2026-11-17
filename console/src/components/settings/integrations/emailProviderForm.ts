@@ -76,3 +76,13 @@ export function providerFromFormValues(values: EmailProviderFormValues): EmailPr
   else if (values.kind === 'sendgrid' && values.sendgrid) provider.sendgrid = values.sendgrid
   return provider
 }
+
+/**
+ * A field's label as antd's required message reads it mid-sentence ("Please enter ${label}"): its
+ * first letter lowered, "Server token" → "server token", but not an acronym ("API key") nor in
+ * German, where nouns keep their capital.
+ */
+export function labelInSentence(label: string, locale: string): string {
+  if (locale.toLowerCase().startsWith('de')) return label
+  return /^\p{Lu}\p{Ll}/u.test(label) ? label.charAt(0).toLowerCase() + label.slice(1) : label
+}

@@ -79,7 +79,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   const defaultPlaceholder = placeholder || t`Select a template`
   const [open, setOpen] = useState<boolean>(false)
   const [creation, setCreation] = useState<Creation | null>(null)
-  const [fullPreview, setFullPreview] = useState<Template | null>(null)
+  const [fullPreview, setFullPreview] = useState<{ template: Template; language?: string } | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const { workspaces } = useAuth()
   // Creating and duplicating need Templates write; the editor manages the saved blocks with it too,
@@ -208,12 +208,18 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
           onNew={() => create({ kind: 'new' })}
           onDuplicate={(template) => create({ kind: 'duplicate', template })}
           onStartModel={(modelId) => create({ kind: 'model', modelId })}
-          onFullPreview={setFullPreview}
+          onFullPreview={(template, language) => setFullPreview({ template, language })}
         />
       ) : null}
 
       {fullPreview ? (
-        <TemplatePreviewPopover record={fullPreview} workspace={currentWorkspace} open onClose={() => setFullPreview(null)} />
+        <TemplatePreviewPopover
+          record={fullPreview.template}
+          workspace={currentWorkspace}
+          initialLanguage={fullPreview.language}
+          open
+          onClose={() => setFullPreview(null)}
+        />
       ) : null}
 
       {creation ? (

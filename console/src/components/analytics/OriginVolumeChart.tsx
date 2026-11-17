@@ -45,7 +45,19 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
     automation: t`Automations`,
     other: t`Other`
   }
-  const ofSentThatDay = metric === 'sent' ? '' : t`of emails sent that day`
+  const titles: Record<DashboardMetric, string> = {
+    sent: t`Emails sent per day`,
+    opens: t`Opens per day`,
+    clicks: t`Clicks per day`
+  }
+  // Under the date, saying what each figure counts: opens and clicks are those of the emails sent
+  // that day, whenever they happened.
+  const ofSentThatDay =
+    metric === 'opens'
+      ? t`Opens of the emails sent that day`
+      : metric === 'clicks'
+        ? t`Clicks of the emails sent that day`
+        : ''
 
   const chart = useMemo(() => (data.series ? buildOriginChart(data.series, metric) : null), [data.series, metric])
 
@@ -68,7 +80,9 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
       showSymbol: chart.log,
       // Every point, not only those on a labelled day: a narrow chart would hide the lone sends.
       showAllSymbol: true,
-      smooth: true,
+      // Straight on a log axis: a smoothed curve overshoots between two points, and toward a day
+      // of one email it dipped below 1, where no value can be.
+      smooth: !chart.log,
       connectNulls: false,
       color: SERIES_COLOR[origin],
       lineStyle: { width: 1.6 }
@@ -95,8 +109,11 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
                 param.seriesName
               )}: <b>${int(param.value ?? 0)}</b></div>`
           )
-          const note = ofSentThatDay ? `<div style="color:${colors.ink3}">${escapeHtml(ofSentThatDay)}</div>` : ''
-          return `<div style="font-weight:600;margin-bottom:4px">${escapeHtml(params[0].axisValue)}</div>${rows.join('')}${note}`
+          const note = ofSentThatDay
+            ? `<div style="color:${colors.ink3};margin-bottom:4px">${escapeHtml(ofSentThatDay)}</div>`
+            : ''
+          const date = `<div style="font-weight:600;margin-bottom:${note ? 0 : 4}px">${escapeHtml(params[0].axisValue)}</div>`
+          return `${date}${note}${rows.join('')}`
         }
       },
       xAxis: {
@@ -108,6 +125,8 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
       },
       yAxis: {
         type: chart.log ? 'log' : 'value',
+        // Nothing below one email on a log axis.
+        ...(chart.log ? { min: 1 } : {}),
         minInterval: 1,
         splitLine: { lineStyle: { color: colors.gray[100] } },
         axisLabel: {
@@ -152,7 +171,7 @@ export function OriginVolumeChart({ data, metric, onMetricChange }: OriginVolume
 
   return (
     <Panel
-      title={t`Emails sent per day`}
+      title={titles[metric]}
       extra={
         <Segmented
           size="small"

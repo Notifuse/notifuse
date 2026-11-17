@@ -32,7 +32,7 @@ interface AxisLabel {
 
 interface CapturedOption {
   grid: { top: string }
-  xAxis: { axisLabel: AxisLabel; axisLine: { lineStyle: { color: string } } }
+  xAxis: { data: string[]; axisLabel: AxisLabel; axisLine: { lineStyle: { color: string } } }
   yAxis: { axisLabel: AxisLabel }
   series: CapturedSeries[]
   tooltip: {
@@ -267,11 +267,34 @@ describe('MetricChart annotations', () => {
       ]
     })
 
+    // The first bucket's title prints right of its line, the last one's left: inward, never over
+    // the y-axis labels nor past the chart's edge.
     expect(markLine()?.map((line) => line.label.position)).toEqual([
-      'insideEndTop',
       'insideEndBottom',
+      'insideEndTop',
       'insideEndTop'
     ])
+  })
+
+  it('prints the title of an annotation on the first bucket inside the plot, not over the y axis', () => {
+    renderChart({ annotations: [annotation({ annotated_at: '2026-08-13T09:00:00Z' })] })
+    expect(markLine()?.[0].xAxis).toBe(0)
+    expect(markLine()?.[0].label.position).toBe('insideEndBottom')
+  })
+
+  it('aligns the end labels of the x axis inward, so the last day is not cut', () => {
+    renderChart()
+    expect(option().xAxis.axisLabel).toMatchObject({ alignMinLabel: 'left', alignMaxLabel: 'right' })
+  })
+
+  it('dates the hours of an hourly chart that spans several days', () => {
+    renderChart({ current: HOURLY, granularity: 'hour' })
+    const days = option().xAxis.data
+    expect(days[3]).toBe('Aug 14 3:00 AM')
+    expect(days[27]).toBe('Aug 15 3:00 AM')
+
+    renderChart({ current: HOURLY.slice(0, 24), granularity: 'hour' })
+    expect(option().xAxis.data[3]).toBe('3:00 AM')
   })
 
   it('neutralises rich-text markup in the label and truncates the title', () => {

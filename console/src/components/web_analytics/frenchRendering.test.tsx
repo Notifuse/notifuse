@@ -237,14 +237,17 @@ describe('web analytics in French', () => {
   })
 
   it('GoalDashboardDrawer writes the goal totals in French', async () => {
-    // The series alone carries rows: the breakdowns and the heat map stay empty.
+    // The series and the period totals the strip reads carry rows: the breakdowns and the heat
+    // map stay empty.
     answer.mockImplementation((q) =>
       q.timeDimensions?.length
         ? [
             { goal_at_day: '2026-11-01T00:00:00Z', goals: 1000, sum_goal_value: 10000.5, median_goal_value: 40.25 },
             { goal_at_day: '2026-11-02T00:00:00Z', goals: 234, sum_goal_value: 2345.1, median_goal_value: 50.75 }
           ]
-        : []
+        : q.dimensions?.length === 0
+          ? [{ goals: 1234, sum_goal_value: 12345.6, median_goal_value: 45.5 }]
+          : []
     )
     renderFr(<GoalDashboardDrawer open goalName="Signup" onClose={() => {}} />)
     expect(await screen.findByText(fr('1,2 k'))).toBeInTheDocument()

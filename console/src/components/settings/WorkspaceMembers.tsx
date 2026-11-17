@@ -36,7 +36,7 @@ import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { Panel, Pill } from '../layout'
 import { initialsFor } from '../../layouts/app-shell/gravatar'
 import { summarizeAccess } from './accessSummary'
-import { API_KEY_PREFIX_MAX_LENGTH, finalApiKeyPrefix, toApiKeyPrefix } from './apiKeyPrefix'
+import { API_KEY_PREFIX_MAX_LENGTH, apiKeyDomain, finalApiKeyPrefix, toApiKeyPrefix } from './apiKeyPrefix'
 import { PERMISSION_RESOURCE_LABELS } from './permissionLabels'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -275,7 +275,14 @@ export function WorkspaceMembers({
       key: 'joined',
       width: 130,
       render: (_, member) =>
-        isInvitation(member) || isPlatformAdmin(member) ? null : (
+        isInvitation(member) ? null : isPlatformAdmin(member) ? (
+          // Never joined: an empty cell read as a missing date.
+          <Tooltip title={t`A platform admin reaches every workspace without joining it`}>
+            <span data-joined-none className="text-ink-4">
+              —
+            </span>
+          </Tooltip>
+        ) : (
           <span className="text-ink-3">{shortDate(member.created_at)}</span>
         )
     },
@@ -373,8 +380,8 @@ export function WorkspaceMembers({
 
   // The server mints the address as `prefix@{apiHost}` — the workspace id is not part of it, so
   // prefixing one here advertised an address that does not exist and cannot receive anything.
-  const domainName =
-    window.API_ENDPOINT?.replace(/^https?:\/\//, '').split('/')[0] || 'api.example.com'
+  // The host without its port, as the server takes it (apiKeyEmailDomain).
+  const domainName = apiKeyDomain(window.API_ENDPOINT)
 
   const handleRemoveMember = async (userId: string) => {
     if (!userId) return
@@ -539,7 +546,7 @@ export function WorkspaceMembers({
       {/* Drawers rather than modals: the permissions matrix carries fourteen expandable rows, and
           an expanded one lists every endpoint the permission gates — Contacts alone gates 23. */}
       <Drawer
-        title={t`Invite Member`}
+        title={t`Invite member`}
         open={inviteDrawerOpen}
         onClose={() => setInviteDrawerOpen(false)}
         placement="right"
@@ -555,7 +562,7 @@ export function WorkspaceMembers({
                 loading={inviting}
                 disabled={rbacLocked && !grantsFullPermissions(invitePermissions)}
               >
-                {t`Send Invitation`}
+                {t`Send invitation`}
               </Button>
             </Space>
           </div>
@@ -563,7 +570,7 @@ export function WorkspaceMembers({
       >
         <Form layout="vertical">
           <Form.Item
-            label={t`Email Address`}
+            label={t`Email address`}
             required
             rules={[{ required: true, message: t`Please enter an email address` }]}
           >

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Dropdown, Empty, Input, Tooltip } from 'antd'
+import type { InputRef } from 'antd'
 import { CloseOutlined, PlusCircleOutlined, SearchOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import {
@@ -92,6 +93,15 @@ export function DimensionSelector(props: DimensionSelectorProps) {
   const context = useWebAnalytics()
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
+  const searchRef = useRef<InputRef>(null)
+
+  // The menu opens on its search: typing narrows the list at once. The popup stays mounted
+  // between openings, so this runs on every opening rather than relying on autoFocus.
+  useEffect(() => {
+    if (!open) return
+    const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [open])
 
   const categoryLabels: Record<string, string> = {
     Channel: t`Channel`,
@@ -159,6 +169,7 @@ export function DimensionSelector(props: DimensionSelectorProps) {
     <div className="w-64 rounded-lg border border-line bg-surface shadow-popup">
       <div className="border-b border-line-soft p-2">
         <Input
+          ref={searchRef}
           prefix={<SearchOutlined className="text-ink-4" />}
           allowClear
           placeholder={t`Search dimensions`}

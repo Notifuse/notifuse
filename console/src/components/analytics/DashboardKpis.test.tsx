@@ -370,6 +370,73 @@ describe('DashboardKpis', () => {
     expect(screen.queryByText('Website visits')).not.toBeInTheDocument()
   })
 
+  it('reads no delivered rate when every provider is SMTP, as Logs shows none', async () => {
+    const smtp = {
+      ...workspace(true),
+      settings: {
+        ...workspace(true).settings,
+        marketing_email_provider_id: 'smtp1',
+        transactional_email_provider_id: 'smtp1'
+      },
+      integrations: [{ id: 'smtp1', type: 'email', email_provider: { kind: 'smtp', senders: [] } }]
+    } as unknown as Workspace
+    renderKpis({
+      workspace: smtp,
+      totals: totals({ broadcast: { delivered: 0 }, transactional: { delivered: 0 } })
+    })
+    const sub = await screen.findByText("Delivery isn't reported by SMTP providers")
+    const tile = sub.closest('[data-kpi-cell]') as HTMLElement
+    await waitFor(() => expect(tile).toHaveTextContent('Delivered—'))
+    expect(tile).not.toHaveTextContent('%')
+  })
+
+  it('reads the delivered rate of SMTP providers when deliveries came back all the same', async () => {
+    // Through the SMTP webhook endpoint, or from a provider used before (the demo's SES history).
+    const smtp = {
+      ...workspace(true),
+      settings: {
+        ...workspace(true).settings,
+        marketing_email_provider_id: 'smtp1',
+        transactional_email_provider_id: 'smtp1'
+      },
+      integrations: [{ id: 'smtp1', type: 'email', email_provider: { kind: 'smtp', senders: [] } }]
+    } as unknown as Workspace
+    renderKpis({
+      workspace: smtp,
+      totals: totals({ broadcast: { delivered: 588 }, transactional: { delivered: 392 } })
+    })
+    const label = await screen.findByText('Delivered')
+    const tile = label.closest('[data-kpi-cell]') as HTMLElement
+    await waitFor(() => expect(tile).toHaveTextContent('98.0%'))
+    expect(tile).not.toHaveTextContent("Delivery isn't reported by SMTP providers")
+  })
+
+  it('counts the emails of no origin in the delivered rate as Logs does, when a provider reports deliveries', async () => {
+    // An SMTP marketing provider and a Postmark transactional one: an email of no origin (a test,
+    // a confirmation) may have gone through either, and Logs counts its deliveries.
+    const mixed = {
+      ...workspace(true),
+      settings: {
+        ...workspace(true).settings,
+        marketing_email_provider_id: 'smtp1',
+        transactional_email_provider_id: 'pm1'
+      },
+      integrations: [
+        { id: 'smtp1', type: 'email', email_provider: { kind: 'smtp', senders: [] } },
+        { id: 'pm1', type: 'email', email_provider: { kind: 'postmark', senders: [] } }
+      ]
+    } as unknown as Workspace
+    renderKpis({
+      workspace: mixed,
+      totals: totals({ broadcast: { delivered: 0 }, other: { sent: 100, delivered: 0 } })
+    })
+    const label = await screen.findByText('Delivered')
+    const tile = label.closest('[data-kpi-cell]') as HTMLElement
+    // 400 delivered of (400 + 100) sent: the emails of no origin count, as Logs filtered on them
+    // shows their Delivered count; the SMTP newsletters stay out.
+    await waitFor(() => expect(tile).toHaveTextContent('80.0%'))
+  })
+
   it('says over how many emails a partly tracked rate is computed', async () => {
     renderKpis({
       totals: totals({ transactional: { opensTracked: 200, opened: 100 } })

@@ -210,6 +210,21 @@ describe('BroadcastAside', () => {
     expect(within(block_).getByText('send_broadcast')).toBeInTheDocument()
   })
 
+  it('says Cancelled, not Completed, for the task of a cancelled broadcast', () => {
+    // A cancel ends the task as completed: the card read "Completed" over "Processed 0/109".
+    const task = {
+      id: 't1',
+      type: 'send_broadcast',
+      status: 'completed',
+      progress: 0,
+      state: { message: 'Processed 0/109 recipients (0.0%)' }
+    } as unknown as Task
+    renderAside({ task, broadcast: broadcast({ status: 'cancelled' }) })
+    const block_ = block('Sending task')
+    expect(within(block_).getByText('Cancelled')).toBeInTheDocument()
+    expect(within(block_).queryByText('Completed')).toBeNull()
+  })
+
   it('has no task block without a task', () => {
     renderAside({ task: null })
     expect(screen.queryByRole('heading', { name: 'Sending task' })).not.toBeInTheDocument()

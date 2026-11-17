@@ -37,11 +37,17 @@ export function DashboardTab() {
   }
 
   const sessionFilters = filtersForSchema(context.filters, 'web_sessions')
-  // Named, so the strip's note reads « Goal Name filter not applied… » in every language.
-  const notApplied = context.filters
-    .filter((filter) => !sessionFilters.includes(filter))
-    .map((filter) => getDimensionLabel(filter.dimension, context.customDimensionLabels))
-  const notAppliedNames = [...new Set(notApplied)].join(', ')
+  // Every widget but Goals reads web_sessions, so a filter web_sessions lacks is ignored by all of
+  // them, not only by the strip and the chart: the note names the widget that does apply it, if
+  // any. Named, so it reads « Goal Name filter… » in every language.
+  const goalFilters = filtersForSchema(context.filters, 'web_goals')
+  const notApplied = context.filters.filter((filter) => !sessionFilters.includes(filter))
+  const filterNames = (filters: typeof notApplied) =>
+    [...new Set(filters.map((filter) => getDimensionLabel(filter.dimension, context.customDimensionLabels)))]
+  const goalsOnlyNames = filterNames(notApplied.filter((filter) => goalFilters.includes(filter)))
+  const ignoredNames = filterNames(notApplied.filter((filter) => !goalFilters.includes(filter)))
+  const goalsOnlyList = goalsOnlyNames.join(', ')
+  const ignoredList = ignoredNames.join(', ')
 
   const base = {
     schema: 'web_sessions' as const,
@@ -128,11 +134,22 @@ export function DashboardTab() {
         labels={metricLabels}
         tooltips={metricTooltips}
       />
-      {notAppliedNames ? (
-        <p data-filters-not-applied className="m-0 -mt-1.5 text-xs text-ink-3">
-          {notApplied.length === 1
-            ? t`${notAppliedNames} filter not applied to the session figures and chart`
-            : t`${notAppliedNames} filters not applied to the session figures and chart`}
+      {goalsOnlyList || ignoredList ? (
+        <p data-filters-not-applied className="m-0 -mt-1.5 flex flex-col gap-0.5 text-xs text-ink-3">
+          {goalsOnlyList ? (
+            <span>
+              {goalsOnlyNames.length === 1
+                ? t`${goalsOnlyList} filter only applies to the Goals table`
+                : t`${goalsOnlyList} filters only apply to the Goals table`}
+            </span>
+          ) : null}
+          {ignoredList ? (
+            <span>
+              {ignoredNames.length === 1
+                ? t`${ignoredList} filter not applied on this dashboard`
+                : t`${ignoredList} filters not applied on this dashboard`}
+            </span>
+          ) : null}
         </p>
       ) : null}
 

@@ -11,6 +11,7 @@ import { formatValue } from './lib/format'
 import { WidgetTabs } from './WidgetTabs'
 import { mergeWidgetFilters } from './lib/dimensions'
 import { getHeatMapStyle } from './lib/heatmap'
+import { countryName } from './lib/isoCountries'
 import {
   buildWebQuery,
   mergeComparisonRows,
@@ -186,6 +187,8 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
           onChange={setActiveTabKey}
         />
         <ExpandedRows
+          // A new filter or tab is a new list: it opens on its first page, not on a page it may not have.
+          key={`${tab.key}:${JSON.stringify(context.filters)}`}
           tab={tab}
           columns={columns}
           rows={rows.data}
@@ -273,6 +276,9 @@ function DimensionRowsTable(props: RowsTableProps) {
   }, [props.rows, props.columns])
 
   const leadValue = Number(props.rows[0]?.[props.sortBy] ?? 0)
+  // The figures take what they need, the rest goes to the value: a page path or a referrer is
+  // what gets cut. The change beside each figure needs the wider column.
+  const measureWidth = context.showComparison ? 'w-24 md:w-32' : 'w-24'
 
   if (!props.loading && props.rows.length === 0) {
     return (
@@ -291,7 +297,7 @@ function DimensionRowsTable(props: RowsTableProps) {
         <tr className="border-b border-line-soft bg-subtle text-2xs text-ink-3">
           <th className="px-3.5 py-1.75 text-left font-medium">{props.tab.dimensionLabel}</th>
           {props.columns.map((column) => (
-            <th key={column.key} className={`w-24 py-1.75 text-right font-medium md:w-36 ${CELL_INLINE}`}>
+            <th key={column.key} className={`${measureWidth} py-1.75 text-right font-medium ${CELL_INLINE}`}>
               <button
                 type="button"
                 onClick={() => props.onSort(column.key)}
@@ -346,7 +352,12 @@ function DimensionRowsTable(props: RowsTableProps) {
                   <div className="relative flex items-center gap-2 truncate">
                     {props.iconPrefix?.(row.dimension_value, props.tab.key)}
                     <span className="truncate" title={row.dimension_value}>
-                      {row.dimension_value || t`(empty)`}
+                      {row.dimension_value
+                        ? // The SDK stores a country as its code ("FR"): the row names it, the code in its title.
+                          props.tab.dimension === 'country'
+                          ? countryName(row.dimension_value)
+                          : row.dimension_value
+                        : t`(empty)`}
                     </span>
                   </div>
                 </td>
@@ -386,7 +397,10 @@ function DimensionRowsTable(props: RowsTableProps) {
 
 /** The drawer's paginated view of the same rows. */
 function ExpandedRows(props: RowsTableProps) {
-  const [page, setPage] = useState(1)
+  const [requestedPage, setPage] = useState(1)
+  // Never past the last page: the rows can shrink under it (a refresh, a sort).
+  const lastPage = Math.max(1, Math.ceil(props.rows.length / DRAWER_PAGE_SIZE))
+  const page = Math.min(requestedPage, lastPage)
   const start = (page - 1) * DRAWER_PAGE_SIZE
   const visible = props.rows.slice(start, start + DRAWER_PAGE_SIZE)
 

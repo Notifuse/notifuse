@@ -6,6 +6,7 @@ import { ChevronDown } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { WebFilter, WebFilterCondition } from '../../../services/api/web_analytics'
 import { Panel } from '../../layout'
+import { PopconfirmWithTooltip } from '../../layout/PopconfirmWithTooltip'
 import { getDimensionLabel } from '../lib/dimensions'
 import { getSourceFieldLabel, useFilterVocabulary } from '../lib/filterCatalog'
 
@@ -129,8 +130,10 @@ function MobileFilterCard(props: MobileFilterCardProps) {
           <div className="flex gap-2 pt-2">
             <Popconfirm
               title={t`Delete this rule?`}
+              description={t`New visits are no longer rewritten by it. Past ones keep its values until the next backfill.`}
               onConfirm={props.onDelete}
               okText={t`Delete`}
+              okButtonProps={{ danger: true }}
               cancelText={t`Cancel`}
             >
               <Button block size="small" icon={<DeleteOutlined />} disabled={props.disabled}>
@@ -286,20 +289,32 @@ export function FilterTable(props: FilterTableProps) {
           size="small"
           className="opacity-0 transition-opacity [.ant-table-row:hover_&]:opacity-100"
         >
-          <Popconfirm
+          <PopconfirmWithTooltip
+            tooltip={t`Delete rule`}
             title={t`Delete this rule?`}
+            description={t`New visits are no longer rewritten by it. Past ones keep its values until the next backfill.`}
             onConfirm={() => props.onDelete(record)}
             okText={t`Delete`}
+            okButtonProps={{ danger: true }}
             cancelText={t`Cancel`}
           >
-            <Button type="text" size="small" icon={<DeleteOutlined />} disabled={props.saving} />
-          </Popconfirm>
-          <Button
-            type="text"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => props.onEdit(record)}
-          />
+            <Button
+              type="text"
+              size="small"
+              aria-label={t`Delete rule`}
+              icon={<DeleteOutlined />}
+              disabled={props.saving}
+            />
+          </PopconfirmWithTooltip>
+          <Tooltip title={t`Edit rule`}>
+            <Button
+              type="text"
+              size="small"
+              aria-label={t`Edit rule`}
+              icon={<EditOutlined />}
+              onClick={() => props.onEdit(record)}
+            />
+          </Tooltip>
         </Space>
       )
     }

@@ -62,6 +62,17 @@ describe('TemplateSettingsStep', () => {
     expect(onEditorModeChange).toHaveBeenCalledWith('code')
   })
 
+  it('says why the editor mode of a saved template is locked', () => {
+    // The other mode was only greyed out, with no reason next to it.
+    renderStep({ editorModeLocked: true, isSaved: true })
+    expect(screen.getByText('Fixed once the template is saved')).toBeInTheDocument()
+  })
+
+  it('says why the editor mode of a copy is locked', () => {
+    renderStep({ editorModeLocked: true, isSaved: false })
+    expect(screen.getByText('Kept from the template or model it starts from')).toBeInTheDocument()
+  })
+
   it('does not change a locked editor mode', async () => {
     const { onEditorModeChange } = renderStep({ editorModeLocked: true })
     expect(screen.getByRole('radio', { name: /Code \(MJML\)/ })).toBeDisabled()

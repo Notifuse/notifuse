@@ -176,6 +176,14 @@ describe('CategoryDrawer', () => {
     expect(field('Meta title')).toHaveFocus()
   })
 
+  it('brings the share image field into focus from its check', async () => {
+    const user = userEvent.setup()
+    renderDrawer({ category: guides })
+    const ogImage = document.querySelector('[data-check="og_image"]') as HTMLElement
+    await user.click(within(ogImage).getByRole('button', { name: 'Add' }))
+    expect(field('Share image')).toHaveFocus()
+  })
+
   it('previews the search result and the shared link', async () => {
     const user = userEvent.setup()
     renderDrawer({ category: guides })

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, DragEvent, ReactNode } from 'react'
-import { Alert, App, Button, Dropdown, Form, Input, Modal, Result, Segmented, Tooltip } from 'antd'
-import type { MenuProps } from 'antd'
+import { Alert, App, Button, Dropdown, Form, Input, Modal, Result, Segmented, Space, Tooltip } from 'antd'
+import type { InputRef, MenuProps } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import {
@@ -160,6 +160,7 @@ export function FileExplorer(props: FileExplorerProps) {
   const inputFileRef = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const [form] = Form.useForm()
+  const newFolderInputRef = useRef<InputRef>(null)
 
   // A folder delete can take minutes: when it ends, the user may have moved on or left.
   const mountedRef = useRef(true)
@@ -179,6 +180,19 @@ export function FileExplorer(props: FileExplorerProps) {
   const wide = useMediaQuery('(min-width: 1200px)')
   // The picker's modal always has room for the preview column; the page needs 1200px.
   const previewAsColumn = isPicker || wide
+
+  // In the picker, selecting a file opens the preview column, which narrows the list: the grid
+  // flows again and the selected card could land out of view. It is scrolled back into view.
+  useEffect(() => {
+    if (!isPicker || !selectedKey) return
+    const frame = window.requestAnimationFrame(() => {
+      const key = CSS.escape(selectedKey)
+      rootRef.current
+        ?.querySelector(`[data-file-card="${key}"], tr[data-row-key="${key}"]`)
+        ?.scrollIntoView({ block: 'nearest' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [isPicker, selectedKey])
 
   const counts = useMemo(() => fileCounts(items), [items])
   const tree = useMemo(() => folderTree(items), [items])
@@ -814,6 +828,7 @@ export function FileExplorer(props: FileExplorerProps) {
     <FileGrid
       items={visibleItems}
       selectedKey={selectedItem?.key}
+      showFolder={searching}
       isRefused={isRefused}
       onOpen={openItem}
       onActivate={isPicker ? insert : undefined}
@@ -918,33 +933,41 @@ export function FileExplorer(props: FileExplorerProps) {
           </Button>
         ]}
         destroyOnHidden
+        // The name is all the dialog asks for: it has the focus once the dialog is shown.
+        afterOpenChange={(open) => {
+          if (open) newFolderInputRef.current?.focus()
+        }}
       >
-        <Form form={form} onFinish={submitNewFolder}>
-          <Form.Item
-            label={t`Folder name`}
-            name="name"
-            required
-            rules={[
-              {
-                required: true,
-                type: 'string',
-                validator(_rule, value, callback) {
-                  // Lowercase letters, digits, underscore and dash.
-                  if (!/^[a-z0-9_-]+$/.test(value ?? '')) {
-                    callback(
-                      t`Only lowercase alphanumeric characters, underscore, and dash are allowed.`
-                    )
-                    return
+        <Form form={form} layout="vertical" onFinish={submitNewFolder}>
+          <Form.Item label={t`Folder name`} htmlFor="new-folder-name" required>
+            {/* The folder it goes in, before the name: what antd's addonBefore did. */}
+            <Space.Compact block>
+              {currentPath !== '' ? <Space.Addon>{currentPath}</Space.Addon> : null}
+              <Form.Item
+                name="name"
+                noStyle
+                rules={[
+                  {
+                    required: true,
+                    type: 'string',
+                    validator: async (_rule, value: string | undefined) => {
+                      // Lowercase letters, digits, underscore and dash.
+                      if (!/^[a-z0-9_-]+$/.test(value ?? '')) {
+                        throw new Error(
+                          t`Only lowercase alphanumeric characters, underscore, and dash are allowed.`
+                        )
+                      }
+                    }
                   }
-                  callback()
-                }
-              }
-            ]}
-          >
-            <Input
-              addonBefore={currentPath !== '' ? currentPath : undefined}
-              onChange={(event) => form.setFieldsValue({ name: event.target.value.trim() })}
-            />
+                ]}
+              >
+                <Input
+                  id="new-folder-name"
+                  ref={newFolderInputRef}
+                  onChange={(event) => form.setFieldsValue({ name: event.target.value.trim() })}
+                />
+              </Form.Item>
+            </Space.Compact>
           </Form.Item>
         </Form>
       </Modal>

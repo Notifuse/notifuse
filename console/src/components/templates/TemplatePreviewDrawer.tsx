@@ -24,6 +24,8 @@ interface TemplatePreviewDrawerProps {
   /** Controlled mode, for a page that opens the drawer itself; onClose asks it to close. */
   open?: boolean
   onClose?: () => void
+  /** The language it opens on, as chosen where it was asked for; the default language otherwise. */
+  initialLanguage?: string
 }
 
 const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
@@ -33,7 +35,8 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   messageHistory,
   children,
   open,
-  onClose
+  onClose,
+  initialLanguage
 }) => {
   const { t, i18n } = useLingui()
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
@@ -53,7 +56,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const [activeTabKey, setActiveTabKey] = useState<string>('1') // State for active tab
   const [renderedSubject, setRenderedSubject] = useState<string | null>(null)
   const [renderedSubjectPreview, setRenderedSubjectPreview] = useState<string | null>(null)
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null)
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(initialLanguage ?? null)
   // Effective template data returned by the compile endpoint (includes the workspace
   // object the server injects). Displayed in the Template Data tab so it matches the render.
   const [effectiveTestData, setEffectiveTestData] = useState<Record<string, unknown> | null>(null)
@@ -186,7 +189,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setRenderedSubject(null)
       setRenderedSubjectPreview(null)
       setEffectiveTestData(null)
-      setSelectedLanguage(null)
+      setSelectedLanguage(initialLanguage ?? null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPreview is stable
   }, [isOpen, record.id, record.version, workspace.id, effectiveLanguage])
@@ -244,7 +247,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
               type="warning"
               showIcon
               className="mb-2"
-              message={t`The custom text could not be used, the automatic version is sent instead: ${previewTextError}`}
+              title={t`The custom text could not be used, the automatic version is sent instead: ${previewTextError}`}
             />
           )}
           {previewText.trim() ? (

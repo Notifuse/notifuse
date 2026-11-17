@@ -14,8 +14,16 @@ vi.mock('./dashboardClient', () => ({
 }))
 
 let captured: {
-  yAxis: { type: string }
-  series: { name: string; type: string; data: (number | null)[]; showSymbol?: boolean; showAllSymbol?: boolean }[]
+  yAxis: { type: string; min?: number }
+  tooltip: { formatter: (params: unknown[]) => string }
+  series: {
+    name: string
+    type: string
+    data: (number | null)[]
+    showSymbol?: boolean
+    showAllSymbol?: boolean
+    smooth?: boolean
+  }[]
 } | null = null
 vi.mock('echarts-for-react', () => ({
   default: ({ option }: { option: typeof captured }) => {
@@ -150,6 +158,34 @@ describe('OriginVolumeChart', () => {
     expect(captured?.series[0].data).toEqual([null, 20000, null])
     // Each lone send keeps its point, whatever the width of the chart.
     expect(captured?.series[1]).toMatchObject({ type: 'line', showSymbol: true, showAllSymbol: true })
+    // Nothing drawn below one email: straight lines (a smoothed one overshot under 1) on an axis
+    // starting at 1.
+    expect(captured?.yAxis.min).toBe(1)
+    expect(captured?.series.slice(1).every((s) => s.smooth === false)).toBe(true)
+  })
+
+  it('names the chart and its tooltip after the metric shown', async () => {
+    query.mockImplementation(async () => rows(() => ({ count_sent: 4, count_opened: 3, count_clicked: 1 })))
+    renderChart()
+    await screen.findByTestId('echart')
+    expect(screen.getByText('Emails sent per day')).toBeTruthy()
+    // On a linear axis the lines stay smooth.
+    expect(captured?.series[1].smooth).toBe(true)
+    fireEvent.click(screen.getByText('Opens'))
+    expect(await screen.findByText('Opens per day')).toBeTruthy()
+    const tip = document.createElement('div')
+    tip.innerHTML =
+      captured?.tooltip.formatter([
+        { axisValue: '11/9', seriesName: 'Broadcasts', value: 3, color: '#000' }
+      ]) ?? ''
+    // The note sits under the date, before the figures it explains, not after them.
+    expect([...tip.children].map((child) => child.textContent)).toEqual([
+      '11/9',
+      'Opens of the emails sent that day',
+      'Broadcasts: 3'
+    ])
+    fireEvent.click(screen.getByText('Clicks'))
+    expect(await screen.findByText('Clicks per day')).toBeTruthy()
   })
 
   it('says so when nothing was sent', async () => {

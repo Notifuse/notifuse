@@ -25,6 +25,7 @@ import {
 import type { PillTone } from '../layout'
 import { CodeBlock } from './CodeBlock'
 import { FilterChip } from './FilterChip'
+import { PeriodChip } from './PeriodChip'
 import { LogsSearchBox } from './LogsSearchBox'
 import { INBOUND_EVENT_LABELS, WEBHOOK_SOURCE_LABELS } from './labels'
 import {
@@ -94,8 +95,9 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
     if (search.message_id) out.message_id = search.message_id
     if (search.source) out.source = search.source
     if (search.event_type) out.event_type = search.event_type
-    const after = periodBounds(period, now).from
-    if (after) out.timestamp_after = after
+    const bounds = periodBounds(period, now, { from: search.from, to: search.to })
+    if (bounds.from) out.timestamp_after = bounds.from
+    if (bounds.to) out.timestamp_before = bounds.to
     return out
     // `search` is new on every render; its content is the key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,13 +126,6 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
     if (sameWindow) void queryClient.resetQueries({ queryKey: ['logs', 'inbound', workspaceId] })
   }
 
-  const periodLabels: Record<LivePeriod, string> = {
-    '1h': t`Last hour`,
-    '24h': t`Last 24 hours`,
-    '7d': t`Last 7 days`,
-    '30d': t`Last 30 days`,
-    all: t`All time`
-  }
   const sourceLabel = (source: string) =>
     source in WEBHOOK_SOURCE_LABELS
       ? i18n._(WEBHOOK_SOURCE_LABELS[source as LogsWebhookSource])
@@ -138,15 +133,6 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
   const eventLabel = (type: string) =>
     type in INBOUND_EVENT_LABELS ? i18n._(INBOUND_EVENT_LABELS[type as InboundEventType]) : type
 
-  const periodMenu: MenuProps = {
-    items: (['1h', '24h', '7d', '30d', 'all'] as const).map((key) => ({
-      key,
-      label: periodLabels[key]
-    })),
-    selectable: true,
-    selectedKeys: [period],
-    onClick: ({ key }) => update({ period: key as LivePeriod })
-  }
   const sourceMenu: MenuProps = {
     items: [
       { key: '', label: t`All` },
@@ -170,7 +156,7 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
     SEARCH_KEYS.some((key) => search[key] !== undefined) ||
     search.source !== undefined ||
     search.event_type !== undefined
-  const clearFilters = () => clear(['period'])
+  const clearFilters = () => clear(['period', 'from', 'to'])
 
   const toolbar = (
     <TableToolbar
@@ -186,7 +172,6 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
             ariaLabel={t`Search the webhook events`}
             placeholder={t`Exact value`}
           />
-          <FilterChip label={t`Period`} value={periodLabels[period]} menu={periodMenu} />
           <FilterChip
             label={t`Source`}
             value={search.source ? sourceLabel(search.source) : t`All`}
@@ -197,17 +182,27 @@ export function InboundWebhooksTab({ workspaceId, permissions }: InboundWebhooks
             value={search.event_type ? eventLabel(search.event_type) : t`All`}
             menu={typeMenu}
           />
+          {/* As on every Logs tab: as soon as a filter is set. */}
+          {filtered ? (
+            <Button type="link" onClick={clearFilters}>
+              {t`Clear all`}
+            </Button>
+          ) : null}
         </>
       }
       end={
-        <Tooltip title={t`Refresh`}>
-          <Button
-            type="text"
-            aria-label={t`Refresh`}
-            icon={<RefreshCw size={14} />}
-            onClick={refresh}
-          />
-        </Tooltip>
+        <>
+          {/* The period sits on the right, with the icons: the filters keep the left. */}
+          <PeriodChip period={period} search={search} timezone={timezone} onChange={update} />
+          <Tooltip title={t`Refresh`}>
+            <Button
+              type="text"
+              aria-label={t`Refresh`}
+              icon={<RefreshCw size={14} />}
+              onClick={refresh}
+            />
+          </Tooltip>
+        </>
       }
     />
   )

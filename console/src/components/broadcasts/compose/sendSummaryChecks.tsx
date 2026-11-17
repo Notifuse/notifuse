@@ -9,10 +9,17 @@ import type { ComposeEstimate } from '../useAudienceEstimates'
 import { scheduledInstant, useBroadcastDates } from '../useBroadcastDates'
 import { VARIANT_LETTERS, type ComposeValues } from './composeValues'
 import { useIssueText } from './useIssueText'
-import type { DraftIssue } from './validateDraft'
+import { feedIssues, type DraftIssue } from './validateDraft'
 
-// Issues the summary already words on lines of their own.
-const COVERED: DraftIssue['code'][] = ['list_missing', 'variant_no_template', 'sender_gone']
+// Issues the summary already words on lines of their own: the data feeds get one line each.
+const COVERED: DraftIssue['code'][] = [
+  'list_missing',
+  'variant_no_template',
+  'sender_gone',
+  'feed_url_missing',
+  'feed_url_invalid',
+  'feed_header_incomplete'
+]
 
 export type CheckLevel = 'ok' | 'warning' | 'error'
 
@@ -36,7 +43,7 @@ export type SummaryCheck =
   | { key: `unsubscribe-${string}`; level: 'warning'; variant: string; languages: string[] }
   | { key: 'provider'; level: 'error' }
   | { key: `sender-${string}`; level: 'error'; variant: string; senderId: string }
-  | { key: 'issue'; level: 'error'; issue: DraftIssue }
+  | { key: 'issue' | `feed-${string}`; level: 'error'; issue: DraftIssue }
   | { key: 'untracked'; level: 'ok' }
 
 export interface SummaryInput {
@@ -127,6 +134,10 @@ export function summaryChecks({
   })
 
   if (issue && !COVERED.includes(issue.code)) checks.push({ key: 'issue', level: 'error', issue })
+  // Every data feed in trouble, not only the first one validateDraft stops at.
+  for (const feed of feedIssues(values)) {
+    if ('feed' in feed) checks.push({ key: `feed-${feed.feed}`, level: 'error', issue: feed })
+  }
   if (values.noTracking) checks.push({ key: 'untracked', level: 'ok' })
   return checks
 }
@@ -136,9 +147,11 @@ export const errorCount = (checks: SummaryCheck[]) =>
 
 /** The words of each check. */
 export function useCheckText({ values, listName, segmentNames, workspaceId }: CheckTextInput) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const dates = useBroadcastDates()
   const issueText = useIssueText()
+  // The issue words follow "Incomplete:" in the bar; a line of the summary starts with a capital.
+  const sentence = (text: string) => text.charAt(0).toLocaleUpperCase(i18n.locale) + text.slice(1)
   return (check: SummaryCheck): ReactNode => {
     switch (check.key) {
       case 'audience': {
@@ -176,14 +189,15 @@ export function useCheckText({ values, listName, segmentNames, workspaceId }: Ch
             {t`No marketing email provider`}{' '}
             <a
               href={`/console/workspace/${workspaceId}/settings/integrations`}
-            >{t`Configure Provider`}</a>
+            >{t`Configure provider`}</a>
           </>
         )
       case 'issue':
-        return issueText(check.issue)
+        return sentence(issueText(check.issue))
       case 'untracked':
         return t`Opens and clicks not tracked`
       default: {
+        if ('issue' in check) return sentence(issueText(check.issue))
         if ('languages' in check) {
           const languages = check.languages
             .map((l) => (l === 'default' ? t`default` : l))

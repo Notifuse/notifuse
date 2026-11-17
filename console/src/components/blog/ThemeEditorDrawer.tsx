@@ -6,8 +6,8 @@ import { Panel as ResizablePanel, PanelGroup, PanelResizeHandle } from 'react-re
 import { ExternalLink, Monitor, Smartphone } from 'lucide-react'
 import Editor from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
-import { BlogTheme, BlogThemeFiles, blogThemesApi } from '../../services/api/blog'
-import { useQueryClient, useMutation } from '@tanstack/react-query'
+import { BlogTheme, BlogThemeFiles, blogCategoriesApi, blogThemesApi } from '../../services/api/blog'
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query'
 import { ThemePreview } from './ThemePreview'
 import { useDebouncedCallback } from 'use-debounce'
 import { Workspace } from '../../services/api/types'
@@ -70,6 +70,12 @@ export function ThemeEditorDrawer({
   const { t } = useLingui()
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
+  // The blog's categories, for the preview's navigation and pages.
+  const { data: categoriesData } = useQuery({
+    queryKey: ['blog-categories', workspaceId],
+    queryFn: () => blogCategoriesApi.list(workspaceId),
+    enabled: open
+  })
   const [selectedFile, setSelectedFile] = useState<keyof BlogThemeFiles>('home.liquid')
   const [files, setFiles] = useState<BlogThemeFiles>(THEME_PRESETS[0].files)
   const [notes, setNotes] = useState('')
@@ -443,7 +449,12 @@ export function ThemeEditorDrawer({
       <div data-theme-preview-pane style={{ height: '100%', overflow: 'auto' }} className="min-h-0 flex-1">
         {/* A phone's width, centred; the desktop preview takes the pane. */}
         <div className={device === 'mobile' ? 'mx-auto h-full w-[390px] max-w-full border-x border-line bg-surface' : 'h-full'}>
-          <ThemePreview files={previewFiles} workspace={workspace} view={previewPage} />
+          <ThemePreview
+            files={previewFiles}
+            workspace={workspace}
+            categories={categoriesData?.categories}
+            view={previewPage}
+          />
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@ import { CountryFlag, getDeviceIcon } from '../lib/icons'
 import { GOAL_BREAKDOWN_MEASURES, GOAL_MEASURES, goalFilters, goalNameFilter } from './queries'
 import { timeBucketColumn } from '../lib/dates'
 import { changePercent, formatRangeSeriesName, toNumber } from '../lib/format'
-import { buildWebQuery, useWebComparisonQuery } from '../lib/query'
+import { buildWebQuery, readTotals, useWebComparisonQuery } from '../lib/query'
 import { ChartDataPoint, MetricConfig, MetricTotals, PRIMARY_COLOR } from '../lib/types'
 
 /** The three series a goal has; labels are translated at render time. */
@@ -67,18 +67,39 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
     { enabled: props.open }
   )
 
+  // The KPI strip reads its own period aggregate, the query the goal cards run,
+  // rather than adding up the chart's buckets: a median cannot be rebuilt from
+  // per-day medians, so the strip and the card would show two different medians
+  // for the same goal and period.
+  const totalsBase = { ...base, granularity: undefined }
+  const periodTotals = useWebComparisonQuery(
+    context.workspaceId,
+    buildWebQuery({ ...totalsBase, range: context.resolved }),
+    context.showComparison && context.resolvedCompare
+      ? buildWebQuery({ ...totalsBase, range: context.resolvedCompare })
+      : null,
+    { enabled: props.open }
+  )
+
   const currentRows = series.current?.data
   const previousRows = series.previous?.data
+  const currentTotals = periodTotals.current
+  const previousTotals = periodTotals.previous
 
   const totals: Record<string, MetricTotals> = useMemo(() => {
+    const current = readTotals(currentTotals, GOAL_MEASURES)
+    const previous = readTotals(previousTotals, GOAL_MEASURES)
     return Object.fromEntries(
-      GOAL_MEASURES.map((measure) => {
-        const current = periodTotal(currentRows, measure)
-        const previous = periodTotal(previousRows, measure)
-        return [measure, { current, previous, changePercent: changePercent(current, previous) }]
-      })
+      GOAL_MEASURES.map((measure) => [
+        measure,
+        {
+          current: current[measure],
+          previous: previous[measure],
+          changePercent: changePercent(current[measure], previous[measure])
+        }
+      ])
     )
-  }, [currentRows, previousRows])
+  }, [currentTotals, previousTotals])
 
   const bucketColumn = timeBucketColumn('goal_at', context.granularity)
   const toPoints = (rows: Record<string, unknown>[] | undefined): ChartDataPoint[] =>
@@ -133,17 +154,17 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
       <div
         className={`flex flex-col gap-3 ${series.isFetching ? 'opacity-75 transition-opacity' : ''}`}
       >
-        {series.error ? (
+        {series.error || periodTotals.error ? (
           <Alert type="error" showIcon title={t`Could not load this goal`} />
         ) : null}
 
         <MetricSummary
           metrics={GOAL_METRICS}
-          totals={series.isLoading ? {} : totals}
+          totals={periodTotals.isLoading ? {} : totals}
           selected={selected}
           onSelect={setSelected}
           showComparison={context.showComparison}
-          loading={series.isLoading}
+          loading={periodTotals.isLoading}
           labels={labels}
         />
 
@@ -272,22 +293,4 @@ export function GoalDashboardDrawer(props: GoalDashboardDrawerProps) {
       </div>
     </Drawer>
   )
-}
-
-/**
- * Period total for a measure, read off the bucketed series.
- *
- * Counts and sums add up. A median does not: the engine returns one median per
- * bucket with no way to recombine them, so the KPI shows the mean of the
- * buckets that actually held a conversion. Buckets the gap filler zero-filled
- * have no median at all, and averaging those in would only dilute the figure.
- */
-function periodTotal(rows: Record<string, unknown>[] | undefined, measure: string): number {
-  const all = rows ?? []
-  if (measure !== 'median_goal_value') {
-    return all.reduce((sum, row) => sum + toNumber(row[measure]), 0)
-  }
-  const observed = all.filter((row) => toNumber(row.goals) > 0)
-  if (observed.length === 0) return 0
-  return observed.reduce((sum, row) => sum + toNumber(row[measure]), 0) / observed.length
 }

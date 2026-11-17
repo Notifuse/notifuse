@@ -197,9 +197,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
 
       <Form
         form={form}
-        layout="horizontal"
-        labelCol={{ span: 6 }}
-        wrapperCol={{ span: 18 }}
+        layout="vertical"
         style={{ marginTop: hasExistingSettings ? 0 : 24, marginBottom: 40 }}
         onFinish={onFinish}
       >
@@ -221,7 +219,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
         />
 
         <Form.Item
-          label={t`S3 Endpoint`}
+          label={t`S3 endpoint`}
           name="endpoint"
           rules={[{ type: 'url', required: true }]}
           help={selectedProvider?.endpointHelp}

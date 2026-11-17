@@ -218,6 +218,10 @@ describe('FileExplorer page', () => {
     fireEvent.click(within(rail()).getByRole('button', { name: 'New folder' }))
     const dialog = await screen.findByRole('dialog')
     expect(dialog.textContent).toContain('Create new folder')
+    // The name has the focus, the folder it goes in written before it, its label above it.
+    await waitFor(() => expect(within(dialog).getByRole('textbox', { name: 'Folder name' })).toHaveFocus())
+    expect(within(dialog).getByText('docs/')).toBeInTheDocument()
+    expect(dialog.querySelector('.ant-form-vertical')).not.toBeNull()
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Folder name' }), {
       target: { value: 'drafts' }
     })
@@ -339,6 +343,35 @@ describe('FileExplorer page', () => {
       target: { value: 'zzz' }
     })
     expect(await screen.findByText('No files match your search')).toBeTruthy()
+  })
+
+  it('shows each file’s folder in the grid’s search results too', async () => {
+    listing()
+    localStorage.setItem('notifuse.files.view.page', 'grid')
+    renderExplorer()
+    await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'File name' }), { target: { value: 'PNG' } })
+    await waitFor(() => expect(document.querySelector('[data-file-card="docs/2026/b.png"]')).not.toBeNull())
+    const card = document.querySelector('[data-file-card="docs/2026/b.png"]') as HTMLElement
+    expect(card.querySelector('[data-file-folder]')).toHaveTextContent('docs/2026/')
+  })
+
+  it('lists the folders in the rail’s order, by name, whatever their dates', async () => {
+    listing([
+      { Key: 'zebra/', LastModified: at(9) },
+      { Key: 'alpha/', LastModified: at(1) },
+      { Key: 'notes.txt', LastModified: at(6), Size: 10 }
+    ])
+    renderExplorer({}, '')
+    await screen.findByText('notes.txt')
+    const listed = screen.getAllByRole('row').slice(1).map((row) => row.textContent ?? '')
+    expect(listed[0]).toContain('alpha')
+    expect(listed[1]).toContain('zebra')
+    const inRail = within(rail()).getAllByRole('button').map((button) => button.textContent ?? '')
+    expect(inRail.findIndex((name) => name.startsWith('alpha'))).toBeLessThan(
+      inRail.findIndex((name) => name.startsWith('zebra'))
+    )
   })
 
   it('says when a folder is empty', async () => {
@@ -722,6 +755,16 @@ describe('FileExplorer folder delete', () => {
     ).toBeTruthy()
   })
 
+  it('says an empty folder is empty rather than counting its 0 files', async () => {
+    listing([{ Key: 'empty/', LastModified: at(1) }])
+    renderExplorer({}, 'empty/')
+    await screen.findByText('Folder is empty')
+
+    await openFolderDelete()
+    expect(await screen.findByText('Delete the empty folder empty?')).toBeTruthy()
+    expect(screen.queryByText(/0 files/)).toBeNull()
+  })
+
   it('shows the delete in progress and ignores a second confirmation', async () => {
     const pending = pendingFolderDelete()
     renderExplorer()
@@ -911,6 +954,25 @@ describe('FileExplorer picker', () => {
 
     fireEvent.click(within(footer()).getByRole('button', { name: 'Insert image' }))
     expect(onSelect).toHaveBeenCalledWith([expect.objectContaining({ key: 'docs/a.png' })])
+  })
+
+  it('scrolls the selected file back into view once the preview column narrows the grid', async () => {
+    listing()
+    const scrolled: Element[] = []
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this)
+    }
+    try {
+      renderPicker()
+      await waitFor(() => expect(document.querySelector('[data-file-card="docs/a.png"]')).not.toBeNull())
+      fireEvent.click(document.querySelector('[data-file-card="docs/a.png"]') as HTMLElement)
+      await waitFor(() =>
+        expect(scrolled).toContain(document.querySelector('[data-file-card="docs/a.png"]'))
+      )
+    } finally {
+      Element.prototype.scrollIntoView = original
+    }
   })
 
   it('leaves the target out of the footer when the caller names none', async () => {

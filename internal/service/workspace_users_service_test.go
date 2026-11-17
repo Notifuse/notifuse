@@ -1999,3 +1999,20 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail_Names(t *testing.T) {
 		}, names)
 	})
 }
+
+func TestApiKeyEmailDomain(t *testing.T) {
+	// The address of an API key carried the port of the endpoint ("key@localhost:4000"), which is
+	// no email address.
+	cases := map[string]string{
+		"https://api.example.com/v1":         "api.example.com",
+		"http://203.0.113.7:8080":            "203.0.113.7",
+		"https://localapi.notifuse.com:4000": "localapi.notifuse.com",
+		"http://[2001:db8::1]:8080/api":      "2001:db8::1",
+		"http://[::1]":                       "::1",
+		"http://[::1]:4000":                  "::1",
+		"api.example.com":                    "api.example.com",
+	}
+	for endpoint, want := range cases {
+		assert.Equal(t, want, apiKeyEmailDomain(endpoint), endpoint)
+	}
+}

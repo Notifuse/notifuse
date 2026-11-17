@@ -660,6 +660,20 @@ const (
 // BlogPostSearchMaxLength caps the search of blogPosts.list, in characters.
 const BlogPostSearchMaxLength = 200
 
+// NormalizeBlogPostSearch trims a title search and refuses one PostgreSQL cannot read or longer
+// than BlogPostSearchMaxLength. blogPosts.list and blogPosts.counts both pass it, so they read
+// the same search the same way.
+func NormalizeBlogPostSearch(search string) (string, error) {
+	search = strings.TrimSpace(search)
+	if !utf8.ValidString(search) || strings.ContainsRune(search, 0) {
+		return "", ValidationError{Message: "search must be valid UTF-8 text without NUL bytes"}
+	}
+	if utf8.RuneCountInString(search) > BlogPostSearchMaxLength {
+		return "", ValidationError{Message: fmt.Sprintf("search must be at most %d characters", BlogPostSearchMaxLength)}
+	}
+	return search, nil
+}
+
 // ListBlogPostsRequest defines the request to list blog posts
 type ListBlogPostsRequest struct {
 	CategoryID string         `json:"category_id,omitempty"`
@@ -694,13 +708,11 @@ func (r *ListBlogPostsRequest) Validate() error {
 		return ValidationError{Message: fmt.Sprintf("invalid status: %s", r.Status)}
 	}
 
-	r.Search = strings.TrimSpace(r.Search)
-	if !utf8.ValidString(r.Search) || strings.ContainsRune(r.Search, 0) {
-		return ValidationError{Message: "search must be valid UTF-8 text without NUL bytes"}
+	search, err := NormalizeBlogPostSearch(r.Search)
+	if err != nil {
+		return err
 	}
-	if utf8.RuneCountInString(r.Search) > BlogPostSearchMaxLength {
-		return ValidationError{Message: fmt.Sprintf("search must be at most %d characters", BlogPostSearchMaxLength)}
-	}
+	r.Search = search
 
 	// Default page to 1 if not specified
 	if r.Page <= 0 {
@@ -724,8 +736,9 @@ func (r *ListBlogPostsRequest) Validate() error {
 }
 
 // BlogPostCounts is the response of blogPosts.counts. AllTotal and ByCategory cover every
-// post; Total, Published, Scheduled and Draft follow the category asked for, if any. A
-// scheduled post is also published: its publication date is set, still to come.
+// post; Total, Published, Scheduled and Draft follow the category and the title search asked
+// for, if any, as blogPosts.list does. A scheduled post is also published: its publication
+// date is set, still to come.
 type BlogPostCounts struct {
 	AllTotal   int            `json:"all_total"`
 	Total      int            `json:"total"`
@@ -796,8 +809,9 @@ type BlogPostRepository interface {
 	DeletePost(ctx context.Context, id string) error
 	ListPosts(ctx context.Context, params ListBlogPostsRequest) (*BlogPostListResponse, error)
 	// CountPosts counts the posts that are not deleted, as blogPosts.counts returns them.
-	// now decides which published posts are still scheduled.
-	CountPosts(ctx context.Context, workspaceID string, categoryID string, now time.Time) (*BlogPostCounts, error)
+	// now decides which published posts are still scheduled; search narrows the status counts
+	// to the titles containing it, as ListPosts does.
+	CountPosts(ctx context.Context, workspaceID string, categoryID string, search string, now time.Time) (*BlogPostCounts, error)
 	// ListFeedPosts returns the top `limit` published posts (newest first) for
 	// RSS/JSON syndication. Enforces deleted_at IS NULL AND published_at IS NOT
 	// NULL AND published_at <= the current UTC time — the filter mirrors
@@ -849,8 +863,9 @@ type BlogService interface {
 	UpdatePost(ctx context.Context, request *UpdateBlogPostRequest) (*BlogPost, error)
 	DeletePost(ctx context.Context, request *DeleteBlogPostRequest) error
 	ListPosts(ctx context.Context, params *ListBlogPostsRequest) (*BlogPostListResponse, error)
-	// CountPosts counts the posts by status, overall or in one category, and per category.
-	CountPosts(ctx context.Context, categoryID string) (*BlogPostCounts, error)
+	// CountPosts counts the posts by status, overall or in one category, and per category; a
+	// search narrows the counts by status to the matching titles.
+	CountPosts(ctx context.Context, categoryID string, search string) (*BlogPostCounts, error)
 	PublishPost(ctx context.Context, request *PublishBlogPostRequest) error
 	UnpublishPost(ctx context.Context, request *UnpublishBlogPostRequest) error
 

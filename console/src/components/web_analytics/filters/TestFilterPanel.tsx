@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Button, ConfigProvider, Form, Input } from 'antd'
+import { Button, ConfigProvider, Form, Input, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import {
   WebFilter,
@@ -163,10 +163,10 @@ export function TestFilterPanel(props: TestFilterPanelProps) {
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
         <span className="truncate text-sm font-medium text-ink">{rule.name}</span>
-        {/* The tester runs every rule; the engine skips a disabled one. */}
+        {/* The engine skips a disabled rule: whatever it would write is never written. */}
         {!rule.enabled ? (
           <Pill tone="neutral" dot={false}>
-            {t`Disabled`}
+            {t`Not applied`}
           </Pill>
         ) : null}
       </div>
@@ -198,7 +198,19 @@ export function TestFilterPanel(props: TestFilterPanelProps) {
                       </span>
                     }
                   >
-                    <Input placeholder={field.label} />
+                    {field.value === 'is_direct' ? (
+                      // A yes/no field: typed, "yes" would never equal the "true" the rules compare.
+                      <Select
+                        allowClear
+                        placeholder={field.label}
+                        options={[
+                          { value: 'true', label: t`Yes` },
+                          { value: 'false', label: t`No` }
+                        ]}
+                      />
+                    ) : (
+                      <Input placeholder={field.label} />
+                    )}
                   </Form.Item>
                 ))}
               </div>
@@ -272,15 +284,19 @@ export function TestFilterPanel(props: TestFilterPanelProps) {
     </div>
   ) : null
 
-  const matchingRules = multiResults?.filter((row) => row.matches) ?? []
-  const unmatchedRules = multiResults?.filter((row) => !row.matches) ?? []
+  // Only enabled rules run on a visit, so only they are counted and matched; the disabled ones are
+  // listed apart, without what they would write.
+  const enabledResults = multiResults?.filter((row) => row.filter.enabled) ?? []
+  const disabledRules = multiResults?.filter((row) => !row.filter.enabled) ?? []
+  const matchingRules = enabledResults.filter((row) => row.matches)
+  const unmatchedRules = enabledResults.filter((row) => !row.matches)
 
   const multiView = multiResults ? (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-ink">{t`Results:`}</span>
         <span className="text-sm text-ink-3">
-          {t`${matchingRules.length} of ${multiResults.length} rules match`}
+          {t`${matchingRules.length} of ${enabledResults.length} rules match`}
         </span>
       </div>
 
@@ -334,6 +350,29 @@ export function TestFilterPanel(props: TestFilterPanelProps) {
                 </div>
               ))
             : null}
+        </Panel>
+      ) : null}
+
+      {disabledRules.length > 0 ? (
+        <Panel
+          title={
+            <span className="inline-flex items-center gap-1.5">
+              {t`Disabled rules`}
+              <span className="font-normal tabular-nums text-ink-3">{disabledRules.length}</span>
+            </span>
+          }
+          flush
+        >
+          {disabledRules.map((row) => (
+            <div
+              key={row.filter.id}
+              data-rule-result="disabled"
+              className="flex flex-col gap-1.5 border-t border-line-soft px-3.5 py-2.5 opacity-60 first:border-t-0"
+            >
+              {renderRuleHead(row.filter)}
+              {renderRuleConditions(row.filter)}
+            </div>
+          ))}
         </Panel>
       ) : null}
     </div>

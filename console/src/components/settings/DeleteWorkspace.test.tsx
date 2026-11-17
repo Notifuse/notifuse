@@ -44,7 +44,7 @@ describe('DeleteWorkspaceSection', () => {
     vi.mocked(workspaceService.delete).mockResolvedValue({ status: 'success' } as never)
     renderSection()
 
-    const button = screen.getByRole('button', { name: 'Delete Workspace' })
+    const button = screen.getByRole('button', { name: 'Delete workspace' })
     expect(button).toBeDisabled()
     fireEvent.change(screen.getByLabelText('Workspace ID'), { target: { value: 'acme' } })
     expect(button).toBeDisabled()
@@ -60,7 +60,7 @@ describe('DeleteWorkspaceSection', () => {
     renderSection()
 
     fireEvent.change(screen.getByLabelText('Workspace ID'), { target: { value: 'acme-prod' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Workspace' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete workspace' }))
 
     expect(await screen.findByText('Failed to delete workspace')).toBeInTheDocument()
     expect(onDeleteSuccess).not.toHaveBeenCalled()

@@ -442,6 +442,8 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
     render: (_, b) => {
       const verdict = pageStats.verdicts.get(b.id)
       const sendingNow = b.status === 'processing' || (b.status === 'processed' && verdict?.kind === 'sending')
+      // A cancelled broadcast that never started has nothing to offer: no "…" opening an empty menu.
+      const items = rowMenu(b)
       return (
         // The row opens on click: the actions keep their clicks.
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -468,9 +470,11 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
               />
             </Tooltip>
           ) : null}
-          <Dropdown menu={{ items: rowMenu(b) }} trigger={['click']} placement="bottomRight">
-            <Button type="text" size="small" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
-          </Dropdown>
+          {items && items.length > 0 ? (
+            <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
+              <Button type="text" size="small" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
+            </Dropdown>
+          ) : null}
         </div>
       )
     }

@@ -209,7 +209,7 @@ export interface ListBroadcastsRequest {
 // Status filter groups shown in the broadcasts list Segmented control. Each
 // group maps to one or more underlying broadcast statuses. 'all' (no filter)
 // is intentionally not part of this map.
-export type BroadcastStatusGroup = 'all' | 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed'
+export type BroadcastStatusGroup = 'all' | 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'cancelled'
 
 export const BROADCAST_STATUS_GROUPS: Record<
   Exclude<BroadcastStatusGroup, 'all'>,
@@ -219,7 +219,9 @@ export const BROADCAST_STATUS_GROUPS: Record<
   scheduled: ['scheduled'],
   sending: ['processing', 'paused', 'testing', 'winner_selected'],
   sent: ['processed', 'test_completed'],
-  failed: ['failed', 'cancelled']
+  failed: ['failed'],
+  // Stopped on purpose: not a failure.
+  cancelled: ['cancelled']
 }
 
 // getStatusesForGroup resolves a Segmented group value to the list of statuses

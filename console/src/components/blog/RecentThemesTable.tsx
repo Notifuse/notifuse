@@ -210,7 +210,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
       extra={
         empty ? undefined : (
           <Button size="small" type="primary" ghost={hasPublishedTheme} icon={<PlusOutlined />} onClick={handleCreate}>
-            {t`New Theme`}
+            {t`New theme`}
           </Button>
         )
       }

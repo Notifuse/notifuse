@@ -480,6 +480,7 @@ function ComposeEditor({ workspace, permissions, broadcast, onClose, onCreated, 
             onPreview={setPreviewIndex}
             estimateCount={estimate.count}
             canReadTemplates={canReadTemplates}
+            canWriteTemplates={!!permissions?.templates?.write}
           />
           <SendingCard
             values={values}

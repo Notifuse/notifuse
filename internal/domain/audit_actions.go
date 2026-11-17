@@ -30,8 +30,12 @@ const (
 	AuditCategorySegments      = "segments"
 	AuditCategoryTransactional = "transactional"
 	AuditCategoryBlog          = "blog"
-	AuditCategoryContacts      = "contacts"
-	AuditCategoryAudit         = "audit"
+	// Web analytics: its settings (goals, filter rules), the chart annotations and the
+	// attribution backfill. Rows written before it existed keep the category they were written
+	// with (workspaces, contacts).
+	AuditCategoryWebAnalytics = "web_analytics"
+	AuditCategoryContacts     = "contacts"
+	AuditCategoryAudit        = "audit"
 )
 
 // AuditCategories is every category, in the order the console groups them.
@@ -51,6 +55,7 @@ var AuditCategories = []string{
 	AuditCategorySegments,
 	AuditCategoryTransactional,
 	AuditCategoryBlog,
+	AuditCategoryWebAnalytics,
 	AuditCategoryContacts,
 	AuditCategoryAudit,
 }
@@ -113,7 +118,7 @@ var AuditedActions = map[string]AuditActionSpec{
 	"workspaces.delete":                  {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "id"},
 	"workspaces.setBlogSettings":         {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setCustomFieldLabels":    {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
-	"workspaces.setWebAnalyticsSettings": {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
+	"workspaces.setWebAnalyticsSettings": {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 	"workspaces.setAuditLogSettings":     {Category: AuditCategoryWorkspaces, TargetType: AuditTargetWorkspace, TargetKey: "workspace_id"},
 
 	// members
@@ -200,14 +205,16 @@ var AuditedActions = map[string]AuditActionSpec{
 	"blogThemes.publish": {Category: AuditCategoryBlog, TargetType: AuditTargetBlogTheme, TargetKey: "version"},
 
 	// contacts: only the destructive and the bulk operations
-	"contacts.delete":             {Category: AuditCategoryContacts, TargetType: AuditTargetContact, TargetKey: "email"},
-	"contacts.import":             {Category: AuditCategoryContacts},
-	"customEvents.import":         {Category: AuditCategoryContacts},
-	"annotations.create":          {Category: AuditCategoryContacts, TargetType: AuditTargetAnnotation, ResponseKey: "annotation.id"},
-	"annotations.update":          {Category: AuditCategoryContacts, TargetType: AuditTargetAnnotation, TargetKey: "id"},
-	"annotations.delete":          {Category: AuditCategoryContacts, TargetType: AuditTargetAnnotation, TargetKey: "id"},
-	"webAnalytics.backfillStart":  {Category: AuditCategoryContacts},
-	"webAnalytics.backfillCancel": {Category: AuditCategoryContacts},
+	"contacts.delete":     {Category: AuditCategoryContacts, TargetType: AuditTargetContact, TargetKey: "email"},
+	"contacts.import":     {Category: AuditCategoryContacts},
+	"customEvents.import": {Category: AuditCategoryContacts},
+
+	// web analytics
+	"annotations.create":          {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetAnnotation, ResponseKey: "annotation.id"},
+	"annotations.update":          {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetAnnotation, TargetKey: "id"},
+	"annotations.delete":          {Category: AuditCategoryWebAnalytics, TargetType: AuditTargetAnnotation, TargetKey: "id"},
+	"webAnalytics.backfillStart":  {Category: AuditCategoryWebAnalytics},
+	"webAnalytics.backfillCancel": {Category: AuditCategoryWebAnalytics},
 
 	// the audit log itself
 	"auditLogs.export": {Category: AuditCategoryAudit, TargetType: AuditTargetAuditLog},

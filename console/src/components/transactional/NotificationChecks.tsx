@@ -79,13 +79,22 @@ export function NotificationChecks(props: NotificationChecksProps) {
     const name = draft.name.trim()
     const id = draft.id.trim()
     const validId = id !== '' && API_ID_PATTERN.test(id) && id.length <= TRANSACTIONAL_ID_MAX_LENGTH
-    if (!name || !validId) {
+    if (!name || !id) {
       checks.push({
         key: 'identity',
         tone: 'warn',
         label: t`Name and API identifier`,
         why: t`Required to create the notification`,
         action: link(t`Add`, name ? ['id'] : ['name'])
+      })
+    } else if (!validId) {
+      // Typed but refused: the field says why, the check sends to it.
+      checks.push({
+        key: 'identity',
+        tone: 'warn',
+        label: t`Name and API identifier`,
+        why: t`The API identifier is not valid`,
+        action: link(t`Edit`, ['id'])
       })
     } else if (idStatus === 'taken') {
       checks.push({

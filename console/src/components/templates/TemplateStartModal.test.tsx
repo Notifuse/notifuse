@@ -96,6 +96,12 @@ describe('TemplateStartModal', () => {
     expect(Object.keys(start.translations)).toEqual(['en'])
   })
 
+  it('shows Blank under the imposed category, not a category to choose', () => {
+    renderModal({ forceCategory: 'transactional' })
+    expect(within(card('blank')).getByText('Transactional')).toBeInTheDocument()
+    expect(screen.queryByText('Category to choose')).toBeNull()
+  })
+
   it('goes back to the gallery with its filter kept', async () => {
     renderModal()
     await userEvent.click(screen.getByRole('button', { name: /E-commerce/ }))

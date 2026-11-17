@@ -34,7 +34,12 @@ const transactionalIsSmtp = (workspace?: Workspace) =>
  * message of no origin (a template test, a double opt-in confirmation) does not say, so either.
  */
 export function rowIsSmtp(message: Partial<OriginFields>, workspace?: Workspace): boolean {
-  switch (messageOrigin(message)) {
+  return originIsSmtp(messageOrigin(message), workspace)
+}
+
+/** Whether the messages of an origin go through an SMTP provider: see rowIsSmtp. */
+export function originIsSmtp(origin: MessageOrigin, workspace?: Workspace): boolean {
+  switch (origin) {
     case 'broadcast':
     case 'automation':
       return marketingIsSmtp(workspace)
@@ -63,4 +68,18 @@ export function countsDeliveries(
     (Boolean(marketing) && !marketingIsSmtp(workspace)) ||
     (Boolean(transactional) && !transactionalIsSmtp(workspace))
   )
+}
+
+/**
+ * Whether the Delivered count of an origin filter (every origin when left out) is shown, given
+ * the deliveries that came back: an SMTP provider reports no delivery (see countsDeliveries),
+ * unless deliveries came back all the same (its webhook endpoint, or the history of a provider
+ * used before). Logs and the dashboard read it alike.
+ */
+export function deliveriesReported(
+  workspace: Workspace | undefined,
+  origin: MessageOrigin | undefined,
+  delivered: number | undefined
+): boolean {
+  return countsDeliveries(workspace, origin) || (delivered ?? 0) > 0
 }

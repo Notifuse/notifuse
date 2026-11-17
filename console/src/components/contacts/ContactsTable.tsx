@@ -1,4 +1,5 @@
-import { Button, Dropdown, Popover, Table, Tooltip } from 'antd'
+import { useState } from 'react'
+import { Button, Dropdown, Popconfirm, Popover, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
 import { MoreHorizontal } from 'lucide-react'
@@ -69,6 +70,55 @@ export interface ContactsTableProps {
   onEdit: (contact: Contact) => void
   onDelete: (email: string) => void
   emptyText: React.ReactNode
+}
+
+/**
+ * The row's « … » menu. Delete asks first, over the « … » button, as the sheet's delete does: one
+ * contact, so a popconfirm rather than a dialog.
+ */
+function RowActions({
+  contact,
+  onEdit,
+  onDelete
+}: {
+  contact: Contact
+  onEdit: (contact: Contact) => void
+  onDelete: (email: string) => void
+}) {
+  const { t } = useLingui()
+  const [confirming, setConfirming] = useState(false)
+  const items: MenuProps['items'] = [
+    { key: 'edit', label: t`Edit`, onClick: () => onEdit(contact) },
+    { key: 'delete', label: t`Delete`, danger: true, onClick: () => setConfirming(true) }
+  ]
+  return (
+    <Popconfirm
+      open={confirming}
+      // Only the menu opens it: a click on « … » itself opens the menu, not the confirmation.
+      onOpenChange={(open) => {
+        if (!open) setConfirming(false)
+      }}
+      title={t`Delete contact`}
+      description={t`This will permanently remove the contact and their subscriptions.`}
+      okText={t`Delete`}
+      cancelText={t`Cancel`}
+      okButtonProps={{ danger: true }}
+      placement="bottomRight"
+      onConfirm={() => {
+        setConfirming(false)
+        onDelete(contact.email)
+      }}
+    >
+      <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
+        <Button
+          type="text"
+          size="small"
+          aria-label={t`Actions for ${contact.email}`}
+          icon={<MoreHorizontal size={15} aria-hidden="true" />}
+        />
+      </Dropdown>
+    </Popconfirm>
+  )
 }
 
 /** The contacts of the view; a row opens the contact's sheet and its checkbox selects it. */
@@ -310,22 +360,7 @@ export function ContactsTable({
       // `contacts-actions-col` is only on the body cells: it is what the row click handler
       // looks for to leave the controls in this column alone.
       onCell: () => ({ className: 'contacts-actions-col' }),
-      render: (_: unknown, record: Contact) => {
-        const items: MenuProps['items'] = [
-          { key: 'edit', label: t`Edit`, onClick: () => onEdit(record) },
-          { key: 'delete', label: t`Delete`, danger: true, onClick: () => onDelete(record.email) }
-        ]
-        return (
-          <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
-            <Button
-              type="text"
-              size="small"
-              aria-label={t`Actions for ${record.email}`}
-              icon={<MoreHorizontal size={15} aria-hidden="true" />}
-            />
-          </Dropdown>
-        )
-      }
+      render: (_: unknown, record: Contact) => <RowActions contact={record} onEdit={onEdit} onDelete={onDelete} />
     }
   ]
 

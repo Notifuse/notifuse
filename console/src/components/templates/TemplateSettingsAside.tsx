@@ -105,7 +105,7 @@ export function TemplateSettingsAside({
                   <span className="text-xs text-ink-3">{t`Now`}</span>
                 </span>
                 <span className="truncate font-semibold text-ink" data-testid="inbox-subject">
-                  {subject || t`Email Subject`}
+                  {subject || t`Email subject`}
                 </span>
                 <span className="truncate text-ink-3">{previewText || t`Preview text will appear here...`}</span>
               </li>
@@ -125,7 +125,7 @@ export function TemplateSettingsAside({
               <div className="origin-top-left" style={{ width: PHONE_WIDTH, transform: `scale(${PHONE_SCALE})` }}>
                 <IphoneEmailPreview
                   sender={senderName}
-                  subject={subject || t`Email Subject`}
+                  subject={subject || t`Email subject`}
                   previewText={previewText || t`Preview text will appear here...`}
                   timestamp={t`Now`}
                   currentTime="9:41"

@@ -17,6 +17,8 @@ export interface SegmentSummary {
   joiner: string
   /** Conditions of the first level left out of `conditions`. */
   more: number
+  /** Those left out, described, for a tooltip on « +N ». */
+  hidden: string[]
 }
 
 export interface SegmentSummaryOptions {
@@ -202,10 +204,15 @@ function describeTimeline(condition: ContactTimelineCondition, i18n: I18n): stri
 function describeGoal(condition: CustomEventsGoalCondition, i18n: I18n): string {
   const goal = GOAL_LABELS[condition.goal_type]
   const type = goal ? i18n._(goal) : condition.goal_type
-  // The type, the goal name and the event name all narrow the events: each one set is shown.
-  const names = [condition.goal_name, condition.event_name]
-    .filter((name): name is string => !!name)
-    .map((name) => i18n._(msg`“${{ name }}”`))
+  // The type, the goal name and the event name all narrow the events: each one set is shown,
+  // the event name said to be one (a bare “add_to_cart” read as a raw value).
+  const goalName = condition.goal_name ? i18n._(msg`“${{ name: condition.goal_name }}”`) : null
+  const eventName = condition.event_name
+    ? goalName || condition.goal_type !== '*'
+      ? i18n._(msg`event “${{ name: condition.event_name }}”`)
+      : i18n._(msg`Event “${{ name: condition.event_name }}”`)
+    : null
+  const names = [goalName, eventName].filter((name): name is string => !!name)
   const subject = condition.goal_type === '*' && names.length > 0 ? names.join(' ') : [type, ...names].join(' ')
   const aggregateLabel = AGGREGATE_LABELS[condition.aggregate_operator]
   const aggregate = aggregateLabel ? i18n._(aggregateLabel) : condition.aggregate_operator
@@ -275,6 +282,7 @@ export function segmentSummary(tree: TreeNode, i18n: I18n, options: SegmentSumma
   return {
     conditions: nodes.slice(0, MAX_CONDITIONS).map((node) => describeNode(node, i18n, options)),
     joiner: operator === 'or' ? i18n._(msg`or`) : i18n._(msg`and`),
-    more: Math.max(0, nodes.length - MAX_CONDITIONS)
+    more: Math.max(0, nodes.length - MAX_CONDITIONS),
+    hidden: nodes.slice(MAX_CONDITIONS).map((node) => describeNode(node, i18n, options))
   }
 }

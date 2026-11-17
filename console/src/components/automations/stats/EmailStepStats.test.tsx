@@ -49,7 +49,7 @@ describe('EmailStepStats', () => {
     expect(row('delivered')).toHaveTextContent('90.0%')
     expect(row('opened')).toHaveTextContent('50.0%')
     expect(row('clicked')).toHaveTextContent('10.0%')
-    expect(screen.getByText('1 failed · 1 unsubscribe · 2 bounces')).toBeInTheDocument()
+    expect(screen.getByText('1 email failed · 1 unsubscribe · 2 bounces')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'View messages' })).toHaveAttribute('href', '/console/workspace/ws1/logs?automation_id=auto-1&template_id=tpl-1')
   })
 
@@ -89,7 +89,7 @@ describe('EmailStepStats', () => {
   it('reads zeros when the step sent nothing', () => {
     renderEmail(undefined)
     expect(row('sent')).toHaveTextContent('0')
-    expect(screen.getByText('0 failed · 0 unsubscribes · 0 bounces')).toBeInTheDocument()
+    expect(screen.getByText('0 emails failed · 0 unsubscribes · 0 bounces')).toBeInTheDocument()
   })
 
   it('says the emails need the message history', () => {

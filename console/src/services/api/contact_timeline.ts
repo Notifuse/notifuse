@@ -29,6 +29,10 @@ export interface MessageHistoryEntityData {
   clicked_at?: string
   /** The stored envelope: the template data under `data`. */
   message_data?: MessageData
+  /** What sent the message: at most one is set. */
+  broadcast_id?: string | null
+  automation_id?: string | null
+  transactional_notification_id?: string | null
 }
 
 export interface InboundWebhookEventEntityData {

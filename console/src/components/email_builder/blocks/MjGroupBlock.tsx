@@ -49,7 +49,7 @@ const MjGroupSettingsPanel: React.FC<MjGroupSettingsPanelProps> = ({
   }
 
   return (
-    <PanelLayout title={t`Group Attributes`}>
+    <PanelLayout title={t`Group attributes`}>
       <div className="space-y-4">
         {/* Layout Settings */}
         <InputLayout label={t`Width`}>
@@ -63,7 +63,7 @@ const MjGroupSettingsPanel: React.FC<MjGroupSettingsPanelProps> = ({
               <Alert
                 type="warning"
                 showIcon
-                message={t`The section's columns and groups go ${over}% past its width: in the email, the last ones move to a new line.`}
+                title={t`The section's columns and groups go ${over}% past its width: in the email, the last ones move to a new line.`}
               />
             </div>
           )}

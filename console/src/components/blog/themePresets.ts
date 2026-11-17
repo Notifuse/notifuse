@@ -333,7 +333,7 @@ const defaultTheme: ThemePreset = {
                 {%- if post.published_at -%}
                   {{ post.published_at | date: "%b %d, %Y" }}
                 {%- endif -%}
-                {%- if post.reading_time_minutes -%}
+                {%- if post.reading_time_minutes %}
                   · {{ post.reading_time_minutes }} min read
                 {%- endif -%}
               </div>
@@ -767,7 +767,7 @@ const defaultTheme: ThemePreset = {
           {%- if post.published_at -%}
             {{ post.published_at | date: "%b %d, %Y" }}
           {%- endif -%}
-          {%- if post.reading_time_minutes -%}
+          {%- if post.reading_time_minutes %}
             · {{ post.reading_time_minutes }} min read
           {%- endif -%}
         </div>
@@ -2065,6 +2065,9 @@ h3 {
 
   .post-content-wrapper {
     flex-direction: column;
+    /* As a column, flex-start would size the text to its widest unbreakable line (a code
+       block), past the screen's right edge: the text takes the screen's width instead. */
+    align-items: stretch;
   }
 
   .toc-sidebar {

@@ -201,7 +201,20 @@ describe('OutgoingWebhooksTab', () => {
     expect(within(panel).getByRole('button', { name: 'Open subscription' })).toBeDisabled()
   })
 
+  it('opens the webhook settings rather than invite to add one when an endpoint exists', async () => {
+    state.getDeliveries.mockResolvedValue(page([]))
+    renderTab()
+    expect(await screen.findByText('No webhook deliveries yet')).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Open webhook settings' }))
+    expect(screen.queryByRole('button', { name: 'Add a webhook' })).toBeNull()
+    expect(state.navigate).toHaveBeenCalledWith({
+      to: '/console/workspace/$workspaceId/settings/$section',
+      params: { workspaceId: 'ws1', section: 'webhooks' }
+    })
+  })
+
   it('invites to add a webhook when nothing was ever delivered', async () => {
+    state.list.mockResolvedValue({ subscriptions: [] })
     state.getDeliveries.mockResolvedValue(page([]))
     renderTab()
     expect(await screen.findByText('No webhook deliveries yet')).toBeInTheDocument()
@@ -210,6 +223,18 @@ describe('OutgoingWebhooksTab', () => {
       to: '/console/workspace/$workspaceId/settings/$section',
       params: { workspaceId: 'ws1', section: 'webhooks' }
     })
+  })
+
+  it('clears the filters with Clear all, as the other Logs tabs do', async () => {
+    const { unmount } = renderTab()
+    await screen.findByText('contact.created')
+    expect(screen.queryByRole('button', { name: 'Clear all' })).toBeNull()
+    unmount()
+    renderTab({ tab: 'outgoing-webhooks', status: 'failed' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear all' }))
+    expect(state.navigate).toHaveBeenCalledWith(
+      expect.objectContaining({ search: { tab: 'outgoing-webhooks' } })
+    )
   })
 
   it('offers to clear the filters when they match nothing', async () => {

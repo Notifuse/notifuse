@@ -415,7 +415,7 @@ export const ContactTimelineTableSchema: TableSchema = {
 
 export const CustomEventsGoalsTableSchema: TableSchema = {
   name: 'custom_events_goals',
-  title: 'Custom Events Goal',
+  title: 'Custom events goal',
   description: 'Aggregated custom events data (LTV, transaction counts, etc.)',
   icon: faBullseye,
   fields: {

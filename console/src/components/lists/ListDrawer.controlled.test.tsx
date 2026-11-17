@@ -98,4 +98,12 @@ describe('CreateListDrawer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('closes with Cancel, beside Create, without creating anything', () => {
+    const onClose = vi.fn()
+    render(<CreateListDrawer workspaceId="ws" canReadTemplates open onClose={onClose} />, { wrapper })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onClose).toHaveBeenCalled()
+    expect(listsApi.create).not.toHaveBeenCalled()
+  })
 })

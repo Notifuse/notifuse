@@ -114,6 +114,22 @@ describe('AnalyticsPage', () => {
     }
   })
 
+  it('says which days the period covers: complete days up to yesterday', () => {
+    // Logs counts a rolling "Last 7 days"; the dashboard's 7 d ends yesterday, and nothing said so.
+    state.search = { period: '7d' }
+    renderPage()
+    const { startDay, endDay } = state.kpiPeriods.at(-1)!.current
+    const shown = document.querySelector('[data-dashboard-days]')
+    const format = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+    expect(shown).toHaveTextContent(
+      format
+        .formatRange(new Date(`${startDay}T00:00:00Z`), new Date(`${endDay}T00:00:00Z`))
+        // The thin spaces around the dash, as the matcher reads the page's text.
+        .replace(/\s+/g, ' ')
+    )
+    expect(endDay < new Date().toISOString().slice(0, 10) || endDay === startDay).toBe(true)
+  })
+
   it('reads the period and the metric from the URL', () => {
     state.search = { period: '7d', metric: 'clicks' }
     renderPage()
