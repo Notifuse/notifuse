@@ -1,5 +1,6 @@
 import React from 'react'
-import { Space, ColorPicker, Popover, Tooltip, Select, Input, Button } from 'antd'
+import { Space, ColorPicker, Popover, Tooltip, Select, Input, Button, Dropdown } from 'antd'
+import type { MenuProps } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUndo,
@@ -13,12 +14,14 @@ import {
   faHighlighter,
   faFont,
   faSmile,
-  faLink
+  faLink,
+  faChevronDown
 } from '@fortawesome/free-solid-svg-icons'
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useLingui } from '@lingui/react/macro'
 import { useEditorState } from '@tiptap/react'
+import { HEADING_LEVELS } from '../../../utils/headingStyles'
 import type {
   TiptapToolbarProps,
   ToolbarButtonProps,
@@ -433,8 +436,85 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
   )
 }
 
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+
+// Tiptap's shortcuts for paragraph (0) and heading levels (1-6)
+const styleShortcut = (level: number) => (isMac ? `⌘⌥${level}` : `Ctrl+Alt+${level}`)
+
+/**
+ * Paragraph or heading level of the block at the cursor. A level deeper than the
+ * heading before it + 1 skips one: it is marked, never refused (screen readers
+ * expect no skipped level, and the email's order can change afterwards anyway).
+ */
+export const TextStyleMenu: React.FC<{
+  editor: NonNullable<TiptapToolbarProps['editor']>
+  headingLevelBeforeBlock?: number | null
+}> = ({ editor, headingLevelBeforeBlock = null }) => {
+  const { t } = useLingui()
+  const { level, previousLevel } = useEditorState({
+    editor,
+    selector: ({ editor: current }) => {
+      const { $from } = current.state.selection
+      const blockStart = $from.depth > 0 ? $from.before($from.depth) : 0
+      // The last heading earlier in this block, else the one above the block
+      let previous: number | null = null
+      current.state.doc.descendants((node, pos) => {
+        if (pos >= blockStart) return false
+        if (node.type.name === 'heading') previous = node.attrs.level as number
+        return !node.isTextblock
+      })
+      return {
+        level: $from.parent.type.name === 'heading' ? ($from.parent.attrs.level as number) : 0,
+        previousLevel: previous ?? headingLevelBeforeBlock
+      }
+    }
+  })
+
+  const labelOf = (value: number) => (value === 0 ? t`Paragraph` : t`Heading ${value}`)
+  const skips = (value: number) => previousLevel !== null && value > previousLevel + 1
+
+  const items: MenuProps['items'] = [0, ...HEADING_LEVELS].map((value) => ({
+    key: String(value),
+    label: (
+      <span className="flex items-center justify-between gap-4">
+        <span className={value === 0 ? undefined : 'font-semibold'}>{labelOf(value)}</span>
+        <span className="text-xs text-ink-4">
+          {skips(value) ? <span className="text-warning-fg">⚠ {t`skip`}</span> : styleShortcut(value)}
+        </span>
+      </span>
+    )
+  }))
+
+  const choose: MenuProps['onClick'] = ({ key }) => {
+    const value = Number(key)
+    if (value === 0) editor.chain().focus().setParagraph().run()
+    else editor.chain().focus().setHeading({ level: value as (typeof HEADING_LEVELS)[number] }).run()
+  }
+
+  return (
+    <Dropdown
+      menu={{ items, onClick: choose, selectable: true, selectedKeys: [String(level)] }}
+      trigger={['click']}
+    >
+      <button
+        type="button"
+        aria-label={`${t`Text style`}: ${labelOf(level)}`}
+        className="flex items-center justify-between gap-2 h-7 px-2 min-w-28 rounded-xs text-white text-xs cursor-pointer bg-transparent hover:bg-white/10"
+      >
+        <span>{labelOf(level)}</span>
+        <FontAwesomeIcon icon={faChevronDown} size="xs" />
+      </button>
+    </Dropdown>
+  )
+}
+
 // Main Toolbar Component
-export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons }) => {
+export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({
+  editor,
+  buttons,
+  mode = 'rich',
+  headingLevelBeforeBlock = null
+}) => {
   const { t } = useLingui()
   // Read on every transaction, so active states and colours follow the selection
   const state = useEditorState({
@@ -526,6 +606,14 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons })
               </ToolbarButton>
             )}
           </Space>
+          <ToolbarSeparator />
+        </>
+      )}
+
+      {/* Paragraph or heading level, in Text blocks only */}
+      {mode === 'rich' && (
+        <>
+          <TextStyleMenu editor={editor} headingLevelBeforeBlock={headingLevelBeforeBlock} />
           <ToolbarSeparator />
         </>
       )}

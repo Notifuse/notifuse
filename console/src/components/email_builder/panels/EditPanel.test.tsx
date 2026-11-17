@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import { EditPanel, type CanvasHandle } from './EditPanel'
 import type { EmailBlock } from '../types'
+import { defaultHeadingStyles, writeHeadingStyles } from '../utils/headingStyles'
 
 vi.mock('overlayscrollbars-react', () => ({
   OverlayScrollbarsComponent: React.forwardRef<unknown, { children?: React.ReactNode }>(
@@ -106,5 +107,20 @@ describe('EditPanel', () => {
 
     unmount()
     expect(canvasRef.current).toBeNull()
+  })
+
+  it('styles the headings of Text blocks with the email’s heading styles', () => {
+    const styles = defaultHeadingStyles({ color: '#123456' })
+    styles[2] = { ...styles[2], fontSize: '30px' }
+    const styled = renderPanel({ emailTree: writeHeadingStyles(tree, styles) })
+    const css = styled.container.querySelector('style[data-heading-styles]')?.textContent ?? ''
+    expect(css).toContain('.email-text-preview h2 {')
+    expect(css).toContain('font-size: 30px')
+    expect(css).toContain('color: #123456')
+    styled.unmount()
+
+    // Without heading styles, the canvas keeps its defaults (editor.css)
+    const plain = renderPanel({ emailTree: tree })
+    expect(plain.container.querySelector('style[data-heading-styles]')).toBeNull()
   })
 })

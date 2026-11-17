@@ -195,6 +195,12 @@ describe('getInitialInlineContent', () => {
     )
   })
 
+  it('keeps the style of a heading written in button text', () => {
+    expect(getInitialInlineContent('<h2 style="color: #fff">Shop</h2>')).toBe(
+      '<span data-inline-doc=""><span style="color: #fff">Shop</span></span>'
+    )
+  })
+
   it('wraps plain text, and gives an empty document for nothing', () => {
     expect(getInitialInlineContent('Click me')).toBe('<span data-inline-doc="">Click me</span>')
     expect(getInitialInlineContent('')).toBe('<span data-inline-doc=""></span>')

@@ -3,6 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Editor } from '@tiptap/react'
 import { TiptapRichEditor } from '../TiptapRichEditor'
+import { TiptapInlineEditor } from '../TiptapInlineEditor'
 
 // jsdom lays nothing out, and ranges have no rectangles there. ProseMirror reads
 // them to scroll the selection into view after a command that focuses the editor.
@@ -25,9 +26,11 @@ afterAll(() => {
 // The toolbar on the Text block's real editor: what a user sees and what the block
 // saves through onChange.
 
-const renderEditor = async (content: string) => {
+const renderEditor = async (content: string, headingLevelBeforeBlock?: number | null) => {
   const onChange = vi.fn()
-  const { container } = render(<TiptapRichEditor content={content} onChange={onChange} />)
+  const { container } = render(
+    <TiptapRichEditor content={content} onChange={onChange} headingLevelBeforeBlock={headingLevelBeforeBlock} />
+  )
   const root = await waitFor(() => {
     const element = container.querySelector('.ProseMirror')
     expect(element).not.toBeNull()
@@ -292,5 +295,65 @@ describe('link popover', () => {
     await userEvent.clear(await screen.findByDisplayValue('https://x.example'))
     await userEvent.click(popover().getByRole('button', { name: 'Update Link' }))
     expect(lastSaved()).toBe('<p>the link</p>')
+  })
+})
+
+describe('text style menu', () => {
+  const styleButton = () => screen.getByRole('button', { name: /^Text style/ })
+  const openMenu = async () => {
+    await userEvent.click(styleButton())
+    return screen.findByRole('menu')
+  }
+  const option = (menu: HTMLElement, name: RegExp) => within(menu).getByRole('menuitem', { name })
+
+  it('shows the current style, and follows the cursor', async () => {
+    const { editor } = await renderEditor('<p>para</p><h2>title</h2>')
+    moveTo(editor, rangeOf(editor, 'para').from + 1)
+    expect(styleButton()).toHaveTextContent('Paragraph')
+    moveTo(editor, rangeOf(editor, 'title').from + 1)
+    expect(styleButton()).toHaveTextContent('Heading 2')
+  })
+
+  it('turns a paragraph into a heading and back', async () => {
+    const { editor, lastSaved } = await renderEditor('<p>words</p>')
+    moveTo(editor, rangeOf(editor, 'words').from + 1)
+    await userEvent.click(option(await openMenu(), /^Heading 3/))
+    expect(lastSaved()).toBe('<h3>words</h3>')
+    expect(styleButton()).toHaveTextContent('Heading 3')
+    await userEvent.click(option(await openMenu(), /^Paragraph/))
+    expect(lastSaved()).toBe('<p>words</p>')
+  })
+
+  it('marks the levels that skip one after the heading above the block, and keeps them usable', async () => {
+    const { editor, lastSaved } = await renderEditor('<p>words</p>', 2)
+    moveTo(editor, rangeOf(editor, 'words').from + 1)
+    const menu = await openMenu()
+    expect(option(menu, /^Heading 3/)).not.toHaveTextContent('skip')
+    for (const level of [4, 5, 6]) {
+      expect(option(menu, new RegExp(`^Heading ${level}`))).toHaveTextContent('skip')
+    }
+    await userEvent.click(option(menu, /^Heading 5/))
+    expect(lastSaved()).toBe('<h5>words</h5>')
+  })
+
+  it('counts a heading earlier in the same block as the one above', async () => {
+    const { editor } = await renderEditor('<h1>top</h1><p>words</p>', null)
+    moveTo(editor, rangeOf(editor, 'words').from + 1)
+    const menu = await openMenu()
+    expect(option(menu, /^Heading 2/)).not.toHaveTextContent('skip')
+    expect(option(menu, /^Heading 3/)).toHaveTextContent('skip')
+  })
+
+  it('marks nothing when no heading comes before', async () => {
+    const { editor } = await renderEditor('<p>words</p>', null)
+    moveTo(editor, rangeOf(editor, 'words').from + 1)
+    const menu = await openMenu()
+    expect(within(menu).queryByText('skip')).toBeNull()
+  })
+
+  it('is not offered in the button editor', async () => {
+    const { container } = render(<TiptapInlineEditor content="Buy" onChange={vi.fn()} />)
+    await waitFor(() => expect(container.querySelector('.ProseMirror')).not.toBeNull())
+    expect(screen.queryByRole('button', { name: /^Text style/ })).toBeNull()
   })
 })

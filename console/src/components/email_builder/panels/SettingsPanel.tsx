@@ -111,7 +111,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   }
 
   // Try to use the new block class architecture, fallback to old system
-  let blockInstance: { renderSettingsPanel: (update: (updates: Record<string, unknown>) => void, defaults: Record<string, unknown>, tree: EmailBlock) => React.ReactNode } | null = null
+  let blockInstance: { renderSettingsPanel: (update: (updates: Record<string, unknown>) => void, defaults: Record<string, unknown>, tree: EmailBlock, onUpdateBlock: (blockId: string, block: EmailBlock) => void) => React.ReactNode } | null = null
 
   try {
     if (EmailBlockFactory.hasBlockType(selectedBlock.type)) {
@@ -120,7 +120,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       const safeBlock = selectedBlock.attributes
         ? selectedBlock
         : { ...selectedBlock, attributes: {} }
-      blockInstance = EmailBlockFactory.createBlock(safeBlock as EmailBlock) as { renderSettingsPanel: (update: (updates: Record<string, unknown>) => void, defaults: Record<string, unknown>, tree: EmailBlock) => React.ReactNode }
+      blockInstance = EmailBlockFactory.createBlock(safeBlock as EmailBlock) as { renderSettingsPanel: (update: (updates: Record<string, unknown>) => void, defaults: Record<string, unknown>, tree: EmailBlock, onUpdateBlock: (blockId: string, block: EmailBlock) => void) => React.ReactNode }
     }
   } catch (error: unknown) {
     console.warn(`No block class for ${selectedBlock.type}, falling back to legacy system`, error)
@@ -135,7 +135,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const blockDefaults = attributeDefaults[selectedBlock.type] || {}
 
   // Render the settings panel using the new block architecture
-  const settings = blockInstance.renderSettingsPanel(handleDirectUpdate, blockDefaults, emailTree)
+  const settings = blockInstance.renderSettingsPanel(handleDirectUpdate, blockDefaults, emailTree, onUpdateBlock)
   if (!isConditionEligible(emailTree, selectedBlock)) {
     return settings
   }

@@ -102,7 +102,9 @@ export abstract class BaseEmailBlock {
   abstract renderSettingsPanel(
     onUpdateAttributes: OnUpdateAttributesFunction,
     blockDefaults: MergedBlockAttributes,
-    emailTree?: EmailBlock
+    emailTree?: EmailBlock,
+    // Updates another block of the email, for panels that edit beyond their own
+    onUpdateBlock?: (blockId: string, block: EmailBlock) => void
   ): React.ReactNode
 
   /**

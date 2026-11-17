@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import type { EmailBlock, SaveBlockHandler, SavedBlock } from '../types'
+import { headingStylesCss, readHeadingStyles } from '../utils/headingStyles'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { OverlayScrollbarsComponent, type OverlayScrollbarsComponentRef } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
@@ -50,6 +51,10 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   const emailTreeRef = useRef(emailTree)
   const prevSelectedBlockId = useRef(selectedBlockId)
   const editPanelRef = useRef<HTMLDivElement>(null)
+  const headingCss = useMemo(() => {
+    const styles = readHeadingStyles(emailTree)
+    return styles && styles !== 'hand-edited' ? headingStylesCss(styles, '.email-text-preview') : null
+  }, [emailTree])
   const canvasRootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -335,6 +340,10 @@ export const EditPanel: React.FC<EditPanelProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {headingCss && (
+            // The email's heading styles, for its Text blocks on the canvas
+            <style data-heading-styles>{headingCss}</style>
+          )}
           {EmailBlockClass.renderEmailBlock(
             emailTree,
             EmailBlockClass.extractAttributeDefaults(emailTree),

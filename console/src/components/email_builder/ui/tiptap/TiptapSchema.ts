@@ -53,27 +53,24 @@ export const TEXT_PROPERTIES = [
 // Properties that colour a link, which go on the <a> itself.
 export const LINK_STYLE_PROPERTIES = ['color', 'background-color'] as const
 
-// Elements whose style belongs to the node or mark that loads them.
+// Elements whose style belongs to the node or mark that loads them: headings and
+// paragraphs keep theirs on the tag, as written.
 const ELEMENTS_WITH_THEIR_OWN_STYLE = new Set([
   'A',
   'BLOCKQUOTE',
   'BR',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
   'IMG',
   'LI',
   'OL',
   'P',
   'UL'
 ])
-
-// Headings are loaded as paragraphs; their text keeps a heading's look.
-const HEADING_STYLES: Record<string, string> = {
-  H1: 'font-size: 32px; font-weight: bold; line-height: 1.2',
-  H2: 'font-size: 24px; font-weight: bold; line-height: 1.3',
-  H3: 'font-size: 20px; font-weight: bold; line-height: 1.4',
-  H4: 'font-size: 18px; font-weight: bold; line-height: 1.5',
-  H5: 'font-size: 16px; font-weight: bold; line-height: 1.5',
-  H6: 'font-size: 14px; font-weight: bold; line-height: 1.5'
-}
 
 // <font size="1"> to <font size="7">, as browsers draw them.
 const FONT_SIZES = ['10px', '13px', '16px', '18px', '24px', '32px', '48px']
@@ -110,7 +107,6 @@ export const textStyleOfElement = (element: HTMLElement): string | null => {
     pickStyleProperties(style, TEXT_PROPERTIES),
     becomesParagraph ? null : liquidBlocksOf(style)
   )
-  if (HEADING_STYLES[tag]) return mergeStyles(HEADING_STYLES[tag], textStyle)
   return textStyle
 }
 
@@ -203,7 +199,7 @@ const cancelsItsFormatting = (element: HTMLElement): boolean =>
   CANCELLING_STYLES[element.tagName.toUpperCase()]?.(readStyleAttribute(element)) ?? false
 
 // Elements loaded as paragraphs when they hold no block of their own
-export const PARAGRAPH_LIKE_SELECTOR = 'div, center, h1, h2, h3, h4, h5, h6'
+export const PARAGRAPH_LIKE_SELECTOR = 'div, center'
 
 const NESTED_BLOCK_SELECTOR =
   'address, article, aside, blockquote, center, div, dl, fieldset, figure, footer, form, ' +

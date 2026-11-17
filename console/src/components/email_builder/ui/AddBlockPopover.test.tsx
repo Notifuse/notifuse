@@ -50,6 +50,7 @@ interface Options {
   savedBlocks?: SavedBlock[]
   hiddenBlocks?: string[]
   label?: string
+  emailTree?: EmailBlock
 }
 
 const popover = (
@@ -61,7 +62,7 @@ const popover = (
     parentId={options.parentId ?? 'column-1'}
     parentType={options.parentType ?? 'mj-column'}
     position={1}
-    emailTree={tree}
+    emailTree={options.emailTree ?? tree}
     savedBlocks={options.savedBlocks ?? [cta, intro, header, column]}
     hiddenBlocks={options.hiddenBlocks}
     {...handlers}
@@ -249,6 +250,23 @@ describe('AddBlockPopover saved blocks', () => {
 })
 
 describe('AddBlockPopover in the head', () => {
+  it('offers the default attributes when the head has none, and only then', async () => {
+    renderPopover({ mode: 'header', parentId: 'head', parentType: 'mj-head', emailTree: email([text('text-1')]) })
+    await open()
+    expect(screen.getByText('Default attributes')).toBeInTheDocument()
+  })
+
+  it('does not offer a second default attributes block', async () => {
+    renderPopover({
+      mode: 'header',
+      parentId: 'head',
+      parentType: 'mj-head',
+      emailTree: email([text('text-1')], [b('attrs', 'mj-attributes', [])])
+    })
+    await open()
+    expect(screen.queryByText('Default attributes')).toBeNull()
+  })
+
   it('offers no saved tab without saved head blocks', async () => {
     renderPopover({ mode: 'header', parentId: 'head', parentType: 'mj-head' })
     await open()

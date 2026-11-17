@@ -15,7 +15,8 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   placeholder,
   autoFocus = false,
   buttons,
-  containerStyle
+  containerStyle,
+  headingLevelBeforeBlock = null
 }) => {
   const { t } = useLingui()
   const isUpdatingFromProps = useRef(false)
@@ -112,7 +113,12 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
 
   return (
     <div style={containerStyle}>
-      {!readOnly && <TiptapToolbar editor={editor} buttons={buttons} mode="rich" />}
+      {!readOnly && <TiptapToolbar
+          editor={editor}
+          buttons={buttons}
+          mode="rich"
+          headingLevelBeforeBlock={headingLevelBeforeBlock}
+        />}
       <EditorContent
         editor={editor}
         style={{
