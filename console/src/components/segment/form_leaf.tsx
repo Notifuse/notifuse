@@ -1,25 +1,38 @@
-import { Dispatch, SetStateAction, useEffect, useState } from 'react'
+import { Dispatch, ReactNode, SetStateAction, useEffect, useState } from 'react'
 import { cloneDeep } from 'lodash'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faClose } from '@fortawesome/free-solid-svg-icons'
-import { Button, Input, Form, Select, InputNumber, Space, DatePicker, Tag } from 'antd'
+import { Button, DatePicker, Form, Input, InputNumber, Segmented, Select } from 'antd'
 import type { FormInstance } from 'antd'
 import { useForm } from 'antd/lib/form/Form'
+import { faUser, faFolderOpen } from '@fortawesome/free-regular-svg-icons'
+import { faMousePointer, faBullseye } from '@fortawesome/free-solid-svg-icons'
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import {
-  TreeNode,
+  DimensionFilter,
   EditingNodeLeaf,
-  TreeNodeLeaf,
-  TableSchema
+  TableSchema,
+  TreeNode,
+  TreeNodeLeaf
 } from '../../services/api/segment'
 import dayjs, { Dayjs } from 'dayjs'
+import { useLingui } from '@lingui/react/macro'
 import { InputDimensionFilters } from './input_dimension_filters'
 import { timelineChangesSchema } from './table_schemas'
 import { InputEventPropertyFilters } from './input_event_property_filters'
+import { arePropertyFiltersValid } from './filterOperators'
 import TemplateSelectorInput from '../templates/TemplateSelectorInput'
 import BroadcastSelectorInput from './BroadcastSelectorInput'
-import Messages from './messages'
 import { TIMELINE_KIND_LABELS } from './timelineKindLabels'
-import { useLingui } from '@lingui/react/macro'
+import { ConditionIcon, EditorLine, type ConditionTone } from './conditionUi'
+import { isFilterRowComplete } from './tree_completeness'
+import {
+  AGGREGATE_LABELS,
+  COUNT_OPERATOR_LABELS,
+  GOAL_COMPARISON_LABELS,
+  GOAL_LABELS,
+  labelOf,
+  LIST_STATUS_LABEL,
+  TIMEFRAME_LABELS
+} from './segmentLabels'
 
 export type LeafFormProps = {
   value?: TreeNode
@@ -37,7 +50,21 @@ export type LeafFormProps = {
   // Reports the condition as it currently stands in the form, before Confirm. The drawer previews
   // this draft so the contacts count follows the condition while it is still being written.
   onDraftChange?: (draftLeaf: TreeNode) => void
+  // Whether a value read out of a JSON column may be compared as a date. Trigger conditions
+  // compile through casts that never convert a JSON date, so they pass false.
+  jsonDateValues?: boolean
 }
+
+// The email kinds an Activity condition can narrow to one template or broadcast, as
+// ContactTimelineCondition.Validate accepts them (internal/domain/tree.go).
+const EMAIL_SCOPED_KINDS = [
+  'email.sent',
+  'email.opened',
+  'email.clicked',
+  'email.bounced',
+  'email.complained',
+  'email.unsubscribed'
+]
 
 // Conditions that carry a timeframe. Each operator reads a different shape out of
 // timeframe_values (a day count, one date, or a range), so the values left behind by the previous
@@ -88,87 +115,224 @@ const useLeafDraft = (props: LeafFormProps, form: FormInstance) => {
   }
 }
 
-export const LeafContactForm = (props: LeafFormProps) => {
-  const { t } = useLingui()
-  const [form] = useForm()
-  const onValuesChange = useLeafDraft(props, form)
+// Validates the form and hands the merged leaf back, as every editor confirms. The filter rows are
+// checked here rather than by a Form.Item rule: a failed rule paints every input inside its item red,
+// where only the missing parts of the unfinished rows should be.
+const useConfirm = (props: LeafFormProps, form: FormInstance) => {
+  const [attempted, setAttempted] = useState(false)
 
-  const onSubmit = () => {
+  const confirm = (filtersAreValid?: (values: TreeNodeLeaf) => boolean) => () => {
+    setAttempted(true)
     form
       .validateFields()
       .then((values) => {
-        console.log('values', values)
         if (!props.value) return
-
-        // convert dayjs values into strings
-        // if (values.field_type === 'time') {
-        //   values.string_values.forEach((value: any, index: number) => {
-        //     values.string_values[index] = value.format('YYYY-MM-DD HH:mm:ss')
-        //   })
-        // }
+        if (filtersAreValid && !filtersAreValid(form.getFieldsValue() as TreeNodeLeaf)) return
 
         const clonedLeaf = cloneDeep(props.value)
         clonedLeaf.leaf = Object.assign(clonedLeaf.leaf as TreeNodeLeaf, values)
 
         props.setEditingNodeLeaf(undefined)
-
-        if (props.onChange) props.onChange(clonedLeaf)
+        props.onChange?.(clonedLeaf)
       })
       .catch(() => {})
   }
 
-  // console.log('props', props)
+  return { attempted, confirm }
+}
+
+/** Under the rows, once Confirm was refused because of them. */
+function UnfinishedFiltersMessage() {
+  const { t } = useLingui()
+  return <div className="mt-1 text-xs text-danger-fg">{t`Complete or remove the unfinished filters`}</div>
+}
+
+/** The frame of a condition being edited: its type, its fields, Cancel and Confirm. */
+function EditorShell({
+  tone,
+  icon,
+  title,
+  children,
+  onCancel,
+  onConfirm,
+  confirmDisabled,
+  showsDraftHint
+}: {
+  tone: ConditionTone
+  icon: IconDefinition
+  title: ReactNode
+  children: ReactNode
+  onCancel: () => void
+  onConfirm: () => void
+  confirmDisabled?: boolean
+  showsDraftHint: boolean
+}) {
+  const { t } = useLingui()
+  return (
+    <div className="rounded-lg border border-primary-400 bg-surface shadow-card">
+      <div className="flex items-center gap-2.5 border-b border-line-soft px-3 py-2.5">
+        <ConditionIcon tone={tone} icon={icon} />
+        <span className="font-semibold text-ink">{title}</span>
+      </div>
+      <div className="p-3">{children}</div>
+      <div className="flex items-center justify-end gap-2 rounded-b-lg border-t border-line-soft bg-subtle px-3 py-2.5">
+        {showsDraftHint && (
+          <span className="mr-auto text-xs text-ink-3">{t`The count follows what you write.`}</span>
+        )}
+        <Button size="small" onClick={onCancel}>
+          {t`Cancel`}
+        </Button>
+        <Button size="small" type="primary" onClick={onConfirm} disabled={confirmDisabled}>
+          {t`Confirm`}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** The timeframe of an activity or a goal: an option, then the value it reads. */
+function TimeframeFields({ conditionKey }: { conditionKey: 'contact_timeline' | 'custom_events_goal' }) {
+  const { t, i18n } = useLingui()
+  const required = t`This field is required`
+  return (
+    <>
+      <Form.Item noStyle name={[conditionKey, 'timeframe_operator']}>
+        <Select
+          style={{ width: 176 }}
+          size="small"
+          aria-label={t`When`}
+          options={Object.keys(TIMEFRAME_LABELS).map((value) => ({
+            value,
+            label: labelOf(TIMEFRAME_LABELS, value, i18n)
+          }))}
+        />
+      </Form.Item>
+      <Form.Item noStyle shouldUpdate>
+        {(funcs) => {
+          const operator = funcs.getFieldValue([conditionKey, 'timeframe_operator'])
+
+          if (operator === 'in_the_last_days') {
+            return (
+              <span className="inline-flex items-center gap-2">
+                <Form.Item
+                  noStyle
+                  name={[conditionKey, 'timeframe_values']}
+                  rules={[{ required: true, type: 'array', min: 1, message: required }]}
+                  dependencies={[conditionKey, 'timeframe_operator']}
+                  getValueProps={(values?: string[]) => ({
+                    value: values?.[0] === undefined ? undefined : parseInt(values[0])
+                  })}
+                  getValueFromEvent={(args: number | null) => ['' + args]}
+                >
+                  <InputNumber style={{ width: 80 }} step={1} size="small" />
+                </Form.Item>
+                <span className="text-ink-2">{t`days`}</span>
+              </span>
+            )
+          }
+          if (operator === 'in_date_range') {
+            return (
+              <Form.Item
+                noStyle
+                name={[conditionKey, 'timeframe_values']}
+                rules={[{ required: true, type: 'array', min: 2, message: required }]}
+                dependencies={[conditionKey, 'timeframe_operator']}
+                getValueProps={(values: string[]) => ({
+                  value: values?.map((value) => (value ? dayjs(value) : undefined))
+                })}
+                getValueFromEvent={(dates: [Dayjs | null, Dayjs | null] | null) =>
+                  dates ? dates.map((date) => (date ? date.toISOString() : undefined)) : undefined
+                }
+              >
+                <DatePicker.RangePicker
+                  size="small"
+                  showTime={{ defaultValue: [dayjs().startOf('day'), dayjs().startOf('day')] }}
+                />
+              </Form.Item>
+            )
+          }
+          if (operator === 'before_date' || operator === 'after_date') {
+            return (
+              <Form.Item
+                noStyle
+                name={[conditionKey, 'timeframe_values', 0]}
+                dependencies={[conditionKey, 'timeframe_operator']}
+                rules={[{ required: true, type: 'string', message: required }]}
+                getValueProps={(value: string) => ({ value: value ? dayjs(value) : undefined })}
+                getValueFromEvent={(date: Dayjs | null) => (date ? date.toISOString() : undefined)}
+              >
+                <DatePicker size="small" showTime={{ defaultValue: dayjs().startOf('day') }} />
+              </Form.Item>
+            )
+          }
+          return null
+        }}
+      </Form.Item>
+    </>
+  )
+}
+
+const EMPTY_FILTER = { field_name: '', field_type: 'string' } as unknown as DimensionFilter
+
+export const LeafContactForm = (props: LeafFormProps) => {
+  const { t } = useLingui()
+  const [form] = useForm()
+  const onValuesChange = useLeafDraft(props, form)
+  const { attempted, confirm } = useConfirm(props, form)
+
+  // A new condition opens on an empty filter row rather than an empty list: there is nothing else
+  // to do with it.
+  const editedLeaf = props.editingNodeLeaf.leaf
+  const initialValues = {
+    ...editedLeaf,
+    contact: {
+      ...editedLeaf?.contact,
+      filters: editedLeaf?.contact?.filters?.length ? editedLeaf.contact.filters : [EMPTY_FILTER]
+    }
+  }
+  const isJsonField = (filter: DimensionFilter) => props.schema.fields[filter.field_name]?.type === 'json'
+  const rowsComplete = (filters: DimensionFilter[] | undefined) =>
+    (filters ?? []).every((filter) => isFilterRowComplete(filter, isJsonField(filter)))
+  const onSubmit = confirm((values) => rowsComplete(values.contact?.filters))
 
   return (
     <Form
       component="div"
-      layout="inline"
+      layout="vertical"
       form={form}
-      initialValues={props.editingNodeLeaf.leaf}
+      initialValues={initialValues}
       onValuesChange={onValuesChange}
     >
-      <Form.Item
-        style={{ margin: 0 }}
-        name="source"
-        colon={false}
-        label={
-          <Tag variant="filled" color="cyan">
-            {props.schema.icon && (
-              <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
-            )}
-            {t`Contact property`}
-          </Tag>
-        }
-      >
+      <Form.Item name="source" noStyle>
         <Input hidden />
       </Form.Item>
-      <Form.Item
-        style={{ margin: 0, width: 500 }}
-        name={['contact', 'filters']}
-        colon={false}
-        rules={[{ required: true, type: 'array', min: 1, message: Messages.RequiredField }]}
-      >
-        <InputDimensionFilters schema={props.schema} customFieldLabels={props.customFieldLabels} />
-      </Form.Item>
-
-      {/* CONFIRM / CANCEL */}
       <Form.Item noStyle shouldUpdate>
         {(funcs) => {
-          const filters = funcs.getFieldValue(['contact', 'filters'])
-
+          const filters: DimensionFilter[] = funcs.getFieldValue(['contact', 'filters']) ?? []
           return (
-            <Form.Item style={{ position: 'absolute', right: 0, top: 16 }}>
-              <Space>
-                <Button type="text" size="small" onClick={() => props.cancelOrDeleteNode()}>
-                  <FontAwesomeIcon icon={faClose} />
-                </Button>
-                {filters && filters.length > 0 && (
-                  <Button type="primary" size="small" onClick={onSubmit}>
-                    {t`Confirm`}
-                  </Button>
-                )}
-              </Space>
-            </Form.Item>
+            <EditorShell
+              tone="contacts"
+              icon={faUser}
+              title={t`Contact property`}
+              onCancel={props.cancelOrDeleteNode}
+              onConfirm={onSubmit}
+              confirmDisabled={filters.length === 0}
+              showsDraftHint={!!props.onDraftChange}
+            >
+              <Form.Item
+                style={{ marginBottom: 0 }}
+                name={['contact', 'filters']}
+                rules={[{ required: true, type: 'array', min: 1, message: t`Add at least one filter` }]}
+              >
+                <InputDimensionFilters
+                  schema={props.schema}
+                  customFieldLabels={props.customFieldLabels}
+                  jsonDateValues={props.jsonDateValues}
+                  showErrors={attempted}
+                />
+              </Form.Item>
+              {attempted && !rowsComplete(filters) && <UnfinishedFiltersMessage />}
+            </EditorShell>
           )
         }}
       </Form.Item>
@@ -177,29 +341,11 @@ export const LeafContactForm = (props: LeafFormProps) => {
 }
 
 export const LeafContactListForm = (props: LeafFormProps) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [form] = useForm()
   const onValuesChange = useLeafDraft(props, form)
+  const onSubmit = useConfirm(props, form).confirm()
 
-  const onSubmit = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        if (!props.value) return
-
-        const clonedLeaf = cloneDeep(props.value)
-        clonedLeaf.leaf = Object.assign(clonedLeaf.leaf as TreeNodeLeaf, values)
-
-        props.setEditingNodeLeaf(undefined)
-
-        if (props.onChange) props.onChange(clonedLeaf)
-      })
-      .catch((e) => {
-        console.log(e)
-      })
-  }
-
-  // Get status field for options
   const statusField = props.schema.fields['status']
 
   // « is in » by default, set on the form: a Form.Item initialValue beside the form's
@@ -211,95 +357,86 @@ export const LeafContactListForm = (props: LeafFormProps) => {
   }
 
   return (
-    <Space style={{ alignItems: 'start' }}>
-      <Tag variant="filled" color="cyan">
-        {props.schema.icon && (
-          <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
-        )}
-        {t`List subscription`}
-      </Tag>
-      <Form
-        component="div"
-        layout="inline"
-        form={form}
-        initialValues={contactListInitialValues}
-        onValuesChange={onValuesChange}
+    <Form
+      component="div"
+      layout="vertical"
+      form={form}
+      initialValues={contactListInitialValues}
+      onValuesChange={onValuesChange}
+    >
+      <Form.Item name="source" noStyle>
+        <Input hidden />
+      </Form.Item>
+      <EditorShell
+        tone="contact_lists"
+        icon={faFolderOpen}
+        title={t`List subscription`}
+        onCancel={props.cancelOrDeleteNode}
+        onConfirm={onSubmit}
+        showsDraftHint={!!props.onDraftChange}
       >
-        <Form.Item name="source" noStyle>
-          <Input hidden />
-        </Form.Item>
+        <div className="flex flex-wrap items-start gap-2">
+          <Form.Item
+            style={{ marginBottom: 0 }}
+            name={['contact_list', 'operator']}
+            rules={[{ required: true, message: t`This field is required` }]}
+          >
+            <Segmented
+              size="small"
+              options={[
+                { value: 'in', label: t`is in` },
+                { value: 'not_in', label: t`is not in` }
+              ]}
+            />
+          </Form.Item>
 
-        {/* Operator Selection - Mandatory */}
-        <Form.Item
-          style={{ marginBottom: 0 }}
-          name={['contact_list', 'operator']}
-          rules={[{ required: true, message: Messages.RequiredField }]}
-        >
-          <Select style={{ width: 120 }} size="small">
-            <Select.Option value="in">{t`is in`}</Select.Option>
-            <Select.Option value="not_in">{t`is not in`}</Select.Option>
-          </Select>
-        </Form.Item>
+          <Form.Item
+            style={{ marginBottom: 0 }}
+            name={['contact_list', 'list_id']}
+            rules={[{ required: true, message: t`Please select a list` }]}
+            getValueProps={(value?: string) => ({ value: value || undefined })}
+          >
+            <Select
+              style={{ width: 224 }}
+              size="small"
+              placeholder={t`Select a list`}
+              showSearch
+              optionFilterProp="label"
+              options={props.lists?.map((list) => ({ value: list.id, label: list.name }))}
+            />
+          </Form.Item>
 
-        {/* List Selection - Mandatory */}
-        <Form.Item
-          style={{ marginBottom: 0 }}
-          name={['contact_list', 'list_id']}
-          rules={[{ required: true, message: t`Please select a list` }]}
-        >
-          <Select style={{ width: 190 }} size="small" placeholder={t`Select a list`} showSearch>
-            {props.lists?.map((list) => (
-              <Select.Option key={list.id} value={list.id}>
-                {list.name}
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
+          {/* The status only exists for « is in », and is required there */}
+          <Form.Item noStyle shouldUpdate>
+            {(funcs) => {
+              if (funcs.getFieldValue(['contact_list', 'operator']) !== 'in') return null
 
-        {/* Status Selection - Mandatory when "is in" */}
-        <Form.Item noStyle shouldUpdate>
-          {(funcs) => {
-            const operator = funcs.getFieldValue(['contact_list', 'operator'])
-
-            if (operator !== 'in') {
-              return null
-            }
-
-            return (
-              <>
-                <span className="opacity-60" style={{ marginRight: 8, lineHeight: '32px' }}>
-                  {t`with status`}
-                </span>
-                <Form.Item
-                  style={{ marginBottom: 0 }}
-                  name={['contact_list', 'status']}
-                  rules={[{ required: true, message: t`Please select a status` }]}
-                  dependencies={[['contact_list', 'operator']]}
-                >
-                  <Select style={{ width: 130 }} size="small" placeholder={t`Select status`}>
-                    {statusField?.options?.map((option) => (
-                      <Select.Option key={option.value} value={option.value}>
-                        {option.label}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </>
-            )
-          }}
-        </Form.Item>
-
-        {/* CONFIRM / CANCEL */}
-        <Space style={{ position: 'absolute', top: 16, right: 0 }}>
-          <Button type="text" size="small" onClick={() => props.cancelOrDeleteNode()}>
-            <FontAwesomeIcon icon={faClose} />
-          </Button>
-          <Button type="primary" size="small" onClick={onSubmit}>
-            {t`Confirm`}
-          </Button>
-        </Space>
-      </Form>
-    </Space>
+              return (
+                <>
+                  <span className="leading-6 text-ink-2">{t`with status`}</span>
+                  <Form.Item
+                    style={{ marginBottom: 0 }}
+                    name={['contact_list', 'status']}
+                    rules={[{ required: true, message: t`Please select a status` }]}
+                    dependencies={[['contact_list', 'operator']]}
+                  >
+                    <Select
+                      style={{ width: 160 }}
+                      size="small"
+                      placeholder={t`Select status`}
+                      options={statusField?.options?.map((option) => ({
+                        value: option.value,
+                        label: labelOf(LIST_STATUS_LABEL, String(option.value), i18n)
+                      }))}
+                    />
+                  </Form.Item>
+                </>
+              )
+            }}
+          </Form.Item>
+        </div>
+      </EditorShell>
+    </Form>
   )
 }
 
@@ -307,718 +444,370 @@ export const LeafActionForm = (props: LeafFormProps) => {
   const { t, i18n } = useLingui()
   const [form] = useForm()
   const onValuesChange = useLeafDraft(props, form)
-
-  const onSubmit = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        // console.log('values', values)
-        if (!props.value) return
-
-        // convert dayjs values into strings
-        // if (values.field_type === 'time') {
-        //   values.string_values.forEach((value: any, index: number) => {
-        //     values.string_values[index] = value.format('YYYY-MM-DD HH:mm:ss')
-        //   })
-        // }
-
-        const clonedLeaf = cloneDeep(props.value)
-        clonedLeaf.leaf = Object.assign(clonedLeaf.leaf as TreeNodeLeaf, values)
-
-        props.setEditingNodeLeaf(undefined)
-
-        if (props.onChange) props.onChange(clonedLeaf)
-      })
-      .catch((e) => {
-        console.log(e)
-      })
-  }
-
-  // console.log('props', props)
+  const { attempted, confirm } = useConfirm(props, form)
+  const rowsComplete = (filters: DimensionFilter[] | undefined) =>
+    (filters ?? []).every((filter) => isFilterRowComplete(filter, false))
+  const onSubmit = confirm((values) => rowsComplete(values.contact_timeline?.filters))
 
   return (
-    <Space style={{ alignItems: 'start' }}>
-      <Tag variant="filled" color="cyan">
-        {props.schema.icon && (
-          <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
-        )}
-        {t`Activity`}
-      </Tag>
-      <Form
-        component="div"
-        layout="vertical"
-        form={form}
-        initialValues={props.editingNodeLeaf.leaf}
-        onValuesChange={onValuesChange}
+    <Form
+      component="div"
+      layout="vertical"
+      form={form}
+      initialValues={props.editingNodeLeaf.leaf}
+      onValuesChange={onValuesChange}
+    >
+      <Form.Item name="source" noStyle>
+        <Input hidden />
+      </Form.Item>
+      <EditorShell
+        tone="contact_timeline"
+        icon={faMousePointer}
+        title={t`Activity`}
+        onCancel={props.cancelOrDeleteNode}
+        onConfirm={onSubmit}
+        showsDraftHint={!!props.onDraftChange}
       >
-        <Form.Item name="source" noStyle>
-          <Input hidden />
-        </Form.Item>
-
-        {/* Entity Type - Mandatory */}
-        <div className="mb-2">
-          <Space>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`type`}
-            </span>
-            <Form.Item
-              noStyle
-              name={['contact_timeline', 'kind']}
-              colon={false}
-              rules={[{ required: true, message: t`Please select an event type` }]}
-            >
-              <Select
-                style={{ width: 200 }}
-                size="small"
-                placeholder={t`Select event`}
-                // Filters name keys of the SELECTED kind's payload, so they can
-                // never survive a kind change. preserve={false} does not cover
-                // this: both web kinds render the same Form.Item at the same
-                // position, so React reconciles it rather than unmounting it,
-                // and initialValues re-seeds it on the indirect route
-                // (web.pageview -> email.opened -> web.session). Clearing here
-                // is the only place that catches every path.
-                onChange={() => form.setFieldValue(['contact_timeline', 'filters'], [])}
-                // Closed list, and DUPLICATED in input.tsx (the summary renderer),
-                // which prints nothing at all for a kind it does not recognise.
-                // Add here and you must add there.
-                //
-                // This is a console limit, not a domain one: ContactTimelineCondition
-                // .Validate accepts any non-empty Kind, so an API-built
-                // custom_event.* condition validates, compiles and then renders
-                // blank in the UI. Custom events reach segments through the Custom
-                // Events Goal condition instead — do not document the Activity route.
-                options={TIMELINE_KIND_LABELS.map(({ value, label }) => ({ value, label: i18n._(label) }))}
-              />
-            </Form.Item>
-          </Space>
-        </div>
-
-        {/* Template filter - only shown for email event kinds */}
-        <Form.Item noStyle shouldUpdate>
-          {(funcs) => {
-            const kind = funcs.getFieldValue(['contact_timeline', 'kind'])
-            const emailKinds = [
-              'email.opened',
-              'email.clicked',
-              'email.bounced',
-              'email.complained',
-              'email.unsubscribed'
-            ]
-
-            if (!emailKinds.includes(kind) || !props.workspaceId) {
-              return null
-            }
-
-            return (
-              <div className="mb-2">
-                <Space orientation="vertical" size={4}>
-                  <Space>
-                    <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                      {t`template`}
-                    </span>
-                    <Form.Item
-                      noStyle
-                      name={['contact_timeline', 'template_id']}
-                      colon={false}
-                    >
-                      <TemplateSelectorInput
-                        workspaceId={props.workspaceId}
-                        placeholder={t`Any template`}
-                        anyLabel={t`Any template`}
-                        subtitle={t`The template of the emails this condition counts`}
-                        clearable={true}
-                        size="small"
-                        canReadTemplates={props.canReadTemplates}
-                      />
-                    </Form.Item>
-                    <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                      {t`broadcast`}
-                    </span>
-                    <Form.Item
-                      noStyle
-                      name={['contact_timeline', 'broadcast_id']}
-                      colon={false}
-                      // Drop the value if the kind changes to one whose block hides it, so a
-                      // hidden broadcast filter is never silently submitted.
-                      preserve={false}
-                    >
-                      <BroadcastSelectorInput
-                        workspaceId={props.workspaceId}
-                        placeholder={t`Any broadcast`}
-                        size="small"
-                        style={{ minWidth: 180 }}
-                        // Only the broadcasts that sent the template chosen beside it.
-                        templateId={funcs.getFieldValue(['contact_timeline', 'template_id'])}
-                      />
-                    </Form.Item>
-                  </Space>
-                  {kind === 'email.clicked' && (
-                    <Space>
-                      <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                        {t`clicked link contains`}
-                      </span>
-                      <Form.Item
-                        noStyle
-                        name={['contact_timeline', 'link_url']}
-                        colon={false}
-                        // Drop the value when switching away from email.clicked, otherwise a
-                        // stale link_url would be submitted with a kind the backend rejects.
-                        preserve={false}
-                      >
-                        <Input
-                          placeholder={t`e.g. /pricing`}
-                          allowClear
-                          size="small"
-                          style={{ minWidth: 200 }}
-                        />
-                      </Form.Item>
-                    </Space>
-                  )}
-                </Space>
-              </div>
-            )
-          }}
-        </Form.Item>
-
-        <Space>
-          <span className="opacity-60" style={{ lineHeight: '32px' }}>
-            {t`happened`}
-          </span>
-          <Form.Item noStyle name={['contact_timeline', 'count_operator']} colon={false}>
+        <EditorLine label={t`What`}>
+          <Form.Item
+            noStyle
+            name={['contact_timeline', 'kind']}
+            rules={[{ required: true, message: t`Please select an event type` }]}
+            // A new condition starts with an empty kind: shown as no value, so the placeholder reads.
+            getValueProps={(value?: string) => ({ value: value || undefined })}
+          >
             <Select
-              style={{}}
+              style={{ width: 240 }}
               size="small"
+              placeholder={t`Select event`}
+              // Filters name keys of the SELECTED kind's payload, so they can
+              // never survive a kind change. preserve={false} does not cover
+              // this: both web kinds render the same Form.Item at the same
+              // position, so React reconciles it rather than unmounting it,
+              // and initialValues re-seeds it on the indirect route
+              // (web.pageview -> email.opened -> web.session). Clearing here
+              // is the only place that catches every path.
+              onChange={() => form.setFieldValue(['contact_timeline', 'filters'], [])}
+              // Closed list, read by the condition sentence too (timelineKindLabel), which shows a
+              // kind it does not know in red.
+              //
+              // This is a console limit, not a domain one: ContactTimelineCondition
+              // .Validate accepts any non-empty Kind, so an API-built
+              // custom_event.* condition validates and compiles. Custom events reach
+              // segments through the Goal condition instead — do not document the Activity route.
               options={[
-                { value: 'at_least', label: t`at least` },
-                { value: 'at_most', label: t`at most` },
-                { value: 'exactly', label: t`exactly` }
+                {
+                  label: t`Emails`,
+                  title: t`Emails`,
+                  options: TIMELINE_KIND_LABELS.filter(({ value }) => value.startsWith('email.')).map(
+                    ({ value, label }) => ({ value, label: i18n._(label) })
+                  )
+                },
+                {
+                  label: t`Website`,
+                  title: t`Website`,
+                  options: TIMELINE_KIND_LABELS.filter(({ value }) => value.startsWith('web.')).map(
+                    ({ value, label }) => ({ value, label: i18n._(label) })
+                  )
+                }
               ]}
+            />
+          </Form.Item>
+        </EditorLine>
+
+        <EditorLine label={t`How many`}>
+          <Form.Item noStyle name={['contact_timeline', 'count_operator']}>
+            <Select
+              style={{ width: 128 }}
+              size="small"
+              aria-label={t`How many`}
+              options={Object.keys(COUNT_OPERATOR_LABELS).map((value) => ({
+                value,
+                label: labelOf(COUNT_OPERATOR_LABELS, value, i18n)
+              }))}
             />
           </Form.Item>
           <Form.Item
             noStyle
             name={['contact_timeline', 'count_value']}
-            colon={false}
-            rules={[{ required: true, type: 'number', min: 0, message: Messages.RequiredField }]}
+            rules={[{ required: true, type: 'number', min: 0, message: t`This field is required` }]}
           >
-            <InputNumber style={{ width: 70 }} size="small" />
+            <InputNumber style={{ width: 80 }} size="small" />
           </Form.Item>
-          <span className="opacity-60" style={{ lineHeight: '32px' }}>
-            {t`times`}
-          </span>
-        </Space>
+          <span className="text-ink-2">{t`times`}</span>
+        </EditorLine>
 
-        <div className="mt-2">
-          <Space>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`timeframe`}
-            </span>
-            <Form.Item noStyle name={['contact_timeline', 'timeframe_operator']} colon={false}>
-              <Select
-                style={{ width: 130 }}
-                size="small"
-                options={[
-                  { value: 'anytime', label: t`anytime` },
-                  { value: 'in_date_range', label: t`in date range` },
-                  { value: 'before_date', label: t`before date` },
-                  { value: 'after_date', label: t`after date` },
-                  { value: 'in_the_last_days', label: t`in the last` }
-                ]}
-              />
-            </Form.Item>
-            <Form.Item noStyle shouldUpdate>
-              {(funcs) => {
-                const timeframe_operator = funcs.getFieldValue([
-                  'contact_timeline',
-                  'timeframe_operator'
-                ])
+        <EditorLine label={t`When`}>
+          <TimeframeFields conditionKey="contact_timeline" />
+        </EditorLine>
 
-                if (timeframe_operator === 'in_the_last_days') {
-                  return (
-                    <Space>
-                      <Form.Item
-                        noStyle
-                        name={['contact_timeline', 'timeframe_values']}
-                        colon={false}
-                        rules={[
-                          { required: true, type: 'array', min: 1, message: Messages.RequiredField }
-                        ]}
-                        dependencies={['contact_timeline', 'timeframe_operator']}
-                        getValueProps={(values?: string[]) => {
-                          // convert array to single value
-                          return {
-                            value: values?.[0] === undefined ? undefined : parseInt(values[0])
-                          }
-                        }}
-                        getValueFromEvent={(args: number | null) => {
-                          // convert single value to array
-                          return ['' + args]
-                        }}
-                      >
-                        <InputNumber step={1} size="small" />
-                      </Form.Item>
-                      <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                        {t`days`}
-                      </span>
-                    </Space>
-                  )
-                } else if (timeframe_operator === 'in_date_range') {
-                  return (
-                    <Form.Item
-                      noStyle
-                      name={['contact_timeline', 'timeframe_values']}
-                      colon={false}
-                      rules={[
-                        { required: true, type: 'array', min: 2, message: Messages.RequiredField }
-                      ]}
-                      dependencies={['contact_timeline', 'timeframe_operator']}
-                      getValueProps={(values: string[]) => {
-                        return {
-                          value: values?.map((value) => {
-                            return value ? dayjs(value) : undefined
-                          })
-                        }
-                      }}
-                      getValueFromEvent={(dates: [Dayjs | null, Dayjs | null] | null) =>
-                        dates ? dates.map((date) => (date ? date.toISOString() : undefined)) : undefined
-                      }
-                    >
-                      <DatePicker.RangePicker
-                        style={{ width: 370 }}
-                        size="small"
-                        showTime={{
-                          defaultValue: [dayjs().startOf('day'), dayjs().startOf('day')]
-                        }}
-                      />
-                    </Form.Item>
-                  )
-                } else if (
-                  timeframe_operator === 'before_date' ||
-                  timeframe_operator === 'after_date'
-                ) {
-                  return (
-                    <Form.Item
-                      noStyle
-                      name={['contact_timeline', 'timeframe_values', 0]}
-                      colon={false}
-                      dependencies={['contact_timeline', 'timeframe_operator']}
-                      rules={[{ required: true, type: 'string', message: Messages.RequiredField }]}
-                      getValueProps={(value: string) => {
-                        return { value: value ? dayjs(value) : undefined }
-                      }}
-                      getValueFromEvent={(date: Dayjs | null) => (date ? date.toISOString() : undefined)}
-                    >
-                      <DatePicker
-                        style={{ width: 180 }}
-                        size="small"
-                        showTime={{ defaultValue: dayjs().startOf('day') }}
-                      />
-                    </Form.Item>
-                  )
-                } else {
-                  return null
-                }
-              }}
-            </Form.Item>
-            {/* <Form.Item
-            noStyle
-            name={['action', 'timeframe_values']}
-            colon={false}
-            rules={[{ required: true, type: 'number', min: 1, message: Messages.RequiredField }]}
-          >
-            <InputNumber style={{ width: 70 }} size="small" />
-          </Form.Item> */}
-          </Space>
-        </div>
-
-        {/* Filters on the event's own payload.
-            Only the web kinds have one: a contact_timeline filter compiles to
-            `ct.changes->'<field>'->>'new'`, so the field list must be the keys
-            that kind writes into `changes` — props.schema describes the table's
-            columns, which are not in `changes` at all and would each match
-            nothing. Previously gated on a source value that never existed, so
-            this block had never rendered. */}
+        {/* What narrows the activity: the template and broadcast of an email, the link of a
+            click, the filters of a web visit. */}
         <Form.Item noStyle shouldUpdate>
           {(funcs) => {
             const kind = funcs.getFieldValue(['contact_timeline', 'kind'])
             const changesSchema = timelineChangesSchema(kind)
-            if (!changesSchema) {
-              return null
-            }
+            const emailScoped = EMAIL_SCOPED_KINDS.includes(kind) && !!props.workspaceId
+
+            if (!emailScoped && !changesSchema) return null
 
             return (
-              <div className="mt-2">
-                <Space style={{ alignItems: 'start' }}>
-                  <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                    {t`with filters`}
-                  </span>
-                  <Form.Item
-                    name={['contact_timeline', 'filters']}
-                    noStyle
-                    colon={false}
-                    className="mt-3"
-                    rules={[
-                      { required: false, type: 'array', min: 0, message: Messages.RequiredField }
-                    ]}
-                    // Drop the filters when the kind changes to one that has no
-                    // filter block. They name keys of THAT kind's `changes`, so
-                    // carrying them over would submit a condition reading, say,
-                    // changes->'path' from an email row — matching nothing, with
-                    // nothing on screen to explain why.
-                    preserve={false}
-                  >
-                    <InputDimensionFilters schema={changesSchema} btnType="link" />
-                  </Form.Item>
-                </Space>
+              <div className="mt-3 border-t border-dashed border-line pt-3">
+                {emailScoped && (
+                  <>
+                    <EditorLine label={t`Template`}>
+                      <Form.Item noStyle name={['contact_timeline', 'template_id']} preserve={false}>
+                        <TemplateSelectorInput
+                          workspaceId={props.workspaceId as string}
+                          placeholder={t`Any template`}
+                          anyLabel={t`Any template`}
+                          subtitle={t`The template of the emails this condition counts`}
+                          clearable={true}
+                          size="small"
+                          canReadTemplates={props.canReadTemplates}
+                        />
+                      </Form.Item>
+                    </EditorLine>
+                    <EditorLine label={t`Broadcast`}>
+                      <Form.Item
+                        noStyle
+                        name={['contact_timeline', 'broadcast_id']}
+                        // Drop the value if the kind changes to one whose block hides it, so a
+                        // hidden broadcast filter is never silently submitted.
+                        preserve={false}
+                      >
+                        <BroadcastSelectorInput
+                          workspaceId={props.workspaceId as string}
+                          placeholder={t`Any broadcast`}
+                          size="small"
+                          style={{ minWidth: 240 }}
+                          // Only the broadcasts that sent the template chosen beside it.
+                          templateId={funcs.getFieldValue(['contact_timeline', 'template_id'])}
+                        />
+                      </Form.Item>
+                    </EditorLine>
+                    {kind === 'email.clicked' && (
+                      <EditorLine label={t`Clicked link`}>
+                        <span className="text-ink-2">{t`contains`}</span>
+                        <Form.Item
+                          noStyle
+                          name={['contact_timeline', 'link_url']}
+                          // Drop the value when switching away from email.clicked, otherwise a
+                          // stale link_url would be submitted with a kind the backend rejects.
+                          preserve={false}
+                        >
+                          <Input style={{ width: 240 }} placeholder={t`e.g. /pricing`} allowClear size="small" />
+                        </Form.Item>
+                      </EditorLine>
+                    )}
+                  </>
+                )}
+
+                {/* Filters on the event's own payload. Only the web kinds have one: a
+                    contact_timeline filter compiles to `ct.changes->'<field>'->>'new'`, so the
+                    field list must be the keys that kind writes into `changes`, not the table's
+                    columns. */}
+                {changesSchema && (
+                  <EditorLine label={t`Filters`}>
+                    <Form.Item
+                      style={{ marginBottom: 0, width: '100%' }}
+                      name={['contact_timeline', 'filters']}
+                      // Drop the filters when the kind changes to one that has no filter block.
+                      // They name keys of THAT kind's `changes`, so carrying them over would submit
+                      // a condition reading, say, changes->'path' from an email row — matching
+                      // nothing, with nothing on screen to explain why.
+                      preserve={false}
+                    >
+                      <InputDimensionFilters schema={changesSchema} showErrors={attempted} />
+                    </Form.Item>
+                    {attempted && !rowsComplete(funcs.getFieldValue(['contact_timeline', 'filters'])) && (
+                      <UnfinishedFiltersMessage />
+                    )}
+                  </EditorLine>
+                )}
               </div>
             )
           }}
         </Form.Item>
-
-        {/* CONFIRM / CANCEL */}
-        <Space style={{ position: 'absolute', top: 16, right: 0 }}>
-          <Button type="text" size="small" onClick={() => props.cancelOrDeleteNode()}>
-            <FontAwesomeIcon icon={faClose} />
-          </Button>
-          <Button type="primary" size="small" onClick={onSubmit}>
-            {t`Confirm`}
-          </Button>
-        </Space>
-      </Form>
-    </Space>
+      </EditorShell>
+    </Form>
   )
 }
 
 export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [form] = useForm()
   const onValuesChange = useLeafDraft(props, form)
+  const { attempted, confirm } = useConfirm(props, form)
+  const onSubmit = confirm((values) => arePropertyFiltersValid(values.custom_events_goal?.filters))
 
-  const onSubmit = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        if (!props.value) return
-
-        const clonedLeaf = cloneDeep(props.value)
-        clonedLeaf.leaf = Object.assign(clonedLeaf.leaf as TreeNodeLeaf, values)
-
-        props.setEditingNodeLeaf(undefined)
-
-        if (props.onChange) props.onChange(clonedLeaf)
-      })
-      .catch((e) => {
-        console.log(e)
-      })
-  }
-
-  // Get schema options
   const goalTypeField = props.schema.fields['goal_type']
   const aggregateField = props.schema.fields['aggregate_operator']
   const operatorField = props.schema.fields['operator']
+  const required = t`This field is required`
 
   return (
-    <Space style={{ alignItems: 'start' }}>
-      <Tag variant="filled" color="cyan">
-        {props.schema.icon && (
-          <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
-        )}
-        {t`Goal`}
-      </Tag>
-      <Form
-        component="div"
-        layout="vertical"
-        form={form}
-        initialValues={props.editingNodeLeaf.leaf}
-        onValuesChange={onValuesChange}
+    <Form
+      component="div"
+      layout="vertical"
+      form={form}
+      initialValues={props.editingNodeLeaf.leaf}
+      onValuesChange={onValuesChange}
+    >
+      <Form.Item name="source" noStyle>
+        <Input hidden />
+      </Form.Item>
+      <EditorShell
+        tone="custom_events_goals"
+        icon={faBullseye}
+        title={t`Goal`}
+        onCancel={props.cancelOrDeleteNode}
+        onConfirm={onSubmit}
+        showsDraftHint={!!props.onDraftChange}
       >
-        <Form.Item name="source" noStyle>
-          <Input hidden />
-        </Form.Item>
-
-        {/* Goal Type Selection */}
-        <div className="mb-2">
-          <Space>
-            {/* Negation wraps the whole condition rather than inverting the comparison: the
-                aggregation only sees contacts that have at least one matching event, so
-                "count is 0" can never match the people who never converted. */}
-            <Form.Item
-              noStyle
-              name={['custom_events_goal', 'negate']}
-              colon={false}
-              getValueProps={(value: boolean | undefined) => ({ value: value === true })}
-            >
-              <Select
-                style={{ width: 90 }}
-                size="small"
-                options={[
-                  { value: false, label: t`has` },
-                  { value: true, label: t`has not` }
-                ]}
-              />
-            </Form.Item>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`goal type`}
-            </span>
-            <Form.Item
-              noStyle
-              name={['custom_events_goal', 'goal_type']}
-              rules={[{ required: true, message: t`Please select a goal type` }]}
-            >
-              <Select style={{ width: 150 }} size="small" placeholder={t`Select type`}>
-                {goalTypeField?.options?.map((option) => (
-                  <Select.Option key={option.value} value={option.value}>
-                    {option.label}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Space>
-        </div>
+        <EditorLine label={t`The contact`}>
+          {/* Negation wraps the whole condition rather than inverting the comparison: the
+              aggregation only sees contacts that have at least one matching event, so
+              "count is 0" can never match the people who never converted. */}
+          <Form.Item
+            noStyle
+            name={['custom_events_goal', 'negate']}
+            getValueProps={(value: boolean | undefined) => ({ value: value === true ? 'has_not' : 'has' })}
+            getValueFromEvent={(value: string) => value === 'has_not'}
+          >
+            <Segmented
+              size="small"
+              options={[
+                { value: 'has', label: t`has` },
+                { value: 'has_not', label: t`has not` }
+              ]}
+            />
+          </Form.Item>
+          <span className="text-ink-2">{t`reached`}</span>
+          <Form.Item
+            noStyle
+            name={['custom_events_goal', 'goal_type']}
+            rules={[{ required: true, message: t`Please select a goal type` }]}
+          >
+            <Select
+              style={{ width: 176 }}
+              size="small"
+              placeholder={t`Select type`}
+              options={goalTypeField?.options?.map((option) => ({
+                value: option.value,
+                label: labelOf(GOAL_LABELS, String(option.value), i18n)
+              }))}
+            />
+          </Form.Item>
+        </EditorLine>
 
         {/* Narrow to a specific goal or event, rather than the whole goal type */}
-        <div className="mb-2">
-          <Space>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`goal name`}
-            </span>
-            <Form.Item noStyle name={['custom_events_goal', 'goal_name']} colon={false}>
-              <Input
-                placeholder={t`Any goal name`}
-                allowClear
-                size="small"
-                style={{ width: 170 }}
-              />
-            </Form.Item>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`event name`}
-            </span>
-            <Form.Item noStyle name={['custom_events_goal', 'event_name']} colon={false}>
-              <Input
-                placeholder={t`Any event`}
-                allowClear
-                size="small"
-                style={{ width: 170 }}
-              />
-            </Form.Item>
-          </Space>
-        </div>
+        <EditorLine label={t`Narrowed to`}>
+          <Form.Item noStyle name={['custom_events_goal', 'goal_name']}>
+            <Input style={{ width: 208 }} placeholder={t`Any goal name`} allowClear size="small" aria-label={t`goal name`} />
+          </Form.Item>
+          <Form.Item noStyle name={['custom_events_goal', 'event_name']}>
+            <Input style={{ width: 208 }} placeholder={t`Any event`} allowClear size="small" aria-label={t`event name`} />
+          </Form.Item>
+        </EditorLine>
 
-        {/* Aggregate Operator and Comparison */}
-        <div className="mb-2">
-          <Space>
-            <Form.Item
-              noStyle
-              name={['custom_events_goal', 'aggregate_operator']}
-              rules={[{ required: true, message: t`Please select aggregate` }]}
-            >
-              <Select style={{ width: 100 }} size="small" placeholder={t`Aggregate`}>
-                {aggregateField?.options?.map((option) => (
-                  <Select.Option key={option.value} value={option.value}>
-                    {option.label}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`is`}
-            </span>
-            <Form.Item
-              noStyle
-              name={['custom_events_goal', 'operator']}
-              rules={[{ required: true, message: t`Please select operator` }]}
-            >
-              <Select style={{ width: 170 }} size="small" placeholder={t`Comparison`}>
-                {operatorField?.options?.map((option) => (
-                  <Select.Option key={option.value} value={option.value}>
-                    {option.label}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <Form.Item
-              noStyle
-              name={['custom_events_goal', 'value']}
-              rules={[{ required: true, type: 'number', message: Messages.RequiredField }]}
-            >
-              <InputNumber style={{ width: 100 }} size="small" placeholder={t`Value`} />
-            </Form.Item>
+        <EditorLine label={t`Measure`}>
+          <Form.Item
+            noStyle
+            name={['custom_events_goal', 'aggregate_operator']}
+            rules={[{ required: true, message: t`Please select aggregate` }]}
+          >
+            <Select
+              style={{ width: 128 }}
+              size="small"
+              placeholder={t`Aggregate`}
+              options={aggregateField?.options?.map((option) => ({
+                value: option.value,
+                label: labelOf(AGGREGATE_LABELS, String(option.value), i18n)
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            noStyle
+            name={['custom_events_goal', 'operator']}
+            rules={[{ required: true, message: t`Please select operator` }]}
+          >
+            <Select
+              style={{ width: 208 }}
+              size="small"
+              placeholder={t`Comparison`}
+              options={operatorField?.options?.map((option) => ({
+                value: option.value,
+                label: labelOf(GOAL_COMPARISON_LABELS, String(option.value), i18n)
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            noStyle
+            name={['custom_events_goal', 'value']}
+            rules={[{ required: true, type: 'number', message: required }]}
+          >
+            <InputNumber style={{ width: 112 }} size="small" placeholder={t`Value`} />
+          </Form.Item>
 
-            {/* Show second value for "between" operator */}
-            <Form.Item noStyle shouldUpdate>
-              {(funcs) => {
-                const operator = funcs.getFieldValue(['custom_events_goal', 'operator'])
-                if (operator === 'between') {
-                  return (
-                    <>
-                      <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                        {t`and`}
-                      </span>
-                      <Form.Item
-                        noStyle
-                        name={['custom_events_goal', 'value_2']}
-                        rules={[
-                          { required: true, type: 'number', message: Messages.RequiredField },
-                          ({ getFieldValue }) => ({
-                            validator(_, value) {
-                              const value1 = getFieldValue(['custom_events_goal', 'value'])
-                              if (value !== undefined && value1 !== undefined && value <= value1) {
-                                return Promise.reject(new Error(t`Second value must be greater than first value`))
-                              }
-                              return Promise.resolve()
-                            }
-                          })
-                        ]}
-                        dependencies={[['custom_events_goal', 'operator'], ['custom_events_goal', 'value']]}
-                      >
-                        <InputNumber style={{ width: 100 }} size="small" placeholder={t`Value 2`} />
-                      </Form.Item>
-                    </>
-                  )
-                }
-                return null
-              }}
-            </Form.Item>
-          </Space>
-        </div>
-
-        {/* Timeframe */}
-        <div className="mt-2">
-          <Space>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`timeframe`}
-            </span>
-            <Form.Item noStyle name={['custom_events_goal', 'timeframe_operator']} colon={false}>
-              <Select
-                style={{ width: 130 }}
-                size="small"
-                options={[
-                  { value: 'anytime', label: t`anytime` },
-                  { value: 'in_date_range', label: t`in date range` },
-                  { value: 'before_date', label: t`before date` },
-                  { value: 'after_date', label: t`after date` },
-                  { value: 'in_the_last_days', label: t`in the last` }
-                ]}
-              />
-            </Form.Item>
-            <Form.Item noStyle shouldUpdate>
-              {(funcs) => {
-                const timeframe_operator = funcs.getFieldValue([
-                  'custom_events_goal',
-                  'timeframe_operator'
-                ])
-
-                if (timeframe_operator === 'in_the_last_days') {
-                  return (
-                    <Space>
-                      <Form.Item
-                        noStyle
-                        name={['custom_events_goal', 'timeframe_values']}
-                        colon={false}
-                        rules={[
-                          { required: true, type: 'array', min: 1, message: Messages.RequiredField }
-                        ]}
-                        dependencies={['custom_events_goal', 'timeframe_operator']}
-                        getValueProps={(values?: string[]) => {
-                          return {
-                            value: values?.[0] === undefined ? undefined : parseInt(values[0])
+          {/* The second value of « between » */}
+          <Form.Item noStyle shouldUpdate>
+            {(funcs) => {
+              if (funcs.getFieldValue(['custom_events_goal', 'operator']) !== 'between') return null
+              return (
+                <>
+                  <span className="text-ink-2">{t`and`}</span>
+                  <Form.Item
+                    style={{ marginBottom: 0 }}
+                    name={['custom_events_goal', 'value_2']}
+                    rules={[
+                      { required: true, type: 'number', message: required },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          const value1 = getFieldValue(['custom_events_goal', 'value'])
+                          if (value !== undefined && value1 !== undefined && value <= value1) {
+                            return Promise.reject(new Error(t`Second value must be greater than first value`))
                           }
-                        }}
-                        getValueFromEvent={(args: number | null) => {
-                          return ['' + args]
-                        }}
-                      >
-                        <InputNumber step={1} size="small" />
-                      </Form.Item>
-                      <span className="opacity-60" style={{ lineHeight: '32px' }}>
-                        {t`days`}
-                      </span>
-                    </Space>
-                  )
-                } else if (timeframe_operator === 'in_date_range') {
-                  return (
-                    <Form.Item
-                      noStyle
-                      name={['custom_events_goal', 'timeframe_values']}
-                      colon={false}
-                      rules={[
-                        { required: true, type: 'array', min: 2, message: Messages.RequiredField }
-                      ]}
-                      dependencies={['custom_events_goal', 'timeframe_operator']}
-                      getValueProps={(values: string[]) => {
-                        return {
-                          value: values?.map((value) => {
-                            return value ? dayjs(value) : undefined
-                          })
+                          return Promise.resolve()
                         }
-                      }}
-                      getValueFromEvent={(dates: [Dayjs | null, Dayjs | null] | null) =>
-                        dates ? dates.map((date) => (date ? date.toISOString() : undefined)) : undefined
-                      }
-                    >
-                      <DatePicker.RangePicker
-                        style={{ width: 370 }}
-                        size="small"
-                        showTime={{
-                          defaultValue: [dayjs().startOf('day'), dayjs().startOf('day')]
-                        }}
-                      />
-                    </Form.Item>
-                  )
-                } else if (
-                  timeframe_operator === 'before_date' ||
-                  timeframe_operator === 'after_date'
-                ) {
-                  return (
-                    <Form.Item
-                      noStyle
-                      name={['custom_events_goal', 'timeframe_values', 0]}
-                      colon={false}
-                      dependencies={['custom_events_goal', 'timeframe_operator']}
-                      rules={[{ required: true, type: 'string', message: Messages.RequiredField }]}
-                      getValueProps={(value: string) => {
-                        return { value: value ? dayjs(value) : undefined }
-                      }}
-                      getValueFromEvent={(date: Dayjs | null) => (date ? date.toISOString() : undefined)}
-                    >
-                      <DatePicker
-                        style={{ width: 180 }}
-                        size="small"
-                        showTime={{ defaultValue: dayjs().startOf('day') }}
-                      />
-                    </Form.Item>
-                  )
-                } else {
-                  return null
-                }
-              }}
-            </Form.Item>
-          </Space>
-        </div>
+                      })
+                    ]}
+                    dependencies={[
+                      ['custom_events_goal', 'operator'],
+                      ['custom_events_goal', 'value']
+                    ]}
+                  >
+                    <InputNumber style={{ width: 112 }} size="small" placeholder={t`Value 2`} />
+                  </Form.Item>
+                </>
+              )
+            }}
+          </Form.Item>
+        </EditorLine>
+
+        <EditorLine label={t`When`}>
+          <TimeframeFields conditionKey="custom_events_goal" />
+        </EditorLine>
 
         {/* Filters on the event's own properties payload */}
-        <div className="mt-2">
-          <Space style={{ alignItems: 'start' }}>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              {t`with properties`}
-            </span>
-            <Form.Item name={['custom_events_goal', 'filters']} noStyle colon={false}>
-              <InputEventPropertyFilters btnType="link" />
+        <div className="mt-3 border-t border-dashed border-line pt-3">
+          <EditorLine label={t`Properties`}>
+            <Form.Item
+              style={{ marginBottom: 0, width: '100%' }}
+              name={['custom_events_goal', 'filters']}
+            >
+              <InputEventPropertyFilters showErrors={attempted} />
             </Form.Item>
-          </Space>
+            <Form.Item noStyle shouldUpdate>
+              {(funcs) =>
+                attempted && !arePropertyFiltersValid(funcs.getFieldValue(['custom_events_goal', 'filters'])) ? (
+                  <UnfinishedFiltersMessage />
+                ) : null
+              }
+            </Form.Item>
+          </EditorLine>
         </div>
-
-        {/* CONFIRM / CANCEL */}
-        <Space style={{ position: 'absolute', top: 16, right: 0 }}>
-          <Button type="text" size="small" onClick={() => props.cancelOrDeleteNode()}>
-            <FontAwesomeIcon icon={faClose} />
-          </Button>
-          <Button type="primary" size="small" onClick={onSubmit}>
-            {t`Confirm`}
-          </Button>
-        </Space>
-      </Form>
-    </Space>
+      </EditorShell>
+    </Form>
   )
 }

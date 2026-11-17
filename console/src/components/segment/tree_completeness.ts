@@ -31,7 +31,7 @@ const GOAL_COMPARISON_OPERATORS = ['gte', 'lte', 'eq', 'between']
 const isFilled = (value: string | undefined | null): boolean => !!value && value.length > 0
 
 /** Whether a dimension/property filter carries everything the query builder needs. */
-const isFilterComplete = (filter: DimensionFilter | null | undefined): boolean => {
+export const isFilterComplete = (filter: DimensionFilter | null | undefined): boolean => {
   if (!filter) return false
   if (!filter.field_name || !filter.operator) return false
   if (!FIELD_TYPES.includes(filter.field_type)) return false
@@ -67,10 +67,30 @@ const isFilterComplete = (filter: DimensionFilter | null | undefined): boolean =
       break
   }
 
-  if (filter.field_type === 'number') return numberValues.length > 0
+  // A cleared number input reports null, which the server would read as 0.
+  if (filter.field_type === 'number')
+    return numberValues.length > 0 && numberValues.every((value) => typeof value === 'number' && Number.isFinite(value))
   // An empty string cast to a timestamp is a Postgres error, not an empty match.
   if (filter.field_type === 'time') return stringValues.length > 0 && stringValues.every(isFilled)
   return stringValues.length > 0
+}
+
+/**
+ * Whether a filter row of the editor may be confirmed. Stricter than isFilterComplete, which also
+ * decides what an automation keeps and what the preview sends, and so has to accept every filter
+ * the server compiles — including the ones built through the API. The editor asks for what its own
+ * forms always asked for: a path to read a value out of a JSON column, and no blank value.
+ */
+export const isFilterRowComplete = (
+  filter: DimensionFilter | null | undefined,
+  isJsonField: boolean
+): boolean => {
+  if (!isFilterComplete(filter) || !filter) return false
+  if (VALUELESS_OPERATORS.includes(filter.operator)) return true
+  if (isJsonField && !filter.json_path?.length) return false
+  if (filter.field_type !== 'number' && (filter.string_values ?? []).some((value) => !isFilled(value?.trim())))
+    return false
+  return true
 }
 
 const areFiltersComplete = (filters: DimensionFilter[] | undefined): boolean =>

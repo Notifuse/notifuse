@@ -1,5 +1,4 @@
 import { api } from './client'
-import { FormInstance } from 'antd'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
 // Utility types
@@ -163,58 +162,6 @@ export interface EditingNodeLeaf extends TreeNode {
   is_new?: boolean // flag to remove node from tree if cancel a new condition without confirm
   path: string
   key: number
-}
-
-// Field definition type
-export interface FieldDefinition {
-  source: string
-  field_name: string
-  definition: FieldSchema
-}
-
-// Type alias for backwards compatibility
-export type FieldTypeValue = FieldType
-
-// Operator type (used by UI components)
-export type Operator =
-  | 'is_set'
-  | 'is_not_set'
-  | 'equals'
-  | 'not_equals'
-  | 'contains'
-  | 'not_contains'
-  | 'gt'
-  | 'gte'
-  | 'lt'
-  | 'lte'
-  | 'in_date_range'
-  | 'not_in_date_range'
-  | 'before_date'
-  | 'after_date'
-  | 'in_the_last_days'
-  | 'not_in_the_last_days'
-  | 'in_array'
-
-// Field type renderer interfaces
-export interface FieldTypeRenderer {
-  operators: IOperator[]
-  render: (
-    filter: DimensionFilter,
-    schema: FieldSchema,
-    customFieldLabels?: Record<string, string>
-  ) => JSX.Element
-  renderFormItems: (fieldType: FieldTypeValue, fieldName: string, form: FormInstance) => JSX.Element
-}
-
-export interface FieldTypeRendererDictionary {
-  [key: string]: FieldTypeRenderer
-}
-
-export interface IOperator {
-  type: Operator
-  label: string
-  render: (filter: DimensionFilter) => JSX.Element
-  renderFormItems: (fieldType: FieldTypeValue, fieldName: string, form: FormInstance) => JSX.Element
 }
 
 // Schema interfaces for segmentation

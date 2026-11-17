@@ -113,11 +113,12 @@ describe('Activity condition — web navigation kinds', () => {
     // projection writes — not the table's columns.
     renderActivityForm({ ...baseTimeline, kind: 'web.pageview' }, vi.fn())
 
-    expect(screen.getByText('with filters')).toBeInTheDocument()
+    expect(screen.getByText('Filters')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('+ Add filter'))
-    // The field picker lists the projection's keys by their display titles.
-    fireEvent.mouseDown(screen.getAllByRole('combobox')[screen.getAllByRole('combobox').length - 1])
+    fireEvent.click(screen.getByText('Add a filter'))
+    // The field picker of the new row comes after the kind, count and timeframe selects, and lists
+    // the projection's keys by their display titles.
+    fireEvent.mouseDown(screen.getAllByRole('combobox')[3])
     expect(screen.getByText('Path')).toBeInTheDocument()
     expect(screen.getByText('Time on page (ms)')).toBeInTheDocument()
   })
@@ -127,7 +128,7 @@ describe('Activity condition — web navigation kinds', () => {
     // keys; offering the web fields there would build conditions matching nothing.
     renderActivityForm({ ...baseTimeline, kind: 'email.opened' }, vi.fn())
 
-    expect(screen.queryByText('with filters')).not.toBeInTheDocument()
+    expect(screen.queryByText('Filters')).not.toBeInTheDocument()
   })
 
   it('drops the filters when the kind changes to one that has none', async () => {
@@ -198,7 +199,7 @@ describe('Activity condition — web navigation kinds', () => {
       vi.fn()
     )
 
-    expect(screen.getByText(/does not apply to this event/i)).toBeInTheDocument()
+    expect(screen.getByText(/does not apply to this condition/i)).toBeInTheDocument()
   })
 
   it('does not offer the template picker for a web kind', async () => {

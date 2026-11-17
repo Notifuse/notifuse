@@ -62,7 +62,7 @@ msgstr "· 読み取り専用"
 msgid "“{0}”: H{1} after H{previousLevel} (H{2} expected)"
 msgstr "「{0}」: H{previousLevel} の後に H{1}（H{2} が想定されます）"
 
-#: src/components/segment/segmentSummary.ts:209
+#: src/components/segment/segmentSummary.ts:167
 msgid "“{name}”"
 msgstr "「{name}」"
 
@@ -102,7 +102,7 @@ msgstr "（デフォルト）"
 msgid "(empty)"
 msgstr "(空)"
 
-#: src/components/blog/PostDrawer.tsx:768
+#: src/components/blog/PostDrawer.tsx:774
 msgid "(has checks left)"
 msgstr "(未確認の項目あり)"
 
@@ -179,10 +179,8 @@ msgstr "{0, plural, other {# 件判定}}"
 msgid "{0, plural, one {# click} other {# clicks}}"
 msgstr "{0, plural, other {# クリック}}"
 
-#. placeholder {0}: previewResponse!.total_count
 #. placeholder {0}: progress.total
 #: src/components/contacts/BulkActionProgressModal.tsx:79
-#: src/components/segment/button_upsert.tsx:649
 msgid "{0, plural, one {# contact} other {# contacts}}"
 msgstr "{0, plural, one {#件のコンタクト} other {#件のコンタクト}}"
 
@@ -415,9 +413,14 @@ msgstr "{0} 件クリック"
 #~ msgstr "{0}件のコンタクト"
 
 #. placeholder {0}: filter.field_name
+#: src/components/segment/FilterRow.tsx:78
+msgid "{0} does not apply to this condition"
+msgstr "{0} はこの条件には適用されません"
+
+#. placeholder {0}: filter.field_name
 #: src/components/segment/input_dimension_filters.tsx:73
-msgid "{0} does not apply to this event"
-msgstr "{0}はこのイベントには適用されません"
+#~ msgid "{0} does not apply to this event"
+#~ msgstr "{0}はこのイベントには適用されません"
 
 #. placeholder {0}: stats.count_bounced
 #: src/components/analytics/EmailMetricsChart.tsx:437
@@ -612,15 +615,15 @@ msgstr "{0}秒"
 msgid "{above, plural, one {# rule above and {below} below this one} other {# rules above and {below} below this one}}"
 msgstr "{above, plural, one {このルールの上に # 件、下に {below} 件} other {このルールの上に # 件、下に {below} 件}}"
 
-#: src/components/segment/segmentSummary.ts:196
+#: src/components/segment/segmentSummary.ts:154
 msgid "{action} at least {count} times"
 msgstr "{action}（{count} 回以上）"
 
-#: src/components/segment/segmentSummary.ts:193
+#: src/components/segment/segmentSummary.ts:151
 msgid "{action} at most {count} times"
 msgstr "{action}（{count} 回以下）"
 
-#: src/components/segment/segmentSummary.ts:194
+#: src/components/segment/segmentSummary.ts:152
 msgid "{action} exactly {count} times"
 msgstr "{action}（ちょうど {count} 回）"
 
@@ -668,8 +671,8 @@ msgstr "{categoryName} テンプレート: オートメーションのリスト�
 msgid "{completed} completed · {exited} exited · {failed} failed"
 msgstr "完了 {completed} · 離脱 {exited} · 失敗 {failed}"
 
-#: src/components/segment/segmentSummary.ts:200
-#: src/components/segment/segmentSummary.ts:236
+#: src/components/segment/segmentSummary.ts:158
+#: src/components/segment/segmentSummary.ts:194
 msgid "{condition} (filtered)"
 msgstr "{condition}（絞り込みあり）"
 
@@ -692,6 +695,10 @@ msgstr "{count, plural, one {# 件のオートメーション} other {# 件の�
 #: src/components/templates/templateUsage.ts:14
 msgid "{count, plural, one {# broadcast} other {# broadcasts}}"
 msgstr "{count, plural, one {# 件のブロードキャスト} other {# 件のブロードキャスト}}"
+
+#: src/components/segment/SegmentCountCard.tsx:88
+msgid "{count, plural, one {# contact} other {# contacts}}"
+msgstr "{count, plural, other {# 件のコンタクト}}"
 
 #: src/components/contacts/sheet/ContactProfileFields.tsx:104
 msgid "{count, plural, one {# empty field} other {# empty fields}}"
@@ -743,7 +750,7 @@ msgstr "{recipients} 件の宛先のうち {count} 件がクリック"
 msgid "{count} clicks out of {tracked} tracked recipients ({recipients} sent)"
 msgstr "トラッキング対象 {tracked} 件のうち {count} 件がクリック（送信 {recipients} 件）"
 
-#: src/components/segment/segmentSummary.ts:250
+#: src/components/segment/segmentSummary.ts:208
 msgid "{count} conditions"
 msgstr "{count} 件の条件"
 
@@ -840,77 +847,77 @@ msgstr "{failed, plural, one {# 件失敗} other {# 件失敗}}"
 msgid "{failed, plural, one {The provider refused # recipient and every retry was used up. Open the logs to see why, then retry it.} other {The provider refused # recipients and every retry was used up. Open the logs to see why, then retry them.}}"
 msgstr "{failed, plural, one {プロバイダーが # 件の宛先を拒否し、すべての再試行を使い切りました。ログで理由を確認してから再試行してください。} other {プロバイダーが # 件の宛先を拒否し、すべての再試行を使い切りました。ログで理由を確認してから再試行してください。}}"
 
-#: src/components/segment/segmentSummary.ts:112
+#: src/components/segment/segmentSummary.ts:88
 msgid "{field} < {value}"
 msgstr "{field} < {value}"
 
-#: src/components/segment/segmentSummary.ts:108
+#: src/components/segment/segmentSummary.ts:84
 msgid "{field} > {value}"
 msgstr "{field} > {value}"
 
-#: src/components/segment/segmentSummary.ts:114
+#: src/components/segment/segmentSummary.ts:90
 msgid "{field} ≤ {value}"
 msgstr "{field} ≤ {value}"
 
-#: src/components/segment/segmentSummary.ts:110
+#: src/components/segment/segmentSummary.ts:86
 msgid "{field} ≥ {value}"
 msgstr "{field} ≥ {value}"
 
-#: src/components/segment/segmentSummary.ts:118
+#: src/components/segment/segmentSummary.ts:94
 msgid "{field} after {value}"
 msgstr "{field} が {value} より後"
 
-#: src/components/segment/segmentSummary.ts:116
+#: src/components/segment/segmentSummary.ts:92
 msgid "{field} before {value}"
 msgstr "{field} が {value} より前"
 
-#: src/components/segment/segmentSummary.ts:120
+#: src/components/segment/segmentSummary.ts:96
 msgid "{field} between {first} and {second}"
 msgstr "{field} が {first} から {second} の間"
 
 #: src/components/contacts/ContactsFilters.tsx:76
-#: src/components/segment/segmentSummary.ts:100
+#: src/components/segment/segmentSummary.ts:76
 msgid "{field} contains {value}"
 msgstr "{field} が {value} を含む"
 
-#: src/components/segment/segmentSummary.ts:102
+#: src/components/segment/segmentSummary.ts:78
 msgid "{field} does not contain {value}"
 msgstr "{field} が {value} を含まない"
 
-#: src/components/segment/segmentSummary.ts:106
+#: src/components/segment/segmentSummary.ts:82
 msgid "{field} ends with {value}"
 msgstr "{field} が {value} で終わる"
 
-#: src/components/segment/segmentSummary.ts:124
+#: src/components/segment/segmentSummary.ts:100
 msgid "{field} in the last {days} days"
 msgstr "{field} が過去 {days} 日以内"
 
 #: src/components/contacts/ContactsFilters.tsx:76
-#: src/components/segment/segmentSummary.ts:95
+#: src/components/segment/segmentSummary.ts:71
 msgid "{field} is {value}"
 msgstr "{field} が {value}"
 
-#: src/components/segment/segmentSummary.ts:97
+#: src/components/segment/segmentSummary.ts:73
 msgid "{field} is not {value}"
 msgstr "{field} が {value} 以外"
 
-#: src/components/segment/segmentSummary.ts:93
+#: src/components/segment/segmentSummary.ts:69
 msgid "{field} is not set"
 msgstr "{field} が未設定"
 
-#: src/components/segment/segmentSummary.ts:91
+#: src/components/segment/segmentSummary.ts:67
 msgid "{field} is set"
 msgstr "{field} が設定済み"
 
-#: src/components/segment/segmentSummary.ts:122
+#: src/components/segment/segmentSummary.ts:98
 msgid "{field} not between {first} and {second}"
 msgstr "{field} が {first} から {second} の範囲外"
 
-#: src/components/segment/segmentSummary.ts:126
+#: src/components/segment/segmentSummary.ts:102
 msgid "{field} not in the last {days} days"
 msgstr "{field} が過去 {days} 日以内ではない"
 
-#: src/components/segment/segmentSummary.ts:104
+#: src/components/segment/segmentSummary.ts:80
 msgid "{field} starts with {value}"
 msgstr "{field} が {value} で始まる"
 
@@ -1004,7 +1011,7 @@ msgstr "{language}コードをクリップボードにコピーしました"
 msgid "{LAST_SENT_DAYS, plural, one {No successful send in the last # day} other {No successful send in the last # days}}"
 msgstr "{LAST_SENT_DAYS, plural, other {過去 # 日間に成功した送信はありません}}"
 
-#: src/components/automations/config/ConditionsField.tsx:106
+#: src/components/automations/config/ConditionsField.tsx:113
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
 msgstr "{leafCount, plural, one {#件の条件} other {#件の条件}}"
 
@@ -1156,6 +1163,10 @@ msgstr "{pageviews, plural, other {# ページ}}"
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews}ページ"
 
+#: src/components/segment/SegmentCountCard.tsx:113
+msgid "{percent} % of the {total} contacts"
+msgstr "{total} 件のコンタクトの {percent} %"
+
 #: src/components/settings/integrations/providerDetails.ts:169
 msgid "{perMinuteText} emails/min"
 msgstr "{perMinuteText} 通/分"
@@ -1185,7 +1196,7 @@ msgstr "{providerName} · デフォルト送信者 {email}"
 msgid "{providerName} has no default sender"
 msgstr "{providerName} にはデフォルト送信者がありません"
 
-#: src/components/blog/PostDrawer.tsx:1075
+#: src/components/blog/PostDrawer.tsx:1081
 msgid "{readingTime} min read"
 msgstr "{readingTime}分で読めます"
 
@@ -1274,19 +1285,19 @@ msgstr "{shown, plural, one {# 件以上のコンタクト} other {# 件以上�
 msgid "{shown} of {total} templates"
 msgstr "{total} 件中 {shown} 件のテンプレート"
 
-#: src/components/segment/segmentSummary.ts:226
+#: src/components/segment/segmentSummary.ts:184
 msgid "{subject}: {aggregate} = {value}"
 msgstr "{subject}：{aggregate} = {value}"
 
-#: src/components/segment/segmentSummary.ts:223
+#: src/components/segment/segmentSummary.ts:181
 msgid "{subject}: {aggregate} ≤ {value}"
 msgstr "{subject}：{aggregate} ≤ {value}"
 
-#: src/components/segment/segmentSummary.ts:234
+#: src/components/segment/segmentSummary.ts:192
 msgid "{subject}: {aggregate} ≥ {value}"
 msgstr "{subject}：{aggregate} ≥ {value}"
 
-#: src/components/segment/segmentSummary.ts:230
+#: src/components/segment/segmentSummary.ts:188
 msgid "{subject}: {aggregate} between {value} and {second}"
 msgstr "{subject}：{aggregate} が {value} から {second} の間"
 
@@ -1302,7 +1313,7 @@ msgstr "空き：{textFree}、{numberFree}、{dateFree}、{jsonFree}"
 msgid "{time} local time"
 msgstr "現地時間 {time}"
 
-#: src/components/blog/PostDrawer.tsx:1109
+#: src/components/blog/PostDrawer.tsx:1115
 #: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, other {確認が必要: #}}"
@@ -1459,8 +1470,8 @@ msgstr "// テストデータがまだありません..."
 #~ msgstr "• コンポーネント属性が有効か確認してください"
 
 #: src/components/segment/input_dimension_filters.tsx:170
-msgid "+ Add filter"
-msgstr "+ フィルターを追加"
+#~ msgid "+ Add filter"
+#~ msgstr "+ フィルターを追加"
 
 #: src/components/templates/SendTemplateModal.tsx:420
 #~ msgid "+ add from name, CC, BCC, reply-to, attachments"
@@ -1471,8 +1482,8 @@ msgstr "+ フィルターを追加"
 #~ msgstr "+ 差出人名、返信先、添付ファイルを追加"
 
 #: src/components/segment/input_event_property_filters.tsx:122
-msgid "+ Add property filter"
-msgstr "+ プロパティフィルターを追加"
+#~ msgid "+ Add property filter"
+#~ msgstr "+ プロパティフィルターを追加"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:897
 #~ msgid "+ Add variation"
@@ -1525,8 +1536,8 @@ msgstr "≈ 1 時間あたり {perHour} · ≈ 1 日あたり {perDay}"
 msgid "1 block hidden by its condition with this test data."
 msgstr "このテストデータでは 1 個のブロックが条件により非表示です。"
 
-#: src/components/segment/segmentSummary.ts:250
-#: src/components/segment/segmentSummary.ts:271
+#: src/components/segment/segmentSummary.ts:208
+#: src/components/segment/segmentSummary.ts:229
 msgid "1 condition"
 msgstr "条件 1 件"
 
@@ -1688,7 +1699,7 @@ msgstr "90 日間"
 msgid "900 - Black"
 msgstr "900 - 最太"
 
-#: src/components/segment/input.tsx:932
+#: src/components/segment/input.tsx:403
 msgid "A branch condition is required..."
 msgstr "分岐条件が必要です..."
 
@@ -1736,7 +1747,7 @@ msgstr "連絡先自身の同意が常に優先されます。この設定は、
 msgid "A copy is inserted. Later changes to the saved block do not change it."
 msgstr "コピーが挿入されます。保存済みブロックを後で変更しても、このコピーは変わりません。"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:405
+#: src/components/automations/config/TriggerConfigForm.tsx:406
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "過去のアクティビティのカウントには、オートメーションを起動するイベント自体も含まれます。そのため「開封3回以上」は3回目の開封で登録されます。"
 
@@ -1824,7 +1835,7 @@ msgstr "オートメーションを開始したイベントをもとに、カー
 msgid "A reset link, with the link in plain text under the button."
 msgstr "リセット用のリンク。ボタンの下にリンクをプレーンテキストでも表示します。"
 
-#: src/components/segment/button_upsert.tsx:171
+#: src/components/segment/button_upsert.tsx:156
 msgid "A segment with ID \"{id}\" already exists"
 msgstr "ID「{id}」のセグメントはすでに存在します"
 
@@ -1840,11 +1851,11 @@ msgstr "配送業者と追跡リンクを含む発送のお知らせ。"
 msgid "A square image, shown next to the workspace name"
 msgstr "ワークスペース名の横に表示される正方形の画像"
 
-#: src/components/segment/button_upsert.tsx:770
+#: src/components/segment/button_upsert.tsx:510
 msgid "A tree is required"
 msgstr "ツリーが必要です"
 
-#: src/components/segment/input.tsx:1021
+#: src/components/segment/input.tsx:503
 msgid "A value is required..."
 msgstr "値が必要です..."
 
@@ -1973,6 +1984,10 @@ msgstr "アカウント"
 msgid "Account and security"
 msgstr "アカウントとセキュリティ"
 
+#: src/components/segment/segmentLabels.ts:136
+msgid "Acquisition channel resolved from the attribution rules"
+msgstr "アトリビューションルールから判定した集客チャネル"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:605
 #: src/components/logs/AuditEntryDetail.tsx:146
 #: src/components/logs/AuditLogTab.tsx:260
@@ -2057,8 +2072,8 @@ msgstr "アクティブフィルター"
 #~ msgstr "アクティブ購読者"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:310
-#: src/components/segment/form_leaf.tsx:345
-#: src/components/segment/input.tsx:782
+#: src/components/segment/form_leaf.tsx:466
+#: src/components/segment/input.tsx:64
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
 msgstr "アクティビティ"
@@ -2119,9 +2134,13 @@ msgstr "キャプションを追加..."
 msgid "Add a condition"
 msgstr "条件を追加"
 
-#: src/components/segment/input_dimension_filters.tsx:176
+#: src/components/segment/input_dimension_filters.tsx:67
 msgid "Add a filter"
 msgstr "フィルターを追加"
+
+#: src/components/segment/input_event_property_filters.tsx:125
+msgid "Add a property"
+msgstr "プロパティを追加"
 
 #: src/components/settings/Integrations.tsx:1262
 #~ msgid "Add a provider"
@@ -2146,6 +2165,10 @@ msgstr "オプションフィールドを追加"
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:131
 msgid "Add annotation"
 msgstr "注釈を追加"
+
+#: src/components/segment/form_leaf.tsx:325
+msgid "Add at least one filter"
+msgstr "フィルターを1つ以上追加してください"
 
 #: src/components/blog/AuthorsField.tsx:176
 #: src/components/blog/AuthorsField.tsx:181
@@ -2406,14 +2429,14 @@ msgstr "住所"
 #: src/components/automations/config/TriggerConfigForm.tsx:107
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:100
 #: src/components/contacts/sheet/contactFieldLabels.ts:28
-#: src/components/segment/segmentSummary.ts:45
+#: src/components/segment/segmentLabels.ts:26
 msgid "Address Line 1"
 msgstr "住所1"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:108
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:101
 #: src/components/contacts/sheet/contactFieldLabels.ts:29
-#: src/components/segment/segmentSummary.ts:46
+#: src/components/segment/segmentLabels.ts:27
 msgid "Address Line 2"
 msgstr "住所2"
 
@@ -2449,8 +2472,8 @@ msgstr "詳細設定"
 msgid "Affects how columns stack on mobile devices"
 msgstr "モバイルデバイスでの列の積み重ね方に影響します"
 
-#: src/components/segment/input.tsx:726
-#: src/components/segment/input.tsx:858
+#: src/components/segment/ConditionSentence.tsx:175
+#: src/components/segment/segmentLabels.ts:230
 msgid "after"
 msgstr "以降"
 
@@ -2464,7 +2487,7 @@ msgstr "変更後"
 #~ msgid "After {0} hours based on highest {1}"
 #~ msgstr "{0}時間後、最も高い{1}に基づいて"
 
-#: src/components/segment/segmentSummary.ts:175
+#: src/components/segment/segmentSummary.ts:133
 msgid "after {date}"
 msgstr "{date} 以降"
 
@@ -2472,8 +2495,7 @@ msgstr "{date} 以降"
 msgid "After a backfill, run from Attribution rules"
 msgstr "バックフィル後（アトリビューションルールから実行）"
 
-#: src/components/segment/form_leaf.tsx:525
-#: src/components/segment/form_leaf.tsx:900
+#: src/components/segment/segmentLabels.ts:315
 msgid "after date"
 msgstr "日付以降"
 
@@ -2481,7 +2503,7 @@ msgstr "日付以降"
 msgid "After your first send"
 msgstr "初回送信後"
 
-#: src/components/segment/form_leaf.tsx:816
+#: src/components/segment/form_leaf.tsx:723
 msgid "Aggregate"
 msgstr "集計"
 
@@ -2547,6 +2569,10 @@ msgstr "上揃え"
 msgid "Alignment"
 msgstr "配置"
 
+#: src/components/segment/input.tsx:416
+msgid "all"
+msgstr "すべて"
+
 #: src/components/blog/PostsTable.tsx:433
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:101
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
@@ -2580,7 +2606,6 @@ msgid "All"
 msgstr "すべて"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:309
-#: src/components/segment/input.tsx:958
 msgid "ALL"
 msgstr "すべて"
 
@@ -2659,7 +2684,7 @@ msgstr "すべての記事"
 msgid "all sessions"
 msgstr "全セッション"
 
-#: src/components/blog/PostDrawer.tsx:1112
+#: src/components/blog/PostDrawer.tsx:1118
 #: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
@@ -2695,6 +2720,10 @@ msgstr "許可するドメイン"
 msgid "Allowed email domains"
 msgstr "許可するメールドメイン"
 
+#: src/components/segment/FieldPicker.tsx:63
+msgid "already filtered"
+msgstr "フィルター済み"
+
 #: src/components/settings/CustomFieldsConfiguration.tsx:344
 #~ msgid "already set"
 #~ msgstr "設定済み"
@@ -2707,7 +2736,7 @@ msgstr "サイト向けの<0>ブログ</0>もご利用いただけます。"
 msgid "Also the image of a post or category without one; 1200 × 630 px"
 msgstr "画像のない記事やカテゴリにも使われます。1200 × 630 px"
 
-#: src/components/blog/PostDrawer.tsx:958
+#: src/components/blog/PostDrawer.tsx:964
 msgid "Also the share image when none is set"
 msgstr "共有画像が未設定の場合は共有画像にもなります"
 
@@ -2841,16 +2870,24 @@ msgstr "アンカーID"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
-#: src/components/segment/form_leaf.tsx:856
-#: src/components/segment/input.tsx:679
-#: src/components/segment/segmentSummary.ts:256
-#: src/components/segment/segmentSummary.ts:284
+#: src/components/segment/ConditionSentence.tsx:65
+#: src/components/segment/ConditionSentence.tsx:161
+#: src/components/segment/ConditionSentence.tsx:296
+#: src/components/segment/form_leaf.tsx:759
+#: src/components/segment/segmentSummary.ts:214
+#: src/components/segment/segmentSummary.ts:242
 msgid "and"
 msgstr "かつ"
 
+#: src/components/segment/ConditionSentence.tsx:136
+#: src/components/segment/input_dimension_filters.tsx:49
+#: src/components/segment/input.tsx:408
+msgid "AND"
+msgstr "かつ"
+
 #: src/components/segment/input.tsx:139
-msgid "AND | OR"
-msgstr "AND | OR"
+#~ msgid "AND | OR"
+#~ msgstr "AND | OR"
 
 #: src/components/broadcasts/compose/AudienceCard.tsx:83
 msgid "And in at least one segment"
@@ -2897,19 +2934,19 @@ msgid "Any"
 msgstr "すべて"
 
 #: src/components/segment/input.tsx:959
-msgid "ANY"
-msgstr "いずれか"
+#~ msgid "ANY"
+#~ msgstr "いずれか"
 
 #: src/components/logs/AuditLogTab.tsx:181
 msgid "Any API key"
 msgstr "すべての APIキー"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:371
-#: src/components/segment/form_leaf.tsx:448
+#: src/components/segment/form_leaf.tsx:581
 msgid "Any broadcast"
 msgstr "任意のブロードキャスト"
 
-#: src/components/segment/form_leaf.tsx:799
+#: src/components/segment/form_leaf.tsx:710
 msgid "Any event"
 msgstr "任意のイベント"
 
@@ -2917,11 +2954,11 @@ msgstr "任意のイベント"
 msgid "Any field change triggers automation"
 msgstr "フィールドの変更でオートメーションをトリガー"
 
-#: src/components/segment/segmentSummary.ts:146
+#: src/components/segment/segmentLabels.ts:272
 msgid "Any goal"
 msgstr "すべての目標"
 
-#: src/components/segment/form_leaf.tsx:788
+#: src/components/segment/form_leaf.tsx:707
 msgid "Any goal name"
 msgstr "任意のゴール名"
 
@@ -2943,19 +2980,18 @@ msgstr "任意の SMTP サーバー、Basic または OAuth2 ログイン"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:380
 #: src/components/automations/config/TriggerConfigForm.tsx:381
-#: src/components/segment/form_leaf.tsx:427
-#: src/components/segment/form_leaf.tsx:428
+#: src/components/segment/form_leaf.tsx:562
+#: src/components/segment/form_leaf.tsx:563
 msgid "Any template"
 msgstr "任意のテンプレート"
 
-#: src/components/segment/form_leaf.tsx:522
-#: src/components/segment/form_leaf.tsx:897
-#: src/components/segment/input.tsx:692
-#: src/components/segment/input.tsx:824
+#: src/components/segment/ConditionSentence.tsx:180
+#: src/components/segment/segmentLabels.ts:312
 msgid "anytime"
 msgstr "いつでも"
 
 #: src/components/contacts/TrackingConsent.tsx:44
+#: src/components/segment/segmentLabels.ts:250
 msgid "API"
 msgstr "API"
 
@@ -3281,10 +3317,13 @@ msgstr "アセット"
 msgid "At a date and time you choose"
 msgstr "指定した日時に送信"
 
-#: src/components/segment/form_leaf.tsx:493
-#: src/components/segment/input.tsx:809
+#: src/components/segment/segmentLabels.ts:306
 msgid "at least"
 msgstr "少なくとも"
+
+#: src/components/segment/input.tsx:417
+msgid "at least one"
+msgstr "いずれか"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:880
 msgid "At least one"
@@ -3310,8 +3349,7 @@ msgstr "少なくとも1つの操作が必要です"
 msgid "At least one root email is required"
 msgstr "少なくとも1つのルートメールアドレスが必要です"
 
-#: src/components/segment/form_leaf.tsx:494
-#: src/components/segment/input.tsx:810
+#: src/components/segment/segmentLabels.ts:307
 msgid "at most"
 msgstr "最大"
 
@@ -3421,7 +3459,7 @@ msgstr "著者名は必須です"
 msgid "Authorization Secret"
 msgstr "認証シークレット"
 
-#: src/components/blog/PostDrawer.tsx:979
+#: src/components/blog/PostDrawer.tsx:985
 msgid "Authors"
 msgstr "著者"
 
@@ -3582,7 +3620,7 @@ msgstr "受信返信に対応したメールプロバイダー (現在は Mailgu
 msgid "Avatar URL"
 msgstr "アバターURL"
 
-#: src/components/segment/segmentSummary.ts:159
+#: src/components/segment/segmentLabels.ts:285
 msgid "average"
 msgstr "平均"
 
@@ -3762,8 +3800,8 @@ msgstr "BCC宛先"
 #~ msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
 #~ msgstr ""
 
-#: src/components/segment/input.tsx:718
-#: src/components/segment/input.tsx:850
+#: src/components/segment/ConditionSentence.tsx:168
+#: src/components/segment/segmentLabels.ts:229
 msgid "before"
 msgstr "以前"
 
@@ -3771,12 +3809,11 @@ msgstr "以前"
 msgid "Before"
 msgstr "変更前"
 
-#: src/components/segment/segmentSummary.ts:173
+#: src/components/segment/segmentSummary.ts:131
 msgid "before {date}"
 msgstr "{date} より前"
 
-#: src/components/segment/form_leaf.tsx:524
-#: src/components/segment/form_leaf.tsx:899
+#: src/components/segment/segmentLabels.ts:314
 msgid "before date"
 msgstr "日付以前"
 
@@ -3817,12 +3854,14 @@ msgstr "ベストプラクティス:"
 msgid "Best TimeScore"
 msgstr "最高のTimeScore"
 
-#: src/components/segment/input.tsx:706
-#: src/components/segment/input.tsx:838
+#: src/components/segment/ConditionSentence.tsx:159
+#: src/components/segment/ConditionSentence.tsx:294
+#: src/components/segment/segmentLabels.ts:231
+#: src/components/segment/segmentLabels.ts:294
 msgid "between"
 msgstr "の間"
 
-#: src/components/segment/segmentSummary.ts:177
+#: src/components/segment/segmentSummary.ts:135
 msgid "between {first} and {second}"
 msgstr "{first} から {second} まで"
 
@@ -3926,7 +3965,7 @@ msgid "Blocks"
 msgstr "ブロック"
 
 #: src/components/blog/CategoryDrawer.tsx:218
-#: src/components/blog/PostDrawer.tsx:829
+#: src/components/blog/PostDrawer.tsx:835
 #: src/components/logs/labels.ts:20
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
@@ -3995,7 +4034,7 @@ msgstr "本文:"
 msgid "Bold"
 msgstr "太字"
 
-#: src/components/segment/segmentSummary.ts:151
+#: src/components/segment/segmentLabels.ts:277
 #: src/components/settings/WebhooksSettings.tsx:618
 msgid "Booking"
 msgstr "予約"
@@ -4211,7 +4250,7 @@ msgid "Bridge Port"
 msgstr "ブリッジポート"
 
 #: src/components/blog/CategoryDrawer.tsx:290
-#: src/components/blog/PostDrawer.tsx:996
+#: src/components/blog/PostDrawer.tsx:1002
 #: src/components/settings/BlogSettings.tsx:460
 msgid "Brief description for search results"
 msgstr "検索結果用の簡潔な説明"
@@ -4220,7 +4259,7 @@ msgstr "検索結果用の簡潔な説明"
 msgid "Brief description of this category"
 msgstr "このカテゴリの簡潔な説明"
 
-#: src/components/blog/PostDrawer.tsx:951
+#: src/components/blog/PostDrawer.tsx:957
 msgid "Brief summary of the post"
 msgstr "投稿の概要"
 
@@ -4232,7 +4271,7 @@ msgstr "投稿の概要"
 msgid "Brings inactive contacts back with an offer."
 msgstr "オファーで休眠中のコンタクトを呼び戻します。"
 
-#: src/components/segment/form_leaf.tsx:436
+#: src/components/segment/ConditionSentence.tsx:247
 msgid "broadcast"
 msgstr "ブロードキャスト"
 
@@ -4240,6 +4279,7 @@ msgstr "ブロードキャスト"
 #: src/components/broadcasts/BroadcastsTable.tsx:243
 #: src/components/messages/MessageHistoryTable.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:255
+#: src/components/segment/form_leaf.tsx:571
 #: src/components/templates/TemplateSelectorModal.tsx:707
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:64
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:121
@@ -4411,10 +4451,15 @@ msgstr "ログ → 監査ログ で閲覧、絞り込み、エクスポートで
 #~ msgid "Browse, filter and export the log under Logs → Audit."
 #~ msgstr "ログ → 監査 で、ログの閲覧・絞り込み・エクスポートができます。"
 
+#: src/components/segment/segmentLabels.ts:118
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:272
 msgid "Browser"
 msgstr "ブラウザ"
+
+#: src/components/segment/segmentLabels.ts:139
+msgid "Browser used for the visit"
+msgstr "訪問に使われたブラウザ"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:271
@@ -4525,7 +4570,7 @@ msgstr "ブラウザでテストできません"
 #: src/components/automations/AutomationEditor.tsx:390
 #: src/components/automations/AutomationEditor.tsx:400
 #: src/components/automations/AutomationEditor.tsx:414
-#: src/components/automations/config/ConditionsField.tsx:124
+#: src/components/automations/config/ConditionsField.tsx:131
 #: src/components/automations/list/AutomationsTable.tsx:72
 #: src/components/automations/list/AutomationsTable.tsx:79
 #: src/components/automations/list/AutomationsTable.tsx:90
@@ -4587,10 +4632,9 @@ msgstr "ブラウザでテストできません"
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/lists/ListDrawer.tsx:194
-#: src/components/segment/button_upsert.tsx:427
-#: src/components/segment/input_dimension_filters.tsx:179
-#: src/components/segment/input_event_property_filters.tsx:130
-#: src/components/segment/input.tsx:407
+#: src/components/segment/button_upsert.tsx:403
+#: src/components/segment/form_leaf.tsx:183
+#: src/components/segment/input.tsx:276
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -4728,12 +4772,12 @@ msgstr "先頭大文字"
 msgid "Categories"
 msgstr "カテゴリ"
 
-#: src/components/blog/PostDrawer.tsx:727
+#: src/components/blog/PostDrawer.tsx:733
 msgid "category"
 msgstr "カテゴリ"
 
 #: src/components/blog/CategoryDrawer.tsx:229
-#: src/components/blog/PostDrawer.tsx:891
+#: src/components/blog/PostDrawer.tsx:897
 #: src/components/blog/PostsTable.tsx:325
 #: src/components/blog/ThemeEditorDrawer.tsx:419
 #: src/components/templates/TemplateSelectorModal.tsx:444
@@ -4881,6 +4925,7 @@ msgid "Changing your domain"
 msgstr "ドメインの変更"
 
 #: src/components/logs/MessagesTab.tsx:291
+#: src/components/segment/segmentLabels.ts:115
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/web_analytics/explore/BreakdownModal.tsx:31
 #: src/components/web_analytics/explore/DimensionSelector.tsx:107
@@ -4891,6 +4936,7 @@ msgstr "ドメインの変更"
 msgid "Channel"
 msgstr "チャネル"
 
+#: src/components/segment/segmentLabels.ts:116
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:257
 #: src/components/web_analytics/tabs/DashboardTab.tsx:212
 #: src/pages/WebAnalyticsLivePage.tsx:224
@@ -4944,6 +4990,10 @@ msgstr "選択"
 msgid "Choose a date to schedule"
 msgstr "予約する日付を選択してください"
 
+#: src/components/segment/FieldPicker.tsx:105
+msgid "Choose a field"
+msgstr "フィールドを選択"
+
 #: src/components/file_manager/context.tsx:167
 msgid "Choose a file"
 msgstr "ファイルを選択"
@@ -4981,6 +5031,10 @@ msgstr "先にテンプレートを選択してください"
 msgid "Choose a template to see the preview"
 msgstr "テンプレートを選択するとプレビューが表示されます"
 
+#: src/components/segment/FilterValueInput.tsx:51
+msgid "Choose a value"
+msgstr "値を選択"
+
 #: src/components/logs/AuditLogTab.tsx:344
 msgid "Choose actions"
 msgstr "アクションを選択"
@@ -5000,6 +5054,10 @@ msgstr "勝者を決める指標を選択してください"
 #: src/components/analytics/GetStartedChecklist.tsx:146
 msgid "Choose the sender and what it sends"
 msgstr "送信者と送信内容を選択"
+
+#: src/components/segment/FilterValueInput.tsx:76
+msgid "Choose values"
+msgstr "値を選択"
 
 #. placeholder {0}: post.settings.title
 #: src/components/blog/PublishModal.tsx:110
@@ -5155,8 +5213,8 @@ msgstr "「再開」をクリックすると処理を続行します。"
 #~ msgstr ""
 
 #: src/components/segment/button_upsert.tsx:687
-msgid "Click to retry"
-msgstr "クリックして再試行"
+#~ msgid "Click to retry"
+#~ msgstr "クリックして再試行"
 
 #: src/components/timeline/ContactTimeline.tsx:665
 #~ msgid "clicked"
@@ -5208,15 +5266,16 @@ msgstr "{source} のリンクをクリック"
 msgid "Clicked in {name}"
 msgstr "{name} 内をクリック"
 
-#: src/components/segment/segmentSummary.ts:137
+#: src/components/segment/segmentSummary.ts:113
 msgid "Clicked in an email"
 msgstr "メール内をクリックした"
 
 #: src/components/logs/MessagesTab.tsx:297
+#: src/components/segment/form_leaf.tsx:590
 msgid "Clicked link"
 msgstr "クリックされたリンク"
 
-#: src/components/segment/form_leaf.tsx:459
+#: src/components/segment/ConditionSentence.tsx:255
 msgid "clicked link contains"
 msgstr "クリックされたリンクに次を含む"
 
@@ -5271,7 +5330,7 @@ msgstr "1日あたりのクリック"
 #: src/components/contacts/contactFilterFields.ts:48
 #: src/components/contacts/ExportContactsModal.tsx:110
 #: src/components/contacts/sheet/contactFieldLabels.ts:49
-#: src/components/segment/segmentSummary.ts:53
+#: src/components/segment/segmentLabels.ts:34
 msgid "Clicks tracking consent"
 msgstr "クリックトラッキングへの同意"
 
@@ -5416,6 +5475,8 @@ msgstr "{label} を折りたたむ"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:244
 #: src/components/email_builder/ui/BackgroundInput.tsx:257
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:127
+#: src/components/segment/button_upsert.tsx:441
+#: src/components/segment/button_upsert.tsx:548
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:162
 msgid "Color"
 msgstr "色"
@@ -5466,7 +5527,7 @@ msgstr "今期間を前期間と比較し、セッション数の変化の最大
 msgid "Compare TimeScore across campaign sources"
 msgstr "キャンペーンソース間でTimeScoreを比較"
 
-#: src/components/segment/form_leaf.tsx:832
+#: src/components/segment/form_leaf.tsx:738
 msgid "Comparison"
 msgstr "比較"
 
@@ -5542,11 +5603,15 @@ msgstr "件名を繰り返さず、補足的な内容にしてください"
 msgid "Complete days up to yesterday, in the workspace's time zone ({timezone})"
 msgstr "昨日までの完了した日（ワークスペースのタイムゾーン: {timezone}）"
 
+#: src/components/segment/form_leaf.tsx:147
+msgid "Complete or remove the unfinished filters"
+msgstr "未完成のフィルターを完成させるか削除してください"
+
 #: src/pages/SetupWizard.tsx:798
 msgid "Complete Setup"
 msgstr "セットアップ完了"
 
-#: src/components/segment/button_upsert.tsx:629
+#: src/components/segment/SegmentCountCard.tsx:107
 msgid "Complete the condition to refresh the count"
 msgstr "件数を更新するには条件を完成させてください"
 
@@ -5582,7 +5647,8 @@ msgid "condition"
 msgstr "条件"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:361
-#: src/components/segment/input.tsx:1011
+#: src/components/segment/FilterRow.tsx:206
+#: src/components/segment/input.tsx:484
 msgid "Condition"
 msgstr "条件"
 
@@ -5602,6 +5668,7 @@ msgstr "条件 {position} は先読み・後読み (lookaround) または後方�
 msgid "conditions"
 msgstr "条件"
 
+#: src/components/segment/button_upsert.tsx:500
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
 #: src/components/web_analytics/filters/FilterTable.tsx:131
 #: src/components/web_analytics/filters/FilterTable.tsx:246
@@ -5695,13 +5762,8 @@ msgstr "{0}を設定中"
 
 #: src/components/contacts/BulkActionsBar.tsx:187
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:203
-#: src/components/segment/button_upsert.tsx:436
-#: src/components/segment/form_leaf.tsx:167
-#: src/components/segment/form_leaf.tsx:298
-#: src/components/segment/form_leaf.tsx:685
-#: src/components/segment/form_leaf.tsx:1018
-#: src/components/segment/input_dimension_filters.tsx:177
-#: src/components/segment/input_event_property_filters.tsx:129
+#: src/components/segment/button_upsert.tsx:412
+#: src/components/segment/form_leaf.tsx:186
 msgid "Confirm"
 msgstr "確認"
 
@@ -5807,6 +5869,7 @@ msgid "Consider using the same text as your subject line"
 msgstr "件名と同じテキストを使用することを検討してください"
 
 #: src/components/contacts/TrackingConsent.tsx:46
+#: src/components/segment/segmentLabels.ts:251
 msgid "Console"
 msgstr "コンソール"
 
@@ -5828,6 +5891,10 @@ msgstr "コンタクトを作成"
 #: src/components/contacts/ContactUpsertDrawer.tsx:334
 msgid "Contact created successfully"
 msgstr "コンタクトを作成しました"
+
+#: src/components/segment/segmentLabels.ts:212
+msgid "Contact dates"
+msgstr "コンタクトの日付"
 
 #: src/components/automations/describeTrigger.ts:119
 #: src/components/contacts/sheet/describeActivity.tsx:222
@@ -5882,8 +5949,8 @@ msgstr "コンタクトはこのリストを購読していません"
 msgid "Contact not found"
 msgstr "コンタクトが見つかりません"
 
-#: src/components/segment/form_leaf.tsx:139
-#: src/components/segment/input.tsx:776
+#: src/components/segment/form_leaf.tsx:316
+#: src/components/segment/input.tsx:62
 #: src/components/segment/table_tag.tsx:20
 msgid "Contact property"
 msgstr "コンタクトプロパティ"
@@ -5924,6 +5991,11 @@ msgstr "コンタクトを更新しました"
 #: src/services/api/errors.ts:82
 msgid "Contacts"
 msgstr "コンタクト"
+
+#: src/components/segment/input.tsx:433
+#: src/components/segment/SegmentCountCard.tsx:75
+msgid "Contacts matching"
+msgstr "次の条件の"
 
 #: src/components/automations/config/FilterConfigForm.tsx:29
 msgid "Contacts matching these conditions follow the 'Yes' path. Others follow 'No'."
@@ -5974,6 +6046,8 @@ msgstr "コンテナパディング"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
+#: src/components/segment/form_leaf.tsx:591
+#: src/components/segment/segmentLabels.ts:221
 #: src/components/web_analytics/lib/filterCatalog.ts:222
 #: src/components/web_analytics/lib/filterLabels.ts:12
 msgid "contains"
@@ -6145,7 +6219,7 @@ msgstr "送信されたメールを読み込めませんでした"
 msgid "Could not load the goals"
 msgstr "ゴールを読み込めませんでした"
 
-#: src/components/blog/PostDrawer.tsx:395
+#: src/components/blog/PostDrawer.tsx:398
 #: src/components/templates/CreateTemplateDrawer.tsx:508
 msgid "Could not load the latest version. Please try again."
 msgstr "最新バージョンを読み込めませんでした。もう一度お試しください。"
@@ -6283,7 +6357,7 @@ msgstr "プレビューを表示できませんでした"
 msgid "Couldn't render this message"
 msgstr "このメッセージを表示できませんでした"
 
-#: src/components/segment/segmentSummary.ts:157
+#: src/components/segment/segmentLabels.ts:283
 msgid "count"
 msgstr "回数"
 
@@ -6342,7 +6416,8 @@ msgstr "国"
 #: src/components/contacts/ContactsTable.tsx:315
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
-#: src/components/segment/segmentSummary.ts:42
+#: src/components/segment/segmentLabels.ts:23
+#: src/components/segment/segmentLabels.ts:120
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:304
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
 #: src/components/web_analytics/tabs/DashboardTab.tsx:251
@@ -6357,6 +6432,10 @@ msgstr "国 · 約111 km"
 #: src/components/settings/WebAnalyticsSettings.tsx:405
 #~ msgid "Country level (~111km precision)"
 #~ msgstr "国レベル (約111kmの精度)"
+
+#: src/components/segment/segmentLabels.ts:141
+msgid "Country the visit came from"
+msgstr "訪問元の国"
 
 #: src/components/logs/MessagesTab.tsx:566
 msgid "Counts cover {countMax} at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"
@@ -6535,7 +6614,7 @@ msgstr "通知を作成"
 msgid "Create Notification"
 msgstr "通知を作成"
 
-#: src/components/blog/PostDrawer.tsx:816
+#: src/components/blog/PostDrawer.tsx:822
 msgid "Create post"
 msgstr "記事を作成"
 
@@ -6656,7 +6735,7 @@ msgstr "作成 {0} · 更新 {1}（{2}）"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:293
 #: src/components/messages/MessageHistoryTable.tsx:161
 #: src/components/messages/MessageHistoryTable.tsx:410
-#: src/components/segment/segmentSummary.ts:50
+#: src/components/segment/segmentLabels.ts:31
 msgid "Created At"
 msgstr "作成日時"
 
@@ -6807,6 +6886,10 @@ msgstr "カスタム（px）"
 msgid "Custom CSS class for styling"
 msgstr "スタイリング用カスタムCSSクラス"
 
+#: src/components/segment/segmentLabels.ts:75
+msgid "Custom date {number}"
+msgstr "カスタム日付 {number}"
+
 #: src/components/automations/config/TriggerConfigForm.tsx:144
 msgid "Custom Date 1"
 msgstr "カスタム日付1"
@@ -6898,6 +6981,7 @@ msgid "Custom field label saved successfully"
 msgstr "カスタムフィールドラベルを保存しました"
 
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
+#: src/components/segment/segmentLabels.ts:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:276
 #: src/components/settings/SettingsSidebar.tsx:66
 msgid "Custom fields"
@@ -6922,6 +7006,10 @@ msgstr "カスタムアイコンURL"
 #: src/components/integrations/SupabaseIntegration.tsx:251
 msgid "Custom JSON {num}"
 msgstr "カスタムJSON {num}"
+
+#: src/components/segment/segmentLabels.ts:77
+msgid "Custom JSON {number}"
+msgstr "カスタム JSON {number}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:154
 msgid "Custom JSON 1"
@@ -6950,6 +7038,10 @@ msgstr "カスタムJSONフィールド"
 #: src/components/settings/CustomFieldsConfiguration.tsx:361
 #~ msgid "Custom Label"
 #~ msgstr "カスタムラベル"
+
+#: src/components/segment/segmentLabels.ts:73
+msgid "Custom number {number}"
+msgstr "カスタム数値 {number}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:134
 msgid "Custom Number 1"
@@ -7040,6 +7132,10 @@ msgstr "カスタム文字列5"
 msgid "Custom String Fields"
 msgstr "カスタム文字列フィールド"
 
+#: src/components/segment/segmentLabels.ts:71
+msgid "Custom text {number}"
+msgstr "カスタムテキスト {number}"
+
 #: src/components/web_analytics/toolbar.tsx:145
 msgid "Daily"
 msgstr "日次"
@@ -7087,7 +7183,8 @@ msgstr "送信するデータ"
 #: src/components/blog/PublishModal.tsx:131
 #: src/components/broadcasts/compose/SendingCard.tsx:95
 #: src/components/broadcasts/compose/SendingCard.tsx:97
-#: src/components/segment/input_event_property_filters.tsx:182
+#: src/components/segment/FilterRow.tsx:166
+#: src/components/segment/input_event_property_filters.tsx:63
 #: src/components/settings/CustomFieldsConfiguration.tsx:60
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:145
 msgid "Date"
@@ -7105,16 +7202,22 @@ msgstr "日付は必須です"
 msgid "Day"
 msgstr "日"
 
-#: src/components/segment/form_leaf.tsx:562
-#: src/components/segment/form_leaf.tsx:935
-#: src/components/segment/input.tsx:701
-#: src/components/segment/input.tsx:833
+#: src/components/segment/ConditionSentence.tsx:73
+#: src/components/segment/ConditionSentence.tsx:153
+#: src/components/segment/FilterValueInput.tsx:138
+#: src/components/segment/FilterValueInput.tsx:143
+#: src/components/segment/form_leaf.tsx:229
 msgid "days"
 msgstr "日"
 
 #: src/components/automations/config/DelayConfigForm.tsx:17
 msgid "Days"
 msgstr "日"
+
+#: src/components/segment/ConditionSentence.tsx:73
+#: src/components/segment/FilterValueInput.tsx:143
+msgid "days (or never)"
+msgstr "日間 (または一度もない)"
 
 #: src/pages/DebugSegmentPage.tsx:52
 msgid "Debug Segment Builder"
@@ -7131,6 +7234,10 @@ msgstr "装飾"
 #: src/components/transactional/ApiCommandDrawer.tsx:169
 msgid "Deduplication:"
 msgstr "重複排除:"
+
+#: src/components/segment/segmentLabels.ts:128
+msgid "Deepest scroll reached on any page of the visit"
+msgstr "訪問中のいずれかのページで到達した最大スクロール"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:203
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
@@ -7199,12 +7306,12 @@ msgid "Default transactional"
 msgstr "トランザクションの既定"
 
 #: src/components/blog/CategoryDrawer.tsx:295
-#: src/components/blog/PostDrawer.tsx:1001
+#: src/components/blog/PostDrawer.tsx:1007
 msgid "Defaults to {fallbackShareTitle}"
 msgstr "既定値: {fallbackShareTitle}"
 
 #: src/components/blog/CategoryDrawer.tsx:289
-#: src/components/blog/PostDrawer.tsx:995
+#: src/components/blog/PostDrawer.tsx:1001
 msgid "Defaults to {fallbackTitle}"
 msgstr "既定値: {fallbackTitle}"
 
@@ -7231,11 +7338,11 @@ msgstr "既定値: ブログの説明"
 msgid "Defaults to the blog's share image"
 msgstr "既定値: ブログの共有画像"
 
-#: src/components/blog/PostDrawer.tsx:711
+#: src/components/blog/PostDrawer.tsx:717
 msgid "Defaults to the category's or the blog's description"
 msgstr "既定値: カテゴリまたはブログの説明"
 
-#: src/components/blog/PostDrawer.tsx:716
+#: src/components/blog/PostDrawer.tsx:722
 msgid "Defaults to the category's or the blog's share image"
 msgstr "既定値: カテゴリまたはブログの共有画像"
 
@@ -7243,11 +7350,11 @@ msgstr "既定値: カテゴリまたはブログの共有画像"
 msgid "Defaults to the description"
 msgstr "既定値: 説明"
 
-#: src/components/blog/PostDrawer.tsx:709
+#: src/components/blog/PostDrawer.tsx:715
 msgid "Defaults to the excerpt"
 msgstr "既定値: 抜粋"
 
-#: src/components/blog/PostDrawer.tsx:714
+#: src/components/blog/PostDrawer.tsx:720
 msgid "Defaults to the featured image"
 msgstr "既定値: アイキャッチ画像"
 
@@ -7300,7 +7407,7 @@ msgstr "遅延"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:405
+#: src/components/segment/input.tsx:274
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -7796,6 +7903,7 @@ msgstr "SMTP プロバイダーは配信を報告しません"
 #: src/components/contacts/trackingConsentOptions.ts:11
 #: src/components/contacts/trackingConsentOptions.ts:15
 #: src/components/logs/labels.ts:29
+#: src/components/segment/segmentLabels.ts:246
 msgid "Denied"
 msgstr "拒否"
 
@@ -7843,7 +7951,7 @@ msgstr "デスクトップ"
 msgid "Desktop view (100%)"
 msgstr "デスクトップ表示（100%）"
 
-#: src/components/blog/PostDrawer.tsx:843
+#: src/components/blog/PostDrawer.tsx:849
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "詳細"
@@ -7858,6 +7966,7 @@ msgstr "ウェブサイトから検出"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:428
 #: src/components/contacts/visits/ContactWebVisits.tsx:296
+#: src/components/segment/segmentLabels.ts:117
 #: src/components/web_analytics/explore/BreakdownModal.tsx:35
 #: src/components/web_analytics/explore/DimensionSelector.tsx:111
 #: src/components/web_analytics/FilterBuilder.tsx:42
@@ -7867,6 +7976,10 @@ msgstr "ウェブサイトから検出"
 #: src/pages/WebAnalyticsLivePage.tsx:195
 msgid "Device"
 msgstr "デバイス"
+
+#: src/components/segment/segmentLabels.ts:138
+msgid "Device category of the visit"
+msgstr "訪問のデバイス種別"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:285
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
@@ -8043,17 +8156,21 @@ msgstr "DNS検証によりドメインスクワッティングを防止"
 #~ msgstr "トラッキングしない"
 
 #: src/components/segment/input.tsx:403
-msgid "Do you really want to remove this branch?"
-msgstr "この分岐を削除してもよろしいですか？"
+#~ msgid "Do you really want to remove this branch?"
+#~ msgstr "この分岐を削除してもよろしいですか？"
 
-#: src/components/segment/input.tsx:403
+#: src/components/segment/input.tsx:272
 msgid "Do you really want to remove this condition?"
 msgstr "この条件を削除してもよろしいですか？"
 
 #: src/components/segment/input_dimension_filters.tsx:94
 #: src/components/segment/input_event_property_filters.tsx:66
-msgid "Do you really want to remove this filter?"
-msgstr "このフィルターを削除してもよろしいですか？"
+#~ msgid "Do you really want to remove this filter?"
+#~ msgstr "このフィルターを削除してもよろしいですか？"
+
+#: src/components/segment/input.tsx:272
+msgid "Do you really want to remove this group?"
+msgstr "このグループを削除してもよろしいですか？"
 
 #: src/components/file_manager/fileManager.tsx:615
 #~ msgid "Do you want to delete the"
@@ -8081,6 +8198,15 @@ msgstr "を含まない"
 msgid "does not equal"
 msgstr "と等しくない"
 
+#: src/components/segment/segmentLabels.ts:222
+msgid "doesn't contain"
+msgstr "含まない"
+
+#: src/components/segment/segmentLabels.ts:220
+msgid "doesn't equal"
+msgstr "等しくない"
+
+#: src/components/segment/segmentLabels.ts:89
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:745
@@ -8096,6 +8222,14 @@ msgstr "ドメインと API キー、US または EU"
 #: src/pages/SetupWizard.tsx:613
 msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 msgstr "SMTPリレーサーバーのドメイン（例: smtp.yourcompany.com）"
+
+#: src/components/segment/segmentLabels.ts:99
+msgid "Domain the visit started on, which the path belongs to"
+msgstr "訪問が始まったドメイン (パスが属するドメイン)"
+
+#: src/components/segment/segmentLabels.ts:131
+msgid "Domain the visitor arrived from"
+msgstr "訪問者の流入元ドメイン"
 
 #: src/components/settings/BlogSettings.tsx:477
 msgid "Don't index and don't follow links"
@@ -8115,7 +8249,7 @@ msgstr "このブロードキャストでは開封とクリックをトラッキ
 
 #: src/components/analytics/GetStartedChecklist.tsx:312
 #: src/components/analytics/GetStartedChecklist.tsx:439
-#: src/components/automations/config/ConditionsField.tsx:142
+#: src/components/automations/config/ConditionsField.tsx:149
 #: src/components/settings/ZapierSettings.tsx:269
 #: src/components/templates/TemplateTranslationsTab.tsx:501
 msgid "Done"
@@ -8162,7 +8296,7 @@ msgstr "ZIP でダウンロード"
 #~ msgstr "{0}件のファイルをダウンロードしました"
 
 #: src/components/automations/AutomationStatusPill.tsx:15
-#: src/components/blog/PostDrawer.tsx:752
+#: src/components/blog/PostDrawer.tsx:758
 #: src/components/blog/PostsTable.tsx:348
 #: src/components/blog/ThemeEditorDrawer.tsx:473
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:199
@@ -8228,11 +8362,11 @@ msgid "e.g. {0}"
 msgstr "例: {0}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:360
-#: src/components/segment/form_leaf.tsx:470
+#: src/components/segment/form_leaf.tsx:599
 msgid "e.g. /pricing"
 msgstr "例: /pricing"
 
-#: src/components/segment/button_upsert.tsx:472
+#: src/components/segment/button_upsert.tsx:438
 msgid "e.g. Big spenders"
 msgstr "例: 高額購入者"
 
@@ -8272,7 +8406,7 @@ msgstr "例: 製品ローンチ"
 msgid "e.g. Set channel for Google Ads"
 msgstr "例: Google Ads のチャネルを設定"
 
-#: src/components/segment/input_event_property_filters.tsx:167
+#: src/components/segment/input_event_property_filters.tsx:49
 msgid "e.g. sku"
 msgstr "例: sku"
 
@@ -8360,7 +8494,7 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #~ msgid "edit"
 #~ msgstr "編集"
 
-#: src/components/automations/config/ConditionsField.tsx:112
+#: src/components/automations/config/ConditionsField.tsx:119
 #: src/components/blog/BlogSidebar.tsx:119
 #: src/components/blog/PostsTable.tsx:234
 #: src/components/blog/PostsTable.tsx:238
@@ -8370,6 +8504,8 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
+#: src/components/segment/input.tsx:358
+#: src/components/segment/input.tsx:362
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -8529,7 +8665,7 @@ msgstr "権限を編集"
 msgid "Edit Permissions for {0}"
 msgstr "{0}の権限を編集"
 
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:841
 msgid "Edit post"
 msgstr "記事を編集"
 
@@ -8547,7 +8683,7 @@ msgid "Edit rule"
 msgstr "ルールを編集"
 
 #: src/components/contacts/SegmentDefinedBy.tsx:62
-#: src/components/segment/button_upsert.tsx:77
+#: src/components/segment/button_upsert.tsx:62
 msgid "Edit segment"
 msgstr "セグメントを編集"
 
@@ -8589,7 +8725,7 @@ msgstr "テンプレートで件名を編集"
 msgid "Edit the template"
 msgstr "テンプレートを編集"
 
-#: src/components/blog/PostDrawer.tsx:1064
+#: src/components/blog/PostDrawer.tsx:1070
 msgid "Edit the title in Details"
 msgstr "詳細でタイトルを編集"
 
@@ -8602,6 +8738,10 @@ msgstr "テーマを編集"
 #: src/components/blog/ThemeEditorDrawer.tsx:305
 #~ msgid "Edit Theme v{0}"
 #~ msgstr "テーマ v{0} を編集"
+
+#: src/components/segment/input.tsx:334
+msgid "Edit this condition"
+msgstr "この条件を編集"
 
 #: src/components/contacts/TrackingConsent.tsx:213
 msgid "Edit tracking consent"
@@ -8629,7 +8769,7 @@ msgid "Editable markup"
 msgstr "編集可能なマークアップ"
 
 #. placeholder {0}: relative(post.updated_at)
-#: src/components/blog/PostDrawer.tsx:757
+#: src/components/blog/PostDrawer.tsx:763
 #: src/components/blog/PostsTable.tsx:272
 msgid "Edited {0}"
 msgstr "{0}に編集"
@@ -8687,7 +8827,7 @@ msgstr "要素パディング"
 #: src/components/logs/InboundWebhooksTab.tsx:167
 #: src/components/logs/MessagesTab.tsx:300
 #: src/components/logs/MessagesTab.tsx:485
-#: src/components/segment/segmentSummary.ts:36
+#: src/components/segment/segmentLabels.ts:17
 #: src/components/settings/Integrations.tsx:549
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:998
 #: src/components/transactional/TransactionalDetail.tsx:408
@@ -8779,6 +8919,7 @@ msgid "Email is required"
 msgstr "メールは必須です"
 
 #: src/components/contacts/TrackingConsent.tsx:52
+#: src/components/segment/segmentLabels.ts:254
 msgid "Email link"
 msgstr "メール内のリンク"
 
@@ -8906,6 +9047,7 @@ msgstr "すべての言語のメールテンプレート、およびワークス
 msgid "Email Title Settings"
 msgstr "メールタイトル設定"
 
+#: src/components/segment/segmentLabels.ts:195
 #: src/components/settings/GeneralSettings.tsx:277
 #: src/components/settings/GeneralSettings.tsx:423
 msgid "Email tracking"
@@ -8923,6 +9065,10 @@ msgstr "メール更新: {name}"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "650pxを超える幅のメールは一部のメールクライアントで正しく表示されない場合があります"
 
+#: src/components/segment/input.tsx:69
+msgid "Email, country, language, custom fields, tracking consent…"
+msgstr "メール、国、言語、カスタムフィールド、トラッキングの同意…"
+
 #: src/pages/ContactsPage.tsx:700
 msgid "Email, name or external ID"
 msgstr "メール、名前、外部 ID"
@@ -8932,6 +9078,8 @@ msgid "Email:"
 msgstr "メール:"
 
 #: src/components/contacts/sheet/ContactActivityTab.tsx:36
+#: src/components/segment/form_leaf.tsx:500
+#: src/components/segment/form_leaf.tsx:501
 msgid "Emails"
 msgstr "メール"
 
@@ -8977,6 +9125,10 @@ msgstr "送信メール数"
 msgid "Emails sent per day"
 msgstr "1 日あたりの送信メール数"
 
+#: src/components/segment/input.tsx:71
+msgid "Emails sent, opened, clicked… pages viewed and website visits"
+msgstr "送信・開封・クリックされたメール、閲覧ページ、サイト訪問"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:972
 msgid "emails/min"
 msgstr "通/分"
@@ -8997,6 +9149,10 @@ msgstr "空"
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:205
 msgid "Empty column. Add text, button, or image content."
 msgstr "空のカラムです。テキスト、ボタン、または画像を追加してください。"
+
+#: src/components/segment/input.tsx:450
+msgid "Empty: add a condition or a subgroup."
+msgstr "空です: 条件またはサブグループを追加してください。"
 
 #: src/components/templates/TemplateTranslationsTab.tsx:346
 msgid "Enable"
@@ -9108,6 +9264,18 @@ msgstr "エンドポイントURL"
 msgid "Endpoints gated by {label}"
 msgstr "{label}によって制御されるエンドポイント"
 
+#: src/components/segment/segmentLabels.ts:224
+msgid "ends with"
+msgstr "で終わる"
+
+#: src/components/segment/segmentLabels.ts:127
+msgid "Engaged time across the whole visit, in milliseconds"
+msgstr "訪問全体でのエンゲージメント時間 (ミリ秒)"
+
+#: src/components/segment/segmentLabels.ts:94
+msgid "Engaged time on the page, in milliseconds"
+msgstr "ページでのエンゲージメント時間 (ミリ秒)"
+
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:86
 msgid "Engagement by country and region"
 msgstr "国・地域別のエンゲージメント"
@@ -9143,6 +9311,10 @@ msgstr "この連携の名前を入力"
 msgid "Enter a name for your workspace"
 msgstr "ワークスペース名を入力"
 
+#: src/components/segment/FilterValueInput.tsx:92
+msgid "Enter a number"
+msgstr "数値を入力"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:110
 msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "小数点より前が 15 桁以内の数値を入力してください。"
@@ -9151,6 +9323,7 @@ msgstr "小数点より前が 15 桁以内の数値を入力してください�
 msgid "Enter a unique alphanumeric ID"
 msgstr "一意の英数字IDを入力"
 
+#: src/components/segment/FilterValueInput.tsx:62
 #: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter a value"
 msgstr "値を入力してください"
@@ -9359,6 +9532,14 @@ msgstr "登録条件"
 msgid "entry page"
 msgstr "入口ページ"
 
+#: src/components/segment/segmentLabels.ts:103
+msgid "Entry page"
+msgstr "入口ページ"
+
+#: src/components/segment/segmentLabels.ts:87
+msgid "Entry type"
+msgstr "流入の種類"
+
 #: src/components/timeline/ContactTimeline.tsx:960
 #~ msgid "Entry:"
 #~ msgstr "入口:"
@@ -9375,7 +9556,12 @@ msgstr "リスト上のすべての購読者アドレスを列挙する (リス�
 msgid "Envelope"
 msgstr "エンベロープ"
 
+#: src/components/segment/segmentLabels.ts:293
+msgid "equal to"
+msgstr "等しい"
+
 #: src/components/email_builder/ui/displayConditionLabels.ts:14
+#: src/components/segment/segmentLabels.ts:219
 #: src/components/web_analytics/lib/filterCatalog.ts:220
 #: src/components/web_analytics/lib/filterLabels.ts:10
 msgid "equals"
@@ -9443,7 +9629,7 @@ msgstr "エラー"
 msgid "Errors ({0} of {1} shown)"
 msgstr "エラー（{1}件中{0}件を表示）"
 
-#: src/components/segment/input.tsx:657
+#: src/components/segment/ConditionSentence.tsx:285
 msgid "event"
 msgstr "イベント"
 
@@ -9454,11 +9640,11 @@ msgstr "イベント"
 msgid "Event"
 msgstr "イベント"
 
-#: src/components/segment/segmentSummary.ts:212
+#: src/components/segment/segmentSummary.ts:170
 msgid "event “{name}”"
 msgstr "イベント「{name}」"
 
-#: src/components/segment/segmentSummary.ts:213
+#: src/components/segment/segmentSummary.ts:171
 msgid "Event “{name}”"
 msgstr "イベント「{name}」"
 
@@ -9486,7 +9672,7 @@ msgstr "イベントID"
 msgid "Event invitation"
 msgstr "イベントへの招待"
 
-#: src/components/segment/form_leaf.tsx:795
+#: src/components/segment/form_leaf.tsx:710
 msgid "event name"
 msgstr "イベント名"
 
@@ -9612,12 +9798,11 @@ msgstr "完全一致の URL"
 msgid "Exact value"
 msgstr "完全一致"
 
-#: src/components/segment/form_leaf.tsx:495
-#: src/components/segment/input.tsx:811
+#: src/components/segment/segmentLabels.ts:308
 msgid "exactly"
 msgstr "正確に"
 
-#: src/components/blog/PostDrawer.tsx:948
+#: src/components/blog/PostDrawer.tsx:954
 msgid "Excerpt"
 msgstr "抜粋"
 
@@ -9650,6 +9835,7 @@ msgstr "返信時に離脱"
 msgid "exit page"
 msgstr "出口ページ"
 
+#: src/components/segment/segmentLabels.ts:104
 #: src/components/web_analytics/tabs/DashboardTab.tsx:188
 msgid "Exit page"
 msgstr "出口ページ"
@@ -9783,7 +9969,7 @@ msgstr "すべてのコンタクトをエクスポート中"
 #: src/components/logs/MessagesTab.tsx:487
 #: src/components/messages/MessageHistoryTable.tsx:153
 #: src/components/messages/MessageHistoryTable.tsx:180
-#: src/components/segment/segmentSummary.ts:37
+#: src/components/segment/segmentLabels.ts:18
 #: src/components/transactional/RecentSends.tsx:118
 msgid "External ID"
 msgstr "外部ID"
@@ -9945,11 +10131,11 @@ msgid "Failed to create notification: {0}"
 msgstr "通知の作成に失敗しました: {0}"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:443
+#: src/components/blog/PostDrawer.tsx:446
 msgid "Failed to create post: {0}"
 msgstr "投稿の作成に失敗しました: {0}"
 
-#: src/components/segment/button_upsert.tsx:376
+#: src/components/segment/button_upsert.tsx:361
 msgid "Failed to create segment"
 msgstr "セグメントの作成に失敗しました"
 
@@ -10133,7 +10319,7 @@ msgstr "オートメーションの一時停止に失敗しました"
 msgid "Failed to pause broadcast"
 msgstr "ブロードキャストの一時停止に失敗しました"
 
-#: src/components/segment/button_upsert.tsx:237
+#: src/components/segment/button_upsert.tsx:222
 msgid "Failed to preview segment"
 msgstr "セグメントのプレビューに失敗しました"
 
@@ -10373,11 +10559,11 @@ msgid "Failed to update permissions"
 msgstr "権限の更新に失敗しました"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:530
+#: src/components/blog/PostDrawer.tsx:536
 msgid "Failed to update post: {0}"
 msgstr "投稿の更新に失敗しました: {0}"
 
-#: src/components/segment/button_upsert.tsx:376
+#: src/components/segment/button_upsert.tsx:361
 msgid "Failed to update segment"
 msgstr "セグメントの更新に失敗しました"
 
@@ -10431,8 +10617,8 @@ msgstr "ファビコン"
 #~ msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 #~ msgstr "ブログ用のファビコン。推奨: 32x32pxまたは192x192px PNG"
 
-#: src/components/blog/PostDrawer.tsx:957
-#: src/components/blog/PostDrawer.tsx:967
+#: src/components/blog/PostDrawer.tsx:963
+#: src/components/blog/PostDrawer.tsx:973
 msgid "Featured image"
 msgstr "アイキャッチ画像"
 
@@ -10497,8 +10683,8 @@ msgstr "フィールドは必須です。"
 
 #. placeholder {0}: filter.field_name
 #: src/components/segment/input_dimension_filters.tsx:84
-msgid "field: {0}"
-msgstr "フィールド: {0}"
+#~ msgid "field: {0}"
+#~ msgstr "フィールド: {0}"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:980
 msgid "File"
@@ -10592,13 +10778,14 @@ msgstr "フィルター条件"
 #~ msgstr "フィルター条件"
 
 #: src/components/segment/input_event_property_filters.tsx:128
-msgid "Filter on an event property"
-msgstr "イベントプロパティでフィルター"
+#~ msgid "Filter on an event property"
+#~ msgstr "イベントプロパティでフィルター"
 
 #: src/components/web_analytics/goals/GoalFiltersLine.tsx:30
 msgid "Filtered by"
 msgstr "絞り込み条件"
 
+#: src/components/segment/form_leaf.tsx:611
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
 #: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
@@ -10670,6 +10857,10 @@ msgstr "最初のメールを送信済み"
 msgid "First identified visit"
 msgstr "最初の識別済み訪問"
 
+#: src/components/segment/segmentLabels.ts:49
+msgid "First line of the contact's address"
+msgstr "コンタクトの住所 1 行目"
+
 #: src/components/automations/config/TriggerConfigForm.tsx:96
 #: src/components/contacts/contactColumns.ts:62
 #: src/components/contacts/contactFilterFields.ts:24
@@ -10677,7 +10868,7 @@ msgstr "最初の識別済み訪問"
 #: src/components/contacts/ContactsTable.tsx:311
 #: src/components/contacts/ExportContactsModal.tsx:69
 #: src/components/contacts/sheet/contactFieldLabels.ts:24
-#: src/components/segment/segmentSummary.ts:38
+#: src/components/segment/segmentLabels.ts:19
 msgid "First Name"
 msgstr "名"
 
@@ -10718,7 +10909,7 @@ msgstr "作成後は変更できません: API 呼び出しで送信されます
 msgid "Fixed once created: its posts' links depend on it"
 msgstr "作成後は変更できません: 記事のリンクがこれに依存しています"
 
-#: src/components/blog/PostDrawer.tsx:932
+#: src/components/blog/PostDrawer.tsx:938
 msgid "Fixed once created: links to the post may already be shared"
 msgstr "作成後は変更できません: 記事へのリンクがすでに共有されている可能性があります"
 
@@ -10787,7 +10978,7 @@ msgstr "編集するまで名前に合わせて変わります"
 msgid "Follows the name until you edit it. Lowercase letters, numbers and underscores"
 msgstr "編集するまで名前に合わせて変わります。小文字の英字、数字、アンダースコア"
 
-#: src/components/blog/PostDrawer.tsx:935
+#: src/components/blog/PostDrawer.tsx:941
 msgid "Follows the title until you edit it"
 msgstr "編集するまでタイトルに合わせて変わります"
 
@@ -10992,7 +11183,7 @@ msgstr "変更履歴の全文"
 #: src/components/contacts/ContactsTable.tsx:313
 #: src/components/contacts/ExportContactsModal.tsx:75
 #: src/components/contacts/sheet/contactFieldLabels.ts:26
-#: src/components/segment/segmentSummary.ts:40
+#: src/components/segment/segmentLabels.ts:21
 msgid "Full Name"
 msgstr "氏名"
 
@@ -11017,6 +11208,10 @@ msgstr "モバイルで全幅"
 #: src/components/blog/ThemeEditorDrawer.tsx:413
 #~ msgid "Fullscreen"
 #~ msgstr "フルスクリーン"
+
+#: src/components/segment/segmentLabels.ts:95
+msgid "Furthest scroll position reached, as a percentage"
+msgstr "到達した最大スクロール位置 (パーセント)"
 
 #: src/components/templates/TemplateStartModal.tsx:92
 #: src/components/templates/TemplateStartModal.tsx:120
@@ -11083,7 +11278,7 @@ msgstr "編集するまでは名前から自動生成されます"
 msgid "Generated HTML"
 msgstr "生成されたHTML"
 
-#: src/components/segment/button_upsert.tsx:709
+#: src/components/segment/SegmentCountCard.tsx:55
 msgid "Generated SQL:"
 msgstr "生成されたSQL:"
 
@@ -11148,8 +11343,8 @@ msgid "Go to Sign In"
 msgstr "サインインへ"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:311
-#: src/components/segment/form_leaf.tsx:727
-#: src/components/segment/input.tsx:635
+#: src/components/segment/form_leaf.tsx:663
+#: src/components/segment/input.tsx:65
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
 #: src/components/web_analytics/FilterBuilder.tsx:46
@@ -11173,8 +11368,8 @@ msgstr "ゴールダッシュボード"
 msgid "Goal dashboard: {goalName}"
 msgstr "ゴールダッシュボード: {goalName}"
 
-#: src/components/segment/form_leaf.tsx:784
-#: src/components/segment/input.tsx:649
+#: src/components/segment/ConditionSentence.tsx:279
+#: src/components/segment/form_leaf.tsx:707
 msgid "goal name"
 msgstr "ゴール名"
 
@@ -11188,8 +11383,8 @@ msgstr "ゴールのパス"
 
 #: src/components/segment/form_leaf.tsx:762
 #: src/components/segment/input.tsx:643
-msgid "goal type"
-msgstr "ゴールタイプ"
+#~ msgid "goal type"
+#~ msgstr "ゴールタイプ"
 
 #: src/components/settings/WebhooksSettings.tsx:609
 msgid "Goal types"
@@ -11203,6 +11398,10 @@ msgstr "ゴールタイプ"
 #: src/components/settings/WebhookDetail.tsx:414
 msgid "Goal types: {0}"
 msgstr "ゴールの種類：{0}"
+
+#: src/components/segment/segmentLabels.ts:109
+msgid "Goal value"
+msgstr "ゴールの値"
 
 #: src/components/timeline/ContactTimeline.tsx:873
 #~ msgid "Goal:"
@@ -11228,6 +11427,7 @@ msgid "Goals by day and hour"
 msgstr "曜日・時間帯別のゴール"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:119
+#: src/components/segment/segmentLabels.ts:108
 msgid "Goals reached"
 msgstr "達成したゴール"
 
@@ -11281,8 +11481,18 @@ msgstr "すべて付与"
 #: src/components/contacts/TrackingConsent.tsx:12
 #: src/components/contacts/trackingConsentOptions.ts:10
 #: src/components/contacts/trackingConsentOptions.ts:14
+#: src/components/segment/segmentLabels.ts:245
 msgid "Granted"
 msgstr "同意済み"
+
+#: src/components/segment/segmentLabels.ts:225
+msgid "greater than"
+msgstr "より大きい"
+
+#: src/components/segment/segmentLabels.ts:227
+#: src/components/segment/segmentLabels.ts:291
+msgid "greater than or equal to"
+msgstr "以上"
 
 #: src/components/file_manager/FileExplorer.tsx:704
 #: src/components/file_manager/FileExplorer.tsx:705
@@ -11292,6 +11502,10 @@ msgstr "グリッド"
 #: src/components/email_builder/ui/BorderInput.tsx:60
 msgid "Groove"
 msgstr "グルーブ"
+
+#: src/components/segment/input.tsx:494
+msgid "Group"
+msgstr "グループ"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:162
 msgid "Group (drag columns here)"
@@ -11309,23 +11523,31 @@ msgstr "グループ属性"
 #~ msgid "Group by"
 #~ msgstr ""
 
+#: src/components/segment/segmentLabels.ts:137
+msgid "Group the acquisition channel belongs to"
+msgstr "集客チャネルが属するグループ"
+
+#: src/components/segment/input.tsx:440
+msgid "Group:"
+msgstr "グループ:"
+
 #. placeholder {0}: skip.heading.level
 #. placeholder {1}: skip.previousLevel
 #: src/components/email_builder/blocks/MjTextBlock.tsx:490
 msgid "H{0} after H{1}"
 msgstr "H{1} の後に H{0}"
 
-#: src/components/segment/segmentSummary.ts:138
+#: src/components/segment/segmentSummary.ts:114
 msgid "Had an email bounce"
 msgstr "メールがバウンスした"
 
 #: src/components/segment/form_leaf.tsx:486
 #: src/components/segment/input.tsx:807
-msgid "happened"
-msgstr "発生"
+#~ msgid "happened"
+#~ msgstr "発生"
 
-#: src/components/segment/form_leaf.tsx:756
-#: src/components/segment/input.tsx:641
+#: src/components/segment/ConditionSentence.tsx:274
+#: src/components/segment/form_leaf.tsx:681
 msgid "has"
 msgstr "あり"
 
@@ -11333,8 +11555,8 @@ msgstr "あり"
 #~ msgid "Has Error"
 #~ msgstr "エラーあり"
 
-#: src/components/segment/form_leaf.tsx:757
-#: src/components/segment/input.tsx:641
+#: src/components/segment/ConditionSentence.tsx:274
+#: src/components/segment/form_leaf.tsx:682
 msgid "has not"
 msgstr "なし"
 
@@ -11511,6 +11733,11 @@ msgstr "仕組み:"
 msgid "How long to wait before proceeding to the next step"
 msgstr "次のステップに進むまでの待機時間"
 
+#: src/components/segment/form_leaf.tsx:518
+#: src/components/segment/form_leaf.tsx:523
+msgid "How many"
+msgstr "回数"
+
 #: src/components/integrations/LLMIntegration.tsx:253
 msgid "How much a reasoning model thinks. Default for other models; some providers ignore it"
 msgstr "推論モデルがどれだけ考えるか。その他のモデルではデフォルト。無視するプロバイダーもあります"
@@ -11519,9 +11746,13 @@ msgstr "推論モデルがどれだけ考えるか。その他のモデルでは
 msgid "How the category page appears in search results"
 msgstr "検索結果でのカテゴリページの表示"
 
-#: src/components/blog/PostDrawer.tsx:994
+#: src/components/blog/PostDrawer.tsx:1000
 msgid "How the post appears in search results"
 msgstr "検索結果での記事の表示"
+
+#: src/components/segment/segmentLabels.ts:97
+msgid "How the visitor arrived on the page"
+msgstr "訪問者がページに到達した方法"
 
 #: src/components/updates/UpdateDrawer.tsx:37
 msgid "How to upgrade"
@@ -11684,6 +11915,10 @@ msgstr "ID:"
 #~ msgid "ID: {webhookTemplateId}"
 #~ msgstr "ID: {webhookTemplateId}"
 
+#: src/components/segment/segmentLabels.ts:98
+msgid "Identifier of the visit the page belongs to"
+msgstr "ページが属する訪問の ID"
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:580
 msgid "Identifies a specific product promotion or strategic campaign"
 msgstr "特定の製品プロモーションまたは戦略的キャンペーンを識別します"
@@ -11718,6 +11953,7 @@ msgstr "メール受信者を識別"
 #~ msgstr "トラッキング対象のメールリンクをクリックした受信者を識別する"
 
 #: src/components/contacts/ContactsFilters.tsx:27
+#: src/components/segment/segmentLabels.ts:187
 #: src/components/settings/BlogSettings.tsx:388
 #: src/components/templates/TemplateSettingsStep.tsx:110
 msgid "Identity"
@@ -11783,6 +12019,7 @@ msgstr "暗黙的TLS (SMTPS)"
 #: src/components/contacts/ContactsViewHeader.tsx:262
 #: src/components/contacts/TrackingConsent.tsx:48
 #: src/components/email_builder/MjmlCodeEditor.tsx:632
+#: src/components/segment/segmentLabels.ts:252
 #: src/components/templates/ImportExportButton.tsx:203
 #: src/pages/ContactsPage.tsx:551
 #: src/pages/TemplatesPage.tsx:592
@@ -11902,12 +12139,11 @@ msgstr "いずれかに一致"
 msgid "In any of: {segmentNames}"
 msgstr "いずれかに所属: {segmentNames}"
 
-#: src/components/segment/form_leaf.tsx:523
-#: src/components/segment/form_leaf.tsx:898
+#: src/components/segment/segmentLabels.ts:313
 msgid "in date range"
 msgstr "日付範囲内"
 
-#: src/components/segment/segmentSummary.ts:260
+#: src/components/segment/segmentSummary.ts:218
 msgid "In list {list}"
 msgstr "リスト {list} に所属"
 
@@ -11924,14 +12160,13 @@ msgstr "進行中"
 msgid "In the header. Without one, the workspace logo"
 msgstr "ヘッダーに表示。未設定ならワークスペースのロゴ"
 
-#: src/components/segment/form_leaf.tsx:526
-#: src/components/segment/form_leaf.tsx:901
-#: src/components/segment/input.tsx:697
-#: src/components/segment/input.tsx:829
+#: src/components/segment/ConditionSentence.tsx:151
+#: src/components/segment/segmentLabels.ts:233
+#: src/components/segment/segmentLabels.ts:316
 msgid "in the last"
 msgstr "過去"
 
-#: src/components/segment/segmentSummary.ts:171
+#: src/components/segment/segmentSummary.ts:129
 msgid "in the last {days} days"
 msgstr "過去 {days} 日間"
 
@@ -12281,8 +12516,6 @@ msgstr "IP アドレス、実行者のメールアドレス、または対象 ID
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/file_manager/context.tsx:221
-#: src/components/segment/form_leaf.tsx:825
-#: src/components/segment/input.tsx:670
 msgid "is"
 msgstr "である"
 
@@ -12303,10 +12536,14 @@ msgstr "より大きい"
 msgid "is greater than or equal to"
 msgstr "以上"
 
-#: src/components/segment/form_leaf.tsx:239
-#: src/components/segment/input.tsx:589
+#: src/components/segment/ConditionSentence.tsx:200
+#: src/components/segment/form_leaf.tsx:387
 msgid "is in"
 msgstr "に含まれる"
+
+#: src/components/segment/segmentLabels.ts:235
+msgid "is in the array"
+msgstr "配列に含まれる"
 
 #: src/components/email_builder/ui/displayConditionLabels.ts:20
 msgid "is less than"
@@ -12321,16 +12558,22 @@ msgstr "以下"
 msgid "is not empty"
 msgstr "空でない"
 
-#: src/components/segment/form_leaf.tsx:240
-#: src/components/segment/input.tsx:589
+#: src/components/segment/ConditionSentence.tsx:200
+#: src/components/segment/form_leaf.tsx:388
 msgid "is not in"
 msgstr "に含まれない"
 
 #: src/components/email_builder/ui/displayConditionLabels.ts:13
+#: src/components/segment/segmentLabels.ts:218
 msgid "is not set"
 msgstr "が未設定"
 
+#: src/components/segment/input.tsx:70
+msgid "Is or is not in a list, with a status"
+msgstr "リストに含まれる/含まれない (ステータス付き)"
+
 #: src/components/email_builder/ui/displayConditionLabels.ts:12
+#: src/components/segment/segmentLabels.ts:217
 msgid "is set"
 msgstr "が設定済み"
 
@@ -12425,7 +12668,7 @@ msgstr "リストの購読情報も一緒に削除されます。コンタクト
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:104
 #: src/components/contacts/ContactsTable.tsx:333
 #: src/components/contacts/sheet/contactFieldLabels.ts:33
-#: src/components/segment/segmentSummary.ts:49
+#: src/components/segment/segmentLabels.ts:30
 msgid "Job Title"
 msgstr "役職"
 
@@ -12587,7 +12830,7 @@ msgstr "ランディング URL"
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/contactFieldLabels.ts:35
 #: src/components/logs/MessageDetail.tsx:686
-#: src/components/segment/segmentSummary.ts:43
+#: src/components/segment/segmentLabels.ts:24
 #: src/components/templates/SendTemplateModal.tsx:404
 #: src/components/templates/TemplatePreviewDrawer.tsx:499
 #: src/components/templates/TemplateSelectorModal.tsx:650
@@ -12699,7 +12942,7 @@ msgstr "過去1時間"
 #: src/components/contacts/ContactsTable.tsx:312
 #: src/components/contacts/ExportContactsModal.tsx:72
 #: src/components/contacts/sheet/contactFieldLabels.ts:25
-#: src/components/segment/segmentSummary.ts:39
+#: src/components/segment/segmentLabels.ts:20
 msgid "Last Name"
 msgstr "姓"
 
@@ -12720,7 +12963,7 @@ msgstr "更新日の新しい順"
 msgid "Latitude and longitude, rounded: lower is more private"
 msgstr "緯度と経度を丸めます。低いほどプライバシーが高まります"
 
-#: src/components/segment/segmentSummary.ts:149
+#: src/components/segment/segmentLabels.ts:275
 #: src/components/settings/WebhooksSettings.tsx:616
 msgid "Lead"
 msgstr "リード"
@@ -12814,6 +13057,15 @@ msgstr "オートメーション {name} から離脱"
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:138
 msgid "Left to Right"
 msgstr "左から右"
+
+#: src/components/segment/segmentLabels.ts:226
+msgid "less than"
+msgstr "より小さい"
+
+#: src/components/segment/segmentLabels.ts:228
+#: src/components/segment/segmentLabels.ts:292
+msgid "less than or equal to"
+msgstr "以下"
 
 #: src/pages/SetupWizard.tsx:688
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
@@ -13112,8 +13364,8 @@ msgstr "リストのステータス"
 msgid "List Status"
 msgstr "リストステータス"
 
-#: src/components/segment/form_leaf.tsx:219
-#: src/components/segment/input.tsx:587
+#: src/components/segment/form_leaf.tsx:373
+#: src/components/segment/input.tsx:63
 #: src/components/segment/table_tag.tsx:25
 msgid "List subscription"
 msgstr "リスト購読"
@@ -13285,7 +13537,7 @@ msgstr "セットアップを読み込み中..."
 #~ msgid "Loading stats..."
 #~ msgstr "統計を読み込み中..."
 
-#: src/components/blog/PostDrawer.tsx:1081
+#: src/components/blog/PostDrawer.tsx:1087
 msgid "Loading template..."
 msgstr "テンプレートを読み込み中..."
 
@@ -13324,6 +13576,7 @@ msgid "Locate visitors"
 msgstr "訪問者の所在地を特定"
 
 #: src/components/contacts/ContactsFilters.tsx:28
+#: src/components/segment/segmentLabels.ts:191
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:115
 msgid "Location"
 msgstr "所在地"
@@ -13385,7 +13638,7 @@ msgid "lowercase"
 msgstr "小文字"
 
 #: src/components/blog/CategoryDrawer.tsx:268
-#: src/components/blog/PostDrawer.tsx:934
+#: src/components/blog/PostDrawer.tsx:940
 msgid "Lowercase letters, numbers and hyphens"
 msgstr "小文字、数字、ハイフン"
 
@@ -13534,7 +13787,7 @@ msgstr "CSVの列をコンタクトフィールドにマッピングしてくだ
 msgid "Mark the dates that explain a chart — a launch, a campaign, an outage — and they appear as labelled verticals on the dashboard and goal charts."
 msgstr "チャートの動きを説明する日付 — ローンチ、キャンペーン、障害など — を記録すると、ダッシュボードとゴールのチャートにラベル付きの縦線として表示されます。"
 
-#: src/components/segment/segmentSummary.ts:139
+#: src/components/segment/segmentSummary.ts:115
 msgid "Marked an email as spam"
 msgstr "メールをスパムとして報告した"
 
@@ -13618,7 +13871,7 @@ msgstr "正規表現に一致"
 msgid "Matching"
 msgstr "一致する"
 
-#: src/components/segment/button_upsert.tsx:704
+#: src/components/segment/SegmentCountCard.tsx:51
 msgid "Matching contacts:"
 msgstr "一致するコンタクト:"
 
@@ -13630,7 +13883,7 @@ msgstr "一致するルール"
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "ファイルあたり最大3MB、合計10MB、最大20ファイル"
 
-#: src/components/segment/segmentSummary.ts:161
+#: src/components/segment/segmentLabels.ts:287
 msgid "maximum"
 msgstr "最大"
 
@@ -13653,6 +13906,10 @@ msgstr "最大期間は2年です。日付は{timezone}で解釈されます。"
 #: src/components/logs/AuditLogTab.tsx:187
 msgid "Me"
 msgstr "自分"
+
+#: src/components/segment/form_leaf.tsx:714
+msgid "Measure"
+msgstr "集計"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:48
 msgid "Median"
@@ -13825,7 +14082,7 @@ msgstr "Microsoft 365 / Office 365"
 msgid "Middle"
 msgstr "中央"
 
-#: src/components/blog/PostDrawer.tsx:907
+#: src/components/blog/PostDrawer.tsx:913
 msgid "min"
 msgstr "分"
 
@@ -13846,7 +14103,7 @@ msgstr "最小限"
 msgid "Minimize YouTube branding"
 msgstr "YouTubeブランディングを最小化"
 
-#: src/components/segment/segmentSummary.ts:160
+#: src/components/segment/segmentLabels.ts:286
 msgid "minimum"
 msgstr "最小"
 
@@ -14054,7 +14311,7 @@ msgstr "よく見られたページ"
 msgid "Must be a valid https URL"
 msgstr "有効なhttps URLである必要があります"
 
-#: src/components/segment/input_event_property_filters.tsx:176
+#: src/components/segment/input_event_property_filters.tsx:113
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr "イベント上での値の保存形式と一致している必要があります。日付はISO-8601として比較されます。"
 
@@ -14094,7 +14351,7 @@ msgstr "N/A"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:216
-#: src/components/segment/button_upsert.tsx:452
+#: src/components/segment/button_upsert.tsx:422
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -14188,6 +14445,10 @@ msgstr "AWS でご自身が管理する名前"
 #~ msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 #~ msgstr "スロットに名前を付けると、表示されるすべての場所 — ダッシュボード、探索の選択リスト、アトリビューションルール — で名前が変わります。"
 
+#: src/components/segment/form_leaf.tsx:705
+msgid "Narrowed to"
+msgstr "絞り込み"
+
 #: src/components/settings/BlogSettings.tsx:365
 msgid "Needed first: the blog is served at its root"
 msgstr "先に必要: ブログはそのルートで配信されます"
@@ -14280,8 +14541,8 @@ msgstr "新しいマジックコードをメールに送信しました"
 msgid "New notification"
 msgstr "新しい通知"
 
-#: src/components/blog/PostDrawer.tsx:743
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:749
+#: src/components/blog/PostDrawer.tsx:841
 #: src/components/blog/PostsTable.tsx:548
 msgid "New post"
 msgstr "新しい記事"
@@ -14298,7 +14559,7 @@ msgid "New rule"
 msgstr "新しいルール"
 
 #: src/components/contacts/ContactsRail.tsx:121
-#: src/components/segment/button_upsert.tsx:419
+#: src/components/segment/button_upsert.tsx:395
 msgid "New segment"
 msgstr "新規セグメント"
 
@@ -14394,7 +14655,7 @@ msgstr "次のステップ"
 
 #: src/components/automations/edges/edgeLabel.ts:34
 #: src/components/blog/PostDrawer.tsx:307
-#: src/components/blog/PostDrawer.tsx:581
+#: src/components/blog/PostDrawer.tsx:587
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/useBroadcastActions.tsx:174
 #: src/components/broadcasts/useBroadcastActions.tsx:180
@@ -14537,7 +14798,7 @@ msgstr "都市のデータがありません"
 msgid "No comparison"
 msgstr "比較なし"
 
-#: src/components/automations/config/ConditionsField.tsx:92
+#: src/components/automations/config/ConditionsField.tsx:99
 #: src/components/automations/nodes/FilterNode.tsx:44
 msgid "No conditions"
 msgstr "条件なし"
@@ -14675,7 +14936,7 @@ msgstr "エラーなし"
 msgid "No failure"
 msgstr "失敗はありません"
 
-#: src/components/blog/PostDrawer.tsx:972
+#: src/components/blog/PostDrawer.tsx:978
 msgid "No featured image"
 msgstr "アイキャッチ画像なし"
 
@@ -15187,7 +15448,7 @@ msgstr "なし（配信停止リンクなし）"
 msgid "Normal"
 msgstr "通常"
 
-#: src/components/segment/segmentSummary.ts:237
+#: src/components/segment/segmentSummary.ts:195
 msgid "Not ({condition})"
 msgstr "（{condition}）ではない"
 
@@ -15228,6 +15489,10 @@ msgstr "未割り当て"
 msgid "Not available here"
 msgstr "ここでは使用できません"
 
+#: src/components/segment/segmentLabels.ts:232
+msgid "not between"
+msgstr "の範囲外"
+
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:111
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:116
 #: src/components/logs/MessagesTab.tsx:952
@@ -15254,7 +15519,7 @@ msgid "Not counted beyond {countMax}"
 msgstr "{countMax} を超える分はカウントしません"
 
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:746
+#: src/components/blog/PostDrawer.tsx:752
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
@@ -15296,9 +15561,13 @@ msgstr "リストにない"
 msgid "Not in List"
 msgstr "リストに含まれない"
 
-#: src/components/segment/segmentSummary.ts:260
+#: src/components/segment/segmentSummary.ts:218
 msgid "Not in list {list}"
 msgstr "リスト {list} に未所属"
+
+#: src/components/segment/segmentLabels.ts:234
+msgid "not in the last"
+msgstr "過去 (以外)"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:184
 msgid "Not in the test data: the rule is evaluated as if the variable were empty."
@@ -15436,6 +15705,7 @@ msgid "Notification"
 msgstr "通知"
 
 #: src/components/contacts/TrackingConsent.tsx:50
+#: src/components/segment/segmentLabels.ts:253
 msgid "Notification center"
 msgstr "通知センター"
 
@@ -15503,7 +15773,8 @@ msgstr "現在"
 msgid "Null"
 msgstr "Null"
 
-#: src/components/segment/input_event_property_filters.tsx:181
+#: src/components/segment/FilterRow.tsx:165
+#: src/components/segment/input_event_property_filters.tsx:62
 #: src/components/settings/CustomFieldsConfiguration.tsx:59
 msgid "Number"
 msgstr "数値"
@@ -15511,6 +15782,14 @@ msgstr "数値"
 #: src/components/settings/WebAnalyticsSettings.tsx:289
 #~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
 #~ msgstr ""
+
+#: src/components/segment/segmentLabels.ts:129
+msgid "Number of goals fired during the visit"
+msgstr "訪問中に達成したゴールの数"
+
+#: src/components/segment/segmentLabels.ts:126
+msgid "Number of pages viewed during the visit"
+msgstr "訪問中に閲覧したページ数"
 
 #: src/components/settings/BlogSettings.tsx:399
 #~ msgid "Number of posts to display per page on category pages"
@@ -15591,8 +15870,15 @@ msgstr "SES での送信が許可された IAM ユーザーのもの"
 #~ msgid "of emails sent that day"
 #~ msgstr "（その日の送信メールに対する割合）"
 
+#: src/components/segment/input.tsx:442
+msgid "of the conditions"
+msgstr "の条件"
+
+#: src/components/segment/input.tsx:435
+msgid "of the following conditions"
+msgstr "を満たすコンタクト"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:313
-#: src/components/segment/input.tsx:961
 msgid "of the following conditions match:"
 msgstr "の以下の条件に一致:"
 
@@ -15650,7 +15936,7 @@ msgstr "カードと、すべての送信者の選択欄に表示"
 msgid "On the card, and on the notifications it creates"
 msgstr "カードと、この連携が作成する通知に表示"
 
-#: src/components/blog/PostDrawer.tsx:1035
+#: src/components/blog/PostDrawer.tsx:1041
 msgid "On this page"
 msgstr "このページの内容"
 
@@ -15925,7 +16211,7 @@ msgstr "開封済み"
 msgid "Opened {name}"
 msgstr "{name} を開封"
 
-#: src/components/segment/segmentSummary.ts:136
+#: src/components/segment/segmentSummary.ts:112
 msgid "Opened an email"
 msgstr "メールを開封した"
 
@@ -16013,7 +16299,7 @@ msgstr "このメールをブラウザで開きます。リンクはブロード
 #: src/components/contacts/contactFilterFields.ts:40
 #: src/components/contacts/ExportContactsModal.tsx:103
 #: src/components/contacts/sheet/contactFieldLabels.ts:48
-#: src/components/segment/segmentSummary.ts:52
+#: src/components/segment/segmentLabels.ts:33
 msgid "Opens tracking consent"
 msgstr "開封トラッキングへの同意"
 
@@ -16028,6 +16314,14 @@ msgstr "開封トラッキングへの同意（granted または denied）"
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:102
 msgid "Opens were not tracked"
 msgstr "開封は計測されていません"
+
+#: src/components/segment/segmentLabels.ts:119
+msgid "Operating system"
+msgstr "OS"
+
+#: src/components/segment/segmentLabels.ts:140
+msgid "Operating system used for the visit"
+msgstr "訪問に使われた OS"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:121
 msgid "Operation cancelled"
@@ -16052,6 +16346,8 @@ msgid "Operations"
 msgstr "操作"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:233
+#: src/components/segment/FilterRow.tsx:110
+#: src/components/segment/input_event_property_filters.tsx:75
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
 msgid "Operator"
 msgstr "演算子"
@@ -16104,9 +16400,14 @@ msgstr "オプション"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
-#: src/components/segment/segmentSummary.ts:284
+#: src/components/segment/ConditionSentence.tsx:81
+#: src/components/segment/segmentSummary.ts:242
 #: src/pages/SignInPage.tsx:294
 msgid "or"
+msgstr "または"
+
+#: src/components/segment/input.tsx:408
+msgid "OR"
 msgstr "または"
 
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:63
@@ -16155,12 +16456,14 @@ msgstr "OS"
 #: src/components/contacts/visits/webVisitSource.ts:46
 #: src/components/logs/labels.ts:89
 #: src/components/logs/MessagesTab.tsx:270
+#: src/components/segment/FieldPicker.tsx:94
+#: src/components/segment/FieldPicker.tsx:94
 #: src/components/settings/WebhooksSettings.tsx:620
 #: src/components/templates/templateCategories.ts:27
 msgid "Other"
 msgstr "その他"
 
-#: src/components/segment/segmentSummary.ts:153
+#: src/components/segment/segmentLabels.ts:279
 msgid "Other goal"
 msgstr "その他の目標"
 
@@ -16241,6 +16544,10 @@ msgstr "ページ"
 msgid "Page filters: {pageFilterList}"
 msgstr "ページフィルター: {pageFilterList}"
 
+#: src/components/segment/segmentLabels.ts:86
+msgid "Page number in visit"
+msgstr "訪問内のページ番号"
+
 #: src/components/contacts/sheet/activityLabel.ts:26
 msgid "Page view"
 msgstr "ページビュー"
@@ -16264,6 +16571,10 @@ msgstr "ページ"
 #: src/components/settings/BlogSettings.tsx:404
 msgid "Pages and feeds"
 msgstr "ページとフィード"
+
+#: src/components/segment/segmentLabels.ts:105
+msgid "Pages viewed"
+msgstr "閲覧ページ数"
 
 #: src/components/web_analytics/CountryMapView.tsx:68
 msgid "Pageviews"
@@ -16352,6 +16663,23 @@ msgstr "ZapierでNotifuseアカウントを接続するときに、このURLを�
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:340
 msgid "Paste YouTube URL..."
 msgstr "YouTube URLを貼り付け..."
+
+#: src/components/segment/FilterRow.tsx:175
+#: src/components/segment/segmentLabels.ts:83
+msgid "Path"
+msgstr "パス"
+
+#: src/components/segment/segmentLabels.ts:124
+msgid "Path of the first page of the visit"
+msgstr "訪問の最初のページのパス"
+
+#: src/components/segment/segmentLabels.ts:125
+msgid "Path of the last page of the visit"
+msgstr "訪問の最後のページのパス"
+
+#: src/components/segment/segmentLabels.ts:93
+msgid "Path of the page viewed, without the domain"
+msgstr "閲覧したページのパス (ドメインなし)"
 
 #: src/components/file_manager/buttonSettings.tsx:274
 msgid "Path-style access"
@@ -16561,7 +16889,7 @@ msgstr "権限を更新しました"
 #: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/contacts/sheet/contactFieldLabels.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
-#: src/components/segment/segmentSummary.ts:41
+#: src/components/segment/segmentLabels.ts:22
 msgid "Phone"
 msgstr "電話番号"
 
@@ -16669,7 +16997,7 @@ msgstr "再生オプション"
 msgid "Playback Options"
 msgstr "再生オプション"
 
-#: src/components/blog/PostDrawer.tsx:984
+#: src/components/blog/PostDrawer.tsx:990
 msgid "Please add at least one author"
 msgstr "著者を1人以上追加してください"
 
@@ -16681,12 +17009,12 @@ msgstr "保存する前に送信者を1人以上追加してください"
 #~ msgid "Please check the form for errors"
 #~ msgstr "フォームにエラーがないか確認してください"
 
-#: src/components/blog/PostDrawer.tsx:857
+#: src/components/blog/PostDrawer.tsx:863
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:378
 msgid "Please check the form for errors."
 msgstr "フォームにエラーがないか確認してください。"
 
-#: src/components/segment/button_upsert.tsx:325
+#: src/components/segment/button_upsert.tsx:310
 msgid "Please choose a different segment name"
 msgstr "別のセグメント名を選択してください"
 
@@ -16726,6 +17054,7 @@ msgstr "リスト名を入力してください"
 msgid "Please enter a model name"
 msgstr "モデル名を入力してください"
 
+#: src/components/segment/button_upsert.tsx:424
 #: src/components/settings/WebhooksSettings.tsx:532
 msgid "Please enter a name"
 msgstr "名前を入力してください"
@@ -16738,13 +17067,13 @@ msgstr "名前を入力してください"
 msgid "Please enter a notification name"
 msgstr "通知名を入力してください"
 
-#: src/components/blog/PostDrawer.tsx:882
+#: src/components/blog/PostDrawer.tsx:888
 msgid "Please enter a post title"
 msgstr "投稿タイトルを入力してください"
 
 #: src/components/segment/input_event_property_filters.tsx:158
-msgid "Please enter a property name"
-msgstr "プロパティ名を入力してください"
+#~ msgid "Please enter a property name"
+#~ msgstr "プロパティ名を入力してください"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:962
 msgid "Please enter a rate limit"
@@ -16755,7 +17084,7 @@ msgstr "送信レートの上限を入力してください"
 #~ msgstr ""
 
 #: src/components/blog/CategoryDrawer.tsx:260
-#: src/components/blog/PostDrawer.tsx:923
+#: src/components/blog/PostDrawer.tsx:929
 msgid "Please enter a slug"
 msgstr "スラッグを入力してください"
 
@@ -16825,7 +17154,7 @@ msgstr "メールアドレスを入力してください"
 msgid "Please enter integration name"
 msgstr "インテグレーション名を入力してください"
 
-#: src/components/blog/PostDrawer.tsx:905
+#: src/components/blog/PostDrawer.tsx:911
 msgid "Please enter reading time"
 msgstr "読了時間を入力してください"
 
@@ -16850,7 +17179,7 @@ msgstr "マジックコードを入力してください！"
 msgid "Please input your email!"
 msgstr "メールアドレスを入力してください！"
 
-#: src/components/blog/PostDrawer.tsx:892
+#: src/components/blog/PostDrawer.tsx:898
 msgid "Please select a category"
 msgstr "カテゴリを選択してください"
 
@@ -16863,10 +17192,10 @@ msgid "Please select a date"
 msgstr "日付を選択してください"
 
 #: src/components/segment/input_dimension_filters.tsx:206
-msgid "Please select a field"
-msgstr "フィールドを選択してください"
+#~ msgid "Please select a field"
+#~ msgstr "フィールドを選択してください"
 
-#: src/components/segment/form_leaf.tsx:767
+#: src/components/segment/form_leaf.tsx:690
 msgid "Please select a goal type"
 msgstr "ゴールタイプを選択してください"
 
@@ -16875,7 +17204,7 @@ msgid "Please select a JSON file"
 msgstr "JSONファイルを選択してください"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:203
-#: src/components/segment/form_leaf.tsx:248
+#: src/components/segment/form_leaf.tsx:396
 msgid "Please select a list"
 msgstr "リストを選択してください"
 
@@ -16893,7 +17222,7 @@ msgid "Please select a page size"
 msgstr "ページサイズを選択してください"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:231
-#: src/components/segment/form_leaf.tsx:276
+#: src/components/segment/form_leaf.tsx:420
 msgid "Please select a status"
 msgstr "ステータスを選択してください"
 
@@ -16914,7 +17243,7 @@ msgstr "時間を選択してください"
 msgid "Please select a timezone"
 msgstr "タイムゾーンを選択してください"
 
-#: src/components/segment/form_leaf.tsx:814
+#: src/components/segment/form_leaf.tsx:718
 msgid "Please select aggregate"
 msgstr "集計を選択してください"
 
@@ -16922,7 +17251,7 @@ msgstr "集計を選択してください"
 msgid "Please select an email template"
 msgstr "メールテンプレートを選択してください"
 
-#: src/components/segment/form_leaf.tsx:368
+#: src/components/segment/form_leaf.tsx:475
 msgid "Please select an event type"
 msgstr "イベントタイプを選択してください"
 
@@ -16942,7 +17271,7 @@ msgstr "操作を選択してください"
 msgid "Please select at least one event type"
 msgstr "イベントタイプを1つ以上選択してください"
 
-#: src/components/segment/form_leaf.tsx:830
+#: src/components/segment/form_leaf.tsx:733
 msgid "Please select operator"
 msgstr "演算子を選択してください"
 
@@ -16971,13 +17300,17 @@ msgstr "SMTPリレーサーバーのポート（デフォルト: 587）"
 msgid "Port must be 1-65535"
 msgstr "ポートは1〜65535である必要があります"
 
-#: src/components/blog/PostDrawer.tsx:877
+#: src/components/segment/segmentLabels.ts:96
+msgid "Position of the page within the visit, starting at 1"
+msgstr "訪問内でのページの順番 (1 から)"
+
+#: src/components/blog/PostDrawer.tsx:883
 #: src/components/blog/PostsTable.tsx:290
 #: src/components/blog/ThemeEditorDrawer.tsx:420
 msgid "Post"
 msgstr "投稿"
 
-#: src/components/blog/PostDrawer.tsx:437
+#: src/components/blog/PostDrawer.tsx:440
 msgid "Post created successfully"
 msgstr "投稿を作成しました"
 
@@ -16989,7 +17322,7 @@ msgstr "投稿を削除しました"
 msgid "Post published successfully"
 msgstr "投稿を公開しました"
 
-#: src/components/blog/PostDrawer.tsx:886
+#: src/components/blog/PostDrawer.tsx:892
 msgid "Post title"
 msgstr "投稿タイトル"
 
@@ -17001,14 +17334,14 @@ msgstr "投稿を非公開にしました"
 msgid "Post unscheduled"
 msgstr "投稿の予約を解除しました"
 
-#: src/components/blog/PostDrawer.tsx:501
+#: src/components/blog/PostDrawer.tsx:507
 msgid "Post updated successfully"
 msgstr "投稿を更新しました"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:111
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:102
 #: src/components/contacts/sheet/contactFieldLabels.ts:32
-#: src/components/segment/segmentSummary.ts:47
+#: src/components/segment/segmentLabels.ts:28
 msgid "Postcode"
 msgstr "郵便番号"
 
@@ -17073,6 +17406,10 @@ msgstr "配信するメールを準備中です。コンタクトを送信キュ
 msgid "Press Enter or click OK to confirm, Escape to cancel"
 msgstr "EnterまたはOKをクリックで確定、Escapeでキャンセル"
 
+#: src/components/segment/FilterValueInput.tsx:76
+msgid "Press Enter to add a value"
+msgstr "Enter キーで値を追加"
+
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:301
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "Enterで確定、Escapeでキャンセル"
@@ -17089,7 +17426,7 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #: src/components/common/ImageURLInput.tsx:58
 #: src/components/email_builder/EmailBuilder.tsx:1067
 #: src/components/file_manager/FileExplorer.tsx:1118
-#: src/components/segment/button_upsert.tsx:670
+#: src/components/segment/SegmentCountCard.tsx:110
 #: src/components/seo/SeoPreview.tsx:36
 #: src/components/templates/TemplateSelectorInput.tsx:190
 #: src/components/templates/TemplateSelectorModal.tsx:368
@@ -17136,7 +17473,7 @@ msgstr "{0} のプレビュー"
 msgid "Preview of {templateName}"
 msgstr "{templateName} のプレビュー"
 
-#: src/components/segment/button_upsert.tsx:699
+#: src/components/segment/SegmentCountCard.tsx:77
 msgid "Preview Results"
 msgstr "結果をプレビュー"
 
@@ -17344,7 +17681,11 @@ msgstr "プロフィール更新: {diffs}"
 msgid "Progress"
 msgstr "進捗"
 
-#: src/components/segment/input_event_property_filters.tsx:156
+#: src/components/segment/form_leaf.tsx:794
+msgid "Properties"
+msgstr "プロパティ"
+
+#: src/components/segment/input_event_property_filters.tsx:50
 msgid "Property name"
 msgstr "プロパティ名"
 
@@ -17407,7 +17748,7 @@ msgstr "テーマ v{themeVersion} を公開"
 msgid "Publish this theme"
 msgstr "このテーマを公開"
 
-#: src/components/blog/PostDrawer.tsx:748
+#: src/components/blog/PostDrawer.tsx:754
 #: src/components/blog/PostsTable.tsx:344
 #: src/components/blog/PostsTable.tsx:376
 #: src/components/blog/PostsTable.tsx:434
@@ -17428,10 +17769,14 @@ msgstr "ブログ記事 <0>{target}</0> を公開しました"
 msgid "Published the blog theme <0>{target}</0>"
 msgstr "ブログテーマ <0>{target}</0> を公開しました"
 
-#: src/components/segment/segmentSummary.ts:147
+#: src/components/segment/segmentLabels.ts:273
 #: src/components/settings/WebhooksSettings.tsx:614
 msgid "Purchase"
 msgstr "購入"
+
+#: src/components/segment/input.tsx:72
+msgid "Purchases, sign-ups, leads… count them or add up their value"
+msgstr "購入・登録・リードなど… 件数または値の合計"
 
 #: src/components/logs/MessagesTab.tsx:302
 msgid "Push"
@@ -17513,6 +17858,11 @@ msgstr "Webhook を再登録"
 msgid "Reach your audience"
 msgstr "オーディエンスに届ける"
 
+#: src/components/segment/ConditionSentence.tsx:275
+#: src/components/segment/form_leaf.tsx:686
+msgid "reached"
+msgstr "達成"
+
 #: src/components/automations/stats/StepStats.tsx:20
 msgid "Reached"
 msgstr "到達"
@@ -17550,6 +17900,10 @@ msgstr "インテグレーションの同期タスクの状態と進捗を読み
 #: src/components/settings/LicenseSettings.tsx:180
 #~ msgid "Read and write"
 #~ msgstr ""
+
+#: src/components/segment/FilterRow.tsx:189
+msgid "Read as"
+msgstr "型"
 
 #: src/services/api/permissions.ts:943
 msgid "Read is not a summary: these are the provider's own payloads, so the rows carry recipient addresses and provider diagnostics. That is why membership alone is not enough for them."
@@ -17688,7 +18042,7 @@ msgstr "Zapierの設定ガイドを読む"
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:904
+#: src/components/blog/PostDrawer.tsx:910
 msgid "Reading time"
 msgstr "読了時間"
 
@@ -17858,8 +18212,8 @@ msgstr "リダイレクトURI"
 
 #: src/components/automations/AutomationEditor.tsx:482
 #: src/components/blog_editor/components/EditorHeader.tsx:69
-#: src/components/blog/PostDrawer.tsx:787
-#: src/components/blog/PostDrawer.tsx:790
+#: src/components/blog/PostDrawer.tsx:793
+#: src/components/blog/PostDrawer.tsx:796
 #: src/components/email_builder/EmailBuilder.tsx:1051
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
@@ -17877,6 +18231,7 @@ msgstr "やり直す ({redoKeys})"
 msgid "Referral traffic"
 msgstr "リファラルトラフィック"
 
+#: src/components/segment/segmentLabels.ts:110
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:250
 #: src/components/web_analytics/tabs/DashboardTab.tsx:200
 #: src/pages/WebAnalyticsLivePage.tsx:181
@@ -18041,8 +18396,8 @@ msgstr "オートメーションを再読み込みしますか？"
 msgid "Reload the page to update your saved blocks."
 msgstr "保存済みブロックを更新するにはページを再読み込みしてください。"
 
-#: src/components/automations/config/ConditionsField.tsx:123
-#: src/components/automations/config/ConditionsField.tsx:128
+#: src/components/automations/config/ConditionsField.tsx:130
+#: src/components/automations/config/ConditionsField.tsx:135
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 #: src/components/blog/AuthorsField.tsx:155
 #: src/components/contacts/sheet/ContactListsCard.tsx:113
@@ -18090,7 +18445,7 @@ msgstr "コンタクトをリストから削除する (コンタクトの書き�
 msgid "Remove a contact from a list (also needs Lists write)"
 msgstr "コンタクトをリストから削除する (リストの書き込みも必要)"
 
-#: src/components/automations/config/ConditionsField.tsx:120
+#: src/components/automations/config/ConditionsField.tsx:127
 msgid "Remove conditions"
 msgstr "条件を削除"
 
@@ -18163,6 +18518,23 @@ msgstr "表示条件を削除しますか？"
 #: src/components/blog/AuthorsField.tsx:152
 msgid "Remove this author?"
 msgstr "この著者を削除しますか？"
+
+#: src/components/segment/input.tsx:278
+#: src/components/segment/input.tsx:282
+msgid "Remove this condition"
+msgstr "この条件を削除"
+
+#: src/components/segment/FilterRow.tsx:39
+#: src/components/segment/FilterRow.tsx:43
+#: src/components/segment/input_event_property_filters.tsx:96
+#: src/components/segment/input_event_property_filters.tsx:100
+msgid "Remove this filter"
+msgstr "このフィルターを削除"
+
+#: src/components/segment/input.tsx:278
+#: src/components/segment/input.tsx:282
+msgid "Remove this group"
+msgstr "このグループを削除"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:239
 #: src/components/broadcasts/compose/ContentCard.tsx:243
@@ -18595,6 +18967,7 @@ msgstr "ニュースレター <0>{target}</0> の失敗した送信を再試行�
 #: src/components/logs/MessageDetail.tsx:91
 #: src/components/logs/MessagesTab.tsx:798
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
+#: src/components/segment/SegmentCountCard.tsx:102
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
 #: src/components/settings/WorkspaceMembers.tsx:497
@@ -18945,7 +19318,7 @@ msgstr "新しいバージョンとして保存"
 #~ msgstr "ブロックを保存"
 
 #: src/components/blog/CategoryDrawer.tsx:205
-#: src/components/blog/PostDrawer.tsx:816
+#: src/components/blog/PostDrawer.tsx:822
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
@@ -19097,7 +19470,7 @@ msgstr "ブロードキャストをオーディエンス全体に予約送信ま
 msgid "Schedule timezone"
 msgstr "予約のタイムゾーン"
 
-#: src/components/blog/PostDrawer.tsx:750
+#: src/components/blog/PostDrawer.tsx:756
 #: src/components/blog/PostsTable.tsx:346
 #: src/components/blog/PostsTable.tsx:435
 #: src/components/broadcasts/compose/SendingCard.tsx:39
@@ -19163,6 +19536,11 @@ msgstr "モバイルレイアウトが有効になる画面幅。一般的な値
 msgid "Scroll"
 msgstr "スクロール"
 
+#: src/components/segment/segmentLabels.ts:85
+#: src/components/segment/segmentLabels.ts:107
+msgid "Scroll depth (%)"
+msgstr "スクロール深度 (%)"
+
 #: src/components/contacts/ExportContactsModal.tsx:60
 #: src/components/seo/SeoPreview.tsx:44
 #: src/components/web_analytics/FilterBuilder.tsx:406
@@ -19176,7 +19554,7 @@ msgstr "ギャラリーを検索"
 
 #: src/components/blog/category/CategoryChecks.tsx:33
 #: src/components/blog/post/PostChecks.tsx:13
-#: src/components/blog/PostDrawer.tsx:1106
+#: src/components/blog/PostDrawer.tsx:1112
 msgid "Search and share"
 msgstr "検索と共有"
 
@@ -19280,7 +19658,11 @@ msgstr "対象 ID で検索中"
 msgid "Searching: \"{0}\""
 msgstr "検索中: 「{0}」"
 
-#: src/components/segment/form_leaf.tsx:867
+#: src/components/segment/segmentLabels.ts:50
+msgid "Second line of the contact's address"
+msgstr "コンタクトの住所 2 行目"
+
+#: src/components/segment/form_leaf.tsx:769
 msgid "Second value must be greater than first value"
 msgstr "2番目の値は1番目の値より大きくする必要があります"
 
@@ -19382,6 +19764,10 @@ msgstr "クエリ可能なカタログに `message_history` と `email_queue` �
 msgid "See the `webhook_deliveries` schema listed in the queryable catalogue"
 msgstr "クエリ可能なカタログに `webhook_deliveries` スキーマが表示される"
 
+#: src/components/segment/SegmentCountCard.tsx:79
+msgid "See the query"
+msgstr "クエリを表示"
+
 #: src/services/api/permissions.ts:784
 msgid "See the web analytics schemas listed in the queryable catalogue"
 msgstr "クエリ可能なカタログにWebアナリティクスのスキーマが表示される"
@@ -19404,7 +19790,7 @@ msgstr "クリックした人を表示"
 #: src/components/contacts/ExportContactsModal.tsx:119
 #: src/components/contacts/sheet/describeActivity.tsx:215
 #: src/components/contacts/sheet/describeActivity.tsx:216
-#: src/components/segment/button_upsert.tsx:77
+#: src/components/segment/button_upsert.tsx:62
 msgid "Segment"
 msgstr "セグメント"
 
@@ -19476,7 +19862,7 @@ msgstr "ブロックを選択して属性を編集"
 msgid "Select a broadcast"
 msgstr "ブロードキャストを選択"
 
-#: src/components/blog/PostDrawer.tsx:895
+#: src/components/blog/PostDrawer.tsx:901
 msgid "Select a category"
 msgstr "カテゴリを選択"
 
@@ -19489,7 +19875,6 @@ msgid "Select a custom date range"
 msgstr "カスタムの期間を選択"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:578
-#: src/components/segment/input_dimension_filters.tsx:213
 msgid "Select a field"
 msgstr "フィールドを選択"
 
@@ -19501,7 +19886,7 @@ msgstr "ファイルを選択してください"
 #: src/components/broadcasts/compose/AudienceCard.tsx:71
 #: src/components/contacts/BulkActionsBar.tsx:197
 #: src/components/contacts/sheet/ContactListsCard.tsx:207
-#: src/components/segment/form_leaf.tsx:250
+#: src/components/segment/form_leaf.tsx:402
 msgid "Select a list"
 msgstr "リストを選択"
 
@@ -19545,7 +19930,7 @@ msgstr "ソーシャルブロックを選択してください"
 msgid "Select a template"
 msgstr "テンプレートを選択"
 
-#: src/components/segment/button_upsert.tsx:589
+#: src/components/segment/button_upsert.tsx:455
 msgid "Select a time zone"
 msgstr "タイムゾーンを選択"
 
@@ -19566,8 +19951,8 @@ msgid "Select an event..."
 msgstr "イベントを選択..."
 
 #: src/components/segment/operator_select.tsx:18
-msgid "Select an operator"
-msgstr "演算子を選択してください"
+#~ msgid "Select an operator"
+#~ msgstr "演算子を選択してください"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:138
 msgid "Select another metric to view chart"
@@ -19636,7 +20021,7 @@ msgstr "メールテンプレートを選択"
 msgid "Select email template..."
 msgstr "メールテンプレートを選択..."
 
-#: src/components/segment/form_leaf.tsx:373
+#: src/components/segment/form_leaf.tsx:482
 msgid "Select event"
 msgstr "イベントを選択"
 
@@ -19715,7 +20100,7 @@ msgstr "連絡先を追加するリストを選択"
 msgid "Select segments (optional)"
 msgstr "セグメントを選択（任意）"
 
-#: src/components/segment/form_leaf.tsx:279
+#: src/components/segment/form_leaf.tsx:426
 msgid "Select status"
 msgstr "ステータスを選択"
 
@@ -19757,7 +20142,7 @@ msgstr "タイムゾーンを選択"
 msgid "Select timezone..."
 msgstr "タイムゾーンを選択..."
 
-#: src/components/segment/form_leaf.tsx:769
+#: src/components/segment/form_leaf.tsx:695
 msgid "Select type"
 msgstr "タイプを選択"
 
@@ -20686,7 +21071,7 @@ msgstr "表示"
 msgid "Shown at the top of the category page"
 msgstr "カテゴリページの上部に表示されます"
 
-#: src/components/blog/PostDrawer.tsx:949
+#: src/components/blog/PostDrawer.tsx:955
 msgid "Shown in post lists, and as the description when no meta description is set"
 msgstr "記事一覧に表示され、メタディスクリプションがない場合は説明として使われます"
 
@@ -20720,7 +21105,7 @@ msgstr "SSOでサインイン"
 msgid "Sign-in"
 msgstr "サインイン"
 
-#: src/components/segment/segmentSummary.ts:150
+#: src/components/segment/segmentLabels.ts:276
 msgid "Sign-up"
 msgstr "サインアップ"
 
@@ -20851,18 +21236,18 @@ msgstr "枠"
 
 #: src/components/blog/CategoryDrawer.tsx:252
 #: src/components/blog/CategoryDrawer.tsx:256
-#: src/components/blog/PostDrawer.tsx:915
-#: src/components/blog/PostDrawer.tsx:919
+#: src/components/blog/PostDrawer.tsx:921
+#: src/components/blog/PostDrawer.tsx:925
 msgid "Slug"
 msgstr "スラッグ"
 
 #: src/components/blog/CategoryDrawer.tsx:262
-#: src/components/blog/PostDrawer.tsx:928
+#: src/components/blog/PostDrawer.tsx:934
 msgid "Slug must be less than 100 characters"
 msgstr "スラッグは100文字以内にしてください"
 
 #: src/components/blog/CategoryDrawer.tsx:261
-#: src/components/blog/PostDrawer.tsx:926
+#: src/components/blog/PostDrawer.tsx:932
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "スラッグは小文字、数字、ハイフンのみ使用できます"
 
@@ -21080,8 +21465,12 @@ msgstr "流入元"
 
 #. placeholder {0}: node.leaf?.source
 #: src/components/segment/input.tsx:472
-msgid "source {0} not found"
-msgstr "ソース {0} が見つかりません"
+#~ msgid "source {0} not found"
+#~ msgstr "ソース {0} が見つかりません"
+
+#: src/components/segment/input.tsx:299
+msgid "source {source} not found"
+msgstr "ソース {source} が見つかりません"
 
 #: src/components/timeline/ContactTimeline.tsx:975
 #~ msgid "Source:"
@@ -21126,7 +21515,7 @@ msgstr "SparkPost"
 msgid "Split"
 msgstr "分割"
 
-#: src/components/segment/button_upsert.tsx:728
+#: src/components/segment/SegmentCountCard.tsx:63
 msgid "SQL Arguments:"
 msgstr "SQL引数:"
 
@@ -21200,7 +21589,7 @@ msgstr "入力を開始..."
 msgid "Start Upload"
 msgstr "アップロードを開始"
 
-#: src/components/blog/PostDrawer.tsx:1088
+#: src/components/blog/PostDrawer.tsx:1094
 msgid "Start writing your blog post..."
 msgstr "ブログ記事を書き始めましょう..."
 
@@ -21234,6 +21623,10 @@ msgstr "送信するとすぐに開始"
 msgid "Starts the first time a contact clicks each link of an email. A click on an email this automation sent does not start it again."
 msgstr "連絡先がメール内の各リンクを初めてクリックしたときに開始します。このオートメーションが送信したメール内のクリックでは再開始しません。"
 
+#: src/components/segment/segmentLabels.ts:223
+msgid "starts with"
+msgstr "で始まる"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:801
 msgid "Starts with SG."
 msgstr "SG. で始まります"
@@ -21249,7 +21642,7 @@ msgstr "STARTTLS必須"
 #: src/components/automations/config/TriggerConfigForm.tsx:110
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:103
 #: src/components/contacts/sheet/contactFieldLabels.ts:31
-#: src/components/segment/segmentSummary.ts:48
+#: src/components/segment/segmentLabels.ts:29
 msgid "State"
 msgstr "都道府県"
 
@@ -21299,7 +21692,7 @@ msgid "Step status"
 msgstr "ステップのステータス"
 
 #: src/components/automations/list/AutomationsTable.tsx:151
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:847
 #: src/components/templates/TemplateDrawerBar.tsx:89
 msgid "Steps"
 msgstr "ステップ"
@@ -21498,7 +21891,7 @@ msgstr "下付き文字"
 
 #: src/components/logs/OutgoingWebhooksTab.tsx:136
 #: src/components/logs/OutgoingWebhooksTab.tsx:181
-#: src/components/segment/segmentSummary.ts:148
+#: src/components/segment/segmentLabels.ts:274
 #: src/components/settings/WebhooksSettings.tsx:615
 msgid "Subscription"
 msgstr "購読"
@@ -21508,6 +21901,7 @@ msgid "Subscription confirmation"
 msgstr "購読の確認"
 
 #: src/components/contacts/TrackingConsent.tsx:54
+#: src/components/segment/segmentLabels.ts:255
 msgid "Subscription form"
 msgstr "登録フォーム"
 
@@ -21662,7 +22056,7 @@ msgstr "システム設定"
 msgid "System SMTP"
 msgstr "システムSMTP"
 
-#: src/components/blog/PostDrawer.tsx:1031
+#: src/components/blog/PostDrawer.tsx:1037
 msgid "Table of Contents"
 msgstr "目次"
 
@@ -21738,8 +22132,7 @@ msgstr "テレメトリー"
 msgid "Tell your systems when something changes"
 msgstr "変更があったときにシステムへ通知します"
 
-#: src/components/segment/form_leaf.tsx:418
-#: src/components/segment/input.tsx:798
+#: src/components/segment/ConditionSentence.tsx:241
 msgid "template"
 msgstr "テンプレート"
 
@@ -21750,6 +22143,7 @@ msgstr "テンプレート"
 #: src/components/logs/MessagesTab.tsx:474
 #: src/components/messages/MessageHistoryTable.tsx:156
 #: src/components/messages/MessageHistoryTable.tsx:242
+#: src/components/segment/form_leaf.tsx:558
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
 #: src/pages/TemplatesPage.tsx:380
@@ -22123,7 +22517,8 @@ msgstr "テキスト"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:199
 #: src/components/email_builder/blocks/MjTextBlock.tsx:47
-#: src/components/segment/input_event_property_filters.tsx:180
+#: src/components/segment/FilterRow.tsx:164
+#: src/components/segment/input_event_property_filters.tsx:61
 #: src/components/settings/CustomFieldsConfiguration.tsx:58
 msgid "Text"
 msgstr "テキスト"
@@ -22320,9 +22715,65 @@ msgstr "比較期間を追加の列として表示"
 msgid "The confirmation email each new subscriber receives"
 msgstr "新しい購読者それぞれが受け取る確認メール"
 
+#: src/components/segment/form_leaf.tsx:668
+msgid "The contact"
+msgstr "コンタクト"
+
 #: src/components/logs/MessageDetail.tsx:771
 msgid "The contact was erased; the message data is gone"
 msgstr "連絡先が削除されたため、メッセージデータはありません"
+
+#: src/components/segment/segmentLabels.ts:46
+msgid "The contact's country, as a two-letter code"
+msgstr "コンタクトの国 (2 文字のコード)"
+
+#: src/components/segment/segmentLabels.ts:41
+msgid "The contact's email address"
+msgstr "コンタクトのメールアドレス"
+
+#: src/components/segment/segmentLabels.ts:43
+msgid "The contact's first name"
+msgstr "コンタクトの名"
+
+#: src/components/segment/segmentLabels.ts:42
+msgid "The contact's identifier in your own system"
+msgstr "自社システムでのコンタクトの ID"
+
+#: src/components/segment/segmentLabels.ts:53
+msgid "The contact's job title"
+msgstr "コンタクトの役職"
+
+#: src/components/segment/segmentLabels.ts:47
+msgid "The contact's language"
+msgstr "コンタクトの言語"
+
+#: src/components/segment/segmentLabels.ts:44
+msgid "The contact's last name"
+msgstr "コンタクトの姓"
+
+#: src/components/segment/segmentLabels.ts:45
+msgid "The contact's phone number"
+msgstr "コンタクトの電話番号"
+
+#: src/components/segment/segmentLabels.ts:51
+msgid "The contact's postal code"
+msgstr "コンタクトの郵便番号"
+
+#: src/components/segment/segmentLabels.ts:52
+msgid "The contact's state or region"
+msgstr "コンタクトの州・地域"
+
+#: src/components/segment/segmentLabels.ts:48
+msgid "The contact's time zone"
+msgstr "コンタクトのタイムゾーン"
+
+#: src/components/segment/SegmentCountCard.tsx:100
+msgid "The count failed."
+msgstr "件数の取得に失敗しました。"
+
+#: src/components/segment/form_leaf.tsx:180
+msgid "The count follows what you write."
+msgstr "入力内容に合わせて件数が更新されます。"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:351
 msgid "The country, from the IP address, which is never stored"
@@ -22527,6 +22978,11 @@ msgstr "接続時に Notifuse が名乗る名前。デフォルトは上記の�
 msgid "The only channel today"
 msgstr "現在唯一のチャネル"
 
+#. placeholder {0}: filter.operator
+#: src/components/segment/FilterRow.tsx:91
+msgid "The operator {0} is not supported here"
+msgstr "演算子 {0} はここでは使えません"
+
 #: src/services/api/permissions.ts:734
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 msgstr "送信メッセージのログ: ワークスペースが送信したすべてのメール、その配信ステータス、およびそれに対して計上されたエンゲージメント。"
@@ -22604,11 +23060,11 @@ msgstr "保存済みのバージョンをブログで表示"
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "セクションのカラムとグループが幅を {over}% 超えています。メールでは最後のものが次の行に送られます。"
 
-#: src/components/segment/button_upsert.tsx:363
+#: src/components/segment/button_upsert.tsx:348
 msgid "The segment has been created!"
 msgstr "セグメントが作成されました！"
 
-#: src/components/segment/button_upsert.tsx:343
+#: src/components/segment/button_upsert.tsx:328
 msgid "The segment has been updated!"
 msgstr "セグメントが更新されました！"
 
@@ -22666,7 +23122,7 @@ msgstr "このメッセージのテンプレートは利用できません"
 msgid "The template has no unsubscribe link ({languages})"
 msgstr "テンプレートに購読解除リンクがありません ({languages})"
 
-#: src/components/segment/form_leaf.tsx:429
+#: src/components/segment/form_leaf.tsx:564
 msgid "The template of the emails this condition counts"
 msgstr "この条件でカウントするメールのテンプレート"
 
@@ -22731,7 +23187,7 @@ msgstr "Webhook URLがプライベートまたは内部アドレス（{host}）�
 msgid "The webhook will stop receiving events."
 msgstr "Webhookはイベントの受信を停止します。"
 
-#: src/components/automations/config/ConditionsField.tsx:121
+#: src/components/automations/config/ConditionsField.tsx:128
 msgid "The whole condition tree will be deleted."
 msgstr "条件ツリー全体が削除されます。"
 
@@ -22964,13 +23420,20 @@ msgstr "このメールは HTML のみで送信されます"
 msgid "This email will be used for the root administrator account"
 msgstr "このメールはルート管理者アカウントに使用されます"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:413
+#: src/components/automations/config/TriggerConfigForm.tsx:414
 msgid "This event fires often. These conditions are evaluated for every matching event."
 msgstr "このイベントは頻繁に発生します。これらの条件は、一致するイベントごとに評価されます。"
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:130
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "この機能は各受信者のメール送信前にHTTPリクエストを行います。これによりブロードキャスト処理が大幅に遅くなる可能性があります。フィードリクエストがリトライ後に失敗した場合、ブロードキャストは自動的に一時停止されます。"
+
+#: src/components/segment/form_leaf.tsx:196
+#: src/components/segment/form_leaf.tsx:382
+#: src/components/segment/form_leaf.tsx:533
+#: src/components/segment/form_leaf.tsx:647
+msgid "This field is required"
+msgstr "この項目は必須です"
 
 #: src/components/templates/importTemplateFile.ts:151
 msgid "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
@@ -23101,8 +23564,8 @@ msgstr "この権限は現在、どのエンドポイントも制御していま
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "この権限はまだ適用されていないため、常に付与されます。オフにすることはできません。"
 
-#: src/components/blog/PostDrawer.tsx:1098
-#: src/components/blog/PostDrawer.tsx:1100
+#: src/components/blog/PostDrawer.tsx:1104
+#: src/components/blog/PostDrawer.tsx:1106
 msgid "This post"
 msgstr "この記事"
 
@@ -23114,7 +23577,7 @@ msgstr "この記事"
 #~ msgid "This post's template was saved as version {latest} while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
 #~ msgstr ""
 
-#: src/components/segment/input_event_property_filters.tsx:162
+#: src/components/segment/input_event_property_filters.tsx:107
 msgid "This property is already filtered"
 msgstr "このプロパティにはすでにフィルターが設定されています"
 
@@ -23150,7 +23613,7 @@ msgstr "このセクションは空です。コンテンツを表示するには
 msgid "This segment no longer exists"
 msgstr "このセグメントはもう存在しません"
 
-#: src/components/segment/button_upsert.tsx:614
+#: src/components/segment/button_upsert.tsx:480
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "このセグメントは相対日付フィルターを使用しており、毎日午前5時（{timezone}）に自動的に再計算されます"
 
@@ -23318,6 +23781,10 @@ msgstr "時間"
 msgid "Time is required"
 msgstr "時刻は必須です"
 
+#: src/components/segment/segmentLabels.ts:84
+msgid "Time on page (ms)"
+msgstr "ページ滞在時間 (ms)"
+
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:79
 msgid "Time patterns"
 msgstr "時間のパターン"
@@ -23326,15 +23793,15 @@ msgstr "時間のパターン"
 #: src/components/segment/form_leaf.tsx:890
 #: src/components/segment/input.tsx:689
 #: src/components/segment/input.tsx:821
-msgid "timeframe"
-msgstr "期間"
+#~ msgid "timeframe"
+#~ msgstr "期間"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:1068
 #~ msgid "Timeline"
 #~ msgstr "タイムライン"
 
-#: src/components/segment/form_leaf.tsx:508
-#: src/components/segment/input.tsx:816
+#: src/components/segment/ConditionSentence.tsx:234
+#: src/components/segment/form_leaf.tsx:537
 msgid "times"
 msgstr "回"
 
@@ -23387,7 +23854,7 @@ msgstr "TimeScoreは、全セッションのエンゲージメント時間の中
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
 #: src/components/contacts/ContactsTable.tsx:317
 #: src/components/contacts/sheet/contactFieldLabels.ts:34
-#: src/components/segment/segmentSummary.ts:44
+#: src/components/segment/segmentLabels.ts:25
 #: src/components/settings/GeneralSettings.tsx:254
 #: src/components/settings/GeneralSettings.tsx:367
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:169
@@ -23403,7 +23870,7 @@ msgstr "タイムゾーン — {detail}"
 msgid "Timezone is required"
 msgstr "タイムゾーンは必須です"
 
-#: src/components/segment/button_upsert.tsx:584
+#: src/components/segment/button_upsert.tsx:449
 msgid "Timezone used for dates"
 msgstr "日付に使用されるタイムゾーン"
 
@@ -23419,7 +23886,7 @@ msgstr "効果的なプレビューテキストのヒント:"
 #~ msgid "Tips for fixing these errors:"
 #~ msgstr "これらのエラーを修正するヒント:"
 
-#: src/components/blog/PostDrawer.tsx:880
+#: src/components/blog/PostDrawer.tsx:886
 #: src/components/blog/PostsTable.tsx:566
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:409
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
@@ -23437,7 +23904,7 @@ msgstr "タイトルは必須です"
 msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
 msgstr "タイトルは{MAX_TITLE_LENGTH}文字以内で入力してください"
 
-#: src/components/blog/PostDrawer.tsx:883
+#: src/components/blog/PostDrawer.tsx:889
 msgid "Title must be less than 500 characters"
 msgstr "タイトルは500文字未満にしてください"
 
@@ -23629,7 +24096,7 @@ msgstr "上位ソース"
 msgid "Top traffic sources"
 msgstr "上位トラフィックソース"
 
-#: src/components/segment/segmentSummary.ts:158
+#: src/components/segment/segmentLabels.ts:284
 msgid "total"
 msgstr "合計"
 
@@ -23658,6 +24125,10 @@ msgstr "添付ファイルの合計サイズが10MBの制限を超えていま�
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:61
 msgid "Total Value"
 msgstr "合計値"
+
+#: src/components/segment/segmentLabels.ts:130
+msgid "Total value of the goals fired during the visit"
+msgstr "訪問中に達成したゴールの合計値"
 
 #: src/components/settings/GeneralSettings.tsx:449
 msgid "Track"
@@ -23708,7 +24179,12 @@ msgstr "A/Bテスト機能を使用するには、ワークスペース設定で
 msgid "Tracking consent"
 msgstr "トラッキングへの同意"
 
+#: src/components/segment/segmentLabels.ts:36
+msgid "Tracking consent changed at"
+msgstr "トラッキング同意の変更日時"
+
 #: src/components/contacts/sheet/contactFieldLabels.ts:50
+#: src/components/segment/segmentLabels.ts:35
 msgid "Tracking consent source"
 msgstr "トラッキング同意の取得元"
 
@@ -23828,7 +24304,7 @@ msgstr ""
 msgid "Transparent"
 msgstr "透明"
 
-#: src/components/segment/segmentSummary.ts:152
+#: src/components/segment/segmentLabels.ts:278
 #: src/components/settings/WebhooksSettings.tsx:619
 msgid "Trial"
 msgstr "トライアル"
@@ -23935,8 +24411,8 @@ msgstr "Webhook <0>{target}</0> をオンまたはオフにしました"
 
 #: src/components/segment/form_leaf.tsx:362
 #: src/components/segment/input.tsx:789
-msgid "type"
-msgstr "タイプ"
+#~ msgid "type"
+#~ msgstr "タイプ"
 
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:267
 #: src/components/file_manager/FilePreview.tsx:48
@@ -23950,12 +24426,12 @@ msgstr "タイプ"
 #. placeholder {0}: selectedField.type
 #: src/components/segment/input_dimension_filters.tsx:79
 #: src/components/segment/input_dimension_filters.tsx:273
-msgid "type {0} is not implemented"
-msgstr "タイプ {0} は実装されていません"
+#~ msgid "type {0} is not implemented"
+#~ msgstr "タイプ {0} は実装されていません"
 
 #: src/components/segment/input.tsx:898
-msgid "type {rendererType} is not implemented"
-msgstr "タイプ {rendererType} は実装されていません"
+#~ msgid "type {rendererType} is not implemented"
+#~ msgstr "タイプ {rendererType} は実装されていません"
 
 #: src/components/contacts/BulkActionsBar.tsx:238
 msgid "Type {selectedCount} to confirm:"
@@ -23993,8 +24469,8 @@ msgstr "リファラルの質を把握する"
 
 #: src/components/automations/AutomationEditor.tsx:479
 #: src/components/blog_editor/components/EditorHeader.tsx:55
-#: src/components/blog/PostDrawer.tsx:778
-#: src/components/blog/PostDrawer.tsx:781
+#: src/components/blog/PostDrawer.tsx:784
+#: src/components/blog/PostDrawer.tsx:787
 #: src/components/email_builder/EmailBuilder.tsx:992
 #: src/components/email_builder/EmailBuilder.tsx:1044
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
@@ -24114,8 +24590,8 @@ msgstr "ブログ記事 <0>{target}</0> を非公開にしました"
 
 #: src/components/automations/AutomationEditor.tsx:463
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:578
-#: src/components/blog/PostDrawer.tsx:755
+#: src/components/blog/PostDrawer.tsx:584
+#: src/components/blog/PostDrawer.tsx:761
 #: src/components/blog/ThemeEditorDrawer.tsx:475
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
@@ -24202,7 +24678,7 @@ msgid "Unsubscribed from {name}"
 msgstr "{name} の購読を解除"
 
 #: src/components/automations/describeTrigger.ts:137
-#: src/components/segment/segmentSummary.ts:140
+#: src/components/segment/segmentSummary.ts:116
 #: src/components/segment/timelineKindLabels.ts:15
 msgid "Unsubscribed from an email"
 msgstr "メールから配信停止"
@@ -24227,7 +24703,7 @@ msgstr "無題"
 msgid "Untitled automation"
 msgstr "無題のオートメーション"
 
-#: src/components/blog/PostDrawer.tsx:1069
+#: src/components/blog/PostDrawer.tsx:1075
 msgid "Untitled post"
 msgstr "無題の記事"
 
@@ -24261,7 +24737,7 @@ msgstr "コンタクトを更新"
 msgid "Update Link"
 msgstr "リンクを更新"
 
-#: src/components/segment/button_upsert.tsx:419
+#: src/components/segment/button_upsert.tsx:395
 msgid "Update segment"
 msgstr "セグメントを更新"
 
@@ -24297,7 +24773,7 @@ msgid "Updated as you type"
 msgstr "入力に合わせて更新"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:297
-#: src/components/segment/segmentSummary.ts:51
+#: src/components/segment/segmentLabels.ts:32
 msgid "Updated At"
 msgstr "更新日時"
 
@@ -24688,9 +25164,9 @@ msgstr "UTM"
 msgid "UTM added"
 msgstr "UTM 追加"
 
-#: src/components/timeline/ContactTimeline.tsx:920
-#~ msgid "UTM campaign"
-#~ msgstr "UTMキャンペーン"
+#: src/components/segment/segmentLabels.ts:113
+msgid "UTM campaign"
+msgstr "UTMキャンペーン"
 
 #: src/pages/BroadcastsPage.tsx:1237
 #~ msgid "UTM Campaign"
@@ -24700,17 +25176,17 @@ msgstr "UTM 追加"
 msgid "UTM campaigns"
 msgstr "UTMキャンペーン"
 
-#: src/components/timeline/ContactTimeline.tsx:921
-#~ msgid "UTM content"
-#~ msgstr "UTMコンテンツ"
+#: src/components/segment/segmentLabels.ts:114
+msgid "UTM content"
+msgstr "UTMコンテンツ"
 
 #: src/pages/BroadcastsPage.tsx:1249
 #~ msgid "UTM Content"
 #~ msgstr "UTMコンテンツ"
 
-#: src/components/timeline/ContactTimeline.tsx:919
-#~ msgid "UTM medium"
-#~ msgstr "UTMメディア"
+#: src/components/segment/segmentLabels.ts:112
+msgid "UTM medium"
+msgstr "UTMメディア"
 
 #: src/pages/BroadcastsPage.tsx:1231
 #~ msgid "UTM Medium"
@@ -24720,9 +25196,9 @@ msgstr "UTMキャンペーン"
 msgid "UTM parameters"
 msgstr "UTM パラメータ"
 
-#: src/components/timeline/ContactTimeline.tsx:918
-#~ msgid "UTM source"
-#~ msgstr "UTMソース"
+#: src/components/segment/segmentLabels.ts:111
+msgid "UTM source"
+msgstr "UTMソース"
 
 #: src/pages/BroadcastsPage.tsx:1225
 #~ msgid "UTM Source"
@@ -24731,6 +25207,22 @@ msgstr "UTM パラメータ"
 #: src/pages/BroadcastsPage.tsx:1243
 #~ msgid "UTM Term"
 #~ msgstr "UTMタグ"
+
+#: src/components/segment/segmentLabels.ts:134
+msgid "utm_campaign of the visit"
+msgstr "訪問の utm_campaign"
+
+#: src/components/segment/segmentLabels.ts:135
+msgid "utm_content of the visit, which names the creative"
+msgstr "訪問の utm_content (クリエイティブ名)"
+
+#: src/components/segment/segmentLabels.ts:133
+msgid "utm_medium of the visit"
+msgstr "訪問の utm_medium"
+
+#: src/components/segment/segmentLabels.ts:132
+msgid "utm_source of the visit"
+msgstr "訪問の utm_source"
 
 #: src/components/automations/AutomationEditor.tsx:320
 msgid "Validation error"
@@ -24742,7 +25234,7 @@ msgstr "検証エラー"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:251
-#: src/components/segment/form_leaf.tsx:845
+#: src/components/segment/form_leaf.tsx:750
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
 #: src/components/web_analytics/FilterBuilder.tsx:333
@@ -24759,11 +25251,11 @@ msgstr "値"
 msgid "Value {value}"
 msgstr "値 {value}"
 
-#: src/components/segment/form_leaf.tsx:875
+#: src/components/segment/form_leaf.tsx:780
 msgid "Value 2"
 msgstr "値2"
 
-#: src/components/segment/input_event_property_filters.tsx:172
+#: src/components/segment/input_event_property_filters.tsx:58
 msgid "Value type"
 msgstr "値の種類"
 
@@ -24935,7 +25427,7 @@ msgstr "メッセージを表示"
 msgid "View page"
 msgstr "ページを表示"
 
-#: src/components/blog/PostDrawer.tsx:806
+#: src/components/blog/PostDrawer.tsx:812
 msgid "View post"
 msgstr "記事を表示"
 
@@ -24976,7 +25468,7 @@ msgstr "Webサイトを表示"
 msgid "Viewed {page}"
 msgstr "{page} を閲覧"
 
-#: src/components/segment/segmentSummary.ts:141
+#: src/components/segment/segmentSummary.ts:117
 msgid "Viewed a page"
 msgstr "ページを閲覧した"
 
@@ -25000,6 +25492,14 @@ msgstr "30日間の閲覧数"
 msgid "Visible in the notification center"
 msgstr "通知センターに表示"
 
+#: src/components/segment/segmentLabels.ts:106
+msgid "Visit duration (ms)"
+msgstr "訪問時間 (ms)"
+
+#: src/components/segment/segmentLabels.ts:88
+msgid "Visit ID"
+msgstr "訪問 ID"
+
 #: src/components/segment/timelineKindLabels.ts:17
 msgid "Visit website"
 msgstr "Webサイトにアクセス"
@@ -25008,7 +25508,7 @@ msgstr "Webサイトにアクセス"
 #~ msgid "visited"
 #~ msgstr ""
 
-#: src/components/segment/segmentSummary.ts:142
+#: src/components/segment/segmentSummary.ts:118
 msgid "Visited the website"
 msgstr "ウェブサイトを訪問した"
 
@@ -25077,7 +25577,7 @@ msgstr "サーバーの再起動を待機中..."
 msgid "Warning"
 msgstr "警告"
 
-#: src/components/segment/segmentSummary.ts:135
+#: src/components/segment/segmentSummary.ts:111
 msgid "Was sent an email"
 msgstr "メールが送信された"
 
@@ -25248,6 +25748,8 @@ msgid "Webhooks registered successfully"
 msgstr "Webhooksが正常に登録されました"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:113
+#: src/components/segment/form_leaf.tsx:507
+#: src/components/segment/form_leaf.tsx:508
 #: src/components/settings/GeneralSettings.tsx:228
 #: src/components/settings/GeneralSettings.tsx:344
 msgid "Website"
@@ -25346,6 +25848,10 @@ msgstr "メールビルダーへようこそ！"
 msgid "Welcomes a new subscriber with three first steps."
 msgstr "新しい購読者を 3 つの最初のステップで歓迎します。"
 
+#: src/components/segment/form_leaf.tsx:471
+msgid "What"
+msgstr "内容"
+
 #: src/components/settings/BlogSettings.tsx:427
 msgid "What a feed reader shows of each post"
 msgstr "フィードリーダーが各記事で表示する内容"
@@ -25363,6 +25869,9 @@ msgstr "エクスポートされる内容"
 msgid "What's new since {current}"
 msgstr "{current} 以降の新機能"
 
+#: src/components/segment/form_leaf.tsx:203
+#: src/components/segment/form_leaf.tsx:540
+#: src/components/segment/form_leaf.tsx:788
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:40
 msgid "When"
 msgstr "日時"
@@ -25375,7 +25884,7 @@ msgstr "ブログへのリンクが共有されたとき"
 msgid "When a link to the category is shared"
 msgstr "カテゴリへのリンクが共有されたとき"
 
-#: src/components/blog/PostDrawer.tsx:1000
+#: src/components/blog/PostDrawer.tsx:1006
 msgid "When a link to the post is shared"
 msgstr "記事へのリンクが共有されたとき"
 
@@ -25443,6 +25952,18 @@ msgstr "そのいずれかがセッションにも一致すると、その値が
 msgid "When one of them also matches a session, this rule's value is not written."
 msgstr "そのいずれかがセッションにも一致すると、このルールの値は書き込まれません。"
 
+#: src/components/segment/segmentLabels.ts:54
+msgid "When the contact was created"
+msgstr "コンタクトの作成日時"
+
+#: src/components/segment/segmentLabels.ts:55
+msgid "When the contact was last changed"
+msgstr "コンタクトの最終更新日時"
+
+#: src/components/segment/segmentLabels.ts:59
+msgid "When the tracking consent last changed"
+msgstr "トラッキング同意が最後に変更された日時"
+
 #: src/components/broadcasts/compose/SendingCard.tsx:87
 msgid "When to send"
 msgstr "送信タイミング"
@@ -25451,6 +25972,10 @@ msgstr "送信タイミング"
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "ブロックを選択すると、その設定がここに表示されます。色、テキスト、間隔、配置、その他のプロパティを変更してメールデザインをカスタマイズできます。"
 
+#: src/components/segment/segmentLabels.ts:58
+msgid "Where the last tracking consent change came from"
+msgstr "トラッキング同意の最後の変更元"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:756
 msgid "Where your Mailgun account is hosted"
 msgstr "Mailgun アカウントのホスト先"
@@ -25458,6 +25983,14 @@ msgstr "Mailgun アカウントのホスト先"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:426
 msgid "Where your verified identities are"
 msgstr "検証済み ID があるリージョン"
+
+#: src/components/segment/segmentLabels.ts:57
+msgid "Whether the contact agreed to click tracking"
+msgstr "コンタクトがクリックのトラッキングに同意したか"
+
+#: src/components/segment/segmentLabels.ts:56
+msgid "Whether the contact agreed to open tracking"
+msgstr "コンタクトが開封のトラッキングに同意したか"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:472
 msgid "Which acquisition channels and campaigns brought the most sessions this period, and which ones grew or shrank?"
@@ -25578,8 +26111,7 @@ msgstr "ゴールあり"
 #~ msgid "With Errors"
 #~ msgstr "エラーあり"
 
-#: src/components/segment/form_leaf.tsx:654
-#: src/components/segment/input.tsx:871
+#: src/components/segment/ConditionSentence.tsx:262
 msgid "with filters"
 msgstr "フィルター付き"
 
@@ -25591,8 +26123,7 @@ msgstr "条件がないため、このルールはすべての訪問に一致し
 msgid "With no condition, this rule runs on every session."
 msgstr "条件がないため、このルールはすべてのセッションで実行されます。"
 
-#: src/components/segment/form_leaf.tsx:1004
-#: src/components/segment/input.tsx:737
+#: src/components/segment/ConditionSentence.tsx:308
 msgid "with properties"
 msgstr "プロパティ付き"
 
@@ -25600,8 +26131,8 @@ msgstr "プロパティ付き"
 #~ msgid "With stats"
 #~ msgstr "統計あり"
 
-#: src/components/segment/form_leaf.tsx:271
-#: src/components/segment/input.tsx:595
+#: src/components/segment/ConditionSentence.tsx:204
+#: src/components/segment/form_leaf.tsx:416
 msgid "with status"
 msgstr "ステータス付き"
 
@@ -25626,7 +26157,7 @@ msgstr "リストを選ばない場合、テストメールには有効な配信
 msgid "Without its own text, this language receives the automatic version."
 msgstr "独自のテキストがない場合、この言語には自動版が送信されます。"
 
-#: src/components/blog/PostDrawer.tsx:1102
+#: src/components/blog/PostDrawer.tsx:1108
 msgid "Words"
 msgstr "単語数"
 
@@ -25741,7 +26272,7 @@ msgstr "ラッパー属性"
 #~ msgid "Wrapper Attributes"
 #~ msgstr "ラッパー属性"
 
-#: src/components/blog/PostDrawer.tsx:844
+#: src/components/blog/PostDrawer.tsx:850
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -25790,7 +26321,7 @@ msgstr "年次"
 
 #: src/components/automations/edges/edgeLabel.ts:33
 #: src/components/blog/PostDrawer.tsx:306
-#: src/components/blog/PostDrawer.tsx:580
+#: src/components/blog/PostDrawer.tsx:586
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/useBroadcastActions.tsx:199
 #: src/components/contacts/ContactUpsertDrawer.tsx:559
@@ -25954,7 +26485,7 @@ msgstr "Webアナリティクスの書き込み権限がありません"
 msgid "You have unsaved changes."
 msgstr "保存されていない変更があります。"
 
-#: src/components/blog/PostDrawer.tsx:579
+#: src/components/blog/PostDrawer.tsx:585
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "未保存の変更があります。このドロワーを閉じてもよろしいですか？"
 

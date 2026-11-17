@@ -24,8 +24,18 @@ vi.mock('../context', () => ({
 // The tree editor is exercised by its own tests; here it only needs to be identifiable and
 // able to report a change back, so the panel's wiring is what gets asserted.
 vi.mock('../../segment/input', () => ({
-  TreeNodeInput: ({ onChange }: { onChange: (tree: TreeNode) => void }) => (
-    <button data-testid="tree-editor" onClick={() => onChange(contactsTree)}>
+  TreeNodeInput: ({
+    onChange,
+    jsonDateValues
+  }: {
+    onChange: (tree: TreeNode) => void
+    jsonDateValues?: boolean
+  }) => (
+    <button
+      data-testid="tree-editor"
+      data-json-date-values={String(jsonDateValues)}
+      onClick={() => onChange(contactsTree)}
+    >
       tree editor
     </button>
   )
@@ -162,6 +172,16 @@ describe('TriggerConfigForm entry conditions', () => {
 
     expect(screen.getByTestId('tree-editor')).toBeInTheDocument()
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  // Entry conditions compile into the trigger, whose casts never convert a JSON date: a filter
+  // comparing one would never match, so the editor does not offer it here.
+  it('keeps JSON date comparisons out of the entry conditions', async () => {
+    renderForm({ event_kind: 'contact.created', frequency: 'once' })
+
+    await userEvent.click(screen.getByText('Add entry conditions'))
+
+    expect(screen.getByTestId('tree-editor').getAttribute('data-json-date-values')).toBe('false')
   })
 
   it('emits the tree the editor reports', async () => {

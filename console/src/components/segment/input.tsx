@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { cloneDeep, forEach, get, set } from 'lodash'
+import { useEffect, useRef, useState } from 'react'
+import { cloneDeep, get, set } from 'lodash'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faPlus } from '@fortawesome/free-solid-svg-icons'
-import { Button, Select, Tag, Alert, Popconfirm, Cascader, Space, Popover, Flex } from 'antd'
+import { faPlus, faSitemap } from '@fortawesome/free-solid-svg-icons'
+import { Alert, Button, Dropdown, Popconfirm, Segmented, Tooltip } from 'antd'
+import type { MenuProps } from 'antd'
+import { msg } from '@lingui/core/macro'
+import type { MessageDescriptor } from '@lingui/core'
 import {
   EditingNodeLeaf,
-  FieldTypeRendererDictionary,
   DimensionFilter,
   TreeNode,
   TreeNodeBranch,
@@ -17,32 +19,17 @@ import {
   CustomEventsGoalCondition,
   BooleanOperator
 } from '../../services/api/segment'
-import type { CascaderProps } from 'antd'
-import dayjs from 'dayjs'
 import { useLingui } from '@lingui/react/macro'
 import { useQuery } from '@tanstack/react-query'
 import { templatesApi } from '../../services/api/template'
-
-// Format date for display (converts ISO8601 to readable format)
-const formatDateDisplay = (dateStr: string | undefined): string => {
-  if (!dateStr) return ''
-  return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss')
-}
-
-type CascaderOption = NonNullable<CascaderProps['options']>[number]
-import { FieldTypeString } from './type_string'
-import { FieldTypeTime } from './type_time'
 import {
   LeafActionForm,
   LeafContactForm,
   LeafContactListForm,
   LeafCustomEventsGoalForm
 } from './form_leaf'
-import { timelineChangesSchema } from './table_schemas'
-import { FieldTypeNumber } from './type_number'
-import { FieldTypeJSON } from './type_json'
-import styles from './input.module.css'
-import { timelineKindLabel } from './timelineKindLabels'
+import { ConditionIcon, type ConditionTone } from './conditionUi'
+import { ConditionSentence } from './ConditionSentence'
 
 // Defined in ./tree_completeness so pure callers can use it without importing this module,
 // which pulls in antd and the whole editor. Re-exported here for the existing importers.
@@ -65,35 +52,42 @@ export type TreeNodeInputProps = {
   // Reports the tree as it would stand if the condition currently open in the form were confirmed,
   // and undefined once no condition is open. Lets the drawer preview an in-progress condition.
   onDraftTreeChange?: (draftTree: TreeNode | undefined) => void
+  // Whether a value read out of a JSON column may be compared as a date. Automation triggers pass
+  // false: their conditions compile through casts that never convert a JSON date.
+  jsonDateValues?: boolean
 }
 
-const fieldTypeRendererDictionary: FieldTypeRendererDictionary = {
-  string: new FieldTypeString(),
-  time: new FieldTypeTime(),
-  number: new FieldTypeNumber(),
-  json: new FieldTypeJSON()
+// What each condition type is, in the add menu and above each saved condition.
+const SOURCE_TITLES: Record<string, MessageDescriptor> = {
+  contacts: msg`Contact property`,
+  contact_lists: msg`List subscription`,
+  contact_timeline: msg`Activity`,
+  custom_events_goals: msg`Goal`
 }
 
-// Helper function to get color class name
-const getColorClass = (colorID: number): string => {
-  return styles[`color${colorID}`] || ''
+const SOURCE_DESCRIPTIONS: Record<string, MessageDescriptor> = {
+  contacts: msg`Email, country, language, custom fields, tracking consent…`,
+  contact_lists: msg`Is or is not in a list, with a status`,
+  contact_timeline: msg`Emails sent, opened, clicked… pages viewed and website visits`,
+  custom_events_goals: msg`Purchases, sign-ups, leads… count them or add up their value`
 }
 
-// const typeIcon = css({
-//   width: '25px',
-//   textAlign: 'center',
-//   display: 'inline-block',
-//   marginRight: '1rem',
-//   fontSize: '9px',
-//   lineHeight: '23px',
-//   borderRadius: '3px',
-//   backgroundColor: '#eee',
-//   color: '#666'
-// })
+// The rail and the AND / OR pill of each nesting level, written whole for Tailwind.
+const DEPTH_STYLES = [
+  { rail: 'border-primary-300', pill: 'border-primary-300 text-primary-700' },
+  { rail: 'border-info-fg/30', pill: 'border-info-fg/30 text-info-fg' },
+  { rail: 'border-success-fg/30', pill: 'border-success-fg/30 text-success-fg' },
+  { rail: 'border-warning-fg/30', pill: 'border-warning-fg/30 text-warning-fg' }
+]
+
+const depthStyle = (depth: number) => DEPTH_STYLES[depth % DEPTH_STYLES.length]
 
 export const TreeNodeInput = (props: TreeNodeInputProps) => {
   const { t, i18n } = useLingui()
   const [editingNodeLeaf, setEditingNodeLeaf] = useState<EditingNodeLeaf | undefined>(undefined)
+  // The group whose add menu is open. Controlled: the button turns disabled as soon as a type is
+  // picked, and a disabled Dropdown left to itself stayed open over the editor.
+  const [openAddMenu, setOpenAddMenu] = useState<string | undefined>(undefined)
 
   const onDraftTreeChangeRef = useRef(props.onDraftTreeChange)
   onDraftTreeChangeRef.current = props.onDraftTreeChange
@@ -116,128 +110,27 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
   const { data: templatesData } = useQuery({
     queryKey: ['templates', props.workspaceId],
     queryFn: () => templatesApi.list({ workspace_id: props.workspaceId!, channel: 'email' }),
-    enabled: !!props.workspaceId && props.canReadTemplates !== false,
+    enabled: !!props.workspaceId && props.canReadTemplates !== false
   })
+  const templateName = (id: string) => templatesData?.templates?.find((tpl) => tpl.id === id)?.name
 
-  const cascaderOptions = useMemo(() => {
-    const options: CascaderOption[] = [
-      {
-        value: 'and',
-        label: (
-          <span>
-            <span
-              style={{
-                display: 'inline-block',
-                width: 18,
-                marginRight: 8,
-                textAlign: 'center',
-                fontWeight: 600
-              }}
-            >
-              L
-            </span>
-            {t`AND | OR`}
-          </span>
-        )
-      } // AND by default, user can switch to OR after
-    ]
+  const isEditing = !!editingNodeLeaf
 
-    forEach(props.schemas, (schema: TableSchema, tableName: string) => {
-      options.push({
-        value: tableName,
-        label: (
-          <span>
-            {schema.icon && (
-              <FontAwesomeIcon icon={schema.icon} style={{ width: 18, marginRight: 8 }} />
-            )}
-            {schema.title}
-          </span>
-        )
-      })
-    })
-
-    // forEach(props.schemas, (schema: CubeSchema, tableName: string) => {
-    //   const measures: any[] = []
-
-    //   // forEach(schema.measures, (measure, key) => {
-    //   //   if (measure.shown === false || measure.meta?.hide_from_segmentation === true) {
-    //   //     return
-    //   //   }
-
-    //   //   // consider count/count_distinct/sum/avg/max... as number type
-    //   //   const type = ['string', 'time', 'number'].includes(measure.type) ? measure.type : 'number'
-
-    //   //   measures.push({
-    //   //     value: key,
-    //   //     label: (
-    //   //       <Tooltip title={measure.description}>
-    //   //         <span className={typeIcon}>123</span>
-    //   //         {measure.title}
-    //   //       </Tooltip>
-    //   //     ),
-    //   //     type: type
-    //   //   })
-    //   // })
-
-    //   const dimensions: any[] = []
-
-    //   forEach(schema.dimensions, (dimension, key) => {
-    //     if (dimension.shown === false || dimension.meta?.hide_from_segmentation === true) {
-    //       return
-    //     }
-
-    //     let icon = <span className={typeIcon}>123</span>
-
-    //     switch (dimension.type) {
-    //       case 'string':
-    //         icon = <span className={typeIcon}>Abc</span>
-    //         break
-    //       case 'number':
-    //         if (key.indexOf('is_') !== -1) {
-    //           icon = <span className={typeIcon}>0/1</span>
-    //         }
-    //         break
-    //       case 'time':
-    //         icon = (
-    //           <span className={typeIcon}>
-    //             <FontAwesomeIcon icon={faCalendar} />
-    //           </span>
-    //         )
-    //         break
-    //       default:
-    //     }
-
-    //     dimensions.push({
-    //       value: key,
-    //       label: (
-    //         <Tooltip title={dimension.description}>
-    //           {icon} {dimension.title}
-    //         </Tooltip>
-    //       ),
-    //       type: dimension.type
-    //     })
-    //   })
-
-    //   options.push({
-    //     value: tableName,
-    //     label: <TableTag table={tableName} />,
-    //     children: [...measures, ...dimensions]
-    //   })
-    // })
-
-    return options
-  }, [props.schemas, t])
-
-  // borderColor incrementer
-  let currentColorID = 0
-  const getColorID = () => {
-    currentColorID++
-    return currentColorID
+  // Removes the condition at path[key] from a tree, in place.
+  const removeAt = (tree: TreeNode, path: string, key: number) => {
+    const target = get(tree, path)
+    if (target && target.length) {
+      set(
+        tree,
+        path,
+        target.filter((_x: TreeNode, i: number) => i !== key)
+      )
+    }
   }
 
+  // Cancel of the open condition: a new one goes, an existing one keeps its saved version. Also the
+  // delete of a condition or a group, which is only offered while nothing is open.
   const cancelOrDeleteNode = (path: string, key: number) => {
-    // console.log('path', path);
-    // console.log('key', key);
     const clonedTree = cloneDeep(props.value) as TreeNode
 
     // cancel if edit, and is not new
@@ -247,80 +140,50 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       return
     }
 
-    // condition is new, and not yet confirmed, we remove it from the tree
-    const target = get(clonedTree, path)
+    // condition is new and not yet confirmed, or a delete: it leaves the tree
+    removeAt(clonedTree, path, key)
 
-    if (target && target.length) {
-      set(
-        clonedTree,
-        path,
-        target.filter((_x: TreeNode, i: number) => i !== key)
-      )
-    }
-
-    // reset possible edit mode on current field
     if (editingNodeLeaf && editingNodeLeaf.path === path && editingNodeLeaf.key === key) {
       setEditingNodeLeaf(undefined)
     }
 
-    if (props.onChange) props.onChange(clonedTree)
+    props.onChange?.(clonedTree)
   }
 
-  const addTreeNode = (path: string, key: number, values: (string | number | null)[], selectedOptions: (CascaderOption | undefined)[]) => {
-    // console.log('values', values);
-    // console.log('selectedOptions', selectedOptions);
-    // console.log('path', path);
-    // console.log('key', key);
+  const addGroup = (path: string, key: number) => {
+    if (!props.value) return
+    const clonedTree = cloneDeep(props.value) as TreeNode
+    if (!clonedTree.branch) return
+
+    const node: TreeNode = {
+      kind: 'branch',
+      branch: { operator: 'and', leaves: [] } as TreeNodeBranch
+    }
+
+    if (path === '') {
+      clonedTree.branch.leaves.push(node)
+    } else {
+      get(clonedTree, path + '[' + key + ']').branch.leaves.push(node)
+    }
+
+    props.onChange?.(clonedTree)
+  }
+
+  const addCondition = (path: string, key: number, source: string) => {
     if (!props.value) return
 
     const clonedTree = cloneDeep(props.value) as TreeNode
     if (!clonedTree.branch) return
 
     const setPath = path + '[' + key + ']'
+    const leaf = { source } as TreeNodeLeaf
 
-    // Add branch
-    if (values[0] === 'and') {
-      const node: TreeNode = {
-        kind: 'branch',
-        branch: {
-          operator: 'and',
-          leaves: []
-        } as TreeNodeBranch
-      }
-
-      // node path, if non root
-      if (path === '') {
-        clonedTree.branch.leaves.push(node)
-      } else {
-        const target = get(clonedTree, setPath)
-        target.branch.leaves.push(node)
-      }
-
-      // console.log('tree is', JSON.stringify(clonedTree, undefined, 2))
-      props.onChange?.(clonedTree)
-      return
-    }
-
-    // Add leaf
-    const leaf = {
-      source: selectedOptions[0]?.value
-    } as TreeNodeLeaf
-
-    // Initialize based on source type
-    if (leaf.source === 'contact_lists') {
-      // Contact lists use ContactListCondition
-      leaf.contact_list = {
-        operator: 'in',
-        list_id: '',
-        status: undefined
-      }
-    } else if (leaf.source === 'contacts') {
-      // Contacts use ContactCondition
-      leaf.contact = {
-        filters: [] as DimensionFilter[]
-      }
-    } else if (leaf.source === 'custom_events_goals') {
-      // Custom events goals use CustomEventsGoalCondition
+    // The values each condition type starts with
+    if (source === 'contact_lists') {
+      leaf.contact_list = { operator: 'in', list_id: '', status: undefined }
+    } else if (source === 'contacts') {
+      leaf.contact = { filters: [] as DimensionFilter[] }
+    } else if (source === 'custom_events_goals') {
       leaf.custom_events_goal = {
         goal_type: '*', // All goal types by default
         negate: false, // "has", not "has not"
@@ -331,7 +194,6 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
         timeframe_values: []
       } as CustomEventsGoalCondition
     } else {
-      // Contact timeline uses ContactTimelineCondition
       leaf.contact_timeline = {
         kind: '',
         timeframe_operator: 'anytime',
@@ -342,36 +204,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       } as ContactTimelineCondition
     }
 
-    // console.log('leaf', leaf)
-
-    // // https://cube.dev/docs/product/apis-integrations/rest-api/query-format#filters-operators
-    // switch (selectedOptions[1].type) {
-    //   case 'string':
-    //     leaf.operator = 'equals'
-    //     leaf.string_values = []
-    //     break
-    //   case 'number':
-    //     leaf.operator = 'equals'
-    //     leaf.number_values = []
-    //     break
-    //   case 'time':
-    //     leaf.operator = 'beforeDate'
-    //     leaf.string_values = []
-    //     break
-    //   default: {
-    //     console.error('operator type ' + selectedOptions[1].type + ' is not implemented')
-    //     return
-    //   }
-    // }
-
-    const node: TreeNode = {
-      kind: 'leaf',
-      leaf: leaf
-    }
-
+    const node: TreeNode = { kind: 'leaf', leaf }
     let editingNodeKey = 0
 
-    // node path, if non root
     if (path === '') {
       clonedTree.branch.leaves.push(node)
       editingNodeKey = clonedTree.branch.leaves.length - 1
@@ -381,52 +216,35 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       editingNodeKey = target.branch.leaves.length - 1
     }
 
-    const editingNodeLeaf = Object.assign(
-      {
-        path: path === '' ? 'branch.leaves' : setPath + '.branch.leaves',
-        key: editingNodeKey,
-        is_new: true
-      },
-      node as object
-    ) as EditingNodeLeaf
+    setEditingNodeLeaf(
+      Object.assign(
+        {
+          path: path === '' ? 'branch.leaves' : setPath + '.branch.leaves',
+          key: editingNodeKey,
+          is_new: true
+        },
+        node as object
+      ) as EditingNodeLeaf
+    )
 
-    setEditingNodeLeaf(editingNodeLeaf)
-
-    // console.log('tree is', JSON.stringify(clonedTree, undefined, 2))
     props.onChange?.(clonedTree)
   }
 
-  const deleteButton = (path: string, pathKey: number, isBranch: boolean) => {
-    return (
-      <Popconfirm
-        placement="left"
-        title={isBranch ? t`Do you really want to remove this branch?` : t`Do you really want to remove this condition?`}
-        onConfirm={cancelOrDeleteNode.bind(null, path, pathKey)}
-        okText={t`Delete`}
-        okButtonProps={{ danger: true }}
-        cancelText={t`Cancel`}
-      >
-        <Button size="small">
-          <FontAwesomeIcon icon={faTrashCan} />
-        </Button>
-      </Popconfirm>
-    )
-  }
-
+  // Opens a saved condition. A new condition still open is dropped first rather than left behind as
+  // an empty leaf; it was appended last to its group, so the indexes of the others do not move.
   const editNode = (path: string, key: number) => {
     if (!props.value) return
+    if (editingNodeLeaf && editingNodeLeaf.path === path && editingNodeLeaf.key === key) return
 
-    const condition = get(props.value, path + '[' + key + ']')
+    let tree = props.value
+    if (editingNodeLeaf?.is_new) {
+      tree = cloneDeep(props.value) as TreeNode
+      removeAt(tree, editingNodeLeaf.path, editingNodeLeaf.key)
+      props.onChange?.(tree)
+    }
 
-    const editingNodeLeaf = Object.assign(
-      {
-        path: path,
-        key: key
-      },
-      condition
-    ) as EditingNodeLeaf
-
-    setEditingNodeLeaf(editingNodeLeaf)
+    const condition = get(tree, path + '[' + key + ']')
+    setEditingNodeLeaf(Object.assign({ path, key }, condition) as EditingNodeLeaf)
   }
 
   const changeBranchOperator = (path: string, pathKey: number, value: BooleanOperator) => {
@@ -439,578 +257,242 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       set(clonedTree, path + '[' + pathKey + '].branch.operator', value)
     }
 
-    // console.log('new tree', JSON.stringify(clonedTree, undefined, 2))
     props.onChange?.(clonedTree)
   }
 
   const onUpdateNode = (updatedNode: TreeNode, path: string, pathKey: number) => {
-    const fullPath = path + '[' + pathKey + ']'
-    // console.log('fullPath', fullPath)
-    // const condition = get(props.value, path + '[' + pathKey + ']')
-
     const clonedTree = cloneDeep(props.value) as TreeNode
-    set(clonedTree, fullPath, updatedNode)
-    console.log('tree is', JSON.stringify(clonedTree, undefined, 2))
+    set(clonedTree, path + '[' + pathKey + ']', updatedNode)
     props.onChange?.(clonedTree)
   }
 
-  const renderLeaf = (node: TreeNode, path: string, pathKey: number) => {
-    const isEditingCurrent =
-      editingNodeLeaf && editingNodeLeaf.path === path && editingNodeLeaf.key === pathKey
-        ? true
-        : false
+  const deleteButton = (path: string, pathKey: number, isBranch: boolean) => (
+    <Popconfirm
+      placement="left"
+      title={isBranch ? t`Do you really want to remove this group?` : t`Do you really want to remove this condition?`}
+      onConfirm={() => cancelOrDeleteNode(path, pathKey)}
+      okText={t`Delete`}
+      okButtonProps={{ danger: true }}
+      cancelText={t`Cancel`}
+    >
+      <Tooltip title={isBranch ? t`Remove this group` : t`Remove this condition`}>
+        <Button
+          type="text"
+          size="small"
+          aria-label={isBranch ? t`Remove this group` : t`Remove this condition`}
+          icon={<FontAwesomeIcon icon={faTrashCan} />}
+          onClick={(event) => event.stopPropagation()}
+        />
+      </Tooltip>
+    </Popconfirm>
+  )
 
-    const schema = props.schemas[node.leaf?.source as string]
+  const renderLeaf = (node: TreeNode, path: string, pathKey: number) => {
+    const isEditingCurrent = !!editingNodeLeaf && editingNodeLeaf.path === path && editingNodeLeaf.key === pathKey
+    const source = node.leaf?.source as string
+    const schema = props.schemas[source]
 
     if (!schema) {
       return (
-        <div className="py-4 pl-4">
-          <Flex gap="small" className="float-right">
-            {deleteButton(path, pathKey, false)}
-          </Flex>
-          <div>
-            <Alert type="error" title={t`source ${node.leaf?.source} not found`} />
-          </div>
+        <div className="flex items-start gap-3 rounded-lg border border-line bg-surface p-3">
+          <ConditionIcon tone="group" />
+          <Alert style={{ flex: 1 }} type="error" title={t`source ${source} not found`} />
+          {!isEditing && deleteButton(path, pathKey, false)}
         </div>
       )
     }
 
     if (isEditingCurrent && editingNodeLeaf) {
-      const isContactSource = node.leaf?.source === 'contacts'
-      const isContactListSource = node.leaf?.source === 'contact_lists'
-      const isCustomEventsGoalSource = node.leaf?.source === 'custom_events_goals'
-      const isContactTimelineSource = node.leaf?.source === 'contact_timeline'
+      const formProps = {
+        value: node,
+        onChange: (updatedLeaf: TreeNode) => onUpdateNode(updatedLeaf, path, pathKey),
+        onDraftChange: props.onDraftTreeChange
+          ? (draftLeaf: TreeNode) => onDraftLeafChange(draftLeaf, path, pathKey)
+          : undefined,
+        source,
+        schema,
+        editingNodeLeaf: editingNodeLeaf as EditingNodeLeaf,
+        setEditingNodeLeaf,
+        cancelOrDeleteNode: () => cancelOrDeleteNode(path, pathKey),
+        customFieldLabels: props.customFieldLabels,
+        jsonDateValues: props.jsonDateValues
+      }
 
+      if (source === 'contacts') return <LeafContactForm {...formProps} />
+      if (source === 'contact_lists') return <LeafContactListForm {...formProps} lists={props.lists || []} />
+      if (source === 'custom_events_goals') return <LeafCustomEventsGoalForm {...formProps} />
       return (
-        <div className="py-4 pl-4">
-          {isContactSource && (
-            <LeafContactForm
-              value={node}
-              onChange={(updatedLeaf: TreeNode) => {
-                onUpdateNode(updatedLeaf, path, pathKey)
-              }}
-              onDraftChange={(draftLeaf: TreeNode) => {
-                onDraftLeafChange(draftLeaf, path, pathKey)
-              }}
-              source={node.leaf?.source as string}
-              schema={schema}
-              editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
-              setEditingNodeLeaf={setEditingNodeLeaf}
-              cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
-              customFieldLabels={props.customFieldLabels}
-            />
-          )}
-          {isContactListSource && (
-            <LeafContactListForm
-              value={node}
-              onChange={(updatedLeaf: TreeNode) => {
-                onUpdateNode(updatedLeaf, path, pathKey)
-              }}
-              onDraftChange={(draftLeaf: TreeNode) => {
-                onDraftLeafChange(draftLeaf, path, pathKey)
-              }}
-              source={node.leaf?.source as string}
-              schema={schema}
-              editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
-              setEditingNodeLeaf={setEditingNodeLeaf}
-              cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
-              lists={props.lists || []}
-              customFieldLabels={props.customFieldLabels}
-            />
-          )}
-          {isCustomEventsGoalSource && (
-            <LeafCustomEventsGoalForm
-              value={node}
-              onChange={(updatedLeaf: TreeNode) => {
-                onUpdateNode(updatedLeaf, path, pathKey)
-              }}
-              onDraftChange={(draftLeaf: TreeNode) => {
-                onDraftLeafChange(draftLeaf, path, pathKey)
-              }}
-              source={node.leaf?.source as string}
-              schema={schema}
-              editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
-              setEditingNodeLeaf={setEditingNodeLeaf}
-              cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
-              customFieldLabels={props.customFieldLabels}
-            />
-          )}
-          {isContactTimelineSource && (
-            <LeafActionForm
-              value={node}
-              onChange={(updatedLeaf: TreeNode) => {
-                onUpdateNode(updatedLeaf, path, pathKey)
-              }}
-              onDraftChange={(draftLeaf: TreeNode) => {
-                onDraftLeafChange(draftLeaf, path, pathKey)
-              }}
-              source={node.leaf?.source as string}
-              schema={schema}
-              editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
-              setEditingNodeLeaf={setEditingNodeLeaf}
-              cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
-              customFieldLabels={props.customFieldLabels}
-              workspaceId={props.workspaceId}
-              canReadTemplates={props.canReadTemplates}
-            />
-          )}
-        </div>
+        <LeafActionForm {...formProps} workspaceId={props.workspaceId} canReadTemplates={props.canReadTemplates} />
       )
     }
 
-    // console.log('node', node)
-
-    // Special rendering for contact_lists
-    const isContactListSource = node.leaf?.source === 'contact_lists'
-    if (isContactListSource && node.leaf?.contact_list) {
-      const contactList = node.leaf.contact_list
-      const listName =
-        props.lists?.find((l) => l.id === contactList.list_id)?.name || contactList.list_id
-      const statusLabel =
-        schema.fields['status']?.options?.find((o) => o.value === contactList.status)?.label ||
-        contactList.status
-      const isInList = contactList.operator === 'in'
-
-      return (
-        <div style={{ lineHeight: '32px' }} className="py-4 pl-4">
-          <Flex gap="small" className="float-right">
-            {deleteButton(path, pathKey, false)}
-            <Button size="small" onClick={editNode.bind(null, path, pathKey)}>
-              <FontAwesomeIcon icon={faPenToSquare} />
-            </Button>
-          </Flex>
-
-          <div>
-            <Space style={{ alignItems: 'center' }}>
-              <Tag variant="filled" color="cyan">
-                {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
-                {t`List subscription`}
-              </Tag>
-              <span className="opacity-60">{isInList ? t`is in` : t`is not in`}</span>
-              <Tag variant="filled" color="green">
-                {listName}
-              </Tag>
-              {isInList && contactList.status && (
-                <>
-                  <span className="opacity-60">{t`with status`}</span>
-                  <Tag variant="filled" color="purple">
-                    {statusLabel}
-                  </Tag>
-                </>
-              )}
-            </Space>
-          </div>
-        </div>
-      )
-    }
-
-    // Special rendering for custom_events_goals
-    const isCustomEventsGoalSource = node.leaf?.source === 'custom_events_goals'
-    if (isCustomEventsGoalSource && node.leaf?.custom_events_goal) {
-      const goal = node.leaf.custom_events_goal
-      const goalTypeLabel =
-        schema.fields['goal_type']?.options?.find((o) => o.value === goal.goal_type)?.label ||
-        goal.goal_type
-      const aggregateLabel =
-        schema.fields['aggregate_operator']?.options?.find(
-          (o) => o.value === goal.aggregate_operator
-        )?.label || goal.aggregate_operator
-      const operatorLabel =
-        schema.fields['operator']?.options?.find((o) => o.value === goal.operator)?.label ||
-        goal.operator
-
-      return (
-        <div style={{ lineHeight: '32px' }} className="py-4 pl-4">
-          <Flex gap="small" className="float-right">
-            {deleteButton(path, pathKey, false)}
-            <Button size="small" onClick={editNode.bind(null, path, pathKey)}>
-              <FontAwesomeIcon icon={faPenToSquare} />
-            </Button>
-          </Flex>
-
-          <div>
-            <Space style={{ alignItems: 'start' }}>
-              <Tag variant="filled" color="cyan">
-                {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
-                {t`Goal`}
-              </Tag>
-              <div>
-                <div className="mb-2">
-                  <Space>
-                    <Tag variant="filled" color={goal.negate ? 'red' : 'blue'}>
-                      {goal.negate ? t`has not` : t`has`}
-                    </Tag>
-                    <span className="opacity-60">{t`goal type`}</span>
-                    <Tag variant="filled" color="blue">
-                      {goalTypeLabel}
-                    </Tag>
-                    {goal.goal_name && (
-                      <>
-                        <span className="opacity-60">{t`goal name`}</span>
-                        <Tag variant="filled" color="blue">
-                          {goal.goal_name}
-                        </Tag>
-                      </>
-                    )}
-                    {goal.event_name && (
-                      <>
-                        <span className="opacity-60">{t`event`}</span>
-                        <Tag variant="filled" color="blue">
-                          {goal.event_name}
-                        </Tag>
-                      </>
-                    )}
-                  </Space>
-                </div>
-                <div className="mb-2">
-                  <Space>
-                    <Tag variant="filled" color="blue">
-                      {aggregateLabel}
-                    </Tag>
-                    <span className="opacity-60">{t`is`}</span>
-                    <Tag variant="filled" color="blue">
-                      {operatorLabel}
-                    </Tag>
-                    <Tag variant="filled" color="blue">
-                      {goal.value}
-                    </Tag>
-                    {goal.operator === 'between' && goal.value_2 !== undefined && (
-                      <>
-                        <span className="opacity-60">{t`and`}</span>
-                        <Tag variant="filled" color="blue">
-                          {goal.value_2}
-                        </Tag>
-                      </>
-                    )}
-                  </Space>
-                </div>
-                <div>
-                  <Space>
-                    <span className="opacity-60">{t`timeframe`}</span>
-                    {goal.timeframe_operator === 'anytime' && (
-                      <Tag variant="filled" color="blue">
-                        {t`anytime`}
-                      </Tag>
-                    )}
-                    {goal.timeframe_operator === 'in_the_last_days' && (
-                      <>
-                        <span className="opacity-60">{t`in the last`}</span>
-                        <Tag variant="filled" color="blue">
-                          {goal.timeframe_values?.[0]}
-                        </Tag>
-                        <span className="opacity-60">{t`days`}</span>
-                      </>
-                    )}
-                    {goal.timeframe_operator === 'in_date_range' && (
-                      <>
-                        <span className="opacity-60">{t`between`}</span>
-                        <Tag variant="filled" color="blue">
-                          {formatDateDisplay(goal.timeframe_values?.[0])}
-                        </Tag>
-                        <span className="opacity-60">&rarr;</span>
-                        <Tag variant="filled" color="blue">
-                          {formatDateDisplay(goal.timeframe_values?.[1])}
-                        </Tag>
-                      </>
-                    )}
-                    {goal.timeframe_operator === 'before_date' && (
-                      <>
-                        <span className="opacity-60">{t`before`}</span>
-                        <Tag variant="filled" color="blue">
-                          {formatDateDisplay(goal.timeframe_values?.[0])}
-                        </Tag>
-                      </>
-                    )}
-                    {goal.timeframe_operator === 'after_date' && (
-                      <>
-                        <span className="opacity-60">{t`after`}</span>
-                        <Tag variant="filled" color="blue">
-                          {formatDateDisplay(goal.timeframe_values?.[0])}
-                        </Tag>
-                      </>
-                    )}
-                  </Space>
-                </div>
-                {goal.filters && goal.filters.length > 0 && (
-                  <div className="mt-2">
-                    <Space>
-                      <span className="opacity-60">{t`with properties`}</span>
-                      {goal.filters.map((filter, index) => (
-                        <Tag key={index} variant="filled" color="blue">
-                          {filter.field_name}
-                        </Tag>
-                      ))}
-                    </Space>
-                  </div>
-                )}
-              </div>
-            </Space>
-          </div>
-        </div>
-      )
-    }
-
-    // Determine filters based on source type
-    const isContactSource = node.leaf?.source === 'contacts'
-    const isContactTimelineSource = node.leaf?.source === 'contact_timeline'
-    const filtersToShow = isContactSource
-      ? node.leaf?.contact?.filters
-      : isContactTimelineSource
-        ? node.leaf?.contact_timeline?.filters
-        : undefined
-
+    const title = SOURCE_TITLES[source]
     return (
-      <div style={{ lineHeight: '32px' }} className="py-4 pl-4">
-        <Space.Compact className="float-right">
-          {deleteButton(path, pathKey, false)}
-          <Button size="small" onClick={editNode.bind(null, path, pathKey)}>
-            <FontAwesomeIcon icon={faPenToSquare} />
-          </Button>
-        </Space.Compact>
-
-        <div>
-          <Space style={{ alignItems: 'start' }}>
-            {isContactSource && (
-              <Tag variant="filled" color="cyan">
-                {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
-                {t`Contact property`}
-              </Tag>
-            )}
-            {isContactTimelineSource && (
-              <Tag variant="filled" color="cyan">
-                {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
-                {t`Activity`}
-              </Tag>
-            )}
-            <div>
-              {node.leaf?.contact_timeline && (
-                <>
-                  <div className="mb-2">
-                    <span className="opacity-60 pr-3">{t`type`}</span>
-                    <Tag variant="filled" color="blue">
-                      {timelineKindLabel(node.leaf?.contact_timeline.kind)
-                        ? i18n._(timelineKindLabel(node.leaf?.contact_timeline.kind)!)
-                        : null}
-                    </Tag>
-                  </div>
-                  {node.leaf?.contact_timeline?.template_id && (
-                    <div className="mb-2">
-                      <span className="opacity-60 pr-3">{t`template`}</span>
-                      <Tag variant="filled" color="blue">
-                        {templatesData?.templates?.find(
-                          (tpl) => tpl.id === node.leaf?.contact_timeline?.template_id
-                        )?.name || node.leaf?.contact_timeline?.template_id}
-                      </Tag>
-                    </div>
-                  )}
-                  <Space>
-                    <span className="opacity-60">{t`happened`}</span>
-                    <Tag variant="filled" color="blue">
-                      {node.leaf?.contact_timeline.count_operator === 'at_least' && t`at least`}
-                      {node.leaf?.contact_timeline.count_operator === 'at_most' && t`at most`}
-                      {node.leaf?.contact_timeline.count_operator === 'exactly' && t`exactly`}
-                    </Tag>
-                    <Tag variant="filled" color="blue">
-                      {node.leaf?.contact_timeline.count_value}
-                    </Tag>
-                    <span className="opacity-60">{t`times`}</span>
-                  </Space>
-
-                  <div className="mt-2">
-                    <Space>
-                      <span className="opacity-60">{t`timeframe`}</span>
-                      {node.leaf?.contact_timeline.timeframe_operator === 'anytime' && (
-                        <Tag variant="filled" color="blue">
-                          {t`anytime`}
-                        </Tag>
-                      )}
-                      {node.leaf?.contact_timeline.timeframe_operator === 'in_the_last_days' && (
-                        <>
-                          <span className="opacity-60">{t`in the last`}</span>
-                          <Tag variant="filled" color="blue">
-                            {node.leaf?.contact_timeline.timeframe_values?.[0]}
-                          </Tag>
-                          <span className="opacity-60">{t`days`}</span>
-                        </>
-                      )}
-                      {node.leaf?.contact_timeline.timeframe_operator === 'in_date_range' && (
-                        <>
-                          <span className="opacity-60">{t`between`}</span>
-                          <Tag variant="filled" color="blue">
-                            {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
-                          </Tag>
-                          &rarr;
-                          <Tag className="ml-3" variant="filled" color="blue">
-                            {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[1])}
-                          </Tag>
-                        </>
-                      )}
-                      {node.leaf?.contact_timeline.timeframe_operator === 'before_date' && (
-                        <>
-                          <span className="opacity-60">{t`before`}</span>
-                          <Tag variant="filled" color="blue">
-                            {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
-                          </Tag>
-                        </>
-                      )}
-                      {node.leaf?.contact_timeline.timeframe_operator === 'after_date' && (
-                        <>
-                          <span className="opacity-60">{t`after`}</span>
-                          <Tag variant="filled" color="blue">
-                            {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
-                          </Tag>
-                        </>
-                      )}
-                    </Space>
-                  </div>
-                </>
-              )}
-              {filtersToShow && filtersToShow.length > 0 && (
-                <Space style={{ alignItems: 'start' }}>
-                  {/* An activity's filters read as the editor words them; a contact's are the condition. */}
-                  {isContactTimelineSource ? <span className="opacity-60">{t`with filters`}</span> : null}
-                  <table>
-                    <tbody>
-                      {filtersToShow.map((filter, key) => {
-                        // Activity filters name keys of the event's `changes`
-                        // payload, not columns of contact_timeline, so they
-                        // resolve against the kind's schema. Falling back to the
-                        // table schema found no field at all and threw on the
-                        // first render of a saved web filter.
-                        const filterSchema =
-                          (node.leaf?.source === 'contact_timeline' &&
-                            timelineChangesSchema(node.leaf?.contact_timeline?.kind)) ||
-                          schema
-                        const field = filterSchema.fields[filter.field_name]
-                        // Use JSON renderer if filter has json_path, otherwise use the field_type renderer
-                        const rendererType =
-                          filter.json_path && filter.json_path.length > 0
-                            ? 'json'
-                            : filter.field_type
-                        const fieldTypeRenderer = fieldTypeRendererDictionary[rendererType]
-
-                        return (
-                          <tr key={key}>
-                            <td>
-                              {!fieldTypeRenderer && (
-                                <Alert
-                                  type="error"
-                                  title={t`type ${rendererType} is not implemented`}
-                                />
-                              )}
-                              {fieldTypeRenderer && (
-                                <Space key={key}>
-                                  <Popover
-                                    title={'field: ' + filter.field_name}
-                                    content={field?.description}
-                                  >
-                                    <b>
-                                      {props.customFieldLabels?.[filter.field_name] ||
-                                        field?.title ||
-                                        filter.field_name}
-                                    </b>
-                                  </Popover>
-                                  {fieldTypeRenderer.render(filter, field, props.customFieldLabels)}
-                                </Space>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </Space>
-              )}
-            </div>
-          </Space>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={t`Edit this condition`}
+        className="group flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-primary-300"
+        onClick={() => editNode(path, pathKey)}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            editNode(path, pathKey)
+          }
+        }}
+      >
+        <ConditionIcon tone={source as ConditionTone} icon={schema.icon} />
+        <div className="min-w-0 flex-1">
+          <div className="text-2xs text-ink-3">{title ? i18n._(title) : schema.title}</div>
+          <ConditionSentence
+            leaf={node.leaf as TreeNodeLeaf}
+            schemas={props.schemas}
+            lists={props.lists}
+            workspaceId={props.workspaceId}
+            customFieldLabels={props.customFieldLabels}
+            templateName={templateName}
+          />
+        </div>
+        <div className="flex shrink-0 gap-0.5">
+          <Tooltip title={t`Edit`}>
+            <Button
+              type="text"
+              size="small"
+              aria-label={t`Edit`}
+              icon={<FontAwesomeIcon icon={faPenToSquare} />}
+              onClick={(event) => {
+                event.stopPropagation()
+                editNode(path, pathKey)
+              }}
+            />
+          </Tooltip>
+          {!isEditing && deleteButton(path, pathKey, false)}
         </div>
       </div>
     )
   }
 
-  const renderBranch = (node: TreeNode, path: string, pathKey: number) => {
+  const addMenu = (path: string, pathKey: number): MenuProps => ({
+    items: Object.keys(props.schemas).map((source) => {
+      const schema = props.schemas[source]
+      const title = SOURCE_TITLES[source]
+      const description = SOURCE_DESCRIPTIONS[source]
+      return {
+        key: source,
+        label: (
+          <span className="flex max-w-80 items-start gap-2.5 py-1">
+            <ConditionIcon tone={source as ConditionTone} icon={schema.icon} />
+            <span>
+              <span className="block font-semibold text-ink">{title ? i18n._(title) : schema.title}</span>
+              <span className="block text-xs whitespace-normal text-ink-3">
+                {description ? i18n._(description) : schema.description}
+              </span>
+            </span>
+          </span>
+        )
+      }
+    }),
+    onClick: ({ key }) => {
+      setOpenAddMenu(undefined)
+      addCondition(path, pathKey, key)
+    }
+  })
+
+  const renderBranch = (node: TreeNode, path: string, pathKey: number, depth: number) => {
     if (!node.branch) return <span>{t`A branch condition is required...`}</span>
 
     const conditionPath = path === '' ? 'branch.leaves' : path + '[' + pathKey + '].branch.leaves'
-    // console.log('conditionPath', conditionPath)
-    const isEditing = editingNodeLeaf ? true : false
-    const borderColorID = getColorID()
+    const isRoot = path === ''
+    const style = depthStyle(depth)
+    const operatorLabel = node.branch.operator === 'or' ? t`OR` : t`AND`
 
-    const colorClass = getColorClass(borderColorID)
+    const operatorControl = (
+      <Segmented<BooleanOperator>
+        size="small"
+        value={node.branch.operator}
+        onChange={(value) => changeBranchOperator(path, pathKey, value)}
+        options={[
+          { value: 'and', label: t`all` },
+          { value: 'or', label: t`at least one` }
+        ]}
+      />
+    )
 
     return (
-      <div className={styles.self}>
-        <div className={`${styles.inputGroup} ${colorClass}`}>
-          {/* DELETE GROUP BUTTON */}
-          {path !== '' && !isEditing && (
-            <Flex gap="small" className="float-right">
-              {deleteButton(path, pathKey, true)}
-            </Flex>
+      <div
+        className={
+          isRoot
+            ? 'flex flex-col'
+            : `flex flex-col rounded-r-lg border-l-2 bg-subtle py-2.5 pr-3 pl-4 ${style.rail}`
+        }
+      >
+        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-ink-2">
+          {isRoot ? (
+            <>
+              <span>{t`Contacts matching`}</span>
+              {operatorControl}
+              <span>{t`of the following conditions`}</span>
+            </>
+          ) : (
+            <>
+              <FontAwesomeIcon icon={faSitemap} className="text-ink-3" />
+              <span>{t`Group:`}</span>
+              {operatorControl}
+              <span>{t`of the conditions`}</span>
+              <span className="ml-auto">{!isEditing && deleteButton(path, pathKey, true)}</span>
+            </>
           )}
-          {/* SELECT GROUP AND OR */}
-          <Select
-            size="small"
-            className="mr-2"
-            style={{ width: '80px' }}
-            onChange={changeBranchOperator.bind(null, path, pathKey)}
-            value={node.branch.operator}
-          >
-            <Select.Option value="and">{t`ALL`}</Select.Option>
-            <Select.Option value="or">{t`ANY`}</Select.Option>
-          </Select>{' '}
-          <span className="opacity-60">{t`of the following conditions match:`}</span>
         </div>
 
-        {/* LOOP OVER CONDITIONS */}
-
-        {node.branch.leaves.map((leaf: TreeNode, i: number) => {
-          return (
-            <div key={i} className={styles.condition}>
-              <div className={`${styles.conditionSeparator} ${colorClass}`}></div>
-              {i !== 0 && (
-                <div className={`${styles.conditionOperatorAndOr} ${colorClass}`}>
-                  {node.branch?.operator}
-                </div>
-              )}
-
-              {/* recursive call to draw the tree */}
-              {leaf.leaf && renderLeaf(leaf, conditionPath, i)}
-              {leaf.branch && renderBranch(leaf, conditionPath, i)}
-            </div>
-          )
-        })}
-
-        {/* ADD CONDITION BUTTON */}
-
-        <div className={styles.condition}>
-          <div
-            className={`${styles.conditionSeparator} ${styles.conditionSeparatorHalf} ${colorClass}`}
-          ></div>
-          {node.branch.leaves.length > 0 && (
-            <div className={`${styles.conditionOperatorAndOr} ${colorClass}`}>
-              {node.branch.operator}
-            </div>
+        <div className={isRoot ? `border-l-2 pl-4 ${style.rail}` : undefined}>
+          {node.branch.leaves.length === 0 && !isRoot && (
+            <div className="mb-2 text-xs text-ink-3">{t`Empty: add a condition or a subgroup.`}</div>
           )}
 
-          <div className="py-4">
-            <Cascader
-              defaultValue={undefined}
-              value={undefined}
-              popupClassName={styles.cascaderWide}
-              onChange={addTreeNode.bind(null, path, pathKey)}
-              expandTrigger="hover"
-              options={cascaderOptions}
+          {node.branch.leaves.map((leaf: TreeNode, i: number) => (
+            <div key={i}>
+              {i > 0 && (
+                <div className="-ml-7 my-1.5 flex">
+                  <span
+                    className={`rounded-full border bg-surface px-1.5 text-overline font-semibold tracking-wide ${style.pill}`}
+                  >
+                    {operatorLabel}
+                  </span>
+                </div>
+              )}
+              {leaf.leaf && renderLeaf(leaf, conditionPath, i)}
+              {leaf.branch && renderBranch(leaf, conditionPath, i, depth + 1)}
+            </div>
+          ))}
+
+          <div className="mt-2.5 flex gap-2">
+            <Dropdown
+              menu={addMenu(path, pathKey)}
+              trigger={['click']}
+              disabled={isEditing}
+              open={!isEditing && openAddMenu === conditionPath}
+              onOpenChange={(open) => setOpenAddMenu(open ? conditionPath : undefined)}
             >
               <Button
                 size="small"
                 type="primary"
                 ghost={node.branch.leaves.length > 0}
-                disabled={editingNodeLeaf ? true : false}
+                disabled={isEditing}
+                icon={<FontAwesomeIcon icon={faPlus} />}
               >
-                <FontAwesomeIcon icon={faPlus} />
-                &nbsp; {t`Condition`}
+                {t`Condition`}
               </Button>
-            </Cascader>
+            </Dropdown>
+            <Button
+              size="small"
+              type="link"
+              disabled={isEditing}
+              icon={<FontAwesomeIcon icon={faSitemap} />}
+              onClick={() => addGroup(path, pathKey)}
+            >
+              {t`Group`}
+            </Button>
           </div>
         </div>
       </div>
@@ -1021,5 +503,5 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     return <span>{t`A value is required...`}</span>
   }
 
-  return <div className="pt-2">{renderBranch(props.value, '', 0)}</div>
+  return <div className="pt-2">{renderBranch(props.value, '', 0, 0)}</div>
 }
