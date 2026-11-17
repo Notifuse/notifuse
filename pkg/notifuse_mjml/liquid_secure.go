@@ -50,17 +50,34 @@ type SecureLiquidEngine struct {
 // One shared engine serves every workspace, hence room for many conditions.
 const maxParsedTemplates = 1024
 
-// newSecureLiquidEnv builds a liquidgo environment with the standard tags and the
-// resource limits (output length, work, assigns), shared by every engine constructor.
-func newSecureLiquidEnv(renderLength int) *liquid.Environment {
-	env := liquid.NewEnvironment()
-	tags.RegisterStandardTags(env)
-	env.SetDefaultResourceLimits(map[string]interface{}{
-		"render_length_limit": renderLength,
-		"render_score_limit":  DefaultMaxRenderScore,
-		"assign_score_limit":  DefaultMaxAssignScore,
-	})
+// secureLiquidConfig is the config of a liquidgo environment with the standard tags
+// and the resource limits (output length, work, assigns), shared by every engine
+// constructor.
+func secureLiquidConfig(renderLength int) liquid.EnvironmentConfig {
+	score, assign := DefaultMaxRenderScore, DefaultMaxAssignScore
+	return liquid.EnvironmentConfig{
+		Tags: tags.Standard(),
+		Limits: liquid.ResourceLimitsConfig{
+			RenderLengthLimit: &renderLength,
+			RenderScoreLimit:  &score,
+			AssignScoreLimit:  &assign,
+		},
+	}
+}
+
+// newLiquidEnv builds the liquidgo environment of config, which this package writes:
+// an error is a bug of the config, not of a template.
+func newLiquidEnv(config liquid.EnvironmentConfig) *liquid.Environment {
+	env, err := liquid.NewEnvironment(config)
+	if err != nil {
+		panic(fmt.Sprintf("liquid environment: %v", err))
+	}
 	return env
+}
+
+// newSecureLiquidEnv builds the environment of secureLiquidConfig.
+func newSecureLiquidEnv(renderLength int) *liquid.Environment {
+	return newLiquidEnv(secureLiquidConfig(renderLength))
 }
 
 // newSecureLiquidEngineWithRenderLength builds an engine with a custom render-length
@@ -76,8 +93,10 @@ func newSecureLiquidEngineWithRenderLength(renderLength int) *SecureLiquidEngine
 // the email. {{ value | raw }} writes HTML on purpose (a feed that holds HTML),
 // and an output escaped by escape or escape_once is not escaped again.
 func newSecureHTMLLiquidEngine() *SecureLiquidEngine {
+	config := secureLiquidConfig(DefaultMaxRenderLength)
+	config.OutputEscape = true
 	engine := NewSecureLiquidEngine()
-	engine.env.SetOutputEscape(true)
+	engine.env = newLiquidEnv(config)
 	return engine
 }
 
@@ -270,11 +289,11 @@ func ValidateLiquidSyntax(content string) (err error) {
 // newValidationLiquidEnv is the render environment where the tags that read a partial
 // from a file system fail to parse.
 func newValidationLiquidEnv() *liquid.Environment {
-	env := newSecureLiquidEnv(DefaultMaxRenderLength)
+	config := secureLiquidConfig(DefaultMaxRenderLength)
 	for _, name := range []string{"include", "render"} {
-		env.RegisterTag(name, tags.TagConstructor(func(tagName, _ string, _ liquid.ParseContextInterface) (liquid.Node, error) {
+		config.Tags[name] = tags.TagConstructor(func(tagName, _ string, _ liquid.ParseContextInterface) (liquid.Node, error) {
 			return nil, fmt.Errorf("the %s tag is not supported", tagName)
-		}))
+		})
 	}
-	return env
+	return newLiquidEnv(config)
 }
