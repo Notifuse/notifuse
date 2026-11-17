@@ -128,6 +128,10 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: An automation set to run once per contact no longer starts twice when two events for the same contact arrive at the same time.
 
+- **Improvement**: An email event that the provider posts again, after a timeout or an error, is recorded once, so a soft bounce posted again counts once toward marking the contact bounced. Events recorded twice before the upgrade stay as they are.
+
+- **Fix**: Bounces and spam complaints sent by Postmark are applied; their webhook was refused.
+
 - **Improvement**: Building a segment takes the same time for each batch of contacts, however far the build has gone, instead of slowing down as it goes (#571). On a workspace with hundreds of thousands of contacts, the daily update of segments with relative dates no longer keeps the database busy for over an hour. Contacts created or deleted during a build no longer make it skip or repeat others.
 
 - **Security**: Liquid outputs (`{{ }}`, `echo`, `cycle`) in the HTML of emails are HTML-escaped, so a value of the data, such as a contact field filled in a public form, can no longer add markup or links to an email. Data meant to be HTML, such as a feed that holds an HTML block, needs the new `raw` filter: `{{ global_feed.html | raw }}`; so does a value written into CSS (`mj-style`, a `<style>`) or a script, for data you trust only. Outputs already escaped with `escape` are not escaped twice, also through `newline_to_br`, `strip` or `truncate`; the text of a `capture` is not escaped; the subject and the text version are not escaped. A filter that writes HTML from the data, such as `{{ bio | newline_to_br }}`, now shows its `<br />` as text: write `{{ bio | escape | newline_to_br }}`. Notifuse renders emails with safe-mjml v1.0.1, where escaped text placed between components can no longer become a component.
