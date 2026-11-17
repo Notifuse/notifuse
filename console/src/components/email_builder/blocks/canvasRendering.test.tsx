@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from 'vitest'
 import { render, createEvent, fireEvent, waitFor, act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MjTextBlock } from './MjTextBlock'
@@ -557,6 +557,24 @@ describe('editor canvas headings in a Text block', () => {
 })
 
 describe('editor canvas heading structure', () => {
+  // jsdom lays nothing out, and ranges have no rectangles there. ProseMirror reads
+  // them to scroll the selection into view once a selected block's editor focuses.
+  const rangeLayout = Range.prototype as Partial<Pick<Range, 'getClientRects' | 'getBoundingClientRect'>>
+  const originalRangeLayout = {
+    getClientRects: Object.getOwnPropertyDescriptor(Range.prototype, 'getClientRects'),
+    getBoundingClientRect: Object.getOwnPropertyDescriptor(Range.prototype, 'getBoundingClientRect')
+  }
+  beforeAll(() => {
+    rangeLayout.getClientRects = () => [] as unknown as DOMRectList
+    rangeLayout.getBoundingClientRect = () => new DOMRect(0, 0, 0, 0)
+  })
+  afterAll(() => {
+    for (const [name, descriptor] of Object.entries(originalRangeLayout)) {
+      if (descriptor) Object.defineProperty(Range.prototype, name, descriptor)
+      else delete (rangeLayout as Record<string, unknown>)[name]
+    }
+  })
+
   const textBlock = (id: string, content: string) =>
     ({ id, type: 'mj-text', attributes: {}, content }) as unknown as EmailBlock
   const emailWith = (...blocks: EmailBlock[]) =>
