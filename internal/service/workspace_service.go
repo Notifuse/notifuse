@@ -127,6 +127,22 @@ func (s *WorkspaceService) licensedWorkspaceQuota() int {
 	return s.entitlements.Entitlements().MaxWorkspaces
 }
 
+// UserOwnsAWorkspace reports whether the user holds the owner role in at least one workspace.
+// It reads memberships only: the root user owns every workspace without a membership row, so
+// callers check the root email first.
+func (s *WorkspaceService) UserOwnsAWorkspace(ctx context.Context, userID string) (bool, error) {
+	userWorkspaces, err := s.repo.GetUserWorkspaces(ctx, userID)
+	if err != nil {
+		return false, fmt.Errorf("failed to read the user's workspaces: %w", err)
+	}
+	for _, uw := range userWorkspaces {
+		if uw != nil && uw.Role == "owner" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // ListWorkspaces returns all workspaces for a user
 func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Workspace, error) {
 	user, err := s.authService.AuthenticateUserFromContext(ctx)

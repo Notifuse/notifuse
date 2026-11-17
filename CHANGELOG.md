@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [44.0] - unreleased
 
+- **Feature**: The workspace list tells the root user and workspace owners when a newer Notifuse version is available, with what each missing version brings and what to do before upgrading; a version that fixes a vulnerability is shown in red and cannot be dismissed. To know this, their console sends its version, its language and the licence (with the licensee's name and billing email for the root user) to `updates.notifuse.com`, at most once a day. `CHECK_FOR_UPDATES=false` turns it off, and an installation through the API that leaves `check_for_updates` out now turns it on, as the setup wizard does.
+
 - **Feature**: Emails sent by an automation can use the event that started the journey, as `{{ trigger_event }}`: a custom event's properties (`{{ trigger_event.properties.items }}`), the list or segment the contact joined, or the link clicked. Journeys that started before the upgrade have no event.
 
 - **Feature**: Creating a template starts from a gallery of 15 ready-made emails (verification code, receipt, order confirmation, abandoned cart, newsletter…) written in the workspace's language, from one of your templates, or from a blank email.

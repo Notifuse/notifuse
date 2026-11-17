@@ -564,7 +564,7 @@ export default function SetupWizard() {
                                   name="check_for_updates"
                                   valuePropName="checked"
                                   label={t`Check for Updates`}
-                                  tooltip={t`Periodically check for new Notifuse versions and security updates. A popup will list new versions available.`}
+                                  tooltip={t`Shows new Notifuse versions and security fixes on the workspace list.`}
                                 >
                                   <Switch />
                                 </Form.Item>

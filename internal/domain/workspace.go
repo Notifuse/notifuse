@@ -1285,6 +1285,10 @@ type WorkspaceServiceInterface interface {
 	CreateWorkspace(ctx context.Context, id, name, websiteURL, logoURL, coverURL, timezone string, fileManager FileManagerSettings, defaultLanguage string, languages []string) (*Workspace, error)
 	GetWorkspace(ctx context.Context, id string) (*Workspace, error)
 	ListWorkspaces(ctx context.Context) ([]*Workspace, error)
+	// UserOwnsAWorkspace reports whether the user holds the owner role in at least one workspace.
+	// It reads memberships only, so it says nothing about the root user, who owns every workspace
+	// without a membership row: callers check the root email first.
+	UserOwnsAWorkspace(ctx context.Context, userID string) (bool, error)
 	UpdateWorkspace(ctx context.Context, id, name string, settings WorkspaceSettings) (*Workspace, error)
 	DeleteWorkspace(ctx context.Context, id string) error
 	GetWorkspaceMembersWithEmail(ctx context.Context, id string) ([]*UserWorkspaceWithEmail, error)
