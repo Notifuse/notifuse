@@ -104,6 +104,20 @@ describe('AuditEntryDetail', () => {
     expect(screen.getByText(/"request_id": "req-1"/)).toBeInTheDocument()
   })
 
+  it('writes an object change as indented JSON that wraps inside a fixed-width table', async () => {
+    // On one unbroken line, an integration's old settings widened the drawer to ~5,000 px.
+    state.get.mockResolvedValue({
+      log: { ...log, changes: { email_provider: { old: { kind: 'smtp', senders: [] }, new: null } } }
+    })
+    renderDetail()
+    const changes = await screen.findByTestId('audit-changes')
+    expect(changes).toHaveClass('table-fixed')
+    const json = changes.querySelector('[data-change-json]') as HTMLElement
+    expect(json.tagName).toBe('PRE')
+    expect(json).toHaveClass('whitespace-pre-wrap')
+    expect(json.textContent).toBe('{\n  "kind": "smtp",\n  "senders": []\n}')
+  })
+
   it('copies a link with the entry and its scope', async () => {
     renderDetail({ scope: 'deployment' })
     fireEvent.click(await screen.findByRole('button', { name: /Copy link/ }))

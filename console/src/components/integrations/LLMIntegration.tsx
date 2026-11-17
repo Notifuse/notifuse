@@ -1,23 +1,13 @@
 import React, { useEffect } from 'react'
-import { AutoComplete, Form, Input, message, Select } from 'antd'
+import { App, AutoComplete, Form, Input, Select } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Integration, LLMProviderKind, Workspace } from '../../services/api/types'
 import { llmProviders } from './LLMProviders'
-
-// Available Anthropic models with pricing (input/output per million tokens)
-// Model IDs from: https://docs.anthropic.com/en/docs/about-claude/models/overview
-const anthropicModels = [
-  { value: 'claude-opus-4-6', label: 'Claude Opus 4.6 ($5/$25 per MTok)' },
-  { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 ($3/$15 per MTok)' },
-  { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 ($1/$5 per MTok)' }
-]
-
-// Suggested Gemini models with pricing (input/output per million tokens).
-// Free text is allowed, so any current/future model ID can be entered.
-// Pricing from: https://ai.google.dev/gemini-api/docs/pricing
-const geminiModels = [
-  { value: 'gemini-3.1-pro-preview', label: 'gemini-3.1-pro-preview ($2/$12 per MTok)' }
-]
+import { anthropicModels, geminiModels, OPENAI_DEFAULT_MODEL } from './llmModels'
+import { Panel } from '../layout'
+import { SettingsRow, SettingsRows } from '../settings/SettingsRow'
+import { useSecretPlaceholder } from '../settings/integrations/secrets'
+import { OptionalLabel, RequiredLabel } from '../settings/integrations/FieldLabel'
 
 interface LLMIntegrationProps {
   integration?: Integration
@@ -28,6 +18,10 @@ interface LLMIntegrationProps {
   formRef?: React.RefObject<{ submit: () => void } | null>
 }
 
+const filterByValue = (inputValue: string, option?: { value?: string }) =>
+  (option?.value ?? '').toLowerCase().includes(inputValue.toLowerCase())
+
+/** The rows of an AI assistant integration: its name, key and model. */
 export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
   integration,
   providerKind,
@@ -36,7 +30,9 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
   formRef
 }) => {
   const { t } = useLingui()
+  const { message } = App.useApp()
   const [form] = Form.useForm()
+  const secretPlaceholder = useSecretPlaceholder(integration)
 
   // Expose form instance to parent via ref
   useEffect(() => {
@@ -55,7 +51,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
         const provider = integration.llm_provider.openai
         form.setFieldsValue({
           name: integration.name,
-          model: provider.model || providerInfo?.defaultModel || 'gpt-4.1',
+          model: provider.model || providerInfo?.defaultModel || OPENAI_DEFAULT_MODEL,
           base_url: provider.base_url || '',
           // Always read it back so handleSave can resend it (UpdateIntegration
           // overwrites the whole settings object; an omitted field would be wiped).
@@ -64,7 +60,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
       } else {
         form.setFieldsValue({
           name: providerInfo?.name || 'OpenAI',
-          model: providerInfo?.defaultModel || 'gpt-4.1',
+          model: providerInfo?.defaultModel || OPENAI_DEFAULT_MODEL,
           base_url: '',
           reasoning_effort: ''
         })
@@ -124,7 +120,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
             openai: {
               api_key:
                 isString(values.api_key) && values.api_key !== '' ? values.api_key : undefined,
-              model: isString(values.model) ? values.model : 'gpt-4o',
+              model: isString(values.model) ? values.model : OPENAI_DEFAULT_MODEL,
               base_url:
                 isString(values.base_url) && values.base_url !== '' ? values.base_url : undefined,
               // Always send the explicit value (empty = provider default) so editing the
@@ -148,111 +144,143 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
 
       await onSave(integrationData)
     } catch (error) {
+      // The page reports a failed save itself (saveOtherIntegration), and a field that does not
+      // validate shows under the field: a toast here would be the second one.
       console.error('Failed to save LLM integration:', error)
-      message.error(t`Failed to save integration`)
     }
   }
 
+  const keyStored = Boolean(
+    integration?.credential_hints?.[`${providerKind}.api_key`] ||
+      integration?.llm_provider?.[providerKind]?.encrypted_api_key
+  )
+  const keyHelp: Record<LLMProviderKind, string | undefined> = {
+    anthropic: t`From console.anthropic.com`,
+    openai: t`From platform.openai.com, or your endpoint's own key`,
+    gemini: t`From Google AI Studio`
+  }
+  const keyExample: Record<LLMProviderKind, string> = {
+    anthropic: 'sk-ant-api03-...',
+    openai: 'sk-proj-...',
+    gemini: 'AIza...'
+  }
+
   return (
-    <Form form={form} layout="vertical" onFinish={handleSave} disabled={!isOwner}>
-      <Form.Item
-        label={t`Integration Name`}
-        name="name"
-        rules={[{ required: true, message: t`Please enter integration name` }]}
-      >
-        <Input
-          placeholder={
-            providerKind === 'openai'
-              ? t`e.g., My OpenAI Integration`
-              : providerKind === 'gemini'
-                ? t`e.g., My Google Gemini Integration`
-                : t`e.g., My Anthropic Integration`
-          }
-        />
-      </Form.Item>
-
-      <Form.Item
-        label={t`API Key`}
-        name="api_key"
-        extra={integration ? t`Leave blank to keep the existing API key` : undefined}
-        rules={
-          integration ? [] : [{ required: true, message: t`Please enter your API key` }]
-        }
-      >
-        <Input.Password
-          placeholder={
-            providerKind === 'openai'
-              ? 'sk-proj-...'
-              : providerKind === 'gemini'
-                ? 'AIza...'
-                : 'sk-ant-api03-...'
-          }
-        />
-      </Form.Item>
-
-      {providerKind === 'anthropic' && (
-        <Form.Item
-          label={t`Model`}
-          name="model"
-          rules={[{ required: true, message: t`Please select a model` }]}
-        >
-          <Select placeholder={t`Select a model`} options={anthropicModels} />
-        </Form.Item>
-      )}
-
-      {providerKind === 'openai' && (
-        <>
-          <Form.Item
-            label={t`Model`}
-            name="model"
-            rules={[{ required: true, message: t`Please enter a model name` }]}
+    <Form form={form} layout="vertical" component={false} onFinish={handleSave} disabled={!isOwner}>
+      <Panel title={t`Integration`}>
+        <SettingsRows>
+          <SettingsRow
+            label={<RequiredLabel>{t`Name`}</RequiredLabel>}
+            help={t`Shown in the assistant's model picker`}
+            htmlFor="name"
           >
-            <Input placeholder={t`gpt-4.1, gpt-5.4, o4-mini, or custom model name`} />
-          </Form.Item>
+            <Form.Item name="name" rules={[{ required: true, message: t`Please enter integration name` }]}>
+              <Input
+                placeholder={
+                  providerKind === 'openai'
+                    ? t`e.g., My OpenAI Integration`
+                    : providerKind === 'gemini'
+                      ? t`e.g., My Google Gemini Integration`
+                      : t`e.g., My Anthropic Integration`
+                }
+              />
+            </Form.Item>
+          </SettingsRow>
+        </SettingsRows>
+      </Panel>
 
-          <Form.Item
-            label={t`Base URL`}
-            name="base_url"
-            extra={t`Optional. For OpenAI-compatible providers (Ollama, vLLM, LiteLLM, Azure, etc.). Leave empty for the default OpenAI endpoint.`}
+      <Panel title={t`Model`}>
+        <SettingsRows>
+          <SettingsRow
+            label={integration ? t`API key` : <RequiredLabel>{t`API key`}</RequiredLabel>}
+            help={keyHelp[providerKind]}
+            htmlFor="api_key"
           >
-            <Input placeholder="https://api.openai.com/v1" />
-          </Form.Item>
+            <Form.Item
+              name="api_key"
+              extra={integration && keyStored ? t`Leave blank to keep the existing API key` : undefined}
+              rules={integration ? [] : [{ required: true, message: t`Please enter your API key` }]}
+            >
+              <Input.Password
+                autoComplete="new-password"
+                placeholder={secretPlaceholder(`${providerKind}.api_key`, keyStored, keyExample[providerKind])}
+              />
+            </Form.Item>
+          </SettingsRow>
 
-          <Form.Item
-            label={t`Reasoning effort`}
-            name="reasoning_effort"
-            extra={t`Optional. Controls how much reasoning models think. Leave as Default for non-reasoning models; some providers ignore it.`}
-          >
-            <Select
-              options={[
-                { value: '', label: t`Default` },
-                { value: 'none', label: t`None` },
-                { value: 'minimal', label: t`Minimal` },
-                { value: 'low', label: t`Low` },
-                { value: 'medium', label: t`Medium` },
-                { value: 'high', label: t`High` },
-                { value: 'xhigh', label: t`Extra high` }
-              ]}
-            />
-          </Form.Item>
-        </>
-      )}
+          {providerKind === 'anthropic' && (
+            <SettingsRow
+              label={<RequiredLabel>{t`Model`}</RequiredLabel>}
+              help={t`Pick one, or type any Anthropic model ID`}
+              htmlFor="model"
+            >
+              <Form.Item name="model" rules={[{ required: true, message: t`Please select or enter a model` }]}>
+                <AutoComplete options={anthropicModels} placeholder={t`Select a model`} filterOption={filterByValue} />
+              </Form.Item>
+            </SettingsRow>
+          )}
 
-      {providerKind === 'gemini' && (
-        <Form.Item
-          label={t`Model`}
-          name="model"
-          rules={[{ required: true, message: t`Please select or enter a model` }]}
-        >
-          <AutoComplete
-            options={geminiModels}
-            placeholder={t`gemini-3.1-pro-preview or a custom model ID`}
-            filterOption={(inputValue, option) =>
-              ((option?.value as string) ?? '').toLowerCase().includes(inputValue.toLowerCase())
-            }
-          />
-        </Form.Item>
-      )}
+          {providerKind === 'openai' && (
+            <>
+              <SettingsRow
+                label={<RequiredLabel>{t`Model`}</RequiredLabel>}
+                help={t`gpt-4.1, gpt-5.4, o4-mini, or the name your endpoint uses`}
+                htmlFor="model"
+              >
+                <Form.Item name="model" rules={[{ required: true, message: t`Please enter a model name` }]}>
+                  <Input placeholder={t`gpt-4.1, gpt-5.4, o4-mini, or custom model name`} />
+                </Form.Item>
+              </SettingsRow>
+
+              <SettingsRow
+                label={<OptionalLabel>{t`Base URL`}</OptionalLabel>}
+                help={t`For an OpenAI-compatible service (Ollama, vLLM, LiteLLM, Azure…). Empty: the OpenAI API`}
+                htmlFor="base_url"
+              >
+                <Form.Item name="base_url">
+                  <Input placeholder="https://api.openai.com/v1" />
+                </Form.Item>
+              </SettingsRow>
+
+              <SettingsRow
+                label={t`Reasoning effort`}
+                help={t`How much a reasoning model thinks. Default for other models; some providers ignore it`}
+                htmlFor="reasoning_effort"
+              >
+                <Form.Item name="reasoning_effort">
+                  <Select
+                    options={[
+                      { value: '', label: t`Default` },
+                      { value: 'none', label: t`None` },
+                      { value: 'minimal', label: t`Minimal` },
+                      { value: 'low', label: t`Low` },
+                      { value: 'medium', label: t`Medium` },
+                      { value: 'high', label: t`High` },
+                      { value: 'xhigh', label: t`Extra high` }
+                    ]}
+                  />
+                </Form.Item>
+              </SettingsRow>
+            </>
+          )}
+
+          {providerKind === 'gemini' && (
+            <SettingsRow
+              label={<RequiredLabel>{t`Model`}</RequiredLabel>}
+              help={t`Pick the suggestion, or type any Gemini model ID`}
+              htmlFor="model"
+            >
+              <Form.Item name="model" rules={[{ required: true, message: t`Please select or enter a model` }]}>
+                <AutoComplete
+                  options={geminiModels}
+                  placeholder={t`gemini-3.1-pro-preview or a custom model ID`}
+                  filterOption={filterByValue}
+                />
+              </Form.Item>
+            </SettingsRow>
+          )}
+        </SettingsRows>
+      </Panel>
     </Form>
   )
 }

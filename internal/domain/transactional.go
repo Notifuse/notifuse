@@ -101,8 +101,11 @@ type TransactionalNotificationCreateParams struct {
 
 // TransactionalNotificationUpdateParams contains the parameters for updating an existing transactional notification
 type TransactionalNotificationUpdateParams struct {
-	Name             string                         `json:"name,omitempty"`
-	Description      string                         `json:"description,omitempty"`
+	Name string `json:"name,omitempty"`
+	// Description is a pointer so an absent key (nil: unchanged) differs from an explicit ""
+	// (clears it). As a plain string, a console clearing the field sent "" and the service kept
+	// the old text while answering 200. A null counts as absent.
+	Description      *string                        `json:"description,omitempty"`
 	Channels         ChannelTemplates               `json:"channels,omitempty"`
 	TrackingSettings notifuse_mjml.TrackingSettings `json:"tracking_settings,omitempty"`
 	Metadata         MapOfAny                       `json:"metadata,omitempty"`
@@ -419,7 +422,7 @@ func (req *UpdateTransactionalRequest) Validate() error {
 	// than on content: a body that sends them emptied is asking for a change, and
 	// rejecting it as an empty update is the same blind spot as ignoring it.
 	if req.Updates.Name == "" &&
-		req.Updates.Description == "" &&
+		req.Updates.Description == nil &&
 		req.Updates.Channels == nil &&
 		req.Updates.Metadata == nil &&
 		!req.Updates.TrackingSettingsSpecified() {

@@ -113,6 +113,8 @@ export interface DashboardKpis {
     tone: KpiTone
     /** Emails left but no provider reported a delivery: the webhooks are missing. */
     noDeliveryEvents: boolean
+    /** Every email of the period went through a provider that reports no delivery (SMTP). */
+    notReported: boolean
   }
   openRate: RateKpi
   clickRate: RateKpi
@@ -126,6 +128,12 @@ export interface DashboardKpiInput {
   contactsNew?: number
   visits?: number
   previousVisits?: number
+  /**
+   * Whether the provider that sends the emails of an origin reports deliveries (SMTP does not).
+   * The delivered rate counts only those origins, as Logs shows "—" for the others. Every origin
+   * counts when it is left out.
+   */
+  reportsDelivery?: (origin: MessageOrigin) => boolean
 }
 
 function rateKpi(
@@ -162,7 +170,16 @@ export function computeDashboardKpis(input: DashboardKpiInput): DashboardKpis {
   const added = input.contactsNew ?? 0
   const bounceRate = ratio(total.bounced, total.sent)
   const complaintRate = ratio(total.complained, total.sent)
-  const noDeliveryEvents = total.sent > 0 && total.delivered === 0
+  // The delivered rate is read over the emails whose provider says when one is delivered: an
+  // SMTP provider never does, so its emails in the denominator only pulled the rate down (and any
+  // delivered_at on them comes from somewhere else than a provider, like the demo data).
+  const reported = sumSeries(
+    MESSAGE_ORIGINS.filter((origin) => input.reportsDelivery?.(origin) ?? true).map(
+      (origin) => input.series[origin]
+    )
+  )
+  const notReported = total.sent > 0 && reported.sent === 0
+  const noDeliveryEvents = reported.sent > 0 && reported.delivered === 0
 
   let visitsDelta: number | null = null
   if (input.visits !== undefined && input.previousVisits !== undefined && input.previousVisits > 0) {
@@ -182,11 +199,12 @@ export function computeDashboardKpis(input: DashboardKpiInput): DashboardKpis {
       broadcastShare: ratio(input.series.broadcast.sent, total.sent)
     },
     delivered: {
-      rate: noDeliveryEvents ? null : ratio(total.delivered, total.sent),
+      rate: noDeliveryEvents ? null : ratio(reported.delivered, reported.sent),
       bounceRate,
       complaintRate,
       tone: (bounceRate ?? 0) > BOUNCE_WARNING || (complaintRate ?? 0) > COMPLAINT_WARNING ? 'warning' : 'neutral',
-      noDeliveryEvents
+      noDeliveryEvents,
+      notReported
     },
     openRate: rateKpi(
       total.opened,

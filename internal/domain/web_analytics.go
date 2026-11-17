@@ -1481,6 +1481,9 @@ type WebAnalyticsBackfillStatus struct {
 	Progress     float64                    `json:"progress"`
 	State        *WebAnalyticsBackfillState `json:"state,omitempty"`
 	ErrorMessage string                     `json:"error_message,omitempty"`
+	// Cancelled tells a run someone stopped from a run that broke: the task
+	// system records both as failed.
+	Cancelled bool `json:"cancelled,omitempty"`
 }
 
 // WebAnalyticsService is consumed by the public /track handler (Track) and

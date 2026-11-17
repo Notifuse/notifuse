@@ -343,7 +343,7 @@ describe('AutomationsPage list', () => {
     renderPage()
     await screen.findByText('Tag trial users')
 
-    fireEvent.click(within(rowOf('Tag trial users')).getByRole('button', { name: 'Activate Automation' }))
+    fireEvent.click(within(rowOf('Tag trial users')).getByRole('button', { name: 'Activate automation' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Yes, activate' }))
     await waitFor(() => expect(activateMock).toHaveBeenCalledWith({ workspace_id: 'ws1', automation_id: 'paused' }))
     expect(await screen.findByText('column "plan" does not exist')).toBeInTheDocument()
@@ -354,7 +354,7 @@ describe('AutomationsPage list', () => {
     renderPage()
     await screen.findByText('Welcome series')
 
-    fireEvent.click(within(rowOf('Welcome series')).getByRole('button', { name: 'Pause Automation' }))
+    fireEvent.click(within(rowOf('Welcome series')).getByRole('button', { name: 'Pause automation' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Yes, pause' }))
     await waitFor(() => expect(pauseMock).toHaveBeenCalledWith({ workspace_id: 'ws1', automation_id: 'live' }))
   })
@@ -367,8 +367,8 @@ describe('AutomationsPage list', () => {
     fireEvent.click(within(rowOf('Welcome series')).getByRole('button', { name: 'More actions' }))
     const liveMenu = await screen.findByRole('menu')
     expect(within(liveMenu).queryByText('Edit Automation')).not.toBeInTheDocument()
-    expect(within(liveMenu).getByText('Delete Automation').closest('li')).toHaveAttribute('aria-disabled', 'true')
-    fireEvent.mouseOver(within(liveMenu).getByText('Delete Automation'))
+    expect(within(liveMenu).getByText('Delete automation').closest('li')).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.mouseOver(within(liveMenu).getByText('Delete automation'))
     expect(await screen.findByText('Pause the automation first')).toBeInTheDocument()
   })
 
@@ -382,7 +382,7 @@ describe('AutomationsPage list', () => {
     expect(within(menu).getByText('Edit Automation')).toBeInTheDocument()
     // No email step: no messages to see.
     expect(within(menu).queryByText('View messages')).not.toBeInTheDocument()
-    fireEvent.click(within(menu).getByText('Delete Automation'))
+    fireEvent.click(within(menu).getByText('Delete automation'))
     fireEvent.click(await screen.findByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(automationApi.delete).toHaveBeenCalledWith({ workspace_id: 'ws1', automation_id: 'paused' }))
   })

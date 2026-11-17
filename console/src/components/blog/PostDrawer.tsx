@@ -1,21 +1,10 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
+import { plural } from '@lingui/core/macro'
 import { useLingui } from '@lingui/react/macro'
-import {
-  Button,
-  Drawer,
-  Form,
-  Input,
-  App,
-  Select,
-  InputNumber,
-  Space,
-  Row,
-  Col,
-  Typography
-} from 'antd'
+import { Button, Form, Input, App, Select, InputNumber, Segmented, Space, Tooltip } from 'antd'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { debounce } from 'lodash'
-import { Undo, Redo } from 'lucide-react'
+import { ExternalLink, FileText, ImageOff, Lock, Undo, Redo } from 'lucide-react'
 import {
   blogPostsApi,
   blogCategoriesApi,
@@ -24,17 +13,25 @@ import {
   BlogAuthor
 } from '../../services/api/blog'
 import type { CreateBlogPostRequest, UpdateBlogPostRequest } from '../../services/api/blog'
-import { SEOSettingsForm } from '../seo/SEOSettingsForm'
+import { SearchEnginesCard, SocialShareCard } from '../seo/SeoCards'
+import { SeoPreview } from '../seo/SeoPreview'
+import { FullDrawer, Panel, Pill, useRelativeDate } from '../layout'
+import { blogBaseUrl } from './category/categorySeo'
+import { countWords, effectivePostSeo, type PostDraft } from './post/postSeo'
+import { PostChecks } from './post/PostChecks'
+import { usePostChecks } from './post/usePostChecks'
+import { postState } from './postState'
+import { docKey } from './post/docKey'
+import { defaultEditorStyles } from '../blog_editor/config/defaultEditorStyles'
 import { ImageURLInput } from '../common/ImageURLInput'
 import { templatesApi } from '../../services/api/template'
 import { ApiError } from '../../services/api/client'
 import { useTemplateConflictModal } from '../templates/useTemplateConflictModal'
-import { AuthorsTable } from './AuthorsTable'
+import { AuthorsField } from './AuthorsField'
 import {
   NotifuseEditor,
   type NotifuseEditorRef,
-  type TOCAnchor,
-  DEFAULT_INITIAL_CONTENT
+  type TOCAnchor
 } from '../blog_editor'
 import { jsonToHtml, extractTextContent } from './utils'
 import type { Workspace } from '../../services/api/types'
@@ -86,8 +83,8 @@ interface PostDrawerProps {
   initialCategoryId?: string | null
 }
 
-// The drawer header: 16px padding, the theme's 28px controls, 16px padding and its 1px rule.
-const HEADER_HEIGHT = 61
+/** Details first (title, category, tags), then the text: any step opens at any time. */
+type PostStep = 'details' | 'write'
 
 export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }: PostDrawerProps) {
   const { t } = useLingui()
@@ -98,7 +95,6 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   const isEditMode = !!post
   const [formTouched, setFormTouched] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [currentSlug, setCurrentSlug] = useState<string>('')
 
   // Blog content state (Tiptap JSON)
   const [blogContent, setBlogContent] = useState<TiptapNode | null>(null)
@@ -120,16 +116,23 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   // Last submitted form values, so the conflict dialog can re-submit ("overwrite").
   const lastValuesRef = useRef<PostFormValues | null>(null)
 
+  // The text as loaded, to tell an edit from the editor's own normalising.
+  const loadedDocRef = useRef<string | null>(null)
+  // Someone typed, clicked or pasted in the text since the editor (re)mounted.
+  const interactedRef = useRef(false)
+  // Read by the editor's change handler, which may hold an older render's closure.
+  const touchedRef = useRef(false)
+
   // Table of Contents state
   const [tableOfContents, setTableOfContents] = useState<TOCAnchor[]>([])
 
   // Editor key counter - increment to force editor remount when restoring draft
   const [editorKeyCounter, setEditorKeyCounter] = useState(0)
 
-  // Window width for responsive TOC display
-  const [windowWidth, setWindowWidth] = useState<number>(
-    typeof window !== 'undefined' ? window.innerWidth : 1920
-  )
+  const [step, setStep] = useState<PostStep>('details')
+  // A new post's slug follows its title until the slug is typed in.
+  const [slugEdited, setSlugEdited] = useState(false)
+  const relative = useRelativeDate()
 
   // localStorage key for drafts
   const draftKey = `blog-post-draft-${post?.id || 'new'}-${workspace.id}`
@@ -193,7 +196,14 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       debouncedLocalSave(tiptapNode)
     }
 
-    setFormTouched(true)
+    // The editor emits changes of its own as it loads a text (default attributes, the headings'
+    // table-of-contents ids, whatever an older editor or the API wrote differently): until someone
+    // types, clicks or pastes in it, what it emits is the text as loaded. After that, only a text
+    // that differs from it counts, so an untouched post opens without « Unsaved changes ».
+    if (touchedRef.current) return
+    const key = docKey(tiptapNode)
+    if (!interactedRef.current) loadedDocRef.current = key
+    else if (key !== loadedDocRef.current) setFormTouched(true)
   }
 
   // Handle Table of Contents updates
@@ -223,22 +233,26 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     }
   }
 
-  // Handle window resize for responsive TOC
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth)
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
   // Fetch categories for dropdown
   const { data: categoriesData } = useQuery({
     queryKey: ['blog-categories', workspace.id],
     queryFn: () => blogCategoriesApi.list(workspace.id),
     enabled: open
   })
+
+  // The authors of the latest posts, offered when one is added: a post's authors are typed per
+  // post, so this is how the blog's regular authors come back with their photo. Under the posts'
+  // key, so a saved post refreshes it.
+  const { data: recentPosts } = useQuery({
+    queryKey: ['blog-posts', workspace.id, 'authors'],
+    queryFn: () => blogPostsApi.list(workspace.id, { status: 'all', limit: 100 }),
+    enabled: open,
+    staleTime: 60_000
+  })
+  const knownAuthors = useMemo(
+    () => (recentPosts?.posts ?? []).flatMap((recent) => recent.settings.authors ?? []),
+    [recentPosts]
+  )
 
   // Fetch template for editing existing posts
   const { data: templateData, isLoading: templateLoading } = useQuery({
@@ -278,9 +292,6 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           seo: post.settings.seo
         })
 
-        // Set current slug
-        setCurrentSlug(post.slug)
-
         // Reset blog content to avoid showing stale data from previous post
         setBlogContent(null)
       } else {
@@ -295,16 +306,18 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               okText: t`Yes`,
               cancelText: t`No`,
               onOk: () => {
-                // Restore editor content
+                // Restore editor content: unsaved, so closing asks first
                 setBlogContent(content)
+                setFormTouched(true)
                 // Force editor remount with restored content
                 setEditorKeyCounter((prev) => prev + 1)
                 // Restore form values (title, excerpt, SEO, etc.)
                 if (formValues) {
                   form.setFieldsValue(formValues)
-                  if (formValues.slug) {
-                    setCurrentSlug(formValues.slug as string)
-                  }
+                  // 3. A slug of its own (not the title's) keeps being its own after the restore.
+                  const draftSlug = typeof formValues.slug === 'string' ? formValues.slug : ''
+                  const draftTitle = typeof formValues.title === 'string' ? formValues.title : ''
+                  if (draftSlug && draftSlug !== normalizeSlug(draftTitle)) setSlugEdited(true)
                 }
               },
               onCancel: () => localStorage.removeItem(draftKey)
@@ -322,10 +335,11 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           reading_time_minutes: 5,
           category_id: initialCategoryId || undefined
         })
-        setCurrentSlug('')
       }
       // Reset loading state when drawer opens
       setLoading(false)
+      setStep('details')
+      setSlugEdited(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, post?.id, form, draftKey, initialCategoryId, modal])
@@ -344,6 +358,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       templateData.template.version === post.settings.template.template_version
     ) {
       setBlogContent(templateData.template.web.content as TiptapNode)
+      loadedDocRef.current = docKey(templateData.template.web.content)
       // The editor now holds this exact revision; that's the base for the next save.
       baseVersionRef.current = templateData.template.version
     } else if (!templateLoading && post && !templateData?.template?.web?.content) {
@@ -372,6 +387,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       })
       baseVersionRef.current = latest.version
       setBlogContent((latest.web?.content as TiptapNode) ?? null)
+      loadedDocRef.current = docKey(latest.web?.content)
       setEditorKeyCounter((prev) => prev + 1)
     } catch {
       // Surface the failure and leave the editor untouched, so the user isn't misled into
@@ -516,27 +532,24 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     }
   })
 
-  // Get the selected category
-  const categoryId = Form.useWatch('category_id', form)
-  const selectedCategory = (categoriesData?.categories ?? []).find((cat) => cat.id === categoryId)
+  useEffect(() => {
+    touchedRef.current = formTouched
+  }, [formTouched])
 
-  // Build full URL for preview
-  const getFullPostUrl = () => {
-    const baseUrl =
-      workspace?.settings?.custom_endpoint_url || window.API_ENDPOINT || 'https://example.com'
-    const categorySlug = selectedCategory?.slug || 'category'
-    const postSlug = currentSlug || 'post-slug'
-
-    return `${baseUrl}/${categorySlug}/${postSlug}`
-  }
+  // The values as typed, for the bar, the checks and the previews. Drafts are set with
+  // setFieldsValue, which the watch follows; it answers undefined before the first render.
+  const watched = (Form.useWatch([], { form, preserve: true }) ?? {}) as Partial<PostFormValues>
+  const categories = categoriesData?.categories ?? []
+  const selectedCategory = categories.find((cat) => cat.id === watched.category_id)
+  // 2. The category the post is saved under: its public address until the change is saved.
+  const savedCategory = post ? categories.find((cat) => cat.id === post.category_id) : undefined
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isEditMode) return // Don't update slug in edit mode
+    if (isEditMode || slugEdited) return // The slug no longer follows the title
 
     const title = e.target.value
     const slug = normalizeSlug(title)
     form.setFieldsValue({ slug })
-    setCurrentSlug(slug)
   }
 
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -547,10 +560,16 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/[^a-z0-9-]/g, '-') // Replace non-allowed characters with hyphens
       .replace(/-+/g, '-') // Replace multiple consecutive hyphens with a single hyphen
-      .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+      .replace(/^-+/, '') // A slug starts with a letter or digit
+    // The trailing hyphen stays while typing (« my- » before « my-post »); leaving the field trims it.
 
-    setCurrentSlug(normalized)
+    setSlugEdited(true)
     form.setFieldsValue({ slug: normalized })
+  }
+
+  const handleSlugBlur = () => {
+    const slug = form.getFieldValue('slug')
+    if (typeof slug === 'string' && /-+$/.test(slug)) form.setFieldsValue({ slug: slug.replace(/-+$/, '') })
   }
 
   const handleClose = () => {
@@ -601,11 +620,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
     if (metadata.title !== undefined) {
       updates.title = metadata.title
-      // Also update slug for new posts
-      if (!isEditMode) {
+      // Also update slug for new posts, until it is typed in
+      if (!isEditMode && !slugEdited) {
         const newSlug = normalizeSlug(metadata.title)
         updates.slug = newSlug
-        setCurrentSlug(newSlug)
       }
     }
     if (metadata.excerpt !== undefined) updates.excerpt = metadata.excerpt
@@ -642,6 +660,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     )
 
     values.authors = authors
+    // The form has no indexing field (the theme writes the blog's robots tag, never a post's),
+    // and antd submits only the fields it shows: keep the one the post already has.
+    const robots = post?.settings.seo?.meta_robots
+    values.seo = { ...values.seo, ...(robots ? { meta_robots: robots } : {}) }
 
     if (isEditMode) {
       updateMutation.mutate(values)
@@ -650,184 +672,421 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     }
   }
 
-  return (
+  const editorKey = `editor-${post?.id || 'new'}-${post?.settings.template.template_id || 'no-template'}-${post?.settings.template.template_version || 0}-${editorKeyCounter}`
+  // Each mount of the editor starts untouched: what it emits first is the text as loaded.
+  useEffect(() => {
+    interactedRef.current = false
+  }, [editorKey])
+  // The editor reads its initial content once, when it mounts: not rebuilt on every keystroke.
+  const initialHtml = useMemo(
+    () => (blogContent ? jsonToHtml(blogContent) : ''),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on a mount, and when the text first arrives
+    [editorKey, blogContent === null]
+  )
+  const markInteracted = () => {
+    interactedRef.current = true
+  }
+
+  const draft: PostDraft = {
+    title: watched.title,
+    slug: watched.slug,
+    category_id: watched.category_id,
+    excerpt: watched.excerpt,
+    featured_image_url: watched.featured_image_url,
+    seo: watched.seo as PostDraft['seo']
+  }
+  const category = selectedCategory
+    ? { name: selectedCategory.settings.name, description: selectedCategory.settings.description, seo: selectedCategory.settings.seo }
+    : undefined
+  const defaults = { workspaceName: workspace.name, seo: workspace.settings.blog_settings?.seo }
+  const effective = effectivePostSeo(draft, category, defaults)
+  // What an empty field falls back to, for its placeholder.
+  const fallback = effectivePostSeo({ ...draft, seo: {} }, category, defaults)
+  const fallbackTitle = fallback.title
+  const fallbackShareTitle = fallback.ogTitle
+  const hasExcerpt = !!draft.excerpt?.trim()
+  const descriptionFallback = hasExcerpt
+    ? t`Defaults to the excerpt`
+    : fallback.description
+      ? t`Defaults to the category's or the blog's description`
+      : undefined
+  const imagePlaceholder = draft.featured_image_url?.trim()
+    ? t`Defaults to the featured image`
+    : fallback.ogImage
+      ? t`Defaults to the category's or the blog's share image`
+      : 'https://example.com/image.jpg'
+
+  const checks = usePostChecks(draft, effective)
+  const toCheck = checks.filter((check) => !check.ok).length
+  const words = useMemo(() => countWords(extractTextContent(blogContent)), [blogContent])
+
+  const baseUrl = blogBaseUrl(workspace.settings.custom_endpoint_url, window.API_ENDPOINT)
+  const domain = baseUrl.replace(/^https?:\/\//, '')
+  const categorySlug = selectedCategory?.slug ?? ''
+  const slug = draft.slug?.trim() ?? ''
+  const categoryFallback = t`category`
+  const state = post ? postState(post) : undefined
+  const saving = loading || createMutation.isPending || updateMutation.isPending
+
+  const showField = (path: string[]) => {
+    setStep('details')
+    // The Details step is shown on the next frame; its field can then take the focus.
+    window.requestAnimationFrame(() => {
+      form.scrollToField(path, { block: 'center', behavior: 'smooth' })
+      form.focusField(path)
+    })
+  }
+
+  const barTitle = (
     <>
-    <Drawer
-      title={isEditMode ? t`Edit Post` : t`Create New Post`}
-      size="100%"
-      rootClassName="app-drawer-instant"
-      onClose={handleClose}
-      open={open}
-      keyboard={false}
-      mask={{ closable: false }}
-      className="drawer-body-no-padding"
-      extra={
-        <div className="text-right">
-          <Space>
+      <span className="truncate text-sm font-semibold text-ink">
+        {draft.title?.trim() || (post ? post.settings.title : t`New post`)}
+      </span>
+      {!post ? (
+        <Pill tone="primary">{t`Not created`}</Pill>
+      ) : state === 'published' ? (
+        <Pill tone="success">{t`Published`}</Pill>
+      ) : state === 'scheduled' ? (
+        <Pill tone="info">{t`Scheduled`}</Pill>
+      ) : (
+        <Pill tone="neutral">{t`Draft`}</Pill>
+      )}
+      {formTouched ? (
+        <Pill tone="warning">{t`Unsaved changes`}</Pill>
+      ) : post ? (
+        <span className="shrink-0 text-xs text-ink-3">{t`Edited ${relative(post.updated_at)}`}</span>
+      ) : null}
+    </>
+  )
+
+  const stepLabel = (text: string, key: PostStep) => (
+    <span className="inline-flex items-center gap-1.5" data-step={key}>
+      {text}
+      {key === 'details' && toCheck > 0 ? (
+        <>
+          <span aria-hidden="true" className="size-1.5 rounded-full bg-warning-fg" data-step-checks />
+          <span className="sr-only">{t`(has checks left)`}</span>
+        </>
+      ) : null}
+    </span>
+  )
+
+  const topActions = (
+    <>
+      {step === 'write' ? (
+        <>
+          <Tooltip title={t`Undo`}>
             <Button
               type="text"
-              icon={<Undo size={16} />}
+              aria-label={t`Undo`}
+              icon={<Undo size={14} aria-hidden="true" />}
               onClick={() => editorRef.current?.undo()}
               disabled={!canUndo}
-              title={t`Undo`}
             />
+          </Tooltip>
+          <Tooltip title={t`Redo`}>
             <Button
               type="text"
-              icon={<Redo size={16} />}
+              aria-label={t`Redo`}
+              icon={<Redo size={14} aria-hidden="true" />}
               onClick={() => editorRef.current?.redo()}
               disabled={!canRedo}
-              title={t`Redo`}
             />
-            {/* add vertical separator */}
-            <div className="h-4 w-px bg-gray-200" />
-            <Button type="link" loading={loading} onClick={handleClose}>
-              {t`Cancel`}
-            </Button>
-            <Button
-              loading={loading || createMutation.isPending || updateMutation.isPending}
-              onClick={() => {
-                form.submit()
-              }}
-              type="primary"
-            >
-              {isEditMode ? t`Save` : t`Create`}
-            </Button>
-          </Space>
-        </div>
-      }
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={onFinish}
-        onFinishFailed={(info) => {
-          if (info.errorFields && info.errorFields.length > 0) {
-            message.error(t`Please check the form for errors.`)
-          }
-          setLoading(false)
-        }}
-        onValuesChange={(_, allValues) => {
-          setFormTouched(true)
-          // Auto-save form values along with content
-          debouncedLocalSave(blogContent, allValues)
-        }}
-        initialValues={{
-          authors: [],
-          reading_time_minutes: 5
-        }}
+          </Tooltip>
+        </>
+      ) : null}
+      {post && state === 'published' && savedCategory ? (
+        <Button
+          type="text"
+          icon={<ExternalLink size={14} aria-hidden="true" />}
+          href={`${baseUrl}/${savedCategory.slug}/${post.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t`View post`}
+        </Button>
+      ) : null}
+      <Button
+        type="primary"
+        loading={saving}
+        // An untouched post has nothing to save; a new one is created from the defaults.
+        disabled={isEditMode && !formTouched}
+        onClick={() => form.submit()}
       >
-        <div style={{ display: 'flex', height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
-          {/* Left Column: TOC + Title + Editor */}
-          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-            {/* TOC Sidebar - space always reserved on wide screens, content shown when available */}
-            {windowWidth >= 1400 && (
-              <aside
-                style={{
-                  width: '240px',
-                  overflow: 'auto',
-                  padding: '24px 32px',
-                  position: 'relative',
-                  marginTop: '90px',
-                  flexShrink: 0
-                }}
-              >
-                {tableOfContents.length > 0 ? (
-                  <>
-                    <div
-                      style={{
-                        position: 'sticky',
-                        top: 0,
-                        paddingBottom: '6px',
-                        marginBottom: '12px',
-                        borderBottom: '1px solid #f0f0f0'
-                      }}
+        {isEditMode ? t`Save changes` : t`Create post`}
+      </Button>
+    </>
+  )
+
+  const readingTime = watched.reading_time_minutes
+  const authorNames = ((watched.authors ?? []) as BlogAuthor[]).map((author) => author.name).filter(Boolean)
+
+  return (
+    <>
+      <FullDrawer
+        open={open}
+        onClose={handleClose}
+        backLabel={t`Blog`}
+        copyLink={false}
+        // Escape belongs to the editor (menus, links): closing by accident would lose the text.
+        keyboard={false}
+        push={false}
+        fill
+        ariaLabel={isEditMode ? t`Edit post` : t`New post`}
+        barTitle={barTitle}
+        barCenter={
+          <Segmented<PostStep>
+            value={step}
+            onChange={setStep}
+            aria-label={t`Steps`}
+            options={[
+              { value: 'details', label: stepLabel(t`Details`, 'details') },
+              { value: 'write', label: stepLabel(t`Write`, 'write') }
+            ]}
+          />
+        }
+        topActions={topActions}
+      >
+        <Form
+          form={form}
+          component={false}
+          layout="vertical"
+          onFinish={onFinish}
+          onFinishFailed={(info) => {
+            if (info.errorFields && info.errorFields.length > 0) {
+              message.error(t`Please check the form for errors.`)
+              // Every field is in Details: show the one to fix.
+              setStep('details')
+            }
+            setLoading(false)
+          }}
+          onValuesChange={(_, allValues) => {
+            setFormTouched(true)
+            // Auto-save form values along with content
+            debouncedLocalSave(blogContent, allValues)
+          }}
+          initialValues={{
+            authors: [],
+            reading_time_minutes: 5
+          }}
+        >
+          {/* Both steps stay mounted: the editor keeps its text and history, the form its fields. */}
+          <div data-post-step="details" hidden={step !== 'details'} className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-3 px-5 pt-4 pb-6 min-[1200px]:flex-row min-[1200px]:items-start">
+              <div className="flex min-w-0 flex-1 flex-col gap-3">
+                <Panel title={t`Post`} icon={<FileText size={14} aria-hidden="true" />}>
+                  <Form.Item
+                    name="title"
+                    label={t`Title`}
+                    rules={[
+                      { required: true, message: t`Please enter a post title` },
+                      { max: 500, message: t`Title must be less than 500 characters` }
+                    ]}
+                  >
+                    <Input placeholder={t`Post title`} onChange={handleTitleChange} />
+                  </Form.Item>
+                  <div className="grid grid-cols-[minmax(0,1fr)_160px] gap-x-3">
+                    <Form.Item
+                      name="category_id"
+                      label={t`Category`}
+                      rules={[{ required: true, message: t`Please select a category` }]}
                     >
-                      <Typography.Text strong style={{ fontSize: '13px' }}>
-                        {t`Table of Contents`}
-                      </Typography.Text>
+                      <Select
+                        placeholder={t`Select a category`}
+                        options={categories.map((cat) => ({
+                          label: cat.settings.name,
+                          value: cat.id
+                        }))}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="reading_time_minutes"
+                      label={t`Reading time`}
+                      rules={[{ required: true, message: t`Please enter reading time` }]}
+                    >
+                      <InputNumber style={{ width: '100%' }} min={1} max={120} suffix={t`min`} />
+                    </Form.Item>
+                  </div>
+                  <Form.Item
+                    name="slug"
+                    label={
+                      isEditMode ? (
+                        <span className="inline-flex items-center gap-1">
+                          {t`Slug`}
+                          <Lock size={12} aria-hidden="true" />
+                        </span>
+                      ) : (
+                        t`Slug`
+                      )
+                    }
+                    rules={[
+                      { required: true, message: t`Please enter a slug` },
+                      {
+                        pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+                        message: t`Slug must contain only lowercase letters, numbers, and hyphens`
+                      },
+                      { max: 100, message: t`Slug must be less than 100 characters` }
+                    ]}
+                    extra={
+                      isEditMode
+                        ? t`Fixed once created: links to the post may already be shared`
+                        : slugEdited
+                          ? t`Lowercase letters, numbers and hyphens`
+                          : t`Follows the title until you edit it`
+                    }
+                  >
+                    <Input
+                      prefix={<span className="text-ink-3">{`${domain}/${categorySlug || categoryFallback}/`}</span>}
+                      placeholder="post-slug"
+                      disabled={isEditMode}
+                      onChange={handleSlugChange}
+                      onBlur={handleSlugBlur}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="excerpt"
+                    label={t`Excerpt`}
+                    extra={t`Shown in post lists, and as the description when no meta description is set`}
+                  >
+                    <TextArea rows={3} placeholder={t`Brief summary of the post`} showCount maxLength={500} />
+                  </Form.Item>
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <Form.Item
+                        name="featured_image_url"
+                        label={t`Featured image`}
+                        extra={t`Also the share image when none is set`}
+                      >
+                        <ImageURLInput />
+                      </Form.Item>
                     </div>
-                    <nav>
-                      <ul style={{ listStyle: 'none', padding: '0 0 0 8px', margin: 0 }}>
-                        {tableOfContents.map((anchor) => (
-                          <li
-                            key={anchor.id}
-                            style={{
-                              marginBottom: '8px',
-                              paddingLeft: `${(anchor.level - 2) * 12}px`
-                            }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleTOCClick(anchor)}
-                              style={{
-                                all: 'unset',
-                                cursor: 'pointer',
-                                fontSize: anchor.level === 2 ? '13px' : '12px',
-                                fontWeight: anchor.level === 2 ? 500 : 400,
-                                color: anchor.isActive ? '#1677ff' : 'rgba(0, 0, 0, 0.65)',
-                                display: 'block',
-                                transition: 'color 0.15s ease-in-out',
-                                width: '100%',
-                                textAlign: 'left',
-                                padding: '4px 0',
-                                lineHeight: '1.4'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.color = '#1677ff'
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.color = anchor.isActive
-                                  ? '#1677ff'
-                                  : 'rgba(0, 0, 0, 0.65)'
-                              }}
-                            >
-                              {anchor.textContent}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </nav>
-                  </>
-                ) : null}
+                    <div className="mt-7 w-28 shrink-0">
+                      {draft.featured_image_url?.trim() ? (
+                        <img
+                          src={draft.featured_image_url}
+                          alt={t`Featured image`}
+                          className="aspect-[1.91/1] w-full rounded-sm border border-line object-cover"
+                        />
+                      ) : (
+                        <div className="flex aspect-[1.91/1] w-full items-center justify-center rounded-sm border border-dashed border-line bg-subtle text-ink-4">
+                          <ImageOff size={16} aria-label={t`No featured image`} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Form.Item
+                    name="authors"
+                    label={t`Authors`}
+                    required
+                    rules={[
+                      {
+                        required: true,
+                        message: t`Please add at least one author`,
+                        type: 'array',
+                        min: 1
+                      }
+                    ]}
+                  >
+                    <AuthorsField knownAuthors={knownAuthors} />
+                  </Form.Item>
+                </Panel>
+                <SearchEnginesCard
+                  hint={t`How the post appears in search results`}
+                  titlePlaceholder={t`Defaults to ${fallbackTitle}`}
+                  descriptionPlaceholder={descriptionFallback ?? t`Brief description for search results`}
+                  canonicalPlaceholder={`${baseUrl}/${categorySlug || categoryFallback}/${slug || 'post-slug'}`}
+                />
+                <SocialShareCard
+                  hint={t`When a link to the post is shared`}
+                  titlePlaceholder={t`Defaults to ${fallbackShareTitle}`}
+                  descriptionPlaceholder={descriptionFallback}
+                  imagePlaceholder={imagePlaceholder}
+                  image={effective.ogImage}
+                />
+              </div>
+              <aside className="flex shrink-0 flex-col gap-3 min-[1200px]:sticky min-[1200px]:top-4 min-[1200px]:w-aside">
+                <PostChecks checks={checks} onShowField={showField} />
+                <SeoPreview
+                  effective={effective}
+                  domain={domain}
+                  path={[categorySlug, slug]}
+                  iconUrl={workspace.settings.blog_settings?.icon_url || workspace.settings.logo_url || undefined}
+                />
               </aside>
-            )}
+            </div>
+          </div>
 
-            {/* Content Container - centered, max-width 768px */}
-            <div
-              style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center' }}
-              data-editor-container
-            >
-              <div style={{ width: '100%', maxWidth: '768px', padding: '24px' }}>
-                <Form.Item
-                  name="title"
-                  label={t`Title`}
-                  rules={[
-                    { required: true, message: t`Please enter a post title` },
-                    { max: 500, message: t`Title must be less than 500 characters` }
-                  ]}
-                  style={{ marginBottom: '16px' }}
-                >
-                  <Input placeholder={t`Post title`} onChange={handleTitleChange} size="large" />
-                </Form.Item>
+          <div
+            data-post-step="write"
+            hidden={step !== 'write'}
+            className="min-h-0 flex-1 overflow-y-auto bg-surface"
+            data-editor-container
+            // Someone at work in the text: from now on, a change is theirs.
+            onKeyDownCapture={markInteracted}
+            onPointerDownCapture={markInteracted}
+            onPasteCapture={markInteracted}
+            onDropCapture={markInteracted}
+          >
+            <div className="mx-auto grid max-w-[1320px] grid-cols-1 gap-6 px-6 pt-7 pb-10 min-[1400px]:grid-cols-[200px_minmax(0,1fr)_200px]">
+              <nav aria-label={t`Table of Contents`} className="hidden min-[1400px]:block">
+                {tableOfContents.length > 0 ? (
+                  <div className="sticky top-7 flex flex-col gap-1 pt-16">
+                    <span className="border-b border-line-soft pb-1.5 text-overline font-semibold tracking-[0.06em] text-ink-3 uppercase">
+                      {t`On this page`}
+                    </span>
+                    <ul className="m-0 flex list-none flex-col gap-0.5 p-0 pt-1">
+                      {tableOfContents.map((anchor) => (
+                        <li key={anchor.id} className={anchor.level > 2 ? 'pl-3' : undefined}>
+                          <button
+                            type="button"
+                            onClick={() => handleTOCClick(anchor)}
+                            className={`w-full cursor-pointer border-0 bg-transparent p-0 py-1 text-left ${
+                              anchor.level === 2 ? 'text-sm' : 'text-xs'
+                            } ${anchor.isActive ? 'font-medium text-primary-600' : 'text-ink-2 hover:text-ink'}`}
+                          >
+                            {anchor.textContent}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </nav>
 
+              <div className="mx-auto flex w-full max-w-[768px] min-w-0 flex-col">
+                {/* The title is set in Details; here it heads the text as readers will see it, on
+                    the editor's own 3rem margin so both start on the same line. */}
+                <div className="flex flex-col gap-2 px-12">
+                  <h1 className="m-0">
+                    <button
+                      type="button"
+                      onClick={() => showField(['title'])}
+                      title={t`Edit the title in Details`}
+                      // The editor's headings font: its CSS variable lives inside the editor only.
+                      style={{ fontFamily: defaultEditorStyles.headings.fontFamily }}
+                      className="notifuse-editor-post-title cursor-pointer border-0 bg-transparent p-0 text-left text-ink"
+                    >
+                      {draft.title?.trim() || <span className="text-ink-4">{t`Untitled post`}</span>}
+                    </button>
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
+                    {selectedCategory ? <Pill tone="neutral" dot={false}>{selectedCategory.settings.name}</Pill> : null}
+                    {authorNames.length > 0 ? <span>{authorNames.join(', ')}</span> : null}
+                    {readingTime ? <span>{t`${readingTime} min read`}</span> : null}
+                  </div>
+                </div>
                 {templateLoading || (post && !blogContent) ? (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex items-center justify-center py-16">
                     <Space orientation="vertical" align="center">
                       <div>{t`Loading template...`}</div>
                     </Space>
                   </div>
                 ) : (
                   <NotifuseEditor
-                    key={`editor-${post?.id || 'new'}-${post?.settings.template.template_id || 'no-template'}-${post?.settings.template.template_version || 0}-${editorKeyCounter}`}
+                    key={editorKey}
                     ref={editorRef}
                     placeholder={t`Start writing your blog post...`}
-                    initialContent={
-                      blogContent
-                        ? jsonToHtml(blogContent)
-                        : !post && import.meta.env.DEV
-                          ? DEFAULT_INITIAL_CONTENT
-                          : ''
-                    }
+                    initialContent={initialHtml}
                     disableH1={true}
                     showHeader={false}
                     onChange={handleContentChange}
@@ -835,110 +1094,39 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                   />
                 )}
               </div>
+
+              <aside aria-label={t`This post`} className="hidden min-[1400px]:block">
+                <div className="sticky top-7 flex flex-col gap-2 pt-16">
+                  <span className="text-overline font-semibold tracking-[0.06em] text-ink-3 uppercase">{t`This post`}</span>
+                  <div className="flex justify-between border-t border-line-soft pt-2 text-xs text-ink-2">
+                    <span>{t`Words`}</span>
+                    <span className="font-semibold text-ink tabular-nums">{words}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-line-soft pt-2 text-xs text-ink-2">
+                    <span>{t`Search and share`}</span>
+                    {toCheck > 0 ? (
+                      <Button type="link" size="small" onClick={() => setStep('details')}>
+                        {plural(toCheck, { one: '# to check', other: '# to check' })}
+                      </Button>
+                    ) : (
+                      <span className="font-semibold text-success-fg">{t`All set`}</span>
+                    )}
+                  </div>
+                </div>
+              </aside>
             </div>
           </div>
+        </Form>
 
-          {/* Right Column: Settings */}
-          <div
-            style={{
-              width: '450px',
-              maxWidth: '450px',
-              borderLeft: '1px solid #f0f0f0',
-              overflow: 'auto',
-              padding: '24px',
-              paddingBottom: '120px'
-            }}
-          >
-            <Form.Item
-              name="slug"
-              label={t`Slug`}
-              rules={[
-                { required: true, message: t`Please enter a slug` },
-                {
-                  pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-                  message: t`Slug must contain only lowercase letters, numbers, and hyphens`
-                },
-                { max: 100, message: t`Slug must be less than 100 characters` }
-              ]}
-              extra={getFullPostUrl()}
-            >
-              <Input placeholder="post-slug" disabled={isEditMode} onChange={handleSlugChange} />
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col span={16}>
-                <Form.Item
-                  name="category_id"
-                  label={t`Category`}
-                  rules={[{ required: true, message: t`Please select a category` }]}
-                >
-                  <Select
-                    placeholder={t`Select a category`}
-                    options={(categoriesData?.categories ?? []).map((cat) => ({
-                      label: cat.settings.name,
-                      value: cat.id
-                    }))}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item
-                  name="reading_time_minutes"
-                  label={t`Reading Time`}
-                  rules={[{ required: true, message: t`Please enter reading time` }]}
-                >
-                  <InputNumber style={{ width: '100%' }} min={1} max={120} suffix={t`min`} />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item
-              name="authors"
-              label={t`Authors`}
-              required
-              rules={[
-                {
-                  required: true,
-                  message: t`Please add at least one author`,
-                  type: 'array',
-                  min: 1
-                }
-              ]}
-            >
-              <AuthorsTable />
-            </Form.Item>
-
-            <Form.Item
-              name="excerpt"
-              label={t`Excerpt`}
-              extra={t`Brief summary shown in post listings and previews`}
-            >
-              <TextArea
-                rows={3}
-                placeholder={t`Brief summary of the post`}
-                showCount
-                maxLength={500}
-              />
-            </Form.Item>
-
-            <Form.Item name="featured_image_url" label={t`Featured Image URL`}>
-              <ImageURLInput />
-            </Form.Item>
-
-            <SEOSettingsForm namePrefix={['seo']} />
-          </div>
-        </div>
-      </Form>
-
-      <BlogAIAssistant
-        workspace={workspace}
-        onUpdateContent={handleAIUpdateContent}
-        onUpdateMetadata={handleAIUpdateMetadata}
-        currentContent={blogContent}
-        currentMetadata={getCurrentMetadata()}
-      />
-    </Drawer>
-    {conflictModal}
+        <BlogAIAssistant
+          workspace={workspace}
+          onUpdateContent={handleAIUpdateContent}
+          onUpdateMetadata={handleAIUpdateMetadata}
+          currentContent={blogContent}
+          currentMetadata={getCurrentMetadata()}
+        />
+      </FullDrawer>
+      {conflictModal}
     </>
   )
 }

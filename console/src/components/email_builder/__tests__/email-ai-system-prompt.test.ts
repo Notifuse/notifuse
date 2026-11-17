@@ -155,6 +155,16 @@ describe('EMAIL_AI_SYSTEM_PROMPT Liquid variables', () => {
     expect(liquid).toContain('Transactional API sends:')
   })
 
+  // An automation email gets the event that started the journey since 44.0 (V44Migration);
+  // without this line the assistant would invent payload fields or say none exist.
+  it('lists the trigger event of an automation, and says to guard it', () => {
+    const automations = group('Automations only:', 'Guard optional values:')
+    expect(automations).toContain('{{ trigger_event }}')
+    expect(automations).toContain('trigger_event.properties')
+    expect(automations).toMatch(/no trigger_event, so guard it/)
+    expect(automations).toContain('{{ automation_name }}')
+  })
+
   it('puts the list-only variables in the list-only group', () => {
     expect(listGroup).toContain('unsubscribe_url')
     expect(listGroup).toContain('confirm_subscription_url')

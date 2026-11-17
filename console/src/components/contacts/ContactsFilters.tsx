@@ -236,7 +236,7 @@ export function ContactsFilters({
         </Button>
       </Popover>
       {active.length > 0 || legacySegments.length > 0 || search.search ? (
-        <Button type="link" size="small" onClick={onClear}>
+        <Button type="link" onClick={onClear}>
           {t`Clear`}
         </Button>
       ) : null}

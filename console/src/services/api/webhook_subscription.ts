@@ -112,7 +112,8 @@ export interface TestWebhookResponse {
 }
 
 export interface GetDeliveriesResponse {
-  deliveries: WebhookDelivery[]
+  // null from servers before 44.0 when a page has no rows
+  deliveries: WebhookDelivery[] | null
   total: number
   limit: number
   offset: number

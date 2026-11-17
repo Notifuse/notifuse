@@ -3,9 +3,13 @@ import type { StorageObject } from './interfaces'
 // Pure functions over the items of a bucket (toStorageItems), shared by the file manager page and
 // the image picker. A folder is a key ending with "/", with or without a marker in the bucket.
 
-/** Folders first, then the newest first: the order of every list of the file manager. */
+/**
+ * Folders first, by name as the folder tree lists them, then files from the newest: the order of
+ * every list of the file manager.
+ */
 export const byFoldersThenNewest = (a: StorageObject, b: StorageObject): number => {
   if (a.is_folder !== b.is_folder) return a.is_folder ? -1 : 1
+  if (a.is_folder) return a.name.localeCompare(b.name)
   const left = a.last_modified ? new Date(a.last_modified).getTime() : 0
   const right = b.last_modified ? new Date(b.last_modified).getTime() : 0
   return right - left

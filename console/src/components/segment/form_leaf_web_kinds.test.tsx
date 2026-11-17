@@ -87,9 +87,9 @@ describe('Activity condition — web navigation kinds', () => {
     expect(screen.getByText('View web page')).toBeInTheDocument()
     expect(screen.getByText('Visit website')).toBeInTheDocument()
     // An existing kind must still be there — this Select is the only place a
-    // segment author can pick any of them. 'Click email' rather than the
-    // currently-selected 'Open email', whose label also renders in the control.
-    expect(screen.getByText('Click email')).toBeInTheDocument()
+    // segment author can pick any of them. 'Email clicked' rather than the
+    // currently-selected 'Email opened', whose label also renders in the control.
+    expect(screen.getByText('Email clicked')).toBeInTheDocument()
   })
 
   it('builds a condition on the raw kind the projection writes', async () => {
@@ -146,7 +146,7 @@ describe('Activity condition — web navigation kinds', () => {
     )
 
     openKindSelect()
-    fireEvent.click(screen.getByText('Open email'))
+    fireEvent.click(screen.getByText('Email opened'))
 
     await waitFor(() => {
       const timeline = lastDraft(onDraftChange).leaf?.contact_timeline

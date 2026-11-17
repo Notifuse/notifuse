@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
+    "demo-fixtures": "UPDATE_DEMO_FIXTURES=1 vitest run src/components/templates/gallery/demo",
     "bundle-liquid": "cp node_modules/liquidjs/dist/liquid.browser.umd.js ../pkg/liquid/liquid.bundle.js"
   },
   "dependencies": {

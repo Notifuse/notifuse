@@ -75,10 +75,11 @@ function FieldSection({
   const toItem = (field: FieldRow): KeyValueItem => ({
     key: field.key,
     label: field.label,
-    hint: field.hint,
     value: (
       <InlineEditableField
         hideLabel
+        // Under the value it describes, and gone while the field is edited.
+        hint={field.hint}
         fieldKey={field.key}
         fieldType={getFieldType(field.key)}
         label={field.label}

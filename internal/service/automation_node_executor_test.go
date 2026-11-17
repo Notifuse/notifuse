@@ -4568,3 +4568,80 @@ func TestListNodeExecutors_CancelledRunFailsTheStep(t *testing.T) {
 		})
 	}
 }
+
+// The event that started the journey, stored by the enrolment in the journey's context,
+// reaches the template as {{ trigger_event }}; a journey without one sends without it.
+func TestEmailNodeExecutor_Execute_PassesTheTriggerEvent(t *testing.T) {
+	cases := []struct {
+		name    string
+		context map[string]interface{}
+		want    map[string]interface{}
+	}{
+		{
+			name: "a custom event's properties",
+			context: map[string]interface{}{"trigger": map[string]interface{}{
+				"kind":       "custom_event.cart_abandoned",
+				"name":       "cart_abandoned",
+				"properties": map[string]interface{}{"items": []interface{}{map[string]interface{}{"name": "Linen shirt"}}},
+			}},
+			want: map[string]interface{}{
+				"kind":       "custom_event.cart_abandoned",
+				"name":       "cart_abandoned",
+				"properties": map[string]interface{}{"items": []interface{}{map[string]interface{}{"name": "Linen shirt"}}},
+			},
+		},
+		{name: "a journey that started before 44.0", context: map[string]interface{}{}, want: nil},
+		{name: "no context at all", context: nil, want: nil},
+		{name: "a trigger that is not an object", context: map[string]interface{}{"trigger": "oops"}, want: nil},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+			mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+			mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			mockListRepo := mocks.NewMockListRepository(ctrl)
+			mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+			mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+			executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, mockListRepo, mockContactListRepo, "https://api.example.com", mockLogger)
+
+			mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "ws1").Return(createTestWorkspaceWithEmailProvider(), nil)
+			mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).Return(createTestTemplate(), nil)
+
+			var data map[string]interface{}
+			mockEmailQueueRepo.EXPECT().
+				Enqueue(gomock.Any(), "ws1", gomock.Any()).
+				DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+					require.Len(t, entries, 1)
+					data = entries[0].Payload.TemplateData
+					return nil
+				})
+
+			_, err := executor.Execute(context.Background(), NodeExecutionParams{
+				WorkspaceID: "ws1",
+				Node: &domain.AutomationNode{
+					ID:         "email_node1",
+					Type:       domain.NodeTypeEmail,
+					NextNodeID: strPtr("next_node"),
+					Config:     map[string]interface{}{"template_id": "tpl123"},
+				},
+				Contact:     &domain.ContactAutomation{ID: "ca1", ContactEmail: "recipient@example.com", Context: tc.context},
+				ContactData: &domain.Contact{Email: "recipient@example.com"},
+				Automation:  &domain.Automation{ID: "auto1", Name: "Cart reminder"},
+			})
+			require.NoError(t, err)
+			require.NotNil(t, data)
+
+			assert.Equal(t, "auto1", data["automation_id"])
+			if tc.want == nil {
+				assert.NotContains(t, data, "trigger_event")
+				return
+			}
+			assert.Equal(t, tc.want, data["trigger_event"])
+		})
+	}
+}

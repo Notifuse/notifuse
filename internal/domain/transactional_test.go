@@ -158,7 +158,7 @@ func TestTransactionalNotificationUpdateParams(t *testing.T) {
 	// Test that the update params struct has all required fields
 	params := TransactionalNotificationUpdateParams{
 		Name:        "Updated Welcome Email",
-		Description: "Updated description",
+		Description: ptrString("Updated description"),
 		Channels: ChannelTemplates{
 			TransactionalChannelEmail: ChannelTemplate{
 				TemplateID: "template-456",
@@ -170,7 +170,8 @@ func TestTransactionalNotificationUpdateParams(t *testing.T) {
 
 	// Verify field values
 	assert.Equal(t, "Updated Welcome Email", params.Name)
-	assert.Equal(t, "Updated description", params.Description)
+	require.NotNil(t, params.Description)
+	assert.Equal(t, "Updated description", *params.Description)
 
 	assert.Equal(t, MapOfAny{"category": "updated"}, params.Metadata)
 
@@ -492,7 +493,7 @@ func TestUpdateTransactionalRequest_Validate(t *testing.T) {
 				ID:          "notification-456",
 				Updates: TransactionalNotificationUpdateParams{
 					Name:        "Updated Email",
-					Description: "Updated description",
+					Description: ptrString("Updated description"),
 				},
 			},
 			wantErr: false,
@@ -2024,5 +2025,59 @@ func TestTransactionalNotificationUpdateParams_TrackingSettingsSpecified(t *test
 		), &req))
 		assert.Equal(t, "Renamed", req.Updates.Name)
 		assert.Equal(t, "newsletter", req.Updates.TrackingSettings.UTMSource)
+	})
+}
+
+// A description is cleared by sending it empty, and left alone by leaving it out. As a plain
+// string the two decoded to the same "", so a console clearing the field kept the old text and
+// still answered 200.
+func TestTransactionalNotificationUpdateParams_Description(t *testing.T) {
+	decode := func(t *testing.T, body string) UpdateTransactionalRequest {
+		t.Helper()
+		var req UpdateTransactionalRequest
+		require.NoError(t, json.Unmarshal([]byte(body), &req))
+		return req
+	}
+
+	t.Run("absent leaves it unchanged", func(t *testing.T) {
+		req := decode(t, `{"workspace_id":"ws1","id":"n1","updates":{"name":"Renamed"}}`)
+		assert.Nil(t, req.Updates.Description)
+	})
+
+	t.Run("null counts as absent", func(t *testing.T) {
+		req := decode(t, `{"workspace_id":"ws1","id":"n1","updates":{"name":"Renamed","description":null}}`)
+		assert.Nil(t, req.Updates.Description)
+	})
+
+	t.Run("an empty string is an instruction to clear it", func(t *testing.T) {
+		req := decode(t, `{"workspace_id":"ws1","id":"n1","updates":{"description":""}}`)
+		require.NotNil(t, req.Updates.Description)
+		assert.Equal(t, "", *req.Updates.Description)
+		// Clearing the description alone is an update, not an empty request.
+		assert.NoError(t, req.Validate())
+	})
+
+	t.Run("a text replaces it", func(t *testing.T) {
+		req := decode(t, `{"workspace_id":"ws1","id":"n1","updates":{"description":"Sent on sign-in"}}`)
+		require.NotNil(t, req.Updates.Description)
+		assert.Equal(t, "Sent on sign-in", *req.Updates.Description)
+	})
+
+	t.Run("a null description alone is still an empty update", func(t *testing.T) {
+		req := decode(t, `{"workspace_id":"ws1","id":"n1","updates":{"description":null}}`)
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "at least one field must be updated")
+	})
+
+	t.Run("encoding leaves an unset description out and keeps an empty one", func(t *testing.T) {
+		unset, err := json.Marshal(TransactionalNotificationUpdateParams{Name: "Renamed"})
+		require.NoError(t, err)
+		assert.NotContains(t, string(unset), `"description"`)
+
+		empty := ""
+		cleared, err := json.Marshal(TransactionalNotificationUpdateParams{Description: &empty})
+		require.NoError(t, err)
+		assert.Contains(t, string(cleared), `"description":""`)
 	})
 }

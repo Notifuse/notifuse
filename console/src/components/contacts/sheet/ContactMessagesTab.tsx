@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { App, Button, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -103,57 +103,62 @@ function MessageCell({ workspace, message, name, variant, canReadTemplates }: Me
   const title = name || template.data?.name || message.template_id
   return (
     <div className="flex min-w-0 flex-col leading-tight">
-      <span className="flex min-w-0 items-center gap-1.5">
-        <span className="truncate font-medium text-ink">{title}</span>
-        {variant ? (
-          <span className="shrink-0 rounded-sm bg-fill px-1.5 text-2xs leading-4.5 font-medium text-ink-3">
-            {t`Variant ${variant}`}
-          </span>
-        ) : null}
-      </span>
-      {subject.data ? <span className="truncate text-xs text-ink-3">{subject.data}</span> : null}
+      <span className="truncate font-medium text-ink">{title}</span>
+      {/* The variant opens the second line: beside the name it left « Wee… » of it. */}
+      {variant || subject.data ? (
+        <span className="flex min-w-0 items-center gap-1.5">
+          {variant ? (
+            <span className="shrink-0 rounded-sm bg-fill px-1.5 text-2xs leading-4.5 font-medium text-ink-3">
+              {t`Variant ${variant}`}
+            </span>
+          ) : null}
+          {subject.data ? <span className="truncate text-xs text-ink-3">{subject.data}</span> : null}
+        </span>
+      ) : null}
     </div>
   )
 }
 
-function PreviewButton({ workspace, message }: { workspace: Workspace; message: MessageHistory }) {
+/**
+ * The email a message was sent with, in the preview drawer, once its template is loaded. A
+ * template that cannot be loaded (deleted version, server error) says so instead of opening
+ * nothing.
+ */
+function MessagePreview({
+  workspace,
+  message,
+  onLoaded,
+  onClose
+}: {
+  workspace: Workspace
+  message: MessageHistory
+  /** The template is in: the drawer opens. */
+  onLoaded: () => void
+  onClose: () => void
+}) {
   const { t } = useLingui()
   const { message: toast } = App.useApp()
-  const [open, setOpen] = useState(false)
-  const template = useMessageTemplate(workspace, message, false)
-  // Loaded on click when the row has not loaded it; a template that cannot be loaded (deleted
-  // version, server error) says so instead of opening nothing.
-  const [loading, setLoading] = useState(false)
-  const show = async () => {
-    setLoading(true)
-    const loaded = template.data ?? (await template.refetch()).data
-    setLoading(false)
-    if (loaded) setOpen(true)
-    else toast.error(t`Could not load the email sent`)
-  }
+  const template = useMessageTemplate(workspace, message, true)
+  const failed = template.isError || (template.isSuccess && !template.data)
+  useEffect(() => {
+    if (!failed) return
+    toast.error(t`Could not load the email sent`)
+    onClose()
+  }, [failed, toast, t, onClose])
+  const loaded = !!template.data
+  useEffect(() => {
+    if (loaded) onLoaded()
+  }, [loaded, onLoaded])
+  if (!template.data) return null
   return (
-    <>
-      <Tooltip title={t`View the sent email`}>
-        <Button
-          type="text"
-          size="small"
-          aria-label={t`View the sent email`}
-          loading={loading}
-          icon={<Mail size={14} aria-hidden="true" />}
-          onClick={show}
-        />
-      </Tooltip>
-      {open && template.data ? (
-        <TemplatePreviewDrawer
-          open
-          onClose={() => setOpen(false)}
-          record={sentEmail(workspace, message, template.data)}
-          workspace={workspace}
-          templateData={message.message_data?.data ?? {}}
-          messageHistory={message}
-        />
-      ) : null}
-    </>
+    <TemplatePreviewDrawer
+      open
+      onClose={onClose}
+      record={sentEmail(workspace, message, template.data)}
+      workspace={workspace}
+      templateData={message.message_data?.data ?? {}}
+      messageHistory={message}
+    />
   )
 }
 
@@ -171,6 +176,17 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
   const dayLabel = useDayLabel(timezone)
   const messages = useContactMessages(workspace.id, email, true)
   const workspaceId = workspace.id
+
+  // The message whose email is previewed: opened from its row or from its icon.
+  const [previewing, setPreviewing] = useState<MessageHistory | null>(null)
+  const [previewLoaded, setPreviewLoaded] = useState(false)
+  const openPreview = (message: MessageHistory) => {
+    setPreviewLoaded(false)
+    setPreviewing(message)
+  }
+  const closePreview = useCallback(() => setPreviewing(null), [])
+  const markPreviewLoaded = useCallback(() => setPreviewLoaded(true), [])
+  const canPreview = (message: MessageHistory) => !!permissions?.templates?.read && !!message.template_id
 
   const canReadBroadcasts = !!permissions?.broadcasts?.read
   const canReadAutomations = !!permissions?.automations?.read
@@ -286,7 +302,22 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
       width: 44,
       align: 'right',
       render: (_, message) =>
-        canReadTemplates && message.template_id ? <PreviewButton workspace={workspace} message={message} /> : null
+        canPreview(message) ? (
+          <Tooltip title={t`View the sent email`}>
+            <Button
+              type="text"
+              size="small"
+              aria-label={t`View the sent email`}
+              // While its template loads, before the drawer opens.
+              loading={previewing?.id === message.id && !previewLoaded}
+              icon={<Mail size={14} aria-hidden="true" />}
+              onClick={(event) => {
+                event.stopPropagation()
+                openPreview(message)
+              }}
+            />
+          </Tooltip>
+        ) : null
     }
   ]
 
@@ -309,7 +340,29 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
         loading={messages.isLoading}
         pagination={false}
         locale={{ emptyText: t`No message sent to this contact yet` }}
+        // The whole row opens the email sent, as the icon at its end does.
+        rowClassName={(message) => (canPreview(message) ? 'cursor-pointer' : '')}
+        onRow={(message) =>
+          canPreview(message)
+            ? {
+                onClick: (event) => {
+                  // A click in the preview drawer bubbles here through the portal.
+                  if (!event.currentTarget.contains(event.target as Node)) return
+                  openPreview(message)
+                }
+              }
+            : {}
+        }
       />
+      {previewing ? (
+        <MessagePreview
+          key={previewing.id}
+          workspace={workspace}
+          message={previewing}
+          onLoaded={markPreviewLoaded}
+          onClose={closePreview}
+        />
+      ) : null}
       {rows.length > 0 ? (
         <div className="flex items-center justify-between gap-3 border-t border-line-soft px-1 pt-2.5">
           <span className="text-xs text-ink-3">{footer}</span>

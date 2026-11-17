@@ -201,7 +201,7 @@ export const TextVersionPanel: React.FC<TextVersionPanelProps> = ({
         <Alert
           type="warning"
           showIcon
-          message={
+          title={
             <div className="text-sm flex flex-col gap-1">
               {custom.category === 'marketing' && (
                 <span>{t`Keep the unsubscribe link: ${UNSUBSCRIBE_VARIABLE}.`}</span>
@@ -218,7 +218,7 @@ export const TextVersionPanel: React.FC<TextVersionPanelProps> = ({
       <Alert
         type="info"
         showIcon
-        message={
+        title={
           <span className="text-sm">
             {custom.isTranslation
               ? t`Without its own text, this language receives the automatic version.`
@@ -235,31 +235,31 @@ export const TextVersionPanel: React.FC<TextVersionPanelProps> = ({
         <Alert
           type="error"
           showIcon
-          message={t`The automatic version could not be generated: ${seedResult.error}`}
+          title={t`The automatic version could not be generated: ${seedResult.error}`}
         />
       )}
       {!seedResult.error && seedResult.text !== undefined && seedResult.text.trim() === '' && (
-        <Alert type="info" showIcon message={t`The email holds no text yet.`} />
+        <Alert type="info" showIcon title={t`The email holds no text yet.`} />
       )}
       {seedResult.lostLiquid && !seedResult.error && (
         <Alert
           type="warning"
           showIcon
-          message={t`Display conditions, and conditions and loops placed between blocks, are not carried over. Check the text before saving.`}
+          title={t`Display conditions, and conditions and loops placed between blocks, are not carried over. Check the text before saving.`}
         />
       )}
       {seedResult.liquidPlacement && !seedResult.error && (
         <Alert
           type="warning"
           showIcon
-          message={t`Liquid placed between the blocks of a section or a column may not land where it applies. Check the text before saving.`}
+          title={t`Liquid placed between the blocks of a section or a column may not land where it applies. Check the text before saving.`}
         />
       )}
       {seedResult.textError && !seedResult.error && (
         <Alert
           type="warning"
           showIcon
-          message={t`Some templating markup would not be accepted: ${seedResult.textError}`}
+          title={t`Some templating markup would not be accepted: ${seedResult.textError}`}
         />
       )}
     </div>

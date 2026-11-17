@@ -144,6 +144,44 @@ func runBlogCountsAndSearchTests(t *testing.T, suite *testutil.IntegrationTestSu
 		assert.Equal(t, float64(1), total)
 	})
 
+	t.Run("the counts by status follow the list's search, all_total and by_category do not", func(t *testing.T) {
+		// "news" is in two titles: a published post of News and one of Guides.
+		got := counts(t, map[string]string{"search": "news"})
+		assert.Equal(t, map[string]interface{}{
+			"all_total": float64(5), "total": float64(2), "published": float64(2), "scheduled": float64(0), "draft": float64(0),
+			"by_category": map[string]interface{}{news.ID: float64(3), guides.ID: float64(2)},
+		}, got)
+		_, listed := list(t, map[string]string{"search": "news"})
+		assert.Equal(t, got["total"], listed, "the All tab counts what it lists")
+		_, listedPublished := list(t, map[string]string{"search": "news", "status": "published"})
+		assert.Equal(t, got["published"], listedPublished)
+
+		assert.Equal(t, float64(1), counts(t, map[string]string{"search": "news", "category_id": news.ID})["total"])
+	})
+
+	t.Run("the All tab reads in the order of the date each post shows, newest first", func(t *testing.T) {
+		// Created in another order: drafts by their last edit, the others by their publication.
+		edited := func(slug string, at time.Time) {
+			t.Helper()
+			wsDB, err := suite.DBManager.GetWorkspaceDB(workspace.ID)
+			require.NoError(t, err)
+			_, err = wsDB.Exec(`UPDATE blog_posts SET updated_at = $1 WHERE slug = $2`, at, slug)
+			require.NoError(t, err)
+		}
+		edited("draft-50-off", time.Now().UTC().Add(-48*time.Hour))
+		edited("plan-500-off", time.Now().UTC().Add(-1*time.Hour))
+		titles, _ := list(t, map[string]string{})
+		// Coming soon (in 3 days), Plan 500 off (edited 1 h ago), then the two published a day ago
+		// (in either order, they share their date), then Draft 50% off (edited 2 days ago).
+		require.Len(t, titles, 5)
+		assert.Equal(t, []string{"Coming soon", "Plan 500 off"}, titles[:2])
+		assert.ElementsMatch(t, []string{"Spring news", "Guide news"}, titles[2:4])
+		assert.Equal(t, "Draft 50% off", titles[4])
+
+		drafts, _ := list(t, map[string]string{"status": "draft"})
+		assert.Equal(t, []string{"Plan 500 off", "Draft 50% off"}, drafts, "drafts by their last edit")
+	})
+
 	t.Run("an unknown status is a 400", func(t *testing.T) {
 		resp, err := client.ListBlogPosts(map[string]string{"status": "archived"})
 		require.NoError(t, err)

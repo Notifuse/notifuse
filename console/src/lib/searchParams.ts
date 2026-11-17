@@ -19,6 +19,16 @@ export function searchString(value: unknown): string | undefined {
   return trimmed === '' ? undefined : trimmed
 }
 
+/**
+ * A yes/no search value: `?new=1` as a link writes it, `?new=true` as the router writes a boolean.
+ * The router parses both (to the number 1 and the boolean true); the strings come from a hand-typed
+ * or JSON-quoted URL.
+ */
+export function searchFlag(value: unknown): boolean {
+  const single = Array.isArray(value) ? value[0] : value
+  return single === true || single === 1 || single === 'true' || single === '1'
+}
+
 /** Search of `/settings/$section`: the webhook whose detail panel is open. */
 export interface SettingsSearch {
   webhook?: string
@@ -35,6 +45,8 @@ export interface TemplatesSearch {
   category?: TemplateCategory
   q?: string
   preview?: string
+  /** Opens the « New template » gallery, then leaves the URL. */
+  new?: boolean
 }
 
 export function parseTemplatesSearch(search: Record<string, unknown>): TemplatesSearch {
@@ -44,7 +56,8 @@ export function parseTemplatesSearch(search: Record<string, unknown>): Templates
   return {
     ...(isTemplateCategory(category) ? { category } : {}),
     ...(q === undefined ? {} : { q }),
-    ...(preview === undefined ? {} : { preview })
+    ...(preview === undefined ? {} : { preview }),
+    ...(searchFlag(search.new) ? { new: true } : {})
   }
 }
 

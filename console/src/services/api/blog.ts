@@ -276,7 +276,7 @@ export const blogCategoriesApi: BlogCategoriesApi = {
 // Posts API
 export interface BlogPostsApi {
   list: (workspace_id: string, params: ListBlogPostsRequest) => Promise<BlogPostListResponse>
-  counts: (workspace_id: string, category_id?: string) => Promise<BlogPostCounts>
+  counts: (workspace_id: string, category_id?: string, search?: string) => Promise<BlogPostCounts>
   get: (workspace_id: string, params: GetBlogPostRequest) => Promise<GetBlogPostResponse>
   create: (workspace_id: string, params: CreateBlogPostRequest) => Promise<CreateBlogPostResponse>
   update: (workspace_id: string, params: UpdateBlogPostRequest) => Promise<UpdateBlogPostResponse>
@@ -306,9 +306,11 @@ export const blogPostsApi: BlogPostsApi = {
     return await api.get<BlogPostListResponse>(url)
   },
 
-  counts: async (workspace_id: string, category_id?: string): Promise<BlogPostCounts> => {
+  counts: async (workspace_id: string, category_id?: string, search?: string): Promise<BlogPostCounts> => {
     const query = new URLSearchParams({ workspace_id })
     if (category_id) query.set('category_id', category_id)
+    // The list's search: the counts by status then count what each tab lists.
+    if (search) query.set('search', search)
     return await api.get<BlogPostCounts>(`/api/blogPosts.counts?${query}`)
   },
 

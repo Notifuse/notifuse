@@ -28,7 +28,8 @@ describe('segmentSummary', () => {
     expect(segmentSummary(contactLeaf({}), englishI18n)).toEqual({
       conditions: ['Country is FR'],
       joiner: 'and',
-      more: 0
+      more: 0,
+      hidden: []
     })
   })
 
@@ -41,7 +42,8 @@ describe('segmentSummary', () => {
     expect(segmentSummary(tree, englishI18n)).toEqual({
       conditions: ['Country is FR', 'Language is fr', 'Job Title contains CTO'],
       joiner: 'and',
-      more: 0
+      more: 0,
+      hidden: []
     })
   })
 
@@ -58,6 +60,7 @@ describe('segmentSummary', () => {
     const summary = segmentSummary(tree, englishI18n)
     expect(summary.conditions).toHaveLength(3)
     expect(summary.more).toBe(2)
+    expect(summary.hidden).toEqual(['Phone is 4', 'Phone is 5'])
   })
 
   it('counts the conditions of a nested group', () => {
@@ -199,13 +202,13 @@ describe('segmentSummary', () => {
           timeframe_values: ['90']
         })
       )
-    ).toBe('“checkout_start”: count ≥ 1 · in the last 90 days')
+    ).toBe('Event “checkout_start”: count ≥ 1 · in the last 90 days')
     expect(describe(goal({ aggregate_operator: 'count', value: 1, negate: true }))).toBe('Not (Purchase: count ≥ 1)')
     expect(describe(goal({ operator: 'between', value: 10, value_2: 20 }))).toBe('Purchase: total between 10 and 20')
     expect(describe(goal({ goal_name: 'Pro plan' }))).toBe('Purchase “Pro plan”: total ≥ 800')
     // The server ANDs the goal name and the event name: both are shown.
     expect(describe(goal({ goal_name: 'Pro plan', event_name: 'checkout' }))).toBe(
-      'Purchase “Pro plan” “checkout”: total ≥ 800'
+      'Purchase “Pro plan” event “checkout”: total ≥ 800'
     )
     expect(describe(goal({ goal_type: '*' }))).toBe('Any goal: total ≥ 800')
     expect(
@@ -266,6 +269,6 @@ describe('segmentSummary', () => {
       }
     })
     const tree = branch('or', [contactLeaf({ string_values: ['XX'] })])
-    expect(segmentSummary(tree, french)).toEqual({ conditions: ['Pays est XX'], joiner: 'ou', more: 0 })
+    expect(segmentSummary(tree, french)).toEqual({ conditions: ['Pays est XX'], joiner: 'ou', more: 0, hidden: [] })
   })
 })

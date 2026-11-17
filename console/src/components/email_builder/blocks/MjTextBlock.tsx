@@ -38,7 +38,7 @@ const MjTextSettingsPanel: React.FC<MjTextSettingsPanelProps> = ({
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Text Attributes`}>
+    <PanelLayout title={t`Text attributes`}>
       <InputLayout label={t`Colors`} layout="vertical">
         <Row gutter={16}>
           <Col span={12}>

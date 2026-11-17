@@ -42,6 +42,8 @@ export function RecipientFeedSettings({
   const { t } = useLingui()
   const { message } = App.useApp()
   const [testEmail, setTestEmail] = useState('')
+  // A feed just switched on has no URL yet: "URL is required" waits until the field is left empty.
+  const [urlTouched, setUrlTouched] = useState(false)
   const [testResult, setTestResult] = useState<TestRecipientFeedResponse | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -95,14 +97,16 @@ export function RecipientFeedSettings({
               </Space>
             }
             required
-            validateStatus={settings.enabled && !settings.url ? 'error' : undefined}
-            help={settings.enabled && !settings.url ? t`URL is required` : undefined}
+            colon={false}
+            validateStatus={urlTouched && !settings.url ? 'error' : undefined}
+            help={urlTouched && !settings.url ? t`URL is required` : undefined}
           >
             <Space.Compact className="w-full">
               <Input
                 placeholder="https://api.example.com/recipient-data"
                 value={settings.url}
                 onChange={(e) => handleChange('url', e.target.value)}
+                onBlur={() => setUrlTouched(true)}
                 disabled={disabled}
               />
               {/* The test calls the feed for a stored broadcast; a disabled button fires no mouse event, hence the span. */}

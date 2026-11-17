@@ -1,21 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Spin, Alert } from 'antd'
-import { BlogThemeFiles } from '../../services/api/blog'
+import { BlogCategory, BlogThemeFiles } from '../../services/api/blog'
 import { renderBlogPage, RenderResult } from '../../utils/liquidRenderer'
 import { getMockDataForView } from '../../utils/mockBlogData'
 import { withPreviewStorage } from '../../utils/previewStorage'
 import { Workspace } from '../../services/api/types'
+import { withWorkspaceData } from './themePreviewData'
 
 interface ThemePreviewProps {
   files: BlogThemeFiles
   workspace?: Workspace | null
+  /** The blog's categories, shown in place of the sample ones. */
+  categories?: BlogCategory[]
   view: ViewType
 }
 
 type ViewType = 'home' | 'category' | 'post'
 
-export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
+export function ThemePreview({ files, workspace, categories, view }: ThemePreviewProps) {
   const { t } = useLingui()
   const [renderResult, setRenderResult] = useState<RenderResult | null>(null)
   const [isRendering, setIsRendering] = useState(false)
@@ -24,24 +27,8 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
     const renderPreview = async () => {
       setIsRendering(true)
       try {
-        const mockData = getMockDataForView(view)
-
-        // Override mock data with actual workspace blog settings if available
-        if (workspace?.settings?.blog_settings) {
-          const blogSettings = workspace.settings.blog_settings
-          if (blogSettings.title) {
-            mockData.workspace.blog_title = blogSettings.title
-          }
-          if (blogSettings.logo_url) {
-            mockData.workspace.logo_url = blogSettings.logo_url
-          }
-          if (blogSettings.icon_url) {
-            mockData.workspace.icon_url = blogSettings.icon_url
-          }
-          if (blogSettings.seo) {
-            mockData.seo = { ...mockData.seo, ...blogSettings.seo }
-          }
-        }
+        // Sample posts, in the workspace's own name, address, settings and categories.
+        const mockData = withWorkspaceData(getMockDataForView(view), workspace, categories, window.API_ENDPOINT)
 
         const result = await renderBlogPage(files, view, mockData)
         setRenderResult(result)
@@ -57,7 +44,7 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
     }
 
     renderPreview()
-  }, [files, view, workspace, t])
+  }, [files, view, workspace, categories, t])
 
   return (
     <div

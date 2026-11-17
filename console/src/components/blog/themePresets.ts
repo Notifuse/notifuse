@@ -333,7 +333,7 @@ const defaultTheme: ThemePreset = {
                 {%- if post.published_at -%}
                   {{ post.published_at | date: "%b %d, %Y" }}
                 {%- endif -%}
-                {%- if post.reading_time_minutes -%}
+                {%- if post.reading_time_minutes %}
                   · {{ post.reading_time_minutes }} min read
                 {%- endif -%}
               </div>
@@ -456,24 +456,25 @@ const defaultTheme: ThemePreset = {
     <meta name="keywords" content="{{ workspace.seo.keywords | join: ', ' | escape }}">
   {%- endif -%}
   
-  {%- comment -%} Canonical URL {%- endcomment -%}
-  {%- if post.seo.canonical_url -%}
-    <link rel="canonical" href="{{ post.seo.canonical_url }}">
-  {%- elsif category.seo.canonical_url -%}
-    <link rel="canonical" href="{{ category.seo.canonical_url }}">
-  {%- elsif workspace.seo.canonical_url -%}
-    <link rel="canonical" href="{{ workspace.seo.canonical_url }}">
-  {%- elsif post -%}
-    {%- if category -%}
+  {%- comment -%} Canonical URL: the page's own, else its own address. A category's or the blog's never stands for another page, or every page under it would point search engines elsewhere. {%- endcomment -%}
+  {%- if post -%}
+    {%- if post.seo.canonical_url -%}
+      <link rel="canonical" href="{{ post.seo.canonical_url }}">
+    {%- elsif category -%}
       <link rel="canonical" href="{{ base_url }}/{{ category.slug }}/{{ post.slug }}">
     {%- else -%}
       <link rel="canonical" href="{{ base_url }}/{{ post.slug }}">
     {%- endif -%}
   {%- elsif category -%}
-    <link rel="canonical" href="{{ base_url }}/{{ category.slug }}">
+    {%- if category.seo.canonical_url -%}
+      <link rel="canonical" href="{{ category.seo.canonical_url }}">
+    {%- else -%}
+      <link rel="canonical" href="{{ base_url }}/{{ category.slug }}">
+    {%- endif -%}
   {%- else -%}
     <link rel="canonical" href="{{ base_url }}/">
   {%- endif -%}
+
   
   {%- comment -%} Open Graph Tags {%- endcomment -%}
   {%- if post.seo.og_title or post.title -%}
@@ -574,6 +575,7 @@ const defaultTheme: ThemePreset = {
         <div class="footer-links">
           <a href="{{ base_url }}/terms" class="footer-link">Terms</a>
           <a href="{{ base_url }}/privacy" class="footer-link">Privacy</a>
+          <a href="{{ base_url }}/feed.xml" class="footer-link">RSS</a>
 
           <div class="social-links">
             <a href="https://www.notifuse.com" target="_blank" rel="noopener noreferrer" aria-label="Website">
@@ -765,7 +767,7 @@ const defaultTheme: ThemePreset = {
           {%- if post.published_at -%}
             {{ post.published_at | date: "%b %d, %Y" }}
           {%- endif -%}
-          {%- if post.reading_time_minutes -%}
+          {%- if post.reading_time_minutes %}
             · {{ post.reading_time_minutes }} min read
           {%- endif -%}
         </div>
@@ -2063,6 +2065,9 @@ h3 {
 
   .post-content-wrapper {
     flex-direction: column;
+    /* As a column, flex-start would size the text to its widest unbreakable line (a code
+       block), past the screen's right edge: the text takes the screen's width instead. */
+    align-items: stretch;
   }
 
   .toc-sidebar {

@@ -44,15 +44,24 @@ vi.mock('../../templates/TemplateSelectorInput', () => ({
     value,
     onChange,
     canReadTemplates,
-    disabled
+    disabled,
+    anyLabel,
+    subtitle,
+    sendsWith
   }: {
     value?: string | null
     onChange?: (v: string | null) => void
     canReadTemplates?: boolean
     disabled?: boolean
+    anyLabel?: string
+    subtitle?: string
+    sendsWith?: unknown
   }) => (
     <button
       data-testid="template-selector"
+      data-sends-with={JSON.stringify(sendsWith ?? null)}
+      data-any-label={anyLabel}
+      data-subtitle={subtitle}
       data-can-read-templates={String(canReadTemplates)}
       data-disabled={String(!!disabled)}
       onClick={() => onChange?.('tpl-1')}
@@ -252,6 +261,11 @@ describe('TriggerConfigForm link click filters', () => {
     expect(screen.getByDisplayValue('/pricing')).toBeInTheDocument()
     expect(screen.getByTestId('broadcast-selector')).toHaveTextContent('broadcast:bc-9')
     expect(screen.getByTestId('template-selector')).toHaveTextContent('template:any')
+    // An empty template filter means every template: the window offers it as a row.
+    expect(screen.getByTestId('template-selector').dataset.anyLabel).toBe('Any template')
+    expect(screen.getByTestId('template-selector').dataset.subtitle).toBe('Only links in emails sent with this template.')
+    // A filter sends nothing: the window names no sender.
+    expect(screen.getByTestId('template-selector').dataset.sendsWith).toBe('null')
     expect(screen.getByText(/does not start it again/)).toBeInTheDocument()
   })
 

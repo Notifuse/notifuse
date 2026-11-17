@@ -51,7 +51,7 @@ export interface TransactionalDetailProps extends Omit<TransactionalRowActions, 
   order: string[]
   onNavigate: (id: string) => void
   onClose: () => void
-  /** Opens the API command modal, from « All languages ». */
+  /** Opens the API command drawer, from « All languages ». */
   onApi: (notification: TransactionalNotification) => void
   period: TransactionalPeriod
   periods: TransactionalPeriods
@@ -383,7 +383,7 @@ function DetailContent(props: TransactionalDetailProps & { notification: Transac
       t`None`
     ) : (
       <div className="flex flex-col items-start gap-1">
-        {(['utm_source', 'utm_medium', 'utm_campaign'] as const).map((field) =>
+        {(['utm_source', 'utm_medium', 'utm_campaign', 'utm_term'] as const).map((field) =>
           settings?.[field] ? (
             <span key={field} className="min-w-0">
               <Mono>{`${field}=${settings[field]}`}</Mono>

@@ -190,13 +190,16 @@ export function CreateListDrawer({
           body: { paddingBottom: 80 }
         }}
         extra={
-          <Button
-            type="primary"
-            onClick={() => form.submit()}
-            loading={isEditMode ? updateListMutation.isPending : createListMutation.isPending}
-          >
-            {isEditMode ? t`Save` : t`Create`}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={onClose}>{t`Cancel`}</Button>
+            <Button
+              type="primary"
+              onClick={() => form.submit()}
+              loading={isEditMode ? updateListMutation.isPending : createListMutation.isPending}
+            >
+              {isEditMode ? t`Save` : t`Create`}
+            </Button>
+          </div>
         }
       >
         <Form
@@ -283,7 +286,10 @@ export function CreateListDrawer({
                   <TemplateSelectorInput
                     workspaceId={workspaceId}
                     category="opt_in"
+                    // The confirmation goes out through the marketing provider (list_service.go).
+                    sendsWith="marketing"
                     placeholder={t`Select confirmation email template`}
+                    subtitle={t`The confirmation email each new subscriber receives`}
                     clearable={false}
                     canReadTemplates={canReadTemplates}
                   />

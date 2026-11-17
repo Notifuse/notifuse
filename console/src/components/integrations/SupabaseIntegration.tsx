@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Form, Input, Select, Space, Divider, Alert, message, Tooltip, Switch } from 'antd'
-import { InfoCircleOutlined } from '@ant-design/icons'
+import { App, Form, Input, Select, Switch } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Integration, SupabaseIntegrationSettings, Workspace } from '../../services/api/types'
 import { listsApi, List } from '../../services/api/list'
+import { Mono, Panel } from '../layout'
+import { SettingsRow, SettingsRows } from '../settings/SettingsRow'
+import { useSecretPlaceholder } from '../settings/integrations/secrets'
+import { OptionalLabel, RequiredLabel } from '../settings/integrations/FieldLabel'
+import { supabaseWebhookURL } from './supabaseWebhookURL'
 
 interface SupabaseIntegrationProps {
   integration?: Integration
@@ -13,6 +17,7 @@ interface SupabaseIntegrationProps {
   formRef?: React.RefObject<{ submit: () => void } | null>
 }
 
+/** The rows of a Supabase integration: one panel per Supabase hook, with its address and secret. */
 export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
   integration,
   workspace,
@@ -21,7 +26,9 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
   formRef
 }) => {
   const { t } = useLingui()
+  const { message } = App.useApp()
   const [form] = Form.useForm()
+  const secretPlaceholder = useSecretPlaceholder(integration)
 
   // Expose form instance to parent via ref
   React.useEffect(() => {
@@ -49,7 +56,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
       }
     }
     fetchData()
-  }, [workspace.id, t])
+  }, [workspace.id, t, message])
 
   useEffect(() => {
     if (integration?.supabase_settings) {
@@ -124,127 +131,140 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
     }
   }
 
+  const withOptional = (label: string) => <OptionalLabel>{label}</OptionalLabel>
+
+  // The address exists once the integration is saved: it carries the integration's id.
+  const hookURL = (hook: 'auth-email' | 'before-user-created') =>
+    integration ? (
+      <Mono copy>{supabaseWebhookURL(hook, workspace.id, integration.id)}</Mono>
+    ) : (
+      <span className="text-sm text-ink-3">{t`Available after saving`}</span>
+    )
+
+  const secretRow = (
+    name: string,
+    hintKey: string,
+    stored: boolean,
+    help: string
+  ) => (
+    <SettingsRow label={withOptional(t`Hook secret`)} help={help} htmlFor={name}>
+      <Form.Item
+        name={name}
+        extra={integration && stored ? t`Blank keeps the current one.` : undefined}
+      >
+        <Input.Password autoComplete="new-password" placeholder={secretPlaceholder(hintKey, stored, 'v1,whsec_...')} />
+      </Form.Item>
+    </SettingsRow>
+  )
+
+  const settings = integration?.supabase_settings
+  const authHookStored = Boolean(
+    integration?.credential_hints?.['supabase.auth_email_hook.signature_key'] ||
+      settings?.auth_email_hook?.encrypted_signature_key
+  )
+  const userHookStored = Boolean(
+    integration?.credential_hints?.['supabase.before_user_created_hook.signature_key'] ||
+      settings?.before_user_created_hook?.encrypted_signature_key
+  )
+
   return (
-    <Form form={form} layout="vertical" onFinish={handleSave} disabled={!isOwner}>
-      <Form.Item
-        label={t`Integration Name`}
-        name="name"
-        rules={[{ required: true, message: t`Please enter integration name` }]}
+    <Form form={form} layout="vertical" component={false} onFinish={handleSave} disabled={!isOwner}>
+      <Panel title={t`Integration`}>
+        <SettingsRows>
+          <SettingsRow
+            label={<RequiredLabel>{t`Name`}</RequiredLabel>}
+            help={t`On the card, and on the notifications it creates`}
+            htmlFor="name"
+          >
+            <Form.Item name="name" rules={[{ required: true, message: t`Please enter integration name` }]}>
+              <Input placeholder={t`e.g., My Supabase Integration`} />
+            </Form.Item>
+          </SettingsRow>
+        </SettingsRows>
+      </Panel>
+
+      <Panel
+        title={t`Send Email hook`}
+        extra={<span className="text-xs text-ink-3">{t`Supabase sends its auth emails through Notifuse`}</span>}
       >
-        <Input placeholder={t`e.g., My Supabase Integration`} />
-      </Form.Item>
+        <SettingsRows>
+          <SettingsRow label={t`Hook URL`} help={t`Paste it in Supabase › Authentication › Hooks`}>
+            <div data-hook-url="auth-email" className="flex min-h-8 items-center">
+              {hookURL('auth-email')}
+            </div>
+          </SettingsRow>
+          {secretRow(
+            'auth_email_signature_key',
+            'supabase.auth_email_hook.signature_key',
+            authHookStored,
+            t`Generate this key in Supabase Auth Hooks settings`
+          )}
+        </SettingsRows>
+      </Panel>
 
-      <div className="mt-12">
-        <Divider titlePlacement="center" plain>
-          {t`Auth Email Hook`}
-        </Divider>
-      </div>
-
-      <Form.Item
-        label={
-          <Space>
-            <span>{t`Auth Email Hook Secret`}</span>
-            <Tooltip title={t`Generate this key in Supabase Auth Hooks settings`}>
-              <InfoCircleOutlined />
-            </Tooltip>
-          </Space>
-        }
-        name="auth_email_signature_key"
+      <Panel
+        title={t`Before User Created hook`}
+        extra={<span className="text-xs text-ink-3">{t`New Supabase users become contacts`}</span>}
       >
-        <Input.Password placeholder="v1,whsec_..." />
-      </Form.Item>
-
-      <div className="mt-12">
-        <Divider titlePlacement="center" plain>
-          {t`User Created Hook`}
-        </Divider>
-      </div>
-
-      <Form.Item
-        label={
-          <Space>
-            <span>{t`User Created Hook Secret`}</span>
-            <Tooltip title={t`Generate this key in Supabase Auth Hooks settings`}>
-              <InfoCircleOutlined />
-            </Tooltip>
-          </Space>
-        }
-        name="user_created_signature_key"
-      >
-        <Input.Password placeholder="v1,whsec_..." />
-      </Form.Item>
-
-      <Form.Item
-        label={
-          <Space>
-            <span>{t`Subscribe users to these lists (Optional)`}</span>
-            <Tooltip title={t`Automatically add new users to the selected lists`}>
-              <InfoCircleOutlined />
-            </Tooltip>
-          </Space>
-        }
-        name="add_user_created_to_lists"
-      >
-        <Select
-          placeholder={t`Select lists (optional)`}
-          mode="multiple"
-          allowClear
-          showSearch
-          optionFilterProp="children"
-          loading={loading}
-        >
-          {lists.map((list) => (
-            <Select.Option key={list.id} value={list.id}>
-              {list.name}
-            </Select.Option>
-          ))}
-        </Select>
-      </Form.Item>
-
-      <Form.Item
-        label={
-          <Space>
-            <span>{t`Save user metadata to this custom JSON field (Optional)`}</span>
-            <Tooltip title={t`The user_metadata field in Supabase will be saved to this custom JSON field`}>
-              <InfoCircleOutlined />
-            </Tooltip>
-          </Space>
-        }
-        name="user_created_custom_json_field"
-      >
-        <Select placeholder={t`Select custom JSON field (optional)`} allowClear>
-          {[1, 2, 3, 4, 5].map((num) => {
-            const fieldName = `custom_json_${num}`
-            const friendlyName =
-              workspace.settings?.custom_field_labels?.[fieldName] || t`Custom JSON ${num}`
-            return (
-              <Select.Option key={fieldName} value={fieldName}>
-                {friendlyName}
-              </Select.Option>
-            )
-          })}
-        </Select>
-      </Form.Item>
-
-      <Form.Item
-        label={
-          <Space>
-            <span>{t`Reject Disposable Email Addresses`}</span>
-            <Tooltip title={t`When enabled, user creation will be rejected if a disposable email address is detected`}>
-              <InfoCircleOutlined />
-            </Tooltip>
-          </Space>
-        }
-        name="reject_disposable_email"
-        valuePropName="checked"
-      >
-        <Switch />
-      </Form.Item>
-
-      <Alert
-        description={t`This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase.`}
-        type="info"
-      />
+        <SettingsRows>
+          <SettingsRow label={t`Hook URL`} help={t`Paste it in Supabase › Authentication › Hooks`}>
+            <div data-hook-url="before-user-created" className="flex min-h-8 items-center">
+              {hookURL('before-user-created')}
+            </div>
+          </SettingsRow>
+          {secretRow(
+            'user_created_signature_key',
+            'supabase.before_user_created_hook.signature_key',
+            userHookStored,
+            t`Generate this key in Supabase Auth Hooks settings`
+          )}
+          <SettingsRow
+            label={withOptional(t`Subscribe to lists`)}
+            help={t`Automatically add new users to the selected lists`}
+            htmlFor="add_user_created_to_lists"
+          >
+            <Form.Item name="add_user_created_to_lists">
+              <Select
+                placeholder={t`Select lists (optional)`}
+                mode="multiple"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                loading={loading}
+                options={lists.map((list) => ({ value: list.id, label: list.name }))}
+              />
+            </Form.Item>
+          </SettingsRow>
+          <SettingsRow
+            label={withOptional(t`Save user metadata to`)}
+            help={t`The user_metadata field in Supabase will be saved to this custom JSON field`}
+            htmlFor="user_created_custom_json_field"
+          >
+            <Form.Item name="user_created_custom_json_field">
+              <Select
+                placeholder={t`Select custom JSON field (optional)`}
+                allowClear
+                options={[1, 2, 3, 4, 5].map((num) => {
+                  const fieldName = `custom_json_${num}`
+                  return {
+                    value: fieldName,
+                    label: workspace.settings?.custom_field_labels?.[fieldName] || t`Custom JSON ${num}`
+                  }
+                })}
+              />
+            </Form.Item>
+          </SettingsRow>
+          <SettingsRow
+            label={t`Reject disposable emails`}
+            help={t`Supabase refuses the sign-up of a disposable address. Errors never block a sign-up`}
+            htmlFor="reject_disposable_email"
+          >
+            <Form.Item name="reject_disposable_email" valuePropName="checked">
+              <Switch />
+            </Form.Item>
+          </SettingsRow>
+        </SettingsRows>
+      </Panel>
     </Form>
   )
 }

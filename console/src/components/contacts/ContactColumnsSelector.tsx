@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Popover, Checkbox, Button, Tooltip } from 'antd'
 import { Columns2 } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
@@ -73,17 +74,38 @@ export function ContactColumnsChecklist({ columns, onColumnVisibilityChange }: C
 
 export function ContactColumnsSelector(props: ContactColumnsSelectorProps) {
   const { t } = useLingui()
+  const [open, setOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  // Escape closes the columns, as it closes a menu, and the focus goes back to the button.
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setOpen(false)
+      buttonRef.current?.focus()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open])
   return (
     <Popover
       content={<ContactColumnsChecklist {...props} />}
       placement="bottomRight"
       trigger="click"
+      open={open}
+      onOpenChange={setOpen}
       classNames={{
         container: 'w-[450px]'
       }}
     >
-      <Tooltip title={t`Select columns`} placement="top">
-        <Button type="text" aria-label={t`Select columns`} icon={<Columns2 size={14} aria-hidden="true" />} />
+      {/* The hover label hides while the columns are open: it stayed over the next button. */}
+      <Tooltip title={t`Select columns`} placement="top" open={open ? false : undefined}>
+        <Button
+          ref={buttonRef}
+          type="text"
+          aria-label={t`Select columns`}
+          icon={<Columns2 size={14} aria-hidden="true" />}
+        />
       </Tooltip>
     </Popover>
   )

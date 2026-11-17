@@ -1,3 +1,4 @@
+import type React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { App, ConfigProvider } from 'antd'
@@ -23,7 +24,10 @@ vi.mock('../../services/api/workspace', () => ({
 // The save bar guards navigation away from unsaved edits; the suite renders the
 // section outside a router, so the blocker is stubbed idle.
 vi.mock('@tanstack/react-router', () => ({
-  useBlocker: () => ({ status: 'idle', proceed: undefined, reset: undefined })
+  useBlocker: () => ({ status: 'idle', proceed: undefined, reset: undefined }),
+  Link: ({ children, params }: { children: React.ReactNode; params?: { section?: string } }) => (
+    <a href={`/settings/${params?.section ?? ''}`}>{children}</a>
+  )
 }))
 
 vi.mock('../../services/api/blog', () => ({
@@ -42,7 +46,7 @@ vi.mock('../blog/RecentThemesTable', () => ({
 vi.mock('../common/ImageURLInput', () => ({
   ImageURLInput: () => <input data-testid="image-url-input" />
 }))
-// SEOSettingsForm is rendered for real: stubbing it hid the fact that the
+// The SEO fields are rendered for real: stubbing them hid the fact that the
 // section loads the SEO block field by field, so a field the form renders but
 // the loader forgets is blanked on the next save.
 
@@ -86,14 +90,14 @@ describe('BlogSettings', () => {
     renderComponent(false, makeWorkspace({ blog_enabled: false }))
     // No editor controls are rendered for non-managers.
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Enable Blog/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Turn on the blog/i })).toBeNull()
     // The read-only status is shown instead.
     expect(screen.getByText(/Disabled/)).toBeInTheDocument()
   })
 
   it('renders the editable form when the user can manage and the blog is enabled', () => {
     renderComponent(true)
-    expect(screen.getByPlaceholderText('My Blog WS')).toBeInTheDocument()
+    expect(screen.getByLabelText('Title')).toBeInTheDocument()
   })
 
   it('holds the save bar back until the form is touched', () => {
@@ -105,7 +109,7 @@ describe('BlogSettings', () => {
   it('raises the save bar as soon as a field changes', () => {
     renderComponent(true)
 
-    fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
+    fireEvent.change(screen.getByLabelText('Title'), {
       target: { value: 'New Blog Title' }
     })
 
@@ -118,7 +122,7 @@ describe('BlogSettings', () => {
     // setFieldsValue, so there are no initialValues to fall back on.
     renderComponent(true)
 
-    const titleInput = screen.getByPlaceholderText('My Blog WS')
+    const titleInput = screen.getByLabelText('Title')
     fireEvent.change(titleInput, { target: { value: 'New Blog Title' } })
     fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
 
@@ -126,56 +130,82 @@ describe('BlogSettings', () => {
     expect(screen.queryByText('Unsaved changes')).toBeNull()
   })
 
-  it('loads the stored canonical URL and keeps it on save', async () => {
-    // Every SEO key the form renders has to be listed in the loader: the save
-    // replaces blog_settings wholesale, so a field left unloaded reaches the
-    // backend empty and wipes what was stored.
+  it('shows no canonical URL field, and lets the stored one go on save', async () => {
+    // The server no longer hands a blog-wide canonical to themes (it pointed every page of an
+    // older theme at one address); the console stops resending it, so the next save clears it.
     renderComponent(
       true,
       makeWorkspace({
+        blog_settings: { title: 'Existing Title', seo: { canonical_url: 'https://example.com/canonical' } }
+      })
+    )
+    expect(screen.queryByText('Canonical URL')).toBeNull()
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New Blog Title' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(workspaceService.setBlogSettings).toHaveBeenCalled())
+    const sent = vi.mocked(workspaceService.setBlogSettings).mock.calls[0][0]
+    expect(sent.blog_settings?.title).toBe('New Blog Title')
+    expect(sent.blog_settings?.seo).not.toHaveProperty('canonical_url')
+  })
+
+  it('turns the blog back on with every setting it had', async () => {
+    // Every blog_settings field is unmounted while the blog is off: the save must read the
+    // whole store, or it replaces the stored settings with the title alone.
+    renderComponent(
+      true,
+      makeWorkspace({
+        blog_enabled: false,
         blog_settings: {
-          title: 'Existing Title',
-          seo: { canonical_url: 'https://example.com/canonical' }
+          title: 'Acme blog',
+          logo_url: 'https://cdn.example.com/logo.png',
+          home_page_size: 10,
+          feed_summary_only: true,
+          seo: { meta_title: 'Acme', meta_robots: 'noindex,follow' }
         }
       })
     )
-
-    expect(screen.getByPlaceholderText('https://example.com/original-post')).toHaveValue(
-      'https://example.com/canonical'
-    )
-
-    fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
-      target: { value: 'New Blog Title' }
+    const turnOn = screen.getByRole('button', { name: /Turn on the blog/i })
+    await waitFor(() => expect(turnOn).toBeEnabled())
+    fireEvent.click(turnOn)
+    await waitFor(() => expect(workspaceService.setBlogSettings).toHaveBeenCalled())
+    expect(vi.mocked(workspaceService.setBlogSettings).mock.calls[0][0]).toMatchObject({
+      blog_enabled: true,
+      blog_settings: {
+        title: 'Acme blog',
+        logo_url: 'https://cdn.example.com/logo.png',
+        home_page_size: 10,
+        feed_summary_only: true,
+        seo: { meta_title: 'Acme', meta_robots: 'noindex,follow' }
+      }
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+  })
 
+  it('loads and restores the stored meta title on Discard', () => {
+    renderComponent(true, makeWorkspace({ blog_settings: { title: 'Existing Title', seo: { meta_title: 'Acme blog' } } }))
+    const metaTitle = screen.getByLabelText('Meta title')
+    expect(metaTitle).toHaveValue('Acme blog')
+    fireEvent.change(metaTitle, { target: { value: 'Other' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
+    expect(metaTitle).toHaveValue('Acme blog')
+  })
+
+  it('saves the feed content as the summary-only flag', async () => {
+    renderComponent(true)
+    fireEvent.click(screen.getByText('Excerpt only'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
       expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
-        expect.objectContaining({
-          blog_settings: expect.objectContaining({
-            seo: expect.objectContaining({ canonical_url: 'https://example.com/canonical' })
-          })
-        })
+        expect.objectContaining({ blog_settings: expect.objectContaining({ feed_summary_only: true }) })
       )
     )
   })
 
-  it('restores the stored canonical URL on Discard', () => {
-    renderComponent(
-      true,
-      makeWorkspace({
-        blog_settings: {
-          title: 'Existing Title',
-          seo: { canonical_url: 'https://example.com/canonical' }
-        }
-      })
-    )
-
-    const canonical = screen.getByPlaceholderText('https://example.com/original-post')
-    fireEvent.change(canonical, { target: { value: 'https://example.com/other' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Discard$/i }))
-
-    expect(canonical).toHaveValue('https://example.com/canonical')
+  it('points to General when the workspace has no custom domain, and cannot turn the blog on', () => {
+    renderComponent(true, makeWorkspace({ blog_enabled: false, custom_endpoint_url: '' }))
+    expect(screen.getByRole('link', { name: 'Set it in General' })).toHaveAttribute('href', '/settings/general')
+    expect(screen.getByRole('button', { name: /Turn on the blog/i })).toBeDisabled()
   })
 
   it('saves on Cmd/Ctrl+S once there are changes to save', async () => {
@@ -184,7 +214,7 @@ describe('BlogSettings', () => {
     fireEvent.keyDown(window, { key: 's', metaKey: true })
     expect(workspaceService.setBlogSettings).not.toHaveBeenCalled()
 
-    fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
+    fireEvent.change(screen.getByLabelText('Title'), {
       target: { value: 'New Blog Title' }
     })
     fireEvent.keyDown(window, { key: 's', metaKey: true })
@@ -202,7 +232,7 @@ describe('BlogSettings', () => {
     renderComponent(true)
 
     // Change the blog title to mark the form as touched (enables the Save button).
-    const titleInput = screen.getByPlaceholderText('My Blog WS')
+    const titleInput = screen.getByLabelText('Title')
     fireEvent.change(titleInput, { target: { value: 'New Blog Title' } })
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -221,7 +251,7 @@ describe('BlogSettings', () => {
   it('leaves blog_enabled out of the payload on an ordinary settings save', async () => {
     renderComponent(true)
 
-    fireEvent.change(screen.getByPlaceholderText('My Blog WS'), {
+    fireEvent.change(screen.getByLabelText('Title'), {
       target: { value: 'New Blog Title' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -237,10 +267,12 @@ describe('BlogSettings', () => {
   it('sends blog_enabled false when the blog is disabled from the confirmation', async () => {
     renderComponent(true)
 
-    fireEvent.click(screen.getByRole('button', { name: /Disable Blog/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Turn off the blog/i }))
     // okText repeats the trigger's label, so scope the confirm click to the dialog.
     const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: /Disable Blog/i }))
+    // Turning off keeps the settings: the server only clears the flag.
+    expect(dialog).toHaveTextContent('Its posts and settings are kept')
+    fireEvent.click(within(dialog).getByRole('button', { name: /Turn off the blog/i }))
 
     await waitFor(() =>
       expect(workspaceService.setBlogSettings).toHaveBeenCalledWith(
@@ -249,10 +281,10 @@ describe('BlogSettings', () => {
     )
   })
 
-  it('sends blog_enabled true from the Enable Blog button', async () => {
+  it('sends blog_enabled true from the Turn on button', async () => {
     renderComponent(true, makeWorkspace({ blog_enabled: false }))
 
-    const enable = screen.getByRole('button', { name: /Enable Blog/i })
+    const enable = screen.getByRole('button', { name: /Turn on the blog/i })
     // The button stays disabled until the themes query settles.
     await waitFor(() => expect(enable).toBeEnabled())
     fireEvent.click(enable)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { API_KEY_PREFIX_MAX_LENGTH, finalApiKeyPrefix, toApiKeyPrefix } from './apiKeyPrefix'
+import { API_KEY_PREFIX_MAX_LENGTH, apiKeyDomain, finalApiKeyPrefix, toApiKeyPrefix } from './apiKeyPrefix'
 
 // The server takes ^[a-z0-9_-]{1,64}$ as the part of the key's address before "@".
 describe('toApiKeyPrefix', () => {
@@ -33,5 +33,21 @@ describe('finalApiKeyPrefix', () => {
     expect(finalApiKeyPrefix('-_crm_sync-_')).toBe('crm_sync')
     expect(finalApiKeyPrefix('website-signup')).toBe('website-signup')
     expect(finalApiKeyPrefix('__')).toBe('')
+  })
+})
+
+describe('apiKeyDomain', () => {
+  it('takes the host of the endpoint without its port, as the server mints the address', () => {
+    expect(apiKeyDomain('https://localapi.notifuse.com:4000')).toBe('localapi.notifuse.com')
+    expect(apiKeyDomain('http://203.0.113.7:8080/api')).toBe('203.0.113.7')
+    expect(apiKeyDomain('https://api.example.com/')).toBe('api.example.com')
+    expect(apiKeyDomain('api.example.com')).toBe('api.example.com')
+    expect(apiKeyDomain(undefined)).toBe('api.example.com')
+  })
+
+  it('drops the brackets of an IPv6 host, with or without a port, as the server does', () => {
+    expect(apiKeyDomain('http://[::1]')).toBe('::1')
+    expect(apiKeyDomain('http://[::1]:4000')).toBe('::1')
+    expect(apiKeyDomain('http://[2001:db8::1]:8080/api')).toBe('2001:db8::1')
   })
 })

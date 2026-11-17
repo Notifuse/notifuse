@@ -139,8 +139,6 @@ export interface MetricConfig {
 
 export const COMPARISON_COLOR = colors.chart.comparison
 export const PRIMARY_COLOR = colors.chart.primary
-export const POSITIVE_COLOR = '#10b981'
-export const NEGATIVE_COLOR = '#f97316'
 
 /**
  * The four session metrics the dashboard and explore views are built around.
@@ -152,17 +150,17 @@ export const SESSION_METRICS: MetricConfig[] = [
     key: 'median_duration',
     label: 'Median TimeScore',
     format: 'duration',
-    color: POSITIVE_COLOR,
+    color: colors.chart.series3,
     tooltip: 'TimeScore is the median engaged time across all sessions'
   },
   {
     key: 'bounce_rate',
     label: 'Bounce Rate',
     format: 'percentage',
-    color: '#f59e0b',
+    color: colors.chart.series4,
     invertTrend: true
   },
-  { key: 'median_scroll', label: 'Median Scroll Depth', format: 'percentage', color: '#3b82f6' }
+  { key: 'median_scroll', label: 'Median Scroll Depth', format: 'percentage', color: colors.chart.series2 }
 ]
 
 export const SESSION_METRIC_KEYS = SESSION_METRICS.map((metric) => metric.key)

@@ -6,6 +6,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { MoreHorizontal, Plus, SquareTerminal, Upload } from 'lucide-react'
 import { templatesApi } from '../services/api/template'
+import { emailTemplatesQuery } from '../services/api/sharedQueries'
 import { ApiError } from '../services/api/errors'
 import type { Template, Workspace } from '../services/api/types'
 import { canSendTestEmail } from '../services/api/permissions'
@@ -22,10 +23,11 @@ import {
 import {
   TEMPLATE_CATEGORIES,
   TEMPLATE_CATEGORY_LABELS,
-  isTemplateCategory,
   type TemplateCategory
 } from '../components/templates/templateCategories'
 import { summarizeUsage } from '../components/templates/templateUsage'
+import { TemplateCategoryTag } from '../components/templates/TemplateCategoryTag'
+import { NotInUse } from '../components/templates/NotInUse'
 import type { EmailBlock } from '../components/email_builder/types'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { copyToClipboard } from '../lib/copyToClipboard'
@@ -69,7 +71,7 @@ export function TemplatesPage() {
   const navigate = useNavigate({ from: ROUTE })
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
-  const { permissions } = useWorkspacePermissions(workspaceId)
+  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
   const workspace: Workspace | undefined = workspaces.find((w) => w.id === workspaceId)
   const canWrite = Boolean(permissions?.templates?.write)
   const canTest = canSendTestEmail(permissions)
@@ -127,8 +129,7 @@ export function TemplatesPage() {
 
   // T1: every email template at once; the category is filtered here so each tab has its count.
   const listQuery = useQuery({
-    queryKey: ['templates', workspaceId, 'email'],
-    queryFn: () => templatesApi.list({ workspace_id: workspaceId, channel: 'email' })
+    ...emailTemplatesQuery(workspaceId)
   })
   const allTemplates = useMemo(() => listQuery.data?.templates ?? [], [listQuery.data])
 
@@ -214,6 +215,18 @@ export function TemplatesPage() {
     drawerKey.current += 1
     setDrawer({ ...opening, key: drawerKey.current })
   }
+
+  // ?new=1 (the dashboard's "Get started") opens the gallery of a new template once the rights are
+  // known, then leaves the URL, so closing the drawer and refreshing does not open it again. Without
+  // the right to write templates it only leaves the URL.
+  const openedFromUrl = useRef(false)
+  useEffect(() => {
+    if (!search.new || permissionsLoading || openedFromUrl.current) return
+    openedFromUrl.current = true
+    if (canWrite) openDrawer({ mode: 'create' })
+    navigate({ replace: true, search: (prev: TemplatesSearch) => ({ ...prev, new: undefined }) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- acts once, when the rights are known
+  }, [search.new, permissionsLoading, canWrite])
 
   const [testTemplate, setTestTemplate] = useState<Template | null>(null)
   const [toDelete, setToDelete] = useState<Template | null>(null)
@@ -344,7 +357,7 @@ export function TemplatesPage() {
       )
     }
     const summary = summarizeUsage(usageQuery.data.usage?.[template.id])
-    if (!summary.label) return <span className="text-ink-4">{t`Not used`}</span>
+    if (!summary.label) return <NotInUse />
     return summary.details.length > 1 ? (
       <Tooltip
         title={
@@ -409,20 +422,14 @@ export function TemplatesPage() {
     {
       title: t`Category`,
       key: 'category',
-      render: (_: unknown, template: Template) => (
-        <Pill tone={template.category === 'marketing' ? 'primary' : 'neutral'} dot={false}>
-          {isTemplateCategory(template.category)
-            ? i18n._(TEMPLATE_CATEGORY_LABELS[template.category])
-            : template.category}
-        </Pill>
-      )
+      render: (_: unknown, template: Template) => <TemplateCategoryTag category={template.category} />
     },
     {
       title: (
         <Tooltip
           title={
             <div className="flex flex-col gap-1">
-              <span>{t`Newsletters that may still send, transactional notifications, automations and double opt-in lists. Segment filters on a template aren't counted.`}</span>
+              <span>{t`Broadcasts that may still send, transactional notifications, automations and double opt-in lists. Broadcasts already sent and segment filters on a template aren't counted.`}</span>
               {hiddenUsage ? <span>{t`Uses you can't see aren't counted.`}</span> : null}
             </div>
           }

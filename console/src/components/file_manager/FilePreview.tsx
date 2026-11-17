@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Button, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { Copy, Download, ImageOff } from 'lucide-react'
+import { Copy, Download, ExternalLink, ImageOff, Trash2 } from 'lucide-react'
 import dayjs from '../../lib/dayjs'
 import { KeyValueList, Mono, useRelativeDate, type KeyValueItem } from '../layout'
 import type { StorageObject } from './interfaces'
 import { fileKind } from './fileKind'
 import { FileTypeIcon } from './FileTypeIcon'
 import { recordImageSize, useImageSize } from './imageDimensions'
+import { PopconfirmWithTooltip } from '../layout/PopconfirmWithTooltip'
 
 export interface FilePreviewProps {
   item: StorageObject
@@ -16,8 +17,8 @@ export interface FilePreviewProps {
   onOpenFolder: (folder: string) => void
   onCopyUrl: () => void
   onDownload: () => void
-  /** The page's Delete link; absent in the picker. */
-  onDelete?: () => void
+  /** Deletes the file once its Popconfirm is accepted; absent in the picker. */
+  onDelete?: () => Promise<void> | void
   readOnly?: boolean
 }
 
@@ -89,29 +90,47 @@ export function FilePreview({
       </div>
       <div className="text-base font-medium break-all text-ink">{item.name}</div>
       <KeyValueList items={details} labelWidth={90} />
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button icon={<Copy size={14} aria-hidden="true" />} onClick={onCopyUrl}>
           {t`Copy URL`}
         </Button>
         <Button icon={<Download size={14} aria-hidden="true" />} onClick={onDownload}>
           {t`Download`}
         </Button>
-      </div>
-      <div className="flex items-center gap-4 text-sm">
-        <a href={item.file_info.url} target="_blank" rel="noreferrer">
-          {t`Open in a new tab`}
-        </a>
+        <Tooltip title={t`Open in a new tab`}>
+          <Button
+            href={item.file_info.url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={t`Open in a new tab`}
+            icon={<ExternalLink size={14} aria-hidden="true" />}
+          />
+        </Tooltip>
         {onDelete ? (
           readOnly ? (
             <Tooltip title={t`Delete file (Read-only mode)`}>
-              <Button type="link" size="small" danger disabled>
-                {t`Delete`}
-              </Button>
+              {/* A disabled button gets no pointer events: the tooltip listens on its wrapper */}
+              <span className="inline-flex">
+                <Button
+                  danger
+                  disabled
+                  aria-label={t`Delete`}
+                  icon={<Trash2 size={14} aria-hidden="true" />}
+                />
+              </span>
             </Tooltip>
           ) : (
-            <Button type="link" size="small" danger onClick={onDelete}>
-              {t`Delete`}
-            </Button>
+            <PopconfirmWithTooltip
+              tooltip={t`Delete`}
+              title={t`Do you want to permanently delete this file from your storage?`}
+              okText={t`Delete`}
+              cancelText={t`Cancel`}
+              okButtonProps={{ danger: true }}
+              placement="bottomRight"
+              onConfirm={onDelete}
+            >
+              <Button danger aria-label={t`Delete`} icon={<Trash2 size={14} aria-hidden="true" />} />
+            </PopconfirmWithTooltip>
           )
         ) : null}
       </div>

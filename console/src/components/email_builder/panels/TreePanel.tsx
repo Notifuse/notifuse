@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Tree, Tooltip, Popconfirm } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -92,11 +92,17 @@ const AddBlockButton: React.FC<{ onClick?: () => void; title?: string }> = ({
   title
 }) => {
   const { t } = useLingui()
-  const displayTitle = title || t`Add Block`
+  const displayTitle = title || t`Add block`
+  // The click opens the block menu under the pointer: the tooltip closes then, rather than stay
+  // over the menu until the pointer leaves the button.
+  const [tipOpen, setTipOpen] = useState(false)
   return (
-    <Tooltip title={displayTitle}>
+    <Tooltip title={displayTitle} open={tipOpen} onOpenChange={setTipOpen}>
       <div
+        role="button"
+        aria-label={displayTitle}
         className="inline-flex items-center text-[11px] h-5 border border-dashed rounded-xs border-primary text-primary cursor-pointer px-1"
+        onMouseDown={() => setTipOpen(false)}
         onClick={onClick}
       >
         <FontAwesomeIcon icon={faPlus} />
@@ -691,7 +697,7 @@ export const TreePanel: React.FC<TreePanelProps> = ({
       ),
     selectedKeys: selectedBlockId ? [selectedBlockId] : [],
     onSelect: handleSelect,
-    rootStyle: { background: 'none' }
+    styles: { root: { background: 'none' } }
   }
 
   return (

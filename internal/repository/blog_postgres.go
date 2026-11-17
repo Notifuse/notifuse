@@ -711,23 +711,33 @@ func (r *blogPostRepository) DeletePostTx(ctx context.Context, tx *sql.Tx, id st
 }
 
 // CountPosts reads every post that is not deleted in one query grouped by category, so the
-// totals and the per-category counts come from the same snapshot.
-func (r *blogPostRepository) CountPosts(ctx context.Context, workspaceID string, categoryID string, now time.Time) (*domain.BlogPostCounts, error) {
+// totals and the per-category counts come from the same snapshot. A search narrows the counts by
+// status (and their total) to the titles containing it, with ListPosts' condition, so a status
+// tab counts the rows it lists; all_total and by_category keep counting every post.
+func (r *blogPostRepository) CountPosts(ctx context.Context, workspaceID string, categoryID string, search string, now time.Time) (*domain.BlogPostCounts, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
 	// published_at is a UTC timestamp without time zone: compared with a UTC instant.
+	args := []interface{}{now.UTC()}
+	matching := "COUNT(*)"
+	match := ""
+	if search != "" {
+		args = append(args, "%"+escapeLikePattern(search)+"%")
+		matching = "COUNT(*) FILTER (WHERE settings->>'title' ILIKE $2)"
+		match = "settings->>'title' ILIKE $2 AND "
+	}
 	rows, err := workspaceDB.QueryContext(ctx, `
-		SELECT category_id, COUNT(*),
-		       COUNT(*) FILTER (WHERE published_at IS NOT NULL),
-		       COUNT(*) FILTER (WHERE published_at > $1),
-		       COUNT(*) FILTER (WHERE published_at IS NULL)
+		SELECT category_id, COUNT(*), `+matching+`,
+		       COUNT(*) FILTER (WHERE `+match+`published_at IS NOT NULL),
+		       COUNT(*) FILTER (WHERE `+match+`published_at > $1),
+		       COUNT(*) FILTER (WHERE `+match+`published_at IS NULL)
 		FROM blog_posts
 		WHERE deleted_at IS NULL
 		GROUP BY category_id
-	`, now.UTC())
+	`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count blog posts: %w", err)
 	}
@@ -736,8 +746,8 @@ func (r *blogPostRepository) CountPosts(ctx context.Context, workspaceID string,
 	counts := domain.NewBlogPostCounts()
 	for rows.Next() {
 		var category sql.NullString
-		var total, published, scheduled, draft int
-		if err := rows.Scan(&category, &total, &published, &scheduled, &draft); err != nil {
+		var total, matched, published, scheduled, draft int
+		if err := rows.Scan(&category, &total, &matched, &published, &scheduled, &draft); err != nil {
 			return nil, fmt.Errorf("failed to scan blog post counts: %w", err)
 		}
 		counts.AllTotal += total
@@ -745,7 +755,7 @@ func (r *blogPostRepository) CountPosts(ctx context.Context, workspaceID string,
 			counts.ByCategory[category.String] = total
 		}
 		if categoryID == "" || (category.Valid && category.String == categoryID) {
-			counts.Total += total
+			counts.Total += matched
 			counts.Published += published
 			counts.Scheduled += scheduled
 			counts.Draft += draft
@@ -815,11 +825,15 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		whereClause += " AND " + whereConditions[i]
 	}
 
-	// Determine ORDER BY clause based on status. The id tiebreaker keeps LIMIT/OFFSET pages
-	// disjoint: posts imported with the same backdated published_at would otherwise come
-	// back in an arbitrary order per query, repeating some posts across pages and skipping others.
-	orderByClause := "ORDER BY created_at DESC, id DESC"
+	// Determine ORDER BY clause based on status: each list follows the date a post is known by,
+	// its publication date (to come, for a scheduled one) or, for a draft, its last edit, so a
+	// date column reads in order. The id tiebreaker keeps LIMIT/OFFSET pages disjoint: posts
+	// imported with the same backdated published_at would otherwise come back in an arbitrary
+	// order per query, repeating some posts across pages and skipping others.
+	orderByClause := "ORDER BY COALESCE(published_at, updated_at) DESC, id DESC"
 	switch params.Status {
+	case domain.BlogPostStatusDraft:
+		orderByClause = "ORDER BY updated_at DESC, id DESC"
 	case domain.BlogPostStatusPublished:
 		orderByClause = "ORDER BY published_at DESC, id DESC"
 	case domain.BlogPostStatusScheduled:

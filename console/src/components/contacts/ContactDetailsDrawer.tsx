@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
 import type { Segment } from '../../services/api/segment'
 import type { List, UserPermissions, Workspace } from '../../services/api/types'
@@ -77,9 +77,15 @@ export function ContactDetailsDrawer({
   const emailsKey = emails.join('\n')
   // Given up when the sheet closes or the rows fail: adjusted during render, as for lastEmail.
   if (pendingNext && (!email || table.isError)) setPendingNext(null)
+  // The request already answered. The router's store re-renders synchronously on every navigate,
+  // ahead of the setPendingNext(null) below: without this the effect would see the request again
+  // from that render and navigate again, forever (the tab froze).
+  const answered = useRef<PendingNext | null>(null)
   useEffect(() => {
     if (!pendingNext || !email || table.isError) return
+    if (answered.current === pendingNext) return
     if (tableSearch.limit === pendingNext.fromLimit || table.isPlaceholderData || table.isFetching) return
+    answered.current = pendingNext
     // The rows can shift while they load (newest first): look the contact up again.
     const current = emailsKey.split('\n')
     const index = current.indexOf(pendingNext.email)

@@ -57,6 +57,16 @@ describe('DeleteListModal confirmation', () => {
     onClose = vi.fn()
   })
 
+  it('says what goes with the list, in a dialog with Cancel and a red Delete', () => {
+    renderModal()
+    expect(screen.getByRole('dialog', { name: 'Delete list' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Its subscriptions are deleted with it; the contacts stay in the workspace.')
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete' }).className).toContain('ant-btn-dangerous')
+  })
+
   it('waits for the list ID before deleting', async () => {
     renderModal()
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()

@@ -7,21 +7,31 @@ import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
-// antd 6 dropped .ant-drawer-content: the drawer's role="dialog" now sits on div.ant-drawer-section
-// and takes its accessible name from the drawer title, so role+name is the stable handle and it
-// pins which of the template drawers (create / edit / clone / preview) is on screen.
-const templateDrawer = (page: Page, title: string) =>
-  page.getByRole('dialog', { name: title, exact: true })
+// The template drawer is a full-screen drawer: its dialog holds the 40px bar, whose title says
+// which template is open ("New template", or the name and its version).
+const templateDrawer = (page: Page, title: string | RegExp) =>
+  page
+    .getByRole('dialog')
+    .filter({ has: page.locator('[data-drawer-bar]') })
+    .filter({ has: page.getByTestId('template-bar-name').filter({ hasText: title }) })
+
+// A step of the bar's switch; the selected one carries antd's selected class.
+const step = (drawer: Locator, name: string) =>
+  drawer.locator('.ant-segmented-item').filter({ hasText: new RegExp(`^${name}`) })
 
 // The header's button; the empty state repeats it below the table.
 const newTemplateButton = (page: Page): Locator =>
   page.getByRole('button', { name: 'New template', exact: true }).first()
 
+// The open drawer, whatever its bar's title says once a name is typed.
+const openDrawer = (page: Page) => page.getByRole('dialog').filter({ has: page.locator('[data-drawer-bar]') })
+
+// New template asks where to start first: Blank, here.
 const openCreateDrawer = async (page: Page) => {
   await newTemplateButton(page).click()
-  const drawer = templateDrawer(page, 'Create an email template')
-  await expect(drawer).toBeVisible()
-  return drawer
+  await page.locator('[data-model="blank"]').click()
+  await expect(templateDrawer(page, 'New template')).toBeVisible()
+  return openDrawer(page)
 }
 
 // The row actions sit in the row's "More actions" menu.
@@ -36,9 +46,8 @@ const rowAction = async (page: Page, action: string) => {
 
 const openEditDrawer = async (page: Page) => {
   await rowAction(page, 'Edit')
-  const drawer = templateDrawer(page, 'Edit email template')
-  await expect(drawer).toBeVisible()
-  return drawer
+  await expect(templateDrawer(page, /v\d+$/)).toBeVisible()
+  return openDrawer(page)
 }
 
 test.describe('Templates Feature', () => {
@@ -92,12 +101,10 @@ test.describe('Templates Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      // The creation wizard opens on its first step
-      await expect(drawer.getByRole('tab', { name: '1. Settings' })).toHaveAttribute(
-        'aria-selected',
-        'true'
-      )
-      await expect(drawer.getByRole('tab', { name: '2. Template' })).toBeVisible()
+      // The drawer opens on its Settings step; every step can be opened from the bar
+      await expect(step(drawer, 'Settings')).toHaveClass(/ant-segmented-item-selected/)
+      await expect(step(drawer, 'Content')).toBeVisible()
+      await expect(drawer.getByRole('button', { name: 'Create template' })).toBeVisible()
     })
 
     test('fills template form fields', async ({ authenticatedPage }) => {
@@ -123,7 +130,7 @@ test.describe('Templates Feature', () => {
         drawer.locator('.ant-form-item').filter({ hasText: 'Category' }).locator('.ant-select-content')
       ).toHaveText('Marketing')
 
-      await expect(drawer.getByRole('button', { name: 'Next', exact: true })).toBeVisible()
+      await expect(drawer.getByRole('button', { name: 'Create template' })).toBeVisible()
     })
 
     test('views template details', async ({ authenticatedPageWithData }) => {
@@ -173,9 +180,9 @@ test.describe('Templates Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      // Both subject lines of the sender section are part of the settings step
-      await expect(drawer.getByLabel('Email subject', { exact: true })).toBeVisible()
-      await expect(drawer.getByLabel('Subject preview', { exact: true })).toBeVisible()
+      // Both lines the inbox shows are in the Envelope card of the Settings step
+      await expect(drawer.getByLabel('Subject', { exact: true })).toBeVisible()
+      await expect(drawer.getByLabel('Preview text', { exact: true })).toBeVisible()
     })
   })
 
@@ -246,7 +253,7 @@ test.describe('Templates Feature', () => {
       const drawer = await openEditDrawer(page)
 
       // The drawer seeds the subject from template.email.subject
-      await expect(drawer.getByLabel('Email subject', { exact: true })).toHaveValue(
+      await expect(drawer.getByLabel('Subject', { exact: true })).toHaveValue(
         'Welcome to {{workspace.name}}!'
       )
     })
@@ -261,11 +268,10 @@ test.describe('Templates Feature', () => {
 
       // There is no from-address field: the sender comes from the workspace email provider, so
       // the editable half of the sender is the reply-to and the provider's custom sender.
-      await expect(drawer.getByText('Sender', { exact: true })).toBeVisible()
+      await expect(drawer.getByText('Envelope', { exact: true })).toBeVisible()
       await expect(drawer.getByLabel('Reply to', { exact: true })).toBeVisible()
-      await expect(
-        drawer.getByLabel('Custom sender (transactional email provider)', { exact: true })
-      ).toBeVisible()
+      await expect(drawer.getByLabel('Sender', { exact: true })).toBeVisible()
+      await expect(drawer.getByText('Custom sender, from the transactional email provider')).toBeVisible()
     })
   })
 
@@ -278,21 +284,19 @@ test.describe('Templates Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      // Saving an untouched wizard reports every required field of the settings step and
-      // switches back to it, and nothing is sent.
-      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
-      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
+      // Saving an untouched template from its Content step reports every required field of the
+      // Settings step, opens it and marks it in the bar, and nothing is sent.
+      await step(drawer, 'Content').click()
+      await drawer.getByRole('button', { name: 'Create template' }).click()
 
-      await expect(drawer.getByRole('tab', { name: '1. Settings' })).toHaveAttribute(
-        'aria-selected',
-        'true'
-      )
+      await expect(step(drawer, 'Settings')).toHaveClass(/ant-segmented-item-selected/)
+      await expect(step(drawer, 'Settings').locator('[data-step-error]')).toBeVisible()
       await expect(drawer.locator('.ant-form-item-explain-error')).toHaveText([
         'Please enter Template name',
         'ID must contain only lowercase letters, numbers, underscores, and hyphens',
         'Please enter Category',
-        'Please enter Email subject',
-        'Please enter Subject preview'
+        'Please enter Subject',
+        'Please enter Preview text'
       ])
       expect(requestCapture.getRequestCount(API_PATTERNS.TEMPLATE_CREATE)).toBe(0)
     })
@@ -306,9 +310,8 @@ test.describe('Templates Feature', () => {
       const drawer = await openCreateDrawer(page)
 
       // The subject is marked required and starts empty
-      const subjectItem = drawer.locator('.ant-form-item').filter({ hasText: 'Email subject' })
-      await expect(subjectItem.locator('.ant-form-item-required')).toBeVisible()
-      await expect(drawer.getByLabel('Email subject', { exact: true })).toHaveValue('')
+      await expect(drawer.locator('label.ant-form-item-required[for="email_subject"]')).toBeVisible()
+      await expect(drawer.getByLabel('Subject', { exact: true })).toHaveValue('')
     })
   })
 
@@ -337,8 +340,9 @@ test.describe('Templates Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      // The drawer is deliberately not dismissible by mask or keyboard, only by its own controls
-      await drawer.getByRole('button', { name: 'Close' }).click()
+      // The drawer is deliberately not dismissible by mask or keyboard, only by its own controls;
+      // untouched, it closes without asking
+      await drawer.locator('[data-drawer-bar]').getByRole('button', { name: 'Close', exact: true }).click()
       await expect(drawer).toBeHidden()
     })
   })
@@ -357,18 +361,15 @@ test.describe('Templates Feature', () => {
       await drawer.getByLabel('Template ID (utm_content)').fill(testTemplateData.id)
       await drawer.getByLabel('Category').click()
       await page.locator('.ant-select-item-option').filter({ hasText: 'Marketing' }).click()
-      await drawer.getByLabel('Email subject', { exact: true }).fill(testTemplateData.subject)
+      await drawer.getByLabel('Subject', { exact: true }).fill(testTemplateData.subject)
       await drawer
-        .getByLabel('Subject preview', { exact: true })
+        .getByLabel('Preview text', { exact: true })
         .fill(testTemplateData.subject_preview!)
 
       // Step 2: the email itself, which starts from the default blocks
-      await drawer.getByRole('button', { name: 'Next', exact: true }).click()
-      await expect(drawer.getByRole('tab', { name: '2. Template' })).toHaveAttribute(
-        'aria-selected',
-        'true'
-      )
-      await drawer.getByRole('button', { name: 'Save', exact: true }).click()
+      await step(drawer, 'Content').click()
+      await expect(step(drawer, 'Content')).toHaveClass(/ant-segmented-item-selected/)
+      await drawer.getByRole('button', { name: 'Create template' }).click()
 
       await expect
         .poll(() => requestCapture.getRequestCount(API_PATTERNS.TEMPLATE_CREATE))

@@ -54,7 +54,7 @@ export function DateRangePicker({ size = 'middle' }: { size?: 'small' | 'middle'
               key={preset}
               type="button"
               onClick={() => choose(preset)}
-              className="flex w-full items-center justify-between gap-6 px-3 py-1.5 text-left text-sm hover:bg-gray-50"
+              className="flex w-full items-center justify-between gap-6 px-3 py-1.5 text-left text-sm hover:bg-subtle"
             >
               <span>{labels[preset]}</span>
               {period === preset ? <CheckOutlined className="text-primary" /> : null}
@@ -64,7 +64,7 @@ export function DateRangePicker({ size = 'middle' }: { size?: 'small' | 'middle'
       ))}
       <Divider className="!my-1" />
       <div className="px-3 py-2">
-        <div className="mb-1 text-xs text-gray-500">{t`Timezone`}</div>
+        <div className="mb-1 text-xs text-ink-3">{t`Timezone`}</div>
         <Select
           showSearch
           size="small"
@@ -118,7 +118,7 @@ export function ComparisonPicker({ size = 'middle' }: { size?: 'small' | 'middle
 
   return (
     <Space size={4}>
-      <span className="text-sm text-gray-500">{t`vs.`}</span>
+      <span className="text-sm text-ink-3">{t`vs.`}</span>
       <Select<ComparisonMode>
         size={size}
         variant="filled"
@@ -165,7 +165,7 @@ export function EvolutionToggle(props: { checked: boolean; onChange: (checked: b
   const { t } = useLingui()
   return (
     <Checkbox checked={props.checked} onChange={(event) => props.onChange(event.target.checked)}>
-      <span className="text-xs text-gray-500">{t`Show evolution`}</span>
+      <span className="text-xs text-ink-3">{t`Show evolution`}</span>
     </Checkbox>
   )
 }

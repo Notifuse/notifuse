@@ -252,6 +252,10 @@ Broadcasts and automations:
 
 Transactional API sends: every key of the API call's data payload is available at top level (e.g. {{ order_id }}). There is no list, so unsubscribe_url, confirm_subscription_url and list.* render empty. Ask the user for the payload field names rather than inventing them.
 
+Automations only:
+- {{ automation_id }}, {{ automation_name }}
+- {{ trigger_event }} - the event that started the journey: {{ trigger_event.kind }} (e.g. custom_event.cart_abandoned, list.subscribed, email.link_clicked) and {{ trigger_event.occurred_at }}; for a custom event also {{ trigger_event.name }}, {{ trigger_event.external_id }} and its properties as {{ trigger_event.properties.<key> }} (loop over a list with {% for item in trigger_event.properties.items %}). Journeys that started before version 44 have no trigger_event, so guard it. Ask the user for the property names rather than inventing them.
+
 Guard optional values: {% if contact.first_name %}Hi {{ contact.first_name }},{% else %}Hi there,{% endif %}
 
 Never put {{ oneclick_unsubscribe_url }} or {{ tracking_opens_url }} in the body: the backend uses them for the List-Unsubscribe header and the open-tracking pixel.

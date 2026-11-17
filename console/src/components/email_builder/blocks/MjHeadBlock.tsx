@@ -12,7 +12,7 @@ const MjHeadSettingsPanel: React.FC = () => {
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Head Attributes`}>
+    <PanelLayout title={t`Head attributes`}>
       <div className="text-sm text-gray-500 text-center py-8">
         {t`No settings available for the head element.`}
         <br />

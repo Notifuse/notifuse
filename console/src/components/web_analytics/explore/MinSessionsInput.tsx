@@ -52,7 +52,7 @@ export function MinSessionsInput() {
       }
     >
       <Button type="text" size="small">
-        <span className="text-gray-500">
+        <span className="text-ink-3">
           <Trans>
             Having at least{' '}
             <Tag color="purple" className="!mx-1">

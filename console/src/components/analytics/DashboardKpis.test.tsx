@@ -59,6 +59,13 @@ const periods: DashboardPeriods = {
     endDay: '2026-10-11',
     startUtc: '2026-09-11T22:00:00.000Z',
     endUtc: '2026-10-11T21:59:59.999Z'
+  },
+  // 30 days ending today, 11 November
+  recent: {
+    startDay: '2026-10-13',
+    endDay: '2026-11-11',
+    startUtc: '2026-10-12T22:00:00.000Z',
+    endUtc: '2026-11-11T22:59:59.999Z'
   }
 }
 
@@ -198,7 +205,8 @@ describe('DashboardKpis', () => {
       days: 7,
       preset: 'previous_7_days',
       current: { ...periods.current, startDay: '2026-11-04', startUtc: '2026-11-03T23:00:00.000Z' },
-      previous: { ...periods.previous, startDay: '2026-10-28', startUtc: '2026-10-27T23:00:00.000Z' }
+      previous: { ...periods.previous, startDay: '2026-10-28', startUtc: '2026-10-27T23:00:00.000Z' },
+      recent: { ...periods.recent, startDay: '2026-11-05', startUtc: '2026-11-04T23:00:00.000Z' }
     }
     rerender(tree(week, true))
     expect(screen.queryByText(/vs prev\./)).not.toBeInTheDocument()
@@ -294,7 +302,7 @@ describe('DashboardKpis', () => {
         },
         { key: ['contacts', 'ws1', 'dashboard-total'], refetchInterval: 60_000 },
         {
-          key: ['contacts', 'ws1', 'dashboard-new', 'Europe/Paris', current.startUtc, current.endUtc],
+          key: ['contacts', 'ws1', 'dashboard-new', 'Europe/Paris', periods.recent.startUtc, periods.recent.endUtc],
           refetchInterval: 60_000
         },
         {
@@ -316,11 +324,12 @@ describe('DashboardKpis', () => {
 
     const queries = query.mock.calls.map(([q]) => q as AnalyticsQuery)
     const newContacts = queries.find((q) => q.schema === 'contacts' && q.filters?.length)
+    // New contacts count today too: the period ending yesterday showed « +0 » right after an import.
     expect(newContacts?.filters).toEqual([
       {
         member: 'created_at',
         operator: 'inDateRange',
-        values: [periods.current.startUtc, periods.current.endUtc]
+        values: [periods.recent.startUtc, periods.recent.endUtc]
       }
     ])
     const previousRates = queries.find((q) => q.schema === 'message_history')
@@ -370,6 +379,73 @@ describe('DashboardKpis', () => {
     expect(screen.queryByText('Website visits')).not.toBeInTheDocument()
   })
 
+  it('reads no delivered rate when every provider is SMTP, as Logs shows none', async () => {
+    const smtp = {
+      ...workspace(true),
+      settings: {
+        ...workspace(true).settings,
+        marketing_email_provider_id: 'smtp1',
+        transactional_email_provider_id: 'smtp1'
+      },
+      integrations: [{ id: 'smtp1', type: 'email', email_provider: { kind: 'smtp', senders: [] } }]
+    } as unknown as Workspace
+    renderKpis({
+      workspace: smtp,
+      totals: totals({ broadcast: { delivered: 0 }, transactional: { delivered: 0 } })
+    })
+    const sub = await screen.findByText("Delivery isn't reported by SMTP providers")
+    const tile = sub.closest('[data-kpi-cell]') as HTMLElement
+    await waitFor(() => expect(tile).toHaveTextContent('Delivered—'))
+    expect(tile).not.toHaveTextContent('%')
+  })
+
+  it('reads the delivered rate of SMTP providers when deliveries came back all the same', async () => {
+    // Through the SMTP webhook endpoint, or from a provider used before (the demo's SES history).
+    const smtp = {
+      ...workspace(true),
+      settings: {
+        ...workspace(true).settings,
+        marketing_email_provider_id: 'smtp1',
+        transactional_email_provider_id: 'smtp1'
+      },
+      integrations: [{ id: 'smtp1', type: 'email', email_provider: { kind: 'smtp', senders: [] } }]
+    } as unknown as Workspace
+    renderKpis({
+      workspace: smtp,
+      totals: totals({ broadcast: { delivered: 588 }, transactional: { delivered: 392 } })
+    })
+    const label = await screen.findByText('Delivered')
+    const tile = label.closest('[data-kpi-cell]') as HTMLElement
+    await waitFor(() => expect(tile).toHaveTextContent('98.0%'))
+    expect(tile).not.toHaveTextContent("Delivery isn't reported by SMTP providers")
+  })
+
+  it('counts the emails of no origin in the delivered rate as Logs does, when a provider reports deliveries', async () => {
+    // An SMTP marketing provider and a Postmark transactional one: an email of no origin (a test,
+    // a confirmation) may have gone through either, and Logs counts its deliveries.
+    const mixed = {
+      ...workspace(true),
+      settings: {
+        ...workspace(true).settings,
+        marketing_email_provider_id: 'smtp1',
+        transactional_email_provider_id: 'pm1'
+      },
+      integrations: [
+        { id: 'smtp1', type: 'email', email_provider: { kind: 'smtp', senders: [] } },
+        { id: 'pm1', type: 'email', email_provider: { kind: 'postmark', senders: [] } }
+      ]
+    } as unknown as Workspace
+    renderKpis({
+      workspace: mixed,
+      totals: totals({ broadcast: { delivered: 0 }, other: { sent: 100, delivered: 0 } })
+    })
+    const label = await screen.findByText('Delivered')
+    const tile = label.closest('[data-kpi-cell]') as HTMLElement
+    // 400 delivered of (400 + 100) sent: the emails of no origin count, as Logs filtered on them
+    // shows their Delivered count; the SMTP newsletters stay out.
+    await waitFor(() => expect(tile).toHaveTextContent('80.0%'))
+  })
+
   it('says over how many emails a partly tracked rate is computed', async () => {
     renderKpis({
       totals: totals({ transactional: { opensTracked: 200, opened: 100 } })
@@ -391,5 +467,75 @@ describe('DashboardKpis', () => {
     expect(retries).toHaveLength(4)
     fireEvent.click(retries[0])
     expect(onRetrySeries).toHaveBeenCalledTimes(1)
+  })
+
+  describe('before the first send', () => {
+    const emailTiles = ['Emails sent', 'Delivered', 'Open rate', 'Click rate']
+    const tile = (label: string) => screen.getByText(label).closest('[data-kpi-cell]') as HTMLElement
+
+    it('says when each email tile fills, rather than 0 or a dash', async () => {
+      renderKpis({ sendState: 'never', totals: totals({ broadcast: { ...emptyTotals() }, transactional: { ...emptyTotals() } }) })
+      expect(await screen.findByText('18,342')).toBeInTheDocument()
+      for (const label of emailTiles) {
+        expect(tile(label)).toHaveTextContent(`${label}After your first send`)
+        expect(tile(label)).not.toHaveTextContent('—')
+        expect(tile(label).querySelector('.text-kpi')).toBeNull()
+      }
+      expect(screen.getAllByText('After your first send')).toHaveLength(4)
+    })
+
+    it('needs no series to say so', async () => {
+      renderKpis({ sendState: 'never', totals: undefined })
+      expect(await screen.findAllByText('After your first send')).toHaveLength(4)
+    })
+
+    it('says the emails of today show tomorrow', async () => {
+      renderKpis({ sendState: 'today', totals: totals({ broadcast: { ...emptyTotals() }, transactional: { ...emptyTotals() } }) })
+      expect(await screen.findAllByText('From tomorrow')).toHaveLength(4)
+      fireEvent.mouseEnter(screen.getAllByText('From tomorrow')[0])
+      expect(
+        await screen.findByText("The dashboard counts complete days; today's emails show tomorrow")
+      ).toBeInTheDocument()
+    })
+
+    it('still offers a retry when the series failed', async () => {
+      renderKpis({ sendState: 'never', totals: undefined, seriesError: true })
+      expect(await screen.findAllByRole('button', { name: 'Retry' })).toHaveLength(4)
+      expect(screen.queryByText('After your first send')).not.toBeInTheDocument()
+    })
+
+    it('shows the figures once sends are counted', async () => {
+      renderKpis({ sendState: 'counted' })
+      expect(await screen.findByText('1,000')).toBeInTheDocument()
+      expect(screen.queryByText('After your first send')).not.toBeInTheDocument()
+    })
+  })
+
+  it('counts the contacts added today in the new contacts', async () => {
+    // A contact created at 9:00 on 11 November, today: inside the bounds asked for.
+    const createdToday = Date.parse('2026-11-11T09:00:00Z')
+    query.mockImplementation(async (q: AnalyticsQuery) => {
+      const range = q.filters?.find((f) => f.operator === 'inDateRange')?.values as string[] | undefined
+      if (q.schema === 'contacts' && range) {
+        const counted = Date.parse(range[0]) <= createdToday && createdToday <= Date.parse(range[1])
+        return row({ count: counted ? 1 : 0 })
+      }
+      return answer(q)
+    })
+    renderKpis()
+    const sub = await screen.findByText('+1 over 30 d')
+    fireEvent.mouseEnter(sub)
+    expect(await screen.findByText('Added in the last 30 days, today included')).toBeInTheDocument()
+  })
+
+  it('says when visits will show, with the link to set web analytics up', async () => {
+    renderKpis({ workspace: workspace(false) })
+    const placeholder = await screen.findByText('Once your site is tracked')
+    const cell = placeholder.closest('[data-kpi-cell]') as HTMLElement
+    expect(cell).not.toHaveTextContent('—')
+    expect(screen.getByText('Set up web analytics').closest('a')).toHaveAttribute(
+      'href',
+      '/console/workspace/ws1/settings/web-analytics'
+    )
   })
 })

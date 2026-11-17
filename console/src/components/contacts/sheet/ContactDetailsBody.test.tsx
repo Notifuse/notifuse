@@ -238,6 +238,17 @@ describe('ContactDetailsBody', () => {
     expect(lines[1]).toHaveTextContent(/Added on/)
   })
 
+  it('dates the contact in the zone its activity is dated in, and names that zone', async () => {
+    state.contacts['ann@x.com'] = { ...state.contacts['ann@x.com'], timezone: 'Asia/Tokyo' }
+    renderBody()
+    await screen.findByRole('heading', { name: 'Ann Lee' })
+    // Midnight UTC is 9 AM in Tokyo, the zone the timeline says « Times in ».
+    const created = screen.getByText('Created At').parentElement!
+    expect(created).toHaveTextContent('Jan 1, 2026 9:00 AM')
+    expect(created).toHaveTextContent('Asia/Tokyo')
+    expect(screen.getByText('Updated At').parentElement!).toHaveTextContent('Asia/Tokyo')
+  })
+
   it('shows the Messages and Web visits tabs with their counts', async () => {
     renderBody()
     expect(await screen.findByRole('tab', { name: /Messages\s*12/ })).toBeInTheDocument()

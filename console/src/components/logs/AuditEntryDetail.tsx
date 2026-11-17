@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { App, Button, Empty } from 'antd'
+import { App, Button, Empty, Tooltip } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Link2 } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -8,6 +8,7 @@ import { copyToClipboard } from '../../lib/copyToClipboard'
 import { KeyValueList, Mono, Pill, SidePanel, type DrawerNav } from '../layout'
 import { AuditPhrase } from './AuditPhrase'
 import { CodeBlock } from './CodeBlock'
+import { formatCode } from './formatCode'
 import { AUDIT_CATEGORY_LABELS } from './labels'
 import { formatLogDateTime } from './logTime'
 import { OUTCOME_TONES, useActorLabel, useOutcomeLabel } from './auditDisplay'
@@ -34,8 +35,18 @@ function ChangeValue({ value }: { value: unknown }) {
         {REDACTED}
       </Pill>
     )
-  if (typeof value === 'object') return <Mono>{JSON.stringify(value)}</Mono>
-  return <span className="text-ink">{String(value)}</span>
+  // An object (a whole provider's settings) is indented JSON that wraps inside its column and
+  // scrolls past a bounded height: on one unbroken line it widened the drawer to thousands of pixels.
+  if (typeof value === 'object')
+    return (
+      <pre
+        data-change-json
+        className="m-0 max-h-[240px] overflow-auto rounded-sm bg-fill px-1.5 py-1 font-mono text-xs whitespace-pre-wrap wrap-anywhere text-ink-2"
+      >
+        {formatCode(value)}
+      </pre>
+    )
+  return <span className="wrap-anywhere text-ink">{String(value)}</span>
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -117,9 +128,16 @@ export function AuditEntryDetail({
       nav={nav}
       copyLink={false}
       actions={
-        <Button size="small" icon={<Link2 size={14} />} onClick={() => void copyLink()}>
-          {t`Copy link`}
-        </Button>
+        // The icon button of every other drawer, which copies a link to this entry alone.
+        <Tooltip title={t`Copy link`}>
+          <Button
+            type="text"
+            size="small"
+            aria-label={t`Copy link`}
+            icon={<Link2 size={15} aria-hidden="true" />}
+            onClick={() => void copyLink()}
+          />
+        </Tooltip>
       }
     >
       <div key={log.id} className="flex flex-col gap-4">
@@ -181,10 +199,10 @@ export function AuditEntryDetail({
         />
         {changes.length > 0 ? (
           <Section title={t`Changes`}>
-            <table className="w-full border-collapse text-sm" data-testid="audit-changes">
+            <table className="w-full table-fixed border-collapse text-sm" data-testid="audit-changes">
               <thead>
                 <tr className="text-left text-xs text-ink-3">
-                  <th className="py-1 pr-2 font-medium">{t`Field`}</th>
+                  <th className="w-1/4 py-1 pr-2 font-medium">{t`Field`}</th>
                   <th className="py-1 pr-2 font-medium">{t`Before`}</th>
                   <th className="py-1 font-medium">{t`After`}</th>
                 </tr>
@@ -192,13 +210,13 @@ export function AuditEntryDetail({
               <tbody>
                 {changes.map(([field, change]) => (
                   <tr key={field} className="border-t border-line-soft align-top">
-                    <td className="py-1 pr-2">
+                    <td className="min-w-0 py-1 pr-2">
                       <Mono>{field}</Mono>
                     </td>
-                    <td className="py-1 pr-2">
+                    <td className="min-w-0 py-1 pr-2">
                       <ChangeValue value={change.old} />
                     </td>
-                    <td className="py-1">
+                    <td className="min-w-0 py-1">
                       <ChangeValue value={change.new} />
                     </td>
                   </tr>

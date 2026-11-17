@@ -260,17 +260,22 @@ describe('BroadcastDetail', () => {
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
   })
 
-  it('offers Back to draft beside Cancel on a scheduled broadcast not yet sending, and confirms it', async () => {
+  it('asks back to draft or cancel from one Cancel button on a scheduled broadcast not yet sending', async () => {
     ;(broadcastApi.get as Mock).mockResolvedValue({
       broadcast: broadcastOf({ status: 'scheduled', started_at: undefined, completed_at: undefined })
     })
     ;(broadcastApi.unschedule as Mock).mockResolvedValue({ success: true })
     renderDetail()
-    // Cancel stays: the server may still refuse going back to draft.
-    expect(await screen.findByRole('button', { name: 'Cancel' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Back to draft' }))
+    // One Cancel button, no Back to draft beside it: it asks which way out, and choosing is the
+    // confirmation. Cancel broadcast stays, the server may still refuse going back to draft.
+    expect(screen.queryByRole('button', { name: 'Back to draft' })).toBeNull()
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel' })
+    expect(cancelButton.className).not.toContain('dangerous')
+    await userEvent.click(cancelButton)
+    expect((await screen.findAllByText('Cancel the scheduled send?')).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /^Cancel broadcast/ })).toBeInTheDocument()
     expect(broadcastApi.unschedule).not.toHaveBeenCalled()
-    await userEvent.click(await screen.findByRole('button', { name: 'Yes, back to draft' }))
+    await userEvent.click(screen.getByRole('button', { name: /^Back to draft/ }))
     await waitFor(() => expect(broadcastApi.unschedule).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'bc1' }))
   })
 
@@ -289,23 +294,15 @@ describe('BroadcastDetail', () => {
     expect(screen.getByTestId('send-test-modal')).toHaveTextContent('tpl-a')
   })
 
-  it('refreshes the broadcast, its stats, task, test results, variation stats and links', async () => {
-    const { client } = renderDetail()
+  // Refresh stats sits in the drawer's bar (BroadcastsPage), not in this menu.
+  it('does not offer Refresh stats in its menu', async () => {
+    renderDetail()
     await screen.findByText('1,000')
-    const spy = vi.spyOn(client, 'invalidateQueries')
-    await userEvent.click(screen.getByRole('button', { name: 'More actions' }))
-    await userEvent.click(await screen.findByText('Refresh stats'))
-    const keys = spy.mock.calls.map(([filters]) => (filters as { queryKey: unknown[] }).queryKey)
-    expect(keys).toEqual(
-      expect.arrayContaining([
-        ['broadcast', 'ws1', 'bc1'],
-        ['broadcast-stats', 'ws1', 'bc1'],
-        ['task', 'ws1', 'bc1'],
-        ['testResults', 'ws1', 'bc1'],
-        ['broadcast-variation-stats', 'ws1', 'bc1'],
-        ['broadcast-link-stats', 'ws1', 'bc1']
-      ])
-    )
+    const more = screen.queryByRole('button', { name: 'More actions' })
+    if (more) {
+      await userEvent.click(more)
+      expect(screen.queryByText('Refresh stats')).toBeNull()
+    }
   })
 
   it('closes before the delete refreshes the list', async () => {

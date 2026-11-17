@@ -74,13 +74,21 @@ export function defaultAuditPeriod(search: LogsSearch): AuditPeriod {
 export const COUNT_MAX_PERIOD: RollingPeriod = '7d'
 
 /** Every rolling period: the ones COUNT_MAX_PERIOD can name, counted only up to it. */
-export type RollingPeriod = Exclude<LivePeriod, 'all'>
+export type RollingPeriod = Exclude<LivePeriod, 'all' | 'custom'>
 
-const COUNTED_PERIODS: readonly RollingPeriod[] = ['1h', '24h', '7d', '30d']
+const COUNTED_PERIODS: readonly RollingPeriod[] = ['1h', '24h', '7d', '30d', '90d']
 
-/** Whether the counters of the Messages tab ask for numbers: the server needs a bound. */
-export function canCountMessages(search: LogsSearch, period: LivePeriod): boolean {
+/**
+ * Whether the counters of the Messages tab ask for numbers: the server needs a bound, no longer
+ * than COUNT_MAX_PERIOD without an indexed filter. A custom range counts when it is that short.
+ */
+export function canCountMessages(search: LogsSearch, period: LivePeriod, now = Date.now()): boolean {
   if (hasIndexedMessageFilter(search)) return true
+  if (period === 'custom') {
+    if (!search.from) return false
+    const span = (search.to ? Date.parse(search.to) : now) - Date.parse(search.from)
+    return span <= (DURATIONS[COUNT_MAX_PERIOD] ?? 0)
+  }
   return (
     period !== 'all' &&
     COUNTED_PERIODS.slice(0, COUNTED_PERIODS.indexOf(COUNT_MAX_PERIOD) + 1).includes(period)

@@ -135,6 +135,15 @@ const lastNavigation = () =>
     replace?: boolean
   }
 const counter = (name: RegExp) => screen.getByRole('button', { name })
+const periodChoices = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /^Period / }))
+  const menu = await screen.findByRole('menu')
+  return within(menu)
+    .getAllByRole('menuitem')
+    .map((item) => item.textContent)
+}
+const SAME_PERIODS = ['Last hour', 'Last 24 hours', 'Last 7 days', 'Last 30 days', 'Last 90 days', 'All time']
+
 
 describe('MessagesTab', () => {
   beforeEach(() => {
@@ -276,6 +285,34 @@ describe('MessagesTab', () => {
     await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(1))
   })
 
+  it('offers the periods of every Logs tab, and sends both bounds of a custom range', async () => {
+    const { unmount } = renderTab({ tab: 'messages' })
+    await screen.findByText('ann@example.com')
+    // On the right, with the icons: the filters and "Clear all" keep the left of the toolbar.
+    expect(screen.getByRole('button', { name: 'Refresh' }).parentElement).toContainElement(
+      screen.getByRole('button', { name: /^Period / })
+    )
+    expect(await periodChoices()).toEqual(SAME_PERIODS)
+    expect(screen.getAllByLabelText('Custom range').length).toBeGreaterThan(0)
+    unmount()
+
+    state.countMessages.mockClear()
+    renderTab({
+      tab: 'messages',
+      period: 'custom',
+      from: '2026-11-09T00:00:00.000Z',
+      to: '2026-11-10T23:59:59.999Z'
+    })
+    await waitFor(() =>
+      expect(lastList()).toMatchObject({
+        created_after: '2026-11-09T00:00:00.000Z',
+        created_before: '2026-11-10T23:59:59.999Z'
+      })
+    )
+    // Two days: within the longest period counted.
+    await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(1))
+  })
+
   it('does not count all time without an indexed filter, nor with an external ID alone', async () => {
     const { unmount } = renderTab({ tab: 'messages', period: 'all' })
     await screen.findByText('ann@example.com')
@@ -284,8 +321,16 @@ describe('MessagesTab', () => {
     await screen.findByText('ann@example.com')
     expect(state.countMessages).not.toHaveBeenCalled()
     expect(within(counter(/^All/)).queryByText(/\d/)).toBeNull()
+    // Said in the bar, without hovering: the numbers otherwise just vanished.
+    expect(screen.getByText('Not counted beyond 7 days')).toBeInTheDocument()
     fireEvent.mouseOver(counter(/^All/))
     expect(await screen.findByText(/^Counts cover 7 days at most/)).toBeInTheDocument()
+  })
+
+  it('says nothing of a limit while the counts are shown', async () => {
+    renderTab({ tab: 'messages', period: '24h' })
+    await waitFor(() => expect(state.countMessages).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText(/^Not counted beyond/)).toBeNull()
   })
 
   it('names the longest period counted in the tooltip', async () => {
@@ -311,17 +356,28 @@ describe('MessagesTab', () => {
 
   it('shows no delivered count when both providers are SMTP', async () => {
     state.workspace = smtpWorkspace('smtp', 'smtp')
+    state.countMessages.mockResolvedValue({ ...counts, delivered: 0 })
     renderTab()
     await within(counter(/^All/)).findByText('21,480')
     expect(within(counter(/^Delivered/)).getByText('—')).toBeInTheDocument()
   })
 
+  it('shows the delivered count of SMTP providers when deliveries came back all the same', async () => {
+    // Through the SMTP webhook endpoint, or from a provider used before (the demo's SES history).
+    state.workspace = smtpWorkspace('smtp', 'smtp')
+    renderTab()
+    await within(counter(/^All/)).findByText('21,480')
+    expect(within(counter(/^Delivered/)).getByText('21,214')).toBeInTheDocument()
+  })
+
   it('shows no delivered count for an origin served by an SMTP provider only', async () => {
     state.workspace = smtpWorkspace('smtp', 'postmark')
+    state.countMessages.mockResolvedValue({ ...counts, delivered: 0 })
     const { unmount } = renderTab({ tab: 'messages', origin: 'automation' })
     await within(counter(/^All/)).findByText('21,480')
     expect(within(counter(/^Delivered/)).getByText('—')).toBeInTheDocument()
     unmount()
+    state.countMessages.mockResolvedValue(counts)
     renderTab({ tab: 'messages', origin: 'transactional' })
     await within(counter(/^All/)).findByText('21,480')
     expect(within(counter(/^Delivered/)).getByText('21,214')).toBeInTheDocument()

@@ -53,3 +53,44 @@ describe('hard-coded colours', () => {
     expect(offenders).toEqual([])
   })
 })
+
+// The web analytics screens draw with the Nuit claire tokens: text in ink…ink-4, surfaces and rules
+// from the theme, charts from tokens.ts. Tailwind's gray-* classes still compile (index.css remaps
+// them), so nothing but this scan keeps a new widget from bringing back the look the screens left.
+describe('web analytics on the tokens', () => {
+  const OFF_TOKEN: [string, RegExp][] = [
+    ['a gray-* text, background or border class', /(?<![\w-])(?:text|bg|border(?:-[trblxy])?)-gray-\d/],
+    ['bg-white', /(?<![\w-])bg-white(?![\w-])/],
+    ['text-xl', /(?<![\w-])text-xl(?![\w-])/],
+    ['a hex colour literal', /#[0-9a-f]{6}\b|#[0-9a-f]{3}\b/i]
+  ]
+
+  const SCOPE_EXCEPTIONS = [
+    // The floating assistant has its own layout, out of the redesign's scope
+    'components/web_analytics/WebAnalyticsAIAssistant.tsx',
+    // The colours an annotation can be given are data saved with it, not interface colours
+    'components/web_analytics/annotations/AnnotationFormModal.tsx'
+  ]
+
+  const files = [
+    ...sourceFiles(join(SRC, 'components/web_analytics')),
+    ...readdirSync(join(SRC, 'pages'))
+      .filter((entry) => /^WebAnalytics.*\.tsx$/.test(entry))
+      .map((entry) => `pages/${entry}`)
+  ].filter((file) => /\.tsx?$/.test(file) && !/\.test\.tsx?$/.test(file) && !SCOPE_EXCEPTIONS.includes(file))
+
+  it('scans the web analytics components and pages', () => {
+    expect(files).toContain('components/web_analytics/DimensionTableWidget.tsx')
+    expect(files).toContain('pages/WebAnalyticsPage.tsx')
+    expect(files).toContain('pages/WebAnalyticsLivePage.tsx')
+  })
+
+  it.each(OFF_TOKEN)('no web analytics file writes %s', (_, pattern) => {
+    const offenders = files.filter((file) => pattern.test(read(file)))
+    expect(offenders).toEqual([])
+  })
+
+  it.each(SCOPE_EXCEPTIONS)('%s still exists, so its exception is still needed', (file) => {
+    expect(() => read(file)).not.toThrow()
+  })
+})

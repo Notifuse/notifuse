@@ -153,6 +153,68 @@ describe('AutomationProvider saving an automation the editor loaded live', () =>
   })
 })
 
+describe('AutomationProvider refusing to save an invalid flow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(App, 'useApp').mockReturnValue({
+      message: mockMessage,
+      notification: {},
+      modal: {}
+    } as unknown as ReturnType<typeof App.useApp>)
+  })
+
+  function Probe() {
+    const { save, selectedNodeId } = useAutomation()
+    return (
+      <>
+        <button onClick={() => void save()}>Save</button>
+        <span data-testid="selected">{selectedNodeId ?? ''}</span>
+      </>
+    )
+  }
+
+  it('selects the step at fault, and leaves its message up long enough to read', async () => {
+    // "All variants must be connected" was a short toast: nothing on the canvas said which step.
+    const withOpenVariant: Automation = {
+      ...liveAutomation,
+      status: 'paused',
+      nodes: [
+        { ...liveAutomation.nodes[0], next_node_id: 'ab-1' },
+        {
+          id: 'ab-1',
+          automation_id: 'auto-1',
+          type: 'ab_test',
+          config: {
+            variants: [
+              { id: 'A', name: 'Variant A', weight: 50, next_node_id: '' },
+              { id: 'B', name: 'Variant B', weight: 50, next_node_id: '' }
+            ]
+          },
+          position: { x: 0, y: 150 },
+          created_at: '2026-01-01T00:00:00Z'
+        }
+      ]
+    }
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <AutomationProvider workspace={workspace} automation={withOpenVariant} lists={[]} canReadTemplates>
+              <Probe />
+            </AutomationProvider>
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    expect(screen.getByTestId('selected')).toHaveTextContent('')
+    save()
+
+    await waitFor(() => expect(screen.getByTestId('selected')).toHaveTextContent('ab-1'))
+    expect(mockMessage.error).toHaveBeenCalledWith({ content: expect.stringContaining('All variants must be connected'), duration: 8 })
+    expect(automationApi.update).not.toHaveBeenCalled()
+  })
+})
+
 // The context value keeps its identity while nothing it holds changes, so its memo spares the
 // consumers a render; a permission that loads changes it.
 describe('AutomationProvider context value', () => {

@@ -1,8 +1,9 @@
 import { useIsFetching, useQueryClient } from '@tanstack/react-query'
-import { Button, Popconfirm, Tooltip } from 'antd'
+import { Button, Tooltip } from 'antd'
 import { RefreshCw, Trash2 } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { contactKey } from './contactKey'
+import { PopconfirmWithTooltip } from '../../layout/PopconfirmWithTooltip'
 
 export interface ContactSheetTopActionsProps {
   workspaceId: string
@@ -41,7 +42,6 @@ export function ContactSheetTopActions({
       <Tooltip title={t`Refresh`}>
         <Button
           type="text"
-          size="small"
           aria-label={t`Refresh`}
           icon={<RefreshCw size={15} aria-hidden="true" />}
           disabled={fetching}
@@ -49,7 +49,8 @@ export function ContactSheetTopActions({
         />
       </Tooltip>
       {canWriteContacts ? (
-        <Popconfirm
+        <PopconfirmWithTooltip
+          tooltip={t`Delete contact`}
           title={t`Delete contact`}
           description={t`This will permanently remove the contact and their subscriptions.`}
           okText={t`Delete`}
@@ -58,15 +59,12 @@ export function ContactSheetTopActions({
           placement="bottomRight"
           onConfirm={() => onDelete(email)}
         >
-          <Tooltip title={t`Delete contact`}>
-            <Button
-              type="text"
-              size="small"
-              aria-label={t`Delete contact`}
-              icon={<Trash2 size={15} aria-hidden="true" />}
-            />
-          </Tooltip>
-        </Popconfirm>
+          <Button
+            type="text"
+            aria-label={t`Delete contact`}
+            icon={<Trash2 size={15} aria-hidden="true" />}
+          />
+        </PopconfirmWithTooltip>
       ) : null}
     </>
   )

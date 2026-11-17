@@ -192,7 +192,7 @@ export const openTreeEditor = async (page: Page, body: TreeBlock[]) => {
 
   const saved = async () => {
     const count = saves.length
-    await drawer.getByRole('button', { name: 'Save', exact: true }).click()
+    await drawer.locator('[data-drawer-bar]').getByRole('button', { name: /^Save v\d+$/ }).click()
     await expect.poll(() => saves.length).toBe(count + 1)
     return find(saves[saves.length - 1], 'B')!
   }

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Button, Empty, Input, Result, Skeleton, Tooltip } from 'antd'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
-import { Plus, Search } from 'lucide-react'
+import { Plus, RefreshCw, Search } from 'lucide-react'
 import { CountTabs, FullDrawer, PageHeader, Panel, TableToolbar, useNumberFormat, type CountTabOption } from '../components/layout'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { BROADCAST_STATUS_GROUPS, type Broadcast } from '../services/api/broadcast'
@@ -15,6 +15,7 @@ import { BroadcastKpis } from '../components/broadcasts/BroadcastKpis'
 import { BroadcastsTable } from '../components/broadcasts/BroadcastsTable'
 import { DeleteBroadcastModal } from '../components/broadcasts/DeleteBroadcastModal'
 import { BroadcastDetail } from '../components/broadcasts/detail/BroadcastDetail'
+import { refreshBroadcastStats } from '../components/broadcasts/detail/refreshBroadcastStats'
 import { BroadcastCompose } from '../components/broadcasts/compose/BroadcastCompose'
 import { canReadWebAnalytics } from '../components/broadcasts/access'
 import { useAudienceEstimates } from '../components/broadcasts/useAudienceEstimates'
@@ -25,7 +26,7 @@ import { PAGE_SIZE, groupCount, useBroadcastsList } from '../components/broadcas
 type StatusGroup = 'all' | keyof typeof BROADCAST_STATUS_GROUPS
 
 // Valid status groups of the URL; anything else falls back to 'all'.
-const STATUS_GROUP_VALUES: StatusGroup[] = ['all', 'draft', 'scheduled', 'sending', 'sent', 'failed']
+const STATUS_GROUP_VALUES: StatusGroup[] = ['all', 'draft', 'scheduled', 'sending', 'sent', 'failed', 'cancelled']
 const SEARCH_DELAY_MS = 300
 const ROUTE = '/console/workspace/$workspaceId/broadcasts'
 
@@ -33,6 +34,7 @@ export function BroadcastsPage() {
   const { t } = useLingui()
   const { int } = useNumberFormat()
   const { workspaceId } = useParams({ from: ROUTE })
+  const queryClient = useQueryClient()
   const navigate = useNavigate({ from: ROUTE })
   const search = useSearch({ from: ROUTE }) as BroadcastsSearch
   const { workspaces } = useAuth()
@@ -201,6 +203,10 @@ export function BroadcastsPage() {
   const failedCount = groupCount(counts, BROADCAST_STATUS_GROUPS.failed) ?? 0
   if (failedCount > 0 || statusGroup === 'failed')
     tabs.push({ value: 'failed', label: t({ message: 'Failed', context: 'newsletter filter' }), count: failedCount })
+  // Cancelled broadcasts have their own tab, shown like Failed only when there are some.
+  const cancelledCount = groupCount(counts, BROADCAST_STATUS_GROUPS.cancelled) ?? 0
+  if (cancelledCount > 0 || statusGroup === 'cancelled')
+    tabs.push({ value: 'cancelled', label: t({ message: 'Cancelled', context: 'newsletter filter' }), count: cancelledCount })
 
   const hasMarketingProvider = !!workspace?.settings?.marketing_email_provider_id
   // Nothing at all in the workspace: no search, and the counts of every status are zero.
@@ -258,7 +264,7 @@ export function BroadcastsPage() {
           description={t`You don't have a marketing email provider configured. Please set up an email provider in your workspace settings to send broadcasts.`}
           action={
             <Button size="small" href={`/console/workspace/${workspaceId}/settings/integrations`}>
-              {t`Configure Provider`}
+              {t`Configure provider`}
             </Button>
           }
         />
@@ -352,6 +358,18 @@ export function BroadcastsPage() {
         backLabel={t`Broadcasts`}
         nav={nav}
         push={false}
+        topActions={
+          detailId ? (
+            <Tooltip title={t`Refresh stats`}>
+              <Button
+                type="text"
+                aria-label={t`Refresh stats`}
+                icon={<RefreshCw size={14} aria-hidden="true" />}
+                onClick={() => refreshBroadcastStats(queryClient, workspaceId, detailId)}
+              />
+            </Tooltip>
+          ) : null
+        }
       >
         {detailId ? (
           <BroadcastDetail

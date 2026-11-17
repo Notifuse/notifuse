@@ -36,6 +36,8 @@ import type {
 import type { Segment } from '../../../services/api/segment'
 import type { Workspace } from '../../../services/api/types'
 import { getProviderName } from '../../integrations/EmailProviders'
+import { MESSAGE_ORIGIN_LABELS } from '../../logs/labels'
+import { messageOrigin } from '../../logs/messageProvider'
 import { segmentDotColor } from '../../segment/segmentColor'
 import { changeNew, changeOld, webPageURL } from '../../timeline/webPageUrl'
 import { LIST_STATUS_LABEL } from '../contactDisplay'
@@ -110,7 +112,21 @@ export function useActivityDescriber({
   const message = (entry: ContactTimelineEntry): ActivityDescription => {
     const data = entry.entity_data as MessageHistoryEntityData | undefined
     const name = emailName(data, entry.entity_id)
-    const source = data?.template_category === 'transactional' ? t`Transactional` : t`Email`
+    // What sent it, as the Messages tab names it; an entry without it (written before the
+    // timeline returned it) by its template's category.
+    const origin = data
+      ? messageOrigin({
+          broadcast_id: data.broadcast_id ?? undefined,
+          automation_id: data.automation_id ?? undefined,
+          transactional_notification_id: data.transactional_notification_id ?? undefined
+        })
+      : 'other'
+    const source =
+      origin !== 'other'
+        ? i18n._(MESSAGE_ORIGIN_LABELS[origin])
+        : data?.template_category === 'transactional'
+          ? t`Transactional`
+          : t`Email`
     const changed = (key: string) => entry.changes?.[key] !== undefined
     if (entry.kind === 'email.link_clicked') {
       const url = changeNew<string>(entry, 'clicked_url')

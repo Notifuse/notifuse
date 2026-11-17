@@ -170,4 +170,28 @@ describe('KpiStrip', () => {
     fireEvent.mouseEnter(screen.getByText('49%'))
     expect(await screen.findByText('Partial tracking')).toBeInTheDocument()
   })
+
+  describe('placeholder', () => {
+    const waiting: KpiItem = { key: 'sent', label: 'Emails sent', value: '0', placeholder: 'After your first send' }
+
+    it('says it instead of the value, not as a figure', () => {
+      const { container } = render(<KpiStrip items={[waiting]} />)
+      const placeholder = screen.getByText('After your first send')
+      expect(placeholder.closest('.text-kpi')).toBeNull()
+      expect(screen.queryByText('0')).not.toBeInTheDocument()
+      expect(container.querySelector('.text-kpi')).toBeNull()
+    })
+
+    it('still shows the skeleton while loading', () => {
+      const { container } = render(<KpiStrip loading items={[waiting]} />)
+      expect(screen.queryByText('After your first send')).not.toBeInTheDocument()
+      expect(container.querySelector('.ant-skeleton')).not.toBeNull()
+    })
+
+    it('carries the hint tooltip too', async () => {
+      render(<KpiStrip items={[{ ...waiting, placeholder: 'From tomorrow', hint: 'Counted from tomorrow' }]} />)
+      fireEvent.mouseEnter(screen.getByText('From tomorrow'))
+      expect(await screen.findByText('Counted from tomorrow')).toBeInTheDocument()
+    })
+  })
 })

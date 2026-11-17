@@ -1,8 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
-import { App, Button, Space, Segmented, Spin } from 'antd'
+import { App, Button, Segmented, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faRedoAlt, faUndoAlt } from '@fortawesome/free-solid-svg-icons'
+import { Redo2, Undo2 } from 'lucide-react'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
 import { TreePanel } from './panels/TreePanel'
@@ -1020,33 +1019,32 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       data-library-dragging={libraryDragging ? 'true' : undefined}
     >
       {/* Top Toolbar */}
-      <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
+      {/* 40px, as the drawer bar above it, with the theme's 28px controls; the subtle ground sets
+          it apart from that bar. Three columns keep the mode switch centred. */}
+      <div className="grid h-10 flex-shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-line-soft bg-subtle px-3">
         {/* Left section - Undo/Redo buttons */}
         <div className="flex items-center">
-          <Space style={{ opacity: effectiveViewMode === 'edit' ? 1 : 0 }}>
+          <div className="flex items-center gap-1" style={{ opacity: effectiveViewMode === 'edit' ? 1 : 0 }}>
             <Button
-              size="small"
               type="text"
-              icon={<FontAwesomeIcon icon={faUndoAlt} />}
+              icon={<Undo2 size={14} aria-hidden="true" />}
               onClick={handleUndo}
               disabled={!canUndo || effectiveViewMode !== 'edit'}
               title={t`Undo`}
             />
             <Button
-              size="small"
               type="text"
-              icon={<FontAwesomeIcon icon={faRedoAlt} />}
+              icon={<Redo2 size={14} aria-hidden="true" />}
               onClick={handleRedo}
               disabled={!canRedo || effectiveViewMode !== 'edit'}
               title={t`Redo`}
             />
-          </Space>
+          </div>
         </div>
 
         {/* Center section - Mode switcher */}
         <div ref={previewSwitcherRef} className="flex items-center">
           <Segmented
-            size="small"
             value={effectiveViewMode}
             onChange={handleModeChange}
             options={[
@@ -1064,7 +1062,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         </div>
 
         {/* Right section - Custom toolbar actions */}
-        <div className="flex items-center">{toolbarActions || <div></div>}</div>
+        <div className="flex items-center justify-end">{toolbarActions || <div></div>}</div>
       </div>
 
       {effectiveViewMode === 'preview' && compilationResults && (

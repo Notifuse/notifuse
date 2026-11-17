@@ -126,6 +126,24 @@ describe('computeDashboardKpis', () => {
     expect(kpis.delivered.rate).toBeNull()
   })
 
+  it('reads the delivered rate over the emails of providers that report deliveries', () => {
+    // Both providers SMTP on the demo: Logs shows "—" for every message while the dashboard
+    // read 12.5 % from delivered_at the providers never reported.
+    const smtpMarketing = computeDashboardKpis({
+      series,
+      reportsDelivery: (origin) => origin === 'transactional'
+    })
+    expect(smtpMarketing.delivered.rate).toBe(1)
+    expect(smtpMarketing.delivered.notReported).toBe(false)
+    // Bounces still count over every email sent.
+    expect(smtpMarketing.delivered.bounceRate).toBeCloseTo(0.009)
+
+    const allSmtp = computeDashboardKpis({ series, reportsDelivery: () => false })
+    expect(allSmtp.delivered.rate).toBeNull()
+    expect(allSmtp.delivered.notReported).toBe(true)
+    expect(allSmtp.delivered.noDeliveryEvents).toBe(false)
+  })
+
   it('warns above 2 % bounces or 0.1 % complaints', () => {
     const only = { automation: emptyTotals(), transactional: emptyTotals(), other: emptyTotals() }
     const ok = computeDashboardKpis({

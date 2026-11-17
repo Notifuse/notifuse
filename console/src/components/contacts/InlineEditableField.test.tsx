@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { App } from 'antd'
+import { App, Drawer } from 'antd'
 import type { Workspace } from '../../services/api/types'
 import { InlineEditableField } from './InlineEditableField'
 
@@ -47,9 +47,48 @@ describe('InlineEditableField', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('job_title', 'CEO'))
   })
 
+  it('shows its hint under the value, and not under the editor', () => {
+    renderField({ hideLabel: true, hint: 'Local time 14:32' })
+    expect(screen.getByText('Local time 14:32')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('CTO'))
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.queryByText('Local time 14:32')).toBeNull()
+  })
+
   it('does not enter edit mode when disabled', () => {
     renderField({ hideLabel: true, disabled: true })
     fireEvent.click(screen.getByText('CTO'))
     expect(screen.queryByRole('textbox')).toBeNull()
+  })
+
+  it('cancels the edit on Escape without closing the drawer around it', () => {
+    const onClose = vi.fn()
+    const onSave = vi.fn(async () => {})
+    render(
+      <App>
+        <Drawer open onClose={onClose}>
+          <InlineEditableField
+            fieldKey="job_title"
+            fieldType="string"
+            label="Job Title"
+            value="CTO"
+            workspace={workspace}
+            onSave={onSave}
+            hideLabel
+          />
+        </Drawer>
+      </App>
+    )
+    fireEvent.click(screen.getByText('CTO'))
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'CEO' } })
+    fireEvent.keyDown(input, { key: 'Escape', code: 'Escape', keyCode: 27 })
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.getByText('CTO')).toBeInTheDocument()
+    expect(onSave).not.toHaveBeenCalled()
+    // Out of edit mode, Escape closes the drawer as before.
+    fireEvent.keyDown(screen.getByText('CTO'), { key: 'Escape', code: 'Escape', keyCode: 27 })
+    expect(onClose).toHaveBeenCalled()
   })
 })

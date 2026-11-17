@@ -249,6 +249,19 @@ describe('BroadcastsPage', () => {
     expect(screen.getByText('Failed', { selector: '.ant-segmented-item-label span span' })).toBeInTheDocument()
   })
 
+  it('counts cancelled broadcasts under Cancelled, not Failed', async () => {
+    // A cancelled broadcast was stopped on purpose: it used to be counted and listed under Failed.
+    list.mockResolvedValue(page([broadcastOf('b1')], 1, { processed: 3, cancelled: 2 }))
+    renderPage()
+    await screen.findByText('Broadcast b1')
+    const tab = (label: string) => screen.queryByText(label, { selector: '.ant-segmented-item-label span span' })
+    expect(tab('Failed')).toBeNull()
+    expect(tab('Cancelled')?.nextSibling).toHaveTextContent('2')
+
+    fireEvent.click(tab('Cancelled')!)
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ statuses: ['cancelled'] })))
+  })
+
   it('names its tabs in the newsletter filter context', async () => {
     const filter = (message: string) => generateMessageId(message, 'newsletter filter')
     i18n.load('fr', {
@@ -304,6 +317,18 @@ describe('BroadcastsPage', () => {
     fireEvent.click(row('Broadcast s1'))
     expect(url.get().broadcast).toBe('s1')
     expect(await screen.findByTestId('detail')).toHaveTextContent('s1')
+  })
+
+  // The detail's figures are read again from the drawer's bar: an icon, named by its tooltip.
+  it('refreshes the open broadcast from the drawer bar', async () => {
+    url.set({ broadcast: 's1' })
+    list.mockResolvedValue(page([broadcastOf('s1')]))
+    renderPage()
+    await screen.findByTestId('detail')
+    const refresh = screen.getByRole('button', { name: 'Refresh stats' })
+    expect(refresh.closest('[data-drawer-bar]')).not.toBeNull()
+    fireEvent.mouseEnter(refresh)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Refresh stats')
   })
 
   it('opens a draft in the detail without write permission', async () => {
@@ -483,7 +508,7 @@ describe('BroadcastsPage', () => {
     renderPage()
 
     expect(await screen.findByText('Email Provider Required')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Configure Provider' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Configure provider' })).toHaveAttribute(
       'href',
       '/console/workspace/ws1/settings/integrations'
     )

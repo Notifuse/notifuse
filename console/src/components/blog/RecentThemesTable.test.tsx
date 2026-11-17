@@ -52,3 +52,23 @@ describe('RecentThemesTable last edited tooltip', () => {
     expect(await screen.findByText('9 août 2026 18:00 Asia/Tokyo')).toBeInTheDocument()
   })
 })
+
+describe('RecentThemesTable card', () => {
+  it('shows the versions in a Themes card, New theme in its header', async () => {
+    renderTable()
+    const version = await screen.findByText('3')
+    const card = screen.getByText('Themes').closest('section') as HTMLElement
+    expect(card).not.toBeNull()
+    expect(card).toHaveTextContent('New theme')
+    expect(card).toContainElement(version)
+  })
+
+  it('keeps the empty state inside the card', async () => {
+    const { blogThemesApi } = await import('../../services/api/blog')
+    vi.mocked(blogThemesApi.list).mockResolvedValueOnce({ themes: [], total_count: 0 } as never)
+    renderTable()
+    const empty = await screen.findByText('No themes yet')
+    expect(empty.closest('section')).toHaveTextContent('Themes')
+    expect(screen.getByRole('button', { name: /Create First Theme/ })).toBeInTheDocument()
+  })
+})

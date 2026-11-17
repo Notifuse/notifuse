@@ -61,7 +61,8 @@ export function EmailStepStats({ email, canReadHistory, smtp, messages }: EmailS
     row(key, label, <span className={valueClass}>{r === null || Number.isNaN(r) ? '—' : percent(r)}</span>, r)
 
   const problems = [
-    plural(e.failed, { one: '# failed', other: '# failed' }),
+    // Emails, beside the step's failed journeys: each count says what it counts.
+    plural(e.failed, { one: '# email failed', other: '# emails failed' }),
     plural(e.unsubscribed, { one: '# unsubscribe', other: '# unsubscribes' }),
     plural(e.bounced, { one: '# bounce', other: '# bounces' })
   ].join(' · ')

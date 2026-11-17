@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"regexp"
 	"strings"
@@ -84,6 +85,14 @@ WHERE c.automation_id = a.id
   AND (a.stats IS NULL OR jsonb_typeof(a.stats) = 'object')
   AND c.n > CASE WHEN a.stats->>'exited' ~ '^[0-9]{1,18}$'
                  THEN (a.stats->>'exited')::bigint ELSE 0 END`,
+	schema.AutomationEnrollContactWithTriggerFunction(),
+	schema.AutomationEnrollContactRelayFunction(),
+}
+
+// expectV44TriggerBodies expects the last step of the workspace update: the live automations
+// with an installed trigger, whose function bodies are replaced. None here.
+func expectV44TriggerBodies(mock sqlmock.Sqlmock) {
+	mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows())
 }
 
 func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.T) {
@@ -94,6 +103,7 @@ func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.
 	for _, stmt := range v44ExpectedWorkspaceStatements {
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
+	expectV44TriggerBodies(mock)
 
 	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -172,6 +182,7 @@ func TestV44Migration_UpdateWorkspacePurgesTheOwnLinksBetweenTheBuildsAndTheMemb
 	for _, stmt := range v44ExpectedWorkspaceStatements[at:] {
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
+	expectV44TriggerBodies(mock)
 
 	endpoint := "https://Mail.Brand.example./"
 	workspace := &domain.Workspace{ID: "ws1", Settings: domain.WorkspaceSettings{CustomEndpointURL: &endpoint}}
@@ -226,4 +237,51 @@ func TestV44OwnHosts(t *testing.T) {
 // is off, which would change what the purge's patterns match.
 func TestV44OwnLinksPurgeSQL_HoldsNoBackslash(t *testing.T) {
 	assert.NotContains(t, v44OwnLinksPurgeSQL, `\`)
+}
+
+func v44CustomEventTriggerConfig(t *testing.T) []byte {
+	t.Helper()
+	name := "cart_abandoned"
+	b, err := json.Marshal(domain.TimelineTriggerConfig{
+		EventKind:       "custom_event",
+		CustomEventName: &name,
+		Frequency:       domain.TriggerFrequencyEveryTime,
+	})
+	require.NoError(t, err)
+	return b
+}
+
+// The last step replaces each live automation's trigger function, and nothing else: no DROP, no
+// CREATE TRIGGER, so contact_timeline is not locked while the update holds message_history.
+func TestV44Migration_ReplacesTriggerBodiesToPassTheEvent(t *testing.T) {
+	rec := &v38StatementRecorder{}
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(rec))
+	require.NoError(t, err)
+	defer db.Close()
+
+	for _, stmt := range v44ExpectedWorkspaceStatements {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	installed := "CREATE TRIGGER automation_trigger_cartauto AFTER INSERT ON contact_timeline " +
+		"FOR EACH ROW WHEN ((new.kind = 'custom_event.cart_abandoned'::text)) EXECUTE FUNCTION automation_trigger_cartauto()"
+	mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows().AddRow("cartauto", "node1", v44CustomEventTriggerConfig(t), installed))
+	mock.ExpectExec("^SAVEPOINT v44_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("^CREATE OR REPLACE FUNCTION automation_trigger_cartauto").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("^RELEASE SAVEPOINT v44_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
+
+	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
+	require.NoError(t, mock.ExpectationsWereMet())
+
+	body := rec.firstWithPrefix(t, "CREATE OR REPLACE FUNCTION automation_trigger_cartauto")
+	assert.Contains(t, body, "ce.event_name = substring(NEW.kind from 14)")
+	assert.NotContains(t, rec.all(), "DROP TRIGGER")
+	assert.NotContains(t, rec.all(), "CREATE TRIGGER automation_trigger_cartauto")
+}
+
+// The five-argument enrolment is installed before any body calls it, and the four-argument one
+// becomes its relay.
+func TestV44Migration_InstallsTheEnrolmentBeforeTheBodies(t *testing.T) {
+	n := len(v44ExpectedWorkspaceStatements)
+	assert.Equal(t, schema.AutomationEnrollContactWithTriggerFunction(), v44ExpectedWorkspaceStatements[n-2])
+	assert.Equal(t, schema.AutomationEnrollContactRelayFunction(), v44ExpectedWorkspaceStatements[n-1])
 }

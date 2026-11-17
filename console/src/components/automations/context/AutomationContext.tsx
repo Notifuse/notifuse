@@ -407,7 +407,15 @@ export function AutomationProvider({
     const errors = validationErrors.filter(e => !e.message.startsWith('Warning:'))
 
     if (errors.length > 0) {
-      message.error(errors[0].message)
+      const [first] = errors
+      // Longer than a plain toast, and the step at fault is selected: the canvas brings it into
+      // view and its panel opens on what is missing.
+      message.error({ content: first.message, duration: 8 })
+      const faultyId = first.nodeId
+      if (faultyId) {
+        setSelectedNodeId(faultyId)
+        setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === faultyId })))
+      }
       return false
     }
 

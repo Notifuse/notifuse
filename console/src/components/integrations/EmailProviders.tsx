@@ -1,5 +1,12 @@
 import { IntegrationType, EmailProviderKind } from '../../services/api/types'
 import React from 'react'
+import { Server } from 'lucide-react'
+
+// SMTP is a protocol, not a brand: a server sign stands for it, never a made-up wordmark.
+const iconSize = (size: 'small' | 'large' | number) => (typeof size === 'number' ? size : size === 'small' ? 14 : 20)
+const smtpIcon = (className = '', size: 'small' | 'large' | number = 'small') => (
+  <Server size={iconSize(size)} aria-label="SMTP" className={`inline-block text-ink-3 ${className}`.trim()} />
+)
 
 export interface ProviderInfo {
   type: IntegrationType
@@ -51,18 +58,7 @@ export const getProviderIcon = (
     )
   }
 
-  return (
-    <span
-      style={{
-        fontWeight: 700,
-        fontSize: size === 'small' ? 12 : 16,
-        fontFamily: 'monospace',
-        color: '#666'
-      }}
-    >
-      SMTP
-    </span>
-  )
+  return smtpIcon('', size)
 }
 
 export const emailProviders: ProviderInfo[] = [
@@ -70,19 +66,7 @@ export const emailProviders: ProviderInfo[] = [
     type: 'email',
     kind: 'smtp',
     name: 'SMTP',
-    getIcon: (className = '', size = 'small') => (
-      <span
-        className={className}
-        style={{
-          fontWeight: 700,
-          fontSize: size === 'small' ? 12 : 16,
-          fontFamily: 'monospace',
-          color: '#666'
-        }}
-      >
-        SMTP
-      </span>
-    )
+    getIcon: smtpIcon
   },
   {
     type: 'email',

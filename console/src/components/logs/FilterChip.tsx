@@ -26,7 +26,7 @@ export interface FilterChipProps {
 }
 
 const BASE =
-  'inline-flex h-7 items-center gap-1 rounded-md px-2.5 text-sm whitespace-nowrap hover:bg-fill focus-visible:outline-2 focus-visible:outline-primary'
+  'inline-flex h-7 cursor-pointer items-center gap-1 rounded-md px-2.5 text-sm whitespace-nowrap hover:bg-fill focus-visible:outline-2 focus-visible:outline-primary'
 
 /** A toolbar filter of the logs: "label value ▾", opening its choices. */
 export function FilterChip({
@@ -88,7 +88,7 @@ export function FilterChip({
         type="button"
         aria-label={t`Remove ${name} filter`}
         onClick={onClear}
-        className="inline-flex h-7 w-6 items-center justify-center rounded-md text-ink-4 hover:bg-fill hover:text-ink-2"
+        className="inline-flex h-7 w-6 cursor-pointer items-center justify-center rounded-md text-ink-4 hover:bg-fill hover:text-ink-2"
       >
         <X size={14} aria-hidden="true" />
       </button>

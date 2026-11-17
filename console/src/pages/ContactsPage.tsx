@@ -9,7 +9,7 @@ import { workspaceContactsRoute, type ContactsSearch } from '../router'
 import { contactsApi, type Contact } from '../services/api/contacts'
 import { contactListApi } from '../services/api/contact_list'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
-import { Panel, TableToolbar, useNumberFormat } from '../components/layout'
+import { Panel, RailCard, TableToolbar, useNumberFormat } from '../components/layout'
 import { ContactsRail } from '../components/contacts/ContactsRail'
 import { ContactsTable, CONTACT_COLUMNS_STORAGE_KEY } from '../components/contacts/ContactsTable'
 import { DEFAULT_VISIBLE_COLUMNS, useSelectableColumns } from '../components/contacts/contactColumns'
@@ -19,7 +19,6 @@ import { useContactFilterFields } from '../components/contacts/contactFilterFiel
 import { ContactColumnsSelector } from '../components/contacts/ContactColumnsSelector'
 import { ContactDetailsDrawer } from '../components/contacts/ContactDetailsDrawer'
 import { ContactUpsertDrawer } from '../components/contacts/ContactUpsertDrawer'
-import { DeleteContactModal } from '../components/contacts/DeleteContactModal'
 import { ExportContactsModal } from '../components/contacts/ExportContactsModal'
 import { BulkActionsBar } from '../components/contacts/BulkActionsBar'
 import { BulkActionProgressModal } from '../components/contacts/BulkActionProgressModal'
@@ -41,6 +40,8 @@ import { ListHeader } from '../components/lists/ListHeader'
 import { LIST_STATUSES, LIST_STAT_KEYS, useListStats } from '../components/lists/listStats'
 import { CreateListDrawer } from '../components/lists/ListDrawer'
 import { DrawerSegment } from '../components/segment/button_upsert'
+import { filtersToSegmentTree } from '../components/contacts/filtersToSegmentTree'
+import type { TreeNode } from '../services/api/segment'
 import { useBulkContactAction, SkippedAction, type BulkActionResult } from '../hooks/useBulkContactAction'
 
 const SEARCH_DEBOUNCE_MS = 300
@@ -129,22 +130,28 @@ export function ContactsPage() {
   const segmentGone = view.kind === 'segment' && segmentsQuery.isSuccess && !segment
   const listStats = useListStats(workspaceId, view.kind === 'list' ? view.listId : undefined, !!list)
 
+  // The page's own updates (more rows, a filter, the sheet) keep the scroll where it is: the
+  // router scrolls to the top on every navigation unless told not to. A new view starts at the top.
   const go = React.useCallback(
-    (update: (prev: ContactsSearch) => ContactsSearch, replace = false) =>
-      navigate({ to: workspaceContactsRoute.to, params: { workspaceId }, search: update, replace }),
+    (update: (prev: ContactsSearch) => ContactsSearch, replace = false, resetScroll = false) =>
+      navigate({ to: workspaceContactsRoute.to, params: { workspaceId }, search: update, replace, resetScroll }),
     [navigate, workspaceId]
   )
 
   const selectView = (next: ContactsView) =>
-    go((prev) => ({
-      ...prev,
-      list_id: next.kind === 'list' ? next.listId : undefined,
-      segment_id: next.kind === 'segment' ? next.segmentId : undefined,
-      contact_list_status: undefined,
-      segments: undefined,
-      contact: undefined,
-      limit: undefined
-    }))
+    go(
+      (prev) => ({
+        ...prev,
+        list_id: next.kind === 'list' ? next.listId : undefined,
+        segment_id: next.kind === 'segment' ? next.segmentId : undefined,
+        contact_list_status: undefined,
+        segments: undefined,
+        contact: undefined,
+        limit: undefined
+      }),
+      false,
+      true
+    )
   const backToAll = () => {
     selectView({ kind: 'all' })
   }
@@ -366,7 +373,6 @@ export function ContactsPage() {
 
   // ---- Row edit and delete
   const [contactToEdit, setContactToEdit] = React.useState<Contact | null>(null)
-  const [contactToDelete, setContactToDelete] = React.useState<string | null>(null)
   // Deleted contacts and when the delete started. During a load more, the table shows the rows the
   // previous page size kept (placeholder data), which the cache update below cannot reach, so the
   // rows are filtered here too, until a fetch that started after the delete answers.
@@ -389,7 +395,6 @@ export function ContactsPage() {
       // The selection must not keep a deleted contact: the count would lie and a bulk add-to-list
       // (an upsert) would bring it back.
       setSelectedEmails((prev) => prev.filter((selected) => selected !== email))
-      setContactToDelete(null)
       if (search.contact === email) {
         sheetOpenedHere.current = false
         go((prev) => ({ ...prev, contact: undefined }), true)
@@ -423,7 +428,9 @@ export function ContactsPage() {
 
   // ---- Lists and segments created or edited from the rail and the list header
   const [listDrawer, setListDrawer] = React.useState<'create' | 'edit' | null>(null)
-  const [segmentDrawerOpen, setSegmentDrawerOpen] = React.useState(false)
+  // Open with the conditions it starts with: none from the rail, the table's filters from
+  // « Advanced conditions: create a segment ».
+  const [segmentDrawer, setSegmentDrawer] = React.useState<{ tree?: TreeNode } | null>(null)
   const [exportOpen, setExportOpen] = React.useState(false)
 
   const handleViewDeleted = () => {
@@ -438,6 +445,7 @@ export function ContactsPage() {
         contact: undefined,
         limit: undefined
       }),
+      true,
       true
     )
   }
@@ -578,7 +586,8 @@ export function ContactsPage() {
         onSelectionChange={setSelectedEmails}
         onOpen={openContact}
         onEdit={setContactToEdit}
-        onDelete={setContactToDelete}
+        // Confirmed in the row's popconfirm.
+        onDelete={(email) => deleteMutation.mutate(email)}
         emptyText={emptyText}
       />
     )
@@ -586,14 +595,9 @@ export function ContactsPage() {
 
   const gone = listGone || segmentGone
 
-  // The lists and segments as a rounded card beside the table, top-aligned with it and only as
-  // tall as its content, instead of a full-height column.
+  // The lists and segments as a rounded card beside the table.
   const rail = (
-    <nav
-      aria-label={t`Contacts`}
-      data-contacts-rail-card
-      className="w-rail shrink-0 self-start rounded-lg border border-line bg-surface px-2 py-3 shadow-card"
-    >
+    <RailCard ariaLabel={t`Contacts`}>
       <ContactsRail
         workspaceId={workspaceId}
         view={view}
@@ -603,9 +607,9 @@ export function ContactsPage() {
         segmentsLoading={segmentsQuery.isLoading}
         onSelect={selectView}
         onCreateList={() => setListDrawer('create')}
-        onCreateSegment={() => setSegmentDrawerOpen(true)}
+        onCreateSegment={() => setSegmentDrawer({})}
       />
-    </nav>
+    </RailCard>
   )
 
   return (
@@ -701,7 +705,9 @@ export function ContactsPage() {
                           segments={segments}
                           canCreateSegment={canWriteSegments}
                           onApply={(key, value) => go((prev) => ({ ...prev, [key]: value, limit: undefined }))}
-                          onCreateSegment={() => setSegmentDrawerOpen(true)}
+                          onCreateSegment={() =>
+                            setSegmentDrawer({ tree: filtersToSegmentTree(tableSearch, filterFields) })
+                          }
                           onRemove={(key) => go((prev) => ({ ...prev, [key]: undefined, limit: undefined }), true)}
                           onClear={clearFilters}
                         />
@@ -769,15 +775,6 @@ export function ContactsPage() {
         onDelete={(email) => deleteMutation.mutate(email)}
       />
 
-      <DeleteContactModal
-        visible={!!contactToDelete}
-        onCancel={() => setContactToDelete(null)}
-        onConfirm={() => contactToDelete && deleteMutation.mutate(contactToDelete)}
-        contactEmail={contactToDelete || ''}
-        loading={deleteMutation.isPending}
-        disabled={!canWriteContacts}
-      />
-
       {contactToEdit ? (
         <ContactUpsertDrawer
           workspace={workspace}
@@ -801,11 +798,12 @@ export function ContactsPage() {
         />
       ) : null}
 
-      {segmentDrawerOpen ? (
+      {segmentDrawer ? (
         <DrawerSegment
+          initialTree={segmentDrawer.tree}
           totalContacts={totalQuery.data?.total_contacts}
           canReadTemplates={!!permissions?.templates?.read}
-          setDrawserVisible={setSegmentDrawerOpen}
+          setDrawserVisible={(visible) => setSegmentDrawer(visible ? (segmentDrawer ?? {}) : null)}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })}
         />
       ) : null}

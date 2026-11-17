@@ -557,9 +557,10 @@ func TestTransactionalNotificationHandler_HandleUpdate(t *testing.T) {
 	notificationID := "test-notification"
 
 	// Valid request body for update
+	updatedDescription := "Updated description"
 	validUpdateParams := domain.TransactionalNotificationUpdateParams{
 		Name:        "Updated Notification",
-		Description: "Updated description",
+		Description: &updatedDescription,
 	}
 
 	validReqBody := domain.UpdateTransactionalRequest{
@@ -712,6 +713,45 @@ func TestTransactionalNotificationHandler_HandleUpdate(t *testing.T) {
 		})
 	}
 }
+
+// The handler decodes the body the console sends: an empty description reaches the service as an
+// instruction to clear it, an absent one as nothing to change.
+func TestTransactionalNotificationHandler_HandleUpdate_Description(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		// nil when the service must receive no description
+		want *string
+	}{
+		{name: "empty clears", body: `{"workspace_id":"workspace1","id":"n1","updates":{"description":""}}`, want: ptrToString("")},
+		{name: "absent keeps", body: `{"workspace_id":"workspace1","id":"n1","updates":{"name":"Renamed"}}`, want: nil},
+		{name: "text replaces", body: `{"workspace_id":"workspace1","id":"n1","updates":{"description":"New"}}`, want: ptrToString("New")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService, _, handler := setupTransactionalHandlerTest(t)
+			mockService.EXPECT().
+				UpdateNotification(gomock.Any(), "workspace1", "n1", gomock.Any()).
+				DoAndReturn(func(_ context.Context, _, _ string, params domain.TransactionalNotificationUpdateParams) (*domain.TransactionalNotification, error) {
+					if tt.want == nil {
+						assert.Nil(t, params.Description)
+					} else {
+						require.NotNil(t, params.Description)
+						assert.Equal(t, *tt.want, *params.Description)
+					}
+					return createTestTransactionalNotification(), nil
+				})
+
+			req := httptest.NewRequest(http.MethodPost, "/api/transactional.update", bytes.NewBufferString(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			handler.handleUpdate(w, req)
+			assert.Equal(t, http.StatusOK, w.Code)
+		})
+	}
+}
+
+func ptrToString(s string) *string { return &s }
 
 func TestTransactionalNotificationHandler_HandleDelete(t *testing.T) {
 	mockService, mockLogger, handler := setupTransactionalHandlerTest(t)

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -960,6 +961,20 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 			expectedCount: 2,
 		},
 		{
+			name:           "no rows from the repository is an empty list, not null",
+			workspaceID:    "workspace123",
+			subscriptionID: &subID,
+			limit:          10,
+			offset:         0,
+			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
+				mockDeliveryRepo.EXPECT().
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), 10, 0).
+					Return(nil, 0, nil)
+			},
+			expectedTotal: 0,
+			expectedCount: 0,
+		},
+		{
 			name:           "empty deliveries list",
 			workspaceID:    "workspace123",
 			subscriptionID: &subID,
@@ -1049,6 +1064,9 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 				require.NoError(t, err)
 				require.Len(t, deliveries, tc.expectedCount)
 				require.Equal(t, tc.expectedTotal, total)
+				encoded, err := json.Marshal(deliveries)
+				require.NoError(t, err)
+				require.NotEqual(t, "null", string(encoded), "the API answers a list")
 			}
 		})
 	}

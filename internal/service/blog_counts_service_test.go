@@ -31,21 +31,22 @@ func TestBlogService_ListPosts_SetsNow(t *testing.T) {
 }
 
 func TestBlogService_CountPosts(t *testing.T) {
-	t.Run("relays the repository with the category and a UTC instant", func(t *testing.T) {
+	t.Run("relays the repository with the category, the search and a UTC instant", func(t *testing.T) {
 		service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 
 		counts := domain.NewBlogPostCounts()
 		counts.AllTotal = 3
 		before := time.Now().UTC()
-		mockPostRepo.EXPECT().CountPosts(ctx, "workspace123", "cat-1", gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, _ string, now time.Time) (*domain.BlogPostCounts, error) {
+		mockPostRepo.EXPECT().CountPosts(ctx, "workspace123", "cat-1", "launch", gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, _ string, _ string, now time.Time) (*domain.BlogPostCounts, error) {
 				assert.Equal(t, time.UTC, now.Location())
 				assert.False(t, now.Before(before))
 				return &counts, nil
 			})
 
-		got, err := service.CountPosts(ctx, "cat-1")
+		// The search is trimmed as blogPosts.list trims it, so both count the same titles.
+		got, err := service.CountPosts(ctx, "cat-1", "  launch ")
 		require.NoError(t, err)
 		assert.Equal(t, &counts, got)
 	})
@@ -54,7 +55,7 @@ func TestBlogService_CountPosts(t *testing.T) {
 		service, _, _, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", false, false)
 
-		_, err := service.CountPosts(ctx, "")
+		_, err := service.CountPosts(ctx, "", "")
 		var permErr *domain.PermissionError
 		require.ErrorAs(t, err, &permErr)
 	})
@@ -64,23 +65,23 @@ func TestBlogService_CountPosts(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "workspace123").Return(ctx, nil, nil, errors.New("bad token"))
 
-		_, err := service.CountPosts(ctx, "")
+		_, err := service.CountPosts(ctx, "", "")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "bad token")
 	})
 
 	t.Run("no workspace in the context", func(t *testing.T) {
 		service, _, _, _, _, _, _, _ := setupBlogServiceTest(t)
-		_, err := service.CountPosts(context.Background(), "")
+		_, err := service.CountPosts(context.Background(), "", "")
 		require.Error(t, err)
 	})
 
 	t.Run("repository error is wrapped", func(t *testing.T) {
 		service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
-		mockPostRepo.EXPECT().CountPosts(ctx, "workspace123", "", gomock.Any()).Return(nil, errors.New("db down"))
+		mockPostRepo.EXPECT().CountPosts(ctx, "workspace123", "", "", gomock.Any()).Return(nil, errors.New("db down"))
 
-		_, err := service.CountPosts(ctx, "")
+		_, err := service.CountPosts(ctx, "", "")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "db down")
 	})

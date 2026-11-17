@@ -102,17 +102,20 @@ describe('parseLogsSearch', () => {
     ).toEqual({})
   })
 
-  it('checks the period against the tab of the URL', () => {
-    expect(parseLogsSearch({ tab: 'messages', period: '90d' })).toEqual({ tab: 'messages' })
-    expect(parseLogsSearch({ tab: 'messages', period: 'custom' })).toEqual({ tab: 'messages' })
-    expect(parseLogsSearch({ tab: 'audit', period: '1h' })).toEqual({ tab: 'audit' })
-    expect(parseLogsSearch({ tab: 'audit', period: '90d' })).toEqual({
-      tab: 'audit',
-      period: '90d'
+  it('offers the same periods on every tab that has one, and none on outgoing webhooks', () => {
+    // The tabs had three different lists: 90 days and a custom range on the audit log only, the
+    // last hour everywhere else.
+    for (const tab of ['messages', 'incoming-webhooks', 'audit'] as const) {
+      for (const period of ['1h', '24h', '7d', '30d', '90d', 'all', 'custom'] as const) {
+        expect(parseLogsSearch({ tab, period })).toEqual({ tab, period })
+      }
+      expect(parseLogsSearch({ tab, period: '2y' })).toEqual({ tab })
+    }
+    // Its endpoint filters by subscription and status only.
+    expect(parseLogsSearch({ tab: 'outgoing-webhooks', period: '7d' })).toEqual({
+      tab: 'outgoing-webhooks'
     })
-    // Without a tab the page opens the messages, so their periods apply.
-    expect(parseLogsSearch({ period: '1h' })).toEqual({ period: '1h' })
-    expect(parseLogsSearch({ period: '90d' })).toEqual({})
+    expect(parseLogsSearch({ period: '90d' })).toEqual({ period: '90d' })
   })
 
   it('drops unknown keys', () => {

@@ -233,16 +233,17 @@ func (s *TransactionalNotificationService) UpdateNotification(
 		}
 
 		// Allow updates to description and tracking_settings
-		if params.Description != "" {
-			notification.Description = params.Description
+		if params.Description != nil {
+			notification.Description = *params.Description
 		}
 	} else {
 		// For non-integration-managed notifications, allow all updates
 		if params.Name != "" {
 			notification.Name = params.Name
 		}
-		if params.Description != "" {
-			notification.Description = params.Description
+		// An explicit "" clears the description; an absent one leaves it.
+		if params.Description != nil {
+			notification.Description = *params.Description
 		}
 		// Validate the updated templates exist
 		if params.Channels != nil {

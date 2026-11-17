@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../contexts/AuthContext";
 import { isRootUser } from "../services/api/auth";
-import { workspaceService } from "../services/api/workspace";
+import { membersQuery } from "../services/api/workspaceQueries";
 
 export interface AuditLogAccess {
   // Owners always, root users always, members only with the opt-in audit_logs
@@ -19,8 +19,7 @@ export function useAuditLogAccess(workspaceId?: string): AuditLogAccess {
   const isRoot = isRootUser(user?.email);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["workspace-members", workspaceId, user?.id],
-    queryFn: () => workspaceService.getMembers(workspaceId as string),
+    ...membersQuery(workspaceId, user?.id),
     enabled: Boolean(workspaceId) && Boolean(user) && !isRoot,
     staleTime: 60_000,
   });

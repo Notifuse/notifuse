@@ -1,8 +1,9 @@
 import { ReactNode, useMemo, useState } from 'react'
-import { Drawer, Empty, Pagination, Tooltip } from 'antd'
+import { Button, Drawer, Empty, Pagination, Tooltip } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { ArrowDown, ArrowUp, Maximize2 } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
+import { Panel } from '../layout'
 import { useWebAnalytics } from './useWebAnalytics'
 import { CountryMapView } from './CountryMapView'
 import { Delta } from './Delta'
@@ -10,6 +11,7 @@ import { formatValue } from './lib/format'
 import { WidgetTabs } from './WidgetTabs'
 import { mergeWidgetFilters } from './lib/dimensions'
 import { getHeatMapStyle } from './lib/heatmap'
+import { countryName } from './lib/isoCountries'
 import {
   buildWebQuery,
   mergeComparisonRows,
@@ -73,6 +75,8 @@ interface DimensionTableWidgetProps {
 const VISIBLE_ROWS = 7
 const EXPANDED_ROWS = 200
 const DRAWER_PAGE_SIZE = 20
+/** Inline padding of the measure columns: antd's 8px, and the panel's 14px on the right edge. */
+const CELL_INLINE = 'px-2 last:pr-3.5'
 
 /**
  * A card showing the top values of one dimension, with tabs to swap which
@@ -112,38 +116,34 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
     setSortDirection('desc')
   }
 
-  const header = (
-    <>
-      <div className="flex items-start justify-between gap-2 px-4 pb-4 pt-4">
-        <h3 className="flex items-center gap-1 text-base font-semibold text-gray-900">
-          {props.title}
-          {props.infoTooltip ? (
-            <Tooltip title={props.infoTooltip}>
-              <InfoCircleOutlined className="text-xs text-gray-400" />
-            </Tooltip>
-          ) : null}
-        </h3>
-        {!isMap ? (
-          <Tooltip title={t`Expand`}>
-            <button
-              type="button"
-              onClick={() => setExpanded(true)}
-              className="rounded p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
-            >
-              <Maximize2 size={14} />
-            </button>
-          </Tooltip>
-        ) : null}
-      </div>
-      <WidgetTabs tabs={props.tabs} activeKey={activeTabKey} onChange={setActiveTabKey} />
-    </>
+  const title = (
+    <span className="inline-flex items-center gap-1">
+      {props.title}
+      {props.infoTooltip ? (
+        <Tooltip title={props.infoTooltip}>
+          <InfoCircleOutlined className="text-xs text-ink-4" />
+        </Tooltip>
+      ) : null}
+    </span>
   )
 
+  const expand = !isMap ? (
+    <Tooltip title={t`Expand`}>
+      <Button
+        type="text"
+        size="small"
+        aria-label={t`Expand`}
+        icon={<Maximize2 size={14} />}
+        onClick={() => setExpanded(true)}
+      />
+    </Tooltip>
+  ) : null
+
   return (
-    <div className="overflow-hidden rounded-md border border-gray-200">
-      {header}
+    <Panel title={title} extra={expand} flush>
+      <WidgetTabs tabs={props.tabs} activeKey={activeTabKey} onChange={setActiveTabKey} />
       {isMap ? (
-        <div className="px-4 pb-4">
+        <div className="px-3.5 py-3">
           <CountryMapView
             data={rows.data}
             metric={columns[0].key}
@@ -175,7 +175,7 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
           <div className="flex items-center gap-2">
             {props.title}
             <Tooltip title={t`Limited to the top ${EXPANDED_ROWS} values for performance`}>
-              <InfoCircleOutlined className="text-xs text-gray-400" />
+              <InfoCircleOutlined className="text-xs text-ink-4" />
             </Tooltip>
           </div>
         }
@@ -187,6 +187,8 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
           onChange={setActiveTabKey}
         />
         <ExpandedRows
+          // A new filter or tab is a new list: it opens on its first page, not on a page it may not have.
+          key={`${tab.key}:${JSON.stringify(context.filters)}`}
           tab={tab}
           columns={columns}
           rows={rows.data}
@@ -198,7 +200,7 @@ export function DimensionTableWidget(props: DimensionTableWidgetProps) {
           emptyText={props.emptyText}
         />
       </Drawer>
-    </div>
+    </Panel>
   )
 }
 
@@ -274,10 +276,13 @@ function DimensionRowsTable(props: RowsTableProps) {
   }, [props.rows, props.columns])
 
   const leadValue = Number(props.rows[0]?.[props.sortBy] ?? 0)
+  // The figures take what they need, the rest goes to the value: a page path or a referrer is
+  // what gets cut. The change beside each figure needs the wider column.
+  const measureWidth = context.showComparison ? 'w-24 md:w-32' : 'w-24'
 
   if (!props.loading && props.rows.length === 0) {
     return (
-      <div className="px-4 pb-6">
+      <div className="px-3.5 py-3">
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={props.emptyText ?? t`No data available`}
@@ -289,21 +294,21 @@ function DimensionRowsTable(props: RowsTableProps) {
   return (
     <table className="w-full table-fixed">
       <thead>
-        <tr className="h-[46px] border-b border-gray-100 text-xs text-gray-500">
-          <th className="px-4 text-left font-normal">{props.tab.dimensionLabel}</th>
+        <tr className="border-b border-line-soft bg-subtle text-2xs text-ink-3">
+          <th className="px-3.5 py-1.75 text-left font-medium">{props.tab.dimensionLabel}</th>
           {props.columns.map((column) => (
-            <th key={column.key} className="w-24 px-2 text-right font-normal md:w-32">
+            <th key={column.key} className={`${measureWidth} py-1.75 text-right font-medium ${CELL_INLINE}`}>
               <button
                 type="button"
                 onClick={() => props.onSort(column.key)}
-                className="inline-flex items-center gap-1 hover:text-gray-800"
+                className="inline-flex cursor-pointer items-center gap-1 hover:text-ink"
               >
                 {column.label}
                 {props.sortBy === column.key ? (
                   props.sortDirection === 'desc' ? (
-                    <ArrowDown size={12} className="text-primary" />
+                    <ArrowDown size={12} className="text-primary-500" />
                   ) : (
-                    <ArrowUp size={12} className="text-primary" />
+                    <ArrowUp size={12} className="text-primary-500" />
                   )
                 ) : (
                   <ArrowDown size={12} className="opacity-0" />
@@ -316,9 +321,9 @@ function DimensionRowsTable(props: RowsTableProps) {
       <tbody>
         {props.loading && props.rows.length === 0
           ? Array.from({ length: 5 }, (_, index) => (
-              <tr key={index} className="h-9">
-                <td className="px-4" colSpan={props.columns.length + 1}>
-                  <div className="h-3 animate-pulse rounded bg-gray-100" />
+              <tr key={index} className="h-8">
+                <td className="px-3.5" colSpan={props.columns.length + 1}>
+                  <div className="h-3 animate-pulse rounded bg-fill" />
                 </td>
               </tr>
             ))
@@ -332,9 +337,9 @@ function DimensionRowsTable(props: RowsTableProps) {
                     values: [row.dimension_value]
                   })
                 }
-                className="h-9 cursor-pointer border-b border-gray-50 text-sm hover:bg-gray-50/60"
+                className="cursor-pointer border-b border-line-soft text-sm text-ink last:border-b-0 hover:bg-subtle"
               >
-                <td className="relative px-4">
+                <td className="relative px-3.5 py-1.75">
                   <div
                     aria-hidden
                     className="absolute inset-y-1 left-2 rounded bg-primary opacity-[0.06]"
@@ -346,13 +351,18 @@ function DimensionRowsTable(props: RowsTableProps) {
                   />
                   <div className="relative flex items-center gap-2 truncate">
                     {props.iconPrefix?.(row.dimension_value, props.tab.key)}
-                    <span className="truncate text-xs text-gray-700" title={row.dimension_value}>
-                      {row.dimension_value || t`(empty)`}
+                    <span className="truncate" title={row.dimension_value}>
+                      {row.dimension_value
+                        ? // The SDK stores a country as its code ("FR"): the row names it, the code in its title.
+                          props.tab.dimension === 'country'
+                          ? countryName(row.dimension_value)
+                          : row.dimension_value
+                        : t`(empty)`}
                     </span>
                   </div>
                 </td>
                 {props.columns.map((column) => (
-                  <td key={column.key} className="px-2 text-right text-xs text-gray-700">
+                  <td key={column.key} className={`py-1.75 text-right whitespace-nowrap ${CELL_INLINE}`}>
                     <div className="flex items-center justify-end gap-1">
                       {column.heatMap ? (
                         <span
@@ -387,7 +397,10 @@ function DimensionRowsTable(props: RowsTableProps) {
 
 /** The drawer's paginated view of the same rows. */
 function ExpandedRows(props: RowsTableProps) {
-  const [page, setPage] = useState(1)
+  const [requestedPage, setPage] = useState(1)
+  // Never past the last page: the rows can shrink under it (a refresh, a sort).
+  const lastPage = Math.max(1, Math.ceil(props.rows.length / DRAWER_PAGE_SIZE))
+  const page = Math.min(requestedPage, lastPage)
   const start = (page - 1) * DRAWER_PAGE_SIZE
   const visible = props.rows.slice(start, start + DRAWER_PAGE_SIZE)
 

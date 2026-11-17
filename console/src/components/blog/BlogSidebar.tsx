@@ -1,7 +1,7 @@
 import { useLingui } from '@lingui/react/macro'
 import { useQuery } from '@tanstack/react-query'
-import { Dropdown } from 'antd'
-import { Folder, MoreHorizontal, Newspaper, Plus } from 'lucide-react'
+import { Dropdown, Skeleton } from 'antd'
+import { MoreHorizontal, Newspaper, Plus } from 'lucide-react'
 import { blogCategoriesApi, type BlogCategory, type BlogPostCounts } from '../../services/api/blog'
 import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
 import { RailItem, RailSection } from '../layout'
@@ -19,10 +19,27 @@ interface BlogSidebarProps {
   onDeleteCategory: (category: BlogCategory) => void
 }
 
+const byName = (a: BlogCategory, b: BlogCategory) => a.settings.name.localeCompare(b.settings.name)
+
+function SkeletonRows() {
+  return (
+    <>
+      {[0, 1, 2].map((key) => (
+        <div key={key} data-rail-skeleton className="flex h-7 items-center px-2">
+          <Skeleton.Input active size="small" block />
+        </div>
+      ))}
+    </>
+  )
+}
+
 const MENU_BUTTON =
   'grid size-5 cursor-pointer place-items-center rounded-sm border-0 bg-transparent text-ink-3 hover:bg-line-soft hover:text-ink focus-visible:ring-2 focus-visible:ring-primary-500/18 focus-visible:outline-none'
 
-/** The Blog's left rail: all posts, then one entry per category with its count and menu. */
+/**
+ * The Blog's rail, laid out as the Contacts one: all posts, then the categories by name, each with
+ * its count and menu.
+ */
 export function BlogSidebar({
   workspaceId,
   activeCategoryId,
@@ -34,39 +51,55 @@ export function BlogSidebar({
   onDeleteCategory
 }: BlogSidebarProps) {
   const { t } = useLingui()
-  const { data: categoriesData, isSuccess } = useQuery({
+  const { data: categoriesData, isLoading } = useQuery({
     queryKey: ['blog-categories', workspaceId],
     queryFn: () => blogCategoriesApi.list(workspaceId)
   })
 
-  const categories = categoriesData?.categories ?? []
+  const categories = [...(categoriesData?.categories ?? [])].sort(byName)
 
   return (
-    <div className="flex flex-col gap-px">
-      <RailItem
-        icon={<Newspaper size={14} />}
-        label={t`All posts`}
-        count={counts?.all_total}
-        active={!activeCategoryId}
-        onClick={() => onCategoryChange(null)}
-      />
+    <>
+      <RailSection>
+        <RailItem
+          icon={<Newspaper size={15} aria-hidden="true" />}
+          label={t`All posts`}
+          count={counts?.all_total}
+          active={!activeCategoryId}
+          onClick={() => onCategoryChange(null)}
+        />
+      </RailSection>
       <RailSection
         title={t`Categories`}
         action={
           canManageCategories
-            ? { label: t`New category`, icon: <Plus size={14} />, onClick: onNewCategory }
+            ? {
+                label: t`New category`,
+                icon: <Plus size={14} aria-hidden="true" />,
+                onClick: onNewCategory,
+                primary: true
+              }
             : undefined
         }
       >
-        {isSuccess && categories.length === 0 ? (
-          <span className="px-2 py-1 text-sm text-ink-3">{t`No categories yet`}</span>
+        {isLoading ? (
+          <SkeletonRows />
+        ) : categories.length === 0 ? (
+          canManageCategories ? (
+            <RailItem
+              icon={<Plus size={14} aria-hidden="true" />}
+              label={t`Create your first category`}
+              onClick={onNewCategory}
+            />
+          ) : (
+            <div className="px-2 py-1 text-sm text-ink-3">{t`No categories yet`}</div>
+          )
         ) : null}
         {categories.map((category) => {
           const name = category.settings.name
           return (
             <RailItem
               key={category.id}
-              icon={<Folder size={14} />}
               label={
                 <span className="inline-flex max-w-full items-center gap-1.5">
                   <span className="truncate">{name}</span>
@@ -107,6 +140,6 @@ export function BlogSidebar({
           )
         })}
       </RailSection>
-    </div>
+    </>
   )
 }

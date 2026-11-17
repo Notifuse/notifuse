@@ -220,7 +220,7 @@ test.describe('Managing saved blocks from the library', () => {
   test("confirms in the console's language", async ({ authenticatedPage: page }) => {
     await page.addInitScript(() => localStorage.setItem('locale', 'fr'))
     const editor = await openManaged(page, {
-      labels: { drawer: "Modifier le modèle d'email", templateTab: '2. Modèle' }
+      labels: { contentStep: 'Contenu' }
     })
     const card = editor.card('lib-text')
     await card.hover()

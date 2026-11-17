@@ -41,7 +41,9 @@ export function BroadcastAside({
       <PreviewBlock workspace={workspace} broadcast={broadcast} variation={previewVariation} canReadTemplates={canReadTemplates} />
       <AudienceBlock workspace={workspace} broadcast={broadcast} lists={lists} segments={segments} />
       <TrackingBlock broadcast={broadcast} />
-      {task ? <TaskBlock task={task} timezone={workspaceTimezone(workspace)} /> : null}
+      {task ? (
+        <TaskBlock task={task} timezone={workspaceTimezone(workspace)} cancelled={broadcast.status === 'cancelled'} />
+      ) : null}
       <HistoryBlock broadcast={broadcast} timezone={workspaceTimezone(workspace)} />
     </div>
   )
@@ -208,7 +210,7 @@ const TASK_TONE: Record<TaskStatus, PillTone> = {
   paused: 'warning'
 }
 
-function TaskBlock({ task, timezone }: { task: Task; timezone: string }) {
+function TaskBlock({ task, timezone, cancelled }: { task: Task; timezone: string; cancelled: boolean }) {
   const { t } = useLingui()
   const { int, percent } = useNumberFormat()
   const dates = useBroadcastDates()
@@ -220,6 +222,8 @@ function TaskBlock({ task, timezone }: { task: Task; timezone: string }) {
     cancelled: t`Cancelled`,
     paused: t`Paused`
   }
+  // A cancel ends the task as completed: the broadcast's own word says what happened to it.
+  const status: TaskStatus = cancelled && task.status === 'completed' ? 'cancelled' : task.status
   const send = task.state?.send_broadcast
   const progress = send
     ? send.total_recipients > 0
@@ -233,8 +237,8 @@ function TaskBlock({ task, timezone }: { task: Task; timezone: string }) {
     {
       label: t`Status`,
       value: (
-        <Pill tone={TASK_TONE[task.status] ?? 'neutral'} pulse={task.status === 'running'}>
-          {labels[task.status] ?? task.status}
+        <Pill tone={TASK_TONE[status] ?? 'neutral'} pulse={status === 'running'}>
+          {labels[status] ?? status}
         </Pill>
       )
     },

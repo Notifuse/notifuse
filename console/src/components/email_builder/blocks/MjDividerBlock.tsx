@@ -34,7 +34,7 @@ const MjDividerSettingsPanel: React.FC<MjDividerSettingsPanelProps> = ({
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Divider Attributes`}>
+    <PanelLayout title={t`Divider attributes`}>
       <InputLayout label={t`Border Style`} layout="vertical">
         <Row gutter={16}>
           <Col span={8}>

@@ -55,6 +55,8 @@ vi.mock('@xyflow/react', async (importOriginal) => ({
   useReactFlow: () => flow.instance,
   useViewport: () => ({ x: 0, y: 0, zoom: 1 }),
   useConnection: () => ({ inProgress: false }),
+  // Nodes whose handles change (an A/B test's variants) ask ReactFlow to re-measure them.
+  useUpdateNodeInternals: () => () => {},
   Handle: ({ type, id }: { type: string; id?: string }) => (
     <div data-testid="handle" data-handle-type={type} data-handle-id={id ?? ''} />
   )

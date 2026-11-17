@@ -46,11 +46,14 @@ const lists = (complained: MessageHistory[], bounced: MessageHistory[], failed: 
     messages: params.is_complained ? complained : params.is_bounced ? bounced : failed
   }))
 
-const renderCard = (client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) =>
+const renderCard = (
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  sendState?: 'loading' | 'never' | 'today' | 'counted'
+) =>
   render(
     <QueryClientProvider client={client}>
       <I18nProvider i18n={i18n}>
-        <RecentFailures workspaceId="ws1" timezone="Europe/Paris" />
+        <RecentFailures workspaceId="ws1" timezone="Europe/Paris" sendState={sendState} />
       </I18nProvider>
     </QueryClientProvider>
   )
@@ -163,5 +166,40 @@ describe('RecentFailures', () => {
     await waitFor(() => expect(listMessages).toHaveBeenCalledTimes(4))
     expect(warn).toHaveBeenCalled()
     warn.mockRestore()
+  })
+
+  describe('before the first send', () => {
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 20))
+
+    it('says nothing was sent, without a tick, and asks nothing', async () => {
+      const { container } = renderCard(undefined, 'never')
+      expect(
+        screen.getByText('Nothing has been sent yet. Bounces, complaints and failures will show here.')
+      ).toBeInTheDocument()
+      expect(screen.queryByText('No failure')).not.toBeInTheDocument()
+      expect(container.querySelector('.text-success-fg')).toBeNull()
+      await settle()
+      expect(listMessages).not.toHaveBeenCalled()
+    })
+
+    it('shows a skeleton and asks nothing while the send state loads', async () => {
+      const { container } = renderCard(undefined, 'loading')
+      expect(container.querySelector('.ant-skeleton')).not.toBeNull()
+      await settle()
+      expect(listMessages).not.toHaveBeenCalled()
+    })
+
+    it('says « No failure » once sends are counted and none failed', async () => {
+      lists([], [], [])
+      renderCard(undefined, 'counted')
+      expect(await screen.findByText('No failure')).toBeInTheDocument()
+      expect(listMessages).toHaveBeenCalledTimes(3)
+    })
+
+    it('asks for the failures of the first sends made today', async () => {
+      lists([], [], [])
+      renderCard(undefined, 'today')
+      expect(await screen.findByText('No failure')).toBeInTheDocument()
+    })
   })
 })

@@ -125,10 +125,14 @@ export function ContactActivityFeed({
                 <li
                   key={entry.id}
                   data-activity-entry
-                  className="grid grid-cols-[3.5rem_1.375rem_minmax(0,1fr)_auto] items-start gap-x-2.5 py-1.5"
+                  className="grid grid-cols-[4rem_1.375rem_minmax(0,1fr)_auto] items-start gap-x-2.5 py-1.5"
                 >
                   <Tooltip title={t`${at.format('LLLL')} (${timezone})`}>
-                    <time dateTime={entry.created_at} className="text-xs leading-5.5 text-ink-3 tabular-nums">
+                    {/* One line: « 11:43 AM » broke after the minutes. */}
+                    <time
+                      dateTime={entry.created_at}
+                      className="text-xs leading-5.5 whitespace-nowrap text-ink-3 tabular-nums"
+                    >
                       {at.format('LT')}
                     </time>
                   </Tooltip>

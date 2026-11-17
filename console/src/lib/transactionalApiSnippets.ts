@@ -1,12 +1,61 @@
 /**
- * The code samples that send a transactional notification, shared by the API command modal and the
+ * The code samples that send a transactional notification, shared by the API command drawer and the
  * API call panel of the notification sheet. `window.API_ENDPOINT` is read when a sample is built.
  */
 
 /** What a sample needs of the notification. */
 export interface SnippetNotification {
   id: string
+  /**
+   * The template variables to send, in place of the example's: the template's test data, for a call
+   * that renders the email the first time. The Go and Java samples keep the example.
+   */
+  data?: Record<string, unknown>
 }
+
+/** The `data` of a sample when the notification gives none. */
+const EXAMPLE_DATA: Record<string, unknown> = {
+  your_template_variable: 'value',
+  product_name: 'Premium Plan',
+  amount: '$99.99',
+  discount_code: 'WELCOME20'
+}
+
+type LiteralStyle = 'json' | 'typescript' | 'python'
+
+const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/
+
+/**
+ * A value written as a literal of the sample's language, its first line where the key leaves it
+ * and the following ones indented from `indent` by `step` spaces.
+ */
+function literal(value: unknown, style: LiteralStyle, indent: string, step: number): string {
+  const inner = indent + ' '.repeat(step)
+  // JSON has no NaN nor Infinity: like JSON.stringify, they are written as null.
+  const nothing = style === 'python' ? 'None' : 'null'
+  if (value === null || value === undefined) return nothing
+  if (typeof value === 'boolean') return style === 'python' ? (value ? 'True' : 'False') : String(value)
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : nothing
+  if (typeof value === 'string') return JSON.stringify(value)
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]'
+    return `[\n${value.map((item) => inner + literal(item, style, inner, step)).join(',\n')}\n${indent}]`
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+    if (entries.length === 0) return '{}'
+    const key = (name: string) => (style === 'typescript' && IDENTIFIER.test(name) ? name : JSON.stringify(name))
+    return `{\n${entries
+      .map(([name, item]) => `${inner}${key(name)}: ${literal(item, style, inner, step)}`)
+      .join(',\n')}\n${indent}}`
+  }
+  return JSON.stringify(String(value))
+}
+
+const dataOf = (notification: SnippetNotification) => notification.data ?? EXAMPLE_DATA
+
+/** Text inside the single-quoted body of the cURL sample: a quote of the data closes and reopens it. */
+const shellQuoted = (text: string) => text.replace(/'/g, `'\\''`)
 
 /** cURL: the raw HTTP call. */
 export function curlSnippet(notification: SnippetNotification, workspaceId: string): string {
@@ -45,12 +94,7 @@ curl -X POST \\
       "custom_json_1": { "preferences": ["email", "sms"], "tier": "premium" },
       "custom_json_2": { "last_purchase": { "product": "Pro Plan", "amount": 99.99 } }
     },
-    "data": {
-      "your_template_variable": "value",
-      "product_name": "Premium Plan",
-      "amount": "$99.99",
-      "discount_code": "WELCOME20"
-    },
+    "data": ${shellQuoted(literal(dataOf(notification), 'json', '    ', 2))},
     "metadata": {
       "campaign_id": "welcome-series",
       "source": "website",
@@ -168,12 +212,7 @@ const sendNotification = async (): Promise<void> => {
         custom_json_1: { "preferences": ["email", "sms"], "tier": "premium" },
         custom_json_2: { "last_purchase": { "product": "Pro Plan", "amount": 99.99 } }
       },
-      data: {
-        your_template_variable: "value",
-        product_name: "Premium Plan",
-        amount: "$99.99",
-        discount_code: "WELCOME20"
-      },
+      data: ${literal(dataOf(notification), 'typescript', '      ', 2)},
       metadata: {
         campaign_id: "welcome-series",
         source: "website",
@@ -263,12 +302,7 @@ def send_notification():
                 "custom_json_1": { "preferences": ["email", "sms"], "tier": "premium" },
                 "custom_json_2": { "last_purchase": { "product": "Pro Plan", "amount": 99.99 } }
             },
-            "data": {
-                "your_template_variable": "value",
-                "product_name": "Premium Plan",
-                "amount": "$99.99",
-                "discount_code": "WELCOME20"
-            },
+            "data": ${literal(dataOf(notification), 'python', '            ', 4)},
             "metadata": {
                 "campaign_id": "welcome-series",
                 "source": "website",
@@ -486,12 +520,7 @@ export function smtpPayloadSnippet(notification: SnippetNotification, workspaceI
       "timezone": "America/New_York",
       "language": "en"
     },
-    "data": {
-      "your_template_variable": "value",
-      "product_name": "Premium Plan",
-      "amount": "$99.99",
-      "discount_code": "WELCOME20"
-    },
+    "data": ${literal(dataOf(notification), 'json', '    ', 2)},
     "email_options": {
       "reply_to": "support@example.com",
       "cc": ["manager@example.com"],

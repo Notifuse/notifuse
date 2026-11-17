@@ -57,14 +57,19 @@ vi.mock('../components/transactional/UpsertTransactionalNotificationDrawer', () 
   default: ({
     notification,
     buttonProps,
-    open
+    open,
+    backLabel
   }: {
     notification?: { id: string }
     buttonProps?: { disabled?: boolean; icon?: ReactNode }
     open?: boolean
+    backLabel?: string
   }) =>
     open ? (
-      <div data-testid={`edit-drawer-${notification?.id}`} />
+      <div
+        data-testid={notification ? `edit-drawer-${notification.id}` : 'new-notification-drawer'}
+        data-back-label={backLabel ?? ''}
+      />
     ) : (
       <button data-testid="create" disabled={!!buttonProps?.disabled}>
         {buttonProps?.icon}
@@ -78,9 +83,9 @@ vi.mock('../components/templates/SendTemplateModal', () => ({
 vi.mock('../components/templates/TemplatePreviewDrawer', () => ({
   default: ({ record }: { record: { id: string } }) => <div data-testid={`preview-${record.id}`} />
 }))
-vi.mock('../components/transactional/ApiCommandModal', () => ({
-  ApiCommandModal: ({ notification }: { notification: { id: string } }) => (
-    <div data-testid={`api-modal-${notification.id}`} />
+vi.mock('../components/transactional/ApiCommandDrawer', () => ({
+  ApiCommandDrawer: ({ notification }: { notification: { id: string } }) => (
+    <div data-testid={`api-drawer-${notification.id}`} />
   )
 }))
 vi.mock('../components/transactional/TransactionalDetail', () => ({
@@ -100,6 +105,7 @@ vi.mock('../services/api/transactional_notifications', () => ({
 }))
 
 import { TransactionalNotificationsPage } from './TransactionalNotificationsPage'
+import { validateTransactionalSearch } from '../components/transactional/transactionalSearch'
 import { ApiError } from '../services/api/client'
 
 const notification = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
@@ -533,10 +539,37 @@ describe('TransactionalNotificationsPage list', () => {
     await screen.findByText('Welcome')
 
     fireEvent.click(within(row('Welcome')).getByRole('button', { name: 'API command' }))
-    expect(screen.getByTestId('api-modal-welcome')).toBeInTheDocument()
+    expect(screen.getByTestId('api-drawer-welcome')).toBeInTheDocument()
     fireEvent.click(within(row('Password reset')).getByRole('button', { name: 'Send test' }))
     expect(screen.getByTestId('test-modal-tpl-password_reset')).toBeInTheDocument()
     expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it("opens the API command over the sheet when the sheet's All languages asks", async () => {
+    state.search = { notification: 'password_reset' }
+    renderPage()
+    await screen.findByText('Welcome')
+
+    act(() => (detailProps.mock.calls.at(-1)?.[0] as { onApi: (n: unknown) => void }).onApi(reset))
+    expect(screen.getByTestId('api-drawer-password_reset')).toBeInTheDocument()
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('opens the editor over the sheet with a way back to it, named after the notification', async () => {
+    state.search = { notification: 'password_reset' }
+    renderPage()
+    await screen.findByText('Welcome')
+
+    act(() => (detailProps.mock.calls.at(-1)?.[0] as { onEdit: (n: unknown) => void }).onEdit(reset))
+    expect(screen.getByTestId('edit-drawer-password_reset')).toHaveAttribute('data-back-label', reset.name)
+  })
+
+  it('opens the editor from the list with the default way back', async () => {
+    renderPage()
+    await screen.findByText('Welcome')
+
+    act(() => (detailProps.mock.calls.at(-1)?.[0] as { onEdit: (n: unknown) => void }).onEdit(reset))
+    expect(screen.getByTestId('edit-drawer-password_reset')).toHaveAttribute('data-back-label', '')
   })
 
   it("opens the template preview over the sheet when the sheet's Open asks", async () => {
@@ -614,6 +647,52 @@ describe('TransactionalNotificationsPage rights', () => {
     renderPage()
     expect(await screen.findByTestId('create')).toBeEnabled()
     expect(screen.getByTestId('create').querySelector('svg.lucide-plus')).not.toBeNull()
+  })
+})
+
+describe('TransactionalNotificationsPage opened with ?new=1', () => {
+  // The search as the route's validateSearch gives it, from the value the router parsed (1).
+  const fromUrl = () => validateTransactionalSearch({ new: 1 }) as Record<string, unknown>
+  /** The search of the navigate call that removed the parameter, applied to the URL's. */
+  const removal = () => {
+    const call = navigate.mock.calls.find(([options]) => {
+      const search = (options as { search: (prev: Record<string, unknown>) => Record<string, unknown> }).search
+      return 'new' in search({ new: true })
+    })?.[0] as { replace?: boolean; search: (prev: Record<string, unknown>) => Record<string, unknown> } | undefined
+    return call && { replace: call.replace, search: call.search(fromUrl()) }
+  }
+
+  it('opens the editor of a new notification once, and leaves the URL', async () => {
+    state.search = fromUrl()
+    renderPage()
+    expect(await screen.findByTestId('new-notification-drawer')).toBeInTheDocument()
+    expect(screen.getAllByTestId('new-notification-drawer')).toHaveLength(1)
+    expect(removal()).toEqual({ replace: true, search: { new: undefined } })
+  })
+
+  it('keeps the parameter while the rights load', async () => {
+    state.search = fromUrl()
+    state.permissionsLoading = true
+    renderPage()
+    await act(async () => {})
+    expect(screen.queryByTestId('new-notification-drawer')).not.toBeInTheDocument()
+    expect(removal()).toBeUndefined()
+  })
+
+  it('only leaves the URL without templates read', async () => {
+    state.search = fromUrl()
+    state.permissions = { ...full, templates: { read: false, write: false } }
+    renderPage()
+    await waitFor(() => expect(removal()).toEqual({ replace: true, search: { new: undefined } }))
+    expect(screen.queryByTestId('new-notification-drawer')).not.toBeInTheDocument()
+  })
+
+  it('only leaves the URL without transactional write', async () => {
+    state.search = fromUrl()
+    state.permissions = { ...full, transactional: { read: true, write: false } }
+    renderPage()
+    await waitFor(() => expect(removal()).toBeDefined())
+    expect(screen.queryByTestId('new-notification-drawer')).not.toBeInTheDocument()
   })
 })
 

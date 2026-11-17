@@ -74,6 +74,15 @@ describe('SegmentDefinedBy', () => {
     expect(screen.getByText('Updated 2 hours ago', { exact: false })).toBeInTheDocument()
   })
 
+  it('names the conditions behind « +N » on hover and to screen readers', async () => {
+    renderBar(
+      segment({ kind: 'branch', branch: { operator: 'and', leaves: ['FR', 'DE', 'ES', 'IT', 'PT'].map(leaf) } })
+    )
+    expect(screen.getByText('and 2 more: Country is IT, Country is PT')).toBeInTheDocument()
+    fireEvent.mouseEnter(screen.getByText('+2'))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Country is IT and Country is PT')
+  })
+
   it('shows the progress while the segment is computed', () => {
     renderBar(segment(leaf('FR'), { status: 'building' }))
     expect(screen.getByRole('img', { name: 'Computing this segment…' })).toBeInTheDocument()

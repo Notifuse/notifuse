@@ -39,7 +39,7 @@ const MjImageSettingsPanel: React.FC<MjImageSettingsPanelProps> = ({
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Image Attributes`}>
+    <PanelLayout title={t`Image attributes`}>
       <InputLayout label={t`Image`} className="mt-0" layout="vertical">
         <FileSrc
           size="small"
@@ -295,10 +295,12 @@ export class MjImageBlock extends BaseEmailBlock {
     // When explicit width is set, use inline-block so alignment (text-align) works
     // When no width, use block with 100% width to fill the column
     const hasExplicitWidth = attrs.width && attrs.width !== '100%'
+    // Without a width, a real table at 100 %: as a block, the table's rows sat in an anonymous
+    // table sized to the image, which drew it at its natural size on the left, whatever the Align.
     const tableStyle: React.CSSProperties = {
       borderCollapse: 'collapse',
       borderSpacing: '0px',
-      display: hasExplicitWidth ? 'inline-block' : 'block',
+      display: hasExplicitWidth ? 'inline-block' : 'table',
       width: hasExplicitWidth ? undefined : '100%'
     }
 

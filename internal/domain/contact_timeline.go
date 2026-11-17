@@ -64,6 +64,11 @@ type TimelineEntityTypeFilter struct {
 	Except []string
 }
 
+// TimelineSecretKeyLoader returns the workspace key that decrypts message_history entries'
+// message_data. The repository calls it at most once per List, and only when an entry carries
+// encrypted data, so a timeline without messages never loads the workspace.
+type TimelineSecretKeyLoader func(ctx context.Context) (string, error)
+
 // TimelineListRequest represents the request parameters for listing timeline entries
 type TimelineListRequest struct {
 	WorkspaceID string
@@ -136,8 +141,10 @@ func (r *TimelineListRequest) FromQuery(query url.Values) error {
 type ContactTimelineRepository interface {
 	// Create inserts a new timeline entry
 	Create(ctx context.Context, workspaceID string, entry *ContactTimelineEntry) error
-	// List retrieves timeline entries for a contact, restricted by filter
-	List(ctx context.Context, workspaceID string, email string, limit int, cursor *string, filter TimelineEntityTypeFilter) ([]*ContactTimelineEntry, *string, error)
+	// List retrieves timeline entries for a contact, restricted by filter. loadSecretKey gives the
+	// key that decrypts the message_data a message_history entry carries, as message history's own
+	// reads do; nil when no such entry can be returned.
+	List(ctx context.Context, workspaceID string, loadSecretKey TimelineSecretKeyLoader, email string, limit int, cursor *string, filter TimelineEntityTypeFilter) ([]*ContactTimelineEntry, *string, error)
 	// DeleteForEmail deletes all timeline entries for a contact
 	DeleteForEmail(ctx context.Context, workspaceID string, email string) error
 }

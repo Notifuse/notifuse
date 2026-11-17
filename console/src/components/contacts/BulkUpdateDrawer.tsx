@@ -106,7 +106,8 @@ export function BulkUpdateDrawer({
   }
   const [csvData, setCsvData] = useState<CSVData | null>(null)
   const [fileList, setFileList] = useState<UploadFile[]>([])
-  const [operation, setOperation] = useState<string>('')
+  // Unsubscribing is the default: the reversible one of the two actions.
+  const [operation, setOperation] = useState<string>('unsubscribe')
   const [selectedListId, setSelectedListId] = useState<string>('')
   const [progress, setProgress] = useState<BulkOperationProgress>({
     total: 0,
@@ -468,7 +469,7 @@ export function BulkUpdateDrawer({
   const resetState = () => {
     setCsvData(null)
     setFileList([])
-    setOperation('')
+    setOperation('unsubscribe')
     setSelectedListId('')
     setProgress({
       total: 0,
@@ -617,7 +618,8 @@ export function BulkUpdateDrawer({
             <Form.Item label={t`List`}>
               <Select
                 placeholder={t`Select list`}
-                value={selectedListId}
+                // undefined, not '', so that the placeholder shows until a list is chosen.
+                value={selectedListId || undefined}
                 onChange={setSelectedListId}
                 disabled={progress.isRunning || uploadComplete}
                 options={lists.map((list) => ({

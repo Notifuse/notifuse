@@ -61,7 +61,7 @@ export const EVENT_KIND_OPTIONS: { value: string; label: MessageDescriptor; chil
       { value: 'email.unsubscribed', label: msg`Unsubscribed` }
     ]
   },
-  { value: 'custom_event', label: msg`Custom Event` }
+  { value: 'custom_event', label: msg`Custom event` }
 ]
 
 const nameOf = (items: { id: string; name: string }[] | undefined, id: string) =>

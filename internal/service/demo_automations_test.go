@@ -292,7 +292,11 @@ func demoSeededTemplateIDs() map[string]bool {
 		"password-reset":       true,
 	}
 	svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
-	for _, template := range svc.demoAutomationTemplates("ws1") {
+	templates, err := svc.demoAutomationTemplates("ws1")
+	if err != nil {
+		panic(err)
+	}
+	for _, template := range templates {
 		ids[template.ID] = true
 	}
 	return ids

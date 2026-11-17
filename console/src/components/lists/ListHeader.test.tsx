@@ -85,10 +85,11 @@ describe('ListHeader', () => {
     }
   })
 
-  it('shows the five statuses, with the share of the total under the last three', async () => {
+  it('shows the five statuses, with the share of the total under all but Active', async () => {
     renderHeader()
     await waitFor(() => expect(within(cell('Active')).getByText('80')).toBeInTheDocument())
     expect(within(cell('Pending')).getByText('10')).toBeInTheDocument()
+    expect(within(cell('Pending')).getByText('10.0%')).toBeInTheDocument()
     expect(within(cell('Unsubscribed')).getByText('6.0%')).toBeInTheDocument()
     expect(within(cell('Bounced')).getByText('3.0%')).toBeInTheDocument()
     expect(within(cell('Complained')).getByText('1.0%')).toBeInTheDocument()

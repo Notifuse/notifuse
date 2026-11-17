@@ -67,6 +67,20 @@ describe('parseTemplatesSearch', () => {
   it('leaves out empty values and other types', () => {
     expect(parseTemplatesSearch({ q: '', preview: { id: 1 } })).toEqual({})
   })
+
+  it('reads the new-template flag as the router parses ?new=1 and ?new=true', () => {
+    expect(parseTemplatesSearch({ new: 1 })).toEqual({ new: true })
+    expect(parseTemplatesSearch({ new: true })).toEqual({ new: true })
+    expect(parseTemplatesSearch({ new: '1' })).toEqual({ new: true })
+    expect(parseTemplatesSearch({ new: 'true' })).toEqual({ new: true })
+  })
+
+  it('drops any other new value', () => {
+    expect(parseTemplatesSearch({ new: 0 })).toEqual({})
+    expect(parseTemplatesSearch({ new: false })).toEqual({})
+    expect(parseTemplatesSearch({ new: 'yes' })).toEqual({})
+    expect(parseTemplatesSearch({ new: '' })).toEqual({})
+  })
 })
 
 describe('parseBlogSearch', () => {

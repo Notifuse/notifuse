@@ -617,11 +617,17 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 		needWebsiteURL = !hasWebsiteURL
 	}
 
-	if needBaseURL || needWebsiteURL {
-		// On a workspace-load failure, fall back to the request's endpoint (and an empty
-		// website URL) rather than failing the preview.
-		baseURL := payload.TrackingSettings.Endpoint
-		websiteURL := ""
+	// The workspace's endpoint and website, read once for whichever needs them. On a
+	// workspace-load failure, fall back to the request's endpoint (and an empty website URL)
+	// rather than failing the preview.
+	var baseURL, websiteURL string
+	workspaceRead := false
+	readWorkspace := func() {
+		if workspaceRead {
+			return
+		}
+		workspaceRead = true
+		baseURL = payload.TrackingSettings.Endpoint
 		if ws, err := s.workspaceRepo.GetByID(ctx, payload.WorkspaceID); err == nil && ws != nil {
 			baseURL = ws.Settings.ResolveEndpoint(s.apiEndpoint)
 			websiteURL = ws.Settings.WebsiteURL
@@ -631,6 +637,10 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 				WithField("error", err.Error()).
 				Warn("CompileTemplate: could not load workspace for template variables; using fallback URLs")
 		}
+	}
+
+	if needBaseURL || needWebsiteURL {
+		readWorkspace()
 		vars := domain.BuildWorkspaceTemplateVars(baseURL, websiteURL)
 
 		if existingWorkspace != nil {
@@ -646,6 +656,17 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 			}
 			payload.TemplateData["workspace"] = vars
 		}
+	}
+
+	// The editor's test data carries preview links (unsubscribe, notification center…) the
+	// console made for john.doe@example.com: they are rebuilt for the test contact, as a send
+	// builds them for its contact. Links of a message really sent are left as they went out.
+	// The workspace is read only when the data holds such a link.
+	if payload.TemplateData != nil {
+		domain.PreviewContactLinks(payload.TemplateData, func() string {
+			readWorkspace()
+			return baseURL
+		}, payload.WorkspaceID, payload.MessageID)
 	}
 
 	resp, err := notifuse_mjml.CompileTemplate(payload)

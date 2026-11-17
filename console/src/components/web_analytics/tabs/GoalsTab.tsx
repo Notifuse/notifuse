@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Alert, Empty, Skeleton } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { Panel } from '../../layout'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { GoalCard, GoalMetricKey } from '../goals/GoalCard'
 import { GoalDashboardDrawer } from '../goals/GoalDashboardDrawer'
@@ -115,25 +116,29 @@ export function GoalsTab() {
   const isLoading = goalsResult.isLoading || sessionsResult.isLoading
 
   return (
-    <div className={goalsResult.isFetching ? 'opacity-75 transition-opacity' : ''}>
+    <div
+      className={`flex flex-col gap-3 ${goalsResult.isFetching ? 'opacity-75 transition-opacity' : ''}`}
+    >
       {goalsResult.error ? (
-        <Alert type="error" showIcon title={t`Could not load the goals`} className="mb-4" />
+        <Alert type="error" showIcon title={t`Could not load the goals`} />
       ) : null}
 
       {isLoading && goals.length === 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((index) => (
-            <div key={index} className="rounded-md border border-gray-200 p-4">
+            <Panel key={index}>
               <Skeleton active paragraph={{ rows: 4 }} />
-            </div>
+            </Panel>
           ))}
         </div>
       ) : goals.length === 0 ? (
-        <div className="rounded-md border border-gray-200 py-12">
-          <Empty description={t`No goals tracked yet`} image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        </div>
+        <Panel>
+          <div className="py-9">
+            <Empty description={t`No goals tracked yet`} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          </div>
+        </Panel>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {goals.map((goal) => (
             <GoalCard
               key={goal.name}

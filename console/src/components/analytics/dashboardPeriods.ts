@@ -1,3 +1,4 @@
+import dayjs from '../../lib/dayjs'
 import { computeComparisonRange, computeDateRange, resolveRange } from '../web_analytics/lib/dates'
 import type { DatePreset, ResolvedRange } from '../web_analytics/lib/types'
 import type { DashboardPeriod } from './dashboardSearch'
@@ -8,6 +9,11 @@ export interface DashboardPeriods {
   preset: DatePreset
   current: ResolvedRange
   previous: ResolvedRange
+  /**
+   * The same number of calendar days ending today, today included: what counts new contacts, which
+   * a period ending yesterday showed as "+0" right after an import.
+   */
+  recent: ResolvedRange
 }
 
 const PERIODS = {
@@ -27,10 +33,14 @@ export function resolveDashboardPeriods(period: DashboardPeriod, timezone: strin
   const range = computeDateRange(preset, tz)
   // Never null for 'previous_period'; the fallback only satisfies the type.
   const previous = computeComparisonRange(range, 'previous_period') ?? range
+  const now = dayjs().tz(tz)
+  // resolveRange takes the local days and widens them to whole days, DST included.
+  const recent = { start: now.subtract(days - 1, 'day').startOf('day'), end: now.endOf('day') }
   return {
     days,
     preset,
     current: resolveRange(range, tz),
-    previous: resolveRange(previous, tz)
+    previous: resolveRange(previous, tz),
+    recent: resolveRange(recent, tz)
   }
 }

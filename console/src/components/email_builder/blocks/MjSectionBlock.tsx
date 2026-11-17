@@ -42,7 +42,7 @@ const MjSectionSettingsPanel: React.FC<MjSectionSettingsPanelProps> = ({
   }
 
   return (
-    <PanelLayout title={t`Section Attributes`}>
+    <PanelLayout title={t`Section attributes`}>
       <div className="space-y-4">
         {/* Background Settings */}
         <BackgroundInput

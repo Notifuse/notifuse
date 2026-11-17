@@ -319,8 +319,15 @@ func (h *BlogHandler) HandleCountPosts(w http.ResponseWriter, r *http.Request) {
 		categoryID = parsed.String()
 	}
 
+	// The list's search, read as the list reads it, so each status counts the posts its tab lists.
+	search, err := domain.NormalizeBlogPostSearch(r.URL.Query().Get("search"))
+	if err != nil {
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspaceID)
-	counts, err := h.service.CountPosts(ctx, categoryID)
+	counts, err := h.service.CountPosts(ctx, categoryID, search)
 	if err != nil {
 		if writePermissionError(w, err) {
 			return

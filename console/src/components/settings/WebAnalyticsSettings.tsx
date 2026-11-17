@@ -1,17 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Alert,
-  App,
-  Col,
-  Descriptions,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Row,
-  Select,
-  Switch
-} from 'antd'
+import { App, Descriptions, Form, Input, InputNumber, Segmented, Select, Switch } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useLingui } from '@lingui/react/macro'
 import { Workspace } from '../../services/api/types'
@@ -25,6 +13,7 @@ import {
 import { CodeSnippet } from '../common/CodeSnippet'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { SettingsRow, SettingsRows } from './SettingsRow'
 import { Panel } from '../layout'
 
 const DEFAULT_SETTINGS: WebAnalyticsSettingsValues = {
@@ -57,27 +46,6 @@ function geoPrecisionCeiling(storeCity?: boolean, storeRegion?: boolean): number
   if (storeCity) return 2
   if (storeRegion) return 1
   return 0
-}
-
-interface ToggleRowProps {
-  name: string
-  title: string
-  description: string
-}
-
-/** Label + description on the left, switch aligned on the right. */
-function ToggleRow({ name, title, description }: ToggleRowProps) {
-  return (
-    <div className="flex items-start justify-between gap-6">
-      <div>
-        <div className="font-medium">{title}</div>
-        <div className="text-sm text-gray-500">{description}</div>
-      </div>
-      <Form.Item name={name} valuePropName="checked" noStyle>
-        <Switch aria-label={title} />
-      </Form.Item>
-    </div>
-  )
 }
 
 /**
@@ -220,8 +188,8 @@ export function WebAnalyticsSettings({
   const precisionCapNotice = !precisionCapped
     ? null
     : geoStoreRegion
-      ? t`Store city name is off, so coordinates are stored at regional precision (~11km).`
-      : t`Store city name and Store region/state name are off, so coordinates are stored at country precision (~111km).`
+      ? t`City is off, so coordinates are stored at regional precision (~11 km).`
+      : t`Region and City are off, so coordinates are stored at country precision (~111 km).`
 
   const identifySnippet =
     'NotifuseAnalytics.identify("alice@example.com", "<hmac from your server>")'
@@ -288,14 +256,15 @@ export function WebAnalyticsSettings({
     )
   }
 
+  const ceiling = geoPrecisionCeiling(geoStoreCity, geoStoreRegion)
+
   return (
     <>
       <SettingsSectionHeader
         title={t`Web analytics`}
-        description={t`Track website traffic with a first-party script. Beats are stored in this workspace's database, so no data leaves your infrastructure.`}
+        description={t`Visits to your sites, recorded by a first-party script and kept in this workspace's database`}
       />
 
-      <Panel title={t`Tracking`}>
       <Form
         form={form}
         layout="vertical"
@@ -304,161 +273,165 @@ export function WebAnalyticsSettings({
         // The save control floats over the page, so a rejected field can sit
         // anywhere off screen when it is pressed.
         scrollToFirstError
+        component={false}
       >
-        <Form.Item
-          name="enabled"
-          label={t`Enable web analytics`}
-          valuePropName="checked"
-          tooltip={t`When disabled, incoming beats are rejected and the dashboards stop updating.`}
-        >
-          <Switch />
-        </Form.Item>
-
-        <Form.Item
-          name="allowed_domains"
-          label={t`Allowed domains`}
-          tooltip={t`This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com.`}
-          // Re-runs the rule below the moment collection is switched on, rather
-          // than waiting for the save to bounce.
-          dependencies={['enabled']}
-          rules={[
-            ({ getFieldValue }) => ({
-              // Read through the form rather than a watched value: this has to
-              // hold at submit time whatever the render order was.
-              validator: (_, value: string[] | undefined) =>
-                !getFieldValue('enabled') || (value?.length ?? 0) > 0
-                  ? Promise.resolve()
-                  : Promise.reject(
-                      new Error(t`List at least one domain to enable web analytics`)
-                    )
-            })
-          ]}
-        >
-          <Select
-            mode="tags"
-            open={false}
-            suffixIcon={null}
-            tokenSeparators={[',', ' ']}
-            placeholder="example.com, *.example.com"
-          />
-        </Form.Item>
-
-        <Row gutter={24}>
-          <Col span={12}>
-            <Form.Item
-              name="bounce_threshold_seconds"
-              label={t`Bounce threshold (seconds)`}
-              tooltip={t`Sessions with less engaged time than this count as bounces.`}
-              rules={[{ required: true, message: t`Please enter a bounce threshold` }]}
+        <Panel title={t`Tracking`}>
+          <SettingsRows>
+            <SettingsRow
+              label={t`Status`}
+              help={t`Records visits from the sites below that carry the snippet; off, incoming visits are rejected`}
             >
-              <InputNumber min={1} max={600} className="w-full" />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Divider className="!my-8" />
-
-        <div className="text-xl font-medium mb-8">{t`Contact identification`}</div>
-
-        <Form.Item
-          name="identify_from_email_links"
-          label={t`Identify recipients who click a tracked email link`}
-          valuePropName="checked"
-          tooltip={t`Adds a signed identity to the links of tracked emails, so a recipient who clicks one is recognised on landing without any code on your site. Their visit is then tied to their contact record — timeline entries, goals and automation enrolments. Unlike identify(), which your own server calls, this one is minted by Notifuse for every recipient of every tracked send, which is why it is off by default.`}
-        >
-          <Switch />
-        </Form.Item>
-
-        <Divider className="!my-8" />
-
-        <div className="text-xl font-medium mb-8">{t`Geographic data collection`}</div>
-
-        <div className="space-y-4">
-          <ToggleRow
-            name="geo_enabled"
-            title={t`Enable geo-location tracking`}
-            description={t`Track visitor country, region, city, and coordinates`}
-          />
-
-          {geoEnabled && (
-            <div className="ml-6 space-y-4 border-l-2 border-gray-100 pl-4">
-              <ToggleRow
-                name="geo_store_city"
-                title={t`Store city name`}
-                description={t`Record the city of visitors`}
-              />
-
-              <ToggleRow
-                name="geo_store_region"
-                title={t`Store region/state name`}
-                description={t`Record the region or state of visitors`}
-              />
-
-              <div>
-                <div className="font-medium">{t`Coordinates precision`}</div>
-                <div className="mb-2 text-sm text-gray-500">{t`Lower precision = more privacy`}</div>
-                <Form.Item name="geo_coordinates_precision" noStyle>
-                  <Select
-                    aria-label={t`Coordinates precision`}
-                    className="w-full"
-                    options={[
-                      { value: 0, label: t`Country level (~111km precision)` },
-                      { value: 1, label: t`Regional (~11km precision)` },
-                      { value: 2, label: t`City level (~1km precision)` }
-                    ]}
-                  />
-                </Form.Item>
-                {precisionCapNotice && (
-                  <div className="mt-2 text-sm text-amber-600">{precisionCapNotice}</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <Alert
-          className="!mt-6"
-          type="info"
-          title={t`IP addresses are never stored — only used for geo lookup. Country is always included when geo tracking is enabled.`}
-        />
-
-        <Divider className="!my-8" />
-
-        <div className="text-xl font-medium mb-2">{t`Custom dimension labels`}</div>
-        <div className="text-gray-500 mb-8">
-          {t`Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules.`}
-        </div>
-
-        <Row gutter={24}>
-          {CUSTOM_DIMENSION_SLOTS.map((slot) => (
-            <Col span={12} key={slot}>
-              <Form.Item
-                name={['custom_dimension_labels', `custom_${slot}`]}
-                label={`custom_${slot}`}
-              >
-                <Input placeholder={t`Label`} />
+              <Form.Item name="enabled" valuePropName="checked">
+                <Switch aria-label={t`Enable web analytics`} />
               </Form.Item>
-            </Col>
-          ))}
-        </Row>
+            </SettingsRow>
+            <SettingsRow
+              label={t`Allowed domains`}
+              htmlFor="allowed_domains"
+              help={t`Visits from other sites are ignored; *.example.com includes its subdomains`}
+            >
+              <Form.Item
+                name="allowed_domains"
+                // Re-runs the rule below the moment collection is switched on, rather
+                // than waiting for the save to bounce.
+                dependencies={['enabled']}
+                rules={[
+                  ({ getFieldValue }) => ({
+                    // Read through the form rather than a watched value: this has to
+                    // hold at submit time whatever the render order was.
+                    validator: (_, value: string[] | undefined) =>
+                      !getFieldValue('enabled') || (value?.length ?? 0) > 0
+                        ? Promise.resolve()
+                        : Promise.reject(new Error(t`List at least one domain to enable web analytics`))
+                  })
+                ]}
+              >
+                <Select
+                  mode="tags"
+                  open={false}
+                  suffixIcon={null}
+                  tokenSeparators={[',', ' ']}
+                  placeholder="example.com, *.example.com"
+                />
+              </Form.Item>
+            </SettingsRow>
+            <SettingsRow
+              label={t`Bounce threshold`}
+              htmlFor="bounce_threshold_seconds"
+              help={t`A visit with less engaged time counts as a bounce`}
+            >
+              <Form.Item
+                name="bounce_threshold_seconds"
+                rules={[{ required: true, message: t`Please enter a bounce threshold` }]}
+              >
+                <InputNumber min={1} max={600} suffix={t`seconds`} style={{ width: 160 }} />
+              </Form.Item>
+            </SettingsRow>
+          </SettingsRows>
+        </Panel>
 
+        <Panel title={t`Contacts`}>
+          <SettingsRows>
+            <SettingsRow
+              label={t`Identify email recipients`}
+              help={t`Ties a click on a tracked email link to the contact, on allowed domains, unless they refused tracking`}
+            >
+              <div className="flex items-center gap-3">
+                <Form.Item name="identify_from_email_links" valuePropName="checked">
+                  <Switch aria-label={t`Identify email recipients`} />
+                </Form.Item>
+                <span className="text-xs text-ink-3">{t`Off by default`}</span>
+              </div>
+            </SettingsRow>
+          </SettingsRows>
+        </Panel>
+
+        <Panel title={t`Visitor location`}>
+          <SettingsRows>
+            <SettingsRow label={t`Locate visitors`} help={t`The country, from the IP address, which is never stored`}>
+              <Form.Item name="geo_enabled" valuePropName="checked">
+                <Switch aria-label={t`Locate visitors`} />
+              </Form.Item>
+            </SettingsRow>
+            {geoEnabled ? (
+              <>
+                <SettingsRow label={t`Region`} help={t`The region or state`}>
+                  <Form.Item name="geo_store_region" valuePropName="checked">
+                    <Switch aria-label={t`Store the region`} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`City`} help={t`The city name`}>
+                  <Form.Item name="geo_store_city" valuePropName="checked">
+                    <Switch aria-label={t`Store the city`} />
+                  </Form.Item>
+                </SettingsRow>
+                <SettingsRow label={t`Coordinates`} help={t`Latitude and longitude, rounded: lower is more private`}>
+                  <div className="flex flex-col items-start gap-1.5">
+                    <Form.Item name="geo_coordinates_precision">
+                      <Segmented<number>
+                        aria-label={t`Coordinates precision`}
+                        // A level the server would not keep (EffectiveGeoCoordsPrecision) is greyed out.
+                        options={[
+                          { value: 0, label: t`Country · ~111 km` },
+                          { value: 1, label: t`Region · ~11 km`, disabled: ceiling < 1 },
+                          { value: 2, label: t`City · ~1 km`, disabled: ceiling < 2 }
+                        ]}
+                      />
+                    </Form.Item>
+                    {precisionCapNotice ? (
+                      <span className="text-xs text-warning-fg">{precisionCapNotice}</span>
+                    ) : ceiling < 2 ? (
+                      <span className="text-xs text-ink-3">
+                        {ceiling === 1 ? t`City precision needs City on` : t`Finer precision needs Region or City on`}
+                      </span>
+                    ) : null}
+                  </div>
+                </SettingsRow>
+              </>
+            ) : null}
+          </SettingsRows>
+        </Panel>
+
+        <Panel
+          title={t`Custom dimensions`}
+          extra={<span className="text-xs text-ink-3">{t`Names for the values your snippet sends as custom_1 … custom_10`}</span>}
+        >
+          <SettingsRows>
+            {CUSTOM_DIMENSION_SLOTS.map((slot) => (
+              <SettingsRow
+                key={slot}
+                label={<span className="font-mono text-xs">{`custom_${slot}`}</span>}
+                htmlFor={`custom_dimension_labels_custom_${slot}`}
+                help={slot === 1 ? t`A name replaces custom_N in dashboards, the explore picker and attribution rules` : undefined}
+              >
+                <Form.Item name={['custom_dimension_labels', `custom_${slot}`]}>
+                  <Input placeholder={t`Not named`} aria-label={`custom_${slot}`} />
+                </Form.Item>
+              </SettingsRow>
+            ))}
+          </SettingsRows>
+        </Panel>
       </Form>
-      </Panel>
 
       <Panel title={t`Install`}>
-        <div className="mb-3 text-sm text-ink-3">
-          {t`Paste this snippet before the closing </head> tag of your website.`}
-        </div>
-        <CodeSnippet code={snippet} language="markup" />
-      </Panel>
-
-      <Panel title={t`Identify a visitor`}>
-        <div className="mb-3 text-sm text-ink-3">
-          {t`Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored.`}
-        </div>
-        <CodeSnippet code={identifySnippet} language="javascript" />
-        <div className="mt-3 text-sm text-ink-3">
-          {t`An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code.`}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink">{t`Snippet`}</span>
+            <span className="text-xs text-ink-3">
+              {t`Paste this snippet before the closing </head> tag of every page of your sites.`}
+            </span>
+            <CodeSnippet code={snippet} language="markup" />
+          </div>
+          <div className="flex flex-col gap-1.5 border-t border-line-soft pt-3">
+            <span className="text-sm font-medium text-ink">{t`Identify a visitor`}</span>
+            <span className="text-xs text-ink-3">
+              {t`Call identify() once you know who the visitor is. The signature must be computed on your server with your workspace secret key — the tracking endpoint is public, so an unsigned address is ignored.`}
+            </span>
+            <CodeSnippet code={identifySnippet} language="javascript" />
+            <span className="text-xs text-ink-3">
+              {t`An address that is not a contact yet becomes one, carrying the country, language and timezone the visit reported; an existing contact is never modified. Visitors arriving from a tracked email link are identified automatically, with no code.`}
+            </span>
+          </div>
         </div>
       </Panel>
 

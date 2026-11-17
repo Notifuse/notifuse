@@ -74,3 +74,13 @@ describe('AutomationsTable open rate', () => {
     expect(openRateCell()?.textContent).toContain('—')
   })
 })
+
+describe('AutomationsTable width', () => {
+  it('fits the 1170 px a 1440 px screen leaves it, actions included', () => {
+    // The table used to scroll from 1250 px, hiding Activate and "…" on a 1440 px screen.
+    renderTable({ rates: new Map(), loading: false, error: false })
+    const width = parseInt(document.querySelector('table')?.style.width ?? '', 10)
+    expect(width).toBeGreaterThan(0)
+    expect(width).toBeLessThanOrEqual(1170)
+  })
+})

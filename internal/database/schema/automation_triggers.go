@@ -1,7 +1,9 @@
 package schema
 
-// AutomationEnrollContactFunction returns the function every installed automation trigger
-// calls to enrol a contact.
+// AutomationEnrollContactFunction returns the four-argument enrolment function as v38
+// installs it. Since 44.0 a fresh workspace and v44 install
+// AutomationEnrollContactWithTriggerFunction and AutomationEnrollContactRelayFunction instead;
+// this body stays as v38 shipped it, since v38 still runs on a database below 38.
 //
 // It lives here for the same reason the webhook trigger body does: the new-workspace path
 // (internal/database/init.go) and the v38 migration both install it, and a body that drifts
@@ -121,6 +123,140 @@ func AutomationEnrollContactFunction() string {
 				NOW()
 			);
 
+		END;
+		$$ LANGUAGE plpgsql`
+}
+
+// AutomationEnrollContactWithTriggerFunction returns the five-argument enrolment function the
+// per-automation triggers call since 44.0. It does what the four-argument one does and also
+// keeps the event that started the journey: p_trigger, built by the trigger from the
+// contact_timeline row that fired it (and, for a custom event, the event's own properties),
+// is stored as contact_automations.context.trigger, where the email node hands it to the
+// template as {{ trigger_event }}. A NULL p_trigger stores the column's default, '{}'.
+//
+// p_trigger is JSONB, which also keeps this overload apart from the five-argument one v20 and
+// v21 created with a VARCHAR p_list_id: v25 replaced it with the four-argument signature
+// without dropping it, so a workspace created before v25 still has it. Every caller passes a
+// jsonb value (jsonb_build_object, or NULL::jsonb), which resolves to this overload only.
+func AutomationEnrollContactWithTriggerFunction() string {
+	return `CREATE OR REPLACE FUNCTION automation_enroll_contact(
+			p_automation_id VARCHAR(36),
+			p_contact_email VARCHAR(255),
+			p_root_node_id VARCHAR(36),
+			p_frequency VARCHAR(20),
+			p_trigger JSONB
+		) RETURNS VOID AS $$
+		DECLARE
+			v_already_triggered BOOLEAN;
+			v_new_id VARCHAR(36);
+		BEGIN
+			-- 0. Enrol only while the automation is actually running: see
+			-- AutomationEnrollContactFunction. Ahead of every write, the 'once' dedup row
+			-- included.
+			IF NOT EXISTS (
+				SELECT 1 FROM automations
+				WHERE id = p_automation_id
+				  AND status = 'live'
+				  AND deleted_at IS NULL
+			) THEN
+				RETURN;
+			END IF;
+
+			-- 1. For "once" frequency, check if already triggered
+			IF p_frequency = 'once' THEN
+				SELECT EXISTS(
+					SELECT 1 FROM automation_trigger_log
+					WHERE automation_id = p_automation_id
+					AND contact_email = p_contact_email
+				) INTO v_already_triggered;
+
+				IF v_already_triggered THEN
+					RETURN;
+				END IF;
+
+				INSERT INTO automation_trigger_log (id, automation_id, contact_email, triggered_at)
+				VALUES (gen_random_uuid()::text, p_automation_id, p_contact_email, NOW())
+				ON CONFLICT (automation_id, contact_email) DO NOTHING;
+			END IF;
+
+			-- 2. Generate new ID for contact_automation
+			v_new_id := gen_random_uuid()::text;
+
+			-- 3. Enroll contact in automation, with the event that started the journey
+			INSERT INTO contact_automations (
+				id, automation_id, contact_email, current_node_id,
+				status, entered_at, scheduled_at, context
+			) VALUES (
+				v_new_id,
+				p_automation_id,
+				p_contact_email,
+				p_root_node_id,
+				'active',
+				NOW(),
+				NOW(),
+				CASE WHEN p_trigger IS NULL THEN '{}'::jsonb
+				     ELSE jsonb_build_object('trigger', p_trigger) END
+			);
+
+			-- 4. Increment enrolled stat
+			UPDATE automations
+			SET stats = jsonb_set(
+				COALESCE(stats, '{}'::jsonb),
+				'{enrolled}',
+				to_jsonb(COALESCE((stats->>'enrolled')::int, 0) + 1)
+			),
+			updated_at = NOW()
+			WHERE id = p_automation_id;
+
+			-- 5. Log node execution entry
+			INSERT INTO automation_node_executions (
+				id, contact_automation_id, automation_id, node_id, node_type, action, entered_at, output
+			) VALUES (
+				gen_random_uuid()::text,
+				v_new_id,
+				p_automation_id,
+				p_root_node_id,
+				'trigger',
+				'entered',
+				NOW(),
+				'{}'::jsonb
+			);
+
+			-- 6. Create automation.start timeline event
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+			VALUES (
+				p_contact_email,
+				'insert',
+				'automation',
+				'automation.start',
+				p_automation_id,
+				jsonb_build_object(
+					'automation_id', jsonb_build_object('new', p_automation_id),
+					'root_node_id', jsonb_build_object('new', p_root_node_id)
+				),
+				NOW()
+			);
+
+		END;
+		$$ LANGUAGE plpgsql`
+}
+
+// AutomationEnrollContactRelayFunction returns the four-argument enrolment function as it
+// stands since 44.0: a relay to the five-argument one, with no trigger event. A trigger
+// installed before 44.0 calls the four-argument signature until v44 replaces its body, and v44
+// leaves some unregenerated (see regenerateAutomationTriggers), so the signature must keep
+// working; relaying keeps a single enrolment body to maintain.
+func AutomationEnrollContactRelayFunction() string {
+	return `CREATE OR REPLACE FUNCTION automation_enroll_contact(
+			p_automation_id VARCHAR(36),
+			p_contact_email VARCHAR(255),
+			p_root_node_id VARCHAR(36),
+			p_frequency VARCHAR(20)
+		) RETURNS VOID AS $$
+		BEGIN
+			PERFORM automation_enroll_contact(
+				p_automation_id, p_contact_email, p_root_node_id, p_frequency, NULL::jsonb
+			);
 		END;
 		$$ LANGUAGE plpgsql`
 }

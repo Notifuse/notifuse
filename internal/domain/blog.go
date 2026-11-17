@@ -660,6 +660,20 @@ const (
 // BlogPostSearchMaxLength caps the search of blogPosts.list, in characters.
 const BlogPostSearchMaxLength = 200
 
+// NormalizeBlogPostSearch trims a title search and refuses one PostgreSQL cannot read or longer
+// than BlogPostSearchMaxLength. blogPosts.list and blogPosts.counts both pass it, so they read
+// the same search the same way.
+func NormalizeBlogPostSearch(search string) (string, error) {
+	search = strings.TrimSpace(search)
+	if !utf8.ValidString(search) || strings.ContainsRune(search, 0) {
+		return "", ValidationError{Message: "search must be valid UTF-8 text without NUL bytes"}
+	}
+	if utf8.RuneCountInString(search) > BlogPostSearchMaxLength {
+		return "", ValidationError{Message: fmt.Sprintf("search must be at most %d characters", BlogPostSearchMaxLength)}
+	}
+	return search, nil
+}
+
 // ListBlogPostsRequest defines the request to list blog posts
 type ListBlogPostsRequest struct {
 	CategoryID string         `json:"category_id,omitempty"`
@@ -694,13 +708,11 @@ func (r *ListBlogPostsRequest) Validate() error {
 		return ValidationError{Message: fmt.Sprintf("invalid status: %s", r.Status)}
 	}
 
-	r.Search = strings.TrimSpace(r.Search)
-	if !utf8.ValidString(r.Search) || strings.ContainsRune(r.Search, 0) {
-		return ValidationError{Message: "search must be valid UTF-8 text without NUL bytes"}
+	search, err := NormalizeBlogPostSearch(r.Search)
+	if err != nil {
+		return err
 	}
-	if utf8.RuneCountInString(r.Search) > BlogPostSearchMaxLength {
-		return ValidationError{Message: fmt.Sprintf("search must be at most %d characters", BlogPostSearchMaxLength)}
-	}
+	r.Search = search
 
 	// Default page to 1 if not specified
 	if r.Page <= 0 {
@@ -724,8 +736,9 @@ func (r *ListBlogPostsRequest) Validate() error {
 }
 
 // BlogPostCounts is the response of blogPosts.counts. AllTotal and ByCategory cover every
-// post; Total, Published, Scheduled and Draft follow the category asked for, if any. A
-// scheduled post is also published: its publication date is set, still to come.
+// post; Total, Published, Scheduled and Draft follow the category and the title search asked
+// for, if any, as blogPosts.list does. A scheduled post is also published: its publication
+// date is set, still to come.
 type BlogPostCounts struct {
 	AllTotal   int            `json:"all_total"`
 	Total      int            `json:"total"`
@@ -796,8 +809,9 @@ type BlogPostRepository interface {
 	DeletePost(ctx context.Context, id string) error
 	ListPosts(ctx context.Context, params ListBlogPostsRequest) (*BlogPostListResponse, error)
 	// CountPosts counts the posts that are not deleted, as blogPosts.counts returns them.
-	// now decides which published posts are still scheduled.
-	CountPosts(ctx context.Context, workspaceID string, categoryID string, now time.Time) (*BlogPostCounts, error)
+	// now decides which published posts are still scheduled; search narrows the status counts
+	// to the titles containing it, as ListPosts does.
+	CountPosts(ctx context.Context, workspaceID string, categoryID string, search string, now time.Time) (*BlogPostCounts, error)
 	// ListFeedPosts returns the top `limit` published posts (newest first) for
 	// RSS/JSON syndication. Enforces deleted_at IS NULL AND published_at IS NOT
 	// NULL AND published_at <= the current UTC time — the filter mirrors
@@ -849,8 +863,9 @@ type BlogService interface {
 	UpdatePost(ctx context.Context, request *UpdateBlogPostRequest) (*BlogPost, error)
 	DeletePost(ctx context.Context, request *DeleteBlogPostRequest) error
 	ListPosts(ctx context.Context, params *ListBlogPostsRequest) (*BlogPostListResponse, error)
-	// CountPosts counts the posts by status, overall or in one category, and per category.
-	CountPosts(ctx context.Context, categoryID string) (*BlogPostCounts, error)
+	// CountPosts counts the posts by status, overall or in one category, and per category; a
+	// search narrows the counts by status to the matching titles.
+	CountPosts(ctx context.Context, categoryID string, search string) (*BlogPostCounts, error)
 	PublishPost(ctx context.Context, request *PublishBlogPostRequest) error
 	UnpublishPost(ctx context.Context, request *UnpublishBlogPostRequest) error
 
@@ -1235,9 +1250,9 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 			if req.Workspace.Settings.BlogSettings.SEO.OGImage != "" {
 				seoData["og_image"] = req.Workspace.Settings.BlogSettings.SEO.OGImage
 			}
-			if req.Workspace.Settings.BlogSettings.SEO.CanonicalURL != "" {
-				seoData["canonical_url"] = req.Workspace.Settings.BlogSettings.SEO.CanonicalURL
-			}
+			// No blog-wide canonical_url: a theme that falls back to it (the default one did, up to
+			// 44.0) tells search engines that every page is a copy of that one address. Each page
+			// keeps its own canonical, else its own address.
 			if len(req.Workspace.Settings.BlogSettings.SEO.Keywords) > 0 {
 				seoData["keywords"] = req.Workspace.Settings.BlogSettings.SEO.Keywords
 			}
@@ -1324,8 +1339,12 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 				"og_title":         req.Category.Settings.SEO.OGTitle,
 				"og_description":   req.Category.Settings.SEO.OGDescription,
 				"og_image":         req.Category.Settings.SEO.OGImage,
-				"canonical_url":    req.Category.Settings.SEO.CanonicalURL,
 				"keywords":         req.Category.Settings.SEO.Keywords,
+			}
+			// A category's canonical stands for the category page only: on one of its posts, a theme
+			// that falls back to it (the default one did, up to 44.0) would point the post at it.
+			if req.Post == nil {
+				categoryData["seo"].(MapOfAny)["canonical_url"] = req.Category.Settings.SEO.CanonicalURL
 			}
 		}
 

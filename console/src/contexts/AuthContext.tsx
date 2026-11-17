@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { authService } from '../services/api/auth'
-import { workspaceService } from '../services/api/workspace'
+import { membersQuery } from '../services/api/workspaceQueries'
 import { createEmptyPermissions, createFullPermissions } from '../services/api/permissions'
 import { Workspace, UserPermissions } from '../services/api/types'
 import { isRootUser } from '../services/api/auth'
@@ -209,10 +209,10 @@ export function useWorkspacePermissions(workspaceId: string): WorkspacePermissio
 
   // The list depends on who asks (a member without Workspace read gets only their own entry),
   // hence the user in the key.
-  const queryKey = ['workspace-members', workspaceId, userId]
+  const members = membersQuery(workspaceId, userId)
+  const queryKey = members.queryKey
   const { data } = useQuery({
-    queryKey,
-    queryFn: () => workspaceService.getMembers(workspaceId),
+    ...members,
     enabled: !!userId && !!workspaceId && !isRoot,
     // Every answer renders this caller again, a failure or a reset included, for the counts below
     notifyOnChangeProps: ['data', 'dataUpdatedAt', 'errorUpdatedAt']

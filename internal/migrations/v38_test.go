@@ -389,6 +389,9 @@ func TestV38Migration_HealAutomationTriggerConditions(t *testing.T) {
 		// CREATE TRIGGER time (SQLSTATE 0A000).
 		functionBody := rec.firstWithPrefix(t, "CREATE OR REPLACE FUNCTION")
 		assert.Contains(t, functionBody, "country = 'US'")
+		// v38 installs only the four-argument enrolment: its triggers must not pass the event,
+		// which needs the five-argument one v44 installs.
+		assert.NotContains(t, functionBody, "jsonb_build_object(")
 		assert.Contains(t, functionBody, "IF (")
 		triggerDDL := rec.firstWithPrefix(t, "CREATE TRIGGER")
 		assert.NotContains(t, triggerDDL, "SELECT")

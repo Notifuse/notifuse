@@ -54,6 +54,8 @@ export function EditorSettings() {
                 onChange={setFrequency}
                 // The row is narrow: the field says it short, the menu in full.
                 labelRender={({ value }) => (value === 'every_time' ? t`Every time` : t`Once`)}
+                // The menu is as wide as its options: "Once per contact" was cut in a menu as narrow as the field.
+                popupMatchSelectWidth={false}
                 options={[
                   { value: 'once', label: t`Once per contact` },
                   { value: 'every_time', label: t`Every time` }

@@ -80,8 +80,10 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
       ),
     initialPageParam: 0,
     getNextPageParam: (last) => {
-      const next = last.offset + last.deliveries.length
-      return last.deliveries.length > 0 && next < last.total ? next : undefined
+      // Servers before 44.0 answer null for a page with no rows.
+      const rows = last.deliveries ?? []
+      const next = last.offset + rows.length
+      return rows.length > 0 && next < last.total ? next : undefined
     },
     staleTime: 30_000
   })
@@ -91,7 +93,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
     const seen = new Set<string>()
     const out: WebhookDelivery[] = []
     for (const pageData of deliveriesQuery.data?.pages ?? []) {
-      for (const delivery of pageData.deliveries) {
+      for (const delivery of pageData.deliveries ?? []) {
         if (seen.has(delivery.id)) continue
         seen.add(delivery.id)
         out.push(delivery)
@@ -140,13 +142,18 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
             value={status ? i18n._(DELIVERY_STATUS_LABELS[status]) : t`All`}
             menu={statusMenu}
           />
+          {/* As on every Logs tab: as soon as a filter is set. */}
+          {filtered ? (
+            <Button type="link" onClick={() => clear()}>
+              {t`Clear all`}
+            </Button>
+          ) : null}
         </>
       }
       end={
         <Tooltip title={t`Refresh`}>
           <Button
             type="text"
-            size="small"
             aria-label={t`Refresh`}
             icon={<RefreshCw size={14} />}
             onClick={refresh}
@@ -242,7 +249,8 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
                 })
               }
             >
-              {t`Add a webhook`}
+              {/* With an endpoint already set up, adding one is not what is missing. */}
+              {subscriptions.length > 0 ? t`Open webhook settings` : t`Add a webhook`}
             </Button>
           </Empty>
         )}

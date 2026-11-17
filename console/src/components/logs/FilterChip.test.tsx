@@ -16,6 +16,13 @@ describe('FilterChip', () => {
     expect(chip).toHaveAttribute('aria-haspopup')
   })
 
+  it('shows the hand cursor on the chip and on its remove button', () => {
+    // Tailwind 4 leaves native buttons with the default arrow: the class has to say it.
+    render(<FilterChip label="List" value="Customers" menu={{ items }} onClear={() => {}} />)
+    expect(screen.getByRole('button', { name: /List Customers/ })).toHaveClass('cursor-pointer')
+    expect(screen.getByRole('button', { name: 'Remove List filter' })).toHaveClass('cursor-pointer')
+  })
+
   it('opens its menu on a click and reports the choice', async () => {
     const onClick = vi.fn()
     render(<FilterChip label="Status" value="All" menu={{ items, onClick }} />)

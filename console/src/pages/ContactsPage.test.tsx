@@ -11,6 +11,7 @@ type Search = Record<string, unknown>
 interface NavigateCall {
   search: (prev: Search) => Search
   replace?: boolean
+  resetScroll?: boolean
 }
 
 const state = vi.hoisted(() => {
@@ -100,6 +101,7 @@ vi.mock('../components/contacts/ContactsTable', async () => {
                 checked={props.selectedEmails.includes(row.email)}
                 onChange={() => props.onSelectionChange([...props.selectedEmails, row.email])}
               />
+              {/* The row's popconfirm, already confirmed. */}
               <button type="button" onClick={() => props.onDelete(row.email)}>
                 delete {row.email}
               </button>
@@ -148,8 +150,16 @@ vi.mock('../components/contacts/ExportContactsModal', () => ({
   ExportContactsModal: ({ visible }: { visible: boolean }) => (visible ? <div>export modal</div> : null)
 }))
 vi.mock('../components/segment/button_upsert', () => ({
-  DrawerSegment: ({ segment, canReadTemplates }: { segment?: { name: string }; canReadTemplates: boolean }) => (
-    <div data-can-read-templates={String(canReadTemplates)}>
+  DrawerSegment: ({
+    segment,
+    canReadTemplates,
+    initialTree
+  }: {
+    segment?: { name: string }
+    canReadTemplates: boolean
+    initialTree?: unknown
+  }) => (
+    <div data-can-read-templates={String(canReadTemplates)} data-initial-tree={JSON.stringify(initialTree ?? null)}>
       {segment ? `edit segment ${segment.name}` : 'new segment drawer'}
     </div>
   )
@@ -353,7 +363,15 @@ describe('ContactsPage', () => {
       renderPage({ segment_id: 'pro' })
       fireEvent.click(await screen.findByRole('button', { name: 'More actions' }))
       fireEvent.click(await screen.findByText('Delete segment'))
-      fireEvent.click(await screen.findByRole('button', { name: 'Yes' }))
+      // One object: a popconfirm that warns, with Cancel and a red Delete.
+      const confirm = await screen.findByRole('tooltip')
+      expect(
+        within(confirm).getByText('"Plan Pro" will be deleted. Its contacts stay in the workspace. This action cannot be undone.')
+      ).toBeInTheDocument()
+      expect(within(confirm).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+      const deleteButton = within(confirm).getByRole('button', { name: 'Delete' })
+      expect(deleteButton.className).toContain('ant-btn-dangerous')
+      fireEvent.click(deleteButton)
       await waitFor(() => expect(deleteSegment).toHaveBeenCalledWith({ workspace_id: 'ws', id: 'pro' }))
       await waitFor(() =>
         expect(lastNavigation()).toEqual({
@@ -617,6 +635,15 @@ describe('ContactsPage', () => {
       renderPage()
       fireEvent.click(await screen.findByRole('button', { name: 'Load 50 more' }))
       expect(lastNavigation()).toEqual({ search: expect.objectContaining({ limit: 100 }), replace: true })
+      // The router scrolls to the top on a navigation unless told not to: the rows load in place.
+      expect(state.navigate.mock.calls.at(-1)?.[0]).toMatchObject({ resetScroll: false })
+    })
+
+    it('starts a new view at the top of the page', async () => {
+      state.lists = [{ id: 'news', name: 'Newsletter' }]
+      renderPage()
+      fireEvent.click(await screen.findByRole('button', { name: /Newsletter/ }))
+      expect(state.navigate.mock.calls.at(-1)?.[0]).toMatchObject({ resetScroll: true })
     })
 
     it('stops at 10,000 rows and says so', async () => {
@@ -668,6 +695,50 @@ describe('ContactsPage', () => {
       fireEvent.change(screen.getByPlaceholderText('Filter by Phone'), { target: { value: '+33' } })
       fireEvent.keyDown(screen.getByPlaceholderText('Filter by Phone'), { key: 'Enter', code: 'Enter', keyCode: 13 })
       expect(lastNavigation().search).toMatchObject({ segment_id: 'pro', phone: '+33' })
+    })
+
+    it('starts a segment from Advanced conditions with the view and the filters on screen', async () => {
+      state.lists = [{ id: 'news', name: 'Newsletter' }]
+      renderPage({ list_id: 'news', contact_list_status: 'active', country: 'FR', tracking_opens_consent: 'unknown' })
+      fireEvent.click(await screen.findByRole('button', { name: 'Filter' }))
+      fireEvent.click(await screen.findByText('Advanced conditions: create a segment'))
+      const drawer = await screen.findByText('new segment drawer')
+      expect(JSON.parse(drawer.getAttribute('data-initial-tree')!)).toEqual({
+        kind: 'branch',
+        branch: {
+          operator: 'and',
+          leaves: [
+            {
+              kind: 'leaf',
+              leaf: { source: 'contact_lists', contact_list: { operator: 'in', list_id: 'news', status: 'active' } }
+            },
+            {
+              kind: 'leaf',
+              leaf: {
+                source: 'contacts',
+                contact: {
+                  filters: [{ field_name: 'country', field_type: 'string', operator: 'contains', string_values: ['FR'] }]
+                }
+              }
+            },
+            {
+              kind: 'leaf',
+              leaf: {
+                source: 'contacts',
+                contact: {
+                  filters: [{ field_name: 'tracking_opens_consent', field_type: 'string', operator: 'is_not_set' }]
+                }
+              }
+            }
+          ]
+        }
+      })
+    })
+
+    it('starts an empty segment from the rail', async () => {
+      renderPage({ country: 'FR' })
+      fireEvent.click(await screen.findByRole('button', { name: 'New segment' }))
+      expect((await screen.findByText('new segment drawer')).getAttribute('data-initial-tree')).toBe('null')
     })
 
     it('shows the active filters as pills and clears them', async () => {
@@ -746,7 +817,6 @@ describe('ContactsPage', () => {
       fireEvent.click(screen.getByLabelText('select bob@example.com'))
       await screen.findByText('2 contacts selected')
       fireEvent.click(screen.getByRole('button', { name: 'delete alice@example.com' }))
-      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
       await waitFor(() =>
         expect(contactsApi.delete).toHaveBeenCalledWith({ workspace_id: 'ws', email: 'alice@example.com' })
       )
@@ -763,7 +833,6 @@ describe('ContactsPage', () => {
       queryClient.setQueryData(other, { contacts: [{ email: 'alice@example.com' }, { email: 'bob@example.com' }] })
       vi.mocked(contactsApi.delete).mockImplementationOnce(() => new Promise(() => {}))
       fireEvent.click(screen.getByRole('button', { name: 'delete alice@example.com' }))
-      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
       await waitFor(() =>
         expect(queryClient.getQueryData<{ contacts: { email: string }[] }>(other)?.contacts).toEqual([
           { email: 'bob@example.com' }
@@ -783,7 +852,6 @@ describe('ContactsPage', () => {
       await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(2))
       vi.mocked(contactsApi.delete).mockImplementationOnce(() => new Promise(() => {}))
       fireEvent.click(screen.getByRole('button', { name: 'delete alice@example.com' }))
-      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
       await waitFor(() =>
         expect(screen.queryByRole('button', { name: 'delete alice@example.com' })).not.toBeInTheDocument()
       )
@@ -795,7 +863,6 @@ describe('ContactsPage', () => {
       // The delete succeeds and she is created anew with that email before the next read
       vi.mocked(contactsApi.delete).mockImplementationOnce(async () => ({ success: true }))
       fireEvent.click(await screen.findByRole('button', { name: 'delete alice@example.com' }))
-      fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
       await waitFor(() => expect(contactsApi.delete).toHaveBeenCalled())
       await waitFor(() => expect(contactsApi.list).toHaveBeenCalledTimes(2))
       await screen.findByRole('button', { name: 'delete alice@example.com' })

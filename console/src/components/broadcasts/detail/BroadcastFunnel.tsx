@@ -92,7 +92,8 @@ export function BroadcastFunnel({ stats, smtp, untracked, web, onOpenLogs }: Bro
         key: 'visits',
         label: t`Website visits`,
         value: unavailable ?? int(visits?.sessions ?? 0),
-        sub: unavailable ? undefined : t`${median} median time on site`
+        // Short enough for the strip's narrow cell, which cut "median time on site".
+        sub: unavailable ? undefined : t`${median} median visit`
       },
       {
         key: 'conversions',

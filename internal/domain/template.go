@@ -1200,29 +1200,17 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 
 		templateData["contact"] = contactData
 
-		notificationCenterParams := url.Values{}
-		notificationCenterParams.Set("email", req.ContactWithList.Contact.Email)
-		notificationCenterParams.Set("email_hmac", emailHMAC)
-		notificationCenterParams.Set("wid", req.WorkspaceID)
-
-		notificationCenterURL := fmt.Sprintf("%s/notification-center?%s",
-			req.TrackingSettings.Endpoint, notificationCenterParams.Encode())
-		templateData["notification_center_url"] = notificationCenterURL
-
-		// Links to the tracking dialog of the notification center, and to the
-		// one-click tracking opt-out (which asks for a confirmation before it
-		// writes anything). TrackLinks leaves both untouched.
-		trackingParams := url.Values{}
-		trackingParams.Set("action", "tracking")
-		trackingParams.Set("email", req.ContactWithList.Contact.Email)
-		trackingParams.Set("email_hmac", emailHMAC)
-		trackingParams.Set("wid", req.WorkspaceID)
-		templateData["tracking_preferences_url"] = fmt.Sprintf("%s/notification-center?%s",
-			req.TrackingSettings.Endpoint, trackingParams.Encode())
-
-		trackingParams.Set("action", "tracking_optout")
-		templateData["tracking_optout_url"] = fmt.Sprintf("%s/notification-center?%s",
-			req.TrackingSettings.Endpoint, trackingParams.Encode())
+		// The notification center, its tracking dialog and the one-click tracking opt-out
+		// (which asks for a confirmation before it writes anything). TrackLinks leaves them untouched.
+		links := ContactLinks{
+			Endpoint:    req.TrackingSettings.Endpoint,
+			WorkspaceID: req.WorkspaceID,
+			Email:       req.ContactWithList.Contact.Email,
+			EmailHMAC:   emailHMAC,
+		}
+		for key, value := range links.ContactURLs() {
+			templateData[key] = value
+		}
 
 	} else {
 		// Create empty contact object if none provided
@@ -1262,49 +1250,21 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 			"name": req.ContactWithList.ListName,
 		}
 
-		// Create unsubscribe link
-		// Build unsubscribe URL query params
-		unsubscribeParams := url.Values{}
-		unsubscribeParams.Set("action", "unsubscribe")
-		unsubscribeParams.Set("lid", req.ContactWithList.ListID)
-		unsubscribeParams.Set("lname", req.ContactWithList.ListName)
-		unsubscribeParams.Set("wid", req.WorkspaceID)
-		unsubscribeParams.Set("mid", req.MessageID)
-		unsubscribeParams.Set("email", req.ContactWithList.Contact.Email)
-		unsubscribeParams.Set("email_hmac", emailHMAC)
-
-		unsubscribeURL := fmt.Sprintf("%s/notification-center?%s",
-			req.TrackingSettings.Endpoint, unsubscribeParams.Encode())
-		templateData["unsubscribe_url"] = unsubscribeURL
-
-		// Build oneclick unsubscribe URL query params.
-		// email_hmac is required: the public /unsubscribe-oneclick endpoint has no
-		// bearer token, so ListService.UnsubscribeFromLists authenticates the request
-		// by verifying this HMAC against the workspace secret key (RFC 8058 one-click).
-		oneclickParams := url.Values{}
-		oneclickParams.Set("email", req.ContactWithList.Contact.Email)
-		oneclickParams.Set("email_hmac", emailHMAC)
-		oneclickParams.Set("lids", req.ContactWithList.ListID)
-		oneclickParams.Set("wid", req.WorkspaceID)
-		oneclickParams.Set("mid", req.MessageID)
-
-		oneclickUnsubscribeURL := fmt.Sprintf("%s/unsubscribe-oneclick?%s",
-			req.TrackingSettings.Endpoint, oneclickParams.Encode())
-		templateData["oneclick_unsubscribe_url"] = oneclickUnsubscribeURL
-
-		// Build confirmation URL query params for double opt-in
-		confirmParams := url.Values{}
-		confirmParams.Set("action", "confirm")
-		confirmParams.Set("lid", req.ContactWithList.ListID)
-		confirmParams.Set("lname", req.ContactWithList.ListName)
-		confirmParams.Set("wid", req.WorkspaceID)
-		confirmParams.Set("mid", req.MessageID)
-		confirmParams.Set("email", req.ContactWithList.Contact.Email)
-		confirmParams.Set("email_hmac", emailHMAC)
-
-		confirmURL := fmt.Sprintf("%s/notification-center?%s",
-			req.TrackingSettings.Endpoint, confirmParams.Encode())
-		templateData["confirm_subscription_url"] = confirmURL
+		// The unsubscribe link, the one-click unsubscribe (its email_hmac is required: the public
+		// /unsubscribe-oneclick endpoint has no bearer token, so ListService.UnsubscribeFromLists
+		// authenticates the request by verifying this HMAC, RFC 8058) and the double opt-in link.
+		links := ContactLinks{
+			Endpoint:    req.TrackingSettings.Endpoint,
+			WorkspaceID: req.WorkspaceID,
+			MessageID:   req.MessageID,
+			Email:       req.ContactWithList.Contact.Email,
+			EmailHMAC:   emailHMAC,
+			ListID:      req.ContactWithList.ListID,
+			ListName:    req.ContactWithList.ListName,
+		}
+		for key, value := range links.ListURLs() {
+			templateData[key] = value
+		}
 	}
 
 	// Add global feed data if the broadcast carries a payload. Presence is the only condition:
@@ -1362,6 +1322,141 @@ func TrackingSigningKey(workspaceSecretKey string) []byte {
 		return nil
 	}
 	return key
+}
+
+// ContactLinks holds what the links a send builds for its contact are made of: the
+// notification center, tracking and list (unsubscribe, one-click, confirm) links.
+// BuildTemplateData builds them at send time; PreviewContactLinks rebuilds the
+// template editor's preview ones the same way, from its test contact.
+type ContactLinks struct {
+	Endpoint    string
+	WorkspaceID string
+	MessageID   string
+	Email       string
+	EmailHMAC   string
+	ListID      string
+	ListName    string
+}
+
+func (l ContactLinks) notificationCenter(params url.Values) string {
+	return fmt.Sprintf("%s/notification-center?%s", l.Endpoint, params.Encode())
+}
+
+// ContactURLs returns the links every send to a contact carries.
+func (l ContactLinks) ContactURLs() map[string]string {
+	center := url.Values{}
+	center.Set("email", l.Email)
+	center.Set("email_hmac", l.EmailHMAC)
+	center.Set("wid", l.WorkspaceID)
+
+	tracking := url.Values{}
+	tracking.Set("action", "tracking")
+	tracking.Set("email", l.Email)
+	tracking.Set("email_hmac", l.EmailHMAC)
+	tracking.Set("wid", l.WorkspaceID)
+	optout := url.Values{}
+	for key, values := range tracking {
+		optout[key] = values
+	}
+	optout.Set("action", "tracking_optout")
+
+	return map[string]string{
+		"notification_center_url":  l.notificationCenter(center),
+		"tracking_preferences_url": l.notificationCenter(tracking),
+		"tracking_optout_url":      l.notificationCenter(optout),
+	}
+}
+
+// ListURLs returns the links of a send made for a list.
+func (l ContactLinks) ListURLs() map[string]string {
+	listAction := func(action string) string {
+		params := url.Values{}
+		params.Set("action", action)
+		params.Set("lid", l.ListID)
+		params.Set("lname", l.ListName)
+		params.Set("wid", l.WorkspaceID)
+		params.Set("mid", l.MessageID)
+		params.Set("email", l.Email)
+		params.Set("email_hmac", l.EmailHMAC)
+		return l.notificationCenter(params)
+	}
+	oneclick := url.Values{}
+	oneclick.Set("email", l.Email)
+	oneclick.Set("email_hmac", l.EmailHMAC)
+	oneclick.Set("lids", l.ListID)
+	oneclick.Set("wid", l.WorkspaceID)
+	oneclick.Set("mid", l.MessageID)
+	return map[string]string{
+		"unsubscribe_url":          listAction("unsubscribe"),
+		"oneclick_unsubscribe_url": fmt.Sprintf("%s/unsubscribe-oneclick?%s", l.Endpoint, oneclick.Encode()),
+		"confirm_subscription_url": listAction("confirm"),
+	}
+}
+
+// PreviewEmailHMAC is the placeholder signature of the links in the template editor's test
+// data: a preview link opens the notification center in its preview mode and signs nothing.
+const PreviewEmailHMAC = "abc123"
+
+// PreviewContactLinks rebuilds the preview links of a template's test data for its test
+// contact, as a send builds them for the contact it goes to: the console seeds the test data
+// with links made for john.doe@example.com, and a test contact changed since kept them. Only a
+// link carrying the preview signature is rebuilt, so the data of a message really sent (shown
+// again from the logs) keeps the links it went out with; a link the data does not hold is not
+// added. The list links follow the test data's list. endpoint is asked for only when the data
+// holds a preview link, so a caller can load it lazily. Returns whether anything changed.
+func PreviewContactLinks(data map[string]any, endpoint func() string, workspaceID, messageID string) bool {
+	previewKeys := map[string]bool{}
+	for key, value := range data {
+		if link, ok := value.(string); ok && isPreviewLink(link) {
+			previewKeys[key] = true
+		}
+	}
+	if len(previewKeys) == 0 {
+		return false
+	}
+	contact, _ := data["contact"].(map[string]any)
+	if typed, ok := data["contact"].(MapOfAny); ok {
+		contact = typed
+	}
+	email, _ := contact["email"].(string)
+	if email == "" {
+		return false
+	}
+	if messageID == "" {
+		messageID = "preview"
+	}
+	links := ContactLinks{Endpoint: strings.TrimRight(endpoint(), "/"), WorkspaceID: workspaceID, MessageID: messageID, Email: email, EmailHMAC: PreviewEmailHMAC}
+	list, _ := data["list"].(map[string]any)
+	if typed, ok := data["list"].(MapOfAny); ok {
+		list = typed
+	}
+	links.ListID, _ = list["id"].(string)
+	links.ListName, _ = list["name"].(string)
+
+	built := links.ContactURLs()
+	if links.ListID != "" {
+		for key, value := range links.ListURLs() {
+			built[key] = value
+		}
+	}
+	changed := false
+	for key, value := range built {
+		if !previewKeys[key] || data[key] == value {
+			continue
+		}
+		data[key] = value
+		changed = true
+	}
+	return changed
+}
+
+// isPreviewLink reports whether a link carries the preview signature.
+func isPreviewLink(link string) bool {
+	parsed, err := url.Parse(link)
+	if err != nil {
+		return false
+	}
+	return parsed.Query().Get("email_hmac") == PreviewEmailHMAC
 }
 
 // BuildWorkspaceTemplateVars builds the `workspace` template object exposing the

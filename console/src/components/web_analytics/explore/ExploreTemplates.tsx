@@ -98,7 +98,7 @@ export function ExploreTemplates(props: ExploreTemplatesProps) {
 
   return (
     <>
-      <p className="mb-6 text-gray-500">
+      <p className="mb-6 text-ink-3">
         {t`Pick a report to start from, or build your own.`}
       </p>
 
@@ -114,7 +114,7 @@ export function ExploreTemplates(props: ExploreTemplatesProps) {
           >
             <div className="flex-1">
               <h3 className="m-0 mb-2 text-sm font-semibold">{template.title}</h3>
-              <p className="mb-3 text-sm text-gray-500">{template.description}</p>
+              <p className="mb-3 text-sm text-ink-3">{template.description}</p>
               {template.dimensions.length > 0 ? (
                 <div className="mb-3 flex flex-col items-start gap-1">
                   {template.dimensions.map((dimension) => (
@@ -126,7 +126,7 @@ export function ExploreTemplates(props: ExploreTemplatesProps) {
               ) : null}
               {template.filters?.length ? (
                 <div className="mb-3">
-                  <div className="mb-1 text-xs text-gray-400">{t`With:`}</div>
+                  <div className="mb-1 text-xs text-ink-4">{t`With:`}</div>
                   {template.filters.map((filter, index) => (
                     <Tag
                       key={`${filter.dimension}-${index}`}

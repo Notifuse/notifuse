@@ -115,6 +115,22 @@ describe('useActivityDescriber: emails', () => {
     expect(got.source).toBe('Transactional')
   })
 
+  it('names a message by what sent it, as the Messages tab does, whatever its template category', () => {
+    const sentBy = (origin: Record<string, string>) =>
+      describeEntry(
+        entry({
+          entity_type: 'message_history',
+          kind: 'email.sent',
+          operation: 'insert',
+          entity_data: { template_id: 't1', template_name: 'Welcome', template_category: 'welcome', ...origin } as never
+        })
+      ).source
+    expect(sentBy({ transactional_notification_id: 'welcome' })).toBe('Transactional')
+    expect(sentBy({ automation_id: 'onboarding' })).toBe('Automation')
+    expect(sentBy({ broadcast_id: 'b1' })).toBe('Newsletter')
+    expect(sentBy({})).toBe('Email')
+  })
+
   it('shows no link line when the click carries no envelope', () => {
     const got = describeEntry(
       entry({

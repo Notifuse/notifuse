@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App } from 'antd'
 import { i18n } from '@lingui/core'
@@ -11,7 +11,9 @@ import { listsApi } from '../../services/api/list'
 import type { List } from '../../services/api/types'
 
 vi.mock('../../services/api/template', () => ({
-  templatesApi: { list: vi.fn(), get: vi.fn() }
+  // The window counts the uses of each type the API names.
+  TEMPLATE_USAGE_TYPES: ['broadcasts', 'transactional_notifications', 'automations', 'lists'],
+  templatesApi: { list: vi.fn(), get: vi.fn(), usage: vi.fn(), compile: vi.fn() }
 }))
 vi.mock('../../services/api/list', () => ({
   listsApi: { create: vi.fn(), update: vi.fn() }
@@ -19,7 +21,20 @@ vi.mock('../../services/api/list', () => ({
 vi.mock('../../contexts/AuthContext', () => ({
   // TemplateSelectorInput reads the member's permissions for its drawers
   useWorkspacePermissions: () => ({ permissions: null }),
-  useAuth: () => ({ workspaces: [{ id: 'ws1', name: 'Workspace', integrations: [] }] })
+  // Both providers set, each with its default sender: the window names the one a send uses.
+  useAuth: () => ({
+    workspaces: [
+      {
+        id: 'ws1',
+        name: 'Workspace',
+        settings: { marketing_email_provider_id: 'mk', transactional_email_provider_id: 'tx' },
+        integrations: [
+          { id: 'tx', name: 'Postmark', email_provider: { senders: [{ id: 'tx1', name: 'Support', email: 'support@acme.com', is_default: true }] } },
+          { id: 'mk', name: 'SES', email_provider: { senders: [{ id: 'mk1', name: 'News', email: 'news@acme.com', is_default: true }] } }
+        ]
+      }
+    ]
+  })
 }))
 vi.mock('../templates/TemplatePreviewDrawer', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
@@ -53,6 +68,8 @@ const openDrawer = (canReadTemplates: boolean) => {
 describe('CreateListDrawer double opt-in template', () => {
   beforeEach(() => {
     vi.mocked(templatesApi.list).mockReset().mockResolvedValue({ templates: [] } as never)
+    vi.mocked(templatesApi.usage).mockReset().mockResolvedValue({ usage: {}, hidden_types: [] } as never)
+    vi.mocked(templatesApi.compile).mockReset().mockResolvedValue({ html: '', mjml: '' } as never)
     vi.mocked(templatesApi.get)
       .mockReset()
       .mockResolvedValue({ template: { id: 'tpl-optin', name: 'Confirm your subscription' } } as never)
@@ -82,6 +99,35 @@ describe('CreateListDrawer double opt-in template', () => {
     openDrawer(true)
 
     expect(await screen.findByDisplayValue('Confirm your subscription')).toBeInTheDocument()
-    expect(templatesApi.list).toHaveBeenCalled()
+  })
+
+  // The window lists the Opt-in templates alone and says what the template is for.
+  it('opens the template window on the Opt-in category, saying what the template is for', async () => {
+    openDrawer(true)
+
+    fireEvent.click(await screen.findByDisplayValue('Confirm your subscription'))
+    // Found by its title: the dialogs around it share the test id antd names them by.
+    const dialog = await waitFor(() => {
+      const found = screen.getAllByRole('dialog').find((element) => element.textContent?.startsWith('Choose a template'))
+      expect(found).toBeDefined()
+      return found as HTMLElement
+    })
+    expect(within(dialog).getByText('The confirmation email each new subscriber receives')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(templatesApi.list).toHaveBeenCalledWith({ workspace_id: 'ws1', category: 'opt_in', channel: 'email' })
+    )
+  })
+
+  // The confirmation email goes out through the marketing provider, whatever the template's category.
+  it("names the marketing provider's sender in the template window", async () => {
+    const optin = { id: 'tpl-optin', name: 'Confirm your subscription', category: 'opt_in', email: { subject: 'Confirm' } }
+    vi.mocked(templatesApi.list).mockResolvedValue({ templates: [optin] } as never)
+    vi.mocked(templatesApi.get).mockResolvedValue({ template: optin } as never)
+    openDrawer(true)
+
+    fireEvent.click(await screen.findByDisplayValue('Confirm your subscription'))
+    const preview = await screen.findByRole('region', { name: 'Preview' })
+    expect(await within(preview).findByText('News · news@acme.com')).toBeInTheDocument()
+    expect(within(preview).queryByText('Support · support@acme.com')).toBeNull()
   })
 })

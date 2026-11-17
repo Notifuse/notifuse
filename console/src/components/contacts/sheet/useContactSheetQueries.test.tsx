@@ -45,10 +45,10 @@ describe('useContactSheetQueries', () => {
   it('maps each activity filter to its entity types', () => {
     expect(ACTIVITY_ENTITY_TYPES).toEqual({
       all: undefined,
-      emails: ['message_history'],
+      emails: ['message_history', 'inbound_webhook_event', 'webhook_event'],
       lists: ['contact_list', 'contact_segment'],
       profile: ['contact'],
-      events: ['custom_event', 'inbound_webhook_event', 'webhook_event', 'automation'],
+      events: ['custom_event', 'automation'],
       web: ['web_session', 'web_page']
     })
   })

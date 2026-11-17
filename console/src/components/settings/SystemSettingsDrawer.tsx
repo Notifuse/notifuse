@@ -148,78 +148,82 @@ export function SystemSettingsDrawer({ workspaceId }: { workspaceId?: string } =
   }
 
   const handleSave = () => {
-    form.validateFields().then((values) => {
-      const newApiEndpoint = values.api_endpoint || ''
-      const apiEndpointChanged =
-        newApiEndpoint !== originalApiEndpoint && newApiEndpoint !== ''
+    form
+      .validateFields()
+      .then((values) => {
+        const newApiEndpoint = values.api_endpoint || ''
+        const apiEndpointChanged =
+          newApiEndpoint !== originalApiEndpoint && newApiEndpoint !== ''
 
-      const modalContent: string[] = []
-      modalContent.push(t`Saving settings will restart the server. You will need to sign in again.`)
+        const modalContent: string[] = []
+        modalContent.push(t`Saving settings will restart the server. You will need to sign in again.`)
 
-      if (apiEndpointChanged) {
-        modalContent.push(
-          t`The API endpoint has changed. After restart, the console will be available at:` +
-            ` ${newApiEndpoint}/console/`
-        )
-      }
+        if (apiEndpointChanged) {
+          modalContent.push(
+            t`The API endpoint has changed. After restart, the console will be available at:` +
+              ` ${newApiEndpoint}/console/`
+          )
+        }
 
-      Modal.confirm({
-        title: t`Restart Server?`,
-        content: (
-          <div>
-            {modalContent.map((line, i) => (
-              <p key={i}>{line}</p>
-            ))}
-          </div>
-        ),
-        okText: t`Save & Restart`,
-        cancelText: t`Cancel`,
-        onOk: async () => {
-          setSaving(true)
-          try {
-            await settingsApi.update(values)
-
-            const hideMsg = message.loading({
-              content: t`Server is restarting...`,
-              duration: 0,
-              key: 'server-restart'
-            })
-
-            const endpointToCheck = apiEndpointChanged
-              ? newApiEndpoint
-              : originalApiEndpoint || window.location.origin
-
+        Modal.confirm({
+          title: t`Restart Server?`,
+          content: (
+            <div>
+              {modalContent.map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
+          ),
+          okText: t`Save & Restart`,
+          cancelText: t`Cancel`,
+          onOk: async () => {
+            setSaving(true)
             try {
-              await waitForServerRestart(endpointToCheck)
-              message.success({
-                content: t`Server restarted successfully!`,
-                key: 'server-restart',
-                duration: 3
+              await settingsApi.update(values)
+
+              const hideMsg = message.loading({
+                content: t`Server is restarting...`,
+                duration: 0,
+                key: 'server-restart'
               })
 
-              if (apiEndpointChanged) {
-                window.location.href = `${newApiEndpoint}/console/signin`
-              } else {
-                window.location.href = '/console/signin'
+              const endpointToCheck = apiEndpointChanged
+                ? newApiEndpoint
+                : originalApiEndpoint || window.location.origin
+
+              try {
+                await waitForServerRestart(endpointToCheck)
+                message.success({
+                  content: t`Server restarted successfully!`,
+                  key: 'server-restart',
+                  duration: 3
+                })
+
+                if (apiEndpointChanged) {
+                  window.location.href = `${newApiEndpoint}/console/signin`
+                } else {
+                  window.location.href = '/console/signin'
+                }
+              } catch {
+                hideMsg()
+                message.error({
+                  content: t`Server restart timeout. Please refresh the page manually.`,
+                  key: 'server-restart',
+                  duration: 0
+                })
+                setSaving(false)
               }
-            } catch {
-              hideMsg()
-              message.error({
-                content: t`Server restart timeout. Please refresh the page manually.`,
-                key: 'server-restart',
-                duration: 0
-              })
+            } catch (err) {
+              message.error(
+                err instanceof Error ? err.message : t`Failed to save settings`
+              )
               setSaving(false)
             }
-          } catch (err) {
-            message.error(
-              err instanceof Error ? err.message : t`Failed to save settings`
-            )
-            setSaving(false)
           }
-        }
+        })
       })
-    })
+      // Field errors are shown under the fields: not an unhandled rejection.
+      .catch(() => undefined)
   }
 
   return (

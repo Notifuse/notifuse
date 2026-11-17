@@ -1270,7 +1270,7 @@ func (a *App) InitServices() error {
 	)
 
 	// Initialize contact timeline service
-	a.contactTimelineService = service.NewContactTimelineService(a.contactTimelineRepo, a.authService)
+	a.contactTimelineService = service.NewContactTimelineService(a.contactTimelineRepo, a.authService, a.workspaceRepo, a.logger)
 
 	// Initialize task scheduler
 	a.taskScheduler = service.NewTaskScheduler(

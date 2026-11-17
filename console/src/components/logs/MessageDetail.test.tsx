@@ -14,6 +14,8 @@ const state = vi.hoisted(() => ({
   listMessages: vi.fn(),
   getTemplate: vi.fn(),
   preview: vi.fn(),
+  // templates.compile, which the subject-only render calls.
+  compile: vi.fn(),
   permissions: {} as Record<string, { read: boolean; write: boolean }>,
   // Workspace settings laid over the defaults below.
   settings: {} as Record<string, string | undefined>
@@ -90,9 +92,11 @@ vi.mock('../../services/api/messages_history', () => ({
   listMessages: state.listMessages
 }))
 vi.mock('../../services/api/template', () => ({
-  templatesApi: { get: state.getTemplate }
+  templatesApi: { get: state.getTemplate, compile: state.compile }
 }))
-vi.mock('../templates/compileTemplatePreview', () => ({
+// The whole-email compile is mocked; the subject-only render is the real one, over templates.compile.
+vi.mock('../templates/compileTemplatePreview', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../templates/compileTemplatePreview')>()),
   compileTemplatePreview: state.preview
 }))
 
@@ -196,6 +200,8 @@ describe('MessageDetail', () => {
     state.getTemplate.mockResolvedValue({ template: template() })
     state.preview.mockReset()
     state.preview.mockResolvedValue(compiled)
+    state.compile.mockReset()
+    state.compile.mockResolvedValue({ subject: compiled.subject, subject_preview: compiled.subject_preview })
   })
 
   it('loads the message by its id, without a period', async () => {
@@ -229,6 +235,28 @@ describe('MessageDetail', () => {
     expect(onNext).toHaveBeenCalledTimes(1)
     fireEvent.keyDown(document, { key: 'k' })
     expect(onPrev).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders only the subject of each message stepped through with J, never the whole template', async () => {
+    state.listMessages.mockImplementation(async (_ws: string, params: { id: string }) => ({
+      messages: [message({ id: params.id, contact_email: `${params.id}@example.com` })],
+      has_more: false
+    }))
+    const { show } = renderDetail({ onNext: vi.fn() })
+    await screen.findByText('To m1@example.com')
+    await waitFor(() => expect(value('Subject')).toHaveTextContent('Hello Ann'))
+    fireEvent.keyDown(document, { key: 'j' })
+    show('m2', message({ id: 'm2', contact_email: 'm2@example.com' }))
+    await screen.findByText('To m2@example.com')
+    await waitFor(() => expect(state.compile).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(value('Subject')).toHaveTextContent('Hello Ann'))
+    // No whole-email compile: every templates.compile call renders the subject alone.
+    expect(state.preview).not.toHaveBeenCalled()
+    for (const [request] of state.compile.mock.calls) {
+      expect(request).toMatchObject({ subject_only: true })
+      expect(request).not.toHaveProperty('visual_editor_tree')
+      expect(request).not.toHaveProperty('mjml_source')
+    }
   })
 
   it('keeps the panel when another message opens, back on its Events tab', async () => {
@@ -528,8 +556,45 @@ describe('MessageDetail', () => {
   it('takes the template subject and the sender of the template otherwise', async () => {
     renderDetail()
     await screen.findByText('To ann@example.com')
-    await waitFor(() => expect(value('Subject')).toHaveTextContent('Hello {{ name }}'))
+    await waitFor(() => expect(value('Subject')).toHaveTextContent('Hello Ann'))
     expect(value('From')).toHaveTextContent('Acme <hello@acme.io>')
+  })
+
+  it('renders a Liquid subject with the message data on open, never showing it raw', async () => {
+    // The drawer showed "{{contact.first_name}}, Your Weekly Update…" until Sent content was opened.
+    let resolve: (value: { subject: string; subject_preview: string }) => void = () => {}
+    state.compile.mockReturnValue(new Promise((done) => (resolve = done)))
+    renderDetail()
+    await screen.findByText('To ann@example.com')
+    await waitFor(() => expect(value('Subject')).toHaveTextContent('Rendering…'))
+    expect(screen.queryByText(/\{\{ name \}\}/)).toBeNull()
+    // Only the subject and preview text are rendered, with the message's data.
+    expect(state.compile).toHaveBeenCalledWith({
+      workspace_id: 'ws1',
+      message_id: 'preview',
+      subject: 'Hello {{ name }}',
+      subject_preview: 'Start here',
+      test_data: { name: 'Ann', tracking_opens_url: '' },
+      subject_only: true
+    })
+    expect(state.preview).not.toHaveBeenCalled()
+    resolve({ subject: compiled.subject, subject_preview: compiled.subject_preview })
+    await waitFor(() => expect(value('Subject')).toHaveTextContent('Hello Ann'))
+    // The subject preview has no Liquid: shown as written all along.
+    expect(value('Subject preview')).toHaveTextContent('Start here')
+  })
+
+  it('compiles nothing on open when the subject has no Liquid', async () => {
+    state.getTemplate.mockResolvedValue({
+      template: template({ email: { subject: 'Welcome aboard', subject_preview: 'Start here', sender_id: 's1' } })
+    })
+    renderDetail()
+    await screen.findByText('To ann@example.com')
+    await waitFor(() => expect(value('Subject')).toHaveTextContent('Welcome aboard'))
+    expect(state.preview).not.toHaveBeenCalled()
+    expect(state.compile).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('tab', { name: 'Sent content' }))
+    await waitFor(() => expect(state.preview).toHaveBeenCalledTimes(1))
   })
 
   it('counts a message without tracking fields as tracked', async () => {
@@ -550,7 +615,6 @@ describe('MessageDetail', () => {
     renderDetail()
     await screen.findByText('To ann@example.com')
     await waitFor(() => expect(state.getTemplate).toHaveBeenCalled())
-    expect(state.preview).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('tab', { name: 'Sent content' }))
     expect(await screen.findByTitle('Sent content')).toHaveAttribute('srcdoc', '<p>Hello Ann</p>')
     // Compiled with the message's own data.
@@ -587,16 +651,13 @@ describe('MessageDetail', () => {
     })
     renderDetail()
     await screen.findByText('To ann@example.com')
-    await waitFor(() => expect(value('Subject')).toHaveTextContent('Bonjour {{ name }}'))
-    expect(value('Language')).toHaveTextContent('French')
+    await waitFor(() => expect(value('Language')).toHaveTextContent('French'))
     // The translation leaves its sender empty: the template's.
     expect(value('From')).toHaveTextContent('Acme <hello@acme.io>')
-    await userEvent.click(screen.getByRole('tab', { name: 'Sent content' }))
+    // Its Liquid subject is rendered on open, from the translation.
     await waitFor(() =>
-      expect(state.preview).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: expect.objectContaining({ subject: 'Bonjour {{ name }}' })
-        })
+      expect(state.compile).toHaveBeenCalledWith(
+        expect.objectContaining({ subject: 'Bonjour {{ name }}', subject_only: true })
       )
     )
   })

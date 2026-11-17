@@ -1,0 +1,2146 @@
+{
+  "generated_by": "console/src/components/templates/gallery/demo/demoFixtures.ts — do not edit, run `npm run demo-fixtures` in console/",
+  "template_id": "winback-offer",
+  "model": "winback",
+  "category": "marketing",
+  "default_language": "en",
+  "brand": {
+    "name": "Apple",
+    "logo_url": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+    "logo_width": 40
+  },
+  "test_data": {
+    "contact": {
+      "first_name": "Olivia",
+      "last_name": "Moreau",
+      "email": "olivia.moreau@example.com"
+    },
+    "list": {
+      "id": "newsletter",
+      "name": "Newsletter"
+    }
+  },
+  "languages": {
+    "en": {
+      "subject": "We miss you, {{contact.first_name}} — here's $50 off 👋",
+      "subject_preview": "{{contact.first_name}}, a lot has changed since your last visit",
+      "visual_editor_tree": {
+        "id": "winback-mjml-30",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "winback-head-28",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "winback-attributes-26",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "winback-text-23",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "winback-button-24",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "winback-section-25",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "winback-preview-27",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "{{contact.first_name}}, a lot has changed since your last visit"
+              }
+            ]
+          },
+          {
+            "id": "winback-body-29",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "winback-section-3",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "24px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-2",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-image-1",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Apple logo",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "{{ workspace.website_url }}",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": "",
+                          "width": "40px"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-7",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-6",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-4",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>We miss you, {{ contact.first_name }}</p>"
+                      },
+                      {
+                        "id": "winback-text-5",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>It has been a while. A lot has changed since your last visit: new products, faster delivery and free returns.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-13",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-12",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "#e8eefc",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "2px dashed #1d4ed8",
+                      "borderRight": "2px dashed #1d4ed8",
+                      "borderBottom": "2px dashed #1d4ed8",
+                      "borderLeft": "2px dashed #1d4ed8",
+                      "borderRadius": "8px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Welcome back</p>"
+                      },
+                      {
+                        "id": "winback-text-9",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "20px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>$50 off your next order over $499</p>"
+                      },
+                      {
+                        "id": "winback-text-10",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "'Courier New', Courier, monospace",
+                          "fontSize": "22px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "4px"
+                        },
+                        "content": "<p>COMEBACK20</p>"
+                      },
+                      {
+                        "id": "winback-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Valid for 14 days.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-16",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-15",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-button-14",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "See what is new"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-19",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-18",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-17",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Thanks,<br><b>The Apple team</b></p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-20",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>You are receiving this email because you subscribed to {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Manage preferences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Unsubscribe</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fr": {
+      "subject": "Vous nous manquez, {{contact.first_name}} — 50 € pour votre retour 👋",
+      "subject_preview": "{{contact.first_name}}, beaucoup de choses ont changé depuis votre dernière visite",
+      "visual_editor_tree": {
+        "id": "winback-mjml-30",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "winback-head-28",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "winback-attributes-26",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "winback-text-23",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "winback-button-24",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "winback-section-25",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "winback-preview-27",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "{{contact.first_name}}, beaucoup de choses ont changé depuis votre dernière visite"
+              }
+            ]
+          },
+          {
+            "id": "winback-body-29",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "winback-section-3",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "24px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-2",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-image-1",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Logo Apple",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "{{ workspace.website_url }}",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": "",
+                          "width": "40px"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-7",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-6",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-4",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Vous nous manquez, {{ contact.first_name }}</p>"
+                      },
+                      {
+                        "id": "winback-text-5",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Cela fait un moment. Beaucoup de choses ont changé depuis votre dernière visite : nouveaux produits, livraison plus rapide et retours gratuits.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-13",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-12",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "#e8eefc",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "2px dashed #1d4ed8",
+                      "borderRight": "2px dashed #1d4ed8",
+                      "borderBottom": "2px dashed #1d4ed8",
+                      "borderLeft": "2px dashed #1d4ed8",
+                      "borderRadius": "8px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Bon retour parmi nous</p>"
+                      },
+                      {
+                        "id": "winback-text-9",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "20px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>50 € de remise dès 499 € d’achat</p>"
+                      },
+                      {
+                        "id": "winback-text-10",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "'Courier New', Courier, monospace",
+                          "fontSize": "22px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "4px"
+                        },
+                        "content": "<p>COMEBACK20</p>"
+                      },
+                      {
+                        "id": "winback-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Valable 14 jours.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-16",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-15",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-button-14",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Voir les nouveautés"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-19",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-18",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-17",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Merci,<br><b>L’équipe Apple</b></p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-20",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Vous recevez cet e-mail car votre adresse est inscrite à {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gérer mes préférences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Se désabonner</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "es": {
+      "subject": "Te echamos de menos, {{contact.first_name}}: 50 € para tu vuelta 👋",
+      "subject_preview": "{{contact.first_name}}, han cambiado muchas cosas desde tu última visita",
+      "visual_editor_tree": {
+        "id": "winback-mjml-30",
+        "type": "mjml",
+        "attributes": {},
+        "children": [
+          {
+            "id": "winback-head-28",
+            "type": "mj-head",
+            "attributes": {},
+            "children": [
+              {
+                "id": "winback-attributes-26",
+                "type": "mj-attributes",
+                "attributes": {},
+                "children": [
+                  {
+                    "id": "winback-text-23",
+                    "type": "mj-text",
+                    "attributes": {
+                      "align": "left",
+                      "color": "#1f2430",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                      "lineHeight": "1.6",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "paddingTop": "8px",
+                      "paddingRight": "32px",
+                      "paddingBottom": "8px",
+                      "paddingLeft": "32px",
+                      "backgroundColor": "transparent",
+                      "cssClass": ""
+                    },
+                    "content": "<p></p>"
+                  },
+                  {
+                    "id": "winback-button-24",
+                    "type": "mj-button",
+                    "attributes": {
+                      "align": "center",
+                      "backgroundColor": "#1d4ed8",
+                      "borderRadius": "4px",
+                      "border": "none",
+                      "color": "#ffffff",
+                      "containerBackgroundColor": "transparent",
+                      "fontFamily": "Arial, Helvetica, sans-serif",
+                      "fontSize": "15px",
+                      "fontStyle": "normal",
+                      "fontWeight": "bold",
+                      "href": "",
+                      "innerPadding": "13px 26px",
+                      "lineHeight": "120%",
+                      "paddingTop": "12px",
+                      "paddingRight": "25px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "25px",
+                      "target": "_blank",
+                      "textDecoration": "none",
+                      "textTransform": "none",
+                      "verticalAlign": "middle",
+                      "rel": "noopener noreferrer",
+                      "cssClass": ""
+                    },
+                    "content": ""
+                  },
+                  {
+                    "id": "winback-section-25",
+                    "type": "mj-section",
+                    "attributes": {
+                      "backgroundColor": "#ffffff",
+                      "backgroundUrl": "",
+                      "backgroundRepeat": "no-repeat",
+                      "backgroundSize": "auto",
+                      "backgroundPosition": "top center",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "direction": "ltr",
+                      "fullWidth": "",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "textAlign": "center",
+                      "cssClass": ""
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "winback-preview-27",
+                "type": "mj-preview",
+                "attributes": {
+                  "content": ""
+                },
+                "content": "{{contact.first_name}}, han cambiado muchas cosas desde tu última visita"
+              }
+            ]
+          },
+          {
+            "id": "winback-body-29",
+            "type": "mj-body",
+            "attributes": {
+              "width": "600px",
+              "backgroundColor": "#f4f5f8"
+            },
+            "children": [
+              {
+                "id": "winback-section-3",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "24px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "8px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-2",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-image-1",
+                        "type": "mj-image",
+                        "attributes": {
+                          "align": "center",
+                          "alt": "Logotipo de Apple",
+                          "border": "none",
+                          "borderRadius": "0px",
+                          "containerBackgroundColor": "transparent",
+                          "cssClass": "",
+                          "fluidOnMobile": "false",
+                          "height": "auto",
+                          "href": "{{ workspace.website_url }}",
+                          "paddingTop": "0px",
+                          "paddingRight": "0px",
+                          "paddingBottom": "0px",
+                          "paddingLeft": "0px",
+                          "rel": "noopener noreferrer",
+                          "sizes": "",
+                          "src": "https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png",
+                          "srcset": "",
+                          "target": "_blank",
+                          "title": "",
+                          "usemap": "",
+                          "width": "40px"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-7",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-6",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-4",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "27px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.25",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Te echamos de menos, {{ contact.first_name }}</p>"
+                      },
+                      {
+                        "id": "winback-text-5",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Ha pasado un tiempo. Muchas cosas han cambiado desde tu última visita: nuevos productos, entregas más rápidas y devoluciones gratuitas.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-13",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "32px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "32px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-12",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "#e8eefc",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "2px dashed #1d4ed8",
+                      "borderRight": "2px dashed #1d4ed8",
+                      "borderBottom": "2px dashed #1d4ed8",
+                      "borderLeft": "2px dashed #1d4ed8",
+                      "borderRadius": "8px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "12px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "12px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-8",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1d4ed8",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "11px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "uppercase",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "1px"
+                        },
+                        "content": "<p>Qué alegría verte de nuevo</p>"
+                      },
+                      {
+                        "id": "winback-text-9",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "20px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.3",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>50 € de descuento en pedidos de más de 499 €</p>"
+                      },
+                      {
+                        "id": "winback-text-10",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "'Courier New', Courier, monospace",
+                          "fontSize": "22px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": "",
+                          "letterSpacing": "4px"
+                        },
+                        "content": "<p>COMEBACK20</p>"
+                      },
+                      {
+                        "id": "winback-text-11",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "13px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Válido durante 14 días.</p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-16",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-15",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-button-14",
+                        "type": "mj-button",
+                        "attributes": {
+                          "align": "center",
+                          "backgroundColor": "#1d4ed8",
+                          "borderRadius": "4px",
+                          "border": "none",
+                          "color": "#ffffff",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "bold",
+                          "href": "{{ workspace.website_url }}",
+                          "innerPadding": "10px 25px",
+                          "lineHeight": "120%",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "target": "_blank",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "verticalAlign": "middle",
+                          "rel": "noopener noreferrer",
+                          "cssClass": ""
+                        },
+                        "content": "Ver las novedades"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-19",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "#ffffff",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "0px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "20px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-18",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-17",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "left",
+                          "color": "#1f2430",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "15px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Gracias,<br><b>El equipo de Apple</b></p>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "winback-section-22",
+                "type": "mj-section",
+                "attributes": {
+                  "backgroundColor": "transparent",
+                  "backgroundUrl": "",
+                  "backgroundRepeat": "no-repeat",
+                  "backgroundSize": "auto",
+                  "backgroundPosition": "top center",
+                  "border": "none",
+                  "borderTop": "none",
+                  "borderRight": "none",
+                  "borderBottom": "none",
+                  "borderLeft": "none",
+                  "borderRadius": "0px",
+                  "direction": "ltr",
+                  "fullWidth": "",
+                  "paddingTop": "20px",
+                  "paddingRight": "0px",
+                  "paddingBottom": "28px",
+                  "paddingLeft": "0px",
+                  "textAlign": "center",
+                  "cssClass": ""
+                },
+                "children": [
+                  {
+                    "id": "winback-column-21",
+                    "type": "mj-column",
+                    "attributes": {
+                      "width": "100%",
+                      "verticalAlign": "top",
+                      "direction": "ltr",
+                      "backgroundColor": "transparent",
+                      "innerBackgroundColor": "transparent",
+                      "border": "none",
+                      "borderTop": "none",
+                      "borderRight": "none",
+                      "borderBottom": "none",
+                      "borderLeft": "none",
+                      "borderRadius": "0px",
+                      "innerBorder": "none",
+                      "innerBorderTop": "none",
+                      "innerBorderRight": "none",
+                      "innerBorderBottom": "none",
+                      "innerBorderLeft": "none",
+                      "innerBorderRadius": "0px",
+                      "paddingTop": "0px",
+                      "paddingRight": "0px",
+                      "paddingBottom": "0px",
+                      "paddingLeft": "0px",
+                      "cssClass": ""
+                    },
+                    "children": [
+                      {
+                        "id": "winback-text-20",
+                        "type": "mj-text",
+                        "attributes": {
+                          "align": "center",
+                          "color": "#5b6170",
+                          "containerBackgroundColor": "transparent",
+                          "fontFamily": "Arial, Helvetica, sans-serif",
+                          "fontSize": "12px",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                          "lineHeight": "1.6",
+                          "textDecoration": "none",
+                          "textTransform": "none",
+                          "paddingTop": "10px",
+                          "paddingRight": "25px",
+                          "paddingBottom": "10px",
+                          "paddingLeft": "25px",
+                          "backgroundColor": "transparent",
+                          "cssClass": ""
+                        },
+                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Recibes este correo porque te suscribiste a {{ list.name | default: 'Newsletter' }}.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gestionar preferencias</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Cancelar suscripción</a></p>"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

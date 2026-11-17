@@ -36,7 +36,7 @@ const MjColumnSettingsPanel: React.FC<MjColumnSettingsPanelProps> = ({
   }
 
   return (
-    <PanelLayout title={t`Column Attributes`}>
+    <PanelLayout title={t`Column attributes`}>
       <div className="space-y-4">
         {/* Layout Settings */}
         <InputLayout label={t`Width`} help={t`Column width (e.g., '50%', '300px', 'auto')`}>

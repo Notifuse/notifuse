@@ -89,3 +89,23 @@ export async function compileTemplatePreview(input: TemplatePreviewInput): Promi
   if ('error' in result) throw new TemplatePreviewError(result.error)
   return templatesApi.compile(result.request)
 }
+
+/**
+ * Renders only the subject and preview text of an email with the given data, through the
+ * server's Liquid engine (the one a send uses), without compiling the body: for a screen that
+ * shows the subject alone.
+ */
+export async function renderSubjectPreview({
+  workspace,
+  email,
+  testData
+}: TemplatePreviewInput): Promise<CompileTemplateResponse> {
+  return templatesApi.compile({
+    workspace_id: workspace.id,
+    message_id: 'preview',
+    subject: email?.subject,
+    subject_preview: email?.subject_preview,
+    test_data: testData || {},
+    subject_only: true
+  })
+}

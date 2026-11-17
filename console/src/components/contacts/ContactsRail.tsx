@@ -1,5 +1,5 @@
 import { Skeleton } from 'antd'
-import { Plus, Square, Users } from 'lucide-react'
+import { List as ListIcon, Plus, Users } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import type { Segment } from '../../services/api/segment'
 import type { UserPermissions } from '../../services/api/types'
@@ -100,7 +100,7 @@ export function ContactsRail({
             lists.map((list) => (
               <RailItem
                 key={list.id}
-                icon={<Square size={13} aria-hidden="true" />}
+                icon={<ListIcon size={13} aria-hidden="true" />}
                 label={list.name}
                 // An empty cell while the count loads, so the row does not shift.
                 count={list.active_count}

@@ -116,7 +116,7 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
-        label={<span>{t`Test Variants`} <span className="text-red-500">*</span></span>}
+        label={<span>{t`Test variants`} <span className="text-red-500">*</span></span>}
         required={false}
       >
         <div className="space-y-2">
@@ -161,7 +161,7 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
             icon={<PlusOutlined />}
             className="!mt-2"
           >
-            {t`Add Variant`}
+            {t`Add variant`}
           </Button>
         )}
       </Form.Item>
