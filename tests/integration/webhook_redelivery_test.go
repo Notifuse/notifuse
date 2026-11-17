@@ -100,7 +100,8 @@ func TestWebhookRedelivery(t *testing.T) {
 	}
 	at := time.Now().UTC().Truncate(time.Second)
 
-	// Each provider's soft bounce of the email, carrying the provider's own ID of the event
+	// Each provider's soft bounce of the email; eventID sets what identifies the event for
+	// the provider: its event ID, or its message ID for Mailjet (SMTP has none of its own)
 	providers := []struct {
 		name       string
 		url        string
@@ -219,8 +220,8 @@ func sesSoftBounceWithSNSID(messageID, email, snsMessageID string, at time.Time)
 	return string(body)
 }
 
-// numericID is a positive integer that the text sets, for the numeric IDs of Postmark and
-// Mailjet, kept below 2^53 as their APIs use them
+// numericID is a positive integer that the text sets, written as a JSON number, for the
+// numeric IDs of Postmark and Mailjet
 func numericID(text string) string {
 	h := fnv.New64a()
 	_, _ = h.Write([]byte(text))

@@ -1438,14 +1438,14 @@ func (s *InboundWebhookEventService) processSingleMailjetEvent(integrationID str
 		messageID = notifuseMessageID
 	}
 
-	// Mailjet gives an event no ID of its own: its message ID, which is one recipient's, and
-	// its time make one
-	eventKey := []string{payload.Event, "", ""}
+	// Mailjet gives an event no ID of its own: its message ID, which is one recipient's, its
+	// recipient and its time make one
+	eventKey := []string{payload.Event, domain.NormalizeEmail(recipientEmail), "", ""}
 	if payload.MessageID != 0 {
-		eventKey[1] = strconv.FormatInt(payload.MessageID, 10)
+		eventKey[2] = strconv.FormatInt(payload.MessageID, 10)
 	}
 	if payload.Time != 0 {
-		eventKey[2] = strconv.FormatInt(payload.Time, 10)
+		eventKey[3] = strconv.FormatInt(payload.Time, 10)
 	}
 
 	// Create the webhook event

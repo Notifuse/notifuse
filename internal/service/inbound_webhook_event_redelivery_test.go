@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -84,6 +85,32 @@ func TestProviderEventIDsAcrossRedeliveries(t *testing.T) {
 		assert.Equal(t, first[1].ID, again[1].ID)
 	})
 
+	t.Run("a Mailjet event of another recipient gets its own ID", func(t *testing.T) {
+		first, err := service.processMailjetWebhook(integrationID, sprintf(mailjetBounce, 1672574400, 7))
+		require.NoError(t, err)
+		other, err := service.processMailjetWebhook(integrationID, []byte(strings.Replace(sprintfString(mailjetBounce, 1672574400, 7), "test@example.com", "copy@example.com", 1)))
+		require.NoError(t, err)
+		assert.NotEqual(t, first[0].ID, other[0].ID)
+	})
+
+	t.Run("an address is the same whatever its case", func(t *testing.T) {
+		lower, err := service.processSESWebhook(integrationID, sesNotification("sns-1", sesSoftBounce))
+		require.NoError(t, err)
+		upper, err := service.processSESWebhook(integrationID, sesNotification("sns-1", strings.Replace(sesSoftBounce, "test@example.com", "Test@Example.com", 1)))
+		require.NoError(t, err)
+		assert.Equal(t, lower[0].ID, upper[0].ID)
+	})
+
+	t.Run("a Postmark delivery without its date or its recipient gets a new ID each time", func(t *testing.T) {
+		for _, body := range [][]byte{sprintf(postmarkDelivery, "test@example.com", ""), sprintf(postmarkDelivery, "", "2023-01-01T12:00:00Z")} {
+			first, err := service.processPostmarkWebhook(integrationID, body)
+			require.NoError(t, err)
+			again, err := service.processPostmarkWebhook(integrationID, body)
+			require.NoError(t, err)
+			assert.NotEqual(t, first[0].ID, again[0].ID)
+		}
+	})
+
 	t.Run("a Postmark delivery to another recipient of the email gets its own ID", func(t *testing.T) {
 		first, err := service.processPostmarkWebhook(integrationID, sprintf(postmarkDelivery, "test@example.com", "2023-01-01T12:00:00Z"))
 		require.NoError(t, err)
@@ -93,7 +120,11 @@ func TestProviderEventIDsAcrossRedeliveries(t *testing.T) {
 	})
 
 	t.Run("a Postmark bounce and spam complaint with a numeric ID, as Postmark sends them, are read", func(t *testing.T) {
-		bounces, err := service.processPostmarkWebhook(integrationID, sprintf(postmarkBounce, "4323372036854775807"))
+		big, err := service.processPostmarkWebhook(integrationID, sprintf(postmarkBounce, "4323372036854775807"))
+		require.NoError(t, err)
+		require.Len(t, big, 1)
+		// A bounce and a complaint with the same ID stay apart
+		bounces, err := service.processPostmarkWebhook(integrationID, sprintf(postmarkBounce, "692560174"))
 		require.NoError(t, err)
 		require.Len(t, bounces, 1)
 		assert.Equal(t, domain.EmailEventBounce, bounces[0].Type)
