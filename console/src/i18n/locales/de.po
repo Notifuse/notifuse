@@ -25,7 +25,7 @@ msgstr " - Fehlgeschlagen"
 msgid " · {seconds}s"
 msgstr " · {seconds}s"
 
-#: src/components/email_builder/EmailBuilder.tsx:913
+#: src/components/email_builder/EmailBuilder.tsx:919
 msgid " (copy)"
 msgstr " (Kopie)"
 
@@ -1663,7 +1663,7 @@ msgstr "Die eigene Einwilligung eines Kontakts hat immer Vorrang."
 msgid "A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent."
 msgstr "Die eigene Einwilligung eines Kontakts hat immer Vorrang. Diese Auswahl gilt für Kontakte, deren Einwilligung zum Tracking von Öffnungen und Klicks nicht erfasst ist. Einige Behörden, etwa der italienische Garante und die französische CNIL, verlangen für dieses Tracking eine Einwilligung."
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:719
+#: src/components/email_builder/ui/AddBlockPopover.tsx:725
 msgid "A copy is inserted. Later changes to the saved block do not change it."
 msgstr "Eine Kopie wird eingefügt. Spätere Änderungen am gespeicherten Block ändern sie nicht."
 
@@ -2023,12 +2023,12 @@ msgstr "Hinzufügen"
 
 #. placeholder {0}: selectedBlock.label
 #. placeholder {0}: selectedSavedBlock.name
-#: src/components/email_builder/ui/AddBlockPopover.tsx:477
-#: src/components/email_builder/ui/AddBlockPopover.tsx:497
+#: src/components/email_builder/ui/AddBlockPopover.tsx:483
+#: src/components/email_builder/ui/AddBlockPopover.tsx:503
 msgid "Add {0}"
 msgstr "{0} hinzufügen"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:724
+#: src/components/email_builder/ui/AddBlockPopover.tsx:730
 msgid "Add {name}"
 msgstr "{name} hinzufügen"
 
@@ -2046,7 +2046,7 @@ msgstr "{providerName}-Integration hinzufügen"
 msgid "Add a caption..."
 msgstr "Bildunterschrift hinzufügen..."
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:138
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:139
 msgid "Add a condition"
 msgstr "Bedingung hinzufügen"
 
@@ -2476,7 +2476,7 @@ msgstr "Ausrichtung"
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:101
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:338
-#: src/components/email_builder/panels/LibraryPanel.tsx:259
+#: src/components/email_builder/panels/LibraryPanel.tsx:267
 #: src/components/logs/AuditLogTab.tsx:192
 #: src/components/logs/AuditLogTab.tsx:214
 #: src/components/logs/AuditLogTab.tsx:252
@@ -2790,7 +2790,7 @@ msgstr "Anmerkungen"
 msgid "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
 msgstr "Anmerkungen haben keine eigene Berechtigung: Sie unterstehen bewusst diesem Schalter, sodass eine Berechtigung für Web-Analyse zugleich das Recht ist, in die gemeinsame Zeitleiste zu schreiben, die alle lesen. Schreiben reicht auch in die Arbeitsbereich-Konfiguration hinein — /api/workspaces.setWebAnalyticsSettings untersteht dem Schreibrecht für Web-Analyse statt dem für Arbeitsbereich, einschließlich der Einstellung zur Identifikation über E-Mail-Links, die Empfänger mit ihrem Surfverhalten verknüpft. Der öffentliche /track-Collector unterliegt überhaupt keiner Kontrolle: Er nimmt Daten ohne jede Authentifizierung entgegen, und keine Berechtigung hier ändert daran etwas."
 
-#: src/components/email_builder/EmailBuilder.tsx:871
+#: src/components/email_builder/EmailBuilder.tsx:877
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Eine andere Änderung der Bibliothek läuft gerade. Versuchen Sie es gleich noch einmal."
 
@@ -2921,8 +2921,8 @@ msgstr "API-Bezeichner darf höchstens {TRANSACTIONAL_ID_MAX_LENGTH} Zeichen lan
 
 #: src/components/integrations/FirecrawlIntegration.tsx:100
 #: src/components/integrations/FirecrawlIntegration.tsx:100
-#: src/components/integrations/LLMIntegration.tsx:195
-#: src/components/integrations/LLMIntegration.tsx:195
+#: src/components/integrations/LLMIntegration.tsx:201
+#: src/components/integrations/LLMIntegration.tsx:201
 #: src/components/logs/auditDisplay.ts:22
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:713
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:750
@@ -3463,7 +3463,7 @@ msgstr "Schreibrecht für Automatisierungen ist ein indirektes Leserecht auf Kon
 msgid "Available after saving"
 msgstr "Nach dem Speichern verfügbar"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:439
+#: src/components/email_builder/ui/AddBlockPopover.tsx:445
 msgid "Available Blocks"
 msgstr "Verfügbare Blöcke"
 
@@ -3613,7 +3613,7 @@ msgid "Background Type"
 msgstr "Hintergrundtyp"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:113
-#: src/components/integrations/LLMIntegration.tsx:236
+#: src/components/integrations/LLMIntegration.tsx:242
 #: src/components/settings/Integrations.tsx:453
 #: src/components/settings/Integrations.tsx:500
 msgid "Base URL"
@@ -3647,7 +3647,7 @@ msgstr "Basic (Benutzername und Passwort)"
 #~ msgid "Basic Authentication (Username/Password)"
 #~ msgstr "Basis-Authentifizierung (Benutzername/Passwort)"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:303
+#: src/components/email_builder/panels/LibraryPanel.tsx:311
 msgid "Basic blocks"
 msgstr "Basisblöcke"
 
@@ -3750,7 +3750,7 @@ msgstr "Leer lassen, um den aktuellen Wert zu behalten."
 msgid "Block \"{name}\" deleted"
 msgstr "Block „{name}“ gelöscht"
 
-#: src/components/email_builder/EmailBuilder.tsx:979
+#: src/components/email_builder/EmailBuilder.tsx:985
 msgid "Block \"{name}\" inserted"
 msgstr "Block „{name}“ eingefügt"
 
@@ -3823,7 +3823,7 @@ msgstr "Block aktualisiert"
 msgid "Blocklist"
 msgstr "Blockliste"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:414
+#: src/components/email_builder/ui/AddBlockPopover.tsx:420
 msgid "Blocks"
 msgstr "Blöcke"
 
@@ -4446,8 +4446,8 @@ msgstr "Nach dem Erstellen der Vorlage nicht mehr änderbar"
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
-#: src/components/email_builder/EmailBuilder.tsx:927
-#: src/components/email_builder/EmailBuilder.tsx:943
+#: src/components/email_builder/EmailBuilder.tsx:933
+#: src/components/email_builder/EmailBuilder.tsx:949
 #: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/panels/TextVersionPanel.tsx:140
 #: src/components/email_builder/panels/TextVersionPanel.tsx:184
@@ -5278,7 +5278,7 @@ msgstr "{label} einklappen"
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:42
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:244
 #: src/components/email_builder/ui/BackgroundInput.tsx:257
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:125
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:127
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:162
 msgid "Color"
 msgstr "Farbe"
@@ -5830,7 +5830,7 @@ msgid "contains"
 msgstr "enthält"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:123
-#: src/components/email_builder/panels/LibraryPanel.tsx:261
+#: src/components/email_builder/panels/LibraryPanel.tsx:269
 #: src/components/settings/SettingsSidebar.tsx:28
 #: src/components/templates/TemplateDrawerBar.tsx:83
 #: src/components/templates/TemplateSettingsAside.tsx:140
@@ -6990,7 +6990,7 @@ msgid "default"
 msgstr "Standard"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:232
-#: src/components/integrations/LLMIntegration.tsx:253
+#: src/components/integrations/LLMIntegration.tsx:259
 #: src/components/settings/Integrations.tsx:339
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:900
 #: src/components/templates/TemplateTranslationsTab.tsx:453
@@ -7137,7 +7137,7 @@ msgstr "Verzögerung"
 #: src/components/contacts/ContactsTable.tsx:103
 #: src/components/contacts/ContactsViewHeader.tsx:150
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:56
-#: src/components/email_builder/EmailBuilder.tsx:941
+#: src/components/email_builder/EmailBuilder.tsx:947
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
 #: src/components/file_manager/FileExplorer.tsx:334
 #: src/components/file_manager/FileExplorer.tsx:403
@@ -7180,7 +7180,7 @@ msgstr "Löschen"
 msgid "DELETE"
 msgstr "DELETE"
 
-#: src/components/email_builder/EmailBuilder.tsx:939
+#: src/components/email_builder/EmailBuilder.tsx:945
 msgid "Delete \"{name}\" from the library?"
 msgstr "„{name}“ aus der Bibliothek löschen?"
 
@@ -7650,6 +7650,10 @@ msgstr "Verweigert"
 #: src/components/logs/AuditLogTab.tsx:532
 msgid "Deployment"
 msgstr "Deployment"
+
+#: src/components/settings/integrations/DeprecatedPill.tsx:19
+#~ msgid "Deprecated"
+#~ msgstr "Veraltet"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:320
 msgid "Describe this image..."
@@ -8130,7 +8134,7 @@ msgstr "z.B. welcome_series"
 msgid "e.g., Company Name, Industry, etc."
 msgstr "z.B. Firmenname, Branche usw."
 
-#: src/components/integrations/LLMIntegration.tsx:184
+#: src/components/integrations/LLMIntegration.tsx:190
 msgid "e.g., My Anthropic Integration"
 msgstr "z.B. Meine Anthropic-Integration"
 
@@ -8138,11 +8142,11 @@ msgstr "z.B. Meine Anthropic-Integration"
 msgid "e.g., My Firecrawl Integration"
 msgstr "z.B. Meine Firecrawl-Integration"
 
-#: src/components/integrations/LLMIntegration.tsx:183
+#: src/components/integrations/LLMIntegration.tsx:189
 msgid "e.g., My Google Gemini Integration"
 msgstr "z.B. Meine Google Gemini-Integration"
 
-#: src/components/integrations/LLMIntegration.tsx:181
+#: src/components/integrations/LLMIntegration.tsx:187
 msgid "e.g., My OpenAI Integration"
 msgstr "z.B. Meine OpenAI-Integration"
 
@@ -8205,7 +8209,7 @@ msgstr "Jede Variante behält den Absender ihrer Vorlage, es sei denn, Sie wähl
 #: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:303
 #: src/components/contacts/ContactsTable.tsx:91
-#: src/components/email_builder/EmailBuilder.tsx:1057
+#: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:261
@@ -9594,7 +9598,7 @@ msgstr "Externe ID"
 msgid "External ID copied"
 msgstr "Externe ID kopiert"
 
-#: src/components/integrations/LLMIntegration.tsx:259
+#: src/components/integrations/LLMIntegration.tsx:265
 #: src/components/settings/Integrations.tsx:345
 msgid "Extra high"
 msgstr "Sehr hoch"
@@ -10625,7 +10629,7 @@ msgstr "Schrift-Styling"
 msgid "for {0}"
 msgstr "seit {0}"
 
-#: src/components/integrations/LLMIntegration.tsx:237
+#: src/components/integrations/LLMIntegration.tsx:243
 msgid "For an OpenAI-compatible service (Ollama, vLLM, LiteLLM, Azure…). Empty: the OpenAI API"
 msgstr "Für einen OpenAI-kompatiblen Dienst (Ollama, vLLM, LiteLLM, Azure…). Leer: die OpenAI-API"
 
@@ -10709,7 +10713,7 @@ msgstr "von {referrer}"
 msgid "From an email"
 msgstr "Aus einer E-Mail"
 
-#: src/components/integrations/LLMIntegration.tsx:158
+#: src/components/integrations/LLMIntegration.tsx:164
 msgid "From console.anthropic.com"
 msgstr "Von console.anthropic.com"
 
@@ -10726,7 +10730,7 @@ msgstr "Von-E-Mail ist erforderlich"
 msgid "From firecrawl.dev, or your own instance"
 msgstr "Von firecrawl.dev oder Ihrer eigenen Instanz"
 
-#: src/components/integrations/LLMIntegration.tsx:160
+#: src/components/integrations/LLMIntegration.tsx:166
 msgid "From Google AI Studio"
 msgstr "Von Google AI Studio"
 
@@ -10739,12 +10743,12 @@ msgstr "Von Name"
 msgid "From Name (override)"
 msgstr "Von Name (überschreiben)"
 
-#: src/components/integrations/LLMIntegration.tsx:159
+#: src/components/integrations/LLMIntegration.tsx:165
 msgid "From platform.openai.com, or your endpoint's own key"
 msgstr "Von platform.openai.com oder der eigene Schlüssel Ihres Endpunkts"
 
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:83
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:128
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:130
 msgid "From the text block"
 msgstr "Wie im Textblock"
 
@@ -10817,12 +10821,16 @@ msgstr "Gemini-Modelle"
 #~ msgstr ""
 
 #: src/components/integrations/LLMIntegration.tsx:276
-msgid "gemini-3.1-pro-preview or a custom model ID"
-msgstr "gemini-3.1-pro-preview oder eine benutzerdefinierte Modell-ID"
+#~ msgid "gemini-3.1-pro-preview or a custom model ID"
+#~ msgstr "gemini-3.1-pro-preview oder eine benutzerdefinierte Modell-ID"
 
 #: src/components/integrations/LLMIntegration.tsx:226
 #~ msgid "gemini-3.5-flash, gemini-3.1-pro-preview, or a custom model ID"
 #~ msgstr ""
+
+#: src/components/integrations/LLMIntegration.tsx:282
+msgid "gemini-4-argon or a custom model ID"
+msgstr "gemini-4-argon oder eine benutzerdefinierte Modell-ID"
 
 #: src/components/settings/GeneralSettings.tsx:156
 #: src/components/settings/SettingsSidebar.tsx:61
@@ -10996,17 +11004,17 @@ msgid "Goals reached"
 msgstr "Erreichte Ziele"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:10
-#: src/components/email_builder/ui/AddBlockPopover.tsx:154
+#: src/components/email_builder/ui/AddBlockPopover.tsx:157
 msgid "Goes inside a column"
 msgstr "Gehört in eine Spalte"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:11
-#: src/components/email_builder/ui/AddBlockPopover.tsx:156
+#: src/components/email_builder/ui/AddBlockPopover.tsx:159
 msgid "Goes inside a section"
 msgstr "Gehört in einen Abschnitt"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:12
-#: src/components/email_builder/ui/AddBlockPopover.tsx:158
+#: src/components/email_builder/ui/AddBlockPopover.tsx:161
 msgid "Goes inside a social block"
 msgstr "Gehört in einen Social-Block"
 
@@ -11019,16 +11027,24 @@ msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
 
 #: src/components/integrations/LLMIntegration.tsx:231
-msgid "gpt-4.1, gpt-5.4, o4-mini, or custom model name"
-msgstr "gpt-4.1, gpt-5.4, o4-mini oder benutzerdefinierter Modellname"
+#~ msgid "gpt-4.1, gpt-5.4, o4-mini, or custom model name"
+#~ msgstr "gpt-4.1, gpt-5.4, o4-mini oder benutzerdefinierter Modellname"
 
 #: src/components/integrations/LLMIntegration.tsx:227
-msgid "gpt-4.1, gpt-5.4, o4-mini, or the name your endpoint uses"
-msgstr "gpt-4.1, gpt-5.4, o4-mini oder der Name, den Ihr Endpunkt verwendet"
+#~ msgid "gpt-4.1, gpt-5.4, o4-mini, or the name your endpoint uses"
+#~ msgstr "gpt-4.1, gpt-5.4, o4-mini oder der Name, den Ihr Endpunkt verwendet"
 
 #: src/components/integrations/LLMIntegration.tsx:166
 #~ msgid "gpt-4o, gpt-4.1, o4-mini, or custom model name"
 #~ msgstr ""
+
+#: src/components/integrations/LLMIntegration.tsx:237
+msgid "gpt-6.1-sol, gpt-6-astra, gpt-6.1-terra, or custom model name"
+msgstr "gpt-6.1-sol, gpt-6-astra, gpt-6.1-terra oder benutzerdefinierter Modellname"
+
+#: src/components/integrations/LLMIntegration.tsx:233
+msgid "gpt-6.1-sol, gpt-6-astra, gpt-6.1-terra, or the name your endpoint uses"
+msgstr "gpt-6.1-sol, gpt-6-astra, gpt-6.1-terra oder der Name, den Ihr Endpunkt verwendet"
 
 #: src/components/settings/PermissionScopePresets.tsx:44
 msgid "Grant all"
@@ -11123,7 +11139,7 @@ msgstr "Header-Wert"
 msgid "Header value is required"
 msgstr "Header-Wert ist erforderlich"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:171
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:173
 msgid "Heading {level}"
 msgstr "Überschrift {level}"
 
@@ -11189,7 +11205,7 @@ msgstr "Ausblenden"
 msgid "Hide done steps"
 msgstr "Erledigte Schritte ausblenden"
 
-#: src/components/integrations/LLMIntegration.tsx:258
+#: src/components/integrations/LLMIntegration.tsx:264
 #: src/components/settings/Integrations.tsx:344
 msgid "High"
 msgstr "Hoch"
@@ -11248,7 +11264,7 @@ msgstr "Stündlich"
 msgid "Hours"
 msgstr "Stunden"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:515
+#: src/components/email_builder/ui/AddBlockPopover.tsx:521
 msgid "Hover over a block to see details"
 msgstr "Über einen Block fahren, um Details zu sehen"
 
@@ -11260,7 +11276,7 @@ msgstr "So funktioniert es:"
 msgid "How long to wait before proceeding to the next step"
 msgstr "Wie lange bis zum nächsten Schritt gewartet werden soll"
 
-#: src/components/integrations/LLMIntegration.tsx:247
+#: src/components/integrations/LLMIntegration.tsx:253
 msgid "How much a reasoning model thinks. Default for other models; some providers ignore it"
 msgstr "Wie viel ein Reasoning-Modell nachdenkt. Standard für andere Modelle; manche Anbieter ignorieren es"
 
@@ -11785,7 +11801,7 @@ msgstr "Bild einfügen"
 msgid "Insert Link"
 msgstr "Link einfügen"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:54
+#: src/components/email_builder/panels/LibraryPanel.tsx:57
 msgid "Insert, or drag into the email"
 msgstr "Einfügen oder in die E-Mail ziehen"
 
@@ -11810,7 +11826,7 @@ msgid "Install the tracking snippet"
 msgstr "Das Tracking-Snippet installieren"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:87
-#: src/components/integrations/LLMIntegration.tsx:170
+#: src/components/integrations/LLMIntegration.tsx:176
 #: src/components/integrations/SupabaseIntegration.tsx:172
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:868
 msgid "Integration"
@@ -12096,7 +12112,7 @@ msgstr "Sie wird bei jedem Versand aus dem HTML erzeugt, es gibt also nichts zu 
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "Sie wird nicht zum geplanten Zeitpunkt gesendet. Sie können sie bearbeiten und erneut planen; das Datum bleibt erhalten."
 
-#: src/components/email_builder/EmailBuilder.tsx:940
+#: src/components/email_builder/EmailBuilder.tsx:946
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "Er wird für alle Vorlagen des Workspace entfernt. Vorlagen, die diesen Block bereits enthalten, ändern sich nicht."
 
@@ -12453,7 +12469,7 @@ msgid "Leave blank to keep the current value"
 msgstr "Leer lassen, um den aktuellen Wert beizubehalten"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:106
-#: src/components/integrations/LLMIntegration.tsx:201
+#: src/components/integrations/LLMIntegration.tsx:207
 msgid "Leave blank to keep the existing API key"
 msgstr "Leer lassen, um den bestehenden API-Schlüssel beizubehalten"
 
@@ -12545,7 +12561,7 @@ msgstr "Buchstabenabstand"
 #~ msgid "Letter Spacing"
 #~ msgstr "Buchstabenabstand"
 
-#: src/components/email_builder/EmailBuilder.tsx:1131
+#: src/components/email_builder/EmailBuilder.tsx:1136
 msgid "Library"
 msgstr "Bibliothek"
 
@@ -12599,8 +12615,8 @@ msgstr "Zeile {0} ({1}): {2}"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:350
 #: src/components/email_builder/ui/FontStyleInput.tsx:253
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:113
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:116
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:115
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:118
 #: src/components/email_builder/ui/LineHeightInput.tsx:76
 msgid "Line height"
 msgstr "Zeilenhöhe"
@@ -13077,7 +13093,7 @@ msgstr "Den vollständigen Datensatz eines Kontakts anhand Ihrer eigenen externe
 msgid "Loop"
 msgstr "Schleife"
 
-#: src/components/integrations/LLMIntegration.tsx:256
+#: src/components/integrations/LLMIntegration.tsx:262
 #: src/components/settings/Integrations.tsx:342
 msgid "Low"
 msgstr "Niedrig"
@@ -13398,7 +13414,7 @@ msgstr "Medianer TimeScore"
 msgid "Median Value"
 msgstr "Medianwert"
 
-#: src/components/integrations/LLMIntegration.tsx:257
+#: src/components/integrations/LLMIntegration.tsx:263
 #: src/components/settings/Integrations.tsx:343
 msgid "Medium"
 msgstr "Mittel"
@@ -13528,7 +13544,7 @@ msgstr "Mitte"
 msgid "min"
 msgstr "min"
 
-#: src/components/integrations/LLMIntegration.tsx:255
+#: src/components/integrations/LLMIntegration.tsx:261
 #: src/components/settings/Integrations.tsx:341
 msgid "Minimal"
 msgstr "Minimal"
@@ -13657,10 +13673,10 @@ msgstr "Mobiler Breakpoint"
 msgid "Mobile view (400px)"
 msgstr "Mobile Ansicht (400px)"
 
-#: src/components/integrations/LLMIntegration.tsx:192
-#: src/components/integrations/LLMIntegration.tsx:213
-#: src/components/integrations/LLMIntegration.tsx:226
-#: src/components/integrations/LLMIntegration.tsx:269
+#: src/components/integrations/LLMIntegration.tsx:198
+#: src/components/integrations/LLMIntegration.tsx:219
+#: src/components/integrations/LLMIntegration.tsx:232
+#: src/components/integrations/LLMIntegration.tsx:275
 #: src/components/settings/Integrations.tsx:451
 msgid "Model"
 msgstr "Modell"
@@ -13786,7 +13802,7 @@ msgstr "N/V"
 #: src/components/email_builder/ui/SaveBlockModal.tsx:135
 #: src/components/file_manager/FileTable.tsx:78
 #: src/components/integrations/FirecrawlIntegration.tsx:89
-#: src/components/integrations/LLMIntegration.tsx:173
+#: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:216
 #: src/components/segment/button_upsert.tsx:452
@@ -14599,13 +14615,13 @@ msgstr "Keine Regel trifft auf diesen Besuch zu"
 msgid "No sample values available"
 msgstr "Keine Beispielwerte verfügbar"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:282
+#: src/components/email_builder/panels/LibraryPanel.tsx:290
 msgid "No saved block matches."
 msgstr "Kein gespeicherter Block gefunden."
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:291
-#: src/components/email_builder/ui/AddBlockPopover.tsx:310
-#: src/components/email_builder/ui/AddBlockPopover.tsx:382
+#: src/components/email_builder/panels/LibraryPanel.tsx:299
+#: src/components/email_builder/ui/AddBlockPopover.tsx:316
+#: src/components/email_builder/ui/AddBlockPopover.tsx:388
 msgid "No saved blocks yet"
 msgstr "Noch keine gespeicherten Blöcke"
 
@@ -14823,7 +14839,7 @@ msgstr "Nicht aktiv"
 #: src/components/email_builder/ui/ColorPickerWithPresets.tsx:31
 #: src/components/email_builder/ui/FontStyleInput.tsx:129
 #: src/components/email_builder/ui/FontStyleInput.tsx:136
-#: src/components/integrations/LLMIntegration.tsx:254
+#: src/components/integrations/LLMIntegration.tsx:260
 #: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
@@ -14859,13 +14875,13 @@ msgid "Not all visitors come with the same intent. This rate should be interpret
 msgstr "Nicht alle Besucher kommen mit derselben Absicht. Diese Rate sollte mit Vorsicht interpretiert werden, da sie den gesamten Traffic unabhängig vom Zweck einschließt."
 
 #: src/components/email_builder/panels/dropRefusalText.ts:13
-#: src/components/email_builder/ui/AddBlockPopover.tsx:160
+#: src/components/email_builder/ui/AddBlockPopover.tsx:163
 #: src/components/email_builder/utils/library.ts:74
 msgid "Not allowed here"
 msgstr "Hier nicht erlaubt"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:9
-#: src/components/email_builder/ui/AddBlockPopover.tsx:179
+#: src/components/email_builder/ui/AddBlockPopover.tsx:182
 #: src/components/email_builder/utils/library.ts:65
 msgid "Not allowed inside a conditional block"
 msgstr "In einem bedingten Block nicht erlaubt"
@@ -14878,7 +14894,7 @@ msgstr "Nicht angewendet"
 msgid "Not assigned"
 msgstr "Nicht zugewiesen"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:336
+#: src/components/email_builder/ui/AddBlockPopover.tsx:342
 msgid "Not available here"
 msgstr "Hier nicht verfügbar"
 
@@ -15399,7 +15415,7 @@ msgid "Only when the same content lives at another address"
 msgstr "Nur wenn derselbe Inhalt unter einer anderen Adresse liegt"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:54
-#: src/components/integrations/LLMIntegration.tsx:99
+#: src/components/integrations/LLMIntegration.tsx:105
 #: src/components/integrations/SupabaseIntegration.tsx:84
 msgid "Only workspace owners can modify integrations"
 msgstr "Nur Arbeitsbereich-Inhaber können Integrationen ändern"
@@ -16248,11 +16264,11 @@ msgctxt "newsletter A/B"
 msgid "Pick as winner"
 msgstr "Als Gewinner wählen"
 
-#: src/components/integrations/LLMIntegration.tsx:214
+#: src/components/integrations/LLMIntegration.tsx:220
 msgid "Pick one, or type any Anthropic model ID"
 msgstr "Wählen Sie eines aus oder geben Sie eine beliebige Anthropic-Modell-ID ein"
 
-#: src/components/integrations/LLMIntegration.tsx:270
+#: src/components/integrations/LLMIntegration.tsx:276
 msgid "Pick the suggestion, or type any Gemini model ID"
 msgstr "Wählen Sie den Vorschlag oder geben Sie eine beliebige Gemini-Modell-ID ein"
 
@@ -16349,7 +16365,7 @@ msgstr "Bitte geben Sie eine Listen-ID ein"
 msgid "Please enter a list name"
 msgstr "Bitte geben Sie einen Listennamen ein"
 
-#: src/components/integrations/LLMIntegration.tsx:230
+#: src/components/integrations/LLMIntegration.tsx:236
 msgid "Please enter a model name"
 msgstr "Bitte geben Sie einen Modellnamen ein"
 
@@ -16447,7 +16463,7 @@ msgid "Please enter an email address"
 msgstr "Bitte geben Sie eine E-Mail-Adresse ein"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:90
-#: src/components/integrations/LLMIntegration.tsx:177
+#: src/components/integrations/LLMIntegration.tsx:183
 #: src/components/integrations/SupabaseIntegration.tsx:179
 msgid "Please enter integration name"
 msgstr "Bitte geben Sie den Integrationsnamen ein"
@@ -16461,7 +16477,7 @@ msgid "Please enter workspace name"
 msgstr "Bitte geben Sie den Arbeitsbereichsnamen ein"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:107
-#: src/components/integrations/LLMIntegration.tsx:202
+#: src/components/integrations/LLMIntegration.tsx:208
 msgid "Please enter your API key"
 msgstr "Bitte geben Sie Ihren API-Schlüssel ein"
 
@@ -16573,8 +16589,8 @@ msgstr "Bitte wählen Sie mindestens einen Ereignistyp"
 msgid "Please select operator"
 msgstr "Bitte wählen Sie einen Operator"
 
-#: src/components/integrations/LLMIntegration.tsx:217
-#: src/components/integrations/LLMIntegration.tsx:273
+#: src/components/integrations/LLMIntegration.tsx:223
+#: src/components/integrations/LLMIntegration.tsx:279
 msgid "Please select or enter a model"
 msgstr "Bitte wählen Sie ein Modell aus oder geben Sie eines ein"
 
@@ -16714,7 +16730,7 @@ msgstr "Drücken Sie Enter zum Bestätigen, Escape zum Abbrechen"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:71
 #: src/components/common/ImageURLInput.tsx:58
-#: src/components/email_builder/EmailBuilder.tsx:1061
+#: src/components/email_builder/EmailBuilder.tsx:1067
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/button_upsert.tsx:670
 #: src/components/seo/SeoPreview.tsx:36
@@ -17326,7 +17342,7 @@ msgstr "Bereit zum Senden"
 #~ msgid "Reason:"
 #~ msgstr "Grund:"
 
-#: src/components/integrations/LLMIntegration.tsx:246
+#: src/components/integrations/LLMIntegration.tsx:252
 #: src/components/settings/Integrations.tsx:458
 msgid "Reasoning effort"
 msgstr "Reasoning-Aufwand"
@@ -17470,7 +17486,7 @@ msgstr "Redirect-URI"
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:787
 #: src/components/blog/PostDrawer.tsx:790
-#: src/components/email_builder/EmailBuilder.tsx:1045
+#: src/components/email_builder/EmailBuilder.tsx:1051
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
 msgstr "Wiederholen"
@@ -17864,14 +17880,14 @@ msgstr "X wiederholen"
 msgid "Repeat Y"
 msgstr "Y wiederholen"
 
-#: src/components/email_builder/EmailBuilder.tsx:926
+#: src/components/email_builder/EmailBuilder.tsx:932
 #: src/components/email_builder/panels/TextVersionPanel.tsx:183
 #: src/components/email_builder/ui/SaveBlockModal.tsx:97
 #: src/components/settings/LogoInput.tsx:107
 msgid "Replace"
 msgstr "Ersetzen"
 
-#: src/components/email_builder/EmailBuilder.tsx:924
+#: src/components/email_builder/EmailBuilder.tsx:930
 msgid "Replace \"{name}\" with the selected block?"
 msgstr "„{name}“ durch den ausgewählten Block ersetzen?"
 
@@ -18041,7 +18057,7 @@ msgstr "Eine Integrations-Synchronisierungsaufgabe zurücksetzen, damit sie von 
 msgid "Reset formatting"
 msgstr "Formatierung zurücksetzen"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:175
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:177
 msgid "Reset H{level}"
 msgstr "H{level} zurücksetzen"
 
@@ -18421,7 +18437,7 @@ msgstr "Aktion"
 msgid "Same Window"
 msgstr "Gleiches Fenster"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:160
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:162
 msgid "Sample"
 msgstr "Vorschau"
 
@@ -18493,7 +18509,7 @@ msgstr "Speichern"
 msgid "Save & Restart"
 msgstr "Speichern & neu starten"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:312
+#: src/components/email_builder/ui/AddBlockPopover.tsx:318
 msgid "Save a block from its toolbar to reuse it in every template."
 msgstr "Speichern Sie einen Block über seine Werkzeugleiste, um ihn in allen Vorlagen wiederzuverwenden."
 
@@ -18565,7 +18581,7 @@ msgstr "Speichern Sie zuerst die Automatisierung"
 msgid "Save the broadcast first"
 msgstr "Speichern Sie zuerst die Kampagne"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:297
+#: src/components/email_builder/panels/LibraryPanel.tsx:305
 msgid "Save the selected block"
 msgstr "Ausgewählten Block speichern"
 
@@ -18607,7 +18623,7 @@ msgid "Saved"
 msgstr "Gespeichert"
 
 #. placeholder {0}: savedBlockOptions.length
-#: src/components/email_builder/ui/AddBlockPopover.tsx:428
+#: src/components/email_builder/ui/AddBlockPopover.tsx:434
 msgid "Saved ({0})"
 msgstr "Gespeichert ({0})"
 
@@ -18629,15 +18645,15 @@ msgid "Saved as v{version}"
 msgstr "Als v{version} gespeichert"
 
 #. placeholder {0}: savedBlock.name
-#: src/components/email_builder/ui/AddBlockPopover.tsx:266
+#: src/components/email_builder/ui/AddBlockPopover.tsx:272
 msgid "Saved block: {0}"
 msgstr "Gespeicherter Block: {0}"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:252
+#: src/components/email_builder/panels/LibraryPanel.tsx:260
 msgid "Saved blocks"
 msgstr "Gespeicherte Blöcke"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:422
+#: src/components/email_builder/ui/AddBlockPopover.tsx:428
 msgid "Saved blocks ({savedCount})"
 msgstr "Gespeicherte Blöcke ({savedCount})"
 
@@ -18799,7 +18815,7 @@ msgstr "Die Suche berücksichtigt Namen und Betreffzeilen."
 msgid "Search results"
 msgstr "Suchergebnisse"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:246
+#: src/components/email_builder/panels/LibraryPanel.tsx:253
 msgid "Search saved blocks"
 msgstr "Gespeicherte Blöcke durchsuchen"
 
@@ -18905,7 +18921,7 @@ msgstr "Abschnitts-Attribute"
 #~ msgid "Section Attributes"
 #~ msgstr "Abschnitts-Attribute"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:260
+#: src/components/email_builder/panels/LibraryPanel.tsx:268
 msgid "Sections"
 msgstr "Abschnitte"
 
@@ -19020,15 +19036,15 @@ msgstr "Auswählen"
 #~ msgid "Select {0}"
 #~ msgstr "{0} auswählen"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:177
+#: src/components/email_builder/panels/LibraryPanel.tsx:183
 msgid "Select a block in the email"
 msgstr "Wählen Sie einen Block in der E-Mail aus"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:293
+#: src/components/email_builder/panels/LibraryPanel.tsx:301
 msgid "Select a block in the email, then use the save button in its toolbar. Saved blocks can be used in every template of the workspace."
 msgstr "Wählen Sie einen Block in der E-Mail aus und verwenden Sie dann die Speichern-Schaltfläche in seiner Werkzeugleiste. Gespeicherte Blöcke können in allen Vorlagen des Workspace verwendet werden."
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:178
+#: src/components/email_builder/panels/LibraryPanel.tsx:184
 msgid "Select a block of the same type"
 msgstr "Wählen Sie einen Block desselben Typs aus"
 
@@ -19081,7 +19097,7 @@ msgstr "Liste auswählen, um E-Mail-Knoten zu aktivieren"
 msgid "Select a list..."
 msgstr "Liste auswählen..."
 
-#: src/components/integrations/LLMIntegration.tsx:218
+#: src/components/integrations/LLMIntegration.tsx:224
 msgid "Select a model"
 msgstr "Modell auswählen"
 
@@ -20234,7 +20250,7 @@ msgstr "Oben auf der Kategorieseite angezeigt"
 msgid "Shown in post lists, and as the description when no meta description is set"
 msgstr "In Beitragslisten angezeigt und als Beschreibung, wenn keine Meta-Beschreibung gesetzt ist"
 
-#: src/components/integrations/LLMIntegration.tsx:174
+#: src/components/integrations/LLMIntegration.tsx:180
 msgid "Shown in the assistant's model picker"
 msgstr "Wird in der Modellauswahl des Assistenten angezeigt"
 
@@ -20365,7 +20381,7 @@ msgstr "Besuche"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:175
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:90
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:93
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:94
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/file_manager/FileTable.tsx:101
 msgid "Size"
@@ -20636,13 +20652,13 @@ msgstr "Quellen"
 msgid "Space"
 msgstr "Leerzeichen"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:134
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:137
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:135
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:139
 msgid "Space above"
 msgstr "Abstand oben"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:146
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:149
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:148
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:152
 msgid "Space below"
 msgstr "Abstand unten"
 
@@ -20895,7 +20911,7 @@ msgstr "Region speichern"
 msgid "Strikethrough"
 msgstr "Durchgestrichen"
 
-#: src/components/email_builder/EmailBuilder.tsx:1127
+#: src/components/email_builder/EmailBuilder.tsx:1133
 msgid "Structure"
 msgstr "Struktur"
 
@@ -21459,7 +21475,7 @@ msgstr "Absender der Vorlage ({0})"
 msgid "Templates"
 msgstr "Vorlagen"
 
-#: src/components/email_builder/EmailBuilder.tsx:925
+#: src/components/email_builder/EmailBuilder.tsx:931
 msgid "Templates that already contain this block do not change."
 msgstr "Vorlagen, die diesen Block bereits enthalten, ändern sich nicht."
 
@@ -21720,7 +21736,7 @@ msgstr "Textstil"
 msgid "Text Transform"
 msgstr "Texttransformation"
 
-#: src/components/email_builder/EmailBuilder.tsx:1064
+#: src/components/email_builder/EmailBuilder.tsx:1070
 #: src/components/email_builder/MjmlCodeEditor.tsx:693
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
 #: src/components/logs/MessageDetail.tsx:807
@@ -22524,6 +22540,14 @@ msgstr "Dieses Bild konnte nicht geladen werden"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:834
 msgid "This integration is not created yet."
 msgstr "Diese Integration ist noch nicht erstellt."
+
+#: src/components/settings/integrations/DeprecatedPill.tsx:14
+#~ msgid "This integration will be removed soon: Mailjet does not allow sending marketing emails through its API."
+#~ msgstr "Diese Integration wird bald entfernt: Mailjet erlaubt keinen Versand von Marketing-E-Mails über seine API."
+
+#: src/components/settings/integrations/DeprecatedPill.tsx:13
+#~ msgid "This integration will be removed soon: SparkPost no longer accepts new customers."
+#~ msgstr "Diese Integration wird bald entfernt: SparkPost nimmt keine neuen Kunden mehr an."
 
 #: src/pages/AcceptInvitationPage.tsx:123
 msgid "This invitation link is invalid or has expired."
@@ -23485,8 +23509,8 @@ msgstr "Die Qualität der Verweise verstehen"
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:778
 #: src/components/blog/PostDrawer.tsx:781
-#: src/components/email_builder/EmailBuilder.tsx:986
-#: src/components/email_builder/EmailBuilder.tsx:1038
+#: src/components/email_builder/EmailBuilder.tsx:992
+#: src/components/email_builder/EmailBuilder.tsx:1044
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
 msgid "Undo"
 msgstr "Rückgängig"
@@ -23999,7 +24023,7 @@ msgstr "Automatische Version verwenden?"
 msgid "Use the font name in text elements:"
 msgstr "Den Schriftnamen in Textelementen verwenden:"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:384
+#: src/components/email_builder/ui/AddBlockPopover.tsx:390
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "Verwenden Sie die Speichern-Schaltfläche in der Block-Werkzeugleiste, um Blöcke zu speichern"
 
@@ -24799,8 +24823,8 @@ msgstr "Wöchentlich"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:278
 #: src/components/email_builder/ui/FontStyleInput.tsx:198
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:103
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:106
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:104
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:108
 msgid "Weight"
 msgstr "Gewicht"
 

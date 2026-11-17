@@ -25,7 +25,7 @@ msgstr " - 失敗"
 msgid " · {seconds}s"
 msgstr " · {seconds}秒"
 
-#: src/components/email_builder/EmailBuilder.tsx:913
+#: src/components/email_builder/EmailBuilder.tsx:919
 msgid " (copy)"
 msgstr "（コピー）"
 
@@ -1663,7 +1663,7 @@ msgstr "連絡先自身の同意が常に優先されます。"
 msgid "A contact's own consent always wins. This choice applies to contacts whose consent to open and click tracking is not recorded. Some regulators, such as the Italian Garante and the French CNIL, expect tracking to require consent."
 msgstr "連絡先自身の同意が常に優先されます。この設定は、開封とクリックのトラッキングへの同意が記録されていない連絡先に適用されます。イタリアの Garante やフランスの CNIL など、このトラッキングに同意を求める規制当局もあります。"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:719
+#: src/components/email_builder/ui/AddBlockPopover.tsx:725
 msgid "A copy is inserted. Later changes to the saved block do not change it."
 msgstr "コピーが挿入されます。保存済みブロックを後で変更しても、このコピーは変わりません。"
 
@@ -2023,12 +2023,12 @@ msgstr "追加"
 
 #. placeholder {0}: selectedBlock.label
 #. placeholder {0}: selectedSavedBlock.name
-#: src/components/email_builder/ui/AddBlockPopover.tsx:477
-#: src/components/email_builder/ui/AddBlockPopover.tsx:497
+#: src/components/email_builder/ui/AddBlockPopover.tsx:483
+#: src/components/email_builder/ui/AddBlockPopover.tsx:503
 msgid "Add {0}"
 msgstr "{0}を追加"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:724
+#: src/components/email_builder/ui/AddBlockPopover.tsx:730
 msgid "Add {name}"
 msgstr "{name}を追加"
 
@@ -2046,7 +2046,7 @@ msgstr "{providerName}連携を追加"
 msgid "Add a caption..."
 msgstr "キャプションを追加..."
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:138
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:139
 msgid "Add a condition"
 msgstr "条件を追加"
 
@@ -2476,7 +2476,7 @@ msgstr "配置"
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:101
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:338
-#: src/components/email_builder/panels/LibraryPanel.tsx:259
+#: src/components/email_builder/panels/LibraryPanel.tsx:267
 #: src/components/logs/AuditLogTab.tsx:192
 #: src/components/logs/AuditLogTab.tsx:214
 #: src/components/logs/AuditLogTab.tsx:252
@@ -2790,7 +2790,7 @@ msgstr "注釈"
 msgid "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
 msgstr "注釈には独自の権限がありません。意図的にこのスイッチに従うため、Webアナリティクスの付与は、全員が読む共有タイムラインに書き込む権利でもあります。書き込みはワークスペース設定にも及びます — /api/workspaces.setWebAnalyticsSettings はワークスペースの書き込みではなくWebアナリティクスの書き込みに従い、受信者を閲覧行動に紐づけるメールリンク識別の設定も含まれます。公開されている /track コレクターは何によっても制御されていません。認証なしでデータを受け付け、ここでのどの付与もそれを変えることはありません。"
 
-#: src/components/email_builder/EmailBuilder.tsx:871
+#: src/components/email_builder/EmailBuilder.tsx:877
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "ライブラリの別の変更を実行中です。しばらくしてからもう一度お試しください。"
 
@@ -2921,8 +2921,8 @@ msgstr "API識別子は{TRANSACTIONAL_ID_MAX_LENGTH}文字以内にしてくだ�
 
 #: src/components/integrations/FirecrawlIntegration.tsx:100
 #: src/components/integrations/FirecrawlIntegration.tsx:100
-#: src/components/integrations/LLMIntegration.tsx:195
-#: src/components/integrations/LLMIntegration.tsx:195
+#: src/components/integrations/LLMIntegration.tsx:201
+#: src/components/integrations/LLMIntegration.tsx:201
 #: src/components/logs/auditDisplay.ts:22
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:713
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:750
@@ -3463,7 +3463,7 @@ msgstr "オートメーションの書き込みは、コンタクトの読み取
 msgid "Available after saving"
 msgstr "保存後に利用できます"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:439
+#: src/components/email_builder/ui/AddBlockPopover.tsx:445
 msgid "Available Blocks"
 msgstr "利用可能なブロック"
 
@@ -3613,7 +3613,7 @@ msgid "Background Type"
 msgstr "背景タイプ"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:113
-#: src/components/integrations/LLMIntegration.tsx:236
+#: src/components/integrations/LLMIntegration.tsx:242
 #: src/components/settings/Integrations.tsx:453
 #: src/components/settings/Integrations.tsx:500
 msgid "Base URL"
@@ -3647,7 +3647,7 @@ msgstr "Basic（ユーザー名とパスワード）"
 #~ msgid "Basic Authentication (Username/Password)"
 #~ msgstr "Basic認証 (ユーザー名/パスワード)"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:303
+#: src/components/email_builder/panels/LibraryPanel.tsx:311
 msgid "Basic blocks"
 msgstr "基本ブロック"
 
@@ -3750,7 +3750,7 @@ msgstr "空欄のままにすると現在の値が保持されます。"
 msgid "Block \"{name}\" deleted"
 msgstr "ブロック「{name}」を削除しました"
 
-#: src/components/email_builder/EmailBuilder.tsx:979
+#: src/components/email_builder/EmailBuilder.tsx:985
 msgid "Block \"{name}\" inserted"
 msgstr "ブロック「{name}」を挿入しました"
 
@@ -3823,7 +3823,7 @@ msgstr "ブロックを更新しました"
 msgid "Blocklist"
 msgstr "ブロックリスト"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:414
+#: src/components/email_builder/ui/AddBlockPopover.tsx:420
 msgid "Blocks"
 msgstr "ブロック"
 
@@ -4446,8 +4446,8 @@ msgstr "テンプレート作成後は変更できません"
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:155
-#: src/components/email_builder/EmailBuilder.tsx:927
-#: src/components/email_builder/EmailBuilder.tsx:943
+#: src/components/email_builder/EmailBuilder.tsx:933
+#: src/components/email_builder/EmailBuilder.tsx:949
 #: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/panels/TextVersionPanel.tsx:140
 #: src/components/email_builder/panels/TextVersionPanel.tsx:184
@@ -5278,7 +5278,7 @@ msgstr "{label} を折りたたむ"
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:42
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:244
 #: src/components/email_builder/ui/BackgroundInput.tsx:257
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:125
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:127
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:162
 msgid "Color"
 msgstr "色"
@@ -5830,7 +5830,7 @@ msgid "contains"
 msgstr "含む"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:123
-#: src/components/email_builder/panels/LibraryPanel.tsx:261
+#: src/components/email_builder/panels/LibraryPanel.tsx:269
 #: src/components/settings/SettingsSidebar.tsx:28
 #: src/components/templates/TemplateDrawerBar.tsx:83
 #: src/components/templates/TemplateSettingsAside.tsx:140
@@ -6990,7 +6990,7 @@ msgid "default"
 msgstr "デフォルト"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:232
-#: src/components/integrations/LLMIntegration.tsx:253
+#: src/components/integrations/LLMIntegration.tsx:259
 #: src/components/settings/Integrations.tsx:339
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:900
 #: src/components/templates/TemplateTranslationsTab.tsx:453
@@ -7137,7 +7137,7 @@ msgstr "遅延"
 #: src/components/contacts/ContactsTable.tsx:103
 #: src/components/contacts/ContactsViewHeader.tsx:150
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:56
-#: src/components/email_builder/EmailBuilder.tsx:941
+#: src/components/email_builder/EmailBuilder.tsx:947
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
 #: src/components/file_manager/FileExplorer.tsx:334
 #: src/components/file_manager/FileExplorer.tsx:403
@@ -7180,7 +7180,7 @@ msgstr "削除"
 msgid "DELETE"
 msgstr "削除"
 
-#: src/components/email_builder/EmailBuilder.tsx:939
+#: src/components/email_builder/EmailBuilder.tsx:945
 msgid "Delete \"{name}\" from the library?"
 msgstr "「{name}」をライブラリから削除しますか？"
 
@@ -7650,6 +7650,10 @@ msgstr "拒否"
 #: src/components/logs/AuditLogTab.tsx:532
 msgid "Deployment"
 msgstr "デプロイメント"
+
+#: src/components/settings/integrations/DeprecatedPill.tsx:19
+#~ msgid "Deprecated"
+#~ msgstr "非推奨"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:320
 msgid "Describe this image..."
@@ -8130,7 +8134,7 @@ msgstr "例: welcome_series"
 msgid "e.g., Company Name, Industry, etc."
 msgstr "例: 会社名、業種など"
 
-#: src/components/integrations/LLMIntegration.tsx:184
+#: src/components/integrations/LLMIntegration.tsx:190
 msgid "e.g., My Anthropic Integration"
 msgstr "例: My Anthropic連携"
 
@@ -8138,11 +8142,11 @@ msgstr "例: My Anthropic連携"
 msgid "e.g., My Firecrawl Integration"
 msgstr "例: My Firecrawl連携"
 
-#: src/components/integrations/LLMIntegration.tsx:183
+#: src/components/integrations/LLMIntegration.tsx:189
 msgid "e.g., My Google Gemini Integration"
 msgstr "例: My Google Gemini Integration"
 
-#: src/components/integrations/LLMIntegration.tsx:181
+#: src/components/integrations/LLMIntegration.tsx:187
 msgid "e.g., My OpenAI Integration"
 msgstr "例: My OpenAI Integration"
 
@@ -8205,7 +8209,7 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:303
 #: src/components/contacts/ContactsTable.tsx:91
-#: src/components/email_builder/EmailBuilder.tsx:1057
+#: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
 #: src/components/settings/Integrations.tsx:261
@@ -9594,7 +9598,7 @@ msgstr "外部ID"
 msgid "External ID copied"
 msgstr "外部 ID をコピーしました"
 
-#: src/components/integrations/LLMIntegration.tsx:259
+#: src/components/integrations/LLMIntegration.tsx:265
 #: src/components/settings/Integrations.tsx:345
 msgid "Extra high"
 msgstr "非常に高い"
@@ -10625,7 +10629,7 @@ msgstr "フォントスタイリング"
 msgid "for {0}"
 msgstr "{0}前から"
 
-#: src/components/integrations/LLMIntegration.tsx:237
+#: src/components/integrations/LLMIntegration.tsx:243
 msgid "For an OpenAI-compatible service (Ollama, vLLM, LiteLLM, Azure…). Empty: the OpenAI API"
 msgstr "OpenAI 互換のサービス (Ollama、vLLM、LiteLLM、Azure…) 用。空欄の場合は OpenAI API"
 
@@ -10709,7 +10713,7 @@ msgstr "{referrer} から"
 msgid "From an email"
 msgstr "メールから"
 
-#: src/components/integrations/LLMIntegration.tsx:158
+#: src/components/integrations/LLMIntegration.tsx:164
 msgid "From console.anthropic.com"
 msgstr "console.anthropic.com で取得"
 
@@ -10726,7 +10730,7 @@ msgstr "差出人メールは必須です"
 msgid "From firecrawl.dev, or your own instance"
 msgstr "firecrawl.dev または独自のインスタンスで取得"
 
-#: src/components/integrations/LLMIntegration.tsx:160
+#: src/components/integrations/LLMIntegration.tsx:166
 msgid "From Google AI Studio"
 msgstr "Google AI Studio で取得"
 
@@ -10739,12 +10743,12 @@ msgstr "差出人名"
 msgid "From Name (override)"
 msgstr "差出人名（上書き）"
 
-#: src/components/integrations/LLMIntegration.tsx:159
+#: src/components/integrations/LLMIntegration.tsx:165
 msgid "From platform.openai.com, or your endpoint's own key"
 msgstr "platform.openai.com で取得、またはエンドポイント独自のキー"
 
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:83
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:128
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:130
 msgid "From the text block"
 msgstr "テキストブロックと同じ"
 
@@ -10817,12 +10821,16 @@ msgstr "Gemini モデル"
 #~ msgstr ""
 
 #: src/components/integrations/LLMIntegration.tsx:276
-msgid "gemini-3.1-pro-preview or a custom model ID"
-msgstr "gemini-3.1-pro-preview またはカスタムのモデルID"
+#~ msgid "gemini-3.1-pro-preview or a custom model ID"
+#~ msgstr "gemini-3.1-pro-preview またはカスタムのモデルID"
 
 #: src/components/integrations/LLMIntegration.tsx:226
 #~ msgid "gemini-3.5-flash, gemini-3.1-pro-preview, or a custom model ID"
 #~ msgstr ""
+
+#: src/components/integrations/LLMIntegration.tsx:282
+msgid "gemini-4-argon or a custom model ID"
+msgstr "gemini-4-argon またはカスタムのモデルID"
 
 #: src/components/settings/GeneralSettings.tsx:156
 #: src/components/settings/SettingsSidebar.tsx:61
@@ -10996,17 +11004,17 @@ msgid "Goals reached"
 msgstr "達成したゴール"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:10
-#: src/components/email_builder/ui/AddBlockPopover.tsx:154
+#: src/components/email_builder/ui/AddBlockPopover.tsx:157
 msgid "Goes inside a column"
 msgstr "カラムの中にのみ配置できます"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:11
-#: src/components/email_builder/ui/AddBlockPopover.tsx:156
+#: src/components/email_builder/ui/AddBlockPopover.tsx:159
 msgid "Goes inside a section"
 msgstr "セクションの中にのみ配置できます"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:12
-#: src/components/email_builder/ui/AddBlockPopover.tsx:158
+#: src/components/email_builder/ui/AddBlockPopover.tsx:161
 msgid "Goes inside a social block"
 msgstr "ソーシャルブロックの中にのみ配置できます"
 
@@ -11019,16 +11027,24 @@ msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
 
 #: src/components/integrations/LLMIntegration.tsx:231
-msgid "gpt-4.1, gpt-5.4, o4-mini, or custom model name"
-msgstr "gpt-4.1、gpt-5.4、o4-mini、またはカスタムのモデル名"
+#~ msgid "gpt-4.1, gpt-5.4, o4-mini, or custom model name"
+#~ msgstr "gpt-4.1、gpt-5.4、o4-mini、またはカスタムのモデル名"
 
 #: src/components/integrations/LLMIntegration.tsx:227
-msgid "gpt-4.1, gpt-5.4, o4-mini, or the name your endpoint uses"
-msgstr "gpt-4.1、gpt-5.4、o4-mini、またはエンドポイントで使われる名前"
+#~ msgid "gpt-4.1, gpt-5.4, o4-mini, or the name your endpoint uses"
+#~ msgstr "gpt-4.1、gpt-5.4、o4-mini、またはエンドポイントで使われる名前"
 
 #: src/components/integrations/LLMIntegration.tsx:166
 #~ msgid "gpt-4o, gpt-4.1, o4-mini, or custom model name"
 #~ msgstr ""
+
+#: src/components/integrations/LLMIntegration.tsx:237
+msgid "gpt-6.1-sol, gpt-6-astra, gpt-6.1-terra, or custom model name"
+msgstr "gpt-6.1-sol、gpt-6-astra、gpt-6.1-terra、またはカスタムのモデル名"
+
+#: src/components/integrations/LLMIntegration.tsx:233
+msgid "gpt-6.1-sol, gpt-6-astra, gpt-6.1-terra, or the name your endpoint uses"
+msgstr "gpt-6.1-sol、gpt-6-astra、gpt-6.1-terra、またはエンドポイントで使われる名前"
 
 #: src/components/settings/PermissionScopePresets.tsx:44
 msgid "Grant all"
@@ -11123,7 +11139,7 @@ msgstr "ヘッダーの値"
 msgid "Header value is required"
 msgstr "ヘッダーの値は必須です"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:171
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:173
 msgid "Heading {level}"
 msgstr "見出し {level}"
 
@@ -11189,7 +11205,7 @@ msgstr "非表示"
 msgid "Hide done steps"
 msgstr "完了したステップを非表示"
 
-#: src/components/integrations/LLMIntegration.tsx:258
+#: src/components/integrations/LLMIntegration.tsx:264
 #: src/components/settings/Integrations.tsx:344
 msgid "High"
 msgstr "高"
@@ -11248,7 +11264,7 @@ msgstr "時間別"
 msgid "Hours"
 msgstr "時間"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:515
+#: src/components/email_builder/ui/AddBlockPopover.tsx:521
 msgid "Hover over a block to see details"
 msgstr "ブロックにカーソルを合わせると詳細が表示されます"
 
@@ -11260,7 +11276,7 @@ msgstr "仕組み:"
 msgid "How long to wait before proceeding to the next step"
 msgstr "次のステップに進むまでの待機時間"
 
-#: src/components/integrations/LLMIntegration.tsx:247
+#: src/components/integrations/LLMIntegration.tsx:253
 msgid "How much a reasoning model thinks. Default for other models; some providers ignore it"
 msgstr "推論モデルがどれだけ考えるか。その他のモデルではデフォルト。無視するプロバイダーもあります"
 
@@ -11785,7 +11801,7 @@ msgstr "画像を挿入"
 msgid "Insert Link"
 msgstr "リンクを挿入"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:54
+#: src/components/email_builder/panels/LibraryPanel.tsx:57
 msgid "Insert, or drag into the email"
 msgstr "挿入、またはメールにドラッグ"
 
@@ -11810,7 +11826,7 @@ msgid "Install the tracking snippet"
 msgstr "トラッキングスニペットを設置する"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:87
-#: src/components/integrations/LLMIntegration.tsx:170
+#: src/components/integrations/LLMIntegration.tsx:176
 #: src/components/integrations/SupabaseIntegration.tsx:172
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:868
 msgid "Integration"
@@ -12096,7 +12112,7 @@ msgstr "テキスト版は送信のたびにHTMLから生成されるため、�
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "予定時刻には送信されません。編集して再度予約できます。日付は保持されます。"
 
-#: src/components/email_builder/EmailBuilder.tsx:940
+#: src/components/email_builder/EmailBuilder.tsx:946
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "ワークスペースのすべてのテンプレートで使えなくなります。このブロックをすでに含むテンプレートは変更されません。"
 
@@ -12453,7 +12469,7 @@ msgid "Leave blank to keep the current value"
 msgstr "現在の値を維持するには空欄のままにしてください"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:106
-#: src/components/integrations/LLMIntegration.tsx:201
+#: src/components/integrations/LLMIntegration.tsx:207
 msgid "Leave blank to keep the existing API key"
 msgstr "既存のAPIキーを保持するには空白のままにしてください"
 
@@ -12545,7 +12561,7 @@ msgstr "文字間隔"
 #~ msgid "Letter Spacing"
 #~ msgstr "文字間隔"
 
-#: src/components/email_builder/EmailBuilder.tsx:1131
+#: src/components/email_builder/EmailBuilder.tsx:1136
 msgid "Library"
 msgstr "ライブラリ"
 
@@ -12599,8 +12615,8 @@ msgstr "行 {0} ({1}): {2}"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:350
 #: src/components/email_builder/ui/FontStyleInput.tsx:253
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:113
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:116
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:115
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:118
 #: src/components/email_builder/ui/LineHeightInput.tsx:76
 msgid "Line height"
 msgstr "行の高さ"
@@ -13077,7 +13093,7 @@ msgstr "自社の外部IDでコンタクトのレコード全体を検索する"
 msgid "Loop"
 msgstr "ループ"
 
-#: src/components/integrations/LLMIntegration.tsx:256
+#: src/components/integrations/LLMIntegration.tsx:262
 #: src/components/settings/Integrations.tsx:342
 msgid "Low"
 msgstr "低"
@@ -13398,7 +13414,7 @@ msgstr "TimeScoreの中央値"
 msgid "Median Value"
 msgstr "値の中央値"
 
-#: src/components/integrations/LLMIntegration.tsx:257
+#: src/components/integrations/LLMIntegration.tsx:263
 #: src/components/settings/Integrations.tsx:343
 msgid "Medium"
 msgstr "中"
@@ -13528,7 +13544,7 @@ msgstr "中央"
 msgid "min"
 msgstr "分"
 
-#: src/components/integrations/LLMIntegration.tsx:255
+#: src/components/integrations/LLMIntegration.tsx:261
 #: src/components/settings/Integrations.tsx:341
 msgid "Minimal"
 msgstr "最小限"
@@ -13657,10 +13673,10 @@ msgstr "モバイルブレークポイント"
 msgid "Mobile view (400px)"
 msgstr "モバイルビュー（400px）"
 
-#: src/components/integrations/LLMIntegration.tsx:192
-#: src/components/integrations/LLMIntegration.tsx:213
-#: src/components/integrations/LLMIntegration.tsx:226
-#: src/components/integrations/LLMIntegration.tsx:269
+#: src/components/integrations/LLMIntegration.tsx:198
+#: src/components/integrations/LLMIntegration.tsx:219
+#: src/components/integrations/LLMIntegration.tsx:232
+#: src/components/integrations/LLMIntegration.tsx:275
 #: src/components/settings/Integrations.tsx:451
 msgid "Model"
 msgstr "モデル"
@@ -13786,7 +13802,7 @@ msgstr "N/A"
 #: src/components/email_builder/ui/SaveBlockModal.tsx:135
 #: src/components/file_manager/FileTable.tsx:78
 #: src/components/integrations/FirecrawlIntegration.tsx:89
-#: src/components/integrations/LLMIntegration.tsx:173
+#: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:216
 #: src/components/segment/button_upsert.tsx:452
@@ -14599,13 +14615,13 @@ msgstr "この訪問に一致するルールはありません"
 msgid "No sample values available"
 msgstr "サンプル値がありません"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:282
+#: src/components/email_builder/panels/LibraryPanel.tsx:290
 msgid "No saved block matches."
 msgstr "一致する保存済みブロックはありません。"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:291
-#: src/components/email_builder/ui/AddBlockPopover.tsx:310
-#: src/components/email_builder/ui/AddBlockPopover.tsx:382
+#: src/components/email_builder/panels/LibraryPanel.tsx:299
+#: src/components/email_builder/ui/AddBlockPopover.tsx:316
+#: src/components/email_builder/ui/AddBlockPopover.tsx:388
 msgid "No saved blocks yet"
 msgstr "保存されたブロックがまだありません"
 
@@ -14823,7 +14839,7 @@ msgstr "非アクティブ"
 #: src/components/email_builder/ui/ColorPickerWithPresets.tsx:31
 #: src/components/email_builder/ui/FontStyleInput.tsx:129
 #: src/components/email_builder/ui/FontStyleInput.tsx:136
-#: src/components/integrations/LLMIntegration.tsx:254
+#: src/components/integrations/LLMIntegration.tsx:260
 #: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:333
@@ -14859,13 +14875,13 @@ msgid "Not all visitors come with the same intent. This rate should be interpret
 msgstr "すべての訪問者が同じ意図を持っているわけではありません。この率は目的を問わずすべてのトラフィックを含むため、解釈には注意が必要です。"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:13
-#: src/components/email_builder/ui/AddBlockPopover.tsx:160
+#: src/components/email_builder/ui/AddBlockPopover.tsx:163
 #: src/components/email_builder/utils/library.ts:74
 msgid "Not allowed here"
 msgstr "ここには配置できません"
 
 #: src/components/email_builder/panels/dropRefusalText.ts:9
-#: src/components/email_builder/ui/AddBlockPopover.tsx:179
+#: src/components/email_builder/ui/AddBlockPopover.tsx:182
 #: src/components/email_builder/utils/library.ts:65
 msgid "Not allowed inside a conditional block"
 msgstr "条件付きブロックの中には配置できません"
@@ -14878,7 +14894,7 @@ msgstr "未適用"
 msgid "Not assigned"
 msgstr "未割り当て"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:336
+#: src/components/email_builder/ui/AddBlockPopover.tsx:342
 msgid "Not available here"
 msgstr "ここでは使用できません"
 
@@ -15399,7 +15415,7 @@ msgid "Only when the same content lives at another address"
 msgstr "同じ内容が別のアドレスにある場合のみ"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:54
-#: src/components/integrations/LLMIntegration.tsx:99
+#: src/components/integrations/LLMIntegration.tsx:105
 #: src/components/integrations/SupabaseIntegration.tsx:84
 msgid "Only workspace owners can modify integrations"
 msgstr "ワークスペースオーナーのみが連携を変更できます"
@@ -16248,11 +16264,11 @@ msgctxt "newsletter A/B"
 msgid "Pick as winner"
 msgstr "勝者に選ぶ"
 
-#: src/components/integrations/LLMIntegration.tsx:214
+#: src/components/integrations/LLMIntegration.tsx:220
 msgid "Pick one, or type any Anthropic model ID"
 msgstr "いずれかを選択するか、任意の Anthropic モデル ID を入力してください"
 
-#: src/components/integrations/LLMIntegration.tsx:270
+#: src/components/integrations/LLMIntegration.tsx:276
 msgid "Pick the suggestion, or type any Gemini model ID"
 msgstr "候補を選択するか、任意の Gemini モデル ID を入力してください"
 
@@ -16349,7 +16365,7 @@ msgstr "リストIDを入力してください"
 msgid "Please enter a list name"
 msgstr "リスト名を入力してください"
 
-#: src/components/integrations/LLMIntegration.tsx:230
+#: src/components/integrations/LLMIntegration.tsx:236
 msgid "Please enter a model name"
 msgstr "モデル名を入力してください"
 
@@ -16447,7 +16463,7 @@ msgid "Please enter an email address"
 msgstr "メールアドレスを入力してください"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:90
-#: src/components/integrations/LLMIntegration.tsx:177
+#: src/components/integrations/LLMIntegration.tsx:183
 #: src/components/integrations/SupabaseIntegration.tsx:179
 msgid "Please enter integration name"
 msgstr "インテグレーション名を入力してください"
@@ -16461,7 +16477,7 @@ msgid "Please enter workspace name"
 msgstr "ワークスペース名を入力してください"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:107
-#: src/components/integrations/LLMIntegration.tsx:202
+#: src/components/integrations/LLMIntegration.tsx:208
 msgid "Please enter your API key"
 msgstr "APIキーを入力してください"
 
@@ -16573,8 +16589,8 @@ msgstr "イベントタイプを1つ以上選択してください"
 msgid "Please select operator"
 msgstr "演算子を選択してください"
 
-#: src/components/integrations/LLMIntegration.tsx:217
-#: src/components/integrations/LLMIntegration.tsx:273
+#: src/components/integrations/LLMIntegration.tsx:223
+#: src/components/integrations/LLMIntegration.tsx:279
 msgid "Please select or enter a model"
 msgstr "モデルを選択または入力してください"
 
@@ -16714,7 +16730,7 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:71
 #: src/components/common/ImageURLInput.tsx:58
-#: src/components/email_builder/EmailBuilder.tsx:1061
+#: src/components/email_builder/EmailBuilder.tsx:1067
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/button_upsert.tsx:670
 #: src/components/seo/SeoPreview.tsx:36
@@ -17326,7 +17342,7 @@ msgstr "送信準備完了"
 #~ msgid "Reason:"
 #~ msgstr "理由:"
 
-#: src/components/integrations/LLMIntegration.tsx:246
+#: src/components/integrations/LLMIntegration.tsx:252
 #: src/components/settings/Integrations.tsx:458
 msgid "Reasoning effort"
 msgstr "推論の強度"
@@ -17470,7 +17486,7 @@ msgstr "リダイレクトURI"
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:787
 #: src/components/blog/PostDrawer.tsx:790
-#: src/components/email_builder/EmailBuilder.tsx:1045
+#: src/components/email_builder/EmailBuilder.tsx:1051
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
 msgstr "やり直す"
@@ -17864,14 +17880,14 @@ msgstr "X軸で繰り返し"
 msgid "Repeat Y"
 msgstr "Y軸で繰り返し"
 
-#: src/components/email_builder/EmailBuilder.tsx:926
+#: src/components/email_builder/EmailBuilder.tsx:932
 #: src/components/email_builder/panels/TextVersionPanel.tsx:183
 #: src/components/email_builder/ui/SaveBlockModal.tsx:97
 #: src/components/settings/LogoInput.tsx:107
 msgid "Replace"
 msgstr "置き換える"
 
-#: src/components/email_builder/EmailBuilder.tsx:924
+#: src/components/email_builder/EmailBuilder.tsx:930
 msgid "Replace \"{name}\" with the selected block?"
 msgstr "「{name}」を選択中のブロックで置き換えますか？"
 
@@ -18041,7 +18057,7 @@ msgstr "インテグレーションの同期タスクをリセットし、最初
 msgid "Reset formatting"
 msgstr "書式をリセット"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:175
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:177
 msgid "Reset H{level}"
 msgstr "H{level} をリセット"
 
@@ -18421,7 +18437,7 @@ msgstr "セール"
 msgid "Same Window"
 msgstr "同じウィンドウ"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:160
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:162
 msgid "Sample"
 msgstr "サンプル"
 
@@ -18493,7 +18509,7 @@ msgstr "保存"
 msgid "Save & Restart"
 msgstr "保存して再起動"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:312
+#: src/components/email_builder/ui/AddBlockPopover.tsx:318
 msgid "Save a block from its toolbar to reuse it in every template."
 msgstr "ブロックのツールバーから保存すると、すべてのテンプレートで再利用できます。"
 
@@ -18565,7 +18581,7 @@ msgstr "先にオートメーションを保存してください"
 msgid "Save the broadcast first"
 msgstr "先にブロードキャストを保存してください"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:297
+#: src/components/email_builder/panels/LibraryPanel.tsx:305
 msgid "Save the selected block"
 msgstr "選択したブロックを保存"
 
@@ -18607,7 +18623,7 @@ msgid "Saved"
 msgstr "保存済み"
 
 #. placeholder {0}: savedBlockOptions.length
-#: src/components/email_builder/ui/AddBlockPopover.tsx:428
+#: src/components/email_builder/ui/AddBlockPopover.tsx:434
 msgid "Saved ({0})"
 msgstr "保存済み ({0})"
 
@@ -18629,15 +18645,15 @@ msgid "Saved as v{version}"
 msgstr "v{version} として保存しました"
 
 #. placeholder {0}: savedBlock.name
-#: src/components/email_builder/ui/AddBlockPopover.tsx:266
+#: src/components/email_builder/ui/AddBlockPopover.tsx:272
 msgid "Saved block: {0}"
 msgstr "保存済みブロック: {0}"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:252
+#: src/components/email_builder/panels/LibraryPanel.tsx:260
 msgid "Saved blocks"
 msgstr "保存済みブロック"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:422
+#: src/components/email_builder/ui/AddBlockPopover.tsx:428
 msgid "Saved blocks ({savedCount})"
 msgstr "保存済みブロック ({savedCount})"
 
@@ -18799,7 +18815,7 @@ msgstr "名前と件名を検索します。"
 msgid "Search results"
 msgstr "検索結果"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:246
+#: src/components/email_builder/panels/LibraryPanel.tsx:253
 msgid "Search saved blocks"
 msgstr "保存済みブロックを検索"
 
@@ -18905,7 +18921,7 @@ msgstr "セクション属性"
 #~ msgid "Section Attributes"
 #~ msgstr "セクション属性"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:260
+#: src/components/email_builder/panels/LibraryPanel.tsx:268
 msgid "Sections"
 msgstr "セクション"
 
@@ -19020,15 +19036,15 @@ msgstr "選択"
 #~ msgid "Select {0}"
 #~ msgstr "{0}を選択"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:177
+#: src/components/email_builder/panels/LibraryPanel.tsx:183
 msgid "Select a block in the email"
 msgstr "メール内のブロックを選択してください"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:293
+#: src/components/email_builder/panels/LibraryPanel.tsx:301
 msgid "Select a block in the email, then use the save button in its toolbar. Saved blocks can be used in every template of the workspace."
 msgstr "メール内のブロックを選択し、ツールバーの保存ボタンを使用してください。保存済みブロックはワークスペースのすべてのテンプレートで使用できます。"
 
-#: src/components/email_builder/panels/LibraryPanel.tsx:178
+#: src/components/email_builder/panels/LibraryPanel.tsx:184
 msgid "Select a block of the same type"
 msgstr "同じ種類のブロックを選択してください"
 
@@ -19081,7 +19097,7 @@ msgstr "メールノードを有効にするにはリストを選択"
 msgid "Select a list..."
 msgstr "リストを選択..."
 
-#: src/components/integrations/LLMIntegration.tsx:218
+#: src/components/integrations/LLMIntegration.tsx:224
 msgid "Select a model"
 msgstr "モデルを選択"
 
@@ -20234,7 +20250,7 @@ msgstr "カテゴリページの上部に表示されます"
 msgid "Shown in post lists, and as the description when no meta description is set"
 msgstr "記事一覧に表示され、メタディスクリプションがない場合は説明として使われます"
 
-#: src/components/integrations/LLMIntegration.tsx:174
+#: src/components/integrations/LLMIntegration.tsx:180
 msgid "Shown in the assistant's model picker"
 msgstr "アシスタントのモデル選択欄に表示されます"
 
@@ -20365,7 +20381,7 @@ msgstr "訪問"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:175
 #: src/components/email_builder/ui/FontStyleInput.tsx:179
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:90
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:93
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:94
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/file_manager/FileTable.tsx:101
 msgid "Size"
@@ -20636,13 +20652,13 @@ msgstr "ソース"
 msgid "Space"
 msgstr "間隔"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:134
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:137
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:135
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:139
 msgid "Space above"
 msgstr "上の余白"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:146
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:149
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:148
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:152
 msgid "Space below"
 msgstr "下の余白"
 
@@ -20895,7 +20911,7 @@ msgstr "地域を保存"
 msgid "Strikethrough"
 msgstr "取り消し線"
 
-#: src/components/email_builder/EmailBuilder.tsx:1127
+#: src/components/email_builder/EmailBuilder.tsx:1133
 msgid "Structure"
 msgstr "構造"
 
@@ -21459,7 +21475,7 @@ msgstr "テンプレートの送信者（{0}）"
 msgid "Templates"
 msgstr "テンプレート"
 
-#: src/components/email_builder/EmailBuilder.tsx:925
+#: src/components/email_builder/EmailBuilder.tsx:931
 msgid "Templates that already contain this block do not change."
 msgstr "このブロックをすでに含むテンプレートは変更されません。"
 
@@ -21720,7 +21736,7 @@ msgstr "テキストスタイル"
 msgid "Text Transform"
 msgstr "テキスト変換"
 
-#: src/components/email_builder/EmailBuilder.tsx:1064
+#: src/components/email_builder/EmailBuilder.tsx:1070
 #: src/components/email_builder/MjmlCodeEditor.tsx:693
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
 #: src/components/logs/MessageDetail.tsx:807
@@ -22524,6 +22540,14 @@ msgstr "この画像を読み込めませんでした"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:834
 msgid "This integration is not created yet."
 msgstr "この連携はまだ作成されていません。"
+
+#: src/components/settings/integrations/DeprecatedPill.tsx:14
+#~ msgid "This integration will be removed soon: Mailjet does not allow sending marketing emails through its API."
+#~ msgstr "この連携はまもなく削除されます：Mailjet では API でマーケティングメールを送信できません。"
+
+#: src/components/settings/integrations/DeprecatedPill.tsx:13
+#~ msgid "This integration will be removed soon: SparkPost no longer accepts new customers."
+#~ msgstr "この連携はまもなく削除されます：SparkPost は新規顧客を受け付けていません。"
 
 #: src/pages/AcceptInvitationPage.tsx:123
 msgid "This invitation link is invalid or has expired."
@@ -23485,8 +23509,8 @@ msgstr "リファラルの質を把握する"
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:778
 #: src/components/blog/PostDrawer.tsx:781
-#: src/components/email_builder/EmailBuilder.tsx:986
-#: src/components/email_builder/EmailBuilder.tsx:1038
+#: src/components/email_builder/EmailBuilder.tsx:992
+#: src/components/email_builder/EmailBuilder.tsx:1044
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
 msgid "Undo"
 msgstr "元に戻す"
@@ -23999,7 +24023,7 @@ msgstr "自動版を使用しますか？"
 msgid "Use the font name in text elements:"
 msgstr "テキスト要素でフォント名を使用:"
 
-#: src/components/email_builder/ui/AddBlockPopover.tsx:384
+#: src/components/email_builder/ui/AddBlockPopover.tsx:390
 msgid "Use the save button in the block toolbar to save blocks"
 msgstr "ブロックツールバーの保存ボタンを使用してブロックを保存"
 
@@ -24799,8 +24823,8 @@ msgstr "週次"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:278
 #: src/components/email_builder/ui/FontStyleInput.tsx:198
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:103
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:106
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:104
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:108
 msgid "Weight"
 msgstr "太さ"
 

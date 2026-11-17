@@ -856,10 +856,10 @@ describe('AI assistant', () => {
 
       expect(screen.getByLabelText('Name')).toHaveValue('Anthropic')
       const model = screen.getByLabelText('Model')
-      expect(model).toHaveValue('claude-sonnet-4-6')
+      expect(model).toHaveValue('claude-sonnet-5-5')
       fireEvent.mouseDown(model)
       fireEvent.change(model, { target: { value: '' } })
-      for (const id of ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001']) {
+      for (const id of ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']) {
         expect(await screen.findByTitle(id)).toBeInTheDocument()
       }
       fireEvent.change(model, { target: { value: 'claude-future-5' } })
@@ -879,11 +879,11 @@ describe('AI assistant', () => {
   )
 
   it(
-    'OpenAI: starts on gpt-4.1 and saves the base URL and the reasoning effort',
+    'OpenAI: starts on gpt-6.1-sol and saves the base URL and the reasoning effort',
     async () => {
       renderPage()
       await openFromCatalogue('OpenAI')
-      expect(screen.getByLabelText('Model')).toHaveValue('gpt-4.1')
+      expect(screen.getByLabelText('Model')).toHaveValue('gpt-6.1-sol')
       type('API key', 'sk-proj-1')
       type('Base URL', 'https://llm.acme.internal/v1')
       await pickOption('Reasoning effort', '', 'High')
@@ -898,7 +898,7 @@ describe('AI assistant', () => {
           kind: 'openai',
           openai: {
             api_key: 'sk-proj-1',
-            model: 'gpt-4.1',
+            model: 'gpt-6.1-sol',
             base_url: 'https://llm.acme.internal/v1',
             reasoning_effort: 'high'
           }
@@ -945,11 +945,18 @@ describe('AI assistant', () => {
   )
 
   it(
-    'Gemini: saves the suggested model',
+    'Gemini: suggests the Gemini 4 models and saves the default one',
     async () => {
       renderPage()
       await openFromCatalogue('Google Gemini')
-      expect(screen.getByLabelText('Model')).toHaveValue('gemini-3.1-pro-preview')
+      const model = screen.getByLabelText('Model')
+      expect(model).toHaveValue('gemini-4-argon')
+      fireEvent.mouseDown(model)
+      fireEvent.change(model, { target: { value: '' } })
+      for (const id of ['gemini-4-carbon', 'gemini-4-argon', 'gemini-4-hydrogen']) {
+        expect(await screen.findByTitle(id)).toBeInTheDocument()
+      }
+      fireEvent.change(model, { target: { value: 'gemini-4-argon' } })
       type('API key', 'AIza-1')
       save()
       await waitFor(() => expect(posted('/api/workspaces.createIntegration')).toHaveLength(1))
@@ -957,7 +964,7 @@ describe('AI assistant', () => {
         workspace_id: 'ws1',
         name: 'Google Gemini',
         type: 'llm',
-        llm_provider: { kind: 'gemini', gemini: { api_key: 'AIza-1', model: 'gemini-3.1-pro-preview' } }
+        llm_provider: { kind: 'gemini', gemini: { api_key: 'AIza-1', model: 'gemini-4-argon' } }
       })
     }
   )

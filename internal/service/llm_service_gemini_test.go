@@ -115,6 +115,17 @@ func TestCalculateCost_Gemini(t *testing.T) {
 	assert.InDelta(t, 2.50, outputCost, 0.0001)
 	assert.InDelta(t, 2.80, totalCost, 0.0001)
 
+	// The Gemini 4 models suggested in the console
+	for model, want := range map[string][2]float64{
+		"gemini-4-carbon":   {4.0, 20.0},
+		"gemini-4-argon":    {4.0, 20.0},
+		"gemini-4-hydrogen": {1.50, 7.50},
+	} {
+		in, out, _ := calculateCost(model, 1_000_000, 1_000_000)
+		assert.InDelta(t, want[0], in, 0.0001, model)
+		assert.InDelta(t, want[1], out, 0.0001, model)
+	}
+
 	// Unknown gemini model falls back to zero cost
 	in, out, total := calculateCost("gemini-experimental-xyz", 1000, 1000)
 	assert.Zero(t, in)
