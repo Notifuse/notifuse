@@ -499,16 +499,17 @@ func TestContactListRepository_MarkContactListUnsubscribed(t *testing.T) {
 	listID := "list123"
 	// Anchored: one statement that never writes deleted_at, so a removed contact stays
 	// removed, and whose own WHERE keeps a bounce or complaint, so one saved concurrently
-	// is never overwritten by a read-then-write
-	query := `^UPDATE contact_lists SET status = 'unsubscribed', updated_at = \$1 WHERE email = \$2 AND list_id = \$3 AND status NOT IN \('bounced', 'complained'\)$`
+	// is never overwritten by a read-then-write. A zero reference time is sent as NULL,
+	// which drops the updated_at condition.
+	query := `^UPDATE contact_lists SET status = 'unsubscribed', updated_at = \$1 WHERE email = \$2 AND list_id = \$3 AND status NOT IN \('bounced', 'complained'\) AND \(\$4::timestamptz IS NULL OR updated_at <= \$4::timestamptz\)$`
 
 	t.Run("a row takes the opt-out", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
 		mock.ExpectExec(query).
-			WithArgs(sqlmock.AnyArg(), email, listID).
+			WithArgs(sqlmock.AnyArg(), email, listID, nil).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
-		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID, time.Time{})
 		require.NoError(t, err)
 		assert.True(t, updated)
 		require.NoError(t, mock.ExpectationsWereMet())
@@ -517,11 +518,24 @@ func TestContactListRepository_MarkContactListUnsubscribed(t *testing.T) {
 	t.Run("no row updated: a bounced or complained row, or none", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
 		mock.ExpectExec(query).
-			WithArgs(sqlmock.AnyArg(), email, listID).
+			WithArgs(sqlmock.AnyArg(), email, listID, nil).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID, time.Time{})
 		require.NoError(t, err, "the caller reads the row to tell the two apart")
+		assert.False(t, updated)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("a reference time keeps a row changed after it", func(t *testing.T) {
+		unchangedSince := time.Date(2026, 11, 17, 9, 0, 0, 0, time.UTC)
+		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
+		mock.ExpectExec(query).
+			WithArgs(sqlmock.AnyArg(), email, listID, unchangedSince).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID, unchangedSince)
+		require.NoError(t, err)
 		assert.False(t, updated)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -529,10 +543,10 @@ func TestContactListRepository_MarkContactListUnsubscribed(t *testing.T) {
 	t.Run("execution error", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
 		mock.ExpectExec(query).
-			WithArgs(sqlmock.AnyArg(), email, listID).
+			WithArgs(sqlmock.AnyArg(), email, listID, nil).
 			WillReturnError(errors.New("connection reset"))
 
-		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID, time.Time{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to unsubscribe contact from list")
 		assert.Contains(t, err.Error(), "connection reset")
@@ -543,10 +557,10 @@ func TestContactListRepository_MarkContactListUnsubscribed(t *testing.T) {
 	t.Run("rows affected error", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(db, nil)
 		mock.ExpectExec(query).
-			WithArgs(sqlmock.AnyArg(), email, listID).
+			WithArgs(sqlmock.AnyArg(), email, listID, nil).
 			WillReturnResult(sqlmock.NewErrorResult(errors.New("rows affected error")))
 
-		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID, time.Time{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get affected rows")
 		assert.False(t, updated)
@@ -556,7 +570,7 @@ func TestContactListRepository_MarkContactListUnsubscribed(t *testing.T) {
 	t.Run("workspace connection error", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetConnection(ctx, workspaceID).Return(nil, errors.New("connection error"))
 
-		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+		updated, err := repo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID, time.Time{})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get workspace connection")
 		assert.False(t, updated)

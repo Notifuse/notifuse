@@ -20,9 +20,11 @@ import (
 
 // TestWebhookRedelivery: a provider that gets no answer, or a server error, posts the same
 // events to /webhooks/email again. The redelivery stores no second event and no second
-// timeline entry, so a soft bounce counts once toward the threshold, and it still applies
-// the events, which is what repairs a delivery whose processing failed after the events
-// were stored.
+// timeline entry, so a soft bounce counts once toward the threshold. It still applies a
+// bounce or an unsubscribe to a list row unchanged since Notifuse first received the
+// event, which is what repairs a delivery whose processing failed after the events were
+// stored, and leaves a row changed since, such as a bounce cleared or a contact subscribed
+// again, as it is.
 func TestWebhookRedelivery(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -189,22 +191,126 @@ func TestWebhookRedelivery(t *testing.T) {
 		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
 	})
 
-	// A delivery whose events were stored before a later step failed is answered 500, and
-	// only the provider's redelivery applies its events
-	t.Run("a redelivery still applies events already stored", func(t *testing.T) {
+	mailjetURL := providers[4].url
+	mailjetUnsub := func(messageID, email string) string {
+		return fmt.Sprintf(`[{"event":"unsub","time":%d,"MessageID":%s,"email":%q,"mj_list_id":1,"CustomID":%q}]`,
+			at.Unix(), numericID(messageID), email, messageID)
+	}
+	sentForList := func(t *testing.T, email string) string {
+		t.Helper()
+		message, err := factory.CreateMessageHistory(workspace.ID,
+			testutil.WithMessageHistoryContactEmail(email),
+			testutil.WithMessageTemplate(template.ID),
+			testutil.WithMessageListID(list.ID))
+		require.NoError(t, err)
+		return message.ID
+	}
+	clearBounce := func(t *testing.T, email string) {
+		t.Helper()
+		require.NoError(t, contactListRepo.UpdateContactListStatus(bg, workspace.ID, email, list.ID, domain.ContactListStatusActive))
+	}
+	// unapplied puts the row back as it was before the event's delivery applied anything,
+	// unchanged since the event was stored: the state a delivery that failed after storing
+	// its events leaves
+	unapplied := func(t *testing.T, email, messageID string) {
+		t.Helper()
+		var storedAt time.Time
+		require.NoError(t, db.QueryRowContext(bg,
+			`SELECT created_at FROM inbound_webhook_events WHERE message_id = $1`, messageID).Scan(&storedAt))
+		_, err := db.ExecContext(bg,
+			`UPDATE contact_lists SET status = 'active', updated_at = $3 WHERE email = $1 AND list_id = $2`,
+			email, list.ID, storedAt.Add(-time.Second))
+		require.NoError(t, err)
+		_, err = db.ExecContext(bg, `UPDATE message_history SET unsubscribed_at = NULL WHERE id = $1`, messageID)
+		require.NoError(t, err)
+	}
+	unsubscribedAt := func(t *testing.T, messageID string) *time.Time {
+		t.Helper()
+		var at *time.Time
+		require.NoError(t, db.QueryRowContext(bg, `SELECT unsubscribed_at FROM message_history WHERE id = $1`, messageID).Scan(&at))
+		return at
+	}
+
+	t.Run("a hard bounce posted again keeps a bounce cleared since", func(t *testing.T) {
 		email := newContact(t)
 		messageID := sentEmailID(t, factory, workspace.ID, template.ID, email)
 		body := sesBouncePayloadAt(messageID, email, "Permanent", "General", "smtp; 550 5.1.1 user unknown", at)
 
 		post(t, sesURL, body)
 		require.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
-		_, err := db.ExecContext(bg, `UPDATE contact_lists SET status = 'active' WHERE email = $1 AND list_id = $2`, email, list.ID)
-		require.NoError(t, err)
+		clearBounce(t, email)
+
+		post(t, sesURL, body)
+
+		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
+		assert.Equal(t, 1, storedFor(t, messageID))
+	})
+
+	t.Run("a Mailjet unsubscribe posted again keeps a contact subscribed since", func(t *testing.T) {
+		email := newContact(t)
+		messageID := sentForList(t, email)
+		body := mailjetUnsub(messageID, email)
+
+		post(t, mailjetURL, body)
+		require.Equal(t, domain.ContactListStatusUnsubscribed, statusOf(t, email))
+		require.NoError(t, contactListRepo.AddContactToList(bg, workspace.ID, &domain.ContactList{
+			Email: email, ListID: list.ID, Status: domain.ContactListStatusActive,
+		}))
+
+		post(t, mailjetURL, body)
+
+		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
+		assert.Equal(t, 1, storedFor(t, messageID))
+	})
+
+	// A delivery whose events were stored before a later step failed is answered 500, and
+	// only the provider's redelivery applies its events
+	t.Run("a hard bounce posted again repairs a delivery that stored it without applying it", func(t *testing.T) {
+		email := newContact(t)
+		messageID := sentEmailID(t, factory, workspace.ID, template.ID, email)
+		body := sesBouncePayloadAt(messageID, email, "Permanent", "General", "smtp; 550 5.1.1 user unknown", at)
+
+		post(t, sesURL, body)
+		unapplied(t, email, messageID)
+		require.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
 
 		post(t, sesURL, body)
 
 		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
 		assert.Equal(t, 1, storedFor(t, messageID))
+	})
+
+	t.Run("a Mailjet unsubscribe posted again repairs a delivery that stored it without applying it", func(t *testing.T) {
+		email := newContact(t)
+		messageID := sentForList(t, email)
+		body := mailjetUnsub(messageID, email)
+
+		post(t, mailjetURL, body)
+		unapplied(t, email, messageID)
+		require.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
+		require.Nil(t, unsubscribedAt(t, messageID))
+
+		post(t, mailjetURL, body)
+
+		assert.Equal(t, domain.ContactListStatusUnsubscribed, statusOf(t, email))
+		assert.NotNil(t, unsubscribedAt(t, messageID), "the email is marked unsubscribed")
+		assert.Equal(t, 1, storedFor(t, messageID))
+	})
+
+	t.Run("the soft bounce that reached the threshold, posted again, keeps a bounce cleared since", func(t *testing.T) {
+		email := newContact(t)
+		var last string
+		for i := 0; i < domain.DefaultSoftBounceThreshold; i++ {
+			messageID := sentEmailID(t, factory, workspace.ID, template.ID, email)
+			last = sesSoftBounceWithSNSID(messageID, email, "sns-"+uuid.New().String(), at)
+			post(t, sesURL, last)
+		}
+		require.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
+		clearBounce(t, email)
+
+		post(t, sesURL, last)
+
+		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
 	})
 }
 

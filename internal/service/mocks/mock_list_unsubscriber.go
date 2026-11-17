@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 )
@@ -35,15 +36,15 @@ func (m *MockListUnsubscriber) EXPECT() *MockListUnsubscriberMockRecorder {
 }
 
 // UnsubscribeFromMessageList mocks base method.
-func (m *MockListUnsubscriber) UnsubscribeFromMessageList(arg0 context.Context, arg1, arg2, arg3, arg4 string) error {
+func (m *MockListUnsubscriber) UnsubscribeFromMessageList(arg0 context.Context, arg1, arg2, arg3, arg4 string, arg5 time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnsubscribeFromMessageList", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "UnsubscribeFromMessageList", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UnsubscribeFromMessageList indicates an expected call of UnsubscribeFromMessageList.
-func (mr *MockListUnsubscriberMockRecorder) UnsubscribeFromMessageList(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockListUnsubscriberMockRecorder) UnsubscribeFromMessageList(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsubscribeFromMessageList", reflect.TypeOf((*MockListUnsubscriber)(nil).UnsubscribeFromMessageList), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsubscribeFromMessageList", reflect.TypeOf((*MockListUnsubscriber)(nil).UnsubscribeFromMessageList), arg0, arg1, arg2, arg3, arg4, arg5)
 }

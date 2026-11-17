@@ -315,6 +315,11 @@ type InboundWebhookEventRepository interface {
 	// StoreEvents stores an inbound webhook event in the database
 	StoreEvents(ctx context.Context, workspaceID string, events []*InboundWebhookEvent) error
 
+	// FirstStoredAt returns, for each given event ID already stored, the
+	// created_at of its row: when Notifuse first received the event. IDs with no
+	// row are absent from the map. An empty list runs no query.
+	FirstStoredAt(ctx context.Context, workspaceID string, ids []string) (map[string]time.Time, error)
+
 	// StoreReplyEvent inserts a single inbound reply event, deduplicating on the reply's
 	// Message-ID. Returns inserted=false when an event with the same Message-ID already
 	// exists (a provider retry), so the caller can avoid re-firing side effects.

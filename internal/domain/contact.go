@@ -846,8 +846,17 @@ type ContactRepository interface {
 	// 'complained'. The row of a contact removed from a list takes the bounce
 	// too and stays removed. The track_contact_list_changes trigger emits
 	// list.bounced for a row still on the list; a removed row's bounce records
-	// nothing.
+	// nothing. The webhook applies with it a bounce received for the first time;
+	// one the provider posts again goes through MarkEmailsAsBouncedUnchangedSince.
 	MarkEmailsAsBounced(ctx context.Context, workspaceID string, emails []string, at time.Time) error
+
+	// MarkEmailsAsBouncedUnchangedSince is MarkEmailsAsBounced restricted, for
+	// each email, to the rows whose updated_at is at or before that email's
+	// reference time. It applies a bounce the provider posts again: a row
+	// changed since Notifuse first received the bounce, such as a bounce
+	// cleared or a contact subscribed again, keeps its status. An empty map
+	// runs no query.
+	MarkEmailsAsBouncedUnchangedSince(ctx context.Context, workspaceID string, since map[string]time.Time, at time.Time) error
 }
 
 // FromJSON parses JSON data into a Contact struct

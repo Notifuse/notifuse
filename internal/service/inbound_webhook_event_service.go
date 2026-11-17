@@ -24,10 +24,11 @@ import (
 //go:generate mockgen -destination=./mocks/mock_list_unsubscriber.go -package=mocks github.com/Notifuse/notifuse/internal/service ListUnsubscriber
 
 // ListUnsubscriber records an opt-out an email provider reported for an email on the list
-// found for it, by the rules of the email's own unsubscribe link. ListService implements
-// it.
+// found for it, by the rules of the email's own unsubscribe link. A non-zero
+// unchangedSince, when Notifuse first received an opt-out the provider posts again, keeps
+// a row changed after it. ListService implements it.
 type ListUnsubscriber interface {
-	UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string) error
+	UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string, unchangedSince time.Time) error
 }
 
 // InboundWebhookEventService implements the domain.InboundWebhookEventServiceInterface
@@ -360,11 +361,31 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		return nil
 	}
 
-	// Store the events. An event the provider delivers again has the ID it had the first
-	// time, so the row stored then makes the insert skip it, and the soft bounces counted
-	// below are counted once. The events are still applied, stored before or not: a delivery
-	// whose processing failed after the events were stored is repaired only by the provider's
-	// redelivery, and applying one again changes no message status.
+	// An event the provider delivers again has the ID it had the first time, and the row
+	// stored then says when Notifuse first received it. It is read before the events are
+	// stored, as storing them would hide which ones are new.
+	eventIDs := make([]string, 0, len(events))
+	for _, event := range events {
+		eventIDs = append(eventIDs, event.ID)
+	}
+	firstStored, err := s.repo.FirstStoredAt(ctx, workspaceID, eventIDs)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return fmt.Errorf("failed to read which inbound webhook events were already received: %w", err)
+	}
+
+	// Store the events. The row stored the first time makes the insert skip an event
+	// delivered again, so the soft bounces counted below are counted once. The events are
+	// still applied, stored before or not: a delivery whose processing failed after the
+	// events were stored is repaired only by the provider's redelivery, and applying one
+	// again changes no message status. A bounce or an unsubscribe received before only
+	// changes, through the contact's lists, a list subscription that has not changed since
+	// Notifuse first received it, so a bounce cleared or a contact subscribed again in
+	// between is kept. One exception: when the first delivery failed before the message
+	// statuses below were set, setting them now fires the trigger that bounces the row
+	// of the list the email was sent for, with no such condition.
 	if err := s.repo.StoreEvents(ctx, workspaceID, events); err != nil {
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, err)
@@ -374,7 +395,11 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 
 	updates := []domain.MessageEventUpdate{}
 	var hardEmails []string
+	// The events that bounce each address: its hard bounces, and its counted soft
+	// bounces once they reach the threshold
+	bouncing := map[string][]*domain.InboundWebhookEvent{}
 	var softCountEmails []string
+	softCounted := map[string][]*domain.InboundWebhookEvent{}
 	var unsubscribes []*domain.InboundWebhookEvent
 
 	for _, event := range events {
@@ -398,6 +423,7 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 			switch class {
 			case domain.BounceClassificationHard:
 				hardEmails = append(hardEmails, event.RecipientEmail)
+				bouncing[event.RecipientEmail] = append(bouncing[event.RecipientEmail], event)
 				if event.MessageID != nil && *event.MessageID != "" {
 					reason := fmt.Sprintf("%s %s %s", event.BounceType, event.BounceCategory, event.BounceDiagnostic)
 					if len(reason) > 255 {
@@ -413,6 +439,7 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 
 			case domain.BounceClassificationSoftCount:
 				softCountEmails = append(softCountEmails, event.RecipientEmail)
+				softCounted[event.RecipientEmail] = append(softCounted[event.RecipientEmail], event)
 				s.logger.WithField("recipient_email", event.RecipientEmail).
 					WithField("bounce_type", event.BounceType).
 					WithField("bounce_category", event.BounceCategory).
@@ -463,12 +490,35 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		for email, n := range counts {
 			if n >= threshold {
 				hardEmails = append(hardEmails, email)
+				bouncing[email] = append(bouncing[email], softCounted[email]...)
 			}
 		}
 	}
 
-	if len(hardEmails) > 0 {
-		if err := s.contactRepo.MarkEmailsAsBounced(ctx, workspaceID, dedupeStrings(hardEmails), time.Now().UTC()); err != nil {
+	// An address bounced by an event received for the first time is bounced with no
+	// updated_at condition. One bounced only by events received before keeps a row changed since the
+	// last of them was first received.
+	var newlyBounced []string
+	bouncedBefore := map[string]time.Time{}
+	for _, email := range dedupeStrings(hardEmails) {
+		since, received := lastFirstStored(bouncing[email], firstStored)
+		if received {
+			bouncedBefore[email] = since
+		} else {
+			newlyBounced = append(newlyBounced, email)
+		}
+	}
+	now := time.Now().UTC()
+	if len(newlyBounced) > 0 {
+		if err := s.contactRepo.MarkEmailsAsBounced(ctx, workspaceID, newlyBounced, now); err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return fmt.Errorf("failed to mark emails as bounced: %w", err)
+		}
+	}
+	if len(bouncedBefore) > 0 {
+		if err := s.contactRepo.MarkEmailsAsBouncedUnchangedSince(ctx, workspaceID, bouncedBefore, now); err != nil {
 			// codecov:ignore:start
 			tracing.MarkSpanError(ctx, err)
 			// codecov:ignore:end
@@ -478,7 +528,7 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 
 	// Last, so an unsubscribe in the same delivery as a complaint or a hard bounce finds
 	// it recorded, and keeps it
-	if err := s.recordUnsubscribes(ctx, workspaceID, unsubscribes); err != nil {
+	if err := s.recordUnsubscribes(ctx, workspaceID, unsubscribes, firstStored); err != nil {
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, err)
 		// codecov:ignore:end
@@ -640,10 +690,13 @@ func addressForm(address string, maxDomain int) (string, bool) {
 // still be recorded on the list before it, but the email is not marked: the repository
 // does not mark a redacted email unsubscribed.
 //
+// firstStored holds when each event received before was first received: an opt-out
+// posted again only changes a list row unchanged since then.
+//
 // It stops at the first failure, and still marks the emails handled before it, those sent
 // for no list included: the opt-outs recorded on their lists are committed, so they are
 // marked now rather than on the provider's retry of the delivery.
-func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, workspaceID string, events []*domain.InboundWebhookEvent) error {
+func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, workspaceID string, events []*domain.InboundWebhookEvent, firstStored map[string]time.Time) error {
 	var updates []domain.MessageEventUpdate
 	var failed error
 	for _, event := range events {
@@ -667,7 +720,9 @@ func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, wor
 		}
 		// An email sent for no list, such as a transactional one, is only marked
 		if message.ListID != nil && *message.ListID != "" {
-			if err := s.listUnsubscriber.UnsubscribeFromMessageList(ctx, workspaceID, message.ContactEmail, *message.ListID, messageID); err != nil {
+			// Zero for an opt-out received for the first time: no condition
+			unchangedSince := firstStored[event.ID]
+			if err := s.listUnsubscriber.UnsubscribeFromMessageList(ctx, workspaceID, message.ContactEmail, *message.ListID, messageID, unchangedSince); err != nil {
 				failed = fmt.Errorf("failed to unsubscribe from the list of message %s: %w", messageID, err)
 				break
 			}
@@ -685,6 +740,23 @@ func (s *InboundWebhookEventService) recordUnsubscribes(ctx context.Context, wor
 		}
 	}
 	return failed
+}
+
+// lastFirstStored reports whether every given event was received before, and if so the
+// latest time one of them was first received. An address with no event is reported as
+// not received before, so it is bounced as it was before events were checked.
+func lastFirstStored(events []*domain.InboundWebhookEvent, firstStored map[string]time.Time) (time.Time, bool) {
+	var latest time.Time
+	for _, event := range events {
+		at, ok := firstStored[event.ID]
+		if !ok {
+			return time.Time{}, false
+		}
+		if at.After(latest) {
+			latest = at
+		}
+	}
+	return latest, len(events) > 0
 }
 
 // dedupeStrings returns a new slice with duplicates removed, preserving the
