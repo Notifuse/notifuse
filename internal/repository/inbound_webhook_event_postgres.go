@@ -371,10 +371,11 @@ func (r *inboundWebhookEventRepository) ListEvents(ctx context.Context, workspac
 // We do not filter on bounce_type because the per-provider string varies
 // (`Transient` for SES, `Failed` for Mailgun, `Bounce` for SparkPost/SMTP,
 // `bounce`/`blocked`/`dropped` for SendGrid, etc.) — a strict allow-list would
-// silently exclude most providers' soft bounces. Instead we count every
-// `type='bounce'` event in the window minus message-level rejections, and rely
-// on the per-event `domain.ClassifyBounce` call in the service to have already
-// gated which events become a count attempt.
+// silently exclude most providers' soft bounces. Instead we count the emails with
+// a `type='bounce'` event in the window, leaving out SES's message-level
+// rejections and the Postmark reports ClassifyBounce ignores, and rely on the
+// per-event `domain.ClassifyBounce` call in the service to have already gated
+// which events become a count attempt.
 //
 // Edge case: a hard bounce since last delivery would also be counted, but a
 // hard bounce already flipped contact_lists.status='bounced', so the eventual

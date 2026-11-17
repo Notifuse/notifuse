@@ -9,9 +9,11 @@
 //     recipient (mailbox full, transient, undetermined, …). Counts toward the
 //     workspace-configured soft-bounce threshold; the caller decides whether
 //     repeated occurrences should escalate to Hard.
-//   - BounceClassificationSoftIgnore — temporary failure attributable to the
-//     message itself (too large, content rejected, attachment rejected, …).
-//     Never counts, never escalates.
+//   - BounceClassificationSoftIgnore — a report that says nothing against the
+//     recipient: a failure attributable to the message itself (too large,
+//     content rejected, attachment rejected, …) or, for Postmark, a reply or a
+//     notice (auto-reply, address change, spam notification, …). Never counts,
+//     never escalates.
 //
 // Per-provider mapping summary:
 //
@@ -55,7 +57,8 @@ const (
 	// threshold.
 	BounceClassificationSoftCount
 	// BounceClassificationSoftIgnore means the bounce describes a problem
-	// with the message (too large, content rejected, …) and must not count
+	// with the message (too large, content rejected, …), or is a reply or a
+	// notice rather than a failure to reach the recipient, and must not count
 	// against the recipient.
 	BounceClassificationSoftIgnore
 )

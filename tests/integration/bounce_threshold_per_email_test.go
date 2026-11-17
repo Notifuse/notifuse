@@ -79,17 +79,22 @@ func TestBounceThresholdPerEmail(t *testing.T) {
 		require.NoError(t, err)
 		return row.Status
 	}
+	storedFor := func(t *testing.T, messageID string) int {
+		t.Helper()
+		var stored int
+		require.NoError(t, db.QueryRowContext(bg, `SELECT COUNT(*) FROM inbound_webhook_events WHERE message_id = $1`, messageID).Scan(&stored))
+		return stored
+	}
 	// post sends the report and checks it was stored, so that a contact left active means
 	// the report was read and did not count
 	post := func(t *testing.T, url, messageID, body string) {
 		t.Helper()
+		before := storedFor(t, messageID)
 		resp, err := client.PostRaw(url, body)
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 		require.Equal(t, http.StatusOK, resp.StatusCode, "webhook POST must return 200")
-		var stored int
-		require.NoError(t, db.QueryRowContext(bg, `SELECT COUNT(*) FROM inbound_webhook_events WHERE message_id = $1`, messageID).Scan(&stored))
-		require.Positive(t, stored, "the report must be stored")
+		require.Equal(t, before+1, storedFor(t, messageID), "the report must be stored")
 	}
 	at := time.Now().UTC().Truncate(time.Second)
 	mailgunTemporaryFailure := func(messageID, email string) string {
@@ -137,9 +142,14 @@ func TestBounceThresholdPerEmail(t *testing.T) {
 
 	t.Run("Postmark: an ISP block counts as a soft bounce", func(t *testing.T) {
 		email := newContact(t)
+		for i := 1; i < domain.DefaultSoftBounceThreshold; i++ {
+			messageID := sendTo(t, email)
+			post(t, postmarkURL, messageID, postmarkBounce(messageID, email, "Blocked"))
+			require.Equalf(t, domain.ContactListStatusActive, statusOf(t, email), "after %d blocks", i)
+		}
 		messageID := sendTo(t, email)
 		post(t, postmarkURL, messageID, postmarkBounce(messageID, email, "Blocked"))
-		assert.Equal(t, domain.ContactListStatusActive, statusOf(t, email))
+		assert.Equal(t, domain.ContactListStatusBounced, statusOf(t, email))
 	})
 
 	t.Run("Postmark: an invalid address is a hard bounce", func(t *testing.T) {
