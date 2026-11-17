@@ -19,7 +19,7 @@ import (
 // the caller's connection there is no request-driven way to cancel a run, so
 // this behaviour is pinned here rather than end-to-end.
 //
-// Plan: plans/broadcast-interruption-resilience-plan.md
+// Plan: Notifuse/architecture plans/notifuse/broadcast-interruption-resilience-plan.md
 
 // newInterruptOrchestrator wires an orchestrator whose first GetBroadcast fails
 // the way a cancelled context does, and whose second (the terminal status write

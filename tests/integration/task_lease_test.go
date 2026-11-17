@@ -22,7 +22,7 @@ import (
 // Nothing outside the run may wake or pause such a task, and the launch gate
 // refuses a waiting task that still carries a live lease.
 //
-// Plan: plans/fix-broadcast-duplicate-sends-plan.md
+// Plan: Notifuse/architecture plans/notifuse/fix-broadcast-duplicate-sends-plan.md
 
 type taskLeaseHarness struct {
 	suite       *testutil.IntegrationTestSuite

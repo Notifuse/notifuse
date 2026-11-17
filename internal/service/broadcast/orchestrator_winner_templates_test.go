@@ -18,7 +18,7 @@ import (
 // one, so these tests look at the templates each batch is sent with, both for a
 // run that starts after the pick and for a run that sees the pick on a refresh.
 //
-// Plan: plans/fix-broadcast-duplicate-sends-plan.md (Part 4)
+// Plan: Notifuse/architecture plans/notifuse/fix-broadcast-duplicate-sends-plan.md (Part 4)
 
 // abAudience is the broadcast's list, in the email order the recipient query
 // pages through.

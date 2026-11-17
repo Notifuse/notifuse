@@ -16,7 +16,7 @@ import (
 // the phase incomplete with the cursor part-way through the test audience —
 // resumable in principle, previously untested.
 //
-// Plan: plans/task-orchestrator-test-coverage-plan.md
+// Plan: Notifuse/architecture plans/notifuse/task-orchestrator-test-coverage-plan.md
 
 // failEnqueue makes every email_queue insert abort, the way a transient
 // database error does mid-broadcast. Returns a function that clears the fault.
