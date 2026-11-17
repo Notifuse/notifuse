@@ -11572,12 +11572,12 @@ msgstr "Hatte eine zurückgewiesene E-Mail"
 #: src/components/segment/ConditionSentence.tsx:283
 #: src/components/segment/form_leaf.tsx:689
 msgid "has not reached"
-msgstr "hat nicht erreicht"
+msgstr "Ziel nicht erreicht:"
 
 #: src/components/segment/ConditionSentence.tsx:283
 #: src/components/segment/form_leaf.tsx:688
 msgid "has reached"
-msgstr "hat erreicht"
+msgstr "Ziel erreicht:"
 
 #. placeholder {0}: int(context.minSessions)
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:56

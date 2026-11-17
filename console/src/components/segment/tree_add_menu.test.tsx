@@ -188,6 +188,13 @@ describe('TreeNodeInput — keyboard focus', () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit' })))
   })
 
+  it('goes back to the add button after a delete', async () => {
+    renderTree(treeOf(listLeaf('news'), listLeaf('beta')))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove this condition' })[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(document.activeElement).toBe(addButton()))
+  })
+
   it('goes back to the add button when a new condition is cancelled', async () => {
     renderTree(treeOf())
     fireEvent.click((await openAddMenu())[1])

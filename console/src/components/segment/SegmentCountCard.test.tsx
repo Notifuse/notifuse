@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { SegmentCountCard, type SegmentCountCardProps } from './SegmentCountCard'
@@ -63,10 +64,16 @@ describe('SegmentCountCard', () => {
     expect(screen.getByText('< 0.1 % of 100,000 contacts')).toBeTruthy()
   })
 
-  it('puts the query behind « See the query », opened by a click too', async () => {
+  it('opens the query on a click, and keeps it open', async () => {
     renderCard({ response })
-    fireEvent.click(screen.getByText('See the query'))
-    expect(await screen.findByText('SELECT 1')).toBeTruthy()
+    const link = screen.getByText('See the query')
+    // A mouse reaches the link before it clicks: a popover that also opened on hover was toggled
+    // shut by that click.
+    fireEvent.mouseEnter(link)
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    await userEvent.click(link)
+    const sql = await screen.findByText('SELECT 1')
+    await waitFor(() => expect(sql.closest('.ant-popover')?.className).not.toContain('ant-popover-hidden'))
   })
 
   it('dims a count that no longer answers the form, and says why', () => {

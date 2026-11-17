@@ -294,7 +294,13 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     <Popconfirm
       placement="left"
       title={isBranch ? t`Do you really want to remove this group?` : t`Do you really want to remove this condition?`}
-      onConfirm={() => cancelOrDeleteNode(path, pathKey)}
+      onConfirm={() => {
+        cancelOrDeleteNode(path, pathKey)
+        // The button that was focused is gone with its row: the group's add button takes over.
+        requestAnimationFrame(() =>
+          rootRef.current?.querySelector<HTMLElement>(`[data-add-condition="${path}"]`)?.focus()
+        )
+      }}
       okText={t`Delete`}
       okButtonProps={{ danger: true }}
       cancelText={t`Cancel`}

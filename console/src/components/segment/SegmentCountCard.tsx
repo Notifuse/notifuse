@@ -80,7 +80,7 @@ export function SegmentCountCard({
       <div className="flex items-center justify-between gap-2">
         <span className="text-overline font-semibold tracking-wide text-ink-3 uppercase">{t`Matching contacts`}</span>
         {query && (
-          <Popover title={t`Preview Results`} placement="left" content={query} trigger={['hover', 'focus', 'click']}>
+          <Popover title={t`Preview Results`} placement="left" content={query} trigger="click">
             <button type="button" className="cursor-pointer text-xs text-ink-3 hover:text-primary-700">
               {t`See the query`}
             </button>
