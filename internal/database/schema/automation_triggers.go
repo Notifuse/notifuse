@@ -187,7 +187,9 @@ func AutomationEnrollContactWithTriggerFunction() string {
 
 				-- A transaction enrolling the same contact at the same time inserted the row
 				-- first: this insert waited for it and added nothing, so the journey is theirs.
-				-- Inside this block: FOUND is false on entry and nothing above sets it.
+				-- FOUND is this INSERT's result. The check must stay inside this block: on the
+				-- every_time path no statement sets FOUND, which stays false, so the same check
+				-- after END IF would stop every enrolment.
 				IF NOT FOUND THEN
 					RETURN;
 				END IF;

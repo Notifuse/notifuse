@@ -189,19 +189,21 @@ func TestAutomationEnrolmentDuplicates(t *testing.T) {
 		eventName := newEventName("signup")
 		automationID := liveAutomation(t, eventName, "once", nil)
 		email := newEmail("signup")
-		marker := "once-race-" + uuid.New().String()[:8]
+		externalID := "signup-" + uuid.New().String()[:8]
 
 		// The timeline row the custom event trigger writes, inserted directly: the race is in
 		// the enrolment it fires.
 		insertRow := func(tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx, `INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
-				VALUES ($1, 'insert', 'custom_event', $2, $3, '{}'::jsonb, NOW())`, email, "custom_event."+eventName, marker)
+				VALUES ($1, 'insert', 'custom_event', $2, $3, '{}'::jsonb, NOW())`, email, "custom_event."+eventName, externalID)
 			return err
 		}
 
 		first, err := workspaceDB.BeginTx(ctx, nil)
 		require.NoError(t, err)
 		defer func() { _ = first.Rollback() }()
+		var firstPID int
+		require.NoError(t, first.QueryRowContext(ctx, `SELECT pg_backend_pid()`).Scan(&firstPID))
 		require.NoError(t, insertRow(first))
 
 		second := make(chan error, 1)
@@ -219,13 +221,16 @@ func TestAutomationEnrolmentDuplicates(t *testing.T) {
 			second <- tx.Commit()
 		}()
 
-		// The second enrolment must be waiting on the first one's trigger log row before the
-		// first commits; otherwise its existence check alone would keep it out.
+		// The second enrolment must be blocked by the first transaction before it commits;
+		// otherwise its existence check alone would keep it out. It blocks on the first one's
+		// automation_trigger_log row: the automation_trigger_* triggers fire before
+		// contact_timeline_queue_trigger (name order), so the trigger log is the first row the
+		// two transactions share.
 		require.Eventually(t, func() bool {
-			var waiting int
-			err := workspaceDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM pg_stat_activity
-				WHERE datname = current_database() AND wait_event_type = 'Lock' AND query LIKE '%contact_timeline%'`).Scan(&waiting)
-			return err == nil && waiting > 0
+			var blocked int
+			err := workspaceDB.QueryRowContext(ctx,
+				`SELECT COUNT(*) FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))`, firstPID).Scan(&blocked)
+			return err == nil && blocked > 0
 		}, 10*time.Second, 20*time.Millisecond, "the second enrolment never waited for the first")
 
 		require.NoError(t, first.Commit())
@@ -258,8 +263,8 @@ func TestAutomationEnrolmentDuplicates(t *testing.T) {
 				}}},
 			},
 		})
-		email := newEmail("booking")
-		_, err := workspaceDB.ExecContext(ctx, `INSERT INTO contacts (email, country, created_at, updated_at) VALUES ($1, 'FR', NOW(), NOW())`, email)
+		email, elsewhere := newEmail("booking"), newEmail("booking")
+		_, err := workspaceDB.ExecContext(ctx, `INSERT INTO contacts (email, country, created_at, updated_at) VALUES ($1, 'FR', NOW(), NOW()), ($2, 'US', NOW(), NOW())`, email, elsewhere)
 		require.NoError(t, err)
 		externalID := "b-" + uuid.New().String()[:8]
 		recorded := time.Now().UTC().Add(-time.Hour).Truncate(time.Second)
@@ -270,6 +275,10 @@ func TestAutomationEnrolmentDuplicates(t *testing.T) {
 		upsert(t, map[string]interface{}{"email": email, "event_name": eventName, "external_id": externalID,
 			"occurred_at": recorded.Add(time.Minute).Format(time.RFC3339)})
 		assert.Equal(t, 1, journeys(t, automationID, email))
+
+		// The condition still applies to a new event.
+		upsert(t, map[string]interface{}{"email": elsewhere, "event_name": eventName, "external_id": "b-" + uuid.New().String()[:8]})
+		assert.Equal(t, 0, journeys(t, automationID, elsewhere), "a contact outside the condition is not enrolled")
 	})
 
 	// A workspace upgraded to 44 has triggers whose bodies were installed before it: they enrol on

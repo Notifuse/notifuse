@@ -80,27 +80,6 @@ import (
 // are deleted (v44OrphanMembershipsSQL), with the two membership triggers of contact_segments
 // disabled around the delete. Until 38.0 deleting a contact left its memberships in place.
 //
-// Last, an automation's emails get the event that started the journey, as {{ trigger_event }}.
-// The five-argument automation_enroll_contact stores it as contact_automations.context.trigger
-// (the column exists since v20 and nothing wrote it), and the four-argument signature becomes a
-// relay to it, for a trigger left with its old body. Then the function of every live
-// automation's trigger is replaced by the current generator's, which builds the event from the
-// contact_timeline row and calls the five-argument signature. Bodies only: the triggers and their
-// WHEN clauses stay, so no lock is taken on contact_timeline while this transaction holds
-// message_history and automations rows, and no trigger can be broadened. One savepoint per
-// automation: one whose condition no longer resolves keeps its old body and enrols without the
-// event. Journeys already running have no event. A rerun rewrites the same bodies.
-//
-// The same two steps fix three enrolment defects, with no statement of their own. The new
-// enrolment enrols a 'once' automation only when its insert added the automation_trigger_log
-// row, so two transactions enrolling one contact at once start one journey; and it dates a
-// journey with clock_timestamp(), so two enrolments of one contact in one transaction (two
-// events of one name in a batch) start two journeys instead of failing on
-// UNIQUE(automation_id, contact_email, entered_at). The replaced body of a custom event trigger
-// enrols only for a timeline row whose operation is 'insert': an update, soft delete or restore
-// of the event no longer starts the automation again. A trigger whose body is not replaced (see
-// above) keeps enrolling on those rows until the automation is paused and activated again; the
-// other two fixes reach it through the four-argument relay.
 // Since then a deletion failing between the contact row and its memberships still leaves
 // some, as does a segment build or queue recomputation that matches a contact and adds its
 // membership just after a deletion removed it. contact_segments has no foreign key to
@@ -124,6 +103,28 @@ import (
 // Enabling a trigger sets it to fire normally, whatever its state before the migration. A
 // rerun takes the lock again and deletes only the memberships orphaned since the previous
 // run, without events either.
+//
+// Last, an automation's emails get the event that started the journey, as {{ trigger_event }}.
+// The five-argument automation_enroll_contact stores it as contact_automations.context.trigger
+// (the column exists since v20 and nothing wrote it), and the four-argument signature becomes a
+// relay to it, for a trigger left with its old body. Then the function of every live
+// automation's trigger is replaced by the current generator's, which builds the event from the
+// contact_timeline row and calls the five-argument signature. Bodies only: the triggers and their
+// WHEN clauses stay, so no lock is taken on contact_timeline while this transaction holds
+// message_history and automations rows, and no trigger can be broadened. One savepoint per
+// automation: one whose condition no longer resolves keeps its old body and enrols without the
+// event. Journeys already running have no event. A rerun rewrites the same bodies.
+//
+// The same two steps fix three enrolment defects, with no statement of their own. The new
+// enrolment enrols a 'once' automation only when its insert added the automation_trigger_log
+// row, so two transactions enrolling one contact at once start one journey; and it dates a
+// journey with clock_timestamp(), so two enrolments of one contact in one transaction (two
+// events of one name in a batch) start two journeys instead of failing on
+// UNIQUE(automation_id, contact_email, entered_at). The replaced body of a custom event trigger
+// enrols only for a timeline row whose operation is 'insert': an update, soft delete or restore
+// of the event no longer starts the automation again. A trigger whose body is not replaced (see
+// above) keeps enrolling on those rows until the automation is paused and activated again; the
+// other two fixes reach it through the four-argument relay.
 //
 // No column is renamed or dropped, so no automation trigger function needs regenerating.
 type V44Migration struct{}
