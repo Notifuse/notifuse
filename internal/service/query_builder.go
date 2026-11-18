@@ -139,7 +139,28 @@ func (qb *QueryBuilder) initializeOperators() {
 
 // BuildSQL converts a segment tree into parameterized SQL
 // Returns: sql string, args []interface{}, error
+//
+// A custom JSON value that cannot be converted to the type a filter compares it as makes the query
+// raise (castDirectly): a segment fails rather than leaving the contact out silently, and the
+// failure names the value (see diagnoseSegmentValue).
 func (qb *QueryBuilder) BuildSQL(tree *domain.TreeNode) (string, []interface{}, error) {
+	return qb.buildSQL(tree, castDirectly)
+}
+
+// BuildDefensiveSQL is BuildSQL with the contact custom JSON filters cast defensively: a value
+// that cannot be converted is read as a missing value instead of raising. It answers « not in the
+// last N days » and no other comparison, as in automation trigger conditions.
+//
+// Automation branch and filter steps use it: they evaluate one contact at a time, like a trigger,
+// and a raise there would only burn the journey's retries, with no list to show the error in.
+// Segments keep BuildSQL, so no stored segment query changes.
+func (qb *QueryBuilder) BuildDefensiveSQL(tree *domain.TreeNode) (string, []interface{}, error) {
+	return qb.buildSQL(tree, castDefensively)
+}
+
+// buildSQL compiles tree with mode for the contact custom JSON filters. The mode is passed down
+// rather than kept on the builder, which is shared and stateless.
+func (qb *QueryBuilder) buildSQL(tree *domain.TreeNode, mode castMode) (string, []interface{}, error) {
 	if tree == nil {
 		return "", nil, fmt.Errorf("tree cannot be nil")
 	}
@@ -155,7 +176,7 @@ func (qb *QueryBuilder) BuildSQL(tree *domain.TreeNode) (string, []interface{}, 
 	argIndex := 1
 
 	// Parse the tree recursively
-	condition, newArgs, _, err := qb.parseNode(tree, argIndex)
+	condition, newArgs, _, err := qb.parseNode(tree, argIndex, mode)
 	if err != nil {
 		return "", nil, err
 	}
@@ -175,19 +196,19 @@ func (qb *QueryBuilder) BuildSQL(tree *domain.TreeNode) (string, []interface{}, 
 }
 
 // parseNode recursively parses a tree node
-func (qb *QueryBuilder) parseNode(node *domain.TreeNode, argIndex int) (string, []interface{}, int, error) {
+func (qb *QueryBuilder) parseNode(node *domain.TreeNode, argIndex int, mode castMode) (string, []interface{}, int, error) {
 	switch node.Kind {
 	case "branch":
-		return qb.parseBranch(node.Branch, argIndex)
+		return qb.parseBranch(node.Branch, argIndex, mode)
 	case "leaf":
-		return qb.parseLeaf(node.Leaf, argIndex)
+		return qb.parseLeaf(node.Leaf, argIndex, mode)
 	default:
 		return "", nil, argIndex, fmt.Errorf("invalid node kind: %s", node.Kind)
 	}
 }
 
 // parseBranch parses a branch node (AND/OR operator with children)
-func (qb *QueryBuilder) parseBranch(branch *domain.TreeNodeBranch, argIndex int) (string, []interface{}, int, error) {
+func (qb *QueryBuilder) parseBranch(branch *domain.TreeNodeBranch, argIndex int, mode castMode) (string, []interface{}, int, error) {
 	if branch == nil {
 		return "", nil, argIndex, fmt.Errorf("branch cannot be nil")
 	}
@@ -196,7 +217,7 @@ func (qb *QueryBuilder) parseBranch(branch *domain.TreeNodeBranch, argIndex int)
 	var args []interface{}
 
 	for _, leaf := range branch.Leaves {
-		condition, newArgs, newArgIndex, err := qb.parseNode(leaf, argIndex)
+		condition, newArgs, newArgIndex, err := qb.parseNode(leaf, argIndex, mode)
 		if err != nil {
 			return "", nil, argIndex, err
 		}
@@ -223,7 +244,7 @@ func (qb *QueryBuilder) parseBranch(branch *domain.TreeNodeBranch, argIndex int)
 }
 
 // parseLeaf parses a leaf node (actual condition)
-func (qb *QueryBuilder) parseLeaf(leaf *domain.TreeNodeLeaf, argIndex int) (string, []interface{}, int, error) {
+func (qb *QueryBuilder) parseLeaf(leaf *domain.TreeNodeLeaf, argIndex int, mode castMode) (string, []interface{}, int, error) {
 	if leaf == nil {
 		return "", nil, argIndex, fmt.Errorf("leaf cannot be nil")
 	}
@@ -233,7 +254,7 @@ func (qb *QueryBuilder) parseLeaf(leaf *domain.TreeNodeLeaf, argIndex int) (stri
 		if leaf.Contact == nil {
 			return "", nil, argIndex, fmt.Errorf("leaf with source 'contacts' must have 'contact' field")
 		}
-		return qb.parseContactConditions(leaf.Contact, argIndex)
+		return qb.parseContactConditions(leaf.Contact, argIndex, mode)
 
 	case "contact_lists":
 		if leaf.ContactList == nil {
@@ -258,8 +279,8 @@ func (qb *QueryBuilder) parseLeaf(leaf *domain.TreeNodeLeaf, argIndex int) (stri
 	}
 }
 
-// parseContactConditions parses contact filter conditions
-func (qb *QueryBuilder) parseContactConditions(contact *domain.ContactCondition, argIndex int) (string, []interface{}, int, error) {
+// parseContactConditions parses contact filter conditions, casting custom JSON values with mode
+func (qb *QueryBuilder) parseContactConditions(contact *domain.ContactCondition, argIndex int, mode castMode) (string, []interface{}, int, error) {
 	if contact == nil {
 		return "", nil, argIndex, fmt.Errorf("contact condition cannot be nil")
 	}
@@ -268,9 +289,10 @@ func (qb *QueryBuilder) parseContactConditions(contact *domain.ContactCondition,
 	var args []interface{}
 
 	for _, filter := range contact.Filters {
-		// Segments: a value that cannot be cast fails the query outright, which is a
-		// person waiting on a report rather than a write path going down.
-		condition, newArgs, newArgIndex, err := qb.parseFilter(filter, argIndex, castDirectly)
+		// Segments cast directly: a value that cannot be cast fails the query outright,
+		// which is a person waiting on a report rather than a write path going down.
+		// Automation steps cast defensively (see BuildDefensiveSQL).
+		condition, newArgs, newArgIndex, err := qb.parseFilter(filter, argIndex, mode)
 		if err != nil {
 			return "", nil, argIndex, err
 		}

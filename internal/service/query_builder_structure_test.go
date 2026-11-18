@@ -44,28 +44,28 @@ func TestBuildSQL_TreeStructureErrors(t *testing.T) {
 				"leaf with source 'custom_events_goals' must have 'custom_events_goal' field"},
 		}
 		for _, tc := range cases {
-			_, _, _, err := qb.parseLeaf(tc.leaf, 1)
+			_, _, _, err := qb.parseLeaf(tc.leaf, 1, castDirectly)
 			assert.EqualError(t, err, tc.want, "source %s", tc.source)
 		}
 	})
 
 	t.Run("unsupported source lists the supported ones", func(t *testing.T) {
-		_, _, _, err := qb.parseLeaf(&domain.TreeNodeLeaf{Source: "orders"}, 1)
+		_, _, _, err := qb.parseLeaf(&domain.TreeNodeLeaf{Source: "orders"}, 1, castDirectly)
 		require.EqualError(t, err,
 			"unsupported source: orders (supported: 'contacts', 'contact_lists', 'contact_timeline', 'custom_events_goals')")
 	})
 
 	t.Run("nil leaf and nil branch are errors, not panics", func(t *testing.T) {
-		_, _, _, err := qb.parseLeaf(nil, 1)
+		_, _, _, err := qb.parseLeaf(nil, 1, castDirectly)
 		require.EqualError(t, err, "leaf cannot be nil")
-		_, _, _, err = qb.parseBranch(nil, 1)
+		_, _, _, err = qb.parseBranch(nil, 1, castDirectly)
 		require.EqualError(t, err, "branch cannot be nil")
-		_, _, _, err = qb.parseContactConditions(nil, 1)
+		_, _, _, err = qb.parseContactConditions(nil, 1, castDirectly)
 		require.EqualError(t, err, "contact condition cannot be nil")
 	})
 
 	t.Run("an empty branch compiles to no condition rather than ()", func(t *testing.T) {
-		cond, args, next, err := qb.parseBranch(&domain.TreeNodeBranch{Operator: "and"}, 3)
+		cond, args, next, err := qb.parseBranch(&domain.TreeNodeBranch{Operator: "and"}, 3, castDirectly)
 		require.NoError(t, err)
 		assert.Equal(t, "", cond)
 		assert.Empty(t, args)

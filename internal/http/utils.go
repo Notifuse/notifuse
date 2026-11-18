@@ -168,8 +168,8 @@ func writeLicenseRequired(w http.ResponseWriter, feature, requiredTier, message 
 // error. A dead credential answers 401, a licence refusal 402 and a permission
 // denial 403 — all three through writePermissionError, so the two helpers can never
 // disagree about which of them a given error is — an authorization
-// failure (not a member / not an owner) answers 403 rather than a generic 500, and
-// a missing row answers 404.
+// failure (not a member / not an owner) answers 403 rather than a generic 500, a
+// missing row answers 404, and a segment value that cannot be converted 422.
 // It unwraps via errors.As/errors.Is, so it still matches when the service wrapped
 // the error on its way up (e.g. "failed to authenticate user: %w").
 //
@@ -210,6 +210,17 @@ func writeServiceError(w http.ResponseWriter, err error, fallback string) bool {
 	var segmentNotFound *domain.ErrSegmentNotFound
 	if errors.As(err, &segmentNotFound) {
 		WriteJSONError(w, "Segment not found", http.StatusNotFound)
+		return true
+	}
+	// A segment query that met a contact value it cannot convert is the caller's data, not a
+	// fault of ours, and retrying cannot help: 422, with the fields a client composes its own
+	// sentence from. The error names the contact only on endpoints that require contacts:read.
+	var valueErr *domain.SegmentValueError
+	if errors.As(err, &valueErr) {
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]interface{}{
+			"error":       valueErr.Error(),
+			"value_error": valueErr,
+		})
 		return true
 	}
 	var unauthorized *domain.ErrUnauthorized

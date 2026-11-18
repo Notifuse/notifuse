@@ -762,3 +762,23 @@ func TestWriteValidationError(t *testing.T) {
 		assert.Equal(t, 0, w.Body.Len())
 	})
 }
+
+// A segment value error answers 422 with the sentence and the fields; through a wrap too. Other
+// errors are left to the caller as before.
+func TestWriteServiceError_SegmentValueError(t *testing.T) {
+	valueErr := &domain.SegmentValueError{Column: "custom_json_2", Path: []string{"score"}, Type: domain.SegmentValueTypeNumber,
+		Email: "joe@example.com", Value: "high", Cause: `invalid input syntax for type numeric: "high"`}
+
+	rr := httptest.NewRecorder()
+	require.True(t, writeServiceError(rr, fmt.Errorf("failed: %w", valueErr), "fallback"))
+	assert.Equal(t, http.StatusUnprocessableEntity, rr.Code)
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{
+		"error": "custom_json_2.score: contact joe@example.com holds \"high\", which is not a valid number",
+		"value_error": {"column": "custom_json_2", "path": ["score"], "type": "number", "email": "joe@example.com", "value": "high"}
+	}`, rr.Body.String())
+
+	other := httptest.NewRecorder()
+	assert.False(t, writeServiceError(other, errors.New("failed to preview segment: boom"), "fallback"))
+	assert.Equal(t, 0, other.Body.Len())
+}

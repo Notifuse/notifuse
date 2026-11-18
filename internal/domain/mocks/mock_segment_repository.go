@@ -50,6 +50,21 @@ func (mr *MockSegmentRepositoryMockRecorder) AddContactToSegment(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddContactToSegment", reflect.TypeOf((*MockSegmentRepository)(nil).AddContactToSegment), arg0, arg1, arg2, arg3, arg4)
 }
 
+// ClearSegmentLastErrorForEmail mocks base method.
+func (m *MockSegmentRepository) ClearSegmentLastErrorForEmail(arg0 context.Context, arg1, arg2 string, arg3 int64, arg4 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearSegmentLastErrorForEmail", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClearSegmentLastErrorForEmail indicates an expected call of ClearSegmentLastErrorForEmail.
+func (mr *MockSegmentRepositoryMockRecorder) ClearSegmentLastErrorForEmail(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearSegmentLastErrorForEmail", reflect.TypeOf((*MockSegmentRepository)(nil).ClearSegmentLastErrorForEmail), arg0, arg1, arg2, arg3, arg4)
+}
+
 // CreateSegment mocks base method.
 func (m *MockSegmentRepository) CreateSegment(arg0 context.Context, arg1 string, arg2 *domain.Segment) error {
 	m.ctrl.T.Helper()
@@ -197,6 +212,21 @@ func (mr *MockSegmentRepositoryMockRecorder) PreviewSegment(arg0, arg1, arg2, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreviewSegment", reflect.TypeOf((*MockSegmentRepository)(nil).PreviewSegment), arg0, arg1, arg2, arg3, arg4)
 }
 
+// ReleaseSegmentWithError mocks base method.
+func (m *MockSegmentRepository) ReleaseSegmentWithError(arg0 context.Context, arg1, arg2 string, arg3 int64, arg4 *domain.SegmentLastError) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseSegmentWithError", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReleaseSegmentWithError indicates an expected call of ReleaseSegmentWithError.
+func (mr *MockSegmentRepositoryMockRecorder) ReleaseSegmentWithError(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseSegmentWithError", reflect.TypeOf((*MockSegmentRepository)(nil).ReleaseSegmentWithError), arg0, arg1, arg2, arg3, arg4)
+}
+
 // RemoveContactFromSegment mocks base method.
 func (m *MockSegmentRepository) RemoveContactFromSegment(arg0 context.Context, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()
@@ -223,6 +253,21 @@ func (m *MockSegmentRepository) RemoveOldMemberships(arg0 context.Context, arg1,
 func (mr *MockSegmentRepositoryMockRecorder) RemoveOldMemberships(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveOldMemberships", reflect.TypeOf((*MockSegmentRepository)(nil).RemoveOldMemberships), arg0, arg1, arg2, arg3)
+}
+
+// SetSegmentLastError mocks base method.
+func (m *MockSegmentRepository) SetSegmentLastError(arg0 context.Context, arg1, arg2 string, arg3 int64, arg4 *domain.SegmentLastError) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetSegmentLastError", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetSegmentLastError indicates an expected call of SetSegmentLastError.
+func (mr *MockSegmentRepositoryMockRecorder) SetSegmentLastError(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSegmentLastError", reflect.TypeOf((*MockSegmentRepository)(nil).SetSegmentLastError), arg0, arg1, arg2, arg3, arg4)
 }
 
 // StartRecompute mocks base method.

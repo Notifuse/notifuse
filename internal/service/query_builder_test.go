@@ -3225,3 +3225,80 @@ func TestQueryBuilder_JSONValueTextOnPostgres(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+// BuildDefensiveSQL casts the contact custom JSON values defensively, so a value that cannot be
+// converted reads as missing, while BuildSQL keeps the direct cast segments are stored with.
+func TestQueryBuilder_BuildDefensiveSQL(t *testing.T) {
+	qb := NewQueryBuilder()
+	jsonLeaf := func(filter *domain.DimensionFilter) *domain.TreeNode {
+		return &domain.TreeNode{Kind: "leaf", Leaf: &domain.TreeNodeLeaf{Source: "contacts",
+			Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{filter}}}}
+	}
+	dateAfter := jsonLeaf(&domain.DimensionFilter{FieldName: "custom_json_1", FieldType: "time", Operator: "after_date",
+		JSONPath: []string{"renewed_at"}, StringValues: []string{"2026-01-01T00:00:00Z"}})
+	numberGT := jsonLeaf(&domain.DimensionFilter{FieldName: "custom_json_2", FieldType: "number", Operator: "gt",
+		JSONPath: []string{"score"}, NumberValues: []float64{10}})
+	notInLast := jsonLeaf(&domain.DimensionFilter{FieldName: "custom_json_1", FieldType: "time", Operator: "not_in_the_last_days",
+		JSONPath: []string{"renewed_at"}, StringValues: []string{"30"}})
+
+	t.Run("a date", func(t *testing.T) {
+		direct, _, err := qb.BuildSQL(dateAfter)
+		require.NoError(t, err)
+		assert.Equal(t, `SELECT email FROM contacts WHERE (((custom_json_1['renewed_at'] #>> '{}'))::timestamptz > $1)`, direct)
+
+		defensive, args, err := qb.BuildDefensiveSQL(dateAfter)
+		require.NoError(t, err)
+		assert.Equal(t, `SELECT email FROM contacts WHERE (`+castTimestamp(`(custom_json_1['renewed_at'] #>> '{}')`, castDefensively)+` > $1)`, defensive)
+		assert.Contains(t, defensive, "pg_input_is_valid((custom_json_1['renewed_at'] #>> '{}'), 'timestamptz')")
+		require.Len(t, args, 1)
+	})
+
+	t.Run("a number", func(t *testing.T) {
+		direct, _, err := qb.BuildSQL(numberGT)
+		require.NoError(t, err)
+		assert.Equal(t, `SELECT email FROM contacts WHERE (((custom_json_2['score'] #>> '{}'))::numeric > $1)`, direct)
+
+		defensive, _, err := qb.BuildDefensiveSQL(numberGT)
+		require.NoError(t, err)
+		assert.Equal(t, `SELECT email FROM contacts WHERE (`+castNumeric(`(custom_json_2['score'] #>> '{}')`, castDefensively)+` > $1)`, defensive)
+	})
+
+	t.Run("not in the last days stays NULL-inclusive", func(t *testing.T) {
+		defensive, _, err := qb.BuildDefensiveSQL(notInLast)
+		require.NoError(t, err)
+		cast := castTimestamp(`(custom_json_1['renewed_at'] #>> '{}')`, castDefensively)
+		assert.Equal(t, `SELECT email FROM contacts WHERE ((`+cast+` IS NULL OR `+cast+` <= NOW() - INTERVAL '30 days'))`, defensive)
+	})
+
+	t.Run("nested in branches", func(t *testing.T) {
+		tree := &domain.TreeNode{Kind: "branch", Branch: &domain.TreeNodeBranch{Operator: "or", Leaves: []*domain.TreeNode{
+			{Kind: "branch", Branch: &domain.TreeNodeBranch{Operator: "and", Leaves: []*domain.TreeNode{dateAfter}}},
+			numberGT,
+		}}}
+		defensive, args, err := qb.BuildDefensiveSQL(tree)
+		require.NoError(t, err)
+		assert.Equal(t, 2, strings.Count(defensive, "pg_input_is_valid"))
+		assert.NotContains(t, defensive, "#>> '{}'))::timestamptz >")
+		assert.Len(t, args, 2)
+
+		direct, _, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.NotContains(t, direct, "pg_input_is_valid", "segments keep the direct cast")
+	})
+
+	t.Run("everything else compiles the same", func(t *testing.T) {
+		tree := &domain.TreeNode{Kind: "branch", Branch: &domain.TreeNodeBranch{Operator: "and", Leaves: []*domain.TreeNode{
+			jsonLeaf(&domain.DimensionFilter{FieldName: "custom_json_1", FieldType: "string", Operator: "equals",
+				JSONPath: []string{"plan"}, StringValues: []string{"gold"}}),
+			jsonLeaf(&domain.DimensionFilter{FieldName: "custom_number_1", FieldType: "number", Operator: "gt", NumberValues: []float64{3}}),
+			{Kind: "leaf", Leaf: &domain.TreeNodeLeaf{Source: "contact_timeline", ContactTimeline: &domain.ContactTimelineCondition{
+				Kind: "email.opened", CountOperator: "at_least", CountValue: 1}}},
+		}}}
+		direct, directArgs, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		defensive, defensiveArgs, err := qb.BuildDefensiveSQL(tree)
+		require.NoError(t, err)
+		assert.Equal(t, direct, defensive)
+		assert.Equal(t, directArgs, defensiveArgs)
+	})
+}

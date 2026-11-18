@@ -10,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/lib/pq"
 )
 
 // detachedStatementTimeout bounds the claim and requeue statements, which run on
@@ -67,7 +69,10 @@ func NewContactSegmentQueueProcessor(
 //
 // A contact whose recomputation fails (or is cut short by context cancellation)
 // is re-enqueued so it is retried on a later pass; because the claim already
-// removed it, nothing is silently dropped. A hard crash (or shutdown racing the
+// removed it, nothing is silently dropped. A segment query raising on a value of
+// the contact it cannot convert is not such a failure: the segment records the
+// error and keeps the contact's membership as it was, the contact's other
+// segments are written, and the contact is not re-enqueued (see processContact). A hard crash (or shutdown racing the
 // connection-pool close) between the claim commit and processing drops that
 // batch: those contacts recompute on their next event (or, for relative-date
 // segments, the daily rebuild).
@@ -306,6 +311,10 @@ func (p *ContactSegmentQueueProcessor) requeueBatch(ctx context.Context, db *sql
 
 // processContact processes a single contact against all segments
 // Uses a single query to evaluate all segments at once for better performance
+//
+// segments is the batch's snapshot of the active segments, shared by every contact of the batch.
+// Their LastError is kept in step with what this processor records and clears, so a later contact
+// of the batch sees it.
 func (p *ContactSegmentQueueProcessor) processContact(ctx context.Context, workspaceID string, workspaceDB *sql.DB, email string, segments []*domain.Segment) error {
 	if len(segments) == 0 {
 		return nil
@@ -356,26 +365,15 @@ func (p *ContactSegmentQueueProcessor) processContact(ctx context.Context, works
 		fullQuery += " UNION ALL (" + queryParts[i] + ")"
 	}
 
-	// Execute the combined query to get all matching segment IDs
-	rows, err := workspaceDB.QueryContext(ctx, fullQuery, allArgs...)
+	// Execute the combined query to get all matching segment IDs. One segment raising on this
+	// contact's value fails the whole statement, from the query or from a later row: each segment
+	// is then evaluated alone, so the others still get the contact's memberships.
+	matchingSegments, err := p.evaluateCombined(ctx, workspaceDB, fullQuery, allArgs)
 	if err != nil {
-		return fmt.Errorf("failed to evaluate segments: %w", err)
-	}
-	defer func() {
-		_ = rows.Close()
-	}()
-
-	matchingSegments := make(map[string]bool)
-	for rows.Next() {
-		var segmentID string
-		if err := rows.Scan(&segmentID); err != nil {
-			return fmt.Errorf("failed to scan segment ID: %w", err)
+		if database.IsDataConversionError(err) {
+			return p.processContactSegmentBySegment(ctx, workspaceID, workspaceDB, email, segments)
 		}
-		matchingSegments[segmentID] = true
-	}
-
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("error iterating segment matches: %w", err)
+		return err
 	}
 
 	// Now update segment memberships based on matches. Every segment is written even when one
@@ -385,19 +383,155 @@ func (p *ContactSegmentQueueProcessor) processContact(ctx context.Context, works
 	// row, and a remove of a non-member deletes none.
 	var writeErrs []error
 	for _, segment := range segments {
-		if matchingSegments[segment.ID] {
-			if err := p.segmentRepo.AddContactToSegment(ctx, workspaceID, email, segment.ID, segment.Version); err != nil {
-				writeErrs = append(writeErrs, fmt.Errorf("failed to add contact to segment %s: %w", segment.ID, err))
-			}
-		} else {
-			// A contact that is not a member deletes nothing, which is not an error.
-			if err := p.segmentRepo.RemoveContactFromSegment(ctx, workspaceID, email, segment.ID); err != nil {
-				writeErrs = append(writeErrs, fmt.Errorf("failed to remove contact from segment %s: %w", segment.ID, err))
-			}
-		}
+		writeErrs = append(writeErrs, p.writeMembership(ctx, workspaceID, email, segment, matchingSegments[segment.ID])...)
 	}
 
 	return errors.Join(writeErrs...)
+}
+
+// evaluateCombined runs the UNION ALL of every segment's query for one contact and returns the
+// segments it matches.
+func (p *ContactSegmentQueueProcessor) evaluateCombined(ctx context.Context, workspaceDB *sql.DB, query string, args []interface{}) (map[string]bool, error) {
+	rows, err := workspaceDB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate segments: %w", err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	matchingSegments := make(map[string]bool)
+	for rows.Next() {
+		var segmentID string
+		if err := rows.Scan(&segmentID); err != nil {
+			return nil, fmt.Errorf("failed to scan segment ID: %w", err)
+		}
+		matchingSegments[segmentID] = true
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating segment matches: %w", err)
+	}
+	return matchingSegments, nil
+}
+
+// processContactSegmentBySegment evaluates the contact against each segment alone, after the
+// combined statement failed on a value it could not convert. A segment that answers gets the
+// contact's membership written as usual. A segment that raises on the value gets no add and no
+// remove: its membership stays as it was. The error is recorded on it (recordQueueValueError),
+// and the contact is not re-enqueued for it, since evaluating it again would raise again until
+// the value changes, which enqueues the contact anyway. A write error, or another error from a
+// segment's query, is returned, so the contact is re-enqueued as usual.
+func (p *ContactSegmentQueueProcessor) processContactSegmentBySegment(ctx context.Context, workspaceID string, workspaceDB *sql.DB, email string, segments []*domain.Segment) error {
+	var errs []error
+	for _, segment := range segments {
+		matched := false
+		if segment.GeneratedSQL != nil && *segment.GeneratedSQL != "" {
+			m, err := p.evaluateSegment(ctx, workspaceDB, segment, email)
+			if err != nil {
+				if !database.IsDataConversionError(err) {
+					errs = append(errs, err)
+					continue
+				}
+				if recordErr := p.recordQueueValueError(ctx, workspaceID, workspaceDB, segment, email, err); recordErr != nil {
+					errs = append(errs, recordErr)
+				}
+				continue
+			}
+			matched = m
+		}
+		errs = append(errs, p.writeMembership(ctx, workspaceID, email, segment, matched)...)
+	}
+	return errors.Join(errs...)
+}
+
+// evaluateSegment reports whether the contact matches one segment, with the segment's stored
+// query and arguments as they are, the contact's email bound after them.
+func (p *ContactSegmentQueueProcessor) evaluateSegment(ctx context.Context, workspaceDB *sql.DB, segment *domain.Segment, email string) (bool, error) {
+	args := append([]interface{}{}, segment.GeneratedArgs...)
+	query := "SELECT EXISTS (" + *segment.GeneratedSQL + " AND email = $" + strconv.Itoa(len(args)+1) + ")"
+	args = append(args, email)
+	var matched bool
+	if err := workspaceDB.QueryRowContext(ctx, query, args...).Scan(&matched); err != nil {
+		return false, fmt.Errorf("failed to evaluate segment %s: %w", segment.ID, err)
+	}
+	return matched, nil
+}
+
+// writeMembership writes the contact's membership of a segment it was evaluated against, then
+// clears the segment's error when the queue recorded it for this contact: the contact's value now
+// converts. The clear is gated on the batch's snapshot, so a segment without such an error costs
+// no statement.
+func (p *ContactSegmentQueueProcessor) writeMembership(ctx context.Context, workspaceID string, email string, segment *domain.Segment, matched bool) []error {
+	var errs []error
+	if matched {
+		if err := p.segmentRepo.AddContactToSegment(ctx, workspaceID, email, segment.ID, segment.Version); err != nil {
+			errs = append(errs, fmt.Errorf("failed to add contact to segment %s: %w", segment.ID, err))
+		}
+	} else {
+		// A contact that is not a member deletes nothing, which is not an error.
+		if err := p.segmentRepo.RemoveContactFromSegment(ctx, workspaceID, email, segment.ID); err != nil {
+			errs = append(errs, fmt.Errorf("failed to remove contact from segment %s: %w", segment.ID, err))
+		}
+	}
+
+	lastErr := segment.LastError
+	if lastErr != nil && lastErr.Source == domain.SegmentLastErrorSourceContactQueue && lastErr.Email == email {
+		cleared, err := p.segmentRepo.ClearSegmentLastErrorForEmail(ctx, workspaceID, segment.ID, segment.Version, email)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to clear the last error of segment %s: %w", segment.ID, err))
+		} else if cleared {
+			segment.LastError = nil
+			segment.LastErrorAt = nil
+		}
+	}
+	return errs
+}
+
+// recordQueueValueError records on a segment that its query raised on this contact's value,
+// looking for the value within this contact alone. A segment that already holds an error is left
+// as it is, without a diagnosis: the first error recorded stays until it is cleared, and the
+// write would be refused anyway. The write is conditional on the snapshot's version.
+func (p *ContactSegmentQueueProcessor) recordQueueValueError(ctx context.Context, workspaceID string, workspaceDB *sql.DB, segment *domain.Segment, email string, queryErr error) error {
+	if segment.LastError != nil {
+		return nil
+	}
+
+	var lastErr *domain.SegmentLastError
+	var cause *pq.Error
+	if errors.As(queryErr, &cause) {
+		diagCtx, cancel := context.WithTimeout(ctx, segmentDiagnosisTimeout)
+		valueErr := diagnoseSegmentValue(diagCtx, workspaceDB, segment.Tree, cause, []string{email})
+		cancel()
+		if valueErr != nil {
+			lastErr = valueErr.LastError(domain.SegmentLastErrorSourceContactQueue)
+		} else {
+			lastErr = domain.NewOtherSegmentLastError(domain.SegmentLastErrorSourceContactQueue, cause.Message)
+		}
+	} else {
+		lastErr = domain.NewOtherSegmentLastError(domain.SegmentLastErrorSourceContactQueue, queryErr.Error())
+	}
+
+	// The query raised on this contact, so the error names it even when the diagnosis could not
+	// find the value: that is what lets the queue clear it once the contact's value converts.
+	if lastErr.Email == "" {
+		lastErr.Email = email
+	}
+
+	p.logger.WithFields(map[string]interface{}{
+		"segment_id": segment.ID,
+		"column":     lastErr.Column,
+		"path":       lastErr.Path,
+		"type":       lastErr.Type,
+	}).Warn("Segment query cannot convert a contact's value, membership left unchanged")
+
+	if _, err := p.segmentRepo.SetSegmentLastError(ctx, workspaceID, segment.ID, segment.Version, lastErr); err != nil {
+		return fmt.Errorf("failed to record the last error of segment %s: %w", segment.ID, err)
+	}
+	// Written, or refused because another pass recorded one first: either way the segment holds
+	// an error now, and the rest of the batch leaves it alone.
+	segment.LastError = lastErr
+	return nil
 }
 
 // rebindPlaceholders shifts SQL placeholders by the given offset, so a segment query written

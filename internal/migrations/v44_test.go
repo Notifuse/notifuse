@@ -103,6 +103,14 @@ func expectV44SegmentQueries(mock sqlmock.Sqlmock) {
 	mock.ExpectQuery(segmentSelect).WillReturnRows(sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}))
 }
 
+const v44SegmentLastErrorColumnsSQL = `ALTER TABLE segments ADD COLUMN IF NOT EXISTS last_error JSONB, ADD COLUMN IF NOT EXISTS last_error_at TIMESTAMP WITH TIME ZONE`
+
+// The segment's last-error columns come right after the segment queries are recompiled, and
+// before the column on broadcasts.
+func expectV44SegmentLastErrorColumns(mock sqlmock.Sqlmock) {
+	mock.ExpectExec("^" + regexp.QuoteMeta(v44SegmentLastErrorColumnsSQL) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+}
+
 const v44TestPauseColumnSQL = `ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS test_paused_seconds INTEGER NOT NULL DEFAULT 0`
 
 // The column comes last, after the trigger bodies: its ACCESS EXCLUSIVE lock on broadcasts is
@@ -121,6 +129,7 @@ func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.
 	}
 	expectV44TriggerBodies(mock)
 	expectV44SegmentQueries(mock)
+	expectV44SegmentLastErrorColumns(mock)
 	expectV44TestPauseColumn(mock)
 
 	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
@@ -202,6 +211,7 @@ func TestV44Migration_UpdateWorkspacePurgesTheOwnLinksBetweenTheBuildsAndTheMemb
 	}
 	expectV44TriggerBodies(mock)
 	expectV44SegmentQueries(mock)
+	expectV44SegmentLastErrorColumns(mock)
 	expectV44TestPauseColumn(mock)
 
 	endpoint := "https://Mail.Brand.example./"
@@ -289,6 +299,7 @@ func TestV44Migration_ReplacesTriggerBodiesToPassTheEvent(t *testing.T) {
 	mock.ExpectExec("^CREATE OR REPLACE FUNCTION automation_trigger_cartauto").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("^RELEASE SAVEPOINT v44_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
 	expectV44SegmentQueries(mock)
+	expectV44SegmentLastErrorColumns(mock)
 	expectV44TestPauseColumn(mock)
 
 	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
@@ -387,6 +398,7 @@ func TestV44Migration_UpdateWorkspaceRepairsTheFinishedScheduledSends(t *testing
 	}
 	expectV44TriggerBodies(mock)
 	expectV44SegmentQueries(mock)
+	expectV44SegmentLastErrorColumns(mock)
 	expectV44TestPauseColumn(mock)
 
 	m := &V44Migration{finishedSends: map[string][]v44FinishedSend{
@@ -421,10 +433,42 @@ func TestV44Migration_TheTestPauseColumnErrorNamesItsStep(t *testing.T) {
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	expectV44TriggerBodies(mock)
+	expectV44SegmentQueries(mock)
+	expectV44SegmentLastErrorColumns(mock)
 	mock.ExpectExec("^" + regexp.QuoteMeta(v44TestPauseColumnSQL) + "$").WillReturnError(errors.New("boom"))
 
 	err = (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "test_paused_seconds")
 	assert.Contains(t, err.Error(), "ws1")
+	assert.Contains(t, err.Error(), "boom")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// The segment columns come after the recompilation of the segment queries, which reads segments
+// without them, and an error there stops the update before the column on broadcasts.
+func TestV44Migration_TheSegmentLastErrorColumnsErrorNamesItsStep(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	for _, stmt := range v44ExpectedWorkspaceStatements {
+		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
+	}
+	expectV44TriggerBodies(mock)
+	expectV44SegmentQueries(mock)
+	mock.ExpectExec("^" + regexp.QuoteMeta(v44SegmentLastErrorColumnsSQL) + "$").WillReturnError(errors.New("boom"))
+
+	err = (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "segments.last_error")
+	assert.Contains(t, err.Error(), "ws1")
+	assert.Contains(t, err.Error(), "boom")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+// A rerun, on a workspace whose segments already have the columns, adds nothing: both are added
+// only if they do not exist.
+func TestV44Migration_TheSegmentLastErrorColumnsAreIdempotent(t *testing.T) {
+	assert.Equal(t, 2, strings.Count(v44SegmentLastErrorSQL, "ADD COLUMN IF NOT EXISTS"))
+	assert.Equal(t, v44SegmentLastErrorColumnsSQL, v44SegmentLastErrorSQL)
 }

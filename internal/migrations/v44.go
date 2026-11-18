@@ -21,7 +21,8 @@ import (
 // contacts and the instance's own links recorded in clicked_links, recounts the exited
 // journeys of each automation, passes the event that started a journey to its emails, marks
 // processed the scheduled A/B broadcasts sent before 44 that stayed scheduled, recompiles the
-// segments whose stored query changed, and adds broadcasts.test_paused_seconds.
+// segments whose stored query changed, adds segments.last_error and last_error_at, and adds
+// broadcasts.test_paused_seconds.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -165,6 +166,16 @@ import (
 // lock_timeout; a segment build waiting for one waits that long. A tree that no longer compiles
 // keeps its query. A rerun finds no difference and writes nothing.
 //
+// Right after the recompilation, segments gets last_error and last_error_at
+// (schema.SegmentLastErrorColumn, schema.SegmentLastErrorAtColumn): the last failure of a
+// segment's computation, such as a contact value its query could not convert, and when it was
+// recorded, so that a failure nobody watched is shown on the segment. Both are NULL, so the
+// columns are added without rewriting the table, but the statement takes an ACCESS EXCLUSIVE lock
+// on segments until the workspace commits: the segment builds, the contact queue and the segment
+// pages of another instance wait for the commit. It comes after the recompilation, which reads
+// and updates segments under row locks only, and waits for its lock under the same 5-second
+// lock_timeout. IF NOT EXISTS makes a rerun add nothing.
+//
 // Last, after the trigger bodies and the segments, broadcasts gets test_paused_seconds, the time an A/B test
 // waiting for its winner spent paused (schema.BroadcastTestPausedSecondsColumn). With a constant
 // default the column is added without rewriting the table, but it takes an ACCESS EXCLUSIVE lock
@@ -190,6 +201,10 @@ type v44FinishedSend struct {
 	broadcastID string
 	completedAt string
 }
+
+// v44SegmentLastErrorSQL adds the columns keeping a segment's last failure.
+var v44SegmentLastErrorSQL = `ALTER TABLE segments ADD COLUMN IF NOT EXISTS ` + schema.SegmentLastErrorColumn +
+	`, ADD COLUMN IF NOT EXISTS ` + schema.SegmentLastErrorAtColumn
 
 // v44FinishedSendsSQL lists the send tasks that completed with no phase.
 const v44FinishedSendsSQL = `SELECT workspace_id, broadcast_id,
@@ -382,6 +397,10 @@ func (m *V44Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	// Then the segments whose stored query the same change alters (see the type comment).
 	if _, err := RegenerateSegmentSQL(ctx, db); err != nil {
 		return fmt.Errorf("v44: failed to recompile the segment queries for workspace %s: %w", workspace.ID, err)
+	}
+	// Then the columns keeping a segment's last failure (see the type comment).
+	if _, err := db.ExecContext(ctx, v44SegmentLastErrorSQL); err != nil {
+		return fmt.Errorf("v44: failed to add segments.last_error and last_error_at for workspace %s: %w", workspace.ID, err)
 	}
 	// Last: its lock on broadcasts is held until the workspace commits (see the type comment).
 	if _, err := db.ExecContext(ctx, `ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS `+schema.BroadcastTestPausedSecondsColumn); err != nil {

@@ -657,10 +657,14 @@ func (e *BranchNodeExecutor) Execute(ctx context.Context, params NodeExecutionPa
 	}, nil
 }
 
-// evaluateConditionsWithDB uses QueryBuilder to check if contact matches conditions
+// evaluateConditionsWithDB uses QueryBuilder to check if contact matches conditions.
+//
+// A custom JSON value that cannot be converted reads as missing (BuildDefensiveSQL), as in
+// trigger conditions: raising would only burn the journey's retries on a value that will not
+// change by itself.
 func (e *BranchNodeExecutor) evaluateConditionsWithDB(ctx context.Context, db *sql.DB, email string, conditions *domain.TreeNode) (bool, error) {
 	// Build SQL using QueryBuilder (same as segments/triggers)
-	sqlStr, args, err := e.queryBuilder.BuildSQL(conditions)
+	sqlStr, args, err := e.queryBuilder.BuildDefensiveSQL(conditions)
 	if err != nil {
 		return false, err
 	}
@@ -780,9 +784,10 @@ func (e *FilterNodeExecutor) Execute(ctx context.Context, params NodeExecutionPa
 	}, nil
 }
 
-// evaluateConditionsWithDB uses QueryBuilder to check if contact matches conditions
+// evaluateConditionsWithDB uses QueryBuilder to check if contact matches conditions, a custom
+// JSON value that cannot be converted reading as missing (see BranchNodeExecutor's).
 func (e *FilterNodeExecutor) evaluateConditionsWithDB(ctx context.Context, db *sql.DB, email string, conditions *domain.TreeNode) (bool, error) {
-	sqlStr, args, err := e.queryBuilder.BuildSQL(conditions)
+	sqlStr, args, err := e.queryBuilder.BuildDefensiveSQL(conditions)
 	if err != nil {
 		return false, err
 	}

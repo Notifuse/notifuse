@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"time"
@@ -45,6 +46,25 @@ type Segment struct {
 	DBCreatedAt    time.Time  `json:"db_created_at"`
 	DBUpdatedAt    time.Time  `json:"db_updated_at"`
 	UsersCount     int        `json:"users_count"` // joined server-side
+	// LastError is the last failure of the segment's computation (a build or the contact queue),
+	// until a computation clears it. Membership may be incomplete while it is set.
+	LastError   *SegmentLastError `json:"last_error,omitempty"`
+	LastErrorAt *time.Time        `json:"last_error_at,omitempty"`
+}
+
+// RedactForContactsAccess removes from the segment's last error what only a reader of contacts
+// may see: the contact's email, the value it holds, and the database's message, which quotes the
+// value. The column, the path, the type and the kind stay. The error is copied, so a segment
+// sharing it is not changed.
+func (s *Segment) RedactForContactsAccess() {
+	if s.LastError == nil {
+		return
+	}
+	redacted := *s.LastError
+	redacted.Email = ""
+	redacted.Value = ""
+	redacted.Cause = ""
+	s.LastError = &redacted
 }
 
 // ContactSegment represents the relationship between a contact and a segment
@@ -140,12 +160,15 @@ type dbSegment struct {
 	DBUpdatedAt    time.Time
 }
 
-// ScanSegment scans a segment from the database
+// ScanSegment scans a segment from the database. The columns are those of dbSegment, then
+// users_count, last_error and last_error_at.
 func ScanSegment(scanner interface {
 	Scan(dest ...interface{}) error
 }) (*Segment, error) {
 	var dbs dbSegment
 	var usersCount int
+	var lastError []byte
+	var lastErrorAt *time.Time
 	if err := scanner.Scan(
 		&dbs.ID,
 		&dbs.Name,
@@ -160,6 +183,8 @@ func ScanSegment(scanner interface {
 		&dbs.DBCreatedAt,
 		&dbs.DBUpdatedAt,
 		&usersCount,
+		&lastError,
+		&lastErrorAt,
 	); err != nil {
 		return nil, err
 	}
@@ -184,6 +209,15 @@ func ScanSegment(scanner interface {
 		DBCreatedAt:    dbs.DBCreatedAt,
 		DBUpdatedAt:    dbs.DBUpdatedAt,
 		UsersCount:     usersCount,
+	}
+
+	if lastError != nil {
+		var recorded SegmentLastError
+		if err := json.Unmarshal(lastError, &recorded); err != nil {
+			return nil, fmt.Errorf("failed to parse segment last error: %w", err)
+		}
+		s.LastError = &recorded
+		s.LastErrorAt = lastErrorAt
 	}
 
 	return s, nil
@@ -461,7 +495,8 @@ type SegmentRepository interface {
 	// RemoveOldMemberships removes contact_segment records with old versions
 	RemoveOldMemberships(ctx context.Context, workspaceID string, segmentID string, currentVersion int64) error
 
-	// GetContactSegments retrieves all segments a contact belongs to
+	// GetContactSegments retrieves all segments a contact belongs to, without their last error:
+	// a contact's own page has no use for another contact's value.
 	GetContactSegments(ctx context.Context, workspaceID string, email string) ([]*Segment, error)
 
 	// GetSegmentContactCount gets the count of contacts in a segment
@@ -490,6 +525,20 @@ type SegmentRepository interface {
 	// leaving every other column alone. It returns false when the segment moved to another version
 	// or was deleted.
 	UpdateSegmentStatus(ctx context.Context, workspaceID string, segmentID string, version int64, status string) (bool, error)
+
+	// ReleaseSegmentWithError sets a segment still at version and not deleted back to active and
+	// records lastError on it, in one write; a nil lastError clears the recorded one. It returns
+	// false when the segment moved to another version or was deleted.
+	ReleaseSegmentWithError(ctx context.Context, workspaceID string, segmentID string, version int64, lastError *SegmentLastError) (bool, error)
+
+	// SetSegmentLastError records lastError on a segment still at version, not deleted, and
+	// holding no error yet: the first error recorded stays until it is cleared. It returns false
+	// when nothing was written.
+	SetSegmentLastError(ctx context.Context, workspaceID string, segmentID string, version int64, lastError *SegmentLastError) (bool, error)
+
+	// ClearSegmentLastErrorForEmail clears the error of a segment still at version when the
+	// contact queue recorded it for email. It returns false when nothing was cleared.
+	ClearSegmentLastErrorForEmail(ctx context.Context, workspaceID string, segmentID string, version int64, email string) (bool, error)
 }
 
 // ErrSegmentNotFound is returned when a segment is not found
