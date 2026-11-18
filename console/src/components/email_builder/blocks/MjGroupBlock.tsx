@@ -16,8 +16,15 @@ import BackgroundInput from '../ui/BackgroundInput'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import WidthInput from '../ui/WidthInput'
 import PanelLayout from '../panels/PanelLayout'
-import { findParentSection, groupChildWidth, sectionShare } from '../utils/sectionChildWidth'
+import {
+  findParentSection,
+  groupChildWidth,
+  parseWidth,
+  sectionChildWidth,
+  sectionShare
+} from '../utils/sectionChildWidth'
 import { bodyWidthOf, sectionOverflow } from '../utils/columnWidths'
+import { gutterCells, sectionGutterWidth } from '../utils/sectionGutter'
 
 // Functional component for settings panel with i18n support
 interface MjGroupSettingsPanelProps {
@@ -333,6 +340,24 @@ export class MjGroupBlock extends BaseEmailBlock {
     // Render child columns
     const children = this.block.children || []
 
+    // The section's gutter reaches the columns of its groups too, measured against the group's width, in the
+    // group's direction (see sectionGutter.ts)
+    const section = emailTree ? findParentSection(emailTree, this.block.id) : null
+    const gutters = (() => {
+      if (!section) return children.map(() => null)
+      const sectionAttrs = EmailBlockClass.mergeWithAllDefaults(
+        'mj-section',
+        section.attributes as Record<string, unknown>,
+        attributeDefaults
+      )
+      const sectionWidth = sectionGutterWidth(emailTree as EmailBlock, section, attributeDefaults)
+      const width = parseWidth(sectionChildWidth(this.block, section, attributeDefaults))
+      const groupWidthPx = !width ? 0 : width.unit === '%' ? (sectionWidth * width.amount) / 100 : width.amount
+      return gutterCells(children, sectionAttrs.gutter, groupWidthPx, attrs.direction, (child) =>
+        groupChildWidth(child, this.block)
+      )
+    })()
+
     return (
       <div
         key={key}
@@ -344,7 +369,7 @@ export class MjGroupBlock extends BaseEmailBlock {
         {children.length === 0 ? (
           <MjGroupEmptyPlaceholder />
         ) : (
-          children.map((child) => {
+          children.map((child, index) => {
             const rendered = EmailBlockClass.renderEmailBlock(
               child,
               attributeDefaults,
@@ -358,6 +383,25 @@ export class MjGroupBlock extends BaseEmailBlock {
               savedBlocks
             )
             // Each column takes its width in the group, as in the email, rather than an equal part of the row
+            const gutter = gutters[index]
+            if (gutter) {
+              return (
+                <div
+                  key={child.id}
+                  data-group-column-width={gutter.width}
+                  style={{
+                    flex: `0 1 ${gutter.width}`,
+                    maxWidth: gutter.width,
+                    minWidth: 0,
+                    paddingLeft: gutter.paddingLeft,
+                    paddingRight: gutter.paddingRight,
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  {rendered}
+                </div>
+              )
+            }
             const width = groupChildWidth(child, this.block)
             return width ? (
               <div

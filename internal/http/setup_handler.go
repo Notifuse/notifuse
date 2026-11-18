@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/service"
@@ -47,6 +48,9 @@ type StatusResponse struct {
 	RootEmailConfigured   bool `json:"root_email_configured"`
 	SMTPBridgeConfigured  bool `json:"smtp_bridge_configured"`
 	OIDCConfigured        bool `json:"oidc_configured"`
+	// EnvOverrides lists, before install only, the setting keys whose environment
+	// variable is set (names, never values), so the wizard can lock those fields.
+	EnvOverrides []string `json:"env_overrides,omitempty"`
 }
 
 // InitializeRequest represents the setup initialization request
@@ -126,6 +130,14 @@ func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 		RootEmailConfigured:   configStatus.RootEmailConfigured,
 		SMTPBridgeConfigured:  configStatus.SMTPBridgeConfigured,
 		OIDCConfigured:        configStatus.OIDCConfigured,
+	}
+	if !isInstalled {
+		for key, set := range h.setupService.GetEnvOverrides() {
+			if set {
+				response.EnvOverrides = append(response.EnvOverrides, key)
+			}
+		}
+		slices.Sort(response.EnvOverrides)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

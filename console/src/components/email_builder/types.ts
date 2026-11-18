@@ -509,6 +509,8 @@ export type MJSectionAttributes = BackgroundAttributes &
   CommonAttributes & {
     direction?: 'ltr' | 'rtl'
     fullWidth?: 'full-width'
+    // Space between the columns (px or %), MJML 5
+    gutter?: string
     textAlign?: 'left' | 'right' | 'center' | 'justify'
   }
 
@@ -623,13 +625,22 @@ export type MJSocialAttributes = PaddingAttributes &
   ContainerAttributes &
   CommonAttributes & {
     align?: 'left' | 'right' | 'center'
+    // Border of every icon, passed to the elements, MJML 5
+    border?: string
     borderRadius?: string
+    color?: string
+    fontFamily?: string
+    fontSize?: string
+    fontStyle?: string
+    fontWeight?: string
     iconHeight?: string
+    iconPadding?: string
     iconSize?: string
     innerPadding?: string
     lineHeight?: string
     mode?: 'horizontal' | 'vertical'
     tableLayout?: 'auto' | 'fixed'
+    textDecoration?: string
     textPadding?: string
   }
 
@@ -641,6 +652,8 @@ export interface MJSocialElementAttributes {
   // Icon properties
   alt?: string
   backgroundColor?: string
+  // The icon's border, MJML 5
+  border?: string
   borderRadius?: string
   iconHeight?: string
   iconSize?: string
@@ -759,6 +772,7 @@ export interface MergedBlockAttributes {
   width?: string
   direction?: string
   fullWidth?: string
+  gutter?: string
   // Link attributes
   href?: string
   rel?: string

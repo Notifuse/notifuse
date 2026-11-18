@@ -115,6 +115,7 @@ type MJBodyAttributes struct {
 	CommonAttributes
 	Width           *string `json:"width,omitempty"`
 	BackgroundColor *string `json:"backgroundColor,omitempty"`
+	ID              *string `json:"id,omitempty"` // written on <body>, MJML 5
 }
 
 type MJWrapperAttributes struct {
@@ -134,6 +135,7 @@ type MJSectionAttributes struct {
 	CommonAttributes
 	Direction *string `json:"direction,omitempty"` // ltr, rtl
 	FullWidth *string `json:"fullWidth,omitempty"` // full-width
+	Gutter    *string `json:"gutter,omitempty"`    // space between the columns, px or %, MJML 5
 	TextAlign *string `json:"textAlign,omitempty"` // left, right, center, justify
 }
 
@@ -218,7 +220,8 @@ type MJSocialAttributes struct {
 	PaddingAttributes
 	ContainerAttributes
 	CommonAttributes
-	Align        *string `json:"align,omitempty"` // left, right, center
+	Align        *string `json:"align,omitempty"`  // left, right, center
+	Border       *string `json:"border,omitempty"` // of every icon, passed to the elements, MJML 5
 	BorderRadius *string `json:"borderRadius,omitempty"`
 	IconHeight   *string `json:"iconHeight,omitempty"`
 	IconSize     *string `json:"iconSize,omitempty"`
@@ -236,6 +239,7 @@ type MJSocialElementAttributes struct {
 	// Icon properties
 	Alt             *string `json:"alt,omitempty"`
 	BackgroundColor *string `json:"backgroundColor,omitempty"`
+	Border          *string `json:"border,omitempty"` // the icon's border, MJML 5
 	BorderRadius    *string `json:"borderRadius,omitempty"`
 	IconHeight      *string `json:"iconHeight,omitempty"`
 	IconSize        *string `json:"iconSize,omitempty"`
