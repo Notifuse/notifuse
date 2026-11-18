@@ -5,12 +5,8 @@ import { Plural, useLingui } from '@lingui/react/macro'
 import dayjs from '../../../lib/dayjs'
 import { useWebAnalytics } from '../useWebAnalytics'
 import { getDimensionLabel } from '../lib/dimensions'
-import {
-  buildCsv,
-  downloadCsv,
-  exploreRowToCsvValues,
-  mergeComparisonRowsForCsv
-} from '../lib/csv'
+import { buildCsv, downloadCsv } from '../../../lib/csv'
+import { exploreRowToCsvValues, mergeComparisonRowsForCsv } from '../lib/csv'
 import { toNumber } from '../lib/format'
 import { buildWebQuery, webAnalyticsClient } from '../lib/query'
 import { SESSION_METRIC_KEYS } from '../lib/types'
