@@ -24,7 +24,13 @@ export function useSegmentPreview(workspaceId: string | undefined, committedTree
   const [previewedHash, setPreviewedHash] = useState<string | undefined>() // request behind previewResponse
   const [previewError, setPreviewError] = useState<string | undefined>()
   // Set while a condition is open in its form, so the count can follow it before it is confirmed
-  const [draftTree, setDraftTree] = useState<TreeNode | undefined>()
+  const [draftTree, setDraftTreeState] = useState<TreeNode | undefined>()
+  // False while the open condition breaks a rule of its form, which Confirm would refuse
+  const [draftCountable, setDraftCountable] = useState(true)
+  const setDraftTree = useCallback((tree: TreeNode | undefined, countable = true) => {
+    setDraftTreeState(tree)
+    setDraftCountable(countable)
+  }, [])
 
   // A condition only reaches the tree on Confirm, so without the draft the count would ignore
   // what is on screen.
@@ -34,6 +40,7 @@ export function useSegmentPreview(workspaceId: string | undefined, committedTree
   // last count on screen instead of replacing it with an error.
   const previewHash = useMemo(() => {
     if (!workspaceId || !effectiveTree || !isTreeQueryable(effectiveTree)) return undefined
+    if (draftTree && !draftCountable) return undefined
 
     const requestData: PreviewSegmentRequest = {
       workspace_id: workspaceId,
@@ -41,7 +48,7 @@ export function useSegmentPreview(workspaceId: string | undefined, committedTree
       limit: PREVIEW_LIMIT
     }
     return JSON.stringify(requestData)
-  }, [workspaceId, effectiveTree])
+  }, [workspaceId, effectiveTree, draftTree, draftCountable])
 
   const requestSeqRef = useRef(0)
   // The request queued in the debounce or already in flight — what an answer is on its way for,

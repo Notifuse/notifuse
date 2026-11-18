@@ -51,7 +51,7 @@ export type TreeNodeInputProps = {
   customFieldLabels?: Record<string, string>
   // Reports the tree as it would stand if the condition currently open in the form were confirmed,
   // and undefined once no condition is open. Lets the drawer preview an in-progress condition.
-  onDraftTreeChange?: (draftTree: TreeNode | undefined) => void
+  onDraftTreeChange?: (draftTree: TreeNode | undefined, countable?: boolean) => void
   // Whether a value read out of a JSON column may be compared as a date. Automation triggers pass
   // false: their conditions compile through casts that never convert a JSON date.
   jsonDateValues?: boolean
@@ -128,13 +128,13 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     target?.focus()
   }, [editingNodeLeaf])
 
-  const onDraftLeafChange = (draftLeaf: TreeNode, path: string, pathKey: number) => {
+  const onDraftLeafChange = (draftLeaf: TreeNode, path: string, pathKey: number, countable: boolean) => {
     if (!props.onDraftTreeChange || !props.value) return
 
     const clonedTree = cloneDeep(props.value) as TreeNode
     set(clonedTree, path + '[' + pathKey + ']', draftLeaf)
 
-    props.onDraftTreeChange(clonedTree)
+    props.onDraftTreeChange(clonedTree, countable)
   }
 
   const { data: templatesData } = useQuery({
@@ -345,7 +345,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
         value: node,
         onChange: (updatedLeaf: TreeNode) => onUpdateNode(updatedLeaf, path, pathKey),
         onDraftChange: props.onDraftTreeChange
-          ? (draftLeaf: TreeNode) => onDraftLeafChange(draftLeaf, path, pathKey)
+          ? (draftLeaf: TreeNode, countable: boolean) => onDraftLeafChange(draftLeaf, path, pathKey, countable)
           : undefined,
         source,
         schema,

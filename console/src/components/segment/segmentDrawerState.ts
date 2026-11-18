@@ -1,5 +1,5 @@
 import type { TreeNode } from '../../services/api/segment'
-import { HasLeaf } from './tree_completeness'
+import { HasLeaf, isLeafComplete } from './tree_completeness'
 import { segmentIdProblem } from './segmentId'
 
 /**
@@ -60,13 +60,16 @@ export function hasEmptyGroup(tree?: TreeNode): boolean {
   return tree ? walk(tree, true) : false
 }
 
-/** The number of conditions and of nested groups of a tree, for the summary. */
+/**
+ * The number of conditions and of nested groups of a tree, for the summary. A condition still
+ * missing what the server needs (one just added, being filled in) is not counted yet.
+ */
 export function treeShape(tree?: TreeNode): { conditions: number; groups: number } {
   let conditions = 0
   let groups = 0
   const walk = (node: TreeNode, isRoot: boolean) => {
     if (node.kind === 'leaf') {
-      if (node.leaf) conditions++
+      if (isLeafComplete(node.leaf)) conditions++
       return
     }
     if (!isRoot) groups++

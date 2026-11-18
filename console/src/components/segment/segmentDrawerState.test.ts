@@ -59,6 +59,11 @@ describe('treeShape', () => {
     expect(treeShape(tree(leaf, tree(leaf, leaf), tree()))).toEqual({ conditions: 3, groups: 2 })
     expect(treeShape(undefined)).toEqual({ conditions: 0, groups: 0 })
   })
+
+  it('leaves out a condition just added and still blank', () => {
+    const blank: TreeNode = { kind: 'leaf', leaf: { source: 'contact_lists', contact_list: { operator: 'in', list_id: '' } } }
+    expect(treeShape(tree(leaf, blank))).toEqual({ conditions: 1, groups: 0 })
+  })
 })
 
 describe('segmentFormSnapshot', () => {
