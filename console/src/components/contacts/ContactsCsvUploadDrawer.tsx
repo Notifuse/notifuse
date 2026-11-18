@@ -333,6 +333,10 @@ export function ContactsCsvUploadDrawer({
     // Parse CSV file first
     Papa.parse<string[]>(file, {
       header: false,
+      // A file nearly always ends with a newline, which the parser otherwise returns as an
+      // empty last row: it was counted as a row and imported as a contact with no email.
+      // 'greedy' also drops blank lines and lines of empty fields (",,") inside the file.
+      skipEmptyLines: 'greedy',
       complete: (results: ParseResult<string[]>) => {
         if (results.data && results.data.length > 0) {
           const headers = results.data[0]
