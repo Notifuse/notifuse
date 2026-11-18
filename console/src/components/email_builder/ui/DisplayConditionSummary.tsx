@@ -1,51 +1,32 @@
 import React, { useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Button, Popconfirm, Tag, Tooltip, Typography } from 'antd'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus } from '@fortawesome/free-solid-svg-icons'
-import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { Button, Popconfirm, Tooltip } from 'antd'
 import type { DisplayCondition, EmailBlock } from '../types'
 import { evaluateDisplayCondition, holdsLiquidBlock, operatorTakesValue } from '../displayCondition'
 import { ConditionResult, DisplayConditionModal } from './DisplayConditionModal'
-import { CONDITION_MONO, useOperatorLabels } from './displayConditionLabels'
+import { useOperatorLabels } from './displayConditionLabels'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 
-const { Text } = Typography
-
-const AND_OR_STYLE: React.CSSProperties = {
-  display: 'inline-block',
-  height: 20,
-  lineHeight: '18px',
-  backgroundColor: '#fafafa',
-  border: '1px solid #CFD8DC',
-  borderRadius: 3,
-  fontSize: 12,
-  fontWeight: 600,
-  textAlign: 'center',
-  minWidth: 42,
-  padding: '0 6px'
-}
-
-// The rules as the segment editor reads its leaves: variable in bold, operator dimmed,
-// value in a blue tag.
+// The rules as a sentence, as the segment editor reads its conditions: the variable and the
+// value as tokens, the operator in words, an AND / OR pill between rules.
 const ConditionRules: React.FC<{ condition: DisplayCondition }> = ({ condition }) => {
   const { t } = useLingui()
   const operatorLabels = useOperatorLabels()
   return (
-    <div className="flex flex-col items-start gap-1.5">
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-6">
+      <span className="text-ink-2">{t`Shown if`}</span>
       {condition.rules.map((rule, index) => (
         <React.Fragment key={index}>
           {index > 0 && (
-            <span style={AND_OR_STYLE}>{condition.match === 'any' ? t`or` : t`and`}</span>
+            <span className="rounded-full border border-primary-300 bg-surface px-1.5 text-overline font-semibold tracking-wider text-primary-700 uppercase">
+              {condition.match === 'any' ? t`or` : t`and`}
+            </span>
           )}
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <b style={{ fontFamily: CONDITION_MONO, fontSize: 12 }}>{rule.variable}</b>
-            <span className="opacity-60">{operatorLabels[rule.operator] ?? rule.operator}</span>
-            {operatorTakesValue(rule.operator) && (
-              <Tag variant="filled" color="blue" style={{ margin: 0 }}>
-                {rule.value}
-              </Tag>
-            )}
-          </div>
+          <span className="rounded-sm bg-info-bg px-1.5 font-mono text-2xs text-info-fg">{rule.variable}</span>
+          <span className="text-ink-2">{operatorLabels[rule.operator] ?? rule.operator}</span>
+          {operatorTakesValue(rule.operator) && (
+            <span className="rounded-sm bg-primary-100 px-1.5 font-medium text-primary-700">{rule.value}</span>
+          )}
         </React.Fragment>
       ))}
     </div>
@@ -68,22 +49,27 @@ export const DisplayConditionSummary: React.FC<DisplayConditionSummaryProps> = (
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
   const condition = block.display_condition
-  const header = <div className="text-gray-900 text-sm font-bold">{t`Display condition`}</div>
+  const header = (
+    <span className="text-overline font-semibold tracking-wider text-ink-3 uppercase">{t`Display condition`}</span>
+  )
   const shown = evaluateDisplayCondition(condition, testData)
   // the server refuses a condition on a block holding an mj-liquid (see holdsLiquidBlock)
   const liquidInside = holdsLiquidBlock(block)
   const liquidMessage = t`This block holds a Liquid block, which a condition could cut off from the rest of the email. Move the Liquid block out of it first.`
 
   return (
-    <div
-      className="px-5 pt-4 pb-4 border-b border-gray-200"
-      data-testid="display-condition-summary"
-    >
+    <div className="border-b border-line-soft bg-subtle px-3.5 py-2.5" data-testid="display-condition-summary">
       {condition ? (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             {header}
-            <div className="flex items-center gap-1">
+            <span className="ml-auto flex items-center gap-1">
+              <Tooltip title={t`With the test data`}>
+                <span>
+                  <ConditionResult shown={shown} label={shown ? t`shown` : t`hidden`} />
+                </span>
+              </Tooltip>
+              <Button size="small" type="text" aria-label={t`Edit`} icon={<Pencil size={13} aria-hidden="true" />} onClick={() => setOpen(true)} />
               <Popconfirm
                 placement="left"
                 title={t`Remove the display condition?`}
@@ -92,55 +78,37 @@ export const DisplayConditionSummary: React.FC<DisplayConditionSummaryProps> = (
                 cancelText={t`Cancel`}
                 onConfirm={() => onChange(undefined)}
               >
-                <Tooltip title={t`Remove the condition`}>
-                  <Button
-                    size="small"
-                    type="link"
-                    aria-label={t`Remove the condition`}
-                    icon={<FontAwesomeIcon icon={faTrashCan} />}
-                  />
-                </Tooltip>
+                <Button size="small" type="text" aria-label={t`Remove the condition`} icon={<Trash2 size={13} aria-hidden="true" />} />
               </Popconfirm>
-              <Button size="small" type="primary" ghost onClick={() => setOpen(true)}>
-                {t`Edit`}
-              </Button>
-            </div>
+            </span>
           </div>
-          <div className="mt-2 text-xs text-slate-700 bg-[#fafafa] border border-[#CFD8DC] rounded-md px-2.5 py-2">
-            <div className="opacity-60 mb-1.5">{t`Show this block if`}</div>
-            <ConditionRules condition={condition} />
-          </div>
+          <ConditionRules condition={condition} />
           {liquidInside && (
-            <div className="mt-1.5 text-xs text-red-600" data-testid="display-condition-liquid">
+            <div className="mt-1.5 rounded-md bg-danger-bg px-2.5 py-1.5 text-xs text-danger-fg" data-testid="display-condition-liquid">
               {liquidMessage}
             </div>
           )}
-          <div className="mt-1.5 text-xs text-slate-500">
-            {t`With the test data:`}{' '}
-            <ConditionResult shown={shown} label={shown ? t`shown` : t`hidden`} />
-          </div>
         </>
       ) : (
-        <>
+        <div className="flex items-center gap-2">
           {header}
-          <div className="flex items-center justify-between mt-2">
-            <Text type="secondary" className="text-xs">
-              {t`Always shown`}
-            </Text>
+          <span className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-ink-4">{t`Always shown`}</span>
             <Tooltip title={liquidInside ? liquidMessage : undefined}>
               <Button
                 size="small"
                 type="primary"
                 ghost
                 disabled={liquidInside}
-                icon={<FontAwesomeIcon icon={faPlus} />}
+                aria-label={t`Add a condition`}
+                icon={<Plus size={13} aria-hidden="true" />}
                 onClick={() => setOpen(true)}
               >
-                {t`Add a condition`}
+                {t`Condition`}
               </Button>
             </Tooltip>
-          </div>
-        </>
+          </span>
+        </div>
       )}
       {open && (
         <DisplayConditionModal

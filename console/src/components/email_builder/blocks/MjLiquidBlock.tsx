@@ -7,10 +7,9 @@ import {
   type PreviewProps
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
-import InputLayout from '../ui/InputLayout'
 import CodeDrawerInput from '../ui/CodeDrawerInput'
-import PanelLayout from '../panels/PanelLayout'
 import CodePreview from '../ui/CodePreview'
+import { SettingsSection } from '../ui/fields/SettingsSections'
 
 // Settings panel component
 interface MjLiquidSettingsPanelProps {
@@ -26,34 +25,31 @@ const MjLiquidSettingsPanel: React.FC<MjLiquidSettingsPanelProps> = ({
   const hasContent = liquidContent.trim().length > 0
 
   return (
-    <PanelLayout title={t`Liquid Block`}>
-      <div className="space-y-4">
-        <InputLayout
-          label={t`MJML + Liquid Content`}
-          help={t`Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content.`}
-          layout="vertical"
-        >
-          <div className="flex flex-col gap-3">
-            {hasContent && (
-              <CodePreview
-                code={liquidContent}
-                language="html"
-                maxHeight={120}
-                onExpand={() => {}}
-                showExpandButton={false}
-              />
-            )}
-            <CodeDrawerInput
-              value={liquidContent}
-              onChange={(value) => onUpdate({ content: value })}
-              buttonText={hasContent ? t`Edit Liquid Content` : t`Set Liquid Content`}
-              title={t`MJML + Liquid Editor`}
-              language="html"
-            />
-          </div>
-        </InputLayout>
+    <SettingsSection
+      sectionKey="mj-liquid:content"
+      title={t`MJML and Liquid`}
+      first
+      help={t`Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content.`}
+    >
+      <div className="flex flex-col gap-2">
+        {hasContent && (
+          <CodePreview
+            code={liquidContent}
+            language="html"
+            maxHeight={120}
+            onExpand={() => {}}
+            showExpandButton={false}
+          />
+        )}
+        <CodeDrawerInput
+          value={liquidContent}
+          onChange={(value) => onUpdate({ content: value })}
+          buttonText={hasContent ? t`Edit Liquid content` : t`Set Liquid content`}
+          title={t`MJML + Liquid Editor`}
+          language="html"
+        />
       </div>
-    </PanelLayout>
+    </SettingsSection>
   )
 }
 

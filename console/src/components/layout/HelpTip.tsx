@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { Tooltip } from 'antd'
-import { CircleHelp } from 'lucide-react'
+import { Tooltip, type TooltipProps } from 'antd'
+import { CircleHelp, Info } from 'lucide-react'
 
 export interface HelpTipProps {
   /** The name of the button ("About these numbers"). */
@@ -11,6 +11,10 @@ export interface HelpTipProps {
   id?: string
   /** The text the "?" follows (a panel or field title), set beside it. */
   title?: ReactNode
+  /** The glyph: "help" (a "?", the default) or "info" (an "i", for the help of a settings field). */
+  icon?: 'help' | 'info'
+  /** Where the tooltip opens (default: antd's, above). */
+  placement?: TooltipProps['placement']
 }
 
 /**
@@ -18,16 +22,17 @@ export interface HelpTipProps {
  * tooltip opens on focus as on hover; the hidden copy lets a screen reader hear it with the
  * control it explains, once.
  */
-export function HelpTip({ label, children, id, title }: HelpTipProps) {
+export function HelpTip({ label, children, id, title, icon = 'help', placement }: HelpTipProps) {
+  const Glyph = icon === 'info' ? Info : CircleHelp
   const tip = (
     <>
-      <Tooltip title={children} trigger={['hover', 'focus']} styles={{ root: { maxWidth: 360 } }}>
+      <Tooltip title={children} placement={placement} trigger={['hover', 'focus']} styles={{ root: { maxWidth: 360 } }}>
         <button
           type="button"
           aria-label={label}
           className="inline-flex cursor-help items-center rounded-full border-0 bg-transparent p-0 text-ink-4 hover:text-ink-2 focus-visible:text-ink-2"
         >
-          <CircleHelp size={13} aria-hidden="true" />
+          <Glyph size={13} aria-hidden="true" data-icon={icon} />
         </button>
       </Tooltip>
       {/* Hidden, not visually hidden: a description reads it, browsing and a label's text do not. */}

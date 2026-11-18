@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Alert } from 'antd'
-import type { MJMLComponentType, MJBodyAttributes, MergedBlockAttributes } from '../types'
+import type { EmailBlock, MJMLComponentType, MJBodyAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -9,73 +9,92 @@ import {
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
-import PanelLayout from '../panels/PanelLayout'
-import InputLayout from '../ui/InputLayout'
-import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import WidthPxInput from '../ui/WidthPxInput'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { ColorField } from '../ui/fields/ColorField'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { AdvancedSection } from './AdvancedSection'
+import { panelFields, useEmailColors } from './panelFields'
 
 // Functional component for settings panel with i18n support
 interface MjBodySettingsPanelProps {
+  blockId: string
   currentAttributes: MJBodyAttributes
   blockDefaults: MergedBlockAttributes
   onUpdate: OnUpdateAttributesFunction
+  emailTree?: EmailBlock
+}
+
+// The email width in px, from '640px' or '640'; undefined for anything else.
+const parseWidthPx = (width?: string): number | undefined => {
+  if (!width) return undefined
+  const match = width.match(/^(\d+(?:\.\d+)?)px?$/)
+  return match ? parseFloat(match[1]) : undefined
 }
 
 const MjBodySettingsPanel: React.FC<MjBodySettingsPanelProps> = ({
+  blockId,
   currentAttributes,
   blockDefaults,
-  onUpdate
+  onUpdate,
+  emailTree
 }) => {
   const { t } = useLingui()
+  const f = panelFields(blockId, currentAttributes as Record<string, unknown>, blockDefaults as Record<string, unknown>, onUpdate)
+  const colors = useEmailColors(emailTree)
 
-  // Parse width to check if it exceeds 650px
-  const parseWidth = (width?: string): number | undefined => {
-    if (!width) return undefined
-    const match = width.match(/^(\d+(?:\.\d+)?)px?$/)
-    return match ? parseFloat(match[1]) : undefined
-  }
-
-  const widthValue = parseWidth(currentAttributes.width || blockDefaults.width)
+  // The width the email gets: the body's own, else the inherited one.
+  const widthValue = parseWidthPx(f.value('width') ?? f.inherited('width'))
   const showWarning = widthValue !== undefined && widthValue > 650
 
   return (
-    <PanelLayout title={t`Body attributes`}>
-      <InputLayout label={t`Width`}>
-        <WidthPxInput
-          value={currentAttributes.width}
-          onChange={(value) => onUpdate({ width: value })}
-          placeholder={blockDefaults.width || '600px'}
-          max={999}
-        />
-      </InputLayout>
+    <>
+      <SettingsSection
+        sectionKey="mj-body:layout"
+        title={t`Layout`}
+        first
+        setCount={f.setCount('width', 'backgroundColor')}
+        summary={[f.value('width'), f.value('backgroundColor')].filter(Boolean).join(' · ')}
+      >
+        <SettingsRow
+          label={t`Width`}
+          help={t`Up to 999 px. Without one, the email is 600 px wide.`}
+          isSet={f.isSet('width')}
+          onReset={f.reset('width')}
+          alert={
+            showWarning ? (
+              <Alert
+                type="warning"
+                showIcon
+                title={t`Email widths above 650px may not display correctly in some email clients`}
+              />
+            ) : undefined
+          }
+        >
+          <NumberUnitField
+            aria-label={t`Email width`}
+            value={f.value('width')}
+            inherited={f.inherited('width')}
+            units={['px']}
+            max={999}
+            coalesceBase={f.base('width')}
+            onChange={f.write('width')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Background`} isSet={f.isSet('backgroundColor')} onReset={f.reset('backgroundColor')}>
+          <ColorField
+            aria-label={t`Email background`}
+            value={f.value('backgroundColor')}
+            inherited={f.inherited('backgroundColor')}
+            placeholder={t`None`}
+            emailColors={colors}
+            onChange={f.write('backgroundColor')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      {showWarning && (
-        <Alert
-          title={t`Email widths above 650px may not display correctly in some email clients`}
-          type="warning"
-          style={{ marginTop: '8px' }}
-        />
-      )}
-      <InputLayout label={t`Background Color`}>
-        <ColorPickerWithPresets
-          value={currentAttributes.backgroundColor || undefined}
-          onChange={(color) => {
-            onUpdate({ backgroundColor: color || undefined })
-          }}
-          placeholder={t`None`}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`CSS Class`}>
-        <StringPopoverInput
-          value={currentAttributes.cssClass || ''}
-          onChange={(value) => onUpdate({ cssClass: value || undefined })}
-          placeholder={t`Enter CSS class name`}
-          buttonText={t`Set class`}
-        />
-      </InputLayout>
-    </PanelLayout>
+      <AdvancedSection type="mj-body" fields={f} />
+    </>
   )
 }
 
@@ -116,15 +135,16 @@ export class MjBodyBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: MergedBlockAttributes
+    blockDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
   ): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJBodyAttributes
-
     return (
       <MjBodySettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJBodyAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
+        emailTree={emailTree}
       />
     )
   }

@@ -1,9 +1,14 @@
 import React, { useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Button, Input, InputNumber, Radio, Select } from 'antd'
+import { Button, Select } from 'antd'
 import type { EmailBlock } from '../types'
-import InputLayout from './InputLayout'
-import ColorPickerWithPresets from './ColorPickerWithPresets'
+import { SettingsRow } from './fields/SettingsRow'
+import { SegmentedField } from './fields/SegmentedField'
+import { DraftTextField } from './fields/DraftTextField'
+import { NumberUnitField } from './fields/NumberUnitField'
+import type { FieldWriteOptions } from './fields/types'
+import { ColorField } from './fields/ColorField'
+import { emailColors } from '../utils/emailColors'
 import {
   HEADING_LEVELS,
   colorFromPicker,
@@ -18,12 +23,10 @@ import {
 
 interface HeadingStylesInputProps {
   emailTree?: EmailBlock
-  onUpdateBlock?: (blockId: string, block: EmailBlock) => void
+  onUpdateBlock?: (blockId: string, block: EmailBlock, options?: FieldWriteOptions) => void
 }
 
 const WEIGHTS = ['normal', 'bold', '300', '400', '500', '600', '700', '800', '900']
-
-const px = (value: string) => Number.parseInt(value, 10)
 
 /**
  * Default attributes > Headings: the look of each heading level, written to the
@@ -32,18 +35,15 @@ const px = (value: string) => Number.parseInt(value, 10)
 const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUpdateBlock }) => {
   const { t } = useLingui()
   const [level, setLevel] = useState<HeadingLevel>(1)
-  // Typed text that cannot be saved stays in its field, marked, until corrected
-  const [invalid, setInvalid] = useState<Partial<Record<'fontFamily' | 'lineHeight', boolean>>>({})
+  const colors = React.useMemo(() => (emailTree ? emailColors(emailTree) : []), [emailTree])
   if (!emailTree || !onUpdateBlock) return null
 
   const stored = readHeadingStyles(emailTree)
   if (stored === 'hand-edited') {
     return (
-      <InputLayout label={t`Headings`} layout="vertical">
-        <div className="text-xs text-ink-3">
-          {t`These styles were edited by hand. Edit them in the mj-style block.`}
-        </div>
-      </InputLayout>
+      <div className="rounded-md bg-warning-bg px-2.5 py-2 text-xs text-warning-fg">
+        {t`These styles were edited by hand. Edit them in the mj-style block.`}
+      </div>
     )
   }
 
@@ -51,115 +51,106 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
   const styles: HeadingStyles = stored ?? defaults
   const current = styles[level]
 
-  const save = (next: HeadingStyle): boolean => {
+  const save = (next: HeadingStyle, options?: FieldWriteOptions): boolean => {
     if (validateHeadingStyle(next).length > 0) return false
     const tree = writeHeadingStyles(emailTree, { ...styles, [level]: next })
     const head = tree.children?.find((child) => child.type === 'mj-head')
-    if (head) onUpdateBlock(head.id, head)
+    if (head) onUpdateBlock(head.id, head, options)
     return true
   }
-  const change = (changes: Partial<HeadingStyle>) => save({ ...current, ...changes })
-  // A typed field: saved when valid, otherwise marked as such
-  const typed = (field: 'fontFamily' | 'lineHeight', value: string | undefined) =>
-    setInvalid((previous) => ({ ...previous, [field]: !change({ [field]: value }) }))
+  const change = (changes: Partial<HeadingStyle>, options?: FieldWriteOptions) =>
+    save({ ...current, ...changes }, options)
+  // Sizes and spaces are whole pixels, as the fields used to round them
+  const whole = (value: string) => value.replace(/^-?\d*\.?\d+/, (n) => String(Math.round(Number(n))))
+  // A typed text that cannot be saved stays in its field, in red, and is not saved
+  const check = (field: 'fontFamily' | 'lineHeight', message: string) => (value: string) =>
+    validateHeadingStyle({ ...current, [field]: value }).includes(field) ? message : null
 
   return (
-    <InputLayout label={t`Headings`} layout="vertical">
-      <Radio.Group
-        optionType="button"
-        size="small"
-        value={level}
-        onChange={(event) => setLevel(event.target.value as HeadingLevel)}
-        options={HEADING_LEVELS.map((value) => ({ value, label: `H${value}` }))}
-      />
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-xs text-ink-3">
-          {t`Font`}
-          <Input
-            size="small"
-            aria-label={t`Font`}
-            defaultValue={current.fontFamily}
-            key={`font-${level}-${current.fontFamily}`}
-            placeholder={t`From the text block`}
-            status={invalid.fontFamily ? 'error' : undefined}
-            aria-invalid={invalid.fontFamily ? true : undefined}
-            onBlur={(event) => typed('fontFamily', event.target.value.trim() || undefined)}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-ink-3">
-          {t`Size`}
-          <InputNumber
-            size="small"
-            style={{ width: '100%' }}
+    <div>
+      <SettingsRow label={t`Level`}>
+        <SegmentedField
+          aria-label={t`Heading level`}
+          value={String(level)}
+          options={HEADING_LEVELS.map((value) => ({ value: String(value), label: `H${value}` }))}
+          onChange={(value) => setLevel(Number(value) as HeadingLevel)}
+        />
+      </SettingsRow>
+      <SettingsRow label={t`Font`}>
+        <DraftTextField
+          // A level of its own: a text left in the field does not follow to another level
+          key={`font-${level}`}
+          aria-label={t`Font`}
+          value={current.fontFamily}
+          placeholder={t`From the text block`}
+          validate={check('fontFamily', t`Letters, digits, spaces, quotes, commas and hyphens only.`)}
+          onChange={(value) => change({ fontFamily: value })}
+        />
+      </SettingsRow>
+      <SettingsRow label={t`Size, weight`}>
+        <div className="grid grid-cols-2 gap-1.5">
+          <NumberUnitField
             aria-label={t`Size`}
+            value={current.fontSize}
+            units={['px']}
             min={1}
             max={200}
-            precision={0}
-            suffix="px"
-            value={px(current.fontSize)}
-            onChange={(value) => value && change({ fontSize: `${value}px` })}
+            coalesceBase={`headings:${level}:fontSize`}
+            onChange={(value, options) => value && change({ fontSize: whole(value) }, options)}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-ink-3">
-          {t`Weight`}
           <Select
             size="small"
-            style={{ width: '100%' }}
+            className="w-full"
             aria-label={t`Weight`}
             value={current.fontWeight}
-            onChange={(value) => change({ fontWeight: value })}
+            onChange={(value: string) => change({ fontWeight: value })}
             options={WEIGHTS.map((value) => ({ value, label: value }))}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-ink-3">
-          {t`Line height`}
-          <Input
-            size="small"
-            aria-label={t`Line height`}
-            defaultValue={current.lineHeight}
-            key={`line-${level}-${current.lineHeight}`}
-            status={invalid.lineHeight ? 'error' : undefined}
-            aria-invalid={invalid.lineHeight ? true : undefined}
-            onBlur={(event) => typed('lineHeight', event.target.value.trim())}
+        </div>
+      </SettingsRow>
+      <SettingsRow label={t`Line height`} help={t`A multiple of the font size (1.3), or pixels (24px).`}>
+        <DraftTextField
+          key={`line-${level}`}
+          aria-label={t`Line height`}
+          value={current.lineHeight}
+          validate={check('lineHeight', t`A number (1.3) or pixels up to 200px.`)}
+          // A line height is required: an emptied field keeps the saved one
+          onChange={(value) => value !== undefined && change({ lineHeight: value })}
+        />
+      </SettingsRow>
+      <SettingsRow label={t`Color`}>
+        <ColorField
+          aria-label={t`Color`}
+          value={current.color}
+          placeholder={t`From the text block`}
+          emailColors={colors}
+          onChange={(color) => change({ color: colorFromPicker(color) })}
+        />
+      </SettingsRow>
+      <SettingsRow label={t`Space above, below`}>
+        <div className="grid grid-cols-2 gap-1.5">
+          <NumberUnitField
+            aria-label={t`Space above`}
+            value={current.marginTop}
+            units={['px']}
+            min={0}
+            max={200}
+            coalesceBase={`headings:${level}:marginTop`}
+            onChange={(value, options) => value !== undefined && change({ marginTop: whole(value) }, options)}
           />
-        </label>
-        <div className="flex flex-col gap-1 text-xs text-ink-3">
-          {t`Color`}
-          <ColorPickerWithPresets
-            value={current.color}
-            placeholder={t`From the text block`}
-            onChange={(color) => change({ color: colorFromPicker(color) })}
+          <NumberUnitField
+            aria-label={t`Space below`}
+            value={current.marginBottom}
+            units={['px']}
+            min={0}
+            max={200}
+            coalesceBase={`headings:${level}:marginBottom`}
+            onChange={(value, options) => value !== undefined && change({ marginBottom: whole(value) }, options)}
           />
         </div>
-        <label className="flex flex-col gap-1 text-xs text-ink-3">
-          {t`Space above`}
-          <InputNumber
-            size="small"
-            style={{ width: '100%' }}
-            aria-label={t`Space above`}
-            min={0}
-            max={200}
-            precision={0}
-            value={px(current.marginTop)}
-            onChange={(value) => value !== null && change({ marginTop: `${value}px` })}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-ink-3">
-          {t`Space below`}
-          <InputNumber
-            size="small"
-            style={{ width: '100%' }}
-            aria-label={t`Space below`}
-            min={0}
-            max={200}
-            precision={0}
-            value={px(current.marginBottom)}
-            onChange={(value) => value !== null && change({ marginBottom: `${value}px` })}
-          />
-        </label>
-      </div>
-      <div className="mt-3 rounded-md border border-dashed border-ink-4/40 px-3 py-2">
-        <div className="text-xs text-ink-4">{t`Sample`}</div>
+      </SettingsRow>
+      <div className="mt-2 rounded-md border border-solid border-line px-2.5 py-2">
+        <div className="text-2xs text-ink-4">{t`Sample`}</div>
         <div
           // The heading as the email shows it, from the values being edited
           style={{
@@ -173,10 +164,12 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
           {t`Heading ${level}`}
         </div>
       </div>
-      <Button size="small" type="link" onClick={() => save(defaults[level])}>
-        {t`Reset H${level}`}
-      </Button>
-    </InputLayout>
+      <div className="mt-1 flex justify-end">
+        <Button size="small" type="link" onClick={() => save(defaults[level])}>
+          {t`Reset H${level}`}
+        </Button>
+      </div>
+    </div>
   )
 }
 

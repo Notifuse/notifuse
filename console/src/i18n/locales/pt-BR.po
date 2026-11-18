@@ -25,7 +25,7 @@ msgstr " - Falhou"
 msgid " · {seconds}s"
 msgstr " · {seconds}s"
 
-#: src/components/email_builder/EmailBuilder.tsx:919
+#: src/components/email_builder/EmailBuilder.tsx:968
 msgid " (copy)"
 msgstr " (cópia)"
 
@@ -690,6 +690,14 @@ msgstr "{active} de {total} permissões concedidas"
 msgid "{apiKeys, plural, one {# API key} other {# API keys}}"
 msgstr "{apiKeys, plural, one {# chave API} other {# chaves API}}"
 
+#: src/components/email_builder/ui/fields/NumberUnitField.tsx:162
+msgid "{ariaLabel} mode"
+msgstr "{ariaLabel}: modo"
+
+#: src/components/email_builder/ui/fields/NumberUnitField.tsx:180
+msgid "{ariaLabel} unit"
+msgstr "{ariaLabel}: unidade"
+
 #: src/components/broadcasts/BroadcastKpis.tsx:152
 msgid "{bounced, plural, one {# address} other {# addresses}}"
 msgstr "{bounced, plural, one {# endereço} other {# endereços}}"
@@ -1222,6 +1230,10 @@ msgstr "{name} não foi inserido: {reason}."
 msgid "{named} of {total} slots named"
 msgstr "{named} de {total} espaços nomeados"
 
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:226
+msgid "{networkLabel} icon · URL to replace it"
+msgstr "Ícone do {networkLabel} · URL para substituí-lo"
+
 #: src/components/web_analytics/tabs/DashboardTab.tsx:134
 #~ msgid "{notAppliedNames} filter not applied to the session figures and chart"
 #~ msgstr "Filtro {notAppliedNames} não aplicado aos números de sessões e ao gráfico"
@@ -1357,6 +1369,10 @@ msgstr "{selectedCount, plural, one {Isso excluirá permanentemente # contato. E
 #: src/components/broadcasts/VariationSenderSelect.tsx:69
 msgid "{senderId} (deleted)"
 msgstr "{senderId} (excluído)"
+
+#: src/components/email_builder/ui/fields/SettingsSections.tsx:72
+msgid "{setCount} set"
+msgstr "{setCount} definidos"
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:207
 msgid "{share} of {parent}"
@@ -1680,7 +1696,15 @@ msgstr "1 template"
 #~ msgid "1. Settings"
 #~ msgstr "1. Configuracoes"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:115
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:260
+msgid "10 to 100 px. Without a height, the icon is as high as its size."
+msgstr "De 10 a 100 px. Sem altura, o ícone fica tão alto quanto o seu tamanho."
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:145
+msgid "10 to 100 px. Without a height, the icons are as high as their size."
+msgstr "De 10 a 100 px. Sem altura, os ícones ficam tão altos quanto o seu tamanho."
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:143
 msgid "100 - Thin"
 msgstr "100 - Fina"
 
@@ -1701,7 +1725,7 @@ msgstr "Recomendado: 1200 × 630 px"
 #~ msgid "2. Web Analytics"
 #~ msgstr "2. Web Analytics"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:116
+#: src/components/email_builder/ui/fields/FontFields.tsx:144
 msgid "200 - Extra Light"
 msgstr "200 - Extra Leve"
 
@@ -1736,7 +1760,7 @@ msgstr "30 d"
 msgid "30 days"
 msgstr "30 dias"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:117
+#: src/components/email_builder/ui/fields/FontFields.tsx:145
 msgid "300 - Light"
 msgstr "300 - Leve"
 
@@ -1749,7 +1773,7 @@ msgstr "30 d"
 #~ msgid "4. Content"
 #~ msgstr "4. Conteúdo"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:118
+#: src/components/email_builder/ui/fields/FontFields.tsx:146
 msgid "400 - Normal"
 msgstr "400 - Normal"
 
@@ -1757,7 +1781,7 @@ msgstr "400 - Normal"
 msgid "48 h"
 msgstr "48 h"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:119
+#: src/components/email_builder/ui/fields/FontFields.tsx:147
 msgid "500 - Medium"
 msgstr "500 - Medio"
 
@@ -1765,7 +1789,7 @@ msgstr "500 - Medio"
 msgid "587 for STARTTLS, 465 for TLS from the first byte, 25 unencrypted"
 msgstr "587 para STARTTLS, 465 para TLS desde o primeiro byte, 25 sem criptografia"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:120
+#: src/components/email_builder/ui/fields/FontFields.tsx:148
 msgid "600 - Semi Bold"
 msgstr "600 - Semi Negrito"
 
@@ -1785,7 +1809,7 @@ msgstr "7 d"
 msgid "7 days"
 msgstr "7 dias"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:121
+#: src/components/email_builder/ui/fields/FontFields.tsx:149
 msgid "700 - Bold"
 msgstr "700 - Negrito"
 
@@ -1794,7 +1818,7 @@ msgstr "700 - Negrito"
 msgid "7d"
 msgstr "7 d"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:122
+#: src/components/email_builder/ui/fields/FontFields.tsx:150
 msgid "800 - Extra Bold"
 msgstr "800 - Extra Negrito"
 
@@ -1806,7 +1830,7 @@ msgstr "90 d"
 msgid "90 days"
 msgstr "90 dias"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:123
+#: src/components/email_builder/ui/fields/FontFields.tsx:151
 msgid "900 - Black"
 msgstr "900 - Preto"
 
@@ -1842,7 +1866,7 @@ msgstr "Um clique mostra a prévia de um template; um clique duplo o usa."
 msgid "A closing Liquid tag ({CLOSE_TAG}) comes before its opening tag ({OPEN_TAG})"
 msgstr "Uma tag Liquid de fechamento ({CLOSE_TAG}) vem antes da sua tag de abertura ({OPEN_TAG})"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:100
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:106
 msgid "A condition cannot use .empty or .to_liquid: use the operator \"is false or empty\"."
 msgstr "Uma condição não pode usar .empty nem .to_liquid: use o operador \"é falso ou vazio\"."
 
@@ -1915,7 +1939,7 @@ msgstr "Uma oferta limitada: um visual, um código promocional e produtos em des
 msgid "A Liquid block cannot go inside a block with a display condition"
 msgstr "Um bloco Liquid não pode ficar dentro de um bloco com uma condição de exibição"
 
-#: src/components/email_builder/EmailBuilder.tsx:385
+#: src/components/email_builder/EmailBuilder.tsx:434
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "Um bloco Liquid não pode ficar dentro de um bloco com uma condição de exibição: remova primeiro a condição ou coloque o bloco Liquid fora."
 
@@ -1935,6 +1959,14 @@ msgstr "Os emails de uma lista"
 msgid "A logo, a paragraph and the footer, to write your own email."
 msgstr "Um logo, um parágrafo e o rodapé, para escrever seu próprio email."
 
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:111
+msgid "A multiple of the font size (1.3), or pixels (24px)."
+msgstr "Um múltiplo do tamanho da fonte (1.3), ou pixels (24px)."
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:248
+msgid "A multiple of the font size, a percentage or pixels."
+msgstr "Um múltiplo do tamanho da fonte, uma porcentagem ou pixels."
+
 #: src/components/settings/WebAnalyticsSettings.tsx:405
 msgid "A name replaces custom_N in dashboards, the explore picker and attribution rules"
 msgstr "Um nome substitui custom_N nos painéis, no seletor de exploração e nas regras de atribuição"
@@ -1946,6 +1978,10 @@ msgstr "Um rascunho mais recente foi encontrado no armazenamento local. Deseja r
 #: src/components/templates/gallery/labels.ts:37
 msgid "A newsletter"
 msgstr "Um broadcast"
+
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:116
+msgid "A number (1.3) or pixels up to 200px."
+msgstr "Um número (1.3) ou pixels até 200px."
 
 #: src/components/templates/gallery/labels.ts:9
 msgid "A one-time code to sign in or confirm an action."
@@ -2085,9 +2121,14 @@ msgstr "O teste A/B está em andamento. Os emails estão sendo enviados ao grupo
 msgid "Abandoned cart"
 msgstr "Carrinho abandonado"
 
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:29
 #: src/components/setup/LockableItem.tsx:40
 msgid "About {label}"
 msgstr "Sobre {label}"
+
+#: src/components/email_builder/ui/fields/SettingsSections.tsx:79
+msgid "About {title}"
+msgstr "Sobre {title}"
 
 #: src/components/contacts/csv-import/ColumnsStep.tsx:118
 msgid "About column mapping"
@@ -2096,6 +2137,10 @@ msgstr "Sobre o mapeamento de colunas"
 #: src/components/settings/GeneralSettings.tsx:167
 msgid "About consent"
 msgstr "Sobre o consentimento"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:281
+msgid "About display conditions"
+msgstr "Sobre as condições de exibição"
 
 #: src/components/contacts/csv-import/ImportProgress.tsx:86
 msgid "About errors"
@@ -2335,7 +2380,7 @@ msgstr "Adicionar integração com {providerName}"
 msgid "Add a caption..."
 msgstr "Adicionar legenda..."
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:139
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:103
 msgid "Add a condition"
 msgstr "Adicionar uma condição"
 
@@ -2421,11 +2466,11 @@ msgstr "Adicionar bloco na secao"
 msgid "Add block in wrapper"
 msgstr "Adicionar bloco no wrapper"
 
-#: src/components/email_builder/blocks/MjAttributesBlock.tsx:20
+#: src/components/email_builder/blocks/MjAttributesBlock.tsx:23
 msgid "Add child elements for specific components (mj-text, mj-button, etc.) to set their default values."
 msgstr "Adicione elementos filhos para componentes específicos (mj-text, mj-button, etc.) para definir seus valores padrão."
 
-#: src/components/email_builder/blocks/MjHeadBlock.tsx:19
+#: src/components/email_builder/blocks/MjHeadBlock.tsx:16
 msgid "Add child elements like mj-font, mj-style, or mj-preview to configure email metadata."
 msgstr "Adicione elementos filhos como mj-font, mj-style ou mj-preview para configurar os metadados do email."
 
@@ -2446,7 +2491,7 @@ msgstr "Adicione condicoes para definir seu segmento de contatos"
 msgid "Add Contact"
 msgstr "Adicionar Contato"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:139
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:134
 msgid "Add CSS"
 msgstr "Adicionar CSS"
 
@@ -2542,7 +2587,7 @@ msgstr "Adicionar remetente"
 msgid "Add social element"
 msgstr "Adicionar elemento social"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:304
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:298
 msgid "Add social elements to this social block"
 msgstr "Adicione elementos sociais a este bloco social"
 
@@ -2629,6 +2674,10 @@ msgstr "Adicionadas a cada solicitação do assistente de IA"
 msgid "Added to every link, with or without open and click tracking."
 msgstr "Adicionados a cada link, com ou sem rastreamento de aberturas e cliques."
 
+#: src/components/email_builder/blocks/AdvancedSection.tsx:19
+msgid "Added to the block's element, to target it from a Style block."
+msgstr "Adicionada ao elemento do bloco, para selecioná-lo a partir de um bloco Style."
+
 #: src/components/templates/TemplateStartModal.tsx:316
 msgid "Added to the template's test data. A send has to provide them."
 msgstr "Adicionadas aos dados de teste do template. Um envio precisa fornecê-las."
@@ -2678,6 +2727,7 @@ msgstr "Adiciona os links de descadastro desta lista, como o broadcast. O broadc
 msgid "Administrator"
 msgstr "Administrador"
 
+#: src/components/email_builder/blocks/AdvancedSection.tsx:13
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:479
 #: src/components/setup/SmtpPanel.tsx:220
 #: src/components/setup/SsoPanel.tsx:129
@@ -2692,7 +2742,7 @@ msgstr "Condições avançadas: criar um segmento"
 #~ msgid "Advanced Settings"
 #~ msgstr "Configuracoes Avancadas"
 
-#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:48
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:51
 msgid "Affects how columns stack on mobile devices"
 msgstr "Afeta como as colunas são empilhadas em dispositivos móveis"
 
@@ -2757,7 +2807,7 @@ msgstr "Designer de e-mails com IA"
 msgid "AI model"
 msgstr "Modelo de IA"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:76
+#: src/components/email_builder/ui/fields/FontFields.tsx:282
 msgid "Align"
 msgstr "Alinhar"
 
@@ -2777,19 +2827,24 @@ msgid "Align right"
 msgstr "Alinhar a direita"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:64
-msgid "Align to bottom"
-msgstr "Alinhar abaixo"
+#~ msgid "Align to bottom"
+#~ msgstr "Alinhar abaixo"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:61
-msgid "Align to middle"
-msgstr "Alinhar ao meio"
+#~ msgid "Align to middle"
+#~ msgstr "Alinhar ao meio"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:58
-msgid "Align to top"
-msgstr "Alinhar acima"
+#~ msgid "Align to top"
+#~ msgstr "Alinhar acima"
 
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:137
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:165
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:304
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:116
+#: src/components/email_builder/blocks/MjImageBlock.tsx:196
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:109
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:111
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:325
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:327
 msgid "Alignment"
 msgstr "Alinhamento"
 
@@ -2830,7 +2885,7 @@ msgctxt "newsletter filter"
 msgid "All"
 msgstr "Todos"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:309
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:312
 msgid "ALL"
 msgstr "TODOS"
 
@@ -2916,8 +2971,8 @@ msgid "All set"
 msgstr "Tudo pronto"
 
 #: src/components/email_builder/ui/BorderInput.tsx:367
-msgid "All sides"
-msgstr "Todos os lados"
+#~ msgid "All sides"
+#~ msgstr "Todos os lados"
 
 #: src/components/automations/NodeConfigPanel.tsx:203
 #: src/components/automations/stats/StatsControl.tsx:44
@@ -2974,16 +3029,18 @@ msgstr "Também a imagem de posts e categorias sem uma própria; 1200 × 630 px"
 msgid "Also the share image when none is set"
 msgstr "Também é a imagem de compartilhamento quando nenhuma é definida"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:68
+#: src/components/email_builder/blocks/MjImageBlock.tsx:94
+#: src/components/email_builder/blocks/MjImageBlock.tsx:99
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:230
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:232
 msgid "Alt text"
 msgstr "Texto alternativo"
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:421
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:155
 msgid "Alt Text"
 msgstr "Texto Alternativo"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:72
+#: src/components/email_builder/blocks/MjImageBlock.tsx:99
 msgid "Alternative text"
 msgstr "Texto alternativo"
 
@@ -3004,7 +3061,7 @@ msgstr "Sempre corresponde"
 msgid "Always matches: with no condition, this rule runs on every session."
 msgstr "Sempre corresponde: sem condição, esta regra é executada em todas as sessões."
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:48
+#: src/components/email_builder/blocks/MjFontBlock.tsx:51
 msgid "Always provide fallback fonts for better compatibility"
 msgstr "Sempre forneça fontes alternativas para melhor compatibilidade"
 
@@ -3012,7 +3069,7 @@ msgstr "Sempre forneça fontes alternativas para melhor compatibilidade"
 msgid "Always set to the specified value"
 msgstr "Sempre definir com o valor especificado"
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:128
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:96
 msgid "Always shown"
 msgstr "Sempre exibido"
 
@@ -3102,8 +3159,8 @@ msgstr "Âncora"
 msgid "Anchor ID"
 msgstr "ID da Âncora"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:116
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:122
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:66
 #: src/components/segment/ConditionSentence.tsx:166
 #: src/components/segment/ConditionSentence.tsx:305
@@ -3157,7 +3214,7 @@ msgstr "As anotações não têm permissão própria: elas respondem deliberadam
 msgid "Anonymous telemetry"
 msgstr "Telemetria anônima"
 
-#: src/components/email_builder/EmailBuilder.tsx:877
+#: src/components/email_builder/EmailBuilder.tsx:926
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Outra alteração da biblioteca está em andamento. Tente novamente em instantes."
 
@@ -3366,11 +3423,11 @@ msgstr "URL da API"
 msgid "Application (Client) ID"
 msgstr "ID do aplicativo (cliente)"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:136
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:242
 msgid "Applies to every icon; an icon's own border wins."
 msgstr "Aplica-se a cada ícone; a borda própria de um ícone tem prioridade."
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:147
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:139
 msgid "Applies to every icon; an icon's own settings win."
 msgstr "Aplica-se a cada ícone; as configurações próprias de um ícone têm prioridade."
 
@@ -3383,7 +3440,7 @@ msgid "Applies to the next sends"
 msgstr "Vale para os próximos envios"
 
 #: src/components/contacts/ContactsFilters.tsx:139
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:293
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:299
 #: src/components/logs/TextFilter.tsx:28
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:255
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:49
@@ -3531,9 +3588,73 @@ msgstr "Tem certeza que deseja despublicar esta postagem?"
 msgid "Are you sure you want to use this file?"
 msgstr "Tem certeza que deseja usar este arquivo?"
 
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:194
+msgid "Around each icon's image, as a CSS padding (e.g. 4px 8px)."
+msgstr "Em volta da imagem de cada ícone, como padding CSS (ex.: 4px 8px)."
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:208
+msgid "Around each icon's text, as a CSS padding (e.g. 4px 4px 4px 0)."
+msgstr "Em volta do texto de cada ícone, como padding CSS (ex.: 4px 4px 4px 0)."
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:258
+msgid "Around the block"
+msgstr "Em volta do bloco"
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:254
+msgid "Around the block: the block's padding. Icon spacing: the padding around each icon."
+msgstr "Em volta do bloco: o espaçamento interno do bloco. Espaçamento dos ícones: o espaçamento interno em volta de cada ícone."
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:337
+msgid "Around the button"
+msgstr "Em volta do botão"
+
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:161
+msgid "Around the columns"
+msgstr "Em volta das colunas"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:443
+msgid "Around the element"
+msgstr "Em volta do elemento"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:309
+msgid "Around the icon. None by default, else the border of its social block."
+msgstr "Em volta do ícone. Nenhuma por padrão; caso contrário, a borda do seu bloco social."
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:415
+msgid "Around the icon's image, as a CSS padding (e.g. 4px 8px)."
+msgstr "Em volta da imagem do ícone, como padding CSS (ex.: 4px 8px)."
+
+#: src/components/email_builder/blocks/MjImageBlock.tsx:253
+msgid "Around the image"
+msgstr "Em volta da imagem"
+
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:150
+msgid "Around the line"
+msgstr "Em volta da linha"
+
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:143
+msgid "Around the sections"
+msgstr "Em volta das seções"
+
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:95
+msgid "Around the spacer"
+msgstr "Em volta do espaçador"
+
+#: src/components/email_builder/blocks/MjTextBlock.tsx:144
+msgid "Around the text"
+msgstr "Em volta do texto"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:429
+msgid "Around the text, as a CSS padding (e.g. 4px 4px 4px 0)."
+msgstr "Em volta do texto, como padding CSS (ex.: 4px 4px 4px 0)."
+
 #: src/components/segment/input_json_path.tsx:54
 msgid "Array index: {segment}"
 msgstr "Índice do array: {segment}"
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:169
+msgid "As typed"
+msgstr "Como digitado"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:198
 msgid "Ask about your traffic..."
@@ -3579,7 +3700,7 @@ msgstr "pelo menos uma das"
 msgid "At least one"
 msgstr "Pelo menos um"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:310
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:313
 msgid "AT LEAST ONE"
 msgstr "PELO MENOS UMA"
 
@@ -3715,15 +3836,18 @@ msgid "Authors"
 msgstr "Autores"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:97
-msgid "auto"
-msgstr "automatico"
+#~ msgid "auto"
+#~ msgstr "automatico"
 
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:351
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:370
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:95
-#: src/components/email_builder/blocks/MjImageBlock.tsx:87
-#: src/components/email_builder/blocks/MjImageBlock.tsx:106
-#: src/components/email_builder/ui/BackgroundInput.tsx:85
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:285
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:297
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:108
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:124
+#: src/components/email_builder/blocks/MjImageBlock.tsx:165
+#: src/components/email_builder/blocks/MjImageBlock.tsx:178
+#: src/components/email_builder/blocks/MjTextBlock.tsx:135
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:118
+#: src/components/email_builder/ui/fields/NumberUnitField.tsx:158
 msgid "Auto"
 msgstr "Automatico"
 
@@ -3760,6 +3884,10 @@ msgstr "Resposta automática a um email"
 #: src/components/settings/Integrations.tsx:399
 msgid "Auto-subscribe to Lists"
 msgstr "Inscrever-se Automaticamente nas Listas"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:230
+msgid "Auto, cover, contain, or a custom size: 1 to 2000 px, or 1 to 500 %."
+msgstr "Automático, cobrir, conter ou um tamanho personalizado: de 1 a 2000 px, ou de 1 a 500 %."
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:157
 #: src/components/templates/TemplatePreviewDrawer.tsx:237
@@ -3880,7 +4008,7 @@ msgstr "URL do Avatar"
 msgid "average"
 msgstr "média"
 
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:54
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:39
 msgid "Avoid special characters that might not display properly"
 msgstr "Evite caracteres especiais que podem não ser exibidos corretamente"
 
@@ -3963,42 +4091,61 @@ msgstr "Reprocessamento iniciado"
 msgid "background"
 msgstr "fundo"
 
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:188
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:221
+#: src/components/email_builder/blocks/MjBodyBlock.tsx:84
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:112
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:143
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:74
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:289
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:69
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:177
 msgid "Background"
 msgstr "Fundo"
 
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:69
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:217
 msgid "Background color"
 msgstr "Cor de fundo"
 
 #: src/components/blog_editor/components/colors/ColorGrid.tsx:150
 #: src/components/blog_editor/toolbars/components/ColorPicker.tsx:223
-#: src/components/email_builder/blocks/MjBodyBlock.tsx:60
-#: src/components/email_builder/ui/BackgroundInput.tsx:264
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:691
 msgid "Background Color"
 msgstr "Cor de Fundo"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:274
-msgid "Background Image"
-msgstr "Imagem de Fundo"
+#~ msgid "Background Image"
+#~ msgstr "Imagem de Fundo"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:292
+msgid "Background position"
+msgstr "Posição do fundo"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:300
-msgid "Background Position"
-msgstr "Posicao do Fundo"
+#~ msgid "Background Position"
+#~ msgstr "Posicao do Fundo"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:274
+msgid "Background repeat"
+msgstr "Repetição do fundo"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:290
-msgid "Background Repeat"
-msgstr "Repeticao do Fundo"
+#~ msgid "Background Repeat"
+#~ msgstr "Repeticao do Fundo"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:237
+msgid "Background size"
+msgstr "Tamanho do fundo"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:288
-msgid "Background Size"
-msgstr "Tamanho do Fundo"
+#~ msgid "Background Size"
+#~ msgstr "Tamanho do Fundo"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:180
+msgid "Background type"
+msgstr "Tipo de fundo"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:250
-msgid "Background Type"
-msgstr "Tipo de Fundo"
+#~ msgid "Background Type"
+#~ msgstr "Tipo de Fundo"
 
 #: src/components/integrations/FirecrawlIntegration.tsx:113
 #: src/components/integrations/LLMIntegration.tsx:242
@@ -4127,7 +4274,7 @@ msgstr "Melhores e piores páginas"
 msgid "Best performing combination:"
 msgstr "Combinação com melhor desempenho:"
 
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:48
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:34
 msgid "Best practices:"
 msgstr "Melhores praticas:"
 
@@ -4168,7 +4315,7 @@ msgstr "Deixe em branco para manter o valor atual."
 msgid "Block \"{name}\" deleted"
 msgstr "Bloco \"{name}\" excluído"
 
-#: src/components/email_builder/EmailBuilder.tsx:985
+#: src/components/email_builder/EmailBuilder.tsx:1034
 msgid "Block \"{name}\" inserted"
 msgstr "Bloco \"{name}\" inserido"
 
@@ -4180,7 +4327,7 @@ msgstr "Bloco excluído"
 msgid "Block deleted. Reload the page to update your saved blocks."
 msgstr "Bloco excluído. Recarregue a página para atualizar seus blocos salvos."
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:367
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:370
 msgid "block hidden"
 msgstr "bloco oculto"
 
@@ -4221,7 +4368,7 @@ msgstr "Bloco salvo. Recarregue a página para vê-lo nos seus blocos salvos."
 msgid "Block Settings Panel"
 msgstr "Painel de Configuracoes do Bloco"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:367
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:370
 msgid "block shown"
 msgstr "bloco exibido"
 
@@ -4302,8 +4449,8 @@ msgid "Blue"
 msgstr "Azul"
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:43
-msgid "Body attributes"
-msgstr "Atributos do corpo"
+#~ msgid "Body attributes"
+#~ msgstr "Atributos do corpo"
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:43
 #~ msgid "Body Attributes"
@@ -4313,8 +4460,7 @@ msgstr "Atributos do corpo"
 msgid "Body:"
 msgstr "Corpo:"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:302
-#: src/components/email_builder/ui/FontStyleInput.tsx:114
+#: src/components/email_builder/ui/fields/FontFields.tsx:142
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:633
 msgid "Bold"
 msgstr "Negrito"
@@ -4324,56 +4470,97 @@ msgstr "Negrito"
 msgid "Booking"
 msgstr "Reserva"
 
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:321
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:84
-#: src/components/email_builder/blocks/MjImageBlock.tsx:157
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:64
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:244
-#: src/components/email_builder/blocks/MjWrapperBlock.tsx:59
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:322
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:145
+#: src/components/email_builder/blocks/MjImageBlock.tsx:213
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:134
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:308
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:118
 msgid "Border"
 msgstr "Borda"
+
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:141
+#: src/components/email_builder/blocks/MjImageBlock.tsx:209
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:130
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:114
+msgid "Border and corners"
+msgstr "Borda e cantos"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:169
+msgid "Border color"
+msgstr "Cor da borda"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:223
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:105
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:85
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:80
 #: src/components/email_builder/ui/BorderRadiusInput.tsx:68
-msgid "Border radius"
-msgstr "Raio da borda"
+#~ msgid "Border radius"
+#~ msgstr "Raio da borda"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:149
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:192
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:232
-msgid "Border Radius"
-msgstr "Raio da Borda"
+#~ msgid "Border Radius"
+#~ msgstr "Raio da Borda"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:169
+msgid "Border style"
+msgstr "Estilo da borda"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:38
-msgid "Border Style"
-msgstr "Estilo da Borda"
+#~ msgid "Border Style"
+#~ msgstr "Estilo da Borda"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:169
+msgid "Border width"
+msgstr "Largura da borda"
 
 #: src/components/blog/DeleteCategoryModal.tsx:37
 msgid "Both the category and all its associated posts will be unpublished from the web."
 msgstr "Tanto a categoria quanto todos os seus posts associados serão despublicados da web."
 
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:64
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:87
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:383
-#: src/components/email_builder/ui/BorderInput.tsx:384
-#: src/components/email_builder/ui/PaddingInput.tsx:187
+#: src/components/email_builder/ui/fields/BorderField.tsx:104
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:41
+#: src/components/email_builder/ui/fields/SpacingField.tsx:90
 msgid "Bottom"
 msgstr "Inferior"
 
+#: src/components/email_builder/ui/fields/BorderField.tsx:104
+msgid "Bottom border color"
+msgstr "Cor da borda inferior"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:104
+msgid "Bottom border style"
+msgstr "Estilo da borda inferior"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:104
+msgid "Bottom border width"
+msgstr "Largura da borda inferior"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:164
+msgid "Bottom center"
+msgstr "Inferior central"
+
 #: src/components/email_builder/ui/BackgroundInput.tsx:111
-msgid "Bottom Center"
-msgstr "Centro Inferior"
+#~ msgid "Bottom Center"
+#~ msgstr "Centro Inferior"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:163
+msgid "Bottom left"
+msgstr "Inferior esquerdo"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:110
-msgid "Bottom Left"
-msgstr "Esquerda Inferior"
+#~ msgid "Bottom Left"
+#~ msgstr "Esquerda Inferior"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:165
+msgid "Bottom right"
+msgstr "Inferior direito"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:112
-msgid "Bottom Right"
-msgstr "Direita Inferior"
+#~ msgid "Bottom Right"
+#~ msgstr "Direita Inferior"
 
 #: src/components/settings/Integrations.tsx:267
 #~ msgid "bounce"
@@ -4518,16 +4705,21 @@ msgstr "Detalhamento de {valueLabel}"
 #~ msgstr "Detalhando por:"
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:27
-msgid "Breakpoint attributes"
-msgstr "Atributos de breakpoint"
+#~ msgid "Breakpoint attributes"
+#~ msgstr "Atributos de breakpoint"
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:27
 #~ msgid "Breakpoint Attributes"
 #~ msgstr "Atributos de Breakpoint"
 
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:36
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:62
+msgid "Breakpoint width"
+msgstr "Largura do breakpoint"
+
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:54
-msgid "Breakpoint Width"
-msgstr "Largura do Breakpoint"
+#~ msgid "Breakpoint Width"
+#~ msgstr "Largura do Breakpoint"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:479
 msgid "Bridge Domain"
@@ -4710,18 +4902,27 @@ msgstr "A escrita de Broadcasts envia. O mesmo interruptor que permite a alguém
 msgid "Broken down by"
 msgstr "Detalhado por"
 
+#: src/components/email_builder/ui/FileSrc.tsx:37
+msgid "Browse"
+msgstr "Procurar"
+
 #: src/services/api/permissions.ts:906
 msgid "Browse and filter the audit log, including every member's email address and IP address"
 msgstr "Navegar e filtrar o log de auditoria, incluindo o email e o endereço IP de cada membro"
 
 #: src/components/email_builder/ui/FileSrc.tsx:33
-msgid "Browse Files"
-msgstr "Procurar Arquivos"
+#~ msgid "Browse Files"
+#~ msgstr "Procurar Arquivos"
+
+#: src/components/email_builder/blocks/MjImageBlock.tsx:89
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:204
+msgid "Browse images"
+msgstr "Procurar imagens"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:53
 #: src/components/email_builder/ui/BackgroundInput.tsx:284
-msgid "Browse Images"
-msgstr "Procurar Imagens"
+#~ msgid "Browse Images"
+#~ msgstr "Procurar Imagens"
 
 #: src/components/analytics/GetStartedChecklist.tsx:191
 msgid "Browse the gallery"
@@ -4795,17 +4996,33 @@ msgstr "Atualização em massa (CSV)"
 msgid "Bulk update from CSV"
 msgstr "Atualização em massa a partir de CSV"
 
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:230
+msgid "Button"
+msgstr "Botão"
+
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:231
-msgid "Button Align"
-msgstr "Alinhamento do Botao"
+#~ msgid "Button Align"
+#~ msgstr "Alinhamento do Botao"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:306
+msgid "Button alignment"
+msgstr "Alinhamento do botão"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:173
-msgid "Button attributes"
-msgstr "Atributos do botão"
+#~ msgid "Button attributes"
+#~ msgstr "Atributos do botão"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:173
 #~ msgid "Button Attributes"
 #~ msgstr "Atributos do Botao"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:232
+msgid "Button color"
+msgstr "Cor do botão"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:294
+msgid "Button height"
+msgstr "Altura do botão"
 
 #: src/components/setup/SsoPanel.tsx:94
 msgid "Button label"
@@ -4816,12 +5033,16 @@ msgid "Button Label"
 msgstr "Rótulo do Botão"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:279
-msgid "Button Padding"
-msgstr "Espacamento do Botao"
+#~ msgid "Button Padding"
+#~ msgstr "Espacamento do Botao"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:341
-msgid "Button Size"
-msgstr "Tamanho do Botao"
+#~ msgid "Button Size"
+#~ msgstr "Tamanho do Botao"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:282
+msgid "Button width"
+msgstr "Largura do botão"
 
 #: src/components/settings/LicenseSettings.tsx:202
 msgid "Buy a licence"
@@ -4905,19 +5126,18 @@ msgstr "Não é possível testar no navegador"
 #: src/components/contacts/sheet/ContactListsCard.tsx:114
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:155
-#: src/components/email_builder/EmailBuilder.tsx:933
-#: src/components/email_builder/EmailBuilder.tsx:949
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:150
+#: src/components/email_builder/EmailBuilder.tsx:982
+#: src/components/email_builder/EmailBuilder.tsx:998
 #: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/panels/TextVersionPanel.tsx:140
 #: src/components/email_builder/panels/TextVersionPanel.tsx:184
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:139
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:179
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:285
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:92
-#: src/components/email_builder/ui/ImportFontInput.tsx:173
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:291
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:78
+#: src/components/email_builder/ui/ImportFontInput.tsx:177
 #: src/components/email_builder/ui/SaveBlockModal.tsx:98
-#: src/components/email_builder/ui/StringPopoverInput.tsx:92
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:410
 #: src/components/file_manager/buttonSettings.tsx:307
 #: src/components/file_manager/context.tsx:212
@@ -4998,7 +5218,7 @@ msgstr "Cancelar o broadcast?"
 #~ msgid "Cancel Operation?"
 #~ msgstr "Cancelar Operacao?"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:197
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:200
 msgid "Cancel the rule changes"
 msgstr "Cancelar as alterações da regra"
 
@@ -5066,9 +5286,13 @@ msgstr "URL Canonica"
 msgid "Capabilities"
 msgstr ""
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:136
+#: src/components/email_builder/ui/fields/FontFields.tsx:172
 msgid "Capitalize"
 msgstr "Capitalizar"
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:315
+msgid "Case"
+msgstr "Maiúsculas/minúsculas"
 
 #: src/components/blog/BlogSidebar.tsx:73
 msgid "Categories"
@@ -5123,21 +5347,30 @@ msgstr "Destinatarios CC"
 msgid "CDN endpoint"
 msgstr "Endpoint CDN"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:153
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:161
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:23
 msgid "Center"
 msgstr "Centro"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:108
-msgid "Center Center"
-msgstr "Centro Centro"
+#~ msgid "Center Center"
+#~ msgstr "Centro Centro"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:160
+msgid "Center left"
+msgstr "Centro esquerdo"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:107
-msgid "Center Left"
-msgstr "Centro Esquerda"
+#~ msgid "Center Left"
+#~ msgstr "Centro Esquerda"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:162
+msgid "Center right"
+msgstr "Centro direito"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:109
-msgid "Center Right"
-msgstr "Centro Direita"
+#~ msgid "Center Right"
+#~ msgstr "Centro Direita"
 
 #: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/templates/TemplateSettingsAside.tsx:163
@@ -5432,10 +5665,15 @@ msgstr "Modelos Claude"
 
 #: src/components/contacts/ContactsFilters.tsx:240
 #: src/components/contacts/InlineEditableField.tsx:306
-#: src/components/email_builder/ui/ImportFontInput.tsx:169
+#: src/components/email_builder/ui/fields/ColorField.tsx:175
+#: src/components/email_builder/ui/ImportFontInput.tsx:173
 #: src/components/file_manager/FileExplorer.tsx:742
 msgid "Clear"
 msgstr "Limpar"
+
+#: src/components/email_builder/ui/fields/ColorField.tsx:174
+msgid "Clear {ariaLabel}"
+msgstr "Limpar {ariaLabel}"
 
 #: src/components/logs/AuditLogTab.tsx:413
 #: src/components/logs/InboundWebhooksTab.tsx:188
@@ -5805,16 +6043,29 @@ msgstr "Recolher {label}"
 #~ msgstr "Recolher a barra lateral"
 
 #: src/components/blog_editor/menus/block-actions/BlockColorPopover.tsx:97
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:42
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:259
-#: src/components/email_builder/ui/BackgroundInput.tsx:257
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:127
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:183
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:211
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:121
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:123
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:162
 msgid "Color"
 msgstr "Cor"
 
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:184
-#: src/components/email_builder/blocks/MjTextBlock.tsx:43
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:343
+msgid "Color, size"
+msgstr "Cor, tamanho"
+
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:67
+msgid "Color, thickness from 0 to 50 px (4 by default), and style: solid, dashed or dotted."
+msgstr "Cor, espessura de 0 a 50 px (4 por padrão) e estilo: sólido, tracejado ou pontilhado."
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:227
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:109
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:129
+#: src/components/email_builder/blocks/MjImageBlock.tsx:233
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:224
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:74
+#: src/components/email_builder/blocks/MjTextBlock.tsx:74
 msgid "Colors"
 msgstr "Cores"
 
@@ -5833,14 +6084,19 @@ msgid "Column {0}"
 msgstr "Coluna {0}"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:39
-msgid "Column attributes"
-msgstr "Atributos da coluna"
+#~ msgid "Column attributes"
+#~ msgstr "Atributos da coluna"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:39
 #~ msgid "Column Attributes"
 #~ msgstr "Atributos da Coluna"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:126
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:114
+msgid "Column background"
+msgstr "Fundo da coluna"
+
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:171
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:177
 msgid "Column gap"
 msgstr "Espaço entre colunas"
 
@@ -5848,12 +6104,17 @@ msgstr "Espaço entre colunas"
 msgid "Column in file"
 msgstr "Coluna no arquivo"
 
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:87
+msgid "Column width"
+msgstr "Largura da coluna"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:42
-msgid "Column width (e.g., '50%', '300px', 'auto')"
-msgstr "Largura da coluna (ex: '50%', '300px', 'auto')"
+#~ msgid "Column width (e.g., '50%', '300px', 'auto')"
+#~ msgstr "Largura da coluna (ex: '50%', '300px', 'auto')"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:295
 #: src/components/contacts/csv-import/ColumnsStep.tsx:117
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:162
 msgid "Columns"
 msgstr "Colunas"
 
@@ -5957,7 +6218,7 @@ msgstr "Reclamação"
 msgid "Complaints"
 msgstr "Reclamações"
 
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:53
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:43
 msgid "Complement, don't repeat the subject line"
 msgstr "Complemente, não repita a linha de assunto"
 
@@ -6020,7 +6281,8 @@ msgstr "Calculando este segmento…"
 msgid "condition"
 msgstr "condição"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:361
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:364
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:107
 #: src/components/segment/FilterRow.tsx:203
 #: src/components/segment/input.tsx:518
 msgid "Condition"
@@ -6092,7 +6354,7 @@ msgstr "Configurar"
 msgid "Configure a custom domain for email links, notification center, and web publications. DNS verification will be performed before saving to ensure you control this domain."
 msgstr "Configure um domínio personalizado para links de email, central de notificações e publicações web. A verificação DNS será realizada antes de salvar para garantir que você controla este domínio."
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:58
+#: src/components/email_builder/blocks/MjFontBlock.tsx:47
 msgid "Configure both the font name and CSS file URL together"
 msgstr "Configure o nome da fonte e a URL do arquivo CSS juntos"
 
@@ -6139,7 +6401,7 @@ msgid "Configuring {0}"
 msgstr "Configurando {0}"
 
 #: src/components/contacts/BulkActionsBar.tsx:187
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:203
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:206
 #: src/components/segment/form_leaf.tsx:207
 msgid "Confirm"
 msgstr "Confirmar"
@@ -6249,7 +6511,7 @@ msgstr "Falhas de entrega consecutivas: {consecutiveFailures}"
 #~ msgid "Consider connecting a transactional email provider to be able to use transactional emails for account notifications, password resets, and other important system messages."
 #~ msgstr "Considere conectar um provedor de email transacional para poder usar emails transacionais para notificações de conta, redefinição de senha e outras mensagens importantes do sistema."
 
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:53
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:38
 msgid "Consider using the same text as your subject line"
 msgstr "Considere usar o mesmo texto da linha de assunto"
 
@@ -6420,28 +6682,43 @@ msgstr "Contatos sem consentimento registrado"
 msgid "Contacts' tracking consent still applies"
 msgstr "O consentimento de rastreamento dos contatos continua valendo"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:87
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:120
 msgid "Contain"
 msgstr "Conter"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:210
 #: src/components/email_builder/blocks/MjTextBlock.tsx:58
-msgid "Container"
-msgstr "Container"
+#~ msgid "Container"
+#~ msgstr "Container"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:248
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:250
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:133
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:138
+#: src/components/email_builder/blocks/MjImageBlock.tsx:237
+#: src/components/email_builder/blocks/MjImageBlock.tsx:242
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:228
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:233
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:78
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:83
+#: src/components/email_builder/blocks/MjTextBlock.tsx:88
+#: src/components/email_builder/blocks/MjTextBlock.tsx:93
+msgid "Container background"
+msgstr "Fundo do container"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:99
 #: src/components/email_builder/blocks/MjImageBlock.tsx:140
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:50
-msgid "Container Background"
-msgstr "Fundo do Container"
+#~ msgid "Container Background"
+#~ msgstr "Fundo do Container"
 
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:85
-msgid "Container color"
-msgstr "Cor do container"
+#~ msgid "Container color"
+#~ msgstr "Cor do container"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:291
-msgid "Container Padding"
-msgstr "Espaçamento do Container"
+#~ msgid "Container Padding"
+#~ msgstr "Espaçamento do Container"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
@@ -6453,6 +6730,7 @@ msgid "contains"
 msgstr "contém"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:123
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:207
 #: src/components/email_builder/panels/LibraryPanel.tsx:268
 #: src/components/settings/SettingsSidebar.tsx:28
 #: src/components/templates/TemplateDrawerBar.tsx:83
@@ -6585,6 +6863,23 @@ msgstr "Copiar URL"
 #: src/components/automations/config/TriggerConfigForm.tsx:94
 msgid "Core Fields"
 msgstr "Campos Principais"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:313
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:315
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:152
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:154
+#: src/components/email_builder/blocks/MjImageBlock.tsx:220
+#: src/components/email_builder/blocks/MjImageBlock.tsx:222
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:141
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:143
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:174
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:176
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:298
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:300
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:125
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:127
+msgid "Corners"
+msgstr "Cantos"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:391
 #~ msgid "Cost"
@@ -6858,7 +7153,7 @@ msgstr "As contagens cobrem no máximo {countMax}. Para contar além disso, filt
 msgid "Counts may include automated security-scanner and Apple Mail prefetch clicks; Unique clicks is the most reliable human signal."
 msgstr "As contagens podem incluir cliques automatizados de scanners de segurança e de pré-carregamento do Apple Mail; Cliques únicos é o sinal humano mais confiável."
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:86
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:119
 msgid "Cover"
 msgstr "Cobrir"
 
@@ -7061,7 +7356,7 @@ msgstr "Criar o workspace"
 msgid "Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
 msgstr "Crie isso no Portal Azure > Registros de aplicativos > Seu App > Certificados e segredos"
 
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:54
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:44
 msgid "Create urgency or curiosity"
 msgstr "Crie urgência ou curiosidade"
 
@@ -7234,6 +7529,15 @@ msgstr "Criou o workspace <0>{target}</0>"
 #~ msgid "Creates a key limited to the permissions Zapier needs: contacts, lists, segments and webhook subscriptions."
 #~ msgstr "Cria uma chave limitada às permissões de que o Zapier precisa: contatos, listas, segmentos e assinaturas de webhook."
 
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:108
+msgid "CSS"
+msgstr "CSS"
+
+#: src/components/email_builder/blocks/AdvancedSection.tsx:18
+#: src/components/email_builder/blocks/AdvancedSection.tsx:24
+msgid "CSS class"
+msgstr "Classe CSS"
+
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:70
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:384
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
@@ -7247,18 +7551,18 @@ msgstr "Criou o workspace <0>{target}</0>"
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:88
 #: src/components/email_builder/blocks/MjTextBlock.tsx:149
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:143
-msgid "CSS Class"
-msgstr "Classe CSS"
+#~ msgid "CSS Class"
+#~ msgstr "Classe CSS"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:120
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:122
 msgid "CSS Content"
 msgstr "Conteúdo CSS"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:136
+#: src/components/email_builder/ui/ImportFontInput.tsx:140
 msgid "CSS File URL"
 msgstr "URL do Arquivo CSS"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:144
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:139
 msgid "CSS Style Editor"
 msgstr "Editor de Estilos CSS"
 
@@ -7287,30 +7591,34 @@ msgstr "JSON da Árvore de Segmento Atual"
 msgid "custom"
 msgstr "personalizado"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:97
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:134
 #: src/components/email_builder/panels/TextVersionPanel.tsx:168
 #: src/components/email_builder/panels/TextVersionPanel.tsx:326
-#: src/components/email_builder/ui/BackgroundInput.tsx:113
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:322
 #: src/components/templates/TemplatePreviewDrawer.tsx:235
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:116
 msgid "Custom"
 msgstr "Personalizado"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:89
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:122
 msgid "Custom (%)"
 msgstr "Personalizado (%)"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:88
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:121
 msgid "Custom (px)"
 msgstr "Personalizado (px)"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:248
+msgid "Custom background size"
+msgstr "Tamanho de fundo personalizado"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:175
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:139
 #: src/components/email_builder/blocks/MjRawBlock.tsx:334
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:174
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:143
-msgid "Custom CSS class for styling"
-msgstr "Classe CSS personalizada para estilização"
+#~ msgid "Custom CSS class for styling"
+#~ msgstr "Classe CSS personalizada para estilização"
 
 #: src/components/segment/segmentLabels.ts:75
 msgid "Custom date {number}"
@@ -7426,9 +7734,13 @@ msgstr "Cabeçalho personalizado"
 msgid "Custom hostname used in SMTP EHLO/HELO command. Leave empty to use default."
 msgstr "Hostname personalizado usado no comando SMTP EHLO/HELO. Deixe vazio para usar o padrão."
 
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:223
+msgid "Custom icon URL"
+msgstr "URL do ícone personalizado"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:144
-msgid "Custom Icon URL"
-msgstr "URL do Ícone Personalizado"
+#~ msgid "Custom Icon URL"
+#~ msgstr "URL do Ícone Personalizado"
 
 #: src/components/integrations/SupabaseIntegration.tsx:251
 msgid "Custom JSON {num}"
@@ -7590,8 +7902,8 @@ msgstr "Zona de perigo"
 msgid "Dashboard"
 msgstr "Dashboard"
 
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:62
-#: src/components/email_builder/ui/BorderInput.tsx:60
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:51
+#: src/components/email_builder/ui/fields/BorderField.tsx:92
 msgid "Dashed"
 msgstr "Tracejado"
 
@@ -7658,7 +7970,7 @@ msgstr "Depurar Construtor de Segmento"
 msgid "Decline"
 msgstr "Recusar"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:336
+#: src/components/email_builder/ui/fields/FontFields.tsx:304
 msgid "Decoration"
 msgstr "Decoração"
 
@@ -7678,7 +7990,6 @@ msgstr "Rolagem mais profunda atingida em uma página da visita"
 msgid "default"
 msgstr "padrão"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:236
 #: src/components/integrations/LLMIntegration.tsx:259
 #: src/components/settings/Integrations.tsx:339
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:900
@@ -7690,7 +8001,7 @@ msgstr "Padrão"
 msgid "Default (API endpoint)"
 msgstr "Padrão (endpoint da API)"
 
-#: src/components/email_builder/blocks/MjAttributesBlock.tsx:17
+#: src/components/email_builder/blocks/MjAttributesBlock.tsx:21
 msgid "Default attributes"
 msgstr "Atributos padrão"
 
@@ -7830,7 +8141,7 @@ msgstr "Atraso"
 #: src/components/contacts/ContactsTable.tsx:103
 #: src/components/contacts/ContactsViewHeader.tsx:153
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:56
-#: src/components/email_builder/EmailBuilder.tsx:947
+#: src/components/email_builder/EmailBuilder.tsx:996
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
 #: src/components/file_manager/FileExplorer.tsx:334
 #: src/components/file_manager/FileExplorer.tsx:403
@@ -7874,7 +8185,7 @@ msgstr "Excluir"
 #~ msgid "DELETE"
 #~ msgstr "EXCLUIR"
 
-#: src/components/email_builder/EmailBuilder.tsx:945
+#: src/components/email_builder/EmailBuilder.tsx:994
 msgid "Delete \"{name}\" from the library?"
 msgstr "Excluir \"{name}\" da biblioteca?"
 
@@ -8078,7 +8389,7 @@ msgstr "Excluir operação"
 msgid "Delete Post"
 msgstr "Excluir Postagem"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:155
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:161
 #: src/components/web_analytics/filters/FilterTable.tsx:344
 #: src/components/web_analytics/filters/FilterTable.tsx:351
 #: src/components/web_analytics/filters/FilterTable.tsx:362
@@ -8458,6 +8769,13 @@ msgstr "Dimensões:"
 msgid "Direct"
 msgstr "Direto"
 
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:130
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:132
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:117
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:119
+msgid "Direction"
+msgstr "Direção"
+
 #: src/components/settings/BlogSettings.tsx:205
 #: src/components/settings/BlogSettings.tsx:468
 #~ msgid "Disable Blog"
@@ -8544,8 +8862,8 @@ msgstr "Desconectar"
 msgid "Display"
 msgstr "Display"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:277
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:71
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:280
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:53
 msgid "Display condition"
 msgstr "Condição de exibição"
 
@@ -8573,17 +8891,25 @@ msgstr "Exibir controles do player de vídeo"
 msgid "Distribute evenly"
 msgstr "Distribuir uniformemente"
 
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:118
+msgid "Divider alignment"
+msgstr "Alinhamento do divisor"
+
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:37
-msgid "Divider attributes"
-msgstr "Atributos do divisor"
+#~ msgid "Divider attributes"
+#~ msgstr "Atributos do divisor"
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:37
 #~ msgid "Divider Attributes"
 #~ msgstr "Atributos do Divisor"
 
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:105
+msgid "Divider width"
+msgstr "Largura do divisor"
+
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:91
-msgid "Divider Width"
-msgstr "Largura do Divisor"
+#~ msgid "Divider Width"
+#~ msgstr "Largura do Divisor"
 
 #: src/components/settings/GeneralSettings.tsx:192
 msgid "DNS record"
@@ -8718,12 +9044,12 @@ msgstr "Concluído · {failed} com falha"
 msgid "Done once. Everything here can be changed later in System settings."
 msgstr "Feito uma única vez. Tudo pode ser alterado depois nas configurações do sistema."
 
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:63
-#: src/components/email_builder/ui/BorderInput.tsx:61
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:52
+#: src/components/email_builder/ui/fields/BorderField.tsx:93
 msgid "Dotted"
 msgstr "Pontilhado"
 
-#: src/components/email_builder/ui/BorderInput.tsx:62
+#: src/components/email_builder/ui/fields/BorderField.tsx:94
 msgid "Double"
 msgstr "Duplo"
 
@@ -8863,6 +9189,10 @@ msgstr "ex.: /pricing"
 msgid "e.g. email"
 msgstr "ex: email"
 
+#: src/components/email_builder/blocks/AdvancedSection.tsx:27
+msgid "e.g. hero"
+msgstr "ex.: hero"
+
 #: src/components/settings/ZapierSettings.tsx:172
 msgid "e.g. Marketing"
 msgstr "ex.: Marketing"
@@ -8879,7 +9209,7 @@ msgstr "ex. Newsletter, Clientes, Beta"
 msgid "e.g. notifuse"
 msgstr "ex: notifuse"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:213
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:216
 msgid "e.g. order.has_image"
 msgstr "ex.: order.has_image"
 
@@ -8947,7 +9277,7 @@ msgstr "ex: Atualizações do Produto"
 msgid "e.g., purchase"
 msgstr "ex: compra"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:130
+#: src/components/email_builder/ui/ImportFontInput.tsx:134
 msgid "e.g., Raleway, Open Sans"
 msgstr "ex: Raleway, Open Sans"
 
@@ -8958,6 +9288,10 @@ msgstr "ex.: Boas-vindas — dia 1"
 #: src/components/automations/config/TriggerConfigForm.tsx:433
 #~ msgid "Each contact enters the automation only once"
 #~ msgstr "Cada contato entra na automação apenas uma vez"
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:123
+msgid "Each icon's text takes these, unless the icon sets its own."
+msgstr "O texto de cada ícone usa estes valores, a menos que o ícone defina os seus."
 
 #: src/components/broadcasts/detail/EngagementChart.tsx:105
 msgid "Each message counts once, in the hour of its first open or click; clicks count each message clicked once."
@@ -8994,9 +9328,9 @@ msgstr "Cada variação mantém o remetente do seu template, a menos que você e
 #: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:303
 #: src/components/contacts/ContactsTable.tsx:91
-#: src/components/email_builder/EmailBuilder.tsx:1063
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
-#: src/components/email_builder/ui/ImportFontInput.tsx:218
+#: src/components/email_builder/EmailBuilder.tsx:1112
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
+#: src/components/email_builder/ui/ImportFontInput.tsx:222
 #: src/components/segment/input.tsx:389
 #: src/components/segment/input.tsx:393
 #: src/components/settings/Integrations.tsx:261
@@ -9107,7 +9441,7 @@ msgstr "Editar categoria"
 msgid "Edit Content"
 msgstr "Editar Conteúdo"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:139
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:134
 msgid "Edit CSS"
 msgstr "Editar CSS"
 
@@ -9119,17 +9453,21 @@ msgstr "Editar CSS"
 msgid "Edit email template"
 msgstr "Editar template de email"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:211
+#: src/components/email_builder/ui/ImportFontInput.tsx:215
 msgid "Edit Font Import"
 msgstr "Editar Importação de Fonte"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:326
+#: src/components/email_builder/blocks/MjRawBlock.tsx:321
 msgid "Edit HTML Content"
 msgstr "Editar Conteúdo HTML"
 
+#: src/components/email_builder/blocks/MjLiquidBlock.tsx:47
+msgid "Edit Liquid content"
+msgstr "Editar conteúdo Liquid"
+
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:49
-msgid "Edit Liquid Content"
-msgstr "Editar Conteúdo Liquid"
+#~ msgid "Edit Liquid Content"
+#~ msgstr "Editar Conteúdo Liquid"
 
 #: src/components/contacts/ContactsViewHeader.tsx:214
 #: src/components/lists/ListDrawer.tsx:73
@@ -9167,7 +9505,7 @@ msgstr "Editar post"
 #~ msgid "Edit Post"
 #~ msgstr "Editar Postagem"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:163
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:169
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:175
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:315
 #: src/components/web_analytics/filters/FilterTable.tsx:368
@@ -9247,8 +9585,8 @@ msgstr "Editar o consentimento de rastreamento"
 
 #: src/components/email_builder/ui/StringPopoverInput.tsx:147
 #: src/components/email_builder/ui/StringPopoverInput.tsx:154
-msgid "Edit value"
-msgstr "Editar valor"
+#~ msgid "Edit value"
+#~ msgstr "Editar valor"
 
 #: src/components/settings/WebhooksSettings.tsx:502
 msgid "Edit webhook"
@@ -9301,8 +9639,8 @@ msgid "Elapsed"
 msgstr "Tempo decorrido"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:465
-msgid "Element Padding"
-msgstr "Espaçamento do Elemento"
+#~ msgid "Element Padding"
+#~ msgstr "Espaçamento do Elemento"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:651
 #~ msgid "email"
@@ -9350,12 +9688,16 @@ msgid "Email address is required for OAuth2"
 msgstr "Endereço de email é obrigatório para OAuth2"
 
 #: src/components/email_builder/blocks/MjmlBlock.tsx:15
-msgid "Email attributes"
-msgstr "Atributos do email"
+#~ msgid "Email attributes"
+#~ msgstr "Atributos do email"
 
 #: src/components/email_builder/blocks/MjmlBlock.tsx:15
 #~ msgid "Email Attributes"
 #~ msgstr "Atributos do Email"
+
+#: src/components/email_builder/blocks/MjBodyBlock.tsx:86
+msgid "Email background"
+msgstr "Fundo do e-mail"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:151
 msgid "Email Body Payload"
@@ -9553,8 +9895,8 @@ msgid "Email templates in every language, and the reusable template blocks store
 msgstr "Templates de email em todos os idiomas, e os blocos de template reutilizáveis armazenados no workspace."
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:32
-msgid "Email Title Settings"
-msgstr "Configurações do Título do Email"
+#~ msgid "Email Title Settings"
+#~ msgstr "Configurações do Título do Email"
 
 #: src/components/segment/segmentLabels.ts:195
 #: src/components/settings/GeneralSettings.tsx:277
@@ -9570,7 +9912,11 @@ msgstr "Consentimento ao rastreamento de emails"
 msgid "Email updated: {name}"
 msgstr "Email atualizado: {name}"
 
-#: src/components/email_builder/blocks/MjBodyBlock.tsx:55
+#: src/components/email_builder/blocks/MjBodyBlock.tsx:75
+msgid "Email width"
+msgstr "Largura do e-mail"
+
+#: src/components/email_builder/blocks/MjBodyBlock.tsx:69
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "Larguras de email acima de 650px podem não ser exibidas corretamente em alguns clientes de email"
 
@@ -9657,13 +10003,17 @@ msgstr "vazio"
 msgid "Empty"
 msgstr "Vazio"
 
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:205
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:238
 msgid "Empty column. Add text, button, or image content."
 msgstr "Coluna vazia. Adicione texto, botão ou imagem."
 
 #: src/components/segment/input.tsx:482
 msgid "Empty: add a condition or a subgroup."
 msgstr "Vazio: adicione uma condição ou um subgrupo."
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:218
+msgid "Empty: the network's icon. A URL replaces it, on a network too."
+msgstr "Vazio: o ícone da rede. Uma URL o substitui, também em uma rede."
 
 #: src/components/templates/TemplateTranslationsTab.tsx:346
 msgid "Enable"
@@ -9833,11 +10183,12 @@ msgstr "Digite um nome para seu workspace"
 msgid "Enter a number"
 msgstr "Digite um número"
 
-#: src/components/email_builder/ui/BorderRadiusInput.tsx:70
+#: src/components/email_builder/ui/fields/CornersField.tsx:87
+#: src/components/email_builder/ui/fields/CornersField.tsx:95
 msgid "Enter a number of pixels instead"
 msgstr "Inserir um número de pixels"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:110
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "Digite um número com no máximo 15 dígitos antes da vírgula decimal."
 
@@ -9850,11 +10201,11 @@ msgstr "Digite um número com no máximo 15 dígitos antes da vírgula decimal."
 msgid "Enter a value"
 msgstr "Digite um valor"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:102
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:108
 msgid "Enter a value."
 msgstr "Digite um valor."
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:98
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:104
 msgid "Enter a variable path such as order.total: letters, digits and underscores, separated by dots."
 msgstr "Digite um caminho de variável como order.total: letras, dígitos e sublinhados, separados por pontos."
 
@@ -9878,7 +10229,7 @@ msgstr "Digite o nome do autor"
 msgid "Enter avatar URL (optional)"
 msgstr "Digite a URL do avatar (opcional)"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:279
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:201
 msgid "Enter background image URL"
 msgstr "Digite a URL da imagem de fundo"
 
@@ -9891,10 +10242,10 @@ msgid "Enter broadcast ID to confirm"
 msgstr "Digite o ID do broadcast para confirmar"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:178
-msgid "Enter button link URL or {{ url }}"
-msgstr "Digite a URL do link do botão ou {{ url }}"
+#~ msgid "Enter button link URL or {{ url }}"
+#~ msgstr "Digite a URL do link do botão ou {{ url }}"
 
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:645
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:588
 msgid "Enter button text..."
 msgstr "Digite o texto do botão..."
 
@@ -9910,10 +10261,10 @@ msgstr "Digite os endereços de email para cópia (CC)"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:499
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:92
 #: src/components/email_builder/blocks/MjTextBlock.tsx:153
-msgid "Enter CSS class name"
-msgstr "Digite o nome da classe CSS"
+#~ msgid "Enter CSS class name"
+#~ msgstr "Digite o nome da classe CSS"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:309
+#: src/components/email_builder/blocks/MjRawBlock.tsx:306
 msgid "Enter custom HTML code. When placed in mj-head, use for CSS styles, meta tags, or head elements. When placed in mj-body, use for body-level HTML structures, tracking pixels, or template logic."
 msgstr "Digite código HTML personalizado. Quando colocado no mj-head, use para estilos CSS, meta tags ou elementos do cabeçalho. Quando colocado no mj-body, use para estruturas HTML do corpo, pixels de rastreamento ou lógica de template."
 
@@ -9926,7 +10277,7 @@ msgstr "Digite a duração"
 msgid "Enter email address"
 msgstr "Digite o endereço de email"
 
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:41
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:49
 msgid "Enter email title..."
 msgstr "Digite o título do email..."
 
@@ -9934,7 +10285,7 @@ msgstr "Digite o título do email..."
 msgid "Enter event names to filter"
 msgstr "Digite os nomes dos eventos para filtrar"
 
-#: src/components/email_builder/ui/FileSrc.tsx:32
+#: src/components/email_builder/ui/FileSrc.tsx:36
 msgid "Enter file URL or use file manager"
 msgstr "Digite a URL do arquivo ou use o gerenciador de arquivos"
 
@@ -9946,7 +10297,7 @@ msgstr "Digite a altura"
 msgid "Enter icon URL or select image"
 msgstr "Digite a URL do ícone ou selecione uma imagem"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:48
+#: src/components/email_builder/blocks/MjImageBlock.tsx:86
 msgid "Enter image URL"
 msgstr "Digite a URL da imagem"
 
@@ -9959,8 +10310,8 @@ msgid "Enter JSON..."
 msgstr "Digite JSON..."
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:62
-msgid "Enter link URL or {{ url }}"
-msgstr "Digite a URL do link ou {{ url }}"
+#~ msgid "Enter link URL or {{ url }}"
+#~ msgstr "Digite a URL do link ou {{ url }}"
 
 #: src/components/lists/ListDrawer.tsx:238
 #~ msgid "Enter list description"
@@ -9982,7 +10333,7 @@ msgstr "Digite a URL do logo ou selecione uma imagem"
 msgid "Enter number..."
 msgstr "Digite um número..."
 
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:40
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:71
 msgid "Enter preview text that appears in email clients..."
 msgstr "Digite o texto de pré-visualização que aparece nos clientes de email..."
 
@@ -10019,12 +10370,12 @@ msgid "Enter the username that goes with this password, or clear both."
 msgstr "Informe o usuário desta senha ou deixe ambos vazios."
 
 #: src/components/email_builder/ui/StringPopoverInput.tsx:26
-msgid "Enter value"
-msgstr "Digite o valor"
+#~ msgid "Enter value"
+#~ msgstr "Digite o valor"
 
 #: src/components/email_builder/ui/WidthInput.tsx:21
-msgid "Enter width"
-msgstr "Digite a largura"
+#~ msgid "Enter width"
+#~ msgstr "Digite a largura"
 
 #: src/components/settings/DeleteWorkspace.tsx:57
 msgid "Enter workspace ID"
@@ -11150,7 +11501,12 @@ msgstr "Falha ao verificar o tenant"
 #~ msgid "Failure"
 #~ msgstr "Falha"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:149
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:211
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:217
+msgid "Fallback color"
+msgstr "Cor alternativa"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:155
 msgid "false"
 msgstr "falso"
 
@@ -11538,45 +11894,64 @@ msgstr "Segue o nome até você editá-lo. Letras minúsculas, números e sublin
 msgid "Follows the title until you edit it"
 msgstr "Segue o título até você editá-lo"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:77
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:80
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:261
+#: src/components/email_builder/blocks/MjFontBlock.tsx:30
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:122
+#: src/components/email_builder/blocks/MjTextBlock.tsx:105
+#: src/components/email_builder/ui/fields/FontFields.tsx:212
+#: src/components/email_builder/ui/fields/FontFields.tsx:218
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:79
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:83
 msgid "Font"
 msgstr "Fonte"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:30
-msgid "Font attributes"
-msgstr "Atributos da fonte"
+#~ msgid "Font attributes"
+#~ msgstr "Atributos da fonte"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:30
 #~ msgid "Font Attributes"
 #~ msgstr "Atributos da Fonte"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:57
-msgid "Font Configuration"
-msgstr "Configuração da Fonte"
+#~ msgid "Font Configuration"
+#~ msgstr "Configuração da Fonte"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:355
 #: src/components/email_builder/ui/FontStyleInput.tsx:170
-msgid "Font Family"
-msgstr "Família da Fonte"
+#~ msgid "Font Family"
+#~ msgstr "Família da Fonte"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:125
+#: src/components/email_builder/ui/ImportFontInput.tsx:129
 msgid "Font Name"
 msgstr "Nome da Fonte"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:289
-msgid "Font Settings"
-msgstr "Configurações da Fonte"
+#~ msgid "Font Settings"
+#~ msgstr "Configurações da Fonte"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:357
+#: src/components/email_builder/ui/fields/FontFields.tsx:178
+msgid "Font size"
+msgstr "Tamanho da fonte"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:270
-msgid "Font Size"
-msgstr "Tamanho da Fonte"
+#~ msgid "Font Size"
+#~ msgstr "Tamanho da Fonte"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:344
+msgid "Font size: 8 to 48 px."
+msgstr "Tamanho da fonte: de 8 a 48 px."
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:238
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:93
 #: src/components/email_builder/blocks/MjTextBlock.tsx:71
-msgid "Font Styling"
-msgstr "Estilização da Fonte"
+#~ msgid "Font Styling"
+#~ msgstr "Estilização da Fonte"
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:195
+msgid "Font weight"
+msgstr "Peso da fonte"
 
 #. placeholder {0}: dayjs(subscription.created_at).fromNow(true)
 #: src/components/contacts/ContactsTable.tsx:213
@@ -11676,6 +12051,10 @@ msgstr "de {listName}"
 msgid "from {referrer}"
 msgstr "de {referrer}"
 
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:54
+msgid "From 0 to 500 px; 20 px by default."
+msgstr "De 0 a 500 px; 20 px por padrão."
+
 #: src/components/contacts/visits/ContactWebVisits.tsx:340
 msgid "From an email"
 msgstr "De um e-mail"
@@ -11724,8 +12103,8 @@ msgstr "De platform.openai.com ou a chave própria do seu endpoint"
 msgid "From the moment you save"
 msgstr "A partir do momento em que você salva"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:83
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:130
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:85
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:125
 msgid "From the text block"
 msgstr "A do bloco de texto"
 
@@ -11771,12 +12150,22 @@ msgstr "Post completo"
 msgid "Full preview"
 msgstr "Prévia completa"
 
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:91
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:96
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:103
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:86
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:89
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:96
+msgid "Full width"
+msgstr "Largura total"
+
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:161
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:91
-msgid "Full Width"
-msgstr "Largura Total"
+#~ msgid "Full Width"
+#~ msgstr "Largura Total"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:92
+#: src/components/email_builder/blocks/MjImageBlock.tsx:184
+#: src/components/email_builder/blocks/MjImageBlock.tsx:191
 msgid "Full width on mobile"
 msgstr "Largura total no celular"
 
@@ -11796,6 +12185,10 @@ msgstr "Galeria"
 #: src/components/templates/CreateTemplateDrawer.tsx:697
 msgid "Gallery · {languages}"
 msgstr "Galeria · {languages}"
+
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:156
+msgid "gap {gutter}"
+msgstr "espaço {gutter}"
 
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:64
 msgid "Gemini models"
@@ -12093,7 +12486,7 @@ msgstr "Cinza"
 msgid "Grid"
 msgstr "Grade"
 
-#: src/components/email_builder/ui/BorderInput.tsx:63
+#: src/components/email_builder/ui/fields/BorderField.tsx:95
 msgid "Groove"
 msgstr "Groove"
 
@@ -12101,13 +12494,13 @@ msgstr "Groove"
 msgid "Group"
 msgstr "Grupo"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:169
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:177
 msgid "Group (drag columns here)"
 msgstr "Grupo (arraste colunas aqui)"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:59
-msgid "Group attributes"
-msgstr "Atributos do grupo"
+#~ msgid "Group attributes"
+#~ msgstr "Atributos do grupo"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:52
 #~ msgid "Group Attributes"
@@ -12117,9 +12510,17 @@ msgstr "Atributos do grupo"
 #~ msgid "Group by"
 #~ msgstr ""
 
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:120
+msgid "Group height"
+msgstr "Altura do grupo"
+
 #: src/components/segment/segmentLabels.ts:137
 msgid "Group the acquisition channel belongs to"
 msgstr "Grupo ao qual o canal de aquisição pertence"
+
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:100
+msgid "Group width"
+msgstr "Largura do grupo"
 
 #: src/components/segment/input.tsx:472
 msgid "Group:"
@@ -12127,7 +12528,7 @@ msgstr "Grupo:"
 
 #. placeholder {0}: skip.heading.level
 #. placeholder {1}: skip.previousLevel
-#: src/components/email_builder/blocks/MjTextBlock.tsx:490
+#: src/components/email_builder/blocks/MjTextBlock.tsx:472
 msgid "H{0} after H{1}"
 msgstr "H{0} depois de H{1}"
 
@@ -12170,8 +12571,8 @@ msgid "Having at least <0>{0}</0> sessions"
 msgstr "Com pelo menos <0>{0}</0> sessões"
 
 #: src/components/email_builder/blocks/MjHeadBlock.tsx:15
-msgid "Head attributes"
-msgstr "Atributos do cabeçalho"
+#~ msgid "Head attributes"
+#~ msgstr "Atributos do cabeçalho"
 
 #: src/components/email_builder/blocks/MjHeadBlock.tsx:15
 #~ msgid "Head Attributes"
@@ -12193,7 +12594,7 @@ msgstr "Valor do cabeçalho"
 msgid "Header value is required"
 msgstr "O valor do cabeçalho é obrigatório"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:173
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:164
 msgid "Heading {level}"
 msgstr "Título {level}"
 
@@ -12201,24 +12602,24 @@ msgstr "Título {level}"
 msgid "Heading {value}"
 msgstr "Título {value}"
 
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:73
+msgid "Heading level"
+msgstr "Nível do título"
+
 #: src/components/email_builder/panels/Preview.tsx:487
 msgid "Heading structure"
 msgstr "Estrutura de títulos"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:42
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:67
+#: src/components/email_builder/blocks/MjAttributesBlock.tsx:18
 msgid "Headings"
 msgstr "Títulos"
 
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:236
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:363
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:93
-#: src/components/email_builder/blocks/MjImageBlock.tsx:102
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:171
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:194
-#: src/components/email_builder/blocks/MjSpacerBlock.tsx:36
-#: src/components/email_builder/blocks/MjTextBlock.tsx:142
-#: src/components/email_builder/ui/HeightInput.tsx:92
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:292
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:118
+#: src/components/email_builder/blocks/MjImageBlock.tsx:172
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:53
+#: src/components/email_builder/blocks/MjTextBlock.tsx:129
 msgid "Height"
 msgstr "Altura"
 
@@ -12242,7 +12643,7 @@ msgstr "Ajuda e Suporte"
 msgid "Helps screen readers describe the image"
 msgstr "Ajuda leitores de tela a descrever a imagem"
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:120
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:69
 msgid "hidden"
 msgstr "oculto"
 
@@ -12331,7 +12732,7 @@ msgstr "Horas"
 msgid "Hover over a block to see details"
 msgstr "Passe o mouse sobre um bloco para ver detalhes"
 
-#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:44
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:47
 msgid "How it works:"
 msgstr "Como funciona:"
 
@@ -12369,9 +12770,10 @@ msgid "How to upgrade"
 msgstr "Como atualizar"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:38
-msgid "How to use:"
-msgstr "Como usar:"
+#~ msgid "How to use:"
+#~ msgstr "Como usar:"
 
+#: src/components/email_builder/blocks/MjRawBlock.tsx:304
 #: src/components/email_builder/panels/Preview.tsx:400
 #: src/components/logs/MessageDetail.tsx:806
 #: src/components/templates/ImportExportButton.tsx:238
@@ -12379,10 +12781,10 @@ msgid "HTML"
 msgstr "HTML"
 
 #: src/components/email_builder/blocks/MjRawBlock.tsx:308
-msgid "HTML Content"
-msgstr "Conteúdo HTML"
+#~ msgid "HTML Content"
+#~ msgstr "Conteúdo HTML"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:327
+#: src/components/email_builder/blocks/MjRawBlock.tsx:322
 msgid "HTML Content Editor"
 msgstr "Editor de Conteúdo HTML"
 
@@ -12403,13 +12805,26 @@ msgstr "Pré-visualização HTML"
 msgid "HTML Preview of {0}"
 msgstr "Pré-visualização HTML de {0}"
 
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:201
+#: src/components/email_builder/blocks/MjImageBlock.tsx:122
+msgid "https://… or {LIQUID_URL}"
+msgstr "https://… ou {LIQUID_URL}"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:138
-msgid "https://example.com or {{ url }}"
-msgstr "https://example.com ou {{ url }}"
+#~ msgid "https://example.com or {{ url }}"
+#~ msgstr "https://example.com ou {{ url }}"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:198
+msgid "https://example.com or {LIQUID_URL}"
+msgstr "https://example.com ou {LIQUID_URL}"
 
 #: src/components/email_builder/ui/ImportFontInput.tsx:141
-msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
-msgstr "https://fonts.googleapis.com/css?family=... ou {{ font_url }}"
+#~ msgid "https://fonts.googleapis.com/css?family=... or {{ font_url }}"
+#~ msgstr "https://fonts.googleapis.com/css?family=... ou {{ font_url }}"
+
+#: src/components/email_builder/ui/ImportFontInput.tsx:145
+msgid "https://fonts.googleapis.com/css?family=... or {LIQUID_FONT_URL}"
+msgstr "https://fonts.googleapis.com/css?family=... ou {LIQUID_FONT_URL}"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:873
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
@@ -12427,7 +12842,21 @@ msgstr "ex: Email de Boas-vindas"
 msgid "i.e: welcome-email"
 msgstr "ex: email-boas-vindas"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:135
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:269
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:217
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:255
+msgid "Icon"
+msgstr "Ícone"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:444
+msgid "Icon and text"
+msgstr "Ícone e texto"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:291
+msgid "Icon background"
+msgstr "Fundo do ícone"
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:241
 msgid "Icon border"
 msgstr "Borda dos ícones"
 
@@ -12435,31 +12864,45 @@ msgstr "Borda dos ícones"
 msgid "Icon detected successfully"
 msgstr "Ícone detectado com sucesso"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:217
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:162
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:277
+msgid "Icon height"
+msgstr "Altura do ícone"
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:193
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:199
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:414
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:420
 msgid "Icon padding"
 msgstr "Espaçamento interno do ícone"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:438
-msgid "Icon Padding"
-msgstr "Espaçamento do Ícone"
+#~ msgid "Icon Padding"
+#~ msgstr "Espaçamento do Ícone"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:172
-msgid "Icon Settings"
-msgstr "Configurações do Ícone"
+#~ msgid "Icon Settings"
+#~ msgstr "Configurações do Ícone"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:267
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:151
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:266
+msgid "Icon size"
+msgstr "Tamanho do ícone"
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:268
 msgid "Icon spacing"
 msgstr "Espaçamento dos ícones"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:217
-msgid "Icon Styling"
-msgstr "Estilização do Ícone"
+#~ msgid "Icon Styling"
+#~ msgstr "Estilização do Ícone"
 
 #: src/components/settings/BlogSettings.tsx:364
 #~ msgid "Icon/Favicon URL"
 #~ msgstr "URL do Ícone/Favicon"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:146
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:138
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:259
 msgid "Icons"
 msgstr "Ícones"
 
@@ -12594,8 +13037,8 @@ msgid "Identity"
 msgstr "Identidade"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:93
-msgid "If \"true\", will be full width on mobile even if width is set"
-msgstr "Se \"true\", terá largura total em dispositivos móveis mesmo se a largura estiver definida"
+#~ msgid "If \"true\", will be full width on mobile even if width is set"
+#~ msgstr "Se \"true\", terá largura total em dispositivos móveis mesmo se a largura estiver definida"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:526
 msgid "If a contact with this email already exists, the provided fields will be overwritten. Fields not included in the form will remain unchanged."
@@ -12625,22 +13068,43 @@ msgstr "Ignorar esta versão"
 msgid "Ignored"
 msgstr "Ignorada"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:43
-#: src/components/email_builder/ui/BackgroundInput.tsx:258
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:145
+#: src/components/email_builder/blocks/MjImageBlock.tsx:70
+#: src/components/email_builder/blocks/MjImageBlock.tsx:254
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:77
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:72
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:184
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:193
 msgid "Image"
 msgstr "Imagem"
 
+#: src/components/email_builder/blocks/MjImageBlock.tsx:198
+msgid "Image alignment"
+msgstr "Alinhamento da imagem"
+
 #: src/components/email_builder/blocks/MjImageBlock.tsx:42
-msgid "Image attributes"
-msgstr "Atributos da imagem"
+#~ msgid "Image attributes"
+#~ msgstr "Atributos da imagem"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:42
 #~ msgid "Image Attributes"
 #~ msgstr "Atributos da Imagem"
 
+#: src/components/email_builder/blocks/MjImageBlock.tsx:174
+msgid "Image height"
+msgstr "Altura da imagem"
+
+#: src/components/email_builder/blocks/MjImageBlock.tsx:83
+msgid "Image URL"
+msgstr "URL da imagem"
+
 #: src/components/seo/MissingMetaTagsWarning.tsx:46
 msgid "Image URL when shared on social media (og:image)"
 msgstr "URL da imagem quando compartilhada em redes sociais (og:image)"
+
+#: src/components/email_builder/blocks/MjImageBlock.tsx:162
+msgid "Image width"
+msgstr "Largura da imagem"
 
 #: src/components/file_manager/DeleteFolderModal.tsx:64
 msgid "Images used in emails or blog posts will stop displaying."
@@ -12706,17 +13170,17 @@ msgstr "Importar Contatos de CSV"
 msgid "Import Contacts to List"
 msgstr "Importar Contatos para Lista"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:228
+#: src/components/email_builder/ui/ImportFontInput.tsx:232
 msgid "Import Custom Font"
 msgstr "Importar Fonte Personalizada"
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:79
-#: src/components/email_builder/ui/ImportFontInput.tsx:24
-#: src/components/email_builder/ui/ImportFontInput.tsx:176
+#: src/components/email_builder/blocks/MjFontBlock.tsx:73
+#: src/components/email_builder/ui/ImportFontInput.tsx:28
+#: src/components/email_builder/ui/ImportFontInput.tsx:180
 msgid "Import Font"
 msgstr "Importar Fonte"
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:42
+#: src/components/email_builder/blocks/MjFontBlock.tsx:36
 msgid "Import fonts from hosted CSS files (like Google Fonts) to use in your email. The font will only take effect if you actually use it in text elements."
 msgstr "Importe fontes de arquivos CSS hospedados (como Google Fonts) para usar em seu email. A fonte só terá efeito se você realmente usá-la em elementos de texto."
 
@@ -12771,9 +13235,17 @@ msgstr "Importou contatos"
 msgid "Imported custom events"
 msgstr "Importou eventos personalizados"
 
+#: src/components/email_builder/blocks/MjFontBlock.tsx:43
+msgid "Imported font"
+msgstr "Fonte importada"
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:119
+msgid "Imported fonts"
+msgstr "Fontes importadas"
+
 #: src/components/email_builder/ui/FontStyleInput.tsx:91
-msgid "Imported Fonts"
-msgstr "Fontes Importadas"
+#~ msgid "Imported Fonts"
+#~ msgstr "Fontes Importadas"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:186
 msgid "Importing"
@@ -12796,11 +13268,11 @@ msgstr "em"
 #~ msgid "in {0}"
 #~ msgstr "em {0}"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:80
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:103
 msgid "In a column"
 msgstr "Em coluna"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:79
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:102
 msgid "In a row"
 msgstr "Em linha"
 
@@ -12815,6 +13287,18 @@ msgstr "no intervalo de datas"
 #: src/components/segment/segmentSummary.ts:218
 msgid "In list {list}"
 msgstr "Na lista {list}"
+
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:82
+msgid "In percent or pixels. Empty: an equal share of the section, or of the group."
+msgstr "Em porcentagem ou pixels. Vazio: uma parte igual da seção, ou do grupo."
+
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:86
+msgid "In percent or pixels. Empty: the group's share of the section."
+msgstr "Em porcentagem ou pixels. Vazio: a parte do grupo na seção."
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:266
+msgid "In pixels or em."
+msgstr "Em pixels ou em."
 
 #: src/components/automations/list/AutomationsTable.tsx:197
 #: src/components/automations/stats/StepStats.tsx:22
@@ -12848,6 +13332,10 @@ msgstr "Na central de notificações"
 msgid "in the payload."
 msgstr "no payload."
 
+#: src/components/email_builder/ui/fields/ColorField.tsx:116
+msgid "In this email"
+msgstr "Neste e-mail"
+
 #: src/components/settings/GeneralSettings.tsx:186
 msgid "In use"
 msgstr "Em uso"
@@ -12868,7 +13356,7 @@ msgstr "ARN do tópico de entrada"
 msgid "Inbox"
 msgstr "Caixa de Entrada"
 
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:55
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:45
 msgid "Include a clear call-to-action"
 msgstr "Inclua uma chamada para ação clara"
 
@@ -12921,20 +13409,35 @@ msgstr "Índigo"
 #~ msgstr "Info"
 
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:110
-msgid "Inline Styles"
-msgstr "Estilos Inline"
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:116
+msgid "Inline styles"
+msgstr "Estilos inline"
+
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:110
+#~ msgid "Inline Styles"
+#~ msgstr "Estilos Inline"
+
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:123
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:129
+msgid "Inner background"
+msgstr "Fundo interno"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:75
-msgid "Inner background color"
-msgstr "Cor de fundo interna"
+#~ msgid "Inner background color"
+#~ msgstr "Cor de fundo interna"
 
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:114
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:162
 msgid "Inner border"
 msgstr "Borda interna"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:135
-msgid "Inner border radius"
-msgstr "Raio da borda interna"
+#~ msgid "Inner border radius"
+#~ msgstr "Raio da borda interna"
+
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:188
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:190
+msgid "Inner corners"
+msgstr "Cantos internos"
 
 #: src/components/ai-assistant/AIAssistantChat.tsx:384
 #~ msgid "Input"
@@ -12973,9 +13476,17 @@ msgstr "Inserir Link"
 msgid "Insert, or drag into the email"
 msgstr "Inserir, ou arrastar para o e-mail"
 
-#: src/components/email_builder/ui/BorderInput.tsx:65
+#: src/components/email_builder/ui/fields/BorderField.tsx:97
 msgid "Inset"
 msgstr "Inserido"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:344
+msgid "Inside the button"
+msgstr "Dentro do botão"
+
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:206
+msgid "Inside the column"
+msgstr "Dentro da coluna"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:416
 msgid "Install"
@@ -13115,10 +13626,18 @@ msgstr "Estrutura de árvore inválida: raiz deve ser do tipo mjml"
 msgid "Invalid URL format"
 msgstr "Formato de URL inválido"
 
+#: src/components/email_builder/ui/fields/DraftTextField.tsx:65
+msgid "Invalid URL format. Use a valid URL or a Liquid expression like {LIQUID_VARIABLE}."
+msgstr "Formato de URL inválido. Use uma URL válida ou uma expressão Liquid como {LIQUID_VARIABLE}."
+
 #: src/components/email_builder/ui/ImportFontInput.tsx:146
 #: src/components/email_builder/ui/StringPopoverInput.tsx:87
-msgid "Invalid URL format. Use a valid URL or liquid expression like {{ variable }}"
-msgstr "Formato de URL inválido. Use uma URL válida ou expressão liquid como {{ variable }}"
+#~ msgid "Invalid URL format. Use a valid URL or liquid expression like {{ variable }}"
+#~ msgstr "Formato de URL inválido. Use uma URL válida ou expressão liquid como {{ variable }}"
+
+#: src/components/email_builder/ui/ImportFontInput.tsx:150
+msgid "Invalid URL format. Use a valid URL or liquid expression like {LIQUID_VARIABLE}"
+msgstr "Formato de URL inválido. Use uma URL válida ou expressão liquid como {LIQUID_VARIABLE}"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:703
 msgid "Invalid YouTube URL"
@@ -13289,7 +13808,7 @@ msgstr "Ela é gerada a partir do HTML a cada envio, então não há nada para m
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "Ele não é enviado no horário agendado. Você pode editá-lo e agendá-lo de novo; a data é mantida."
 
-#: src/components/email_builder/EmailBuilder.tsx:946
+#: src/components/email_builder/EmailBuilder.tsx:995
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "Ele é removido para todos os templates do workspace. Templates que já contêm este bloco não mudam."
 
@@ -13329,8 +13848,7 @@ msgstr "Usa uma sintaxe que só as expressões regulares do servidor leem, por i
 msgid "It will never be sent. A cancelled broadcast can't be resumed."
 msgstr "Ele nunca será enviado. Um broadcast cancelado não pode ser retomado."
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:328
-#: src/components/email_builder/ui/FontStyleInput.tsx:128
+#: src/components/email_builder/ui/fields/FontFields.tsx:159
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:643
 msgid "Italic"
 msgstr "Itálico"
@@ -13431,7 +13949,7 @@ msgstr "JSON exportado com sucesso"
 msgid "JSON Payload Required:"
 msgstr "Payload JSON Necessário:"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:161
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:32
 msgid "Justify"
 msgstr "Justificar"
 
@@ -13466,11 +13984,11 @@ msgstr "Continuar importando"
 msgid "Keep it at or below your provider's limit, minus your transactional traffic."
 msgstr "Mantenha no limite do seu provedor ou abaixo dele, descontando seu tráfego transacional."
 
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:52
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:42
 msgid "Keep it between 35-140 characters"
 msgstr "Mantenha entre 35-140 caracteres"
 
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:51
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:36
 msgid "Keep it concise and descriptive"
 msgstr "Mantenha conciso e descritivo"
 
@@ -13513,6 +14031,8 @@ msgstr "chave ou índice"
 msgid "Keywords"
 msgstr "Palavras-chave"
 
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:239
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:245
 #: src/components/settings/CustomFieldsConfiguration.tsx:179
 #: src/components/settings/CustomFieldsConfiguration.tsx:376
 #: src/components/settings/ZapierSettings.tsx:152
@@ -13685,7 +14205,14 @@ msgstr "Atualizados mais recentemente primeiro"
 msgid "Latitude and longitude, rounded: lower is more private"
 msgstr "Latitude e longitude arredondadas: menor é mais privado"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:71
+#: src/components/email_builder/blocks/MjBodyBlock.tsx:54
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:75
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:79
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:89
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:92
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:96
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:98
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:84
 msgid "Layout"
 msgstr "Disposição"
 
@@ -13724,7 +14251,7 @@ msgstr "Deixe em branco para usar a API padrão do Firecrawl (api.firecrawl.dev)
 msgid "Leave empty for a server that takes mail without login"
 msgstr "Deixe vazio para um servidor que aceita emails sem login"
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:83
+#: src/components/email_builder/blocks/MjImageBlock.tsx:157
 msgid "Leave empty for full container width"
 msgstr "Deixe vazio para largura total do container"
 
@@ -13757,11 +14284,23 @@ msgstr "Sair sem salvar?"
 #~ msgstr "saiu"
 
 #: src/components/automations/describeTrigger.ts:49
-#: src/components/email_builder/ui/BorderInput.tsx:389
-#: src/components/email_builder/ui/FontStyleInput.tsx:149
-#: src/components/email_builder/ui/PaddingInput.tsx:199
+#: src/components/email_builder/ui/fields/BorderField.tsx:105
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:22
+#: src/components/email_builder/ui/fields/SpacingField.tsx:90
 msgid "Left"
 msgstr "Esquerda"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:105
+msgid "Left border color"
+msgstr "Cor da borda esquerda"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:105
+msgid "Left border style"
+msgstr "Estilo da borda esquerda"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:105
+msgid "Left border width"
+msgstr "Largura da borda esquerda"
 
 #: src/components/contacts/sheet/activityLabel.ts:19
 msgid "Left segment"
@@ -13779,10 +14318,14 @@ msgstr "Saiu do segmento {segment}"
 msgid "Left the automation {name}"
 msgstr "Saiu da automação {name}"
 
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:48
+msgid "Left to right"
+msgstr "Da esquerda para a direita"
+
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:124
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:152
-msgid "Left to Right"
-msgstr "Da Esquerda para Direita"
+#~ msgid "Left to Right"
+#~ msgstr "Da Esquerda para Direita"
 
 #: src/components/segment/segmentLabels.ts:226
 msgid "less than"
@@ -13805,7 +14348,7 @@ msgstr "Vamos fazer um tour rápido para ajudá-lo a começar a criar emails bon
 msgid "Lets the assistant read web pages and search"
 msgstr "Permite que o assistente leia páginas web e pesquise"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:276
+#: src/components/email_builder/ui/fields/FontFields.tsx:265
 msgid "Letter spacing"
 msgstr "Espaçamento entre letras"
 
@@ -13817,7 +14360,15 @@ msgstr "Espaçamento entre letras"
 msgid "Letters and digits, 32 at most. Used by the API and forms; cannot change after creation."
 msgstr "Letras e números, no máximo 32. Usado pela API e pelos formulários; não muda depois da criação."
 
-#: src/components/email_builder/EmailBuilder.tsx:1135
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:86
+msgid "Letters, digits, spaces, quotes, commas and hyphens only."
+msgstr "Apenas letras, dígitos, espaços, aspas, vírgulas e hifens."
+
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:71
+msgid "Level"
+msgstr "Nível"
+
+#: src/components/email_builder/EmailBuilder.tsx:1184
 msgid "Library"
 msgstr "Biblioteca"
 
@@ -13850,8 +14401,8 @@ msgid "Lifecycle"
 msgstr "Ciclo de vida"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:303
-msgid "Lighter"
-msgstr "Mais Leve"
+#~ msgid "Lighter"
+#~ msgstr "Mais Leve"
 
 #: src/components/segment/segmentLabels.ts:326
 msgid "Lime"
@@ -13863,6 +14414,8 @@ msgstr "Limitado aos {EXPANDED_ROWS} principais valores por questões de desempe
 
 #: src/components/blog/ThemePreview.tsx:79
 #: src/components/contacts/csv-import/ImportProgress.tsx:108
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:60
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:66
 msgid "Line"
 msgstr "Linha"
 
@@ -13873,10 +14426,13 @@ msgstr "Linha"
 msgid "Line {0} ({1}): {2}"
 msgstr "Linha {0} ({1}): {2}"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:365
-#: src/components/email_builder/ui/FontStyleInput.tsx:259
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:115
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:118
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:74
+msgid "Line color"
+msgstr "Cor da linha"
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:247
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:111
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:114
 #: src/components/email_builder/ui/LineHeightInput.tsx:76
 msgid "Line height"
 msgstr "Altura da linha"
@@ -13890,14 +14446,29 @@ msgstr "Altura da linha"
 msgid "Line numbers are those of your file, header included. Fix these rows and import the file again: contacts already imported are updated, not duplicated."
 msgstr "Os números de linha são os do seu arquivo, com o cabeçalho. Corrija estas linhas e importe o arquivo de novo: contatos já importados são atualizados, não duplicados."
 
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:95
+msgid "Line style"
+msgstr "Estilo da linha"
+
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:82
+msgid "Line thickness"
+msgstr "Espessura da linha"
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:165
+msgid "Line through"
+msgstr "Riscado"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:347
 #: src/components/email_builder/ui/FontStyleInput.tsx:142
-msgid "Line Through"
-msgstr "Riscado"
+#~ msgid "Line Through"
+#~ msgstr "Riscado"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:131
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:134
-#: src/components/email_builder/blocks/MjImageBlock.tsx:58
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:191
+#: src/components/email_builder/blocks/MjImageBlock.tsx:113
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:193
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:380
 msgid "Link"
 msgstr "Link"
 
@@ -13919,26 +14490,35 @@ msgstr "Link copiado"
 #~ msgstr ""
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:387
-msgid "Link Settings"
-msgstr "Configurações do Link"
+#~ msgid "Link Settings"
+#~ msgstr "Configurações do Link"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:388
 msgid "Link target"
 msgstr "Destino do link"
+
+#: src/components/email_builder/ui/fields/SpacingField.tsx:120
+msgid "Link the four sides"
+msgstr "Vincular os quatro lados"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:367
 msgid "Link Type"
 msgstr "Tipo de Link"
 
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:103
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:174
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:134
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:198
+#: src/components/email_builder/blocks/MjImageBlock.tsx:119
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:195
 msgid "Link URL"
 msgstr "URL do Link"
 
 #: src/components/timeline/ContactTimeline.tsx:673
 #~ msgid "Link:"
 #~ msgstr "Link:"
+
+#: src/components/email_builder/ui/fields/SpacingField.tsx:127
+msgid "Linked"
+msgstr "Vinculados"
 
 #: src/components/settings/GeneralSettings.tsx:180
 msgid "Linked from the notification center and available to templates; also used to find your logo"
@@ -13986,10 +14566,10 @@ msgid "Liquid accepted, for example"
 msgstr "Aceita Liquid, por exemplo"
 
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:29
-msgid "Liquid Block"
-msgstr "Bloco Liquid"
+#~ msgid "Liquid Block"
+#~ msgstr "Bloco Liquid"
 
-#: src/components/email_builder/blocks/MjLiquidBlock.tsx:63
+#: src/components/email_builder/blocks/MjLiquidBlock.tsx:59
 msgid "Liquid block - Click to add MJML + Liquid content"
 msgstr "Bloco Liquid - Clique para adicionar conteúdo MJML + Liquid"
 
@@ -14386,8 +14966,12 @@ msgstr "Baixo"
 #~ msgstr "Menor precisão = mais privacidade"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:135
-msgid "lowercase"
-msgstr "minúsculas"
+#~ msgid "lowercase"
+#~ msgstr "minúsculas"
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:171
+msgid "Lowercase"
+msgstr "Minúsculas"
 
 #: src/components/blog/CategoryDrawer.tsx:268
 #: src/components/blog/PostDrawer.tsx:940
@@ -14462,15 +15046,15 @@ msgstr "Colocar uma automação no ar e instalar o seu gatilho de banco de dados
 msgid "Make default"
 msgstr "Definir como padrão"
 
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:52
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:37
 msgid "Make it relevant to your email content"
 msgstr "Torne relevante para o conteúdo do seu email"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:162
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:97
 msgid "Makes the section span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Faz a seção ocupar toda a largura do viewport do email, ignorando restrições do container (tipicamente 600px). Útil para fundos de largura total e seções de destaque."
 
-#: src/components/email_builder/blocks/MjWrapperBlock.tsx:92
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:90
 msgid "Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
 msgstr "Faz o wrapper ocupar toda a largura do viewport do email, ignorando restrições do container (tipicamente 600px). Útil para fundos de largura total e seções de destaque."
 
@@ -14606,7 +15190,7 @@ msgstr "Remetente de marketing: {marketing}"
 #~ msgid "Marketing: not set"
 #~ msgstr "Marketing: não definido"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:303
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:306
 msgid "Match"
 msgstr "Correspondência"
 
@@ -14852,9 +15436,7 @@ msgstr "Métricas e dimensões"
 msgid "Microsoft 365 / Office 365"
 msgstr "Microsoft 365 / Office 365"
 
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:61
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:86
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:382
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:40
 msgid "Middle"
 msgstr "Meio"
 
@@ -14907,12 +15489,16 @@ msgid "MJML"
 msgstr "MJML"
 
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:32
-msgid "MJML + Liquid Content"
-msgstr "Conteúdo MJML + Liquid"
+#~ msgid "MJML + Liquid Content"
+#~ msgstr "Conteúdo MJML + Liquid"
 
-#: src/components/email_builder/blocks/MjLiquidBlock.tsx:50
+#: src/components/email_builder/blocks/MjLiquidBlock.tsx:48
 msgid "MJML + Liquid Editor"
 msgstr "Editor MJML + Liquid"
+
+#: src/components/email_builder/blocks/MjLiquidBlock.tsx:30
+msgid "MJML and Liquid"
+msgstr "MJML e Liquid"
 
 #: src/components/email_builder/panels/Preview.tsx:116
 msgid "MJML compilation completed successfully with no warnings or errors."
@@ -14974,6 +15560,7 @@ msgstr "Falha na Validação MJML"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:431
 #: src/components/broadcasts/compose/PreviewPanel.tsx:66
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:34
 #: src/components/email_builder/MjmlCodeEditor.tsx:718
 #: src/components/email_builder/MjmlCodeEditor.tsx:721
 #: src/components/templates/TemplateSelectorModal.tsx:609
@@ -14988,8 +15575,8 @@ msgid "Mobile & Desktop Preview"
 msgstr "Pré-visualização Mobile e Desktop"
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:29
-msgid "Mobile Breakpoint"
-msgstr "Ponto de Quebra Mobile"
+#~ msgid "Mobile Breakpoint"
+#~ msgstr "Ponto de Quebra Mobile"
 
 #: src/components/email_builder/panels/Preview.tsx:465
 msgid "Mobile view (400px)"
@@ -15112,8 +15699,8 @@ msgstr "Meu webhook"
 #: src/components/email_builder/blocks/MjRawBlock.tsx:338
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:178
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:147
-msgid "my-custom-class"
-msgstr "minha-classe-personalizada"
+#~ msgid "my-custom-class"
+#~ msgstr "minha-classe-personalizada"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:531
 msgid "my-tenant"
@@ -15235,6 +15822,11 @@ msgstr "Necessário primeiro: o blog é servido na raiz"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:467
 msgid "Needs these extra IAM permissions: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Add ses:ListTenants and ses:ListTenantResources for the pickers below, and ses:DeleteTenant plus ses:DeleteTenantResourceAssociation so the tenant is removed with the integration instead of billing forever."
 msgstr "Precisa destas permissões IAM adicionais: ses:CreateTenant, ses:CreateTenantResourceAssociation, ses:GetTenant, ses:PutTenantSuppressionAttributes, ses:ListEmailIdentities. Adicione ses:ListTenants e ses:ListTenantResources para os seletores abaixo, e ses:DeleteTenant mais ses:DeleteTenantResourceAssociation para que o tenant seja removido junto com a integração em vez de gerar cobrança para sempre."
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:170
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:175
+msgid "Network"
+msgstr "Rede"
 
 #: src/components/web_analytics/lib/backfill.ts:25
 msgid "Never run"
@@ -15360,6 +15952,10 @@ msgstr "Novas sessões"
 msgid "New Supabase users become contacts"
 msgstr "Novos usuários do Supabase se tornam contatos"
 
+#: src/components/email_builder/blocks/panelFields.ts:88
+msgid "New tab"
+msgstr "Nova aba"
+
 #: src/components/templates/TemplateDrawerBar.tsx:32
 #: src/components/templates/TemplateSelectorModal.tsx:170
 #: src/components/templates/TemplateSelectorModal.tsx:176
@@ -15385,8 +15981,8 @@ msgid "New visits are no longer rewritten by it. Past ones keep its values until
 msgstr "As novas visitas não são mais reescritas por este filtro. As anteriores mantêm os valores dele até o próximo reprocessamento."
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:399
-msgid "New Window"
-msgstr "Nova Janela"
+#~ msgid "New Window"
+#~ msgstr "Nova Janela"
 
 #: src/layouts/app-shell/WorkspaceSwitcher.tsx:99
 #: src/pages/CreateWorkspacePage.tsx:108
@@ -15657,6 +16253,10 @@ msgstr "Nenhum dado encontrado"
 msgid "No data returned"
 msgstr "Nenhum dado retornado"
 
+#: src/components/email_builder/ui/fields/FontFields.tsx:163
+msgid "No decoration"
+msgstr "Sem decoração"
+
 #: src/components/templates/previewSender.tsx:37
 msgid "No default sender configured"
 msgstr "Nenhum remetente padrão configurado"
@@ -15796,6 +16396,10 @@ msgstr "Nenhuma jornada ainda"
 #: src/components/settings/LicenseSettings.tsx:109
 msgid "No licence — Community"
 msgstr ""
+
+#: src/components/email_builder/blocks/MjImageBlock.tsx:115
+msgid "No link"
+msgstr "Sem link"
 
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:130
 msgid "No link clicks recorded for this variation yet"
@@ -15953,9 +16557,13 @@ msgstr "Nenhum destinatário recebe o pixel de abertura nem links rastreados; os
 msgid "No referrers"
 msgstr "Nenhum referenciador"
 
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:148
+msgid "No repeat"
+msgstr "Sem repetição"
+
 #: src/components/email_builder/ui/BackgroundInput.tsx:97
-msgid "No Repeat"
-msgstr "Sem Repetição"
+#~ msgid "No Repeat"
+#~ msgstr "Sem Repetição"
 
 #: src/components/logs/OutgoingWebhooksTab.tsx:450
 msgid "No response"
@@ -16042,7 +16650,7 @@ msgstr "Nenhuma sessão corresponde a este filtro"
 #~ msgid "No settings available for the attributes container."
 #~ msgstr "Nenhuma configuração disponível para o container de atributos."
 
-#: src/components/email_builder/blocks/MjHeadBlock.tsx:17
+#: src/components/email_builder/blocks/MjHeadBlock.tsx:15
 msgid "No settings available for the head element."
 msgstr "Nenhuma configuração disponível para o elemento head."
 
@@ -16222,17 +16830,13 @@ msgid "none"
 msgstr "nenhum"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:157
-#: src/components/email_builder/blocks/MjBodyBlock.tsx:66
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:215
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:79
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:132
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:89
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:344
-#: src/components/email_builder/blocks/MjTextBlock.tsx:63
-#: src/components/email_builder/ui/BorderInput.tsx:58
-#: src/components/email_builder/ui/ColorPickerWithPresets.tsx:31
-#: src/components/email_builder/ui/FontStyleInput.tsx:133
-#: src/components/email_builder/ui/FontStyleInput.tsx:140
+#: src/components/email_builder/blocks/MjBodyBlock.tsx:89
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:117
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:132
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:180
+#: src/components/email_builder/blocks/MjTextBlock.tsx:96
+#: src/components/email_builder/ui/fields/BorderField.tsx:90
+#: src/components/email_builder/ui/fields/ColorField.tsx:93
 #: src/components/integrations/LLMIntegration.tsx:260
 #: src/components/settings/Integrations.tsx:340
 #: src/components/transactional/TransactionalDetail.tsx:383
@@ -16244,10 +16848,8 @@ msgstr "Nenhum"
 msgid "None (no unsubscribe link)"
 msgstr "Nenhuma (sem link de descadastro)"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:301
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:327
-#: src/components/email_builder/ui/FontStyleInput.tsx:113
-#: src/components/email_builder/ui/FontStyleInput.tsx:127
+#: src/components/email_builder/ui/fields/FontFields.tsx:141
+#: src/components/email_builder/ui/fields/FontFields.tsx:158
 msgid "Normal"
 msgstr "Normal"
 
@@ -16372,7 +16974,7 @@ msgstr "Fora da lista {list}"
 msgid "not in the last"
 msgstr "não nos últimos"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:184
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:187
 msgid "Not in the test data: the rule is evaluated as if the variable were empty."
 msgstr "Ausente dos dados de teste: a regra é avaliada como se a variável estivesse vazia."
 
@@ -16655,8 +17257,7 @@ msgstr "Token de atualização OAuth2"
 msgid "Object key: {segment}"
 msgstr "Chave do objeto: {segment}"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:329
-#: src/components/email_builder/ui/FontStyleInput.tsx:129
+#: src/components/email_builder/ui/fields/FontFields.tsx:160
 msgid "Oblique"
 msgstr "Oblíquo"
 
@@ -16713,7 +17314,7 @@ msgstr "condições"
 msgid "of the following conditions"
 msgstr "condições a seguir"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:313
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:316
 msgid "of the following conditions match:"
 msgstr "das seguintes condições correspondem:"
 
@@ -16765,6 +17366,10 @@ msgstr "Ativado"
 msgid "On (default)"
 msgstr "Ativado (padrão)"
 
+#: src/components/email_builder/blocks/MjImageBlock.tsx:185
+msgid "On mobile, the image takes the full width even when a width is set."
+msgstr "No celular, a imagem ocupa a largura total mesmo quando uma largura está definida."
+
 #: src/components/integrations/FirecrawlIntegration.tsx:89
 msgid "On the card"
 msgstr "No card"
@@ -16814,6 +17419,10 @@ msgstr "Um único endpoint, mas ele é o assistente inteiro: /api/llm.chat trans
 #: src/components/broadcasts/compose/AdvancedRow.tsx:74
 msgid "One HTTPS call per contact before sending, in the recipient_feed variable"
 msgstr "Uma chamada HTTPS por contato antes do envio, na variável recipient_feed"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:286
+msgid "One of nine positions, or Custom for X and Y in percent."
+msgstr "Uma das nove posições, ou Personalizado para X e Y em porcentagem."
 
 #: src/components/settings/GeneralSettings.tsx:259
 #: src/components/settings/GeneralSettings.tsx:381
@@ -16873,7 +17482,7 @@ msgstr "Apenas links nos emails enviados com este template."
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Apenas caracteres alfanuméricos minúsculos, sublinhado e hífen são permitidos."
 
-#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:47
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:50
 msgid "Only one breakpoint per email template is allowed"
 msgstr "Apenas um ponto de quebra por template de email é permitido"
 
@@ -16935,6 +17544,15 @@ msgstr "Imagem Open Graph"
 #: src/components/seo/MissingMetaTagsWarning.tsx:35
 msgid "Open Graph Title"
 msgstr "Título Open Graph"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:206
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:210
+#: src/components/email_builder/blocks/MjImageBlock.tsx:127
+#: src/components/email_builder/blocks/MjImageBlock.tsx:131
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:384
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:388
+msgid "Open in"
+msgstr "Abrir em"
 
 #: src/components/file_manager/FileExplorer.tsx:566
 #: src/components/file_manager/FilePreview.tsx:100
@@ -17013,6 +17631,10 @@ msgstr "Abrir testador"
 #: src/components/settings/audit_logs/AuditLogsSettings.tsx:42
 msgid "Open the audit log"
 msgstr "Abrir o log de auditoria"
+
+#: src/components/email_builder/ui/fields/DraftTextField.tsx:128
+msgid "Open the link"
+msgstr "Abrir o link"
 
 #: src/pages/WebAnalyticsPage.tsx:127
 #~ msgid "Open the settings tab to install the tracking snippet"
@@ -17190,7 +17812,7 @@ msgstr "Operação concluída"
 msgid "Operations"
 msgstr "Operações"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:233
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:236
 #: src/components/segment/FilterRow.tsx:107
 #: src/components/segment/input_event_property_filters.tsx:86
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
@@ -17254,8 +17876,8 @@ msgstr "Opcional. Recebe e-mails neste servidor e os transforma em notificaçõe
 msgid "Options"
 msgstr "Opções"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:116
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:122
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:242
 #: src/pages/SignInPage.tsx:294
@@ -17274,7 +17896,7 @@ msgstr "Ou qualquer endpoint compatível com OpenAI"
 msgid "or drag the block into the email"
 msgstr "ou arraste o bloco para o e-mail"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:153
+#: src/components/email_builder/ui/ImportFontInput.tsx:157
 msgid "Or select a popular Google Font"
 msgstr "Ou selecione uma fonte popular do Google"
 
@@ -17353,12 +17975,11 @@ msgstr "Webhooks de saída"
 #~ msgid "Output"
 #~ msgstr "Saída"
 
-#: src/components/email_builder/ui/BorderInput.tsx:66
+#: src/components/email_builder/ui/fields/BorderField.tsx:98
 msgid "Outset"
 msgstr "Relevo externo"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:346
-#: src/components/email_builder/ui/FontStyleInput.tsx:143
+#: src/components/email_builder/ui/fields/FontFields.tsx:166
 msgid "Overline"
 msgstr "Linha superior"
 
@@ -17387,16 +18008,16 @@ msgstr "Proprietário"
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:58
 #: src/components/email_builder/blocks/MjTextBlock.tsx:112
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:104
-msgid "Padding"
-msgstr "Espaçamento"
+#~ msgid "Padding"
+#~ msgstr "Espaçamento"
 
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:267
-msgid "Padding around each icon"
-msgstr "Espaçamento interno em volta de cada ícone"
+#~ msgid "Padding around each icon"
+#~ msgstr "Espaçamento interno em volta de cada ícone"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:434
-msgid "Padding Settings"
-msgstr "Configurações de Espaçamento"
+#~ msgid "Padding Settings"
+#~ msgstr "Configurações de Espaçamento"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:416
 #: src/components/web_analytics/tabs/DashboardTab.tsx:182
@@ -17456,13 +18077,21 @@ msgstr "Social pago"
 msgid "Paid video"
 msgstr "Vídeo pago"
 
+#: src/components/email_builder/ui/fields/ColorField.tsx:118
+msgid "Palette"
+msgstr "Paleta"
+
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:473
 msgid "Paragraph"
 msgstr "Parágrafo"
 
+#: src/components/email_builder/blocks/panelFields.ts:90
+msgid "Parent frame"
+msgstr "Frame pai"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:401
-msgid "Parent Frame"
-msgstr "Frame Pai"
+#~ msgid "Parent Frame"
+#~ msgstr "Frame Pai"
 
 #: src/components/logs/AuditLogTab.tsx:367
 msgid "Part of an email"
@@ -17495,6 +18124,10 @@ msgstr "Senha (opcional)"
 #: src/components/templates/gallery/labels.ts:10
 msgid "Password reset"
 msgstr "Redefinição de senha"
+
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:51
+msgid "Past 140 characters, most inboxes cut the text."
+msgstr "Acima de 140 caracteres, a maioria das caixas de entrada corta o texto."
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:382
 msgid "Past sessions"
@@ -18174,9 +18807,21 @@ msgstr "Porta"
 msgid "Port must be 1-65535"
 msgstr "A porta deve estar entre 1 e 65535"
 
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:285
+msgid "Position"
+msgstr "Posição"
+
 #: src/components/segment/segmentLabels.ts:96
 msgid "Position of the page within the visit, starting at 1"
 msgstr "Posição da página na visita, começando em 1"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:329
+msgid "Position X"
+msgstr "Posição X"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:342
+msgid "Position Y"
+msgstr "Posição Y"
 
 #: src/components/blog/PostDrawer.tsx:883
 #: src/components/blog/PostsTable.tsx:290
@@ -18298,7 +18943,8 @@ msgstr "Pressione Enter para confirmar, Escape para cancelar"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:71
 #: src/components/common/ImageURLInput.tsx:58
-#: src/components/email_builder/EmailBuilder.tsx:1067
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:31
+#: src/components/email_builder/EmailBuilder.tsx:1116
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:132
 #: src/components/seo/SeoPreview.tsx:36
@@ -18335,9 +18981,13 @@ msgstr "Prévia na caixa de entrada"
 msgid "Preview message"
 msgstr "Visualizar mensagem"
 
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:54
+msgid "Preview mode required"
+msgstr "Modo de visualização obrigatório"
+
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:36
-msgid "Preview Mode Required"
-msgstr "Modo de visualizacao obrigatorio"
+#~ msgid "Preview Mode Required"
+#~ msgstr "Modo de visualizacao obrigatorio"
 
 #. placeholder {0}: loaded?.name ?? ''
 #: src/components/transactional/PreviewPanel.tsx:104
@@ -18374,8 +19024,8 @@ msgid "Preview text ({lang})"
 msgstr "Texto de prévia ({lang})"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:31
-msgid "Preview Text Settings"
-msgstr "Configuracoes do texto de visualizacao"
+#~ msgid "Preview Text Settings"
+#~ msgstr "Configuracoes do texto de visualizacao"
 
 #: src/components/templates/TemplateSettingsAside.tsx:110
 #: src/components/templates/TemplateSettingsAside.tsx:129
@@ -18717,10 +19367,10 @@ msgid "Raw Entry Data"
 msgstr "Dados Brutos da Entrada"
 
 #: src/components/email_builder/blocks/MjRawBlock.tsx:304
-msgid "Raw HTML Block"
-msgstr "Bloco HTML Bruto"
+#~ msgid "Raw HTML Block"
+#~ msgstr "Bloco HTML Bruto"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:353
+#: src/components/email_builder/blocks/MjRawBlock.tsx:339
 msgid "Raw HTML block - Click to add custom HTML content"
 msgstr "Bloco HTML bruto - Clique para adicionar conteúdo HTML personalizado"
 
@@ -18794,6 +19444,10 @@ msgstr "Ler o estado e o progresso de uma tarefa de sincronização de integraç
 #: src/components/segment/FilterRow.tsx:186
 msgid "Read as"
 msgstr "Lido como"
+
+#: src/components/email_builder/blocks/MjImageBlock.tsx:95
+msgid "Read by screen readers, and shown when the image does not load."
+msgstr "Lido por leitores de tela e exibido quando a imagem não carrega."
 
 #: src/services/api/permissions.ts:939
 msgid "Read is not a summary: these are the provider's own payloads, so the rows carry recipient addresses and provider diagnostics. That is why membership alone is not enough for them."
@@ -19127,7 +19781,7 @@ msgstr "URI de redirecionamento copiada"
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:793
 #: src/components/blog/PostDrawer.tsx:796
-#: src/components/email_builder/EmailBuilder.tsx:1051
+#: src/components/email_builder/EmailBuilder.tsx:1100
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
 msgstr "Refazer"
@@ -19292,7 +19946,12 @@ msgstr "Rejeitar Email Descartável"
 msgid "Reject disposable emails"
 msgstr "Rejeitar emails descartáveis"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:409
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:217
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:218
+#: src/components/email_builder/blocks/MjImageBlock.tsx:138
+#: src/components/email_builder/blocks/MjImageBlock.tsx:140
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:395
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:396
 msgid "Rel"
 msgstr "Rel"
 
@@ -19320,7 +19979,7 @@ msgstr "Recarregue a página para atualizar seus blocos salvos."
 #: src/components/blog/AuthorsField.tsx:155
 #: src/components/contacts/BulkUpdateDrawer.tsx:339
 #: src/components/contacts/sheet/ContactListsCard.tsx:113
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:91
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:77
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
 #: src/components/settings/LogoInput.tsx:111
 #: src/components/settings/WorkspaceMembers.tsx:191
@@ -19425,12 +20084,11 @@ msgstr "Remover membro"
 msgid "Remove sender {0}"
 msgstr "Remover remetente {0}"
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:95
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:99
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:81
 msgid "Remove the condition"
 msgstr "Remover a condição"
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:89
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:75
 msgid "Remove the display condition?"
 msgstr "Remover a condição de exibição?"
 
@@ -19538,7 +20196,8 @@ msgstr ""
 msgid "Reorganize layout"
 msgstr "Reorganizar layout"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:94
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:145
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:268
 msgid "Repeat"
 msgstr "Repetir"
 
@@ -19546,22 +20205,22 @@ msgstr "Repetir"
 msgid "Repeat video continuously"
 msgstr "Repetir vídeo continuamente"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:95
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:146
 msgid "Repeat X"
 msgstr "Repetir X"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:96
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:147
 msgid "Repeat Y"
 msgstr "Repetir Y"
 
-#: src/components/email_builder/EmailBuilder.tsx:932
+#: src/components/email_builder/EmailBuilder.tsx:981
 #: src/components/email_builder/panels/TextVersionPanel.tsx:183
 #: src/components/email_builder/ui/SaveBlockModal.tsx:97
 #: src/components/settings/LogoInput.tsx:107
 msgid "Replace"
 msgstr "Substituir"
 
-#: src/components/email_builder/EmailBuilder.tsx:930
+#: src/components/email_builder/EmailBuilder.tsx:979
 msgid "Replace \"{name}\" with the selected block?"
 msgstr "Substituir \"{name}\" pelo bloco selecionado?"
 
@@ -19694,7 +20353,7 @@ msgstr "Obrigatório quando a ponte está ativada"
 msgid "Required when SSO is enabled"
 msgstr "Obrigatório quando o SSO está ativado"
 
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:75
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:124
 msgid "Requires a padding"
 msgstr "Requer um espaçamento"
 
@@ -19711,6 +20370,10 @@ msgstr "Reenviar convite"
 #: src/pages/DebugSegmentPage.tsx:83
 msgid "Reset"
 msgstr "Redefinir"
+
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:39
+msgid "Reset {label} to the inherited value"
+msgstr "Redefinir {label} para o valor herdado"
 
 #: src/services/api/permissions.ts:836
 msgid "Reset a backfill task so it re-runs from the start"
@@ -19732,7 +20395,7 @@ msgstr "Redefinir uma tarefa de sincronização de integração para que ela sej
 msgid "Reset formatting"
 msgstr "Redefinir formatação"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:177
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:169
 msgid "Reset H{level}"
 msgstr "Redefinir H{level}"
 
@@ -19743,6 +20406,10 @@ msgstr "Redefinir substitui todo o conteúdo pelo do idioma padrão."
 #: src/pages/TemplatesPage.tsx:551
 msgid "reset the filter"
 msgstr "redefinir o filtro"
+
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:40
+msgid "Reset to the inherited value"
+msgstr "Redefinir para o valor herdado"
 
 #: src/components/templates/TemplateTranslationsTab.tsx:359
 msgid "Reset translation"
@@ -19810,7 +20477,7 @@ msgstr "Resultado"
 #~ msgid "Result value"
 #~ msgstr "Valor do resultado"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:147
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:153
 msgid "Result with the test data"
 msgstr "Resultado com os dados de teste"
 
@@ -19945,20 +20612,36 @@ msgstr "Tentando novamente"
 msgid "Revoke all"
 msgstr "Revogar tudo"
 
-#: src/components/email_builder/ui/BorderInput.tsx:64
+#: src/components/email_builder/ui/fields/BorderField.tsx:96
 msgid "Ridge"
 msgstr "Ridge"
 
-#: src/components/email_builder/ui/BorderInput.tsx:379
-#: src/components/email_builder/ui/FontStyleInput.tsx:157
-#: src/components/email_builder/ui/PaddingInput.tsx:172
+#: src/components/email_builder/ui/fields/BorderField.tsx:103
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:24
+#: src/components/email_builder/ui/fields/SpacingField.tsx:90
 msgid "Right"
 msgstr "Direita"
 
+#: src/components/email_builder/ui/fields/BorderField.tsx:103
+msgid "Right border color"
+msgstr "Cor da borda direita"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:103
+msgid "Right border style"
+msgstr "Estilo da borda direita"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:103
+msgid "Right border width"
+msgstr "Largura da borda direita"
+
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:49
+msgid "Right to left"
+msgstr "Da direita para a esquerda"
+
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:130
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:155
-msgid "Right to Left"
-msgstr "Direita para Esquerda"
+#~ msgid "Right to Left"
+#~ msgstr "Direita para Esquerda"
 
 #: src/components/settings/WorkspaceMembers.tsx:96
 #~ msgid "Role"
@@ -19988,7 +20671,7 @@ msgstr "E-mail root"
 msgid "Root Email"
 msgstr "Email Principal"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:99
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:150
 msgid "Round"
 msgstr "Arredondado"
 
@@ -20159,11 +20842,15 @@ msgstr "Armazenamento S3"
 msgid "Sale"
 msgstr "Promoção"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:400
-msgid "Same Window"
-msgstr "Mesma Janela"
+#: src/components/email_builder/blocks/panelFields.ts:89
+msgid "Same window"
+msgstr "Mesma janela"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:162
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:400
+#~ msgid "Same Window"
+#~ msgstr "Mesma Janela"
+
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:153
 msgid "Sample"
 msgstr "Amostra"
 
@@ -20216,7 +20903,6 @@ msgstr "Modo sandbox"
 #: src/components/contacts/TrackingConsent.tsx:189
 #: src/components/email_builder/panels/Preview.tsx:213
 #: src/components/email_builder/ui/SaveBlockModal.tsx:97
-#: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:582
@@ -20274,7 +20960,7 @@ msgstr "Salvar como nova versão"
 msgid "Save changes"
 msgstr "Salvar alterações"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:158
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:153
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
 msgid "Save Changes"
@@ -20477,7 +21163,7 @@ msgstr "Escopos"
 msgid "Scrapes a URL and returns its content as markdown"
 msgstr "Extrai uma URL e retorna seu conteúdo como markdown"
 
-#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:55
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:42
 msgid "Screen width below which mobile layout is activated. Common values: 480px, 600px, 768px"
 msgstr "Largura da tela abaixo da qual o layout móvel é ativado. Valores comuns: 480px, 600px, 768px"
 
@@ -20656,13 +21342,14 @@ msgid "Section — {0}"
 msgstr "Seção — {0}"
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:47
-msgid "Section attributes"
-msgstr "Atributos da seção"
+#~ msgid "Section attributes"
+#~ msgstr "Atributos da seção"
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:45
 #~ msgid "Section Attributes"
 #~ msgstr "Atributos da Seção"
 
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:144
 #: src/components/email_builder/panels/LibraryPanel.tsx:267
 msgid "Sections"
 msgstr "Seções"
@@ -20684,6 +21371,10 @@ msgstr "Ver as tarefas de envio de broadcast; uma listagem que não indica tipo 
 #: src/pages/SetupWizard.tsx:412
 #~ msgid "See docs for:"
 #~ msgstr "Ver docs para:"
+
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:77
+msgid "See in preview"
+msgstr "Ver na visualização"
 
 #: src/services/api/permissions.ts:973
 msgid "See integration sync tasks; a listing that names no type is narrowed to the types you may read"
@@ -20814,7 +21505,7 @@ msgstr "Selecione um bloco no e-mail e use o botão de salvar da barra de ferram
 msgid "Select a block of the same type"
 msgstr "Selecione um bloco do mesmo tipo"
 
-#: src/components/email_builder/panels/SettingsPanel.tsx:85
+#: src/components/email_builder/panels/SettingsPanel.tsx:81
 msgid "Select a block to edit its attributes"
 msgstr "Selecione um bloco para editar seus atributos"
 
@@ -20867,7 +21558,7 @@ msgstr "Selecione uma lista..."
 msgid "Select a model"
 msgstr "Selecione um modelo"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:157
+#: src/components/email_builder/ui/ImportFontInput.tsx:161
 msgid "Select a popular Google Font"
 msgstr "Selecione uma fonte popular do Google"
 
@@ -21585,9 +22276,13 @@ msgstr "Descrição SEO para resultados de busca (recomendado: 150-160 caractere
 msgid "SEO title for search engines (recommended: 50-60 characters)"
 msgstr "Título SEO para mecanismos de busca (recomendado: 50-60 caracteres)"
 
+#: src/components/email_builder/ui/fields/SpacingField.tsx:127
+msgid "Separate"
+msgstr "Separados"
+
 #: src/components/email_builder/ui/BorderInput.tsx:361
-msgid "Separate sides"
-msgstr "Lados separados"
+#~ msgid "Separate sides"
+#~ msgstr "Lados separados"
 
 #: src/components/setup/SsoPanel.tsx:137
 msgid "Separated by spaces. openid is always included. Unverified emails are refused unless OIDC_ALLOW_UNVERIFIED_EMAIL is set."
@@ -21770,8 +22465,8 @@ msgid "Set cc or bcc on a transactional send, which renders the subject against 
 msgstr "Definir cc ou bcc em um envio transacional, o que renderiza o assunto com base nos registros completos desses destinatários (também requer escrita de Transacional)"
 
 #: src/components/email_builder/blocks/MjBodyBlock.tsx:75
-msgid "Set class"
-msgstr "Definir classe"
+#~ msgid "Set class"
+#~ msgstr "Definir classe"
 
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:23
 msgid "Set content"
@@ -21785,16 +22480,20 @@ msgstr "Definir como padrão"
 #~ msgid "set default value"
 #~ msgstr ""
 
+#: src/components/email_builder/ui/fields/BorderField.tsx:178
+msgid "Set each side"
+msgstr "Definir cada lado"
+
 #: src/components/settings/CustomFieldsConfiguration.tsx:157
 #~ msgid "Set friendly display names for contact custom fields."
 #~ msgstr "Defina nomes de exibição amigáveis para campos personalizados de contato."
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:98
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:370
-msgid "Set height"
-msgstr "Definir altura"
+#~ msgid "Set height"
+#~ msgstr "Definir altura"
 
-#: src/components/email_builder/blocks/MjRawBlock.tsx:326
+#: src/components/email_builder/blocks/MjRawBlock.tsx:321
 msgid "Set HTML Content"
 msgstr "Definir Conteúdo HTML"
 
@@ -21804,16 +22503,20 @@ msgstr "Defina em Geral"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:179
 #: src/components/email_builder/blocks/MjImageBlock.tsx:63
-msgid "Set link"
-msgstr "Definir link"
+#~ msgid "Set link"
+#~ msgstr "Definir link"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:139
-msgid "Set link URL"
-msgstr "Definir URL do link"
+#~ msgid "Set link URL"
+#~ msgstr "Definir URL do link"
+
+#: src/components/email_builder/blocks/MjLiquidBlock.tsx:47
+msgid "Set Liquid content"
+msgstr "Definir conteúdo Liquid"
 
 #: src/components/email_builder/blocks/MjLiquidBlock.tsx:49
-msgid "Set Liquid Content"
-msgstr "Definir Conteúdo Liquid"
+#~ msgid "Set Liquid Content"
+#~ msgstr "Definir Conteúdo Liquid"
 
 #: src/components/web_analytics/lib/filterCatalog.ts:236
 msgid "Set only when currently empty"
@@ -21821,8 +22524,8 @@ msgstr "Definir apenas quando estiver vazio"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:444
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:457
-msgid "Set padding"
-msgstr "Definir espaçamento"
+#~ msgid "Set padding"
+#~ msgstr "Definir espaçamento"
 
 #: src/components/blog/PublishModal.tsx:120
 msgid "Set Publication Date"
@@ -21869,8 +22572,6 @@ msgstr "Configure sua instância do Notifuse"
 #~ msgid "set value"
 #~ msgstr ""
 
-#: src/components/email_builder/ui/StringPopoverInput.tsx:27
-#: src/components/email_builder/ui/StringPopoverInput.tsx:164
 #: src/components/web_analytics/lib/filterCatalog.ts:229
 msgid "Set value"
 msgstr "Definir valor"
@@ -21880,22 +22581,22 @@ msgstr "Definir valor"
 #: src/components/email_builder/blocks/MjRawBlock.tsx:339
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:179
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:148
-msgid "Set Value"
-msgstr "Definir Valor"
+#~ msgid "Set Value"
+#~ msgstr "Definir Valor"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:47
-msgid "Set Width"
-msgstr "Definir Largura"
+#~ msgid "Set Width"
+#~ msgstr "Definir Largura"
 
 #: src/pages/WebAnalyticsFiltersPage.tsx:194
 #~ msgid "Sets"
 #~ msgstr ""
 
-#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:46
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:49
 msgid "Sets the responsive breakpoint for the entire email"
 msgstr "Define o ponto de quebra responsivo para todo o email"
 
-#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:31
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:45
 msgid "Sets the screen width below which the email will switch to mobile layout. Most email clients use 480px as the standard mobile breakpoint."
 msgstr "Define a largura da tela abaixo da qual o email mudará para o layout móvel. A maioria dos clientes de email usa 480px como ponto de quebra móvel padrão."
 
@@ -21963,7 +22664,8 @@ msgstr "Descrição de compartilhamento"
 msgid "Share image"
 msgstr "Imagem de compartilhamento"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:120
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:205
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:210
 msgid "Share link"
 msgstr "Compartilhar link"
 
@@ -22040,8 +22742,8 @@ msgstr "Mostrar estatísticas"
 #~ msgstr ""
 
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:110
-msgid "Show this block if"
-msgstr "Exibir este bloco se"
+#~ msgid "Show this block if"
+#~ msgstr "Exibir este bloco se"
 
 #. placeholder {0}: int(MAX_CONTACT_ROWS)
 #: src/pages/ContactsPage.tsx:740
@@ -22064,13 +22766,17 @@ msgstr "Mostrando os primeiros {maxObjectsLabel} arquivos deste bucket. As conta
 msgid "Showing the top 200 links by unique clicks."
 msgstr "Mostrando os 200 principais links por cliques únicos."
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:120
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:69
 msgid "shown"
 msgstr "exibido"
 
 #: src/components/blog/CategoryDrawer.tsx:280
 msgid "Shown at the top of the category page"
 msgstr "Exibida no topo da página da categoria"
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:17
+msgid "Shown if"
+msgstr "Exibido se"
 
 #: src/components/blog/PostDrawer.tsx:955
 msgid "Shown in post lists, and as the description when no meta description is set"
@@ -22091,6 +22797,22 @@ msgstr "Mostrada aos contatos na central de notificações quando a lista é pú
 #: src/components/email_builder/panels/TreePanel.tsx:279
 msgid "Shown under a condition"
 msgstr "Exibido sob uma condição"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:212
+msgid "Shown until the image loads, and in Outlook."
+msgstr "Exibida até a imagem carregar, e no Outlook."
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:220
+msgid "Shown when the pointer rests on the button (title attribute)."
+msgstr "Exibido quando o ponteiro para sobre o botão (atributo title)."
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:400
+msgid "Shown when the pointer rests on the icon (title attribute)."
+msgstr "Exibido quando o ponteiro para sobre o ícone (atributo title)."
+
+#: src/components/email_builder/blocks/MjImageBlock.tsx:103
+msgid "Shown when the pointer rests on the image (title attribute)."
+msgstr "Exibido quando o ponteiro para sobre a imagem (atributo title)."
 
 #: src/components/setup/UpdatesPanel.tsx:51
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
@@ -22225,15 +22947,30 @@ msgctxt "table column"
 msgid "Site visits"
 msgstr "Visitas"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:153
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:176
-#: src/components/email_builder/ui/FontStyleInput.tsx:183
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:90
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:94
+#: src/components/email_builder/blocks/MjImageBlock.tsx:151
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:47
+#: src/components/email_builder/blocks/MjTextBlock.tsx:125
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:229
+#: src/components/email_builder/ui/fields/FontFields.tsx:204
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:93
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/file_manager/FileTable.tsx:101
 msgid "Size"
 msgstr "Tamanho"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:276
+msgid "Size and border"
+msgstr "Tamanho e borda"
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:144
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:259
+msgid "Size, height"
+msgstr "Tamanho, altura"
+
+#: src/components/email_builder/ui/fields/FontFields.tsx:204
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:90
+msgid "Size, weight"
+msgstr "Tamanho, peso"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:482
 msgid "skip"
@@ -22403,28 +23140,32 @@ msgid "Social"
 msgstr "Social"
 
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:70
-msgid "Social attributes"
-msgstr "Atributos de redes sociais"
+#~ msgid "Social attributes"
+#~ msgstr "Atributos de redes sociais"
 
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:32
 #~ msgid "Social Attributes"
 #~ msgstr "Atributos de Redes Sociais"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:81
-msgid "Social element attributes"
-msgstr "Atributos do elemento social"
+#~ msgid "Social element attributes"
+#~ msgstr "Atributos do elemento social"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:80
 #~ msgid "Social Element Attributes"
 #~ msgstr "Atributos do Elemento Social"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:160
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:235
 msgid "Social media icon"
 msgstr "Ícone de rede social"
 
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:179
+msgid "Social network"
+msgstr "Rede social"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:82
-msgid "Social Network"
-msgstr "Rede Social"
+#~ msgid "Social Network"
+#~ msgstr "Rede Social"
 
 #: src/components/seo/SeoCards.tsx:56
 #: src/components/settings/BlogSettings.tsx:485
@@ -22451,8 +23192,8 @@ msgstr "Compartilhamento social"
 #~ msgid "Social Share Title"
 #~ msgstr "Título do Compartilhamento Social"
 
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:61
-#: src/components/email_builder/ui/BorderInput.tsx:59
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:50
+#: src/components/email_builder/ui/fields/BorderField.tsx:91
 msgid "Solid"
 msgstr "Sólido"
 
@@ -22508,31 +23249,50 @@ msgstr "fonte {source} não encontrada"
 msgid "Sources"
 msgstr "Origens"
 
-#: src/components/email_builder/ui/BackgroundInput.tsx:98
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:149
 msgid "Space"
 msgstr "Espaço"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:135
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:139
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:133
 msgid "Space above"
 msgstr "Espaço acima"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:148
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:152
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:130
+msgid "Space above, below"
+msgstr "Espaço acima, abaixo"
+
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:142
 msgid "Space below"
 msgstr "Espaço abaixo"
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:127
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:172
 msgid "Space between the columns, in pixels or percent. The outer edges of the section get none."
 msgstr "Espaço entre as colunas, em pixels ou porcentagem. As bordas externas da seção não recebem nenhum."
 
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:35
-msgid "Spacer attributes"
-msgstr "Atributos do espaçador"
+#~ msgid "Spacer attributes"
+#~ msgstr "Atributos do espaçador"
 
 #: src/components/email_builder/blocks/MjSpacerBlock.tsx:35
 #~ msgid "Spacer Attributes"
 #~ msgstr "Atributos do Espaçador"
+
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:59
+msgid "Spacer height"
+msgstr "Altura do espaçador"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:333
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:201
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:148
+#: src/components/email_builder/blocks/MjImageBlock.tsx:251
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:154
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:253
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:410
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:93
+#: src/components/email_builder/blocks/MjTextBlock.tsx:142
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:138
+msgid "Spacing"
+msgstr "Espaçamento"
 
 #: src/components/logs/labels.ts:52
 msgid "SparkPost"
@@ -22554,7 +23314,7 @@ msgstr "Argumentos SQL:"
 msgid "SSO (OpenID Connect)"
 msgstr "SSO (OpenID Connect)"
 
-#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:49
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:52
 msgid "Standard value is 480px for most email clients"
 msgstr "O valor padrão é 480px para a maioria dos clientes de email"
 
@@ -22825,19 +23585,17 @@ msgstr "Salvar a região"
 msgid "Strikethrough"
 msgstr "Tachado"
 
-#: src/components/email_builder/EmailBuilder.tsx:1133
+#: src/components/email_builder/EmailBuilder.tsx:1182
 msgid "Structure"
 msgstr "Estrutura"
 
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:53
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:319
-#: src/components/email_builder/ui/FontStyleInput.tsx:214
+#: src/components/email_builder/ui/fields/FontFields.tsx:293
 msgid "Style"
 msgstr "Estilo"
 
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:108
-msgid "Style attributes"
-msgstr "Atributos de estilo"
+#~ msgid "Style attributes"
+#~ msgstr "Atributos de estilo"
 
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:108
 #~ msgid "Style Attributes"
@@ -22867,6 +23625,7 @@ msgid "Subject ({lang})"
 msgstr "Assunto ({lang})"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:67
 #: src/components/logs/MessageDetail.tsx:684
 #: src/components/templates/TemplatePreviewDrawer.tsx:397
 #: src/components/templates/TemplateTranslationsTab.tsx:396
@@ -23107,7 +23866,7 @@ msgstr "Suporta reply_to, cc, bcc e anexos"
 msgid "Switch to Preview mode to see how your email will look to recipients. This shows the final rendered version with all styling applied."
 msgstr "Alterne para o modo Visualização para ver como seu email aparecerá para os destinatários. Isso mostra a versão final renderizada com todos os estilos aplicados."
 
-#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:38
+#: src/components/email_builder/blocks/MjBreakpointBlock.tsx:56
 msgid "Switch to Preview mode to see the breakpoint effects. The edit mode shows the raw structure, but only preview mode compiles the MJML template and renders the responsive behavior properly."
 msgstr "Alterne para o modo Visualização para ver os efeitos do breakpoint. O modo de edição mostra a estrutura bruta, mas apenas o modo de visualização compila o template MJML e renderiza o comportamento responsivo corretamente."
 
@@ -23122,9 +23881,13 @@ msgstr "Sistema"
 msgid "System email delivery (SMTP)"
 msgstr "Envio de e-mails do sistema (SMTP)"
 
+#: src/components/email_builder/ui/fields/FontFields.tsx:129
+msgid "System fonts"
+msgstr "Fontes do sistema"
+
 #: src/components/email_builder/ui/FontStyleInput.tsx:106
-msgid "System Fonts"
-msgstr "Fontes do Sistema"
+#~ msgid "System Fonts"
+#~ msgstr "Fontes do Sistema"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:231
 #: src/components/settings/SystemSettingsDrawer.tsx:242
@@ -23156,7 +23919,6 @@ msgstr "Fazer um tour"
 #~ msgid "Take a Tour"
 #~ msgstr "Fazer um Tour"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:391
 #: src/components/logs/AuditEntryDetail.tsx:163
 msgid "Target"
 msgstr "Destino"
@@ -23396,7 +24158,7 @@ msgstr "Remetente do template ({0})"
 msgid "Templates"
 msgstr "Templates"
 
-#: src/components/email_builder/EmailBuilder.tsx:931
+#: src/components/email_builder/EmailBuilder.tsx:980
 msgid "Templates that already contain this block do not change."
 msgstr "Templates que já contêm este bloco não mudam."
 
@@ -23536,7 +24298,7 @@ msgstr "Teste falhou"
 msgid "Test failed: {0}"
 msgstr "Teste falhou: {0}"
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:49
+#: src/components/email_builder/blocks/MjFontBlock.tsx:38
 msgid "Test in different email clients as support varies"
 msgstr "Teste em diferentes clientes de email pois o suporte varia"
 
@@ -23605,8 +24367,11 @@ msgstr "Testando feed..."
 msgid "text"
 msgstr "texto"
 
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:199
-#: src/components/email_builder/blocks/MjTextBlock.tsx:47
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:239
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:345
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:338
+#: src/components/email_builder/blocks/MjTextBlock.tsx:78
+#: src/components/email_builder/blocks/MjTextBlock.tsx:145
 #: src/components/segment/FilterRow.tsx:161
 #: src/components/segment/input_event_property_filters.tsx:72
 #: src/components/settings/CustomFieldsConfiguration.tsx:58
@@ -23614,23 +24379,38 @@ msgid "Text"
 msgstr "Texto"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:229
-msgid "Text Align"
-msgstr "Alinhamento do Texto"
+#~ msgid "Text Align"
+#~ msgstr "Alinhamento do Texto"
+
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:108
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:110
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:101
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:103
+msgid "Text alignment"
+msgstr "Alinhamento do texto"
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:138
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:135
-msgid "Text Alignment"
-msgstr "Alinhamento do Texto"
+#~ msgid "Text Alignment"
+#~ msgstr "Alinhamento do Texto"
 
 #: src/components/email_builder/blocks/MjTextBlock.tsx:42
-msgid "Text attributes"
-msgstr "Atributos do texto"
+#~ msgid "Text attributes"
+#~ msgstr "Atributos do texto"
 
 #: src/components/email_builder/blocks/MjTextBlock.tsx:41
 #~ msgid "Text Attributes"
 #~ msgstr "Atributos do Texto"
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:204
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:248
+msgid "Text beside the icon"
+msgstr "Texto ao lado do ícone"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:241
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:183
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:185
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:350
+#: src/components/email_builder/blocks/MjTextBlock.tsx:80
 msgid "Text color"
 msgstr "Cor do texto"
 
@@ -23642,33 +24422,45 @@ msgid "Text Color"
 msgstr "Cor do Texto"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:292
-msgid "Text Decoration"
-msgstr "Decoração do Texto"
+#~ msgid "Text Decoration"
+#~ msgstr "Decoração do Texto"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:117
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:145
-msgid "Text Direction"
-msgstr "Direção do Texto"
+#~ msgid "Text Direction"
+#~ msgstr "Direção do Texto"
+
+#: src/components/email_builder/blocks/MjTextBlock.tsx:131
+msgid "Text height"
+msgstr "Altura do texto"
 
 #: src/components/setup/SsoPanel.tsx:95
 msgid "Text of the button on the sign-in page."
 msgstr "Texto do botão na página de login."
 
-#: src/components/email_builder/blocks/MjSocialBlock.tsx:229
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:221
+#: src/components/email_builder/blocks/MjImageBlock.tsx:107
+msgid "Text on hover"
+msgstr "Texto ao passar o mouse"
+
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:207
+#: src/components/email_builder/blocks/MjSocialBlock.tsx:213
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:428
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:434
 msgid "Text padding"
 msgstr "Espaçamento interno do texto"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:451
-msgid "Text Padding"
-msgstr "Espaçamento do Texto"
+#~ msgid "Text Padding"
+#~ msgstr "Espaçamento do Texto"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:323
 msgid "Text sent, as you write it"
 msgstr "Texto enviado, como você escreve"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:255
-msgid "Text Settings"
-msgstr "Configurações de Texto"
+#~ msgid "Text Settings"
+#~ msgstr "Configurações de Texto"
 
 #: src/pages/SetupWizard.tsx:745
 #~ msgid "Text shown on the sign-in button"
@@ -23679,10 +24471,10 @@ msgid "Text style"
 msgstr "Estilo do texto"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:243
-msgid "Text Transform"
-msgstr "Transformação do Texto"
+#~ msgid "Text Transform"
+#~ msgstr "Transformação do Texto"
 
-#: src/components/email_builder/EmailBuilder.tsx:1070
+#: src/components/email_builder/EmailBuilder.tsx:1119
 #: src/components/email_builder/MjmlCodeEditor.tsx:693
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
 #: src/components/logs/MessageDetail.tsx:807
@@ -23741,11 +24533,11 @@ msgstr "A automação parará de processar novos contatos."
 msgid "The best-performing combination could not be loaded."
 msgstr "Não foi possível carregar a combinação com melhor desempenho."
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:298
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:282
 msgid "The block and everything in it are sent only to recipients for whom the condition holds. Variables are those of the email's data: contact fields, data sent to the API, data feeds."
 msgstr "O bloco e todo o seu conteúdo são enviados apenas aos destinatários para os quais a condição é verdadeira. As variáveis são as dos dados do e-mail: campos do contato, dados enviados à API, feeds de dados."
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:90
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:76
 msgid "The block will be sent to every recipient again."
 msgstr "O bloco será enviado novamente a todos os destinatários."
 
@@ -24045,7 +24837,7 @@ msgstr "O ID “{listId}” pertencia a uma lista excluída e não pode ser reut
 msgid "The ID {id} could not be checked; saving will tell if it is taken."
 msgstr "Não foi possível verificar o ID {id}; ao salvar, saberá se ele está em uso."
 
-#: src/components/email_builder/blocks/MjImageBlock.tsx:54
+#: src/components/email_builder/blocks/MjImageBlock.tsx:90
 msgid "the Image block"
 msgstr "bloco Imagem"
 
@@ -24091,6 +24883,12 @@ msgstr "O lançamento de um produto ou recurso, em três pontos."
 #: src/components/settings/LicenseSettings.tsx:72
 msgid "The licence covers this whole deployment rather than this workspace. Ask the person who runs this Notifuse instance."
 msgstr ""
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:217
+#: src/components/email_builder/blocks/MjImageBlock.tsx:138
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:395
+msgid "The link's rel attribute, e.g. noopener."
+msgstr "O atributo rel do link, ex.: noopener."
 
 #: src/components/lists/DeleteListModal.tsx:66
 msgid "The list \"{listName}\" can't be deleted while the live automation \"{automationName}\" uses it. Pause it first, or change it to stop using the list."
@@ -24238,7 +25036,7 @@ msgstr "O mapeamento de colunas salvo não corresponde a este arquivo: mapeie as
 msgid "The saved version, on your blog"
 msgstr "A versão salva, no seu blog"
 
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:73
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:94
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "As colunas e os grupos da seção ultrapassam sua largura em {over} %: no e-mail, os últimos passam para uma nova linha."
 
@@ -24332,6 +25130,10 @@ msgstr "o teste dura entre 1 e 168 horas"
 msgid "the test sample is between 1 and 100 %"
 msgstr "a amostra de teste fica entre 1 e 100 %"
 
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:240
+msgid "The text shown beside the icon."
+msgstr "O texto exibido ao lado do ícone."
+
 #: src/components/email_builder/panels/TextVersionPanel.tsx:138
 msgid "The text you wrote will be removed."
 msgstr "O texto que você escreveu será removido."
@@ -24372,11 +25174,11 @@ msgstr "A URL para enviar a requisição POST"
 msgid "The user_metadata field in Supabase will be saved to this custom JSON field"
 msgstr "O campo user_metadata no Supabase será salvo neste campo JSON personalizado"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:107
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:113
 msgid "The value cannot contain the Liquid delimiters {delimiters}."
 msgstr "O valor não pode conter os delimitadores Liquid {delimiters}."
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:104
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:110
 msgid "The value is too long."
 msgstr "O valor é muito longo."
 
@@ -24489,7 +25291,7 @@ msgstr "Estes contatos serão inscritos na lista selecionada (status: ativo)."
 #~ msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 #~ msgstr "Esses parâmetros são adicionados automaticamente à URL do broadcast. Eles são usados por ferramentas de web analytics para analisar o desempenho da sua campanha."
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:44
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:45
 msgid "These styles were edited by hand. Edit them in the mj-style block."
 msgstr "Estes estilos foram editados à mão. Edite-os no bloco mj-style."
 
@@ -24542,7 +25344,7 @@ msgstr "Este endereço tem um % que não é seguido de dois dígitos hexadecimai
 msgid "This annotation was created automatically when a broadcast started. Deleting it will not affect the broadcast."
 msgstr "Esta anotação foi criada automaticamente quando um broadcast começou. Excluí-la não afetará o broadcast."
 
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:35
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:32
 msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
 msgstr "Isso aparece nas abas do navegador ao visualizar o email em um navegador web e em alguns clientes de email. Geralmente é o mesmo ou relacionado à linha de assunto do seu email."
 
@@ -24559,7 +25361,11 @@ msgstr "Esta automação está ativa. Pause-a para editar."
 msgid "This automation was changed elsewhere"
 msgstr "Esta automação foi alterada em outro lugar"
 
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:75
+#: src/components/email_builder/ui/fields/FontFields.tsx:136
+msgid "This block"
+msgstr "Este bloco"
+
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:58
 msgid "This block holds a Liquid block, which a condition could cut off from the rest of the email. Move the Liquid block out of it first."
 msgstr "Este bloco contém um bloco Liquid, que uma condição poderia separar do resto do e-mail. Tire primeiro o bloco Liquid deste bloco."
 
@@ -24835,11 +25641,11 @@ msgstr "Esta regra está desativada: não é executada, então não grava nada"
 msgid "This rule is not created yet."
 msgstr "Esta regra ainda não foi criada."
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:112
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:118
 msgid "This rule is not valid."
 msgstr "Esta regra não é válida."
 
-#: src/components/email_builder/blocks/MjSectionBlock.tsx:204
+#: src/components/email_builder/blocks/MjSectionBlock.tsx:213
 msgid "This section is empty. Add columns or groups to display content."
 msgstr "Esta seção está vazia. Adicione colunas ou grupos para exibir conteúdo."
 
@@ -24898,7 +25704,7 @@ msgstr "Este template não existe mais"
 #~ msgid "This template was saved as version {latest} while you were editing (you started from {0}). Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
 #~ msgstr ""
 
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:34
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:38
 msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
 msgstr "Este texto aparece no painel de visualização do cliente de email, geralmente após a linha de assunto. Mantenha-o conciso e atraente (100-140 caracteres recomendados)."
 
@@ -24992,7 +25798,7 @@ msgstr "Este workspace"
 msgid "This workspace does not track contacts whose consent is unknown, so only recipients who agreed to tracking count in the test results."
 msgstr "Este workspace não rastreia contatos com consentimento desconhecido, então só os destinatários que aceitaram o rastreamento contam nos resultados do teste."
 
-#: src/components/email_builder/blocks/MjWrapperBlock.tsx:173
+#: src/components/email_builder/blocks/MjWrapperBlock.tsx:175
 msgid "This wrapper has no sections. Add a section to display content."
 msgstr "Este wrapper não tem seções. Adicione uma seção para exibir conteúdo."
 
@@ -25115,7 +25921,7 @@ msgstr "Fuso horário usado para datas"
 msgid "Timezone:"
 msgstr "Fuso Horário:"
 
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:49
+#: src/components/email_builder/blocks/MjPreviewBlock.tsx:40
 msgid "Tips for effective preview text:"
 msgstr "Dicas para um texto de visualização eficaz:"
 
@@ -25125,8 +25931,9 @@ msgstr "Dicas para um texto de visualização eficaz:"
 
 #: src/components/blog/PostDrawer.tsx:886
 #: src/components/blog/PostsTable.tsx:566
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:424
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:34
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:25
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:27
+#: src/components/email_builder/blocks/MjTitleBlock.tsx:45
 #: src/components/settings/BlogSettings.tsx:253
 #: src/components/settings/BlogSettings.tsx:390
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:182
@@ -25259,8 +26066,8 @@ msgid "Today's emails show here tomorrow: the chart counts complete days."
 msgstr "Os emails de hoje aparecerão aqui amanhã: o gráfico conta dias completos."
 
 #: src/components/email_builder/blocks/MjmlBlock.tsx:15
-msgid "TODO"
-msgstr "A FAZER"
+#~ msgid "TODO"
+#~ msgstr "A FAZER"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1515
 msgid "Toggle between mobile and desktop views to see how your email appears on different devices. Mobile view shows a 400px width while desktop shows the full width."
@@ -25285,38 +26092,69 @@ msgstr "Tentativas de login em excesso. Aguarde um momento e tente novamente."
 msgid "Tools"
 msgstr "Ferramentas"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:429
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:220
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:221
+#: src/components/email_builder/blocks/MjImageBlock.tsx:102
+#: src/components/email_builder/blocks/MjImageBlock.tsx:107
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:399
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:404
+msgid "Tooltip"
+msgstr "Dica"
+
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:404
 msgid "Tooltip text"
 msgstr "Texto da dica"
 
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:58
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:85
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:381
-#: src/components/email_builder/ui/BorderInput.tsx:374
-#: src/components/email_builder/ui/PaddingInput.tsx:160
+#: src/components/email_builder/ui/fields/BorderField.tsx:102
+#: src/components/email_builder/ui/fields/segmentedOptions.tsx:39
+#: src/components/email_builder/ui/fields/SpacingField.tsx:90
 msgid "Top"
 msgstr "Superior"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:102
+msgid "Top border color"
+msgstr "Cor da borda superior"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:102
+msgid "Top border style"
+msgstr "Estilo da borda superior"
+
+#: src/components/email_builder/ui/fields/BorderField.tsx:102
+msgid "Top border width"
+msgstr "Largura da borda superior"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:263
 #: src/components/web_analytics/tabs/DashboardTab.tsx:221
 msgid "Top Campaigns"
 msgstr "Principais Campanhas"
 
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:158
+msgid "Top center"
+msgstr "Superior central"
+
 #: src/components/email_builder/ui/BackgroundInput.tsx:105
-msgid "Top Center"
-msgstr "Superior Centro"
+#~ msgid "Top Center"
+#~ msgstr "Superior Centro"
 
 #: src/pages/WebAnalyticsLivePage.tsx:164
 msgid "Top Cities"
 msgstr "Principais Cidades"
 
+#: src/components/email_builder/blocks/panelFields.ts:91
+msgid "Top frame"
+msgstr "Frame superior"
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:402
-msgid "Top Frame"
-msgstr "Moldura Superior"
+#~ msgid "Top Frame"
+#~ msgstr "Moldura Superior"
+
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:157
+msgid "Top left"
+msgstr "Superior esquerdo"
 
 #: src/components/email_builder/ui/BackgroundInput.tsx:104
-msgid "Top Left"
-msgstr "Superior Esquerdo"
+#~ msgid "Top Left"
+#~ msgstr "Superior Esquerdo"
 
 #: src/components/web_analytics/tabs/DashboardTab.tsx:176
 #: src/pages/WebAnalyticsLivePage.tsx:150
@@ -25327,9 +26165,13 @@ msgstr "Principais Páginas"
 msgid "Top Referrers"
 msgstr "Principais Referenciadores"
 
+#: src/components/email_builder/ui/fields/BackgroundFields.tsx:159
+msgid "Top right"
+msgstr "Superior direito"
+
 #: src/components/email_builder/ui/BackgroundInput.tsx:106
-msgid "Top Right"
-msgstr "Superior Direito"
+#~ msgid "Top Right"
+#~ msgstr "Superior Direito"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:243
 #: src/components/web_analytics/tabs/DashboardTab.tsx:194
@@ -25543,8 +26385,8 @@ msgstr "Traduções"
 msgid "Translations already saved keep being sent, and switching one off is always allowed. Adding or editing one needs a licence."
 msgstr ""
 
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:103
-#: src/components/email_builder/blocks/MjSpacerBlock.tsx:54
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:141
+#: src/components/email_builder/blocks/MjSpacerBlock.tsx:86
 msgid "Transparent"
 msgstr "Transparente"
 
@@ -25573,7 +26415,7 @@ msgstr "Gatilhos e ações"
 msgid "Triggers and actions in your Zaps"
 msgstr "Gatilhos e ações nos seus Zaps"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:149
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:155
 msgid "true"
 msgstr "verdadeiro"
 
@@ -25705,8 +26547,7 @@ msgstr "Tag Liquid não fechada: {opening} tags de abertura ({OPEN_TAG}), mas {c
 msgid "Under the title in search results"
 msgstr "Abaixo do título nos resultados de busca"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:345
-#: src/components/email_builder/ui/FontStyleInput.tsx:141
+#: src/components/email_builder/ui/fields/FontFields.tsx:164
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:653
 msgid "Underline"
 msgstr "Sublinhado"
@@ -25719,8 +26560,8 @@ msgstr "Entenda a qualidade das referências"
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:784
 #: src/components/blog/PostDrawer.tsx:787
-#: src/components/email_builder/EmailBuilder.tsx:992
-#: src/components/email_builder/EmailBuilder.tsx:1044
+#: src/components/email_builder/EmailBuilder.tsx:1041
+#: src/components/email_builder/EmailBuilder.tsx:1093
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
 msgid "Undo"
 msgstr "Desfazer"
@@ -25982,6 +26823,10 @@ msgstr "Post sem título"
 msgid "Up to 64 letters, numbers, hyphens or underscores."
 msgstr "Até 64 letras, números, hífens ou sublinhados."
 
+#: src/components/email_builder/blocks/MjBodyBlock.tsx:61
+msgid "Up to 999 px. Without one, the email is 600 px wide."
+msgstr "Até 999 px. Sem largura, o e-mail tem 600 px."
+
 #: src/components/analytics/UpcomingSends.tsx:167
 msgid "Upcoming sends"
 msgstr "Próximos envios"
@@ -26172,10 +27017,17 @@ msgstr "Enviar arquivo (Modo somente leitura)"
 msgid "Upload Files"
 msgstr "Enviar Arquivos"
 
-#: src/components/email_builder/ui/FontStyleInput.tsx:134
-msgid "UPPERCASE"
-msgstr "MAIÚSCULAS"
+#: src/components/email_builder/ui/fields/FontFields.tsx:170
+msgid "Uppercase"
+msgstr "Maiúsculas"
 
+#: src/components/email_builder/ui/FontStyleInput.tsx:134
+#~ msgid "UPPERCASE"
+#~ msgstr "MAIÚSCULAS"
+
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:196
+#: src/components/email_builder/blocks/MjImageBlock.tsx:80
+#: src/components/email_builder/blocks/MjImageBlock.tsx:117
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:337
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:382
 msgid "URL"
@@ -26278,7 +27130,7 @@ msgstr "Usar a versão automática"
 msgid "Use the automatic version?"
 msgstr "Usar a versão automática?"
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:45
+#: src/components/email_builder/blocks/MjFontBlock.tsx:49
 msgid "Use the font name in text elements:"
 msgstr "Use o nome da fonte em elementos de texto:"
 
@@ -26527,7 +27379,7 @@ msgstr "Erro de validação"
 #~ msgstr "Erro de Validação"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:251
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:254
 #: src/components/segment/form_leaf.tsx:769
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
@@ -26563,8 +27415,8 @@ msgstr "Tipo de valor"
 msgid "Values written"
 msgstr "Valores gravados"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:66
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:210
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:72
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:213
 msgid "Variable"
 msgstr "Variável"
 
@@ -26647,14 +27499,26 @@ msgstr "Notas da versão (opcional)"
 #~ msgid "Version:"
 #~ msgstr "Versão:"
 
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:316
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:318
+msgid "Vertical align"
+msgstr "Alinhamento vertical"
+
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:79
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:374
-msgid "Vertical Align"
-msgstr "Alinhamento Vertical"
+#~ msgid "Vertical Align"
+#~ msgstr "Alinhamento Vertical"
+
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:96
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:98
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:109
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:111
+msgid "Vertical alignment"
+msgstr "Alinhamento vertical"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:51
-msgid "Vertical Alignment"
-msgstr "Alinhamento Vertical"
+#~ msgid "Vertical Alignment"
+#~ msgstr "Alinhamento Vertical"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:505
 msgid "Video starts at this timestamp (MM:SS, HH:MM:SS, or seconds)"
@@ -27049,7 +27913,7 @@ msgstr "Webhooks registrados"
 msgid "Webhooks registered successfully"
 msgstr "Webhooks registrados com sucesso"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:114
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:139
 #: src/components/segment/form_leaf.tsx:527
 #: src/components/segment/form_leaf.tsx:528
 #: src/components/settings/GeneralSettings.tsx:228
@@ -27126,10 +27990,8 @@ msgstr "Visitas ao site"
 msgid "Weekly"
 msgstr "Semanal"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:293
-#: src/components/email_builder/ui/FontStyleInput.tsx:202
+#: src/components/email_builder/ui/fields/FontFields.tsx:204
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:104
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:108
 msgid "Weight"
 msgstr "Peso"
 
@@ -27218,7 +28080,7 @@ msgstr "Quando um link para o post é compartilhado"
 #~ msgid "When enabled, the feed includes only excerpts instead of full article content"
 #~ msgstr "Quando ativado, o feed inclui apenas resumos em vez do conteúdo completo do artigo"
 
-#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:121
+#: src/components/email_builder/blocks/MjSocialElementBlock.tsx:206
 msgid "When enabled, the link will prompt visitors to share the URL on this social network. When disabled, the link opens directly."
 msgstr "Quando ativado, o link convidará os visitantes a compartilhar a URL nesta rede social. Quando desativado, o link abre diretamente."
 
@@ -27326,12 +28188,12 @@ msgstr "Todo o deployment"
 msgid "Why did traffic change?"
 msgstr "Por que o tráfego mudou?"
 
-#: src/components/email_builder/blocks/MjBodyBlock.tsx:44
-#: src/components/email_builder/blocks/MjButtonBlock.tsx:345
-#: src/components/email_builder/blocks/MjColumnBlock.tsx:42
-#: src/components/email_builder/blocks/MjDividerBlock.tsx:70
-#: src/components/email_builder/blocks/MjGroupBlock.tsx:62
-#: src/components/email_builder/blocks/MjImageBlock.tsx:83
+#: src/components/email_builder/blocks/MjBodyBlock.tsx:60
+#: src/components/email_builder/blocks/MjButtonBlock.tsx:280
+#: src/components/email_builder/blocks/MjColumnBlock.tsx:81
+#: src/components/email_builder/blocks/MjDividerBlock.tsx:103
+#: src/components/email_builder/blocks/MjGroupBlock.tsx:85
+#: src/components/email_builder/blocks/MjImageBlock.tsx:156
 msgid "Width"
 msgstr "Largura"
 
@@ -27455,8 +28317,11 @@ msgstr "com propriedades"
 msgid "with status"
 msgstr "com status"
 
-#: src/components/email_builder/ui/DisplayConditionModal.tsx:366
-#: src/components/email_builder/ui/DisplayConditionSummary.tsx:119
+#: src/components/email_builder/ui/DisplayConditionSummary.tsx:67
+msgid "With the test data"
+msgstr "Com os dados de teste"
+
+#: src/components/email_builder/ui/DisplayConditionModal.tsx:369
 msgid "With the test data:"
 msgstr "Com os dados de teste:"
 
@@ -27592,8 +28457,8 @@ msgid "Workspaces"
 msgstr ""
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:44
-msgid "Wrapper attributes"
-msgstr "Atributos do wrapper"
+#~ msgid "Wrapper attributes"
+#~ msgstr "Atributos do wrapper"
 
 #: src/components/email_builder/blocks/MjWrapperBlock.tsx:44
 #~ msgid "Wrapper Attributes"
@@ -27618,7 +28483,7 @@ msgstr "A escrita decide para onde vai o fluxo de eventos do workspace: criar e 
 msgid "Write includes permanent deletion and bulk overwriting: `/api/contacts.import` overwrites every field each row carries, so a single call can rewrite your whole contact database. This is not \"can add contacts\". Read also covers custom events and the contact timeline, which the name does not suggest. Two other grants reach contact data without this one: Lists write on its own lets anyone create or overwrite a complete contact record through `/api/lists.subscribe`, and Automations write can send the complete contact record to any URL through a webhook node."
 msgstr "A escrita inclui exclusão permanente e sobrescrita em massa: `/api/contacts.import` sobrescreve todos os campos que cada linha carrega, então uma única chamada pode reescrever todo o seu banco de dados de contatos. Isso não é \"pode adicionar contatos\". A leitura também abrange eventos personalizados e a linha do tempo do contato, o que o nome não sugere. Outras duas concessões alcançam dados de contato sem esta: a escrita de Listas sozinha permite a qualquer um criar ou sobrescrever um registro de contato completo através de `/api/lists.subscribe`, e a escrita de Automações pode enviar o registro completo do contato para qualquer URL através de um nó de webhook."
 
-#: src/components/email_builder/blocks/MjLiquidBlock.tsx:33
+#: src/components/email_builder/blocks/MjLiquidBlock.tsx:32
 msgid "Write MJML markup with Liquid template tags. This content is injected directly into the email and processed by the Liquid engine before MJML compilation. Use for-loops, conditionals, and variables to generate dynamic structural content."
 msgstr "Escreva marcação MJML com tags de template Liquid. Este conteúdo é injetado diretamente no email e processado pelo mecanismo Liquid antes da compilação MJML. Use loops for, condicionais e variáveis para gerar conteúdo estrutural dinâmico."
 

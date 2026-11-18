@@ -1,19 +1,12 @@
 import React from 'react'
-import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons'
 import type { MJMLComponentType } from '../types'
 import { BaseEmailBlock, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
-import PanelLayout from '../panels/PanelLayout'
 
 // Functional component for settings panel with i18n support
-const MjmlSettingsPanel: React.FC = () => {
-  const { t } = useLingui()
-
-  return <PanelLayout title={t`Email attributes`}>{t`TODO`}</PanelLayout>
-}
 
 /**
  * Implementation for mjml root blocks
@@ -50,8 +43,9 @@ export class MjmlBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the mjml block
    */
+  // The root has no settings: the panel shows its empty state for it
   renderSettingsPanel(): React.ReactNode {
-    return <MjmlSettingsPanel />
+    return null
   }
 
   getEdit(props: PreviewProps): React.ReactNode {

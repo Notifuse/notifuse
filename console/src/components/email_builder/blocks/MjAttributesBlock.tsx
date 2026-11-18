@@ -3,23 +3,27 @@ import { useLingui } from '@lingui/react/macro'
 import type { EmailBlock, MJMLComponentType, MergedBlockAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
-import PanelLayout from '../panels/PanelLayout'
+import { SettingsSection } from '../ui/fields/SettingsSections'
 import HeadingStylesInput from '../ui/HeadingStylesInput'
 
-// Functional component for settings panel with i18n support
+// The panel of mj-attributes: the heading styles, then where the defaults of each block type are set
 const MjAttributesSettingsPanel: React.FC<{
   emailTree?: EmailBlock
-  onUpdateBlock?: (blockId: string, block: EmailBlock) => void
+  onUpdateBlock?: (blockId: string, block: EmailBlock, options?: { coalesceKey?: string }) => void
 }> = ({ emailTree, onUpdateBlock }) => {
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Default attributes`}>
-      <HeadingStylesInput emailTree={emailTree} onUpdateBlock={onUpdateBlock} />
-      <div className="text-sm text-gray-500 text-center py-8">
-        {t`Add child elements for specific components (mj-text, mj-button, etc.) to set their default values.`}
-      </div>
-    </PanelLayout>
+    <>
+      <SettingsSection sectionKey="mj-attributes:headings" title={t`Headings`} first>
+        <HeadingStylesInput emailTree={emailTree} onUpdateBlock={onUpdateBlock} />
+      </SettingsSection>
+      <SettingsSection sectionKey="mj-attributes:types" title={t`Default attributes`} first>
+        <p className="m-0 text-xs text-ink-3">
+          {t`Add child elements for specific components (mj-text, mj-button, etc.) to set their default values.`}
+        </p>
+      </SettingsSection>
+    </>
   )
 }
 
@@ -68,7 +72,7 @@ export class MjAttributesBlock extends BaseEmailBlock {
     _onUpdate: OnUpdateAttributesFunction,
     _defaults: MergedBlockAttributes,
     emailTree?: EmailBlock,
-    onUpdateBlock?: (blockId: string, block: EmailBlock) => void
+    onUpdateBlock?: (blockId: string, block: EmailBlock, options?: { coalesceKey?: string }) => void
   ): React.ReactNode {
     return <MjAttributesSettingsPanel emailTree={emailTree} onUpdateBlock={onUpdateBlock} />
   }

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Input, App } from 'antd'
+import { App } from 'antd'
+import { DraftTextField } from './fields/DraftTextField'
 import { useLingui } from '@lingui/react/macro'
 import { useFileManager } from '../../file_manager/context'
 
@@ -14,6 +15,8 @@ interface FileSrcProps {
   size?: 'small' | 'middle' | 'large'
   /** Where the file goes, in the picker's footer ("the Image block"). */
   targetLabel?: string
+  /** The URL field's accessible name. */
+  'aria-label'?: string
 }
 
 const FileSrcContent: React.FC<FileSrcProps> = ({
@@ -25,37 +28,30 @@ const FileSrcContent: React.FC<FileSrcProps> = ({
   buttonText,
   disabled = false,
   size = 'small',
-  targetLabel
+  targetLabel,
+  'aria-label': ariaLabel
 }) => {
   const { t } = useLingui()
   const { SelectFileButton } = useFileManager()
   const resolvedPlaceholder = placeholder || t`Enter file URL or use file manager`
-  const resolvedButtonText = buttonText || t`Browse Files`
+  const resolvedButtonText = buttonText || t`Browse`
 
-  // Handle URL input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value.trim()
-    onChange(inputValue || undefined)
-  }
-
-  // Handle file selection from file manager
+  // The URL is written once, on blur or Enter (see DraftTextField), not at every keystroke
   const handleFileSelect = (url: string) => {
     onChange(url)
   }
 
   return (
-    <div className="file-src-component">
-      {/* URL Input */}
-      <Input
-        size={size}
-        value={value}
-        onChange={handleInputChange}
-        placeholder={resolvedPlaceholder}
-        disabled={disabled}
-        style={{ marginBottom: '8px' }}
-      />
-
-      {/* File Manager Button */}
+    <div className="flex items-start gap-1.5">
+      <div className="min-w-0 flex-1">
+        <DraftTextField
+          value={value || undefined}
+          onChange={onChange}
+          placeholder={resolvedPlaceholder}
+          aria-label={ariaLabel ?? resolvedPlaceholder}
+          mono
+        />
+      </div>
       <SelectFileButton
         onSelect={handleFileSelect}
         acceptFileType={acceptFileType}
@@ -64,10 +60,7 @@ const FileSrcContent: React.FC<FileSrcProps> = ({
         buttonText={resolvedButtonText}
         disabled={disabled}
         size={size}
-        block={true}
-        type="primary"
-        ghost={true}
-        style={{ marginBottom: '8px' }}
+        type="default"
       />
     </div>
   )

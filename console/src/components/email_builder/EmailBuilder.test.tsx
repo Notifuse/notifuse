@@ -35,7 +35,14 @@ vi.mock('./panels/EditPanel', () => ({
     return null
   }
 }))
-vi.mock('./panels/SettingsPanel', () => ({ SettingsPanel: () => null }))
+// The settings panel's props carry the editor's attribute writer.
+let mockSettingsPanelProps: Record<string, unknown> = {}
+vi.mock('./panels/SettingsPanel', () => ({
+  SettingsPanel: (p: Record<string, unknown>) => {
+    mockSettingsPanelProps = p
+    return null
+  }
+}))
 vi.mock('./panels/Preview', () => ({
   // forwardRef so EmailBuilder passing templateDataRef doesn't warn
   Preview: React.forwardRef(() => null)
@@ -683,6 +690,27 @@ describe('EmailBuilder library', () => {
     expect(childIds('body')).toHaveLength(3)
   })
 
+  it('undoes only the insertion after a coalesced write, and keeps the write', () => {
+    render(<Drawer />)
+    const write = (value: string) =>
+      act(() =>
+        (mockSettingsPanelProps.onUpdateAttributes as (id: string, u: Record<string, unknown>, o?: { coalesceKey?: string }) => void)(
+          'text-1',
+          { paddingTop: value },
+          { coalesceKey: 'text-1:paddingTop:1' }
+        )
+      )
+    write('1px')
+    write('12px')
+    openLibrary()
+    insertCard('header')
+    expect(childIds('body')).toHaveLength(3)
+
+    fireEvent.click(undoLink())
+    expect(childIds('body')).toEqual(['section-1', 'section-2'])
+    expect(EmailBlockClass.findBlockById(current.tree, 'text-1')!.attributes).toMatchObject({ paddingTop: '12px' })
+  })
+
   it('changes nothing from the message once another change followed the insertion', async () => {
     render(<Drawer />)
     openLibrary()
@@ -963,5 +991,125 @@ describe('EmailBuilder heading styles', () => {
     render(<Controlled initial={treeWithText('<h1>Title</h1>')} />)
     update({ attributes: { paddingTop: '20px' } })
     expect(managedStyles()).toHaveLength(0)
+  })
+})
+
+describe('EmailBuilder settings writes and undo steps', () => {
+  let latestTree: EmailBlock
+  let setOutside: (tree: EmailBlock) => void = () => {}
+  const Controlled = ({ initial }: { initial: EmailBlock }) => {
+    const [tree, setTree] = useState(initial)
+    React.useEffect(() => {
+      latestTree = tree
+    })
+    React.useEffect(() => {
+      setOutside = (next) => setTree(next)
+    }, [])
+    return <EmailBuilder {...props(tree, vi.fn(), null)} onTreeChange={setTree} />
+  }
+  const initial = () =>
+    ({
+      id: 'root',
+      type: 'mjml',
+      children: [
+        { id: 'head', type: 'mj-head', children: [] },
+        {
+          id: 'body',
+          type: 'mj-body',
+          attributes: {},
+          children: [{ id: 'text-1', type: 'mj-text', attributes: { color: '#111111' }, content: '<p>Hi</p>' }]
+        }
+      ]
+    }) as unknown as EmailBlock
+  const write = (updates: Record<string, unknown>, coalesceKey?: string, blockId = 'text-1') =>
+    act(() =>
+      (mockSettingsPanelProps.onUpdateAttributes as (id: string, u: Record<string, unknown>, o?: { coalesceKey?: string }) => void)(
+        blockId,
+        updates,
+        coalesceKey ? { coalesceKey } : undefined
+      )
+    )
+  const attrs = () => EmailBlockClass.findBlockById(latestTree, 'text-1')!.attributes as Record<string, unknown>
+  const undo = () => fireEvent.click(screen.getByTitle('Undo').closest('button')!)
+  const redo = () => fireEvent.click(screen.getByTitle('Redo').closest('button')!)
+  const undoDisabled = () => (screen.getByTitle('Undo').closest('button') as HTMLButtonElement).disabled
+
+  it('makes one undo step of writes with the same key, back to the value before the first', () => {
+    render(<Controlled initial={initial()} />)
+    write({ paddingTop: '1px' }, 'k1')
+    write({ paddingTop: '12px' }, 'k1')
+    write({ paddingTop: '120px' }, 'k1')
+    expect(attrs().paddingTop).toBe('120px')
+
+    undo()
+    expect(attrs().paddingTop).toBeUndefined()
+    expect(undoDisabled()).toBe(true)
+  })
+
+  it('makes a step per key, and a new step for a new key on the same field', () => {
+    render(<Controlled initial={initial()} />)
+    write({ paddingTop: '10px' }, 'top:1')
+    write({ paddingLeft: '5px' }, 'left:1')
+    write({ paddingTop: '20px' }, 'top:2')
+
+    undo()
+    expect(attrs()).toMatchObject({ paddingTop: '10px', paddingLeft: '5px' })
+    undo()
+    expect(attrs().paddingLeft).toBeUndefined()
+    expect(attrs().paddingTop).toBe('10px')
+  })
+
+  it('always adds a step for a write without a key', () => {
+    render(<Controlled initial={initial()} />)
+    write({ align: 'left' })
+    write({ align: 'center' })
+    undo()
+    expect(attrs().align).toBe('left')
+  })
+
+  it('adds a new step for a write after an undo, even with the same key', () => {
+    render(<Controlled initial={initial()} />)
+    write({ paddingTop: '10px' }, 'k')
+    write({ paddingTop: '20px' }, 'k')
+    undo()
+    redo()
+    write({ paddingTop: '30px' }, 'k')
+    undo()
+    expect(attrs().paddingTop).toBe('20px')
+  })
+
+  it('writes only its keys into the email as it is now, keeping a change made from outside', () => {
+    render(<Controlled initial={initial()} />)
+    const outside = JSON.parse(JSON.stringify(latestTree)) as EmailBlock
+    ;(EmailBlockClass.findBlockById(outside, 'text-1') as { content?: string }).content = '<p>From the assistant</p>'
+    act(() => setOutside(outside))
+
+    write({ color: '#222222' })
+    const text = EmailBlockClass.findBlockById(latestTree, 'text-1') as { content?: string; attributes?: Record<string, unknown> }
+    expect(text.content).toBe('<p>From the assistant</p>')
+    expect(text.attributes?.color).toBe('#222222')
+  })
+
+  it('removes an attribute written as undefined', () => {
+    render(<Controlled initial={initial()} />)
+    write({ color: undefined })
+    expect('color' in attrs()).toBe(false)
+  })
+
+  it('writes nothing for a block that is no longer in the email', () => {
+    render(<Controlled initial={initial()} />)
+    write({ color: '#222222' }, undefined, 'gone')
+    expect(attrs().color).toBe('#111111')
+    expect(undoDisabled()).toBe(true)
+  })
+
+  it('writes nothing once the editor is unmounted', () => {
+    const onTreeChange = vi.fn()
+    const { rerender } = render(<EmailBuilder {...props(initial(), vi.fn(), null)} onTreeChange={onTreeChange} />)
+    const writeLater = mockSettingsPanelProps.onUpdateAttributes as (id: string, u: Record<string, unknown>) => void
+    // The page that held the editor stays, the editor goes (a closed drawer)
+    rerender(<div />)
+    writeLater('text-1', { color: '#222222' })
+    expect(onTreeChange).not.toHaveBeenCalled()
   })
 })

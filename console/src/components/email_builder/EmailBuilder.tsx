@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react'
+import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { App, Button, Segmented, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Redo2, Undo2 } from 'lucide-react'
@@ -13,6 +13,8 @@ import { SaveBlockModal } from './ui/SaveBlockModal'
 import type { LibraryItem } from './utils/library'
 import { isRefusal, resolveInsertTarget, type InsertPlace } from './utils/insertTarget'
 import { SettingsPanel } from './panels/SettingsPanel'
+import { SettingsSectionsProvider } from './ui/fields/SettingsSections'
+import { EditorActionsContext, type EditorActions } from './ui/fields/editorActions'
 import { Preview, type PreviewRef } from './panels/Preview'
 import { TextVersionPanel } from './panels/TextVersionPanel'
 import type { CustomTextVersion } from './panels/TextVersionPanel'
@@ -26,6 +28,7 @@ import type {
   MJMLComponentType
 } from './types'
 import { EmailBlockClass } from './EmailBlockClass'
+import { applyBlockUpdates, type BlockUpdates, type UpdateOptions } from './utils/applyBlockUpdates'
 import { ensureHeadingStyles } from './utils/headingStyles'
 import { rebalanceAdded, rebalanceRemoved } from './utils/layoutRebalance'
 import { countHiddenBlocks, liquidPlacementError } from './displayCondition'
@@ -163,6 +166,9 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   // Preview and text version both show the compiled email.
   const showsCompiledEmail = effectiveViewMode === 'preview' || effectiveViewMode === 'text'
 
+  // The mj-attributes defaults, read once per version of the email
+  const attributeDefaults = useMemo(() => EmailBlockClass.extractAttributeDefaults(tree), [tree])
+
   const selectedBlock = useMemo(() => {
     return EmailBlockClass.findBlockById(tree, effectiveSelectedBlockId || '')
   }, [tree, effectiveSelectedBlockId])
@@ -211,6 +217,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         ? EmailBlockClass.findBlockById(emailTree, state.selectedBlockId)
         : null
 
+      lastCoalesceKey.current = null
       setState((prev) => ({
         ...prev,
         historyIndex: newIndex,
@@ -231,6 +238,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
         ? EmailBlockClass.findBlockById(emailTree, state.selectedBlockId)
         : null
 
+      lastCoalesceKey.current = null
       setState((prev) => ({
         ...prev,
         historyIndex: newIndex,
@@ -251,6 +259,9 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       setViewMode('edit')
     }
   }
+
+  // What the settings panel can ask of the editor: nothing while the tour forces the view
+  const editorActions: EditorActions = forcedViewMode ? {} : { showPreview: () => void handleModeChange('preview') }
 
   const handleModeChange = async (value: string | number) => {
     const mode = value as ViewMode
@@ -317,16 +328,26 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
   // The history index of the last change, for the undo of an insertion from the library
   const lastHistoryIndex = useRef(0)
+  // The coalesce key of the last history entry: a write with the same key replaces that entry
+  // instead of adding one, so a number typed digit by digit is one undo step
+  const lastCoalesceKey = useRef<string | null>(null)
 
-  const updateTreeWithHistory = (changedTree: EmailBlock) => {
+  const updateTreeWithHistory = (changedTree: EmailBlock, coalesceKey?: string) => {
     // The first heading of a Text block brings the email's heading styles, in the
     // same undo step as the edit that made it
     const updatedTree = ensureHeadingStyles(tree, changedTree)
 
-    // Add to history for undo/redo support
-    const newHistory = state.history.slice(0, state.historyIndex + 1)
+    // Add to history for undo/redo support; a write coalesced with the last one replaces it,
+    // as long as nothing was undone since (the last entry is the current one)
+    const coalesce =
+      !!coalesceKey &&
+      lastCoalesceKey.current === coalesceKey &&
+      state.historyIndex === state.history.length - 1 &&
+      state.historyIndex > 0
+    const newHistory = state.history.slice(0, state.historyIndex + (coalesce ? 0 : 1))
     newHistory.push(updatedTree)
     lastHistoryIndex.current = newHistory.length - 1
+    lastCoalesceKey.current = coalesceKey ?? null
 
     setState((prev) => ({
       ...prev,
@@ -337,7 +358,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     onTreeChange(updatedTree)
   }
 
-  const handleUpdateBlock = (blockId: string, updates: EmailBlock) => {
+  const handleUpdateBlock = (blockId: string, updates: EmailBlock, options?: UpdateOptions) => {
     const currentTree = tree
 
     // Create a deep copy of the tree
@@ -370,9 +391,37 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       replaceBlock(updatedTree, blockId, updates)
     }
 
-    updateTreeWithHistory(updatedTree)
+    updateTreeWithHistory(updatedTree, options?.coalesceKey)
     // console.log('Block updated successfully:', blockId)
   }
+
+  // The settings panel writes through updateBlockAttributes: it reads the email as it is now,
+  // not as it was when the field rendered, so a write made while the panel unmounts (a draft
+  // committed after the selection changed from outside, or after the AI assistant rewrote the
+  // email) changes only its own keys. It writes nothing once the block is gone or the editor
+  // is unmounting.
+  const latestTree = useRef(tree)
+  const latestUpdateBlock = useRef(handleUpdateBlock)
+  useLayoutEffect(() => {
+    latestTree.current = tree
+    latestUpdateBlock.current = handleUpdateBlock
+  })
+  const editorMounted = useRef(true)
+  useLayoutEffect(() => {
+    editorMounted.current = true
+    return () => {
+      editorMounted.current = false
+    }
+  }, [])
+  const updateBlockAttributes = useCallback(
+    (blockId: string, updates: BlockUpdates, options?: UpdateOptions) => {
+      if (!editorMounted.current) return
+      const block = EmailBlockClass.findBlockById(latestTree.current, blockId)
+      if (!block) return
+      latestUpdateBlock.current(blockId, applyBlockUpdates(block, updates), options)
+    },
+    []
+  )
 
   // A condition hides its block with every mj-liquid in it, which can hold half of a
   // tag pair: the server refuses that tree, so the editor refuses to build it.
@@ -1213,15 +1262,20 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                 }}
               >
                 <div className="pb-32">
+<SettingsSectionsProvider>
+<EditorActionsContext.Provider value={editorActions}>
                   <SettingsPanel
                     key={`settings-${selectedBlock?.id || 'none'}`}
                     selectedBlock={selectedBlock}
                     onUpdateBlock={handleUpdateBlock}
-                    attributeDefaults={EmailBlockClass.extractAttributeDefaults(tree)}
+                    onUpdateAttributes={updateBlockAttributes}
+                    attributeDefaults={attributeDefaults}
                     emailTree={tree}
                     testData={testData}
                     onTestDataChange={onTestDataChange}
                   />
+</EditorActionsContext.Provider>
+                  </SettingsSectionsProvider>
                 </div>
               </OverlayScrollbarsComponent>
             </div>

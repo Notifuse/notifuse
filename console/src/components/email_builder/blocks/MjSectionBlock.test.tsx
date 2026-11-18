@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MjSectionBlock } from './MjSectionBlock'
-import type { EmailBlock } from '../types'
+import type { EmailBlock, MergedBlockAttributes } from '../types'
+import { MJ_SECTION_DEFAULTS } from '../mjml-defaults'
 import type { PreviewProps } from './BaseEmailBlock'
 
 const previewProps = (attributeDefaults: Record<string, Record<string, unknown>> = {}): PreviewProps =>
@@ -134,12 +135,22 @@ describe('section gutter', () => {
   it('writes the gap the settings field gets, in px by default, and removes it when cleared', () => {
     const onUpdate = vi.fn()
     const section = sectionWithGutter(undefined, column('a'))
-    render(<>{new MjSectionBlock(section).renderSettingsPanel(onUpdate)}</>)
+    render(
+      <>
+        {new MjSectionBlock(section).renderSettingsPanel(
+          onUpdate,
+          MJ_SECTION_DEFAULTS as unknown as MergedBlockAttributes,
+          treeOf(section)
+        )}
+      </>
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Spacing/ }))
 
     const input = screen.getByPlaceholderText('None')
+    const typed = expect.objectContaining({ coalesceKey: expect.any(String) })
     fireEvent.change(input, { target: { value: '20' } })
-    expect(onUpdate).toHaveBeenLastCalledWith({ gutter: '20px' })
+    expect(onUpdate).toHaveBeenLastCalledWith({ gutter: '20px' }, typed)
     fireEvent.change(input, { target: { value: '' } })
-    expect(onUpdate).toHaveBeenLastCalledWith({ gutter: undefined })
+    expect(onUpdate).toHaveBeenLastCalledWith({ gutter: undefined }, typed)
   })
 })

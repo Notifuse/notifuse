@@ -2,7 +2,6 @@ import React from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFont } from '@fortawesome/free-solid-svg-icons'
-import { Col, Row } from 'antd'
 import type { MJMLComponentType, EmailBlock, MJTextAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
@@ -12,148 +11,148 @@ import {
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { containedContentStyle, sanitizeHtml } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
-import PanelLayout from '../panels/PanelLayout'
-import InputLayout from '../ui/InputLayout'
-import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
-import PaddingInput from '../ui/PaddingInput'
-import FontStyleInput from '../ui/FontStyleInput'
-import HeightInput from '../ui/HeightInput'
-import StringPopoverInput from '../ui/StringPopoverInput'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { ColorField } from '../ui/fields/ColorField'
+import { FontFields } from '../ui/fields/FontFields'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { useImportedFonts, inheritedSidesOf, panelFields, sidesOf, useEmailColors } from './panelFields'
 import { TiptapRichEditor } from '../ui/tiptap'
 import { findSkips, headingLevelBeforeBlock, headingOutline } from '../utils/headingOutline'
 
 // Functional component for settings panel with i18n support
 interface MjTextSettingsPanelProps {
+  blockId: string
   currentAttributes: MJTextAttributes
   blockDefaults: MergedBlockAttributes
-  importedFonts: Array<{ name: string; href: string }>
   onUpdate: OnUpdateAttributesFunction
+  emailTree?: EmailBlock
 }
 
+// The font keys FontFields edits; mj-text names its alignment `align`, FontFields `textAlign`.
+const TEXT_FONT_FIELDS = [
+  'fontFamily',
+  'fontSize',
+  'fontWeight',
+  'fontStyle',
+  'textTransform',
+  'textDecoration',
+  'lineHeight',
+  'letterSpacing',
+  'textAlign'
+] as const
+const TEXT_FONT_KEYS = TEXT_FONT_FIELDS.map((key) => (key === 'textAlign' ? 'align' : key))
+const TEXT_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+
+const attributeOfFontKey = (key: string) => (key === 'textAlign' ? 'align' : key)
+
 const MjTextSettingsPanel: React.FC<MjTextSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
   blockDefaults,
-  importedFonts,
-  onUpdate
+  onUpdate,
+  emailTree
 }) => {
   const { t } = useLingui()
+  const f = panelFields(blockId, currentAttributes as Record<string, unknown>, blockDefaults as Record<string, unknown>, onUpdate)
+  const colors = useEmailColors(emailTree)
+  const importedFonts = useImportedFonts(emailTree)
+  const fontValues = Object.fromEntries(TEXT_FONT_FIELDS.map((key) => [key, f.value(attributeOfFontKey(key))]))
+  const fontInherited = Object.fromEntries(TEXT_FONT_FIELDS.map((key) => [key, f.inherited(attributeOfFontKey(key))]))
+  const fontSummary = [f.value('fontFamily')?.split(',')[0], f.value('fontSize'), f.value('lineHeight')]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <PanelLayout title={t`Text attributes`}>
-      <InputLayout label={t`Colors`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Text`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.color || undefined}
-                  onChange={(color) => onUpdate({ color: color || undefined })}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Container`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.containerBackgroundColor || undefined}
-                  onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-                  placeholder={t`None`}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
+    <>
+      <SettingsSection
+        sectionKey="mj-text:colors"
+        title={t`Colors`}
+        first
+        setCount={f.setCount('color', 'containerBackgroundColor')}
+      >
+        <SettingsRow label={t`Text`} isSet={f.isSet('color')} onReset={f.reset('color')}>
+          <ColorField
+            aria-label={t`Text color`}
+            value={f.value('color')}
+            inherited={f.inherited('color')}
+            emailColors={colors}
+            onChange={f.write('color')}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Container background`}
+          isSet={f.isSet('containerBackgroundColor')}
+          onReset={f.reset('containerBackgroundColor')}
+        >
+          <ColorField
+            aria-label={t`Container background`}
+            value={f.value('containerBackgroundColor')}
+            inherited={f.inherited('containerBackgroundColor')}
+            placeholder={t`None`}
+            emailColors={colors}
+            onChange={f.write('containerBackgroundColor')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Font Styling`} layout="vertical">
-        <FontStyleInput
-          value={{
-            fontFamily: currentAttributes.fontFamily,
-            fontSize: currentAttributes.fontSize,
-            fontWeight: currentAttributes.fontWeight,
-            fontStyle: currentAttributes.fontStyle,
-            textTransform: currentAttributes.textTransform,
-            textDecoration: currentAttributes.textDecoration,
-            lineHeight: currentAttributes.lineHeight,
-            letterSpacing: currentAttributes.letterSpacing,
-            textAlign: currentAttributes.align
-          }}
-          defaultValue={{
-            fontFamily: blockDefaults.fontFamily,
-            fontSize: blockDefaults.fontSize,
-            fontWeight: blockDefaults.fontWeight,
-            fontStyle: blockDefaults.fontStyle,
-            textTransform: blockDefaults.textTransform || 'none',
-            textDecoration: blockDefaults.textDecoration,
-            lineHeight: blockDefaults.lineHeight,
-            letterSpacing: blockDefaults.letterSpacing,
-            textAlign: blockDefaults.align
-          }}
-          onChange={(values) => {
-            onUpdate({
-              fontFamily: values.fontFamily,
-              fontSize: values.fontSize,
-              fontWeight: values.fontWeight,
-              fontStyle: values.fontStyle,
-              textTransform: values.textTransform,
-              textDecoration: values.textDecoration,
-              lineHeight: values.lineHeight,
-              letterSpacing: values.letterSpacing,
-              align: values.textAlign
-            })
-          }}
+      <SettingsSection
+        sectionKey="mj-text:font"
+        title={t`Font`}
+        setCount={f.setCount(...TEXT_FONT_KEYS)}
+        summary={fontSummary}
+      >
+        <FontFields
+          value={fontValues}
+          inherited={fontInherited}
           importedFonts={importedFonts}
+          fields={TEXT_FONT_FIELDS}
+          onChange={(updates, options) =>
+            f.writeMany(
+              Object.fromEntries(Object.entries(updates).map(([key, value]) => [attributeOfFontKey(key), value])),
+              options
+            )
+          }
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout label={t`Padding`} layout="vertical">
-        <PaddingInput
-          value={{
-            top: currentAttributes.paddingTop,
-            right: currentAttributes.paddingRight,
-            bottom: currentAttributes.paddingBottom,
-            left: currentAttributes.paddingLeft
-          }}
-          defaultValue={{
-            top: blockDefaults.paddingTop,
-            right: blockDefaults.paddingRight,
-            bottom: blockDefaults.paddingBottom,
-            left: blockDefaults.paddingLeft
-          }}
-          onChange={(values: {
-            top: string | undefined
-            right: string | undefined
-            bottom: string | undefined
-            left: string | undefined
-          }) => {
-            onUpdate({
-              paddingTop: values.top,
-              paddingRight: values.right,
-              paddingBottom: values.bottom,
-              paddingLeft: values.left
-            })
-          }}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-text:size"
+        title={t`Size`}
+        setCount={f.setCount('height')}
+        summary={f.value('height')}
+      >
+        <SettingsRow label={t`Height`} isSet={f.isSet('height')} onReset={f.reset('height')}>
+          <NumberUnitField
+            aria-label={t`Text height`}
+            mode="height"
+            value={f.value('height')}
+            inherited={f.inherited('height')}
+            placeholder={t`Auto`}
+            coalesceBase={f.base('height')}
+            onChange={f.write('height')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Height`}>
-        <HeightInput
-          value={currentAttributes.height}
-          onChange={(value) => onUpdate({ height: value })}
+      <SettingsSection sectionKey="mj-text:spacing" title={t`Spacing`} setCount={f.setCount(...TEXT_PADDING)}>
+        <SpacingField
+          label={t`Around the text`}
+          centerLabel={t`Text`}
+          value={sidesOf(f, 'padding')}
+          inherited={inheritedSidesOf(f, 'padding')}
+          onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+            f.writeMany(toSideAttributes(sides, 'padding'), options)
+          }
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout label={t`CSS Class`}>
-        <StringPopoverInput
-          value={currentAttributes.cssClass || ''}
-          onChange={(value) => onUpdate({ cssClass: value || undefined })}
-          placeholder={t`Enter CSS class name`}
-        />
-      </InputLayout>
-    </PanelLayout>
+      <AdvancedSection type="mj-text" fields={f} />
+    </>
   )
 }
 
@@ -357,30 +356,13 @@ export class MjTextBlock extends BaseEmailBlock {
     blockDefaults: MergedBlockAttributes,
     emailTree?: EmailBlock
   ): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJTextAttributes
-
-    // Find all imported fonts in the email tree
-    const importedFonts: Array<{ name: string; href: string }> = []
-
-    if (emailTree) {
-      const fontBlocks = EmailBlockClass.findAllBlocksByType(emailTree, 'mj-font')
-      fontBlocks.forEach((fontBlock) => {
-        const attrs = fontBlock.attributes as { name?: string; href?: string }
-        if (attrs?.name && attrs?.href) {
-          importedFonts.push({
-            name: attrs.name,
-            href: attrs.href
-          })
-        }
-      })
-    }
-
     return (
       <MjTextSettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJTextAttributes}
         blockDefaults={blockDefaults}
-        importedFonts={importedFonts}
         onUpdate={onUpdate}
+        emailTree={emailTree}
       />
     )
   }

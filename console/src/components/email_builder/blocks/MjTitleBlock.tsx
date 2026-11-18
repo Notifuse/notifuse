@@ -1,6 +1,5 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Input } from 'antd'
 import type { MJMLComponentType } from '../types'
 import {
   BaseEmailBlock,
@@ -9,52 +8,50 @@ import {
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { faHeading } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import PanelLayout from '../panels/PanelLayout'
-import InputLayout from '../ui/InputLayout'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { DraftTextField } from '../ui/fields/DraftTextField'
 
-// Functional component for settings panel with i18n support
+// The settings panel of the email title
 interface MjTitleSettingsPanelProps {
   currentContent: string
   onUpdate: OnUpdateAttributesFunction
 }
 
-const MjTitleSettingsPanel: React.FC<MjTitleSettingsPanelProps> = ({
-  currentContent,
-  onUpdate
-}) => {
+const MjTitleSettingsPanel: React.FC<MjTitleSettingsPanelProps> = ({ currentContent, onUpdate }) => {
   const { t } = useLingui()
 
-  const handleContentChange = (value: string) => {
-    onUpdate({ content: value })
-  }
-
   return (
-    <PanelLayout title={t`Email Title Settings`}>
-      <InputLayout
+    <SettingsSection sectionKey="mj-title:title" title={t`Title`} first>
+      <SettingsRow
         label={t`Title`}
-        help={t`This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line.`}
-        layout="vertical"
+        vertical
+        help={
+          <>
+            <p className="m-0 mb-1">
+              {t`This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line.`}
+            </p>
+            <div className="mb-1 font-semibold">{t`Best practices:`}</div>
+            <ul className="m-0 list-inside list-disc p-0">
+              <li>{t`Keep it concise and descriptive`}</li>
+              <li>{t`Make it relevant to your email content`}</li>
+              <li>{t`Consider using the same text as your subject line`}</li>
+              <li>{t`Avoid special characters that might not display properly`}</li>
+            </ul>
+          </>
+        }
       >
-        <Input
-          value={currentContent}
-          onChange={(e) => handleContentChange(e.target.value)}
+        <DraftTextField
+          aria-label={t`Title`}
+          value={currentContent === '' ? undefined : currentContent}
+          // An emptied title is written as an empty text, as before
+          onChange={(value) => onUpdate({ content: value ?? '' })}
           placeholder={t`Enter email title...`}
           maxLength={100}
+          trim={false}
         />
-      </InputLayout>
-
-      <div className="text-xs text-gray-500 mt-2">
-        <div className="mb-1">
-          <strong>{t`Best practices:`}</strong>
-        </div>
-        <ul className="list-disc list-inside space-y-1">
-          <li>{t`Keep it concise and descriptive`}</li>
-          <li>{t`Make it relevant to your email content`}</li>
-          <li>{t`Consider using the same text as your subject line`}</li>
-          <li>{t`Avoid special characters that might not display properly`}</li>
-        </ul>
-      </div>
-    </PanelLayout>
+      </SettingsRow>
+    </SettingsSection>
   )
 }
 

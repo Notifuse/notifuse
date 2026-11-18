@@ -1,61 +1,88 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Input } from 'antd'
 import type { MJMLComponentType } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { faEye } from '@fortawesome/free-regular-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import PanelLayout from '../panels/PanelLayout'
-import InputLayout from '../ui/InputLayout'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { DraftTextField } from '../ui/fields/DraftTextField'
 
-const { TextArea } = Input
+const PREVIEW_MAX_LENGTH = 200
+// Past this length most inboxes cut the preview text
+const PREVIEW_WARN_LENGTH = 140
 
-// Functional component for settings panel with i18n support
+// The settings panel of the preview text
 interface MjPreviewSettingsPanelProps {
   currentContent: string
   onUpdate: OnUpdateAttributesFunction
 }
 
-const MjPreviewSettingsPanel: React.FC<MjPreviewSettingsPanelProps> = ({
-  currentContent,
-  onUpdate
-}) => {
+const MjPreviewSettingsPanel: React.FC<MjPreviewSettingsPanelProps> = ({ currentContent, onUpdate }) => {
   const { t } = useLingui()
-
-  const handleContentChange = (value: string) => {
-    onUpdate({ content: value })
-  }
+  // The length of the text in the field, typed or saved: the field keeps its draft to itself, so
+  // the counter follows the typing from the change events that bubble up from it
+  const [typed, setTyped] = useState<{ for: string; length: number } | null>(null)
+  const length = typed && typed.for === currentContent ? typed.length : currentContent.length
+  const tooLong = length > PREVIEW_WARN_LENGTH
 
   return (
-    <PanelLayout title={t`Preview Text Settings`}>
-      <InputLayout
+    <SettingsSection sectionKey="mj-preview:preview" title={t`Preview`} first>
+      <SettingsRow
         label={t`Subject preview`}
-        help={t`This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended).`}
-        layout="vertical"
+        vertical
+        help={
+          <>
+            <p className="m-0 mb-1">
+              {t`This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended).`}
+            </p>
+            <div className="mb-1 font-semibold">{t`Tips for effective preview text:`}</div>
+            <ul className="m-0 list-inside list-disc p-0">
+              <li>{t`Keep it between 35-140 characters`}</li>
+              <li>{t`Complement, don't repeat the subject line`}</li>
+              <li>{t`Create urgency or curiosity`}</li>
+              <li>{t`Include a clear call-to-action`}</li>
+            </ul>
+          </>
+        }
+        alert={
+          tooLong ? (
+            <div className="text-2xs text-warning-fg">{t`Past 140 characters, most inboxes cut the text.`}</div>
+          ) : undefined
+        }
       >
-        <TextArea
-          value={currentContent}
-          onChange={(e) => handleContentChange(e.target.value)}
-          placeholder={t`Enter preview text that appears in email clients...`}
-          rows={3}
-          maxLength={200}
-          showCount
-        />
-      </InputLayout>
-
-      <div className="text-xs text-gray-500 mt-2">
-        <div className="mb-1">
-          <strong>{t`Tips for effective preview text:`}</strong>
+        <div
+          onChange={(event) => {
+            const target = event.target as HTMLTextAreaElement
+            setTyped({ for: currentContent, length: target.value.length })
+          }}
+          onBlur={() => setTyped(null)}
+          // Escape reverts the draft (the field stops the event, hence the capture)
+          onKeyDownCapture={(event) => {
+            if (event.key === 'Escape') setTyped(null)
+          }}
+        >
+          <DraftTextField
+            aria-label={t`Subject preview`}
+            value={currentContent === '' ? undefined : currentContent}
+            // An emptied preview is written as an empty text, as before
+            onChange={(value) => onUpdate({ content: value ?? '' })}
+            placeholder={t`Enter preview text that appears in email clients...`}
+            multiline
+            rows={3}
+            maxLength={PREVIEW_MAX_LENGTH}
+            trim={false}
+          />
+          <div
+            data-testid="preview-counter"
+            className={`mt-1 text-right text-2xs ${tooLong ? 'font-semibold text-warning-fg' : 'text-ink-4'}`}
+          >
+            {length} / {PREVIEW_MAX_LENGTH}
+          </div>
         </div>
-        <ul className="list-disc list-inside space-y-1">
-          <li>{t`Keep it between 35-140 characters`}</li>
-          <li>{t`Complement, don't repeat the subject line`}</li>
-          <li>{t`Create urgency or curiosity`}</li>
-          <li>{t`Include a clear call-to-action`}</li>
-        </ul>
-      </div>
-    </PanelLayout>
+      </SettingsRow>
+    </SettingsSection>
   )
 }
 

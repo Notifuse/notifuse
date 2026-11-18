@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
+import { openSection } from './settingsPanelTestUtils'
 import { MjSocialBlock, socialInheritedAttributes } from './MjSocialBlock'
 import type { EmailBlock, MergedBlockAttributes } from '../types'
 import type { PreviewProps } from './BaseEmailBlock'
@@ -107,26 +108,31 @@ describe('social settings', () => {
   it('writes mode="vertical" for a column and removes the mode for a row', () => {
     const onUpdate = renderPanel()
     fireEvent.click(screen.getByText('In a column'))
-    expect(onUpdate).toHaveBeenLastCalledWith({ mode: 'vertical' })
+    expect(onUpdate).toHaveBeenLastCalledWith({ mode: 'vertical' }, undefined)
   })
 
   it('removes the mode when going back to a row', () => {
     const onUpdate = renderPanel({ mode: 'vertical' })
     fireEvent.click(screen.getByText('In a row'))
-    expect(onUpdate).toHaveBeenLastCalledWith({ mode: undefined })
+    expect(onUpdate).toHaveBeenLastCalledWith({ mode: undefined }, undefined)
   })
 
-  it('keeps every font field it shows, not only the line height and the alignment', () => {
+  it('writes every font field it shows, not only the line height and the alignment', () => {
     const onUpdate = renderPanel({ fontFamily: 'Georgia, serif', lineHeight: '30px' })
+    openSection(/^Font$/)
     fireEvent.change(screen.getByPlaceholderText('13'), { target: { value: '18' } })
-    expect(onUpdate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ fontFamily: 'Georgia, serif', fontSize: '18px', lineHeight: '30px' })
-    )
+    expect(onUpdate).toHaveBeenLastCalledWith({ fontSize: '18px' }, expect.objectContaining({ coalesceKey: expect.any(String) }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Italic' }))
+    expect(onUpdate).toHaveBeenLastCalledWith({ fontStyle: 'italic' }, undefined)
+    fireEvent.click(screen.getByTitle('Underline'))
+    expect(onUpdate).toHaveBeenLastCalledWith({ textDecoration: 'underline' }, undefined)
   })
 
   it('offers no text transform nor letter spacing, which mj-social does not have', () => {
     renderPanel()
-    expect(screen.queryByText('Text Transform')).toBeNull()
+    openSection(/^Font$/)
+    expect(screen.getByText('Line height')).toBeTruthy()
+    expect(screen.queryByText('Case')).toBeNull()
     expect(screen.queryByText('Letter spacing')).toBeNull()
   })
 })
@@ -144,20 +150,27 @@ describe('social settings for every icon', () => {
 
   it('writes the icon size and height in px', () => {
     const onUpdate = renderPanel()
+    openSection(/^Icons$/)
     const [size, height] = screen.getAllByPlaceholderText('20')
     fireEvent.change(size, { target: { value: '30' } })
-    expect(onUpdate).toHaveBeenLastCalledWith({ iconSize: '30px' })
+    expect(onUpdate).toHaveBeenLastCalledWith({ iconSize: '30px' }, expect.anything())
     fireEvent.change(height, { target: { value: '24' } })
-    expect(onUpdate).toHaveBeenLastCalledWith({ iconHeight: '24px' })
+    expect(onUpdate).toHaveBeenLastCalledWith({ iconHeight: '24px' }, expect.anything())
   })
 
-  it('writes the paddings as typed, spaces included, and removes an empty one', () => {
-    const onUpdate = renderPanel()
+  it('writes the paddings as typed once the field is left, and removes an empty one', () => {
+    const onUpdate = renderPanel({ iconPadding: '2px' })
     const textPadding = screen.getByPlaceholderText('4px 4px 4px 0')
-    fireEvent.change(textPadding, { target: { value: '4px ' } })
-    expect(onUpdate).toHaveBeenLastCalledWith({ textPadding: '4px ' })
-    fireEvent.change(screen.getByPlaceholderText('0px'), { target: { value: ' ' } })
-    expect(onUpdate).toHaveBeenLastCalledWith({ iconPadding: undefined })
+    fireEvent.focus(textPadding)
+    fireEvent.change(textPadding, { target: { value: '4px 8px' } })
+    expect(onUpdate).not.toHaveBeenCalled()
+    fireEvent.blur(textPadding)
+    expect(onUpdate).toHaveBeenLastCalledWith({ textPadding: '4px 8px' }, undefined)
+    const iconPadding = screen.getByLabelText('Icon padding')
+    fireEvent.focus(iconPadding)
+    fireEvent.change(iconPadding, { target: { value: ' ' } })
+    fireEvent.blur(iconPadding)
+    expect(onUpdate).toHaveBeenLastCalledWith({ iconPadding: undefined }, undefined)
   })
 
   it("shows the icons the block's size and text color, an icon's own winning", () => {
@@ -195,7 +208,7 @@ describe('social review fixes', () => {
     )
     expect(screen.getByText('In a column').closest('.ant-segmented-item')?.className).toContain('selected')
     fireEvent.click(screen.getByText('In a row'))
-    expect(onUpdate).toHaveBeenLastCalledWith({ mode: 'horizontal' })
+    expect(onUpdate).toHaveBeenLastCalledWith({ mode: 'horizontal' }, undefined)
   })
 
   it("shows the font the icons take from the template's default attributes", () => {
@@ -219,6 +232,7 @@ describe('social review fixes', () => {
     render(
       <>{new MjSocialBlock(social({}, element('a'))).renderSettingsPanel(vi.fn(), {} as MergedBlockAttributes, tree)}</>
     )
+    openSection(/^Font$/)
     expect(screen.getByText('Georgia, serif')).toBeTruthy()
   })
 })
@@ -247,6 +261,7 @@ describe('social icon height placeholder', () => {
         )}
       </>
     )
+    openSection(/^Icons$/)
     expect(screen.getAllByPlaceholderText('32')).toHaveLength(1)
   })
 })

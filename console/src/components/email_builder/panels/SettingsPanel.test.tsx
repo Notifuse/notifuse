@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SettingsPanel } from './SettingsPanel'
 import type { EmailBlock } from '../types'
@@ -70,6 +70,7 @@ const renderPanel = (id: string, onUpdateBlock = vi.fn()) =>
       key={id}
       selectedBlock={find(id)}
       onUpdateBlock={onUpdateBlock}
+      onUpdateAttributes={vi.fn()}
       attributeDefaults={{}}
       emailTree={tree}
       testData={{ contact: { vip: true } }}
@@ -116,5 +117,69 @@ describe('SettingsPanel display condition', () => {
     renderPanel('attrs')
     // The Headings section only shows when it can write the head
     expect(screen.getByRole('radio', { name: 'H1' })).toBeTruthy()
+  })
+})
+
+describe('SettingsPanel writes and inherited values', () => {
+  const withDefaults = (spacerDefaults: Record<string, unknown>) =>
+    ({
+      ...tree,
+      children: [
+        {
+          id: 'head',
+          type: 'mj-head',
+          children: [
+            { id: 'attrs', type: 'mj-attributes', children: [{ id: 'def-spacer', type: 'mj-spacer', attributes: spacerDefaults }] }
+          ]
+        },
+        (tree.children as EmailBlock[])[1]
+      ]
+    }) as unknown as EmailBlock
+
+  it('shows the empty state for the email root', () => {
+    render(
+      <SettingsPanel
+        selectedBlock={tree}
+        onUpdateBlock={vi.fn()}
+        onUpdateAttributes={vi.fn()}
+        attributeDefaults={{}}
+        emailTree={tree}
+      />
+    )
+    expect(screen.getByText('Select a block to edit its attributes')).toBeTruthy()
+  })
+
+  it("writes a field's keys through onUpdateAttributes, with the block's id", () => {
+    const onUpdateAttributes = vi.fn()
+    const spacer = { id: 'spacer-3', type: 'mj-spacer', attributes: {} } as unknown as EmailBlock
+    render(
+      <SettingsPanel
+        selectedBlock={spacer}
+        onUpdateBlock={vi.fn()}
+        onUpdateAttributes={onUpdateAttributes}
+        attributeDefaults={{}}
+        emailTree={tree}
+      />
+    )
+    fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '40' } })
+    expect(onUpdateAttributes).toHaveBeenCalled()
+    const [id, updates] = onUpdateAttributes.mock.calls[0]
+    expect(id).toBe('spacer-3')
+    expect(updates).toEqual({ height: '40px' })
+  })
+
+  it("gives the panel the type's mj-attributes over the editor defaults as inherited values", () => {
+    const emailTree = withDefaults({ height: '44px' })
+    const spacer = { id: 'spacer-3', type: 'mj-spacer', attributes: {} } as unknown as EmailBlock
+    render(
+      <SettingsPanel
+        selectedBlock={spacer}
+        onUpdateBlock={vi.fn()}
+        onUpdateAttributes={vi.fn()}
+        attributeDefaults={{ 'mj-spacer': { height: '44px' } }}
+        emailTree={emailTree}
+      />
+    )
+    expect(screen.getAllByRole('spinbutton')[0]).toHaveAttribute('placeholder', '44')
   })
 })

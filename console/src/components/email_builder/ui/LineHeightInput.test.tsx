@@ -3,7 +3,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import LineHeightInput from './LineHeightInput'
-import FontStyleInput from './FontStyleInput'
+import { FontFields } from './fields/FontFields'
 import { convertLineHeight, parseLineHeight } from './lineHeight'
 
 const renderInput = (value: string, onChange = vi.fn(), fontSize?: number) => {
@@ -92,12 +92,17 @@ describe('LineHeightInput', () => {
     }
     render(
       <I18nProvider i18n={i18n}>
-        <FontStyleInput value={values} defaultValue={{ ...values, fontSize: '13px' }} onChange={onChange} />
+        <FontFields
+          value={values}
+          inherited={{ ...values, fontSize: '13px' }}
+          fields={['fontSize', 'lineHeight']}
+          onChange={onChange}
+        />
       </I18nProvider>
     )
     const lineHeightControl = field().closest('.flex') as HTMLElement
     fireEvent.click(within(lineHeightControl).getByText('px'))
-    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ lineHeight: '30px' }))
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ lineHeight: '30px' }), expect.anything())
   })
 
   it('converts between the three units', () => {
