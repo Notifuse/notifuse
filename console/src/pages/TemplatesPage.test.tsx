@@ -298,6 +298,16 @@ describe('TemplatesPage', () => {
     expect(lastSearch()).toEqual({ preview: 'newsletter' })
   })
 
+  it('opens the preview from the button of every row', async () => {
+    renderPage()
+    await screen.findByText('Newsletter')
+    for (const row of screen.getAllByRole('row').slice(1)) {
+      expect(within(row).getByRole('button', { name: 'Preview' })).toBeInTheDocument()
+    }
+    fireEvent.click(within(rowOf('Newsletter')).getByRole('button', { name: 'Preview' }))
+    expect(lastSearch()).toEqual({ preview: 'newsletter' })
+  })
+
   it('opens the preview of the template the URL names', async () => {
     renderPage({ preview: 'promo' })
     expect(await screen.findByTestId('preview-drawer')).toHaveAttribute('data-template', 'promo')
@@ -367,12 +377,10 @@ describe('TemplatesPage', () => {
     for (const label of ['Edit', 'Clone', 'Delete']) {
       expect(within(menu).getByText(label).closest('li')).toHaveAttribute('aria-disabled', 'true')
     }
-    for (const label of ['Preview', 'Copy ID']) {
-      expect(within(menu).getByText(label).closest('li')).not.toHaveAttribute(
-        'aria-disabled',
-        'true'
-      )
-    }
+    expect(within(menu).getByText('Copy ID').closest('li')).not.toHaveAttribute('aria-disabled', 'true')
+    // Preview is on the row, outside the menu, and open to readers
+    expect(within(menu).queryByText('Preview')).toBeNull()
+    expect(within(rowOf('Newsletter')).getByRole('button', { name: 'Preview' })).toBeEnabled()
     expect(screen.getByRole('button', { name: /New template/ })).toBeDisabled()
     expect(screen.getByRole('button', { name: /Import/ })).toBeDisabled()
 

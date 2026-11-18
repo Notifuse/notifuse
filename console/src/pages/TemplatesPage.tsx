@@ -4,7 +4,7 @@ import { App, Button, Dropdown, Empty, Result, Skeleton, Table, Tooltip } from '
 import type { MenuProps, TableColumnType } from 'antd'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useLingui } from '@lingui/react/macro'
-import { MoreHorizontal, Plus, SquareTerminal, Upload } from 'lucide-react'
+import { Eye, MoreHorizontal, Plus, SquareTerminal, Upload } from 'lucide-react'
 import { templatesApi } from '../services/api/template'
 import { emailTemplatesQuery } from '../services/api/sharedQueries'
 import { ApiError } from '../services/api/errors'
@@ -309,7 +309,6 @@ export function TemplatesPage() {
       disabled: !canWrite,
       onClick: () => openDrawer({ mode: 'edit', template })
     },
-    { key: 'preview', label: t`Preview`, onClick: () => setPreview(template.id) },
     {
       key: 'test',
       label: t`Send test`,
@@ -470,9 +469,19 @@ export function TemplatesPage() {
     },
     {
       key: 'actions',
-      width: 48,
+      width: 80,
       render: (_: unknown, template: Template) => (
-        <div onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-end gap-0.5" onClick={(event) => event.stopPropagation()}>
+          {/* Preview on every row, outside the menu */}
+          <Tooltip title={t`Preview`}>
+            <Button
+              type="text"
+              size="small"
+              aria-label={t`Preview`}
+              icon={<Eye size={16} aria-hidden="true" />}
+              onClick={() => setPreview(template.id)}
+            />
+          </Tooltip>
           <Dropdown
             trigger={['click']}
             placement="bottomRight"
