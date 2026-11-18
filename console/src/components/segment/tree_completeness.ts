@@ -232,3 +232,16 @@ export const pruneIncompleteConditions = (node: TreeNode | null | undefined): Tr
 
   return unchanged ? node : { ...node, branch: { ...node.branch, leaves } }
 }
+
+/**
+ * The tree as the editor can open it. The editor draws a group at the root, and the console always
+ * saves one, but the API accepts a single condition there: such a tree opened on « A branch
+ * condition is required... » and could not be edited. It is wrapped in an « all » group, which
+ * matches the same contacts.
+ */
+export const asEditableRoot = (tree: TreeNode | null | undefined): TreeNode | undefined => {
+  if (!tree) return undefined
+  if (tree.kind === 'leaf') return { kind: 'branch', branch: { operator: 'and', leaves: [tree] } }
+  return tree
+}
+

@@ -30,9 +30,11 @@ vi.mock('../context', () => ({
 // below is untestable.
 vi.mock('../../segment/input', () => ({
   TreeNodeInput: ({
+    value,
     onChange,
     canReadTemplates
   }: {
+    value?: TreeNode
     onChange: (tree: TreeNode) => void
     canReadTemplates?: boolean
   }) => (
@@ -40,6 +42,7 @@ vi.mock('../../segment/input', () => ({
       <button
         data-testid="tree-editor"
         data-can-read-templates={String(canReadTemplates)}
+        data-root-kind={value?.kind}
         onClick={() => onChange(twoLeafTree)}
       >
         tree editor
@@ -189,6 +192,15 @@ describe('ConditionsField', () => {
 
     await userEvent.click(screen.getByText('Edit'))
     expect(screen.getByTestId('tree-editor').getAttribute('data-can-read-templates')).toBe(String(canRead))
+  })
+
+  // The API accepts a single condition at the root; the editor only draws a group there
+  it('opens a condition saved alone at the root inside an « all » group, without changing it', async () => {
+    const leafOnly = oneLeafTree.kind === 'branch' ? oneLeafTree.branch!.leaves[0] : oneLeafTree
+    const { onChange } = renderField(leafOnly)
+    await userEvent.click(screen.getByText('Edit'))
+    expect(screen.getByTestId('tree-editor')).toHaveAttribute('data-root-kind', 'branch')
+    expect(onChange).not.toHaveBeenCalled()
   })
 
   it('keeps the editor out of the panel until it is asked for', async () => {

@@ -281,6 +281,15 @@ describe('SegmentDrawer — an existing segment', () => {
 })
 
 describe('SegmentDrawer — closing', () => {
+  // The API accepts a single condition at the root; the console only edits a group there
+  it('opens a segment saved with a single condition at its root, unchanged until edited', () => {
+    const { setVisible } = renderDrawer({ segment: segment({ tree: listLeaf }) })
+    expect(screen.queryByText('A branch condition is required...')).toBeNull()
+    expect(summaryItems()).toContain('1 condition')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(setVisible).toHaveBeenCalledWith(false)
+  })
+
   it('closes at once when nothing changed', () => {
     const { setVisible } = renderDrawer({ segment: segment() })
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
