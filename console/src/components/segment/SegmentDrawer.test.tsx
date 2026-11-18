@@ -21,7 +21,13 @@ const { api, blockerState } = vi.hoisted(() => ({
     createSegment: vi.fn(),
     updateSegment: vi.fn()
   },
-  blockerState: { shouldBlockFn: undefined as undefined | (() => boolean) }
+  blockerState: {
+    shouldBlockFn: undefined as undefined | (() => boolean),
+    // Simulates the router blocking a navigation (the browser's Back)
+    block: () => {},
+    proceed: vi.fn(),
+    reset: vi.fn()
+  }
 }))
 
 vi.mock('@tanstack/react-router', async () => {
@@ -32,8 +38,21 @@ vi.mock('@tanstack/react-router', async () => {
     useNavigate: () => vi.fn(),
     useMatch: () => false,
     useBlocker: (opts: { shouldBlockFn: () => boolean }) => {
+      const { useState } = (globalThis as unknown as { __react: typeof import('react') }).__react
+      const [status, setStatus] = useState<'idle' | 'blocked'>('idle')
       blockerState.shouldBlockFn = opts.shouldBlockFn
-      return { status: 'idle' }
+      blockerState.block = () => setStatus('blocked')
+      return {
+        status,
+        proceed: () => {
+          blockerState.proceed()
+          setStatus('idle')
+        },
+        reset: () => {
+          blockerState.reset()
+          setStatus('idle')
+        }
+      }
     }
   }
 })
@@ -50,6 +69,9 @@ vi.mock('../../services/api/segment', async () => {
   return { ...actual, ...api }
 })
 
+import * as React from 'react'
+import { act } from '@testing-library/react'
+;(globalThis as unknown as { __react: typeof React }).__react = React
 import { SegmentDrawer } from './SegmentDrawer'
 
 const listLeaf: TreeNode = {
@@ -97,7 +119,11 @@ beforeEach(() => {
   api.createSegment.mockReset().mockResolvedValue({ segment: segment() })
   api.updateSegment.mockReset().mockResolvedValue({ segment: segment() })
   blockerState.shouldBlockFn = undefined
+  blockerState.proceed.mockReset()
+  blockerState.reset.mockReset()
 })
+
+const pressBack = () => act(() => blockerState.block())
 
 describe('SegmentDrawer — a new segment', () => {
   it('opens on an empty tree with what is missing, Create disabled', () => {
@@ -253,13 +279,12 @@ describe('SegmentDrawer — closing', () => {
     const { setVisible } = renderDrawer({ segment: segment() })
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(setVisible).toHaveBeenCalledWith(false)
-    expect(blockerState.shouldBlockFn?.()).toBe(false)
   })
 
   it('asks before losing a change, and keeps editing on request', async () => {
     const { setVisible } = renderDrawer({ segment: segment() })
     typeName('Bigger spenders')
-    await waitFor(() => expect(blockerState.shouldBlockFn?.()).toBe(true))
+    await waitFor(() => expect(nameInput()).toHaveValue('Bigger spenders'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     const confirms = await screen.findAllByText('Discard your changes?')
@@ -281,7 +306,7 @@ describe('SegmentDrawer — closing', () => {
   it('asks while a condition is open, even unchanged', async () => {
     const { setVisible } = renderDrawer({ segment: segment() })
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    await waitFor(() => expect(blockerState.shouldBlockFn?.()).toBe(true))
+    await screen.findByText('Confirm')
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(await screen.findByText(/A condition is still open/)).toBeTruthy()
     expect(setVisible).not.toHaveBeenCalled()
@@ -293,8 +318,73 @@ describe('SegmentDrawer — closing', () => {
     const cancel = await screen.findAllByRole('button', { name: 'Cancel' })
     // The condition's own Cancel, not the bar's
     fireEvent.click(cancel[cancel.length - 1])
-    await waitFor(() => expect(blockerState.shouldBlockFn?.()).toBe(false))
+    await waitFor(() => expect(screen.queryByText('Confirm')).toBeNull())
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(setVisible).toHaveBeenCalledWith(false)
+  })
+})
+
+describe('SegmentDrawer — the browser Back', () => {
+  it('closes a clean drawer and lets the navigation go', () => {
+    const { setVisible } = renderDrawer({ segment: segment() })
+    expect(blockerState.shouldBlockFn?.()).toBe(true)
+    pressBack()
+    expect(setVisible).toHaveBeenCalledWith(false)
+    expect(blockerState.proceed).toHaveBeenCalled()
+  })
+
+  it('asks first when there are changes; Discard closes the drawer and goes back', async () => {
+    const { setVisible } = renderDrawer({ segment: segment() })
+    typeName('Renamed')
+    await waitFor(() => expect(nameInput()).toHaveValue('Renamed'))
+    await waitFor(() => expect(screen.getByText('Save')).toBeTruthy())
+    pressBack()
+    const confirms = await screen.findAllByText('Discard your changes?')
+    fireEvent.click(within(confirms[confirms.length - 1].closest('.ant-modal') as HTMLElement).getByRole('button', { name: 'Discard' }))
+    await waitFor(() => expect(setVisible).toHaveBeenCalledWith(false))
+    expect(blockerState.proceed).toHaveBeenCalled()
+  })
+
+  it('stays, and stays put, on Keep editing', async () => {
+    const { setVisible } = renderDrawer({ segment: segment() })
+    typeName('Renamed')
+    await waitFor(() => expect(nameInput()).toHaveValue('Renamed'))
+    pressBack()
+    const confirms = await screen.findAllByText('Discard your changes?')
+    fireEvent.click(
+      within(confirms[confirms.length - 1].closest('.ant-modal') as HTMLElement).getByRole('button', { name: 'Keep editing' })
+    )
+    await waitFor(() => expect(blockerState.reset).toHaveBeenCalled())
+    expect(setVisible).not.toHaveBeenCalled()
+    expect(blockerState.proceed).not.toHaveBeenCalled()
+  })
+
+  it('does not stack a second question when Back comes while × asks', async () => {
+    renderDrawer({ segment: segment() })
+    typeName('Renamed')
+    await waitFor(() => expect(nameInput()).toHaveValue('Renamed'))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await screen.findAllByText('Discard your changes?')
+    pressBack()
+    await waitFor(() => expect(blockerState.reset).toHaveBeenCalled())
+    expect(document.querySelectorAll('.ant-modal-confirm').length).toBe(1)
+  })
+})
+
+describe('SegmentDrawer — the ID check', () => {
+  it('drops a late answer about a name typed earlier', async () => {
+    let answerOld: (value: unknown) => void = () => {}
+    api.getSegment.mockImplementation(({ id }: { id: string }) =>
+      id === 'vipx' ? new Promise((resolve) => (answerOld = () => resolve({ segment: segment() }))) : Promise.reject(new ApiError('Segment not found', 404))
+    )
+    renderDrawer({ initialTree: treeOf(listLeaf) })
+    typeName('Vipx')
+    await waitFor(() => expect(api.getSegment).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'vipx' }), { timeout: 2000 })
+    typeName('Vip')
+    await waitFor(() => expect(saveButton()).toBeEnabled(), { timeout: 2000 })
+    // The answer for « vipx » (taken) comes back now: it says nothing about « vip »
+    await act(async () => answerOld(undefined))
+    expect(saveButton()).toBeEnabled()
+    expect(screen.queryByText(/already has the ID/)).toBeNull()
   })
 })

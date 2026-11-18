@@ -1761,7 +1761,7 @@ msgstr "Una condició no pot fer servir .empty ni .to_liquid: fes servir l'opera
 msgid "A condition is open: confirm or cancel it."
 msgstr "Hi ha una condició oberta: confirma-la o cancel·la-la."
 
-#: src/components/segment/SegmentDrawer.tsx:162
+#: src/components/segment/SegmentDrawer.tsx:167
 msgid "A condition is still open, and the changes made since the segment was opened will be lost."
 msgstr "Encara hi ha una condició oberta, i es perdran els canvis fets des que es va obrir el segment."
 
@@ -2084,7 +2084,7 @@ msgstr "actiu"
 #: src/components/automations/edges/edgeLabel.ts:17
 #: src/components/contacts/contactDisplay.ts:35
 #: src/components/lists/ListHeader.tsx:38
-#: src/components/segment/SegmentDrawer.tsx:253
+#: src/components/segment/SegmentDrawer.tsx:264
 #: src/components/settings/LicenseSettings.tsx:110
 #: src/components/settings/WebhookDetail.tsx:265
 msgid "Active"
@@ -2173,7 +2173,7 @@ msgstr "Afegeix una condició"
 msgid "Add a filter"
 msgstr "Afegir un filtre"
 
-#: src/components/segment/SegmentDrawer.tsx:333
+#: src/components/segment/SegmentDrawer.tsx:344
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "Afegeix una primera condició: una propietat del contacte, una llista, una activitat o un objectiu."
 
@@ -4681,7 +4681,7 @@ msgstr "No es pot provar al navegador"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/form_leaf.tsx:190
 #: src/components/segment/input.tsx:314
-#: src/components/segment/SegmentDrawer.tsx:279
+#: src/components/segment/SegmentDrawer.tsx:290
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5694,7 +5694,7 @@ msgstr "Completat"
 msgid "Completed the automation {name}"
 msgstr "Ha completat l’automatització {name}"
 
-#: src/components/segment/SegmentDrawer.tsx:250
+#: src/components/segment/SegmentDrawer.tsx:261
 msgid "Computing"
 msgstr "En càlcul"
 
@@ -5730,7 +5730,7 @@ msgstr "La condició {position} fa servir un lookaround o una referència invers
 msgid "conditions"
 msgstr "Condicions"
 
-#: src/components/segment/SegmentDrawer.tsx:310
+#: src/components/segment/SegmentDrawer.tsx:321
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
 #: src/components/web_analytics/filters/FilterTable.tsx:131
 #: src/components/web_analytics/filters/FilterTable.tsx:246
@@ -6045,7 +6045,7 @@ msgstr "Contacte actualitzat correctament"
 #: src/components/analytics/GetStartedChecklist.tsx:162
 #: src/components/contacts/ContactDetailsDrawer.tsx:136
 #: src/components/logs/labels.ts:22
-#: src/components/segment/SegmentDrawer.tsx:302
+#: src/components/segment/SegmentDrawer.tsx:313
 #: src/components/settings/permissionLabels.ts:7
 #: src/components/settings/WebAnalyticsSettings.tsx:333
 #: src/layouts/app-shell/menuItems.ts:224
@@ -6521,7 +6521,7 @@ msgstr "Abasta més que les plantilles: els blocs reutilitzables responen al mat
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:275
+#: src/components/segment/SegmentDrawer.tsx:286
 msgid "Create"
 msgstr "Crear"
 
@@ -8130,8 +8130,7 @@ msgstr "Regles desactivades"
 
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
-#: src/components/segment/SegmentDrawer.tsx:164
-#: src/components/segment/SegmentDrawer.tsx:188
+#: src/components/segment/SegmentDrawer.tsx:169
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
@@ -8152,8 +8151,7 @@ msgstr "Descartar esborrany"
 msgid "Discard unsaved changes?"
 msgstr "Descartar els canvis no desats?"
 
-#: src/components/segment/SegmentDrawer.tsx:160
-#: src/components/segment/SegmentDrawer.tsx:186
+#: src/components/segment/SegmentDrawer.tsx:165
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -8753,7 +8751,7 @@ msgid "Edit rule"
 msgstr "Editar regla"
 
 #: src/components/contacts/SegmentDefinedBy.tsx:64
-#: src/components/segment/SegmentDrawer.tsx:305
+#: src/components/segment/SegmentDrawer.tsx:316
 msgid "Edit segment"
 msgstr "Editar segment"
 
@@ -10205,7 +10203,7 @@ msgstr "No s'ha pogut crear la notificació: {0}"
 msgid "Failed to create post: {0}"
 msgstr "No s'ha pogut crear la publicació: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:235
+#: src/components/segment/SegmentDrawer.tsx:246
 msgid "Failed to create segment"
 msgstr "No s'ha pogut crear el segment"
 
@@ -10633,7 +10631,7 @@ msgstr "No s'han pogut actualitzar els permisos"
 msgid "Failed to update post: {0}"
 msgstr "No s'ha pogut actualitzar la publicació: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:235
+#: src/components/segment/SegmentDrawer.tsx:246
 msgid "Failed to update segment"
 msgstr "No s'ha pogut actualitzar el segment"
 
@@ -12836,8 +12834,7 @@ msgstr "Justificar"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:234
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
-#: src/components/segment/SegmentDrawer.tsx:165
-#: src/components/segment/SegmentDrawer.tsx:189
+#: src/components/segment/SegmentDrawer.tsx:170
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:720
 #: src/components/templates/CreateTemplateDrawer.tsx:898
@@ -14575,7 +14572,7 @@ msgid "Never run"
 msgstr "Mai executat"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
-#: src/components/segment/SegmentDrawer.tsx:247
+#: src/components/segment/SegmentDrawer.tsx:258
 #: src/components/templates/TemplateDrawerBar.tsx:35
 msgid "New"
 msgstr "Nou"
@@ -14673,7 +14670,7 @@ msgid "New rule"
 msgstr "Nova regla"
 
 #: src/components/contacts/ContactsRail.tsx:121
-#: src/components/segment/SegmentDrawer.tsx:305
+#: src/components/segment/SegmentDrawer.tsx:316
 msgid "New segment"
 msgstr "Nou segment"
 
@@ -18175,7 +18172,7 @@ msgstr "Temps de lectura"
 msgid "Reads"
 msgstr "Llegeix"
 
-#: src/components/segment/SegmentDrawer.tsx:356
+#: src/components/segment/SegmentDrawer.tsx:367
 msgid "Reads the dates of the conditions and sets the hour of the daily recompute."
 msgstr "Llegeix les dates de les condicions i fixa l'hora del recàlcul diari."
 
@@ -19406,7 +19403,7 @@ msgstr "Mode sandbox"
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:275
+#: src/components/segment/SegmentDrawer.tsx:286
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:852
@@ -19935,11 +19932,11 @@ msgstr "Condicions del segment"
 msgid "Segment deleted successfully"
 msgstr "Segment eliminat correctament"
 
-#: src/components/segment/SegmentDrawer.tsx:263
+#: src/components/segment/SegmentDrawer.tsx:274
 msgid "Segment name"
 msgstr "Nom del segment"
 
-#: src/components/segment/SegmentDrawer.tsx:263
+#: src/components/segment/SegmentDrawer.tsx:274
 msgid "Segment name, e.g. Big spenders"
 msgstr "Nom del segment, p. ex. Grans compradors"
 
@@ -20071,7 +20068,7 @@ msgstr "Selecciona un bloc social"
 msgid "Select a template"
 msgstr "Seleccioneu una plantilla"
 
-#: src/components/segment/SegmentDrawer.tsx:360
+#: src/components/segment/SegmentDrawer.tsx:371
 msgid "Select a time zone"
 msgstr "Seleccioneu una zona horària"
 
@@ -21058,7 +21055,7 @@ msgstr "Configurant..."
 
 #: src/components/automations/EditorSettings.tsx:22
 #: src/components/automations/EditorSettings.tsx:24
-#: src/components/segment/SegmentDrawer.tsx:352
+#: src/components/segment/SegmentDrawer.tsx:363
 #: src/components/templates/TemplateDrawerBar.tsx:82
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
@@ -22830,8 +22827,7 @@ msgstr "La categoria {forcedLabel} és obligatòria on es crea aquesta plantilla
 msgid "The category is set by where this template is used"
 msgstr "La categoria depèn d'on es fa servir aquesta plantilla"
 
-#: src/components/segment/SegmentDrawer.tsx:163
-#: src/components/segment/SegmentDrawer.tsx:187
+#: src/components/segment/SegmentDrawer.tsx:168
 msgid "The changes made since the segment was opened will be lost."
 msgstr "Es perdran els canvis fets des que es va obrir el segment."
 
@@ -23216,11 +23212,11 @@ msgstr "La versió desada, al teu blog"
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "Les columnes i els grups de la secció en superen l’amplada en un {over} %: al correu, els darrers passen a una línia nova."
 
-#: src/components/segment/SegmentDrawer.tsx:228
+#: src/components/segment/SegmentDrawer.tsx:239
 msgid "The segment has been created!"
 msgstr "El segment s'ha creat!"
 
-#: src/components/segment/SegmentDrawer.tsx:218
+#: src/components/segment/SegmentDrawer.tsx:229
 msgid "The segment has been updated!"
 msgstr "El segment s'ha actualitzat!"
 
@@ -23415,7 +23411,7 @@ msgstr "Aquestes credencials d'AWS no poden llistar tenants ni conjunts de confi
 msgid "These AWS credentials cannot read SES tenants (needs ses:GetTenant and ses:ListTenantResources)."
 msgstr "Aquestes credencials d'AWS no poden llegir els tenants de SES (calen ses:GetTenant i ses:ListTenantResources)."
 
-#: src/components/segment/SegmentDrawer.tsx:316
+#: src/components/segment/SegmentDrawer.tsx:327
 msgid "These conditions come from the filters of the contacts view."
 msgstr "Aquestes condicions provenen dels filtres de la vista de contactes."
 
@@ -24033,7 +24029,7 @@ msgstr "Zona horària — {detail}"
 msgid "Timezone is required"
 msgstr "La zona horària és obligatòria"
 
-#: src/components/segment/SegmentDrawer.tsx:355
+#: src/components/segment/SegmentDrawer.tsx:366
 msgid "Timezone used for dates"
 msgstr "Zona horària utilitzada per a dates"
 
@@ -26179,7 +26175,7 @@ msgstr "Qui pot fer què en aquest espai de treball"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Qui ha fet què en aquest workspace: membres, permisos, claus d'API, integracions, configuració i canvis de contingut, amb l'adreça d'origen i si estava permès."
 
-#: src/components/segment/SegmentDrawer.tsx:331
+#: src/components/segment/SegmentDrawer.tsx:342
 msgid "Who should be in this segment?"
 msgstr "Qui ha de formar part d'aquest segment?"
 

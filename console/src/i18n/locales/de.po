@@ -1761,7 +1761,7 @@ msgstr "Eine Bedingung kann .empty und .to_liquid nicht verwenden: Nutzen Sie de
 msgid "A condition is open: confirm or cancel it."
 msgstr "Eine Bedingung ist geöffnet: Bestätigen oder verwerfen Sie sie."
 
-#: src/components/segment/SegmentDrawer.tsx:162
+#: src/components/segment/SegmentDrawer.tsx:167
 msgid "A condition is still open, and the changes made since the segment was opened will be lost."
 msgstr "Eine Bedingung ist noch geöffnet, und die Änderungen seit dem Öffnen des Segments gehen verloren."
 
@@ -2084,7 +2084,7 @@ msgstr "aktiv"
 #: src/components/automations/edges/edgeLabel.ts:17
 #: src/components/contacts/contactDisplay.ts:35
 #: src/components/lists/ListHeader.tsx:38
-#: src/components/segment/SegmentDrawer.tsx:253
+#: src/components/segment/SegmentDrawer.tsx:264
 #: src/components/settings/LicenseSettings.tsx:110
 #: src/components/settings/WebhookDetail.tsx:265
 msgid "Active"
@@ -2173,7 +2173,7 @@ msgstr "Bedingung hinzufügen"
 msgid "Add a filter"
 msgstr "Filter hinzufügen"
 
-#: src/components/segment/SegmentDrawer.tsx:333
+#: src/components/segment/SegmentDrawer.tsx:344
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "Fügen Sie eine erste Bedingung hinzu: eine Kontakteigenschaft, eine Liste, eine Aktivität oder ein Ziel."
 
@@ -4681,7 +4681,7 @@ msgstr "Im Browser nicht testbar"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/form_leaf.tsx:190
 #: src/components/segment/input.tsx:314
-#: src/components/segment/SegmentDrawer.tsx:279
+#: src/components/segment/SegmentDrawer.tsx:290
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5694,7 +5694,7 @@ msgstr "Abgeschlossen"
 msgid "Completed the automation {name}"
 msgstr "Hat die Automation {name} abgeschlossen"
 
-#: src/components/segment/SegmentDrawer.tsx:250
+#: src/components/segment/SegmentDrawer.tsx:261
 msgid "Computing"
 msgstr "Wird berechnet"
 
@@ -5730,7 +5730,7 @@ msgstr "Bedingung {position} verwendet ein Lookaround oder eine Rückreferenz, d
 msgid "conditions"
 msgstr "Bedingungen"
 
-#: src/components/segment/SegmentDrawer.tsx:310
+#: src/components/segment/SegmentDrawer.tsx:321
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
 #: src/components/web_analytics/filters/FilterTable.tsx:131
 #: src/components/web_analytics/filters/FilterTable.tsx:246
@@ -6045,7 +6045,7 @@ msgstr "Kontakt erfolgreich aktualisiert"
 #: src/components/analytics/GetStartedChecklist.tsx:162
 #: src/components/contacts/ContactDetailsDrawer.tsx:136
 #: src/components/logs/labels.ts:22
-#: src/components/segment/SegmentDrawer.tsx:302
+#: src/components/segment/SegmentDrawer.tsx:313
 #: src/components/settings/permissionLabels.ts:7
 #: src/components/settings/WebAnalyticsSettings.tsx:333
 #: src/layouts/app-shell/menuItems.ts:224
@@ -6521,7 +6521,7 @@ msgstr "Deckt mehr ab als Vorlagen: Wiederverwendbare Blöcke unterstehen demsel
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:275
+#: src/components/segment/SegmentDrawer.tsx:286
 msgid "Create"
 msgstr "Erstellen"
 
@@ -8130,8 +8130,7 @@ msgstr "Deaktivierte Regeln"
 
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
-#: src/components/segment/SegmentDrawer.tsx:164
-#: src/components/segment/SegmentDrawer.tsx:188
+#: src/components/segment/SegmentDrawer.tsx:169
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
@@ -8152,8 +8151,7 @@ msgstr "Entwurf verwerfen"
 msgid "Discard unsaved changes?"
 msgstr "Nicht gespeicherte Änderungen verwerfen?"
 
-#: src/components/segment/SegmentDrawer.tsx:160
-#: src/components/segment/SegmentDrawer.tsx:186
+#: src/components/segment/SegmentDrawer.tsx:165
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -8753,7 +8751,7 @@ msgid "Edit rule"
 msgstr "Regel bearbeiten"
 
 #: src/components/contacts/SegmentDefinedBy.tsx:64
-#: src/components/segment/SegmentDrawer.tsx:305
+#: src/components/segment/SegmentDrawer.tsx:316
 msgid "Edit segment"
 msgstr "Segment bearbeiten"
 
@@ -10205,7 +10203,7 @@ msgstr "Erstellen der Benachrichtigung fehlgeschlagen: {0}"
 msgid "Failed to create post: {0}"
 msgstr "Erstellen des Beitrags fehlgeschlagen: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:235
+#: src/components/segment/SegmentDrawer.tsx:246
 msgid "Failed to create segment"
 msgstr "Erstellen des Segments fehlgeschlagen"
 
@@ -10633,7 +10631,7 @@ msgstr "Aktualisieren der Berechtigungen fehlgeschlagen"
 msgid "Failed to update post: {0}"
 msgstr "Aktualisieren des Beitrags fehlgeschlagen: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:235
+#: src/components/segment/SegmentDrawer.tsx:246
 msgid "Failed to update segment"
 msgstr "Aktualisieren des Segments fehlgeschlagen"
 
@@ -12836,8 +12834,7 @@ msgstr "Blocksatz"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:234
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
-#: src/components/segment/SegmentDrawer.tsx:165
-#: src/components/segment/SegmentDrawer.tsx:189
+#: src/components/segment/SegmentDrawer.tsx:170
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:720
 #: src/components/templates/CreateTemplateDrawer.tsx:898
@@ -14575,7 +14572,7 @@ msgid "Never run"
 msgstr "Nie ausgeführt"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
-#: src/components/segment/SegmentDrawer.tsx:247
+#: src/components/segment/SegmentDrawer.tsx:258
 #: src/components/templates/TemplateDrawerBar.tsx:35
 msgid "New"
 msgstr "Neu"
@@ -14673,7 +14670,7 @@ msgid "New rule"
 msgstr "Neue Regel"
 
 #: src/components/contacts/ContactsRail.tsx:121
-#: src/components/segment/SegmentDrawer.tsx:305
+#: src/components/segment/SegmentDrawer.tsx:316
 msgid "New segment"
 msgstr "Neues Segment"
 
@@ -18175,7 +18172,7 @@ msgstr "Lesezeit"
 msgid "Reads"
 msgstr "Liest"
 
-#: src/components/segment/SegmentDrawer.tsx:356
+#: src/components/segment/SegmentDrawer.tsx:367
 msgid "Reads the dates of the conditions and sets the hour of the daily recompute."
 msgstr "Liest die Datumsangaben der Bedingungen und legt die Uhrzeit der täglichen Neuberechnung fest."
 
@@ -19406,7 +19403,7 @@ msgstr "Sandbox-Modus"
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:275
+#: src/components/segment/SegmentDrawer.tsx:286
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:852
@@ -19935,11 +19932,11 @@ msgstr "Segmentbedingungen"
 msgid "Segment deleted successfully"
 msgstr "Segment erfolgreich gelöscht"
 
-#: src/components/segment/SegmentDrawer.tsx:263
+#: src/components/segment/SegmentDrawer.tsx:274
 msgid "Segment name"
 msgstr "Segmentname"
 
-#: src/components/segment/SegmentDrawer.tsx:263
+#: src/components/segment/SegmentDrawer.tsx:274
 msgid "Segment name, e.g. Big spenders"
 msgstr "Segmentname, z. B. Großkunden"
 
@@ -20071,7 +20068,7 @@ msgstr "Wählen Sie einen Social-Block aus"
 msgid "Select a template"
 msgstr "Vorlage auswählen"
 
-#: src/components/segment/SegmentDrawer.tsx:360
+#: src/components/segment/SegmentDrawer.tsx:371
 msgid "Select a time zone"
 msgstr "Zeitzone auswählen"
 
@@ -21058,7 +21055,7 @@ msgstr "Wird eingerichtet..."
 
 #: src/components/automations/EditorSettings.tsx:22
 #: src/components/automations/EditorSettings.tsx:24
-#: src/components/segment/SegmentDrawer.tsx:352
+#: src/components/segment/SegmentDrawer.tsx:363
 #: src/components/templates/TemplateDrawerBar.tsx:82
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
@@ -22830,8 +22827,7 @@ msgstr "Die Kategorie {forcedLabel} ist dort vorgegeben, wo diese Vorlage erstel
 msgid "The category is set by where this template is used"
 msgstr "Die Kategorie ergibt sich daraus, wo diese Vorlage verwendet wird"
 
-#: src/components/segment/SegmentDrawer.tsx:163
-#: src/components/segment/SegmentDrawer.tsx:187
+#: src/components/segment/SegmentDrawer.tsx:168
 msgid "The changes made since the segment was opened will be lost."
 msgstr "Die Änderungen seit dem Öffnen des Segments gehen verloren."
 
@@ -23216,11 +23212,11 @@ msgstr "Die gespeicherte Version, auf Ihrem Blog"
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "Die Spalten und Gruppen des Abschnitts überschreiten seine Breite um {over} %: In der E-Mail rücken die letzten in eine neue Zeile."
 
-#: src/components/segment/SegmentDrawer.tsx:228
+#: src/components/segment/SegmentDrawer.tsx:239
 msgid "The segment has been created!"
 msgstr "Das Segment wurde erstellt!"
 
-#: src/components/segment/SegmentDrawer.tsx:218
+#: src/components/segment/SegmentDrawer.tsx:229
 msgid "The segment has been updated!"
 msgstr "Das Segment wurde aktualisiert!"
 
@@ -23415,7 +23411,7 @@ msgstr "Diese AWS-Zugangsdaten können keine Mandanten oder Konfigurationssätze
 msgid "These AWS credentials cannot read SES tenants (needs ses:GetTenant and ses:ListTenantResources)."
 msgstr "Diese AWS-Zugangsdaten können keine SES-Mandanten lesen (erfordert ses:GetTenant und ses:ListTenantResources)."
 
-#: src/components/segment/SegmentDrawer.tsx:316
+#: src/components/segment/SegmentDrawer.tsx:327
 msgid "These conditions come from the filters of the contacts view."
 msgstr "Diese Bedingungen stammen aus den Filtern der Kontaktansicht."
 
@@ -24033,7 +24029,7 @@ msgstr "Zeitzone — {detail}"
 msgid "Timezone is required"
 msgstr "Zeitzone ist erforderlich"
 
-#: src/components/segment/SegmentDrawer.tsx:355
+#: src/components/segment/SegmentDrawer.tsx:366
 msgid "Timezone used for dates"
 msgstr "Zeitzone für Datumsangaben"
 
@@ -26179,7 +26175,7 @@ msgstr "Wer in diesem Arbeitsbereich was tun darf"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Wer was in diesem Workspace getan hat: Mitglieder, Berechtigungen, API-Schlüssel, Integrationen, Einstellungen und Inhaltsänderungen, mit Herkunftsadresse und ob es erlaubt war."
 
-#: src/components/segment/SegmentDrawer.tsx:331
+#: src/components/segment/SegmentDrawer.tsx:342
 msgid "Who should be in this segment?"
 msgstr "Wer soll in diesem Segment sein?"
 

@@ -113,16 +113,20 @@ export function SegmentDrawer(props: SegmentDrawerProps) {
   // The ID a new segment gets, and whether it is free. The check waits out the typing; until it
   // answers, Create waits too.
   const generatedId = isEdit ? props.segment!.id : generateSegmentId(name)
+  // The ID the latest check is about: an answer for an ID typed earlier arrives too late to count.
+  const latestIdRef = useRef('')
   const checkId = useMemo(
     () =>
       debounce(async (id: string) => {
+        let result: SegmentIdCheck
         try {
           await getSegment({ workspace_id: workspaceId, id })
-          setIdCheck('taken')
+          result = 'taken'
         } catch (error) {
           // Only a 404 says the ID is free; anything else says nothing
-          setIdCheck(error instanceof ApiError && error.status === 404 ? 'available' : 'failed')
+          result = error instanceof ApiError && error.status === 404 ? 'available' : 'failed'
         }
+        if (id === latestIdRef.current) setIdCheck(result)
       }, 500),
     [workspaceId]
   )
@@ -130,6 +134,7 @@ export function SegmentDrawer(props: SegmentDrawerProps) {
   useEffect(() => {
     if (isEdit) return
     checkId.cancel()
+    latestIdRef.current = generatedId
     if (!generatedId) {
       setIdCheck('idle')
       return
@@ -148,14 +153,14 @@ export function SegmentDrawer(props: SegmentDrawerProps) {
 
   const close = () => props.setDrawserVisible(false)
 
-  // ×, Cancel and Escape: never while a save is on its way, and only after asking when there is
-  // something to lose.
-  const requestClose = () => {
-    if (saving) return
-    if (!hasUnsavedWork) {
-      close()
+  // One question at a time: × and Back while it is open must not stack a second one.
+  const askingRef = useRef(false)
+  const askToDiscard = (onDiscard: () => void, onKeep?: () => void) => {
+    if (askingRef.current) {
+      onKeep?.()
       return
     }
+    askingRef.current = true
     modal.confirm({
       title: t`Discard your changes?`,
       content: editingOpen
@@ -164,39 +169,45 @@ export function SegmentDrawer(props: SegmentDrawerProps) {
       okText: t`Discard`,
       cancelText: t`Keep editing`,
       okButtonProps: { danger: true },
-      onOk: close
+      onOk: () => {
+        askingRef.current = false
+        onDiscard()
+      },
+      onCancel: () => {
+        askingRef.current = false
+        onKeep?.()
+      }
     })
   }
 
-  // Leaving by the browser while something would be lost asks the same.
+  // ×, Cancel and Escape: never while a save is on its way, and only after asking when there is
+  // something to lose.
+  const requestClose = () => {
+    if (saving) return
+    if (!hasUnsavedWork) close()
+    else askToDiscard(close)
+  }
+
+  // The browser's Back, or any navigation, while the drawer is open closes the drawer as well:
+  // the drawer is not part of the URL, so left alone it would stay open over another view. It
+  // asks first when something would be lost, and waits while a save is on its way.
   const blocker = useBlocker({
-    shouldBlockFn: () => saving || hasUnsavedWork,
+    shouldBlockFn: () => true,
     enableBeforeUnload: () => hasUnsavedWork,
     withResolver: true
   })
-  const blockedOnce = useRef(false)
   useEffect(() => {
-    if (blocker.status !== 'blocked' || blockedOnce.current) return
+    if (blocker.status !== 'blocked') return
     if (saving) {
       blocker.reset?.()
       return
     }
-    blockedOnce.current = true
-    modal.confirm({
-      title: t`Discard your changes?`,
-      content: t`The changes made since the segment was opened will be lost.`,
-      okText: t`Discard`,
-      cancelText: t`Keep editing`,
-      okButtonProps: { danger: true },
-      onOk: () => {
-        blockedOnce.current = false
-        blocker.proceed?.()
-      },
-      onCancel: () => {
-        blockedOnce.current = false
-        blocker.reset?.()
-      }
-    })
+    const leave = () => {
+      close()
+      blocker.proceed?.()
+    }
+    if (!hasUnsavedWork) leave()
+    else askToDiscard(leave, () => blocker.reset?.())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blocker.status])
 

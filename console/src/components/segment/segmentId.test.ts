@@ -21,4 +21,10 @@ describe('generateSegmentId', () => {
     expect(segmentIdProblem('会員')).toBe('empty')
     expect(segmentIdProblem('会員 2026')).toBeUndefined()
   })
+
+  it('cuts the ID at the 32 characters the server takes, without a trailing underscore', () => {
+    const id = generateSegmentId('Subscribed to the newsletter in the last 30 days')
+    expect(id).toBe('subscribed_to_the_newsletter_in')
+    expect(id.length).toBeLessThanOrEqual(32)
+  })
 })

@@ -341,6 +341,28 @@ test.describe('Segments Feature', () => {
     })
   })
 
+  test.describe('Closing with changes', () => {
+    test('Escape asks before discarding a renamed segment', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
+      await waitForLoading(page)
+      await page.locator('[data-rail-item]').filter({ hasText: 'Active Users' }).click()
+      await page.getByRole('button', { name: 'Edit segment', exact: true }).click()
+
+      const drawer = segmentDrawer(page, 'Edit segment')
+      await nameField(drawer).fill('Active Users renamed')
+      await page.keyboard.press('Escape')
+
+      // One confirmation, not two (× and the blocker share one question)
+      await expect(page.locator('.ant-modal-confirm')).toHaveCount(1)
+      await expect(page.locator('.ant-modal-confirm')).toContainText('Discard your changes?')
+      await page.getByRole('button', { name: 'Keep editing' }).click()
+      await expect(drawer).toBeVisible()
+      await expect(nameField(drawer)).toHaveValue('Active Users renamed')
+    })
+  })
+
   test.describe('Form Validation', () => {
     test('requires segment name', async ({ authenticatedPage }) => {
       const page = authenticatedPage

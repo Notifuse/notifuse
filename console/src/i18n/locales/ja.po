@@ -1761,7 +1761,7 @@ msgstr "条件では .empty と .to_liquid は使用できません。演算子�
 msgid "A condition is open: confirm or cancel it."
 msgstr "編集中の条件があります。確定するかキャンセルしてください。"
 
-#: src/components/segment/SegmentDrawer.tsx:162
+#: src/components/segment/SegmentDrawer.tsx:167
 msgid "A condition is still open, and the changes made since the segment was opened will be lost."
 msgstr "編集中の条件があり、セグメントを開いてからの変更は失われます。"
 
@@ -2084,7 +2084,7 @@ msgstr "有効"
 #: src/components/automations/edges/edgeLabel.ts:17
 #: src/components/contacts/contactDisplay.ts:35
 #: src/components/lists/ListHeader.tsx:38
-#: src/components/segment/SegmentDrawer.tsx:253
+#: src/components/segment/SegmentDrawer.tsx:264
 #: src/components/settings/LicenseSettings.tsx:110
 #: src/components/settings/WebhookDetail.tsx:265
 msgid "Active"
@@ -2173,7 +2173,7 @@ msgstr "条件を追加"
 msgid "Add a filter"
 msgstr "フィルターを追加"
 
-#: src/components/segment/SegmentDrawer.tsx:333
+#: src/components/segment/SegmentDrawer.tsx:344
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "最初の条件を追加してください: コンタクトプロパティ、リスト、アクティビティ、ゴールのいずれか。"
 
@@ -4681,7 +4681,7 @@ msgstr "ブラウザでテストできません"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/form_leaf.tsx:190
 #: src/components/segment/input.tsx:314
-#: src/components/segment/SegmentDrawer.tsx:279
+#: src/components/segment/SegmentDrawer.tsx:290
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5694,7 +5694,7 @@ msgstr "完了"
 msgid "Completed the automation {name}"
 msgstr "オートメーション {name} を完了"
 
-#: src/components/segment/SegmentDrawer.tsx:250
+#: src/components/segment/SegmentDrawer.tsx:261
 msgid "Computing"
 msgstr "計算中"
 
@@ -5730,7 +5730,7 @@ msgstr "条件 {position} は先読み・後読み (lookaround) または後方�
 msgid "conditions"
 msgstr "条件"
 
-#: src/components/segment/SegmentDrawer.tsx:310
+#: src/components/segment/SegmentDrawer.tsx:321
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
 #: src/components/web_analytics/filters/FilterTable.tsx:131
 #: src/components/web_analytics/filters/FilterTable.tsx:246
@@ -6045,7 +6045,7 @@ msgstr "コンタクトを更新しました"
 #: src/components/analytics/GetStartedChecklist.tsx:162
 #: src/components/contacts/ContactDetailsDrawer.tsx:136
 #: src/components/logs/labels.ts:22
-#: src/components/segment/SegmentDrawer.tsx:302
+#: src/components/segment/SegmentDrawer.tsx:313
 #: src/components/settings/permissionLabels.ts:7
 #: src/components/settings/WebAnalyticsSettings.tsx:333
 #: src/layouts/app-shell/menuItems.ts:224
@@ -6521,7 +6521,7 @@ msgstr "テンプレート以外にも及びます: 再利用可能なブロッ�
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:275
+#: src/components/segment/SegmentDrawer.tsx:286
 msgid "Create"
 msgstr "作成"
 
@@ -8130,8 +8130,7 @@ msgstr "無効なルール"
 
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
-#: src/components/segment/SegmentDrawer.tsx:164
-#: src/components/segment/SegmentDrawer.tsx:188
+#: src/components/segment/SegmentDrawer.tsx:169
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
@@ -8152,8 +8151,7 @@ msgstr "下書きを破棄"
 msgid "Discard unsaved changes?"
 msgstr "保存されていない変更を破棄しますか？"
 
-#: src/components/segment/SegmentDrawer.tsx:160
-#: src/components/segment/SegmentDrawer.tsx:186
+#: src/components/segment/SegmentDrawer.tsx:165
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -8753,7 +8751,7 @@ msgid "Edit rule"
 msgstr "ルールを編集"
 
 #: src/components/contacts/SegmentDefinedBy.tsx:64
-#: src/components/segment/SegmentDrawer.tsx:305
+#: src/components/segment/SegmentDrawer.tsx:316
 msgid "Edit segment"
 msgstr "セグメントを編集"
 
@@ -10205,7 +10203,7 @@ msgstr "通知の作成に失敗しました: {0}"
 msgid "Failed to create post: {0}"
 msgstr "投稿の作成に失敗しました: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:235
+#: src/components/segment/SegmentDrawer.tsx:246
 msgid "Failed to create segment"
 msgstr "セグメントの作成に失敗しました"
 
@@ -10633,7 +10631,7 @@ msgstr "権限の更新に失敗しました"
 msgid "Failed to update post: {0}"
 msgstr "投稿の更新に失敗しました: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:235
+#: src/components/segment/SegmentDrawer.tsx:246
 msgid "Failed to update segment"
 msgstr "セグメントの更新に失敗しました"
 
@@ -12836,8 +12834,7 @@ msgstr "両端揃え"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:234
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
-#: src/components/segment/SegmentDrawer.tsx:165
-#: src/components/segment/SegmentDrawer.tsx:189
+#: src/components/segment/SegmentDrawer.tsx:170
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:720
 #: src/components/templates/CreateTemplateDrawer.tsx:898
@@ -14575,7 +14572,7 @@ msgid "Never run"
 msgstr "未実行"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
-#: src/components/segment/SegmentDrawer.tsx:247
+#: src/components/segment/SegmentDrawer.tsx:258
 #: src/components/templates/TemplateDrawerBar.tsx:35
 msgid "New"
 msgstr "新規"
@@ -14673,7 +14670,7 @@ msgid "New rule"
 msgstr "新しいルール"
 
 #: src/components/contacts/ContactsRail.tsx:121
-#: src/components/segment/SegmentDrawer.tsx:305
+#: src/components/segment/SegmentDrawer.tsx:316
 msgid "New segment"
 msgstr "新規セグメント"
 
@@ -18175,7 +18172,7 @@ msgstr "読了時間"
 msgid "Reads"
 msgstr "読み取り"
 
-#: src/components/segment/SegmentDrawer.tsx:356
+#: src/components/segment/SegmentDrawer.tsx:367
 msgid "Reads the dates of the conditions and sets the hour of the daily recompute."
 msgstr "条件の日付の解釈と、毎日の再計算の時刻に使われます。"
 
@@ -19406,7 +19403,7 @@ msgstr "サンドボックスモード"
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:275
+#: src/components/segment/SegmentDrawer.tsx:286
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:852
@@ -19935,11 +19932,11 @@ msgstr "セグメント条件"
 msgid "Segment deleted successfully"
 msgstr "セグメントが正常に削除されました"
 
-#: src/components/segment/SegmentDrawer.tsx:263
+#: src/components/segment/SegmentDrawer.tsx:274
 msgid "Segment name"
 msgstr "セグメント名"
 
-#: src/components/segment/SegmentDrawer.tsx:263
+#: src/components/segment/SegmentDrawer.tsx:274
 msgid "Segment name, e.g. Big spenders"
 msgstr "セグメント名 (例: 高額購入者)"
 
@@ -20071,7 +20068,7 @@ msgstr "ソーシャルブロックを選択してください"
 msgid "Select a template"
 msgstr "テンプレートを選択"
 
-#: src/components/segment/SegmentDrawer.tsx:360
+#: src/components/segment/SegmentDrawer.tsx:371
 msgid "Select a time zone"
 msgstr "タイムゾーンを選択"
 
@@ -21058,7 +21055,7 @@ msgstr "セットアップ中..."
 
 #: src/components/automations/EditorSettings.tsx:22
 #: src/components/automations/EditorSettings.tsx:24
-#: src/components/segment/SegmentDrawer.tsx:352
+#: src/components/segment/SegmentDrawer.tsx:363
 #: src/components/templates/TemplateDrawerBar.tsx:82
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
@@ -22830,8 +22827,7 @@ msgstr "このテンプレートを作成する場所ではカテゴリ {forcedL
 msgid "The category is set by where this template is used"
 msgstr "カテゴリはこのテンプレートの使用場所によって決まります"
 
-#: src/components/segment/SegmentDrawer.tsx:163
-#: src/components/segment/SegmentDrawer.tsx:187
+#: src/components/segment/SegmentDrawer.tsx:168
 msgid "The changes made since the segment was opened will be lost."
 msgstr "セグメントを開いてからの変更は失われます。"
 
@@ -23216,11 +23212,11 @@ msgstr "保存済みのバージョンをブログで表示"
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "セクションのカラムとグループが幅を {over}% 超えています。メールでは最後のものが次の行に送られます。"
 
-#: src/components/segment/SegmentDrawer.tsx:228
+#: src/components/segment/SegmentDrawer.tsx:239
 msgid "The segment has been created!"
 msgstr "セグメントが作成されました！"
 
-#: src/components/segment/SegmentDrawer.tsx:218
+#: src/components/segment/SegmentDrawer.tsx:229
 msgid "The segment has been updated!"
 msgstr "セグメントが更新されました！"
 
@@ -23415,7 +23411,7 @@ msgstr "このAWS認証情報ではテナントやコンフィギュレーショ
 msgid "These AWS credentials cannot read SES tenants (needs ses:GetTenant and ses:ListTenantResources)."
 msgstr "この AWS 認証情報では SES テナントを読み取れません (ses:GetTenant と ses:ListTenantResources が必要です)。"
 
-#: src/components/segment/SegmentDrawer.tsx:316
+#: src/components/segment/SegmentDrawer.tsx:327
 msgid "These conditions come from the filters of the contacts view."
 msgstr "これらの条件はコンタクト一覧のフィルターから引き継がれています。"
 
@@ -24033,7 +24029,7 @@ msgstr "タイムゾーン — {detail}"
 msgid "Timezone is required"
 msgstr "タイムゾーンは必須です"
 
-#: src/components/segment/SegmentDrawer.tsx:355
+#: src/components/segment/SegmentDrawer.tsx:366
 msgid "Timezone used for dates"
 msgstr "日付に使用されるタイムゾーン"
 
@@ -26179,7 +26175,7 @@ msgstr "このワークスペースで誰が何をできるか"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "このワークスペースで誰が何をしたか：メンバー、権限、API キー、連携、設定、コンテンツの変更を、発信元アドレスと許可の有無とともに記録します。"
 
-#: src/components/segment/SegmentDrawer.tsx:331
+#: src/components/segment/SegmentDrawer.tsx:342
 msgid "Who should be in this segment?"
 msgstr "このセグメントに含めるのは誰ですか？"
 
