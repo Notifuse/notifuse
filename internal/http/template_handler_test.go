@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -1394,6 +1395,39 @@ func TestTemplateHandler_HandleDelete_ErrorMapping(t *testing.T) {
 			var body map[string]interface{}
 			require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
 			tc.check(t, body)
+		})
+	}
+}
+
+// A template request body over 1 MiB is refused with 413 before it is parsed, on the three
+// endpoints that take a template, and the service is never called. A body just under the limit
+// is decoded and goes on to the request's own validation.
+func TestTemplateHandler_RequestBodyLimit(t *testing.T) {
+	const limit = 1 << 20
+	_, _, serverURL, secretKey, cleanup := setupTemplateHandlerTest(t)
+	defer cleanup()
+	token := createTestToken(secretKey)
+
+	// bodyOf is a JSON object of exactly size bytes, with a name the requests do not read.
+	bodyOf := func(size int) string {
+		head, tail := `{"workspace_id":"workspace123","padding":"`, `"}`
+		return head + strings.Repeat("a", size-len(head)-len(tail)) + tail
+	}
+
+	for _, endpoint := range []string{"templates.create", "templates.update", "templates.compile"} {
+		t.Run(endpoint+" over the limit", func(t *testing.T) {
+			resp := sendRequest(t, http.MethodPost, serverURL+"/api/"+endpoint, token, bodyOf(limit+1))
+			defer func() { _ = resp.Body.Close() }()
+			assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+			var body map[string]interface{}
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+			assert.Contains(t, body["error"], "Request body too large")
+		})
+		t.Run(endpoint+" at the limit", func(t *testing.T) {
+			resp := sendRequest(t, http.MethodPost, serverURL+"/api/"+endpoint, token, bodyOf(limit))
+			defer func() { _ = resp.Body.Close() }()
+			// The request is decoded and fails its own validation, which a padding-only body does.
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
 	}
 }

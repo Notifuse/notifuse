@@ -259,6 +259,16 @@
               invalidId:
                 value:
                   error: id must contain only letters, numbers, underscores, and hyphens
+      '413':
+        description: |
+          The request body is larger than 1 MiB (1,048,576 bytes), the limit of a template request.
+          A template of the gallery weighs about 20 KB per language.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'Request body too large: a template request is limited to 1048576 bytes'
       '401':
         description: Unauthorized - invalid or missing authentication token
         content:
@@ -312,6 +322,16 @@
                 summary: The update is in the other editor mode
                 value:
                   error: "cannot change editor mode: template was created in 'code' mode and its mode can't be changed; create a new template in 'visual' mode and copy the content with Import or Export MJML"
+      '413':
+        description: |
+          The request body is larger than 1 MiB (1,048,576 bytes), the limit of a template request.
+          A template of the gallery weighs about 20 KB per language.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'Request body too large: a template request is limited to 1048576 bytes'
       '401':
         description: Unauthorized - invalid or missing authentication token
         content:
@@ -425,6 +445,16 @@
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
             example:
               error: "Compilation failed: Invalid MJML syntax"
+      '413':
+        description: |
+          The request body is larger than 1 MiB (1,048,576 bytes), the limit of a template request.
+          A template of the gallery weighs about 20 KB per language.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'Request body too large: a template request is limited to 1048576 bytes'
       '401':
         description: Unauthorized - invalid or missing authentication token
         content:

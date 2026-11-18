@@ -638,9 +638,9 @@ func NormalizeCustomText(text *string) *string {
 // Blank sets TextError only when the request asks for the text, as the preview does: on a
 // send it is no error, a condition chose to say nothing. The automatic text is only
 // generated here when the request asked for it; a send leaves it to SendEmail.
-func plainTextVersion(req CompileTemplateRequest, trackedHTML string) (text *string, source string, textErr string) {
+func plainTextVersion(budget *renderBudget, req CompileTemplateRequest, trackedHTML string) (text *string, source string, textErr string) {
 	if custom := NormalizeCustomText(req.Text); custom != nil {
-		rendered, err := renderCustomText(*custom, req)
+		rendered, err := renderCustomText(budget, *custom, req)
 		switch {
 		case err != nil:
 			textErr = err.Error()
@@ -702,21 +702,21 @@ func liquidAmongBlocks(block EmailBlock) bool {
 
 // renderCustomText renders a custom text like the subject (see renderSubjectField); kept
 // raw when Liquid is preserved or there is no data, after a syntax check.
-func renderCustomText(text string, req CompileTemplateRequest) (string, error) {
+func renderCustomText(budget *renderBudget, text string, req CompileTemplateRequest) (string, error) {
 	if req.PreserveLiquid || len(req.TemplateData) == 0 {
 		if err := ValidateLiquidSyntax(text); err != nil {
 			return "", err
 		}
 		return text, nil
 	}
-	return ProcessLiquidTemplate(text, req.TemplateData, "email_text")
+	return processLiquidWith(budget, liquidEngine, cleanLiquidTemplate, text, req.TemplateData, "email_text")
 }
 
 // renderSubjectField applies the same Liquid rules used for the body to a header
 // field such as Subject or SubjectPreview. Returns the rendered value (or the
 // original when Liquid processing is skipped) and any error wrapped as *mjml.Error
 // so the caller can surface it on the response.
-func renderSubjectField(value *string, data MapOfAny, channel string, preserveLiquid bool, contextLabel string) (*string, *mjml.Error) {
+func renderSubjectField(budget *renderBudget, value *string, data MapOfAny, channel string, preserveLiquid bool, contextLabel string) (*string, *mjml.Error) {
 	if value == nil || *value == "" {
 		return nil, nil
 	}
@@ -724,7 +724,7 @@ func renderSubjectField(value *string, data MapOfAny, channel string, preserveLi
 		v := *value
 		return &v, nil
 	}
-	rendered, err := ProcessLiquidTemplate(*value, data, contextLabel)
+	rendered, err := processLiquidWith(budget, liquidEngine, cleanLiquidTemplate, *value, data, contextLabel)
 	if err != nil {
 		return nil, &mjml.Error{Message: err.Error()}
 	}
@@ -790,15 +790,18 @@ func GenerateHTMLOpenTrackingPixel(signingKey []byte, workspaceID string, messag
 // CompileTemplate compiles a visual editor tree to MJML and HTML
 func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse, err error) {
 	var mjmlString string
+	// Every render of this email draws on one budget, so the number of blocks, attributes and
+	// conditions cannot multiply the limits of a single render.
+	budget := newRenderBudget()
 
 	// Render Subject and SubjectPreview through Liquid before any body work, so
 	// the rendered values can be returned even when the body fails to compile.
 	// A malformed Liquid expression in the subject short-circuits the response.
-	renderedSubject, subjectErr := renderSubjectField(req.Subject, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject")
+	renderedSubject, subjectErr := renderSubjectField(budget, req.Subject, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject")
 	if subjectErr != nil {
 		return &CompileTemplateResponse{Success: false, Error: subjectErr}, nil
 	}
-	renderedSubjectPreview, previewErr := renderSubjectField(req.SubjectPreview, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview")
+	renderedSubjectPreview, previewErr := renderSubjectField(budget, req.SubjectPreview, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview")
 	if previewErr != nil {
 		return &CompileTemplateResponse{Success: false, Subject: renderedSubject, Error: previewErr}, nil
 	}
@@ -817,7 +820,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		if !req.PreserveLiquid && len(req.TemplateData) > 0 {
 			// The exported code of a visual template holds its display conditions, whose
 			// variables a "__dc" key of the data would otherwise decide.
-			processed, err := processLiquidHTML(mjmlString, withoutConditionNames(req.TemplateData), "mjml-source")
+			processed, err := processLiquidWith(budget, liquidHTMLEngine, cleanLiquidTemplateHTML, mjmlString, withoutConditionNames(req.TemplateData), "mjml-source")
 			if err != nil {
 				return &CompileTemplateResponse{
 					Success:        false,
@@ -839,7 +842,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		// pass to place the override, so it must also replace an existing mj-preview,
 		// which overrideMjPreviewInSource does.
 		if req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
-			renderedOverride, overrideErr := renderSubjectField(req.SubjectPreviewOverride, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview_override")
+			renderedOverride, overrideErr := renderSubjectField(budget, req.SubjectPreviewOverride, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview_override")
 			if overrideErr != nil {
 				return &CompileTemplateResponse{
 					Success:        false,
@@ -892,7 +895,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 			// Compile tree to MJML using our pkg/mjml function with template data
 			if templateDataStr != "" {
 				var err error
-				mjmlString, err = ConvertJSONToMJMLWithDataProtected(tree, templateDataStr)
+				mjmlString, err = convertJSONToMJMLWithDataProtectedIn(budget, tree, templateDataStr)
 				if err != nil {
 					return &CompileTemplateResponse{
 						Success:        false,
@@ -915,7 +918,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// Processes raw Liquid from mj-liquid blocks. Existing block content was already
 	// Liquid-processed per-block during tree walk, so the second pass is a no-op for them.
 	if !codeMode && !req.PreserveLiquid && len(req.TemplateData) > 0 && req.Channel != "web" {
-		processed, liquidErr := processLiquidHTML(mjmlString, req.TemplateData, "visual-editor-whole")
+		processed, liquidErr := processLiquidWith(budget, liquidHTMLEngine, cleanLiquidTemplateHTML, mjmlString, req.TemplateData, "visual-editor-whole")
 		if liquidErr != nil {
 			return &CompileTemplateResponse{
 				Success:        false,
@@ -941,7 +944,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// it rather than injecting a second element.
 	if !codeMode && req.SubjectPreviewOverride != nil && *req.SubjectPreviewOverride != "" {
 		if !mjPreviewTagRegexp.MatchString(mjmlString) {
-			renderedOverride, overrideErr := renderSubjectField(req.SubjectPreviewOverride, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview_override")
+			renderedOverride, overrideErr := renderSubjectField(budget, req.SubjectPreviewOverride, req.TemplateData, req.Channel, req.PreserveLiquid, "email_subject_preview_override")
 			if overrideErr != nil {
 				return &CompileTemplateResponse{
 					Success:        false,
@@ -1014,7 +1017,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 
 	// The automatic plain-text version is derived from the tracked HTML, as a send does,
 	// so the preview shows the links that go out.
-	text, textSource, textErr := plainTextVersion(req, trackedHTML)
+	text, textSource, textErr := plainTextVersion(budget, req, trackedHTML)
 
 	// Return successful response
 	return &CompileTemplateResponse{

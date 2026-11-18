@@ -4155,6 +4155,19 @@
               }
             }
           },
+          "413": {
+            "description": "The request body is larger than 1 MiB (1,048,576 bytes), the limit of a template request.\nA template of the gallery weighs about 20 KB per language.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Request body too large: a template request is limited to 1048576 bytes"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -4244,6 +4257,19 @@
                 },
                 "example": {
                   "error": "Template not found"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than 1 MiB (1,048,576 bytes), the limit of a template request.\nA template of the gallery weighs about 20 KB per language.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Request body too large: a template request is limited to 1048576 bytes"
                 }
               }
             }
@@ -4400,6 +4426,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than 1 MiB (1,048,576 bytes), the limit of a template request.\nA template of the gallery weighs about 20 KB per language.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Request body too large: a template request is limited to 1048576 bytes"
                 }
               }
             }
