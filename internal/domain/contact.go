@@ -857,6 +857,11 @@ type ContactRepository interface {
 	// cleared or a contact subscribed again, keeps its status. An empty map
 	// runs no query.
 	MarkEmailsAsBouncedUnchangedSince(ctx context.Context, workspaceID string, since map[string]time.Time, at time.Time) error
+
+	// MarkEmailsAsBouncedAt is MarkEmailsAsBounced with each email bounced at its own time,
+	// in one statement: the demo seed applies the bounces of a history spread over days. An
+	// empty map runs no query.
+	MarkEmailsAsBouncedAt(ctx context.Context, workspaceID string, bouncedAt map[string]time.Time) error
 }
 
 // FromJSON parses JSON data into a Contact struct

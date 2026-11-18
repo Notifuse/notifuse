@@ -1883,3 +1883,40 @@ UPDATE contact_lists AS cl
 
 	return nil
 }
+
+// MarkEmailsAsBouncedAt is MarkEmailsAsBounced with each email bounced at its own time, in one
+// statement.
+func (r *contactRepository) MarkEmailsAsBouncedAt(ctx context.Context, workspaceID string, bouncedAt map[string]time.Time) error {
+	if len(bouncedAt) == 0 {
+		return nil
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	emails := make([]string, 0, len(bouncedAt))
+	for email := range bouncedAt {
+		emails = append(emails, email)
+	}
+	sort.Strings(emails)
+	times := make([]string, len(emails))
+	for i, email := range emails {
+		times[i] = bouncedAt[email].UTC().Format(time.RFC3339Nano)
+	}
+
+	const query = `
+UPDATE contact_lists AS cl
+   SET status = 'bounced',
+       updated_at = r.at
+  FROM unnest($1::text[], $2::timestamptz[]) AS r(email, at)
+ WHERE cl.email = r.email
+   AND cl.status NOT IN ('complained', 'bounced')`
+
+	if _, err := workspaceDB.ExecContext(ctx, query, pq.Array(emails), pq.Array(times)); err != nil {
+		return fmt.Errorf("failed to mark emails as bounced: %w", err)
+	}
+
+	return nil
+}
