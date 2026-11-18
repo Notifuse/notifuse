@@ -432,6 +432,36 @@ func TestListHandler_HandleCreate(t *testing.T) {
 	}
 }
 
+// A taken id answers 400 with what to do, not the 500 "Failed to create list": the console
+// shows it on the ID field. Wrapped as the service wraps it.
+func TestListHandler_HandleCreate_IDTaken(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		deleted bool
+		message string
+		code    string
+	}{
+		{"live list", false, "List id already exists", "list_id_exists"},
+		{"deleted list", true, "List id belongs to a deleted list and cannot be reused. Choose another id", "list_id_deleted"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, handler := setupListHandlerTest(t)
+			mockService.EXPECT().CreateList(gomock.Any(), "workspace123", gomock.Any()).
+				Return(fmt.Errorf("failed to create list: %w", &domain.ErrListExists{Message: "list id already exists", Deleted: tc.deleted}))
+
+			body, err := json.Marshal(map[string]interface{}{"workspace_id": "workspace123", "id": "news", "name": "News"})
+			require.NoError(t, err)
+			rr := httptest.NewRecorder()
+			handler.handleCreate(rr, httptest.NewRequest(http.MethodPost, "/api/lists.create", bytes.NewReader(body)))
+
+			assert.Equal(t, http.StatusBadRequest, rr.Code)
+			var response map[string]interface{}
+			require.NoError(t, json.NewDecoder(rr.Body).Decode(&response))
+			assert.Equal(t, tc.message, response["error"])
+			assert.Equal(t, tc.code, response["code"])
+		})
+	}
+}
 func TestListHandler_HandleUpdate(t *testing.T) {
 	testCases := []struct {
 		name           string

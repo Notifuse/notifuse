@@ -215,6 +215,11 @@ func TestErrListNotFound_Error(t *testing.T) {
 	assert.Equal(t, "test error message", err.Error())
 }
 
+func TestErrListExists_Error(t *testing.T) {
+	err := &ErrListExists{Message: "list id already exists", Deleted: true}
+	assert.Equal(t, "list id already exists", err.Error())
+}
+
 func listInUseAutomations(names ...string) []AutomationRef {
 	refs := make([]AutomationRef, len(names))
 	for i, name := range names {

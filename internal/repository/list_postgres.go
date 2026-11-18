@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/lib/pq"
 )
 
 type listRepository struct {
@@ -50,9 +52,27 @@ func (r *listRepository) CreateList(ctx context.Context, workspaceID string, lis
 		list.UpdatedAt,
 	)
 	if err != nil {
+		// Match the SQLSTATE, never the message: PostgreSQL translates error text per
+		// lc_messages, so no text match survives a non-English server.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return &domain.ErrListExists{
+				Message: "list id already exists",
+				Deleted: isListDeleted(ctx, workspaceDB, list.ID),
+			}
+		}
 		return fmt.Errorf("failed to create list: %w", err)
 	}
 	return nil
+}
+
+// isListDeleted reports whether the list holding an id is soft-deleted. It only refines
+// the message of a create that already failed (outside any transaction), so a lookup
+// error answers false: the caller still learns the id is taken, just not why.
+func isListDeleted(ctx context.Context, db *sql.DB, id string) bool {
+	var deleted bool
+	err := db.QueryRowContext(ctx, `SELECT deleted_at IS NOT NULL FROM lists WHERE id = $1`, id).Scan(&deleted)
+	return err == nil && deleted
 }
 
 func (r *listRepository) GetListByID(ctx context.Context, workspaceID string, id string) (*domain.List, error) {

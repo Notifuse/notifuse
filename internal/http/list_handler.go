@@ -134,6 +134,25 @@ func (h *ListHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.CreateList(r.Context(), workspaceID, list); err != nil {
+		// A taken id is the caller's to fix, not a server fault: the console shows it on the
+		// ID field. A deleted list keeps its id, which no list shows any more, so say so.
+		var exists *domain.ErrListExists
+		if errors.As(err, &exists) {
+			// The code tells a client which case it is: req.Validate() answers 400 too, and
+			// the message is prose for people.
+			if exists.Deleted {
+				writeJSON(w, http.StatusBadRequest, map[string]string{
+					"error": "List id belongs to a deleted list and cannot be reused. Choose another id",
+					"code":  "list_id_deleted",
+				})
+				return
+			}
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "List id already exists",
+				"code":  "list_id_exists",
+			})
+			return
+		}
 		h.logger.WithField("error", err.Error()).Error("Failed to create list")
 		if writeServiceError(w, err, "You do not have access to this workspace") {
 			return
