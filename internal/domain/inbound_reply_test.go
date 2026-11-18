@@ -69,14 +69,24 @@ func TestClassify(t *testing.T) {
 			want:  ReplyAutoResponder,
 		},
 		{
-			name:  "unsubscribe intent in subject",
+			name:  "a subject asking to unsubscribe is a genuine reply",
 			reply: &InboundReply{FromEmail: "jane@example.com", Subject: "Unsubscribe"},
-			want:  ReplyUnsubscribe,
+			want:  ReplyGenuine,
 		},
 		{
-			name:  "unsubscribe intent after stripping Re:",
+			name:  "a STOP reply is a genuine reply",
 			reply: &InboundReply{FromEmail: "jane@example.com", Subject: "Re: STOP"},
-			want:  ReplyUnsubscribe,
+			want:  ReplyGenuine,
+		},
+		{
+			name:  "an auto-responder titled STOP stays an auto-responder",
+			reply: &InboundReply{FromEmail: "jane@example.com", Subject: "Re: STOP", AutoSubmitted: "auto-replied"},
+			want:  ReplyAutoResponder,
+		},
+		{
+			name:  "a bounce titled STOP stays a bounce",
+			reply: &InboundReply{FromEmail: "postmaster@example.com", Subject: "STOP"},
+			want:  ReplyBounce,
 		},
 		{
 			name:  "subject merely containing unsubscribe is still a genuine reply",
@@ -99,12 +109,26 @@ func TestClassify(t *testing.T) {
 	}
 }
 
+func TestClassify_StopWordsAreGenuineReplies(t *testing.T) {
+	subjects := []string{
+		"unsubscribe", "stop", "remove", "remove me", "opt out", "opt-out",
+		"Re: Re: stop", "  RE:  Opt-Out  ",
+	}
+	for _, subject := range subjects {
+		t.Run(subject, func(t *testing.T) {
+			reply := &InboundReply{FromEmail: "jane@example.com", Subject: subject}
+			if got := Classify(reply); got != ReplyGenuine {
+				t.Fatalf("Classify(%q) = %s, want %s", subject, got, ReplyGenuine)
+			}
+		})
+	}
+}
+
 func TestReplyClassString(t *testing.T) {
 	cases := map[ReplyClass]string{
 		ReplyGenuine:       "genuine",
 		ReplyAutoResponder: "auto_responder",
 		ReplyBounce:        "bounce",
-		ReplyUnsubscribe:   "unsubscribe",
 		ReplyClass(99):     "unknown",
 	}
 	for c, want := range cases {
