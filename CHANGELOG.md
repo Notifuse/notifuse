@@ -90,6 +90,8 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: `DB_EXPECT_EXISTING=true` makes Notifuse refuse to start instead of creating or initialising its system database, and refuse to create a missing workspace database, on a server that must already hold the data (an upgrade, a restore). Without it, a first start on an empty database is now logged as a warning.
 
+- **Fix**: Importing contacts from a CSV file no longer counts the newline at the end of the file as a row, nor reports it as a failed contact. Blank lines inside the file are skipped too.
+
 - **Fix**: A `DB_NAME` with capital letters, such as `Notifuse`, no longer stops Notifuse at its second start: the system database is created under that exact name, where it was folded to lower case and then not found.
 
 - **Improvement**: Upgrading to 44 indexes failed, bounced and complained messages, so the latest ones are found at once on large workspaces. Sending and tracking wait while the indexes build, about a second per 2 million messages when the table fits in memory, longer otherwise, and then while the instance's own links are removed from the click statistics, which takes longer the more clicked links the workspace has recorded.
