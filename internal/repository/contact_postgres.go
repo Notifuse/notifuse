@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1839,6 +1840,44 @@ UPDATE contact_lists
    AND status NOT IN ('complained', 'bounced')`
 
 	if _, err := workspaceDB.ExecContext(ctx, query, pq.Array(emails), at); err != nil {
+		return fmt.Errorf("failed to mark emails as bounced: %w", err)
+	}
+
+	return nil
+}
+
+// MarkEmailsAsBouncedUnchangedSince bounces, for each email, the rows unchanged
+// since that email's reference time.
+func (r *contactRepository) MarkEmailsAsBouncedUnchangedSince(ctx context.Context, workspaceID string, since map[string]time.Time, at time.Time) error {
+	if len(since) == 0 {
+		return nil
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	emails := make([]string, 0, len(since))
+	for email := range since {
+		emails = append(emails, email)
+	}
+	sort.Strings(emails)
+	times := make([]string, len(emails))
+	for i, email := range emails {
+		times[i] = since[email].UTC().Format(time.RFC3339Nano)
+	}
+
+	const query = `
+UPDATE contact_lists AS cl
+   SET status = 'bounced',
+       updated_at = $3
+  FROM unnest($1::text[], $2::timestamptz[]) AS r(email, since)
+ WHERE cl.email = r.email
+   AND cl.updated_at <= r.since
+   AND cl.status NOT IN ('complained', 'bounced')`
+
+	if _, err := workspaceDB.ExecContext(ctx, query, pq.Array(emails), pq.Array(times), at); err != nil {
 		return fmt.Errorf("failed to mark emails as bounced: %w", err)
 	}
 

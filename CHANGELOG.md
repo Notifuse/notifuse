@@ -101,6 +101,7 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: A broadcast whose last attempt cannot record its outcome is tried again instead of staying in Sending; a run that outlives its time no longer makes the next run send to recipients again.
 
 - **Improvement**: With Exit on reply, an email whose journey cannot be checked is retried later instead of being sent, and an email whose journey no longer exists is not sent.
+- **Improvement**: A reply to an automation email whose subject is only "stop", "unsubscribe", "remove", "remove me" or "opt out" now appears in the contact's activity like any other reply, and ends the journey when the automation has Exit on reply. It changes no list subscription.
 
 - **Improvement**: `audience.exclude_unsubscribed` can only be changed before a broadcast starts sending, and a scheduled broadcast that has started sending can no longer change its tracking mode.
 
@@ -129,6 +130,8 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: An automation set to run once per contact no longer starts twice when two events for the same contact arrive at the same time.
 
 - **Improvement**: An email event that the provider posts again, after a timeout or an error, is recorded once, so a soft bounce posted again counts once toward marking the contact bounced.
+
+- **Fix**: A hard bounce, an unsubscribe or a soft bounce that the provider posts again no longer changes a list subscription changed since Notifuse first received it, so a contact whose bounce was cleared, or who subscribed again, stays subscribed.
 
 - **Improvement**: The soft bounce threshold counts emails: an email the provider tries to deliver several times, as Mailgun reports each attempt, counts once.
 

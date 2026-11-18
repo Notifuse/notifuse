@@ -214,6 +214,20 @@ func (mr *MockContactRepositoryMockRecorder) MarkEmailsAsBounced(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkEmailsAsBounced", reflect.TypeOf((*MockContactRepository)(nil).MarkEmailsAsBounced), arg0, arg1, arg2, arg3)
 }
 
+// MarkEmailsAsBouncedUnchangedSince mocks base method.
+func (m *MockContactRepository) MarkEmailsAsBouncedUnchangedSince(arg0 context.Context, arg1 string, arg2 map[string]time.Time, arg3 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkEmailsAsBouncedUnchangedSince", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkEmailsAsBouncedUnchangedSince indicates an expected call of MarkEmailsAsBouncedUnchangedSince.
+func (mr *MockContactRepositoryMockRecorder) MarkEmailsAsBouncedUnchangedSince(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkEmailsAsBouncedUnchangedSince", reflect.TypeOf((*MockContactRepository)(nil).MarkEmailsAsBouncedUnchangedSince), arg0, arg1, arg2, arg3)
+}
+
 // UpsertContact mocks base method.
 func (m *MockContactRepository) UpsertContact(arg0 context.Context, arg1 string, arg2 *domain.Contact) (bool, error) {
 	m.ctrl.T.Helper()

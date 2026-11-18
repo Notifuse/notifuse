@@ -246,6 +246,43 @@ func TestInboundReplyDetection(t *testing.T) {
 			"automation C (flagged but not replied to) must NOT exit — matching is scoped to the exact send")
 	})
 
+	// A reply whose subject only asks to stop is a reply like any other: it is recorded, ends
+	// the journey, and leaves the contact's list subscription as it was.
+	t.Run("StopReplyExitsAndKeepsListSubscription", func(t *testing.T) {
+		ts := time.Now().UnixNano()
+		email := fmt.Sprintf("stop-%d@example.com", ts)
+		_, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail(email))
+		require.NoError(t, err)
+		list, err := factory.CreateList(workspace.ID)
+		require.NoError(t, err)
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(email),
+			testutil.WithContactListListID(list.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+
+		autoS := fmt.Sprintf("stop-s-%d", ts)
+		enroll(t, autoS, true, email)
+		midS := storeSend(t, email, testutil.WithMessageHistoryAutomationID(autoS))
+
+		form := replyForm(email, replyHeaders(midS, ""))
+		form.Set("subject", "Re: STOP")
+		resp := postReply(t, form)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		ca := waitJourneyExited(t, autoS, email)
+		assert.Equal(t, domain.ContactAutomationStatusExited, ca.Status, "a STOP reply must end the journey")
+		if assert.NotNil(t, ca.ExitReason) {
+			assert.Equal(t, "replied", *ca.ExitReason)
+		}
+		assert.GreaterOrEqual(t, countTimeline(t, email, "email.replied"), 1)
+
+		var status string
+		require.NoError(t, wdb.QueryRow(
+			`SELECT status FROM contact_lists WHERE email = $1 AND list_id = $2`, email, list.ID).Scan(&status))
+		assert.Equal(t, string(domain.ContactListStatusActive), status, "a STOP reply changes no list subscription")
+	})
+
 	// Even a matched reply must not exit an automation that does not have Exit-on-reply.
 	t.Run("ReplyToNonExitOnReplyAutomationDoesNotExit", func(t *testing.T) {
 		ts := time.Now().UnixNano()

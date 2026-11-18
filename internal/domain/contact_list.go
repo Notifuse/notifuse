@@ -374,8 +374,11 @@ type ContactListRepository interface {
 	// MarkContactListUnsubscribed records a contact's opt-out on their row on the list
 	// and reports whether a row took it. A bounced or complained row is kept, and a
 	// removed row stays removed: unlike UpdateContactListStatus it never adds the
-	// contact back. It reports false both for a kept row and for no row at all.
-	MarkContactListUnsubscribed(ctx context.Context, workspaceID string, email, listID string) (bool, error)
+	// contact back. A non-zero unchangedSince also keeps a row whose updated_at is
+	// after it, so an opt-out the provider posts again never overrides a newer
+	// subscription change; zero sets no such condition. It reports false both for a
+	// kept row and for no row at all.
+	MarkContactListUnsubscribed(ctx context.Context, workspaceID string, email, listID string, unchangedSince time.Time) (bool, error)
 
 	// RemoveContactFromList removes a contact from a list
 	RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error

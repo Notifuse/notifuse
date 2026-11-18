@@ -411,6 +411,60 @@ SELECT e.recipient_email, COUNT(DISTINCT e.message_id)::int
    AND e.timestamp > COALESCE(d.ts, 'epoch'::timestamptz)
  GROUP BY e.recipient_email`
 
+// FirstStoredAt returns the created_at of each given event ID that has a row:
+// when Notifuse first received the event, since StoreEvents keeps the first row
+// on a conflict.
+func (r *inboundWebhookEventRepository) FirstStoredAt(ctx context.Context, workspaceID string, ids []string) (map[string]time.Time, error) {
+	// codecov:ignore:start
+	ctx, span := tracing.StartServiceSpan(ctx, "InboundWebhookEventRepository", "FirstStoredAt")
+	defer tracing.EndSpan(span, nil)
+	tracing.AddAttribute(ctx, "workspaceID", workspaceID)
+	tracing.AddAttribute(ctx, "idCount", len(ids))
+	// codecov:ignore:end
+
+	result := map[string]time.Time{}
+	if len(ids) == 0 {
+		return result, nil
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	rows, err := workspaceDB.QueryContext(ctx,
+		`SELECT id, created_at FROM inbound_webhook_events WHERE id = ANY($1)`, pq.Array(ids))
+	if err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to read when the events were first stored: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		var id string
+		var createdAt time.Time
+		if err := rows.Scan(&id, &createdAt); err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return nil, fmt.Errorf("failed to scan stored event row: %w", err)
+		}
+		result[id] = createdAt
+	}
+	if err := rows.Err(); err != nil {
+		// codecov:ignore:start
+		tracing.MarkSpanError(ctx, err)
+		// codecov:ignore:end
+		return nil, fmt.Errorf("failed to read stored event rows: %w", err)
+	}
+	return result, nil
+}
+
 // CountConsecutiveSoftBounces returns, per email, the number of emails sent to it
 // with a countable soft bounce recorded since its last successful delivery.
 func (r *inboundWebhookEventRepository) CountConsecutiveSoftBounces(ctx context.Context, workspaceID string, emails []string) (map[string]int, error) {

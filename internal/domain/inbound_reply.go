@@ -59,9 +59,6 @@ const (
 	ReplyAutoResponder
 	// ReplyBounce is a delivery-status notification / non-delivery report — dropped.
 	ReplyBounce
-	// ReplyUnsubscribe is a reply expressing unsubscribe intent — handled by the
-	// unsubscribe flow rather than as a reply exit.
-	ReplyUnsubscribe
 )
 
 // String returns a stable label for logging and the timeline kind decision.
@@ -73,16 +70,16 @@ func (c ReplyClass) String() string {
 		return "auto_responder"
 	case ReplyBounce:
 		return "bounce"
-	case ReplyUnsubscribe:
-		return "unsubscribe"
 	default:
 		return "unknown"
 	}
 }
 
 // Classify categorizes an inbound reply. Order matters: bounces/DSNs first (so an
-// NDR is never mistaken for a reply), then auto-responders, then unsubscribe
-// intent, otherwise a genuine reply. A nil reply is treated as droppable.
+// NDR is never mistaken for a reply), then auto-responders, otherwise a genuine
+// reply. A reply whose subject asks to stop ("STOP", "unsubscribe") is a genuine
+// reply: it ends an Exit on reply journey like any other, and changes no list
+// subscription. A nil reply is treated as droppable.
 func Classify(reply *InboundReply) ReplyClass {
 	if reply == nil {
 		return ReplyBounce
@@ -92,8 +89,6 @@ func Classify(reply *InboundReply) ReplyClass {
 		return ReplyBounce
 	case isAutoResponder(reply):
 		return ReplyAutoResponder
-	case isUnsubscribe(reply):
-		return ReplyUnsubscribe
 	default:
 		return ReplyGenuine
 	}
@@ -125,20 +120,6 @@ func isAutoResponder(r *InboundReply) bool {
 		return true
 	}
 	return headerPresent(r, "X-Autoreply") || headerPresent(r, "X-Autorespond")
-}
-
-// isUnsubscribe is a conservative subject-only heuristic (we don't retain the
-// body). It matches an exact unsubscribe intent after stripping a leading "Re:".
-func isUnsubscribe(r *InboundReply) bool {
-	s := strings.ToLower(strings.TrimSpace(r.Subject))
-	for strings.HasPrefix(s, "re:") {
-		s = strings.TrimSpace(strings.TrimPrefix(s, "re:"))
-	}
-	switch s {
-	case "unsubscribe", "stop", "remove", "remove me", "opt out", "opt-out":
-		return true
-	}
-	return false
 }
 
 // localPart returns the part of an email address before the last "@".

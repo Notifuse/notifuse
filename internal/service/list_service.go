@@ -642,7 +642,7 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 		}
 
 		var listRecorded bool
-		listRecorded, err = s.unsubscribeFromList(ctx, workspace.ID, payload.Email, listID, payload.MessageID)
+		listRecorded, err = s.unsubscribeFromList(ctx, workspace.ID, payload.Email, listID, payload.MessageID, time.Time{})
 		if err != nil {
 			s.logger.WithField("email", payload.Email).
 				WithField("list_id", listID).
@@ -683,9 +683,10 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 // UnsubscribeFromMessageList records an opt-out an email provider reported for an email,
 // such as Mailjet's "unsub" event, on listID, the list the caller found for the email. The
 // rules are those of the email's own unsubscribe link: nothing is recorded for a deleted
-// list, and the rest is unsubscribeFromList. Marking the email unsubscribed is left to the
-// caller.
-func (s *ListService) UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string) error {
+// list, and the rest is unsubscribeFromList. A non-zero unchangedSince, when Notifuse first
+// received an event the provider posts again, keeps a row changed after it. Marking the
+// email unsubscribed is left to the caller.
+func (s *ListService) UnsubscribeFromMessageList(ctx context.Context, workspaceID, email, listID, messageID string, unchangedSince time.Time) error {
 	if _, err := s.repo.GetListByID(ctx, workspaceID, listID); err != nil {
 		var notFound *domain.ErrListNotFound
 		if errors.As(err, &notFound) {
@@ -694,13 +695,16 @@ func (s *ListService) UnsubscribeFromMessageList(ctx context.Context, workspaceI
 		}
 		return fmt.Errorf("failed to get list: %w", err)
 	}
-	_, err := s.unsubscribeFromList(ctx, workspaceID, email, listID, messageID)
+	_, err := s.unsubscribeFromList(ctx, workspaceID, email, listID, messageID, unchangedSince)
 	return err
 }
 
 // unsubscribeFromList records a contact's opt-out from one list and reports whether it
-// recorded anything. messageID is the email the request came from.
-func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, email, listID, messageID string) (bool, error) {
+// recorded anything. messageID is the email the request came from. A non-zero
+// unchangedSince keeps a row whose updated_at is after it: a subscription changed since
+// Notifuse first received the opt-out, which the provider has now posted again, is newer
+// than the opt-out. Zero sets no such condition.
+func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, email, listID, messageID string, unchangedSince time.Time) (bool, error) {
 	// A bounced or complained address is never mailed, and its status says more than an
 	// opt-out, so it is kept. People who report spam often unsubscribe too: overwriting
 	// would turn the complaint into a plain "unsubscribed", which a broadcast set to
@@ -708,21 +712,24 @@ func (s *ListService) unsubscribeFromList(ctx context.Context, workspaceID, emai
 	// a complaint saved while this request runs is kept too. A contact removed from the
 	// list stays removed: an unsubscribe link from an email sent before the removal must
 	// not put them back on the list.
-	updated, err := s.contactListRepo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+	updated, err := s.contactListRepo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID, unchangedSince)
 	if err != nil || updated {
 		return updated, err
 	}
 
-	// Nothing updated: either the row is bounced or complained and was kept, or the
-	// contact has no row on the list. A row in any other status was written after the
+	// Nothing updated: either the row is bounced or complained and was kept, the row
+	// changed after unchangedSince and was kept, or the contact has no row on the list.
+	// With no reference time, a row found in any other status was written after the
 	// update ran, by a subscribe or an import or by clearing its bounce, and takes the
-	// opt-out.
+	// opt-out. With one, the row was kept by the condition or written since, after it
+	// too, so the second update changes nothing either: it is made all the same, so that
+	// both cases take one path.
 	row, err := s.contactListRepo.GetContactListIncludingRemoved(ctx, workspaceID, email, listID)
 	if err == nil {
 		if row.Status == domain.ContactListStatusBounced || row.Status == domain.ContactListStatusComplained {
 			return true, nil
 		}
-		return s.contactListRepo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID)
+		return s.contactListRepo.MarkContactListUnsubscribed(ctx, workspaceID, email, listID, unchangedSince)
 	}
 	var notOnList *domain.ErrContactListNotFound
 	if !errors.As(err, &notOnList) {

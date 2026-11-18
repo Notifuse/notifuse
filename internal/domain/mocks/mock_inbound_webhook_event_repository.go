@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -62,6 +63,21 @@ func (m *MockInboundWebhookEventRepository) DeleteForEmail(arg0 context.Context,
 func (mr *MockInboundWebhookEventRepositoryMockRecorder) DeleteForEmail(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteForEmail", reflect.TypeOf((*MockInboundWebhookEventRepository)(nil).DeleteForEmail), arg0, arg1, arg2)
+}
+
+// FirstStoredAt mocks base method.
+func (m *MockInboundWebhookEventRepository) FirstStoredAt(arg0 context.Context, arg1 string, arg2 []string) (map[string]time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FirstStoredAt", arg0, arg1, arg2)
+	ret0, _ := ret[0].(map[string]time.Time)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FirstStoredAt indicates an expected call of FirstStoredAt.
+func (mr *MockInboundWebhookEventRepositoryMockRecorder) FirstStoredAt(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FirstStoredAt", reflect.TypeOf((*MockInboundWebhookEventRepository)(nil).FirstStoredAt), arg0, arg1, arg2)
 }
 
 // ListEvents mocks base method.
