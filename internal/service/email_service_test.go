@@ -238,15 +238,13 @@ func TestEmailService_NewEmailService(t *testing.T) {
 	})
 }
 
-// emailFullAccess builds a member row — role "member", not "owner", so
-// HasPermission actually consults the grants — holding read+write on every
-// resource, for the cases that exercise the code past the permission gate.
-func emailFullAccess() *domain.UserWorkspace {
+// emailOwner builds an owner row, for the cases that exercise TestEmailProvider
+// past its role gate: testing a provider is reserved to the owner.
+func emailOwner() *domain.UserWorkspace {
 	return &domain.UserWorkspace{
 		UserID:      "user-123",
 		WorkspaceID: "workspace-123",
-		Role:        "member",
-		Permissions: domain.NewFullPermissions(),
+		Role:        "owner",
 	}
 }
 
@@ -306,7 +304,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 		// Set up authentication mock
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(ctx, &domain.User{ID: "user-123"}, emailFullAccess(), nil)
+			Return(ctx, &domain.User{ID: "user-123"}, emailOwner(), nil)
 
 		// Provider should send an email - use gomock's Any matcher to be flexible
 		mockSESService.EXPECT().
@@ -363,7 +361,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(ctx, &domain.User{ID: "user-123"}, emailFullAccess(), nil)
+			Return(ctx, &domain.User{ID: "user-123"}, emailOwner(), nil)
 
 		// Call method under test
 		err := emailService.TestEmailProvider(ctx, workspaceID, "", provider, toEmail)
@@ -391,7 +389,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(ctx, &domain.User{ID: "user-123"}, emailFullAccess(), nil)
+			Return(ctx, &domain.User{ID: "user-123"}, emailOwner(), nil)
 
 		mockSESService.EXPECT().
 			SendEmail(
@@ -405,6 +403,58 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 		// Assertions
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to test provider")
+	})
+
+	t.Run("Owner testing a saved integration sends with its stored secret", func(t *testing.T) {
+		// The console cannot echo a stored secret back, so it posts the saved
+		// integration with the secret blank; the test must still authenticate with
+		// the stored one, or it reports a working provider as broken.
+		const integrationID = "integration-ses"
+		provider := domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSES,
+			Senders: []domain.EmailSender{{Email: "sender@example.com", Name: "Test Sender"}},
+			SES: &domain.AmazonSESSettings{
+				Region:    "us-east-1",
+				AccessKey: "test-access-key",
+				SecretKey: "",
+			},
+		}
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Integrations: []domain.Integration{{
+				ID:   integrationID,
+				Type: domain.IntegrationTypeEmail,
+				EmailProvider: domain.EmailProvider{
+					Kind:    domain.EmailProviderKindSES,
+					Senders: []domain.EmailSender{{Email: "sender@example.com", Name: "Test Sender"}},
+					SES: &domain.AmazonSESSettings{
+						Region:    "us-east-1",
+						AccessKey: "test-access-key",
+						SecretKey: "stored-secret-key",
+					},
+				},
+			}},
+		}
+
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user-123"}, emailOwner(), nil)
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+
+		var sent domain.SendEmailProviderRequest
+		mockSESService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, request domain.SendEmailProviderRequest) error {
+				sent = request
+				return nil
+			})
+
+		err := emailService.TestEmailProvider(ctx, workspaceID, integrationID, provider, toEmail)
+
+		require.NoError(t, err)
+		require.NotNil(t, sent.Provider)
+		require.NotNil(t, sent.Provider.SES)
+		assert.Equal(t, "stored-secret-key", sent.Provider.SES.SecretKey)
 	})
 }
 
@@ -2564,67 +2614,79 @@ func TestSanitizeClickedURL_StripsWhatTrackLinksWrites(t *testing.T) {
 	assert.Contains(t, aliceKey, "utm_source=news", "the campaign parameters must survive the strip")
 }
 
-// TestEmailService_TestEmailProvider_PermissionEnforcement verifies that testing a
-// provider requires transactional write: it sends a real email using the
-// workspace's stored credentials, so read access is not enough. The member is
-// granted the OPPOSITE permission, so the test fails both if the check is missing
-// and if it is gated on read. No provider expectation is set, so gomock also fails
-// if the send runs.
-//
-// The refusal has to name transactional:write specifically. The fixture grants a
-// single resource, so a gate on any OTHER resource denies this member too — only
-// reading the resource and verb back off the error tells the two apart, and both
-// travel to the client through writePermissionError.
 func TestEmailService_TestEmailProvider_PermissionEnforcement(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	mockAuthService := mocks.NewMockAuthService(ctrl)
-	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	mockSESService := mocks.NewMockEmailProviderService(ctrl)
-
-	emailService := EmailService{
-		logger:        mockLogger,
-		authService:   mockAuthService,
-		workspaceRepo: mockWorkspaceRepo,
-		sesService:    mockSESService,
-	}
-
-	ctx := context.Background()
+	// Only an owner may test a provider, as only an owner configures one; no
+	// permission, not even every permission, stands in for the role. Each case is
+	// refused before the saved integration is read, before any provider is called,
+	// and without a log line. The strict mocks below carry no expectation beyond
+	// authentication, so any of those calls fails the test.
 	workspaceID := "workspace-123"
-
-	// role "member" (not "owner") so HasPermission actually consults the grants.
-	readOnlyMember := &domain.UserWorkspace{
-		UserID:      "user-123",
-		WorkspaceID: workspaceID,
-		Role:        "member",
-		Permissions: domain.UserPermissions{
-			domain.PermissionResourceTransactional: {Read: true},
-		},
-	}
-
-	mockAuthService.EXPECT().
-		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-		Return(ctx, &domain.User{ID: "user-123"}, readOnlyMember, nil)
-
 	provider := domain.EmailProvider{
 		Kind:    domain.EmailProviderKindSES,
 		Senders: []domain.EmailSender{{Email: "sender@example.com", Name: "Test Sender"}},
 		SES: &domain.AmazonSESSettings{
 			Region:    "us-east-1",
 			AccessKey: "test-access-key",
-			SecretKey: "test-secret-key",
+			SecretKey: "",
 		},
 	}
 
-	err := emailService.TestEmailProvider(ctx, workspaceID, "", provider, "test@example.com")
-	require.Error(t, err)
+	cases := []struct {
+		name          string
+		permissions   domain.UserPermissions
+		integrationID string
+	}{
+		{
+			name:        "member with transactional write",
+			permissions: domain.UserPermissions{domain.PermissionResourceTransactional: {Read: true, Write: true}},
+		},
+		{
+			name:          "member with transactional write naming a saved integration",
+			permissions:   domain.UserPermissions{domain.PermissionResourceTransactional: {Read: true, Write: true}},
+			integrationID: "integration-ses",
+		},
+		{
+			name:          "member with every permission naming a saved integration",
+			permissions:   domain.NewFullPermissions(),
+			integrationID: "integration-ses",
+		},
+		{
+			name:        "member with transactional read only",
+			permissions: domain.UserPermissions{domain.PermissionResourceTransactional: {Read: true}},
+		},
+	}
 
-	var permErr *domain.PermissionError
-	require.True(t, errors.As(err, &permErr), "expected a *domain.PermissionError, got %T: %v", err, err)
-	assert.Equal(t, domain.PermissionResourceTransactional, permErr.Resource)
-	assert.Equal(t, domain.PermissionTypeWrite, permErr.Permission)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockAuthService := mocks.NewMockAuthService(ctrl)
+			emailService := EmailService{
+				logger:        pkgmocks.NewMockLogger(ctrl),
+				authService:   mockAuthService,
+				workspaceRepo: mocks.NewMockWorkspaceRepository(ctrl),
+				sesService:    mocks.NewMockEmailProviderService(ctrl),
+			}
+
+			ctx := context.Background()
+			member := &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+				Permissions: tc.permissions,
+			}
+			mockAuthService.EXPECT().
+				AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+				Return(ctx, &domain.User{ID: "user-123"}, member, nil)
+
+			err := emailService.TestEmailProvider(ctx, workspaceID, tc.integrationID, provider, "test@example.com")
+			require.Error(t, err)
+
+			var unauthorized *domain.ErrUnauthorized
+			require.True(t, errors.As(err, &unauthorized), "expected a *domain.ErrUnauthorized, got %T: %v", err, err)
+		})
+	}
 }
 
 // TestSendEmailForTemplate_SetsTrackingSigningKey pins that the compile request built by

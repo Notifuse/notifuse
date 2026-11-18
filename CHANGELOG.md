@@ -315,6 +315,8 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: Demo data: the email templates are built from the template gallery's models, and delivery, bounce and complaint events read as Amazon SES notifications, with bounced and complained contacts no longer receiving later emails.
 - **Improvement**: An A/B test broadcast can be paused or cancelled during its test, while it waits for its winner and while the winner is sent; resumed, it picks up where it was, and the time it spent paused while waiting for its winner does not count toward its test duration.
 
+- **Change**: Testing an email provider (`email.testProvider`) is reserved to workspace owners, like creating and editing integrations. The console already offered it to owners only; an API key or a member calling it now gets 403.
+
 - **Security**: A custom domain can no longer be saved on a workspace when another workspace already uses it, whatever its case, port or trailing dot, since that workspace could show its own pages and emails under the other's brand. Notifuse checks that a domain points to it, not who owns it, so the first workspace to save a domain holds it. Workspaces that already share one keep it and can still edit its URL while the host stays the same; one that removes it cannot save it again. A custom domain URL whose domain cannot be read is refused.
 
 ## [43.0] - 2026-11-07
