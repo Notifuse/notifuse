@@ -1785,6 +1785,10 @@ msgstr "Il conteggio delle attività passate include l'evento che attiva l'autom
 msgid "A featured article, two articles in a list and a quote."
 msgstr "Un articolo in evidenza, due articoli in elenco e una citazione."
 
+#: src/components/segment/useSaveBlockerText.ts:10
+msgid "A group is empty: add a condition to it or remove it."
+msgstr "Un gruppo è vuoto: aggiungi una condizione o rimuovilo."
+
 #: src/components/broadcasts/compose/useIssueText.ts:47
 msgid "a header of the global data feed has no name or value"
 msgstr "un'intestazione del feed di dati globale non ha nome o valore"
@@ -1865,7 +1869,7 @@ msgstr "Un promemoria con gli articoli del carrello, dall'evento che ha avviato 
 msgid "A reset link, with the link in plain text under the button."
 msgstr "Un link di reimpostazione, con il link in testo semplice sotto il pulsante."
 
-#: src/components/segment/useSaveBlockerText.ts:13
+#: src/components/segment/useSaveBlockerText.ts:14
 msgid "A segment already has the ID {id}: change the name."
 msgstr "Un segmento ha già l'ID {id}: cambia il nome."
 
@@ -5020,7 +5024,7 @@ msgstr "Controlla la gerarchia MJML e che ogni tag sia chiuso."
 msgid "Checked as you type; the server checks again on save."
 msgstr "Verificato durante la digitazione; il server verifica di nuovo al salvataggio."
 
-#: src/components/segment/useSaveBlockerText.ts:12
+#: src/components/segment/useSaveBlockerText.ts:13
 msgid "Checking that the ID {id} is free…"
 msgstr "Verifica che l'ID {id} sia libero…"
 
@@ -11376,7 +11380,7 @@ msgstr "Per iniziare"
 msgid "Give the provider a default From address, and use it for both marketing and transactional emails."
 msgstr "Assegna al provider un indirizzo mittente predefinito e usalo sia per le email di marketing sia per quelle transazionali."
 
-#: src/components/segment/useSaveBlockerText.ts:10
+#: src/components/segment/useSaveBlockerText.ts:11
 msgid "Give the segment a name."
 msgstr "Dai un nome al segmento."
 
@@ -23122,7 +23126,7 @@ msgstr "Il registro riporta email e IP di ogni membro e annota le azioni rifiuta
 msgid "the name is longer than 255 characters"
 msgstr "il nome supera i 255 caratteri"
 
-#: src/components/segment/useSaveBlockerText.ts:11
+#: src/components/segment/useSaveBlockerText.ts:12
 msgid "The name needs at least one Latin letter or digit, to make the segment's ID."
 msgstr "Il nome deve contenere almeno una lettera latina o una cifra, per formare l'ID del segmento."
 

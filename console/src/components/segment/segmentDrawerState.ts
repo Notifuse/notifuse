@@ -12,6 +12,7 @@ export type SegmentIdCheck = 'idle' | 'checking' | 'available' | 'taken' | 'fail
 export type SaveBlocker =
   | 'condition_open'
   | 'no_condition'
+  | 'empty_group'
   | 'name_missing'
   | 'id_empty'
   | 'id_checking'
@@ -32,6 +33,7 @@ export function saveBlockers({ tree, name, editingOpen, isEdit, idCheck }: SaveB
   const blockers: SaveBlocker[] = []
   if (editingOpen) blockers.push('condition_open')
   if (!HasLeaf(tree)) blockers.push('no_condition')
+  else if (hasEmptyGroup(tree)) blockers.push('empty_group')
   if (!name.trim()) {
     blockers.push('name_missing')
     return blockers
@@ -42,6 +44,20 @@ export function saveBlockers({ tree, name, editingOpen, isEdit, idCheck }: SaveB
   else if (idCheck === 'checking' || idCheck === 'idle') blockers.push('id_checking')
   else if (idCheck === 'taken') blockers.push('id_taken')
   return blockers
+}
+
+/**
+ * Whether a nested group holds no condition and no group: the server refuses a branch without
+ * leaves. The root is left out, as an empty root is a segment without condition.
+ */
+export function hasEmptyGroup(tree?: TreeNode): boolean {
+  const walk = (node: TreeNode, isRoot: boolean): boolean => {
+    if (node.kind !== 'branch') return false
+    const leaves = node.branch?.leaves ?? []
+    if (!isRoot && leaves.length === 0) return true
+    return leaves.some((child) => walk(child, false))
+  }
+  return tree ? walk(tree, true) : false
 }
 
 /** The number of conditions and of nested groups of a tree, for the summary. */

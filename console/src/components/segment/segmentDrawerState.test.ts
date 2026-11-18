@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { TreeNode } from '../../services/api/segment'
-import { saveBlockers, segmentFormSnapshot, treeShape } from './segmentDrawerState'
+import { hasEmptyGroup, saveBlockers, segmentFormSnapshot, treeShape } from './segmentDrawerState'
 
 const leaf: TreeNode = {
   kind: 'leaf',
@@ -23,6 +23,13 @@ describe('saveBlockers', () => {
     ])
   })
 
+  it('refuses a nested group left empty, which the server rejects', () => {
+    expect(saveBlockers({ ...ready, tree: tree(leaf, tree()) })).toEqual(['empty_group'])
+    expect(saveBlockers({ ...ready, tree: tree(leaf, tree(leaf, tree())) })).toEqual(['empty_group'])
+    // An empty root is a segment without condition, said once
+    expect(saveBlockers({ ...ready, tree: tree() })).toEqual(['no_condition'])
+  })
+
   it('waits for the ID check, and refuses a taken or empty ID, on create only', () => {
     expect(saveBlockers({ ...ready, idCheck: 'checking' })).toEqual(['id_checking'])
     // A name typed but not checked yet: the check starts after the debounce
@@ -35,6 +42,15 @@ describe('saveBlockers', () => {
 
   it('ignores the ID when editing: a saved segment keeps its own', () => {
     expect(saveBlockers({ ...ready, isEdit: true, name: '会員', idCheck: 'taken' })).toEqual([])
+  })
+})
+
+describe('hasEmptyGroup', () => {
+  it('finds an empty group at any depth, never the root', () => {
+    expect(hasEmptyGroup(tree(leaf, tree(leaf)))).toBe(false)
+    expect(hasEmptyGroup(tree(leaf, tree(tree(leaf), tree())))).toBe(true)
+    expect(hasEmptyGroup(tree())).toBe(false)
+    expect(hasEmptyGroup(undefined)).toBe(false)
   })
 })
 

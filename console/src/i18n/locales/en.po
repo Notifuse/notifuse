@@ -1785,6 +1785,10 @@ msgstr "A count of past activity includes the event that fires the automation, s
 msgid "A featured article, two articles in a list and a quote."
 msgstr "A featured article, two articles in a list and a quote."
 
+#: src/components/segment/useSaveBlockerText.ts:10
+msgid "A group is empty: add a condition to it or remove it."
+msgstr "A group is empty: add a condition to it or remove it."
+
 #: src/components/broadcasts/compose/useIssueText.ts:47
 msgid "a header of the global data feed has no name or value"
 msgstr "a header of the global data feed has no name or value"
@@ -1865,7 +1869,7 @@ msgstr "A reminder listing the items of the cart, from the event that started th
 msgid "A reset link, with the link in plain text under the button."
 msgstr "A reset link, with the link in plain text under the button."
 
-#: src/components/segment/useSaveBlockerText.ts:13
+#: src/components/segment/useSaveBlockerText.ts:14
 msgid "A segment already has the ID {id}: change the name."
 msgstr "A segment already has the ID {id}: change the name."
 
@@ -5020,7 +5024,7 @@ msgstr "Check the MJML hierarchy and that every tag is closed."
 msgid "Checked as you type; the server checks again on save."
 msgstr "Checked as you type; the server checks again on save."
 
-#: src/components/segment/useSaveBlockerText.ts:12
+#: src/components/segment/useSaveBlockerText.ts:13
 msgid "Checking that the ID {id} is free…"
 msgstr "Checking that the ID {id} is free…"
 
@@ -11376,7 +11380,7 @@ msgstr "Get started"
 msgid "Give the provider a default From address, and use it for both marketing and transactional emails."
 msgstr "Give the provider a default From address, and use it for both marketing and transactional emails."
 
-#: src/components/segment/useSaveBlockerText.ts:10
+#: src/components/segment/useSaveBlockerText.ts:11
 msgid "Give the segment a name."
 msgstr "Give the segment a name."
 
@@ -23122,7 +23126,7 @@ msgstr "The log names every member's email and IP address and records refused ac
 msgid "the name is longer than 255 characters"
 msgstr "the name is longer than 255 characters"
 
-#: src/components/segment/useSaveBlockerText.ts:11
+#: src/components/segment/useSaveBlockerText.ts:12
 msgid "The name needs at least one Latin letter or digit, to make the segment's ID."
 msgstr "The name needs at least one Latin letter or digit, to make the segment's ID."
 

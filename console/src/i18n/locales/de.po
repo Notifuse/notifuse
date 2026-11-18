@@ -1785,6 +1785,10 @@ msgstr "Eine Zählung vergangener Aktivität schließt das Ereignis ein, das die
 msgid "A featured article, two articles in a list and a quote."
 msgstr "Ein hervorgehobener Artikel, zwei Artikel in einer Liste und ein Zitat."
 
+#: src/components/segment/useSaveBlockerText.ts:10
+msgid "A group is empty: add a condition to it or remove it."
+msgstr "Eine Gruppe ist leer: Fügen Sie ihr eine Bedingung hinzu oder entfernen Sie sie."
+
 #: src/components/broadcasts/compose/useIssueText.ts:47
 msgid "a header of the global data feed has no name or value"
 msgstr "ein Header des globalen Datenfeeds hat keinen Namen oder Wert"
@@ -1865,7 +1869,7 @@ msgstr "Eine Erinnerung mit den Artikeln im Warenkorb, aus dem Ereignis, das die
 msgid "A reset link, with the link in plain text under the button."
 msgstr "Ein Link zum Zurücksetzen, mit dem Link als Klartext unter der Schaltfläche."
 
-#: src/components/segment/useSaveBlockerText.ts:13
+#: src/components/segment/useSaveBlockerText.ts:14
 msgid "A segment already has the ID {id}: change the name."
 msgstr "Ein Segment hat bereits die ID {id}: Ändern Sie den Namen."
 
@@ -5020,7 +5024,7 @@ msgstr "Prüfen Sie die MJML-Hierarchie und ob jedes Tag geschlossen ist."
 msgid "Checked as you type; the server checks again on save."
 msgstr "Wird beim Tippen geprüft; der Server prüft beim Speichern erneut."
 
-#: src/components/segment/useSaveBlockerText.ts:12
+#: src/components/segment/useSaveBlockerText.ts:13
 msgid "Checking that the ID {id} is free…"
 msgstr "Prüfung, ob die ID {id} frei ist…"
 
@@ -11376,7 +11380,7 @@ msgstr "Erste Schritte"
 msgid "Give the provider a default From address, and use it for both marketing and transactional emails."
 msgstr "Geben Sie dem Anbieter eine Standard-Absenderadresse und verwenden Sie ihn sowohl für Marketing- als auch für transaktionale E-Mails."
 
-#: src/components/segment/useSaveBlockerText.ts:10
+#: src/components/segment/useSaveBlockerText.ts:11
 msgid "Give the segment a name."
 msgstr "Geben Sie dem Segment einen Namen."
 
@@ -23122,7 +23126,7 @@ msgstr "Das Log nennt E-Mail- und IP-Adresse jedes Mitglieds und hält verweiger
 msgid "the name is longer than 255 characters"
 msgstr "der Name ist länger als 255 Zeichen"
 
-#: src/components/segment/useSaveBlockerText.ts:11
+#: src/components/segment/useSaveBlockerText.ts:12
 msgid "The name needs at least one Latin letter or digit, to make the segment's ID."
 msgstr "Der Name braucht mindestens einen lateinischen Buchstaben oder eine Ziffer, um die ID des Segments zu bilden."
 

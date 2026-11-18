@@ -1785,6 +1785,10 @@ msgstr "Un recompte d'activitat passada inclou l'esdeveniment que dispara l'auto
 msgid "A featured article, two articles in a list and a quote."
 msgstr "Un article destacat, dos articles en llista i una cita."
 
+#: src/components/segment/useSaveBlockerText.ts:10
+msgid "A group is empty: add a condition to it or remove it."
+msgstr "Un grup és buit: afegiu-hi una condició o suprimiu-lo."
+
 #: src/components/broadcasts/compose/useIssueText.ts:47
 msgid "a header of the global data feed has no name or value"
 msgstr "una capçalera del feed de dades global no té nom o valor"
@@ -1865,7 +1869,7 @@ msgstr "Un recordatori amb els articles del carretó, a partir de l'esdeveniment
 msgid "A reset link, with the link in plain text under the button."
 msgstr "Un enllaç de restabliment, amb l'enllaç en text pla sota el botó."
 
-#: src/components/segment/useSaveBlockerText.ts:13
+#: src/components/segment/useSaveBlockerText.ts:14
 msgid "A segment already has the ID {id}: change the name."
 msgstr "Un segment ja té l'ID {id}: canvia el nom."
 
@@ -5020,7 +5024,7 @@ msgstr "Comproveu la jerarquia MJML i que cada etiqueta estigui tancada."
 msgid "Checked as you type; the server checks again on save."
 msgstr "Es comprova mentre escrius; el servidor ho torna a comprovar en desar."
 
-#: src/components/segment/useSaveBlockerText.ts:12
+#: src/components/segment/useSaveBlockerText.ts:13
 msgid "Checking that the ID {id} is free…"
 msgstr "Comprovant que l'ID {id} és lliure…"
 
@@ -11376,7 +11380,7 @@ msgstr "Primers passos"
 msgid "Give the provider a default From address, and use it for both marketing and transactional emails."
 msgstr "Dona al proveïdor una adreça de remitent per defecte i fes-lo servir tant per als correus de màrqueting com per als transaccionals."
 
-#: src/components/segment/useSaveBlockerText.ts:10
+#: src/components/segment/useSaveBlockerText.ts:11
 msgid "Give the segment a name."
 msgstr "Posa un nom al segment."
 
@@ -23122,7 +23126,7 @@ msgstr "El registre anomena el correu i la IP de cada membre i enregistra les ac
 msgid "the name is longer than 255 characters"
 msgstr "el nom té més de 255 caràcters"
 
-#: src/components/segment/useSaveBlockerText.ts:11
+#: src/components/segment/useSaveBlockerText.ts:12
 msgid "The name needs at least one Latin letter or digit, to make the segment's ID."
 msgstr "El nom necessita almenys una lletra llatina o una xifra, per formar l'ID del segment."
 

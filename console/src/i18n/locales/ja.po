@@ -1785,6 +1785,10 @@ msgstr "過去のアクティビティのカウントには、オートメーシ
 msgid "A featured article, two articles in a list and a quote."
 msgstr "注目記事 1 件、リスト形式の記事 2 件、引用 1 つ。"
 
+#: src/components/segment/useSaveBlockerText.ts:10
+msgid "A group is empty: add a condition to it or remove it."
+msgstr "空のグループがあります。条件を追加するか、グループを削除してください。"
+
 #: src/components/broadcasts/compose/useIssueText.ts:47
 msgid "a header of the global data feed has no name or value"
 msgstr "グローバルデータフィードのヘッダーに名前または値がありません"
@@ -1865,7 +1869,7 @@ msgstr "オートメーションを開始したイベントをもとに、カー
 msgid "A reset link, with the link in plain text under the button."
 msgstr "リセット用のリンク。ボタンの下にリンクをプレーンテキストでも表示します。"
 
-#: src/components/segment/useSaveBlockerText.ts:13
+#: src/components/segment/useSaveBlockerText.ts:14
 msgid "A segment already has the ID {id}: change the name."
 msgstr "ID {id} のセグメントは既にあります。名前を変更してください。"
 
@@ -5020,7 +5024,7 @@ msgstr "MJML の階層と、すべてのタグが閉じられているかを確�
 msgid "Checked as you type; the server checks again on save."
 msgstr "入力中にチェックされ、保存時にサーバーが再度チェックします。"
 
-#: src/components/segment/useSaveBlockerText.ts:12
+#: src/components/segment/useSaveBlockerText.ts:13
 msgid "Checking that the ID {id} is free…"
 msgstr "ID {id} が使えるか確認中…"
 
@@ -11376,7 +11380,7 @@ msgstr "はじめに"
 msgid "Give the provider a default From address, and use it for both marketing and transactional emails."
 msgstr "プロバイダーにデフォルトの差出人アドレスを設定し、マーケティングメールとトランザクションメールの両方に使用します。"
 
-#: src/components/segment/useSaveBlockerText.ts:10
+#: src/components/segment/useSaveBlockerText.ts:11
 msgid "Give the segment a name."
 msgstr "セグメントに名前を付けてください。"
 
@@ -23122,7 +23126,7 @@ msgstr "このログには各メンバーのメールと IP アドレスが記�
 msgid "the name is longer than 255 characters"
 msgstr "名前が 255 文字を超えています"
 
-#: src/components/segment/useSaveBlockerText.ts:11
+#: src/components/segment/useSaveBlockerText.ts:12
 msgid "The name needs at least one Latin letter or digit, to make the segment's ID."
 msgstr "セグメントの ID を作るため、名前には半角英字か数字が1文字以上必要です。"
 

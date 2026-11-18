@@ -272,6 +272,12 @@ describe('SegmentDrawer — an existing segment', () => {
     await waitFor(() => expect(saveButton('Save')).toBeDisabled())
     expect(summaryItems()[0]).toBe('A condition is open: confirm or cancel it.')
   })
+
+  it('refuses to save a group left empty, and says how to fix it', async () => {
+    renderDrawer({ segment: segment({ tree: treeOf(listLeaf, treeOf()) }) })
+    await waitFor(() => expect(saveButton('Save')).toBeDisabled())
+    expect(summaryItems()).toContain('A group is empty: add a condition to it or remove it.')
+  })
 })
 
 describe('SegmentDrawer — closing', () => {
