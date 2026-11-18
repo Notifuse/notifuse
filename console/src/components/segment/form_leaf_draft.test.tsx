@@ -91,8 +91,8 @@ describe('leaf forms — draft reporting', () => {
     const onDraftChange = vi.fn()
     renderListForm({ operator: 'in', list_id: '', status: undefined }, onDraftChange)
 
-    // The list select sits between the operator and the status ones
-    openSelect(1)
+    // The operator is a segmented control: the list select comes first, then the status one
+    openSelect(0)
     fireEvent.click(await screen.findByTitle('Product updates'))
 
     await waitFor(() => expect(onDraftChange).toHaveBeenCalled())
@@ -123,7 +123,7 @@ describe('leaf forms — draft reporting', () => {
       </I18nProvider>
     )
 
-    openSelect(1)
+    openSelect(0)
     fireEvent.click(await screen.findByTitle('Newsletter'))
 
     await waitFor(() => expect(onDraftChange).toHaveBeenCalled())
@@ -213,7 +213,7 @@ describe('leaf forms — draft reporting', () => {
       </I18nProvider>
     )
 
-    openSelect(1)
+    openSelect(0)
     fireEvent.click(await screen.findByTitle('Newsletter'))
 
     await waitFor(() => expect(selectShowing('Newsletter')).toBeTruthy())

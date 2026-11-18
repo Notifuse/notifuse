@@ -1,217 +1,142 @@
-import { Button, Form, Input, Modal, Popconfirm, Select, Space } from 'antd'
-import { useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { Button, Input, Select, Tooltip } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTrashAlt } from '@fortawesome/free-regular-svg-icons'
+import { faPlus } from '@fortawesome/free-solid-svg-icons'
+import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { useLingui } from '@lingui/react/macro'
-import {
-  DimensionFilter,
-  FieldSchema,
-  FieldType,
-  FieldTypeRendererDictionary
-} from '../../services/api/segment'
-import { FieldTypeString } from './type_string'
-import { FieldTypeTime } from './type_time'
-import { FieldTypeNumber } from './type_number'
+import type { DimensionFilter, FieldType } from '../../services/api/segment'
+import { FilterValueInput } from './FilterValueInput'
+import { duplicatePropertyKeys, operatorsFor, valueKindOf, withoutValues } from './filterOperators'
+import { operatorLabel } from './segmentLabels'
+import { isFilterRowComplete } from './tree_completeness'
 
-// Only the scalar types apply: custom event properties are an arbitrary JSON payload sent by the
-// caller, so there is no schema to drive a field picker and no way to know a key's type upfront.
-const fieldTypeRendererDictionary: FieldTypeRendererDictionary = {
-  string: new FieldTypeString(),
-  number: new FieldTypeNumber(),
-  time: new FieldTypeTime()
-}
-
-// The renderers take a FieldSchema to resolve a label and predefined options; a property key has
-// neither, so it stands in for itself.
-const schemaForKey = (filter: DimensionFilter): FieldSchema => ({
-  name: filter.field_name,
-  title: filter.field_name,
-  type: (filter.field_type === 'json' ? 'string' : filter.field_type) as FieldSchema['type']
-})
 
 /**
  * Filters on the `properties` payload of a custom event, keyed by a free-text property name.
  *
- * This exists alongside InputDimensionFilters rather than reusing it because that component
- * resolves every filter through `schema.fields[field_name]` — there is no schema here, the keys
- * are whatever the caller sent with the event.
+ * Unlike the contact filters there is no schema: the keys are whatever the caller sent with the
+ * event, so a key's type cannot be known and is chosen by hand, and a key is never used to pick a
+ * special input — a property named « country » holding a full country name, or « account_score »
+ * holding a number, must stay filterable with the plain text or number input.
  */
 export const InputEventPropertyFilters = (props: {
   value?: DimensionFilter[]
   onChange?: (updatedValue: DimensionFilter[]) => void
-  btnType?: 'link' | 'text' | 'dashed' | 'default' | 'primary'
-  btnGhost?: boolean
+  /** Set once Confirm was refused: the incomplete parts of the rows turn red. */
+  showErrors?: boolean
 }) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const filters = props.value ?? []
+  const listRef = useRef<HTMLDivElement>(null)
+  // A row added by the button gets the keyboard on its property name.
+  const focusNewRow = useRef(false)
+  useEffect(() => {
+    if (!focusNewRow.current) return
+    focusNewRow.current = false
+    const keys = listRef.current?.querySelectorAll<HTMLInputElement>('[data-property-key]')
+    keys?.[keys.length - 1]?.focus()
+  }, [filters.length])
+  const showErrors = !!props.showErrors
+  const duplicates = duplicatePropertyKeys(filters)
+
+  const replace = (index: number, filter: DimensionFilter) =>
+    props.onChange?.(filters.map((current, i) => (i === index ? filter : current)))
+  const remove = (index: number) => props.onChange?.(filters.filter((_, i) => i !== index))
 
   return (
-    <span>
+    <div ref={listRef} className="flex flex-col gap-2">
+      {filters.map((filter, index) => {
+        const kind = valueKindOf(filter.operator, filter.field_type)
+        const complete = isFilterRowComplete(filter, false)
+        const duplicate = duplicates.includes(filter.field_name?.trim())
+        const keyError = (showErrors && !filter.field_name) || duplicate
+        return (
+          <div key={index}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                size="small"
+                style={{ width: 160 }}
+                placeholder={t`e.g. sku`}
+                aria-label={t`Property name`}
+                data-property-key
+                status={keyError ? 'error' : undefined}
+                value={filter.field_name}
+                onChange={(event) => replace(index, { ...filter, field_name: event.target.value })}
+              />
+              <Select<FieldType>
+                size="small"
+                style={{ width: 112 }}
+                aria-label={t`Value type`}
+                value={filter.field_type === 'json' ? 'string' : filter.field_type}
+                options={[
+                  { value: 'string', label: t`Text` },
+                  { value: 'number', label: t`Number` },
+                  { value: 'time', label: t`Date` }
+                ]}
+                // The operator and the value depend on the type, so a change clears both.
+                onChange={(type) => {
+                  const next = { ...withoutValues(filter), field_type: type }
+                  delete (next as Partial<DimensionFilter>).operator
+                  replace(index, next)
+                }}
+              />
+              <Select<string>
+                size="small"
+                style={{ width: 192 }}
+                placeholder={t`Operator`}
+                status={showErrors && !filter.operator ? 'error' : undefined}
+                value={filter.operator || undefined}
+                popupMatchSelectWidth={false}
+                options={operatorsFor(filter.field_type, false, filter.operator).map((operator) => ({
+                  value: operator,
+                  label: operatorLabel(operator, i18n)
+                }))}
+                onChange={(operator) =>
+                  replace(index, { ...withoutValues(filter), operator: operator as DimensionFilter['operator'] })
+                }
+              />
+              {filter.operator && kind !== 'none' && (
+                <FilterValueInput
+                  kind={kind}
+                  filter={filter}
+                  onChange={(next) => replace(index, next)}
+                  status={showErrors && !complete && !!filter.operator ? 'error' : undefined}
+                />
+              )}
+              <span className="ml-auto">
+                <Tooltip title={t`Remove this filter`}>
+                  <Button
+                    type="text"
+                    size="small"
+                    aria-label={t`Remove this filter`}
+                    icon={<FontAwesomeIcon icon={faTrashCan} />}
+                    onClick={() => remove(index)}
+                  />
+                </Tooltip>
+              </span>
+            </div>
+            {duplicate && <div className="mt-1 text-xs text-danger-fg">{t`This property is already filtered`}</div>}
+          </div>
+        )
+      })}
       {filters.length > 0 && (
-        <table className="mb-2">
-          <tbody>
-            {filters.map((filter, key) => {
-              const renderer = fieldTypeRendererDictionary[filter.field_type]
-
-              return (
-                <tr key={key}>
-                  <td style={{ lineHeight: '32px' }}>
-                    <Space>
-                      <b>{filter.field_name}</b>
-                      {renderer && renderer.render(filter, schemaForKey(filter))}
-                    </Space>
-                  </td>
-                  <td>
-                    <Popconfirm
-                      title={t`Do you really want to remove this filter?`}
-                      onConfirm={() => {
-                        if (!props.onChange) return
-                        const next = [...filters]
-                        next.splice(key, 1)
-                        props.onChange(next)
-                      }}
-                    >
-                      <Button size="small" type="link">
-                        <FontAwesomeIcon icon={faTrashAlt} />
-                      </Button>
-                    </Popconfirm>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <div className="text-xs text-ink-3">
+          {t`Must match how the value is stored on the event. Dates are compared as ISO-8601.`}
+        </div>
       )}
-
-      <AddPropertyFilterButton
-        btnType={props.btnType}
-        btnGhost={props.btnGhost || filters.length > 0}
-        existingKeys={filters.map((filter) => filter.field_name)}
-        onComplete={(filter: DimensionFilter) => {
-          if (!props.onChange) return
-          props.onChange([...filters, filter])
-        }}
-      />
-    </span>
-  )
-}
-
-const AddPropertyFilterButton = (props: {
-  existingKeys: string[]
-  onComplete: (values: DimensionFilter) => void
-  btnType?: 'link' | 'text' | 'dashed' | 'default' | 'primary'
-  btnGhost?: boolean
-}) => {
-  const { t } = useLingui()
-  const [form] = Form.useForm()
-  const [modalVisible, setModalVisible] = useState(false)
-
-  const btnType = props.btnType || 'primary'
-  // antd never paints a link/text button as ghost, it only warns, so keep ghost to the
-  // bordered variants
-  const btnGhost = btnType === 'link' || btnType === 'text' ? undefined : props.btnGhost
-
-  return (
-    <>
-      <Button
-        type={btnType}
-        ghost={btnGhost}
-        size="small"
-        onClick={() => setModalVisible(true)}
-      >
-        {t`+ Add property filter`}
-      </Button>
-
-      {modalVisible && (
-        <Modal
-          open={true}
-          title={t`Filter on an event property`}
-          okText={t`Confirm`}
-          cancelText={t`Cancel`}
-          width={400}
-          onCancel={() => {
-            form.resetFields()
-            setModalVisible(false)
-          }}
-          onOk={() => {
-            form
-              .validateFields()
-              .then((values: DimensionFilter) => {
-                form.resetFields()
-                setModalVisible(false)
-                props.onComplete(values)
-              })
-              .catch(console.error)
+      <div>
+        <Button
+          type="link"
+          size="small"
+          icon={<FontAwesomeIcon icon={faPlus} />}
+          onClick={() => {
+            focusNewRow.current = true
+            props.onChange?.([...filters, { field_name: '', field_type: 'string' } as unknown as DimensionFilter])
           }}
         >
-          <div className="my-6">
-            <Form
-              form={form}
-              name="form_add_property_filter"
-              layout="vertical"
-              initialValues={{ field_type: 'string' as FieldType }}
-            >
-              <Form.Item
-                name="field_name"
-                label={t`Property name`}
-                rules={[
-                  { required: true, type: 'string', message: t`Please enter a property name` },
-                  {
-                    validator: (_, value: string) =>
-                      props.existingKeys.includes(value)
-                        ? Promise.reject(new Error(t`This property is already filtered`))
-                        : Promise.resolve()
-                  }
-                ]}
-              >
-                <Input placeholder={t`e.g. sku`} />
-              </Form.Item>
-
-              <Form.Item
-                name="field_type"
-                label={t`Value type`}
-                // Properties are free-form JSON, so the type cannot be inferred and the stored
-                // value has to actually be convertible: comparing a property holding "A-1" as a
-                // number or a date fails when the segment runs.
-                extra={t`Must match how the value is stored on the event. Dates are compared as ISO-8601.`}
-              >
-                <Select
-                  options={[
-                    { value: 'string', label: t`Text` },
-                    { value: 'number', label: t`Number` },
-                    { value: 'time', label: t`Date` }
-                  ]}
-                  // The operator list and value input depend on the type, so a change has to
-                  // clear whatever was picked for the previous one.
-                  onChange={() =>
-                    form.setFieldsValue({
-                      operator: undefined,
-                      string_values: undefined,
-                      number_values: undefined
-                    })
-                  }
-                />
-              </Form.Item>
-
-              <Form.Item noStyle shouldUpdate>
-                {(funcs) => {
-                  const fieldType = funcs.getFieldValue('field_type') as FieldType
-                  const renderer = fieldTypeRendererDictionary[fieldType]
-                  if (!renderer) return null
-                  // Deliberately no field name. The shared operator renderers swap in
-                  // contact-schema inputs for particular names — a country picker for "country",
-                  // a currency list for "currency", a 1/0 select for anything containing "is_" —
-                  // and property keys are free text, so an event storing properties.country as a
-                  // full name, or properties.analysis_score as a number, would be impossible to
-                  // filter. An empty name matches none of those special cases and yields the
-                  // plain text/number input these keys need.
-                  return renderer.renderFormItems(fieldType, '', form)
-                }}
-              </Form.Item>
-            </Form>
-          </div>
-        </Modal>
-      )}
-    </>
+          {t`Add a property`}
+        </Button>
+      </div>
+    </div>
   )
 }

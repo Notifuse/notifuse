@@ -38,6 +38,12 @@ interface ConditionsFieldProps {
   onClear: () => void
   /** Guidance shown above the editor, inside the drawer. */
   notice?: React.ReactNode
+  /**
+   * Whether a value read out of a JSON column may be compared as a date. Trigger conditions pass
+   * false: they compile through the defensive casts of BuildTriggerCondition, which never convert
+   * a JSON date, so such a filter would never match (or, negated, always would).
+   */
+  jsonDateValues?: boolean
 }
 
 /**
@@ -61,7 +67,8 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
   value,
   onChange,
   onClear,
-  notice
+  notice,
+  jsonDateValues
 }) => {
   const { t } = useLingui()
   const { lists, workspace, canReadTemplates, readOnly } = useAutomation()
@@ -149,6 +156,7 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
           lists={lists}
           workspaceId={workspace.id}
           canReadTemplates={canReadTemplates}
+          jsonDateValues={jsonDateValues}
         />
       </Drawer>
     </>

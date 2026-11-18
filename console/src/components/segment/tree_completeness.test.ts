@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { isTreeQueryable } from './tree_completeness'
+import { isFilterComplete, isFilterRowComplete, isTreeQueryable } from './tree_completeness'
+import type { DimensionFilter } from '../../services/api/segment'
 import type { TreeNode, TreeNodeLeaf } from '../../services/api/segment'
 
 const branchOf = (...leaves: TreeNodeLeaf[]): TreeNode => ({
@@ -271,5 +272,73 @@ describe('isTreeQueryable — filters', () => {
         })
       )
     ).toBe(true)
+  })
+})
+
+describe('JSON values read as dates', () => {
+  const jsonDate = (operator: string, values: string[]): DimensionFilter =>
+    ({
+      field_name: 'custom_json_1',
+      field_type: 'time',
+      json_path: ['renewed_at'],
+      operator,
+      string_values: values
+    }) as DimensionFilter
+
+  it.each([
+    ['before_date', ['2026-01-01T00:00:00.000Z']],
+    ['after_date', ['2026-01-01T00:00:00.000Z']],
+    ['equals', ['2026-01-01T00:00:00.000Z']],
+    ['in_the_last_days', ['30']],
+    ['not_in_the_last_days', ['30']]
+  ])('counts %s with its value', (operator, values) => {
+    expect(isFilterComplete(jsonDate(operator, values))).toBe(true)
+    expect(isFilterRowComplete(jsonDate(operator, values), true)).toBe(true)
+  })
+
+  it('waits for the day count', () => {
+    expect(isFilterComplete(jsonDate('in_the_last_days', []))).toBe(false)
+  })
+})
+
+describe('isFilterRowComplete — what the editor asks for', () => {
+  it('wants a path to read a value out of a JSON column', () => {
+    const noPath = {
+      field_name: 'custom_json_1',
+      field_type: 'string',
+      operator: 'equals',
+      string_values: ['pro']
+    } as DimensionFilter
+    // The server compiles it against the column itself: kept for the preview and automations…
+    expect(isFilterComplete(noPath)).toBe(true)
+    // …but the editor's rows never produce it
+    expect(isFilterRowComplete(noPath, true)).toBe(false)
+    expect(isFilterRowComplete({ ...noPath, json_path: ['plan'] }, true)).toBe(true)
+  })
+
+  it('takes a JSON existence check without a path', () => {
+    expect(
+      isFilterRowComplete({ field_name: 'custom_json_1', field_type: 'string', operator: 'is_set' }, true)
+    ).toBe(true)
+  })
+
+  it('refuses a blank text value', () => {
+    expect(
+      isFilterRowComplete(
+        { field_name: 'email', field_type: 'string', operator: 'equals', string_values: ['  '] },
+        false
+      )
+    ).toBe(false)
+  })
+
+  it('refuses a cleared number, here and in the preview', () => {
+    const cleared = {
+      field_name: 'custom_number_1',
+      field_type: 'number',
+      operator: 'gt',
+      number_values: [null]
+    } as unknown as DimensionFilter
+    expect(isFilterComplete(cleared)).toBe(false)
+    expect(isFilterRowComplete(cleared, false)).toBe(false)
   })
 })
