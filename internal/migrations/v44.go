@@ -20,8 +20,8 @@ import (
 // broadcasts that started without a start date, removes the segment memberships of deleted
 // contacts and the instance's own links recorded in clicked_links, recounts the exited
 // journeys of each automation, passes the event that started a journey to its emails, marks
-// processed the scheduled A/B broadcasts sent before 44 that stayed scheduled, and adds
-// broadcasts.test_paused_seconds.
+// processed the scheduled A/B broadcasts sent before 44 that stayed scheduled, recompiles the
+// segments whose stored query changed, and adds broadcasts.test_paused_seconds.
 //
 // track_message_history_changes() is reinstalled from the shared schema package. It now
 // writes an email.link_clicked entry, with the URL, each time a click records a link of
@@ -150,7 +150,22 @@ import (
 // above) keeps enrolling on those rows until the automation is paused and activated again; the
 // other two fixes reach it through the four-argument relay.
 //
-// Last, after the trigger bodies, broadcasts gets test_paused_seconds, the time an A/B test
+// The replaced bodies also read a value inside a custom JSON column as the text it holds, not as
+// its JSON text, which kept a string's quotes: a text « equals » on such a value now matches, and
+// a JSON date now converts in an entry condition. Their defensive casts test the conversion as
+// well as the shape, so a value such as 2026-02-30 gives no match instead of aborting the write.
+//
+// Then every segment's tree is recompiled with the current query builder, and a segment whose
+// stored generated_sql / generated_args differ gets the new ones and recompute_after = NOW(), so
+// the recompute check rebuilds it (RegenerateSegmentSQL). A segment's query is compiled when its
+// tree is saved and read from the row from then on, so the change above reaches no segment by
+// itself; a changed query can change membership, and only a rebuild removes the contacts that
+// leave. Each rebuild writes segment.joined and segment.left entries for the contacts that move.
+// The updates take row locks on segments, held until the workspace commits, under the same
+// lock_timeout; a segment build waiting for one waits that long. A tree that no longer compiles
+// keeps its query. A rerun finds no difference and writes nothing.
+//
+// Last, after the trigger bodies and the segments, broadcasts gets test_paused_seconds, the time an A/B test
 // waiting for its winner spent paused (schema.BroadcastTestPausedSecondsColumn). With a constant
 // default the column is added without rewriting the table, but it takes an ACCESS EXCLUSIVE lock
 // on broadcasts until the workspace commits, upgrading the row locks the repair and the backfill
@@ -361,8 +376,12 @@ func (m *V44Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	// Then, once the five-argument enrolment exists: every live automation's trigger
 	// function is replaced by one that passes the event, bodies only (see the type comment).
 	generator := service.NewAutomationTriggerGenerator(service.NewQueryBuilder())
-	if err := regenerateAutomationTriggers(ctx, db, generator, "v44", "v44_automation_trigger_bodies", true); err != nil {
+	if _, err := regenerateAutomationTriggers(ctx, db, generator, "v44", "v44_automation_trigger_bodies", true); err != nil {
 		return fmt.Errorf("v44: failed to pass the trigger event in automation triggers for workspace %s: %w", workspace.ID, err)
+	}
+	// Then the segments whose stored query the same change alters (see the type comment).
+	if _, err := RegenerateSegmentSQL(ctx, db); err != nil {
+		return fmt.Errorf("v44: failed to recompile the segment queries for workspace %s: %w", workspace.ID, err)
 	}
 	// Last: its lock on broadcasts is held until the workspace commits (see the type comment).
 	if _, err := db.ExecContext(ctx, `ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS `+schema.BroadcastTestPausedSecondsColumn); err != nil {

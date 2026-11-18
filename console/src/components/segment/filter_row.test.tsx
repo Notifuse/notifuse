@@ -15,7 +15,7 @@ class ResizeObserverStub {
 vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 
 // A row kept in state, as the condition's form keeps it, with what it last handed back.
-const renderRow = (initial: DimensionFilter, extra: { jsonDateValues?: boolean; showErrors?: boolean } = {}) => {
+const renderRow = (initial: DimensionFilter, extra: { showErrors?: boolean } = {}) => {
   const latest: { value: DimensionFilter; changes: number } = { value: initial, changes: 0 }
   const Wrapper = () => {
     const [filter, setFilter] = useState(initial)
@@ -270,17 +270,11 @@ describe('FilterRow on a JSON value read as a date', () => {
     expect(screen.getByPlaceholderText('Select date')).toBeTruthy()
   })
 
-  it('offers no Date reading where JSON dates never convert', () => {
-    renderRow({ field_name: 'custom_json_1', field_type: 'string', json_path: ['plan'] } as DimensionFilter, { jsonDateValues: false })
-    const types = [...document.querySelectorAll('.ant-segmented-item')].map((element) => element.textContent)
-    expect(types).toEqual(['Text', 'Number'])
-  })
-
-  it('keeps a saved JSON date row as it is where they are not offered', () => {
-    const saved = { ...jsonDate, operator: 'before_date', string_values: ['2026-01-01T00:00:00.000Z'] } as DimensionFilter
-    const { latest } = renderRow(saved, { jsonDateValues: false })
+  // A JSON value reads as a date everywhere, automation entry conditions included, since their
+  // casts read the value without its quotes (44.0).
+  it('offers the Date reading of a JSON value', () => {
+    renderRow({ field_name: 'custom_json_1', field_type: 'string', json_path: ['plan'] } as DimensionFilter)
     const types = [...document.querySelectorAll('.ant-segmented-item')].map((element) => element.textContent)
     expect(types).toEqual(['Text', 'Number', 'Date'])
-    expect(latest.changes).toBe(0)
   })
 })

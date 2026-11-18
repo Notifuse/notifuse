@@ -1338,7 +1338,7 @@ func TestAutomationTriggerGenerator_JSONCastsCannotAbortTheStatement(t *testing.
 
 		assert.Contains(t, result.ConditionGuard, "CASE WHEN",
 			"a contact holding a non-numeric value must yield NULL, not abort the write")
-		assert.NotContains(t, result.ConditionGuard, `(custom_json_1['score']::text)::numeric >=`,
+		assert.NotContains(t, result.ConditionGuard, `((custom_json_1['score'] #>> '{}'))::numeric >=`,
 			"the bare cast is what raises on the offending row")
 	})
 
@@ -1354,6 +1354,8 @@ func TestAutomationTriggerGenerator_JSONCastsCannotAbortTheStatement(t *testing.
 
 		assert.Contains(t, result.ConditionGuard, "CASE WHEN",
 			"a contact holding an unparseable date must yield NULL, not abort the write")
+		// The shape alone let 2026-02-30 through, whose cast raises: the conversion is tested too.
+		assert.Contains(t, result.ConditionGuard, `pg_input_is_valid((custom_json_1['renewed_at'] #>> '{}'), 'timestamptz')`)
 	})
 
 	// The segment path is deliberately left alone: there a failed cast breaks one query
@@ -1374,7 +1376,7 @@ func TestAutomationTriggerGenerator_JSONCastsCannotAbortTheStatement(t *testing.
 			},
 		})
 		require.NoError(t, err)
-		assert.Contains(t, sql, `(custom_json_1['score']::text)::numeric`,
+		assert.Contains(t, sql, `((custom_json_1['score'] #>> '{}'))::numeric`,
 			"changing the segment path is out of scope for this fix")
 	})
 }

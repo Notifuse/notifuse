@@ -1607,7 +1607,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_1['name']::text = $1")
+		assert.Contains(t, sql, "(custom_json_1['name'] #>> '{}') = $1")
 		assert.Equal(t, []interface{}{"John"}, args)
 	})
 
@@ -1632,7 +1632,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_1['user']['profile']['country']::text = $1")
+		assert.Contains(t, sql, "(custom_json_1['user']['profile']['country'] #>> '{}') = $1")
 		assert.Equal(t, []interface{}{"US"}, args)
 	})
 
@@ -1657,7 +1657,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_2['items'][0]['name']::text = $1")
+		assert.Contains(t, sql, "(custom_json_2['items'][0]['name'] #>> '{}') = $1")
 		assert.Equal(t, []interface{}{"Product A"}, args)
 	})
 
@@ -1682,7 +1682,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "(custom_json_1['user']['age']::text)::numeric > $1")
+		assert.Contains(t, sql, "((custom_json_1['user']['age'] #>> '{}'))::numeric > $1")
 		assert.Equal(t, []interface{}{25.0}, args)
 	})
 
@@ -1707,7 +1707,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "(custom_json_3['last_login']::text)::timestamptz < $1")
+		assert.Contains(t, sql, "((custom_json_3['last_login'] #>> '{}'))::timestamptz < $1")
 		assert.Len(t, args, 1)
 	})
 
@@ -1732,7 +1732,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_1['description']::text ILIKE $1")
+		assert.Contains(t, sql, "(custom_json_1['description'] #>> '{}') ILIKE $1")
 		assert.Equal(t, []interface{}{"%premium%"}, args)
 	})
 
@@ -1808,7 +1808,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 		// Should escape single quotes
-		assert.Contains(t, sql, "custom_json_1['user''s name']::text = $1")
+		assert.Contains(t, sql, "(custom_json_1['user''s name'] #>> '{}') = $1")
 		assert.Equal(t, []interface{}{"John"}, args)
 	})
 
@@ -1867,8 +1867,8 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_1['type']::text = $1")
-		assert.Contains(t, sql, "(custom_json_1['score']::text)::numeric >= $2")
+		assert.Contains(t, sql, "(custom_json_1['type'] #>> '{}') = $1")
+		assert.Contains(t, sql, "((custom_json_1['score'] #>> '{}'))::numeric >= $2")
 		assert.Contains(t, sql, " AND ")
 		assert.Equal(t, []interface{}{"premium", 100.0}, args)
 	})
@@ -1901,7 +1901,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 		assert.Contains(t, sql, "country = $1")
-		assert.Contains(t, sql, "custom_json_1['subscription']['tier']::text = $2")
+		assert.Contains(t, sql, "(custom_json_1['subscription']['tier'] #>> '{}') = $2")
 		assert.Contains(t, sql, " AND ")
 		assert.Equal(t, []interface{}{"US", "gold"}, args)
 	})
@@ -1927,7 +1927,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_5['users'][0]['profile']['tags'][1]::text = $1")
+		assert.Contains(t, sql, "(custom_json_5['users'][0]['profile']['tags'][1] #>> '{}') = $1")
 		assert.Equal(t, []interface{}{"verified"}, args)
 	})
 }
@@ -2753,7 +2753,7 @@ func TestQueryBuilder_JSONScalarCannotSatisfyKeyOrNumericFilters(t *testing.T) {
 			NumberValues: []float64{10},
 		})
 		assert.Contains(t, sql,
-			"CASE WHEN jsonb_typeof(custom_json_1) = 'object' THEN (custom_json_1::text)::numeric END >= $1")
+			"CASE WHEN jsonb_typeof(custom_json_1) = 'object' THEN ((custom_json_1 #>> '{}'))::numeric END >= $1")
 	})
 
 	t.Run("a date comparison against the whole column is guarded", func(t *testing.T) {
@@ -2764,7 +2764,7 @@ func TestQueryBuilder_JSONScalarCannotSatisfyKeyOrNumericFilters(t *testing.T) {
 			StringValues: []string{"2024-01-01T00:00:00Z"},
 		})
 		assert.Contains(t, sql,
-			"CASE WHEN jsonb_typeof(custom_json_1) = 'object' THEN (custom_json_1::text)::timestamptz END > $1")
+			"CASE WHEN jsonb_typeof(custom_json_1) = 'object' THEN ((custom_json_1 #>> '{}'))::timestamptz END > $1")
 	})
 
 	t.Run("a relative-day comparison against the whole column is guarded", func(t *testing.T) {
@@ -2775,7 +2775,7 @@ func TestQueryBuilder_JSONScalarCannotSatisfyKeyOrNumericFilters(t *testing.T) {
 			StringValues: []string{"7"},
 		})
 		assert.Contains(t, sql,
-			"CASE WHEN jsonb_typeof(custom_json_1) = 'object' THEN (custom_json_1::text)::timestamptz END > NOW() - INTERVAL '7 days'")
+			"CASE WHEN jsonb_typeof(custom_json_1) = 'object' THEN ((custom_json_1 #>> '{}'))::timestamptz END > NOW() - INTERVAL '7 days'")
 	})
 
 	// The guard belongs to the whole-column form only. A path already answers NULL on a scalar,
@@ -2789,7 +2789,7 @@ func TestQueryBuilder_JSONScalarCannotSatisfyKeyOrNumericFilters(t *testing.T) {
 			JSONPath:     []string{"score"},
 			NumberValues: []float64{10},
 		})
-		assert.Contains(t, byKey, "(custom_json_1['score']::text)::numeric >= $1")
+		assert.Contains(t, byKey, "((custom_json_1['score'] #>> '{}'))::numeric >= $1")
 		assert.NotContains(t, byKey, "jsonb_typeof")
 
 		byIndex := segmentSQL(t, &domain.DimensionFilter{
@@ -2799,7 +2799,7 @@ func TestQueryBuilder_JSONScalarCannotSatisfyKeyOrNumericFilters(t *testing.T) {
 			JSONPath:     []string{"0"},
 			NumberValues: []float64{10},
 		})
-		assert.Contains(t, byIndex, "(custom_json_1[0]::text)::numeric >= $1")
+		assert.Contains(t, byIndex, "((custom_json_1[0] #>> '{}'))::numeric >= $1")
 		assert.NotContains(t, byIndex, "jsonb_typeof")
 	})
 }
@@ -3081,32 +3081,147 @@ func TestQueryBuilder_BuildSQL_JSONDateOperatorsTheConsoleOffers(t *testing.T) {
 	t.Run("after_date", func(t *testing.T) {
 		sql, args, err := qb.BuildSQL(jsonDateTree("after_date", "2026-10-01T00:00:00Z"))
 		require.NoError(t, err)
-		assert.Contains(t, sql, "(custom_json_3['renewed_at']::text)::timestamptz > $1")
+		assert.Contains(t, sql, "((custom_json_3['renewed_at'] #>> '{}'))::timestamptz > $1")
 		assert.Len(t, args, 1)
 	})
 
 	t.Run("before_date", func(t *testing.T) {
 		sql, _, err := qb.BuildSQL(jsonDateTree("before_date", "2026-10-01T00:00:00Z"))
 		require.NoError(t, err)
-		assert.Contains(t, sql, "(custom_json_3['renewed_at']::text)::timestamptz < $1")
+		assert.Contains(t, sql, "((custom_json_3['renewed_at'] #>> '{}'))::timestamptz < $1")
 	})
 
 	t.Run("equals", func(t *testing.T) {
 		sql, _, err := qb.BuildSQL(jsonDateTree("equals", "2026-10-01T00:00:00Z"))
 		require.NoError(t, err)
-		assert.Contains(t, sql, "(custom_json_3['renewed_at']::text)::timestamptz = $1")
+		assert.Contains(t, sql, "((custom_json_3['renewed_at'] #>> '{}'))::timestamptz = $1")
 	})
 
 	for _, operator := range []string{"in_the_last_days", "not_in_the_last_days"} {
 		t.Run(operator, func(t *testing.T) {
 			sql, _, err := qb.BuildSQL(jsonDateTree(operator, "30"))
 			require.NoError(t, err)
-			assert.Contains(t, sql, "(custom_json_3['renewed_at']::text)::timestamptz")
+			assert.Contains(t, sql, "((custom_json_3['renewed_at'] #>> '{}'))::timestamptz")
 		})
 	}
 
 	t.Run("a date range is refused", func(t *testing.T) {
 		_, _, err := qb.BuildSQL(jsonDateTree("in_date_range", "2026-09-01T00:00:00Z", "2026-09-30T00:00:00Z"))
+		require.Error(t, err)
+	})
+}
+
+// A value inside a custom JSON column is read as the text it holds (#>> '{}'), not as its JSON
+// text (::text), which kept a string's quotes: « equals gold » never matched "gold", « not equals »
+// always did, a numeric string made the direct numeric cast raise, and the defensive date cast
+// never recognised a date, so JSON dates never matched in automation entry conditions. The
+// defensive casts also test the conversion itself: unquoted, 2026-02-30 and 1e999999 pass the
+// shape patterns, and their casts would abort the contact write a trigger runs in.
+func TestQueryBuilder_JSONValueTextOnPostgres(t *testing.T) {
+	db := openSegmentTestPostgres(t)
+	qb := NewQueryBuilder()
+
+	shapes := map[string]string{
+		"gold@example.com":     `{"v":"gold"}`,
+		"silver@example.com":   `{"v":"silver"}`,
+		"number@example.com":   `{"v":42}`,
+		"numstr@example.com":   `{"v":"42"}`,
+		"bool@example.com":     `{"v":true}`,
+		"null@example.com":     `{"v":null}`,
+		"object@example.com":   `{"v":{"a":1}}`,
+		"date@example.com":     `{"v":"2026-03-01"}`,
+		"early@example.com":    `{"v":"2025-01-01"}`,
+		"baddate@example.com":  `{"v":"2026-02-30"}`,
+		"datetext@example.com": `{"v":"2026-01-01 until further notice"}`,
+		"huge@example.com":     `{"v":"1e999999"}`,
+		"now@example.com":      `{"v":"now"}`,
+		"inf@example.com":      `{"v":"infinity"}`,
+		"nan@example.com":      `{"v":"NaN"}`,
+		"us@example.com":       `{"v":"01/02/2026"}`,
+		"nokey@example.com":    `{"w":1}`,
+	}
+
+	// matched runs one condition as the segment compiler (direct) or the trigger compiler
+	// (defensive) emits it, over every row seeded.
+	matched := func(t *testing.T, mode castMode, filter *domain.DimensionFilter) []string {
+		t.Helper()
+		if filter.JSONPath == nil {
+			filter.JSONPath = []string{"v"}
+		}
+		filter.FieldName = "custom_json_1"
+		cond, args, _, err := qb.buildJSONCondition("custom_json_1", filter, 1, mode)
+		require.NoError(t, err)
+		return matchedEmails(t, db, "SELECT email FROM contacts WHERE "+cond, args)
+	}
+	both := []castMode{castDirectly, castDefensively}
+
+	t.Run("text equals and not equals read the value without its quotes", func(t *testing.T) {
+		seedJSONContacts(t, db, shapes)
+		for _, mode := range both {
+			assert.Equal(t, []string{"gold@example.com"},
+				matched(t, mode, &domain.DimensionFilter{FieldType: "string", Operator: "equals", StringValues: []string{"gold"}}))
+
+			notGold := matched(t, mode, &domain.DimensionFilter{FieldType: "string", Operator: "not_equals", StringValues: []string{"gold"}})
+			assert.NotContains(t, notGold, "gold@example.com")
+			assert.Contains(t, notGold, "silver@example.com")
+			// JSON null is SQL NULL now: it no longer reads as the text null.
+			assert.NotContains(t, notGold, "null@example.com")
+			assert.NotContains(t, notGold, "nokey@example.com")
+		}
+	})
+
+	t.Run("contains matches the value, and no longer the quotes typed as a workaround", func(t *testing.T) {
+		seedJSONContacts(t, db, shapes)
+		assert.Equal(t, []string{"gold@example.com"},
+			matched(t, castDirectly, &domain.DimensionFilter{FieldType: "string", Operator: "contains", StringValues: []string{"gold"}}))
+		assert.Empty(t,
+			matched(t, castDirectly, &domain.DimensionFilter{FieldType: "string", Operator: "contains", StringValues: []string{`"gold"`}}))
+	})
+
+	t.Run("a defensive numeric comparison never raises and reads numeric strings", func(t *testing.T) {
+		seedJSONContacts(t, db, shapes)
+		// 1e999999 passes the shape and overflows the cast; NaN and infinity are numbers to
+		// PostgreSQL but not to the shape.
+		assert.Equal(t, []string{"number@example.com", "numstr@example.com"},
+			matched(t, castDefensively, &domain.DimensionFilter{FieldType: "number", Operator: "gte", NumberValues: []float64{40}}))
+	})
+
+	t.Run("a defensive date comparison never raises and reads JSON dates", func(t *testing.T) {
+		seedJSONContacts(t, db, shapes)
+		// 2026-02-30 and the date followed by text pass the shape and raise on the cast; now,
+		// infinity and 01/02/2026 are dates to PostgreSQL but not ISO dates.
+		assert.Equal(t, []string{"date@example.com"},
+			matched(t, castDefensively, &domain.DimensionFilter{FieldType: "time", Operator: "after_date", StringValues: []string{"2026-01-01T00:00:00Z"}}))
+		assert.Equal(t, []string{"date@example.com", "early@example.com"},
+			matched(t, castDefensively, &domain.DimensionFilter{FieldType: "time", Operator: "in_the_last_days", StringValues: []string{"36500"}}))
+	})
+
+	t.Run("a direct comparison reads numeric strings, dates and null without raising", func(t *testing.T) {
+		seedJSONContacts(t, db, map[string]string{
+			"number@example.com": `{"v":42}`,
+			"numstr@example.com": `{"v":"42"}`,
+			"null@example.com":   `{"v":null}`,
+		})
+		assert.Equal(t, []string{"number@example.com", "numstr@example.com"},
+			matched(t, castDirectly, &domain.DimensionFilter{FieldType: "number", Operator: "gte", JSONPath: []string{"v"}, NumberValues: []float64{40}}))
+		seedJSONContacts(t, db, map[string]string{
+			"date@example.com":  `{"v":"2026-03-01"}`,
+			"early@example.com": `{"v":"2025-01-01"}`,
+			"null@example.com":  `{"v":null}`,
+		})
+		assert.Equal(t, []string{"date@example.com"},
+			matched(t, castDirectly, &domain.DimensionFilter{FieldType: "time", Operator: "after_date", StringValues: []string{"2026-01-01T00:00:00Z"}}))
+	})
+
+	// The segment path keeps raising on a value it cannot convert (D5): the count fails with the
+	// error instead of silently leaving the contact out.
+	t.Run("a direct comparison still raises on a value it cannot convert", func(t *testing.T) {
+		seedJSONContacts(t, db, map[string]string{"na@example.com": `{"v":"n/a"}`})
+		cond, args, _, err := qb.buildJSONCondition("custom_json_1", &domain.DimensionFilter{
+			FieldName: "custom_json_1", FieldType: "number", Operator: "gte", JSONPath: []string{"v"}, NumberValues: []float64{40},
+		}, 1, castDirectly)
+		require.NoError(t, err)
+		_, err = db.Query("SELECT email FROM contacts WHERE "+cond, args...)
 		require.Error(t, err)
 	})
 }

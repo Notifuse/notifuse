@@ -27,8 +27,6 @@ export interface FilterRowProps {
   /** Fields the other rows of the condition filter. */
   usedFields?: string[]
   customFieldLabels?: Record<string, string>
-  /** Whether a JSON value may be read as a date (not in trigger conditions). */
-  jsonDateValues?: boolean
   /** Set once Confirm was refused: the incomplete parts of the row turn red. */
   showErrors?: boolean
 }
@@ -60,7 +58,6 @@ export function FilterRow({
   onDelete,
   usedFields,
   customFieldLabels,
-  jsonDateValues = true,
   showErrors
 }: FilterRowProps) {
   const { t, i18n } = useLingui()
@@ -163,7 +160,7 @@ export function FilterRow({
   const valueTypes: { value: JsonValueType; label: string }[] = [
     { value: 'string', label: t`Text` },
     { value: 'number', label: t`Number` },
-    ...(jsonDateValues || valueType === 'time' ? [{ value: 'time' as const, label: t`Date` }] : [])
+    { value: 'time', label: t`Date` }
   ]
   const pathMissing = !filter.json_path?.length && kind !== 'none' && !!filter.operator
 

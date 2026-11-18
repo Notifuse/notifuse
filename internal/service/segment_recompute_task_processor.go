@@ -81,7 +81,7 @@ func (p *SegmentRecomputeTaskProcessor) Process(ctx context.Context, task *domai
 					SegmentID: segment.ID,
 					Version:   buildVersion,
 					BatchSize: 100,
-					StartedAt: time.Now().Format(time.RFC3339),
+					StartedAt: time.Now().UTC().Format(time.RFC3339Nano),
 				},
 			},
 			MaxRuntime: 300, // 5 minutes
