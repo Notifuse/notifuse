@@ -4899,7 +4899,7 @@ msgstr "Les difusions i els correus d'automatitzacions surten com a màxim a aqu
 msgid "Broadcasts or Transactional"
 msgstr "Difusions o Transaccional"
 
-#: src/pages/TemplatesPage.tsx:432
+#: src/pages/TemplatesPage.tsx:431
 msgid "Broadcasts that may still send, transactional notifications, automations and double opt-in lists. Broadcasts already sent and segment filters on a template aren't counted."
 msgstr "Difusions que encara es poden enviar, notificacions transaccionals, automatitzacions i llistes amb doble opt-in. Les difusions ja enviades i els filtres de segment que fan referència a una plantilla no es compten."
 
@@ -5318,7 +5318,7 @@ msgstr "categoria"
 #: src/components/templates/TemplateSettingsStep.tsx:157
 #: src/components/templates/TemplateStartModal.tsx:295
 #: src/components/templates/TemplateStartModal.tsx:375
-#: src/pages/TemplatesPage.tsx:423
+#: src/pages/TemplatesPage.tsx:422
 msgid "Category"
 msgstr "Categoria"
 
@@ -5961,7 +5961,7 @@ msgstr "El Client Secret és obligatori"
 msgid "Client Secret Value"
 msgstr "Valor del Client Secret"
 
-#: src/pages/TemplatesPage.tsx:321
+#: src/pages/TemplatesPage.tsx:320
 msgid "Clone"
 msgstr "Clonar"
 
@@ -6018,7 +6018,7 @@ msgstr "Subtítols (CC)"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:509
 #: src/components/email_builder/MjmlCodeEditor.tsx:679
-#: src/pages/TemplatesPage.tsx:405
+#: src/pages/TemplatesPage.tsx:404
 msgid "Code"
 msgstr "Codi"
 
@@ -6840,7 +6840,7 @@ msgstr "Copia l’ID extern"
 #: src/components/transactional/TransactionalDetail.tsx:324
 #: src/components/transactional/TransactionalTable.tsx:296
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:431
-#: src/pages/TemplatesPage.tsx:327
+#: src/pages/TemplatesPage.tsx:326
 msgid "Copy ID"
 msgstr "Copia l'ID"
 
@@ -6964,7 +6964,7 @@ msgstr "No s'ha pogut comprovar on s'utilitza aquesta plantilla"
 #: src/components/transactional/NotificationChecks.tsx:131
 #: src/components/transactional/notificationParts.tsx:82
 #: src/components/transactional/TransactionalDetail.tsx:267
-#: src/pages/TemplatesPage.tsx:354
+#: src/pages/TemplatesPage.tsx:353
 #: src/pages/TransactionalNotificationsPage.tsx:318
 msgid "Couldn't load"
 msgstr "No s'ha pogut carregar"
@@ -7037,7 +7037,7 @@ msgid "Couldn't load the template"
 msgstr "No s'ha pogut carregar la plantilla"
 
 #: src/components/templates/TemplateSelectorModal.tsx:233
-#: src/pages/TemplatesPage.tsx:505
+#: src/pages/TemplatesPage.tsx:514
 msgid "Couldn't load the templates"
 msgstr "No s'han pogut carregar les plantilles"
 
@@ -7421,7 +7421,7 @@ msgstr "Creeu la vostra primera notificació per començar"
 msgid "Create Your First Post"
 msgstr "Creeu la vostra primera publicació"
 
-#: src/pages/TemplatesPage.tsx:518
+#: src/pages/TemplatesPage.tsx:527
 msgid "Create your first template to get started"
 msgstr "Creeu la vostra primera plantilla per començar"
 
@@ -7448,7 +7448,7 @@ msgstr "Creats"
 #. placeholder {0}: fullDate(template.created_at)
 #. placeholder {1}: fullDate(template.updated_at)
 #. placeholder {2}: timezone ?? 'UTC'
-#: src/pages/TemplatesPage.tsx:463
+#: src/pages/TemplatesPage.tsx:462
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "Creada {0} · Actualitzada {1} a {2}"
 
@@ -7995,7 +7995,7 @@ msgstr "Desplaçament més profund assolit en una pàgina de la visita"
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
 #: src/components/settings/integrations/EmailProviderCard.tsx:296
 #: src/components/templates/SendTemplateModal.tsx:99
-#: src/pages/TemplatesPage.tsx:455
+#: src/pages/TemplatesPage.tsx:454
 msgid "default"
 msgstr "Per defecte"
 
@@ -8185,8 +8185,8 @@ msgstr "Retard"
 #: src/components/web_analytics/filters/FilterTable.tsx:179
 #: src/components/web_analytics/filters/FilterTable.tsx:355
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:120
-#: src/pages/TemplatesPage.tsx:337
-#: src/pages/TemplatesPage.tsx:340
+#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:339
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -12960,7 +12960,7 @@ msgstr "L'ID només pot contenir lletres minúscules, números i guions baixos"
 #: src/components/automations/AutomationEditor.tsx:428
 #: src/components/lists/ListDrawer.tsx:361
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:239
-#: src/pages/TemplatesPage.tsx:329
+#: src/pages/TemplatesPage.tsx:328
 #: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "ID copied"
 msgstr "ID copiat"
@@ -12979,7 +12979,7 @@ msgstr "L'ID no coincideix"
 #~ msgstr "ID per a API:"
 
 #. placeholder {0}: template.id
-#: src/pages/TemplatesPage.tsx:400
+#: src/pages/TemplatesPage.tsx:399
 msgid "ID for API: {0}"
 msgstr "ID per a l'API: {0}"
 
@@ -13159,7 +13159,7 @@ msgstr "TLS implícit al 465"
 #: src/components/segment/segmentLabels.ts:252
 #: src/components/templates/ImportExportButton.tsx:203
 #: src/pages/ContactsPage.tsx:551
-#: src/pages/TemplatesPage.tsx:592
+#: src/pages/TemplatesPage.tsx:601
 msgid "Import"
 msgstr "Importar"
 
@@ -15114,7 +15114,7 @@ msgstr "Gestionada per"
 #: src/components/transactional/notificationParts.tsx:21
 #: src/components/transactional/notificationParts.tsx:46
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:282
-#: src/pages/TemplatesPage.tsx:392
+#: src/pages/TemplatesPage.tsx:391
 msgid "Managed by {0} ({1} integration)"
 msgstr "Gestionat per {0} (integració {1})"
 
@@ -15556,7 +15556,7 @@ msgstr "L'exportació MJML ha fallat"
 msgid "MJML exported successfully"
 msgstr "MJML exportat correctament"
 
-#: src/pages/TemplatesPage.tsx:578
+#: src/pages/TemplatesPage.tsx:587
 msgid "MJML file (.mjml)"
 msgstr "Fitxer MJML (.mjml)"
 
@@ -15676,7 +15676,7 @@ msgstr "Mensual"
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:350
-#: src/pages/TemplatesPage.tsx:484
+#: src/pages/TemplatesPage.tsx:493
 msgid "More actions"
 msgstr "Més accions"
 
@@ -15802,7 +15802,7 @@ msgstr "El nom ha de tenir menys de 255 caràcters"
 msgid "Name or ID"
 msgstr "Nom o ID"
 
-#: src/pages/TemplatesPage.tsx:626
+#: src/pages/TemplatesPage.tsx:635
 msgid "Name or subject"
 msgstr "Nom o assumpte"
 
@@ -15992,8 +15992,8 @@ msgstr "Pestanya nova"
 #: src/components/templates/TemplateSelectorModal.tsx:170
 #: src/components/templates/TemplateSelectorModal.tsx:176
 #: src/components/templates/TemplateStartModal.tsx:85
-#: src/pages/TemplatesPage.tsx:530
-#: src/pages/TemplatesPage.tsx:605
+#: src/pages/TemplatesPage.tsx:539
+#: src/pages/TemplatesPage.tsx:614
 msgid "New template"
 msgstr "Plantilla nova"
 
@@ -16747,7 +16747,7 @@ msgstr "Cap plantilla no coincideix."
 msgid "No template yet"
 msgstr "Encara no hi ha plantilla"
 
-#: src/pages/TemplatesPage.tsx:517
+#: src/pages/TemplatesPage.tsx:526
 msgid "No templates found"
 msgstr "No s'han trobat plantilles"
 
@@ -16756,7 +16756,7 @@ msgstr "No s'han trobat plantilles"
 #~ msgid "No templates found for {0} category"
 #~ msgstr "No s'han trobat plantilles per a la categoria {0}"
 
-#: src/pages/TemplatesPage.tsx:546
+#: src/pages/TemplatesPage.tsx:555
 msgid "No templates found for category \"{label}\""
 msgstr "No hi ha plantilles a la categoria \"{label}\""
 
@@ -16764,7 +16764,7 @@ msgstr "No hi ha plantilles a la categoria \"{label}\""
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "No s'han trobat plantilles per a la categoria \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:566
+#: src/pages/TemplatesPage.tsx:575
 msgid "No templates match your search"
 msgstr "Cap plantilla coincideix amb la vostra cerca"
 
@@ -17190,7 +17190,7 @@ msgstr "Notifuse {latest} està disponible"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse ha desactivat aquest webhook automàticament"
 
-#: src/pages/TemplatesPage.tsx:577
+#: src/pages/TemplatesPage.tsx:586
 msgid "Notifuse export (.json)"
 msgstr "Exportació de Notifuse (.json)"
 
@@ -18992,7 +18992,8 @@ msgstr "Premeu Enter per confirmar, Escape per cancel·lar"
 #: src/components/templates/TemplateSelectorModal.tsx:368
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
-#: src/pages/TemplatesPage.tsx:312
+#: src/pages/TemplatesPage.tsx:476
+#: src/pages/TemplatesPage.tsx:480
 msgid "Preview"
 msgstr "Previsualitzar"
 
@@ -20446,7 +20447,7 @@ msgstr "Restableix H{level}"
 msgid "Reset replaces all the content with the default language's."
 msgstr "Restableix substitueix tot el contingut pel de l’idioma per defecte."
 
-#: src/pages/TemplatesPage.tsx:551
+#: src/pages/TemplatesPage.tsx:560
 msgid "reset the filter"
 msgstr "restablir el filtre"
 
@@ -20623,7 +20624,7 @@ msgstr "Ha reintentat els enviaments fallits del butlletí <0>{target}</0>"
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
 #: src/pages/AutomationsPage.tsx:208
 #: src/pages/BroadcastsPage.tsx:245
-#: src/pages/TemplatesPage.tsx:507
+#: src/pages/TemplatesPage.tsx:516
 #: src/pages/TransactionalNotificationsPage.tsx:189
 msgid "Retry"
 msgstr "Torna-ho a provar"
@@ -22008,7 +22009,7 @@ msgstr "Envia ara"
 #: src/components/transactional/TransactionalDetail.tsx:352
 #: src/components/transactional/TransactionalTable.tsx:331
 #: src/components/transactional/TransactionalTable.tsx:332
-#: src/pages/TemplatesPage.tsx:315
+#: src/pages/TemplatesPage.tsx:314
 msgid "Send test"
 msgstr "Envia una prova"
 
@@ -22073,7 +22074,7 @@ msgstr "Envieu el vostre primer butlletí a una llista"
 #: src/components/templates/TemplateSettingsStep.tsx:262
 #: src/components/transactional/NotificationChecks.tsx:176
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:316
-#: src/pages/TemplatesPage.tsx:444
+#: src/pages/TemplatesPage.tsx:443
 msgid "Sender"
 msgstr "Remitent"
 
@@ -24042,7 +24043,7 @@ msgstr "plantilla"
 #: src/components/segment/form_leaf.tsx:578
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
-#: src/pages/TemplatesPage.tsx:380
+#: src/pages/TemplatesPage.tsx:379
 msgid "Template"
 msgstr "Plantilla"
 
@@ -24208,7 +24209,7 @@ msgstr "Remitent de la plantilla ({0})"
 #: src/components/templates/CreateTemplateDrawer.tsx:968
 #: src/components/templates/TemplateSelectorModal.tsx:285
 #: src/layouts/app-shell/menuItems.ts:229
-#: src/pages/TemplatesPage.tsx:584
+#: src/pages/TemplatesPage.tsx:593
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Plantilles"
@@ -25745,7 +25746,7 @@ msgstr "Aquesta plantilla encara no té contingut per previsualitzar"
 msgid "This template is already used in another variation"
 msgstr "Aquesta plantilla ja s'utilitza en una altra variació"
 
-#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:335
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "Aquesta plantilla està gestionada per una integració i no es pot eliminar"
 
@@ -26483,7 +26484,7 @@ msgstr "cert"
 #~ msgid "Try adjusting your search or status filter"
 #~ msgstr "Proveu d'ajustar la cerca o el filtre d'estat"
 
-#: src/pages/TemplatesPage.tsx:549
+#: src/pages/TemplatesPage.tsx:558
 msgid "Try selecting a different category or"
 msgstr "Proveu de seleccionar una categoria diferent o"
 
@@ -26926,7 +26927,7 @@ msgstr "Actualitzar estat"
 #~ msgstr "Actualitzat"
 
 #: src/components/automations/describeTrigger.ts:26
-#: src/pages/TemplatesPage.tsx:459
+#: src/pages/TemplatesPage.tsx:458
 msgid "Updated"
 msgstr "Actualitzat"
 
@@ -27249,7 +27250,7 @@ msgstr "Utilitzada per"
 msgid "Used for sign-in codes and invitations. Workspaces set up their own email providers later."
 msgstr "S'utilitza per als codis d'accés i les invitacions. Els espais de treball configuren després els seus propis proveïdors de correu."
 
-#: src/pages/TemplatesPage.tsx:437
+#: src/pages/TemplatesPage.tsx:436
 msgid "Used in"
 msgstr "S'utilitza a"
 
@@ -27349,7 +27350,7 @@ msgstr "Fa servir la imatge per compartir del blog"
 msgid "Uses the category's or the blog's share image"
 msgstr "Fa servir la imatge per compartir de la categoria o del blog"
 
-#: src/pages/TemplatesPage.tsx:433
+#: src/pages/TemplatesPage.tsx:432
 msgid "Uses you can't see aren't counted."
 msgstr "No es compten els usos que no podeu veure."
 

@@ -28,6 +28,8 @@ describe('SettingsPanelHeader', () => {
   it("shows the block's name and its path, the ancestors as buttons that select them", () => {
     const { onSelectBlock } = renderHeader(button)
     const header = screen.getByTestId('settings-panel-header')
+    // The darker rule of the panel, not the soft one between rows
+    expect(header).toHaveClass('border-line')
     expect(within(header).getAllByText('Button')[0]).toBeInTheDocument()
     const path = screen.getByRole('navigation', { name: 'Block path' })
     expect(path).toHaveTextContent('Body›Section›Column›Button')

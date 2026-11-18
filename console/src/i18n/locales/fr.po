@@ -4899,7 +4899,7 @@ msgstr "Les newsletters et les emails d'automation partent à ce débit au maxim
 msgid "Broadcasts or Transactional"
 msgstr "Newsletters ou Transactionnel"
 
-#: src/pages/TemplatesPage.tsx:432
+#: src/pages/TemplatesPage.tsx:431
 msgid "Broadcasts that may still send, transactional notifications, automations and double opt-in lists. Broadcasts already sent and segment filters on a template aren't counted."
 msgstr "Newsletters qui peuvent encore partir, notifications transactionnelles, automations et listes en double opt-in. Les newsletters déjà envoyées et les filtres de segment portant sur un modèle ne sont pas comptés."
 
@@ -5318,7 +5318,7 @@ msgstr "catégorie"
 #: src/components/templates/TemplateSettingsStep.tsx:157
 #: src/components/templates/TemplateStartModal.tsx:295
 #: src/components/templates/TemplateStartModal.tsx:375
-#: src/pages/TemplatesPage.tsx:423
+#: src/pages/TemplatesPage.tsx:422
 msgid "Category"
 msgstr "Catégorie"
 
@@ -5961,7 +5961,7 @@ msgstr "Le Client Secret est requis"
 msgid "Client Secret Value"
 msgstr "Valeur du Client Secret"
 
-#: src/pages/TemplatesPage.tsx:321
+#: src/pages/TemplatesPage.tsx:320
 msgid "Clone"
 msgstr "Cloner"
 
@@ -6018,7 +6018,7 @@ msgstr "Sous-titres (CC)"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:509
 #: src/components/email_builder/MjmlCodeEditor.tsx:679
-#: src/pages/TemplatesPage.tsx:405
+#: src/pages/TemplatesPage.tsx:404
 msgid "Code"
 msgstr "Code"
 
@@ -6840,7 +6840,7 @@ msgstr "Copier l’ID externe"
 #: src/components/transactional/TransactionalDetail.tsx:324
 #: src/components/transactional/TransactionalTable.tsx:296
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:431
-#: src/pages/TemplatesPage.tsx:327
+#: src/pages/TemplatesPage.tsx:326
 msgid "Copy ID"
 msgstr "Copier l'ID"
 
@@ -6964,7 +6964,7 @@ msgstr "Impossible de vérifier où ce modèle est utilisé"
 #: src/components/transactional/NotificationChecks.tsx:131
 #: src/components/transactional/notificationParts.tsx:82
 #: src/components/transactional/TransactionalDetail.tsx:267
-#: src/pages/TemplatesPage.tsx:354
+#: src/pages/TemplatesPage.tsx:353
 #: src/pages/TransactionalNotificationsPage.tsx:318
 msgid "Couldn't load"
 msgstr "Chargement impossible"
@@ -7037,7 +7037,7 @@ msgid "Couldn't load the template"
 msgstr "Impossible de charger le template"
 
 #: src/components/templates/TemplateSelectorModal.tsx:233
-#: src/pages/TemplatesPage.tsx:505
+#: src/pages/TemplatesPage.tsx:514
 msgid "Couldn't load the templates"
 msgstr "Impossible de charger les modèles"
 
@@ -7421,7 +7421,7 @@ msgstr "Créez votre première notification pour commencer"
 msgid "Create Your First Post"
 msgstr "Créer votre premier article"
 
-#: src/pages/TemplatesPage.tsx:518
+#: src/pages/TemplatesPage.tsx:527
 msgid "Create your first template to get started"
 msgstr "Créez votre premier modèle pour commencer"
 
@@ -7448,7 +7448,7 @@ msgstr "Créés"
 #. placeholder {0}: fullDate(template.created_at)
 #. placeholder {1}: fullDate(template.updated_at)
 #. placeholder {2}: timezone ?? 'UTC'
-#: src/pages/TemplatesPage.tsx:463
+#: src/pages/TemplatesPage.tsx:462
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "Créé le {0} · Modifié le {1} ({2})"
 
@@ -7995,7 +7995,7 @@ msgstr "Défilement le plus profond atteint sur une page de la visite"
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
 #: src/components/settings/integrations/EmailProviderCard.tsx:296
 #: src/components/templates/SendTemplateModal.tsx:99
-#: src/pages/TemplatesPage.tsx:455
+#: src/pages/TemplatesPage.tsx:454
 msgid "default"
 msgstr "par défaut"
 
@@ -8185,8 +8185,8 @@ msgstr "Délai"
 #: src/components/web_analytics/filters/FilterTable.tsx:179
 #: src/components/web_analytics/filters/FilterTable.tsx:355
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:120
-#: src/pages/TemplatesPage.tsx:337
-#: src/pages/TemplatesPage.tsx:340
+#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:339
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -12960,7 +12960,7 @@ msgstr "L'ID ne peut contenir que des lettres minuscules, des chiffres et des ti
 #: src/components/automations/AutomationEditor.tsx:428
 #: src/components/lists/ListDrawer.tsx:361
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:239
-#: src/pages/TemplatesPage.tsx:329
+#: src/pages/TemplatesPage.tsx:328
 #: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "ID copied"
 msgstr "ID copié"
@@ -12979,7 +12979,7 @@ msgstr "L'ID ne correspond pas"
 #~ msgstr "ID pour API :"
 
 #. placeholder {0}: template.id
-#: src/pages/TemplatesPage.tsx:400
+#: src/pages/TemplatesPage.tsx:399
 msgid "ID for API: {0}"
 msgstr "ID pour l'API : {0}"
 
@@ -13159,7 +13159,7 @@ msgstr "TLS implicite sur 465"
 #: src/components/segment/segmentLabels.ts:252
 #: src/components/templates/ImportExportButton.tsx:203
 #: src/pages/ContactsPage.tsx:551
-#: src/pages/TemplatesPage.tsx:592
+#: src/pages/TemplatesPage.tsx:601
 msgid "Import"
 msgstr "Importer"
 
@@ -15114,7 +15114,7 @@ msgstr "Gérée par"
 #: src/components/transactional/notificationParts.tsx:21
 #: src/components/transactional/notificationParts.tsx:46
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:282
-#: src/pages/TemplatesPage.tsx:392
+#: src/pages/TemplatesPage.tsx:391
 msgid "Managed by {0} ({1} integration)"
 msgstr "Géré par {0} (intégration {1})"
 
@@ -15556,7 +15556,7 @@ msgstr "Échec de l'exportation MJML"
 msgid "MJML exported successfully"
 msgstr "MJML exporté avec succès"
 
-#: src/pages/TemplatesPage.tsx:578
+#: src/pages/TemplatesPage.tsx:587
 msgid "MJML file (.mjml)"
 msgstr "Fichier MJML (.mjml)"
 
@@ -15676,7 +15676,7 @@ msgstr "Mensuel"
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:350
-#: src/pages/TemplatesPage.tsx:484
+#: src/pages/TemplatesPage.tsx:493
 msgid "More actions"
 msgstr "Plus d'actions"
 
@@ -15802,7 +15802,7 @@ msgstr "Le nom doit faire moins de 255 caractères"
 msgid "Name or ID"
 msgstr "Nom ou ID"
 
-#: src/pages/TemplatesPage.tsx:626
+#: src/pages/TemplatesPage.tsx:635
 msgid "Name or subject"
 msgstr "Nom ou objet"
 
@@ -15992,8 +15992,8 @@ msgstr "Nouvel onglet"
 #: src/components/templates/TemplateSelectorModal.tsx:170
 #: src/components/templates/TemplateSelectorModal.tsx:176
 #: src/components/templates/TemplateStartModal.tsx:85
-#: src/pages/TemplatesPage.tsx:530
-#: src/pages/TemplatesPage.tsx:605
+#: src/pages/TemplatesPage.tsx:539
+#: src/pages/TemplatesPage.tsx:614
 msgid "New template"
 msgstr "Nouveau modèle"
 
@@ -16747,7 +16747,7 @@ msgstr "Aucun modèle ne correspond."
 msgid "No template yet"
 msgstr "Pas encore de modèle"
 
-#: src/pages/TemplatesPage.tsx:517
+#: src/pages/TemplatesPage.tsx:526
 msgid "No templates found"
 msgstr "Aucun modèle trouvé"
 
@@ -16756,7 +16756,7 @@ msgstr "Aucun modèle trouvé"
 #~ msgid "No templates found for {0} category"
 #~ msgstr "Aucun modèle trouvé pour la catégorie {0}"
 
-#: src/pages/TemplatesPage.tsx:546
+#: src/pages/TemplatesPage.tsx:555
 msgid "No templates found for category \"{label}\""
 msgstr "Aucun modèle dans la catégorie \"{label}\""
 
@@ -16764,7 +16764,7 @@ msgstr "Aucun modèle dans la catégorie \"{label}\""
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "Aucun modèle trouvé pour la catégorie \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:566
+#: src/pages/TemplatesPage.tsx:575
 msgid "No templates match your search"
 msgstr "Aucun modèle ne correspond à votre recherche"
 
@@ -17190,7 +17190,7 @@ msgstr "Notifuse {latest} est disponible"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse a désactivé ce webhook automatiquement"
 
-#: src/pages/TemplatesPage.tsx:577
+#: src/pages/TemplatesPage.tsx:586
 msgid "Notifuse export (.json)"
 msgstr "Export Notifuse (.json)"
 
@@ -18992,7 +18992,8 @@ msgstr "Appuyez sur Entrée pour confirmer, Échap pour annuler"
 #: src/components/templates/TemplateSelectorModal.tsx:368
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
-#: src/pages/TemplatesPage.tsx:312
+#: src/pages/TemplatesPage.tsx:476
+#: src/pages/TemplatesPage.tsx:480
 msgid "Preview"
 msgstr "Aperçu"
 
@@ -20446,7 +20447,7 @@ msgstr "Réinitialiser H{level}"
 msgid "Reset replaces all the content with the default language's."
 msgstr "Réinitialiser remplace tout le contenu par celui de la langue par défaut."
 
-#: src/pages/TemplatesPage.tsx:551
+#: src/pages/TemplatesPage.tsx:560
 msgid "reset the filter"
 msgstr "réinitialiser le filtre"
 
@@ -20623,7 +20624,7 @@ msgstr "A relancé les envois échoués de la newsletter <0>{target}</0>"
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
 #: src/pages/AutomationsPage.tsx:208
 #: src/pages/BroadcastsPage.tsx:245
-#: src/pages/TemplatesPage.tsx:507
+#: src/pages/TemplatesPage.tsx:516
 #: src/pages/TransactionalNotificationsPage.tsx:189
 msgid "Retry"
 msgstr "Réessayer"
@@ -22008,7 +22009,7 @@ msgstr "Envoyer maintenant"
 #: src/components/transactional/TransactionalDetail.tsx:352
 #: src/components/transactional/TransactionalTable.tsx:331
 #: src/components/transactional/TransactionalTable.tsx:332
-#: src/pages/TemplatesPage.tsx:315
+#: src/pages/TemplatesPage.tsx:314
 msgid "Send test"
 msgstr "Envoyer un test"
 
@@ -22073,7 +22074,7 @@ msgstr "Envoyez votre première newsletter à une liste"
 #: src/components/templates/TemplateSettingsStep.tsx:262
 #: src/components/transactional/NotificationChecks.tsx:176
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:316
-#: src/pages/TemplatesPage.tsx:444
+#: src/pages/TemplatesPage.tsx:443
 msgid "Sender"
 msgstr "Expéditeur"
 
@@ -24042,7 +24043,7 @@ msgstr "modèle"
 #: src/components/segment/form_leaf.tsx:578
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
-#: src/pages/TemplatesPage.tsx:380
+#: src/pages/TemplatesPage.tsx:379
 msgid "Template"
 msgstr "Modèle d'email"
 
@@ -24208,7 +24209,7 @@ msgstr "Expéditeur du modèle ({0})"
 #: src/components/templates/CreateTemplateDrawer.tsx:968
 #: src/components/templates/TemplateSelectorModal.tsx:285
 #: src/layouts/app-shell/menuItems.ts:229
-#: src/pages/TemplatesPage.tsx:584
+#: src/pages/TemplatesPage.tsx:593
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Modèles d'email"
@@ -25745,7 +25746,7 @@ msgstr "Ce modèle n'a pas encore de contenu à prévisualiser"
 msgid "This template is already used in another variation"
 msgstr "Ce modèle est déjà utilisé dans une autre variation"
 
-#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:335
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "Ce modèle est géré par une intégration et ne peut pas être supprimé"
 
@@ -26483,7 +26484,7 @@ msgstr "vrai"
 #~ msgid "Try adjusting your search or status filter"
 #~ msgstr "Essayez d'ajuster votre recherche ou votre filtre de statut"
 
-#: src/pages/TemplatesPage.tsx:549
+#: src/pages/TemplatesPage.tsx:558
 msgid "Try selecting a different category or"
 msgstr "Essayez de sélectionner une catégorie différente ou"
 
@@ -26926,7 +26927,7 @@ msgstr "Mettre à jour le statut"
 #~ msgstr "mis à jour"
 
 #: src/components/automations/describeTrigger.ts:26
-#: src/pages/TemplatesPage.tsx:459
+#: src/pages/TemplatesPage.tsx:458
 msgid "Updated"
 msgstr "Mis à jour"
 
@@ -27249,7 +27250,7 @@ msgstr "Utilisé par"
 msgid "Used for sign-in codes and invitations. Workspaces set up their own email providers later."
 msgstr "Sert aux codes de connexion et aux invitations. Les espaces de travail configurent ensuite leurs propres fournisseurs d'email."
 
-#: src/pages/TemplatesPage.tsx:437
+#: src/pages/TemplatesPage.tsx:436
 msgid "Used in"
 msgstr "Utilisé dans"
 
@@ -27349,7 +27350,7 @@ msgstr "Utilise l'image de partage du blog"
 msgid "Uses the category's or the blog's share image"
 msgstr "Utilise l'image de partage de la catégorie ou du blog"
 
-#: src/pages/TemplatesPage.tsx:433
+#: src/pages/TemplatesPage.tsx:432
 msgid "Uses you can't see aren't counted."
 msgstr "Les utilisations que vous ne pouvez pas voir ne sont pas comptées."
 

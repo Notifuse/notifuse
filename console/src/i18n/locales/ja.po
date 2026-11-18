@@ -4899,7 +4899,7 @@ msgstr "ブロードキャストとオートメーションのメールは、最
 msgid "Broadcasts or Transactional"
 msgstr "ブロードキャスト または トランザクション"
 
-#: src/pages/TemplatesPage.tsx:432
+#: src/pages/TemplatesPage.tsx:431
 msgid "Broadcasts that may still send, transactional notifications, automations and double opt-in lists. Broadcasts already sent and segment filters on a template aren't counted."
 msgstr "まだ送信される可能性のあるブロードキャスト、トランザクション通知、オートメーション、ダブルオプトインのリスト。送信済みのブロードキャストと、テンプレートを条件とするセグメントフィルターはカウントされません。"
 
@@ -5318,7 +5318,7 @@ msgstr "カテゴリ"
 #: src/components/templates/TemplateSettingsStep.tsx:157
 #: src/components/templates/TemplateStartModal.tsx:295
 #: src/components/templates/TemplateStartModal.tsx:375
-#: src/pages/TemplatesPage.tsx:423
+#: src/pages/TemplatesPage.tsx:422
 msgid "Category"
 msgstr "カテゴリ"
 
@@ -5961,7 +5961,7 @@ msgstr "クライアントシークレットは必須です"
 msgid "Client Secret Value"
 msgstr "クライアントシークレットの値"
 
-#: src/pages/TemplatesPage.tsx:321
+#: src/pages/TemplatesPage.tsx:320
 msgid "Clone"
 msgstr "複製"
 
@@ -6018,7 +6018,7 @@ msgstr "字幕 (CC)"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:509
 #: src/components/email_builder/MjmlCodeEditor.tsx:679
-#: src/pages/TemplatesPage.tsx:405
+#: src/pages/TemplatesPage.tsx:404
 msgid "Code"
 msgstr "コード"
 
@@ -6840,7 +6840,7 @@ msgstr "外部 ID をコピー"
 #: src/components/transactional/TransactionalDetail.tsx:324
 #: src/components/transactional/TransactionalTable.tsx:296
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:431
-#: src/pages/TemplatesPage.tsx:327
+#: src/pages/TemplatesPage.tsx:326
 msgid "Copy ID"
 msgstr "IDをコピー"
 
@@ -6964,7 +6964,7 @@ msgstr "このテンプレートの使用箇所を確認できませんでした
 #: src/components/transactional/NotificationChecks.tsx:131
 #: src/components/transactional/notificationParts.tsx:82
 #: src/components/transactional/TransactionalDetail.tsx:267
-#: src/pages/TemplatesPage.tsx:354
+#: src/pages/TemplatesPage.tsx:353
 #: src/pages/TransactionalNotificationsPage.tsx:318
 msgid "Couldn't load"
 msgstr "読み込めませんでした"
@@ -7037,7 +7037,7 @@ msgid "Couldn't load the template"
 msgstr "テンプレートを読み込めませんでした"
 
 #: src/components/templates/TemplateSelectorModal.tsx:233
-#: src/pages/TemplatesPage.tsx:505
+#: src/pages/TemplatesPage.tsx:514
 msgid "Couldn't load the templates"
 msgstr "テンプレートを読み込めませんでした"
 
@@ -7421,7 +7421,7 @@ msgstr "最初の通知を作成して始めましょう"
 msgid "Create Your First Post"
 msgstr "最初の投稿を作成"
 
-#: src/pages/TemplatesPage.tsx:518
+#: src/pages/TemplatesPage.tsx:527
 msgid "Create your first template to get started"
 msgstr "最初のテンプレートを作成して始めましょう"
 
@@ -7448,7 +7448,7 @@ msgstr "作成"
 #. placeholder {0}: fullDate(template.created_at)
 #. placeholder {1}: fullDate(template.updated_at)
 #. placeholder {2}: timezone ?? 'UTC'
-#: src/pages/TemplatesPage.tsx:463
+#: src/pages/TemplatesPage.tsx:462
 msgid "Created {0} · Updated {1} in {2}"
 msgstr "作成 {0} · 更新 {1}（{2}）"
 
@@ -7995,7 +7995,7 @@ msgstr "訪問中のいずれかのページで到達した最大スクロール
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
 #: src/components/settings/integrations/EmailProviderCard.tsx:296
 #: src/components/templates/SendTemplateModal.tsx:99
-#: src/pages/TemplatesPage.tsx:455
+#: src/pages/TemplatesPage.tsx:454
 msgid "default"
 msgstr "デフォルト"
 
@@ -8185,8 +8185,8 @@ msgstr "遅延"
 #: src/components/web_analytics/filters/FilterTable.tsx:179
 #: src/components/web_analytics/filters/FilterTable.tsx:355
 #: src/components/web_analytics/filters/OperationsBuilder.tsx:120
-#: src/pages/TemplatesPage.tsx:337
-#: src/pages/TemplatesPage.tsx:340
+#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:339
 msgid "Delete"
 msgstr "削除"
 
@@ -12960,7 +12960,7 @@ msgstr "IDは小文字の英字、数字、アンダースコアのみ使用で�
 #: src/components/automations/AutomationEditor.tsx:428
 #: src/components/lists/ListDrawer.tsx:361
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:239
-#: src/pages/TemplatesPage.tsx:329
+#: src/pages/TemplatesPage.tsx:328
 #: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "ID copied"
 msgstr "IDをコピーしました"
@@ -12979,7 +12979,7 @@ msgstr "IDが一致しません"
 #~ msgstr "API用ID:"
 
 #. placeholder {0}: template.id
-#: src/pages/TemplatesPage.tsx:400
+#: src/pages/TemplatesPage.tsx:399
 msgid "ID for API: {0}"
 msgstr "API用ID：{0}"
 
@@ -13159,7 +13159,7 @@ msgstr "465で暗黙的TLS"
 #: src/components/segment/segmentLabels.ts:252
 #: src/components/templates/ImportExportButton.tsx:203
 #: src/pages/ContactsPage.tsx:551
-#: src/pages/TemplatesPage.tsx:592
+#: src/pages/TemplatesPage.tsx:601
 msgid "Import"
 msgstr "インポート"
 
@@ -15114,7 +15114,7 @@ msgstr "管理元"
 #: src/components/transactional/notificationParts.tsx:21
 #: src/components/transactional/notificationParts.tsx:46
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:282
-#: src/pages/TemplatesPage.tsx:392
+#: src/pages/TemplatesPage.tsx:391
 msgid "Managed by {0} ({1} integration)"
 msgstr "{0}（{1}連携）によって管理"
 
@@ -15556,7 +15556,7 @@ msgstr "MJMLエクスポートに失敗しました"
 msgid "MJML exported successfully"
 msgstr "MJMLを正常にエクスポートしました"
 
-#: src/pages/TemplatesPage.tsx:578
+#: src/pages/TemplatesPage.tsx:587
 msgid "MJML file (.mjml)"
 msgstr "MJMLファイル（.mjml）"
 
@@ -15676,7 +15676,7 @@ msgstr "月次"
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:350
-#: src/pages/TemplatesPage.tsx:484
+#: src/pages/TemplatesPage.tsx:493
 msgid "More actions"
 msgstr "その他の操作"
 
@@ -15802,7 +15802,7 @@ msgstr "名前は255文字未満である必要があります"
 msgid "Name or ID"
 msgstr "名前または ID"
 
-#: src/pages/TemplatesPage.tsx:626
+#: src/pages/TemplatesPage.tsx:635
 msgid "Name or subject"
 msgstr "名前または件名"
 
@@ -15992,8 +15992,8 @@ msgstr "新しいタブ"
 #: src/components/templates/TemplateSelectorModal.tsx:170
 #: src/components/templates/TemplateSelectorModal.tsx:176
 #: src/components/templates/TemplateStartModal.tsx:85
-#: src/pages/TemplatesPage.tsx:530
-#: src/pages/TemplatesPage.tsx:605
+#: src/pages/TemplatesPage.tsx:539
+#: src/pages/TemplatesPage.tsx:614
 msgid "New template"
 msgstr "新規テンプレート"
 
@@ -16747,7 +16747,7 @@ msgstr "一致するテンプレートはありません。"
 msgid "No template yet"
 msgstr "テンプレートはまだありません"
 
-#: src/pages/TemplatesPage.tsx:517
+#: src/pages/TemplatesPage.tsx:526
 msgid "No templates found"
 msgstr "テンプレートが見つかりません"
 
@@ -16756,7 +16756,7 @@ msgstr "テンプレートが見つかりません"
 #~ msgid "No templates found for {0} category"
 #~ msgstr "{0}カテゴリのテンプレートが見つかりません"
 
-#: src/pages/TemplatesPage.tsx:546
+#: src/pages/TemplatesPage.tsx:555
 msgid "No templates found for category \"{label}\""
 msgstr "カテゴリ「{label}」にテンプレートはありません"
 
@@ -16764,7 +16764,7 @@ msgstr "カテゴリ「{label}」にテンプレートはありません"
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "カテゴリ「{selectedCategory}」のテンプレートが見つかりません"
 
-#: src/pages/TemplatesPage.tsx:566
+#: src/pages/TemplatesPage.tsx:575
 msgid "No templates match your search"
 msgstr "検索に一致するテンプレートはありません"
 
@@ -17190,7 +17190,7 @@ msgstr "Notifuse {latest} が利用可能です"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "NotifuseがこのWebhookを自動的に無効化しました"
 
-#: src/pages/TemplatesPage.tsx:577
+#: src/pages/TemplatesPage.tsx:586
 msgid "Notifuse export (.json)"
 msgstr "Notifuseエクスポート（.json）"
 
@@ -18992,7 +18992,8 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #: src/components/templates/TemplateSelectorModal.tsx:368
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
-#: src/pages/TemplatesPage.tsx:312
+#: src/pages/TemplatesPage.tsx:476
+#: src/pages/TemplatesPage.tsx:480
 msgid "Preview"
 msgstr "プレビュー"
 
@@ -20446,7 +20447,7 @@ msgstr "H{level} をリセット"
 msgid "Reset replaces all the content with the default language's."
 msgstr "リセットすると、すべてのコンテンツが既定の言語のものに置き換わります。"
 
-#: src/pages/TemplatesPage.tsx:551
+#: src/pages/TemplatesPage.tsx:560
 msgid "reset the filter"
 msgstr "フィルターをリセット"
 
@@ -20623,7 +20624,7 @@ msgstr "ニュースレター <0>{target}</0> の失敗した送信を再試行�
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
 #: src/pages/AutomationsPage.tsx:208
 #: src/pages/BroadcastsPage.tsx:245
-#: src/pages/TemplatesPage.tsx:507
+#: src/pages/TemplatesPage.tsx:516
 #: src/pages/TransactionalNotificationsPage.tsx:189
 msgid "Retry"
 msgstr "再試行"
@@ -22008,7 +22009,7 @@ msgstr "今すぐ送信"
 #: src/components/transactional/TransactionalDetail.tsx:352
 #: src/components/transactional/TransactionalTable.tsx:331
 #: src/components/transactional/TransactionalTable.tsx:332
-#: src/pages/TemplatesPage.tsx:315
+#: src/pages/TemplatesPage.tsx:314
 msgid "Send test"
 msgstr "テスト送信"
 
@@ -22073,7 +22074,7 @@ msgstr "最初のニュースレターをリストに送信しましょう"
 #: src/components/templates/TemplateSettingsStep.tsx:262
 #: src/components/transactional/NotificationChecks.tsx:176
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:316
-#: src/pages/TemplatesPage.tsx:444
+#: src/pages/TemplatesPage.tsx:443
 msgid "Sender"
 msgstr "送信者"
 
@@ -24042,7 +24043,7 @@ msgstr "テンプレート"
 #: src/components/segment/form_leaf.tsx:578
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
-#: src/pages/TemplatesPage.tsx:380
+#: src/pages/TemplatesPage.tsx:379
 msgid "Template"
 msgstr "テンプレート"
 
@@ -24208,7 +24209,7 @@ msgstr "テンプレートの送信者（{0}）"
 #: src/components/templates/CreateTemplateDrawer.tsx:968
 #: src/components/templates/TemplateSelectorModal.tsx:285
 #: src/layouts/app-shell/menuItems.ts:229
-#: src/pages/TemplatesPage.tsx:584
+#: src/pages/TemplatesPage.tsx:593
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "テンプレート"
@@ -25745,7 +25746,7 @@ msgstr "このテンプレートにはまだプレビューできるコンテン
 msgid "This template is already used in another variation"
 msgstr "このテンプレートは既に別のバリエーションで使用されています"
 
-#: src/pages/TemplatesPage.tsx:336
+#: src/pages/TemplatesPage.tsx:335
 msgid "This template is managed by an integration and cannot be deleted"
 msgstr "このテンプレートは連携によって管理されており、削除できません"
 
@@ -26483,7 +26484,7 @@ msgstr "真"
 #~ msgid "Try adjusting your search or status filter"
 #~ msgstr "検索条件やステータスフィルターを調整してみてください"
 
-#: src/pages/TemplatesPage.tsx:549
+#: src/pages/TemplatesPage.tsx:558
 msgid "Try selecting a different category or"
 msgstr "別のカテゴリを選択するか、"
 
@@ -26926,7 +26927,7 @@ msgstr "ステータスを更新"
 #~ msgstr "更新済み"
 
 #: src/components/automations/describeTrigger.ts:26
-#: src/pages/TemplatesPage.tsx:459
+#: src/pages/TemplatesPage.tsx:458
 msgid "Updated"
 msgstr "更新済み"
 
@@ -27249,7 +27250,7 @@ msgstr "使用先"
 msgid "Used for sign-in codes and invitations. Workspaces set up their own email providers later."
 msgstr "ログインコードと招待に使われます。ワークスペースは後で独自のメールプロバイダーを設定します。"
 
-#: src/pages/TemplatesPage.tsx:437
+#: src/pages/TemplatesPage.tsx:436
 msgid "Used in"
 msgstr "使用箇所"
 
@@ -27349,7 +27350,7 @@ msgstr "ブログの共有画像を使用"
 msgid "Uses the category's or the blog's share image"
 msgstr "カテゴリまたはブログの共有画像を使用"
 
-#: src/pages/TemplatesPage.tsx:433
+#: src/pages/TemplatesPage.tsx:432
 msgid "Uses you can't see aren't counted."
 msgstr "表示できない使用箇所は数えられません。"
 

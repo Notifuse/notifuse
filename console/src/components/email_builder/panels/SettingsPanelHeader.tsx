@@ -45,7 +45,7 @@ export function SettingsPanelHeader({
   const parentType = path.at(-2)?.type
 
   return (
-    <div className="flex items-center gap-2.5 border-b border-line-soft px-3.5 py-3" data-testid="settings-panel-header">
+    <div className="flex items-center gap-2.5 border-b border-line px-3.5 py-3" data-testid="settings-panel-header">
       <span
         data-testid="settings-panel-header-icon"
         className={`flex size-7.5 flex-none items-center justify-center rounded-[7px] ${TONE[headerTone(path)]}`}
