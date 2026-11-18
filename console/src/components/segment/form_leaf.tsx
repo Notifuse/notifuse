@@ -231,7 +231,7 @@ function TimeframeFields({ conditionKey }: { conditionKey: 'contact_timeline' | 
                   })}
                   getValueFromEvent={(args: number | null) => ['' + args]}
                 >
-                  <InputNumber style={{ width: 80 }} step={1} size="small" />
+                  <InputNumber style={{ width: 80 }} step={1} size="small" aria-label={t`Number of days`} />
                 </Form.Item>
                 <span className="text-ink-2">{t`days`}</span>
               </span>

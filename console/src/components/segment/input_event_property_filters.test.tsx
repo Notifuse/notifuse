@@ -188,3 +188,15 @@ describe('InputEventPropertyFilters editing', () => {
     ).toBe(true)
   })
 })
+
+describe('InputEventPropertyFilters focus', () => {
+  it('hands the keyboard to the name of a property it adds', async () => {
+    renderEditable([{ field_name: 'sku', field_type: 'string', operator: 'is_set' }])
+    fireEvent.click(screen.getByText('Add a property'))
+    await waitFor(() => {
+      const keys = screen.getAllByRole('textbox', { name: 'Property name' })
+      expect(keys).toHaveLength(2)
+      expect(document.activeElement).toBe(keys[1])
+    })
+  })
+})

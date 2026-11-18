@@ -2084,7 +2084,7 @@ msgstr "actif"
 #: src/components/automations/edges/edgeLabel.ts:17
 #: src/components/contacts/contactDisplay.ts:35
 #: src/components/lists/ListHeader.tsx:38
-#: src/components/segment/SegmentDrawer.tsx:264
+#: src/components/segment/SegmentDrawer.tsx:267
 #: src/components/settings/LicenseSettings.tsx:110
 #: src/components/settings/WebhookDetail.tsx:265
 msgid "Active"
@@ -2169,15 +2169,15 @@ msgstr "Ajouter une légende..."
 msgid "Add a condition"
 msgstr "Ajouter une condition"
 
-#: src/components/segment/input_dimension_filters.tsx:67
+#: src/components/segment/input_dimension_filters.tsx:79
 msgid "Add a filter"
 msgstr "Ajouter un filtre"
 
-#: src/components/segment/SegmentDrawer.tsx:344
+#: src/components/segment/SegmentDrawer.tsx:347
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "Ajoutez une première condition : une propriété du contact, une liste, une activité ou un objectif."
 
-#: src/components/segment/input_event_property_filters.tsx:125
+#: src/components/segment/input_event_property_filters.tsx:137
 msgid "Add a property"
 msgstr "Ajouter une propriété"
 
@@ -2923,7 +2923,7 @@ msgid "and"
 msgstr "et"
 
 #: src/components/segment/ConditionSentence.tsx:141
-#: src/components/segment/input_dimension_filters.tsx:49
+#: src/components/segment/input_dimension_filters.tsx:61
 #: src/components/segment/input.tsx:444
 msgid "AND"
 msgstr "ET"
@@ -4681,7 +4681,7 @@ msgstr "Impossible à tester dans le navigateur"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/form_leaf.tsx:190
 #: src/components/segment/input.tsx:314
-#: src/components/segment/SegmentDrawer.tsx:290
+#: src/components/segment/SegmentDrawer.tsx:293
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5694,7 +5694,7 @@ msgstr "Terminé"
 msgid "Completed the automation {name}"
 msgstr "A terminé l’automation {name}"
 
-#: src/components/segment/SegmentDrawer.tsx:261
+#: src/components/segment/SegmentDrawer.tsx:264
 msgid "Computing"
 msgstr "En calcul"
 
@@ -5730,7 +5730,7 @@ msgstr "La condition {position} utilise un lookaround ou une référence arrièr
 msgid "conditions"
 msgstr "conditions"
 
-#: src/components/segment/SegmentDrawer.tsx:321
+#: src/components/segment/SegmentDrawer.tsx:324
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
 #: src/components/web_analytics/filters/FilterTable.tsx:131
 #: src/components/web_analytics/filters/FilterTable.tsx:246
@@ -6045,7 +6045,7 @@ msgstr "Contact mis à jour avec succès"
 #: src/components/analytics/GetStartedChecklist.tsx:162
 #: src/components/contacts/ContactDetailsDrawer.tsx:136
 #: src/components/logs/labels.ts:22
-#: src/components/segment/SegmentDrawer.tsx:313
+#: src/components/segment/SegmentDrawer.tsx:316
 #: src/components/settings/permissionLabels.ts:7
 #: src/components/settings/WebAnalyticsSettings.tsx:333
 #: src/layouts/app-shell/menuItems.ts:224
@@ -6521,7 +6521,7 @@ msgstr "Couvre plus que les modèles : les blocs réutilisables dépendent du m�
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:286
+#: src/components/segment/SegmentDrawer.tsx:289
 msgid "Create"
 msgstr "Créer"
 
@@ -7250,7 +7250,7 @@ msgstr "Données à envoyer"
 #: src/components/broadcasts/compose/SendingCard.tsx:95
 #: src/components/broadcasts/compose/SendingCard.tsx:97
 #: src/components/segment/FilterRow.tsx:166
-#: src/components/segment/input_event_property_filters.tsx:63
+#: src/components/segment/input_event_property_filters.tsx:74
 #: src/components/settings/CustomFieldsConfiguration.tsx:60
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:145
 msgid "Date"
@@ -8474,7 +8474,7 @@ msgstr "ex. Lancement de produit"
 msgid "e.g. Set channel for Google Ads"
 msgstr "ex. Définir le canal pour Google Ads"
 
-#: src/components/segment/input_event_property_filters.tsx:49
+#: src/components/segment/input_event_property_filters.tsx:59
 msgid "e.g. sku"
 msgstr "ex. sku"
 
@@ -8751,7 +8751,7 @@ msgid "Edit rule"
 msgstr "Modifier la règle"
 
 #: src/components/contacts/SegmentDefinedBy.tsx:64
-#: src/components/segment/SegmentDrawer.tsx:316
+#: src/components/segment/SegmentDrawer.tsx:319
 msgid "Edit segment"
 msgstr "Modifier le segment"
 
@@ -10203,7 +10203,7 @@ msgstr "Échec de la création de la notification : {0}"
 msgid "Failed to create post: {0}"
 msgstr "Échec de la création de l'article : {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:246
+#: src/components/segment/SegmentDrawer.tsx:249
 msgid "Failed to create segment"
 msgstr "Échec de la création du segment"
 
@@ -10631,7 +10631,7 @@ msgstr "Échec de la mise à jour des permissions"
 msgid "Failed to update post: {0}"
 msgstr "Échec de la mise à jour de l'article : {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:246
+#: src/components/segment/SegmentDrawer.tsx:249
 msgid "Failed to update segment"
 msgstr "Échec de la mise à jour du segment"
 
@@ -14422,7 +14422,7 @@ msgstr "Pages les plus vues"
 msgid "Must be a valid https URL"
 msgstr "Doit être une URL https valide"
 
-#: src/components/segment/input_event_property_filters.tsx:113
+#: src/components/segment/input_event_property_filters.tsx:124
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr "Doit correspondre à la façon dont la valeur est stockée sur l'événement. Les dates sont comparées au format ISO-8601."
 
@@ -14572,7 +14572,7 @@ msgid "Never run"
 msgstr "Jamais lancé"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
-#: src/components/segment/SegmentDrawer.tsx:258
+#: src/components/segment/SegmentDrawer.tsx:261
 #: src/components/templates/TemplateDrawerBar.tsx:35
 msgid "New"
 msgstr "Nouveau"
@@ -14670,7 +14670,7 @@ msgid "New rule"
 msgstr "Nouvelle règle"
 
 #: src/components/contacts/ContactsRail.tsx:121
-#: src/components/segment/SegmentDrawer.tsx:316
+#: src/components/segment/SegmentDrawer.tsx:319
 msgid "New segment"
 msgstr "Nouveau segment"
 
@@ -15885,10 +15885,14 @@ msgid "Null"
 msgstr "Null"
 
 #: src/components/segment/FilterRow.tsx:165
-#: src/components/segment/input_event_property_filters.tsx:62
+#: src/components/segment/input_event_property_filters.tsx:73
 #: src/components/settings/CustomFieldsConfiguration.tsx:59
 msgid "Number"
 msgstr "Nombre"
+
+#: src/components/segment/form_leaf.tsx:234
+msgid "Number of days"
+msgstr "Nombre de jours"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:289
 #~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
@@ -16458,7 +16462,7 @@ msgstr "Opérations"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:233
 #: src/components/segment/FilterRow.tsx:110
-#: src/components/segment/input_event_property_filters.tsx:75
+#: src/components/segment/input_event_property_filters.tsx:86
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
 msgid "Operator"
 msgstr "Opérateur"
@@ -17799,7 +17803,7 @@ msgstr "Progression"
 msgid "Properties"
 msgstr "Propriétés"
 
-#: src/components/segment/input_event_property_filters.tsx:50
+#: src/components/segment/input_event_property_filters.tsx:60
 msgid "Property name"
 msgstr "Nom de la propriété"
 
@@ -18172,7 +18176,7 @@ msgstr "Temps de lecture"
 msgid "Reads"
 msgstr "Lit"
 
-#: src/components/segment/SegmentDrawer.tsx:367
+#: src/components/segment/SegmentDrawer.tsx:370
 msgid "Reads the dates of the conditions and sets the hour of the daily recompute."
 msgstr "Lit les dates des conditions et fixe l'heure du recalcul quotidien."
 
@@ -18656,8 +18660,8 @@ msgstr "Supprimer cette condition"
 
 #: src/components/segment/FilterRow.tsx:39
 #: src/components/segment/FilterRow.tsx:43
-#: src/components/segment/input_event_property_filters.tsx:96
-#: src/components/segment/input_event_property_filters.tsx:100
+#: src/components/segment/input_event_property_filters.tsx:107
+#: src/components/segment/input_event_property_filters.tsx:111
 msgid "Remove this filter"
 msgstr "Supprimer ce filtre"
 
@@ -19403,7 +19407,7 @@ msgstr "Mode bac à sable"
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:286
+#: src/components/segment/SegmentDrawer.tsx:289
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:852
@@ -19932,11 +19936,11 @@ msgstr "Conditions du segment"
 msgid "Segment deleted successfully"
 msgstr "Segment supprimé avec succès"
 
-#: src/components/segment/SegmentDrawer.tsx:274
+#: src/components/segment/SegmentDrawer.tsx:277
 msgid "Segment name"
 msgstr "Nom du segment"
 
-#: src/components/segment/SegmentDrawer.tsx:274
+#: src/components/segment/SegmentDrawer.tsx:277
 msgid "Segment name, e.g. Big spenders"
 msgstr "Nom du segment, ex. Gros acheteurs"
 
@@ -20068,7 +20072,7 @@ msgstr "Sélectionnez un bloc social"
 msgid "Select a template"
 msgstr "Sélectionner un modèle"
 
-#: src/components/segment/SegmentDrawer.tsx:371
+#: src/components/segment/SegmentDrawer.tsx:374
 msgid "Select a time zone"
 msgstr "Sélectionner un fuseau horaire"
 
@@ -21055,7 +21059,7 @@ msgstr "Configuration en cours..."
 
 #: src/components/automations/EditorSettings.tsx:22
 #: src/components/automations/EditorSettings.tsx:24
-#: src/components/segment/SegmentDrawer.tsx:363
+#: src/components/segment/SegmentDrawer.tsx:366
 #: src/components/templates/TemplateDrawerBar.tsx:82
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
@@ -22658,7 +22662,7 @@ msgstr "texte"
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:199
 #: src/components/email_builder/blocks/MjTextBlock.tsx:47
 #: src/components/segment/FilterRow.tsx:164
-#: src/components/segment/input_event_property_filters.tsx:61
+#: src/components/segment/input_event_property_filters.tsx:72
 #: src/components/settings/CustomFieldsConfiguration.tsx:58
 msgid "Text"
 msgstr "Texte"
@@ -23212,11 +23216,11 @@ msgstr "La version enregistrée, sur votre blog"
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "Les colonnes et les groupes de la section dépassent sa largeur de {over} % : dans l’email, les derniers passent à la ligne."
 
-#: src/components/segment/SegmentDrawer.tsx:239
+#: src/components/segment/SegmentDrawer.tsx:242
 msgid "The segment has been created!"
 msgstr "Le segment a été créé !"
 
-#: src/components/segment/SegmentDrawer.tsx:229
+#: src/components/segment/SegmentDrawer.tsx:232
 msgid "The segment has been updated!"
 msgstr "Le segment a été mis à jour !"
 
@@ -23411,7 +23415,7 @@ msgstr "Ces identifiants AWS ne peuvent pas lister les tenants ni les configurat
 msgid "These AWS credentials cannot read SES tenants (needs ses:GetTenant and ses:ListTenantResources)."
 msgstr "Ces identifiants AWS ne peuvent pas lire les tenants SES (il faut ses:GetTenant et ses:ListTenantResources)."
 
-#: src/components/segment/SegmentDrawer.tsx:327
+#: src/components/segment/SegmentDrawer.tsx:330
 msgid "These conditions come from the filters of the contacts view."
 msgstr "Ces conditions viennent des filtres de la vue des contacts."
 
@@ -23737,7 +23741,7 @@ msgstr "Cet article"
 #~ msgid "This post's template was saved as version {latest} while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
 #~ msgstr ""
 
-#: src/components/segment/input_event_property_filters.tsx:107
+#: src/components/segment/input_event_property_filters.tsx:118
 msgid "This property is already filtered"
 msgstr "Cette propriété est déjà filtrée"
 
@@ -24029,7 +24033,7 @@ msgstr "Fuseau horaire — {detail}"
 msgid "Timezone is required"
 msgstr "Le fuseau horaire est requis"
 
-#: src/components/segment/SegmentDrawer.tsx:366
+#: src/components/segment/SegmentDrawer.tsx:369
 msgid "Timezone used for dates"
 msgstr "Fuseau horaire utilisé pour les dates"
 
@@ -25414,7 +25418,7 @@ msgstr "Valeur {value}"
 msgid "Value 2"
 msgstr "Valeur 2"
 
-#: src/components/segment/input_event_property_filters.tsx:58
+#: src/components/segment/input_event_property_filters.tsx:69
 msgid "Value type"
 msgstr "Type de valeur"
 
@@ -26175,7 +26179,7 @@ msgstr "Qui peut faire quoi dans cet espace de travail"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Qui a fait quoi dans ce workspace : membres, permissions, clés API, intégrations, paramètres et modifications de contenu, avec l'adresse d'origine et si c'était autorisé."
 
-#: src/components/segment/SegmentDrawer.tsx:342
+#: src/components/segment/SegmentDrawer.tsx:345
 msgid "Who should be in this segment?"
 msgstr "Qui doit entrer dans ce segment ?"
 

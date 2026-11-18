@@ -2084,7 +2084,7 @@ msgstr "actiu"
 #: src/components/automations/edges/edgeLabel.ts:17
 #: src/components/contacts/contactDisplay.ts:35
 #: src/components/lists/ListHeader.tsx:38
-#: src/components/segment/SegmentDrawer.tsx:264
+#: src/components/segment/SegmentDrawer.tsx:267
 #: src/components/settings/LicenseSettings.tsx:110
 #: src/components/settings/WebhookDetail.tsx:265
 msgid "Active"
@@ -2169,15 +2169,15 @@ msgstr "Afegir un peu de foto..."
 msgid "Add a condition"
 msgstr "Afegeix una condició"
 
-#: src/components/segment/input_dimension_filters.tsx:67
+#: src/components/segment/input_dimension_filters.tsx:79
 msgid "Add a filter"
 msgstr "Afegir un filtre"
 
-#: src/components/segment/SegmentDrawer.tsx:344
+#: src/components/segment/SegmentDrawer.tsx:347
 msgid "Add a first condition: a contact property, a list, an activity or a goal."
 msgstr "Afegeix una primera condició: una propietat del contacte, una llista, una activitat o un objectiu."
 
-#: src/components/segment/input_event_property_filters.tsx:125
+#: src/components/segment/input_event_property_filters.tsx:137
 msgid "Add a property"
 msgstr "Afegeix una propietat"
 
@@ -2923,7 +2923,7 @@ msgid "and"
 msgstr "I"
 
 #: src/components/segment/ConditionSentence.tsx:141
-#: src/components/segment/input_dimension_filters.tsx:49
+#: src/components/segment/input_dimension_filters.tsx:61
 #: src/components/segment/input.tsx:444
 msgid "AND"
 msgstr "I"
@@ -4681,7 +4681,7 @@ msgstr "No es pot provar al navegador"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/form_leaf.tsx:190
 #: src/components/segment/input.tsx:314
-#: src/components/segment/SegmentDrawer.tsx:290
+#: src/components/segment/SegmentDrawer.tsx:293
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5694,7 +5694,7 @@ msgstr "Completat"
 msgid "Completed the automation {name}"
 msgstr "Ha completat l’automatització {name}"
 
-#: src/components/segment/SegmentDrawer.tsx:261
+#: src/components/segment/SegmentDrawer.tsx:264
 msgid "Computing"
 msgstr "En càlcul"
 
@@ -5730,7 +5730,7 @@ msgstr "La condició {position} fa servir un lookaround o una referència invers
 msgid "conditions"
 msgstr "Condicions"
 
-#: src/components/segment/SegmentDrawer.tsx:321
+#: src/components/segment/SegmentDrawer.tsx:324
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
 #: src/components/web_analytics/filters/FilterTable.tsx:131
 #: src/components/web_analytics/filters/FilterTable.tsx:246
@@ -6045,7 +6045,7 @@ msgstr "Contacte actualitzat correctament"
 #: src/components/analytics/GetStartedChecklist.tsx:162
 #: src/components/contacts/ContactDetailsDrawer.tsx:136
 #: src/components/logs/labels.ts:22
-#: src/components/segment/SegmentDrawer.tsx:313
+#: src/components/segment/SegmentDrawer.tsx:316
 #: src/components/settings/permissionLabels.ts:7
 #: src/components/settings/WebAnalyticsSettings.tsx:333
 #: src/layouts/app-shell/menuItems.ts:224
@@ -6521,7 +6521,7 @@ msgstr "Abasta més que les plantilles: els blocs reutilitzables responen al mat
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:286
+#: src/components/segment/SegmentDrawer.tsx:289
 msgid "Create"
 msgstr "Crear"
 
@@ -7250,7 +7250,7 @@ msgstr "Dades a enviar"
 #: src/components/broadcasts/compose/SendingCard.tsx:95
 #: src/components/broadcasts/compose/SendingCard.tsx:97
 #: src/components/segment/FilterRow.tsx:166
-#: src/components/segment/input_event_property_filters.tsx:63
+#: src/components/segment/input_event_property_filters.tsx:74
 #: src/components/settings/CustomFieldsConfiguration.tsx:60
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:145
 msgid "Date"
@@ -8474,7 +8474,7 @@ msgstr "p. ex. Llançament de producte"
 msgid "e.g. Set channel for Google Ads"
 msgstr "p. ex. Establir el canal per a Google Ads"
 
-#: src/components/segment/input_event_property_filters.tsx:49
+#: src/components/segment/input_event_property_filters.tsx:59
 msgid "e.g. sku"
 msgstr "p. ex. sku"
 
@@ -8751,7 +8751,7 @@ msgid "Edit rule"
 msgstr "Editar regla"
 
 #: src/components/contacts/SegmentDefinedBy.tsx:64
-#: src/components/segment/SegmentDrawer.tsx:316
+#: src/components/segment/SegmentDrawer.tsx:319
 msgid "Edit segment"
 msgstr "Editar segment"
 
@@ -10203,7 +10203,7 @@ msgstr "No s'ha pogut crear la notificació: {0}"
 msgid "Failed to create post: {0}"
 msgstr "No s'ha pogut crear la publicació: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:246
+#: src/components/segment/SegmentDrawer.tsx:249
 msgid "Failed to create segment"
 msgstr "No s'ha pogut crear el segment"
 
@@ -10631,7 +10631,7 @@ msgstr "No s'han pogut actualitzar els permisos"
 msgid "Failed to update post: {0}"
 msgstr "No s'ha pogut actualitzar la publicació: {0}"
 
-#: src/components/segment/SegmentDrawer.tsx:246
+#: src/components/segment/SegmentDrawer.tsx:249
 msgid "Failed to update segment"
 msgstr "No s'ha pogut actualitzar el segment"
 
@@ -14422,7 +14422,7 @@ msgstr "Pàgines més vistes"
 msgid "Must be a valid https URL"
 msgstr "Ha de ser un URL https vàlid"
 
-#: src/components/segment/input_event_property_filters.tsx:113
+#: src/components/segment/input_event_property_filters.tsx:124
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr "Ha de coincidir amb la manera com es desa el valor a l'esdeveniment. Les dates es comparen com a ISO-8601."
 
@@ -14572,7 +14572,7 @@ msgid "Never run"
 msgstr "Mai executat"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:207
-#: src/components/segment/SegmentDrawer.tsx:258
+#: src/components/segment/SegmentDrawer.tsx:261
 #: src/components/templates/TemplateDrawerBar.tsx:35
 msgid "New"
 msgstr "Nou"
@@ -14670,7 +14670,7 @@ msgid "New rule"
 msgstr "Nova regla"
 
 #: src/components/contacts/ContactsRail.tsx:121
-#: src/components/segment/SegmentDrawer.tsx:316
+#: src/components/segment/SegmentDrawer.tsx:319
 msgid "New segment"
 msgstr "Nou segment"
 
@@ -15885,10 +15885,14 @@ msgid "Null"
 msgstr "Nul"
 
 #: src/components/segment/FilterRow.tsx:165
-#: src/components/segment/input_event_property_filters.tsx:62
+#: src/components/segment/input_event_property_filters.tsx:73
 #: src/components/settings/CustomFieldsConfiguration.tsx:59
 msgid "Number"
 msgstr "Número"
+
+#: src/components/segment/form_leaf.tsx:234
+msgid "Number of days"
+msgstr "Nombre de dies"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:289
 #~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
@@ -16458,7 +16462,7 @@ msgstr "Operacions"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:233
 #: src/components/segment/FilterRow.tsx:110
-#: src/components/segment/input_event_property_filters.tsx:75
+#: src/components/segment/input_event_property_filters.tsx:86
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
 msgid "Operator"
 msgstr "Operador"
@@ -17799,7 +17803,7 @@ msgstr "Progrés"
 msgid "Properties"
 msgstr "Propietats"
 
-#: src/components/segment/input_event_property_filters.tsx:50
+#: src/components/segment/input_event_property_filters.tsx:60
 msgid "Property name"
 msgstr "Nom de la propietat"
 
@@ -18172,7 +18176,7 @@ msgstr "Temps de lectura"
 msgid "Reads"
 msgstr "Llegeix"
 
-#: src/components/segment/SegmentDrawer.tsx:367
+#: src/components/segment/SegmentDrawer.tsx:370
 msgid "Reads the dates of the conditions and sets the hour of the daily recompute."
 msgstr "Llegeix les dates de les condicions i fixa l'hora del recàlcul diari."
 
@@ -18656,8 +18660,8 @@ msgstr "Elimina aquesta condició"
 
 #: src/components/segment/FilterRow.tsx:39
 #: src/components/segment/FilterRow.tsx:43
-#: src/components/segment/input_event_property_filters.tsx:96
-#: src/components/segment/input_event_property_filters.tsx:100
+#: src/components/segment/input_event_property_filters.tsx:107
+#: src/components/segment/input_event_property_filters.tsx:111
 msgid "Remove this filter"
 msgstr "Elimina aquest filtre"
 
@@ -19403,7 +19407,7 @@ msgstr "Mode sandbox"
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
 #: src/components/lists/ListDrawer.tsx:200
-#: src/components/segment/SegmentDrawer.tsx:286
+#: src/components/segment/SegmentDrawer.tsx:289
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:852
@@ -19932,11 +19936,11 @@ msgstr "Condicions del segment"
 msgid "Segment deleted successfully"
 msgstr "Segment eliminat correctament"
 
-#: src/components/segment/SegmentDrawer.tsx:274
+#: src/components/segment/SegmentDrawer.tsx:277
 msgid "Segment name"
 msgstr "Nom del segment"
 
-#: src/components/segment/SegmentDrawer.tsx:274
+#: src/components/segment/SegmentDrawer.tsx:277
 msgid "Segment name, e.g. Big spenders"
 msgstr "Nom del segment, p. ex. Grans compradors"
 
@@ -20068,7 +20072,7 @@ msgstr "Selecciona un bloc social"
 msgid "Select a template"
 msgstr "Seleccioneu una plantilla"
 
-#: src/components/segment/SegmentDrawer.tsx:371
+#: src/components/segment/SegmentDrawer.tsx:374
 msgid "Select a time zone"
 msgstr "Seleccioneu una zona horària"
 
@@ -21055,7 +21059,7 @@ msgstr "Configurant..."
 
 #: src/components/automations/EditorSettings.tsx:22
 #: src/components/automations/EditorSettings.tsx:24
-#: src/components/segment/SegmentDrawer.tsx:363
+#: src/components/segment/SegmentDrawer.tsx:366
 #: src/components/templates/TemplateDrawerBar.tsx:82
 #: src/components/transactional/NotificationChecks.tsx:74
 #: src/components/transactional/TransactionalDetail.tsx:482
@@ -22658,7 +22662,7 @@ msgstr "Text"
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:199
 #: src/components/email_builder/blocks/MjTextBlock.tsx:47
 #: src/components/segment/FilterRow.tsx:164
-#: src/components/segment/input_event_property_filters.tsx:61
+#: src/components/segment/input_event_property_filters.tsx:72
 #: src/components/settings/CustomFieldsConfiguration.tsx:58
 msgid "Text"
 msgstr "Text"
@@ -23212,11 +23216,11 @@ msgstr "La versió desada, al teu blog"
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "Les columnes i els grups de la secció en superen l’amplada en un {over} %: al correu, els darrers passen a una línia nova."
 
-#: src/components/segment/SegmentDrawer.tsx:239
+#: src/components/segment/SegmentDrawer.tsx:242
 msgid "The segment has been created!"
 msgstr "El segment s'ha creat!"
 
-#: src/components/segment/SegmentDrawer.tsx:229
+#: src/components/segment/SegmentDrawer.tsx:232
 msgid "The segment has been updated!"
 msgstr "El segment s'ha actualitzat!"
 
@@ -23411,7 +23415,7 @@ msgstr "Aquestes credencials d'AWS no poden llistar tenants ni conjunts de confi
 msgid "These AWS credentials cannot read SES tenants (needs ses:GetTenant and ses:ListTenantResources)."
 msgstr "Aquestes credencials d'AWS no poden llegir els tenants de SES (calen ses:GetTenant i ses:ListTenantResources)."
 
-#: src/components/segment/SegmentDrawer.tsx:327
+#: src/components/segment/SegmentDrawer.tsx:330
 msgid "These conditions come from the filters of the contacts view."
 msgstr "Aquestes condicions provenen dels filtres de la vista de contactes."
 
@@ -23737,7 +23741,7 @@ msgstr "Aquest article"
 #~ msgid "This post's template was saved as version {latest} while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
 #~ msgstr ""
 
-#: src/components/segment/input_event_property_filters.tsx:107
+#: src/components/segment/input_event_property_filters.tsx:118
 msgid "This property is already filtered"
 msgstr "Aquesta propietat ja està filtrada"
 
@@ -24029,7 +24033,7 @@ msgstr "Zona horària — {detail}"
 msgid "Timezone is required"
 msgstr "La zona horària és obligatòria"
 
-#: src/components/segment/SegmentDrawer.tsx:366
+#: src/components/segment/SegmentDrawer.tsx:369
 msgid "Timezone used for dates"
 msgstr "Zona horària utilitzada per a dates"
 
@@ -25414,7 +25418,7 @@ msgstr "Valor {value}"
 msgid "Value 2"
 msgstr "Valor 2"
 
-#: src/components/segment/input_event_property_filters.tsx:58
+#: src/components/segment/input_event_property_filters.tsx:69
 msgid "Value type"
 msgstr "Tipus de valor"
 
@@ -26175,7 +26179,7 @@ msgstr "Qui pot fer què en aquest espai de treball"
 msgid "Who did what in this workspace: members, permissions, API keys, integrations, settings and content changes, with the address it came from and whether it was allowed."
 msgstr "Qui ha fet què en aquest workspace: membres, permisos, claus d'API, integracions, configuració i canvis de contingut, amb l'adreça d'origen i si estava permès."
 
-#: src/components/segment/SegmentDrawer.tsx:342
+#: src/components/segment/SegmentDrawer.tsx:345
 msgid "Who should be in this segment?"
 msgstr "Qui ha de formar part d'aquest segment?"
 
