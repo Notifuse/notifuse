@@ -13,8 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var segmentSelect = regexp.QuoteMeta(`SELECT id, tree, generated_sql, generated_args FROM segments`)
-var segmentUpdate = regexp.QuoteMeta(`UPDATE segments`)
+// Every segment but the deleted ones: a building one is recompiled too, its build re-reading the
+// row on each run (SegmentBuildProcessor.rescheduleRecompute keeps the mark for the next build).
+var segmentSelect = `SELECT id, tree, generated_sql, generated_args FROM segments\s+WHERE status <> 'deleted'\s+ORDER BY id`
+var segmentUpdate = regexp.QuoteMeta(`UPDATE segments`) +
+	`\s+SET generated_sql = \$1, generated_args = \$2, recompute_after = NOW\(\), db_updated_at = NOW\(\)\s+WHERE id = \$3 AND generated_sql IS NOT DISTINCT FROM \$4`
 
 func jsonEqualsTree(t *testing.T, value string) ([]byte, string, []byte) {
 	t.Helper()
@@ -53,7 +56,7 @@ func TestRegenerateSegmentSQL(t *testing.T) {
 			sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).
 				AddRow("seg1", treeJSON, old, argsJSON))
 		mock.ExpectExec(segmentUpdate).
-			WithArgs(current, sqlmock.AnyArg(), "seg1").
+			WithArgs(current, sqlmock.AnyArg(), "seg1", old).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		result, err := RegenerateSegmentSQL(context.Background(), db)
@@ -81,6 +84,30 @@ func TestRegenerateSegmentSQL(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 0, result.Recompiled)
 		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	// The service stores no arguments as SQL NULL: a segment such as « phone is set » is the same
+	// query, not one to rebuild.
+	t.Run("a query without arguments is the same whether they are NULL, null or empty", func(t *testing.T) {
+		tree := &domain.TreeNode{Kind: "leaf", Leaf: &domain.TreeNodeLeaf{Source: "contacts",
+			Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{{FieldName: "phone", FieldType: "string", Operator: "is_set"}}}}}
+		treeJSON, err := json.Marshal(tree)
+		require.NoError(t, err)
+		current, args, err := service.NewQueryBuilder().BuildSQL(tree)
+		require.NoError(t, err)
+		require.Empty(t, args)
+
+		for _, stored := range [][]byte{nil, []byte(`null`), []byte(`[]`)} {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			mock.ExpectQuery(segmentSelect).WillReturnRows(
+				sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).AddRow("seg1", treeJSON, current, stored))
+			result, err := RegenerateSegmentSQL(context.Background(), db)
+			require.NoError(t, err)
+			assert.Equal(t, 0, result.Recompiled, "stored %q", stored)
+			require.NoError(t, mock.ExpectationsWereMet())
+			db.Close()
+		}
 	})
 
 	t.Run("a tree that does not compile keeps its query and is reported", func(t *testing.T) {
@@ -111,7 +138,7 @@ func TestRegenerateSegmentSQL(t *testing.T) {
 		mock.ExpectQuery(segmentSelect).WillReturnRows(
 			sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).
 				AddRow("seg1", treeJSON, nil, nil))
-		mock.ExpectExec(segmentUpdate).WithArgs(current, sqlmock.AnyArg(), "seg1").
+		mock.ExpectExec(segmentUpdate).WithArgs(current, sqlmock.AnyArg(), "seg1", nil).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		result, err := RegenerateSegmentSQL(context.Background(), db)

@@ -165,7 +165,8 @@ func (m *V38Migration) healAutomationTriggerConditions(ctx context.Context, db D
 	// The bodies as v38 shipped them: the four-argument enrolment, which is the one v38
 	// installs. v44 replaces their bodies again to pass the event.
 	generator := service.NewAutomationTriggerGenerator(service.NewQueryBuilder()).WithoutTriggerEvent()
-	return regenerateAutomationTriggers(ctx, db, generator, "v38", "v38_automation_conditions", false)
+	_, err := regenerateAutomationTriggers(ctx, db, generator, "v38", "v38_automation_conditions", false)
+	return err
 }
 
 func init() {

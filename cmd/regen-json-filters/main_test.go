@@ -43,6 +43,7 @@ func TestRun_RegeneratesInOneTransaction(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectExec(regexp.QuoteMeta(`SET LOCAL lock_timeout = '5s'`)).WillReturnResult(sqlmock.NewResult(0, 0))
+	expectAt44(mock, true)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, tree, generated_sql, generated_args FROM segments`)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}).
 			AddRow("garbled", []byte(`not json`), "SELECT 1", []byte(`[]`)))
@@ -56,6 +57,7 @@ func TestRun_RegeneratesInOneTransaction(t *testing.T) {
 	assert.Equal(t, 0, code, errOut.String())
 	assert.Contains(t, out.String(), "Segments recompiled and marked for a rebuild: 0\n")
 	assert.Contains(t, out.String(), "Segments left with their query: 1\n  garbled: tree is not valid JSON")
+	assert.Contains(t, out.String(), "Live automation triggers replaced: 0\n")
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -65,6 +67,7 @@ func TestRun_RollsBackOnAnError(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectExec(regexp.QuoteMeta(`SET LOCAL lock_timeout = '5s'`)).WillReturnResult(sqlmock.NewResult(0, 0))
+	expectAt44(mock, true)
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, tree, generated_sql, generated_args FROM segments`)).
 		WillReturnError(errors.New("canceling statement due to lock timeout"))
 	mock.ExpectRollback()
@@ -75,5 +78,29 @@ func TestRun_RollsBackOnAnError(t *testing.T) {
 	assert.Equal(t, 1, code)
 	assert.Contains(t, errOut.String(), "lock timeout")
 	assert.Contains(t, errOut.String(), "nothing was changed")
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func expectAt44(mock sqlmock.Sqlmock, at44 bool) {
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT to_regprocedure('automation_enroll_contact(varchar,varchar,varchar,varchar,jsonb)') IS NOT NULL`)).
+		WillReturnRows(sqlmock.NewRows([]string{"at44"}).AddRow(at44))
+}
+
+// On a database below 44 the new bodies would call an enrolment function that does not exist
+// yet, and abort every contact write: the command refuses and changes nothing.
+func TestRun_RefusesADatabaseBelow44(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta(`SET LOCAL lock_timeout = '5s'`)).WillReturnResult(sqlmock.NewResult(0, 0))
+	expectAt44(mock, false)
+	mock.ExpectRollback()
+
+	var out, errOut bytes.Buffer
+	code := run([]string{"-dsn", "postgres://x"}, &out, &errOut, func(string) (*sql.DB, error) { return db, nil })
+
+	assert.Equal(t, 1, code)
+	assert.Contains(t, errOut.String(), "not at 44.0 yet")
 	require.NoError(t, mock.ExpectationsWereMet())
 }

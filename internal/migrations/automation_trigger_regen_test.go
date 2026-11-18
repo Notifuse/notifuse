@@ -23,9 +23,10 @@ func TestRegenerateAutomationTriggerBodies(t *testing.T) {
 		mock.ExpectExec("^CREATE OR REPLACE FUNCTION automation_trigger_cartauto").WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("^RELEASE SAVEPOINT regen_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
 
-		skipped, err := RegenerateAutomationTriggerBodies(context.Background(), db)
+		result, err := RegenerateAutomationTriggerBodies(context.Background(), db)
 		require.NoError(t, err)
-		assert.Empty(t, skipped)
+		assert.Equal(t, 1, result.Replaced)
+		assert.Empty(t, result.Skipped)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -41,9 +42,10 @@ func TestRegenerateAutomationTriggerBodies(t *testing.T) {
 		mock.ExpectExec("^ROLLBACK TO SAVEPOINT regen_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("^RELEASE SAVEPOINT regen_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
 
-		skipped, err := RegenerateAutomationTriggerBodies(context.Background(), db)
+		result, err := RegenerateAutomationTriggerBodies(context.Background(), db)
 		require.NoError(t, err)
-		assert.Equal(t, map[string]string{"cartauto": "function pg_input_is_valid(text, unknown) does not exist"}, skipped)
+		assert.Equal(t, 0, result.Replaced)
+		assert.Equal(t, map[string]string{"cartauto": "function pg_input_is_valid(text, unknown) does not exist"}, result.Skipped)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -54,9 +56,9 @@ func TestRegenerateAutomationTriggerBodies(t *testing.T) {
 
 		mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows().AddRow("broken", "node1", []byte(`not json`), v38InstalledDef))
 
-		skipped, err := RegenerateAutomationTriggerBodies(context.Background(), db)
+		result, err := RegenerateAutomationTriggerBodies(context.Background(), db)
 		require.NoError(t, err)
-		assert.Contains(t, skipped, "broken")
+		assert.Contains(t, result.Skipped, "broken")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }

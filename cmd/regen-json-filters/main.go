@@ -72,11 +72,22 @@ func regenerate(ctx context.Context, db *sql.DB, out io.Writer) error {
 	if _, err := tx.ExecContext(ctx, `SET LOCAL lock_timeout = '5s'`); err != nil {
 		return fmt.Errorf("cannot set the lock timeout: %w", err)
 	}
+	// The bodies the current generator builds call the five-argument automation_enroll_contact,
+	// which v44 installs. On a database below 44 they would install without complaint (a function
+	// body's callees are not checked) and then abort every write to contact_timeline.
+	var at44 bool
+	if err := tx.QueryRowContext(ctx,
+		`SELECT to_regprocedure('automation_enroll_contact(varchar,varchar,varchar,varchar,jsonb)') IS NOT NULL`).Scan(&at44); err != nil {
+		return fmt.Errorf("cannot check the database version: %w", err)
+	}
+	if !at44 {
+		return fmt.Errorf("this database is not at 44.0 yet: start Notifuse 44.0 on it, which migrates it, instead of running this command")
+	}
 	segments, err := migrations.RegenerateSegmentSQL(ctx, tx)
 	if err != nil {
 		return fmt.Errorf("segments: %w", err)
 	}
-	skippedAutomations, err := migrations.RegenerateAutomationTriggerBodies(ctx, tx)
+	automations, err := migrations.RegenerateAutomationTriggerBodies(ctx, tx)
 	if err != nil {
 		return fmt.Errorf("automations: %w", err)
 	}
@@ -86,8 +97,8 @@ func regenerate(ctx context.Context, db *sql.DB, out io.Writer) error {
 
 	fmt.Fprintf(out, "Segments recompiled and marked for a rebuild: %d\n", segments.Recompiled)
 	printSkipped(out, "Segments left with their query", segments.Skipped)
-	fmt.Fprintln(out, "Live automation triggers: bodies replaced")
-	printSkipped(out, "Automations left with their trigger", skippedAutomations)
+	fmt.Fprintf(out, "Live automation triggers replaced: %d\n", automations.Replaced)
+	printSkipped(out, "Automations left with their trigger", automations.Skipped)
 	return nil
 }
 

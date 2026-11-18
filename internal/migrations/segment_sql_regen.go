@@ -86,19 +86,23 @@ func RegenerateSegmentSQL(ctx context.Context, db DBExecutor) (SegmentSQLResult,
 			result.Skipped[s.id] = buildErr.Error()
 			continue
 		}
-		argsJSON, marshalErr := json.Marshal(args)
-		if marshalErr != nil {
-			result.Skipped[s.id] = fmt.Sprintf("arguments do not encode: %v", marshalErr)
+		same, compareErr := sameArgs(s.argsJSON, args)
+		if compareErr != nil {
+			result.Skipped[s.id] = fmt.Sprintf("arguments do not encode: %v", compareErr)
 			continue
 		}
-		if s.sql != nil && *s.sql == sqlQuery && sameJSON(s.argsJSON, argsJSON) {
+		if s.sql != nil && *s.sql == sqlQuery && same {
 			continue
 		}
+		// Stored as the service stores them (domain.JSONArray), so that a rerun compares like
+		// with like. Only if the query is still the one read: a segment saved meanwhile by a live
+		// instance (cmd/regen-json-filters runs beside one) holds a query compiled from its new
+		// tree, which this one must not replace.
 		if _, execErr := db.ExecContext(ctx, `
 			UPDATE segments
 			SET generated_sql = $1, generated_args = $2, recompute_after = NOW(), db_updated_at = NOW()
-			WHERE id = $3
-		`, sqlQuery, argsJSON, s.id); execErr != nil {
+			WHERE id = $3 AND generated_sql IS NOT DISTINCT FROM $4
+		`, sqlQuery, domain.JSONArray(args), s.id, s.sql); execErr != nil {
 			return result, fmt.Errorf("failed to update segment %s: %w", s.id, execErr)
 		}
 		result.Recompiled++
@@ -107,11 +111,25 @@ func RegenerateSegmentSQL(ctx context.Context, db DBExecutor) (SegmentSQLResult,
 	return result, nil
 }
 
-// sameJSON compares two JSON documents by value: jsonb hands back its own spacing and key order.
-func sameJSON(a, b []byte) bool {
-	var x, y interface{}
-	if json.Unmarshal(a, &x) != nil || json.Unmarshal(b, &y) != nil {
-		return false
+// sameArgs reports whether the stored generated_args hold args. They are compared by value, since
+// jsonb hands them back with its own spacing, and no arguments match SQL NULL, JSON null and an
+// empty array alike: which one a segment holds depends on what wrote it.
+func sameArgs(stored []byte, args []interface{}) (bool, error) {
+	encoded, err := json.Marshal(args)
+	if err != nil {
+		return false, err
 	}
-	return reflect.DeepEqual(x, y)
+	var want, got []interface{}
+	if err := json.Unmarshal(encoded, &want); err != nil {
+		return false, err
+	}
+	if len(stored) > 0 {
+		if json.Unmarshal(stored, &got) != nil {
+			return false, nil
+		}
+	}
+	if len(want) == 0 && len(got) == 0 {
+		return true, nil
+	}
+	return reflect.DeepEqual(want, got), nil
 }
