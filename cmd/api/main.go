@@ -35,6 +35,12 @@ type NewAppFunc func(cfg *config.Config, opts ...app.AppOption) app.AppInterface
 // newApp creates the app runServer runs; tests replace it.
 var newApp NewAppFunc = app.NewApp
 
+// shutdownWaiter is what runServer needs to wait for a shutdown it did not start: the app
+// closing its own server to load a new configuration (setup, system settings).
+type shutdownWaiter interface {
+	ShutdownDone() <-chan struct{}
+}
+
 // shutdownTimeout is the bound runServer applies: gracefulShutdownTimeout, unless a test
 // sets it shorter. Past it runServer returns, even when the app's shutdown has not ended; it leaves 5
 // seconds beyond the app's own 65-second timeout.
@@ -66,10 +72,23 @@ func runServer(cfg *config.Config, appLogger logger.Logger) error {
 	select {
 	case err := <-serverError:
 		if errors.Is(err, http.ErrServerClosed) {
-			// The app closed its own server to load a new configuration (setup, system settings).
+			// The app closed its own server to load a new configuration (setup, system settings):
+			// Start returns as soon as its Shutdown reaches the HTTP server, which then still waits
+			// for the requests in flight and closes the databases. Exit once it has ended; the
+			// handlers bound that shutdown under shutdownTimeout. A signal meanwhile exits at once.
+			appLogger.Info("Server stopped to load its new configuration - waiting for its shutdown to end")
+			if waiter, ok := appInstance.(shutdownWaiter); ok {
+				select {
+				case <-waiter.ShutdownDone():
+				case sig := <-shutdown:
+					appLogger.WithField("signal", sig.String()).Warn("Signal received while the shutdown for the new configuration runs - exiting now")
+				case <-time.After(shutdownTimeout):
+					appLogger.WithField("timeout", shutdownTimeout.String()).Warn("Shutdown for the new configuration did not end in time - exiting")
+				}
+			}
 			// The error still ends the process with a failure code, so that a process manager
 			// restarting only on failure starts it again.
-			appLogger.Info("Server stopped to load its new configuration - exiting so that the process manager restarts it")
+			appLogger.Info("Exiting so that the process manager restarts the server with its new configuration")
 			return err
 		}
 		if err != nil {

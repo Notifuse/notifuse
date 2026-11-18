@@ -243,6 +243,74 @@ func TestAppShutdown(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestAppShutdown_RunsOnceAndClosesShutdownDoneWhenItEnds(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	mock.ExpectClose()
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	// Run once, however many calls
+	mockLogger.EXPECT().Info("Starting graceful shutdown...").Times(1)
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	app := NewApp(&config.Config{}, WithLogger(mockLogger), WithMockDB(mockDB)).(*App)
+	select {
+	case <-app.ShutdownDone():
+		t.Fatal("ShutdownDone closed before any shutdown")
+	default:
+	}
+
+	require.NoError(t, app.Shutdown(context.Background()))
+	select {
+	case <-app.ShutdownDone():
+	default:
+		t.Fatal("ShutdownDone still open once Shutdown returned")
+	}
+
+	// A second call (a signal after a reload) returns the same result without running it again
+	assert.NoError(t, app.Shutdown(context.Background()))
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAppShutdown_ALaterCallWaitsForTheShutdownInProgress(t *testing.T) {
+	app := &App{}
+	// The first shutdown is in progress: its Once is taken, its channel still open
+	started := make(chan struct{})
+	release := make(chan struct{})
+	go app.shutdownOnce.Do(func() {
+		close(started)
+		<-release
+		close(app.shutdownDoneChan())
+	})
+	<-started
+
+	second := make(chan error, 1)
+	go func() { second <- app.Shutdown(context.Background()) }()
+	select {
+	case <-second:
+		t.Fatal("a second Shutdown returned while the first was still running")
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case err := <-second:
+		assert.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the second Shutdown kept waiting once the first had ended")
+	}
+}
+
+func TestAppShutdownDone_ExistsOnAnAppLiteral(t *testing.T) {
+	app := &App{}
+	require.NotNil(t, app.ShutdownDone())
+	assert.Equal(t, app.ShutdownDone(), app.ShutdownDone())
+}
+
 // TestAppInitRepositories tests the InitRepositories method
 func TestAppInitRepositories(t *testing.T) {
 	// Create mock DB

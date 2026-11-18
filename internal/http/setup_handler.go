@@ -13,6 +13,17 @@ import (
 	"github.com/google/uuid"
 )
 
+// reloadShutdownTimeout bounds the shutdown a handler starts to load a new configuration. It is
+// shorter than the 70 s cmd/api waits for that shutdown, so the databases close before the exit.
+const reloadShutdownTimeout = 65 * time.Second
+
+// reloadShutdown shuts the app down to load a new configuration, within reloadShutdownTimeout.
+func reloadShutdown(app AppShutdowner) error {
+	ctx, cancel := context.WithTimeout(context.Background(), reloadShutdownTimeout)
+	defer cancel()
+	return app.Shutdown(ctx)
+}
+
 // AppShutdowner defines the interface for triggering app shutdown
 type AppShutdowner interface {
 	Shutdown(ctx context.Context) error
@@ -274,7 +285,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		time.Sleep(500 * time.Millisecond)
 		h.logger.Info("Setup completed - initiating graceful shutdown for configuration reload")
-		if err := h.app.Shutdown(context.Background()); err != nil {
+		if err := reloadShutdown(h.app); err != nil {
 			h.logger.WithField("error", err).Error("Error during graceful shutdown")
 		}
 	}()
