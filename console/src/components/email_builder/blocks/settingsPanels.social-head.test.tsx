@@ -536,66 +536,110 @@ describe('Social element panel: inherited values and decisions', () => {
 })
 
 describe('Head block panels: every field writes its key', () => {
-  it('Title writes content once, on blur, at most 100 characters', () => {
-    const { onUpdate } = renderPanel(blockOf('mj-title', {}, 'Old title'))
-    const title = screen.getByLabelText('Title')
-    expect(title).toHaveAttribute('maxlength', '100')
-    fireEvent.focus(title)
-    fireEvent.change(title, { target: { value: 'Your order' } })
-    fireEvent.change(title, { target: { value: 'Your order awaits' } })
-    expect(onUpdate).not.toHaveBeenCalled()
-    fireEvent.blur(title)
+  it.each(['mj-title', 'mj-preview'] as MJMLComponentType[])(
+    'has no panel for %s: the server writes it from the template settings on save',
+    (type) => {
+      const block = blockOf(type, {}, 'Saved text')
+      expect(EmailBlockFactory.createBlock(block).renderSettingsPanel(vi.fn(), {} as never, emailWith(block))).toBeNull()
+    }
+  )
+
+  it('Font: picking a popular Google Font writes its name and stylesheet in one write', async () => {
+    const { onUpdate } = renderPanel(blockOf('mj-font', { name: 'Inter', href: 'https://fonts.googleapis.com/css2?family=Inter' }))
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Popular Google Font' }))
+    fireEvent.click(await screen.findByTitle('Lato'))
     expect(onUpdate).toHaveBeenCalledTimes(1)
-    expect(onUpdate).toHaveBeenLastCalledWith({ content: 'Your order awaits' })
-  })
-
-  it('Preview text writes content once, on blur, at most 200 characters', () => {
-    const { onUpdate } = renderPanel(blockOf('mj-preview', {}, ''))
-    const preview = screen.getByLabelText('Subject preview')
-    expect(preview.tagName).toBe('TEXTAREA')
-    expect(preview).toHaveAttribute('maxlength', '200')
-    fireEvent.focus(preview)
-    fireEvent.change(preview, { target: { value: 'Two items' } })
-    fireEvent.keyDown(preview, { key: 'Enter' })
-    expect(onUpdate).not.toHaveBeenCalled()
-    fireEvent.blur(preview)
-    expect(onUpdate).toHaveBeenCalledTimes(1)
-    expect(onUpdate).toHaveBeenLastCalledWith({ content: 'Two items' })
-  })
-
-  it('the preview counter follows the typing and turns to a warning past 140 characters (H12)', () => {
-    renderPanel(blockOf('mj-preview', {}, ''))
-    const preview = screen.getByLabelText('Subject preview')
-    const counter = screen.getByTestId('preview-counter')
-    expect(counter).toHaveTextContent('0 / 200')
-    fireEvent.focus(preview)
-    fireEvent.change(preview, { target: { value: 'a'.repeat(140) } })
-    expect(counter).toHaveTextContent('140 / 200')
-    expect(counter).not.toHaveClass('text-warning-fg')
-    expect(screen.queryByText(/most inboxes cut the text/)).toBeNull()
-    fireEvent.change(preview, { target: { value: 'a'.repeat(141) } })
-    expect(counter).toHaveTextContent('141 / 200')
-    expect(counter).toHaveClass('text-warning-fg')
-    expect(screen.getByText(/most inboxes cut the text/)).toBeInTheDocument()
-  })
-
-  it('Font import writes name and href', async () => {
-    const { onUpdate } = renderPanel(blockOf('mj-font', {}))
-    fireEvent.click(screen.getByRole('button', { name: 'Import Font' }))
-    fireEvent.change(await screen.findByPlaceholderText('e.g., Raleway, Open Sans'), { target: { value: 'Inter' } })
-    fireEvent.change(screen.getByPlaceholderText(/fonts.googleapis.com/), {
-      target: { value: 'https://fonts.googleapis.com/css2?family=Inter' }
+    expect(onUpdate).toHaveBeenLastCalledWith({
+      name: 'Lato',
+      href: 'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap'
     })
-    const buttons = screen.getAllByRole('button', { name: 'Import Font' })
-    fireEvent.click(buttons[buttons.length - 1])
-    expect(onUpdate).toHaveBeenLastCalledWith({ name: 'Inter', href: 'https://fonts.googleapis.com/css2?family=Inter' })
   })
 
-  it('Font: the « How to use » help is in tooltips, not an alert', () => {
-    renderPanel(blockOf('mj-font', {}))
+  it('Font: the picker shows the popular font the block holds, and none for another', () => {
+    renderPanel(
+      blockOf('mj-font', { name: 'Roboto', href: 'https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap' })
+    )
+    expect(screen.getByTitle('Roboto')).toBeInTheDocument()
+  })
+
+  it('Font: the name is written once, on blur; an emptied name keeps the saved one', () => {
+    const { onUpdate } = renderPanel(blockOf('mj-font', { name: 'Inter', href: 'https://a.test/inter.css' }))
+    blur('Font name', 'Raleway')
+    expect(onUpdate).toHaveBeenCalledTimes(1)
+    expect(onUpdate).toHaveBeenLastCalledWith({ name: 'Raleway' })
+    onUpdate.mockClear()
+    blur('Font name', '  ')
+    expect(onUpdate).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    '{{ font_url }}',
+    '//fonts.googleapis.com/css?family=Lato',
+    'https://example.com/{% if dark %}dark{% endif %}.css',
+    'https://{{ cdn_host }}/fonts.css'
+  ])('Font: writes the stylesheet %s', (href) => {
+    const { onUpdate } = renderPanel(blockOf('mj-font', { name: 'Inter', href: 'https://a.test/inter.css' }))
+    blur('Stylesheet URL', href)
+    expect(onUpdate).toHaveBeenLastCalledWith({ href })
+  })
+
+  it('Font: writes a stylesheet pasted after a no-break space without it', () => {
+    const { onUpdate } = renderPanel(blockOf('mj-font', { name: 'Inter', href: 'https://a.test/inter.css' }))
+    blur('Stylesheet URL', '\u00a0https://fonts.googleapis.com/css?family=Lato')
+    expect(onUpdate).toHaveBeenLastCalledWith({ href: 'https://fonts.googleapis.com/css?family=Lato' })
+  })
+
+  it("Font: writes a stylesheet on the console's own origin", () => {
+    const href = `${window.location.origin}/fonts/brand.css`
+    const { onUpdate } = renderPanel(blockOf('mj-font', { name: 'Inter', href: 'https://a.test/inter.css' }))
+    blur('Stylesheet URL', href)
+    expect(onUpdate).toHaveBeenLastCalledWith({ href })
+  })
+
+  it('Font: warns while the name or the stylesheet is missing', () => {
+    renderPanel(blockOf('mj-font', { name: '', href: 'https://a.test/inter.css' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('The font is imported once it has a name and a stylesheet.')
+  })
+
+  it.each([
+    '/fonts/inter.css',
+    'fonts/inter.css',
+    'https//example.com/{% if dark %}dark{% endif %}.css',
+    'javascript:alert(1)',
+    'data:text/css,body{}',
+    'mailto:fonts@example.com'
+  ])(
+    'Font: refuses the stylesheet %s, which stays in the field in red',
+    (href) => {
+      const { onUpdate } = renderPanel(blockOf('mj-font', { name: 'Inter', href: 'https://a.test/inter.css' }))
+      blur('Stylesheet URL', href)
+      expect(onUpdate).not.toHaveBeenCalled()
+      expect(screen.getByLabelText('Stylesheet URL')).toHaveAttribute('aria-invalid', 'true')
+    }
+  )
+
+  it.each([
+    ['https://fonts.googleapis.com/css2?family=Inter', 'https://fonts.googleapis.com/css2?family=Inter'],
+    ['//fonts.googleapis.com/css?family=Lato', 'https://fonts.googleapis.com/css?family=Lato']
+  ])('Font: links the stylesheet %s', (href, link) => {
+    renderPanel(blockOf('mj-font', { name: 'Inter', href }))
+    expect(screen.getByRole('link', { name: 'Open the link' })).toHaveAttribute('href', link)
+  })
+
+  it.each(['javascript:window.__probe=1', 'https://{{ cdn_host }}/fonts.css', '{{ font_url }}'])(
+    'Font: does not link the stylesheet %s',
+    (href) => {
+      renderPanel(blockOf('mj-font', { name: 'Inter', href }))
+      expect(screen.queryByRole('link')).toBeNull()
+    }
+  )
+
+  it('Font: the help is in tooltips, not an alert', () => {
+    renderPanel(blockOf('mj-font', { name: 'Inter', href: 'https://a.test/inter.css' }))
     expect(screen.queryByRole('alert')).toBeNull()
-    expect(screen.queryByText(/How to use/)).toBeNull()
-    expect(screen.getByRole('button', { name: 'About Imported font' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Import Font' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'About Name' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'About Stylesheet' })).toBeInTheDocument()
   })
 
   it('Inline Styles writes inline', () => {

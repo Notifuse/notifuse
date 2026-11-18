@@ -11,6 +11,9 @@ export interface SettingsRowProps {
   isSet?: boolean
   /** Back to the inherited value (writes undefined for the row's keys). */
   onReset?: () => void
+  /** What the reset goes back to: the inherited value (default), or a built-in default one. */
+  resetTo?: 'inherited' | 'default'
+
   /** Label above the field instead of beside it (wide fields: spacing box, code). */
   vertical?: boolean
   /** Shown under the field, always visible: warnings and errors only. */
@@ -19,7 +22,16 @@ export interface SettingsRowProps {
 }
 
 // One setting of the panel: label on the left (96 px), field on the right.
-export function SettingsRow({ label, help, isSet = false, onReset, vertical = false, alert, children }: SettingsRowProps) {
+export function SettingsRow({
+  label,
+  help,
+  isSet = false,
+  onReset,
+  resetTo = 'inherited',
+  vertical = false,
+  alert,
+  children
+}: SettingsRowProps) {
   const { t } = useLingui()
   const labelNode = (
     <span className={`flex min-w-0 items-center gap-1 text-xs ${isSet ? 'font-medium text-ink' : 'text-ink-2'}`}>
@@ -36,8 +48,8 @@ export function SettingsRow({ label, help, isSet = false, onReset, vertical = fa
     isSet && onReset ? (
       <button
         type="button"
-        aria-label={t`Reset ${label} to the inherited value`}
-        title={t`Reset to the inherited value`}
+        aria-label={resetTo === 'default' ? t`Reset ${label} to the default value` : t`Reset ${label} to the inherited value`}
+        title={resetTo === 'default' ? t`Reset to the default value` : t`Reset to the inherited value`}
         onClick={onReset}
         className="flex-none cursor-pointer rounded-sm border-0 bg-transparent p-0.5 text-ink-4 hover:text-ink-2"
       >
