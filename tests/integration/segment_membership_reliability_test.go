@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -43,6 +44,20 @@ func TestSegmentMembershipReliability(t *testing.T) {
 	segmentRepo := repository.NewSegmentRepository(wsRepo)
 
 	const recentSQL = "SELECT email FROM contacts WHERE created_at > NOW() - INTERVAL '7 days'"
+	// The tree the query above compiles from: relative dates, so the segment is rebuilt every day.
+	// createSegmentWithSQL stores another tree, and a segment without relative dates comes out of
+	// its build unmarked.
+	withRecentTree := func(t *testing.T, db *sql.DB, segID string) {
+		t.Helper()
+		tree := &domain.TreeNode{Kind: "leaf", Leaf: &domain.TreeNodeLeaf{Source: "contacts",
+			Contact: &domain.ContactCondition{Filters: []*domain.DimensionFilter{{
+				FieldName: "created_at", FieldType: "time", Operator: "in_the_last_days", StringValues: []string{"7"},
+			}}}}}
+		treeJSON, err := json.Marshal(tree)
+		require.NoError(t, err)
+		_, err = db.ExecContext(ctx, `UPDATE segments SET tree = $2 WHERE id = $1`, segID, treeJSON)
+		require.NoError(t, err)
+	}
 
 	t.Run("daily rebuild removes the contacts that left the window", func(t *testing.T) {
 		ws, db := newReliabilityWorkspace(t, factory, suite)
@@ -52,6 +67,7 @@ func TestSegmentMembershipReliability(t *testing.T) {
 		createContacts(t, factory, ws, recent, old)
 
 		segID := createSegmentWithSQL(t, db, "segday"+tag[:4], recentSQL, domain.JSONArray{}, string(domain.SegmentStatusActive))
+		withRecentTree(t, db, segID)
 		addMember(t, db, recent, segID, 1)
 		addMember(t, db, old, segID, 1)
 		require.NoError(t, factory.SetSegmentRecomputeAfter(ws, segID, time.Now().Add(-time.Hour)))
@@ -95,6 +111,7 @@ func TestSegmentMembershipReliability(t *testing.T) {
 		createContacts(t, factory, ws, a, b)
 
 		segID := createSegmentWithSQL(t, db, "segnone"+tag[:4], recentSQL, domain.JSONArray{}, string(domain.SegmentStatusActive))
+		withRecentTree(t, db, segID)
 		addMember(t, db, a, segID, 1)
 		addMember(t, db, b, segID, 1)
 		require.NoError(t, factory.SetSegmentRecomputeAfter(ws, segID, time.Now().Add(-time.Hour)))
