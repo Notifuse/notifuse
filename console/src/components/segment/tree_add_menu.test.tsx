@@ -203,3 +203,47 @@ describe('TreeNodeInput — keyboard focus', () => {
     await waitFor(() => expect(document.activeElement).toBe(addButton()))
   })
 })
+
+describe('TreeNodeInput — hooks for its caller', () => {
+  it('reports when a condition opens and closes', async () => {
+    const onEditingChange = vi.fn()
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <I18nProvider i18n={i18n}>
+          <TreeNodeInput
+            value={treeOf(listLeaf('news'))}
+            onChange={vi.fn()}
+            schemas={TableSchemas}
+            lists={[{ id: 'news', name: 'Newsletter' }]}
+            onEditingChange={onEditingChange}
+          />
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    expect(onEditingChange).toHaveBeenLastCalledWith(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    await waitFor(() => expect(onEditingChange).toHaveBeenLastCalledWith(true))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(onEditingChange).toHaveBeenLastCalledWith(false))
+  })
+
+  it('shows its empty state on an empty root only, the add buttons kept', () => {
+    const { rerender } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <I18nProvider i18n={i18n}>
+          <TreeNodeInput value={treeOf()} schemas={TableSchemas} emptyState={<p>nothing yet</p>} />
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    expect(screen.getByText('nothing yet')).toBeTruthy()
+    expect(addButton()).toHaveAttribute('data-add-condition', 'branch.leaves')
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <I18nProvider i18n={i18n}>
+          <TreeNodeInput value={treeOf(listLeaf('news'))} schemas={TableSchemas} emptyState={<p>nothing yet</p>} />
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    expect(screen.queryByText('nothing yet')).toBeNull()
+  })
+})

@@ -316,6 +316,22 @@ export const TIMEFRAME_LABELS: Record<string, MessageDescriptor> = {
   in_the_last_days: msg`in the last`
 }
 
+// The colour presets of a segment, keyed as segmentColor.ts names them.
+export const SEGMENT_COLOR_LABELS: Record<string, MessageDescriptor> = {
+  magenta: msg`Magenta`,
+  red: msg`Red`,
+  volcano: msg`Volcano`,
+  orange: msg`Orange`,
+  gold: msg`Gold`,
+  lime: msg`Lime`,
+  green: msg`Green`,
+  cyan: msg`Cyan`,
+  blue: msg`Blue`,
+  geekblue: msg`Indigo`,
+  purple: msg`Purple`,
+  grey: msg`Grey`
+}
+
 /** A message from one of the tables above, or the raw value when the table does not know it. */
 export const labelOf = (
   table: Record<string, MessageDescriptor>,

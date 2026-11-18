@@ -21,3 +21,21 @@ export function segmentDotColor(color?: string | null): string {
   if (!value) return PRESETS.blue
   return PRESETS[value] ?? color!.trim()
 }
+
+/** The colours a segment can be given, in the order the picker offers them; blue is the default. */
+export const SEGMENT_COLORS = [
+  'magenta',
+  'red',
+  'volcano',
+  'orange',
+  'gold',
+  'lime',
+  'green',
+  'cyan',
+  'blue',
+  'geekblue',
+  'purple',
+  'grey'
+] as const
+
+export const DEFAULT_SEGMENT_COLOR = 'blue'

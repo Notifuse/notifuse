@@ -10,13 +10,19 @@ const WORKSPACE_ID = 'test-workspace'
 // antd 6 dropped .ant-drawer-content / .ant-modal-content: the drawer's role="dialog" now sits on
 // div.ant-drawer-section and takes its accessible name from the drawer title. Addressing the
 // dialog by role+name therefore pins both "the drawer is open" and "it is the right drawer".
-const segmentDrawer = (page: Page, title: 'New segment' | 'Update segment') =>
+const segmentDrawer = (page: Page, title: 'New segment' | 'Edit segment') =>
   page.getByRole('dialog', { name: title, exact: true })
 
-// The drawer footer buttons live in the header "extra" slot, next to the title; the leaf editor
-// has its own Confirm inside the body, so submitting the segment has to be scoped to the header.
+// The full-screen drawer's bar carries Create (a new segment) or Save (an existing one); the
+// condition editor has its own Confirm in the body.
 const drawerSubmit = (drawer: ReturnType<typeof segmentDrawer>) =>
-  drawer.locator('.ant-drawer-header').getByRole('button', { name: 'Confirm', exact: true })
+  drawer.getByRole('button', { name: /^(Create|Save)$/ })
+
+// The name field sits in the bar.
+const nameField = (drawer: ReturnType<typeof segmentDrawer>) => drawer.getByRole('textbox', { name: 'Segment name' })
+
+// What still blocks the save, as the summary lists it.
+const summary = (drawer: ReturnType<typeof segmentDrawer>) => drawer.locator('[data-summary-tone]')
 
 const EMPTY_TREE = { kind: 'branch', branch: { operator: 'and', leaves: [] } }
 
@@ -98,8 +104,8 @@ test.describe('Segments Feature', () => {
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
 
-      // The creation form: name, colour, timezone and the condition builder
-      await expect(drawer.getByPlaceholder('e.g. Big spenders')).toBeVisible()
+      // The creation form: name and colour in the bar, timezone and the condition builder
+      await expect(nameField(drawer)).toBeVisible()
       await expect(drawer.getByLabel('Timezone used for dates')).toBeVisible()
       await expect(drawer.getByRole('button', { name: 'Condition', exact: true })).toBeVisible()
     })
@@ -115,13 +121,13 @@ test.describe('Segments Feature', () => {
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
 
-      const nameInput = drawer.getByPlaceholder('e.g. Big spenders')
+      const nameInput = nameField(drawer)
       await nameInput.fill('Active Subscribers')
       await expect(nameInput).toHaveValue('Active Subscribers')
 
-      // The tree condition builder is exercised in the builder tests; here we only pin that the
-      // form is complete enough to be submitted from the header.
-      await expect(drawerSubmit(drawer)).toBeVisible()
+      // Without a condition, Create waits and the summary says why
+      await expect(drawerSubmit(drawer)).toBeDisabled()
+      await expect(summary(drawer).filter({ hasText: 'Add at least one condition.' })).toBeVisible()
     })
   })
 
@@ -291,7 +297,7 @@ test.describe('Segments Feature', () => {
       await page.locator('[data-rail-item]').filter({ hasText: segmentName }).click()
       await page.getByRole('button', { name: 'Edit segment', exact: true }).click()
 
-      const drawer = segmentDrawer(page, 'Update segment')
+      const drawer = segmentDrawer(page, 'Edit segment')
       await expect(drawer).toBeVisible()
       return drawer
     }
@@ -304,7 +310,7 @@ test.describe('Segments Feature', () => {
 
       const drawer = await openSegmentEditor(page, 'Active Users')
 
-      await expect(drawer.getByPlaceholder('e.g. Big spenders')).toHaveValue('Active Users')
+      await expect(nameField(drawer)).toHaveValue('Active Users')
     })
 
     test('edit segment preserves color selection', async ({ authenticatedPageWithData }) => {
@@ -315,8 +321,8 @@ test.describe('Segments Feature', () => {
 
       const drawer = await openSegmentEditor(page, 'Active Users')
 
-      // The colour dots sit under the name; an existing segment opens on its own colour
-      await expect(drawer.getByRole('radio', { name: 'blue', exact: true })).toHaveAttribute('aria-checked', 'true')
+      // The colour dot sits before the name; an existing segment opens on its own colour
+      await expect(drawer.getByRole('button', { name: 'Colour: Blue', exact: true })).toBeVisible()
     })
 
     test('edit segment preserves timezone selection', async ({ authenticatedPageWithData }) => {
@@ -346,10 +352,9 @@ test.describe('Segments Feature', () => {
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
 
-      // Submitting an untouched form reports the missing name and sends nothing
-      await drawerSubmit(drawer).click()
-
-      await expect(drawer.locator('.ant-form-item-explain-error')).toHaveText('Please enter a name')
+      // An untouched form cannot be submitted: the summary names what is missing
+      await expect(drawerSubmit(drawer)).toBeDisabled()
+      await expect(summary(drawer).filter({ hasText: 'Give the segment a name.' })).toBeVisible()
       expect(requestCapture.getRequestCount(API_PATTERNS.SEGMENT_CREATE)).toBe(0)
     })
 
@@ -363,15 +368,11 @@ test.describe('Segments Feature', () => {
       const drawer = segmentDrawer(page, 'New segment')
       await expect(drawer).toBeVisible()
 
-      await drawer.getByPlaceholder('e.g. Big spenders').fill('Test Segment')
+      await nameField(drawer).fill('Test Segment')
 
-      // A named segment with an empty tree is rejected by the tree validator: the drawer stays
-      // open and nothing is sent. The validator is declared noStyle, so the rejection is only
-      // observable through the request that never happens.
-      await drawerSubmit(drawer).click()
-      await page.waitForTimeout(1000)
-
-      await expect(drawer).toBeVisible()
+      // A named segment with an empty tree cannot be created, and says so (it used to do nothing)
+      await expect(drawerSubmit(drawer)).toBeDisabled()
+      await expect(summary(drawer).filter({ hasText: 'Add at least one condition.' })).toBeVisible()
       expect(requestCapture.getRequestCount(API_PATTERNS.SEGMENT_CREATE)).toBe(0)
     })
   })
@@ -437,7 +438,7 @@ test.describe('Segments Feature', () => {
       await expect(drawer).toBeVisible()
 
       // Fill segment name
-      await drawer.getByPlaceholder('e.g. Big spenders').fill(testSegmentData.name)
+      await nameField(drawer).fill(testSegmentData.name)
 
       // A segment is only submittable with a queryable tree, so build the simplest complete
       // condition: contact email is set.
@@ -452,7 +453,12 @@ test.describe('Segments Feature', () => {
       await pickOperator(page, /^is set$/)
 
       // Confirm the condition, then the segment
+      // While the condition is open, Create waits for it
+      await expect(drawerSubmit(drawer)).toBeDisabled()
+      await expect(summary(drawer).filter({ hasText: 'A condition is open: confirm or cancel it.' })).toBeVisible()
+
       await drawer.locator('.ant-drawer-body').getByRole('button', { name: 'Confirm', exact: true }).click()
+      await expect(drawerSubmit(drawer)).toBeEnabled()
       await drawerSubmit(drawer).click()
 
       await expect
