@@ -538,6 +538,59 @@ func TestAutomationTriggerConditions(t *testing.T) {
 			"a value that cannot be read as a number does not match")
 	})
 
+	// A value inside a custom JSON column is read as the text it holds, not as its JSON text,
+	// which kept a string's quotes: a JSON date never converted in an entry condition (after
+	// never matched) and a text « equals » never matched. The defensive cast also tests the
+	// conversion: unquoted, 2026-02-30 passes the shape check and its cast would abort the write.
+	t.Run("AJSONDateAndAJSONTextMatchInEntryConditions", func(t *testing.T) {
+		automationID := activateLive(t, newAutomation(
+			"Conditions JSON Date", "email.clicked",
+			contactsCondition(
+				map[string]interface{}{
+					"field_name":    "custom_json_1",
+					"field_type":    "time",
+					"operator":      "after_date",
+					"json_path":     []string{"renewed_at"},
+					"string_values": []string{"2026-01-01T00:00:00Z"},
+				},
+				map[string]interface{}{
+					"field_name":    "custom_json_1",
+					"field_type":    "string",
+					"operator":      "equals",
+					"json_path":     []string{"plan"},
+					"string_values": []string{"gold"},
+				},
+			)))
+
+		withJSON := func(t *testing.T, email, value string) {
+			t.Helper()
+			_, createErr := factory.CreateContact(workspaceID, testutil.WithContactEmail(email))
+			require.NoError(t, createErr)
+			_, execErr := workspaceDB.ExecContext(ctx, `UPDATE contacts SET custom_json_1 = $2::jsonb WHERE email = $1`, email, value)
+			require.NoError(t, execErr)
+		}
+		later := "conditions-jsondate-later@example.com"
+		withJSON(t, later, `{"renewed_at":"2026-03-01","plan":"gold"}`)
+		earlier := "conditions-jsondate-earlier@example.com"
+		withJSON(t, earlier, `{"renewed_at":"2025-06-01","plan":"gold"}`)
+		silver := "conditions-jsondate-silver@example.com"
+		withJSON(t, silver, `{"renewed_at":"2026-03-01","plan":"silver"}`)
+		invalid := "conditions-jsondate-invalid@example.com"
+		withJSON(t, invalid, `{"renewed_at":"2026-02-30","plan":"gold"}`)
+
+		insertEvent(t, later, "email.clicked")
+		insertEvent(t, earlier, "email.clicked")
+		insertEvent(t, silver, "email.clicked")
+		require.NotPanics(t, func() { insertEvent(t, invalid, "email.clicked") },
+			"a contact holding a date that does not exist must still be writable")
+
+		require.NotNil(t, waitForEnrollment(t, factory, workspaceID, automationID, later, 3*time.Second),
+			"a later JSON date with the plan gold should enrol")
+		assert.Nil(t, enrollment(t, automationID, earlier), "an earlier JSON date does not match")
+		assert.Nil(t, enrollment(t, automationID, silver), "another plan does not match")
+		assert.Nil(t, enrollment(t, automationID, invalid), "a date that does not exist does not match")
+	})
+
 	t.Run("FailedReinstallKeepsTheWorkingTrigger", func(t *testing.T) {
 		automation := newAutomation(
 			"Conditions Reinstall", "email.clicked", contactsCondition(stringFilter("country", "US")))
