@@ -3050,3 +3050,63 @@ func TestQueryBuilder_JSONScalarSemanticsOnPostgres(t *testing.T) {
 		assert.Equal(t, []string{"index@example.com"}, matchedEmails(t, db, byIndex, indexArgs))
 	})
 }
+
+// The console offers a JSON value read as a date before, after, equal to, and in or not in the
+// last N days, each with ISO string values (or a day count). Every one of them must compile
+// through BuildSQL, which segments and automation filter nodes use; a date range must not, which
+// is why the console does not offer it.
+func TestQueryBuilder_BuildSQL_JSONDateOperatorsTheConsoleOffers(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	jsonDateTree := func(operator string, values ...string) *domain.TreeNode {
+		return &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_3",
+							FieldType:    "time",
+							Operator:     operator,
+							JSONPath:     []string{"renewed_at"},
+							StringValues: values,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	t.Run("after_date", func(t *testing.T) {
+		sql, args, err := qb.BuildSQL(jsonDateTree("after_date", "2026-10-01T00:00:00Z"))
+		require.NoError(t, err)
+		assert.Contains(t, sql, "(custom_json_3['renewed_at']::text)::timestamptz > $1")
+		assert.Len(t, args, 1)
+	})
+
+	t.Run("before_date", func(t *testing.T) {
+		sql, _, err := qb.BuildSQL(jsonDateTree("before_date", "2026-10-01T00:00:00Z"))
+		require.NoError(t, err)
+		assert.Contains(t, sql, "(custom_json_3['renewed_at']::text)::timestamptz < $1")
+	})
+
+	t.Run("equals", func(t *testing.T) {
+		sql, _, err := qb.BuildSQL(jsonDateTree("equals", "2026-10-01T00:00:00Z"))
+		require.NoError(t, err)
+		assert.Contains(t, sql, "(custom_json_3['renewed_at']::text)::timestamptz = $1")
+	})
+
+	for _, operator := range []string{"in_the_last_days", "not_in_the_last_days"} {
+		t.Run(operator, func(t *testing.T) {
+			sql, _, err := qb.BuildSQL(jsonDateTree(operator, "30"))
+			require.NoError(t, err)
+			assert.Contains(t, sql, "(custom_json_3['renewed_at']::text)::timestamptz")
+		})
+	}
+
+	t.Run("a date range is refused", func(t *testing.T) {
+		_, _, err := qb.BuildSQL(jsonDateTree("in_date_range", "2026-09-01T00:00:00Z", "2026-09-30T00:00:00Z"))
+		require.Error(t, err)
+	})
+}

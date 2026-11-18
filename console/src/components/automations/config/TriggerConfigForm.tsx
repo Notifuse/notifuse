@@ -395,6 +395,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({
         value={config.conditions}
         onChange={handleConditionsChange}
         onClear={handleRemoveConditions}
+        jsonDateValues={false}
         notice={
           <>
             {usesTimeline && (

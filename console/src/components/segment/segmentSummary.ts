@@ -7,7 +7,7 @@ import type {
   TreeNode
 } from '../../services/api/segment'
 import { LIST_STATUS_LABEL } from '../contacts/contactDisplay'
-import { ContactsTableSchema } from './table_schemas'
+import { AGGREGATE_LABELS, fieldLabel as contactFieldLabel, GOAL_LABELS } from './segmentLabels'
 
 /** The first conditions of a segment's tree, for the "Defined by" bar. */
 export interface SegmentSummary {
@@ -30,33 +30,9 @@ export interface SegmentSummaryOptions {
 
 const MAX_CONDITIONS = 3
 
-// The segment schemas are written in English and not extracted: the standard contact fields
-// carry their own catalogue messages here. A custom field shows its workspace label.
-const FIELD_LABELS: Record<string, MessageDescriptor> = {
-  email: msg`Email`,
-  external_id: msg`External ID`,
-  first_name: msg`First Name`,
-  last_name: msg`Last Name`,
-  full_name: msg`Full Name`,
-  phone: msg`Phone`,
-  country: msg`Country`,
-  language: msg`Language`,
-  timezone: msg`Timezone`,
-  address_line_1: msg`Address Line 1`,
-  address_line_2: msg`Address Line 2`,
-  postcode: msg`Postcode`,
-  state: msg`State`,
-  job_title: msg`Job Title`,
-  created_at: msg`Created At`,
-  updated_at: msg`Updated At`,
-  tracking_opens_consent: msg`Opens tracking consent`,
-  tracking_clicks_consent: msg`Clicks tracking consent`
-}
-
+/** A contact field's name: the workspace's label, then the catalogue's, then the raw key. */
 function fieldLabel(fieldName: string, i18n: I18n, options: SegmentSummaryOptions): string {
-  const descriptor = FIELD_LABELS[fieldName]
-  if (descriptor) return i18n._(descriptor)
-  return options.customFieldLabels?.[fieldName] ?? ContactsTableSchema.fields[fieldName]?.title ?? fieldName
+  return contactFieldLabel('contacts', fieldName, i18n, options.customFieldLabels)
 }
 
 /**
@@ -142,24 +118,6 @@ const TIMELINE_ACTIONS: Record<string, MessageDescriptor> = {
   'web.session': msg`Visited the website`
 }
 
-const GOAL_LABELS: Record<string, MessageDescriptor> = {
-  '*': msg`Any goal`,
-  purchase: msg`Purchase`,
-  subscription: msg`Subscription`,
-  lead: msg`Lead`,
-  signup: msg`Sign-up`,
-  booking: msg`Booking`,
-  trial: msg`Trial`,
-  other: msg`Other goal`
-}
-
-const AGGREGATE_LABELS: Record<string, MessageDescriptor> = {
-  count: msg`count`,
-  sum: msg`total`,
-  avg: msg`average`,
-  min: msg`minimum`,
-  max: msg`maximum`
-}
 
 /** « in the last 30 days », « before 2026-01-01 »…, or nothing for any time. */
 function describeTimeframe(operator: string | undefined, values: string[] | undefined, i18n: I18n): string | null {

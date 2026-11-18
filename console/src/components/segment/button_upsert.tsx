@@ -1,20 +1,4 @@
-import {
-  Alert,
-  Button,
-  Col,
-  Drawer,
-  Form,
-  Input,
-  Row,
-  Select,
-  Space,
-  Tag,
-  Progress,
-  Popover,
-  Spin,
-  Tooltip,
-  App
-} from 'antd'
+import { Alert, Button, Drawer, Form, Input, Select, Space, App } from 'antd'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { debounce } from 'lodash'
 import { useParams } from '@tanstack/react-router'
@@ -23,7 +7,7 @@ import { TreeNodeInput, HasLeaf } from './input'
 import { useQuery } from '@tanstack/react-query'
 import { listsApi } from '../../services/api/list'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faInfoCircle, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
+import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import {
   Segment,
   createSegment,
@@ -41,7 +25,8 @@ import { TableSchemas } from './table_schemas'
 import { treeHasRelativeDates } from './relative_dates'
 import { isTreeQueryable } from './tree_completeness'
 import { useLingui } from '@lingui/react/macro'
-import { plural } from '@lingui/core/macro'
+import { SegmentCountCard } from './SegmentCountCard'
+import { segmentDotColor } from './segmentColor'
 
 const PREVIEW_LIMIT = 100
 // Long enough that a burst of typing inside a condition costs a single count query.
@@ -395,15 +380,6 @@ export const DrawerSegment = (props: {
     !!effectiveTree &&
     HasLeaf(effectiveTree)
 
-  let previewPercent = 0
-  if (previewResponse && previewResponse.total_count > 0) {
-    previewPercent =
-      props.totalContacts && props.totalContacts > 0
-        ? Math.min(100, (previewResponse.total_count / props.totalContacts) * 100)
-        : // Fallback to a fixed percentage when the workspace total is not available
-          50
-  }
-
   // Use the table schemas for segmentation
   const schemas = useMemo(() => {
     return {
@@ -438,154 +414,44 @@ export const DrawerSegment = (props: {
         </Space>
       }
     >
-      <>
-        <Form
-          form={form}
-          initialValues={initialValues}
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 12 }}
-          name="groupForm"
-          onFinish={onFinish}
-        >
-          <Row gutter={24}>
-            <Col span={18}>
-              <Form.Item label={t`Name`} required>
-                {/* Top-aligned: the name's error under it stretched the colour select down. */}
-                <Space.Compact style={{ width: '100%', alignItems: 'flex-start' }}>
-                  <Form.Item
-                    name="name"
-                    rules={[{ required: true, type: 'string' }]}
-                    validateStatus={
-                      idValidation.status === 'validating'
-                        ? 'validating'
-                        : idValidation.status === 'error'
-                          ? 'error'
-                          : idValidation.status === 'success'
-                            ? 'success'
-                            : undefined
-                    }
-                    help={idValidation.status === 'error' ? idValidation.message : undefined}
-                    hasFeedback={!props.segment && idValidation.status !== ''}
-                    style={{ flex: 1, marginBottom: 0 }}
-                  >
-                    <Input
-                      placeholder={t`e.g. Big spenders`}
-                      onChange={(e) => checkIdExists(e.target.value)}
-                    />
-                  </Form.Item>
-                  <Form.Item noStyle name="color">
-                    <Select
-                      style={{ width: 150 }}
-                      options={[
-                        {
-                          label: (
-                            <Tag variant="filled" color="magenta">
-                              magenta
-                            </Tag>
-                          ),
-                          value: 'magenta'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="red">
-                              red
-                            </Tag>
-                          ),
-                          value: 'red'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="volcano">
-                              volcano
-                            </Tag>
-                          ),
-                          value: 'volcano'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="orange">
-                              orange
-                            </Tag>
-                          ),
-                          value: 'orange'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="gold">
-                              gold
-                            </Tag>
-                          ),
-                          value: 'gold'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="lime">
-                              lime
-                            </Tag>
-                          ),
-                          value: 'lime'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="green">
-                              green
-                            </Tag>
-                          ),
-                          value: 'green'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="cyan">
-                              cyan
-                            </Tag>
-                          ),
-                          value: 'cyan'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="blue">
-                              blue
-                            </Tag>
-                          ),
-                          value: 'blue'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="geekblue">
-                              geekblue
-                            </Tag>
-                          ),
-                          value: 'geekblue'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="purple">
-                              purple
-                            </Tag>
-                          ),
-                          value: 'purple'
-                        },
-                        {
-                          label: (
-                            <Tag variant="filled" color="grey">
-                              grey
-                            </Tag>
-                          ),
-                          value: 'grey'
-                        }
-                      ]}
-                    />
-                  </Form.Item>
-                </Space.Compact>
+      <Form form={form} initialValues={initialValues} layout="vertical" name="groupForm" onFinish={onFinish}>
+        <div className="mx-auto max-w-[1100px]">
+          <div className="grid grid-cols-[minmax(0,1fr)_260px] items-start gap-6">
+            <div>
+              <Form.Item
+                label={t`Name`}
+                name="name"
+                rules={[{ required: true, type: 'string', message: t`Please enter a name` }]}
+                validateStatus={
+                  idValidation.status === 'validating'
+                    ? 'validating'
+                    : idValidation.status === 'error'
+                      ? 'error'
+                      : idValidation.status === 'success'
+                        ? 'success'
+                        : undefined
+                }
+                help={idValidation.status === 'error' ? idValidation.message : undefined}
+                hasFeedback={!props.segment && idValidation.status !== ''}
+                style={{ marginBottom: 8 }}
+              >
+                <Input placeholder={t`e.g. Big spenders`} onChange={(e) => checkIdExists(e.target.value)} />
               </Form.Item>
+              <div className="mb-4 flex items-center gap-2">
+                <span className="text-xs text-ink-3">{t`Color`}</span>
+                <Form.Item noStyle name="color">
+                  <ColorSwatches />
+                </Form.Item>
+              </div>
 
               <Form.Item
                 name="timezone"
                 label={t`Timezone used for dates`}
                 rules={[{ required: true, type: 'string' }]}
-                className="mb-12"
+                style={{ marginBottom: 12 }}
               >
                 <Select
+                  style={{ maxWidth: 320 }}
                   placeholder={t`Select a time zone`}
                   allowClear={false}
                   showSearch={true}
@@ -606,154 +472,33 @@ export const DrawerSegment = (props: {
                   const hasRelativeDates = treeHasRelativeDates(effectiveTree)
                   const timezone = values.timezone || workspace?.settings.timezone || 'UTC'
 
-                  if (hasRelativeDates) {
-                    return (
-                      <Alert
-                        type="info"
-                        showIcon
-                        title={t`This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM (${timezone})`}
-                        style={{ marginBottom: 16 }}
-                      />
-                    )
-                  }
-                  return null
+                  if (!hasRelativeDates) return null
+                  return (
+                    <Alert
+                      type="info"
+                      showIcon
+                      title={t`This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM (${timezone})`}
+                    />
+                  )
                 }}
               </Form.Item>
-            </Col>
-            <Col span={6}>
-              {/* Reserved whether or not the note is showing: it comes and goes as a condition is
-                  edited, and must move neither the circle nor the form below the row when it does */}
-              <div style={{ height: 32, marginBottom: 4, overflow: 'hidden' }}>
-                {isPreviewBlocked && (
-                  <div className="opacity-60" style={{ fontSize: 12, lineHeight: '16px' }}>
-                    {t`Complete the condition to refresh the count`}
-                  </div>
-                )}
-              </div>
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <Spin spinning={isPreviewRefreshing} size="large">
-                  {/* Dimmed once the request has landed but the count still does not match the
-                      form, so a stale number is never mistaken for the answer to what is written */}
-                  <div
-                    style={{
-                      opacity: hasPreview && isPreviewStale && !isPreviewRefreshing ? 0.4 : 1,
-                      transition: 'opacity 0.2s'
-                    }}
-                  >
-                    {hasPreview ? (
-                      <Progress
-                        // One size whatever the count: « 0 contacts » in the ring's default size
-                        // overflowed it.
-                        format={() => (
-                          <span className="text-base">
-                            {plural(previewResponse!.total_count, { one: '# contact', other: '# contacts' })}
-                          </span>
-                        )}
-                        type="circle"
-                        percent={previewPercent}
-                        size={150}
-                        status="normal"
-                        strokeColor={{
-                          '0%': '#4e6cff',
-                          '100%': '#8E2DE2'
-                        }}
-                      />
-                    ) : (
-                      <Progress
-                        format={() => (
-                          <Button
-                            type="primary"
-                            ghost
-                            onClick={previewNow}
-                            disabled={!previewHash || isPreviewRefreshing}
-                          >
-                            {t`Preview`}
-                          </Button>
-                        )}
-                        type="circle"
-                        percent={0}
-                        size={150}
-                      />
-                    )}
-                  </div>
-                </Spin>
+            </div>
 
-                <div style={{ position: 'absolute', top: 0, right: 0 }}>
-                  {previewError ? (
-                    <Tooltip
-                      title={
-                        <>
-                          {previewError}
-                          <div>{t`Click to retry`}</div>
-                        </>
-                      }
-                    >
-                      <FontAwesomeIcon
-                        icon={faTriangleExclamation}
-                        onClick={previewNow}
-                        style={{ fontSize: '18px', color: '#faad14', cursor: 'pointer' }}
-                      />
-                    </Tooltip>
-                  ) : hasPreview ? (
-                    <Popover
-                      title={t`Preview Results`}
-                      placement="left"
-                      content={
-                        <div style={{ width: 600, maxHeight: 600, overflow: 'auto' }}>
-                          <p>
-                            <strong>{t`Matching contacts:`}</strong> {previewResponse!.total_count}
-                          </p>
-                          {previewResponse!.generated_sql && (
-                            <>
-                              <p>
-                                <strong>{t`Generated SQL:`}</strong>
-                              </p>
-                              <pre
-                                style={{
-                                  backgroundColor: '#f5f5f5',
-                                  padding: '8px',
-                                  borderRadius: '4px',
-                                  fontSize: '11px',
-                                  overflow: 'auto',
-                                  maxHeight: '200px'
-                                }}
-                              >
-                                {previewResponse!.generated_sql}
-                              </pre>
-                            </>
-                          )}
-                          {previewResponse!.sql_args && previewResponse!.sql_args.length > 0 && (
-                            <>
-                              <p>
-                                <strong>{t`SQL Arguments:`}</strong>
-                              </p>
-                              <pre
-                                style={{
-                                  backgroundColor: '#f5f5f5',
-                                  padding: '8px',
-                                  borderRadius: '4px',
-                                  fontSize: '11px',
-                                  overflow: 'auto',
-                                  maxHeight: '100px'
-                                }}
-                              >
-                                {JSON.stringify(previewResponse!.sql_args, null, 2)}
-                              </pre>
-                            </>
-                          )}
-                        </div>
-                      }
-                    >
-                      <FontAwesomeIcon
-                        icon={faInfoCircle}
-                        style={{ fontSize: '18px', color: '#1890ff', cursor: 'pointer' }}
-                      />
-                    </Popover>
-                  ) : null}
-                </div>
-              </div>
-            </Col>
-          </Row>
+            <SegmentCountCard
+              response={previewResponse}
+              totalContacts={props.totalContacts}
+              refreshing={isPreviewRefreshing}
+              stale={isPreviewStale}
+              blocked={isPreviewBlocked}
+              error={previewError}
+              canCount={!!previewHash}
+              onCount={previewNow}
+            />
+          </div>
+
+          <div className="mt-5 mb-3 border-t border-line-soft pt-4 text-overline font-semibold tracking-wide text-ink-3 uppercase">
+            {t`Conditions`}
+          </div>
 
           <Form.Item
             name="tree"
@@ -761,16 +506,8 @@ export const DrawerSegment = (props: {
             rules={[
               {
                 required: true,
-                validator: (_rule, value) => {
-                  // console.log('value', value)
-                  return new Promise((resolve, reject) => {
-                    if (HasLeaf(value)) {
-                      return resolve(undefined)
-                    }
-                    return reject(new Error(t`A tree is required`))
-                  })
-                }
-                // message: Messages.RequiredField
+                validator: (_rule, value) =>
+                  HasLeaf(value) ? Promise.resolve(undefined) : Promise.reject(new Error(t`A tree is required`))
               }
             ]}
           >
@@ -783,9 +520,51 @@ export const DrawerSegment = (props: {
               onDraftTreeChange={setDraftTree}
             />
           </Form.Item>
-        </Form>
-      </>
+        </div>
+      </Form>
     </Drawer>
+  )
+}
+
+const SEGMENT_COLORS = [
+  'magenta',
+  'red',
+  'volcano',
+  'orange',
+  'gold',
+  'lime',
+  'green',
+  'cyan',
+  'blue',
+  'geekblue',
+  'purple',
+  'grey'
+]
+
+/** The colour of a segment, as a row of dots. Form.Item hands it value and onChange. */
+function ColorSwatches({ value, onChange }: { value?: string; onChange?: (color: string) => void }) {
+  const { t } = useLingui()
+  return (
+    <div role="radiogroup" aria-label={t`Color`} className="flex flex-wrap gap-1.5">
+      {SEGMENT_COLORS.map((color) => {
+        const selected = value === color
+        return (
+          <button
+            key={color}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            aria-label={color}
+            title={color}
+            onClick={() => onChange?.(color)}
+            className={`size-4.5 cursor-pointer rounded-full border-2 border-surface ${
+              selected ? 'ring-2 ring-primary-500' : 'ring-1 ring-line'
+            }`}
+            style={{ backgroundColor: segmentDotColor(color) }}
+          />
+        )
+      })}
+    </div>
   )
 }
 

@@ -62,7 +62,7 @@ msgstr "· lecture seule"
 msgid "“{0}”: H{1} after H{previousLevel} (H{2} expected)"
 msgstr "« {0} » : H{1} après H{previousLevel} (H{2} attendu)"
 
-#: src/components/segment/segmentSummary.ts:209
+#: src/components/segment/segmentSummary.ts:167
 msgid "“{name}”"
 msgstr "« {name} »"
 
@@ -102,7 +102,7 @@ msgstr "(par défaut)"
 msgid "(empty)"
 msgstr "(vide)"
 
-#: src/components/blog/PostDrawer.tsx:768
+#: src/components/blog/PostDrawer.tsx:774
 msgid "(has checks left)"
 msgstr "(vérifications restantes)"
 
@@ -138,6 +138,11 @@ msgstr "(vous)"
 #: src/pages/TransactionalNotificationsPage.tsx:314
 msgid "{0, plural, one {{1} email} other {{2} emails}}"
 msgstr "{0, plural, one {{1} email} other {{2} emails}}"
+
+#. placeholder {0}: totalContacts ?? 0
+#: src/components/segment/SegmentCountCard.tsx:119
+msgid "{0, plural, one {{percent} % of {total} contact} other {{percent} % of {total} contacts}}"
+msgstr "{0, plural, one {{percent} % de {total} contact} other {{percent} % des {total} contacts}}"
 
 #. placeholder {0}: rows.length
 #: src/components/logs/InboundWebhooksTab.tsx:340
@@ -179,10 +184,8 @@ msgstr "{0, plural, one {# vérifié} other {# vérifiés}}"
 msgid "{0, plural, one {# click} other {# clicks}}"
 msgstr "{0, plural, one {# clic} other {# clics}}"
 
-#. placeholder {0}: previewResponse!.total_count
 #. placeholder {0}: progress.total
 #: src/components/contacts/BulkActionProgressModal.tsx:79
-#: src/components/segment/button_upsert.tsx:649
 msgid "{0, plural, one {# contact} other {# contacts}}"
 msgstr "{0, plural, one {# contact} other {# contacts}}"
 
@@ -374,6 +377,11 @@ msgstr "{0, plural, one {Tout afficher (#)} other {Tout afficher (#)}}"
 #~ msgid "{0, plural, one {The provider refused # recipient and every retry was used up. Open the logs to see why, then retry it.} other {The provider refused # recipients and every retry was used up. Open the logs to see why, then retry them.}}"
 #~ msgstr "{0, plural, one {Le fournisseur a refusé # destinataire et toutes les tentatives sont épuisées. Ouvrez les logs pour voir pourquoi, puis relancez-le.} other {Le fournisseur a refusé # destinataires et toutes les tentatives sont épuisées. Ouvrez les logs pour voir pourquoi, puis relancez-les.}}"
 
+#. placeholder {0}: condition.count_value
+#: src/components/segment/ConditionSentence.tsx:242
+msgid "{0, plural, one {time} other {times}}"
+msgstr "{0, plural, one {fois} other {fois}}"
+
 #. placeholder {0}: template.name
 #: src/components/logs/MessageDetail.tsx:248
 #: src/components/logs/MessageDetail.tsx:619
@@ -415,9 +423,14 @@ msgstr "Cliqués : {0}"
 #~ msgstr "{0} contacts"
 
 #. placeholder {0}: filter.field_name
+#: src/components/segment/FilterRow.tsx:78
+msgid "{0} does not apply to this condition"
+msgstr "{0} ne s'applique pas à cette condition"
+
+#. placeholder {0}: filter.field_name
 #: src/components/segment/input_dimension_filters.tsx:73
-msgid "{0} does not apply to this event"
-msgstr "{0} ne s'applique pas à cet événement"
+#~ msgid "{0} does not apply to this event"
+#~ msgstr "{0} ne s'applique pas à cet événement"
 
 #. placeholder {0}: stats.count_bounced
 #: src/components/analytics/EmailMetricsChart.tsx:437
@@ -612,15 +625,15 @@ msgstr "{0} secondes"
 msgid "{above, plural, one {# rule above and {below} below this one} other {# rules above and {below} below this one}}"
 msgstr "{above, plural, one {# règle au-dessus et {below} en dessous de celle-ci} other {# règles au-dessus et {below} en dessous de celle-ci}}"
 
-#: src/components/segment/segmentSummary.ts:196
+#: src/components/segment/segmentSummary.ts:154
 msgid "{action} at least {count} times"
 msgstr "{action} au moins {count} fois"
 
-#: src/components/segment/segmentSummary.ts:193
+#: src/components/segment/segmentSummary.ts:151
 msgid "{action} at most {count} times"
 msgstr "{action} au plus {count} fois"
 
-#: src/components/segment/segmentSummary.ts:194
+#: src/components/segment/segmentSummary.ts:152
 msgid "{action} exactly {count} times"
 msgstr "{action} exactement {count} fois"
 
@@ -668,8 +681,8 @@ msgstr "Modèle {categoryName} : envoyé même aux contacts désabonnés, rejet�
 msgid "{completed} completed · {exited} exited · {failed} failed"
 msgstr "{completed} terminés · {exited} sortis · {failed} en échec"
 
-#: src/components/segment/segmentSummary.ts:200
-#: src/components/segment/segmentSummary.ts:236
+#: src/components/segment/segmentSummary.ts:158
+#: src/components/segment/segmentSummary.ts:194
 msgid "{condition} (filtered)"
 msgstr "{condition} (filtré)"
 
@@ -692,6 +705,10 @@ msgstr "{count, plural, one {# automatisation} other {# automatisations}}"
 #: src/components/templates/templateUsage.ts:14
 msgid "{count, plural, one {# broadcast} other {# broadcasts}}"
 msgstr "{count, plural, one {# newsletter} other {# newsletters}}"
+
+#: src/components/segment/SegmentCountCard.tsx:94
+msgid "{count, plural, one {# contact} other {# contacts}}"
+msgstr "{count, plural, one {# contact} other {# contacts}}"
 
 #: src/components/contacts/sheet/ContactProfileFields.tsx:104
 msgid "{count, plural, one {# empty field} other {# empty fields}}"
@@ -743,7 +760,7 @@ msgstr "{count} clics sur {recipients} destinataires"
 msgid "{count} clicks out of {tracked} tracked recipients ({recipients} sent)"
 msgstr "{count} clics sur {tracked} destinataires suivis ({recipients} envoyés)"
 
-#: src/components/segment/segmentSummary.ts:250
+#: src/components/segment/segmentSummary.ts:208
 msgid "{count} conditions"
 msgstr "{count} conditions"
 
@@ -840,77 +857,77 @@ msgstr "{failed, plural, one {# échec} other {# échecs}}"
 msgid "{failed, plural, one {The provider refused # recipient and every retry was used up. Open the logs to see why, then retry it.} other {The provider refused # recipients and every retry was used up. Open the logs to see why, then retry them.}}"
 msgstr "{failed, plural, one {Le fournisseur a refusé # destinataire et toutes les tentatives sont épuisées. Ouvrez les logs pour voir pourquoi, puis relancez-le.} other {Le fournisseur a refusé # destinataires et toutes les tentatives sont épuisées. Ouvrez les logs pour voir pourquoi, puis relancez-les.}}"
 
-#: src/components/segment/segmentSummary.ts:112
+#: src/components/segment/segmentSummary.ts:88
 msgid "{field} < {value}"
 msgstr "{field} < {value}"
 
-#: src/components/segment/segmentSummary.ts:108
+#: src/components/segment/segmentSummary.ts:84
 msgid "{field} > {value}"
 msgstr "{field} > {value}"
 
-#: src/components/segment/segmentSummary.ts:114
+#: src/components/segment/segmentSummary.ts:90
 msgid "{field} ≤ {value}"
 msgstr "{field} ≤ {value}"
 
-#: src/components/segment/segmentSummary.ts:110
+#: src/components/segment/segmentSummary.ts:86
 msgid "{field} ≥ {value}"
 msgstr "{field} ≥ {value}"
 
-#: src/components/segment/segmentSummary.ts:118
+#: src/components/segment/segmentSummary.ts:94
 msgid "{field} after {value}"
 msgstr "{field} après le {value}"
 
-#: src/components/segment/segmentSummary.ts:116
+#: src/components/segment/segmentSummary.ts:92
 msgid "{field} before {value}"
 msgstr "{field} avant le {value}"
 
-#: src/components/segment/segmentSummary.ts:120
+#: src/components/segment/segmentSummary.ts:96
 msgid "{field} between {first} and {second}"
 msgstr "{field} entre {first} et {second}"
 
 #: src/components/contacts/ContactsFilters.tsx:76
-#: src/components/segment/segmentSummary.ts:100
+#: src/components/segment/segmentSummary.ts:76
 msgid "{field} contains {value}"
 msgstr "{field} contient {value}"
 
-#: src/components/segment/segmentSummary.ts:102
+#: src/components/segment/segmentSummary.ts:78
 msgid "{field} does not contain {value}"
 msgstr "{field} ne contient pas {value}"
 
-#: src/components/segment/segmentSummary.ts:106
+#: src/components/segment/segmentSummary.ts:82
 msgid "{field} ends with {value}"
 msgstr "{field} se termine par {value}"
 
-#: src/components/segment/segmentSummary.ts:124
+#: src/components/segment/segmentSummary.ts:100
 msgid "{field} in the last {days} days"
 msgstr "{field} dans les {days} derniers jours"
 
 #: src/components/contacts/ContactsFilters.tsx:76
-#: src/components/segment/segmentSummary.ts:95
+#: src/components/segment/segmentSummary.ts:71
 msgid "{field} is {value}"
 msgstr "{field} est {value}"
 
-#: src/components/segment/segmentSummary.ts:97
+#: src/components/segment/segmentSummary.ts:73
 msgid "{field} is not {value}"
 msgstr "{field} n'est pas {value}"
 
-#: src/components/segment/segmentSummary.ts:93
+#: src/components/segment/segmentSummary.ts:69
 msgid "{field} is not set"
 msgstr "{field} n'est pas renseigné"
 
-#: src/components/segment/segmentSummary.ts:91
+#: src/components/segment/segmentSummary.ts:67
 msgid "{field} is set"
 msgstr "{field} est renseigné"
 
-#: src/components/segment/segmentSummary.ts:122
+#: src/components/segment/segmentSummary.ts:98
 msgid "{field} not between {first} and {second}"
 msgstr "{field} hors de {first} à {second}"
 
-#: src/components/segment/segmentSummary.ts:126
+#: src/components/segment/segmentSummary.ts:102
 msgid "{field} not in the last {days} days"
 msgstr "{field} pas dans les {days} derniers jours"
 
-#: src/components/segment/segmentSummary.ts:104
+#: src/components/segment/segmentSummary.ts:80
 msgid "{field} starts with {value}"
 msgstr "{field} commence par {value}"
 
@@ -1004,7 +1021,7 @@ msgstr "Code {language} copié dans le presse-papiers !"
 msgid "{LAST_SENT_DAYS, plural, one {No successful send in the last # day} other {No successful send in the last # days}}"
 msgstr "{LAST_SENT_DAYS, plural, one {Aucun envoi réussi le dernier # jour} other {Aucun envoi réussi ces # derniers jours}}"
 
-#: src/components/automations/config/ConditionsField.tsx:106
+#: src/components/automations/config/ConditionsField.tsx:113
 msgid "{leafCount, plural, one {# condition} other {# conditions}}"
 msgstr "{leafCount, plural, one {# condition} other {# conditions}}"
 
@@ -1156,6 +1173,10 @@ msgstr "{pageviews, plural, one {# page} other {# pages}}"
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews} pages"
 
+#: src/components/segment/SegmentCountCard.tsx:113
+#~ msgid "{percent} % of the {total} contacts"
+#~ msgstr "{percent} % des {total} contacts"
+
 #: src/components/settings/integrations/providerDetails.ts:169
 msgid "{perMinuteText} emails/min"
 msgstr "{perMinuteText} e-mails/min"
@@ -1185,7 +1206,7 @@ msgstr "{providerName} · expéditeur par défaut {email}"
 msgid "{providerName} has no default sender"
 msgstr "{providerName} n'a pas d'expéditeur par défaut"
 
-#: src/components/blog/PostDrawer.tsx:1075
+#: src/components/blog/PostDrawer.tsx:1081
 msgid "{readingTime} min read"
 msgstr "{readingTime} min de lecture"
 
@@ -1274,19 +1295,19 @@ msgstr "{shown, plural, one {#+ contact} other {#+ contacts}}"
 msgid "{shown} of {total} templates"
 msgstr "{shown} sur {total} modèles"
 
-#: src/components/segment/segmentSummary.ts:226
+#: src/components/segment/segmentSummary.ts:184
 msgid "{subject}: {aggregate} = {value}"
 msgstr "{subject} : {aggregate} = {value}"
 
-#: src/components/segment/segmentSummary.ts:223
+#: src/components/segment/segmentSummary.ts:181
 msgid "{subject}: {aggregate} ≤ {value}"
 msgstr "{subject} : {aggregate} ≤ {value}"
 
-#: src/components/segment/segmentSummary.ts:234
+#: src/components/segment/segmentSummary.ts:192
 msgid "{subject}: {aggregate} ≥ {value}"
 msgstr "{subject} : {aggregate} ≥ {value}"
 
-#: src/components/segment/segmentSummary.ts:230
+#: src/components/segment/segmentSummary.ts:188
 msgid "{subject}: {aggregate} between {value} and {second}"
 msgstr "{subject} : {aggregate} entre {value} et {second}"
 
@@ -1302,7 +1323,7 @@ msgstr "Libres : {textFree}, {numberFree}, {dateFree}, {jsonFree}"
 msgid "{time} local time"
 msgstr "{time} heure locale"
 
-#: src/components/blog/PostDrawer.tsx:1109
+#: src/components/blog/PostDrawer.tsx:1115
 #: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, one {# à vérifier} other {# à vérifier}}"
@@ -1459,8 +1480,8 @@ msgstr "// Pas encore de données de test..."
 #~ msgstr "• Vérifiez que les attributs des composants sont valides"
 
 #: src/components/segment/input_dimension_filters.tsx:170
-msgid "+ Add filter"
-msgstr "+ Ajouter un filtre"
+#~ msgid "+ Add filter"
+#~ msgstr "+ Ajouter un filtre"
 
 #: src/components/templates/SendTemplateModal.tsx:420
 #~ msgid "+ add from name, CC, BCC, reply-to, attachments"
@@ -1471,8 +1492,8 @@ msgstr "+ Ajouter un filtre"
 #~ msgstr "+ ajouter nom expéditeur, répondre-à, pièces jointes"
 
 #: src/components/segment/input_event_property_filters.tsx:122
-msgid "+ Add property filter"
-msgstr "+ Ajouter un filtre de propriété"
+#~ msgid "+ Add property filter"
+#~ msgstr "+ Ajouter un filtre de propriété"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:897
 #~ msgid "+ Add variation"
@@ -1525,8 +1546,8 @@ msgstr "≈ {perHour} par heure · ≈ {perDay} par jour"
 msgid "1 block hidden by its condition with this test data."
 msgstr "1 bloc masqué par sa condition avec ces données de test."
 
-#: src/components/segment/segmentSummary.ts:250
-#: src/components/segment/segmentSummary.ts:271
+#: src/components/segment/segmentSummary.ts:208
+#: src/components/segment/segmentSummary.ts:229
 msgid "1 condition"
 msgstr "1 condition"
 
@@ -1688,7 +1709,7 @@ msgstr "90 jours"
 msgid "900 - Black"
 msgstr "900 - Noir"
 
-#: src/components/segment/input.tsx:932
+#: src/components/segment/input.tsx:431
 msgid "A branch condition is required..."
 msgstr "Une condition de branche est requise..."
 
@@ -1736,7 +1757,7 @@ msgstr "Le consentement propre à un contact l'emporte toujours. Ce choix s'appl
 msgid "A copy is inserted. Later changes to the saved block do not change it."
 msgstr "Une copie est insérée. Les modifications ultérieures du bloc enregistré ne la changent pas."
 
-#: src/components/automations/config/TriggerConfigForm.tsx:405
+#: src/components/automations/config/TriggerConfigForm.tsx:406
 msgid "A count of past activity includes the event that fires the automation, so \"at least 3 opens\" enrolls on the third open."
 msgstr "Un décompte d'activité passée inclut l'événement qui déclenche l'automation : « au moins 3 ouvertures » inscrit donc le contact dès la troisième ouverture."
 
@@ -1824,7 +1845,7 @@ msgstr "Un rappel qui liste les articles du panier, à partir de l'événement q
 msgid "A reset link, with the link in plain text under the button."
 msgstr "Un lien de réinitialisation, avec le lien en texte brut sous le bouton."
 
-#: src/components/segment/button_upsert.tsx:171
+#: src/components/segment/button_upsert.tsx:156
 msgid "A segment with ID \"{id}\" already exists"
 msgstr "Un segment avec l'ID « {id} » existe déjà"
 
@@ -1840,11 +1861,11 @@ msgstr "Un suivi d'expédition avec le transporteur et le lien de suivi."
 msgid "A square image, shown next to the workspace name"
 msgstr "Une image carrée, affichée à côté du nom de l'espace de travail"
 
-#: src/components/segment/button_upsert.tsx:770
+#: src/components/segment/button_upsert.tsx:510
 msgid "A tree is required"
 msgstr "Un arbre est requis"
 
-#: src/components/segment/input.tsx:1021
+#: src/components/segment/input.tsx:532
 msgid "A value is required..."
 msgstr "Une valeur est requise..."
 
@@ -1973,6 +1994,10 @@ msgstr "Compte"
 msgid "Account and security"
 msgstr "Compte et sécurité"
 
+#: src/components/segment/segmentLabels.ts:136
+msgid "Acquisition channel resolved from the attribution rules"
+msgstr "Canal d'acquisition déduit des règles d'attribution"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:605
 #: src/components/logs/AuditEntryDetail.tsx:146
 #: src/components/logs/AuditLogTab.tsx:260
@@ -2057,8 +2082,8 @@ msgstr "Filtres actifs"
 #~ msgstr "Abonné actif"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:310
-#: src/components/segment/form_leaf.tsx:345
-#: src/components/segment/input.tsx:782
+#: src/components/segment/form_leaf.tsx:473
+#: src/components/segment/input.tsx:64
 #: src/components/segment/table_tag.tsx:30
 msgid "Activity"
 msgstr "Activité"
@@ -2119,9 +2144,13 @@ msgstr "Ajouter une légende..."
 msgid "Add a condition"
 msgstr "Ajouter une condition"
 
-#: src/components/segment/input_dimension_filters.tsx:176
+#: src/components/segment/input_dimension_filters.tsx:79
 msgid "Add a filter"
 msgstr "Ajouter un filtre"
+
+#: src/components/segment/input_event_property_filters.tsx:137
+msgid "Add a property"
+msgstr "Ajouter une propriété"
 
 #: src/components/settings/Integrations.tsx:1262
 #~ msgid "Add a provider"
@@ -2146,6 +2175,10 @@ msgstr "Ajouter un champ optionnel"
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:131
 msgid "Add annotation"
 msgstr "Ajouter une annotation"
+
+#: src/components/segment/form_leaf.tsx:332
+msgid "Add at least one filter"
+msgstr "Ajoutez au moins un filtre"
 
 #: src/components/blog/AuthorsField.tsx:176
 #: src/components/blog/AuthorsField.tsx:181
@@ -2406,14 +2439,14 @@ msgstr "Adresse"
 #: src/components/automations/config/TriggerConfigForm.tsx:107
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:100
 #: src/components/contacts/sheet/contactFieldLabels.ts:28
-#: src/components/segment/segmentSummary.ts:45
+#: src/components/segment/segmentLabels.ts:26
 msgid "Address Line 1"
 msgstr "Adresse ligne 1"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:108
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:101
 #: src/components/contacts/sheet/contactFieldLabels.ts:29
-#: src/components/segment/segmentSummary.ts:46
+#: src/components/segment/segmentLabels.ts:27
 msgid "Address Line 2"
 msgstr "Adresse ligne 2"
 
@@ -2449,8 +2482,8 @@ msgstr "Paramètres avancés"
 msgid "Affects how columns stack on mobile devices"
 msgstr "Affecte l'empilement des colonnes sur les appareils mobiles"
 
-#: src/components/segment/input.tsx:726
-#: src/components/segment/input.tsx:858
+#: src/components/segment/ConditionSentence.tsx:180
+#: src/components/segment/segmentLabels.ts:230
 msgid "after"
 msgstr "après"
 
@@ -2464,7 +2497,7 @@ msgstr "Après"
 #~ msgid "After {0} hours based on highest {1}"
 #~ msgstr "Après {0} heures basé sur le plus haut nombre de {1}"
 
-#: src/components/segment/segmentSummary.ts:175
+#: src/components/segment/segmentSummary.ts:133
 msgid "after {date}"
 msgstr "après le {date}"
 
@@ -2472,8 +2505,7 @@ msgstr "après le {date}"
 msgid "After a backfill, run from Attribution rules"
 msgstr "Après un recalcul historique, lancé depuis les Règles d'attribution"
 
-#: src/components/segment/form_leaf.tsx:525
-#: src/components/segment/form_leaf.tsx:900
+#: src/components/segment/segmentLabels.ts:315
 msgid "after date"
 msgstr "après la date"
 
@@ -2481,7 +2513,7 @@ msgstr "après la date"
 msgid "After your first send"
 msgstr "Après votre premier envoi"
 
-#: src/components/segment/form_leaf.tsx:816
+#: src/components/segment/form_leaf.tsx:729
 msgid "Aggregate"
 msgstr "Agrégat"
 
@@ -2547,6 +2579,10 @@ msgstr "Aligner en haut"
 msgid "Alignment"
 msgstr "Alignement"
 
+#: src/components/segment/input.tsx:444
+msgid "all"
+msgstr "toutes les"
+
 #: src/components/blog/PostsTable.tsx:433
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:101
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
@@ -2580,7 +2616,6 @@ msgid "All"
 msgstr "Toutes"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:309
-#: src/components/segment/input.tsx:958
 msgid "ALL"
 msgstr "TOUT"
 
@@ -2659,7 +2694,7 @@ msgstr "Tous les articles"
 msgid "all sessions"
 msgstr "toutes les sessions"
 
-#: src/components/blog/PostDrawer.tsx:1112
+#: src/components/blog/PostDrawer.tsx:1118
 #: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
@@ -2695,6 +2730,10 @@ msgstr "Domaines autorisés"
 msgid "Allowed email domains"
 msgstr "Domaines email autorisés"
 
+#: src/components/segment/FieldPicker.tsx:63
+msgid "already filtered"
+msgstr "déjà filtré"
+
 #: src/components/settings/CustomFieldsConfiguration.tsx:344
 #~ msgid "already set"
 #~ msgstr "déjà défini"
@@ -2707,7 +2746,7 @@ msgstr "Également disponible : <0>un blog</0> pour votre site."
 msgid "Also the image of a post or category without one; 1200 × 630 px"
 msgstr "Sert aussi aux articles et catégories qui n'en ont pas ; 1200 × 630 px"
 
-#: src/components/blog/PostDrawer.tsx:958
+#: src/components/blog/PostDrawer.tsx:964
 msgid "Also the share image when none is set"
 msgstr "Sert aussi d'image de partage si aucune n'est définie"
 
@@ -2841,16 +2880,24 @@ msgstr "ID d'ancre"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
-#: src/components/segment/form_leaf.tsx:856
-#: src/components/segment/input.tsx:679
-#: src/components/segment/segmentSummary.ts:256
-#: src/components/segment/segmentSummary.ts:284
+#: src/components/segment/ConditionSentence.tsx:66
+#: src/components/segment/ConditionSentence.tsx:166
+#: src/components/segment/ConditionSentence.tsx:305
+#: src/components/segment/form_leaf.tsx:765
+#: src/components/segment/segmentSummary.ts:214
+#: src/components/segment/segmentSummary.ts:242
 msgid "and"
 msgstr "et"
 
+#: src/components/segment/ConditionSentence.tsx:141
+#: src/components/segment/input_dimension_filters.tsx:61
+#: src/components/segment/input.tsx:436
+msgid "AND"
+msgstr "ET"
+
 #: src/components/segment/input.tsx:139
-msgid "AND | OR"
-msgstr "ET | OU"
+#~ msgid "AND | OR"
+#~ msgstr "ET | OU"
 
 #: src/components/broadcasts/compose/AudienceCard.tsx:83
 msgid "And in at least one segment"
@@ -2897,19 +2944,19 @@ msgid "Any"
 msgstr "Tous"
 
 #: src/components/segment/input.tsx:959
-msgid "ANY"
-msgstr "N'IMPORTE"
+#~ msgid "ANY"
+#~ msgstr "N'IMPORTE"
 
 #: src/components/logs/AuditLogTab.tsx:181
 msgid "Any API key"
 msgstr "Toute clé API"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:371
-#: src/components/segment/form_leaf.tsx:448
+#: src/components/segment/form_leaf.tsx:588
 msgid "Any broadcast"
 msgstr "N'importe quelle diffusion"
 
-#: src/components/segment/form_leaf.tsx:799
+#: src/components/segment/form_leaf.tsx:716
 msgid "Any event"
 msgstr "N'importe quel événement"
 
@@ -2917,11 +2964,11 @@ msgstr "N'importe quel événement"
 msgid "Any field change triggers automation"
 msgstr "Tout changement de champ déclenche l'automation"
 
-#: src/components/segment/segmentSummary.ts:146
+#: src/components/segment/segmentLabels.ts:272
 msgid "Any goal"
 msgstr "Tout objectif"
 
-#: src/components/segment/form_leaf.tsx:788
+#: src/components/segment/form_leaf.tsx:713
 msgid "Any goal name"
 msgstr "N'importe quel nom d'objectif"
 
@@ -2943,19 +2990,18 @@ msgstr "Tout serveur SMTP, connexion basique ou OAuth2"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:380
 #: src/components/automations/config/TriggerConfigForm.tsx:381
-#: src/components/segment/form_leaf.tsx:427
-#: src/components/segment/form_leaf.tsx:428
+#: src/components/segment/form_leaf.tsx:569
+#: src/components/segment/form_leaf.tsx:570
 msgid "Any template"
 msgstr "N'importe quel modèle"
 
-#: src/components/segment/form_leaf.tsx:522
-#: src/components/segment/form_leaf.tsx:897
-#: src/components/segment/input.tsx:692
-#: src/components/segment/input.tsx:824
+#: src/components/segment/ConditionSentence.tsx:186
+#: src/components/segment/segmentLabels.ts:312
 msgid "anytime"
 msgstr "n'importe quand"
 
 #: src/components/contacts/TrackingConsent.tsx:44
+#: src/components/segment/segmentLabels.ts:250
 msgid "API"
 msgstr "API"
 
@@ -3281,10 +3327,13 @@ msgstr "Ressources"
 msgid "At a date and time you choose"
 msgstr "À la date et à l'heure de votre choix"
 
-#: src/components/segment/form_leaf.tsx:493
-#: src/components/segment/input.tsx:809
+#: src/components/segment/segmentLabels.ts:306
 msgid "at least"
 msgstr "au moins"
+
+#: src/components/segment/input.tsx:445
+msgid "at least one"
+msgstr "au moins une des"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:880
 msgid "At least one"
@@ -3310,8 +3359,7 @@ msgstr "Au moins une opération est requise"
 msgid "At least one root email is required"
 msgstr "Au moins un email racine est requis"
 
-#: src/components/segment/form_leaf.tsx:494
-#: src/components/segment/input.tsx:810
+#: src/components/segment/segmentLabels.ts:307
 msgid "at most"
 msgstr "au plus"
 
@@ -3421,7 +3469,7 @@ msgstr "Le nom de l'auteur est requis"
 msgid "Authorization Secret"
 msgstr "Secret d'autorisation"
 
-#: src/components/blog/PostDrawer.tsx:979
+#: src/components/blog/PostDrawer.tsx:985
 msgid "Authors"
 msgstr "Auteurs"
 
@@ -3582,7 +3630,7 @@ msgstr "Disponible dès que vous connectez un fournisseur d'email prenant en cha
 msgid "Avatar URL"
 msgstr "URL de l'avatar"
 
-#: src/components/segment/segmentSummary.ts:159
+#: src/components/segment/segmentLabels.ts:285
 msgid "average"
 msgstr "moyenne"
 
@@ -3762,8 +3810,8 @@ msgstr "Destinataires CCI"
 #~ msgid "Beats from other origins are silently ignored. Wildcards like *.example.com are supported; empty allows every domain."
 #~ msgstr ""
 
-#: src/components/segment/input.tsx:718
-#: src/components/segment/input.tsx:850
+#: src/components/segment/ConditionSentence.tsx:173
+#: src/components/segment/segmentLabels.ts:229
 msgid "before"
 msgstr "avant"
 
@@ -3771,12 +3819,11 @@ msgstr "avant"
 msgid "Before"
 msgstr "Avant"
 
-#: src/components/segment/segmentSummary.ts:173
+#: src/components/segment/segmentSummary.ts:131
 msgid "before {date}"
 msgstr "avant le {date}"
 
-#: src/components/segment/form_leaf.tsx:524
-#: src/components/segment/form_leaf.tsx:899
+#: src/components/segment/segmentLabels.ts:314
 msgid "before date"
 msgstr "avant la date"
 
@@ -3817,12 +3864,14 @@ msgstr "Bonnes pratiques :"
 msgid "Best TimeScore"
 msgstr "Meilleur TimeScore"
 
-#: src/components/segment/input.tsx:706
-#: src/components/segment/input.tsx:838
+#: src/components/segment/ConditionSentence.tsx:164
+#: src/components/segment/ConditionSentence.tsx:303
+#: src/components/segment/segmentLabels.ts:231
+#: src/components/segment/segmentLabels.ts:294
 msgid "between"
 msgstr "entre"
 
-#: src/components/segment/segmentSummary.ts:177
+#: src/components/segment/segmentSummary.ts:135
 msgid "between {first} and {second}"
 msgstr "entre le {first} et le {second}"
 
@@ -3926,7 +3975,7 @@ msgid "Blocks"
 msgstr "Blocs"
 
 #: src/components/blog/CategoryDrawer.tsx:218
-#: src/components/blog/PostDrawer.tsx:829
+#: src/components/blog/PostDrawer.tsx:835
 #: src/components/logs/labels.ts:20
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
@@ -3995,7 +4044,7 @@ msgstr "Corps :"
 msgid "Bold"
 msgstr "Gras"
 
-#: src/components/segment/segmentSummary.ts:151
+#: src/components/segment/segmentLabels.ts:277
 #: src/components/settings/WebhooksSettings.tsx:618
 msgid "Booking"
 msgstr "Réservation"
@@ -4211,7 +4260,7 @@ msgid "Bridge Port"
 msgstr "Port du bridge"
 
 #: src/components/blog/CategoryDrawer.tsx:290
-#: src/components/blog/PostDrawer.tsx:996
+#: src/components/blog/PostDrawer.tsx:1002
 #: src/components/settings/BlogSettings.tsx:460
 msgid "Brief description for search results"
 msgstr "Brève description pour les résultats de recherche"
@@ -4220,7 +4269,7 @@ msgstr "Brève description pour les résultats de recherche"
 msgid "Brief description of this category"
 msgstr "Brève description de cette catégorie"
 
-#: src/components/blog/PostDrawer.tsx:951
+#: src/components/blog/PostDrawer.tsx:957
 msgid "Brief summary of the post"
 msgstr "Bref résumé de l'article"
 
@@ -4232,7 +4281,7 @@ msgstr "Bref résumé de l'article"
 msgid "Brings inactive contacts back with an offer."
 msgstr "Fait revenir les contacts inactifs avec une offre."
 
-#: src/components/segment/form_leaf.tsx:436
+#: src/components/segment/ConditionSentence.tsx:255
 msgid "broadcast"
 msgstr "diffusion"
 
@@ -4240,6 +4289,7 @@ msgstr "diffusion"
 #: src/components/broadcasts/BroadcastsTable.tsx:243
 #: src/components/messages/MessageHistoryTable.tsx:157
 #: src/components/messages/MessageHistoryTable.tsx:255
+#: src/components/segment/form_leaf.tsx:578
 #: src/components/templates/TemplateSelectorModal.tsx:707
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:64
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:121
@@ -4411,10 +4461,15 @@ msgstr "Parcourez, filtrez et exportez le journal dans Logs → Journal d'audit.
 #~ msgid "Browse, filter and export the log under Logs → Audit."
 #~ msgstr "Parcourez, filtrez et exportez le journal dans Logs → Audit."
 
+#: src/components/segment/segmentLabels.ts:118
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:272
 msgid "Browser"
 msgstr "Navigateur"
+
+#: src/components/segment/segmentLabels.ts:139
+msgid "Browser used for the visit"
+msgstr "Navigateur utilisé pour la visite"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:291
 #: src/components/web_analytics/tabs/DashboardTab.tsx:271
@@ -4525,7 +4580,7 @@ msgstr "Impossible à tester dans le navigateur"
 #: src/components/automations/AutomationEditor.tsx:390
 #: src/components/automations/AutomationEditor.tsx:400
 #: src/components/automations/AutomationEditor.tsx:414
-#: src/components/automations/config/ConditionsField.tsx:124
+#: src/components/automations/config/ConditionsField.tsx:131
 #: src/components/automations/list/AutomationsTable.tsx:72
 #: src/components/automations/list/AutomationsTable.tsx:79
 #: src/components/automations/list/AutomationsTable.tsx:90
@@ -4587,10 +4642,9 @@ msgstr "Impossible à tester dans le navigateur"
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
 #: src/components/lists/ListDrawer.tsx:194
-#: src/components/segment/button_upsert.tsx:427
-#: src/components/segment/input_dimension_filters.tsx:179
-#: src/components/segment/input_event_property_filters.tsx:130
-#: src/components/segment/input.tsx:407
+#: src/components/segment/button_upsert.tsx:403
+#: src/components/segment/form_leaf.tsx:190
+#: src/components/segment/input.tsx:306
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -4728,12 +4782,12 @@ msgstr "Majuscule"
 msgid "Categories"
 msgstr "Catégories"
 
-#: src/components/blog/PostDrawer.tsx:727
+#: src/components/blog/PostDrawer.tsx:733
 msgid "category"
 msgstr "catégorie"
 
 #: src/components/blog/CategoryDrawer.tsx:229
-#: src/components/blog/PostDrawer.tsx:891
+#: src/components/blog/PostDrawer.tsx:897
 #: src/components/blog/PostsTable.tsx:325
 #: src/components/blog/ThemeEditorDrawer.tsx:419
 #: src/components/templates/TemplateSelectorModal.tsx:444
@@ -4881,6 +4935,7 @@ msgid "Changing your domain"
 msgstr "Changer de domaine"
 
 #: src/components/logs/MessagesTab.tsx:291
+#: src/components/segment/segmentLabels.ts:115
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/web_analytics/explore/BreakdownModal.tsx:31
 #: src/components/web_analytics/explore/DimensionSelector.tsx:107
@@ -4891,6 +4946,7 @@ msgstr "Changer de domaine"
 msgid "Channel"
 msgstr "Canal"
 
+#: src/components/segment/segmentLabels.ts:116
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:257
 #: src/components/web_analytics/tabs/DashboardTab.tsx:212
 #: src/pages/WebAnalyticsLivePage.tsx:224
@@ -4944,6 +5000,10 @@ msgstr "Choisir"
 msgid "Choose a date to schedule"
 msgstr "Choisissez une date pour programmer"
 
+#: src/components/segment/FieldPicker.tsx:105
+msgid "Choose a field"
+msgstr "Choisir un champ"
+
 #: src/components/file_manager/context.tsx:167
 msgid "Choose a file"
 msgstr "Choisir un fichier"
@@ -4981,6 +5041,10 @@ msgstr "Choisissez d'abord un modèle"
 msgid "Choose a template to see the preview"
 msgstr "Choisissez un modèle pour voir l'aperçu"
 
+#: src/components/segment/FilterValueInput.tsx:51
+msgid "Choose a value"
+msgstr "Choisir une valeur"
+
 #: src/components/logs/AuditLogTab.tsx:344
 msgid "Choose actions"
 msgstr "Choisir des actions"
@@ -5000,6 +5064,10 @@ msgstr "choisissez la mesure qui désigne le gagnant"
 #: src/components/analytics/GetStartedChecklist.tsx:146
 msgid "Choose the sender and what it sends"
 msgstr "Choisir l'expéditeur et ce qu'il envoie"
+
+#: src/components/segment/FilterValueInput.tsx:76
+msgid "Choose values"
+msgstr "Choisir des valeurs"
 
 #. placeholder {0}: post.settings.title
 #: src/components/blog/PublishModal.tsx:110
@@ -5155,8 +5223,8 @@ msgstr "Cliquez sur Reprendre pour poursuivre le traitement."
 #~ msgstr ""
 
 #: src/components/segment/button_upsert.tsx:687
-msgid "Click to retry"
-msgstr "Cliquez pour réessayer"
+#~ msgid "Click to retry"
+#~ msgstr "Cliquez pour réessayer"
 
 #: src/components/timeline/ContactTimeline.tsx:665
 #~ msgid "clicked"
@@ -5208,15 +5276,16 @@ msgstr "A cliqué sur un lien dans {source}"
 msgid "Clicked in {name}"
 msgstr "A cliqué dans {name}"
 
-#: src/components/segment/segmentSummary.ts:137
+#: src/components/segment/segmentSummary.ts:113
 msgid "Clicked in an email"
 msgstr "A cliqué dans un e-mail"
 
 #: src/components/logs/MessagesTab.tsx:297
+#: src/components/segment/form_leaf.tsx:597
 msgid "Clicked link"
 msgstr "Lien cliqué"
 
-#: src/components/segment/form_leaf.tsx:459
+#: src/components/segment/ConditionSentence.tsx:263
 msgid "clicked link contains"
 msgstr "le lien cliqué contient"
 
@@ -5271,7 +5340,7 @@ msgstr "Clics par jour"
 #: src/components/contacts/contactFilterFields.ts:48
 #: src/components/contacts/ExportContactsModal.tsx:110
 #: src/components/contacts/sheet/contactFieldLabels.ts:49
-#: src/components/segment/segmentSummary.ts:53
+#: src/components/segment/segmentLabels.ts:34
 msgid "Clicks tracking consent"
 msgstr "Consentement au tracking des clics"
 
@@ -5416,6 +5485,8 @@ msgstr "Replier {label}"
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:244
 #: src/components/email_builder/ui/BackgroundInput.tsx:257
 #: src/components/email_builder/ui/HeadingStylesInput.tsx:127
+#: src/components/segment/button_upsert.tsx:441
+#: src/components/segment/button_upsert.tsx:548
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:162
 msgid "Color"
 msgstr "Couleur"
@@ -5466,7 +5537,7 @@ msgstr "Comparez cette période à la précédente et expliquez les principaux f
 msgid "Compare TimeScore across campaign sources"
 msgstr "Comparer le TimeScore entre les sources de campagne"
 
-#: src/components/segment/form_leaf.tsx:832
+#: src/components/segment/form_leaf.tsx:744
 msgid "Comparison"
 msgstr "Comparaison"
 
@@ -5542,11 +5613,15 @@ msgstr "Complétez, ne répétez pas la ligne d'objet"
 msgid "Complete days up to yesterday, in the workspace's time zone ({timezone})"
 msgstr "Jours complets jusqu'à hier, dans le fuseau horaire de l'espace de travail ({timezone})"
 
+#: src/components/segment/form_leaf.tsx:147
+msgid "Complete or remove the unfinished filters"
+msgstr "Complétez ou retirez les filtres inachevés"
+
 #: src/pages/SetupWizard.tsx:798
 msgid "Complete Setup"
 msgstr "Terminer la configuration"
 
-#: src/components/segment/button_upsert.tsx:629
+#: src/components/segment/SegmentCountCard.tsx:113
 msgid "Complete the condition to refresh the count"
 msgstr "Complétez la condition pour actualiser le décompte"
 
@@ -5582,7 +5657,8 @@ msgid "condition"
 msgstr "condition"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:361
-#: src/components/segment/input.tsx:1011
+#: src/components/segment/FilterRow.tsx:206
+#: src/components/segment/input.tsx:513
 msgid "Condition"
 msgstr "Condition"
 
@@ -5602,6 +5678,7 @@ msgstr "La condition {position} utilise un lookaround ou une référence arrièr
 msgid "conditions"
 msgstr "conditions"
 
+#: src/components/segment/button_upsert.tsx:500
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:233
 #: src/components/web_analytics/filters/FilterTable.tsx:131
 #: src/components/web_analytics/filters/FilterTable.tsx:246
@@ -5695,13 +5772,8 @@ msgstr "Configuration de {0}"
 
 #: src/components/contacts/BulkActionsBar.tsx:187
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:203
-#: src/components/segment/button_upsert.tsx:436
-#: src/components/segment/form_leaf.tsx:167
-#: src/components/segment/form_leaf.tsx:298
-#: src/components/segment/form_leaf.tsx:685
-#: src/components/segment/form_leaf.tsx:1018
-#: src/components/segment/input_dimension_filters.tsx:177
-#: src/components/segment/input_event_property_filters.tsx:129
+#: src/components/segment/button_upsert.tsx:412
+#: src/components/segment/form_leaf.tsx:193
 msgid "Confirm"
 msgstr "Confirmer"
 
@@ -5807,6 +5879,7 @@ msgid "Consider using the same text as your subject line"
 msgstr "Envisagez d'utiliser le même texte que votre ligne d'objet"
 
 #: src/components/contacts/TrackingConsent.tsx:46
+#: src/components/segment/segmentLabels.ts:251
 msgid "Console"
 msgstr "Console"
 
@@ -5828,6 +5901,10 @@ msgstr "Contact créé"
 #: src/components/contacts/ContactUpsertDrawer.tsx:334
 msgid "Contact created successfully"
 msgstr "Contact créé avec succès"
+
+#: src/components/segment/segmentLabels.ts:212
+msgid "Contact dates"
+msgstr "Dates du contact"
 
 #: src/components/automations/describeTrigger.ts:119
 #: src/components/contacts/sheet/describeActivity.tsx:222
@@ -5882,8 +5959,8 @@ msgstr "Le contact n'est pas abonné à cette liste"
 msgid "Contact not found"
 msgstr "Contact introuvable"
 
-#: src/components/segment/form_leaf.tsx:139
-#: src/components/segment/input.tsx:776
+#: src/components/segment/form_leaf.tsx:323
+#: src/components/segment/input.tsx:62
 #: src/components/segment/table_tag.tsx:20
 msgid "Contact property"
 msgstr "Propriété du contact"
@@ -5924,6 +6001,10 @@ msgstr "Contact mis à jour avec succès"
 #: src/services/api/errors.ts:82
 msgid "Contacts"
 msgstr "Contacts"
+
+#: src/components/segment/input.tsx:461
+msgid "Contacts matching"
+msgstr "Contacts remplissant"
 
 #: src/components/automations/config/FilterConfigForm.tsx:29
 msgid "Contacts matching these conditions follow the 'Yes' path. Others follow 'No'."
@@ -5974,6 +6055,8 @@ msgstr "Espacement du conteneur"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/email_builder/ui/displayConditionLabels.ts:16
+#: src/components/segment/form_leaf.tsx:598
+#: src/components/segment/segmentLabels.ts:221
 #: src/components/web_analytics/lib/filterCatalog.ts:222
 #: src/components/web_analytics/lib/filterLabels.ts:12
 msgid "contains"
@@ -6145,7 +6228,7 @@ msgstr "Impossible de charger l’email envoyé"
 msgid "Could not load the goals"
 msgstr "Impossible de charger les objectifs"
 
-#: src/components/blog/PostDrawer.tsx:395
+#: src/components/blog/PostDrawer.tsx:398
 #: src/components/templates/CreateTemplateDrawer.tsx:508
 msgid "Could not load the latest version. Please try again."
 msgstr "Impossible de charger la dernière version. Veuillez réessayer."
@@ -6283,7 +6366,7 @@ msgstr "Impossible d'afficher l'aperçu"
 msgid "Couldn't render this message"
 msgstr "Impossible d'afficher ce message"
 
-#: src/components/segment/segmentSummary.ts:157
+#: src/components/segment/segmentLabels.ts:283
 msgid "count"
 msgstr "nombre"
 
@@ -6342,7 +6425,8 @@ msgstr "Pays"
 #: src/components/contacts/ContactsTable.tsx:315
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
-#: src/components/segment/segmentSummary.ts:42
+#: src/components/segment/segmentLabels.ts:23
+#: src/components/segment/segmentLabels.ts:120
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:304
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:309
 #: src/components/web_analytics/tabs/DashboardTab.tsx:251
@@ -6357,6 +6441,10 @@ msgstr "Pays · ~111 km"
 #: src/components/settings/WebAnalyticsSettings.tsx:405
 #~ msgid "Country level (~111km precision)"
 #~ msgstr "Niveau pays (précision ~111 km)"
+
+#: src/components/segment/segmentLabels.ts:141
+msgid "Country the visit came from"
+msgstr "Pays d'où vient la visite"
 
 #: src/components/logs/MessagesTab.tsx:566
 msgid "Counts cover {countMax} at most. To count further, filter by an email, a message ID, a newsletter, an automation, a notification or a template"
@@ -6535,7 +6623,7 @@ msgstr "Créer la notification"
 msgid "Create Notification"
 msgstr "Créer une notification"
 
-#: src/components/blog/PostDrawer.tsx:816
+#: src/components/blog/PostDrawer.tsx:822
 msgid "Create post"
 msgstr "Créer l'article"
 
@@ -6656,7 +6744,7 @@ msgstr "Créé le {0} · Modifié le {1} ({2})"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:293
 #: src/components/messages/MessageHistoryTable.tsx:161
 #: src/components/messages/MessageHistoryTable.tsx:410
-#: src/components/segment/segmentSummary.ts:50
+#: src/components/segment/segmentLabels.ts:31
 msgid "Created At"
 msgstr "Créé le"
 
@@ -6807,6 +6895,10 @@ msgstr "Personnalisé (px)"
 msgid "Custom CSS class for styling"
 msgstr "Classe CSS personnalisée pour le style"
 
+#: src/components/segment/segmentLabels.ts:75
+msgid "Custom date {number}"
+msgstr "Date perso {number}"
+
 #: src/components/automations/config/TriggerConfigForm.tsx:144
 msgid "Custom Date 1"
 msgstr "Date personnalisée 1"
@@ -6898,6 +6990,7 @@ msgid "Custom field label saved successfully"
 msgstr "Étiquette de champ personnalisé enregistrée avec succès"
 
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
+#: src/components/segment/segmentLabels.ts:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:276
 #: src/components/settings/SettingsSidebar.tsx:66
 msgid "Custom fields"
@@ -6922,6 +7015,10 @@ msgstr "URL d'icône personnalisée"
 #: src/components/integrations/SupabaseIntegration.tsx:251
 msgid "Custom JSON {num}"
 msgstr "JSON personnalisé {num}"
+
+#: src/components/segment/segmentLabels.ts:77
+msgid "Custom JSON {number}"
+msgstr "JSON perso {number}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:154
 msgid "Custom JSON 1"
@@ -6950,6 +7047,10 @@ msgstr "Champs JSON personnalisés"
 #: src/components/settings/CustomFieldsConfiguration.tsx:361
 #~ msgid "Custom Label"
 #~ msgstr "Étiquette personnalisée"
+
+#: src/components/segment/segmentLabels.ts:73
+msgid "Custom number {number}"
+msgstr "Nombre perso {number}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:134
 msgid "Custom Number 1"
@@ -7040,6 +7141,10 @@ msgstr "Chaîne personnalisée 5"
 msgid "Custom String Fields"
 msgstr "Champs de chaîne personnalisés"
 
+#: src/components/segment/segmentLabels.ts:71
+msgid "Custom text {number}"
+msgstr "Texte perso {number}"
+
 #: src/components/web_analytics/toolbar.tsx:145
 msgid "Daily"
 msgstr "Quotidien"
@@ -7087,7 +7192,8 @@ msgstr "Données à envoyer"
 #: src/components/blog/PublishModal.tsx:131
 #: src/components/broadcasts/compose/SendingCard.tsx:95
 #: src/components/broadcasts/compose/SendingCard.tsx:97
-#: src/components/segment/input_event_property_filters.tsx:182
+#: src/components/segment/FilterRow.tsx:166
+#: src/components/segment/input_event_property_filters.tsx:74
 #: src/components/settings/CustomFieldsConfiguration.tsx:60
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:145
 msgid "Date"
@@ -7105,16 +7211,22 @@ msgstr "La date est requise"
 msgid "Day"
 msgstr "Jour"
 
-#: src/components/segment/form_leaf.tsx:562
-#: src/components/segment/form_leaf.tsx:935
-#: src/components/segment/input.tsx:701
-#: src/components/segment/input.tsx:833
+#: src/components/segment/ConditionSentence.tsx:74
+#: src/components/segment/ConditionSentence.tsx:158
+#: src/components/segment/FilterValueInput.tsx:141
+#: src/components/segment/FilterValueInput.tsx:146
+#: src/components/segment/form_leaf.tsx:236
 msgid "days"
 msgstr "jours"
 
 #: src/components/automations/config/DelayConfigForm.tsx:17
 msgid "Days"
 msgstr "Jours"
+
+#: src/components/segment/ConditionSentence.tsx:74
+#: src/components/segment/FilterValueInput.tsx:146
+msgid "days (or never)"
+msgstr "jours (ou jamais)"
 
 #: src/pages/DebugSegmentPage.tsx:52
 msgid "Debug Segment Builder"
@@ -7131,6 +7243,10 @@ msgstr "Décoration"
 #: src/components/transactional/ApiCommandDrawer.tsx:169
 msgid "Deduplication:"
 msgstr "Déduplication :"
+
+#: src/components/segment/segmentLabels.ts:128
+msgid "Deepest scroll reached on any page of the visit"
+msgstr "Défilement le plus profond atteint sur une page de la visite"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:203
 #: src/components/broadcasts/VariationSenderSelect.tsx:61
@@ -7199,12 +7315,12 @@ msgid "Default transactional"
 msgstr "Transactionnel par défaut"
 
 #: src/components/blog/CategoryDrawer.tsx:295
-#: src/components/blog/PostDrawer.tsx:1001
+#: src/components/blog/PostDrawer.tsx:1007
 msgid "Defaults to {fallbackShareTitle}"
 msgstr "Par défaut : {fallbackShareTitle}"
 
 #: src/components/blog/CategoryDrawer.tsx:289
-#: src/components/blog/PostDrawer.tsx:995
+#: src/components/blog/PostDrawer.tsx:1001
 msgid "Defaults to {fallbackTitle}"
 msgstr "Par défaut : {fallbackTitle}"
 
@@ -7231,11 +7347,11 @@ msgstr "Par défaut : la description du blog"
 msgid "Defaults to the blog's share image"
 msgstr "Par défaut : l'image de partage du blog"
 
-#: src/components/blog/PostDrawer.tsx:711
+#: src/components/blog/PostDrawer.tsx:717
 msgid "Defaults to the category's or the blog's description"
 msgstr "Par défaut : la description de la catégorie ou du blog"
 
-#: src/components/blog/PostDrawer.tsx:716
+#: src/components/blog/PostDrawer.tsx:722
 msgid "Defaults to the category's or the blog's share image"
 msgstr "Par défaut : l'image de partage de la catégorie ou du blog"
 
@@ -7243,11 +7359,11 @@ msgstr "Par défaut : l'image de partage de la catégorie ou du blog"
 msgid "Defaults to the description"
 msgstr "Par défaut : la description"
 
-#: src/components/blog/PostDrawer.tsx:709
+#: src/components/blog/PostDrawer.tsx:715
 msgid "Defaults to the excerpt"
 msgstr "Par défaut : l'extrait"
 
-#: src/components/blog/PostDrawer.tsx:714
+#: src/components/blog/PostDrawer.tsx:720
 msgid "Defaults to the featured image"
 msgstr "Par défaut : l'image à la une"
 
@@ -7300,7 +7416,7 @@ msgstr "Délai"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:405
+#: src/components/segment/input.tsx:304
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -7796,6 +7912,7 @@ msgstr "Les fournisseurs SMTP ne signalent pas la remise"
 #: src/components/contacts/trackingConsentOptions.ts:11
 #: src/components/contacts/trackingConsentOptions.ts:15
 #: src/components/logs/labels.ts:29
+#: src/components/segment/segmentLabels.ts:246
 msgid "Denied"
 msgstr "Refusé"
 
@@ -7843,7 +7960,7 @@ msgstr "Ordinateur"
 msgid "Desktop view (100%)"
 msgstr "Vue bureau (100%)"
 
-#: src/components/blog/PostDrawer.tsx:843
+#: src/components/blog/PostDrawer.tsx:849
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "Détails"
@@ -7858,6 +7975,7 @@ msgstr "Détecter depuis le site web"
 
 #: src/components/blog/ThemeEditorDrawer.tsx:428
 #: src/components/contacts/visits/ContactWebVisits.tsx:296
+#: src/components/segment/segmentLabels.ts:117
 #: src/components/web_analytics/explore/BreakdownModal.tsx:35
 #: src/components/web_analytics/explore/DimensionSelector.tsx:111
 #: src/components/web_analytics/FilterBuilder.tsx:42
@@ -7867,6 +7985,10 @@ msgstr "Détecter depuis le site web"
 #: src/pages/WebAnalyticsLivePage.tsx:195
 msgid "Device"
 msgstr "Appareil"
+
+#: src/components/segment/segmentLabels.ts:138
+msgid "Device category of the visit"
+msgstr "Type d'appareil de la visite"
 
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:285
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:290
@@ -8043,17 +8165,21 @@ msgstr "La vérification DNS empêche l'usurpation de domaine"
 #~ msgstr "Ne pas tracker"
 
 #: src/components/segment/input.tsx:403
-msgid "Do you really want to remove this branch?"
-msgstr "Voulez-vous vraiment supprimer cette branche ?"
+#~ msgid "Do you really want to remove this branch?"
+#~ msgstr "Voulez-vous vraiment supprimer cette branche ?"
 
-#: src/components/segment/input.tsx:403
+#: src/components/segment/input.tsx:296
 msgid "Do you really want to remove this condition?"
 msgstr "Voulez-vous vraiment supprimer cette condition ?"
 
 #: src/components/segment/input_dimension_filters.tsx:94
 #: src/components/segment/input_event_property_filters.tsx:66
-msgid "Do you really want to remove this filter?"
-msgstr "Voulez-vous vraiment supprimer ce filtre ?"
+#~ msgid "Do you really want to remove this filter?"
+#~ msgstr "Voulez-vous vraiment supprimer ce filtre ?"
+
+#: src/components/segment/input.tsx:296
+msgid "Do you really want to remove this group?"
+msgstr "Voulez-vous vraiment supprimer ce groupe ?"
 
 #: src/components/file_manager/fileManager.tsx:615
 #~ msgid "Do you want to delete the"
@@ -8081,6 +8207,15 @@ msgstr "ne contient pas"
 msgid "does not equal"
 msgstr "n'est pas égal à"
 
+#: src/components/segment/segmentLabels.ts:222
+msgid "doesn't contain"
+msgstr "ne contient pas"
+
+#: src/components/segment/segmentLabels.ts:220
+msgid "doesn't equal"
+msgstr "n'est pas égal à"
+
+#: src/components/segment/segmentLabels.ts:89
 #: src/components/settings/GeneralSettings.tsx:300
 #: src/components/settings/GeneralSettings.tsx:460
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:745
@@ -8096,6 +8231,14 @@ msgstr "Domaine et clé API, US ou EU"
 #: src/pages/SetupWizard.tsx:613
 msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
 msgstr "Domaine pour le serveur relais SMTP (ex. : smtp.votreentreprise.com)"
+
+#: src/components/segment/segmentLabels.ts:99
+msgid "Domain the visit started on, which the path belongs to"
+msgstr "Domaine où la visite a commencé, auquel le chemin appartient"
+
+#: src/components/segment/segmentLabels.ts:131
+msgid "Domain the visitor arrived from"
+msgstr "Domaine d'où vient le visiteur"
 
 #: src/components/settings/BlogSettings.tsx:477
 msgid "Don't index and don't follow links"
@@ -8115,7 +8258,7 @@ msgstr "Ne pas suivre les ouvertures et les clics de cette newsletter"
 
 #: src/components/analytics/GetStartedChecklist.tsx:312
 #: src/components/analytics/GetStartedChecklist.tsx:439
-#: src/components/automations/config/ConditionsField.tsx:142
+#: src/components/automations/config/ConditionsField.tsx:149
 #: src/components/settings/ZapierSettings.tsx:269
 #: src/components/templates/TemplateTranslationsTab.tsx:501
 msgid "Done"
@@ -8162,7 +8305,7 @@ msgstr "Télécharger en zip"
 #~ msgstr "{0} fichier(s) téléchargé(s)"
 
 #: src/components/automations/AutomationStatusPill.tsx:15
-#: src/components/blog/PostDrawer.tsx:752
+#: src/components/blog/PostDrawer.tsx:758
 #: src/components/blog/PostsTable.tsx:348
 #: src/components/blog/ThemeEditorDrawer.tsx:473
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:199
@@ -8228,11 +8371,11 @@ msgid "e.g. {0}"
 msgstr "ex. {0}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:360
-#: src/components/segment/form_leaf.tsx:470
+#: src/components/segment/form_leaf.tsx:606
 msgid "e.g. /pricing"
 msgstr "ex. /pricing"
 
-#: src/components/segment/button_upsert.tsx:472
+#: src/components/segment/button_upsert.tsx:438
 msgid "e.g. Big spenders"
 msgstr "ex. Gros acheteurs"
 
@@ -8272,7 +8415,7 @@ msgstr "ex. Lancement de produit"
 msgid "e.g. Set channel for Google Ads"
 msgstr "ex. Définir le canal pour Google Ads"
 
-#: src/components/segment/input_event_property_filters.tsx:167
+#: src/components/segment/input_event_property_filters.tsx:59
 msgid "e.g. sku"
 msgstr "ex. sku"
 
@@ -8360,7 +8503,7 @@ msgstr "Chaque variation garde l'expéditeur de son modèle, sauf si vous en cho
 #~ msgid "edit"
 #~ msgstr "modifier"
 
-#: src/components/automations/config/ConditionsField.tsx:112
+#: src/components/automations/config/ConditionsField.tsx:119
 #: src/components/blog/BlogSidebar.tsx:119
 #: src/components/blog/PostsTable.tsx:234
 #: src/components/blog/PostsTable.tsx:238
@@ -8370,6 +8513,8 @@ msgstr "Chaque variation garde l'expéditeur de son modèle, sauf si vous en cho
 #: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
+#: src/components/segment/input.tsx:385
+#: src/components/segment/input.tsx:389
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -8529,7 +8674,7 @@ msgstr "Modifier les permissions"
 msgid "Edit Permissions for {0}"
 msgstr "Modifier les permissions pour {0}"
 
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:841
 msgid "Edit post"
 msgstr "Modifier l'article"
 
@@ -8547,7 +8692,7 @@ msgid "Edit rule"
 msgstr "Modifier la règle"
 
 #: src/components/contacts/SegmentDefinedBy.tsx:62
-#: src/components/segment/button_upsert.tsx:77
+#: src/components/segment/button_upsert.tsx:62
 msgid "Edit segment"
 msgstr "Modifier le segment"
 
@@ -8589,7 +8734,7 @@ msgstr "Modifier l'objet dans le modèle"
 msgid "Edit the template"
 msgstr "Modifier le modèle"
 
-#: src/components/blog/PostDrawer.tsx:1064
+#: src/components/blog/PostDrawer.tsx:1070
 msgid "Edit the title in Details"
 msgstr "Modifier le titre dans Détails"
 
@@ -8602,6 +8747,10 @@ msgstr "Modifier le thème"
 #: src/components/blog/ThemeEditorDrawer.tsx:305
 #~ msgid "Edit Theme v{0}"
 #~ msgstr "Modifier le thème v{0}"
+
+#: src/components/segment/input.tsx:336
+#~ msgid "Edit this condition"
+#~ msgstr "Modifier cette condition"
 
 #: src/components/contacts/TrackingConsent.tsx:213
 msgid "Edit tracking consent"
@@ -8629,7 +8778,7 @@ msgid "Editable markup"
 msgstr "Balisage modifiable"
 
 #. placeholder {0}: relative(post.updated_at)
-#: src/components/blog/PostDrawer.tsx:757
+#: src/components/blog/PostDrawer.tsx:763
 #: src/components/blog/PostsTable.tsx:272
 msgid "Edited {0}"
 msgstr "Modifié {0}"
@@ -8687,7 +8836,7 @@ msgstr "Espacement de l'élément"
 #: src/components/logs/InboundWebhooksTab.tsx:167
 #: src/components/logs/MessagesTab.tsx:300
 #: src/components/logs/MessagesTab.tsx:485
-#: src/components/segment/segmentSummary.ts:36
+#: src/components/segment/segmentLabels.ts:17
 #: src/components/settings/Integrations.tsx:549
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:998
 #: src/components/transactional/TransactionalDetail.tsx:408
@@ -8779,6 +8928,7 @@ msgid "Email is required"
 msgstr "L'email est requis"
 
 #: src/components/contacts/TrackingConsent.tsx:52
+#: src/components/segment/segmentLabels.ts:254
 msgid "Email link"
 msgstr "Lien dans un email"
 
@@ -8906,6 +9056,7 @@ msgstr "Les modèles d'email dans toutes les langues, et les blocs de modèle r�
 msgid "Email Title Settings"
 msgstr "Paramètres du titre de l'email"
 
+#: src/components/segment/segmentLabels.ts:195
 #: src/components/settings/GeneralSettings.tsx:277
 #: src/components/settings/GeneralSettings.tsx:423
 msgid "Email tracking"
@@ -8923,6 +9074,10 @@ msgstr "Email mis à jour : {name}"
 msgid "Email widths above 650px may not display correctly in some email clients"
 msgstr "Les largeurs d'email supérieures à 650px peuvent ne pas s'afficher correctement dans certains clients email"
 
+#: src/components/segment/input.tsx:69
+msgid "Email, country, language, custom fields, tracking consent…"
+msgstr "Email, pays, langue, champs personnalisés, consentement au suivi…"
+
 #: src/pages/ContactsPage.tsx:700
 msgid "Email, name or external ID"
 msgstr "E-mail, nom ou ID externe"
@@ -8932,6 +9087,8 @@ msgid "Email:"
 msgstr "Email :"
 
 #: src/components/contacts/sheet/ContactActivityTab.tsx:36
+#: src/components/segment/form_leaf.tsx:507
+#: src/components/segment/form_leaf.tsx:508
 msgid "Emails"
 msgstr "E-mails"
 
@@ -8977,6 +9134,10 @@ msgstr "Emails envoyés"
 msgid "Emails sent per day"
 msgstr "Emails envoyés par jour"
 
+#: src/components/segment/input.tsx:71
+msgid "Emails sent, opened, clicked… pages viewed and website visits"
+msgstr "E-mails envoyés, ouverts, cliqués… pages vues et visites du site"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:972
 msgid "emails/min"
 msgstr "emails/min"
@@ -8997,6 +9158,10 @@ msgstr "Vide"
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:205
 msgid "Empty column. Add text, button, or image content."
 msgstr "Colonne vide. Ajoutez du texte, un bouton ou une image."
+
+#: src/components/segment/input.tsx:478
+msgid "Empty: add a condition or a subgroup."
+msgstr "Vide : ajoutez une condition ou un sous-groupe."
 
 #: src/components/templates/TemplateTranslationsTab.tsx:346
 msgid "Enable"
@@ -9108,6 +9273,18 @@ msgstr "URL du point d'accès"
 msgid "Endpoints gated by {label}"
 msgstr "Endpoints contrôlés par {label}"
 
+#: src/components/segment/segmentLabels.ts:224
+msgid "ends with"
+msgstr "se termine par"
+
+#: src/components/segment/segmentLabels.ts:127
+msgid "Engaged time across the whole visit, in milliseconds"
+msgstr "Temps d'engagement sur toute la visite, en millisecondes"
+
+#: src/components/segment/segmentLabels.ts:94
+msgid "Engaged time on the page, in milliseconds"
+msgstr "Temps d'engagement sur la page, en millisecondes"
+
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:86
 msgid "Engagement by country and region"
 msgstr "Engagement par pays et région"
@@ -9143,6 +9320,10 @@ msgstr "Entrez un nom pour cette intégration"
 msgid "Enter a name for your workspace"
 msgstr "Entrez un nom pour votre espace de travail"
 
+#: src/components/segment/FilterValueInput.tsx:95
+msgid "Enter a number"
+msgstr "Saisir un nombre"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:110
 msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "Saisissez un nombre d'au plus 15 chiffres avant la virgule."
@@ -9151,6 +9332,7 @@ msgstr "Saisissez un nombre d'au plus 15 chiffres avant la virgule."
 msgid "Enter a unique alphanumeric ID"
 msgstr "Entrez un ID alphanumérique unique"
 
+#: src/components/segment/FilterValueInput.tsx:62
 #: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter a value"
 msgstr "Saisissez une valeur"
@@ -9359,6 +9541,14 @@ msgstr "Conditions d'entrée"
 msgid "entry page"
 msgstr "page d'entrée"
 
+#: src/components/segment/segmentLabels.ts:103
+msgid "Entry page"
+msgstr "Page d'entrée"
+
+#: src/components/segment/segmentLabels.ts:87
+msgid "Entry type"
+msgstr "Type d'entrée"
+
 #: src/components/timeline/ContactTimeline.tsx:960
 #~ msgid "Entry:"
 #~ msgstr "Entrée :"
@@ -9375,7 +9565,12 @@ msgstr "Énumérer toutes les adresses abonnées à une liste (nécessite aussi 
 msgid "Envelope"
 msgstr "Enveloppe"
 
+#: src/components/segment/segmentLabels.ts:293
+msgid "equal to"
+msgstr "égal à"
+
 #: src/components/email_builder/ui/displayConditionLabels.ts:14
+#: src/components/segment/segmentLabels.ts:219
 #: src/components/web_analytics/lib/filterCatalog.ts:220
 #: src/components/web_analytics/lib/filterLabels.ts:10
 msgid "equals"
@@ -9443,7 +9638,7 @@ msgstr "Erreurs"
 msgid "Errors ({0} of {1} shown)"
 msgstr "Erreurs ({0} sur {1} affichées)"
 
-#: src/components/segment/input.tsx:657
+#: src/components/segment/ConditionSentence.tsx:294
 msgid "event"
 msgstr "événement"
 
@@ -9454,11 +9649,11 @@ msgstr "événement"
 msgid "Event"
 msgstr "Événement"
 
-#: src/components/segment/segmentSummary.ts:212
+#: src/components/segment/segmentSummary.ts:170
 msgid "event “{name}”"
 msgstr "événement « {name} »"
 
-#: src/components/segment/segmentSummary.ts:213
+#: src/components/segment/segmentSummary.ts:171
 msgid "Event “{name}”"
 msgstr "Événement « {name} »"
 
@@ -9486,7 +9681,7 @@ msgstr "ID de l'événement"
 msgid "Event invitation"
 msgstr "Invitation à un événement"
 
-#: src/components/segment/form_leaf.tsx:795
+#: src/components/segment/form_leaf.tsx:716
 msgid "event name"
 msgstr "nom de l'événement"
 
@@ -9612,12 +9807,11 @@ msgstr "URL exacte"
 msgid "Exact value"
 msgstr "Valeur exacte"
 
-#: src/components/segment/form_leaf.tsx:495
-#: src/components/segment/input.tsx:811
+#: src/components/segment/segmentLabels.ts:308
 msgid "exactly"
 msgstr "exactement"
 
-#: src/components/blog/PostDrawer.tsx:948
+#: src/components/blog/PostDrawer.tsx:954
 msgid "Excerpt"
 msgstr "Extrait"
 
@@ -9650,6 +9844,7 @@ msgstr "Sortie à la réponse"
 msgid "exit page"
 msgstr "page de sortie"
 
+#: src/components/segment/segmentLabels.ts:104
 #: src/components/web_analytics/tabs/DashboardTab.tsx:188
 msgid "Exit page"
 msgstr "Page de sortie"
@@ -9783,7 +9978,7 @@ msgstr "Export de tous les contacts"
 #: src/components/logs/MessagesTab.tsx:487
 #: src/components/messages/MessageHistoryTable.tsx:153
 #: src/components/messages/MessageHistoryTable.tsx:180
-#: src/components/segment/segmentSummary.ts:37
+#: src/components/segment/segmentLabels.ts:18
 #: src/components/transactional/RecentSends.tsx:118
 msgid "External ID"
 msgstr "ID externe"
@@ -9945,11 +10140,11 @@ msgid "Failed to create notification: {0}"
 msgstr "Échec de la création de la notification : {0}"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:443
+#: src/components/blog/PostDrawer.tsx:446
 msgid "Failed to create post: {0}"
 msgstr "Échec de la création de l'article : {0}"
 
-#: src/components/segment/button_upsert.tsx:376
+#: src/components/segment/button_upsert.tsx:361
 msgid "Failed to create segment"
 msgstr "Échec de la création du segment"
 
@@ -10133,7 +10328,7 @@ msgstr "Échec de la mise en pause de l'automation"
 msgid "Failed to pause broadcast"
 msgstr "Échec de la mise en pause de la diffusion"
 
-#: src/components/segment/button_upsert.tsx:237
+#: src/components/segment/button_upsert.tsx:222
 msgid "Failed to preview segment"
 msgstr "Échec de l'aperçu du segment"
 
@@ -10373,11 +10568,11 @@ msgid "Failed to update permissions"
 msgstr "Échec de la mise à jour des permissions"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:530
+#: src/components/blog/PostDrawer.tsx:536
 msgid "Failed to update post: {0}"
 msgstr "Échec de la mise à jour de l'article : {0}"
 
-#: src/components/segment/button_upsert.tsx:376
+#: src/components/segment/button_upsert.tsx:361
 msgid "Failed to update segment"
 msgstr "Échec de la mise à jour du segment"
 
@@ -10431,8 +10626,8 @@ msgstr "Favicon"
 #~ msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 #~ msgstr "Favicon pour votre blog. Recommandé : PNG 32x32px ou 192x192px"
 
-#: src/components/blog/PostDrawer.tsx:957
-#: src/components/blog/PostDrawer.tsx:967
+#: src/components/blog/PostDrawer.tsx:963
+#: src/components/blog/PostDrawer.tsx:973
 msgid "Featured image"
 msgstr "Image à la une"
 
@@ -10497,8 +10692,8 @@ msgstr "champ requis."
 
 #. placeholder {0}: filter.field_name
 #: src/components/segment/input_dimension_filters.tsx:84
-msgid "field: {0}"
-msgstr "champ : {0}"
+#~ msgid "field: {0}"
+#~ msgstr "champ : {0}"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:980
 msgid "File"
@@ -10592,13 +10787,14 @@ msgstr "Conditions de filtre"
 #~ msgstr "Conditions de filtre"
 
 #: src/components/segment/input_event_property_filters.tsx:128
-msgid "Filter on an event property"
-msgstr "Filtrer sur une propriété d'événement"
+#~ msgid "Filter on an event property"
+#~ msgstr "Filtrer sur une propriété d'événement"
 
 #: src/components/web_analytics/goals/GoalFiltersLine.tsx:30
 msgid "Filtered by"
 msgstr "Filtré par"
 
+#: src/components/segment/form_leaf.tsx:618
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:348
 #: src/layouts/app-shell/menuItems.ts:222
 #: src/pages/WebAnalyticsPage.tsx:98
@@ -10670,6 +10866,10 @@ msgstr "Premier email envoyé"
 msgid "First identified visit"
 msgstr "Première visite identifiée"
 
+#: src/components/segment/segmentLabels.ts:49
+msgid "First line of the contact's address"
+msgstr "Première ligne de l'adresse du contact"
+
 #: src/components/automations/config/TriggerConfigForm.tsx:96
 #: src/components/contacts/contactColumns.ts:62
 #: src/components/contacts/contactFilterFields.ts:24
@@ -10677,7 +10877,7 @@ msgstr "Première visite identifiée"
 #: src/components/contacts/ContactsTable.tsx:311
 #: src/components/contacts/ExportContactsModal.tsx:69
 #: src/components/contacts/sheet/contactFieldLabels.ts:24
-#: src/components/segment/segmentSummary.ts:38
+#: src/components/segment/segmentLabels.ts:19
 msgid "First Name"
 msgstr "Prénom"
 
@@ -10718,7 +10918,7 @@ msgstr "Fixé une fois créé : les appels API l'envoient"
 msgid "Fixed once created: its posts' links depend on it"
 msgstr "Fixé une fois créé : les liens de ses articles en dépendent"
 
-#: src/components/blog/PostDrawer.tsx:932
+#: src/components/blog/PostDrawer.tsx:938
 msgid "Fixed once created: links to the post may already be shared"
 msgstr "Fixé une fois créé : des liens vers l'article ont pu être partagés"
 
@@ -10787,7 +10987,7 @@ msgstr "Suit le nom tant que vous ne le modifiez pas"
 msgid "Follows the name until you edit it. Lowercase letters, numbers and underscores"
 msgstr "Suit le nom tant que vous ne le modifiez pas. Lettres minuscules, chiffres et tirets bas"
 
-#: src/components/blog/PostDrawer.tsx:935
+#: src/components/blog/PostDrawer.tsx:941
 msgid "Follows the title until you edit it"
 msgstr "Suit le titre tant que vous ne le modifiez pas"
 
@@ -10992,7 +11192,7 @@ msgstr "Changelog complet"
 #: src/components/contacts/ContactsTable.tsx:313
 #: src/components/contacts/ExportContactsModal.tsx:75
 #: src/components/contacts/sheet/contactFieldLabels.ts:26
-#: src/components/segment/segmentSummary.ts:40
+#: src/components/segment/segmentLabels.ts:21
 msgid "Full Name"
 msgstr "Nom complet"
 
@@ -11017,6 +11217,10 @@ msgstr "Pleine largeur sur mobile"
 #: src/components/blog/ThemeEditorDrawer.tsx:413
 #~ msgid "Fullscreen"
 #~ msgstr "Plein écran"
+
+#: src/components/segment/segmentLabels.ts:95
+msgid "Furthest scroll position reached, as a percentage"
+msgstr "Position de défilement la plus lointaine atteinte, en pourcentage"
 
 #: src/components/templates/TemplateStartModal.tsx:92
 #: src/components/templates/TemplateStartModal.tsx:120
@@ -11083,7 +11287,7 @@ msgstr "Généré depuis le nom, modifiable"
 msgid "Generated HTML"
 msgstr "HTML généré"
 
-#: src/components/segment/button_upsert.tsx:709
+#: src/components/segment/SegmentCountCard.tsx:61
 msgid "Generated SQL:"
 msgstr "SQL généré :"
 
@@ -11148,8 +11352,8 @@ msgid "Go to Sign In"
 msgstr "Aller à la connexion"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:311
-#: src/components/segment/form_leaf.tsx:727
-#: src/components/segment/input.tsx:635
+#: src/components/segment/form_leaf.tsx:670
+#: src/components/segment/input.tsx:65
 #: src/components/web_analytics/explore/BreakdownModal.tsx:39
 #: src/components/web_analytics/explore/DimensionSelector.tsx:115
 #: src/components/web_analytics/FilterBuilder.tsx:46
@@ -11173,8 +11377,8 @@ msgstr "Tableau de bord des objectifs"
 msgid "Goal dashboard: {goalName}"
 msgstr "Tableau de bord de l'objectif : {goalName}"
 
-#: src/components/segment/form_leaf.tsx:784
-#: src/components/segment/input.tsx:649
+#: src/components/segment/ConditionSentence.tsx:288
+#: src/components/segment/form_leaf.tsx:713
 msgid "goal name"
 msgstr "nom de l'objectif"
 
@@ -11188,8 +11392,8 @@ msgstr "Chemin de l'objectif"
 
 #: src/components/segment/form_leaf.tsx:762
 #: src/components/segment/input.tsx:643
-msgid "goal type"
-msgstr "type d'objectif"
+#~ msgid "goal type"
+#~ msgstr "type d'objectif"
 
 #: src/components/settings/WebhooksSettings.tsx:609
 msgid "Goal types"
@@ -11203,6 +11407,10 @@ msgstr "Types d'objectifs"
 #: src/components/settings/WebhookDetail.tsx:414
 msgid "Goal types: {0}"
 msgstr "Types d'objectifs : {0}"
+
+#: src/components/segment/segmentLabels.ts:109
+msgid "Goal value"
+msgstr "Valeur des objectifs"
 
 #: src/components/timeline/ContactTimeline.tsx:873
 #~ msgid "Goal:"
@@ -11228,6 +11436,7 @@ msgid "Goals by day and hour"
 msgstr "Objectifs par jour et par heure"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:119
+#: src/components/segment/segmentLabels.ts:108
 msgid "Goals reached"
 msgstr "Objectifs atteints"
 
@@ -11281,8 +11490,18 @@ msgstr "Tout accorder"
 #: src/components/contacts/TrackingConsent.tsx:12
 #: src/components/contacts/trackingConsentOptions.ts:10
 #: src/components/contacts/trackingConsentOptions.ts:14
+#: src/components/segment/segmentLabels.ts:245
 msgid "Granted"
 msgstr "Accordé"
+
+#: src/components/segment/segmentLabels.ts:225
+msgid "greater than"
+msgstr "supérieur à"
+
+#: src/components/segment/segmentLabels.ts:227
+#: src/components/segment/segmentLabels.ts:291
+msgid "greater than or equal to"
+msgstr "supérieur ou égal à"
 
 #: src/components/file_manager/FileExplorer.tsx:704
 #: src/components/file_manager/FileExplorer.tsx:705
@@ -11292,6 +11511,10 @@ msgstr "Grille"
 #: src/components/email_builder/ui/BorderInput.tsx:60
 msgid "Groove"
 msgstr "Rainuré"
+
+#: src/components/segment/input.tsx:523
+msgid "Group"
+msgstr "Groupe"
 
 #: src/components/email_builder/blocks/MjGroupBlock.tsx:162
 msgid "Group (drag columns here)"
@@ -11309,34 +11532,52 @@ msgstr "Attributs du groupe"
 #~ msgid "Group by"
 #~ msgstr ""
 
+#: src/components/segment/segmentLabels.ts:137
+msgid "Group the acquisition channel belongs to"
+msgstr "Groupe auquel appartient le canal d'acquisition"
+
+#: src/components/segment/input.tsx:468
+msgid "Group:"
+msgstr "Groupe :"
+
 #. placeholder {0}: skip.heading.level
 #. placeholder {1}: skip.previousLevel
 #: src/components/email_builder/blocks/MjTextBlock.tsx:490
 msgid "H{0} after H{1}"
 msgstr "H{0} après H{1}"
 
-#: src/components/segment/segmentSummary.ts:138
+#: src/components/segment/segmentSummary.ts:114
 msgid "Had an email bounce"
 msgstr "A eu un e-mail rejeté"
 
 #: src/components/segment/form_leaf.tsx:486
 #: src/components/segment/input.tsx:807
-msgid "happened"
-msgstr "s'est produit"
+#~ msgid "happened"
+#~ msgstr "s'est produit"
 
-#: src/components/segment/form_leaf.tsx:756
-#: src/components/segment/input.tsx:641
-msgid "has"
-msgstr "possède"
+#: src/components/segment/ConditionSentence.tsx:274
+#: src/components/segment/form_leaf.tsx:681
+#~ msgid "has"
+#~ msgstr "possède"
 
 #: src/components/messages/MessageHistoryTab.tsx:233
 #~ msgid "Has Error"
 #~ msgstr "A une erreur"
 
-#: src/components/segment/form_leaf.tsx:757
-#: src/components/segment/input.tsx:641
-msgid "has not"
-msgstr "ne possède pas"
+#: src/components/segment/ConditionSentence.tsx:274
+#: src/components/segment/form_leaf.tsx:682
+#~ msgid "has not"
+#~ msgstr "ne possède pas"
+
+#: src/components/segment/ConditionSentence.tsx:283
+#: src/components/segment/form_leaf.tsx:689
+msgid "has not reached"
+msgstr "n'a pas atteint"
+
+#: src/components/segment/ConditionSentence.tsx:283
+#: src/components/segment/form_leaf.tsx:688
+msgid "has reached"
+msgstr "a atteint"
 
 #. placeholder {0}: int(context.minSessions)
 #: src/components/web_analytics/explore/MinSessionsInput.tsx:56
@@ -11511,6 +11752,11 @@ msgstr "Comment ça fonctionne :"
 msgid "How long to wait before proceeding to the next step"
 msgstr "Combien de temps attendre avant de passer à l'étape suivante"
 
+#: src/components/segment/form_leaf.tsx:525
+#: src/components/segment/form_leaf.tsx:530
+msgid "How many"
+msgstr "Combien"
+
 #: src/components/integrations/LLMIntegration.tsx:253
 msgid "How much a reasoning model thinks. Default for other models; some providers ignore it"
 msgstr "Le temps de réflexion d'un modèle de raisonnement. Par défaut pour les autres modèles ; certains fournisseurs l'ignorent"
@@ -11519,9 +11765,13 @@ msgstr "Le temps de réflexion d'un modèle de raisonnement. Par défaut pour le
 msgid "How the category page appears in search results"
 msgstr "Comment la page de la catégorie apparaît dans les résultats de recherche"
 
-#: src/components/blog/PostDrawer.tsx:994
+#: src/components/blog/PostDrawer.tsx:1000
 msgid "How the post appears in search results"
 msgstr "Comment l'article apparaît dans les résultats de recherche"
+
+#: src/components/segment/segmentLabels.ts:97
+msgid "How the visitor arrived on the page"
+msgstr "Comment le visiteur est arrivé sur la page"
 
 #: src/components/updates/UpdateDrawer.tsx:37
 msgid "How to upgrade"
@@ -11684,6 +11934,10 @@ msgstr "ID :"
 #~ msgid "ID: {webhookTemplateId}"
 #~ msgstr "ID : {webhookTemplateId}"
 
+#: src/components/segment/segmentLabels.ts:98
+msgid "Identifier of the visit the page belongs to"
+msgstr "Identifiant de la visite à laquelle appartient la page"
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:580
 msgid "Identifies a specific product promotion or strategic campaign"
 msgstr "Identifie une promotion de produit spécifique ou une campagne stratégique"
@@ -11718,6 +11972,7 @@ msgstr "Identifier les destinataires des emails"
 #~ msgstr "Identifier les destinataires qui cliquent sur un lien d'email tracké"
 
 #: src/components/contacts/ContactsFilters.tsx:27
+#: src/components/segment/segmentLabels.ts:187
 #: src/components/settings/BlogSettings.tsx:388
 #: src/components/templates/TemplateSettingsStep.tsx:110
 msgid "Identity"
@@ -11783,6 +12038,7 @@ msgstr "TLS implicite (SMTPS)"
 #: src/components/contacts/ContactsViewHeader.tsx:262
 #: src/components/contacts/TrackingConsent.tsx:48
 #: src/components/email_builder/MjmlCodeEditor.tsx:632
+#: src/components/segment/segmentLabels.ts:252
 #: src/components/templates/ImportExportButton.tsx:203
 #: src/pages/ContactsPage.tsx:551
 #: src/pages/TemplatesPage.tsx:592
@@ -11902,12 +12158,11 @@ msgstr "dans"
 msgid "In any of: {segmentNames}"
 msgstr "Dans l'un de : {segmentNames}"
 
-#: src/components/segment/form_leaf.tsx:523
-#: src/components/segment/form_leaf.tsx:898
+#: src/components/segment/segmentLabels.ts:313
 msgid "in date range"
 msgstr "dans la plage de dates"
 
-#: src/components/segment/segmentSummary.ts:260
+#: src/components/segment/segmentSummary.ts:218
 msgid "In list {list}"
 msgstr "Dans la liste {list}"
 
@@ -11924,14 +12179,13 @@ msgstr "En cours"
 msgid "In the header. Without one, the workspace logo"
 msgstr "Dans l'en-tête. Sans logo, celui du workspace"
 
-#: src/components/segment/form_leaf.tsx:526
-#: src/components/segment/form_leaf.tsx:901
-#: src/components/segment/input.tsx:697
-#: src/components/segment/input.tsx:829
+#: src/components/segment/ConditionSentence.tsx:156
+#: src/components/segment/segmentLabels.ts:233
+#: src/components/segment/segmentLabels.ts:316
 msgid "in the last"
 msgstr "dans les derniers"
 
-#: src/components/segment/segmentSummary.ts:171
+#: src/components/segment/segmentSummary.ts:129
 msgid "in the last {days} days"
 msgstr "au cours des {days} derniers jours"
 
@@ -12281,8 +12535,6 @@ msgstr "Adresse IP, email d'acteur ou ID de cible"
 
 #: src/components/contacts/ContactsFilters.tsx:120
 #: src/components/file_manager/context.tsx:221
-#: src/components/segment/form_leaf.tsx:825
-#: src/components/segment/input.tsx:670
 msgid "is"
 msgstr "est"
 
@@ -12303,10 +12555,14 @@ msgstr "est supérieur à"
 msgid "is greater than or equal to"
 msgstr "est supérieur ou égal à"
 
-#: src/components/segment/form_leaf.tsx:239
-#: src/components/segment/input.tsx:589
+#: src/components/segment/ConditionSentence.tsx:208
+#: src/components/segment/form_leaf.tsx:394
 msgid "is in"
 msgstr "est dans"
+
+#: src/components/segment/segmentLabels.ts:235
+msgid "is in the array"
+msgstr "est dans le tableau"
 
 #: src/components/email_builder/ui/displayConditionLabels.ts:20
 msgid "is less than"
@@ -12321,16 +12577,22 @@ msgstr "est inférieur ou égal à"
 msgid "is not empty"
 msgstr "n'est pas vide"
 
-#: src/components/segment/form_leaf.tsx:240
-#: src/components/segment/input.tsx:589
+#: src/components/segment/ConditionSentence.tsx:208
+#: src/components/segment/form_leaf.tsx:395
 msgid "is not in"
 msgstr "n'est pas dans"
 
 #: src/components/email_builder/ui/displayConditionLabels.ts:13
+#: src/components/segment/segmentLabels.ts:218
 msgid "is not set"
 msgstr "n'est pas défini"
 
+#: src/components/segment/input.tsx:70
+msgid "Is or is not in a list, with a status"
+msgstr "Est ou n'est pas dans une liste, avec un statut"
+
 #: src/components/email_builder/ui/displayConditionLabels.ts:12
+#: src/components/segment/segmentLabels.ts:217
 msgid "is set"
 msgstr "est défini"
 
@@ -12425,7 +12687,7 @@ msgstr "Ses abonnements sont supprimés avec elle ; les contacts restent dans l'
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:104
 #: src/components/contacts/ContactsTable.tsx:333
 #: src/components/contacts/sheet/contactFieldLabels.ts:33
-#: src/components/segment/segmentSummary.ts:49
+#: src/components/segment/segmentLabels.ts:30
 msgid "Job Title"
 msgstr "Poste"
 
@@ -12587,7 +12849,7 @@ msgstr "URL d'atterrissage"
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/contactFieldLabels.ts:35
 #: src/components/logs/MessageDetail.tsx:686
-#: src/components/segment/segmentSummary.ts:43
+#: src/components/segment/segmentLabels.ts:24
 #: src/components/templates/SendTemplateModal.tsx:404
 #: src/components/templates/TemplatePreviewDrawer.tsx:499
 #: src/components/templates/TemplateSelectorModal.tsx:650
@@ -12699,7 +12961,7 @@ msgstr "Dernière heure"
 #: src/components/contacts/ContactsTable.tsx:312
 #: src/components/contacts/ExportContactsModal.tsx:72
 #: src/components/contacts/sheet/contactFieldLabels.ts:25
-#: src/components/segment/segmentSummary.ts:39
+#: src/components/segment/segmentLabels.ts:20
 msgid "Last Name"
 msgstr "Nom de famille"
 
@@ -12720,7 +12982,7 @@ msgstr "Les plus récemment modifiés d'abord"
 msgid "Latitude and longitude, rounded: lower is more private"
 msgstr "Latitude et longitude arrondies : plus c'est bas, plus c'est privé"
 
-#: src/components/segment/segmentSummary.ts:149
+#: src/components/segment/segmentLabels.ts:275
 #: src/components/settings/WebhooksSettings.tsx:616
 msgid "Lead"
 msgstr "Prospect"
@@ -12814,6 +13076,15 @@ msgstr "A quitté l’automation {name}"
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:138
 msgid "Left to Right"
 msgstr "De gauche à droite"
+
+#: src/components/segment/segmentLabels.ts:226
+msgid "less than"
+msgstr "inférieur à"
+
+#: src/components/segment/segmentLabels.ts:228
+#: src/components/segment/segmentLabels.ts:292
+msgid "less than or equal to"
+msgstr "inférieur ou égal à"
 
 #: src/pages/SetupWizard.tsx:688
 msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
@@ -13112,8 +13383,8 @@ msgstr "Statut dans la liste"
 msgid "List Status"
 msgstr "Statut de liste"
 
-#: src/components/segment/form_leaf.tsx:219
-#: src/components/segment/input.tsx:587
+#: src/components/segment/form_leaf.tsx:380
+#: src/components/segment/input.tsx:63
 #: src/components/segment/table_tag.tsx:25
 msgid "List subscription"
 msgstr "Abonnement à la liste"
@@ -13285,7 +13556,7 @@ msgstr "Chargement de la configuration..."
 #~ msgid "Loading stats..."
 #~ msgstr "Chargement des statistiques..."
 
-#: src/components/blog/PostDrawer.tsx:1081
+#: src/components/blog/PostDrawer.tsx:1087
 msgid "Loading template..."
 msgstr "Chargement du modèle..."
 
@@ -13324,6 +13595,7 @@ msgid "Locate visitors"
 msgstr "Localiser les visiteurs"
 
 #: src/components/contacts/ContactsFilters.tsx:28
+#: src/components/segment/segmentLabels.ts:191
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:115
 msgid "Location"
 msgstr "Localisation"
@@ -13385,7 +13657,7 @@ msgid "lowercase"
 msgstr "minuscules"
 
 #: src/components/blog/CategoryDrawer.tsx:268
-#: src/components/blog/PostDrawer.tsx:934
+#: src/components/blog/PostDrawer.tsx:940
 msgid "Lowercase letters, numbers and hyphens"
 msgstr "Minuscules, chiffres et tirets"
 
@@ -13534,7 +13806,7 @@ msgstr "Mappez vos colonnes CSV aux champs de contact. Le"
 msgid "Mark the dates that explain a chart — a launch, a campaign, an outage — and they appear as labelled verticals on the dashboard and goal charts."
 msgstr "Marquez les dates qui expliquent un graphique — un lancement, une campagne, une panne — et elles apparaissent sous forme de repères verticaux étiquetés sur le tableau de bord et les graphiques d'objectifs."
 
-#: src/components/segment/segmentSummary.ts:139
+#: src/components/segment/segmentSummary.ts:115
 msgid "Marked an email as spam"
 msgstr "A signalé un e-mail comme spam"
 
@@ -13618,7 +13890,11 @@ msgstr "correspond à la regex"
 msgid "Matching"
 msgstr "Correspondent"
 
-#: src/components/segment/button_upsert.tsx:704
+#: src/components/segment/SegmentCountCard.tsx:81
+msgid "Matching contacts"
+msgstr "Contacts concernés"
+
+#: src/components/segment/SegmentCountCard.tsx:57
 msgid "Matching contacts:"
 msgstr "Contacts correspondants :"
 
@@ -13630,7 +13906,7 @@ msgstr "Règles qui correspondent"
 msgid "Max 3MB per file, 10MB total, 20 files maximum"
 msgstr "Max 3 Mo par fichier, 10 Mo au total, 20 fichiers maximum"
 
-#: src/components/segment/segmentSummary.ts:161
+#: src/components/segment/segmentLabels.ts:287
 msgid "maximum"
 msgstr "maximum"
 
@@ -13653,6 +13929,10 @@ msgstr "La plage maximale est de 2 ans. Les dates sont interprétées dans le fu
 #: src/components/logs/AuditLogTab.tsx:187
 msgid "Me"
 msgstr "Moi"
+
+#: src/components/segment/form_leaf.tsx:720
+msgid "Measure"
+msgstr "Mesure"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:48
 msgid "Median"
@@ -13825,7 +14105,7 @@ msgstr "Microsoft 365 / Office 365"
 msgid "Middle"
 msgstr "Milieu"
 
-#: src/components/blog/PostDrawer.tsx:907
+#: src/components/blog/PostDrawer.tsx:913
 msgid "min"
 msgstr "min"
 
@@ -13846,7 +14126,7 @@ msgstr "Minimal"
 msgid "Minimize YouTube branding"
 msgstr "Minimiser le branding YouTube"
 
-#: src/components/segment/segmentSummary.ts:160
+#: src/components/segment/segmentLabels.ts:286
 msgid "minimum"
 msgstr "minimum"
 
@@ -14054,7 +14334,7 @@ msgstr "Pages les plus vues"
 msgid "Must be a valid https URL"
 msgstr "Doit être une URL https valide"
 
-#: src/components/segment/input_event_property_filters.tsx:176
+#: src/components/segment/input_event_property_filters.tsx:124
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr "Doit correspondre à la façon dont la valeur est stockée sur l'événement. Les dates sont comparées au format ISO-8601."
 
@@ -14094,7 +14374,7 @@ msgstr "N/A"
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
 #: src/components/lists/ListDrawer.tsx:216
-#: src/components/segment/button_upsert.tsx:452
+#: src/components/segment/button_upsert.tsx:422
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -14188,6 +14468,10 @@ msgstr "Des noms que vous gérez vous-même dans AWS"
 #~ msgid "Naming a slot renames it everywhere it appears: dashboards, the explore picker and attribution rules."
 #~ msgstr "Nommer un emplacement le renomme partout où il apparaît : tableaux de bord, sélecteur d'exploration et règles d'attribution."
 
+#: src/components/segment/form_leaf.tsx:711
+msgid "Narrowed to"
+msgstr "Restreint à"
+
 #: src/components/settings/BlogSettings.tsx:365
 msgid "Needed first: the blog is served at its root"
 msgstr "Nécessaire avant tout : le blog est servi à sa racine"
@@ -14280,8 +14564,8 @@ msgstr "Nouveau code magique envoyé à votre email"
 msgid "New notification"
 msgstr "Nouvelle notification"
 
-#: src/components/blog/PostDrawer.tsx:743
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:749
+#: src/components/blog/PostDrawer.tsx:841
 #: src/components/blog/PostsTable.tsx:548
 msgid "New post"
 msgstr "Nouvel article"
@@ -14298,7 +14582,7 @@ msgid "New rule"
 msgstr "Nouvelle règle"
 
 #: src/components/contacts/ContactsRail.tsx:121
-#: src/components/segment/button_upsert.tsx:419
+#: src/components/segment/button_upsert.tsx:395
 msgid "New segment"
 msgstr "Nouveau segment"
 
@@ -14394,7 +14678,7 @@ msgstr "Étape suivante"
 
 #: src/components/automations/edges/edgeLabel.ts:34
 #: src/components/blog/PostDrawer.tsx:307
-#: src/components/blog/PostDrawer.tsx:581
+#: src/components/blog/PostDrawer.tsx:587
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/useBroadcastActions.tsx:174
 #: src/components/broadcasts/useBroadcastActions.tsx:180
@@ -14537,7 +14821,7 @@ msgstr "Aucune donnée de ville"
 msgid "No comparison"
 msgstr "Aucune comparaison"
 
-#: src/components/automations/config/ConditionsField.tsx:92
+#: src/components/automations/config/ConditionsField.tsx:99
 #: src/components/automations/nodes/FilterNode.tsx:44
 msgid "No conditions"
 msgstr "Pas de conditions"
@@ -14675,7 +14959,7 @@ msgstr "Aucune erreur"
 msgid "No failure"
 msgstr "Aucun échec"
 
-#: src/components/blog/PostDrawer.tsx:972
+#: src/components/blog/PostDrawer.tsx:978
 msgid "No featured image"
 msgstr "Pas d'image à la une"
 
@@ -15187,7 +15471,7 @@ msgstr "Aucune (pas de lien de désinscription)"
 msgid "Normal"
 msgstr "Normal"
 
-#: src/components/segment/segmentSummary.ts:237
+#: src/components/segment/segmentSummary.ts:195
 msgid "Not ({condition})"
 msgstr "Non ({condition})"
 
@@ -15228,6 +15512,10 @@ msgstr "Non attribué"
 msgid "Not available here"
 msgstr "Non disponible ici"
 
+#: src/components/segment/segmentLabels.ts:232
+msgid "not between"
+msgstr "pas entre"
+
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:111
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:116
 #: src/components/logs/MessagesTab.tsx:952
@@ -15254,7 +15542,7 @@ msgid "Not counted beyond {countMax}"
 msgstr "Non comptés au-delà de {countMax}"
 
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:746
+#: src/components/blog/PostDrawer.tsx:752
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
@@ -15296,9 +15584,13 @@ msgstr "Pas dans la liste"
 msgid "Not in List"
 msgstr "Pas dans la liste"
 
-#: src/components/segment/segmentSummary.ts:260
+#: src/components/segment/segmentSummary.ts:218
 msgid "Not in list {list}"
 msgstr "Pas dans la liste {list}"
+
+#: src/components/segment/segmentLabels.ts:234
+msgid "not in the last"
+msgstr "pas dans les derniers"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:184
 msgid "Not in the test data: the rule is evaluated as if the variable were empty."
@@ -15436,6 +15728,7 @@ msgid "Notification"
 msgstr "Notification"
 
 #: src/components/contacts/TrackingConsent.tsx:50
+#: src/components/segment/segmentLabels.ts:253
 msgid "Notification center"
 msgstr "Centre de notifications"
 
@@ -15503,14 +15796,27 @@ msgstr "Maintenant"
 msgid "Null"
 msgstr "Null"
 
-#: src/components/segment/input_event_property_filters.tsx:181
+#: src/components/segment/FilterRow.tsx:165
+#: src/components/segment/input_event_property_filters.tsx:73
 #: src/components/settings/CustomFieldsConfiguration.tsx:59
 msgid "Number"
 msgstr "Nombre"
 
+#: src/components/segment/form_leaf.tsx:234
+msgid "Number of days"
+msgstr "Nombre de jours"
+
 #: src/components/settings/WebAnalyticsSettings.tsx:289
 #~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
 #~ msgstr ""
+
+#: src/components/segment/segmentLabels.ts:129
+msgid "Number of goals fired during the visit"
+msgstr "Nombre d'objectifs atteints pendant la visite"
+
+#: src/components/segment/segmentLabels.ts:126
+msgid "Number of pages viewed during the visit"
+msgstr "Nombre de pages vues pendant la visite"
 
 #: src/components/settings/BlogSettings.tsx:399
 #~ msgid "Number of posts to display per page on category pages"
@@ -15591,8 +15897,15 @@ msgstr "D'un utilisateur IAM autorisé à envoyer avec SES"
 #~ msgid "of emails sent that day"
 #~ msgstr "des emails envoyés ce jour-là"
 
+#: src/components/segment/input.tsx:470
+msgid "of the conditions"
+msgstr "conditions"
+
+#: src/components/segment/input.tsx:463
+msgid "of the following conditions"
+msgstr "conditions suivantes"
+
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:313
-#: src/components/segment/input.tsx:961
 msgid "of the following conditions match:"
 msgstr "des conditions suivantes correspondent :"
 
@@ -15650,7 +15963,7 @@ msgstr "Sur la carte, et dans chaque sélecteur d'expéditeur"
 msgid "On the card, and on the notifications it creates"
 msgstr "Sur la carte, et sur les notifications qu'elle crée"
 
-#: src/components/blog/PostDrawer.tsx:1035
+#: src/components/blog/PostDrawer.tsx:1041
 msgid "On this page"
 msgstr "Sur cette page"
 
@@ -15925,7 +16238,7 @@ msgstr "Ouvert"
 msgid "Opened {name}"
 msgstr "A ouvert {name}"
 
-#: src/components/segment/segmentSummary.ts:136
+#: src/components/segment/segmentSummary.ts:112
 msgid "Opened an email"
 msgstr "A ouvert un e-mail"
 
@@ -16013,7 +16326,7 @@ msgstr "Ouvre cet email dans le navigateur. Le lien est renseigné pour les news
 #: src/components/contacts/contactFilterFields.ts:40
 #: src/components/contacts/ExportContactsModal.tsx:103
 #: src/components/contacts/sheet/contactFieldLabels.ts:48
-#: src/components/segment/segmentSummary.ts:52
+#: src/components/segment/segmentLabels.ts:33
 msgid "Opens tracking consent"
 msgstr "Consentement au tracking des ouvertures"
 
@@ -16028,6 +16341,14 @@ msgstr "Consentement au tracking des ouvertures (granted ou denied)"
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:102
 msgid "Opens were not tracked"
 msgstr "Les ouvertures n’étaient pas suivies"
+
+#: src/components/segment/segmentLabels.ts:119
+msgid "Operating system"
+msgstr "Système d'exploitation"
+
+#: src/components/segment/segmentLabels.ts:140
+msgid "Operating system used for the visit"
+msgstr "Système d'exploitation utilisé pour la visite"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:121
 msgid "Operation cancelled"
@@ -16052,6 +16373,8 @@ msgid "Operations"
 msgstr "Opérations"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:233
+#: src/components/segment/FilterRow.tsx:110
+#: src/components/segment/input_event_property_filters.tsx:86
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
 msgid "Operator"
 msgstr "Opérateur"
@@ -16104,10 +16427,15 @@ msgstr "Options"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:116
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:38
-#: src/components/segment/segmentSummary.ts:284
+#: src/components/segment/ConditionSentence.tsx:82
+#: src/components/segment/segmentSummary.ts:242
 #: src/pages/SignInPage.tsx:294
 msgid "or"
 msgstr "ou"
+
+#: src/components/segment/input.tsx:436
+msgid "OR"
+msgstr "OU"
 
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:63
 msgid "Or any OpenAI-compatible endpoint"
@@ -16155,12 +16483,14 @@ msgstr "OS"
 #: src/components/contacts/visits/webVisitSource.ts:46
 #: src/components/logs/labels.ts:89
 #: src/components/logs/MessagesTab.tsx:270
+#: src/components/segment/FieldPicker.tsx:94
+#: src/components/segment/FieldPicker.tsx:94
 #: src/components/settings/WebhooksSettings.tsx:620
 #: src/components/templates/templateCategories.ts:27
 msgid "Other"
 msgstr "Autre"
 
-#: src/components/segment/segmentSummary.ts:153
+#: src/components/segment/segmentLabels.ts:279
 msgid "Other goal"
 msgstr "Autre objectif"
 
@@ -16241,6 +16571,10 @@ msgstr "Page"
 msgid "Page filters: {pageFilterList}"
 msgstr "Filtres de page : {pageFilterList}"
 
+#: src/components/segment/segmentLabels.ts:86
+msgid "Page number in visit"
+msgstr "Rang de la page dans la visite"
+
 #: src/components/contacts/sheet/activityLabel.ts:26
 msgid "Page view"
 msgstr "Vue de page"
@@ -16264,6 +16598,10 @@ msgstr "Pages"
 #: src/components/settings/BlogSettings.tsx:404
 msgid "Pages and feeds"
 msgstr "Pages et flux"
+
+#: src/components/segment/segmentLabels.ts:105
+msgid "Pages viewed"
+msgstr "Pages vues"
 
 #: src/components/web_analytics/CountryMapView.tsx:68
 msgid "Pageviews"
@@ -16352,6 +16690,23 @@ msgstr "Collez cette URL dans le champ URL de l'API lorsque vous connectez votre
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:340
 msgid "Paste YouTube URL..."
 msgstr "Collez l'URL YouTube..."
+
+#: src/components/segment/FilterRow.tsx:175
+#: src/components/segment/segmentLabels.ts:83
+msgid "Path"
+msgstr "Chemin"
+
+#: src/components/segment/segmentLabels.ts:124
+msgid "Path of the first page of the visit"
+msgstr "Chemin de la première page de la visite"
+
+#: src/components/segment/segmentLabels.ts:125
+msgid "Path of the last page of the visit"
+msgstr "Chemin de la dernière page de la visite"
+
+#: src/components/segment/segmentLabels.ts:93
+msgid "Path of the page viewed, without the domain"
+msgstr "Chemin de la page vue, sans le domaine"
 
 #: src/components/file_manager/buttonSettings.tsx:274
 msgid "Path-style access"
@@ -16561,7 +16916,7 @@ msgstr "Permissions mises à jour avec succès"
 #: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/contacts/sheet/contactFieldLabels.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
-#: src/components/segment/segmentSummary.ts:41
+#: src/components/segment/segmentLabels.ts:22
 msgid "Phone"
 msgstr "Téléphone"
 
@@ -16669,7 +17024,7 @@ msgstr "Options de lecture"
 msgid "Playback Options"
 msgstr "Options de lecture"
 
-#: src/components/blog/PostDrawer.tsx:984
+#: src/components/blog/PostDrawer.tsx:990
 msgid "Please add at least one author"
 msgstr "Veuillez ajouter au moins un auteur"
 
@@ -16681,12 +17036,12 @@ msgstr "Veuillez ajouter au moins un expéditeur avant d'enregistrer"
 #~ msgid "Please check the form for errors"
 #~ msgstr "Veuillez vérifier le formulaire pour les erreurs"
 
-#: src/components/blog/PostDrawer.tsx:857
+#: src/components/blog/PostDrawer.tsx:863
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:378
 msgid "Please check the form for errors."
 msgstr "Veuillez vérifier le formulaire pour les erreurs."
 
-#: src/components/segment/button_upsert.tsx:325
+#: src/components/segment/button_upsert.tsx:310
 msgid "Please choose a different segment name"
 msgstr "Veuillez choisir un autre nom de segment"
 
@@ -16726,6 +17081,7 @@ msgstr "Veuillez entrer un nom de liste"
 msgid "Please enter a model name"
 msgstr "Veuillez saisir un nom de modèle"
 
+#: src/components/segment/button_upsert.tsx:424
 #: src/components/settings/WebhooksSettings.tsx:532
 msgid "Please enter a name"
 msgstr "Veuillez entrer un nom"
@@ -16738,13 +17094,13 @@ msgstr "Veuillez entrer un nom"
 msgid "Please enter a notification name"
 msgstr "Veuillez entrer un nom de notification"
 
-#: src/components/blog/PostDrawer.tsx:882
+#: src/components/blog/PostDrawer.tsx:888
 msgid "Please enter a post title"
 msgstr "Veuillez entrer un titre d'article"
 
 #: src/components/segment/input_event_property_filters.tsx:158
-msgid "Please enter a property name"
-msgstr "Veuillez saisir un nom de propriété"
+#~ msgid "Please enter a property name"
+#~ msgstr "Veuillez saisir un nom de propriété"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:962
 msgid "Please enter a rate limit"
@@ -16755,7 +17111,7 @@ msgstr "Veuillez saisir une limite de débit"
 #~ msgstr ""
 
 #: src/components/blog/CategoryDrawer.tsx:260
-#: src/components/blog/PostDrawer.tsx:923
+#: src/components/blog/PostDrawer.tsx:929
 msgid "Please enter a slug"
 msgstr "Veuillez entrer un slug"
 
@@ -16825,7 +17181,7 @@ msgstr "Veuillez entrer une adresse email"
 msgid "Please enter integration name"
 msgstr "Veuillez entrer le nom de l'intégration"
 
-#: src/components/blog/PostDrawer.tsx:905
+#: src/components/blog/PostDrawer.tsx:911
 msgid "Please enter reading time"
 msgstr "Veuillez entrer le temps de lecture"
 
@@ -16850,7 +17206,7 @@ msgstr "Veuillez entrer le code magique !"
 msgid "Please input your email!"
 msgstr "Veuillez entrer votre email !"
 
-#: src/components/blog/PostDrawer.tsx:892
+#: src/components/blog/PostDrawer.tsx:898
 msgid "Please select a category"
 msgstr "Veuillez sélectionner une catégorie"
 
@@ -16863,10 +17219,10 @@ msgid "Please select a date"
 msgstr "Veuillez sélectionner une date"
 
 #: src/components/segment/input_dimension_filters.tsx:206
-msgid "Please select a field"
-msgstr "Veuillez sélectionner un champ"
+#~ msgid "Please select a field"
+#~ msgstr "Veuillez sélectionner un champ"
 
-#: src/components/segment/form_leaf.tsx:767
+#: src/components/segment/form_leaf.tsx:696
 msgid "Please select a goal type"
 msgstr "Veuillez sélectionner un type d'objectif"
 
@@ -16875,7 +17231,7 @@ msgid "Please select a JSON file"
 msgstr "Veuillez sélectionner un fichier JSON"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:203
-#: src/components/segment/form_leaf.tsx:248
+#: src/components/segment/form_leaf.tsx:403
 msgid "Please select a list"
 msgstr "Veuillez sélectionner une liste"
 
@@ -16893,7 +17249,7 @@ msgid "Please select a page size"
 msgstr "Veuillez sélectionner une taille de page"
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:231
-#: src/components/segment/form_leaf.tsx:276
+#: src/components/segment/form_leaf.tsx:427
 msgid "Please select a status"
 msgstr "Veuillez sélectionner un statut"
 
@@ -16914,7 +17270,7 @@ msgstr "Veuillez sélectionner une heure"
 msgid "Please select a timezone"
 msgstr "Veuillez sélectionner un fuseau horaire"
 
-#: src/components/segment/form_leaf.tsx:814
+#: src/components/segment/form_leaf.tsx:724
 msgid "Please select aggregate"
 msgstr "Veuillez sélectionner un agrégat"
 
@@ -16922,7 +17278,7 @@ msgstr "Veuillez sélectionner un agrégat"
 msgid "Please select an email template"
 msgstr "Veuillez sélectionner un modèle d'email"
 
-#: src/components/segment/form_leaf.tsx:368
+#: src/components/segment/form_leaf.tsx:482
 msgid "Please select an event type"
 msgstr "Veuillez sélectionner un type d'événement"
 
@@ -16942,7 +17298,7 @@ msgstr "Veuillez sélectionner une opération"
 msgid "Please select at least one event type"
 msgstr "Veuillez sélectionner au moins un type d'événement"
 
-#: src/components/segment/form_leaf.tsx:830
+#: src/components/segment/form_leaf.tsx:739
 msgid "Please select operator"
 msgstr "Veuillez sélectionner un opérateur"
 
@@ -16971,13 +17327,17 @@ msgstr "Port pour le serveur relais SMTP (par défaut : 587)"
 msgid "Port must be 1-65535"
 msgstr "Le port doit être compris entre 1 et 65535"
 
-#: src/components/blog/PostDrawer.tsx:877
+#: src/components/segment/segmentLabels.ts:96
+msgid "Position of the page within the visit, starting at 1"
+msgstr "Position de la page dans la visite, à partir de 1"
+
+#: src/components/blog/PostDrawer.tsx:883
 #: src/components/blog/PostsTable.tsx:290
 #: src/components/blog/ThemeEditorDrawer.tsx:420
 msgid "Post"
 msgstr "Article"
 
-#: src/components/blog/PostDrawer.tsx:437
+#: src/components/blog/PostDrawer.tsx:440
 msgid "Post created successfully"
 msgstr "Article créé avec succès"
 
@@ -16989,7 +17349,7 @@ msgstr "Article supprimé avec succès"
 msgid "Post published successfully"
 msgstr "Article publié avec succès"
 
-#: src/components/blog/PostDrawer.tsx:886
+#: src/components/blog/PostDrawer.tsx:892
 msgid "Post title"
 msgstr "Titre de l'article"
 
@@ -17001,14 +17361,14 @@ msgstr "Article dépublié avec succès"
 msgid "Post unscheduled"
 msgstr "Article déprogrammé"
 
-#: src/components/blog/PostDrawer.tsx:501
+#: src/components/blog/PostDrawer.tsx:507
 msgid "Post updated successfully"
 msgstr "Article mis à jour avec succès"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:111
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:102
 #: src/components/contacts/sheet/contactFieldLabels.ts:32
-#: src/components/segment/segmentSummary.ts:47
+#: src/components/segment/segmentLabels.ts:28
 msgid "Postcode"
 msgstr "Code postal"
 
@@ -17073,6 +17433,10 @@ msgstr "Préparation des emails pour la livraison. Les contacts sont ajoutés à
 msgid "Press Enter or click OK to confirm, Escape to cancel"
 msgstr "Appuyez sur Entrée ou cliquez sur OK pour confirmer, Échap pour annuler"
 
+#: src/components/segment/FilterValueInput.tsx:76
+msgid "Press Enter to add a value"
+msgstr "Appuyez sur Entrée pour ajouter une valeur"
+
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:301
 msgid "Press Enter to confirm, Escape to cancel"
 msgstr "Appuyez sur Entrée pour confirmer, Échap pour annuler"
@@ -17089,7 +17453,7 @@ msgstr "Appuyez sur Entrée pour confirmer, Échap pour annuler"
 #: src/components/common/ImageURLInput.tsx:58
 #: src/components/email_builder/EmailBuilder.tsx:1067
 #: src/components/file_manager/FileExplorer.tsx:1118
-#: src/components/segment/button_upsert.tsx:670
+#: src/components/segment/SegmentCountCard.tsx:116
 #: src/components/seo/SeoPreview.tsx:36
 #: src/components/templates/TemplateSelectorInput.tsx:190
 #: src/components/templates/TemplateSelectorModal.tsx:368
@@ -17136,7 +17500,7 @@ msgstr "Aperçu de {0}"
 msgid "Preview of {templateName}"
 msgstr "Aperçu de {templateName}"
 
-#: src/components/segment/button_upsert.tsx:699
+#: src/components/segment/SegmentCountCard.tsx:83
 msgid "Preview Results"
 msgstr "Résultats de l'aperçu"
 
@@ -17344,7 +17708,11 @@ msgstr "Profil mis à jour : {diffs}"
 msgid "Progress"
 msgstr "Progression"
 
-#: src/components/segment/input_event_property_filters.tsx:156
+#: src/components/segment/form_leaf.tsx:800
+msgid "Properties"
+msgstr "Propriétés"
+
+#: src/components/segment/input_event_property_filters.tsx:60
 msgid "Property name"
 msgstr "Nom de la propriété"
 
@@ -17407,7 +17775,7 @@ msgstr "Publier le thème v{themeVersion}"
 msgid "Publish this theme"
 msgstr "Publier ce thème"
 
-#: src/components/blog/PostDrawer.tsx:748
+#: src/components/blog/PostDrawer.tsx:754
 #: src/components/blog/PostsTable.tsx:344
 #: src/components/blog/PostsTable.tsx:376
 #: src/components/blog/PostsTable.tsx:434
@@ -17428,10 +17796,14 @@ msgstr "A publié l'article de blog <0>{target}</0>"
 msgid "Published the blog theme <0>{target}</0>"
 msgstr "A publié le thème de blog <0>{target}</0>"
 
-#: src/components/segment/segmentSummary.ts:147
+#: src/components/segment/segmentLabels.ts:273
 #: src/components/settings/WebhooksSettings.tsx:614
 msgid "Purchase"
 msgstr "Achat"
+
+#: src/components/segment/input.tsx:72
+msgid "Purchases, sign-ups, leads… count them or add up their value"
+msgstr "Achats, inscriptions, leads… les compter ou additionner leur valeur"
 
 #: src/components/logs/MessagesTab.tsx:302
 msgid "Push"
@@ -17513,6 +17885,11 @@ msgstr "Réenregistrer les webhooks"
 msgid "Reach your audience"
 msgstr "Toucher votre audience"
 
+#: src/components/segment/ConditionSentence.tsx:275
+#: src/components/segment/form_leaf.tsx:686
+#~ msgid "reached"
+#~ msgstr "atteint"
+
 #: src/components/automations/stats/StepStats.tsx:20
 msgid "Reached"
 msgstr "Atteints"
@@ -17550,6 +17927,10 @@ msgstr "Lire l'état et la progression d'une tâche de synchronisation d'intégr
 #: src/components/settings/LicenseSettings.tsx:180
 #~ msgid "Read and write"
 #~ msgstr "Lecture et écriture"
+
+#: src/components/segment/FilterRow.tsx:189
+msgid "Read as"
+msgstr "Lu comme"
 
 #: src/services/api/permissions.ts:943
 msgid "Read is not a summary: these are the provider's own payloads, so the rows carry recipient addresses and provider diagnostics. That is why membership alone is not enough for them."
@@ -17688,7 +18069,7 @@ msgstr "Lire le guide de configuration Zapier"
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:904
+#: src/components/blog/PostDrawer.tsx:910
 msgid "Reading time"
 msgstr "Temps de lecture"
 
@@ -17858,8 +18239,8 @@ msgstr "URI de redirection"
 
 #: src/components/automations/AutomationEditor.tsx:482
 #: src/components/blog_editor/components/EditorHeader.tsx:69
-#: src/components/blog/PostDrawer.tsx:787
-#: src/components/blog/PostDrawer.tsx:790
+#: src/components/blog/PostDrawer.tsx:793
+#: src/components/blog/PostDrawer.tsx:796
 #: src/components/email_builder/EmailBuilder.tsx:1051
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
@@ -17877,6 +18258,7 @@ msgstr "Rétablir ({redoKeys})"
 msgid "Referral traffic"
 msgstr "Trafic de référence"
 
+#: src/components/segment/segmentLabels.ts:110
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:250
 #: src/components/web_analytics/tabs/DashboardTab.tsx:200
 #: src/pages/WebAnalyticsLivePage.tsx:181
@@ -18041,8 +18423,8 @@ msgstr "Recharger l’automation ?"
 msgid "Reload the page to update your saved blocks."
 msgstr "Rechargez la page pour mettre à jour vos blocs enregistrés."
 
-#: src/components/automations/config/ConditionsField.tsx:123
-#: src/components/automations/config/ConditionsField.tsx:128
+#: src/components/automations/config/ConditionsField.tsx:130
+#: src/components/automations/config/ConditionsField.tsx:135
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 #: src/components/blog/AuthorsField.tsx:155
 #: src/components/contacts/sheet/ContactListsCard.tsx:113
@@ -18090,7 +18472,7 @@ msgstr "Retirer un contact d'une liste (nécessite aussi l'écriture Contacts)"
 msgid "Remove a contact from a list (also needs Lists write)"
 msgstr "Retirer un contact d'une liste (nécessite aussi l'écriture Listes)"
 
-#: src/components/automations/config/ConditionsField.tsx:120
+#: src/components/automations/config/ConditionsField.tsx:127
 msgid "Remove conditions"
 msgstr "Supprimer les conditions"
 
@@ -18163,6 +18545,23 @@ msgstr "Supprimer la condition d'affichage ?"
 #: src/components/blog/AuthorsField.tsx:152
 msgid "Remove this author?"
 msgstr "Retirer cet auteur ?"
+
+#: src/components/segment/input.tsx:308
+#: src/components/segment/input.tsx:312
+msgid "Remove this condition"
+msgstr "Supprimer cette condition"
+
+#: src/components/segment/FilterRow.tsx:39
+#: src/components/segment/FilterRow.tsx:43
+#: src/components/segment/input_event_property_filters.tsx:107
+#: src/components/segment/input_event_property_filters.tsx:111
+msgid "Remove this filter"
+msgstr "Supprimer ce filtre"
+
+#: src/components/segment/input.tsx:308
+#: src/components/segment/input.tsx:312
+msgid "Remove this group"
+msgstr "Supprimer ce groupe"
 
 #: src/components/broadcasts/compose/ContentCard.tsx:239
 #: src/components/broadcasts/compose/ContentCard.tsx:243
@@ -18595,6 +18994,7 @@ msgstr "A relancé les envois échoués de la newsletter <0>{target}</0>"
 #: src/components/logs/MessageDetail.tsx:91
 #: src/components/logs/MessagesTab.tsx:798
 #: src/components/logs/OutgoingWebhooksTab.tsx:232
+#: src/components/segment/SegmentCountCard.tsx:108
 #: src/components/settings/WebhookDetail.tsx:431
 #: src/components/settings/WebhooksSettings.tsx:398
 #: src/components/settings/WorkspaceMembers.tsx:497
@@ -18945,7 +19345,7 @@ msgstr "Enregistrer comme nouvelle version"
 #~ msgstr "Enregistrer le bloc"
 
 #: src/components/blog/CategoryDrawer.tsx:205
-#: src/components/blog/PostDrawer.tsx:816
+#: src/components/blog/PostDrawer.tsx:822
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
@@ -19097,7 +19497,7 @@ msgstr "Planifier ou envoyer immédiatement une diffusion à toute son audience"
 msgid "Schedule timezone"
 msgstr "Fuseau horaire de la programmation"
 
-#: src/components/blog/PostDrawer.tsx:750
+#: src/components/blog/PostDrawer.tsx:756
 #: src/components/blog/PostsTable.tsx:346
 #: src/components/blog/PostsTable.tsx:435
 #: src/components/broadcasts/compose/SendingCard.tsx:39
@@ -19163,6 +19563,11 @@ msgstr "Largeur d'écran en dessous de laquelle la disposition mobile est activ�
 msgid "Scroll"
 msgstr "Défilement"
 
+#: src/components/segment/segmentLabels.ts:85
+#: src/components/segment/segmentLabels.ts:107
+msgid "Scroll depth (%)"
+msgstr "Profondeur de défilement (%)"
+
 #: src/components/contacts/ExportContactsModal.tsx:60
 #: src/components/seo/SeoPreview.tsx:44
 #: src/components/web_analytics/FilterBuilder.tsx:406
@@ -19176,7 +19581,7 @@ msgstr "Rechercher un modèle"
 
 #: src/components/blog/category/CategoryChecks.tsx:33
 #: src/components/blog/post/PostChecks.tsx:13
-#: src/components/blog/PostDrawer.tsx:1106
+#: src/components/blog/PostDrawer.tsx:1112
 msgid "Search and share"
 msgstr "Recherche et partage"
 
@@ -19280,7 +19685,11 @@ msgstr "Recherche par ID de cible"
 msgid "Searching: \"{0}\""
 msgstr "Recherche : \"{0}\""
 
-#: src/components/segment/form_leaf.tsx:867
+#: src/components/segment/segmentLabels.ts:50
+msgid "Second line of the contact's address"
+msgstr "Deuxième ligne de l'adresse du contact"
+
+#: src/components/segment/form_leaf.tsx:775
 msgid "Second value must be greater than first value"
 msgstr "La seconde valeur doit être supérieure à la première"
 
@@ -19382,6 +19791,10 @@ msgstr "Voir les schémas `message_history` et `email_queue` listés dans le cat
 msgid "See the `webhook_deliveries` schema listed in the queryable catalogue"
 msgstr "Voir le schéma `webhook_deliveries` listé dans le catalogue interrogeable"
 
+#: src/components/segment/SegmentCountCard.tsx:85
+msgid "See the query"
+msgstr "Voir la requête"
+
 #: src/services/api/permissions.ts:784
 msgid "See the web analytics schemas listed in the queryable catalogue"
 msgstr "Voir les schémas d'analyse web listés dans le catalogue interrogeable"
@@ -19404,7 +19817,7 @@ msgstr "Voir qui a cliqué"
 #: src/components/contacts/ExportContactsModal.tsx:119
 #: src/components/contacts/sheet/describeActivity.tsx:215
 #: src/components/contacts/sheet/describeActivity.tsx:216
-#: src/components/segment/button_upsert.tsx:77
+#: src/components/segment/button_upsert.tsx:62
 msgid "Segment"
 msgstr "Segment"
 
@@ -19476,7 +19889,7 @@ msgstr "Sélectionnez un bloc pour modifier ses attributs"
 msgid "Select a broadcast"
 msgstr "Sélectionner une diffusion"
 
-#: src/components/blog/PostDrawer.tsx:895
+#: src/components/blog/PostDrawer.tsx:901
 msgid "Select a category"
 msgstr "Sélectionner une catégorie"
 
@@ -19489,7 +19902,6 @@ msgid "Select a custom date range"
 msgstr "Sélectionner une plage de dates personnalisée"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:578
-#: src/components/segment/input_dimension_filters.tsx:213
 msgid "Select a field"
 msgstr "Sélectionner un champ"
 
@@ -19501,7 +19913,7 @@ msgstr "Sélectionnez un fichier"
 #: src/components/broadcasts/compose/AudienceCard.tsx:71
 #: src/components/contacts/BulkActionsBar.tsx:197
 #: src/components/contacts/sheet/ContactListsCard.tsx:207
-#: src/components/segment/form_leaf.tsx:250
+#: src/components/segment/form_leaf.tsx:409
 msgid "Select a list"
 msgstr "Sélectionner une liste"
 
@@ -19545,7 +19957,7 @@ msgstr "Sélectionnez un bloc social"
 msgid "Select a template"
 msgstr "Sélectionner un modèle"
 
-#: src/components/segment/button_upsert.tsx:589
+#: src/components/segment/button_upsert.tsx:455
 msgid "Select a time zone"
 msgstr "Sélectionner un fuseau horaire"
 
@@ -19566,8 +19978,8 @@ msgid "Select an event..."
 msgstr "Sélectionner un événement..."
 
 #: src/components/segment/operator_select.tsx:18
-msgid "Select an operator"
-msgstr "Sélectionnez un opérateur"
+#~ msgid "Select an operator"
+#~ msgstr "Sélectionnez un opérateur"
 
 #: src/components/web_analytics/goals/GoalCard.tsx:138
 msgid "Select another metric to view chart"
@@ -19636,7 +20048,7 @@ msgstr "Sélectionner un modèle d'email"
 msgid "Select email template..."
 msgstr "Sélectionner un modèle d'email..."
 
-#: src/components/segment/form_leaf.tsx:373
+#: src/components/segment/form_leaf.tsx:489
 msgid "Select event"
 msgstr "Sélectionner un événement"
 
@@ -19715,7 +20127,7 @@ msgstr "Sélectionner les listes auxquelles ajouter les contacts"
 msgid "Select segments (optional)"
 msgstr "Sélectionner les segments (optionnel)"
 
-#: src/components/segment/form_leaf.tsx:279
+#: src/components/segment/form_leaf.tsx:433
 msgid "Select status"
 msgstr "Sélectionner un statut"
 
@@ -19757,7 +20169,7 @@ msgstr "Sélectionner le fuseau horaire"
 msgid "Select timezone..."
 msgstr "Sélectionner le fuseau horaire..."
 
-#: src/components/segment/form_leaf.tsx:769
+#: src/components/segment/form_leaf.tsx:701
 msgid "Select type"
 msgstr "Sélectionner le type"
 
@@ -20686,7 +21098,7 @@ msgstr "affiché"
 msgid "Shown at the top of the category page"
 msgstr "Affichée en haut de la page de la catégorie"
 
-#: src/components/blog/PostDrawer.tsx:949
+#: src/components/blog/PostDrawer.tsx:955
 msgid "Shown in post lists, and as the description when no meta description is set"
 msgstr "Affiché dans les listes d'articles, et comme description sans méta-description"
 
@@ -20720,7 +21132,7 @@ msgstr "Se connecter avec le SSO"
 msgid "Sign-in"
 msgstr "Connexion"
 
-#: src/components/segment/segmentSummary.ts:150
+#: src/components/segment/segmentLabels.ts:276
 msgid "Sign-up"
 msgstr "Inscription"
 
@@ -20851,18 +21263,18 @@ msgstr "Emplacements"
 
 #: src/components/blog/CategoryDrawer.tsx:252
 #: src/components/blog/CategoryDrawer.tsx:256
-#: src/components/blog/PostDrawer.tsx:915
-#: src/components/blog/PostDrawer.tsx:919
+#: src/components/blog/PostDrawer.tsx:921
+#: src/components/blog/PostDrawer.tsx:925
 msgid "Slug"
 msgstr "Slug"
 
 #: src/components/blog/CategoryDrawer.tsx:262
-#: src/components/blog/PostDrawer.tsx:928
+#: src/components/blog/PostDrawer.tsx:934
 msgid "Slug must be less than 100 characters"
 msgstr "Le slug doit faire moins de 100 caractères"
 
 #: src/components/blog/CategoryDrawer.tsx:261
-#: src/components/blog/PostDrawer.tsx:926
+#: src/components/blog/PostDrawer.tsx:932
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "Le slug ne doit contenir que des lettres minuscules, des chiffres et des tirets"
 
@@ -21080,8 +21492,12 @@ msgstr "Source"
 
 #. placeholder {0}: node.leaf?.source
 #: src/components/segment/input.tsx:472
-msgid "source {0} not found"
-msgstr "source {0} introuvable"
+#~ msgid "source {0} not found"
+#~ msgstr "source {0} introuvable"
+
+#: src/components/segment/input.tsx:329
+msgid "source {source} not found"
+msgstr "source {source} introuvable"
 
 #: src/components/timeline/ContactTimeline.tsx:975
 #~ msgid "Source:"
@@ -21126,7 +21542,7 @@ msgstr "SparkPost"
 msgid "Split"
 msgstr "Divisé"
 
-#: src/components/segment/button_upsert.tsx:728
+#: src/components/segment/SegmentCountCard.tsx:69
 msgid "SQL Arguments:"
 msgstr "Arguments SQL :"
 
@@ -21200,7 +21616,7 @@ msgstr "Commencez à écrire..."
 msgid "Start Upload"
 msgstr "Démarrer l'import"
 
-#: src/components/blog/PostDrawer.tsx:1088
+#: src/components/blog/PostDrawer.tsx:1094
 msgid "Start writing your blog post..."
 msgstr "Commencez à écrire votre article de blog..."
 
@@ -21234,6 +21650,10 @@ msgstr "Démarre dès que vous l'envoyez"
 msgid "Starts the first time a contact clicks each link of an email. A click on an email this automation sent does not start it again."
 msgstr "Démarre la première fois qu'un contact clique sur chaque lien d'un email. Un clic dans un email envoyé par cette automatisation ne la redémarre pas."
 
+#: src/components/segment/segmentLabels.ts:223
+msgid "starts with"
+msgstr "commence par"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:801
 msgid "Starts with SG."
 msgstr "Commence par SG."
@@ -21249,7 +21669,7 @@ msgstr "STARTTLS requis"
 #: src/components/automations/config/TriggerConfigForm.tsx:110
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:103
 #: src/components/contacts/sheet/contactFieldLabels.ts:31
-#: src/components/segment/segmentSummary.ts:48
+#: src/components/segment/segmentLabels.ts:29
 msgid "State"
 msgstr "État"
 
@@ -21299,7 +21719,7 @@ msgid "Step status"
 msgstr "Statut de l’étape"
 
 #: src/components/automations/list/AutomationsTable.tsx:151
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:847
 #: src/components/templates/TemplateDrawerBar.tsx:89
 msgid "Steps"
 msgstr "Étapes"
@@ -21498,7 +21918,7 @@ msgstr "Indice"
 
 #: src/components/logs/OutgoingWebhooksTab.tsx:136
 #: src/components/logs/OutgoingWebhooksTab.tsx:181
-#: src/components/segment/segmentSummary.ts:148
+#: src/components/segment/segmentLabels.ts:274
 #: src/components/settings/WebhooksSettings.tsx:615
 msgid "Subscription"
 msgstr "Abonnement"
@@ -21508,6 +21928,7 @@ msgid "Subscription confirmation"
 msgstr "Confirmation d'inscription"
 
 #: src/components/contacts/TrackingConsent.tsx:54
+#: src/components/segment/segmentLabels.ts:255
 msgid "Subscription form"
 msgstr "Formulaire d'inscription"
 
@@ -21662,7 +22083,7 @@ msgstr "Paramètres système"
 msgid "System SMTP"
 msgstr "SMTP système"
 
-#: src/components/blog/PostDrawer.tsx:1031
+#: src/components/blog/PostDrawer.tsx:1037
 msgid "Table of Contents"
 msgstr "Table des matières"
 
@@ -21738,8 +22159,7 @@ msgstr "Télémétrie"
 msgid "Tell your systems when something changes"
 msgstr "Informez vos systèmes quand quelque chose change"
 
-#: src/components/segment/form_leaf.tsx:418
-#: src/components/segment/input.tsx:798
+#: src/components/segment/ConditionSentence.tsx:249
 msgid "template"
 msgstr "modèle"
 
@@ -21750,6 +22170,7 @@ msgstr "modèle"
 #: src/components/logs/MessagesTab.tsx:474
 #: src/components/messages/MessageHistoryTable.tsx:156
 #: src/components/messages/MessageHistoryTable.tsx:242
+#: src/components/segment/form_leaf.tsx:565
 #: src/components/transactional/TransactionalDetail.tsx:293
 #: src/components/transactional/TransactionalTable.tsx:180
 #: src/pages/TemplatesPage.tsx:380
@@ -22123,7 +22544,8 @@ msgstr "texte"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:199
 #: src/components/email_builder/blocks/MjTextBlock.tsx:47
-#: src/components/segment/input_event_property_filters.tsx:180
+#: src/components/segment/FilterRow.tsx:164
+#: src/components/segment/input_event_property_filters.tsx:72
 #: src/components/settings/CustomFieldsConfiguration.tsx:58
 msgid "Text"
 msgstr "Texte"
@@ -22320,9 +22742,65 @@ msgstr "La période de comparaison sous forme de colonnes supplémentaires"
 msgid "The confirmation email each new subscriber receives"
 msgstr "L'email de confirmation que reçoit chaque nouvel abonné"
 
+#: src/components/segment/form_leaf.tsx:675
+msgid "The contact"
+msgstr "Le contact"
+
 #: src/components/logs/MessageDetail.tsx:771
 msgid "The contact was erased; the message data is gone"
 msgstr "Le contact a été effacé ; les données du message n'existent plus"
+
+#: src/components/segment/segmentLabels.ts:46
+msgid "The contact's country, as a two-letter code"
+msgstr "Le pays du contact, en code à deux lettres"
+
+#: src/components/segment/segmentLabels.ts:41
+msgid "The contact's email address"
+msgstr "L'adresse e-mail du contact"
+
+#: src/components/segment/segmentLabels.ts:43
+msgid "The contact's first name"
+msgstr "Le prénom du contact"
+
+#: src/components/segment/segmentLabels.ts:42
+msgid "The contact's identifier in your own system"
+msgstr "L'identifiant du contact dans votre propre système"
+
+#: src/components/segment/segmentLabels.ts:53
+msgid "The contact's job title"
+msgstr "Le poste du contact"
+
+#: src/components/segment/segmentLabels.ts:47
+msgid "The contact's language"
+msgstr "La langue du contact"
+
+#: src/components/segment/segmentLabels.ts:44
+msgid "The contact's last name"
+msgstr "Le nom du contact"
+
+#: src/components/segment/segmentLabels.ts:45
+msgid "The contact's phone number"
+msgstr "Le numéro de téléphone du contact"
+
+#: src/components/segment/segmentLabels.ts:51
+msgid "The contact's postal code"
+msgstr "Le code postal du contact"
+
+#: src/components/segment/segmentLabels.ts:52
+msgid "The contact's state or region"
+msgstr "L'état ou la région du contact"
+
+#: src/components/segment/segmentLabels.ts:48
+msgid "The contact's time zone"
+msgstr "Le fuseau horaire du contact"
+
+#: src/components/segment/SegmentCountCard.tsx:106
+msgid "The count failed."
+msgstr "Le décompte a échoué."
+
+#: src/components/segment/form_leaf.tsx:187
+msgid "The count follows what you write."
+msgstr "Le décompte suit ce que vous écrivez."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:351
 msgid "The country, from the IP address, which is never stored"
@@ -22527,6 +23005,11 @@ msgstr "Le nom que Notifuse annonce à la connexion. Par défaut, l'hôte ci-des
 msgid "The only channel today"
 msgstr "Le seul canal pour l'instant"
 
+#. placeholder {0}: filter.operator
+#: src/components/segment/FilterRow.tsx:91
+msgid "The operator {0} is not supported here"
+msgstr "L'opérateur {0} n'est pas pris en charge ici"
+
 #: src/services/api/permissions.ts:734
 msgid "The outbound message log: every email the workspace sent, its delivery status, and the engagement counted against it."
 msgstr "Le journal des messages sortants : chaque email envoyé par l'espace de travail, son statut de livraison et l'engagement comptabilisé pour lui."
@@ -22604,11 +23087,11 @@ msgstr "La version enregistrée, sur votre blog"
 msgid "The section's columns and groups go {over}% past its width: in the email, the last ones move to a new line."
 msgstr "Les colonnes et les groupes de la section dépassent sa largeur de {over} % : dans l’email, les derniers passent à la ligne."
 
-#: src/components/segment/button_upsert.tsx:363
+#: src/components/segment/button_upsert.tsx:348
 msgid "The segment has been created!"
 msgstr "Le segment a été créé !"
 
-#: src/components/segment/button_upsert.tsx:343
+#: src/components/segment/button_upsert.tsx:328
 msgid "The segment has been updated!"
 msgstr "Le segment a été mis à jour !"
 
@@ -22666,7 +23149,7 @@ msgstr "Le modèle de ce message n'est pas disponible"
 msgid "The template has no unsubscribe link ({languages})"
 msgstr "Le modèle n'a pas de lien de désabonnement ({languages})"
 
-#: src/components/segment/form_leaf.tsx:429
+#: src/components/segment/form_leaf.tsx:571
 msgid "The template of the emails this condition counts"
 msgstr "Le modèle des emails que compte cette condition"
 
@@ -22731,7 +23214,7 @@ msgstr "L'URL du webhook pointe vers une adresse privée ou interne ({host}), à
 msgid "The webhook will stop receiving events."
 msgstr "Le webhook cessera de recevoir des événements."
 
-#: src/components/automations/config/ConditionsField.tsx:121
+#: src/components/automations/config/ConditionsField.tsx:128
 msgid "The whole condition tree will be deleted."
 msgstr "L'ensemble de l'arbre de conditions sera supprimé."
 
@@ -22964,13 +23447,20 @@ msgstr "Cet email est envoyé en HTML uniquement"
 msgid "This email will be used for the root administrator account"
 msgstr "Cet email sera utilisé pour le compte administrateur racine"
 
-#: src/components/automations/config/TriggerConfigForm.tsx:413
+#: src/components/automations/config/TriggerConfigForm.tsx:414
 msgid "This event fires often. These conditions are evaluated for every matching event."
 msgstr "Cet événement se déclenche souvent. Ces conditions sont évaluées pour chaque événement correspondant."
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:130
 msgid "This feature makes an HTTP request for each recipient before sending their email. This can significantly slow down broadcast processing. If the feed request fails after retries, the broadcast will pause automatically."
 msgstr "Cette fonctionnalité effectue une requête HTTP pour chaque destinataire avant l'envoi de son email. Cela peut considérablement ralentir le traitement du broadcast. Si la requête du feed échoue après les tentatives, le broadcast sera automatiquement mis en pause."
+
+#: src/components/segment/form_leaf.tsx:203
+#: src/components/segment/form_leaf.tsx:389
+#: src/components/segment/form_leaf.tsx:540
+#: src/components/segment/form_leaf.tsx:654
+msgid "This field is required"
+msgstr "Ce champ est requis"
 
 #: src/components/templates/importTemplateFile.ts:151
 msgid "This file holds the display conditions of an export. They are not imported: the blocks they wrapped now show to every recipient. Add their conditions again in the block settings."
@@ -23101,8 +23591,8 @@ msgstr "Cette permission ne contrôle aucun endpoint aujourd'hui."
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "Cette permission n'est pas encore appliquée, elle est donc toujours accordée. Elle ne peut pas être désactivée."
 
-#: src/components/blog/PostDrawer.tsx:1098
-#: src/components/blog/PostDrawer.tsx:1100
+#: src/components/blog/PostDrawer.tsx:1104
+#: src/components/blog/PostDrawer.tsx:1106
 msgid "This post"
 msgstr "Cet article"
 
@@ -23114,7 +23604,7 @@ msgstr "Cet article"
 #~ msgid "This post's template was saved as version {latest} while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
 #~ msgstr ""
 
-#: src/components/segment/input_event_property_filters.tsx:162
+#: src/components/segment/input_event_property_filters.tsx:118
 msgid "This property is already filtered"
 msgstr "Cette propriété est déjà filtrée"
 
@@ -23150,7 +23640,7 @@ msgstr "Cette section est vide. Ajoutez des colonnes ou des groupes pour affiche
 msgid "This segment no longer exists"
 msgstr "Ce segment n'existe plus"
 
-#: src/components/segment/button_upsert.tsx:614
+#: src/components/segment/button_upsert.tsx:480
 msgid "This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM ({timezone})"
 msgstr "Ce segment utilise des filtres de date relatifs et sera automatiquement recalculé quotidiennement à 5h00 ({timezone})"
 
@@ -23318,6 +23808,10 @@ msgstr "Heure"
 msgid "Time is required"
 msgstr "L'heure est requise"
 
+#: src/components/segment/segmentLabels.ts:84
+msgid "Time on page (ms)"
+msgstr "Temps sur la page (ms)"
+
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:79
 msgid "Time patterns"
 msgstr "Motifs temporels"
@@ -23326,15 +23820,14 @@ msgstr "Motifs temporels"
 #: src/components/segment/form_leaf.tsx:890
 #: src/components/segment/input.tsx:689
 #: src/components/segment/input.tsx:821
-msgid "timeframe"
-msgstr "période"
+#~ msgid "timeframe"
+#~ msgstr "période"
 
 #: src/components/contacts/ContactDetailsDrawer.tsx:1068
 #~ msgid "Timeline"
 #~ msgstr "Chronologie"
 
-#: src/components/segment/form_leaf.tsx:508
-#: src/components/segment/input.tsx:816
+#: src/components/segment/form_leaf.tsx:544
 msgid "times"
 msgstr "fois"
 
@@ -23387,7 +23880,7 @@ msgstr "Le TimeScore est le temps d'engagement médian sur l'ensemble des sessio
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
 #: src/components/contacts/ContactsTable.tsx:317
 #: src/components/contacts/sheet/contactFieldLabels.ts:34
-#: src/components/segment/segmentSummary.ts:44
+#: src/components/segment/segmentLabels.ts:25
 #: src/components/settings/GeneralSettings.tsx:254
 #: src/components/settings/GeneralSettings.tsx:367
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:169
@@ -23403,7 +23896,7 @@ msgstr "Fuseau horaire — {detail}"
 msgid "Timezone is required"
 msgstr "Le fuseau horaire est requis"
 
-#: src/components/segment/button_upsert.tsx:584
+#: src/components/segment/button_upsert.tsx:449
 msgid "Timezone used for dates"
 msgstr "Fuseau horaire utilisé pour les dates"
 
@@ -23419,7 +23912,7 @@ msgstr "Conseils pour un texte d'aperçu efficace :"
 #~ msgid "Tips for fixing these errors:"
 #~ msgstr "Conseils pour corriger ces erreurs :"
 
-#: src/components/blog/PostDrawer.tsx:880
+#: src/components/blog/PostDrawer.tsx:886
 #: src/components/blog/PostsTable.tsx:566
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:409
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
@@ -23437,7 +23930,7 @@ msgstr "Le titre est requis"
 msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
 msgstr "Le titre ne doit pas dépasser {MAX_TITLE_LENGTH} caractères"
 
-#: src/components/blog/PostDrawer.tsx:883
+#: src/components/blog/PostDrawer.tsx:889
 msgid "Title must be less than 500 characters"
 msgstr "Le titre doit comporter moins de 500 caractères"
 
@@ -23629,7 +24122,7 @@ msgstr "Principales sources"
 msgid "Top traffic sources"
 msgstr "Principales sources de trafic"
 
-#: src/components/segment/segmentSummary.ts:158
+#: src/components/segment/segmentLabels.ts:284
 msgid "total"
 msgstr "total"
 
@@ -23658,6 +24151,10 @@ msgstr "La taille totale des pièces jointes dépasse la limite de 10 Mo"
 #: src/components/web_analytics/goals/GoalDashboardDrawer.tsx:61
 msgid "Total Value"
 msgstr "Valeur totale"
+
+#: src/components/segment/segmentLabels.ts:130
+msgid "Total value of the goals fired during the visit"
+msgstr "Valeur totale des objectifs atteints pendant la visite"
 
 #: src/components/settings/GeneralSettings.tsx:449
 msgid "Track"
@@ -23708,7 +24205,12 @@ msgstr "Le tracking (ouvertures et clics) doit être activé dans les paramètre
 msgid "Tracking consent"
 msgstr "Consentement au tracking"
 
+#: src/components/segment/segmentLabels.ts:36
+msgid "Tracking consent changed at"
+msgstr "Consentement au suivi modifié le"
+
 #: src/components/contacts/sheet/contactFieldLabels.ts:50
+#: src/components/segment/segmentLabels.ts:35
 msgid "Tracking consent source"
 msgstr "Source du consentement au tracking"
 
@@ -23828,7 +24330,7 @@ msgstr "Les traductions déjà enregistrées continuent d'être envoyées, et en
 msgid "Transparent"
 msgstr "Transparent"
 
-#: src/components/segment/segmentSummary.ts:152
+#: src/components/segment/segmentLabels.ts:278
 #: src/components/settings/WebhooksSettings.tsx:619
 msgid "Trial"
 msgstr "Essai"
@@ -23935,8 +24437,8 @@ msgstr "A activé ou désactivé le webhook <0>{target}</0>"
 
 #: src/components/segment/form_leaf.tsx:362
 #: src/components/segment/input.tsx:789
-msgid "type"
-msgstr "type"
+#~ msgid "type"
+#~ msgstr "type"
 
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:267
 #: src/components/file_manager/FilePreview.tsx:48
@@ -23950,12 +24452,12 @@ msgstr "Type"
 #. placeholder {0}: selectedField.type
 #: src/components/segment/input_dimension_filters.tsx:79
 #: src/components/segment/input_dimension_filters.tsx:273
-msgid "type {0} is not implemented"
-msgstr "le type {0} n'est pas implémenté"
+#~ msgid "type {0} is not implemented"
+#~ msgstr "le type {0} n'est pas implémenté"
 
 #: src/components/segment/input.tsx:898
-msgid "type {rendererType} is not implemented"
-msgstr "le type {rendererType} n'est pas implémenté"
+#~ msgid "type {rendererType} is not implemented"
+#~ msgstr "le type {rendererType} n'est pas implémenté"
 
 #: src/components/contacts/BulkActionsBar.tsx:238
 msgid "Type {selectedCount} to confirm:"
@@ -23993,8 +24495,8 @@ msgstr "Comprendre la qualité des sites référents"
 
 #: src/components/automations/AutomationEditor.tsx:479
 #: src/components/blog_editor/components/EditorHeader.tsx:55
-#: src/components/blog/PostDrawer.tsx:778
-#: src/components/blog/PostDrawer.tsx:781
+#: src/components/blog/PostDrawer.tsx:784
+#: src/components/blog/PostDrawer.tsx:787
 #: src/components/email_builder/EmailBuilder.tsx:992
 #: src/components/email_builder/EmailBuilder.tsx:1044
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
@@ -24114,8 +24616,8 @@ msgstr "A dépublié l'article de blog <0>{target}</0>"
 
 #: src/components/automations/AutomationEditor.tsx:463
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:578
-#: src/components/blog/PostDrawer.tsx:755
+#: src/components/blog/PostDrawer.tsx:584
+#: src/components/blog/PostDrawer.tsx:761
 #: src/components/blog/ThemeEditorDrawer.tsx:475
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
@@ -24202,7 +24704,7 @@ msgid "Unsubscribed from {name}"
 msgstr "Désabonnement de {name}"
 
 #: src/components/automations/describeTrigger.ts:137
-#: src/components/segment/segmentSummary.ts:140
+#: src/components/segment/segmentSummary.ts:116
 #: src/components/segment/timelineKindLabels.ts:15
 msgid "Unsubscribed from an email"
 msgstr "S’est désabonné depuis un e-mail"
@@ -24227,7 +24729,7 @@ msgstr "Sans titre"
 msgid "Untitled automation"
 msgstr "Automation sans titre"
 
-#: src/components/blog/PostDrawer.tsx:1069
+#: src/components/blog/PostDrawer.tsx:1075
 msgid "Untitled post"
 msgstr "Article sans titre"
 
@@ -24261,7 +24763,7 @@ msgstr "Mettre à jour le contact"
 msgid "Update Link"
 msgstr "Mettre à jour le lien"
 
-#: src/components/segment/button_upsert.tsx:419
+#: src/components/segment/button_upsert.tsx:395
 msgid "Update segment"
 msgstr "Mettre à jour le segment"
 
@@ -24297,7 +24799,7 @@ msgid "Updated as you type"
 msgstr "Mis à jour pendant la saisie"
 
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:297
-#: src/components/segment/segmentSummary.ts:51
+#: src/components/segment/segmentLabels.ts:32
 msgid "Updated At"
 msgstr "Mis à jour le"
 
@@ -24688,9 +25190,9 @@ msgstr "UTM"
 msgid "UTM added"
 msgstr "UTM ajoutés"
 
-#: src/components/timeline/ContactTimeline.tsx:920
-#~ msgid "UTM campaign"
-#~ msgstr "Campagne UTM"
+#: src/components/segment/segmentLabels.ts:113
+msgid "UTM campaign"
+msgstr "Campagne UTM"
 
 #: src/pages/BroadcastsPage.tsx:1237
 #~ msgid "UTM Campaign"
@@ -24700,17 +25202,17 @@ msgstr "UTM ajoutés"
 msgid "UTM campaigns"
 msgstr "Campagnes UTM"
 
-#: src/components/timeline/ContactTimeline.tsx:921
-#~ msgid "UTM content"
-#~ msgstr "Contenu UTM"
+#: src/components/segment/segmentLabels.ts:114
+msgid "UTM content"
+msgstr "Contenu UTM"
 
 #: src/pages/BroadcastsPage.tsx:1249
 #~ msgid "UTM Content"
 #~ msgstr "UTM Content"
 
-#: src/components/timeline/ContactTimeline.tsx:919
-#~ msgid "UTM medium"
-#~ msgstr "Support UTM"
+#: src/components/segment/segmentLabels.ts:112
+msgid "UTM medium"
+msgstr "Support UTM"
 
 #: src/pages/BroadcastsPage.tsx:1231
 #~ msgid "UTM Medium"
@@ -24720,9 +25222,9 @@ msgstr "Campagnes UTM"
 msgid "UTM parameters"
 msgstr "Paramètres UTM"
 
-#: src/components/timeline/ContactTimeline.tsx:918
-#~ msgid "UTM source"
-#~ msgstr "Source UTM"
+#: src/components/segment/segmentLabels.ts:111
+msgid "UTM source"
+msgstr "Source UTM"
 
 #: src/pages/BroadcastsPage.tsx:1225
 #~ msgid "UTM Source"
@@ -24731,6 +25233,22 @@ msgstr "Paramètres UTM"
 #: src/pages/BroadcastsPage.tsx:1243
 #~ msgid "UTM Term"
 #~ msgstr "UTM Term"
+
+#: src/components/segment/segmentLabels.ts:134
+msgid "utm_campaign of the visit"
+msgstr "utm_campaign de la visite"
+
+#: src/components/segment/segmentLabels.ts:135
+msgid "utm_content of the visit, which names the creative"
+msgstr "utm_content de la visite, qui nomme la création"
+
+#: src/components/segment/segmentLabels.ts:133
+msgid "utm_medium of the visit"
+msgstr "utm_medium de la visite"
+
+#: src/components/segment/segmentLabels.ts:132
+msgid "utm_source of the visit"
+msgstr "utm_source de la visite"
 
 #: src/components/automations/AutomationEditor.tsx:320
 msgid "Validation error"
@@ -24742,7 +25260,7 @@ msgstr "Erreur de validation"
 
 #: src/components/broadcasts/HeadersEditor.tsx:40
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:251
-#: src/components/segment/form_leaf.tsx:845
+#: src/components/segment/form_leaf.tsx:756
 #: src/components/settings/GeneralSettings.tsx:199
 #: src/components/web_analytics/FilterBuilder.tsx:324
 #: src/components/web_analytics/FilterBuilder.tsx:333
@@ -24759,11 +25277,11 @@ msgstr "Valeur"
 msgid "Value {value}"
 msgstr "Valeur {value}"
 
-#: src/components/segment/form_leaf.tsx:875
+#: src/components/segment/form_leaf.tsx:786
 msgid "Value 2"
 msgstr "Valeur 2"
 
-#: src/components/segment/input_event_property_filters.tsx:172
+#: src/components/segment/input_event_property_filters.tsx:69
 msgid "Value type"
 msgstr "Type de valeur"
 
@@ -24935,7 +25453,7 @@ msgstr "Voir les messages"
 msgid "View page"
 msgstr "Voir la page"
 
-#: src/components/blog/PostDrawer.tsx:806
+#: src/components/blog/PostDrawer.tsx:812
 msgid "View post"
 msgstr "Voir l'article"
 
@@ -24976,7 +25494,7 @@ msgstr "Voir le site web"
 msgid "Viewed {page}"
 msgstr "A consulté {page}"
 
-#: src/components/segment/segmentSummary.ts:141
+#: src/components/segment/segmentSummary.ts:117
 msgid "Viewed a page"
 msgstr "A consulté une page"
 
@@ -25000,6 +25518,14 @@ msgstr "Vues 30 j"
 msgid "Visible in the notification center"
 msgstr "Visible dans le centre de notifications"
 
+#: src/components/segment/segmentLabels.ts:106
+msgid "Visit duration (ms)"
+msgstr "Durée de la visite (ms)"
+
+#: src/components/segment/segmentLabels.ts:88
+msgid "Visit ID"
+msgstr "ID de la visite"
+
 #: src/components/segment/timelineKindLabels.ts:17
 msgid "Visit website"
 msgstr "Visiter le site web"
@@ -25008,7 +25534,7 @@ msgstr "Visiter le site web"
 #~ msgid "visited"
 #~ msgstr ""
 
-#: src/components/segment/segmentSummary.ts:142
+#: src/components/segment/segmentSummary.ts:118
 msgid "Visited the website"
 msgstr "A visité le site"
 
@@ -25077,7 +25603,7 @@ msgstr "En attente du redémarrage du serveur..."
 msgid "Warning"
 msgstr "Avertissement"
 
-#: src/components/segment/segmentSummary.ts:135
+#: src/components/segment/segmentSummary.ts:111
 msgid "Was sent an email"
 msgstr "Un e-mail lui a été envoyé"
 
@@ -25248,6 +25774,8 @@ msgid "Webhooks registered successfully"
 msgstr "Webhooks enregistrés avec succès"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:113
+#: src/components/segment/form_leaf.tsx:514
+#: src/components/segment/form_leaf.tsx:515
 #: src/components/settings/GeneralSettings.tsx:228
 #: src/components/settings/GeneralSettings.tsx:344
 msgid "Website"
@@ -25346,6 +25874,10 @@ msgstr "Bienvenue dans l'éditeur d'email !"
 msgid "Welcomes a new subscriber with three first steps."
 msgstr "Accueille un nouvel abonné avec trois premières étapes."
 
+#: src/components/segment/form_leaf.tsx:478
+msgid "What"
+msgstr "Quoi"
+
 #: src/components/settings/BlogSettings.tsx:427
 msgid "What a feed reader shows of each post"
 msgstr "Ce qu'un lecteur de flux montre de chaque article"
@@ -25363,6 +25895,9 @@ msgstr "Ce qui est exporté"
 msgid "What's new since {current}"
 msgstr "Nouveautés depuis la {current}"
 
+#: src/components/segment/form_leaf.tsx:210
+#: src/components/segment/form_leaf.tsx:547
+#: src/components/segment/form_leaf.tsx:794
 #: src/components/web_analytics/annotations/AnnotationTable.tsx:40
 msgid "When"
 msgstr "Quand"
@@ -25375,7 +25910,7 @@ msgstr "Quand un lien vers le blog est partagé"
 msgid "When a link to the category is shared"
 msgstr "Quand un lien vers la catégorie est partagé"
 
-#: src/components/blog/PostDrawer.tsx:1000
+#: src/components/blog/PostDrawer.tsx:1006
 msgid "When a link to the post is shared"
 msgstr "Quand un lien vers l'article est partagé"
 
@@ -25443,6 +25978,18 @@ msgstr "Quand l'une d'elles correspond aussi à une session, sa valeur remplace 
 msgid "When one of them also matches a session, this rule's value is not written."
 msgstr "Quand l'une d'elles correspond aussi à une session, la valeur de cette règle n'est pas écrite."
 
+#: src/components/segment/segmentLabels.ts:54
+msgid "When the contact was created"
+msgstr "Date de création du contact"
+
+#: src/components/segment/segmentLabels.ts:55
+msgid "When the contact was last changed"
+msgstr "Date de la dernière modification du contact"
+
+#: src/components/segment/segmentLabels.ts:59
+msgid "When the tracking consent last changed"
+msgstr "Date du dernier changement de consentement au suivi"
+
 #: src/components/broadcasts/compose/SendingCard.tsx:87
 msgid "When to send"
 msgstr "Quand envoyer"
@@ -25451,6 +25998,10 @@ msgstr "Quand envoyer"
 msgid "When you select a block, its settings appear here. Modify colors, text, spacing, alignment, and other properties to customize your email design."
 msgstr "Lorsque vous sélectionnez un bloc, ses paramètres apparaissent ici. Modifiez les couleurs, le texte, l'espacement, l'alignement et d'autres propriétés pour personnaliser le design de votre email."
 
+#: src/components/segment/segmentLabels.ts:58
+msgid "Where the last tracking consent change came from"
+msgstr "D'où vient le dernier changement de consentement au suivi"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:756
 msgid "Where your Mailgun account is hosted"
 msgstr "Où votre compte Mailgun est hébergé"
@@ -25458,6 +26009,14 @@ msgstr "Où votre compte Mailgun est hébergé"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:426
 msgid "Where your verified identities are"
 msgstr "Là où se trouvent vos identités vérifiées"
+
+#: src/components/segment/segmentLabels.ts:57
+msgid "Whether the contact agreed to click tracking"
+msgstr "Si le contact a accepté le suivi des clics"
+
+#: src/components/segment/segmentLabels.ts:56
+msgid "Whether the contact agreed to open tracking"
+msgstr "Si le contact a accepté le suivi des ouvertures"
 
 #: src/components/web_analytics/WebAnalyticsAIAssistant.tsx:472
 msgid "Which acquisition channels and campaigns brought the most sessions this period, and which ones grew or shrank?"
@@ -25578,8 +26137,7 @@ msgstr "Avec un objectif"
 #~ msgid "With Errors"
 #~ msgstr "Avec erreurs"
 
-#: src/components/segment/form_leaf.tsx:654
-#: src/components/segment/input.tsx:871
+#: src/components/segment/ConditionSentence.tsx:270
 msgid "with filters"
 msgstr "avec filtres"
 
@@ -25591,8 +26149,7 @@ msgstr "Sans condition, cette règle correspond à toutes les visites."
 msgid "With no condition, this rule runs on every session."
 msgstr "Sans condition, cette règle s'exécute sur chaque session."
 
-#: src/components/segment/form_leaf.tsx:1004
-#: src/components/segment/input.tsx:737
+#: src/components/segment/ConditionSentence.tsx:317
 msgid "with properties"
 msgstr "avec les propriétés"
 
@@ -25600,8 +26157,8 @@ msgstr "avec les propriétés"
 #~ msgid "With stats"
 #~ msgstr "Avec statistiques"
 
-#: src/components/segment/form_leaf.tsx:271
-#: src/components/segment/input.tsx:595
+#: src/components/segment/ConditionSentence.tsx:212
+#: src/components/segment/form_leaf.tsx:423
 msgid "with status"
 msgstr "avec statut"
 
@@ -25626,7 +26183,7 @@ msgstr "Sans liste, l'email de test n'a ni lien de désinscription valide ni en-
 msgid "Without its own text, this language receives the automatic version."
 msgstr "Sans texte propre, cette langue reçoit la version automatique."
 
-#: src/components/blog/PostDrawer.tsx:1102
+#: src/components/blog/PostDrawer.tsx:1108
 msgid "Words"
 msgstr "Mots"
 
@@ -25741,7 +26298,7 @@ msgstr "Attributs du wrapper"
 #~ msgid "Wrapper Attributes"
 #~ msgstr "Attributs du wrapper"
 
-#: src/components/blog/PostDrawer.tsx:844
+#: src/components/blog/PostDrawer.tsx:850
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -25790,7 +26347,7 @@ msgstr "Annuel"
 
 #: src/components/automations/edges/edgeLabel.ts:33
 #: src/components/blog/PostDrawer.tsx:306
-#: src/components/blog/PostDrawer.tsx:580
+#: src/components/blog/PostDrawer.tsx:586
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/useBroadcastActions.tsx:199
 #: src/components/contacts/ContactUpsertDrawer.tsx:559
@@ -25954,7 +26511,7 @@ msgstr "Vous n'avez pas la permission d'écriture pour l'analyse web"
 msgid "You have unsaved changes."
 msgstr "Vous avez des modifications non enregistrées."
 
-#: src/components/blog/PostDrawer.tsx:579
+#: src/components/blog/PostDrawer.tsx:585
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir fermer ce panneau ?"
 

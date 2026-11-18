@@ -50,6 +50,9 @@ const renderForm = (goal: CustomEventsGoalCondition, onChange: (leaf: TreeNode) 
   )
 }
 
+// The option of the has / has not control that is selected.
+const selectedNegation = () => document.querySelector('.ant-segmented-item-selected')?.textContent
+
 const submit = () => fireEvent.click(screen.getByText('Confirm'))
 
 describe('LeafCustomEventsGoalForm', () => {
@@ -57,9 +60,8 @@ describe('LeafCustomEventsGoalForm', () => {
     const onChange = vi.fn()
     renderForm(baseGoal, onChange)
 
-    // The negation select is the first one in the form
-    fireEvent.mouseDown(screen.getAllByRole('combobox')[0])
-    fireEvent.click(await screen.findByTitle('has not'))
+    // The negation is a segmented control opening the condition
+    fireEvent.click(screen.getByTitle('has not reached'))
     submit()
 
     await waitFor(() => expect(onChange).toHaveBeenCalled())
@@ -101,7 +103,7 @@ describe('LeafCustomEventsGoalForm', () => {
     )
 
     // The filter is listed by its key, with no schema backing it
-    expect(screen.getByText('sku')).toBeTruthy()
+    expect(screen.getByDisplayValue('sku')).toBeTruthy()
 
     submit()
 
@@ -113,14 +115,14 @@ describe('LeafCustomEventsGoalForm', () => {
 
   it('renders "has not" for a stored negated condition', () => {
     renderForm({ ...baseGoal, negate: true }, vi.fn())
-    expect(screen.getByTitle('has not')).toBeTruthy()
+    expect(selectedNegation()).toBe('has not reached')
   })
 })
 
 describe('LeafCustomEventsGoalForm negation control', () => {
   it('renders "has" when the condition is not negated', () => {
     renderForm({ ...baseGoal, negate: false }, vi.fn())
-    expect(screen.getByTitle('has')).toBeTruthy()
+    expect(selectedNegation()).toBe('has reached')
   })
 
   it('renders "has" for a segment saved before negation existed', () => {
@@ -130,7 +132,7 @@ describe('LeafCustomEventsGoalForm negation control', () => {
     delete (legacy as { negate?: boolean }).negate
 
     renderForm(legacy, vi.fn())
-    expect(screen.getByTitle('has')).toBeTruthy()
+    expect(selectedNegation()).toBe('has reached')
   })
 
   it('does not invent a negate value for an untouched legacy condition', async () => {

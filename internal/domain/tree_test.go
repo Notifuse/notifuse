@@ -217,6 +217,35 @@ func TestTreeNodeLeaf_Validate(t *testing.T) {
 }
 
 func TestDimensionFilter_Validate(t *testing.T) {
+	// What the console used to save for a JSON value read as a date compared with « greater
+	// than »: a number. A date filter carries ISO strings, so the filter was refused on preview and
+	// on save; the console no longer offers it.
+	t.Run("JSON date compared with number values is refused", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_1",
+			FieldType:    "time",
+			Operator:     "gt",
+			JSONPath:     []string{"renewed_at"},
+			NumberValues: []float64{20260101},
+		}
+
+		err := filter.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "string_values")
+	})
+
+	t.Run("JSON date compared with an ISO string is valid", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_1",
+			FieldType:    "time",
+			Operator:     "after_date",
+			JSONPath:     []string{"renewed_at"},
+			StringValues: []string{"2026-01-01T00:00:00Z"},
+		}
+
+		assert.NoError(t, filter.Validate())
+	})
+
 	t.Run("valid string filter", func(t *testing.T) {
 		filter := &DimensionFilter{
 			FieldName:    "country",
