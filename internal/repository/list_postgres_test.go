@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -83,6 +84,49 @@ func TestListRepository(t *testing.T) {
 			err := repo.CreateList(context.Background(), "workspace123", testList)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "failed to create list")
+			var exists *domain.ErrListExists
+			assert.False(t, errors.As(err, &exists), "only a unique violation means the id is taken")
+		})
+
+		// The id is the primary key and deletion only stamps deleted_at, so a deleted list
+		// keeps its id: the error says which case it is.
+		insert := regexp.QuoteMeta(`INSERT INTO lists (id, name, is_double_optin, is_public, description,`)
+		lookup := regexp.QuoteMeta(`SELECT deleted_at IS NOT NULL FROM lists WHERE id = $1`)
+		uniqueViolation := &pq.Error{Code: "23505", Message: "duplicate key value violates unique constraint \"lists_pkey\""}
+
+		t.Run("id taken by a live list", func(t *testing.T) {
+			sqlMock.ExpectExec(insert).WillReturnError(uniqueViolation)
+			sqlMock.ExpectQuery(lookup).WithArgs(testList.ID).
+				WillReturnRows(sqlmock.NewRows([]string{"deleted"}).AddRow(false))
+
+			err := repo.CreateList(context.Background(), "workspace123", testList)
+			var exists *domain.ErrListExists
+			require.True(t, errors.As(err, &exists), "got %v", err)
+			assert.False(t, exists.Deleted)
+			require.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+
+		t.Run("id taken by a deleted list", func(t *testing.T) {
+			sqlMock.ExpectExec(insert).WillReturnError(uniqueViolation)
+			sqlMock.ExpectQuery(lookup).WithArgs(testList.ID).
+				WillReturnRows(sqlmock.NewRows([]string{"deleted"}).AddRow(true))
+
+			err := repo.CreateList(context.Background(), "workspace123", testList)
+			var exists *domain.ErrListExists
+			require.True(t, errors.As(err, &exists), "got %v", err)
+			assert.True(t, exists.Deleted)
+			require.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+
+		t.Run("id taken, the lookup failing", func(t *testing.T) {
+			sqlMock.ExpectExec(insert).WillReturnError(uniqueViolation)
+			sqlMock.ExpectQuery(lookup).WithArgs(testList.ID).WillReturnError(errors.New("connection reset"))
+
+			err := repo.CreateList(context.Background(), "workspace123", testList)
+			var exists *domain.ErrListExists
+			require.True(t, errors.As(err, &exists), "got %v", err)
+			assert.False(t, exists.Deleted, "a failed lookup still reports the id as taken")
+			require.NoError(t, sqlMock.ExpectationsWereMet())
 		})
 	})
 

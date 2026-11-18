@@ -432,7 +432,9 @@ export async function fillListForm(page: Page, data: Partial<ListFormData>): Pro
   }
 
   if (data.id) {
-    await fillByLabel(page, 'List ID', data.id)
+    // The ID follows the name until « Modify » opens it.
+    await page.getByRole('button', { name: 'Modify', exact: true }).click()
+    await fillByLabel(page, 'ID', data.id)
   }
 
   if (data.description) {
@@ -440,11 +442,11 @@ export async function fillListForm(page: Page, data: Partial<ListFormData>): Pro
   }
 
   if (data.is_double_optin !== undefined) {
-    await toggleSwitchByLabel(page, 'Double Opt-in', data.is_double_optin)
+    await toggleSwitchByLabel(page, 'Double opt-in', data.is_double_optin)
   }
 
   if (data.is_public !== undefined) {
-    await toggleSwitchByLabel(page, 'Public', data.is_public)
+    await toggleSwitchByLabel(page, 'Public list', data.is_public)
   }
 
   // Template selections would need Select dropdown handling

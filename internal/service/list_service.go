@@ -67,6 +67,11 @@ func (s *ListService) CreateList(ctx context.Context, workspaceID string, list *
 	}
 
 	if err := s.repo.CreateList(ctx, workspaceID, list); err != nil {
+		// A taken id is a refusal the caller fixes, not a failure, so it is not logged as one.
+		var exists *domain.ErrListExists
+		if errors.As(err, &exists) {
+			return fmt.Errorf("failed to create list: %w", err)
+		}
 		s.logger.WithField("list_id", list.ID).Error(fmt.Sprintf("Failed to create list: %v", err))
 		return fmt.Errorf("failed to create list: %w", err)
 	}

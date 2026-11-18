@@ -661,6 +661,10 @@ msgstr ""
 msgid "{capability} requires a Notifuse licence."
 msgstr ""
 
+#: src/components/templates/TemplateSelectorInput.tsx:233
+msgid "{categoryLabel} category"
+msgstr "Categoria {categoryLabel}"
+
 #: src/components/templates/TemplateSelectorModal.tsx:626
 msgid "{categoryName} template: in an automation tied to a list, contacts unsubscribed, bounced or complained on that list don't receive it and leave the automation."
 msgstr "Plantilla {categoryName}: en una automatització vinculada a una llista, els contactes donats de baixa, rebotats o amb queixa en aquesta llista no la reben i surten de l'automatització."
@@ -1184,6 +1188,10 @@ msgstr "{pageviews, plural, one {# pàgina} other {# pàgines}}"
 #: src/components/timeline/ContactTimeline.tsx:933
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews} pàgines"
+
+#: src/components/lists/ListDrawer.tsx:559
+msgid "{pending, plural, one {Turning double opt-in off does not change the # “Pending” contact: they stay pending until they confirm.} other {Turning double opt-in off does not change the # “Pending” contacts: they stay pending until they confirm.}}"
+msgstr "{pending, plural, one {Desactivar el doble opt-in no canvia el # contacte «Pendent»: continuarà pendent fins que confirmi.} other {Desactivar el doble opt-in no canvia els # contactes «Pendents»: continuaran pendents fins que confirmin.}}"
 
 #: src/components/segment/SegmentCountCard.tsx:113
 #~ msgid "{percent} % of the {total} contacts"
@@ -1765,6 +1773,10 @@ msgstr "Hi ha una condició oberta: confirma-la o cancel·la-la."
 msgid "A condition is still open, and the changes made since the segment was opened will be lost."
 msgstr "Encara hi ha una condició oberta, i es perdran els canvis fets des que es va obrir el segment."
 
+#: src/components/lists/ListDrawer.tsx:522
+msgid "A confirmation email is sent before the subscription; the contact stays “Pending” until they click."
+msgstr "S'envia un correu de confirmació abans de la subscripció; el contacte queda «Pendent» fins que hi faci clic."
+
 #: src/components/settings/GeneralSettings.tsx:173
 msgid "A contact's own consent always wins."
 msgstr "El consentiment propi d'un contacte sempre preval."
@@ -1813,6 +1825,10 @@ msgstr "Un bloc Liquid no pot anar dins d'un bloc amb una condició de visualitz
 #: src/components/contacts/sheet/describeActivity.tsx:162
 msgid "a list"
 msgstr "una llista"
+
+#: src/components/lists/ListDrawer.tsx:167
+msgid "A list already has the ID “{listId}”. Change it."
+msgstr "Ja hi ha una llista amb l'ID «{listId}». Canvia'l."
 
 #: src/components/templates/gallery/labels.ts:39
 msgid "A list's emails"
@@ -2775,6 +2791,10 @@ msgstr "ja filtrat"
 #~ msgid "already set"
 #~ msgstr "ja establert"
 
+#: src/components/lists/ListDrawer.tsx:377
+msgid "already used"
+msgstr "ja en ús"
+
 #: src/components/analytics/GetStartedChecklist.tsx:419
 msgid "Also available: <0>a blog</0> for your site."
 msgstr "També disponible: <0>un blog</0> per al teu lloc."
@@ -3638,6 +3658,10 @@ msgstr "Automatitzacions"
 #: src/services/api/permissions.ts:730
 msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
 msgstr "L'escriptura d'Automatitzacions és una lectura indirecta de contactes que la lectura de Contactes no pot restringir: un node de webhook envia el registre complet del contacte a qualsevol URL que l'automatització indiqui, i no es comprova cap permís mentre s'executa una automatització. Els mateixos nodes afegeixen i treuen contactes de llistes, i envien correu, de manera que aquest interruptor canvia la pertinença a llistes i envia correu sense cap concessió de Llistes ni de Transaccional. La lectura d'Automatitzacions retorna la configuració completa d'un node de webhook, inclòs el secret bearer que hi ha desat."
+
+#: src/components/lists/ListDrawer.tsx:378
+msgid "available"
+msgstr "disponible"
 
 #: src/components/integrations/SupabaseIntegration.tsx:141
 msgid "Available after saving"
@@ -4682,7 +4706,7 @@ msgstr "No es pot provar al navegador"
 #: src/components/file_manager/FileExplorer.tsx:1181
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
-#: src/components/lists/ListDrawer.tsx:194
+#: src/components/lists/ListDrawer.tsx:579
 #: src/components/segment/form_leaf.tsx:207
 #: src/components/segment/input.tsx:314
 #: src/components/segment/SegmentDrawer.tsx:293
@@ -4791,6 +4815,10 @@ msgstr "Ha cancel·lat el butlletí <0>{target}</0>"
 msgid "Cancelled the web analytics backfill"
 msgstr "Ha cancel·lat l'emplenament de l'analítica web"
 
+#: src/components/lists/ListDrawer.tsx:488
+msgid "Cannot be changed, used by the API and forms."
+msgstr "No es pot canviar; el fan servir l'API i els formularis."
+
 #: src/pages/SignInPage.tsx:250
 msgid "Cannot reach the configured API endpoint"
 msgstr "No es pot accedir al punt final API configurat"
@@ -4888,6 +4916,7 @@ msgstr "Centre esquerra"
 msgid "Center Right"
 msgstr "Centre dreta"
 
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/templates/TemplateSettingsAside.tsx:163
 msgid "Change"
 msgstr "Canviar"
@@ -5032,14 +5061,24 @@ msgstr "Comprovant que l'ID {id} és lliure…"
 msgid "Checking webhooks…"
 msgstr "Comprovant els webhooks…"
 
+#: src/components/lists/ListDrawer.tsx:373
+msgid "Checking…"
+msgstr "Comprovant…"
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:249
 msgid "Checks"
 msgstr "Comprovacions"
 
 #: src/components/logs/MessagesTab.tsx:402
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/transactional/NotificationChecks.tsx:118
 msgid "Choose"
 msgstr "Tria"
+
+#: src/components/lists/ListDrawer.tsx:534
+#: src/components/lists/ListDrawer.tsx:542
+msgid "Choose a confirmation template"
+msgstr "Tria una plantilla de confirmació"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:177
 msgid "Choose a date to schedule"
@@ -5836,6 +5875,10 @@ msgstr "Confirmar"
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "Confirmar que un contacte existeix i llistar tot allò a què està subscrit (també necessita lectura de Llistes)"
 
+#: src/components/lists/ListDrawer.tsx:533
+msgid "Confirmation template"
+msgstr "Plantilla de confirmació"
+
 #: src/components/automations/describeTrigger.ts:36
 msgid "Confirmed"
 msgstr "Confirmat"
@@ -6058,6 +6101,10 @@ msgstr "Contacte actualitzat correctament"
 msgid "Contacts"
 msgstr "Contactes"
 
+#: src/components/lists/ListDrawer.tsx:508
+msgid "Contacts can subscribe or unsubscribe from the notification center."
+msgstr "Els contactes s'hi poden subscriure o donar-se'n de baixa des del centre de notificacions."
+
 #: src/components/segment/input.tsx:469
 msgid "Contacts matching"
 msgstr "Contactes que compleixen"
@@ -6188,6 +6235,7 @@ msgstr "Copiat"
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:35
 #: src/components/layout/Mono.tsx:36
+#: src/components/lists/ListDrawer.tsx:485
 #: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
@@ -6257,6 +6305,10 @@ msgstr "Camps principals"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:210
 msgid "Could not copy the external ID"
 msgstr "No s’ha pogut copiar l’ID extern"
+
+#: src/components/lists/ListDrawer.tsx:363
+msgid "Could not copy the ID"
+msgstr "No s'ha pogut copiar l'ID"
 
 #: src/components/logs/AuditEntryDetail.tsx:97
 msgid "Could not copy the link"
@@ -6524,7 +6576,6 @@ msgstr "Abasta més que les plantilles: els blocs reutilitzables responen al mat
 
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
-#: src/components/lists/ListDrawer.tsx:200
 #: src/components/segment/SegmentDrawer.tsx:289
 msgid "Create"
 msgstr "Crear"
@@ -6630,9 +6681,13 @@ msgstr "Crea la categoria"
 msgid "Create First Theme"
 msgstr "Crear primer tema"
 
+#: src/components/lists/ListDrawer.tsx:582
+msgid "Create list"
+msgstr "Crea la llista"
+
 #: src/components/lists/ListDrawer.tsx:181
-msgid "Create List"
-msgstr "Crear llista"
+#~ msgid "Create List"
+#~ msgstr "Crear llista"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 msgid "Create my own"
@@ -6652,8 +6707,8 @@ msgid "Create new folder"
 msgstr "Crear nova carpeta"
 
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Create New List"
-msgstr "Crear nova llista"
+#~ msgid "Create New List"
+#~ msgstr "Crear nova llista"
 
 #: src/components/blog/PostDrawer.tsx:656
 #~ msgid "Create New Post"
@@ -6821,6 +6876,10 @@ msgstr "Creat per Zapier"
 #: src/components/blog/ThemeEditorDrawer.tsx:260
 msgid "Created new version v{savedVersion}"
 msgstr "Nova versió v{savedVersion} creada"
+
+#: src/components/lists/ListDrawer.tsx:577
+msgid "Created on {createdOn}"
+msgstr "Creada el {createdOn}"
 
 #: src/components/logs/auditPhrases.ts:87
 msgid "Created the API key <0>{target}</0>"
@@ -7992,7 +8051,7 @@ msgstr "Descriviu aquesta imatge..."
 
 #: src/components/automations/NodeConfigPanel.tsx:280
 #: src/components/blog/CategoryDrawer.tsx:280
-#: src/components/lists/ListDrawer.tsx:237
+#: src/components/lists/ListDrawer.tsx:494
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:475
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 msgid "Description"
@@ -8134,6 +8193,7 @@ msgstr "Regles desactivades"
 
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
+#: src/components/lists/ListDrawer.tsx:214
 #: src/components/segment/SegmentDrawer.tsx:169
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
@@ -8155,6 +8215,7 @@ msgstr "Descartar esborrany"
 msgid "Discard unsaved changes?"
 msgstr "Descartar els canvis no desats?"
 
+#: src/components/lists/ListDrawer.tsx:212
 #: src/components/segment/SegmentDrawer.tsx:165
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
@@ -8336,17 +8397,18 @@ msgstr "De punts"
 msgid "Double"
 msgstr "Doble"
 
+#: src/components/lists/ListDrawer.tsx:519
 #: src/components/lists/ListHeader.tsx:68
 msgid "Double opt-in"
 msgstr "Doble opt-in"
 
 #: src/components/lists/ListDrawer.tsx:260
-msgid "Double Opt-in"
-msgstr "Doble opt-in"
+#~ msgid "Double Opt-in"
+#~ msgstr "Doble opt-in"
 
 #: src/components/lists/ListDrawer.tsx:281
-msgid "Double Opt-in Template"
-msgstr "Plantilla de doble opt-in"
+#~ msgid "Double Opt-in Template"
+#~ msgstr "Plantilla de doble opt-in"
 
 #: src/components/file_manager/FileExplorer.tsx:569
 #: src/components/file_manager/FilePreview.tsx:98
@@ -8453,6 +8515,14 @@ msgstr "p. ex. email"
 #: src/components/settings/ZapierSettings.tsx:172
 msgid "e.g. Marketing"
 msgstr "p. ex. Marketing"
+
+#: src/components/lists/ListDrawer.tsx:468
+msgid "e.g. members"
+msgstr "p. ex. membres"
+
+#: src/components/lists/ListDrawer.tsx:411
+msgid "e.g. Newsletter, Customers, Beta"
+msgstr "p. ex. Newsletter, Clients, Beta"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:568
 msgid "e.g. notifuse"
@@ -8711,13 +8781,14 @@ msgid "Edit Liquid Content"
 msgstr "Editar contingut Liquid"
 
 #: src/components/contacts/ContactsViewHeader.tsx:214
+#: src/components/lists/ListDrawer.tsx:73
 msgid "Edit list"
 msgstr "Edita la llista"
 
 #: src/components/lists/ListDrawer.tsx:181
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Edit List"
-msgstr "Editar llista"
+#~ msgid "Edit List"
+#~ msgstr "Editar llista"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:247
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:369
@@ -9392,8 +9463,8 @@ msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "Introdueix un nombre amb 15 xifres com a màxim abans del separador decimal."
 
 #: src/components/lists/ListDrawer.tsx:234
-msgid "Enter a unique alphanumeric ID"
-msgstr "Introduïu un ID alfanumèric únic"
+#~ msgid "Enter a unique alphanumeric ID"
+#~ msgstr "Introduïu un ID alfanumèric únic"
 
 #: src/components/segment/FilterValueInput.tsx:62
 #: src/components/web_analytics/FilterBuilder.tsx:349
@@ -9513,16 +9584,16 @@ msgid "Enter link URL or {{ url }}"
 msgstr "Introduïu URL de l'enllaç o {{ url }}"
 
 #: src/components/lists/ListDrawer.tsx:238
-msgid "Enter list description"
-msgstr "Introduïu descripció de la llista"
+#~ msgid "Enter list description"
+#~ msgstr "Introduïu descripció de la llista"
 
 #: src/components/lists/DeleteListModal.tsx:148
 msgid "Enter list ID to confirm"
 msgstr "Introduïu l'ID de la llista per confirmar"
 
 #: src/components/lists/ListDrawer.tsx:222
-msgid "Enter list name"
-msgstr "Introduïu el nom de la llista"
+#~ msgid "Enter list name"
+#~ msgstr "Introduïu el nom de la llista"
 
 #: src/components/settings/BlogSettings.tsx:396
 msgid "Enter logo URL or select image"
@@ -10194,8 +10265,8 @@ msgid "Failed to create folder: "
 msgstr "No s'ha pogut crear la carpeta: "
 
 #: src/components/lists/ListDrawer.tsx:81
-msgid "Failed to create list: {error}"
-msgstr "No s'ha pogut crear la llista: {error}"
+#~ msgid "Failed to create list: {error}"
+#~ msgstr "No s'ha pogut crear la llista: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:206
@@ -10618,8 +10689,8 @@ msgid "Failed to update file manager settings"
 msgstr "No s'han pogut actualitzar els paràmetres del gestor de fitxers"
 
 #: src/components/lists/ListDrawer.tsx:95
-msgid "Failed to update list: {error}"
-msgstr "No s'ha pogut actualitzar la llista: {error}"
+#~ msgid "Failed to update list: {error}"
+#~ msgstr "No s'ha pogut actualitzar la llista: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:205
@@ -11936,6 +12007,9 @@ msgstr "Estil d'icona"
 #~ msgstr "URL d'icona/favicon"
 
 #: src/components/contacts/ContactsViewHeader.tsx:184
+#: src/components/lists/ListDrawer.tsx:418
+#: src/components/lists/ListDrawer.tsx:446
+#: src/components/lists/ListDrawer.tsx:479
 #: src/components/messages/MessageHistoryTable.tsx:281
 msgid "ID"
 msgstr "ID"
@@ -11954,11 +12028,16 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "L'ID només pot contenir lletres minúscules, números i guions baixos"
 
 #: src/components/automations/AutomationEditor.tsx:428
+#: src/components/lists/ListDrawer.tsx:361
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:239
 #: src/pages/TemplatesPage.tsx:329
 #: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "ID copied"
 msgstr "ID copiat"
+
+#: src/components/lists/ListDrawer.tsx:437
+msgid "ID derived from the name"
+msgstr "ID derivat del nom"
 
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:76
 #: src/components/lists/DeleteListModal.tsx:154
@@ -11978,11 +12057,11 @@ msgstr "ID per a l'API: {0}"
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "L'ID es genera automàticament però es pot modificar si cal"
 
-#: src/components/lists/ListDrawer.tsx:230
+#: src/components/lists/ListDrawer.tsx:462
 msgid "ID must be alphanumeric"
 msgstr "L'ID ha de ser alfanumèric"
 
-#: src/components/lists/ListDrawer.tsx:231
+#: src/components/lists/ListDrawer.tsx:463
 msgid "ID must be less than 32 characters"
 msgstr "L'ID ha de tenir menys de 32 caràcters"
 
@@ -12267,6 +12346,11 @@ msgstr "en els últims"
 #: src/components/segment/segmentSummary.ts:129
 msgid "in the last {days} days"
 msgstr "en els últims {days} dies"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:19
+#: src/components/lists/NotificationCenterListPreview.tsx:20
+msgid "In the notification center"
+msgstr "Al centre de notificacions"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:155
 msgid "in the payload."
@@ -12838,6 +12922,7 @@ msgstr "Justificar"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:234
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
+#: src/components/lists/ListDrawer.tsx:215
 #: src/components/segment/SegmentDrawer.tsx:170
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:720
@@ -13190,6 +13275,10 @@ msgstr "Espaiat de lletres"
 #~ msgid "Letter Spacing"
 #~ msgstr "Espaiat de lletres"
 
+#: src/components/lists/ListDrawer.tsx:455
+msgid "Letters and digits, 32 at most. Used by the API and forms; cannot change after creation."
+msgstr "Lletres i xifres, 32 com a màxim. El fan servir l'API i els formularis; no canvia després de la creació."
+
 #: src/components/email_builder/EmailBuilder.tsx:1135
 msgid "Library"
 msgstr "Biblioteca"
@@ -13430,9 +13519,13 @@ msgstr "Llistar les difusions amb el seu públic i la seva programació"
 msgid "List contacts with their full profile fields"
 msgstr "Llistar els contactes amb tots els seus camps de perfil"
 
+#: src/components/lists/ListDrawer.tsx:341
+msgid "List created"
+msgstr "Llista creada"
+
 #: src/components/lists/ListDrawer.tsx:76
-msgid "List created successfully"
-msgstr "Llista creada correctament"
+#~ msgid "List created successfully"
+#~ msgstr "Llista creada correctament"
 
 #: src/services/api/permissions.ts:167
 msgid "List custom events recorded against contacts"
@@ -13447,13 +13540,17 @@ msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "Llistar tot allò a què està subscrit un contacte (també necessita lectura de Contactes)"
 
 #: src/components/lists/ListDrawer.tsx:227
-msgid "List ID"
-msgstr "ID de llista"
+#~ msgid "List ID"
+#~ msgstr "ID de llista"
 
 #. placeholder {0}: record.list_id
 #: src/components/contacts/ContactDetailsDrawer.tsx:990
 #~ msgid "List ID: {0}"
 #~ msgstr "ID de llista: {0}"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:24
+msgid "List name"
+msgstr "Nom de la llista"
 
 #: src/services/api/permissions.ts:248
 msgid "List segments with their full definition trees"
@@ -13525,9 +13622,13 @@ msgstr "Llista a comprovar"
 msgid "List transactional notification definitions"
 msgstr "Llistar les definicions de notificacions transaccionals"
 
+#: src/components/lists/ListDrawer.tsx:314
+msgid "List updated"
+msgstr "Llista actualitzada"
+
 #: src/components/lists/ListDrawer.tsx:90
-msgid "List updated successfully"
-msgstr "Llista actualitzada correctament"
+#~ msgid "List updated successfully"
+#~ msgstr "Llista actualitzada correctament"
 
 #: src/components/timeline/ContactTimeline.tsx:391
 #: src/components/timeline/ContactTimeline.tsx:404
@@ -13662,7 +13763,7 @@ msgstr "Carregant plantilla..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/templates/CreateTemplateDrawer.tsx:1012
-#: src/components/templates/TemplateSelectorInput.tsx:150
+#: src/components/templates/TemplateSelectorInput.tsx:162
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:461
 msgid "Loading..."
@@ -14360,6 +14461,10 @@ msgstr "Marca modesta"
 msgid "Modified"
 msgstr "Modificat"
 
+#: src/components/lists/ListDrawer.tsx:433
+msgid "Modify"
+msgstr "Modifica"
+
 #: src/pages/LogsPage.tsx:29
 #~ msgid "Monitor message delivery status and webhook events"
 #~ msgstr "Monitorar l'estat de lliurament de missatges i esdeveniments de webhook"
@@ -14465,7 +14570,7 @@ msgstr "N/D"
 #: src/components/integrations/FirecrawlIntegration.tsx:89
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
-#: src/components/lists/ListDrawer.tsx:216
+#: src/components/lists/ListDrawer.tsx:404
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -14510,7 +14615,7 @@ msgid "Name is required"
 msgstr "El nom és obligatori"
 
 #: src/components/blog/CategoryDrawer.tsx:236
-#: src/components/lists/ListDrawer.tsx:219
+#: src/components/lists/ListDrawer.tsx:408
 msgid "Name must be less than 255 characters"
 msgstr "El nom ha de tenir menys de 255 caràcters"
 
@@ -14636,6 +14741,7 @@ msgid "New key"
 msgstr "Clau nova"
 
 #: src/components/contacts/ContactsRail.tsx:79
+#: src/components/lists/ListDrawer.tsx:73
 msgid "New list"
 msgstr "Llista nova"
 
@@ -17165,11 +17271,11 @@ msgstr "Si us plau, introduïu una etiqueta personalitzada"
 msgid "Please enter a label for this connection"
 msgstr "Si us plau, introduïu una etiqueta per a aquesta connexió"
 
-#: src/components/lists/ListDrawer.tsx:229
+#: src/components/lists/ListDrawer.tsx:461
 msgid "Please enter a list ID"
 msgstr "Si us plau, introduïu un ID de llista"
 
-#: src/components/lists/ListDrawer.tsx:218
+#: src/components/lists/ListDrawer.tsx:407
 msgid "Please enter a list name"
 msgstr "Si us plau, introduïu un nom de llista"
 
@@ -17353,8 +17459,8 @@ msgstr "Si us plau, seleccioneu un estat"
 #~ msgstr "Si us plau, seleccioneu una plantilla"
 
 #: src/components/lists/ListDrawer.tsx:283
-msgid "Please select a template for double opt-in"
-msgstr "Si us plau, seleccioneu una plantilla per al doble opt-in"
+#~ msgid "Please select a template for double opt-in"
+#~ msgstr "Si us plau, seleccioneu una plantilla per al doble opt-in"
 
 #: src/components/blog/PublishModal.tsx:153
 msgid "Please select a time"
@@ -17550,7 +17656,8 @@ msgstr "Premeu Enter per confirmar, Escape per cancel·lar"
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:116
 #: src/components/seo/SeoPreview.tsx:36
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:244
+#: src/components/templates/TemplateSelectorInput.tsx:292
 #: src/components/templates/TemplateSelectorModal.tsx:368
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
@@ -17649,6 +17756,10 @@ msgstr "Previsualització amb dades de prova"
 #: src/components/templates/CreateTemplateDrawer.tsx:1506
 msgid "Preview Your Email"
 msgstr "Previsualitza el teu correu"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:38
+msgid "Preview: the name and description as the contact sees them, with the subscribe button."
+msgstr "Previsualització: el nom i la descripció tal com els veurà el contacte, amb el botó de subscripció."
 
 #: src/components/layout/DrawerControls.tsx:51
 msgid "Previous"
@@ -17820,13 +17931,16 @@ msgid "Provider's default sender"
 msgstr "Remitent per defecte del proveïdor"
 
 #: src/components/contacts/ContactsViewHeader.tsx:195
-#: src/components/lists/ListDrawer.tsx:245
 msgid "Public"
 msgstr "Públic"
 
+#: src/components/lists/ListDrawer.tsx:505
+msgid "Public list"
+msgstr "Llista pública"
+
 #: src/components/lists/ListDrawer.tsx:246
-msgid "Public lists are visible in the Notification Center for users to subscribe to"
-msgstr "Les llistes públiques són visibles al Centre de notificacions perquè els usuaris s'hi subscriguin"
+#~ msgid "Public lists are visible in the Notification Center for users to subscribe to"
+#~ msgstr "Les llistes públiques són visibles al Centre de notificacions perquè els usuaris s'hi subscriguin"
 
 #: src/pages/SetupWizard.tsx:385
 msgid "Public URL where this Notifuse instance is accessible"
@@ -19410,7 +19524,7 @@ msgstr "Mode sandbox"
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
-#: src/components/lists/ListDrawer.tsx:200
+#: src/components/lists/ListDrawer.tsx:582
 #: src/components/segment/SegmentDrawer.tsx:289
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
@@ -20072,7 +20186,7 @@ msgstr "Seleccioneu un remitent"
 msgid "Select a social block"
 msgstr "Selecciona un bloc social"
 
-#: src/components/templates/TemplateSelectorInput.tsx:79
+#: src/components/templates/TemplateSelectorInput.tsx:87
 msgid "Select a template"
 msgstr "Seleccioneu una plantilla"
 
@@ -20128,8 +20242,8 @@ msgid "Select columns"
 msgstr "Seleccionar columnes"
 
 #: src/components/lists/ListDrawer.tsx:291
-msgid "Select confirmation email template"
-msgstr "Seleccionar plantilla de correu de confirmació"
+#~ msgid "Select confirmation email template"
+#~ msgstr "Seleccionar plantilla de correu de confirmació"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:435
 msgid "Select consent"
@@ -20680,6 +20794,10 @@ msgstr "Enviat per"
 msgid "Sent by the automation {0}"
 msgstr "Enviat per l'automatització {0}"
 
+#: src/components/templates/TemplateSelectorInput.tsx:221
+msgid "sent by the marketing provider"
+msgstr "enviat pel proveïdor de màrqueting"
+
 #. placeholder {0}: broadcastName ?? message.broadcast_id ?? ''
 #: src/components/logs/MessageDetail.tsx:271
 msgid "Sent by the newsletter {0}"
@@ -20689,6 +20807,10 @@ msgstr "Enviat pel butlletí {0}"
 #: src/components/logs/MessageDetail.tsx:275
 msgid "Sent by the transactional notification {0}"
 msgstr "Enviat per la notificació transaccional {0}"
+
+#: src/components/templates/TemplateSelectorInput.tsx:223
+msgid "sent by the transactional provider"
+msgstr "enviat pel proveïdor transaccional"
 
 #: src/components/logs/MessageDetail.tsx:300
 #: src/components/logs/MessageDetail.tsx:813
@@ -21229,6 +21351,10 @@ msgstr "Es mostra al selector de model de l'assistent"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:785
 msgid "Shown next to the API key"
 msgstr "Es mostra al costat de la clau API"
+
+#: src/components/lists/ListDrawer.tsx:495
+msgid "Shown to contacts in the notification center when the list is public."
+msgstr "Es mostra als contactes al centre de notificacions quan la llista és pública."
 
 #: src/components/email_builder/panels/TreePanel.tsx:279
 msgid "Shown under a condition"
@@ -21965,6 +22091,7 @@ msgid "Submitting batch request to the server..."
 msgstr "Enviant la sol·licitud per lots al servidor..."
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:196
+#: src/components/lists/NotificationCenterListPreview.tsx:34
 msgid "Subscribe"
 msgstr "Subscriure's"
 
@@ -22036,6 +22163,7 @@ msgstr "Subscrit a {name}"
 msgid "Subscript"
 msgstr "Subíndex"
 
+#: src/components/lists/ListDrawer.tsx:500
 #: src/components/logs/OutgoingWebhooksTab.tsx:136
 #: src/components/logs/OutgoingWebhooksTab.tsx:181
 #: src/components/segment/segmentLabels.ts:274
@@ -22330,7 +22458,7 @@ msgstr "Bloc de plantilla no trobat"
 msgid "Template changed by someone else"
 msgstr "Plantilla canviada per una altra persona"
 
-#: src/components/templates/TemplateSelectorInput.tsx:233
+#: src/components/templates/TemplateSelectorInput.tsx:210
 msgid "Template created and selected"
 msgstr "Plantilla creada i seleccionada"
 
@@ -22863,7 +22991,7 @@ msgstr "El nom de la ciutat"
 msgid "The comparison period as extra columns"
 msgstr "El període de comparació com a columnes addicionals"
 
-#: src/components/lists/ListDrawer.tsx:292
+#: src/components/lists/ListDrawer.tsx:543
 msgid "The confirmation email each new subscriber receives"
 msgstr "El correu de confirmació que rep cada nou subscriptor"
 
@@ -23055,6 +23183,10 @@ msgstr "El nom d'amfitrió amb què el vostre servidor s'identifica en connectar
 msgid "The icon in the browser tab; 32 or 192 px square"
 msgstr "La icona de la pestanya del navegador; quadrat de 32 o 192 px"
 
+#: src/components/lists/ListDrawer.tsx:280
+msgid "The ID “{listId}” belonged to a deleted list and cannot be reused. Choose another."
+msgstr "L'ID «{listId}» pertanyia a una llista eliminada i no es pot reutilitzar. Tria'n un altre."
+
 #: src/components/segment/SegmentSummaryPanel.tsx:75
 msgid "The ID {id} could not be checked; saving will tell if it is taken."
 msgstr "No s'ha pogut comprovar l'ID {id}; en desar se sabrà si està agafat."
@@ -23110,6 +23242,14 @@ msgstr "La llista \"{listName}\" no es pot eliminar mentre les automatitzacions 
 msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
 msgstr "La llista \"{listName}\" no es pot eliminar mentre les automatitzacions en directe \"{first}\", \"{second}\" i \"{third}\" la utilitzin. Pauseu-les primer o modifiqueu-les perquè deixin d'utilitzar la llista."
 
+#: src/components/lists/ListDrawer.tsx:345
+msgid "The list could not be created."
+msgstr "No s'ha pogut crear la llista."
+
+#: src/components/lists/ListDrawer.tsx:318
+msgid "The list could not be saved."
+msgstr "No s'ha pogut desar la llista."
+
 #: src/services/api/permissions.ts:926
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
 msgstr "El registre anomena el correu i la IP de cada membre i enregistra les accions rebutjades. Concediu lectura a les persones que han de respondre «qui ha fet això», no a tothom."
@@ -23121,6 +23261,10 @@ msgstr "El registre anomena el correu i la IP de cada membre i enregistra les ac
 #: src/components/settings/ZapierSettings.tsx:88
 #~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 #~ msgstr "El nom {prefix} ja està ocupat en aquesta instal·lació de Notifuse. Trieu-ne un altre."
+
+#: src/components/lists/ListDrawer.tsx:452
+msgid "The name gives no ID: enter one."
+msgstr "El nom no dona cap ID: escriu-ne un."
 
 #: src/components/broadcasts/compose/useIssueText.ts:12
 msgid "the name is longer than 255 characters"
@@ -23685,6 +23829,10 @@ msgstr ""
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 #~ msgstr "Aquesta llista fa dues coses. Filtra els senyals entrants — els altres orígens s'ignoren silenciosament. També controla la identificació per clic al correu: un enllaç amb seguiment només porta un token d'identitat per a un domini que consti aquí, de manera que mentre això estigui buit cap enllaç de correu no pot identificar un contacte. Utilitzeu *.example.com per cobrir tant example.com com els seus subdominis — example.com tot sol no coincideix amb www.example.com."
 
+#: src/components/lists/ListDrawer.tsx:213
+msgid "This list is not created yet."
+msgstr "Aquesta llista encara no s'ha creat."
+
 #: src/pages/ContactsPage.tsx:621
 msgid "This list no longer exists"
 msgstr "Aquesta llista ja no existeix"
@@ -23797,6 +23945,10 @@ msgstr "Aquesta sessió és massa llarga per mostrar-la sencera: només se'n lli
 #: src/components/automations/NodeConfigPanel.tsx:189
 msgid "This step is edited through the API."
 msgstr "Aquest pas s'edita mitjançant l'API."
+
+#: src/components/templates/TemplateSelectorInput.tsx:352
+msgid "This template cannot be found"
+msgstr "No es troba aquesta plantilla"
 
 #: src/components/transactional/PreviewPanel.tsx:80
 msgid "This template has no content to preview yet"
@@ -24571,6 +24723,10 @@ msgstr "Ha activat l'aïllament de tenants d'Amazon SES per a <0>{target}</0>"
 #: src/components/logs/auditPhrases.ts:81
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Ha activat o desactivat el webhook <0>{target}</0>"
+
+#: src/components/lists/ListDrawer.tsx:558
+msgid "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
+msgstr "Desactivar el doble opt-in no canvia els contactes «Pendents»: continuaran pendents fins que confirmin."
 
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
@@ -26080,8 +26236,8 @@ msgstr "Quan es comparteix un enllaç a l'article"
 #~ msgstr "Quan està habilitat, els enllaços del correu es rastrejaran per obertures i clics"
 
 #: src/components/lists/ListDrawer.tsx:261
-msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
-msgstr "Quan està habilitat, els subscriptors han de confirmar la seva subscripció per correu abans de ser afegits a la llista"
+#~ msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
+#~ msgstr "Quan està habilitat, els subscriptors han de confirmar la seva subscripció per correu abans de ser afegits a la llista"
 
 #: src/components/settings/BlogSettings.tsx:439
 #~ msgid "When enabled, the feed includes only excerpts instead of full article content"
@@ -26728,13 +26884,18 @@ msgstr "Necessiteu permisos de lectura de Plantilles i escriptura de Transaccion
 msgid "You need Templates read permission"
 msgstr "Necessiteu el permís de lectura de Plantilles"
 
-#: src/components/templates/TemplateSelectorInput.tsx:155
+#: src/components/templates/TemplateSelectorInput.tsx:167
+#: src/components/templates/TemplateSelectorInput.tsx:238
 msgid "You need Templates read permission to choose a template"
 msgstr "Necessiteu permís de lectura de Plantilles per triar una plantilla"
 
+#: src/components/templates/TemplateSelectorInput.tsx:237
+msgid "You need Templates read permission to see its name and preview"
+msgstr "Necessites el permís de lectura de plantilles per veure'n el nom i la previsualització"
+
 #: src/components/broadcasts/compose/PreviewPanel.tsx:84
 #: src/components/broadcasts/detail/BroadcastAside.tsx:88
-#: src/components/templates/TemplateSelectorInput.tsx:154
+#: src/components/templates/TemplateSelectorInput.tsx:166
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:342
 msgid "You need Templates read permission to see this template's name and preview"
 msgstr "Necessiteu permís de lectura de Plantilles per veure el nom i la previsualització d'aquesta plantilla"
@@ -26785,6 +26946,10 @@ msgstr "Es perdran els canvis d’aquesta categoria."
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:833
 msgid "Your changes to this integration will be lost."
 msgstr "Es perdran els teus canvis en aquesta integració."
+
+#: src/components/lists/ListDrawer.tsx:213
+msgid "Your changes to this list will be lost."
+msgstr "Es perdran els canvis d'aquesta llista."
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:504
 msgid "Your changes to this scheduled broadcast will be lost."

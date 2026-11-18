@@ -661,6 +661,10 @@ msgstr ""
 msgid "{capability} requires a Notifuse licence."
 msgstr ""
 
+#: src/components/templates/TemplateSelectorInput.tsx:233
+msgid "{categoryLabel} category"
+msgstr "Categoría {categoryLabel}"
+
 #: src/components/templates/TemplateSelectorModal.tsx:626
 msgid "{categoryName} template: in an automation tied to a list, contacts unsubscribed, bounced or complained on that list don't receive it and leave the automation."
 msgstr "Plantilla {categoryName}: en una automatización vinculada a una lista, los contactos dados de baja, rebotados o que se han quejado en esa lista no la reciben y salen de la automatización."
@@ -1184,6 +1188,10 @@ msgstr "{pageviews, plural, one {# página} other {# páginas}}"
 #: src/components/timeline/ContactTimeline.tsx:933
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews} páginas"
+
+#: src/components/lists/ListDrawer.tsx:559
+msgid "{pending, plural, one {Turning double opt-in off does not change the # “Pending” contact: they stay pending until they confirm.} other {Turning double opt-in off does not change the # “Pending” contacts: they stay pending until they confirm.}}"
+msgstr "{pending, plural, one {Desactivar el doble opt-in no cambia el # contacto «Pendiente»: seguirá pendiente hasta que confirme.} other {Desactivar el doble opt-in no cambia los # contactos «Pendientes»: seguirán pendientes hasta que confirmen.}}"
 
 #: src/components/segment/SegmentCountCard.tsx:113
 #~ msgid "{percent} % of the {total} contacts"
@@ -1765,6 +1773,10 @@ msgstr "Hay una condición abierta: confírmala o cancélala."
 msgid "A condition is still open, and the changes made since the segment was opened will be lost."
 msgstr "Todavía hay una condición abierta, y se perderán los cambios hechos desde que se abrió el segmento."
 
+#: src/components/lists/ListDrawer.tsx:522
+msgid "A confirmation email is sent before the subscription; the contact stays “Pending” until they click."
+msgstr "Se envía un correo de confirmación antes de la suscripción; el contacto queda «Pendiente» hasta que haga clic."
+
 #: src/components/settings/GeneralSettings.tsx:173
 msgid "A contact's own consent always wins."
 msgstr "El consentimiento propio de un contacto siempre prevalece."
@@ -1813,6 +1825,10 @@ msgstr "Un bloque Liquid no puede ir dentro de un bloque con una condición de v
 #: src/components/contacts/sheet/describeActivity.tsx:162
 msgid "a list"
 msgstr "una lista"
+
+#: src/components/lists/ListDrawer.tsx:167
+msgid "A list already has the ID “{listId}”. Change it."
+msgstr "Ya hay una lista con el ID «{listId}». Cámbialo."
 
 #: src/components/templates/gallery/labels.ts:39
 msgid "A list's emails"
@@ -2775,6 +2791,10 @@ msgstr "ya filtrado"
 #~ msgid "already set"
 #~ msgstr "ya establecido"
 
+#: src/components/lists/ListDrawer.tsx:377
+msgid "already used"
+msgstr "ya en uso"
+
 #: src/components/analytics/GetStartedChecklist.tsx:419
 msgid "Also available: <0>a blog</0> for your site."
 msgstr "También disponible: <0>un blog</0> para tu sitio."
@@ -3638,6 +3658,10 @@ msgstr "Automatizaciones"
 #: src/services/api/permissions.ts:730
 msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
 msgstr "La escritura de Automatizaciones es una lectura indirecta de contactos que la lectura de Contactos no puede contener: un nodo de webhook envía el registro completo del contacto a cualquier URL que indique la automatización, y no se comprueba ningún permiso mientras se ejecuta una automatización. Los mismos nodos añaden contactos a listas y los quitan de ellas, y envían correo, así que este interruptor cambia la pertenencia a listas y envía correo sin ninguna concesión de Listas ni de Transaccional. La lectura de Automatizaciones devuelve la configuración completa de un nodo de webhook, incluido el secreto bearer guardado en él."
+
+#: src/components/lists/ListDrawer.tsx:378
+msgid "available"
+msgstr "disponible"
 
 #: src/components/integrations/SupabaseIntegration.tsx:141
 msgid "Available after saving"
@@ -4682,7 +4706,7 @@ msgstr "No se puede probar en el navegador"
 #: src/components/file_manager/FileExplorer.tsx:1181
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
-#: src/components/lists/ListDrawer.tsx:194
+#: src/components/lists/ListDrawer.tsx:579
 #: src/components/segment/form_leaf.tsx:207
 #: src/components/segment/input.tsx:314
 #: src/components/segment/SegmentDrawer.tsx:293
@@ -4791,6 +4815,10 @@ msgstr "Canceló la newsletter <0>{target}</0>"
 msgid "Cancelled the web analytics backfill"
 msgstr "Canceló el relleno de la analítica web"
 
+#: src/components/lists/ListDrawer.tsx:488
+msgid "Cannot be changed, used by the API and forms."
+msgstr "No se puede cambiar; lo usan la API y los formularios."
+
 #: src/pages/SignInPage.tsx:250
 msgid "Cannot reach the configured API endpoint"
 msgstr "No se puede acceder al punto final API configurado"
@@ -4888,6 +4916,7 @@ msgstr "Centro izquierda"
 msgid "Center Right"
 msgstr "Centro derecha"
 
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/templates/TemplateSettingsAside.tsx:163
 msgid "Change"
 msgstr "Cambiar"
@@ -5032,14 +5061,24 @@ msgstr "Comprobando que el ID {id} está libre…"
 msgid "Checking webhooks…"
 msgstr "Comprobando webhooks…"
 
+#: src/components/lists/ListDrawer.tsx:373
+msgid "Checking…"
+msgstr "Comprobando…"
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:249
 msgid "Checks"
 msgstr "Comprobaciones"
 
 #: src/components/logs/MessagesTab.tsx:402
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/transactional/NotificationChecks.tsx:118
 msgid "Choose"
 msgstr "Elegir"
+
+#: src/components/lists/ListDrawer.tsx:534
+#: src/components/lists/ListDrawer.tsx:542
+msgid "Choose a confirmation template"
+msgstr "Elegir una plantilla de confirmación"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:177
 msgid "Choose a date to schedule"
@@ -5836,6 +5875,10 @@ msgstr "Confirmar"
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "Confirmar que un contacto existe y listar todo aquello a lo que está suscrito (también necesita lectura de Listas)"
 
+#: src/components/lists/ListDrawer.tsx:533
+msgid "Confirmation template"
+msgstr "Plantilla de confirmación"
+
 #: src/components/automations/describeTrigger.ts:36
 msgid "Confirmed"
 msgstr "Confirmado"
@@ -6058,6 +6101,10 @@ msgstr "Contacto actualizado exitosamente"
 msgid "Contacts"
 msgstr "Contactos"
 
+#: src/components/lists/ListDrawer.tsx:508
+msgid "Contacts can subscribe or unsubscribe from the notification center."
+msgstr "Los contactos pueden suscribirse o darse de baja desde el centro de notificaciones."
+
 #: src/components/segment/input.tsx:469
 msgid "Contacts matching"
 msgstr "Contactos que cumplen"
@@ -6188,6 +6235,7 @@ msgstr "Copiado"
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:35
 #: src/components/layout/Mono.tsx:36
+#: src/components/lists/ListDrawer.tsx:485
 #: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
@@ -6257,6 +6305,10 @@ msgstr "Campos principales"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:210
 msgid "Could not copy the external ID"
 msgstr "No se pudo copiar el ID externo"
+
+#: src/components/lists/ListDrawer.tsx:363
+msgid "Could not copy the ID"
+msgstr "No se pudo copiar el ID"
 
 #: src/components/logs/AuditEntryDetail.tsx:97
 msgid "Could not copy the link"
@@ -6524,7 +6576,6 @@ msgstr "Abarca más que las plantillas: los bloques reutilizables responden al m
 
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
-#: src/components/lists/ListDrawer.tsx:200
 #: src/components/segment/SegmentDrawer.tsx:289
 msgid "Create"
 msgstr "Crear"
@@ -6630,9 +6681,13 @@ msgstr "Crear categoría"
 msgid "Create First Theme"
 msgstr "Crear primer tema"
 
+#: src/components/lists/ListDrawer.tsx:582
+msgid "Create list"
+msgstr "Crear la lista"
+
 #: src/components/lists/ListDrawer.tsx:181
-msgid "Create List"
-msgstr "Crear lista"
+#~ msgid "Create List"
+#~ msgstr "Crear lista"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 msgid "Create my own"
@@ -6652,8 +6707,8 @@ msgid "Create new folder"
 msgstr "Crear nueva carpeta"
 
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Create New List"
-msgstr "Crear nueva lista"
+#~ msgid "Create New List"
+#~ msgstr "Crear nueva lista"
 
 #: src/components/blog/PostDrawer.tsx:656
 #~ msgid "Create New Post"
@@ -6821,6 +6876,10 @@ msgstr "Creado por Zapier"
 #: src/components/blog/ThemeEditorDrawer.tsx:260
 msgid "Created new version v{savedVersion}"
 msgstr "Nueva versión v{savedVersion} creada"
+
+#: src/components/lists/ListDrawer.tsx:577
+msgid "Created on {createdOn}"
+msgstr "Creada el {createdOn}"
 
 #: src/components/logs/auditPhrases.ts:87
 msgid "Created the API key <0>{target}</0>"
@@ -7992,7 +8051,7 @@ msgstr "Describe esta imagen..."
 
 #: src/components/automations/NodeConfigPanel.tsx:280
 #: src/components/blog/CategoryDrawer.tsx:280
-#: src/components/lists/ListDrawer.tsx:237
+#: src/components/lists/ListDrawer.tsx:494
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:475
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 msgid "Description"
@@ -8134,6 +8193,7 @@ msgstr "Reglas deshabilitadas"
 
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
+#: src/components/lists/ListDrawer.tsx:214
 #: src/components/segment/SegmentDrawer.tsx:169
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
@@ -8155,6 +8215,7 @@ msgstr "Descartar borrador"
 msgid "Discard unsaved changes?"
 msgstr "¿Descartar los cambios sin guardar?"
 
+#: src/components/lists/ListDrawer.tsx:212
 #: src/components/segment/SegmentDrawer.tsx:165
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
@@ -8336,17 +8397,18 @@ msgstr "Punteado"
 msgid "Double"
 msgstr "Doble"
 
+#: src/components/lists/ListDrawer.tsx:519
 #: src/components/lists/ListHeader.tsx:68
 msgid "Double opt-in"
 msgstr "Doble confirmación"
 
 #: src/components/lists/ListDrawer.tsx:260
-msgid "Double Opt-in"
-msgstr "Doble confirmación"
+#~ msgid "Double Opt-in"
+#~ msgstr "Doble confirmación"
 
 #: src/components/lists/ListDrawer.tsx:281
-msgid "Double Opt-in Template"
-msgstr "Plantilla de doble confirmación"
+#~ msgid "Double Opt-in Template"
+#~ msgstr "Plantilla de doble confirmación"
 
 #: src/components/file_manager/FileExplorer.tsx:569
 #: src/components/file_manager/FilePreview.tsx:98
@@ -8453,6 +8515,14 @@ msgstr "ej. email"
 #: src/components/settings/ZapierSettings.tsx:172
 msgid "e.g. Marketing"
 msgstr "ej. Marketing"
+
+#: src/components/lists/ListDrawer.tsx:468
+msgid "e.g. members"
+msgstr "p. ej. miembros"
+
+#: src/components/lists/ListDrawer.tsx:411
+msgid "e.g. Newsletter, Customers, Beta"
+msgstr "p. ej. Newsletter, Clientes, Beta"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:568
 msgid "e.g. notifuse"
@@ -8711,13 +8781,14 @@ msgid "Edit Liquid Content"
 msgstr "Editar contenido Liquid"
 
 #: src/components/contacts/ContactsViewHeader.tsx:214
+#: src/components/lists/ListDrawer.tsx:73
 msgid "Edit list"
 msgstr "Editar lista"
 
 #: src/components/lists/ListDrawer.tsx:181
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Edit List"
-msgstr "Editar lista"
+#~ msgid "Edit List"
+#~ msgstr "Editar lista"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:247
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:369
@@ -9392,8 +9463,8 @@ msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "Introduce un número con 15 dígitos como máximo antes del separador decimal."
 
 #: src/components/lists/ListDrawer.tsx:234
-msgid "Enter a unique alphanumeric ID"
-msgstr "Introduce un ID alfanumérico único"
+#~ msgid "Enter a unique alphanumeric ID"
+#~ msgstr "Introduce un ID alfanumérico único"
 
 #: src/components/segment/FilterValueInput.tsx:62
 #: src/components/web_analytics/FilterBuilder.tsx:349
@@ -9513,16 +9584,16 @@ msgid "Enter link URL or {{ url }}"
 msgstr "Introduce la URL del enlace o {{ url }}"
 
 #: src/components/lists/ListDrawer.tsx:238
-msgid "Enter list description"
-msgstr "Introduce la descripción de la lista"
+#~ msgid "Enter list description"
+#~ msgstr "Introduce la descripción de la lista"
 
 #: src/components/lists/DeleteListModal.tsx:148
 msgid "Enter list ID to confirm"
 msgstr "Introduce el ID de la lista para confirmar"
 
 #: src/components/lists/ListDrawer.tsx:222
-msgid "Enter list name"
-msgstr "Introduce el nombre de la lista"
+#~ msgid "Enter list name"
+#~ msgstr "Introduce el nombre de la lista"
 
 #: src/components/settings/BlogSettings.tsx:396
 msgid "Enter logo URL or select image"
@@ -10194,8 +10265,8 @@ msgid "Failed to create folder: "
 msgstr "Error al crear carpeta: "
 
 #: src/components/lists/ListDrawer.tsx:81
-msgid "Failed to create list: {error}"
-msgstr "Error al crear lista: {error}"
+#~ msgid "Failed to create list: {error}"
+#~ msgstr "Error al crear lista: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:206
@@ -10618,8 +10689,8 @@ msgid "Failed to update file manager settings"
 msgstr "Error al actualizar configuración del administrador de archivos"
 
 #: src/components/lists/ListDrawer.tsx:95
-msgid "Failed to update list: {error}"
-msgstr "Error al actualizar lista: {error}"
+#~ msgid "Failed to update list: {error}"
+#~ msgstr "Error al actualizar lista: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:205
@@ -11936,6 +12007,9 @@ msgstr "Estilo del icono"
 #~ msgstr "URL del icono/favicon"
 
 #: src/components/contacts/ContactsViewHeader.tsx:184
+#: src/components/lists/ListDrawer.tsx:418
+#: src/components/lists/ListDrawer.tsx:446
+#: src/components/lists/ListDrawer.tsx:479
 #: src/components/messages/MessageHistoryTable.tsx:281
 msgid "ID"
 msgstr "ID"
@@ -11954,11 +12028,16 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "El ID solo puede contener letras minúsculas, números y guiones bajos"
 
 #: src/components/automations/AutomationEditor.tsx:428
+#: src/components/lists/ListDrawer.tsx:361
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:239
 #: src/pages/TemplatesPage.tsx:329
 #: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "ID copied"
 msgstr "ID copiado"
+
+#: src/components/lists/ListDrawer.tsx:437
+msgid "ID derived from the name"
+msgstr "ID derivado del nombre"
 
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:76
 #: src/components/lists/DeleteListModal.tsx:154
@@ -11978,11 +12057,11 @@ msgstr "ID para la API: {0}"
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "El ID se genera automáticamente pero puede modificarse si es necesario"
 
-#: src/components/lists/ListDrawer.tsx:230
+#: src/components/lists/ListDrawer.tsx:462
 msgid "ID must be alphanumeric"
 msgstr "El ID debe ser alfanumérico"
 
-#: src/components/lists/ListDrawer.tsx:231
+#: src/components/lists/ListDrawer.tsx:463
 msgid "ID must be less than 32 characters"
 msgstr "El ID debe tener menos de 32 caracteres"
 
@@ -12267,6 +12346,11 @@ msgstr "en los últimos"
 #: src/components/segment/segmentSummary.ts:129
 msgid "in the last {days} days"
 msgstr "en los últimos {days} días"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:19
+#: src/components/lists/NotificationCenterListPreview.tsx:20
+msgid "In the notification center"
+msgstr "En el centro de notificaciones"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:155
 msgid "in the payload."
@@ -12838,6 +12922,7 @@ msgstr "Justificar"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:234
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
+#: src/components/lists/ListDrawer.tsx:215
 #: src/components/segment/SegmentDrawer.tsx:170
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:720
@@ -13190,6 +13275,10 @@ msgstr "Espaciado de letras"
 #~ msgid "Letter Spacing"
 #~ msgstr "Espaciado de letras"
 
+#: src/components/lists/ListDrawer.tsx:455
+msgid "Letters and digits, 32 at most. Used by the API and forms; cannot change after creation."
+msgstr "Letras y números, 32 como máximo. Lo usan la API y los formularios; no cambia después de la creación."
+
 #: src/components/email_builder/EmailBuilder.tsx:1135
 msgid "Library"
 msgstr "Biblioteca"
@@ -13430,9 +13519,13 @@ msgstr "Listar los envíos masivos con su audiencia y su programación"
 msgid "List contacts with their full profile fields"
 msgstr "Listar los contactos con todos los campos de su perfil"
 
+#: src/components/lists/ListDrawer.tsx:341
+msgid "List created"
+msgstr "Lista creada"
+
 #: src/components/lists/ListDrawer.tsx:76
-msgid "List created successfully"
-msgstr "Lista creada exitosamente"
+#~ msgid "List created successfully"
+#~ msgstr "Lista creada exitosamente"
 
 #: src/services/api/permissions.ts:167
 msgid "List custom events recorded against contacts"
@@ -13447,13 +13540,17 @@ msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "Listar todo aquello a lo que está suscrito un contacto (también necesita lectura de Contactos)"
 
 #: src/components/lists/ListDrawer.tsx:227
-msgid "List ID"
-msgstr "ID de lista"
+#~ msgid "List ID"
+#~ msgstr "ID de lista"
 
 #. placeholder {0}: record.list_id
 #: src/components/contacts/ContactDetailsDrawer.tsx:990
 #~ msgid "List ID: {0}"
 #~ msgstr "ID de lista: {0}"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:24
+msgid "List name"
+msgstr "Nombre de la lista"
 
 #: src/services/api/permissions.ts:248
 msgid "List segments with their full definition trees"
@@ -13525,9 +13622,13 @@ msgstr "Lista a verificar"
 msgid "List transactional notification definitions"
 msgstr "Listar las definiciones de notificaciones transaccionales"
 
+#: src/components/lists/ListDrawer.tsx:314
+msgid "List updated"
+msgstr "Lista actualizada"
+
 #: src/components/lists/ListDrawer.tsx:90
-msgid "List updated successfully"
-msgstr "Lista actualizada exitosamente"
+#~ msgid "List updated successfully"
+#~ msgstr "Lista actualizada exitosamente"
 
 #: src/components/timeline/ContactTimeline.tsx:391
 #: src/components/timeline/ContactTimeline.tsx:404
@@ -13662,7 +13763,7 @@ msgstr "Cargando plantilla..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/templates/CreateTemplateDrawer.tsx:1012
-#: src/components/templates/TemplateSelectorInput.tsx:150
+#: src/components/templates/TemplateSelectorInput.tsx:162
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:461
 msgid "Loading..."
@@ -14360,6 +14461,10 @@ msgstr "Marca discreta"
 msgid "Modified"
 msgstr "Modificado"
 
+#: src/components/lists/ListDrawer.tsx:433
+msgid "Modify"
+msgstr "Modificar"
+
 #: src/pages/LogsPage.tsx:29
 #~ msgid "Monitor message delivery status and webhook events"
 #~ msgstr "Monitorear estado de entrega de mensajes y eventos de webhook"
@@ -14465,7 +14570,7 @@ msgstr "N/D"
 #: src/components/integrations/FirecrawlIntegration.tsx:89
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
-#: src/components/lists/ListDrawer.tsx:216
+#: src/components/lists/ListDrawer.tsx:404
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -14510,7 +14615,7 @@ msgid "Name is required"
 msgstr "El nombre es obligatorio"
 
 #: src/components/blog/CategoryDrawer.tsx:236
-#: src/components/lists/ListDrawer.tsx:219
+#: src/components/lists/ListDrawer.tsx:408
 msgid "Name must be less than 255 characters"
 msgstr "El nombre debe tener menos de 255 caracteres"
 
@@ -14636,6 +14741,7 @@ msgid "New key"
 msgstr "Nueva clave"
 
 #: src/components/contacts/ContactsRail.tsx:79
+#: src/components/lists/ListDrawer.tsx:73
 msgid "New list"
 msgstr "Nueva lista"
 
@@ -17165,11 +17271,11 @@ msgstr "Por favor, introduce una etiqueta personalizada"
 msgid "Please enter a label for this connection"
 msgstr "Por favor, introduce una etiqueta para esta conexión"
 
-#: src/components/lists/ListDrawer.tsx:229
+#: src/components/lists/ListDrawer.tsx:461
 msgid "Please enter a list ID"
 msgstr "Por favor, introduce un ID de lista"
 
-#: src/components/lists/ListDrawer.tsx:218
+#: src/components/lists/ListDrawer.tsx:407
 msgid "Please enter a list name"
 msgstr "Por favor, introduce un nombre de lista"
 
@@ -17353,8 +17459,8 @@ msgstr "Por favor, selecciona un estado"
 #~ msgstr "Por favor, selecciona una plantilla"
 
 #: src/components/lists/ListDrawer.tsx:283
-msgid "Please select a template for double opt-in"
-msgstr "Por favor, selecciona una plantilla para doble confirmación"
+#~ msgid "Please select a template for double opt-in"
+#~ msgstr "Por favor, selecciona una plantilla para doble confirmación"
 
 #: src/components/blog/PublishModal.tsx:153
 msgid "Please select a time"
@@ -17550,7 +17656,8 @@ msgstr "Presiona Enter para confirmar, Escape para cancelar"
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:116
 #: src/components/seo/SeoPreview.tsx:36
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:244
+#: src/components/templates/TemplateSelectorInput.tsx:292
 #: src/components/templates/TemplateSelectorModal.tsx:368
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
@@ -17649,6 +17756,10 @@ msgstr "Vista previa con datos de prueba"
 #: src/components/templates/CreateTemplateDrawer.tsx:1506
 msgid "Preview Your Email"
 msgstr "Previsualiza tu correo"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:38
+msgid "Preview: the name and description as the contact sees them, with the subscribe button."
+msgstr "Vista previa: el nombre y la descripción tal como los verá el contacto, con su botón de suscripción."
 
 #: src/components/layout/DrawerControls.tsx:51
 msgid "Previous"
@@ -17820,13 +17931,16 @@ msgid "Provider's default sender"
 msgstr "Remitente predeterminado del proveedor"
 
 #: src/components/contacts/ContactsViewHeader.tsx:195
-#: src/components/lists/ListDrawer.tsx:245
 msgid "Public"
 msgstr "Público"
 
+#: src/components/lists/ListDrawer.tsx:505
+msgid "Public list"
+msgstr "Lista pública"
+
 #: src/components/lists/ListDrawer.tsx:246
-msgid "Public lists are visible in the Notification Center for users to subscribe to"
-msgstr "Las listas públicas son visibles en el Centro de Notificaciones para que los usuarios se suscriban"
+#~ msgid "Public lists are visible in the Notification Center for users to subscribe to"
+#~ msgstr "Las listas públicas son visibles en el Centro de Notificaciones para que los usuarios se suscriban"
 
 #: src/pages/SetupWizard.tsx:385
 msgid "Public URL where this Notifuse instance is accessible"
@@ -19410,7 +19524,7 @@ msgstr "Modo sandbox"
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
-#: src/components/lists/ListDrawer.tsx:200
+#: src/components/lists/ListDrawer.tsx:582
 #: src/components/segment/SegmentDrawer.tsx:289
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
@@ -20072,7 +20186,7 @@ msgstr "Selecciona un remitente"
 msgid "Select a social block"
 msgstr "Selecciona un bloque social"
 
-#: src/components/templates/TemplateSelectorInput.tsx:79
+#: src/components/templates/TemplateSelectorInput.tsx:87
 msgid "Select a template"
 msgstr "Selecciona una plantilla"
 
@@ -20128,8 +20242,8 @@ msgid "Select columns"
 msgstr "Seleccionar columnas"
 
 #: src/components/lists/ListDrawer.tsx:291
-msgid "Select confirmation email template"
-msgstr "Selecciona plantilla de correo de confirmación"
+#~ msgid "Select confirmation email template"
+#~ msgstr "Selecciona plantilla de correo de confirmación"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:435
 msgid "Select consent"
@@ -20680,6 +20794,10 @@ msgstr "Enviado por"
 msgid "Sent by the automation {0}"
 msgstr "Enviado por la automatización {0}"
 
+#: src/components/templates/TemplateSelectorInput.tsx:221
+msgid "sent by the marketing provider"
+msgstr "enviado por el proveedor de marketing"
+
 #. placeholder {0}: broadcastName ?? message.broadcast_id ?? ''
 #: src/components/logs/MessageDetail.tsx:271
 msgid "Sent by the newsletter {0}"
@@ -20689,6 +20807,10 @@ msgstr "Enviado por la newsletter {0}"
 #: src/components/logs/MessageDetail.tsx:275
 msgid "Sent by the transactional notification {0}"
 msgstr "Enviado por la notificación transaccional {0}"
+
+#: src/components/templates/TemplateSelectorInput.tsx:223
+msgid "sent by the transactional provider"
+msgstr "enviado por el proveedor transaccional"
 
 #: src/components/logs/MessageDetail.tsx:300
 #: src/components/logs/MessageDetail.tsx:813
@@ -21229,6 +21351,10 @@ msgstr "Se muestra en el selector de modelo del asistente"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:785
 msgid "Shown next to the API key"
 msgstr "Se muestra junto a la clave API"
+
+#: src/components/lists/ListDrawer.tsx:495
+msgid "Shown to contacts in the notification center when the list is public."
+msgstr "Se muestra a los contactos en el centro de notificaciones cuando la lista es pública."
 
 #: src/components/email_builder/panels/TreePanel.tsx:279
 msgid "Shown under a condition"
@@ -21965,6 +22091,7 @@ msgid "Submitting batch request to the server..."
 msgstr "Enviando la solicitud por lotes al servidor..."
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:196
+#: src/components/lists/NotificationCenterListPreview.tsx:34
 msgid "Subscribe"
 msgstr "Suscribirse"
 
@@ -22036,6 +22163,7 @@ msgstr "Suscrito a {name}"
 msgid "Subscript"
 msgstr "Subíndice"
 
+#: src/components/lists/ListDrawer.tsx:500
 #: src/components/logs/OutgoingWebhooksTab.tsx:136
 #: src/components/logs/OutgoingWebhooksTab.tsx:181
 #: src/components/segment/segmentLabels.ts:274
@@ -22330,7 +22458,7 @@ msgstr "Bloque de plantilla no encontrado"
 msgid "Template changed by someone else"
 msgstr "Plantilla modificada por otra persona"
 
-#: src/components/templates/TemplateSelectorInput.tsx:233
+#: src/components/templates/TemplateSelectorInput.tsx:210
 msgid "Template created and selected"
 msgstr "Plantilla creada y seleccionada"
 
@@ -22863,7 +22991,7 @@ msgstr "El nombre de la ciudad"
 msgid "The comparison period as extra columns"
 msgstr "El periodo de comparación como columnas adicionales"
 
-#: src/components/lists/ListDrawer.tsx:292
+#: src/components/lists/ListDrawer.tsx:543
 msgid "The confirmation email each new subscriber receives"
 msgstr "El correo de confirmación que recibe cada nuevo suscriptor"
 
@@ -23055,6 +23183,10 @@ msgstr "El nombre de host con el que tu servidor se identifica al conectarse al 
 msgid "The icon in the browser tab; 32 or 192 px square"
 msgstr "El icono de la pestaña del navegador; cuadrado de 32 o 192 px"
 
+#: src/components/lists/ListDrawer.tsx:280
+msgid "The ID “{listId}” belonged to a deleted list and cannot be reused. Choose another."
+msgstr "El ID «{listId}» pertenecía a una lista eliminada y no se puede reutilizar. Elige otro."
+
 #: src/components/segment/SegmentSummaryPanel.tsx:75
 msgid "The ID {id} could not be checked; saving will tell if it is taken."
 msgstr "No se pudo comprobar el ID {id}; al guardar se sabrá si está ocupado."
@@ -23110,6 +23242,14 @@ msgstr "La lista \"{listName}\" no se puede eliminar mientras las automatizacion
 msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
 msgstr "La lista \"{listName}\" no se puede eliminar mientras las automatizaciones en vivo \"{first}\", \"{second}\" y \"{third}\" la usen. Páusalas primero o modifícalas para que dejen de usar la lista."
 
+#: src/components/lists/ListDrawer.tsx:345
+msgid "The list could not be created."
+msgstr "No se pudo crear la lista."
+
+#: src/components/lists/ListDrawer.tsx:318
+msgid "The list could not be saved."
+msgstr "No se pudo guardar la lista."
+
 #: src/services/api/permissions.ts:926
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
 msgstr "El registro nombra el email y la IP de cada miembro y anota las acciones rechazadas. Conceda lectura a quienes deban responder «quién hizo esto», no a todo el mundo."
@@ -23121,6 +23261,10 @@ msgstr "El registro nombra el email y la IP de cada miembro y anota las acciones
 #: src/components/settings/ZapierSettings.tsx:88
 #~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 #~ msgstr "El nombre {prefix} ya está en uso en esta instalación de Notifuse. Elige otro."
+
+#: src/components/lists/ListDrawer.tsx:452
+msgid "The name gives no ID: enter one."
+msgstr "El nombre no da ningún ID: escribe uno."
 
 #: src/components/broadcasts/compose/useIssueText.ts:12
 msgid "the name is longer than 255 characters"
@@ -23685,6 +23829,10 @@ msgstr ""
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 #~ msgstr "Esta lista hace dos cosas. Filtra las señales entrantes: los demás orígenes se ignoran en silencio. También controla la identificación por clic en correo: un enlace con seguimiento solo lleva un token de identidad para un dominio listado aquí, así que mientras esto esté vacío ningún enlace de correo puede identificar a un contacto. Usa *.example.com para cubrir tanto example.com como sus subdominios: example.com por sí solo no coincide con www.example.com."
 
+#: src/components/lists/ListDrawer.tsx:213
+msgid "This list is not created yet."
+msgstr "Esta lista aún no está creada."
+
 #: src/pages/ContactsPage.tsx:621
 msgid "This list no longer exists"
 msgstr "Esta lista ya no existe"
@@ -23797,6 +23945,10 @@ msgstr "Esta sesión es demasiado larga para mostrarla entera: solo se listan su
 #: src/components/automations/NodeConfigPanel.tsx:189
 msgid "This step is edited through the API."
 msgstr "Este paso se edita a través de la API."
+
+#: src/components/templates/TemplateSelectorInput.tsx:352
+msgid "This template cannot be found"
+msgstr "No se encuentra esta plantilla"
 
 #: src/components/transactional/PreviewPanel.tsx:80
 msgid "This template has no content to preview yet"
@@ -24571,6 +24723,10 @@ msgstr "Activó el aislamiento de tenants de Amazon SES para <0>{target}</0>"
 #: src/components/logs/auditPhrases.ts:81
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Activó o desactivó el webhook <0>{target}</0>"
+
+#: src/components/lists/ListDrawer.tsx:558
+msgid "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
+msgstr "Desactivar el doble opt-in no cambia los contactos «Pendientes»: seguirán pendientes hasta que confirmen."
 
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
@@ -26080,8 +26236,8 @@ msgstr "Cuando se comparte un enlace al artículo"
 #~ msgstr "Cuando está habilitado, los enlaces en el correo serán rastreados para aperturas y clics"
 
 #: src/components/lists/ListDrawer.tsx:261
-msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
-msgstr "Cuando está habilitado, los suscriptores deben confirmar su suscripción vía correo antes de ser añadidos a la lista"
+#~ msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
+#~ msgstr "Cuando está habilitado, los suscriptores deben confirmar su suscripción vía correo antes de ser añadidos a la lista"
 
 #: src/components/settings/BlogSettings.tsx:439
 #~ msgid "When enabled, the feed includes only excerpts instead of full article content"
@@ -26728,13 +26884,18 @@ msgstr "Necesitas permisos de lectura de Plantillas y escritura de Transaccional
 msgid "You need Templates read permission"
 msgstr "Necesitas el permiso de lectura de Plantillas"
 
-#: src/components/templates/TemplateSelectorInput.tsx:155
+#: src/components/templates/TemplateSelectorInput.tsx:167
+#: src/components/templates/TemplateSelectorInput.tsx:238
 msgid "You need Templates read permission to choose a template"
 msgstr "Necesitas permiso de lectura de Plantillas para elegir una plantilla"
 
+#: src/components/templates/TemplateSelectorInput.tsx:237
+msgid "You need Templates read permission to see its name and preview"
+msgstr "Necesitas el permiso de lectura de plantillas para ver su nombre y su vista previa"
+
 #: src/components/broadcasts/compose/PreviewPanel.tsx:84
 #: src/components/broadcasts/detail/BroadcastAside.tsx:88
-#: src/components/templates/TemplateSelectorInput.tsx:154
+#: src/components/templates/TemplateSelectorInput.tsx:166
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:342
 msgid "You need Templates read permission to see this template's name and preview"
 msgstr "Necesitas permiso de lectura de Plantillas para ver el nombre y la vista previa de esta plantilla"
@@ -26785,6 +26946,10 @@ msgstr "Se perderán los cambios de esta categoría."
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:833
 msgid "Your changes to this integration will be lost."
 msgstr "Se perderán tus cambios en esta integración."
+
+#: src/components/lists/ListDrawer.tsx:213
+msgid "Your changes to this list will be lost."
+msgstr "Se perderán tus cambios en esta lista."
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:504
 msgid "Your changes to this scheduled broadcast will be lost."

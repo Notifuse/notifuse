@@ -59,6 +59,28 @@ func TestListService_CreateList(t *testing.T) {
 		assert.NotZero(t, list.UpdatedAt)
 	})
 
+	// A taken id comes out reachable by errors.As, for the handler's 400, and is not logged
+	// as a failure.
+	t.Run("id taken", func(t *testing.T) {
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).
+			Return(&domain.ErrListExists{Message: "list id already exists", Deleted: true})
+		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
+
+		err := service.CreateList(ctx, workspaceID, list)
+		var exists *domain.ErrListExists
+		require.True(t, errors.As(err, &exists), "got %v", err)
+		assert.True(t, exists.Deleted)
+	})
+
 	t.Run("create with template fields", func(t *testing.T) {
 		listWithTemplates := &domain.List{
 			ID:            "list123",

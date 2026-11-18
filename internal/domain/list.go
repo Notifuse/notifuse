@@ -520,6 +520,22 @@ func (e *ErrListNotFound) Error() string {
 	return e.Message
 }
 
+// ErrListExists is returned on a UNIQUE violation (PG 23505) of the lists primary key:
+// the id is taken. The handler turns it into a 400 naming the problem; without it the
+// caller gets a 500 "Failed to create list" and no way to learn the id is in use.
+//
+// Deleted reports that the id belongs to a soft-deleted list. Deletion only stamps
+// deleted_at, so the row keeps its id while lists.get and lists.list no longer show it:
+// without saying so, the author is told the id is in use by a list nobody can see.
+type ErrListExists struct {
+	Message string
+	Deleted bool
+}
+
+func (e *ErrListExists) Error() string {
+	return e.Message
+}
+
 // ListRef names a list in an answer that has to tell the caller which ones are involved.
 type ListRef struct {
 	ID   string `json:"id"`

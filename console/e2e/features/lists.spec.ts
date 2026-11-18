@@ -4,16 +4,38 @@ import { waitForLoading, waitForSuccessMessage } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
 import { testListData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
+import { mockTemplates } from '../fixtures/mock-data'
 
 const WORKSPACE_ID = 'test-workspace'
 
 // antd 6 renamed `.ant-drawer-content` out of existence; the drawer's `role="dialog"`
 // node now carries the title as its accessible name, so every drawer is addressed by
 // role + name instead of by class.
-const createListDrawer = (page: Page) =>
-  page.getByRole('dialog', { name: 'Create New List', exact: true })
+const createListDrawer = (page: Page) => page.getByRole('dialog', { name: 'New list', exact: true })
 
-const editListDrawer = (page: Page) => page.getByRole('dialog', { name: 'Edit List', exact: true })
+const editListDrawer = (page: Page) => page.getByRole('dialog', { name: 'Edit list', exact: true })
+
+/**
+ * The window lists the Opt-in templates alone, and the mock templates have none: this one answers
+ * templates.list with Welcome Email as an Opt-in template.
+ */
+async function withOptinTemplate(page: Page) {
+  await page.route('**/api/templates.list*', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ templates: mockTemplates.map((tpl) => ({ ...tpl, category: 'opt_in' })) })
+    })
+  )
+}
+
+/** The confirmation template window, opened from the card's « Choose », and a template picked in it. */
+async function pickTemplate(page: Page, drawer: Locator, name: string) {
+  await drawer.getByRole('button', { name: 'Choose', exact: true }).click()
+  const picker = page.getByRole('dialog', { name: /Choose a template/ })
+  await expect(picker).toBeVisible()
+  await picker.getByRole('button', { name: new RegExp(`^${name}`) }).dblclick()
+  await expect(picker).toBeHidden()
+}
 
 const CONTACTS_URL = `/console/workspace/${WORKSPACE_ID}/contacts`
 
@@ -80,7 +102,9 @@ test.describe('Lists Feature', () => {
       const drawer = await openCreateDrawer(page)
 
       await expect(drawer.getByLabel('Name', { exact: true })).toBeVisible()
-      await expect(drawer.getByLabel('List ID', { exact: true })).toBeVisible()
+      // The ID is derived from the name and shown under it until « Modify » opens it
+      await expect(drawer.getByText('ID derived from the name')).toBeVisible()
+      await expect(drawer.getByRole('button', { name: 'Create list', exact: true })).toBeVisible()
     })
 
     test('fills and submits list form', async ({ authenticatedPage }) => {
@@ -93,17 +117,21 @@ test.describe('Lists Feature', () => {
 
       await drawer.getByLabel('Name', { exact: true }).fill('Test Newsletter List')
 
-      // The ID is derived from the name: lowercased, non-alphanumerics stripped
-      await expect(drawer.getByLabel('List ID', { exact: true })).toHaveValue('testnewsletterlist')
+      // The ID is derived from the name: lowercased, non-alphanumerics stripped, then checked
+      await expect(drawer.getByText('testnewsletterlist', { exact: true })).toBeVisible()
+      await expect(drawer.getByText('available', { exact: true })).toBeVisible()
 
       await drawer
         .getByLabel('Description', { exact: true })
         .fill('A test newsletter list with all fields')
 
-      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create list', exact: true }).click()
 
       await waitForSuccessMessage(page)
       await expect(drawer).toBeHidden()
+      // The new list opens, without the close guard stopping the navigation
+      await expect(page).toHaveURL(/list_id=/)
+      await expect(page.getByText('Discard your changes?')).toHaveCount(0)
     })
 
     test('views list details', async ({ authenticatedPageWithData }) => {
@@ -132,34 +160,34 @@ test.describe('Lists Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      const doubleOptIn = drawer.getByRole('switch', { name: 'Double Opt-in' })
+      const doubleOptIn = drawer.getByRole('switch', { name: 'Double opt-in' })
       await expect(doubleOptIn).toBeVisible()
       await expect(doubleOptIn).not.toBeChecked()
 
-      // Turning it on is what pulls in the confirmation template field
+      // Turning it on is what pulls in the confirmation template card
       await doubleOptIn.click()
       await expect(doubleOptIn).toBeChecked()
-      await expect(drawer.getByPlaceholder('Select confirmation email template')).toBeVisible()
+      await expect(drawer.getByText('Choose a confirmation template', { exact: true }).first()).toBeVisible()
     })
 
     // The template picker only has something to show when the workspace has
     // templates, so this case runs against the populated fixture.
     test('shows template selection options', async ({ authenticatedPageWithData }) => {
       const page = authenticatedPageWithData
+      await withOptinTemplate(page)
 
       await page.goto(CONTACTS_URL)
       await waitForLoading(page)
 
       const drawer = await openCreateDrawer(page)
-      await drawer.getByRole('switch', { name: 'Double Opt-in' }).click()
+      await drawer.getByRole('switch', { name: 'Double opt-in' }).click()
 
-      // The template field opens a picker listing the workspace templates
-      await drawer.getByPlaceholder('Select confirmation email template').click()
+      // The card's « Choose » opens the window listing the workspace templates
+      await drawer.getByRole('button', { name: 'Choose', exact: true }).click()
 
-      const picker = page.getByRole('dialog', { name: 'Select Template', exact: true })
+      const picker = page.getByRole('dialog', { name: /Choose a template/ })
       await expect(picker).toBeVisible()
-      await expect(picker.getByText('Welcome Email')).toBeVisible()
-      await expect(picker.getByRole('button', { name: 'Select', exact: true })).toHaveCount(3)
+      await expect(picker.getByRole('button', { name: /^Welcome Email/ })).toBeVisible()
     })
   })
 
@@ -199,10 +227,10 @@ test.describe('Lists Feature', () => {
 
       const drawer = await openEditDrawer(page)
 
-      const idInput = drawer.getByLabel('List ID', { exact: true })
-      await expect(idInput).toHaveValue('list-1')
-      // The ID is the list's key, so editing an existing list cannot change it
-      await expect(idInput).toBeDisabled()
+      // The ID is the list's key, so editing an existing list shows it read-only, with a copy button
+      await expect(drawer.getByText('list-1', { exact: true })).toBeVisible()
+      await expect(drawer.getByLabel('ID', { exact: true })).toHaveCount(0)
+      await expect(drawer.getByRole('button', { name: 'Copy', exact: true })).toBeVisible()
     })
 
     test('edit list preserves description', async ({ authenticatedPageWithData }) => {
@@ -227,8 +255,10 @@ test.describe('Lists Feature', () => {
       const drawer = await openEditDrawer(page)
 
       // The first mocked list is both public and double opt-in
-      await expect(drawer.getByRole('switch', { name: 'Double Opt-in' })).toBeChecked()
-      await expect(drawer.getByRole('switch', { name: 'Public' })).toBeChecked()
+      await expect(drawer.getByRole('switch', { name: 'Double opt-in' })).toBeChecked()
+      await expect(drawer.getByRole('switch', { name: 'Public list' })).toBeChecked()
+      // Public: the list's row as the notification center shows it
+      await expect(drawer.getByRole('region', { name: 'In the notification center' })).toContainText('Newsletter')
     })
   })
 
@@ -241,10 +271,9 @@ test.describe('Lists Feature', () => {
 
       const drawer = await openCreateDrawer(page)
 
-      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create list', exact: true }).click()
 
       await expect(drawer.getByText('Please enter a list name')).toBeVisible()
-      await expect(drawer.getByText('Please enter a list ID')).toBeVisible()
       expect(requestCapture.getRequestCount(API_PATTERNS.LIST_CREATE)).toBe(0)
     })
 
@@ -258,10 +287,11 @@ test.describe('Lists Feature', () => {
 
       await drawer.getByLabel('Name', { exact: true }).fill('Test List')
 
-      const idInput = drawer.getByLabel('List ID', { exact: true })
+      await drawer.getByRole('button', { name: 'Modify', exact: true }).click()
+      const idInput = drawer.getByLabel('ID', { exact: true })
       await idInput.fill('invalid@id!')
 
-      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create list', exact: true }).click()
 
       await expect(drawer.getByText('ID must be alphanumeric')).toBeVisible()
       expect(requestCapture.getRequestCount(API_PATTERNS.LIST_CREATE)).toBe(0)
@@ -293,6 +323,70 @@ test.describe('Lists Feature', () => {
 
       await expect(drawer).toBeHidden()
     })
+
+    test('asks before closing with unsaved changes', async ({ authenticatedPage }) => {
+      const page = authenticatedPage
+
+      await page.goto(CONTACTS_URL)
+      await waitForLoading(page)
+
+      const drawer = await openCreateDrawer(page)
+      await drawer.getByLabel('Name', { exact: true }).fill('Half done')
+      await drawer.getByRole('button', { name: 'Close', exact: true }).click()
+
+      const confirm = page.getByRole('dialog', { name: 'Discard your changes?' })
+      await confirm.getByRole('button', { name: 'Keep editing', exact: true }).click()
+      await expect(drawer.getByLabel('Name', { exact: true })).toHaveValue('Half done')
+
+      await drawer.getByRole('button', { name: 'Cancel', exact: true }).click()
+      await confirm.getByRole('button', { name: 'Discard', exact: true }).click()
+      await expect(drawer).toBeHidden()
+    })
+
+    // Escape in the template window closes that window only: antd closes its top layer.
+    test('closes only the template window on Escape', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+      await withOptinTemplate(page)
+
+      await page.goto(CONTACTS_URL)
+      await waitForLoading(page)
+
+      const drawer = await openCreateDrawer(page)
+      await drawer.getByRole('switch', { name: 'Double opt-in' }).click()
+      await drawer.getByRole('button', { name: 'Choose', exact: true }).click()
+      const picker = page.getByRole('dialog', { name: /Choose a template/ })
+      await expect(picker).toBeVisible()
+
+      await page.keyboard.press('Escape')
+      await expect(picker).toBeHidden()
+      await expect(drawer).toBeVisible()
+      await expect(page.getByText('Discard your changes?')).toHaveCount(0)
+    })
+
+    test('refuses an ID another list has while typing', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(CONTACTS_URL)
+      await waitForLoading(page)
+
+      // The mock lists' ids (list-1) are not valid list IDs, so the check never asks for them:
+      // here lists.get finds a list under any ID, as the server would for a taken one.
+      const TAKEN_ID = 'newsletter'
+      await page.route('**/api/lists.get*', (route) =>
+        route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({ list: { id: TAKEN_ID, name: 'Newsletter' } })
+        })
+      )
+
+      const drawer = await openCreateDrawer(page)
+      await drawer.getByLabel('Name', { exact: true }).fill('Another')
+      await drawer.getByRole('button', { name: 'Modify', exact: true }).click()
+      await drawer.getByLabel('ID', { exact: true }).fill(TAKEN_ID)
+
+      await expect(drawer.getByText(`A list already has the ID “${TAKEN_ID}”. Change it.`)).toBeVisible()
+      await expect(drawer.getByRole('button', { name: 'Create list', exact: true })).toBeDisabled()
+    })
   })
 
   test.describe('Full Form Submission with Payload Verification', () => {
@@ -301,6 +395,7 @@ test.describe('Lists Feature', () => {
       authenticatedPageWithData
     }) => {
       const page = authenticatedPageWithData
+      await withOptinTemplate(page)
 
       await page.goto(CONTACTS_URL)
       await waitForLoading(page)
@@ -310,31 +405,23 @@ test.describe('Lists Feature', () => {
       await drawer.getByLabel('Name', { exact: true }).fill(testListData.name)
       await drawer.getByLabel('Description', { exact: true }).fill(testListData.description || '')
 
-      const publicSwitch = drawer.getByRole('switch', { name: 'Public' })
+      const publicSwitch = drawer.getByRole('switch', { name: 'Public list' })
       if (testListData.is_public) {
         await publicSwitch.click()
       }
       await expect(publicSwitch).toBeChecked({ checked: !!testListData.is_public })
 
-      const doubleOptInSwitch = drawer.getByRole('switch', { name: 'Double Opt-in' })
+      const doubleOptInSwitch = drawer.getByRole('switch', { name: 'Double opt-in' })
       if (testListData.is_double_optin) {
         await doubleOptInSwitch.click()
       }
       await expect(doubleOptInSwitch).toBeChecked({ checked: !!testListData.is_double_optin })
 
       // Double opt-in makes the confirmation template a required field
-      await drawer.getByPlaceholder('Select confirmation email template').click()
-      const picker = page.getByRole('dialog', { name: 'Select Template', exact: true })
-      await picker
-        .getByRole('listitem')
-        .filter({ hasText: 'Welcome Email' })
-        .getByRole('button', { name: 'Select', exact: true })
-        .click()
-      await expect(drawer.getByPlaceholder('Select confirmation email template')).toHaveValue(
-        'Welcome Email'
-      )
+      await pickTemplate(page, drawer, 'Welcome Email')
+      await expect(drawer.locator('[data-template-card]')).toContainText('Welcome Email')
 
-      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create list', exact: true }).click()
 
       await expect
         .poll(() => requestCapture.getRequestCount(API_PATTERNS.LIST_CREATE))
@@ -365,7 +452,7 @@ test.describe('Lists Feature', () => {
       await drawer.getByLabel('Name', { exact: true }).fill('Configuration Test List')
 
       // Both toggles left at their defaults: the payload must spell them out as false
-      await drawer.getByRole('button', { name: 'Create', exact: true }).click()
+      await drawer.getByRole('button', { name: 'Create list', exact: true }).click()
 
       await expect
         .poll(() => requestCapture.getRequestCount(API_PATTERNS.LIST_CREATE))

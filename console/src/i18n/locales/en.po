@@ -661,6 +661,10 @@ msgstr "{capability} requires a Notifuse {tier} licence."
 msgid "{capability} requires a Notifuse licence."
 msgstr "{capability} requires a Notifuse licence."
 
+#: src/components/templates/TemplateSelectorInput.tsx:233
+msgid "{categoryLabel} category"
+msgstr "{categoryLabel} category"
+
 #: src/components/templates/TemplateSelectorModal.tsx:626
 msgid "{categoryName} template: in an automation tied to a list, contacts unsubscribed, bounced or complained on that list don't receive it and leave the automation."
 msgstr "{categoryName} template: in an automation tied to a list, contacts unsubscribed, bounced or complained on that list don't receive it and leave the automation."
@@ -1184,6 +1188,10 @@ msgstr "{pageviews, plural, one {# page} other {# pages}}"
 #: src/components/timeline/ContactTimeline.tsx:933
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews} pages"
+
+#: src/components/lists/ListDrawer.tsx:559
+msgid "{pending, plural, one {Turning double opt-in off does not change the # “Pending” contact: they stay pending until they confirm.} other {Turning double opt-in off does not change the # “Pending” contacts: they stay pending until they confirm.}}"
+msgstr "{pending, plural, one {Turning double opt-in off does not change the # “Pending” contact: they stay pending until they confirm.} other {Turning double opt-in off does not change the # “Pending” contacts: they stay pending until they confirm.}}"
 
 #: src/components/segment/SegmentCountCard.tsx:113
 #~ msgid "{percent} % of the {total} contacts"
@@ -1765,6 +1773,10 @@ msgstr "A condition is open: confirm or cancel it."
 msgid "A condition is still open, and the changes made since the segment was opened will be lost."
 msgstr "A condition is still open, and the changes made since the segment was opened will be lost."
 
+#: src/components/lists/ListDrawer.tsx:522
+msgid "A confirmation email is sent before the subscription; the contact stays “Pending” until they click."
+msgstr "A confirmation email is sent before the subscription; the contact stays “Pending” until they click."
+
 #: src/components/settings/GeneralSettings.tsx:173
 msgid "A contact's own consent always wins."
 msgstr "A contact's own consent always wins."
@@ -1813,6 +1825,10 @@ msgstr "A Liquid block cannot go inside a block with a display condition: remove
 #: src/components/contacts/sheet/describeActivity.tsx:162
 msgid "a list"
 msgstr "a list"
+
+#: src/components/lists/ListDrawer.tsx:167
+msgid "A list already has the ID “{listId}”. Change it."
+msgstr "A list already has the ID “{listId}”. Change it."
 
 #: src/components/templates/gallery/labels.ts:39
 msgid "A list's emails"
@@ -2775,6 +2791,10 @@ msgstr "already filtered"
 #~ msgid "already set"
 #~ msgstr "already set"
 
+#: src/components/lists/ListDrawer.tsx:377
+msgid "already used"
+msgstr "already used"
+
 #: src/components/analytics/GetStartedChecklist.tsx:419
 msgid "Also available: <0>a blog</0> for your site."
 msgstr "Also available: <0>a blog</0> for your site."
@@ -3638,6 +3658,10 @@ msgstr "Automations"
 #: src/services/api/permissions.ts:730
 msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
 msgstr "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
+
+#: src/components/lists/ListDrawer.tsx:378
+msgid "available"
+msgstr "available"
 
 #: src/components/integrations/SupabaseIntegration.tsx:141
 msgid "Available after saving"
@@ -4682,7 +4706,7 @@ msgstr "Can't test in the browser"
 #: src/components/file_manager/FileExplorer.tsx:1181
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
-#: src/components/lists/ListDrawer.tsx:194
+#: src/components/lists/ListDrawer.tsx:579
 #: src/components/segment/form_leaf.tsx:207
 #: src/components/segment/input.tsx:314
 #: src/components/segment/SegmentDrawer.tsx:293
@@ -4791,6 +4815,10 @@ msgstr "Cancelled the newsletter <0>{target}</0>"
 msgid "Cancelled the web analytics backfill"
 msgstr "Cancelled the web analytics backfill"
 
+#: src/components/lists/ListDrawer.tsx:488
+msgid "Cannot be changed, used by the API and forms."
+msgstr "Cannot be changed, used by the API and forms."
+
 #: src/pages/SignInPage.tsx:250
 msgid "Cannot reach the configured API endpoint"
 msgstr "Cannot reach the configured API endpoint"
@@ -4888,6 +4916,7 @@ msgstr "Center Left"
 msgid "Center Right"
 msgstr "Center Right"
 
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/templates/TemplateSettingsAside.tsx:163
 msgid "Change"
 msgstr "Change"
@@ -5032,14 +5061,24 @@ msgstr "Checking that the ID {id} is free…"
 msgid "Checking webhooks…"
 msgstr "Checking webhooks…"
 
+#: src/components/lists/ListDrawer.tsx:373
+msgid "Checking…"
+msgstr "Checking…"
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:249
 msgid "Checks"
 msgstr "Checks"
 
 #: src/components/logs/MessagesTab.tsx:402
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/transactional/NotificationChecks.tsx:118
 msgid "Choose"
 msgstr "Choose"
+
+#: src/components/lists/ListDrawer.tsx:534
+#: src/components/lists/ListDrawer.tsx:542
+msgid "Choose a confirmation template"
+msgstr "Choose a confirmation template"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:177
 msgid "Choose a date to schedule"
@@ -5836,6 +5875,10 @@ msgstr "Confirm"
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 
+#: src/components/lists/ListDrawer.tsx:533
+msgid "Confirmation template"
+msgstr "Confirmation template"
+
 #: src/components/automations/describeTrigger.ts:36
 msgid "Confirmed"
 msgstr "Confirmed"
@@ -6058,6 +6101,10 @@ msgstr "Contact updated successfully"
 msgid "Contacts"
 msgstr "Contacts"
 
+#: src/components/lists/ListDrawer.tsx:508
+msgid "Contacts can subscribe or unsubscribe from the notification center."
+msgstr "Contacts can subscribe or unsubscribe from the notification center."
+
 #: src/components/segment/input.tsx:469
 msgid "Contacts matching"
 msgstr "Contacts matching"
@@ -6188,6 +6235,7 @@ msgstr "Copied"
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:35
 #: src/components/layout/Mono.tsx:36
+#: src/components/lists/ListDrawer.tsx:485
 #: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
@@ -6257,6 +6305,10 @@ msgstr "Core Fields"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:210
 msgid "Could not copy the external ID"
 msgstr "Could not copy the external ID"
+
+#: src/components/lists/ListDrawer.tsx:363
+msgid "Could not copy the ID"
+msgstr "Could not copy the ID"
 
 #: src/components/logs/AuditEntryDetail.tsx:97
 msgid "Could not copy the link"
@@ -6524,7 +6576,6 @@ msgstr "Covers more than templates: reusable blocks answer to the same switch, a
 
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
-#: src/components/lists/ListDrawer.tsx:200
 #: src/components/segment/SegmentDrawer.tsx:289
 msgid "Create"
 msgstr "Create"
@@ -6630,9 +6681,13 @@ msgstr "Create category"
 msgid "Create First Theme"
 msgstr "Create First Theme"
 
+#: src/components/lists/ListDrawer.tsx:582
+msgid "Create list"
+msgstr "Create list"
+
 #: src/components/lists/ListDrawer.tsx:181
-msgid "Create List"
-msgstr "Create List"
+#~ msgid "Create List"
+#~ msgstr "Create List"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 msgid "Create my own"
@@ -6652,8 +6707,8 @@ msgid "Create new folder"
 msgstr "Create new folder"
 
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Create New List"
-msgstr "Create New List"
+#~ msgid "Create New List"
+#~ msgstr "Create New List"
 
 #: src/components/blog/PostDrawer.tsx:656
 #~ msgid "Create New Post"
@@ -6821,6 +6876,10 @@ msgstr "Created by Zapier"
 #: src/components/blog/ThemeEditorDrawer.tsx:260
 msgid "Created new version v{savedVersion}"
 msgstr "Created new version v{savedVersion}"
+
+#: src/components/lists/ListDrawer.tsx:577
+msgid "Created on {createdOn}"
+msgstr "Created on {createdOn}"
 
 #: src/components/logs/auditPhrases.ts:87
 msgid "Created the API key <0>{target}</0>"
@@ -7992,7 +8051,7 @@ msgstr "Describe this image..."
 
 #: src/components/automations/NodeConfigPanel.tsx:280
 #: src/components/blog/CategoryDrawer.tsx:280
-#: src/components/lists/ListDrawer.tsx:237
+#: src/components/lists/ListDrawer.tsx:494
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:475
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 msgid "Description"
@@ -8134,6 +8193,7 @@ msgstr "Disabled rules"
 
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
+#: src/components/lists/ListDrawer.tsx:214
 #: src/components/segment/SegmentDrawer.tsx:169
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
@@ -8155,6 +8215,7 @@ msgstr "Discard Draft"
 msgid "Discard unsaved changes?"
 msgstr "Discard unsaved changes?"
 
+#: src/components/lists/ListDrawer.tsx:212
 #: src/components/segment/SegmentDrawer.tsx:165
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
@@ -8336,17 +8397,18 @@ msgstr "Dotted"
 msgid "Double"
 msgstr "Double"
 
+#: src/components/lists/ListDrawer.tsx:519
 #: src/components/lists/ListHeader.tsx:68
 msgid "Double opt-in"
 msgstr "Double opt-in"
 
 #: src/components/lists/ListDrawer.tsx:260
-msgid "Double Opt-in"
-msgstr "Double Opt-in"
+#~ msgid "Double Opt-in"
+#~ msgstr "Double Opt-in"
 
 #: src/components/lists/ListDrawer.tsx:281
-msgid "Double Opt-in Template"
-msgstr "Double Opt-in Template"
+#~ msgid "Double Opt-in Template"
+#~ msgstr "Double Opt-in Template"
 
 #: src/components/file_manager/FileExplorer.tsx:569
 #: src/components/file_manager/FilePreview.tsx:98
@@ -8453,6 +8515,14 @@ msgstr "e.g. email"
 #: src/components/settings/ZapierSettings.tsx:172
 msgid "e.g. Marketing"
 msgstr "e.g. Marketing"
+
+#: src/components/lists/ListDrawer.tsx:468
+msgid "e.g. members"
+msgstr "e.g. members"
+
+#: src/components/lists/ListDrawer.tsx:411
+msgid "e.g. Newsletter, Customers, Beta"
+msgstr "e.g. Newsletter, Customers, Beta"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:568
 msgid "e.g. notifuse"
@@ -8711,13 +8781,14 @@ msgid "Edit Liquid Content"
 msgstr "Edit Liquid Content"
 
 #: src/components/contacts/ContactsViewHeader.tsx:214
+#: src/components/lists/ListDrawer.tsx:73
 msgid "Edit list"
 msgstr "Edit list"
 
 #: src/components/lists/ListDrawer.tsx:181
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Edit List"
-msgstr "Edit List"
+#~ msgid "Edit List"
+#~ msgstr "Edit List"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:247
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:369
@@ -9392,8 +9463,8 @@ msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "Enter a number, with at most 15 digits before the decimal point."
 
 #: src/components/lists/ListDrawer.tsx:234
-msgid "Enter a unique alphanumeric ID"
-msgstr "Enter a unique alphanumeric ID"
+#~ msgid "Enter a unique alphanumeric ID"
+#~ msgstr "Enter a unique alphanumeric ID"
 
 #: src/components/segment/FilterValueInput.tsx:62
 #: src/components/web_analytics/FilterBuilder.tsx:349
@@ -9513,16 +9584,16 @@ msgid "Enter link URL or {{ url }}"
 msgstr "Enter link URL or {{ url }}"
 
 #: src/components/lists/ListDrawer.tsx:238
-msgid "Enter list description"
-msgstr "Enter list description"
+#~ msgid "Enter list description"
+#~ msgstr "Enter list description"
 
 #: src/components/lists/DeleteListModal.tsx:148
 msgid "Enter list ID to confirm"
 msgstr "Enter list ID to confirm"
 
 #: src/components/lists/ListDrawer.tsx:222
-msgid "Enter list name"
-msgstr "Enter list name"
+#~ msgid "Enter list name"
+#~ msgstr "Enter list name"
 
 #: src/components/settings/BlogSettings.tsx:396
 msgid "Enter logo URL or select image"
@@ -10194,8 +10265,8 @@ msgid "Failed to create folder: "
 msgstr "Failed to create folder: "
 
 #: src/components/lists/ListDrawer.tsx:81
-msgid "Failed to create list: {error}"
-msgstr "Failed to create list: {error}"
+#~ msgid "Failed to create list: {error}"
+#~ msgstr "Failed to create list: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:206
@@ -10618,8 +10689,8 @@ msgid "Failed to update file manager settings"
 msgstr "Failed to update file manager settings"
 
 #: src/components/lists/ListDrawer.tsx:95
-msgid "Failed to update list: {error}"
-msgstr "Failed to update list: {error}"
+#~ msgid "Failed to update list: {error}"
+#~ msgstr "Failed to update list: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:205
@@ -11936,6 +12007,9 @@ msgstr "Icon Styling"
 #~ msgstr "Icon/Favicon URL"
 
 #: src/components/contacts/ContactsViewHeader.tsx:184
+#: src/components/lists/ListDrawer.tsx:418
+#: src/components/lists/ListDrawer.tsx:446
+#: src/components/lists/ListDrawer.tsx:479
 #: src/components/messages/MessageHistoryTable.tsx:281
 msgid "ID"
 msgstr "ID"
@@ -11954,11 +12028,16 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "ID can only contain lowercase letters, numbers, and underscores"
 
 #: src/components/automations/AutomationEditor.tsx:428
+#: src/components/lists/ListDrawer.tsx:361
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:239
 #: src/pages/TemplatesPage.tsx:329
 #: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "ID copied"
 msgstr "ID copied"
+
+#: src/components/lists/ListDrawer.tsx:437
+msgid "ID derived from the name"
+msgstr "ID derived from the name"
 
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:76
 #: src/components/lists/DeleteListModal.tsx:154
@@ -11978,11 +12057,11 @@ msgstr "ID for API: {0}"
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "ID is automatically generated but can be modified if needed"
 
-#: src/components/lists/ListDrawer.tsx:230
+#: src/components/lists/ListDrawer.tsx:462
 msgid "ID must be alphanumeric"
 msgstr "ID must be alphanumeric"
 
-#: src/components/lists/ListDrawer.tsx:231
+#: src/components/lists/ListDrawer.tsx:463
 msgid "ID must be less than 32 characters"
 msgstr "ID must be less than 32 characters"
 
@@ -12267,6 +12346,11 @@ msgstr "in the last"
 #: src/components/segment/segmentSummary.ts:129
 msgid "in the last {days} days"
 msgstr "in the last {days} days"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:19
+#: src/components/lists/NotificationCenterListPreview.tsx:20
+msgid "In the notification center"
+msgstr "In the notification center"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:155
 msgid "in the payload."
@@ -12838,6 +12922,7 @@ msgstr "Justify"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:234
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
+#: src/components/lists/ListDrawer.tsx:215
 #: src/components/segment/SegmentDrawer.tsx:170
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:720
@@ -13190,6 +13275,10 @@ msgstr "Letter spacing"
 #~ msgid "Letter Spacing"
 #~ msgstr "Letter Spacing"
 
+#: src/components/lists/ListDrawer.tsx:455
+msgid "Letters and digits, 32 at most. Used by the API and forms; cannot change after creation."
+msgstr "Letters and digits, 32 at most. Used by the API and forms; cannot change after creation."
+
 #: src/components/email_builder/EmailBuilder.tsx:1135
 msgid "Library"
 msgstr "Library"
@@ -13430,9 +13519,13 @@ msgstr "List broadcasts with their audience and schedule"
 msgid "List contacts with their full profile fields"
 msgstr "List contacts with their full profile fields"
 
+#: src/components/lists/ListDrawer.tsx:341
+msgid "List created"
+msgstr "List created"
+
 #: src/components/lists/ListDrawer.tsx:76
-msgid "List created successfully"
-msgstr "List created successfully"
+#~ msgid "List created successfully"
+#~ msgstr "List created successfully"
 
 #: src/services/api/permissions.ts:167
 msgid "List custom events recorded against contacts"
@@ -13447,13 +13540,17 @@ msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "List everything one contact is subscribed to (also needs Contacts read)"
 
 #: src/components/lists/ListDrawer.tsx:227
-msgid "List ID"
-msgstr "List ID"
+#~ msgid "List ID"
+#~ msgstr "List ID"
 
 #. placeholder {0}: record.list_id
 #: src/components/contacts/ContactDetailsDrawer.tsx:990
 #~ msgid "List ID: {0}"
 #~ msgstr "List ID: {0}"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:24
+msgid "List name"
+msgstr "List name"
 
 #: src/services/api/permissions.ts:248
 msgid "List segments with their full definition trees"
@@ -13525,9 +13622,13 @@ msgstr "List to Check"
 msgid "List transactional notification definitions"
 msgstr "List transactional notification definitions"
 
+#: src/components/lists/ListDrawer.tsx:314
+msgid "List updated"
+msgstr "List updated"
+
 #: src/components/lists/ListDrawer.tsx:90
-msgid "List updated successfully"
-msgstr "List updated successfully"
+#~ msgid "List updated successfully"
+#~ msgstr "List updated successfully"
 
 #: src/components/timeline/ContactTimeline.tsx:391
 #: src/components/timeline/ContactTimeline.tsx:404
@@ -13662,7 +13763,7 @@ msgstr "Loading template..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/templates/CreateTemplateDrawer.tsx:1012
-#: src/components/templates/TemplateSelectorInput.tsx:150
+#: src/components/templates/TemplateSelectorInput.tsx:162
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:461
 msgid "Loading..."
@@ -14360,6 +14461,10 @@ msgstr "Modest Branding"
 msgid "Modified"
 msgstr "Modified"
 
+#: src/components/lists/ListDrawer.tsx:433
+msgid "Modify"
+msgstr "Modify"
+
 #: src/pages/LogsPage.tsx:29
 #~ msgid "Monitor message delivery status and webhook events"
 #~ msgstr "Monitor message delivery status and webhook events"
@@ -14465,7 +14570,7 @@ msgstr "N/A"
 #: src/components/integrations/FirecrawlIntegration.tsx:89
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
-#: src/components/lists/ListDrawer.tsx:216
+#: src/components/lists/ListDrawer.tsx:404
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -14510,7 +14615,7 @@ msgid "Name is required"
 msgstr "Name is required"
 
 #: src/components/blog/CategoryDrawer.tsx:236
-#: src/components/lists/ListDrawer.tsx:219
+#: src/components/lists/ListDrawer.tsx:408
 msgid "Name must be less than 255 characters"
 msgstr "Name must be less than 255 characters"
 
@@ -14636,6 +14741,7 @@ msgid "New key"
 msgstr "New key"
 
 #: src/components/contacts/ContactsRail.tsx:79
+#: src/components/lists/ListDrawer.tsx:73
 msgid "New list"
 msgstr "New list"
 
@@ -17165,11 +17271,11 @@ msgstr "Please enter a custom label"
 msgid "Please enter a label for this connection"
 msgstr "Please enter a label for this connection"
 
-#: src/components/lists/ListDrawer.tsx:229
+#: src/components/lists/ListDrawer.tsx:461
 msgid "Please enter a list ID"
 msgstr "Please enter a list ID"
 
-#: src/components/lists/ListDrawer.tsx:218
+#: src/components/lists/ListDrawer.tsx:407
 msgid "Please enter a list name"
 msgstr "Please enter a list name"
 
@@ -17353,8 +17459,8 @@ msgstr "Please select a status"
 #~ msgstr "Please select a template"
 
 #: src/components/lists/ListDrawer.tsx:283
-msgid "Please select a template for double opt-in"
-msgstr "Please select a template for double opt-in"
+#~ msgid "Please select a template for double opt-in"
+#~ msgstr "Please select a template for double opt-in"
 
 #: src/components/blog/PublishModal.tsx:153
 msgid "Please select a time"
@@ -17550,7 +17656,8 @@ msgstr "Press Enter to confirm, Escape to cancel"
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:116
 #: src/components/seo/SeoPreview.tsx:36
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:244
+#: src/components/templates/TemplateSelectorInput.tsx:292
 #: src/components/templates/TemplateSelectorModal.tsx:368
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
@@ -17649,6 +17756,10 @@ msgstr "Preview with test data"
 #: src/components/templates/CreateTemplateDrawer.tsx:1506
 msgid "Preview Your Email"
 msgstr "Preview Your Email"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:38
+msgid "Preview: the name and description as the contact sees them, with the subscribe button."
+msgstr "Preview: the name and description as the contact sees them, with the subscribe button."
 
 #: src/components/layout/DrawerControls.tsx:51
 msgid "Previous"
@@ -17820,13 +17931,16 @@ msgid "Provider's default sender"
 msgstr "Provider's default sender"
 
 #: src/components/contacts/ContactsViewHeader.tsx:195
-#: src/components/lists/ListDrawer.tsx:245
 msgid "Public"
 msgstr "Public"
 
+#: src/components/lists/ListDrawer.tsx:505
+msgid "Public list"
+msgstr "Public list"
+
 #: src/components/lists/ListDrawer.tsx:246
-msgid "Public lists are visible in the Notification Center for users to subscribe to"
-msgstr "Public lists are visible in the Notification Center for users to subscribe to"
+#~ msgid "Public lists are visible in the Notification Center for users to subscribe to"
+#~ msgstr "Public lists are visible in the Notification Center for users to subscribe to"
 
 #: src/pages/SetupWizard.tsx:385
 msgid "Public URL where this Notifuse instance is accessible"
@@ -19410,7 +19524,7 @@ msgstr "Sandbox mode"
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
-#: src/components/lists/ListDrawer.tsx:200
+#: src/components/lists/ListDrawer.tsx:582
 #: src/components/segment/SegmentDrawer.tsx:289
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
@@ -20072,7 +20186,7 @@ msgstr "Select a sender"
 msgid "Select a social block"
 msgstr "Select a social block"
 
-#: src/components/templates/TemplateSelectorInput.tsx:79
+#: src/components/templates/TemplateSelectorInput.tsx:87
 msgid "Select a template"
 msgstr "Select a template"
 
@@ -20128,8 +20242,8 @@ msgid "Select columns"
 msgstr "Select columns"
 
 #: src/components/lists/ListDrawer.tsx:291
-msgid "Select confirmation email template"
-msgstr "Select confirmation email template"
+#~ msgid "Select confirmation email template"
+#~ msgstr "Select confirmation email template"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:435
 msgid "Select consent"
@@ -20680,6 +20794,10 @@ msgstr "Sent by"
 msgid "Sent by the automation {0}"
 msgstr "Sent by the automation {0}"
 
+#: src/components/templates/TemplateSelectorInput.tsx:221
+msgid "sent by the marketing provider"
+msgstr "sent by the marketing provider"
+
 #. placeholder {0}: broadcastName ?? message.broadcast_id ?? ''
 #: src/components/logs/MessageDetail.tsx:271
 msgid "Sent by the newsletter {0}"
@@ -20689,6 +20807,10 @@ msgstr "Sent by the newsletter {0}"
 #: src/components/logs/MessageDetail.tsx:275
 msgid "Sent by the transactional notification {0}"
 msgstr "Sent by the transactional notification {0}"
+
+#: src/components/templates/TemplateSelectorInput.tsx:223
+msgid "sent by the transactional provider"
+msgstr "sent by the transactional provider"
 
 #: src/components/logs/MessageDetail.tsx:300
 #: src/components/logs/MessageDetail.tsx:813
@@ -21229,6 +21351,10 @@ msgstr "Shown in the assistant's model picker"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:785
 msgid "Shown next to the API key"
 msgstr "Shown next to the API key"
+
+#: src/components/lists/ListDrawer.tsx:495
+msgid "Shown to contacts in the notification center when the list is public."
+msgstr "Shown to contacts in the notification center when the list is public."
 
 #: src/components/email_builder/panels/TreePanel.tsx:279
 msgid "Shown under a condition"
@@ -21965,6 +22091,7 @@ msgid "Submitting batch request to the server..."
 msgstr "Submitting batch request to the server..."
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:196
+#: src/components/lists/NotificationCenterListPreview.tsx:34
 msgid "Subscribe"
 msgstr "Subscribe"
 
@@ -22036,6 +22163,7 @@ msgstr "Subscribed to {name}"
 msgid "Subscript"
 msgstr "Subscript"
 
+#: src/components/lists/ListDrawer.tsx:500
 #: src/components/logs/OutgoingWebhooksTab.tsx:136
 #: src/components/logs/OutgoingWebhooksTab.tsx:181
 #: src/components/segment/segmentLabels.ts:274
@@ -22330,7 +22458,7 @@ msgstr "Template block not found"
 msgid "Template changed by someone else"
 msgstr "Template changed by someone else"
 
-#: src/components/templates/TemplateSelectorInput.tsx:233
+#: src/components/templates/TemplateSelectorInput.tsx:210
 msgid "Template created and selected"
 msgstr "Template created and selected"
 
@@ -22863,7 +22991,7 @@ msgstr "The city name"
 msgid "The comparison period as extra columns"
 msgstr "The comparison period as extra columns"
 
-#: src/components/lists/ListDrawer.tsx:292
+#: src/components/lists/ListDrawer.tsx:543
 msgid "The confirmation email each new subscriber receives"
 msgstr "The confirmation email each new subscriber receives"
 
@@ -23055,6 +23183,10 @@ msgstr "The hostname your server identifies itself as when connecting to the SMT
 msgid "The icon in the browser tab; 32 or 192 px square"
 msgstr "The icon in the browser tab; 32 or 192 px square"
 
+#: src/components/lists/ListDrawer.tsx:280
+msgid "The ID “{listId}” belonged to a deleted list and cannot be reused. Choose another."
+msgstr "The ID “{listId}” belonged to a deleted list and cannot be reused. Choose another."
+
 #: src/components/segment/SegmentSummaryPanel.tsx:75
 msgid "The ID {id} could not be checked; saving will tell if it is taken."
 msgstr "The ID {id} could not be checked; saving will tell if it is taken."
@@ -23110,6 +23242,14 @@ msgstr "The list \"{listName}\" can't be deleted while the live automations \"{f
 msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
 msgstr "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
 
+#: src/components/lists/ListDrawer.tsx:345
+msgid "The list could not be created."
+msgstr "The list could not be created."
+
+#: src/components/lists/ListDrawer.tsx:318
+msgid "The list could not be saved."
+msgstr "The list could not be saved."
+
 #: src/services/api/permissions.ts:926
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
 msgstr "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
@@ -23121,6 +23261,10 @@ msgstr "The log names every member's email and IP address and records refused ac
 #: src/components/settings/ZapierSettings.tsx:88
 #~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 #~ msgstr "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
+
+#: src/components/lists/ListDrawer.tsx:452
+msgid "The name gives no ID: enter one."
+msgstr "The name gives no ID: enter one."
 
 #: src/components/broadcasts/compose/useIssueText.ts:12
 msgid "the name is longer than 255 characters"
@@ -23685,6 +23829,10 @@ msgstr "This licence covers the whole deployment — one database. A key pasted 
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 #~ msgstr "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 
+#: src/components/lists/ListDrawer.tsx:213
+msgid "This list is not created yet."
+msgstr "This list is not created yet."
+
 #: src/pages/ContactsPage.tsx:621
 msgid "This list no longer exists"
 msgstr "This list no longer exists"
@@ -23797,6 +23945,10 @@ msgstr "This session is too long to show in full: only its first pages and goals
 #: src/components/automations/NodeConfigPanel.tsx:189
 msgid "This step is edited through the API."
 msgstr "This step is edited through the API."
+
+#: src/components/templates/TemplateSelectorInput.tsx:352
+msgid "This template cannot be found"
+msgstr "This template cannot be found"
 
 #: src/components/transactional/PreviewPanel.tsx:80
 msgid "This template has no content to preview yet"
@@ -24571,6 +24723,10 @@ msgstr "Turned on Amazon SES tenant isolation for <0>{target}</0>"
 #: src/components/logs/auditPhrases.ts:81
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Turned the webhook <0>{target}</0> on or off"
+
+#: src/components/lists/ListDrawer.tsx:558
+msgid "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
+msgstr "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
 
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
@@ -26080,8 +26236,8 @@ msgstr "When a link to the post is shared"
 #~ msgstr "When enabled, links in the email will be tracked for opens and clicks"
 
 #: src/components/lists/ListDrawer.tsx:261
-msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
-msgstr "When enabled, subscribers must confirm their subscription via email before being added to the list"
+#~ msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
+#~ msgstr "When enabled, subscribers must confirm their subscription via email before being added to the list"
 
 #: src/components/settings/BlogSettings.tsx:439
 #~ msgid "When enabled, the feed includes only excerpts instead of full article content"
@@ -26728,13 +26884,18 @@ msgstr "You need Templates read and Transactional write permissions to send test
 msgid "You need Templates read permission"
 msgstr "You need Templates read permission"
 
-#: src/components/templates/TemplateSelectorInput.tsx:155
+#: src/components/templates/TemplateSelectorInput.tsx:167
+#: src/components/templates/TemplateSelectorInput.tsx:238
 msgid "You need Templates read permission to choose a template"
 msgstr "You need Templates read permission to choose a template"
 
+#: src/components/templates/TemplateSelectorInput.tsx:237
+msgid "You need Templates read permission to see its name and preview"
+msgstr "You need Templates read permission to see its name and preview"
+
 #: src/components/broadcasts/compose/PreviewPanel.tsx:84
 #: src/components/broadcasts/detail/BroadcastAside.tsx:88
-#: src/components/templates/TemplateSelectorInput.tsx:154
+#: src/components/templates/TemplateSelectorInput.tsx:166
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:342
 msgid "You need Templates read permission to see this template's name and preview"
 msgstr "You need Templates read permission to see this template's name and preview"
@@ -26785,6 +26946,10 @@ msgstr "Your changes to this category will be lost."
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:833
 msgid "Your changes to this integration will be lost."
 msgstr "Your changes to this integration will be lost."
+
+#: src/components/lists/ListDrawer.tsx:213
+msgid "Your changes to this list will be lost."
+msgstr "Your changes to this list will be lost."
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:504
 msgid "Your changes to this scheduled broadcast will be lost."

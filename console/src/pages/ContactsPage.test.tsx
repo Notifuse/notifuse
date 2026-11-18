@@ -168,14 +168,19 @@ vi.mock('../components/lists/ListDrawer', () => ({
   CreateListDrawer: ({
     open,
     list,
-    canReadTemplates
+    canReadTemplates,
+    onCreated
   }: {
     open?: boolean
     list?: unknown
     canReadTemplates: boolean
+    onCreated?: (list: { id: string }) => void
   }) =>
     open ? (
-      <div data-can-read-templates={String(canReadTemplates)}>{list ? 'edit list drawer' : 'new list drawer'}</div>
+      <div data-can-read-templates={String(canReadTemplates)}>
+        {list ? 'edit list drawer' : 'new list drawer'}
+        <button onClick={() => onCreated?.({ id: 'beta' })}>list created</button>
+      </div>
     ) : null
 }))
 
@@ -750,6 +755,17 @@ describe('ContactsPage', () => {
         search: expect.objectContaining({ country: undefined, search: undefined }),
         replace: true
       })
+    })
+  })
+
+  // A list created from the rail opens: its view, in a new history entry.
+  it('opens the list the drawer created', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'New list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'list created' }))
+    expect(lastNavigation()).toEqual({
+      search: expect.objectContaining({ list_id: 'beta', segment_id: undefined }),
+      replace: false
     })
   })
 

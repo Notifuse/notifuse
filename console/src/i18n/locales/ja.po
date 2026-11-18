@@ -661,6 +661,10 @@ msgstr ""
 msgid "{capability} requires a Notifuse licence."
 msgstr ""
 
+#: src/components/templates/TemplateSelectorInput.tsx:233
+msgid "{categoryLabel} category"
+msgstr "{categoryLabel} カテゴリ"
+
 #: src/components/templates/TemplateSelectorModal.tsx:626
 msgid "{categoryName} template: in an automation tied to a list, contacts unsubscribed, bounced or complained on that list don't receive it and leave the automation."
 msgstr "{categoryName} テンプレート: リストに紐づくオートメーションでは、そのリストで購読解除、バウンス、苦情報告済みのコンタクトには送信されず、オートメーションから外れます。"
@@ -1184,6 +1188,10 @@ msgstr "{pageviews, plural, other {# ページ}}"
 #: src/components/timeline/ContactTimeline.tsx:933
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews}ページ"
+
+#: src/components/lists/ListDrawer.tsx:559
+msgid "{pending, plural, one {Turning double opt-in off does not change the # “Pending” contact: they stay pending until they confirm.} other {Turning double opt-in off does not change the # “Pending” contacts: they stay pending until they confirm.}}"
+msgstr "{pending, plural, other {ダブルオプトインをオフにしても、#件の「保留中」の連絡先は変わりません。確認するまで保留中のままです。}}"
 
 #: src/components/segment/SegmentCountCard.tsx:113
 #~ msgid "{percent} % of the {total} contacts"
@@ -1765,6 +1773,10 @@ msgstr "編集中の条件があります。確定するかキャンセルして
 msgid "A condition is still open, and the changes made since the segment was opened will be lost."
 msgstr "編集中の条件があり、セグメントを開いてからの変更は失われます。"
 
+#: src/components/lists/ListDrawer.tsx:522
+msgid "A confirmation email is sent before the subscription; the contact stays “Pending” until they click."
+msgstr "購読の前に確認メールが送信されます。連絡先はクリックするまで「保留中」のままです。"
+
 #: src/components/settings/GeneralSettings.tsx:173
 msgid "A contact's own consent always wins."
 msgstr "連絡先自身の同意が常に優先されます。"
@@ -1813,6 +1825,10 @@ msgstr "表示条件のあるブロックの中に Liquid ブロックは配置�
 #: src/components/contacts/sheet/describeActivity.tsx:162
 msgid "a list"
 msgstr "リスト"
+
+#: src/components/lists/ListDrawer.tsx:167
+msgid "A list already has the ID “{listId}”. Change it."
+msgstr "ID「{listId}」はすでに別のリストで使われています。変更してください。"
 
 #: src/components/templates/gallery/labels.ts:39
 msgid "A list's emails"
@@ -2775,6 +2791,10 @@ msgstr "フィルター済み"
 #~ msgid "already set"
 #~ msgstr "設定済み"
 
+#: src/components/lists/ListDrawer.tsx:377
+msgid "already used"
+msgstr "使用済み"
+
 #: src/components/analytics/GetStartedChecklist.tsx:419
 msgid "Also available: <0>a blog</0> for your site."
 msgstr "サイト向けの<0>ブログ</0>もご利用いただけます。"
@@ -3638,6 +3658,10 @@ msgstr "オートメーション"
 #: src/services/api/permissions.ts:730
 msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
 msgstr "オートメーションの書き込みは、コンタクトの読み取りでは抑制できない間接的なコンタクトの読み取りです: Webhookノードはコンタクトのレコード全体をオートメーションが指定した任意のURLへ送信し、オートメーションの実行中は権限が一切チェックされません。同じノードがコンタクトをリストに追加したりリストから削除したりし、メールも送信します。そのため、このスイッチはリストやトランザクションの付与が一切なくてもリストのメンバーシップを変更し、メールを送信します。オートメーションの読み取りは、Webhookノードの設定全体を返します。そこに保存されているベアラーシークレットも含まれます。"
+
+#: src/components/lists/ListDrawer.tsx:378
+msgid "available"
+msgstr "使用可能"
 
 #: src/components/integrations/SupabaseIntegration.tsx:141
 msgid "Available after saving"
@@ -4682,7 +4706,7 @@ msgstr "ブラウザでテストできません"
 #: src/components/file_manager/FileExplorer.tsx:1181
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
-#: src/components/lists/ListDrawer.tsx:194
+#: src/components/lists/ListDrawer.tsx:579
 #: src/components/segment/form_leaf.tsx:207
 #: src/components/segment/input.tsx:314
 #: src/components/segment/SegmentDrawer.tsx:293
@@ -4791,6 +4815,10 @@ msgstr "ニュースレター <0>{target}</0> を中止しました"
 msgid "Cancelled the web analytics backfill"
 msgstr "Web アナリティクスのバックフィルを中止しました"
 
+#: src/components/lists/ListDrawer.tsx:488
+msgid "Cannot be changed, used by the API and forms."
+msgstr "変更できません。API とフォームで使われます。"
+
 #: src/pages/SignInPage.tsx:250
 msgid "Cannot reach the configured API endpoint"
 msgstr "設定されたAPIエンドポイントに接続できません"
@@ -4888,6 +4916,7 @@ msgstr "左中央"
 msgid "Center Right"
 msgstr "右中央"
 
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/templates/TemplateSettingsAside.tsx:163
 msgid "Change"
 msgstr "変更"
@@ -5032,14 +5061,24 @@ msgstr "ID {id} が使えるか確認中…"
 msgid "Checking webhooks…"
 msgstr "Webhook を確認中…"
 
+#: src/components/lists/ListDrawer.tsx:373
+msgid "Checking…"
+msgstr "確認中…"
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:249
 msgid "Checks"
 msgstr "チェック"
 
 #: src/components/logs/MessagesTab.tsx:402
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/transactional/NotificationChecks.tsx:118
 msgid "Choose"
 msgstr "選択"
+
+#: src/components/lists/ListDrawer.tsx:534
+#: src/components/lists/ListDrawer.tsx:542
+msgid "Choose a confirmation template"
+msgstr "確認用テンプレートを選択"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:177
 msgid "Choose a date to schedule"
@@ -5836,6 +5875,10 @@ msgstr "確認"
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "コンタクトの存在を確認し、購読しているものをすべて一覧表示する (リストの読み取りも必要)"
 
+#: src/components/lists/ListDrawer.tsx:533
+msgid "Confirmation template"
+msgstr "確認用テンプレート"
+
 #: src/components/automations/describeTrigger.ts:36
 msgid "Confirmed"
 msgstr "確認済み"
@@ -6058,6 +6101,10 @@ msgstr "コンタクトを更新しました"
 msgid "Contacts"
 msgstr "コンタクト"
 
+#: src/components/lists/ListDrawer.tsx:508
+msgid "Contacts can subscribe or unsubscribe from the notification center."
+msgstr "連絡先は通知センターから購読または購読解除できます。"
+
 #: src/components/segment/input.tsx:469
 msgid "Contacts matching"
 msgstr "次の条件の"
@@ -6188,6 +6235,7 @@ msgstr "コピーしました"
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:35
 #: src/components/layout/Mono.tsx:36
+#: src/components/lists/ListDrawer.tsx:485
 #: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
@@ -6257,6 +6305,10 @@ msgstr "基本フィールド"
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:210
 msgid "Could not copy the external ID"
 msgstr "外部 ID をコピーできませんでした"
+
+#: src/components/lists/ListDrawer.tsx:363
+msgid "Could not copy the ID"
+msgstr "ID をコピーできませんでした"
 
 #: src/components/logs/AuditEntryDetail.tsx:97
 msgid "Could not copy the link"
@@ -6524,7 +6576,6 @@ msgstr "テンプレート以外にも及びます: 再利用可能なブロッ�
 
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
-#: src/components/lists/ListDrawer.tsx:200
 #: src/components/segment/SegmentDrawer.tsx:289
 msgid "Create"
 msgstr "作成"
@@ -6630,9 +6681,13 @@ msgstr "カテゴリを作成"
 msgid "Create First Theme"
 msgstr "最初のテーマを作成"
 
-#: src/components/lists/ListDrawer.tsx:181
-msgid "Create List"
+#: src/components/lists/ListDrawer.tsx:582
+msgid "Create list"
 msgstr "リストを作成"
+
+#: src/components/lists/ListDrawer.tsx:181
+#~ msgid "Create List"
+#~ msgstr "リストを作成"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 msgid "Create my own"
@@ -6652,8 +6707,8 @@ msgid "Create new folder"
 msgstr "新規フォルダを作成"
 
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Create New List"
-msgstr "新規リストを作成"
+#~ msgid "Create New List"
+#~ msgstr "新規リストを作成"
 
 #: src/components/blog/PostDrawer.tsx:656
 #~ msgid "Create New Post"
@@ -6821,6 +6876,10 @@ msgstr "Zapierが作成"
 #: src/components/blog/ThemeEditorDrawer.tsx:260
 msgid "Created new version v{savedVersion}"
 msgstr "新しいバージョン v{savedVersion} を作成しました"
+
+#: src/components/lists/ListDrawer.tsx:577
+msgid "Created on {createdOn}"
+msgstr "作成日 {createdOn}"
 
 #: src/components/logs/auditPhrases.ts:87
 msgid "Created the API key <0>{target}</0>"
@@ -7992,7 +8051,7 @@ msgstr "この画像を説明..."
 
 #: src/components/automations/NodeConfigPanel.tsx:280
 #: src/components/blog/CategoryDrawer.tsx:280
-#: src/components/lists/ListDrawer.tsx:237
+#: src/components/lists/ListDrawer.tsx:494
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:475
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 msgid "Description"
@@ -8134,6 +8193,7 @@ msgstr "無効なルール"
 
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
+#: src/components/lists/ListDrawer.tsx:214
 #: src/components/segment/SegmentDrawer.tsx:169
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
@@ -8155,6 +8215,7 @@ msgstr "下書きを破棄"
 msgid "Discard unsaved changes?"
 msgstr "保存されていない変更を破棄しますか？"
 
+#: src/components/lists/ListDrawer.tsx:212
 #: src/components/segment/SegmentDrawer.tsx:165
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
@@ -8336,17 +8397,18 @@ msgstr "点線"
 msgid "Double"
 msgstr "二重線"
 
+#: src/components/lists/ListDrawer.tsx:519
 #: src/components/lists/ListHeader.tsx:68
 msgid "Double opt-in"
 msgstr "ダブルオプトイン"
 
 #: src/components/lists/ListDrawer.tsx:260
-msgid "Double Opt-in"
-msgstr "ダブルオプトイン"
+#~ msgid "Double Opt-in"
+#~ msgstr "ダブルオプトイン"
 
 #: src/components/lists/ListDrawer.tsx:281
-msgid "Double Opt-in Template"
-msgstr "ダブルオプトインテンプレート"
+#~ msgid "Double Opt-in Template"
+#~ msgstr "ダブルオプトインテンプレート"
 
 #: src/components/file_manager/FileExplorer.tsx:569
 #: src/components/file_manager/FilePreview.tsx:98
@@ -8453,6 +8515,14 @@ msgstr "例: email"
 #: src/components/settings/ZapierSettings.tsx:172
 msgid "e.g. Marketing"
 msgstr "例: マーケティング"
+
+#: src/components/lists/ListDrawer.tsx:468
+msgid "e.g. members"
+msgstr "例: members"
+
+#: src/components/lists/ListDrawer.tsx:411
+msgid "e.g. Newsletter, Customers, Beta"
+msgstr "例: ニュースレター、顧客、ベータ"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:568
 msgid "e.g. notifuse"
@@ -8711,13 +8781,14 @@ msgid "Edit Liquid Content"
 msgstr "Liquidコンテンツを編集"
 
 #: src/components/contacts/ContactsViewHeader.tsx:214
+#: src/components/lists/ListDrawer.tsx:73
 msgid "Edit list"
 msgstr "リストを編集"
 
 #: src/components/lists/ListDrawer.tsx:181
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Edit List"
-msgstr "リストを編集"
+#~ msgid "Edit List"
+#~ msgstr "リストを編集"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:247
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:369
@@ -9392,8 +9463,8 @@ msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "小数点より前が 15 桁以内の数値を入力してください。"
 
 #: src/components/lists/ListDrawer.tsx:234
-msgid "Enter a unique alphanumeric ID"
-msgstr "一意の英数字IDを入力"
+#~ msgid "Enter a unique alphanumeric ID"
+#~ msgstr "一意の英数字IDを入力"
 
 #: src/components/segment/FilterValueInput.tsx:62
 #: src/components/web_analytics/FilterBuilder.tsx:349
@@ -9513,16 +9584,16 @@ msgid "Enter link URL or {{ url }}"
 msgstr "リンクURLまたは{{ url }}を入力"
 
 #: src/components/lists/ListDrawer.tsx:238
-msgid "Enter list description"
-msgstr "リストの説明を入力"
+#~ msgid "Enter list description"
+#~ msgstr "リストの説明を入力"
 
 #: src/components/lists/DeleteListModal.tsx:148
 msgid "Enter list ID to confirm"
 msgstr "確認のためリストIDを入力"
 
 #: src/components/lists/ListDrawer.tsx:222
-msgid "Enter list name"
-msgstr "リスト名を入力"
+#~ msgid "Enter list name"
+#~ msgstr "リスト名を入力"
 
 #: src/components/settings/BlogSettings.tsx:396
 msgid "Enter logo URL or select image"
@@ -10194,8 +10265,8 @@ msgid "Failed to create folder: "
 msgstr "フォルダの作成に失敗しました: "
 
 #: src/components/lists/ListDrawer.tsx:81
-msgid "Failed to create list: {error}"
-msgstr "リストの作成に失敗しました: {error}"
+#~ msgid "Failed to create list: {error}"
+#~ msgstr "リストの作成に失敗しました: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:206
@@ -10618,8 +10689,8 @@ msgid "Failed to update file manager settings"
 msgstr "ファイルマネージャー設定の更新に失敗しました"
 
 #: src/components/lists/ListDrawer.tsx:95
-msgid "Failed to update list: {error}"
-msgstr "リストの更新に失敗しました: {error}"
+#~ msgid "Failed to update list: {error}"
+#~ msgstr "リストの更新に失敗しました: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:205
@@ -11936,6 +12007,9 @@ msgstr "アイコンスタイリング"
 #~ msgstr "アイコン/ファビコンURL"
 
 #: src/components/contacts/ContactsViewHeader.tsx:184
+#: src/components/lists/ListDrawer.tsx:418
+#: src/components/lists/ListDrawer.tsx:446
+#: src/components/lists/ListDrawer.tsx:479
 #: src/components/messages/MessageHistoryTable.tsx:281
 msgid "ID"
 msgstr "ID"
@@ -11954,11 +12028,16 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "IDは小文字の英字、数字、アンダースコアのみ使用できます"
 
 #: src/components/automations/AutomationEditor.tsx:428
+#: src/components/lists/ListDrawer.tsx:361
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:239
 #: src/pages/TemplatesPage.tsx:329
 #: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "ID copied"
 msgstr "IDをコピーしました"
+
+#: src/components/lists/ListDrawer.tsx:437
+msgid "ID derived from the name"
+msgstr "名前から生成される ID"
 
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:76
 #: src/components/lists/DeleteListModal.tsx:154
@@ -11978,11 +12057,11 @@ msgstr "API用ID：{0}"
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "IDは自動生成されますが、必要に応じて変更できます"
 
-#: src/components/lists/ListDrawer.tsx:230
+#: src/components/lists/ListDrawer.tsx:462
 msgid "ID must be alphanumeric"
 msgstr "IDは英数字である必要があります"
 
-#: src/components/lists/ListDrawer.tsx:231
+#: src/components/lists/ListDrawer.tsx:463
 msgid "ID must be less than 32 characters"
 msgstr "IDは32文字未満である必要があります"
 
@@ -12267,6 +12346,11 @@ msgstr "過去"
 #: src/components/segment/segmentSummary.ts:129
 msgid "in the last {days} days"
 msgstr "過去 {days} 日間"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:19
+#: src/components/lists/NotificationCenterListPreview.tsx:20
+msgid "In the notification center"
+msgstr "通知センターでの表示"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:155
 msgid "in the payload."
@@ -12838,6 +12922,7 @@ msgstr "両端揃え"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:234
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
+#: src/components/lists/ListDrawer.tsx:215
 #: src/components/segment/SegmentDrawer.tsx:170
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:720
@@ -13190,6 +13275,10 @@ msgstr "文字間隔"
 #~ msgid "Letter Spacing"
 #~ msgstr "文字間隔"
 
+#: src/components/lists/ListDrawer.tsx:455
+msgid "Letters and digits, 32 at most. Used by the API and forms; cannot change after creation."
+msgstr "英字と数字、32 文字以内。API とフォームで使われ、作成後は変更できません。"
+
 #: src/components/email_builder/EmailBuilder.tsx:1135
 msgid "Library"
 msgstr "ライブラリ"
@@ -13430,9 +13519,13 @@ msgstr "ブロードキャストを、そのオーディエンスとスケジュ
 msgid "List contacts with their full profile fields"
 msgstr "コンタクトを、そのプロフィールフィールドすべてとともに一覧表示する"
 
-#: src/components/lists/ListDrawer.tsx:76
-msgid "List created successfully"
+#: src/components/lists/ListDrawer.tsx:341
+msgid "List created"
 msgstr "リストを作成しました"
+
+#: src/components/lists/ListDrawer.tsx:76
+#~ msgid "List created successfully"
+#~ msgstr "リストを作成しました"
 
 #: src/services/api/permissions.ts:167
 msgid "List custom events recorded against contacts"
@@ -13447,13 +13540,17 @@ msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "1件のコンタクトが購読しているものをすべて一覧表示する (コンタクトの読み取りも必要)"
 
 #: src/components/lists/ListDrawer.tsx:227
-msgid "List ID"
-msgstr "リストID"
+#~ msgid "List ID"
+#~ msgstr "リストID"
 
 #. placeholder {0}: record.list_id
 #: src/components/contacts/ContactDetailsDrawer.tsx:990
 #~ msgid "List ID: {0}"
 #~ msgstr "リストID: {0}"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:24
+msgid "List name"
+msgstr "リスト名"
 
 #: src/services/api/permissions.ts:248
 msgid "List segments with their full definition trees"
@@ -13525,9 +13622,13 @@ msgstr "確認するリスト"
 msgid "List transactional notification definitions"
 msgstr "トランザクション通知の定義を一覧表示する"
 
-#: src/components/lists/ListDrawer.tsx:90
-msgid "List updated successfully"
+#: src/components/lists/ListDrawer.tsx:314
+msgid "List updated"
 msgstr "リストを更新しました"
+
+#: src/components/lists/ListDrawer.tsx:90
+#~ msgid "List updated successfully"
+#~ msgstr "リストを更新しました"
 
 #: src/components/timeline/ContactTimeline.tsx:391
 #: src/components/timeline/ContactTimeline.tsx:404
@@ -13662,7 +13763,7 @@ msgstr "テンプレートを読み込み中..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/templates/CreateTemplateDrawer.tsx:1012
-#: src/components/templates/TemplateSelectorInput.tsx:150
+#: src/components/templates/TemplateSelectorInput.tsx:162
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:461
 msgid "Loading..."
@@ -14360,6 +14461,10 @@ msgstr "控えめなブランディング"
 msgid "Modified"
 msgstr "更新日時"
 
+#: src/components/lists/ListDrawer.tsx:433
+msgid "Modify"
+msgstr "変更"
+
 #: src/pages/LogsPage.tsx:29
 #~ msgid "Monitor message delivery status and webhook events"
 #~ msgstr "メッセージ配信ステータスとWebhookイベントを監視"
@@ -14465,7 +14570,7 @@ msgstr "N/A"
 #: src/components/integrations/FirecrawlIntegration.tsx:89
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
-#: src/components/lists/ListDrawer.tsx:216
+#: src/components/lists/ListDrawer.tsx:404
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
 #: src/components/settings/GeneralSettings.tsx:325
@@ -14510,7 +14615,7 @@ msgid "Name is required"
 msgstr "名前は必須です"
 
 #: src/components/blog/CategoryDrawer.tsx:236
-#: src/components/lists/ListDrawer.tsx:219
+#: src/components/lists/ListDrawer.tsx:408
 msgid "Name must be less than 255 characters"
 msgstr "名前は255文字未満である必要があります"
 
@@ -14636,6 +14741,7 @@ msgid "New key"
 msgstr "新しいキー"
 
 #: src/components/contacts/ContactsRail.tsx:79
+#: src/components/lists/ListDrawer.tsx:73
 msgid "New list"
 msgstr "新しいリスト"
 
@@ -17165,11 +17271,11 @@ msgstr "カスタムラベルを入力してください"
 msgid "Please enter a label for this connection"
 msgstr "この接続のラベルを入力してください"
 
-#: src/components/lists/ListDrawer.tsx:229
+#: src/components/lists/ListDrawer.tsx:461
 msgid "Please enter a list ID"
 msgstr "リストIDを入力してください"
 
-#: src/components/lists/ListDrawer.tsx:218
+#: src/components/lists/ListDrawer.tsx:407
 msgid "Please enter a list name"
 msgstr "リスト名を入力してください"
 
@@ -17353,8 +17459,8 @@ msgstr "ステータスを選択してください"
 #~ msgstr "テンプレートを選択してください"
 
 #: src/components/lists/ListDrawer.tsx:283
-msgid "Please select a template for double opt-in"
-msgstr "ダブルオプトイン用テンプレートを選択してください"
+#~ msgid "Please select a template for double opt-in"
+#~ msgstr "ダブルオプトイン用テンプレートを選択してください"
 
 #: src/components/blog/PublishModal.tsx:153
 msgid "Please select a time"
@@ -17550,7 +17656,8 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:116
 #: src/components/seo/SeoPreview.tsx:36
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:244
+#: src/components/templates/TemplateSelectorInput.tsx:292
 #: src/components/templates/TemplateSelectorModal.tsx:368
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
@@ -17649,6 +17756,10 @@ msgstr "テストデータでプレビュー"
 #: src/components/templates/CreateTemplateDrawer.tsx:1506
 msgid "Preview Your Email"
 msgstr "メールをプレビュー"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:38
+msgid "Preview: the name and description as the contact sees them, with the subscribe button."
+msgstr "プレビュー: 連絡先に表示される名前と説明、および購読ボタン。"
 
 #: src/components/layout/DrawerControls.tsx:51
 msgid "Previous"
@@ -17820,13 +17931,16 @@ msgid "Provider's default sender"
 msgstr "プロバイダーのデフォルト送信者"
 
 #: src/components/contacts/ContactsViewHeader.tsx:195
-#: src/components/lists/ListDrawer.tsx:245
 msgid "Public"
 msgstr "公開"
 
+#: src/components/lists/ListDrawer.tsx:505
+msgid "Public list"
+msgstr "公開リスト"
+
 #: src/components/lists/ListDrawer.tsx:246
-msgid "Public lists are visible in the Notification Center for users to subscribe to"
-msgstr "公開リストは通知センターでユーザーが購読できるように表示されます"
+#~ msgid "Public lists are visible in the Notification Center for users to subscribe to"
+#~ msgstr "公開リストは通知センターでユーザーが購読できるように表示されます"
 
 #: src/pages/SetupWizard.tsx:385
 msgid "Public URL where this Notifuse instance is accessible"
@@ -19410,7 +19524,7 @@ msgstr "サンドボックスモード"
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
-#: src/components/lists/ListDrawer.tsx:200
+#: src/components/lists/ListDrawer.tsx:582
 #: src/components/segment/SegmentDrawer.tsx:289
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
@@ -20072,7 +20186,7 @@ msgstr "送信者を選択"
 msgid "Select a social block"
 msgstr "ソーシャルブロックを選択してください"
 
-#: src/components/templates/TemplateSelectorInput.tsx:79
+#: src/components/templates/TemplateSelectorInput.tsx:87
 msgid "Select a template"
 msgstr "テンプレートを選択"
 
@@ -20128,8 +20242,8 @@ msgid "Select columns"
 msgstr "列を選択"
 
 #: src/components/lists/ListDrawer.tsx:291
-msgid "Select confirmation email template"
-msgstr "確認メールテンプレートを選択"
+#~ msgid "Select confirmation email template"
+#~ msgstr "確認メールテンプレートを選択"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:435
 msgid "Select consent"
@@ -20680,6 +20794,10 @@ msgstr "送信元"
 msgid "Sent by the automation {0}"
 msgstr "オートメーション {0} が送信"
 
+#: src/components/templates/TemplateSelectorInput.tsx:221
+msgid "sent by the marketing provider"
+msgstr "マーケティング用プロバイダーから送信"
+
 #. placeholder {0}: broadcastName ?? message.broadcast_id ?? ''
 #: src/components/logs/MessageDetail.tsx:271
 msgid "Sent by the newsletter {0}"
@@ -20689,6 +20807,10 @@ msgstr "ニュースレター {0} が送信"
 #: src/components/logs/MessageDetail.tsx:275
 msgid "Sent by the transactional notification {0}"
 msgstr "トランザクション通知 {0} が送信"
+
+#: src/components/templates/TemplateSelectorInput.tsx:223
+msgid "sent by the transactional provider"
+msgstr "トランザクション用プロバイダーから送信"
 
 #: src/components/logs/MessageDetail.tsx:300
 #: src/components/logs/MessageDetail.tsx:813
@@ -21229,6 +21351,10 @@ msgstr "アシスタントのモデル選択欄に表示されます"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:785
 msgid "Shown next to the API key"
 msgstr "API キーの横に表示されます"
+
+#: src/components/lists/ListDrawer.tsx:495
+msgid "Shown to contacts in the notification center when the list is public."
+msgstr "リストが公開のとき、通知センターで連絡先に表示されます。"
 
 #: src/components/email_builder/panels/TreePanel.tsx:279
 msgid "Shown under a condition"
@@ -21965,6 +22091,7 @@ msgid "Submitting batch request to the server..."
 msgstr "バッチリクエストをサーバーに送信中..."
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:196
+#: src/components/lists/NotificationCenterListPreview.tsx:34
 msgid "Subscribe"
 msgstr "購読"
 
@@ -22036,6 +22163,7 @@ msgstr "{name} を購読"
 msgid "Subscript"
 msgstr "下付き文字"
 
+#: src/components/lists/ListDrawer.tsx:500
 #: src/components/logs/OutgoingWebhooksTab.tsx:136
 #: src/components/logs/OutgoingWebhooksTab.tsx:181
 #: src/components/segment/segmentLabels.ts:274
@@ -22330,7 +22458,7 @@ msgstr "テンプレートブロックが見つかりません"
 msgid "Template changed by someone else"
 msgstr "テンプレートが他のユーザーによって変更されました"
 
-#: src/components/templates/TemplateSelectorInput.tsx:233
+#: src/components/templates/TemplateSelectorInput.tsx:210
 msgid "Template created and selected"
 msgstr "テンプレートを作成して選択しました"
 
@@ -22863,7 +22991,7 @@ msgstr "都市名"
 msgid "The comparison period as extra columns"
 msgstr "比較期間を追加の列として表示"
 
-#: src/components/lists/ListDrawer.tsx:292
+#: src/components/lists/ListDrawer.tsx:543
 msgid "The confirmation email each new subscriber receives"
 msgstr "新しい購読者それぞれが受け取る確認メール"
 
@@ -23055,6 +23183,10 @@ msgstr "SMTPサーバーへの接続時に、サーバーが自身を名乗る�
 msgid "The icon in the browser tab; 32 or 192 px square"
 msgstr "ブラウザのタブのアイコン。32 または 192 px の正方形"
 
+#: src/components/lists/ListDrawer.tsx:280
+msgid "The ID “{listId}” belonged to a deleted list and cannot be reused. Choose another."
+msgstr "ID「{listId}」は削除済みのリストのもので、再利用できません。別の ID を選んでください。"
+
 #: src/components/segment/SegmentSummaryPanel.tsx:75
 msgid "The ID {id} could not be checked; saving will tell if it is taken."
 msgstr "ID {id} を確認できませんでした。保存時に使用中かどうかがわかります。"
@@ -23110,6 +23242,14 @@ msgstr "ライブ状態のオートメーション\"{first}\"と\"{second}\"が�
 msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
 msgstr "ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。"
 
+#: src/components/lists/ListDrawer.tsx:345
+msgid "The list could not be created."
+msgstr "リストを作成できませんでした。"
+
+#: src/components/lists/ListDrawer.tsx:318
+msgid "The list could not be saved."
+msgstr "リストを保存できませんでした。"
+
 #: src/services/api/permissions.ts:926
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
 msgstr "このログには各メンバーのメールと IP アドレスが記録され、拒否された操作も残ります。「誰がこれをしたか」に答える必要がある人にだけ閲覧権限を付与してください。"
@@ -23121,6 +23261,10 @@ msgstr "このログには各メンバーのメールと IP アドレスが記�
 #: src/components/settings/ZapierSettings.tsx:88
 #~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 #~ msgstr "名前「{prefix}」はこのNotifuseインストールですでに使用されています。別の名前を選んでください。"
+
+#: src/components/lists/ListDrawer.tsx:452
+msgid "The name gives no ID: enter one."
+msgstr "名前から ID を生成できません。ID を入力してください。"
 
 #: src/components/broadcasts/compose/useIssueText.ts:12
 msgid "the name is longer than 255 characters"
@@ -23685,6 +23829,10 @@ msgstr ""
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 #~ msgstr "このリストには2つの役割があります。1つは受信するビーコンのフィルタリングです — 他のオリジンからのものは黙って無視されます。もう1つはメールクリックによる識別の制御です: トラッキング対象のリンクが識別トークンを持つのは、ここに登録されたドメインの場合だけです。そのため、この欄が空のあいだは、どのメールリンクもコンタクトを識別できません。example.com とそのサブドメインの両方を対象にするには *.example.com を使用してください — example.com 単体では www.example.com には一致しません。"
 
+#: src/components/lists/ListDrawer.tsx:213
+msgid "This list is not created yet."
+msgstr "このリストはまだ作成されていません。"
+
 #: src/pages/ContactsPage.tsx:621
 msgid "This list no longer exists"
 msgstr "このリストはもう存在しません"
@@ -23797,6 +23945,10 @@ msgstr "このセッションは長すぎるため全体を表示できません
 #: src/components/automations/NodeConfigPanel.tsx:189
 msgid "This step is edited through the API."
 msgstr "このステップは API で編集します。"
+
+#: src/components/templates/TemplateSelectorInput.tsx:352
+msgid "This template cannot be found"
+msgstr "このテンプレートが見つかりません"
 
 #: src/components/transactional/PreviewPanel.tsx:80
 msgid "This template has no content to preview yet"
@@ -24571,6 +24723,10 @@ msgstr "<0>{target}</0> の Amazon SES テナント分離を有効にしまし�
 #: src/components/logs/auditPhrases.ts:81
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Webhook <0>{target}</0> をオンまたはオフにしました"
+
+#: src/components/lists/ListDrawer.tsx:558
+msgid "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
+msgstr "ダブルオプトインをオフにしても、「保留中」の連絡先は変わりません。確認するまで保留中のままです。"
 
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
@@ -26080,8 +26236,8 @@ msgstr "記事へのリンクが共有されたとき"
 #~ msgstr "有効にすると、メール内のリンクが開封とクリックで追跡されます"
 
 #: src/components/lists/ListDrawer.tsx:261
-msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
-msgstr "有効にすると、購読者はリストに追加される前にメールで購読を確認する必要があります"
+#~ msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
+#~ msgstr "有効にすると、購読者はリストに追加される前にメールで購読を確認する必要があります"
 
 #: src/components/settings/BlogSettings.tsx:439
 #~ msgid "When enabled, the feed includes only excerpts instead of full article content"
@@ -26728,13 +26884,18 @@ msgstr "テストメールを送信するには、テンプレートの読み取
 msgid "You need Templates read permission"
 msgstr "テンプレートの読み取り権限が必要です"
 
-#: src/components/templates/TemplateSelectorInput.tsx:155
+#: src/components/templates/TemplateSelectorInput.tsx:167
+#: src/components/templates/TemplateSelectorInput.tsx:238
 msgid "You need Templates read permission to choose a template"
 msgstr "テンプレートを選択するには、テンプレートの読み取り権限が必要です"
 
+#: src/components/templates/TemplateSelectorInput.tsx:237
+msgid "You need Templates read permission to see its name and preview"
+msgstr "名前とプレビューを見るにはテンプレートの閲覧権限が必要です"
+
 #: src/components/broadcasts/compose/PreviewPanel.tsx:84
 #: src/components/broadcasts/detail/BroadcastAside.tsx:88
-#: src/components/templates/TemplateSelectorInput.tsx:154
+#: src/components/templates/TemplateSelectorInput.tsx:166
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:342
 msgid "You need Templates read permission to see this template's name and preview"
 msgstr "このテンプレートの名前とプレビューを表示するには、テンプレートの読み取り権限が必要です"
@@ -26785,6 +26946,10 @@ msgstr "このカテゴリへの変更は失われます。"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:833
 msgid "Your changes to this integration will be lost."
 msgstr "この連携への変更は失われます。"
+
+#: src/components/lists/ListDrawer.tsx:213
+msgid "Your changes to this list will be lost."
+msgstr "このリストへの変更は失われます。"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:504
 msgid "Your changes to this scheduled broadcast will be lost."

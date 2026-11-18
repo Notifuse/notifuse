@@ -187,8 +187,13 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
         jsonResponse({ list_id: listId, stats: mockListStats[listId] || emptyListStats })
       )
     }
+    // The list of that ID, or 404 as the server answers: the list drawer checks a new ID with it.
     if (url.includes('/api/list.get') || url.includes('/api/lists.get')) {
-      return route.fulfill(jsonResponse({ list: mockListsResponse.lists[0] }))
+      const listId = new URL(url).searchParams.get('id')
+      const found = withData ? mockListsResponse.lists.find((list) => list.id === listId) : undefined
+      return found
+        ? route.fulfill(jsonResponse({ list: found }))
+        : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'List not found' }) })
     }
     if (url.includes('/api/list.create') || url.includes('/api/lists.create')) {
       return route.fulfill(jsonResponse(mockListCreateResponse))

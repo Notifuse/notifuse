@@ -796,6 +796,7 @@ export function ContactsPage() {
           canReadTemplates={!!permissions?.templates?.read}
           open={listDrawer !== null}
           onClose={() => setListDrawer(null)}
+          onCreated={(created) => selectView({ kind: 'list', listId: created.id })}
         />
       ) : null}
 
