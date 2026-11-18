@@ -1,35 +1,32 @@
 package service
 
 import (
+	"bytes"
 	"embed"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 )
 
-// The demo's templates that the console's template gallery has a model for.
+// The demo's email templates, every one built from a model of the console's template gallery.
 //
 // The gallery's models are TypeScript builders (console/src/components/templates/gallery), so
 // the console builds them, with the demo's brand, languages, subjects and copy, into
 // demo_gallery/*.json (console/src/components/templates/gallery/demo/demoFixtures.ts, run with
 // `npm run demo-fixtures`). Its test fails when a committed file differs from what the builders
-// build, so the demo keeps the gallery's look without a hand translation to drift.
-//
-// Order Thank You has no fixture: the gallery's order model reads the order's items, totals and
-// address from {{ order }}, which the post-purchase automation's sends do not carry (they hold
-// the contact and the purchase event), so it would render an empty order. It keeps the shared
-// automation builder (demo_automation_templates.go).
+// build, so the demo keeps the gallery's look without a hand translation to drift. The export
+// swaps the gallery's own images for Unsplash photos, so a fixture holds absolute image URLs and
+// does not depend on the instance serving its console.
 
 //go:embed demo_gallery/*.json
 var demoGalleryFiles embed.FS
 
-// demoGalleryBaseURLPlaceholder stands, in the fixtures, for where the instance serves the
-// gallery's images. Not Liquid on purpose: left unreplaced it must show, not render empty.
-const demoGalleryBaseURLPlaceholder = "[[notifuse_gallery_base_url]]"
+// demoGalleryImagePlaceholder is where the console's builders put the gallery's images, each one
+// swapped for a photo before the fixture is written. A fixture that still holds it is stale.
+const demoGalleryImagePlaceholder = "[[notifuse_gallery_base_url]]"
 
 // demoGalleryTemplate is one of the demo's gallery-built templates: what the rest of the demo
 // knows it by. The fixture holds its content.
@@ -52,6 +49,8 @@ var (
 		{ID: demoTemplateCartRecoveryA, Name: "Cart Recovery A", Category: domain.TemplateCategoryMarketing},
 		{ID: demoTemplateCartRecoveryB, Name: "Cart Recovery B", Category: domain.TemplateCategoryMarketing},
 		{ID: demoTemplateWinbackOffer, Name: "Win-back Offer", Category: domain.TemplateCategoryMarketing},
+		// Transactional, so the executor's marketing guard never holds back an order's thank-you.
+		{ID: demoTemplateOrderThankYou, Name: "Order Thank You", Category: domain.TemplateCategoryTransactional},
 	}
 )
 
@@ -76,24 +75,21 @@ type demoGalleryFixtureEmail struct {
 	VisualEditorTree json.RawMessage `json:"visual_editor_tree"`
 }
 
-// demoGalleryBaseURL is where an instance serves the gallery's images: its console, at the API
-// endpoint recipients reach, as the console's own gallery links them.
-func demoGalleryBaseURL(apiEndpoint string) string {
-	return strings.TrimRight(apiEndpoint, "/") + "/console/gallery"
-}
-
-// loadDemoGalleryFixture reads a template's fixture, its images pointed at baseURL.
-func loadDemoGalleryFixture(templateID, baseURL string) (*demoGalleryFixture, error) {
+// loadDemoGalleryFixture reads a template's fixture.
+func loadDemoGalleryFixture(templateID string) (*demoGalleryFixture, error) {
 	raw, err := demoGalleryFiles.ReadFile("demo_gallery/" + templateID + ".json")
 	if err != nil {
 		return nil, fmt.Errorf("demo gallery fixture %s: %w", templateID, err)
 	}
-	// The URL goes into JSON strings: encoded as one, quotes stripped.
-	encoded, err := json.Marshal(baseURL)
-	if err != nil {
-		return nil, err
+	return parseDemoGalleryFixture(templateID, raw)
+}
+
+// parseDemoGalleryFixture decodes a template's fixture, refusing one the console wrote for another
+// template, without its default language, or with a gallery image left in.
+func parseDemoGalleryFixture(templateID string, raw []byte) (*demoGalleryFixture, error) {
+	if bytes.Contains(raw, []byte(demoGalleryImagePlaceholder)) {
+		return nil, fmt.Errorf("demo gallery fixture %s holds a gallery image with no photo: run `npm run demo-fixtures` in console/", templateID)
 	}
-	raw = []byte(strings.ReplaceAll(string(raw), demoGalleryBaseURLPlaceholder, string(encoded[1:len(encoded)-1])))
 
 	var fixture demoGalleryFixture
 	if err := json.Unmarshal(raw, &fixture); err != nil {
@@ -128,11 +124,7 @@ func (s *DemoService) demoGalleryEmail(workspaceID, messageID string, email demo
 // buildDemoGalleryTemplate builds a demo template from its gallery fixture: the default
 // language as the email, the others as its translations.
 func (s *DemoService) buildDemoGalleryTemplate(workspaceID string, spec demoGalleryTemplate) (*domain.Template, error) {
-	apiEndpoint := ""
-	if s.config != nil {
-		apiEndpoint = s.config.APIEndpoint
-	}
-	fixture, err := loadDemoGalleryFixture(spec.ID, demoGalleryBaseURL(apiEndpoint))
+	fixture, err := loadDemoGalleryFixture(spec.ID)
 	if err != nil {
 		return nil, err
 	}

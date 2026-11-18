@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
@@ -16,10 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const demoGalleryTestEndpoint = "https://api.example.com/"
-
 func demoGalleryTestService() *DemoService {
-	return &DemoService{logger: logger.NewLoggerWithLevel("disabled"), config: &config.Config{APIEndpoint: demoGalleryTestEndpoint}}
+	return &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
 }
 
 func allDemoGalleryTemplates() []demoGalleryTemplate {
@@ -55,7 +52,7 @@ func TestDemoGalleryTemplates_OneFixturePerTemplate(t *testing.T) {
 // name in the copy, its logo in the header, its languages.
 func TestDemoGalleryTemplates_AreBuiltForTheDemoWorkspace(t *testing.T) {
 	for _, spec := range allDemoGalleryTemplates() {
-		fixture, err := loadDemoGalleryFixture(spec.ID, "https://x")
+		fixture, err := loadDemoGalleryFixture(spec.ID)
 		require.NoError(t, err)
 		assert.Equal(t, demoWorkspaceName, fixture.Brand.Name, spec.ID)
 		assert.Equal(t, demoWorkspaceLogoURL, fixture.Brand.LogoURL, spec.ID)
@@ -71,8 +68,9 @@ func TestDemoGalleryTemplates_AreBuiltForTheDemoWorkspace(t *testing.T) {
 }
 
 // Each template, in each language, compiles through the real compiler with its test data, and
-// its images are served by the instance: no placeholder survives, in the tree or the test data.
-func TestDemoGalleryTemplates_CompileWithTheirImagesOnTheInstance(t *testing.T) {
+// shows the demo's logo and Unsplash photos only: no gallery image survives, in the tree or the
+// test data, so the demo's emails do not depend on the instance serving its console.
+func TestDemoGalleryTemplates_CompileWithTheLogoAndUnsplashPhotos(t *testing.T) {
 	svc := demoGalleryTestService()
 	for _, spec := range allDemoGalleryTemplates() {
 		tmpl, err := svc.buildDemoGalleryTemplate("ws1", spec)
@@ -80,8 +78,8 @@ func TestDemoGalleryTemplates_CompileWithTheirImagesOnTheInstance(t *testing.T) 
 		require.NoError(t, tmpl.Validate(), spec.ID)
 
 		all := templateJSON(t, tmpl)
-		assert.NotContains(t, all, demoGalleryBaseURLPlaceholder, spec.ID)
-		assert.NotContains(t, all, "notifuse_gallery_base_url", spec.ID)
+		assert.NotContains(t, all, demoGalleryImagePlaceholder, spec.ID)
+		assert.NotContains(t, all, "console/gallery", spec.ID)
 		assert.NotRegexp(t, `\bAcme\b`, all, spec.ID)
 		assert.Contains(t, all, demoWorkspaceLogoURL, spec.ID)
 
@@ -110,12 +108,14 @@ func TestDemoGalleryTemplates_CompileWithTheirImagesOnTheInstance(t *testing.T) 
 				if src[1] == demoWorkspaceLogoURL {
 					continue
 				}
-				assert.True(t, strings.HasPrefix(src[1], "https://api.example.com/console/gallery/"),
-					"%s (%s) shows an image from %s", spec.ID, language, src[1])
+				assert.Regexp(t, demoUnsplashURL, src[1], "%s (%s) shows an image from %s", spec.ID, language, src[1])
 			}
 		}
 	}
 }
+
+// demoUnsplashURL is an Unsplash photo cropped by its image CDN, as the console's export writes it.
+var demoUnsplashURL = regexp.MustCompile(`^https://images\.unsplash\.com/photo-\d+-[0-9a-f]+\?w=\d+&h=\d+&fit=crop&auto=format&q=80$`)
 
 // liquidRoots lists the template data a Liquid text reads: {{ x… }}, {% if x… %}, {% for i in x %}
 // and an unquoted default: x.
@@ -151,6 +151,7 @@ func TestDemoGalleryTemplates_ReadOnlyWhatTheDemoProvides(t *testing.T) {
 		demoTemplateCartRecoveryA: {"list", "unsubscribe_url", "trigger_event"},
 		demoTemplateCartRecoveryB: {"list", "unsubscribe_url", "trigger_event"},
 		demoTemplateWinbackOffer:  {"list", "unsubscribe_url"},
+		demoTemplateOrderThankYou: {"list", "unsubscribe_url"},
 	}
 	listNameWithoutFallback := regexp.MustCompile(`\{\{-?\s*list\.name\s*-?\}\}`)
 
@@ -200,6 +201,49 @@ func TestDemoGalleryTemplates_RenderFromASeededMessage(t *testing.T) {
 	}
 }
 
+// The post-purchase automation sends its thank-you with the contact and the purchase event, no
+// order: rendered from a seeded message, it greets the buyer and says why the email came, in
+// each language.
+func TestDemoGalleryTemplates_OrderThankYouRendersWithoutAnOrder(t *testing.T) {
+	svc := demoGalleryTestService()
+	var spec demoGalleryTemplate
+	for _, candidate := range demoGalleryAutomationTemplates {
+		if candidate.ID == demoTemplateOrderThankYou {
+			spec = candidate
+		}
+	}
+	require.Equal(t, demoTemplateOrderThankYou, spec.ID, "the automations send %s: the demo has to build it", demoTemplateOrderThankYou)
+	assert.Equal(t, domain.TemplateCategoryTransactional, spec.Category)
+
+	tmpl, err := svc.buildDemoGalleryTemplate("ws1", spec)
+	require.NoError(t, err)
+	why := map[string]string{
+		"en": "you placed an order with Apple.",
+		"fr": "vous avez passé commande chez Apple.",
+		"es": "hiciste un pedido en Apple.",
+	}
+	emails := map[string]*domain.EmailTemplate{"en": tmpl.Email}
+	for language, translation := range tmpl.Translations {
+		emails[language] = translation.Email
+	}
+	require.Len(t, emails, len(why))
+	for language, email := range emails {
+		resp, err := notifuse_mjml.CompileTemplate(notifuse_mjml.CompileTemplateRequest{
+			WorkspaceID:      "ws1",
+			MessageID:        "m1",
+			VisualEditorTree: email.VisualEditorTree,
+			TemplateData: notifuse_mjml.MapOfAny{
+				"contact": map[string]interface{}{"email": "ana@example.com", "first_name": "Ana", "last_name": "Diaz"},
+			},
+		})
+		require.NoError(t, err, language)
+		require.True(t, resp.Success, "%s: %v", language, resp.Error)
+		assert.Contains(t, *resp.HTML, "Ana", language)
+		assert.Contains(t, *resp.HTML, why[language], language)
+		assert.NotContains(t, *resp.HTML, "subscribed to", language)
+	}
+}
+
 // The broadcasts, the transactional notifications and their seeded messages send templates the
 // seed creates.
 func TestDemoSends_FindTheirTemplates(t *testing.T) {
@@ -217,13 +261,24 @@ func TestDemoSends_FindTheirTemplates(t *testing.T) {
 	}
 }
 
-// The gallery's images are served by the instance's console, at its API endpoint.
-func TestDemoGalleryBaseURL(t *testing.T) {
-	assert.Equal(t, "https://api.example.com/console/gallery", demoGalleryBaseURL("https://api.example.com/"))
-	assert.Equal(t, "https://api.example.com/console/gallery", demoGalleryBaseURL("https://api.example.com"))
+func TestLoadDemoGalleryFixture_RejectsAnUnknownTemplate(t *testing.T) {
+	_, err := loadDemoGalleryFixture("no-such-template")
+	assert.Error(t, err)
 }
 
-func TestLoadDemoGalleryFixture_RejectsAnUnknownTemplate(t *testing.T) {
-	_, err := loadDemoGalleryFixture("no-such-template", "https://x")
-	assert.Error(t, err)
+func TestParseDemoGalleryFixture(t *testing.T) {
+	valid := `{"template_id":"t1","default_language":"en","languages":{"en":{"subject":"Hi","subject_preview":"Hello","visual_editor_tree":{}}}}`
+	fixture, err := parseDemoGalleryFixture("t1", []byte(valid))
+	require.NoError(t, err)
+	assert.Equal(t, "Hi", fixture.Languages["en"].Subject)
+
+	for name, raw := range map[string]string{
+		"another template":     strings.Replace(valid, `"t1"`, `"t2"`, 1),
+		"no default language":  strings.Replace(valid, `"default_language":"en"`, `"default_language":"fr"`, 1),
+		"a gallery image left": strings.Replace(valid, `"Hello"`, `"[[notifuse_gallery_base_url]]/hero-sale.jpg"`, 1),
+		"not JSON":             `{`,
+	} {
+		_, err := parseDemoGalleryFixture("t1", []byte(raw))
+		assert.Error(t, err, name)
+	}
 }

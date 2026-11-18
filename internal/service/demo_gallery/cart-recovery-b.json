@@ -29,13 +29,13 @@
             "name": "Linen shirt",
             "quantity": 1,
             "price": "$59.00",
-            "image_url": "[[notifuse_gallery_base_url]]/product-shirt.jpg"
+            "image_url": "https://images.unsplash.com/photo-1740711152088-88a009e877bb?w=600&h=600&fit=crop&auto=format&q=80"
           },
           {
             "name": "Canvas tote bag",
             "quantity": 2,
             "price": "$36.00",
-            "image_url": "[[notifuse_gallery_base_url]]/product-tote.jpg"
+            "image_url": "https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&h=600&fit=crop&auto=format&q=80"
           }
         ],
         "cart_url": "https://acme.com/cart/42"
@@ -645,7 +645,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Wool beanie",
+                          "alt": "A mustard knit beanie on a yellow background",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -659,7 +659,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "[[notifuse_gallery_base_url]]/product-beanie.jpg",
+                          "src": "https://images.unsplash.com/photo-1630691650107-53dd500d2907?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -754,7 +754,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Leather wallet",
+                          "alt": "A tan leather bifold wallet on a white table",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -768,7 +768,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "[[notifuse_gallery_base_url]]/product-wallet.jpg",
+                          "src": "https://images.unsplash.com/photo-1624538000860-24716b9050f2?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -1519,7 +1519,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Bonnet en laine",
+                          "alt": "Un bonnet en maille moutarde sur un fond jaune",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -1533,7 +1533,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "[[notifuse_gallery_base_url]]/product-beanie.jpg",
+                          "src": "https://images.unsplash.com/photo-1630691650107-53dd500d2907?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -1628,7 +1628,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Portefeuille en cuir",
+                          "alt": "Un portefeuille en cuir fauve sur une table blanche",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -1642,7 +1642,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "[[notifuse_gallery_base_url]]/product-wallet.jpg",
+                          "src": "https://images.unsplash.com/photo-1624538000860-24716b9050f2?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -2393,7 +2393,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Gorro de lana",
+                          "alt": "Un gorro de punto mostaza sobre un fondo amarillo",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -2407,7 +2407,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "[[notifuse_gallery_base_url]]/product-beanie.jpg",
+                          "src": "https://images.unsplash.com/photo-1630691650107-53dd500d2907?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -2502,7 +2502,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Billetera de cuero",
+                          "alt": "Una cartera de cuero marrón claro sobre una mesa blanca",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -2516,7 +2516,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "[[notifuse_gallery_base_url]]/product-wallet.jpg",
+                          "src": "https://images.unsplash.com/photo-1624538000860-24716b9050f2?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",

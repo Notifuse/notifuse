@@ -12,8 +12,8 @@ import type { GalleryAssets, GalleryModelId } from '../types'
 // internal/service/demo_gallery (`npm run demo-fixtures`) and fails when a committed file differs
 // from what the builders build today, so a gallery change cannot silently leave the demo behind.
 
-/** Where the seed puts the instance's gallery URL (`${API_ENDPOINT}/console/gallery`). Not Liquid:
- * an unreplaced placeholder must stay visible, not render empty. */
+/** Where the builders put the gallery's images: each one is then swapped for an Unsplash photo
+ * (DEMO_PHOTOS). Not Liquid: one left behind must show, not render empty. */
 export const DEMO_GALLERY_BASE_URL = '[[notifuse_gallery_base_url]]'
 
 /** The fixtures' folder, from the repository root. */
@@ -32,6 +32,118 @@ export const DEMO_BRAND = {
   languages: DEMO_LANGUAGES
 }
 
+/** An Unsplash photo (free to use under the Unsplash licence), cropped by its image CDN. */
+export const unsplash = (photo: string, width: number, height: number) =>
+  `https://images.unsplash.com/photo-${photo}?w=${width}&h=${height}&fit=crop&auto=format&q=80`
+
+interface DemoPhoto {
+  /** The Unsplash photo id, after `photo-`. */
+  photo: string
+  /** The gallery image's own size, so the photo fills the same slot. */
+  width: number
+  height: number
+  /** What the photo shows, per language. */
+  alt: Record<DemoLanguage, string>
+}
+
+/**
+ * The photo that stands, in the demo, for each gallery image its templates show: the demo's emails
+ * show real photos rather than the gallery's placeholder art, and do not depend on the instance
+ * serving its console. A gallery image missing here fails the build.
+ */
+export const DEMO_PHOTOS: Record<string, DemoPhoto> = {
+  'hero-newsletter.jpg': {
+    photo: '1533986690673-c50390c01cfa',
+    width: 1072,
+    height: 480,
+    alt: {
+      en: 'A silver iMac with its keyboard and mouse on a white desk',
+      fr: 'Un iMac argenté avec son clavier et sa souris sur un bureau blanc',
+      es: 'Un iMac plateado con su teclado y su ratón sobre un escritorio blanco'
+    }
+  },
+  'hero-announce.jpg': {
+    photo: '1561634109-465ffe688b50',
+    width: 1200,
+    height: 500,
+    alt: {
+      en: 'A laptop and a phone on a grey desk mat by a window',
+      fr: 'Un ordinateur portable et un téléphone sur un sous-main gris près d’une fenêtre',
+      es: 'Un portátil y un teléfono sobre una alfombrilla gris junto a una ventana'
+    }
+  },
+  'hero-welcome.jpg': {
+    photo: '1532198528077-0d9e4ca9bb40',
+    width: 1200,
+    height: 460,
+    alt: {
+      en: 'A closed silver MacBook on a wooden table',
+      fr: 'Un MacBook argenté fermé sur une table en bois',
+      es: 'Un MacBook plateado cerrado sobre una mesa de madera'
+    }
+  },
+  'article-guide.jpg': {
+    photo: '1517971071642-34a2d3ecc9cd',
+    width: 480,
+    height: 360,
+    alt: {
+      en: 'A hand writing on a sheet of paper with a pen',
+      fr: 'Une main qui écrit au stylo sur une feuille de papier',
+      es: 'Una mano que escribe con un bolígrafo sobre una hoja de papel'
+    }
+  },
+  'article-story.jpg': {
+    photo: '1753351052363-53ce102830eb',
+    width: 480,
+    height: 360,
+    alt: {
+      en: 'A smiling shop owner in an apron behind her counter',
+      fr: 'Une commerçante souriante en tablier derrière son comptoir',
+      es: 'Una comerciante sonriente con delantal detrás de su mostrador'
+    }
+  },
+  'product-beanie.jpg': {
+    photo: '1630691650107-53dd500d2907',
+    width: 600,
+    height: 600,
+    alt: {
+      en: 'A mustard knit beanie on a yellow background',
+      fr: 'Un bonnet en maille moutarde sur un fond jaune',
+      es: 'Un gorro de punto mostaza sobre un fondo amarillo'
+    }
+  },
+  'product-wallet.jpg': {
+    photo: '1624538000860-24716b9050f2',
+    width: 600,
+    height: 600,
+    alt: {
+      en: 'A tan leather bifold wallet on a white table',
+      fr: 'Un portefeuille en cuir fauve sur une table blanche',
+      es: 'Una cartera de cuero marrón claro sobre una mesa blanca'
+    }
+  },
+  'product-shirt.jpg': {
+    photo: '1740711152088-88a009e877bb',
+    width: 600,
+    height: 600,
+    alt: {
+      en: 'A blue linen shirt on a hanger against a white wall',
+      fr: 'Une chemise en lin bleue sur un cintre contre un mur blanc',
+      es: 'Una camisa de lino azul en una percha contra una pared blanca'
+    }
+  },
+  'product-tote.jpg': {
+    photo: '1544816155-12df9643f363',
+    width: 600,
+    height: 600,
+    alt: {
+      en: 'A beige canvas tote bag against a grey wall',
+      fr: 'Un tote bag en toile beige contre un mur gris',
+      es: 'Una bolsa de tela beige contra una pared gris'
+    }
+  }
+}
+
 type Common = GalleryContent['common']
 type Copy<M extends GalleryModelId> = { common?: Partial<Common>; model?: Partial<GalleryContent['models'][M]> }
 
@@ -39,12 +151,16 @@ interface DemoTemplateOf<M extends GalleryModelId> {
   /** The id the demo's broadcasts, automations and notifications send. */
   templateId: string
   model: M
+  /** The demo's category when it is not the model's. */
+  category?: string
   subject: Record<DemoLanguage, string>
   preheader: Record<DemoLanguage, string>
   /** The model's text replaced for this template, per language. */
   copy?: Partial<Record<DemoLanguage, Copy<M>>>
   /** Over the model's test data. */
   testData: Record<string, unknown>
+  /** Photos of this template that differ from DEMO_PHOTOS, by gallery image. */
+  photos?: Record<string, DemoPhoto>
 }
 type DemoTemplate = { [M in GalleryModelId]: DemoTemplateOf<M> }[GalleryModelId]
 
@@ -57,11 +173,16 @@ const subscribedTo: Record<DemoLanguage, Partial<Common>> = {
   es: { subscribedTo: "Recibes este correo porque te suscribiste a {{ list.name | default: 'Newsletter' }}." }
 }
 
+// A transactional email's footer says why it came: the gallery's own words for an order.
+const placedOrder = (language: DemoLanguage): Partial<Common> => ({
+  subscribedTo: withBrand(GALLERY_CONTENT[language].common, DEMO_BRAND.name).placedOrder
+})
+
 const contact = (first_name: string, last_name: string) => ({
   contact: { first_name, last_name, email: `${first_name}.${last_name}@example.com`.toLowerCase() }
 })
 
-/** The demo's templates a gallery model fits. Order Thank You stays the seed's own: see its comment there. */
+/** The demo's email templates, each one built from a gallery model. */
 export const DEMO_TEMPLATES: DemoTemplate[] = [
   {
     templateId: 'newsletter-weekly',
@@ -257,6 +378,83 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
       es: { common: subscribedTo.es, model: { offer: '50 € de descuento en pedidos de más de 499 €' } }
     },
     testData: contact('Olivia', 'Moreau')
+  },
+  {
+    // The post-purchase automation's thank-you, which welcomes the buyer to the VIP Club. Not the
+    // order model: it reads the items, totals and address from {{ order }}, which an automation's
+    // send does not carry (it holds the contact and the purchase event), so it would render an
+    // empty order. Transactional, so the executor's marketing guard never holds it back.
+    templateId: 'order-thank-you',
+    model: 'welcome',
+    category: 'transactional',
+    subject: {
+      en: 'Thank you for your order, {{contact.first_name}}! 🎉',
+      fr: 'Merci pour votre commande, {{contact.first_name}} ! 🎉',
+      es: '¡Gracias por tu pedido, {{contact.first_name}}! 🎉'
+    },
+    preheader: {
+      en: "{{contact.first_name}}, your order is confirmed — and you're now a VIP",
+      fr: '{{contact.first_name}}, votre commande est confirmée — et vous êtes désormais VIP',
+      es: '{{contact.first_name}}, tu pedido está confirmado y ya eres VIP'
+    },
+    copy: {
+      en: {
+        common: placedOrder('en'),
+        model: {
+          title: 'Thank you for your order, {{ contact.first_name }}',
+          intro: 'Your order is confirmed and already being prepared: you will get a tracking number as soon as it leaves our warehouse. And this purchase makes you a member of our <b>VIP Club</b>.',
+          step1Title: 'Early access',
+          step1Text: 'Be first in line for every new release.',
+          step2Title: 'Priority support',
+          step2Text: 'Our technical team answers you first.',
+          step3Title: 'Personal setup',
+          step3Text: 'Free one-on-one sessions, whenever you need them.',
+          button: 'Discover your VIP perks'
+        }
+      },
+      fr: {
+        common: placedOrder('fr'),
+        model: {
+          title: 'Merci pour votre commande, {{ contact.first_name }}',
+          intro: 'Votre commande est confirmée et déjà en préparation : vous recevrez un numéro de suivi dès son départ de notre entrepôt. Et cet achat vous fait entrer dans notre <b>Club VIP</b>.',
+          step1Title: 'Accès anticipé',
+          step1Text: 'Soyez parmi les premiers à chaque nouveauté.',
+          step2Title: 'Assistance prioritaire',
+          step2Text: 'Notre équipe technique vous répond en premier.',
+          step3Title: 'Configuration personnalisée',
+          step3Text: 'Des séances individuelles offertes, quand vous le souhaitez.',
+          button: 'Découvrir vos avantages VIP'
+        }
+      },
+      es: {
+        common: placedOrder('es'),
+        model: {
+          title: 'Gracias por tu pedido, {{ contact.first_name }}',
+          intro: 'Tu pedido está confirmado y ya lo estamos preparando: recibirás un número de seguimiento en cuanto salga de nuestro almacén. Y esta compra te da entrada a nuestro <b>Club VIP</b>.',
+          step1Title: 'Acceso anticipado',
+          step1Text: 'Sé de los primeros en cada novedad.',
+          step2Title: 'Soporte prioritario',
+          step2Text: 'Nuestro equipo técnico te atiende primero.',
+          step3Title: 'Configuración personalizada',
+          step3Text: 'Sesiones individuales sin coste, cuando las necesites.',
+          button: 'Descubrir tus ventajas VIP'
+        }
+      }
+    },
+    testData: contact('Noah', 'Baptiste'),
+    // A gift rather than the welcome email's laptop: the order is in.
+    photos: {
+      'hero-welcome.jpg': {
+        photo: '1513201099705-a9746e1e201f',
+        width: 1200,
+        height: 460,
+        alt: {
+          en: 'A gift box in brown paper tied with a pink ribbon',
+          fr: 'Une boîte cadeau en papier kraft nouée d’un ruban rose',
+          es: 'Una caja de regalo en papel kraft atada con una cinta rosa'
+        }
+      }
+    }
   }
 ]
 
@@ -273,6 +471,37 @@ export interface DemoFixture {
 }
 
 const assets: GalleryAssets = { baseUrl: DEMO_GALLERY_BASE_URL, logoUrl: DEMO_BRAND.logoUrl, logoWidth: DEMO_BRAND.logoWidth }
+
+/** The photo a gallery image URL stands for, undefined when the value is no gallery image. */
+function demoPhoto(spec: DemoTemplate, value: unknown): DemoPhoto | undefined {
+  if (typeof value !== 'string' || !value.startsWith(`${DEMO_GALLERY_BASE_URL}/`)) return undefined
+  const file = value.slice(DEMO_GALLERY_BASE_URL.length + 1)
+  const photo = spec.photos?.[file] ?? DEMO_PHOTOS[file]
+  if (!photo) throw new Error(`${spec.templateId}: no demo photo for the gallery image ${file}`)
+  return photo
+}
+
+/** The tree with each gallery image swapped for its photo, and the photo's description as its alt. */
+function withPhotos(spec: DemoTemplate, block: EmailBlock, language: DemoLanguage): EmailBlock {
+  const node = block as unknown as { attributes?: Record<string, unknown>; children?: EmailBlock[] }
+  const photo = demoPhoto(spec, node.attributes?.src)
+  return {
+    ...block,
+    ...(photo ? { attributes: { ...node.attributes, src: unsplash(photo.photo, photo.width, photo.height), alt: photo.alt[language] } } : {}),
+    ...(node.children ? { children: node.children.map((child) => withPhotos(spec, child, language)) } : {})
+  } as EmailBlock
+}
+
+/** Test data with each gallery image URL swapped for its photo's. */
+function dataWithPhotos(spec: DemoTemplate, value: unknown): unknown {
+  const photo = demoPhoto(spec, value)
+  if (photo) return unsplash(photo.photo, photo.width, photo.height)
+  if (Array.isArray(value)) return value.map((item) => dataWithPhotos(spec, item))
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, dataWithPhotos(spec, child)]))
+  }
+  return value
+}
 
 /** Builds one demo template with the gallery's own builders, in each of the demo's languages. */
 export function buildDemoFixture(spec: DemoTemplate): DemoFixture {
@@ -292,15 +521,15 @@ export function buildDemoFixture(spec: DemoTemplate): DemoFixture {
       }
     }
     const built = model.build(content, assets)
-    languages[language] = { subject: built.subject, subject_preview: built.preheader, visual_editor_tree: built.tree }
-    if (language === DEMO_BRAND.defaultLanguage) testData = { ...built.testData, ...spec.testData }
+    languages[language] = { subject: built.subject, subject_preview: built.preheader, visual_editor_tree: withPhotos(spec, built.tree, language) }
+    if (language === DEMO_BRAND.defaultLanguage) testData = dataWithPhotos(spec, { ...built.testData, ...spec.testData }) as Record<string, unknown>
   }
 
   return {
     generated_by: 'console/src/components/templates/gallery/demo/demoFixtures.ts — do not edit, run `npm run demo-fixtures` in console/',
     template_id: spec.templateId,
     model: spec.model,
-    category: model.category,
+    category: spec.category ?? model.category,
     default_language: DEMO_BRAND.defaultLanguage,
     brand: { name: DEMO_BRAND.name, logo_url: DEMO_BRAND.logoUrl, logo_width: DEMO_BRAND.logoWidth },
     test_data: testData,

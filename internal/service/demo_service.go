@@ -1031,27 +1031,6 @@ func (s *DemoService) compileTemplateToHTML(workspaceID, messageID string, mjmlS
 	return *resp.HTML
 }
 
-// buildEmailTranslations builds translation entries for fr and es languages
-func (s *DemoService) buildEmailTranslations(
-	workspaceID, messageIDPrefix string,
-	subjects map[string]string,
-	mjmlStructures map[string]notifuse_mjml.EmailBlock,
-	testData domain.MapOfAny,
-) map[string]domain.TemplateTranslation {
-	translations := make(map[string]domain.TemplateTranslation)
-	for lang, mjml := range mjmlStructures {
-		html := s.compileTemplateToHTML(workspaceID, messageIDPrefix+"-"+lang, mjml, testData)
-		translations[lang] = domain.TemplateTranslation{
-			Email: &domain.EmailTemplate{
-				Subject:          subjects[lang],
-				CompiledPreview:  html,
-				VisualEditorTree: mjml,
-			},
-		}
-	}
-	return translations
-}
-
 // createFallbackHTML creates a simple fallback HTML when MJML compilation fails
 func (s *DemoService) createFallbackHTML() string {
 	return `

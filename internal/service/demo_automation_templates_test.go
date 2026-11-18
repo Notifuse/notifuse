@@ -140,43 +140,6 @@ func TestDemoAutomationTemplates_Categories(t *testing.T) {
 	assert.Equal(t, len(wantCategory), seen, "an automation template is missing")
 }
 
-// TestAutomationEmailMJMLStructure_RendersEveryContentField guards the shared builder: it is the one
-// place all four templates and all three languages pass through, so a field it forgets to render is
-// a field that is silently missing from twelve emails.
-func TestAutomationEmailMJMLStructure_RendersEveryContentField(t *testing.T) {
-	svc := newAutomationTemplatesTestService()
-
-	contents := automationEmailContents{
-		lang:        "en",
-		title:       "TITLE-MARKER",
-		preview:     "PREVIEW-MARKER",
-		heading:     "HEADING-MARKER",
-		mainContent: "MAIN-MARKER",
-		buttonText:  "BUTTON-MARKER",
-		buttonHref:  "https://example.com/href-marker",
-		footerText:  "FOOTER-MARKER",
-	}
-
-	tree := svc.createAutomationEmailMJMLStructure(contents)
-	require.NotNil(t, tree)
-	assert.Equal(t, "en", tree.GetAttributes()["lang"])
-
-	html := svc.compileTemplateToHTML("ws1", "builder-test", tree, domain.MapOfAny{})
-	require.NotEqual(t, svc.createFallbackHTML(), html, "the shared builder produces uncompilable MJML")
-
-	for _, marker := range []string{
-		"TITLE-MARKER",
-		"PREVIEW-MARKER",
-		"HEADING-MARKER",
-		"MAIN-MARKER",
-		"BUTTON-MARKER",
-		"https://example.com/href-marker",
-		"FOOTER-MARKER",
-	} {
-		assert.Contains(t, html, marker, "the shared builder drops %s", marker)
-	}
-}
-
 // TestDemoAutomationTemplates_EveryLanguageKeepsItsDestination: each template has a call to
 // action, and its translations send the reader to the same place.
 func TestDemoAutomationTemplates_EveryLanguageKeepsItsDestination(t *testing.T) {
@@ -343,9 +306,7 @@ func findAutomationButtonHref(t *testing.T, block notifuse_mjml.EmailBlock) stri
 // font-size="14px" — which each renderer and each preview resolves its own way.
 func TestDemoTemplates_WriteEachAttributeOnce(t *testing.T) {
 	svc := newAutomationTemplatesTestService()
-	trees := map[string]notifuse_mjml.EmailBlock{
-		"automation": svc.createAutomationEmailMJMLStructure(getOrderThankYouContents()["en"]),
-	}
+	trees := map[string]notifuse_mjml.EmailBlock{}
 	for _, spec := range append(append([]demoGalleryTemplate{}, demoGallerySampleTemplates...), demoGalleryAutomationTemplates...) {
 		tmpl, err := svc.buildDemoGalleryTemplate("ws1", spec)
 		require.NoError(t, err)
@@ -364,12 +325,4 @@ func TestDemoTemplates_WriteEachAttributeOnce(t *testing.T) {
 			}
 		}
 	}
-}
-
-// TestDemoTemplates_ButtonKeepsItsInnerPadding: the CTA's "12px 24px" is the button's own padding
-// (around its label), not the space around the button.
-func TestDemoTemplates_ButtonKeepsItsInnerPadding(t *testing.T) {
-	svc := newAutomationTemplatesTestService()
-	mjml := notifuse_mjml.ConvertJSONToMJML(svc.createAutomationEmailMJMLStructure(getOrderThankYouContents()["en"]))
-	assert.Contains(t, mjml, `inner-padding="12px 24px"`)
 }

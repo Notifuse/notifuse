@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -33,10 +32,8 @@ func TestDemoSeedOnAProductionInstance(t *testing.T) {
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
 
-	var appConfig *config.Config
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		cfg.Environment = "production"
-		appConfig = cfg
 		return appFactory(cfg)
 	})
 	defer func() { suite.Cleanup() }()
@@ -117,7 +114,7 @@ func TestDemoSeedOnAProductionInstance(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, markedAt.Equal(createdAt), "the marker %s is the workspace's created_at %s", marker, createdAt)
 
-		assertDemoTemplates(t, demoDB, appConfig.APIEndpoint)
+		assertDemoTemplates(t, demoDB)
 		assertDemoMessageOutcomes(t, demoDB)
 		assertDemoBroadcastHistory(t, demoDB)
 
@@ -170,15 +167,14 @@ func TestDemoSeedOnAProductionInstance(t *testing.T) {
 }
 
 // The demo's templates built from the template gallery, as the seed stored them: their images
-// on this instance's console, every language there, and every template a broadcast or an
-// automation sends present.
-func assertDemoTemplates(t *testing.T, demoDB *sql.DB, apiEndpoint string) {
+// Unsplash photos, every language there, and every template a broadcast or an automation sends
+// present.
+func assertDemoTemplates(t *testing.T, demoDB *sql.DB) {
 	t.Helper()
 	ctx := context.Background()
-	gallery := strings.TrimRight(apiEndpoint, "/") + "/console/gallery/"
 	for _, id := range []string{
 		"newsletter-weekly", "newsletter-weekly-v2", "welcome-email", "password-reset",
-		"cart-recovery-a", "cart-recovery-b", "winback-offer",
+		"cart-recovery-a", "cart-recovery-b", "winback-offer", "order-thank-you",
 	} {
 		var email, translations, testData string
 		require.NoError(t, demoDB.QueryRowContext(ctx,
@@ -191,11 +187,12 @@ func assertDemoTemplates(t *testing.T, demoDB *sql.DB, apiEndpoint string) {
 		for _, language := range []string{`"fr"`, `"es"`} {
 			assert.Contains(t, translations, language, "template %s is not translated in %s", id, language)
 		}
+		// Photos, not the gallery's images on the instance: the emails do not depend on the console.
+		assert.NotContains(t, all, "/console/gallery/", "template %s takes its images from the instance", id)
 		if id != "password-reset" && id != "winback-offer" {
-			assert.Contains(t, all, gallery, "template %s takes its images from the instance", id)
+			assert.Contains(t, all, "https://images.unsplash.com/photo-", "template %s shows no photo", id)
 		}
 	}
-	assert.Equal(t, 1, scanCount(t, demoDB, `SELECT COUNT(*) FROM templates WHERE id = 'order-thank-you'`))
 
 	// Every variation of a broadcast and every email node of an automation names a template.
 	assert.Zero(t, scanCount(t, demoDB, `
