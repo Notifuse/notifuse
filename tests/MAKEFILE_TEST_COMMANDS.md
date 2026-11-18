@@ -217,7 +217,7 @@ Connection pool tests require properly configured PostgreSQL:
 ```yaml
 services:
   postgres-test:
-    image: postgres:17-alpine
+    image: ${POSTGRES_TEST_IMAGE:-postgres:17}
     command:
       - "postgres"
       - "-c"

@@ -403,6 +403,11 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 		// workspace's name lock, so a request that waited on a deletion in progress
 		// finds the workspace gone and creates nothing.
 		if database.IsDatabaseMissingError(err) {
+			// A server that must already hold the data creates nothing: a missing
+			// database there means the wrong server or a partial restore.
+			if cm.config.Database.ExpectExisting {
+				return nil, fmt.Errorf("the database of workspace %s does not exist, and DB_EXPECT_EXISTING is set, so Notifuse does not create it: restore it, or unset DB_EXPECT_EXISTING to create it empty: %w", workspaceID, err)
+			}
 			stillRegistered := func(ctx context.Context) error {
 				return cm.checkWorkspaceRegistered(ctx, workspaceID)
 			}

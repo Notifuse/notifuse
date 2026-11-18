@@ -9,7 +9,10 @@
 #
 # Notes:
 #   - AlloyDB Omni 17.x is PostgreSQL-17 compatible; every Notifuse feature
-#     works unchanged (the schema deliberately uses no PG18-only DDL).
+#     works unchanged. Omni exists on PostgreSQL 18 too, but Google gives its
+#     images only after a registration form, so this file stays on 17 while
+#     compose.yaml moves to 18, and that is why Notifuse allows no PostgreSQL
+#     18-only DDL anywhere.
 #   - The columnar engine caches hot columns automatically. Historical monthly
 #     partitions are immutable, so they columnarize extremely well; only the
 #     current month keeps taking upserts.
@@ -17,15 +20,22 @@
 #     before production use. See https://cloud.google.com/alloydb/omni
 #
 # Usage: docker compose -f compose.alloydb.yaml up -d
+# Configuration and requirements are those of compose.yaml (Docker Engine 25.0,
+# Compose v2.24, a .env file with SECRET_KEY).
 
 services:
   api:
+    image: notifuse/notifuse:${NOTIFUSE_VERSION:-v44.0}
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '8081:8080'
-      - '587:587'
+      # The container side follows SERVER_PORT, as in compose.yaml.
+      - '${HTTP_BIND:+${HTTP_BIND}:}${HTTP_PORT:-8081}:${SERVER_PORT:-8080}'
+      - '${SMTP_BRIDGE_HOST_PORT:-587}:${SMTP_BRIDGE_PORT:-587}'
+    env_file:
+      - path: .env
+        required: false
     environment:
       - SERVER_PORT=${SERVER_PORT:-8080}
       - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
@@ -39,7 +49,7 @@ services:
       - DB_NAME=${DB_NAME:-notifuse_system}
       - DB_SSLMODE=${DB_SSLMODE:-disable}
 
-      - SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in your environment}
+      - 'SECRET_KEY=${SECRET_KEY:?set SECRET_KEY in .env. New installation, generate one with openssl rand -base64 32}'
 
       # Notifuse licence key (Optional). Leaving it unset is the ordinary state
       # of a self-hosted installation and means the free tier. It overrides any
@@ -52,7 +62,9 @@ services:
       # GeoLite2-City.mmdb, or by setting an explicit path here.
       # - GEOIP_DB_PATH=/app/data/GeoLite2-City.mmdb
     depends_on:
-      - alloydb
+      alloydb:
+        condition: service_healthy
+        restart: true
     volumes:
       - ./data:/app/data
     restart: unless-stopped
@@ -60,20 +72,28 @@ services:
     # under way, the emails being sent and the web analytics buffer finish. Docker's default 10 s
     # would kill it first.
     stop_grace_period: 75s
+    security_opt:
+      - no-new-privileges:true
     networks:
       - notifuse-network
     healthcheck:
-      test:
-        ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
-      interval: 10s
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:$${SERVER_PORT:-8080}/healthz || exit 1']
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 60s
+      start_interval: 2s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
 
   alloydb:
     image: google/alloydbomni:17.5.0
     ports:
-      - '5433:5432'
+      # Reachable from this host only.
+      - '127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432'
     environment:
       - POSTGRES_USER=${DB_USER:-postgres}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
@@ -87,15 +107,23 @@ services:
       - 'google_columnar_engine.memory_size_in_mb=1024'
     volumes:
       - alloydb-data:/var/lib/postgresql/data
+    # The columnar engine scans in parallel; Docker's 64 MB of /dev/shm is not
+    # enough for the workload this file exists to speed up.
+    shm_size: 512mb
     restart: unless-stopped
+    # SIGTERM is a smart shutdown: Docker's default 10 s would turn it into a
+    # SIGKILL and a recovery at the next start.
+    stop_grace_period: 1m
     networks:
       - notifuse-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 5s
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 30s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 60s
+      start_interval: 1s
+    logging: *logging
 
 volumes:
   alloydb-data:

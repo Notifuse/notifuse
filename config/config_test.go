@@ -241,6 +241,28 @@ func TestDatabaseConnectionConfig_Defaults(t *testing.T) {
 	assert.Equal(t, 5*time.Minute, cfg.Database.ConnectionMaxIdleTime)
 }
 
+func TestLoad_DatabaseExpectExisting(t *testing.T) {
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+
+	t.Run("off when unset: a new installation creates its databases", func(t *testing.T) {
+		_ = os.Unsetenv("DB_EXPECT_EXISTING")
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.False(t, cfg.Database.ExpectExisting)
+	})
+
+	t.Run("on when set to true", func(t *testing.T) {
+		_ = os.Setenv("DB_EXPECT_EXISTING", "true")
+		defer func() { _ = os.Unsetenv("DB_EXPECT_EXISTING") }()
+
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.True(t, cfg.Database.ExpectExisting)
+	})
+}
+
 func TestDatabaseConnectionConfig_CustomValues(t *testing.T) {
 	// Set custom connection configuration
 	_ = os.Setenv("SECRET_KEY", "test-secret-key-long-enough-to-sign")

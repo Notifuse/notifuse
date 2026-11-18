@@ -353,8 +353,7 @@ func (dm *DatabaseManager) dropWorkspaceDatabases(workspaceIDs []string) {
 		dbName := fmt.Sprintf("%s_ws_%s", dm.config.Prefix, strings.ReplaceAll(workspaceID, "-", "_"))
 
 		// FORCE terminates any connection the app left open, so a worker that outlived the
-		// test cannot keep the database alive. Requires PostgreSQL 13+; the test container
-		// is pinned to 17.
+		// test cannot keep the database alive. Requires PostgreSQL 13+; Notifuse requires 17.
 		if _, err := dm.systemDB.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s WITH (FORCE)", pq.QuoteIdentifier(dbName))); err != nil {
 			log.Printf("Warning: failed to drop workspace database %s: %v", dbName, err)
 		}

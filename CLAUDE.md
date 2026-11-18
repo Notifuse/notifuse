@@ -1,6 +1,6 @@
 # Notifuse — Project Instructions
 
-Self-hosted email marketing platform. Go backend (Clean Architecture, stdlib `http.ServeMux`, PostgreSQL 17) + React frontends (`console/` admin app, `notification_center/` embeddable widget).
+Self-hosted email marketing platform. Go backend (Clean Architecture, stdlib `http.ServeMux`, PostgreSQL 18, 17 the compatibility floor) + React frontends (`console/` admin app, `notification_center/` embeddable widget).
 
 **User-facing documentation lives in a separate git repository**, `../docs` (Mintlify). Doc edits never
 show up in this repo's `git status` and ship as their own PR — easy to write and then forget to commit. Dependency and version details live in `go.mod`, `console/package.json`, and `notification_center/package.json` — read those rather than trusting any list here.
@@ -33,6 +33,7 @@ One system database plus one database per workspace; a schema change can touch e
 - Version format is `vMAJOR.minor`: bump MAJOR for database schema changes, minor for everything else. The code version lives in `config/config.go` (`VERSION`).
 - Each migration implements `MajorMigrationInterface`, registers itself via `init()`, and declares whether it updates the system DB, workspace DBs, or both. Migrations run automatically on startup.
 - Migrations must be idempotent (`IF NOT EXISTS`), run in transactions, preserve existing data via defaults, and be documented in `CHANGELOG.md`.
+- **No PostgreSQL 18-only DDL.** `compose.yaml` ships 18, but 17 is the floor (AlloyDB Omni and Supabase have no public 18) and CI runs it; Notifuse refuses to start below 17 (`database.MinServerVersionNum`, `internal/database/version.go`).
 - **Never amend a shipped `vN.go` to fix databases already at N.** The dispatcher selects
   `migrationVersion > currentDBVersion`, so an amended `vN.go` reaches fresh installs and databases
   below N and never those at N — silently. Always a new major.

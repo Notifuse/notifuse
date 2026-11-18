@@ -323,7 +323,7 @@ func (a *App) InitDB() error {
 	a.logger.Info(fmt.Sprintf("Connecting to database %s:%d, user %s, sslmode %s, password: %s, dbname: %s", a.config.Database.Host, a.config.Database.Port, a.config.Database.User, a.config.Database.SSLMode, maskedPassword, a.config.Database.DBName))
 
 	// Ensure system database exists
-	if err := database.EnsureSystemDatabaseExists(database.GetPostgresDSN(&a.config.Database), a.config.Database.DBName); err != nil {
+	if err := database.EnsureSystemDatabaseExists(database.GetPostgresDSN(&a.config.Database), a.config.Database.DBName, a.config.Database.ExpectExisting); err != nil {
 		a.logger.Error(err.Error())
 		return fmt.Errorf("failed to ensure system database exists: %w", err)
 	}
@@ -362,6 +362,14 @@ func (a *App) InitDB() error {
 	if err := database.RequireServerVersion(db, database.MinServerVersionNum); err != nil {
 		_ = db.Close()
 		return err
+	}
+
+	// Under DB_EXPECT_EXISTING, before the schema and the root users are written to it.
+	if a.config.Database.ExpectExisting {
+		if err := database.RequireExistingInstallation(db, a.config.Database.DBName); err != nil {
+			_ = db.Close()
+			return err
+		}
 	}
 
 	// Initialize database schema if needed

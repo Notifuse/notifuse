@@ -140,6 +140,11 @@ type DatabaseConfig struct {
 	MaxConnectionsPerDB   int           // Max connections per individual workspace database
 	ConnectionMaxLifetime time.Duration // Maximum lifetime of a connection
 	ConnectionMaxIdleTime time.Duration // Maximum idle time before closing
+	// ExpectExisting (DB_EXPECT_EXISTING) refuses to create or initialise the system
+	// database, to create a missing workspace database and to initialise an empty one:
+	// set on a server that must already hold Notifuse data, so that pointing it at an
+	// empty PostgreSQL stops it instead of starting a new, empty installation.
+	ExpectExisting bool
 }
 
 type SecurityConfig struct {
@@ -592,6 +597,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("DB_MAX_CONNECTIONS_PER_DB", 3)
 	v.SetDefault("DB_CONNECTION_MAX_LIFETIME", "10m")
 	v.SetDefault("DB_CONNECTION_MAX_IDLE_TIME", "5m")
+	v.SetDefault("DB_EXPECT_EXISTING", false)
 	v.SetDefault("ENVIRONMENT", "production")
 	v.SetDefault("GEOIP_DB_PATH", "")
 	v.SetDefault("ANALYTICS_WORK_MEM", "64MB")
@@ -706,6 +712,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		MaxConnectionsPerDB:   v.GetInt("DB_MAX_CONNECTIONS_PER_DB"),
 		ConnectionMaxLifetime: v.GetDuration("DB_CONNECTION_MAX_LIFETIME"),
 		ConnectionMaxIdleTime: v.GetDuration("DB_CONNECTION_MAX_IDLE_TIME"),
+		ExpectExisting:        v.GetBool("DB_EXPECT_EXISTING"),
 	}
 
 	// Validate database connection settings

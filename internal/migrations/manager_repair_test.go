@@ -182,6 +182,24 @@ func TestManager_InitializeEmptyWorkspaces(t *testing.T) {
 		assert.Equal(t, "empty", f.log.at("info")[0].fields["workspace"])
 	})
 
+	t.Run("DB_EXPECT_EXISTING leaves an empty workspace empty, and says so", func(t *testing.T) {
+		f := newRepairFixture(t)
+		conn := newScriptedConnector(t)
+		conn.script("empty", connectorAnswer{db: emptyDB(t, false)})
+		f.manager.connector = conn
+		f.expectWorkspaces("empty")
+		cfg := emptyWorkspaceTestConfig()
+		cfg.Database.ExpectExisting = true
+
+		f.manager.InitializeEmptyWorkspaces(ctx, cfg, f.sys)
+		assert.NoError(t, f.sysMock.ExpectationsWereMet())
+		assert.Empty(t, f.events, "no lock taken")
+		assert.Empty(t, f.initialised)
+		require.Len(t, f.log.at("error"), 1)
+		assert.Contains(t, f.log.at("error")[0].msg, "DB_EXPECT_EXISTING is set")
+		assert.Equal(t, "empty", f.log.at("error")[0].fields["workspace"])
+	})
+
 	t.Run("a database holding tables is left alone, without any lock", func(t *testing.T) {
 		f := newRepairFixture(t)
 		conn := newScriptedConnector(t)

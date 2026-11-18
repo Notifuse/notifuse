@@ -285,7 +285,14 @@ func (m *Manager) runMigrations(ctx context.Context, cfg *config.Config, db *sql
 
 	// If no version exists in database, this is the first run - initialize it
 	if !versionExists {
-		m.logger.WithField("code_version", fmt.Sprintf("%.0f", currentCodeVersion)).Info("First run detected, initializing database version")
+		// InitDB refuses before this under DB_EXPECT_EXISTING; checked again for any
+		// other caller, before the version is recorded.
+		if cfg.Database.ExpectExisting {
+			return fmt.Errorf("the system database %s records no database version, and DB_EXPECT_EXISTING is set, so Notifuse does not initialise it as a new installation: check DB_HOST, DB_PORT and DB_NAME, or restore the database. Unset DB_EXPECT_EXISTING for a new installation", cfg.Database.DBName)
+		}
+		m.logger.WithField("code_version", fmt.Sprintf("%.0f", currentCodeVersion)).
+			WithField("database", cfg.Database.DBName).
+			Warn("First run: no database version found, initialising a new installation. If this PostgreSQL server should already hold Notifuse data, stop Notifuse: it is connected to an empty database (DB_EXPECT_EXISTING=true refuses this)")
 		if err := m.SetCurrentDBVersion(ctx, db, currentCodeVersion); err != nil {
 			return fmt.Errorf("failed to initialize database version: %w", err)
 		}
@@ -642,6 +649,13 @@ func (m *Manager) InitializeEmptyWorkspaces(ctx context.Context, cfg *config.Con
 		}
 		empty, err := m.probeWorkspace(ctx, cfg, db, id)
 		if err != nil || !empty {
+			continue
+		}
+		// On a server that must already hold the data, an empty workspace database is
+		// a partial restore or the wrong server, not an interrupted creation.
+		if cfg.Database.ExpectExisting {
+			m.logger.WithField("workspace", id).
+				Error("The workspace database holds no tables, and DB_EXPECT_EXISTING is set, so Notifuse leaves it empty: restore it, or unset DB_EXPECT_EXISTING to give it an empty schema")
 			continue
 		}
 		stop := false
