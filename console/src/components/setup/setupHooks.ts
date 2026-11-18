@@ -4,6 +4,7 @@ import type { PillTone } from '../layout'
 import type { SetupStatus } from '../../types/setup'
 import {
   PANEL_SWITCH,
+  SETUP_FIELDS,
   SETUP_PANELS,
   isPanelLocked,
   missingFields,
@@ -23,8 +24,20 @@ export interface PanelSummary extends SetupPanelState {
   missing: SetupKey[]
 }
 
+/** What the form knows beyond the values: the fields its rules refuse, and the last SMTP test. */
+export interface SetupFormChecks {
+  /** Fields whose rules currently report an error. */
+  fieldErrors?: SetupKey[]
+  /** The last connection test failed (and its values were not edited since). */
+  smtpTestFailed?: boolean
+}
+
 /** Each panel's state, from the same field spec as the form's rules. */
-export function usePanelSummaries(status: SetupStatus, values: SetupFormValues): PanelSummary[] {
+export function usePanelSummaries(
+  status: SetupStatus,
+  values: SetupFormValues,
+  checks: SetupFormChecks = {}
+): PanelSummary[] {
   const { t } = useLingui()
   const titles: Record<SetupPanelId, string> = {
     administrator: t`Administrator`,
@@ -39,6 +52,13 @@ export function usePanelSummaries(status: SetupStatus, values: SetupFormValues):
     const summary = (tone: PillTone, label: string): PanelSummary => ({ id, title: titles[id], missing, tone, label })
     if (isPanelLocked(status, id)) return summary('info', t`Set by environment`)
     if (panelSwitch && values[panelSwitch] !== true) return summary('neutral', t`Off`)
+    // A failed connection test first: it is what the panel's alert says
+    if (id === 'smtp' && checks.smtpTestFailed) return summary('danger', t`Test failed`)
+    // A filled field its rules refuse (an invalid email or URL): the panel is not complete
+    const invalid = SETUP_FIELDS.filter(
+      (field) => field.panel === id && checks.fieldErrors?.includes(field.key) && !missing.includes(field.key)
+    ).length
+    if (invalid > 0) return summary('danger', plural(invalid, { one: '# field to fix', other: '# fields to fix' }))
     const count = missing.length
     if (count > 0) return summary('warning', plural(count, { one: '# field to fill', other: '# fields to fill' }))
     return summary('success', panelSwitch ? t`On` : t`Complete`)

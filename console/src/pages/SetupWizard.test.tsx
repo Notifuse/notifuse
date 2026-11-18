@@ -284,4 +284,76 @@ describe('SetupWizard', () => {
     expect(await screen.findByText('Applying your configuration')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Go to sign in/ })).toBeDisabled()
   })
+
+  const railPill = (name: string) =>
+    within(screen.getByRole('complementary', { name: 'Setup summary' })).getByRole('button', { name: new RegExp(`^${name}`) })
+
+  it('marks a panel with a field its rules refuse, not complete', async () => {
+    mockStatus(NOTHING_SET)
+    renderWizard()
+
+    const rootEmail = await screen.findByRole('combobox', { name: 'Root email' })
+    fill(rootEmail, 'admin@,')
+    fireEvent.blur(rootEmail)
+    expect(await screen.findByText('Invalid email: admin@')).toBeInTheDocument()
+    await waitFor(() => expect(railPill('Administrator')).toHaveTextContent('1 field to fix'))
+    expect(within(panel(/Administrator/)).getByText('1 field to fix')).toBeInTheDocument()
+  })
+
+  it('says in the summary that the last SMTP test failed, until a tested value changes', async () => {
+    const user = userEvent.setup()
+    mockStatus(NOTHING_SET)
+    vi.mocked(setupApi.testSmtp).mockRejectedValue(new Error('target host does not support STARTTLS'))
+    renderWizard()
+
+    const smtp = await waitFor(() => panel(/System email delivery/))
+    fill(within(smtp).getByRole('textbox', { name: 'Host' }), 'localhost')
+    fill(within(smtp).getByRole('textbox', { name: 'From email' }), 'noreply@acme.com')
+    await user.click(within(smtp).getByRole('button', { name: /Test connection/ }))
+    await waitFor(() => expect(railPill('Email delivery')).toHaveTextContent('Test failed'))
+    expect(within(smtp).getByText('Test failed')).toBeInTheDocument()
+
+    fill(within(smtp).getByRole('textbox', { name: 'Host' }), 'smtp.acme.com')
+    await waitFor(() => expect(railPill('Email delivery')).toHaveTextContent('Complete'))
+  })
+
+  it('keeps « Test failed » over a field to fix, as the alert of the panel does', async () => {
+    const user = userEvent.setup()
+    mockStatus(NOTHING_SET)
+    vi.mocked(setupApi.testSmtp).mockRejectedValue(new Error('connection refused'))
+    renderWizard()
+
+    const smtp = await waitFor(() => panel(/System email delivery/))
+    fill(within(smtp).getByRole('textbox', { name: 'Host' }), 'localhost')
+    const from = within(smtp).getByRole('textbox', { name: 'From email' })
+    fill(from, 'noreply@')
+    fireEvent.blur(from)
+    await waitFor(() => expect(railPill('Email delivery')).toHaveTextContent('1 field to fix'))
+    await user.click(within(smtp).getByRole('button', { name: /Test connection/ }))
+    await waitFor(() => expect(railPill('Email delivery')).toHaveTextContent('Test failed'))
+  })
+
+  it('hands the root email to the sign-in page', async () => {
+    const user = userEvent.setup()
+    mockStatus({ ...NOTHING_SET, boot_id: 'boot-before' })
+    vi.mocked(setupApi.initialize).mockResolvedValue({ success: true, message: 'ok', boot_id: 'boot-before' })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ ...NOTHING_SET, is_installed: true, boot_id: 'boot-after' }), { status: 200 })
+    )
+    // The page reloads into the sign-in page: keep jsdom on this one
+    const location = { ...window.location, href: '' }
+    vi.spyOn(window, 'location', 'get').mockReturnValue(location as Location)
+    renderWizard()
+
+    fill(await screen.findByRole('combobox', { name: 'Root email' }), 'admin@acme.com,')
+    const smtp = panel(/System email delivery/)
+    fill(within(smtp).getByRole('textbox', { name: 'Host' }), 'smtp.acme.com')
+    fill(within(smtp).getByRole('textbox', { name: 'From email' }), 'noreply@acme.com')
+    await complete(user)
+    await user.click(await screen.findByRole('button', { name: /Go to sign in/ }, { timeout: 3000 }))
+
+    expect(sessionStorage.getItem('notifuse_setup_signin_email')).toBe('admin@acme.com')
+    expect(location.href).toBe('/console/signin')
+    sessionStorage.clear()
+  })
 })

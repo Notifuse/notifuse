@@ -19,7 +19,14 @@ const DOCS = [
   { name: 'Postmark', href: 'https://postmarkapp.com/developer/user-guide/send-email-with-smtp' }
 ]
 
-export function SmtpPanel({ status, state }: { status: SetupStatus; state: SetupPanelState }) {
+export interface SmtpPanelProps {
+  status: SetupStatus
+  state: SetupPanelState
+  /** Told whether the last test failed, so that the summary says so too. */
+  onTestFailedChange?: (failed: boolean) => void
+}
+
+export function SmtpPanel({ status, state, onTestFailedChange }: SmtpPanelProps) {
   const { t } = useLingui()
   const form = Form.useFormInstance<SetupFormValues>()
   const locked = isPanelLocked(status, 'smtp')
@@ -38,6 +45,11 @@ export function SmtpPanel({ status, state }: { status: SetupStatus; state: Setup
   useEffect(() => {
     setResult(null)
   }, [host, port, username, password, useTls])
+
+  const testFailed = !locked && result !== null && !result.ok
+  useEffect(() => {
+    onTestFailedChange?.(testFailed)
+  }, [testFailed, onTestFailedChange])
 
   // setup.testSmtp tests only the values in its body (it applies env credentials, nothing else):
   // with one of these set by the environment it would test another connection than the real one.
@@ -132,7 +144,7 @@ export function SmtpPanel({ status, state }: { status: SetupStatus; state: Setup
           </>
         )
       }}
-      state={!locked && result && !result.ok ? { tone: 'danger', label: t`Test failed` } : state}
+      state={state}
       footer={footer}
     >
       {locked ? (

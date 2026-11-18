@@ -251,6 +251,28 @@ describe('SignInPage', () => {
     expect(screen.getByText(/demo@notifuse.com/i)).toBeInTheDocument()
   })
 
+  it('prefills the root email the setup handed over, once, without sending a code', async () => {
+    sessionStorage.setItem('notifuse_setup_signin_email', 'admin@acme.com')
+    const { unmount } = renderWithProviders(<SignInPage />)
+
+    await waitFor(() => expect(screen.getByLabelText(/email/i)).toHaveValue('admin@acme.com'))
+    expect(authService.authService.signIn).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem('notifuse_setup_signin_email')).toBeNull()
+
+    unmount()
+    renderWithProviders(<SignInPage />)
+    expect(screen.getByLabelText(/email/i)).toHaveValue('')
+  })
+
+  it('lets an email in the URL win over the one the setup handed over', async () => {
+    sessionStorage.setItem('notifuse_setup_signin_email', 'admin@acme.com')
+    mockSearch.email = 'other@acme.com'
+    vi.mocked(authService.authService.signIn).mockResolvedValue({ message: 'ok' } as never)
+    renderWithProviders(<SignInPage />)
+
+    await waitFor(() => expect(authService.authService.signIn).toHaveBeenCalledWith({ email: 'other@acme.com' }))
+  })
+
   it('does not auto-submit when email parameter is not present', async () => {
     // Ensure email is not in search params
     mockSearch.email = undefined

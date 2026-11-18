@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"sync/atomic"
 	"testing"
@@ -81,4 +82,37 @@ func TestRunServer_ReturnsWhenTheShutdownOutlivesItsTimeout(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("runServer kept waiting for a shutdown past its timeout")
 	}
+}
+
+// selfClosedApp closes its own server, as setup and the system settings do to reload the configuration.
+type selfClosedApp struct {
+	app.AppInterface
+}
+
+func (a *selfClosedApp) Initialize() error { return nil }
+
+func (a *selfClosedApp) Start() error { return http.ErrServerClosed }
+
+func TestRunServer_ServerClosedForReloadIsNotLoggedAsAnError(t *testing.T) {
+	originalNewApp := newApp
+	originalSignalNotify := signalNotify
+	defer func() {
+		newApp = originalNewApp
+		signalNotify = originalSignalNotify
+	}()
+	newApp = func(cfg *config.Config, opts ...app.AppOption) app.AppInterface { return &selfClosedApp{} }
+	signalNotify = func(c chan<- os.Signal, sig ...os.Signal) {}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info("Server started successfully").AnyTimes()
+	mockLogger.EXPECT().Info("Server stopped to load its new configuration - exiting so that the process manager restarts it").Times(1)
+	mockLogger.EXPECT().Error(gomock.Any()).Times(0)
+
+	err := runServer(&config.Config{}, mockLogger)
+
+	// Still an error: main exits with a failure code, which every restart policy restarts
+	assert.ErrorIs(t, err, http.ErrServerClosed)
 }

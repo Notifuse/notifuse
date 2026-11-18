@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -63,6 +65,13 @@ func runServer(cfg *config.Config, appLogger logger.Logger) error {
 	// Wait for shutdown signal or server error
 	select {
 	case err := <-serverError:
+		if errors.Is(err, http.ErrServerClosed) {
+			// The app closed its own server to load a new configuration (setup, system settings).
+			// The error still ends the process with a failure code, so that a process manager
+			// restarting only on failure starts it again.
+			appLogger.Info("Server stopped to load its new configuration - exiting so that the process manager restarts it")
+			return err
+		}
 		if err != nil {
 			appLogger.WithField("error", err.Error()).Error("Server error")
 		}
