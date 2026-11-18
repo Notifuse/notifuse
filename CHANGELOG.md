@@ -90,6 +90,10 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: `DB_EXPECT_EXISTING=true` makes Notifuse refuse to start instead of creating or initialising its system database, and refuse to create a missing workspace database, on a server that must already hold the data (an upgrade, a restore). Without it, a first start on an empty database is now logged as a warning.
 
+- **Fix**: The setup wizard sends telemetry and update checks as it shows them; they were sent switched off unless « Advanced Settings » was opened. It also saves the EHLO hostname it tests with, accepts several root emails as documented, asks for the SSO redirect URI and scopes, and accepts a setup where the environment sets only some SMTP or SSO values.
+
+- **Fix**: The sender name set in the setup wizard or in System settings is used for system emails; it was always replaced by « Notifuse » unless `SMTP_FROM_NAME` was set.
+
 - **Fix**: Importing contacts from a CSV file no longer counts the newline at the end of the file as a row, nor reports it as a failed contact. Blank lines inside the file are skipped too.
 
 - **Fix**: A `DB_NAME` with capital letters, such as `Notifuse`, no longer stops Notifuse at its second start: the system database is created under that exact name, where it was folded to lower case and then not found.
@@ -326,7 +330,7 @@ All notable changes to this project will be documented in this file.
 - **Change**: Notifuse now refuses to start on PostgreSQL older than 17, the version it is tested on, and says which version it found. Upgrade the database server before upgrading Notifuse.
 - **Fix**: The segment form no longer drops unsaved changes when closed (it asks first), no longer sends a condition still being written, says why it cannot be saved instead of doing nothing when there is no condition, and refuses a name that gives no ID (one without a Latin letter or digit), which the server rejected. A failed save stays in the form with its reason.
 - **Improvement**: `blogPosts.list` returns all posts by the date they are shown with (publication date, or a draft's last edit), newest first, and drafts by their last edit.
-- **Improvement**: Demo data: the email templates are built from the template gallery's models, and delivery, bounce and complaint events read as Amazon SES notifications, with bounced and complained contacts no longer receiving later emails.
+- **Improvement**: Demo data: the email templates are built from the template gallery's models, and delivery, bounce and complaint events read as Amazon SES notifications, with bounced and complained contacts no longer receiving later emails. Contacts have example.com, example.org or example.net addresses, each broadcast's emails and their timeline entries are dated from that broadcast's own send, and the A/B test shows its sample split between both variations, the winner sent to everyone else, and its recipient counts.
 - **Improvement**: An A/B test broadcast can be paused or cancelled during its test, while it waits for its winner and while the winner is sent; resumed, it picks up where it was, and the time it spent paused while waiting for its winner does not count toward its test duration.
 
 - **Change**: Testing an email provider (`email.testProvider`) is reserved to workspace owners, like creating and editing integrations. The console already offered it to owners only; an API key or a member calling it now gets 403.

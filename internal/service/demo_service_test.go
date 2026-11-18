@@ -98,7 +98,7 @@ func TestDemoService_DeleteAllWorkspaces(t *testing.T) {
 func TestDemoService_GenerateSampleContactsBatch(t *testing.T) {
 	svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
 
-	batch := svc.generateSampleContactsBatch(10, 100)
+	batch := svc.generateSampleContactsBatch(10, 100, map[string]bool{})
 	assert.Len(t, batch, 10)
 	for i, c := range batch {
 		assert.NotEmpty(t, c.Email)
@@ -618,7 +618,7 @@ func TestDemoService_GenerateMessageHistoryForContact(t *testing.T) {
 	}
 
 	baseTime := time.Now()
-	message, engagement := svc.generateMessageHistoryForContact(contact, "newsletter-weekly", 1, "test-broadcast", baseTime)
+	message, engagement := svc.generateMessageHistoryForContact(contact, "newsletter-weekly", 1, &domain.Broadcast{ID: "test-broadcast"}, baseTime, time.Now())
 
 	assert.NotNil(t, message)
 	_ = engagement // engagement not needed for this test
@@ -641,7 +641,7 @@ func TestDemoService_GenerateTransactionalMessageHistoryForContact(t *testing.T)
 	}
 
 	baseTime := time.Now()
-	message, engagement := svc.generateTransactionalMessageHistoryForContact(contact, "password-reset", 1, "password-reset", baseTime)
+	message, engagement := svc.generateTransactionalMessageHistoryForContact(contact, "password-reset", 1, "password-reset", baseTime, time.Now())
 
 	assert.NotNil(t, message)
 	_ = engagement // engagement not needed for this test
@@ -751,8 +751,8 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 			FirstName: &domain.NullableString{String: "John", IsNull: false}})
 	}
 
-	// Provide sample broadcast IDs; the last one is the A/B test, as in the demo.
-	broadcastIDs := []string{"broadcast-1", "broadcast-2", "broadcast-3", "broadcast-4"}
+	// The sample broadcasts as the seed marks them sent; the last one is the A/B test.
+	broadcasts := demoTestBroadcasts(time.Now())
 
 	// Mock message history creation - each contact gets 2-4 messages
 	recipients := map[string]int{}
@@ -763,17 +763,8 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 			}
 			return nil
 		}).AnyTimes()
-	mockBroadcastRepo.EXPECT().GetBroadcast(ctx, "demo", gomock.Any()).DoAndReturn(
-		func(_ context.Context, _, id string) (*domain.Broadcast, error) {
-			return &domain.Broadcast{ID: id, TestSettings: domain.BroadcastTestSettings{
-				Enabled: id == "broadcast-4", SamplePercentage: 10}}, nil
-		}).AnyTimes()
-	var updated []*domain.Broadcast
-	mockBroadcastRepo.EXPECT().UpdateBroadcast(ctx, gomock.Any()).DoAndReturn(
-		func(_ context.Context, b *domain.Broadcast) error {
-			updated = append(updated, b)
-			return nil
-		}).AnyTimes()
+	// The broadcasts are only given their counters here; saveSampleBroadcasts writes them.
+	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Times(0)
 	// Mock SetOpened and SetClicked for message_history updates (triggers timeline entries)
 	mockMessageHistoryRepo.EXPECT().SetOpened(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockMessageHistoryRepo.EXPECT().SetClicked(ctx, "demo", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
@@ -785,20 +776,22 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
-	count, err := svc.generateMessagesPerContact(ctx, "demo", "test-secret-key", contacts, broadcastIDs)
+	count, err := svc.generateMessagesPerContact(ctx, "demo", "test-secret-key", contacts, broadcasts, time.Now())
 	// No error expected - webhook generation errors are logged but don't fail the operation
 	assert.NoError(t, err)
 	// With 60 contacts getting 2-4 messages each, expect at least 120 messages
 	assert.GreaterOrEqual(t, count, 120)
 
-	// Only the A/B broadcast is updated, with its sample of the recipients drawn for it as the
-	// test phase and the rest as the winner's.
-	require.Len(t, updated, 1)
-	ab := updated[0]
-	assert.Equal(t, "broadcast-4", ab.ID)
-	require.Positive(t, recipients["broadcast-4"])
-	assert.Equal(t, recipients["broadcast-4"], ab.TestPhaseRecipientCount+ab.WinnerPhaseRecipientCount)
-	assert.Equal(t, recipients["broadcast-4"]*10/100, ab.TestPhaseRecipientCount)
+	// Every broadcast has its emails as enqueued_count; only the A/B test has phase counts,
+	// which add up to them.
+	for _, b := range broadcasts {
+		assert.Equal(t, recipients[b.ID], b.EnqueuedCount, b.ID)
+		if b.ID == "bc-4" {
+			assert.Equal(t, recipients[b.ID], b.TestPhaseRecipientCount+b.WinnerPhaseRecipientCount)
+		} else {
+			assert.Zero(t, b.TestPhaseRecipientCount+b.WinnerPhaseRecipientCount, b.ID)
+		}
+	}
 }
 
 func TestDemoService_GenerateMessagesPerContact_EmptyContacts(t *testing.T) {
@@ -808,8 +801,7 @@ func TestDemoService_GenerateMessagesPerContact_EmptyContacts(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	broadcastIDs := []string{"broadcast-1", "broadcast-2", "broadcast-3", "broadcast-4"}
-	count, err := svc.generateMessagesPerContact(ctx, "demo", "test-secret-key", []*domain.Contact{}, broadcastIDs)
+	count, err := svc.generateMessagesPerContact(ctx, "demo", "test-secret-key", []*domain.Contact{}, demoTestBroadcasts(time.Now()), time.Now())
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, count)
@@ -900,7 +892,7 @@ func TestDemoService_GenerateMessageHistoryForContact_EngagementMetrics(t *testi
 	// Test multiple times - larger sample size for more reliable statistics
 	iterations := 200
 	for i := 0; i < iterations; i++ {
-		message, engagement := svc.generateMessageHistoryForContact(contact, "newsletter-weekly", 1, "test-broadcast", baseTime)
+		message, engagement := svc.generateMessageHistoryForContact(contact, "newsletter-weekly", 1, &domain.Broadcast{ID: "test-broadcast"}, baseTime, time.Now())
 
 		assert.NotNil(t, message)
 		assert.Equal(t, contact.Email, message.ContactEmail)
@@ -956,7 +948,7 @@ func TestDemoService_GenerateTransactionalMessageHistoryForContact_PasswordReset
 	// Test multiple times - larger sample size for more reliable statistics
 	iterations := 200
 	for i := 0; i < iterations; i++ {
-		message, engagement := svc.generateTransactionalMessageHistoryForContact(contact, "password-reset", 1, "password-reset", baseTime)
+		message, engagement := svc.generateTransactionalMessageHistoryForContact(contact, "password-reset", 1, "password-reset", baseTime, time.Now())
 
 		assert.NotNil(t, message)
 		assert.Equal(t, contact.Email, message.ContactEmail)
@@ -1015,7 +1007,7 @@ func TestDemoService_GenerateTransactionalMessageHistoryForContact_Welcome(t *te
 	}
 
 	baseTime := time.Now()
-	message, engagement := svc.generateTransactionalMessageHistoryForContact(contact, "welcome-email", 1, "welcome", baseTime)
+	message, engagement := svc.generateTransactionalMessageHistoryForContact(contact, "welcome-email", 1, "welcome", baseTime, time.Now())
 
 	assert.NotNil(t, message)
 	_ = engagement // engagement not needed for this test
@@ -1436,7 +1428,7 @@ func TestDemoService_TransactionalMessagesCarryTheirNotification(t *testing.T) {
 
 	for messageType, want := range map[string]string{"password-reset": "password_reset", "welcome": "welcome"} {
 		templateID := map[string]string{"password-reset": "password-reset", "welcome": "welcome-email"}[messageType]
-		message, _ := svc.generateTransactionalMessageHistoryForContact(contact, templateID, 1, messageType, time.Now())
+		message, _ := svc.generateTransactionalMessageHistoryForContact(contact, templateID, 1, messageType, time.Now(), time.Now())
 		require.NotNil(t, message.TransactionalNotificationID, messageType)
 		assert.Equal(t, want, *message.TransactionalNotificationID, messageType)
 		assert.Nil(t, message.BroadcastID, messageType)
@@ -1447,8 +1439,8 @@ func TestDemoService_TransactionalMessagesCarryTheirNotification(t *testing.T) {
 	// fails here until it gets one.
 	require.NotEmpty(t, demoTransactionalCampaigns)
 	for _, campaign := range demoTransactionalCampaigns {
-		assert.Nil(t, campaign.broadcastID, campaign.messageType)
-		message, _ := svc.generateTransactionalMessageHistoryForContact(contact, campaign.templateID, campaign.templateVersion, campaign.messageType, time.Now())
+		assert.Nil(t, campaign.broadcast, campaign.messageType)
+		message, _ := svc.generateTransactionalMessageHistoryForContact(contact, campaign.templateID, campaign.templateVersion, campaign.messageType, time.Now(), time.Now())
 		assert.NotNil(t, message.TransactionalNotificationID, "%s has no demo notification", campaign.messageType)
 	}
 }

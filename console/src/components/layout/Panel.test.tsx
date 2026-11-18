@@ -28,6 +28,12 @@ describe('Panel', () => {
     expect(container.querySelector('[data-panel-body]')!.className).not.toMatch(/\bpx-/)
   })
 
+  it('draws no body without children, for a header-only card', () => {
+    const { container } = render(<Panel title="SMTP bridge" />)
+    expect(container.querySelector('[data-panel-body]')).toBeNull()
+    expect(container.querySelector('[data-panel-head]')).not.toBeNull()
+  })
+
   it('renders its footer and passes its className', () => {
     const { container } = render(
       <Panel footer={<span>10 of 12 broadcasts</span>} className="col-span-2">

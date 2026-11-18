@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -216,7 +217,7 @@ func TestDemoService_AddSampleData_GapMessageHistoryFailureAborts(t *testing.T) 
 	defer deps.ctrl.Finish()
 	demoGapBroadcastExpectations(deps)
 	deps.repo.EXPECT().CreateBroadcast(gomock.Any(), gomock.Any()).Return(nil).Times(4)
-	broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).Times(4)
+	broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Times(0) // step 7 aborts before they are marked as sent
 	d.svc.broadcastService = svcB.broadcastService
 	d.svc.broadcastRepo = broadcastRepo
 
@@ -302,6 +303,12 @@ func TestDemoService_AddSampleData_GapFullSuccessNonFatalStepsDegrade(t *testing
 	wsRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	wsRepo.EXPECT().GetByID(gomock.Any(), "ws-gap").
 		Return(&domain.Workspace{ID: "ws-gap", Settings: domain.WorkspaceSettings{SecretKey: "sk"}}, nil).Times(1)
+	// Step 7b dates the broadcasts it marked as sent.
+	db, dbMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	dbMock.ExpectExec("UPDATE broadcasts").WillReturnResult(sqlmock.NewResult(0, 4))
+	wsRepo.EXPECT().GetConnection(gomock.Any(), "ws-gap").Return(db, nil).Times(1)
 	d.svc.workspaceRepo = wsRepo
 
 	// Steps 3b (nil webAnalyticsRepo), 9 (nil automationService) and 10
@@ -436,7 +443,8 @@ func TestDemoService_DeliveredWebhookGap_ExactBatchRows(t *testing.T) {
 
 	// As ProcessWebhook does, the hard-bounced address is bounced on every list it is on.
 	contacts := mocks.NewMockContactRepository(ctrl)
-	contacts.EXPECT().MarkEmailsAsBounced(gomock.Any(), "ws-gap", []string{"d@example.com"}, gomock.Any()).Return(nil).Times(1)
+	// At the bounce, not at the seed: the list change shows on the contact's timeline.
+	contacts.EXPECT().MarkEmailsAsBouncedAt(gomock.Any(), "ws-gap", map[string]time.Time{"d@example.com": demoGapDeliveredAt.Add(-time.Minute)}).Return(nil).Times(1)
 
 	svc := demoGapWebhookSvc(t, wsRepo, events, true)
 	svc.messageHistoryRepo = msgHistory
@@ -517,14 +525,15 @@ func TestDemoService_DeliveredWebhookGap_ExactBatchRows(t *testing.T) {
 
 func TestDemoBounceOrDeliver(t *testing.T) {
 	sent := demoGapDeliveredAt
+	now := sent.AddDate(0, 0, 1)
 	var bounced messageEngagement
-	demoBounceOrDeliver(&bounced, sent, 1)
+	demoBounceOrDeliver(&bounced, now, sent, 1)
 	assert.True(t, bounced.shouldBounce)
 	assert.False(t, bounced.shouldDeliver, "a bounced email is never delivered")
 	assert.True(t, bounced.bouncedTime.After(sent))
 
 	var delivered messageEngagement
-	demoBounceOrDeliver(&delivered, sent, 0)
+	demoBounceOrDeliver(&delivered, now, sent, 0)
 	assert.True(t, delivered.shouldDeliver)
 	assert.False(t, delivered.shouldBounce)
 	assert.False(t, delivered.deliveredTime.Before(sent))
