@@ -1959,7 +1959,7 @@ msgstr "リストのメール"
 msgid "A logo, a paragraph and the footer, to write your own email."
 msgstr "ロゴ、段落、フッターだけの、自由にメールを書くためのテンプレート。"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:111
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:141
 msgid "A multiple of the font size (1.3), or pixels (24px)."
 msgstr "フォントサイズの倍率（1.3）、またはピクセル（24px）。"
 
@@ -1979,7 +1979,7 @@ msgstr "ローカルストレージに新しい下書きが見つかりました
 msgid "A newsletter"
 msgstr "ブロードキャスト"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:116
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:150
 msgid "A number (1.3) or pixels up to 200px."
 msgstr "数値（1.3）、または200pxまでのピクセル。"
 
@@ -2121,7 +2121,7 @@ msgstr "A/Bテストを実行中です。テストグループにメールを送
 msgid "Abandoned cart"
 msgstr "カート放棄"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:29
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:41
 #: src/components/setup/LockableItem.tsx:40
 msgid "About {label}"
 msgstr "{label}について"
@@ -2466,7 +2466,7 @@ msgstr "セクションにブロックを追加"
 msgid "Add block in wrapper"
 msgstr "ラッパーにブロックを追加"
 
-#: src/components/email_builder/blocks/MjAttributesBlock.tsx:23
+#: src/components/email_builder/blocks/MjAttributesBlock.tsx:29
 msgid "Add child elements for specific components (mj-text, mj-button, etc.) to set their default values."
 msgstr "特定のコンポーネント (mj-text、mj-buttonなど) に子要素を追加してデフォルト値を設定します。"
 
@@ -3061,7 +3061,7 @@ msgstr "常に一致"
 msgid "Always matches: with no condition, this rule runs on every session."
 msgstr "常に一致: 条件がないため、このルールはすべてのセッションで実行されます。"
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:51
+#: src/components/email_builder/blocks/MjFontBlock.tsx:77
 msgid "Always provide fallback fonts for better compatibility"
 msgstr "互換性向上のため、常にフォールバックフォントを指定してください"
 
@@ -4009,8 +4009,8 @@ msgid "average"
 msgstr "平均"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:39
-msgid "Avoid special characters that might not display properly"
-msgstr "正しく表示されない可能性のある特殊文字は避けてください"
+#~ msgid "Avoid special characters that might not display properly"
+#~ msgstr "正しく表示されない可能性のある特殊文字は避けてください"
 
 #: src/components/settings/Integrations.tsx:1396
 #~ msgid "AWS Access Key"
@@ -4275,8 +4275,8 @@ msgid "Best performing combination:"
 msgstr "最も成績の良い組み合わせ:"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
-msgid "Best practices:"
-msgstr "ベストプラクティス:"
+#~ msgid "Best practices:"
+#~ msgstr "ベストプラクティス:"
 
 #: src/components/web_analytics/explore/ExploreSummary.tsx:95
 msgid "Best TimeScore"
@@ -5136,7 +5136,6 @@ msgstr "ブラウザでテストできません"
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:179
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:291
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:78
-#: src/components/email_builder/ui/ImportFontInput.tsx:177
 #: src/components/email_builder/ui/SaveBlockModal.tsx:98
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:410
 #: src/components/file_manager/buttonSettings.tsx:307
@@ -5666,7 +5665,6 @@ msgstr "Claude モデル"
 #: src/components/contacts/ContactsFilters.tsx:240
 #: src/components/contacts/InlineEditableField.tsx:306
 #: src/components/email_builder/ui/fields/ColorField.tsx:175
-#: src/components/email_builder/ui/ImportFontInput.tsx:173
 #: src/components/file_manager/FileExplorer.tsx:742
 msgid "Clear"
 msgstr "クリア"
@@ -6045,8 +6043,8 @@ msgstr "{label} を折りたたむ"
 #: src/components/blog_editor/menus/block-actions/BlockColorPopover.tsx:97
 #: src/components/email_builder/ui/fields/BackgroundFields.tsx:183
 #: src/components/email_builder/ui/fields/BackgroundFields.tsx:211
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:121
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:123
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:156
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:162
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:162
 msgid "Color"
 msgstr "色"
@@ -6219,8 +6217,8 @@ msgid "Complaints"
 msgstr "苦情"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:43
-msgid "Complement, don't repeat the subject line"
-msgstr "件名を繰り返さず、補足的な内容にしてください"
+#~ msgid "Complement, don't repeat the subject line"
+#~ msgstr "件名を繰り返さず、補足的な内容にしてください"
 
 #: src/components/setup/setupHooks.ts:44
 msgid "Complete"
@@ -6355,8 +6353,8 @@ msgid "Configure a custom domain for email links, notification center, and web p
 msgstr "メールリンク、通知センター、Web公開用のカスタムドメインを設定します。保存前にDNS検証を行い、ドメインの管理権を確認します。"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:47
-msgid "Configure both the font name and CSS file URL together"
-msgstr "フォント名とCSSファイルURLを一緒に設定してください"
+#~ msgid "Configure both the font name and CSS file URL together"
+#~ msgstr "フォント名とCSSファイルURLを一緒に設定してください"
 
 #: src/components/settings/BlogSettings.tsx:414
 #~ msgid "Configure how your blog's RSS and JSON feeds are generated."
@@ -6512,8 +6510,8 @@ msgstr "連続した配信失敗: {consecutiveFailures}"
 #~ msgstr "アカウント通知、パスワードリセット、その他の重要なシステムメッセージにトランザクションメールを使用するために、トランザクションメールプロバイダーの接続を検討してください。"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:38
-msgid "Consider using the same text as your subject line"
-msgstr "件名と同じテキストを使用することを検討してください"
+#~ msgid "Consider using the same text as your subject line"
+#~ msgstr "件名と同じテキストを使用することを検討してください"
 
 #: src/components/contacts/TrackingConsent.tsx:46
 #: src/components/segment/segmentLabels.ts:251
@@ -7357,8 +7355,8 @@ msgid "Create this in Azure Portal > App registrations > Your App > Certificates
 msgstr "Azure Portal > アプリの登録 > アプリ > 証明書とシークレット で作成"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:44
-msgid "Create urgency or curiosity"
-msgstr "緊急性や好奇心を喚起"
+#~ msgid "Create urgency or curiosity"
+#~ msgstr "緊急性や好奇心を喚起"
 
 #: src/components/settings/WebhooksSettings.tsx:502
 msgid "Create webhook"
@@ -7559,8 +7557,8 @@ msgid "CSS Content"
 msgstr "CSSコンテンツ"
 
 #: src/components/email_builder/ui/ImportFontInput.tsx:140
-msgid "CSS File URL"
-msgstr "CSSファイルURL"
+#~ msgid "CSS File URL"
+#~ msgstr "CSSファイルURL"
 
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:139
 msgid "CSS Style Editor"
@@ -8001,7 +7999,7 @@ msgstr "デフォルト"
 msgid "Default (API endpoint)"
 msgstr "デフォルト（APIエンドポイント）"
 
-#: src/components/email_builder/blocks/MjAttributesBlock.tsx:21
+#: src/components/email_builder/blocks/MjAttributesBlock.tsx:27
 msgid "Default attributes"
 msgstr "デフォルト属性"
 
@@ -9277,7 +9275,7 @@ msgstr "例: 製品アップデート"
 msgid "e.g., purchase"
 msgstr "例: purchase"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:134
+#: src/components/email_builder/blocks/MjFontBlock.tsx:84
 msgid "e.g., Raleway, Open Sans"
 msgstr "例: Raleway、Open Sans"
 
@@ -9330,7 +9328,6 @@ msgstr "各バリエーションは、別の送信者を選ばない限りテン
 #: src/components/contacts/ContactsTable.tsx:91
 #: src/components/email_builder/EmailBuilder.tsx:1112
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
-#: src/components/email_builder/ui/ImportFontInput.tsx:222
 #: src/components/segment/input.tsx:389
 #: src/components/segment/input.tsx:393
 #: src/components/settings/Integrations.tsx:261
@@ -9454,8 +9451,8 @@ msgid "Edit email template"
 msgstr "メールテンプレートを編集"
 
 #: src/components/email_builder/ui/ImportFontInput.tsx:215
-msgid "Edit Font Import"
-msgstr "フォントインポートを編集"
+#~ msgid "Edit Font Import"
+#~ msgstr "フォントインポートを編集"
 
 #: src/components/email_builder/blocks/MjRawBlock.tsx:321
 msgid "Edit HTML Content"
@@ -10278,8 +10275,8 @@ msgid "Enter email address"
 msgstr "メールアドレスを入力"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:49
-msgid "Enter email title..."
-msgstr "メールタイトルを入力..."
+#~ msgid "Enter email title..."
+#~ msgstr "メールタイトルを入力..."
 
 #: src/components/settings/WebhooksSettings.tsx:627
 msgid "Enter event names to filter"
@@ -10334,8 +10331,8 @@ msgid "Enter number..."
 msgstr "数値を入力..."
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:71
-msgid "Enter preview text that appears in email clients..."
-msgstr "メールクライアントに表示されるプレビューテキストを入力..."
+#~ msgid "Enter preview text that appears in email clients..."
+#~ msgstr "メールクライアントに表示されるプレビューテキストを入力..."
 
 #: src/components/templates/SendTemplateModal.tsx:458
 msgid "Enter Reply-To email address"
@@ -11651,6 +11648,10 @@ msgstr "フィールドに入力"
 msgid "Fill in the fields of a hypothetical visit; empty fields count as empty values."
 msgstr "仮想的な訪問のフィールドを入力してください。空欄は空の値として扱われます。"
 
+#: src/components/email_builder/blocks/MjFontBlock.tsx:51
+msgid "Fills in the name and the stylesheet of a popular Google Font."
+msgstr "人気の Google フォントの名前とスタイルシートを入力します。"
+
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:386
 msgid "Fills the Pages fields, the UTM fields and UTM ID From from the address, with the click ids the tracking snippet knows by default. The referrer and device stay as typed."
 msgstr "アドレスから「ページ」のフィールド、UTM のフィールド、UTM ID From を入力します。クリック ID はトラッキングスニペットが標準で認識するものを使います。リファラーとデバイスは入力したままです。"
@@ -11895,13 +11896,13 @@ msgid "Follows the title until you edit it"
 msgstr "編集するまでタイトルに合わせて変わります"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:261
-#: src/components/email_builder/blocks/MjFontBlock.tsx:30
+#: src/components/email_builder/blocks/MjFontBlock.tsx:39
 #: src/components/email_builder/blocks/MjSocialBlock.tsx:122
 #: src/components/email_builder/blocks/MjTextBlock.tsx:105
 #: src/components/email_builder/ui/fields/FontFields.tsx:212
 #: src/components/email_builder/ui/fields/FontFields.tsx:218
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:79
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:83
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:98
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:106
 msgid "Font"
 msgstr "フォント"
 
@@ -11922,9 +11923,13 @@ msgstr "フォント"
 #~ msgid "Font Family"
 #~ msgstr "フォントファミリー"
 
-#: src/components/email_builder/ui/ImportFontInput.tsx:129
-msgid "Font Name"
+#: src/components/email_builder/blocks/MjFontBlock.tsx:82
+msgid "Font name"
 msgstr "フォント名"
+
+#: src/components/email_builder/ui/ImportFontInput.tsx:129
+#~ msgid "Font Name"
+#~ msgstr "フォント名"
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:289
 #~ msgid "Font Settings"
@@ -12103,8 +12108,8 @@ msgstr "platform.openai.com で取得、またはエンドポイント独自の�
 msgid "From the moment you save"
 msgstr "保存した時点から"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:85
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:125
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:108
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:164
 msgid "From the text block"
 msgstr "テキストブロックと同じ"
 
@@ -12429,6 +12434,10 @@ msgstr "ゴールド"
 msgid "Good to know"
 msgstr "知っておくと便利"
 
+#: src/components/email_builder/blocks/MjFontBlock.tsx:51
+msgid "Google Fonts"
+msgstr "Google Fonts"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:630
 msgid "Google Workspace / Gmail"
 msgstr "Google Workspace / Gmail"
@@ -12532,6 +12541,10 @@ msgstr "グループ:"
 msgid "H{0} after H{1}"
 msgstr "H{1} の後に H{0}"
 
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:89
+msgid "H{value}, changed"
+msgstr "H{value}（変更済み）"
+
 #: src/components/segment/segmentSummary.ts:114
 msgid "Had an email bounce"
 msgstr "メールがバウンスした"
@@ -12594,7 +12607,7 @@ msgstr "ヘッダーの値"
 msgid "Header value is required"
 msgstr "ヘッダーの値は必須です"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:164
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:208
 msgid "Heading {level}"
 msgstr "見出し {level}"
 
@@ -12602,7 +12615,7 @@ msgstr "見出し {level}"
 msgid "Heading {value}"
 msgstr "見出し {value}"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:73
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:82
 msgid "Heading level"
 msgstr "見出しレベル"
 
@@ -12610,7 +12623,7 @@ msgstr "見出しレベル"
 msgid "Heading structure"
 msgstr "見出しの構造"
 
-#: src/components/email_builder/blocks/MjAttributesBlock.tsx:18
+#: src/components/email_builder/blocks/MjAttributesBlock.tsx:21
 msgid "Headings"
 msgstr "見出し"
 
@@ -12823,8 +12836,12 @@ msgstr "https://example.com または {LIQUID_URL}"
 #~ msgstr "https://fonts.googleapis.com/css?family=... または {{ font_url }}"
 
 #: src/components/email_builder/ui/ImportFontInput.tsx:145
-msgid "https://fonts.googleapis.com/css?family=... or {LIQUID_FONT_URL}"
-msgstr "https://fonts.googleapis.com/css?family=... または {LIQUID_FONT_URL}"
+#~ msgid "https://fonts.googleapis.com/css?family=... or {LIQUID_FONT_URL}"
+#~ msgstr "https://fonts.googleapis.com/css?family=... または {LIQUID_FONT_URL}"
+
+#: src/components/email_builder/blocks/MjFontBlock.tsx:93
+msgid "https://fonts.googleapis.com/css?family=… or {LIQUID_FONT_URL}"
+msgstr "https://fonts.googleapis.com/css?family=… または {LIQUID_FONT_URL}"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:873
 msgid "I ran {maxRounds} rounds of tool calls without reaching an answer and stopped there. Ask a narrower question and I will try again."
@@ -13171,16 +13188,16 @@ msgid "Import Contacts to List"
 msgstr "リストにコンタクトをインポート"
 
 #: src/components/email_builder/ui/ImportFontInput.tsx:232
-msgid "Import Custom Font"
-msgstr "カスタムフォントをインポート"
+#~ msgid "Import Custom Font"
+#~ msgstr "カスタムフォントをインポート"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:73
 #: src/components/email_builder/ui/ImportFontInput.tsx:28
 #: src/components/email_builder/ui/ImportFontInput.tsx:180
-msgid "Import Font"
-msgstr "フォントをインポート"
+#~ msgid "Import Font"
+#~ msgstr "フォントをインポート"
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:36
+#: src/components/email_builder/blocks/MjFontBlock.tsx:45
 msgid "Import fonts from hosted CSS files (like Google Fonts) to use in your email. The font will only take effect if you actually use it in text elements."
 msgstr "ホストされたCSSファイル（Google Fontsなど）からフォントをインポートしてメールで使用します。フォントは実際にテキスト要素で使用した場合のみ有効になります。"
 
@@ -13236,8 +13253,8 @@ msgid "Imported custom events"
 msgstr "カスタムイベントをインポートしました"
 
 #: src/components/email_builder/blocks/MjFontBlock.tsx:43
-msgid "Imported font"
-msgstr "インポート済みフォント"
+#~ msgid "Imported font"
+#~ msgstr "インポート済みフォント"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:119
 msgid "Imported fonts"
@@ -13357,8 +13374,8 @@ msgid "Inbox"
 msgstr "受信トレイ"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:45
-msgid "Include a clear call-to-action"
-msgstr "明確なコールトゥアクションを含めてください"
+#~ msgid "Include a clear call-to-action"
+#~ msgstr "明確なコールトゥアクションを含めてください"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:162
 msgid "Included"
@@ -13626,7 +13643,8 @@ msgstr "無効なツリー構造: ルートはmjmlタイプである必要があ
 msgid "Invalid URL format"
 msgstr "無効なURL形式です"
 
-#: src/components/email_builder/ui/fields/DraftTextField.tsx:65
+#: src/components/email_builder/blocks/MjFontBlock.tsx:99
+#: src/components/email_builder/ui/fields/DraftTextField.tsx:69
 msgid "Invalid URL format. Use a valid URL or a Liquid expression like {LIQUID_VARIABLE}."
 msgstr "URLの形式が無効です。有効なURL、または {LIQUID_VARIABLE} のようなLiquid式を使用してください。"
 
@@ -13636,8 +13654,8 @@ msgstr "URLの形式が無効です。有効なURL、または {LIQUID_VARIABLE}
 #~ msgstr "無効なURL形式です。有効なURLまたは{{ variable }}のようなliquid式を使用してください"
 
 #: src/components/email_builder/ui/ImportFontInput.tsx:150
-msgid "Invalid URL format. Use a valid URL or liquid expression like {LIQUID_VARIABLE}"
-msgstr "無効なURL形式です。有効なURLまたは{LIQUID_VARIABLE}のようなliquid式を使用してください"
+#~ msgid "Invalid URL format. Use a valid URL or liquid expression like {LIQUID_VARIABLE}"
+#~ msgstr "無効なURL形式です。有効なURLまたは{LIQUID_VARIABLE}のようなliquid式を使用してください"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:703
 msgid "Invalid YouTube URL"
@@ -13985,12 +14003,12 @@ msgid "Keep it at or below your provider's limit, minus your transactional traff
 msgstr "プロバイダーの上限からトランザクションメールの送信量を差し引いた値以下にしてください。"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:42
-msgid "Keep it between 35-140 characters"
-msgstr "35〜140文字に収めてください"
+#~ msgid "Keep it between 35-140 characters"
+#~ msgstr "35〜140文字に収めてください"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:36
-msgid "Keep it concise and descriptive"
-msgstr "簡潔で説明的に保ってください"
+#~ msgid "Keep it concise and descriptive"
+#~ msgstr "簡潔で説明的に保ってください"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:210
 msgid "Keep the confirmation link: {CONFIRM_VARIABLE}."
@@ -14360,11 +14378,11 @@ msgstr "文字間隔"
 msgid "Letters and digits, 32 at most. Used by the API and forms; cannot change after creation."
 msgstr "英字と数字、32 文字以内。API とフォームで使われ、作成後は変更できません。"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:86
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:109
 msgid "Letters, digits, spaces, quotes, commas and hyphens only."
 msgstr "英字、数字、スペース、引用符、カンマ、ハイフンのみ使用できます。"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:71
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:80
 msgid "Level"
 msgstr "レベル"
 
@@ -14431,8 +14449,8 @@ msgid "Line color"
 msgstr "線の色"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:247
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:111
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:114
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:140
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:148
 #: src/components/email_builder/ui/LineHeightInput.tsx:76
 msgid "Line height"
 msgstr "行の高さ"
@@ -15047,8 +15065,8 @@ msgid "Make default"
 msgstr "デフォルトに設定"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:37
-msgid "Make it relevant to your email content"
-msgstr "メールの内容に関連性のあるものにしてください"
+#~ msgid "Make it relevant to your email content"
+#~ msgstr "メールの内容に関連性のあるものにしてください"
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:97
 msgid "Makes the section span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections."
@@ -15712,6 +15730,7 @@ msgstr "N/A"
 
 #: src/components/blog/AuthorsField.tsx:194
 #: src/components/blog/CategoryDrawer.tsx:233
+#: src/components/email_builder/blocks/MjFontBlock.tsx:71
 #: src/components/email_builder/ui/SaveBlockModal.tsx:135
 #: src/components/file_manager/FileTable.tsx:78
 #: src/components/integrations/FirecrawlIntegration.tsx:89
@@ -17632,7 +17651,7 @@ msgstr "テスターを開く"
 msgid "Open the audit log"
 msgstr "監査ログを開く"
 
-#: src/components/email_builder/ui/fields/DraftTextField.tsx:128
+#: src/components/email_builder/ui/fields/DraftTextField.tsx:134
 msgid "Open the link"
 msgstr "リンクを開く"
 
@@ -17897,8 +17916,8 @@ msgid "or drag the block into the email"
 msgstr "またはブロックをメールにドラッグ"
 
 #: src/components/email_builder/ui/ImportFontInput.tsx:157
-msgid "Or select a popular Google Font"
-msgstr "または人気のGoogle Fontを選択"
+#~ msgid "Or select a popular Google Font"
+#~ msgstr "または人気のGoogle Fontを選択"
 
 #: src/components/segment/segmentLabels.ts:324
 msgid "Orange"
@@ -18126,8 +18145,8 @@ msgid "Password reset"
 msgstr "パスワードのリセット"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:51
-msgid "Past 140 characters, most inboxes cut the text."
-msgstr "140文字を超えると、ほとんどの受信トレイでテキストが切り詰められます。"
+#~ msgid "Past 140 characters, most inboxes cut the text."
+#~ msgstr "140文字を超えると、ほとんどの受信トレイでテキストが切り詰められます。"
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:382
 msgid "Past sessions"
@@ -18408,6 +18427,10 @@ msgstr "写真: Sean Oulashin"
 #: src/components/web_analytics/explore/BreakdownModal.tsx:91
 msgid "Pick a dimension below"
 msgstr "下からディメンションを選択してください"
+
+#: src/components/email_builder/blocks/MjFontBlock.tsx:56
+msgid "Pick a font"
+msgstr "フォントを選択"
 
 #: src/components/logs/MessagesTab.tsx:571
 #~ msgid "Pick a period or a filter to count"
@@ -18791,6 +18814,10 @@ msgstr "モデルを選択または入力してください"
 #~ msgid "Please upload a CSV file with email addresses"
 #~ msgstr "メールアドレスを含むCSVファイルをアップロードしてください"
 
+#: src/components/email_builder/blocks/MjFontBlock.tsx:55
+msgid "Popular Google Font"
+msgstr "人気の Google フォント"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:575
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:579
 #: src/components/setup/SmtpPanel.tsx:159
@@ -18943,7 +18970,6 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:71
 #: src/components/common/ImageURLInput.tsx:58
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:31
 #: src/components/email_builder/EmailBuilder.tsx:1116
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:132
@@ -20371,7 +20397,11 @@ msgstr "招待を再送"
 msgid "Reset"
 msgstr "リセット"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:39
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
+msgid "Reset {label} to the default value"
+msgstr "{label} を既定値に戻す"
+
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
 msgid "Reset {label} to the inherited value"
 msgstr "{label}を継承値にリセット"
 
@@ -20395,7 +20425,7 @@ msgstr "インテグレーションの同期タスクをリセットし、最初
 msgid "Reset formatting"
 msgstr "書式をリセット"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:169
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:214
 msgid "Reset H{level}"
 msgstr "H{level} をリセット"
 
@@ -20407,7 +20437,11 @@ msgstr "リセットすると、すべてのコンテンツが既定の言語の
 msgid "reset the filter"
 msgstr "フィルターをリセット"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:40
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:52
+msgid "Reset to the default value"
+msgstr "既定値に戻す"
+
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:52
 msgid "Reset to the inherited value"
 msgstr "継承値にリセット"
 
@@ -20850,7 +20884,7 @@ msgstr "同じウィンドウ"
 #~ msgid "Same Window"
 #~ msgstr "同じウィンドウ"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:153
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:197
 msgid "Sample"
 msgstr "サンプル"
 
@@ -21559,8 +21593,8 @@ msgid "Select a model"
 msgstr "モデルを選択"
 
 #: src/components/email_builder/ui/ImportFontInput.tsx:161
-msgid "Select a popular Google Font"
-msgstr "人気のGoogle Fontを選択"
+#~ msgid "Select a popular Google Font"
+#~ msgstr "人気のGoogle Fontを選択"
 
 #: src/components/email_builder/utils/library.ts:70
 msgid "Select a section"
@@ -22952,7 +22986,7 @@ msgstr "訪問"
 #: src/components/email_builder/blocks/MjTextBlock.tsx:125
 #: src/components/email_builder/ui/fields/BackgroundFields.tsx:229
 #: src/components/email_builder/ui/fields/FontFields.tsx:204
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:93
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:121
 #: src/components/file_manager/FilePreview.tsx:47
 #: src/components/file_manager/FileTable.tsx:101
 msgid "Size"
@@ -22968,7 +23002,7 @@ msgid "Size, height"
 msgstr "サイズ、高さ"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:204
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:90
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:114
 msgid "Size, weight"
 msgstr "サイズ、太さ"
 
@@ -23253,15 +23287,15 @@ msgstr "ソース"
 msgid "Space"
 msgstr "間隔"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:133
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:177
 msgid "Space above"
 msgstr "上の余白"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:130
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:170
 msgid "Space above, below"
 msgstr "上下の余白"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:142
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:186
 msgid "Space below"
 msgstr "下の余白"
 
@@ -23601,6 +23635,14 @@ msgstr "スタイル"
 #~ msgid "Style Attributes"
 #~ msgstr "スタイル属性"
 
+#: src/components/email_builder/blocks/MjFontBlock.tsx:89
+msgid "Stylesheet"
+msgstr "スタイルシート"
+
+#: src/components/email_builder/blocks/MjFontBlock.tsx:91
+msgid "Stylesheet URL"
+msgstr "スタイルシートの URL"
+
 #: src/components/automations/stats/EmailStepPreview.tsx:61
 #: src/components/broadcasts/compose/ContentCard.tsx:132
 #: src/components/broadcasts/compose/PreviewPanel.tsx:93
@@ -23624,8 +23666,6 @@ msgstr "件名 · {defaultName}"
 msgid "Subject ({lang})"
 msgstr "件名 ({lang})"
 
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:33
-#: src/components/email_builder/blocks/MjPreviewBlock.tsx:67
 #: src/components/logs/MessageDetail.tsx:684
 #: src/components/templates/TemplatePreviewDrawer.tsx:397
 #: src/components/templates/TemplateTranslationsTab.tsx:396
@@ -24298,7 +24338,7 @@ msgstr "テスト失敗"
 msgid "Test failed: {0}"
 msgstr "テスト失敗: {0}"
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:38
+#: src/components/email_builder/blocks/MjFontBlock.tsx:47
 msgid "Test in different email clients as support varies"
 msgstr "サポート状況は異なるため、様々なメールクライアントでテストしてください"
 
@@ -24497,6 +24537,10 @@ msgstr "The"
 #: src/components/settings/WebAnalyticsSettings.tsx:423
 #~ msgid "The address must already belong to a contact: identifying someone who is not one records nothing, by design. Visitors arriving from a tracked email link are identified automatically, with no code."
 #~ msgstr ""
+
+#: src/components/email_builder/blocks/MjFontBlock.tsx:89
+msgid "The address of the font's CSS file, or a Liquid output."
+msgstr "フォントの CSS ファイルのアドレス、または Liquid の出力。"
 
 #: src/services/api/permissions.ts:943
 msgid "The AI assistant: chat over the workspace's configured LLM integration, and the server-side tools it may call."
@@ -24796,6 +24840,10 @@ msgstr "フォルダーには削除するものがありませんでした。"
 #: src/components/templates/ImportErrorsModal.tsx:33
 #~ msgid "The following validation errors were found in your import:"
 #~ msgstr "インポートで以下の検証エラーが見つかりました:"
+
+#: src/components/email_builder/blocks/MjFontBlock.tsx:67
+msgid "The font is imported once it has a name and a stylesheet."
+msgstr "名前とスタイルシートがそろうとフォントがインポートされます。"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:884
 msgid "The From addresses of this provider. The default one is used when a template names none"
@@ -25291,7 +25339,7 @@ msgstr "これらのコンタクトは、選択したリストに購読登録さ
 #~ msgid "These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
 #~ msgstr "これらのパラメータはブロードキャストのURLに自動的に追加されます。Webアナリティクスツールがキャンペーンのパフォーマンスを分析するために使用されます。"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:45
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:48
 msgid "These styles were edited by hand. Edit them in the mj-style block."
 msgstr "これらのスタイルは手動で編集されています。mj-style ブロックで編集してください。"
 
@@ -25345,8 +25393,8 @@ msgid "This annotation was created automatically when a broadcast started. Delet
 msgstr "この注釈は、ブロードキャストの開始時に自動的に作成されました。削除してもブロードキャストには影響しません。"
 
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:32
-msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
-msgstr "これはブラウザでメールを表示する際のブラウザタブや一部のメールクライアントに表示されます。通常、メールの件名と同じか関連した内容です。"
+#~ msgid "This appears in browser tabs when viewing the email in a web browser and in some email clients. It's typically the same as or related to your email subject line."
+#~ msgstr "これはブラウザでメールを表示する際のブラウザタブや一部のメールクライアントに表示されます。通常、メールの件名と同じか関連した内容です。"
 
 #: src/components/logs/AuditEntryDetail.tsx:106
 msgid "This audit entry could not be found"
@@ -25705,8 +25753,8 @@ msgstr "このテンプレートは存在しません"
 #~ msgstr ""
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:38
-msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
-msgstr "このテキストはメールクライアントのプレビューペインに表示され、通常は件名の後に表示されます。簡潔で魅力的な内容にしてください（100〜140文字推奨）。"
+#~ msgid "This text appears in the email client's preview pane, typically after the subject line. Keep it concise and compelling (100-140 characters recommended)."
+#~ msgstr "このテキストはメールクライアントのプレビューペインに表示され、通常は件名の後に表示されます。簡潔で魅力的な内容にしてください（100〜140文字推奨）。"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:225
 msgid "This text is for the default language. Each translation has its own text in the Translations tab, otherwise it receives the automatic version."
@@ -25922,8 +25970,8 @@ msgid "Timezone:"
 msgstr "タイムゾーン:"
 
 #: src/components/email_builder/blocks/MjPreviewBlock.tsx:40
-msgid "Tips for effective preview text:"
-msgstr "効果的なプレビューテキストのヒント:"
+#~ msgid "Tips for effective preview text:"
+#~ msgstr "効果的なプレビューテキストのヒント:"
 
 #: src/components/templates/ImportErrorsModal.tsx:47
 #~ msgid "Tips for fixing these errors:"
@@ -25931,9 +25979,6 @@ msgstr "効果的なプレビューテキストのヒント:"
 
 #: src/components/blog/PostDrawer.tsx:886
 #: src/components/blog/PostsTable.tsx:566
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:25
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:27
-#: src/components/email_builder/blocks/MjTitleBlock.tsx:45
 #: src/components/settings/BlogSettings.tsx:253
 #: src/components/settings/BlogSettings.tsx:390
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:182
@@ -27130,7 +27175,7 @@ msgstr "自動版を使用"
 msgid "Use the automatic version?"
 msgstr "自動版を使用しますか？"
 
-#: src/components/email_builder/blocks/MjFontBlock.tsx:49
+#: src/components/email_builder/blocks/MjFontBlock.tsx:75
 msgid "Use the font name in text elements:"
 msgstr "テキスト要素でフォント名を使用:"
 
@@ -27991,7 +28036,7 @@ msgid "Weekly"
 msgstr "週次"
 
 #: src/components/email_builder/ui/fields/FontFields.tsx:204
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:104
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:132
 msgid "Weight"
 msgstr "太さ"
 

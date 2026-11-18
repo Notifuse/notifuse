@@ -95,6 +95,13 @@ describe('DraftTextField', () => {
     expect(screen.queryByRole('link', { name: 'Open the link' })).toBeNull()
   })
 
+  it('follows the address linkOf gives for the saved value, and none when it gives null', () => {
+    const { rerender } = setup({ value: '//a.test/x.css', linkOf: (value) => `https:${value}` })
+    expect(screen.getByRole('link', { name: 'Open the link' })).toHaveAttribute('href', 'https://a.test/x.css')
+    rerender(<DraftTextField aria-label="Link" value="https://a.test" linkOf={() => null} onChange={vi.fn()} />)
+    expect(screen.queryByRole('link', { name: 'Open the link' })).toBeNull()
+  })
+
   it('writes undefined for an emptied field', () => {
     const { onChange } = setup()
     fireEvent.focus(field())

@@ -7,7 +7,9 @@ import {
   serializeHeadingStyles,
   validateHeadingStyle,
   writeHeadingStyles,
-  colorFromPicker
+  colorFromPicker,
+  headingFieldDiffers,
+  headingSetCount
 } from './headingStyles'
 
 const block = (id: string, type: string, extra: Record<string, unknown> = {}): EmailBlock =>
@@ -129,5 +131,39 @@ describe('colorFromPicker', () => {
     expect(colorFromPicker('transparent')).toBeUndefined()
     expect(colorFromPicker(undefined)).toBeUndefined()
     expect(colorFromPicker('#123456')).toBe('#123456')
+  })
+})
+
+describe('headingFieldDiffers and headingSetCount', () => {
+  const base = defaultHeadingStyles()[1]
+
+  it('reads numbers and pixel lengths by their value, and a colour by its hex', () => {
+    expect(headingFieldDiffers({ ...base, marginTop: '0' }, base, 'marginTop')).toBe(false)
+    expect(headingFieldDiffers({ ...base, color: '#FFF' }, { ...base, color: '#ffffff' }, 'color')).toBe(false)
+    expect(headingFieldDiffers({ ...base, fontWeight: 'BOLD' }, base, 'fontWeight')).toBe(false)
+    expect(headingFieldDiffers({ ...base, lineHeight: '1.30' }, base, 'lineHeight')).toBe(false)
+    expect(headingFieldDiffers({ ...base, fontSize: '28.0px' }, base, 'fontSize')).toBe(false)
+    expect(headingFieldDiffers({ ...base, lineHeight: '1.3px' }, base, 'lineHeight')).toBe(true)
+  })
+
+  it('sees an own colour or font as a difference, the defaults having none', () => {
+    expect(headingFieldDiffers({ ...base, color: '#000000' }, base, 'color')).toBe(true)
+    expect(headingFieldDiffers({ ...base, fontFamily: 'Georgia' }, base, 'fontFamily')).toBe(true)
+    expect(headingFieldDiffers({ ...base, fontSize: '29px' }, base, 'fontSize')).toBe(true)
+  })
+
+  it('counts the differing fields of every level', () => {
+    const styles = defaultHeadingStyles()
+    styles[1] = { ...styles[1], fontSize: '40px', marginTop: '12px' }
+    styles[6] = { ...styles[6], color: '#000000' }
+    expect(headingSetCount(writeHeadingStyles(email([]), styles))).toBe(3)
+  })
+
+  it('counts none for an email without heading styles, or with styles edited by hand', () => {
+    expect(headingSetCount(email([]))).toBe(0)
+    const tree = writeHeadingStyles(email([]), defaultHeadingStyles())
+    const managed = tree.children![0].children!.find((child) => child.type === 'mj-style') as unknown as { content: string }
+    managed.content = managed.content.replace('22px', '44px')
+    expect(headingSetCount(tree)).toBe(0)
   })
 })

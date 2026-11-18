@@ -1,5 +1,6 @@
 import type { EmailBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
+import { normaliseHex } from './emailColors'
 
 /**
  * The look of each heading level of an email, edited in Default attributes >
@@ -227,3 +228,45 @@ export const ensureHeadingStyles = (before: EmailBlock, after: EmailBlock): Emai
 /** The colour a heading level keeps from the colour picker: none once it is cleared. */
 export const colorFromPicker = (value: string | undefined): string | undefined =>
   value && value !== 'transparent' ? value : undefined
+
+export const HEADING_FIELDS = [
+  'fontFamily',
+  'fontSize',
+  'fontWeight',
+  'lineHeight',
+  'color',
+  'marginTop',
+  'marginBottom'
+] as const satisfies readonly (keyof HeadingStyle)[]
+export type HeadingField = (typeof HEADING_FIELDS)[number]
+
+// A value as compared with the default: colours by their hex, a zero length with or without px
+const comparable = (field: HeadingField, value: string | undefined): string | undefined => {
+  const text = value?.trim()
+  if (!text) return undefined
+  if (field === 'color') return normaliseHex(text) ?? text.toLowerCase()
+  // A number or a length in pixels, by its value: 0 and 0px, 1.30 and 1.3 are the same
+  const number = /^(-?\d*\.?\d+)(px)?$/i.exec(text)
+  if (number) return `${Number(number[1])}${number[2] || Number(number[1]) === 0 ? 'px' : ''}`
+  return text.toLowerCase()
+}
+
+/** The level's own value differs from the default one: the field shows a « set » dot. */
+export const headingFieldDiffers = (style: HeadingStyle, base: HeadingStyle, field: HeadingField): boolean =>
+  comparable(field, style[field]) !== comparable(field, base[field])
+
+/** The level has a field that differs from the defaults. */
+export const headingLevelDiffers = (styles: HeadingStyles, defaults: HeadingStyles, level: HeadingLevel): boolean =>
+  HEADING_FIELDS.some((field) => headingFieldDiffers(styles[level], defaults[level], field))
+
+/** How many heading fields, all levels together, differ from the defaults (0 for hand-edited styles). */
+export const headingSetCount = (tree: EmailBlock): number => {
+  const styles = readHeadingStyles(tree)
+  if (!styles || styles === 'hand-edited') return 0
+  const defaults = defaultHeadingStyles()
+  return HEADING_LEVELS.reduce(
+    (count, level) =>
+      count + HEADING_FIELDS.filter((field) => headingFieldDiffers(styles[level], defaults[level], field)).length,
+    0
+  )
+}

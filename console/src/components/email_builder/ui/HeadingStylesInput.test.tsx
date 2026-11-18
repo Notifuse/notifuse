@@ -169,4 +169,45 @@ describe('HeadingStylesInput', () => {
     expect(screen.queryByRole('radio')).toBeNull()
     expect(onUpdateBlock).not.toHaveBeenCalled()
   })
+
+  it('marks no row, no level and offers no level reset on default styles', () => {
+    renderInput(writeHeadingStyles(email(), defaultHeadingStyles()))
+    expect(screen.queryAllByTestId('set-dot')).toHaveLength(0)
+    expect(screen.queryAllByTestId('level-set-dot')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'Reset H1' })).toBeNull()
+  })
+
+  it('marks the rows of the chosen level that differ from its defaults', () => {
+    renderInput(customised())
+    const marked = () =>
+      // The label beside each « set » dot
+      screen.queryAllByTestId('set-dot').map((dot) => dot.nextElementSibling?.textContent)
+    expect(marked()).toEqual(['Size, weight', 'Space above, below'])
+    pickLevel(2)
+    expect(marked()).toEqual(['Size, weight', 'Line height', 'Space above, below'])
+  })
+
+  it('marks the levels that differ from their defaults', () => {
+    renderInput(customised())
+    const levels = screen.getAllByRole('radio').map((radio) => radio.closest('label'))
+    const changed = levels.filter((level) => level && within(level).queryByTestId('level-set-dot'))
+    expect(changed.map((level) => level?.textContent)).toEqual(['H1', 'H2'])
+  })
+
+  it("resets a row to the level's defaults, leaving the other fields", () => {
+    const { saved } = renderInput(customised())
+    pickLevel(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Size, weight to the default value' }))
+    const styles = saved()
+    expect(styles[2]).toEqual({ ...defaultHeadingStyles()[2], lineHeight: '1.5', marginBottom: '20px' })
+    expect(styles[1].fontSize).toBe('40px')
+  })
+
+  it('resets a level colour and font by removing them', () => {
+    const styles = defaultHeadingStyles({})
+    styles[1] = { ...styles[1], color: '#123456', fontFamily: 'Georgia' }
+    const { saved } = renderInput(writeHeadingStyles(email(), styles))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Color to the default value' }))
+    expect(saved()[1]).toEqual({ ...defaultHeadingStyles()[1], fontFamily: 'Georgia' })
+  })
 })

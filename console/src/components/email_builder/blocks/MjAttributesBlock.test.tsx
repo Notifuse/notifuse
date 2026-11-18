@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from 'antd'
 import type { EmailBlock } from '../types'
@@ -108,4 +108,14 @@ describe('Default attributes > Headings', () => {
     expect(lineHeight).toHaveAttribute('aria-invalid', 'true')
     expect(onUpdateBlock).not.toHaveBeenCalled()
   })
+
+  it('counts the heading fields that differ from the defaults on the closed Headings section', () => {
+    const styles = defaultHeadingStyles()
+    styles[1] = { ...styles[1], fontSize: '40px', marginTop: '12px' }
+    styles[3] = { ...styles[3], fontWeight: '600' }
+    renderPanel(writeHeadingStyles(email(), styles))
+    fireEvent.click(screen.getByRole('button', { name: /^Headings/ }))
+    expect(screen.getByLabelText('3 set')).toHaveTextContent('3')
+  })
 })
+

@@ -5,6 +5,7 @@ import { BaseEmailBlock, type OnUpdateAttributesFunction } from './BaseEmailBloc
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { SettingsSection } from '../ui/fields/SettingsSections'
 import HeadingStylesInput from '../ui/HeadingStylesInput'
+import { headingSetCount } from '../utils/headingStyles'
 
 // The panel of mj-attributes: the heading styles, then where the defaults of each block type are set
 const MjAttributesSettingsPanel: React.FC<{
@@ -15,7 +16,12 @@ const MjAttributesSettingsPanel: React.FC<{
 
   return (
     <>
-      <SettingsSection sectionKey="mj-attributes:headings" title={t`Headings`} first>
+      <SettingsSection
+        sectionKey="mj-attributes:headings"
+        title={t`Headings`}
+        first
+        setCount={emailTree ? headingSetCount(emailTree) : 0}
+      >
         <HeadingStylesInput emailTree={emailTree} onUpdateBlock={onUpdateBlock} />
       </SettingsSection>
       <SettingsSection sectionKey="mj-attributes:types" title={t`Default attributes`} first>
