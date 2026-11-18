@@ -41,7 +41,7 @@ func ConvertJSONToMJMLWithData(tree EmailBlock, templateData string) (string, er
 	if parseErr != nil {
 		return "", fmt.Errorf("template data parsing failed: %v", parseErr)
 	}
-	return convertBlockToMJMLWithErrorAndParsedData(tree, 0, templateData, parsedData, false)
+	return convertBlockToMJMLWithErrorAndParsedData(tree, 0, templateData, parsedData, false, newRenderBudget())
 }
 
 // ConvertJSONToMJMLWithDataProtected is ConvertJSONToMJMLWithData but neutralizes the
@@ -50,15 +50,21 @@ func ConvertJSONToMJMLWithData(tree EmailBlock, templateData string) (string, er
 // value) rather than from the template. The caller must call restoreLiquidDelimiters
 // on the result after that pass. Used only by CompileTemplate.
 func ConvertJSONToMJMLWithDataProtected(tree EmailBlock, templateData string) (string, error) {
+	return convertJSONToMJMLWithDataProtectedIn(newRenderBudget(), tree, templateData)
+}
+
+// convertJSONToMJMLWithDataProtectedIn is ConvertJSONToMJMLWithDataProtected within budget,
+// the Liquid work left to the compilation.
+func convertJSONToMJMLWithDataProtectedIn(budget *renderBudget, tree EmailBlock, templateData string) (string, error) {
 	parsedData, parseErr := parseTemplateDataString(templateData)
 	if parseErr != nil {
 		return "", fmt.Errorf("template data parsing failed: %v", parseErr)
 	}
-	return convertBlockToMJMLWithErrorAndParsedData(tree, 0, templateData, parsedData, true)
+	return convertBlockToMJMLWithErrorAndParsedData(tree, 0, templateData, parsedData, true, budget)
 }
 
 // convertBlockToMJMLWithErrorAndParsedData recursively converts a single EmailBlock to MJML string with error handling and pre-parsed data
-func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int, templateData string, parsedData map[string]interface{}, protectLiquid bool) (string, error) {
+func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int, templateData string, parsedData map[string]interface{}, protectLiquid bool, budget *renderBudget) (string, error) {
 	// Defensive check, as in the other walks: a nil or untyped block renders nothing
 	if isNilBlock(block) || block.GetType() == "" {
 		return "", nil
@@ -87,7 +93,7 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 				// Only process Liquid when we have actual template data.
 				// When parsedData is nil or empty, preserve Liquid syntax for MJML export (issue #226).
 				if len(parsedData) > 0 {
-					processedContent, err := processBlockLiquid(blockType, content, parsedData, block.GetID())
+					processedContent, err := processBlockLiquid(budget, blockType, content, parsedData, block.GetID())
 					if err != nil {
 						// Return error instead of just logging
 						return "", fmt.Errorf("liquid processing failed for block %s: %v", block.GetID(), err)
@@ -101,7 +107,7 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 			}
 
 			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML per MJML spec)
-			attributeString := formatAttributesWithLiquid(block.GetAttributes(), parsedData, block.GetID(), protectLiquid)
+			attributeString := formatAttributesWithLiquid(budget, block.GetAttributes(), parsedData, block.GetID(), protectLiquid)
 			if blockType == MJMLComponentMjRaw || blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton {
 				return fmt.Sprintf("%s<%s%s>%s</%s>", indent, tagName, attributeString, content, tagName), nil
 			} else {
@@ -109,7 +115,7 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 			}
 		} else {
 			// Self-closing block or empty block
-			attributeString := formatAttributesWithLiquid(block.GetAttributes(), parsedData, block.GetID(), protectLiquid)
+			attributeString := formatAttributesWithLiquid(budget, block.GetAttributes(), parsedData, block.GetID(), protectLiquid)
 			if attributeString != "" {
 				return fmt.Sprintf("%s<%s%s />", indent, tagName, attributeString), nil
 			} else {
@@ -119,7 +125,7 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 	}
 
 	// Block with children
-	attributeString := formatAttributesWithLiquid(block.GetAttributes(), parsedData, block.GetID(), protectLiquid)
+	attributeString := formatAttributesWithLiquid(budget, block.GetAttributes(), parsedData, block.GetID(), protectLiquid)
 	openTag := fmt.Sprintf("%s<%s%s>", indent, tagName, attributeString)
 	closeTag := fmt.Sprintf("%s</%s>", indent, tagName)
 
@@ -131,14 +137,14 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 		}
 		// a hidden block is skipped before its content is rendered, so its Liquid
 		// cannot fail the send
-		shown, err := child.GetDisplayCondition().Evaluate(parsedData)
+		shown, err := child.GetDisplayCondition().evaluateIn(budget, parsedData)
 		if err != nil {
 			return "", fmt.Errorf("display condition failed for block %s: %w", child.GetID(), err)
 		}
 		if !shown {
 			continue
 		}
-		childMJML, err := convertBlockToMJMLWithErrorAndParsedData(child, indentLevel+1, templateData, parsedData, protectLiquid)
+		childMJML, err := convertBlockToMJMLWithErrorAndParsedData(child, indentLevel+1, templateData, parsedData, protectLiquid, budget)
 		if err != nil {
 			return "", err
 		}
@@ -195,7 +201,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 				// Only process Liquid when we have actual template data.
 				// When parsedData is nil or empty, preserve Liquid syntax for MJML export (issue #226).
 				if len(parsedData) > 0 {
-					processedContent, err := processBlockLiquid(blockType, content, parsedData, block.GetID())
+					processedContent, err := processBlockLiquid(nil, blockType, content, parsedData, block.GetID())
 					if err != nil {
 						// Log error but continue with original content
 						fmt.Printf("Warning: Liquid processing failed for block %s: %v\n", block.GetID(), err)
@@ -206,7 +212,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 			}
 
 			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML per MJML spec)
-			attributeString := formatAttributesWithLiquid(block.GetAttributes(), parsedData, block.GetID(), false)
+			attributeString := formatAttributesWithLiquid(nil, block.GetAttributes(), parsedData, block.GetID(), false)
 			if blockType == MJMLComponentMjRaw || blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton {
 				return fmt.Sprintf("%s<%s%s>%s</%s>", indent, tagName, attributeString, content, tagName)
 			} else {
@@ -214,7 +220,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 			}
 		} else {
 			// Self-closing block or empty block
-			attributeString := formatAttributesWithLiquid(block.GetAttributes(), parsedData, block.GetID(), false)
+			attributeString := formatAttributesWithLiquid(nil, block.GetAttributes(), parsedData, block.GetID(), false)
 			if attributeString != "" {
 				return fmt.Sprintf("%s<%s%s />", indent, tagName, attributeString)
 			} else {
@@ -224,7 +230,7 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 	}
 
 	// Block with children
-	attributeString := formatAttributesWithLiquid(block.GetAttributes(), parsedData, block.GetID(), false)
+	attributeString := formatAttributesWithLiquid(nil, block.GetAttributes(), parsedData, block.GetID(), false)
 	openTag := fmt.Sprintf("%s<%s%s>", indent, tagName, attributeString)
 	closeTag := fmt.Sprintf("%s</%s>", indent, tagName)
 
@@ -338,26 +344,28 @@ func parseTemplateDataString(templateData string) (map[string]interface{}, error
 
 // processBlockLiquid renders the Liquid of a block's content: mj-title and mj-preview
 // hold text, which the converter escapes itself; the others hold HTML.
-func processBlockLiquid(blockType MJMLComponentType, content string, templateData map[string]interface{}, blockID string) (string, error) {
+func processBlockLiquid(budget *renderBudget, blockType MJMLComponentType, content string, templateData map[string]interface{}, blockID string) (string, error) {
 	if blockType == MJMLComponentMjTitle || blockType == MJMLComponentMjPreview {
-		return processLiquidContent(content, templateData, blockID)
+		return processLiquidWith(budget, liquidEngine, cleanLiquidTemplate, content, templateData, blockID)
 	}
-	return processLiquidHTML(content, templateData, blockID)
+	return processLiquidWith(budget, liquidHTMLEngine, cleanLiquidTemplateHTML, content, templateData, blockID)
 }
 
 // processLiquidContent processes Liquid templating in text that is not HTML (a
 // subject, the text version), with security protections.
 func processLiquidContent(content string, templateData map[string]interface{}, blockID string) (string, error) {
-	return processLiquidWith(liquidEngine, cleanLiquidTemplate, content, templateData, blockID)
+	return processLiquidWith(nil, liquidEngine, cleanLiquidTemplate, content, templateData, blockID)
 }
 
 // processLiquidHTML processes Liquid templating in the HTML or MJML of an email:
 // its outputs are HTML-escaped (see newSecureHTMLLiquidEngine).
 func processLiquidHTML(content string, templateData map[string]interface{}, blockID string) (string, error) {
-	return processLiquidWith(liquidHTMLEngine, cleanLiquidTemplateHTML, content, templateData, blockID)
+	return processLiquidWith(nil, liquidHTMLEngine, cleanLiquidTemplateHTML, content, templateData, blockID)
 }
 
-func processLiquidWith(engine *SecureLiquidEngine, clean func(string) string, content string, templateData map[string]interface{}, blockID string) (string, error) {
+// processLiquidWith renders content with engine within budget, the Liquid work left to its
+// compilation (nil outside a compilation).
+func processLiquidWith(budget *renderBudget, engine *SecureLiquidEngine, clean func(string) string, content string, templateData map[string]interface{}, blockID string) (string, error) {
 	// Check if content contains Liquid templating markup
 	if !strings.Contains(content, "{{") && !strings.Contains(content, "{%") {
 		return content, nil // No Liquid markup found, return original content
@@ -376,7 +384,7 @@ func processLiquidWith(engine *SecureLiquidEngine, clean func(string) string, co
 	}
 
 	// Render the content with Liquid (with security protections)
-	renderedContent, err := engine.RenderWithTimeout(content, jsonData)
+	renderedContent, err := engine.renderIn(budget, content, jsonData, false)
 	if err != nil {
 		return content, fmt.Errorf("liquid rendering error in block (ID: %s): %w", blockID, err)
 	}
@@ -751,11 +759,11 @@ func getBlockContent(block EmailBlock) string {
 
 // formatAttributes formats attributes object into MJML attribute string
 func formatAttributes(attributes map[string]interface{}) string {
-	return formatAttributesWithLiquid(attributes, nil, "", false)
+	return formatAttributesWithLiquid(nil, attributes, nil, "", false)
 }
 
 // formatAttributesWithLiquid formats attributes object into MJML attribute string with liquid processing
-func formatAttributesWithLiquid(attributes map[string]interface{}, templateData map[string]interface{}, blockID string, protectLiquid bool) string {
+func formatAttributesWithLiquid(budget *renderBudget, attributes map[string]interface{}, templateData map[string]interface{}, blockID string, protectLiquid bool) string {
 	if len(attributes) == 0 {
 		return ""
 	}
@@ -767,7 +775,7 @@ func formatAttributesWithLiquid(attributes map[string]interface{}, templateData 
 			continue
 		}
 		if shouldIncludeAttribute(value) {
-			if attr := formatSingleAttributeWithLiquid(key, value, templateData, blockID, protectLiquid); attr != "" {
+			if attr := formatSingleAttributeWithLiquid(budget, key, value, templateData, blockID, protectLiquid); attr != "" {
 				attrPairs = append(attrPairs, attr)
 			}
 		}
@@ -800,11 +808,11 @@ func shouldIncludeAttribute(value interface{}) bool {
 
 // formatSingleAttribute formats a single attribute key-value pair
 func formatSingleAttribute(key string, value interface{}) string {
-	return formatSingleAttributeWithLiquid(key, value, nil, "", false)
+	return formatSingleAttributeWithLiquid(nil, key, value, nil, "", false)
 }
 
 // formatSingleAttributeWithLiquid formats a single attribute key-value pair with liquid processing
-func formatSingleAttributeWithLiquid(key string, value interface{}, templateData map[string]interface{}, blockID string, protectLiquid bool) string {
+func formatSingleAttributeWithLiquid(budget *renderBudget, key string, value interface{}, templateData map[string]interface{}, blockID string, protectLiquid bool) string {
 	// Convert camelCase to kebab-case for MJML attributes
 	kebabKey := camelToKebab(key)
 
@@ -824,14 +832,14 @@ func formatSingleAttributeWithLiquid(key string, value interface{}, templateData
 		if v == "" {
 			return ""
 		}
-		processedValue := processAttributeValue(v, kebabKey, templateData, blockID, protectLiquid)
+		processedValue := processAttributeValue(budget, v, kebabKey, templateData, blockID, protectLiquid)
 		escapedValue := escapeAttributeValue(processedValue, kebabKey)
 		return fmt.Sprintf(` %s="%s"`, kebabKey, escapedValue)
 	case *string:
 		if v == nil || *v == "" {
 			return ""
 		}
-		processedValue := processAttributeValue(*v, kebabKey, templateData, blockID, protectLiquid)
+		processedValue := processAttributeValue(budget, *v, kebabKey, templateData, blockID, protectLiquid)
 		escapedValue := escapeAttributeValue(processedValue, kebabKey)
 		return fmt.Sprintf(` %s="%s"`, kebabKey, escapedValue)
 	case map[string]interface{}:
@@ -842,7 +850,7 @@ func formatSingleAttributeWithLiquid(key string, value interface{}, templateData
 		if !ok || cssValue == "" {
 			return ""
 		}
-		processedValue := processAttributeValue(cssValue, kebabKey, templateData, blockID, protectLiquid)
+		processedValue := processAttributeValue(budget, cssValue, kebabKey, templateData, blockID, protectLiquid)
 		escapedValue := escapeAttributeValue(processedValue, kebabKey)
 		return fmt.Sprintf(` %s="%s"`, kebabKey, escapedValue)
 	default:
@@ -851,7 +859,7 @@ func formatSingleAttributeWithLiquid(key string, value interface{}, templateData
 		if strValue == "" {
 			return ""
 		}
-		processedValue := processAttributeValue(strValue, kebabKey, templateData, blockID, protectLiquid)
+		processedValue := processAttributeValue(budget, strValue, kebabKey, templateData, blockID, protectLiquid)
 		escapedValue := escapeAttributeValue(processedValue, kebabKey)
 		return fmt.Sprintf(` %s="%s"`, kebabKey, escapedValue)
 	}
@@ -903,7 +911,7 @@ func formatBoxModelMap(m map[string]interface{}) (string, bool) {
 }
 
 // processAttributeValue processes attribute values through liquid templating if applicable
-func processAttributeValue(value, attributeKey string, templateData map[string]interface{}, blockID string, protectLiquid bool) string {
+func processAttributeValue(budget *renderBudget, value, attributeKey string, templateData map[string]interface{}, blockID string, protectLiquid bool) string {
 	// Process liquid templates for URL-related attributes and alt text
 	isURLAttribute := attributeKey == "href" || attributeKey == "src" || attributeKey == "action" ||
 		attributeKey == "background-url" || strings.HasSuffix(attributeKey, "-url")
@@ -923,7 +931,7 @@ func processAttributeValue(value, attributeKey string, templateData map[string]i
 	hasLiquidSyntax := strings.Contains(value, "{{") || strings.Contains(value, "{%")
 
 	// Process liquid content for URL attributes
-	processedValue, err := processLiquidHTML(value, templateData, fmt.Sprintf("%s.%s", blockID, attributeKey))
+	processedValue, err := processLiquidWith(budget, liquidHTMLEngine, cleanLiquidTemplateHTML, value, templateData, fmt.Sprintf("%s.%s", blockID, attributeKey))
 	if err != nil {
 		// If liquid processing fails, return original value and log warning
 		fmt.Printf("Warning: Liquid processing failed for attribute %s in block %s: %v\n", attributeKey, blockID, err)

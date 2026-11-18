@@ -10,6 +10,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/google/uuid"
 )
 
 // AppShutdowner defines the interface for triggering app shutdown
@@ -23,6 +24,9 @@ type SetupHandler struct {
 	settingService *service.SettingService
 	logger         logger.Logger
 	app            AppShutdowner
+	// bootID is drawn once per handler, so once per process: the setup page tells
+	// the restarted server from the one shutting down by a different value.
+	bootID string
 }
 
 // NewSetupHandler creates a new setup handler
@@ -37,6 +41,7 @@ func NewSetupHandler(
 		settingService: settingService,
 		logger:         logger,
 		app:            app,
+		bootID:         uuid.NewString(),
 	}
 }
 
@@ -51,6 +56,9 @@ type StatusResponse struct {
 	// EnvOverrides lists, before install only, the setting keys whose environment
 	// variable is set (names, never values), so the wizard can lock those fields.
 	EnvOverrides []string `json:"env_overrides,omitempty"`
+	// BootID is random and changes at each start of the process; it says nothing
+	// about the host or the time.
+	BootID string `json:"boot_id"`
 }
 
 // InitializeRequest represents the setup initialization request
@@ -87,6 +95,9 @@ type InitializeRequest struct {
 type InitializeResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+	// BootID of the process that handled the request: the setup page waits for the
+	// server to answer another one, since this process restarts to apply the setup.
+	BootID string `json:"boot_id"`
 }
 
 // TestSMTPRequest represents the SMTP connection test request
@@ -130,6 +141,7 @@ func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 		RootEmailConfigured:   configStatus.RootEmailConfigured,
 		SMTPBridgeConfigured:  configStatus.SMTPBridgeConfigured,
 		OIDCConfigured:        configStatus.OIDCConfigured,
+		BootID:                h.bootID,
 	}
 	if !isInstalled {
 		for key, set := range h.setupService.GetEnvOverrides() {
@@ -166,6 +178,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		response := InitializeResponse{
 			Success: true,
 			Message: "Setup already completed. System is ready to use.",
+			BootID:  h.bootID,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -244,6 +257,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 	response := InitializeResponse{
 		Success: true,
 		Message: "Setup completed successfully. Server is restarting with new configuration...",
+		BootID:  h.bootID,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

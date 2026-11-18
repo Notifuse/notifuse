@@ -300,7 +300,7 @@ func TestFormatAttributesWithLiquid(t *testing.T) {
 		"fontSize":        "16px",                     // Should not be processed
 	}
 
-	result := formatAttributesWithLiquid(attrs, templateData, "test-block", false)
+	result := formatAttributesWithLiquid(nil, attrs, templateData, "test-block", false)
 
 	// Check that URL attributes were processed
 	if !strings.Contains(result, `href="https://example.com/profile"`) {
