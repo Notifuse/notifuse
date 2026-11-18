@@ -131,7 +131,11 @@ const MjSocialSettingsPanel: React.FC<MjSocialSettingsPanelProps> = ({
         />
       </InputLayout>
 
-      <InputLayout label={t`Icon border`} help={t`Applies to every icon; an icon's own border wins.`}>
+      <InputLayout
+        label={t`Icon border`}
+        help={t`Applies to every icon; an icon's own border wins.`}
+        layout="vertical"
+      >
         <SingleBorderInput
           value={currentAttributes.border}
           onChange={(value) => onUpdate({ border: value })}
@@ -170,7 +174,8 @@ const MjSocialSettingsPanel: React.FC<MjSocialSettingsPanelProps> = ({
                   size="small"
                   value={pixels(currentAttributes.iconHeight)}
                   onChange={(value) => onUpdate({ iconHeight: value ? `${value}px` : undefined })}
-                  placeholder="20"
+                  // Without a height, the icons are as high as their size
+                  placeholder={String(pixels(currentAttributes.iconSize) ?? 20)}
                   min={10}
                   max={100}
                   step={1}

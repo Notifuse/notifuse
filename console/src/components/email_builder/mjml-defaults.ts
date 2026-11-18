@@ -256,7 +256,7 @@ export const MJ_SOCIAL_DEFAULTS = {
   borderRadius: '3px',
   containerBackgroundColor: 'transparent',
   cssClass: '',
-  iconHeight: '20px',
+  // No icon height, as in MJML: the icons are as high as their size, and follow it when it changes
   iconSize: '20px',
   innerPadding: '4px',
   lineHeight: '22px',

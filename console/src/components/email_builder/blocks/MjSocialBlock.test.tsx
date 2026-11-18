@@ -222,3 +222,31 @@ describe('social review fixes', () => {
     expect(screen.getByText('Georgia, serif')).toBeTruthy()
   })
 })
+
+describe('social icon size on the canvas', () => {
+  it('makes an icon without a height as high as it is wide, with its border around it, as the email', () => {
+    const { container } = renderCanvas(social({ iconSize: '32px', border: '2px solid #ff0000' }, element('a')))
+    const icon = iconOf(container, 'a')
+    expect([icon.style.width, icon.style.height]).toEqual(['32px', '32px'])
+    expect(icon.style.boxSizing).toBe('content-box')
+  })
+
+  it('keeps a height set apart from the size', () => {
+    const { container } = renderCanvas(social({ iconSize: '32px', iconHeight: '24px' }, element('a')))
+    expect(iconOf(container, 'a').style.height).toBe('24px')
+  })
+})
+
+describe('social icon height placeholder', () => {
+  it("shows the icon size, which an icon without a height takes", () => {
+    render(
+      <>
+        {new MjSocialBlock(social({ iconSize: '32px' }, element('a'))).renderSettingsPanel(
+          vi.fn(),
+          {} as MergedBlockAttributes
+        )}
+      </>
+    )
+    expect(screen.getAllByPlaceholderText('32')).toHaveLength(1)
+  })
+})

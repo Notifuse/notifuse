@@ -29,3 +29,9 @@ describe('a new social element', () => {
     }
   })
 })
+
+describe('a new social block', () => {
+  it('writes no icon height, so that its icons follow their size as in MJML', () => {
+    expect((EmailBlockClass.createBlock('mj-social').attributes as Record<string, unknown>).iconHeight).toBeUndefined()
+  })
+})

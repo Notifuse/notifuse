@@ -197,7 +197,11 @@ const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> 
                   size="small"
                   value={parsePixelValue(currentAttributes.iconHeight)}
                   onChange={(value) => onUpdate({ iconHeight: value ? `${value}px` : undefined })}
-                  placeholder={(parsePixelValue(blockDefaults.iconHeight) || 20).toString()}
+                  placeholder={(
+                    parsePixelValue(currentAttributes.iconSize) ||
+                    parsePixelValue(blockDefaults.iconHeight) ||
+                    20
+                  ).toString()}
                   min={10}
                   max={100}
                   step={1}
@@ -723,7 +727,8 @@ export class MjSocialElementBlock extends BaseEmailBlock {
 
     // Parse dimensions
     const iconWidth = this.parsePixelValue(attrs.iconSize) || 20
-    const iconHeight = this.parsePixelValue(attrs.iconHeight) || 20
+    // Without a height of its own, an icon is as high as it is wide, as in MJML
+    const iconHeight = this.parsePixelValue(attrs.iconHeight) || iconWidth
 
     // Table cell padding style (outer wrapper)
     // The padding shorthand (mj-social's inner-padding reaches the elements as it), each side set replacing its
@@ -759,6 +764,8 @@ export class MjSocialElementBlock extends BaseEmailBlock {
 
     // Image style for all icons (both custom and CDN)
     const imageStyle: React.CSSProperties = {
+      // The border goes around the icon, as in the email (the console's CSS would put it inside its size)
+      boxSizing: 'content-box',
       border: attrs.border || '0',
       borderRadius: attrs.borderRadius || '3px',
       display: 'block',
