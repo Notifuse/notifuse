@@ -171,6 +171,8 @@ All notable changes to this project will be documented in this file.
 
 - **Fix**: In the contacts table, Remove from list and Unsubscribe from list on a selection are offered only to members who may write lists as well as contacts, as the server requires and as Add to list already was: a member without lists write had them refused.
 
+- **Fix**: Importing contacts from a CSV file no longer counts the newline at the end of the file as a row, nor reports it as a failed contact. Blank lines inside the file are skipped too.
+
 - **Fix**: Stopping a CSV contact import, or closing its drawer, stops it: the import went on in the background, and after a closed tab its resume could restart near the start of the file. Each import error is shown on the row it is about; errors were shown on other rows of the batch.
 
 - **Fix**: A bulk unsubscribe from CSV counts the contacts that were not in the list as skipped, not as unsubscribed, and a resumed bulk update keeps the results of its earlier run.
