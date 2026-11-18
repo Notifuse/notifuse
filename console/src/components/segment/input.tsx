@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { cloneDeep, get, set } from 'lodash'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
@@ -51,10 +51,15 @@ export type TreeNodeInputProps = {
   customFieldLabels?: Record<string, string>
   // Reports the tree as it would stand if the condition currently open in the form were confirmed,
   // and undefined once no condition is open. Lets the drawer preview an in-progress condition.
-  onDraftTreeChange?: (draftTree: TreeNode | undefined) => void
+  onDraftTreeChange?: (draftTree: TreeNode | undefined, countable?: boolean) => void
   // Whether a value read out of a JSON column may be compared as a date. Automation triggers pass
   // false: their conditions compile through casts that never convert a JSON date.
   jsonDateValues?: boolean
+  // Told whenever a condition opens in its editor or closes, so a caller can refuse to save, or to
+  // close, while one is half-written.
+  onEditingChange?: (open: boolean) => void
+  // Shown above the add buttons while the root group has no condition yet.
+  emptyState?: ReactNode
 }
 
 // What each condition type is, in the add menu and above each saved condition.
@@ -91,11 +96,14 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
   const onDraftTreeChangeRef = useRef(props.onDraftTreeChange)
   onDraftTreeChangeRef.current = props.onDraftTreeChange
+  const onEditingChangeRef = useRef(props.onEditingChange)
+  onEditingChangeRef.current = props.onEditingChange
 
   // A draft only ever describes the condition open in the form. Whenever that changes — opened,
   // confirmed, cancelled, or swapped for another condition — the committed tree takes over again.
   useEffect(() => {
     onDraftTreeChangeRef.current?.(undefined)
+    onEditingChangeRef.current?.(!!editingNodeLeaf)
   }, [editingNodeLeaf])
 
   // Where the keyboard goes back to once the open condition closes: its pen button, or the add
@@ -120,13 +128,13 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     target?.focus()
   }, [editingNodeLeaf])
 
-  const onDraftLeafChange = (draftLeaf: TreeNode, path: string, pathKey: number) => {
+  const onDraftLeafChange = (draftLeaf: TreeNode, path: string, pathKey: number, countable: boolean) => {
     if (!props.onDraftTreeChange || !props.value) return
 
     const clonedTree = cloneDeep(props.value) as TreeNode
     set(clonedTree, path + '[' + pathKey + ']', draftLeaf)
 
-    props.onDraftTreeChange(clonedTree)
+    props.onDraftTreeChange(clonedTree, countable)
   }
 
   const { data: templatesData } = useQuery({
@@ -337,7 +345,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
         value: node,
         onChange: (updatedLeaf: TreeNode) => onUpdateNode(updatedLeaf, path, pathKey),
         onDraftChange: props.onDraftTreeChange
-          ? (draftLeaf: TreeNode) => onDraftLeafChange(draftLeaf, path, pathKey)
+          ? (draftLeaf: TreeNode, countable: boolean) => onDraftLeafChange(draftLeaf, path, pathKey, countable)
           : undefined,
         source,
         schema,
@@ -477,6 +485,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
           {node.branch.leaves.length === 0 && !isRoot && (
             <div className="mb-2 text-xs text-ink-3">{t`Empty: add a condition or a subgroup.`}</div>
           )}
+          {node.branch.leaves.length === 0 && isRoot && props.emptyState}
 
           {node.branch.leaves.map((leaf: TreeNode, i: number) => (
             <div key={i}>

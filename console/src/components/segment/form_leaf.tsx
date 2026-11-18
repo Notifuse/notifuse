@@ -49,7 +49,9 @@ export type LeafFormProps = {
   canReadTemplates?: boolean
   // Reports the condition as it currently stands in the form, before Confirm. The drawer previews
   // this draft so the contacts count follows the condition while it is still being written.
-  onDraftChange?: (draftLeaf: TreeNode) => void
+  // countable is false while the form's own rules refuse the draft (a status left out, a second
+  // value below the first): Confirm would not take it, so it is not counted either.
+  onDraftChange?: (draftLeaf: TreeNode, countable: boolean) => void
   // Whether a value read out of a JSON column may be compared as a date. Trigger conditions
   // compile through casts that never convert a JSON date, so they pass false.
   jsonDateValues?: boolean
@@ -103,7 +105,22 @@ const useLeafDraft = (props: LeafFormProps, form: FormInstance) => {
     if (revision === 0 || !props.onDraftChange) return
 
     const draftLeaf = buildDraftLeaf(props, form)
-    if (draftLeaf) props.onDraftChange(draftLeaf)
+    if (!draftLeaf) return
+    const onDraftChange = props.onDraftChange
+    // The rules are checked without painting errors on fields the user has not reached yet
+    let current = true
+    form
+      .validateFields({ validateOnly: true })
+      .then(
+        () => true,
+        () => false
+      )
+      .then((countable) => {
+        if (current) onDraftChange(draftLeaf, countable)
+      })
+    return () => {
+      current = false
+    }
     // Driven by the revision alone: re-running this for every prop change would emit a draft on
     // every render, and the drawer re-renders in response to the draft.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -16,7 +16,8 @@ vi.mock('@tanstack/react-router', async () => {
     ...actual,
     useParams: () => ({ workspaceId: 'ws1' }),
     useNavigate: () => vi.fn(),
-    useMatch: () => false
+    useMatch: () => false,
+    useBlocker: () => ({ status: 'idle' })
   }
 })
 vi.mock('../../contexts/AuthContext', () => ({
@@ -43,7 +44,7 @@ describe('DrawerSegment', () => {
   it('opens without a trigger and asks its caller to close', async () => {
     const setVisible = vi.fn()
     render(<DrawerSegment canReadTemplates setDrawserVisible={setVisible} />, { wrapper })
-    expect(await screen.findByText('New segment')).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'New segment' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(setVisible).toHaveBeenCalledWith(false)
   })

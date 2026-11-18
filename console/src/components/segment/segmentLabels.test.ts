@@ -16,10 +16,12 @@ import {
   labelledFields,
   LIST_STATUS_LABEL,
   OPERATOR_LABELS,
+  SEGMENT_COLOR_LABELS,
   optionLabel,
   TRACKING_CONSENT_LABELS,
   TRACKING_CONSENT_SOURCE_LABELS
 } from './segmentLabels'
+import { SEGMENT_COLORS } from './segmentColor'
 import { KNOWN_OPERATORS, OPERATORS_BY_FIELD_TYPE, OPERATORS_BY_JSON_VALUE_TYPE } from './filterOperators'
 import {
   TRACKING_CONSENT_FIELD_OPTIONS,
@@ -88,5 +90,11 @@ describe('segment labels', () => {
     expect(optionLabel('tracking_opens_consent', 'granted', i18n)).toBe('Granted')
     expect(optionLabel('tracking_consent_source', 'email_link', i18n)).toBe('Email link')
     expect(optionLabel('country', 'FR', i18n)).toBeUndefined()
+  })
+})
+
+describe('segment colour labels', () => {
+  it('names every preset', () => {
+    for (const color of SEGMENT_COLORS) expect(SEGMENT_COLOR_LABELS[color], color).toBeDefined()
   })
 })

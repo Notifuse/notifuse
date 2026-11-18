@@ -8,8 +8,20 @@ import type { Segment, TreeNode } from '../../services/api/segment'
 vi.mock('../../services/api/task', () => ({ taskApi: { findBySegmentId: vi.fn(async () => null) } }))
 vi.mock('../../services/api/segment', () => ({ rebuildSegment: vi.fn(async () => ({ message: 'Rebuild started' })) }))
 vi.mock('../segment/button_upsert', () => ({
-  DrawerSegment: ({ segment, canReadTemplates }: { segment: Segment; canReadTemplates: boolean }) => (
-    <div data-testid="segment-drawer" data-can-read-templates={String(canReadTemplates)}>
+  DrawerSegment: ({
+    segment,
+    canReadTemplates,
+    totalContacts
+  }: {
+    segment: Segment
+    canReadTemplates: boolean
+    totalContacts?: number
+  }) => (
+    <div
+      data-testid="segment-drawer"
+      data-can-read-templates={String(canReadTemplates)}
+      data-total-contacts={String(totalContacts)}
+    >
       {segment.name}
     </div>
   )
@@ -52,11 +64,16 @@ function renderBar(value: Segment) {
   )
 }
 
-function renderActions(value: Segment, canReadTemplates = true) {
+function renderActions(value: Segment, canReadTemplates = true, totalContacts?: number) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <App>
-        <SegmentActions workspaceId="ws" segment={value} canReadTemplates={canReadTemplates} />
+        <SegmentActions
+          workspaceId="ws"
+          segment={value}
+          canReadTemplates={canReadTemplates}
+          totalContacts={totalContacts}
+        />
       </App>
     </QueryClientProvider>
   )
@@ -111,5 +128,12 @@ describe('SegmentDefinedBy', () => {
     fireEvent.click(screen.getByRole('button', { name: /Edit segment/ }))
     expect(screen.getByTestId('segment-drawer')).toHaveTextContent('Europe')
     expect(screen.getByTestId('segment-drawer')).toHaveAttribute('data-can-read-templates', String(read))
+  })
+
+  // The drawer's count says what share of the workspace the segment holds
+  it('hands the workspace total to the drawer', () => {
+    renderActions(segment(leaf('FR')), true, 18342)
+    fireEvent.click(screen.getByRole('button', { name: /Edit segment/ }))
+    expect(screen.getByTestId('segment-drawer')).toHaveAttribute('data-total-contacts', '18342')
   })
 })

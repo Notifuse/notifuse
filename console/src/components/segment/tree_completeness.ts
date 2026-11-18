@@ -143,7 +143,7 @@ const isCustomEventsGoalComplete = (condition: CustomEventsGoalCondition | undef
   return areFiltersComplete(condition.filters)
 }
 
-const isLeafComplete = (leaf: TreeNodeLeaf | undefined): boolean => {
+export const isLeafComplete = (leaf: TreeNodeLeaf | undefined): boolean => {
   if (!leaf) return false
 
   switch (leaf.source) {

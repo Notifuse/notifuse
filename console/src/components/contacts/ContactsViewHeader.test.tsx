@@ -19,7 +19,11 @@ vi.mock('./ContactUpsertDrawer', () => ({ ContactUpsertDrawer: () => <button typ
 vi.mock('./SegmentProgress', () => ({ SegmentBuildingIndicator: () => <span>Computing</span> }))
 vi.mock('../lists/DeleteListModal', () => ({ DeleteListModal: () => null }))
 vi.mock('../../services/api/segment', () => ({ deleteSegment: vi.fn(), rebuildSegment: vi.fn() }))
-vi.mock('../segment/button_upsert', () => ({ DrawerSegment: () => null }))
+vi.mock('../segment/button_upsert', () => ({
+  DrawerSegment: ({ totalContacts }: { totalContacts?: number }) => (
+    <div data-testid="segment-drawer" data-total-contacts={String(totalContacts)} />
+  )
+}))
 
 import { ContactsViewHeader, type ContactsViewHeaderProps } from './ContactsViewHeader'
 
@@ -113,6 +117,12 @@ describe('ContactsViewHeader', () => {
     const edit = screen.getByRole('button', { name: /Edit segment/ })
     expect(more.compareDocumentPosition(recompute) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(recompute.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('hands the workspace total, not the view total, to the segment drawer', () => {
+    renderHeader({ view: { kind: 'segment', segmentId: 'eu' }, segment, total: 7, workspaceTotal: 18342 })
+    fireEvent.click(screen.getByRole('button', { name: /Edit segment/ }))
+    expect(screen.getByTestId('segment-drawer')).toHaveAttribute('data-total-contacts', '18342')
   })
 
   it('has no Recompute nor Edit segment without segments write', () => {

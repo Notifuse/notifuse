@@ -23,10 +23,12 @@ export interface SegmentActionsProps {
   segment: Segment
   /** Templates read, which the segment drawer needs to list the templates. */
   canReadTemplates: boolean
+  /** The workspace's contacts, for the share the drawer's count shows. */
+  totalContacts?: number
 }
 
 /** Recompute (confirmed first) and Edit segment, for segments write: the view header shows them. */
-export function SegmentActions({ workspaceId, segment, canReadTemplates }: SegmentActionsProps) {
+export function SegmentActions({ workspaceId, segment, canReadTemplates, totalContacts }: SegmentActionsProps) {
   const { t } = useLingui()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
@@ -64,6 +66,7 @@ export function SegmentActions({ workspaceId, segment, canReadTemplates }: Segme
       {editing ? (
         <DrawerSegment
           segment={segment}
+          totalContacts={totalContacts}
           canReadTemplates={canReadTemplates}
           setDrawserVisible={setEditing}
           onSuccess={invalidateSegments}
