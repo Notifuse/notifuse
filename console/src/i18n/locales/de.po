@@ -30,8 +30,8 @@ msgid " (copy)"
 msgstr " (Kopie)"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:881
-msgid " (Paused)"
-msgstr " (Pausiert)"
+#~ msgid " (Paused)"
+#~ msgstr " (Pausiert)"
 
 #: src/components/ai-assistant/useAIAssistant.tsx:210
 msgid "- cancelled"
@@ -44,8 +44,8 @@ msgstr "- abgebrochen"
 
 #. placeholder {0}: csvData.emails.length - 10
 #: src/components/contacts/BulkUpdateDrawer.tsx:688
-msgid "... and {0} more emails"
-msgstr "... und {0} weitere E-Mails"
+#~ msgid "... and {0} more emails"
+#~ msgstr "... und {0} weitere E-Mails"
 
 #: src/components/web_analytics/goals/GoalFiltersLine.tsx:49
 msgid "· applies to the whole Web Analytics section. Click a row or a country to add one."
@@ -95,7 +95,7 @@ msgstr "(Standard)"
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:166
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:168
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:120
-#: src/components/web_analytics/explore/CsvExportModal.tsx:98
+#: src/components/web_analytics/explore/CsvExportModal.tsx:94
 #: src/components/web_analytics/explore/ExploreSummary.tsx:73
 #: src/components/web_analytics/explore/ExploreTable.tsx:63
 #: src/components/web_analytics/tabs/ExploreTab.tsx:300
@@ -183,6 +183,26 @@ msgstr "{0, plural, one {# geprüft} other {# geprüft}}"
 #: src/components/automations/stats/NodeStatsFooter.tsx:57
 msgid "{0, plural, one {# click} other {# clicks}}"
 msgstr "{0, plural, one {# Klick} other {# Klicks}}"
+
+#. placeholder {0}: ignored.length
+#: src/components/contacts/csv-import/ColumnsStep.tsx:247
+msgid "{0, plural, one {# column ignored} other {# columns ignored}}"
+msgstr "{0, plural, one {# Spalte ignoriert} other {# Spalten ignoriert}}"
+
+#. placeholder {0}: headers.length
+#: src/components/contacts/csv-import/ColumnsStep.tsx:202
+msgid "{0, plural, one {# column} other {{columnCount} columns}}"
+msgstr "{0, plural, one {# Spalte} other {{columnCount} Spalten}}"
+
+#. placeholder {0}: csv.headers.length
+#: src/components/contacts/BulkUpdateDrawer.tsx:354
+msgid "{0, plural, one {# column} other {# columns}}"
+msgstr "{0, plural, one {# Spalte} other {# Spalten}}"
+
+#. placeholder {0}: emails.length
+#: src/components/contacts/BulkUpdateDrawer.tsx:440
+msgid "{0, plural, one {# contact} other {{count} contacts}}"
+msgstr "{0, plural, one {# Kontakt} other {{count} Kontakte}}"
 
 #. placeholder {0}: progress.total
 #: src/components/contacts/BulkActionProgressModal.tsx:79
@@ -281,6 +301,12 @@ msgstr "{0, plural, one {# Ressource} other {# Ressourcen}}"
 msgid "{0, plural, one {# retrying} other {# retrying}}"
 msgstr "{0, plural, one {# im erneuten Versuch} other {# im erneuten Versuch}}"
 
+#. placeholder {0}: csv.rows.length
+#. placeholder {1}: int(csv.rows.length)
+#: src/components/contacts/BulkUpdateDrawer.tsx:353
+msgid "{0, plural, one {# row} other {{1} rows}}"
+msgstr "{0, plural, one {# Zeile} other {{1} Zeilen}}"
+
 #. placeholder {0}: overrides.before.length
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:227
 msgid "{0, plural, one {# rule runs first and can keep this rule from writing {beforeList}} other {# rules run first and can keep this rule from writing {beforeList}}}"
@@ -337,6 +363,16 @@ msgstr "{0, plural, one {# wartend} other {# wartend}}"
 msgid "{0, plural, one {and # more} other {and # more}}"
 msgstr "{0, plural, one {und # weiteres} other {und # weitere}}"
 
+#. placeholder {0}: emails.length
+#: src/components/contacts/BulkUpdateDrawer.tsx:156
+msgid "{0, plural, one {Delete # contact?} other {Delete {count} contacts?}}"
+msgstr "{0, plural, one {# Kontakt löschen?} other {{count} Kontakte löschen?}}"
+
+#. placeholder {0}: emails.length
+#: src/components/contacts/BulkUpdateDrawer.tsx:198
+msgid "{0, plural, one {Delete # contact} other {Delete {count} contacts}}"
+msgstr "{0, plural, one {# Kontakt löschen} other {{count} Kontakte löschen}}"
+
 #. placeholder {0}: keys.length
 #: src/components/file_manager/FileExplorer.tsx:399
 msgid "{0, plural, one {Delete # selected file?} other {Delete # selected files?}}"
@@ -353,7 +389,7 @@ msgid "{0, plural, one {Downloaded # file} other {Downloaded # files}}"
 msgstr "{0, plural, one {# Datei heruntergeladen} other {# Dateien heruntergeladen}}"
 
 #. placeholder {0}: rows.length
-#: src/components/web_analytics/explore/CsvExportModal.tsx:116
+#: src/components/web_analytics/explore/CsvExportModal.tsx:112
 msgid "{0, plural, one {Exported # row} other {Exported # rows}}"
 msgstr "{0, plural, one {# Zeile exportiert} other {# Zeilen exportiert}}"
 
@@ -381,6 +417,11 @@ msgstr "{0, plural, one {Alle # anzeigen} other {Alle # anzeigen}}"
 #: src/components/segment/ConditionSentence.tsx:242
 msgid "{0, plural, one {time} other {times}}"
 msgstr "{0, plural, one {Mal} other {Mal}}"
+
+#. placeholder {0}: emails.length
+#: src/components/contacts/BulkUpdateDrawer.tsx:202
+msgid "{0, plural, one {Unsubscribe # contact} other {Unsubscribe {count} contacts}}"
+msgstr "{0, plural, one {# Kontakt abmelden} other {{count} Kontakte abmelden}}"
 
 #. placeholder {0}: template.name
 #: src/components/logs/MessageDetail.tsx:248
@@ -885,6 +926,10 @@ msgstr "{failed, plural, one {# fehlgeschlagen} other {# fehlgeschlagen}}"
 msgid "{failed, plural, one {The provider refused # recipient and every retry was used up. Open the logs to see why, then retry it.} other {The provider refused # recipients and every retry was used up. Open the logs to see why, then retry them.}}"
 msgstr "{failed, plural, one {Der Anbieter hat # Empfänger abgelehnt und alle Wiederholungen sind aufgebraucht. Öffnen Sie die Logs, um den Grund zu sehen, und versuchen Sie es dann erneut.} other {Der Anbieter hat # Empfänger abgelehnt und alle Wiederholungen sind aufgebraucht. Öffnen Sie die Logs, um den Grund zu sehen, und versuchen Sie es dann erneut.}}"
 
+#: src/components/contacts/csv-import/ImportProgress.tsx:64
+msgid "{failedShare} of rows"
+msgstr "{failedShare} der Zeilen"
+
 #: src/components/segment/segmentSummary.ts:88
 msgid "{field} < {value}"
 msgstr "{field} < {value}"
@@ -1060,6 +1105,14 @@ msgstr "{leafCount, plural, one {# Bedingung} other {# Bedingungen}}"
 #: src/pages/WebAnalyticsLivePage.tsx:137
 msgid "{liveSessions} live now"
 msgstr "{liveSessions} jetzt live"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:243
+msgid "{mapped, plural, one {# column mapped} other {# columns mapped}}"
+msgstr "{mapped, plural, one {# Spalte zugeordnet} other {# Spalten zugeordnet}}"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:123
+msgid "{mappedCount} of {columnCount} imported"
+msgstr "{mappedCount} von {columnCount} importiert"
 
 #: src/components/timeline/ContactTimeline.tsx:1028
 #~ msgid "{maxScroll}% scrolled"
@@ -1258,6 +1311,10 @@ msgstr "{requeued, plural, one {# Empfänger für einen weiteren Versuch eingere
 msgid "{retentionDays, plural, one {Kept # day} other {Kept # days}}"
 msgstr "{retentionDays, plural, one {# Tag aufbewahrt} other {# Tage aufbewahrt}}"
 
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:212
+msgid "{rowsToImport, plural, one {Import # contact} other {Import {importLabel} contacts}}"
+msgstr "{rowsToImport, plural, one {# Kontakt importieren} other {{importLabel} Kontakte importieren}}"
+
 #: src/components/broadcasts/compose/ContentCard.tsx:301
 msgid "{sampleContacts, plural, one {# contact} other {# contacts}}"
 msgstr "{sampleContacts, plural, one {# Kontakt} other {# Kontakte}}"
@@ -1397,6 +1454,14 @@ msgstr "{total, plural, one {# Vorlage} other {# Vorlagen}}"
 #: src/components/templates/templateUsage.ts:48
 msgid "{total, plural, one {# use} other {# uses}}"
 msgstr "{total, plural, one {# Verwendung} other {# Verwendungen}}"
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:41
+msgid "{total} rows"
+msgstr "{total} Zeilen"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:201
+msgid "{totalRows, plural, one {# row} other {{rowCount} rows}}"
+msgstr "{totalRows, plural, one {# Zeile} other {{rowCount} Zeilen}}"
 
 #: src/components/timeline/ContactTimeline.tsx:306
 #~ msgid "{totalSeconds}s"
@@ -1892,14 +1957,14 @@ msgstr "Ein Plattform-Administrator hat Zugriff auf alle Arbeitsbereiche, ohne i
 
 #. placeholder {0}: csvData.fileName
 #: src/components/contacts/BulkUpdateDrawer.tsx:414
-msgid "A previous {operation} operation for \"{0}\" was found. Would you like to resume from where you left off?"
-msgstr "Eine frühere {operation}-Operation für \\\"{0}\\\" wurde gefunden. Möchten Sie dort fortfahren, wo Sie aufgehört haben?"
+#~ msgid "A previous {operation} operation for \"{0}\" was found. Would you like to resume from where you left off?"
+#~ msgstr "Eine frühere {operation}-Operation für \\\"{0}\\\" wurde gefunden. Möchten Sie dort fortfahren, wo Sie aufgehört haben?"
 
 #. placeholder {0}: file.name
 #. placeholder {1}: dayjs(savedProgress.timestamp).format('lll')
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:379
-msgid "A previous upload for \"{0}\" was found ({1}). Would you like to resume from where you left off?"
-msgstr "Ein früherer Upload für \\\"{0}\\\" wurde gefunden ({1}). Möchten Sie dort fortfahren, wo Sie aufgehört haben?"
+#~ msgid "A previous upload for \"{0}\" was found ({1}). Would you like to resume from where you left off?"
+#~ msgstr "Ein früherer Upload für \\\"{0}\\\" wurde gefunden ({1}). Möchten Sie dort fortfahren, wo Sie aufgehört haben?"
 
 #: src/components/settings/integrations/TestEmailModal.tsx:89
 msgid "A real email, sent through these settings, saved or not."
@@ -1916,6 +1981,10 @@ msgstr "Eine Erinnerung mit den Artikeln im Warenkorb, aus dem Ereignis, das die
 #: src/components/templates/gallery/labels.ts:10
 msgid "A reset link, with the link in plain text under the button."
 msgstr "Ein Link zum Zurücksetzen, mit dem Link als Klartext unter der Schaltfläche."
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:55
+msgid "A row whose email comes again later in the same batch is merged into that later row."
+msgstr "Eine Zeile, deren E-Mail später im selben Stapel erneut vorkommt, wird mit dieser späteren Zeile zusammengeführt."
 
 #: src/components/segment/useSaveBlockerText.ts:14
 msgid "A segment already has the ID {id}: change the name."
@@ -2020,13 +2089,25 @@ msgstr "Verlassener Warenkorb"
 msgid "About {label}"
 msgstr "Über {label}"
 
+#: src/components/contacts/csv-import/ColumnsStep.tsx:118
+msgid "About column mapping"
+msgstr "Über die Spaltenzuordnung"
+
 #: src/components/settings/GeneralSettings.tsx:167
 msgid "About consent"
 msgstr "Über die Einwilligung"
 
+#: src/components/contacts/csv-import/ImportProgress.tsx:86
+msgid "About errors"
+msgstr "Über die Fehler"
+
 #: src/components/automations/EditorSettings.tsx:76
 msgid "About exit on reply"
 msgstr "Über „Bei Antwort verlassen“"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:212
+msgid "About lists"
+msgstr "Über die Listen"
 
 #: src/components/broadcasts/compose/AudienceCard.tsx:83
 msgid "About segments"
@@ -2039,6 +2120,14 @@ msgstr "Über Single Sign-on"
 #: src/components/setup/SmtpPanel.tsx:119
 msgid "About system email delivery"
 msgstr "Über den Versand von System-E-Mails"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:361
+msgid "About the email column"
+msgstr "Über die E-Mail-Spalte"
+
+#: src/components/contacts/csv-import/FileStep.tsx:25
+msgid "About the file format"
+msgstr "Über das Dateiformat"
 
 #: src/components/setup/SsoPanel.tsx:107
 msgid "About the redirect URI"
@@ -2056,6 +2145,10 @@ msgstr "Über diese Zahlen"
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:88
 msgid "About these numbers"
 msgstr "Zu diesen Zahlen"
+
+#: src/components/contacts/csv-import/FileStep.tsx:56
+msgid "About unfinished imports"
+msgstr "Über unvollständige Importe"
 
 #: src/components/broadcasts/compose/AudienceCard.tsx:121
 msgid "About unsubscribed recipients"
@@ -2098,7 +2191,8 @@ msgstr "Konto und Sicherheit"
 msgid "Acquisition channel resolved from the attribution rules"
 msgstr "Akquisekanal, ermittelt aus den Zuordnungsregeln"
 
-#: src/components/contacts/BulkUpdateDrawer.tsx:605
+#: src/components/contacts/BulkUpdateDrawer.tsx:294
+#: src/components/contacts/BulkUpdateDrawer.tsx:298
 #: src/components/logs/AuditEntryDetail.tsx:146
 #: src/components/logs/AuditLogTab.tsx:260
 #: src/components/logs/AuditLogTab.tsx:493
@@ -2477,9 +2571,13 @@ msgstr "Zur Liste hinzufügen"
 #~ msgid "Add to List"
 #~ msgstr "Zur Liste hinzufügen"
 
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:1008
-msgid "Add to Lists"
+#: src/components/contacts/csv-import/ColumnsStep.tsx:211
+msgid "Add to lists"
 msgstr "Zu Listen hinzufügen"
+
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:1008
+#~ msgid "Add to Lists"
+#~ msgstr "Zu Listen hinzufügen"
 
 #: src/components/automations/config/ABTestConfigForm.tsx:164
 #: src/components/broadcasts/compose/ContentCard.tsx:264
@@ -2546,14 +2644,14 @@ msgid "Address"
 msgstr "Adresse"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:107
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:100
+#: src/components/contacts/csv-import/contactFields.ts:33
 #: src/components/contacts/sheet/contactFieldLabels.ts:28
 #: src/components/segment/segmentLabels.ts:26
 msgid "Address Line 1"
 msgstr "Adresszeile 1"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:108
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:101
+#: src/components/contacts/csv-import/contactFields.ts:34
 #: src/components/contacts/sheet/contactFieldLabels.ts:29
 #: src/components/segment/segmentLabels.ts:27
 msgid "Address Line 2"
@@ -2701,6 +2799,7 @@ msgstr "allen"
 
 #: src/components/blog/PostsTable.tsx:433
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:101
+#: src/components/contacts/BulkUpdateDrawer.tsx:599
 #: src/components/contacts/sheet/ContactActivityTab.tsx:35
 #: src/components/contacts/visits/ContactWebVisits.tsx:338
 #: src/components/email_builder/panels/LibraryPanel.tsx:266
@@ -2850,6 +2949,10 @@ msgstr "Erlaubte E-Mail-Domains"
 #: src/components/segment/FieldPicker.tsx:63
 msgid "already filtered"
 msgstr "bereits gefiltert"
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:59
+msgid "already in the workspace"
+msgstr "bereits im Workspace"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:344
 #~ msgid "already set"
@@ -3302,12 +3405,12 @@ msgid "Applying your configuration"
 msgstr "Ihre Konfiguration wird angewendet"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:450
-msgid "Are you sure you want to cancel the operation? Progress will be saved and you can resume later."
-msgstr "Sind Sie sicher, dass Sie den Vorgang abbrechen möchten? Der Fortschritt wird gespeichert und Sie können später fortfahren."
+#~ msgid "Are you sure you want to cancel the operation? Progress will be saved and you can resume later."
+#~ msgstr "Sind Sie sicher, dass Sie den Vorgang abbrechen möchten? Der Fortschritt wird gespeichert und Sie können später fortfahren."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:306
-msgid "Are you sure you want to cancel the upload process? Progress will be saved and you can resume later."
-msgstr "Sind Sie sicher, dass Sie den Upload-Vorgang abbrechen möchten? Der Fortschritt wird gespeichert und Sie können später fortfahren."
+#~ msgid "Are you sure you want to cancel the upload process? Progress will be saved and you can resume later."
+#~ msgstr "Sind Sie sicher, dass Sie den Upload-Vorgang abbrechen möchten? Der Fortschritt wird gespeichert und Sie können später fortfahren."
 
 #: src/components/contacts/DeleteContactModal.tsx:47
 #~ msgid "Are you sure you want to delete"
@@ -3944,9 +4047,17 @@ msgstr "Basic (Benutzername und Passwort)"
 msgid "Basic blocks"
 msgstr "Basisblöcke"
 
+#: src/components/contacts/csv-import/ColumnsStep.tsx:88
+msgid "Basic information"
+msgstr "Grundangaben"
+
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1133
-msgid "Basic Information"
-msgstr "Grundinformationen"
+#~ msgid "Basic Information"
+#~ msgstr "Grundinformationen"
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:41
+msgid "Batch {batch} of {batches} · {row} of {total} rows"
+msgstr "Stapel {batch} von {batches} · {row} von {total} Zeilen"
 
 #: src/components/logs/MessageDetail.tsx:690
 #: src/components/templates/TemplatePreviewDrawer.tsx:375
@@ -3977,6 +4088,11 @@ msgstr "vor dem {date}"
 #: src/components/segment/segmentLabels.ts:314
 msgid "before date"
 msgstr "vor Datum"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:233
+#: src/components/contacts/csv-import/ColumnsStep.tsx:234
+msgid "Before importing"
+msgstr "Vor dem Import"
 
 #: src/components/integrations/SupabaseIntegration.tsx:206
 msgid "Before User Created hook"
@@ -4301,16 +4417,16 @@ msgstr "Rückläufer-Diagnose"
 msgid "Bounce Rate"
 msgstr "Absprungrate"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:49
+#: src/components/web_analytics/explore/CsvExportModal.tsx:45
 #: src/components/web_analytics/FilterBuilder.tsx:204
 msgid "Bounce Rate (%)"
 msgstr "Absprungrate (%)"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:60
+#: src/components/web_analytics/explore/CsvExportModal.tsx:56
 msgid "Bounce Rate (change %)"
 msgstr "Absprungrate (Änderung %)"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:59
+#: src/components/web_analytics/explore/CsvExportModal.tsx:55
 msgid "Bounce Rate (previous)"
 msgstr "Absprungrate (vorheriger Zeitraum)"
 
@@ -4671,8 +4787,13 @@ msgid "Bulk update (CSV)"
 msgstr "Massenaktualisierung (CSV)"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:568
-msgid "Bulk Update Contacts"
-msgstr "Kontakte massenweise aktualisieren"
+#~ msgid "Bulk Update Contacts"
+#~ msgstr "Kontakte massenweise aktualisieren"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:255
+#: src/components/contacts/BulkUpdateDrawer.tsx:261
+msgid "Bulk update from CSV"
+msgstr "Massenaktualisierung aus CSV"
 
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:231
 msgid "Button Align"
@@ -4720,6 +4841,10 @@ msgstr "Kampagne"
 #: src/pages/WebAnalyticsLivePage.tsx:206
 msgid "Campaigns"
 msgstr "Kampagnen"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:555
+msgid "can be retried"
+msgstr "können wiederholt werden"
 
 #: src/components/templates/TemplateSettingsStep.tsx:134
 msgid "Can no longer change"
@@ -4770,8 +4895,6 @@ msgstr "Im Browser nicht testbar"
 #: src/components/broadcasts/useBroadcastActions.tsx:168
 #: src/components/broadcasts/useBroadcastActions.tsx:186
 #: src/components/contacts/BulkActionProgressModal.tsx:60
-#: src/components/contacts/BulkUpdateDrawer.tsx:592
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:825
 #: src/components/contacts/ContactsTable.tsx:104
 #: src/components/contacts/ContactsViewHeader.tsx:154
 #: src/components/contacts/ContactUpsertDrawer.tsx:515
@@ -4836,7 +4959,7 @@ msgstr "Im Browser nicht testbar"
 #: src/components/transactional/notificationRules.ts:94
 #: src/components/updates/UpdateCard.tsx:48
 #: src/components/web_analytics/explore/BreakdownModal.tsx:76
-#: src/components/web_analytics/explore/CsvExportModal.tsx:134
+#: src/components/web_analytics/explore/CsvExportModal.tsx:130
 #: src/components/web_analytics/filters/BackfillStatus.tsx:91
 #: src/components/web_analytics/filters/BackfillStatus.tsx:103
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:120
@@ -4872,8 +4995,8 @@ msgid "Cancel broadcast?"
 msgstr "Kampagne abbrechen?"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:448
-msgid "Cancel Operation?"
-msgstr "Vorgang abbrechen?"
+#~ msgid "Cancel Operation?"
+#~ msgstr "Vorgang abbrechen?"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:197
 msgid "Cancel the rule changes"
@@ -4884,8 +5007,8 @@ msgid "Cancel the scheduled send?"
 msgstr "Geplanten Versand abbrechen?"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:304
-msgid "Cancel Upload?"
-msgstr "Upload abbrechen?"
+#~ msgid "Cancel Upload?"
+#~ msgstr "Upload abbrechen?"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:222
 #: src/components/broadcasts/detail/BroadcastAside.tsx:279
@@ -4928,8 +5051,8 @@ msgid "Cannot remove list while email nodes exist. Delete email nodes first."
 msgstr "Liste kann nicht entfernt werden, solange E-Mail-Knoten existieren. Löschen Sie zuerst die E-Mail-Knoten."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:247
-msgid "Cannot restore progress: CSV data is not available"
-msgstr "Fortschritt kann nicht wiederhergestellt werden: CSV-Daten sind nicht verfügbar"
+#~ msgid "Cannot restore progress: CSV data is not available"
+#~ msgstr "Fortschritt kann nicht wiederhergestellt werden: CSV-Daten sind nicht verfügbar"
 
 #: src/components/file_manager/FileExplorer.tsx:504
 msgid "Cannot upload in read-only mode"
@@ -5048,6 +5171,10 @@ msgstr "Ein Abonnement ändern, einschließlich des Ziels, an das es sendet, und
 #: src/services/api/permissions.ts:421
 msgid "Change a template's content, in any language"
 msgstr "Den Inhalt einer Vorlage ändern, in jeder Sprache"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:190
+msgid "Change file"
+msgstr "Datei wechseln"
 
 #: src/components/logs/AuditLogTab.tsx:646
 msgid "Change in Settings"
@@ -5186,6 +5313,10 @@ msgstr "Auswählen"
 #: src/components/lists/ListDrawer.tsx:542
 msgid "Choose a confirmation template"
 msgstr "Bestätigungsvorlage wählen"
+
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:78
+msgid "Choose a CSV file"
+msgstr "Wählen Sie eine CSV-Datei"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:177
 msgid "Choose a date to schedule"
@@ -5371,8 +5502,8 @@ msgstr "Für Optionen klicken"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:662
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:850
-msgid "Click or drag a CSV file to this area to upload"
-msgstr "Klicken oder CSV-Datei hierher ziehen zum Hochladen"
+#~ msgid "Click or drag a CSV file to this area to upload"
+#~ msgstr "Klicken oder CSV-Datei hierher ziehen zum Hochladen"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:259
 msgid "click rate"
@@ -5402,8 +5533,8 @@ msgstr "Klickrate"
 #~ msgstr ""
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:718
-msgid "Click Resume to continue processing"
-msgstr "Klicken Sie auf Fortsetzen, um die Verarbeitung fortzusetzen"
+#~ msgid "Click Resume to continue processing"
+#~ msgstr "Klicken Sie auf Fortsetzen, um die Verarbeitung fortzusetzen"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:115
 msgid "Click Resume to continue processing."
@@ -5539,7 +5670,7 @@ msgstr "Einwilligung zum Klick-Tracking"
 msgid "Clicks Tracking Consent"
 msgstr "Einwilligung zum Klick-Tracking"
 
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:106
+#: src/components/contacts/csv-import/contactFields.ts:39
 msgid "Clicks tracking consent (granted or denied)"
 msgstr "Einwilligung zum Klick-Tracking (granted oder denied)"
 
@@ -5611,7 +5742,6 @@ msgstr "Vorlage klonen"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:233
 #: src/components/broadcasts/GlobalFeedSettings.tsx:137
 #: src/components/contacts/BulkActionProgressModal.tsx:65
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:838
 #: src/components/contacts/sheet/ContactDetailsBody.tsx:173
 #: src/components/layout/DrawerControls.tsx:109
 #: src/components/logs/MessageDetail.tsx:96
@@ -5697,6 +5827,11 @@ msgstr "Farbe"
 msgid "Colour: {0}"
 msgstr "Farbe: {0}"
 
+#. placeholder {0}: index + 1
+#: src/components/contacts/BulkUpdateDrawer.tsx:371
+msgid "Column {0}"
+msgstr "Spalte {0}"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:39
 msgid "Column attributes"
 msgstr "Spalten-Attribute"
@@ -5709,9 +5844,22 @@ msgstr "Spalten-Attribute"
 msgid "Column gap"
 msgstr "Spaltenabstand"
 
+#: src/components/contacts/csv-import/ColumnsStep.tsx:132
+msgid "Column in file"
+msgstr "Spalte in der Datei"
+
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:42
 msgid "Column width (e.g., '50%', '300px', 'auto')"
 msgstr "Spaltenbreite (z.B. '50%', '300px', 'auto')"
+
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:295
+#: src/components/contacts/csv-import/ColumnsStep.tsx:117
+msgid "Columns"
+msgstr "Spalten"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:119
+msgid "Columns named like a contact field are mapped for you. Each field takes one column; a column left on \"Don't import\" is skipped."
+msgstr "Spalten, die wie ein Kontaktfeld heißen, werden automatisch zugeordnet. Jedes Feld nimmt eine Spalte auf; eine Spalte auf „Nicht importieren“ wird übersprungen."
 
 #: src/pages/SetupWizard.tsx:769
 #~ msgid "Comma-separated list of email domains permitted to auto-create accounts"
@@ -6219,7 +6367,9 @@ msgstr "Kontakt erfolgreich aktualisiert"
 #: src/components/analytics/DashboardKpis.tsx:246
 #: src/components/analytics/DashboardKpis.tsx:254
 #: src/components/analytics/GetStartedChecklist.tsx:162
+#: src/components/contacts/BulkUpdateDrawer.tsx:256
 #: src/components/contacts/ContactDetailsDrawer.tsx:136
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:279
 #: src/components/logs/labels.ts:22
 #: src/components/segment/SegmentDrawer.tsx:319
 #: src/components/settings/permissionLabels.ts:7
@@ -6229,6 +6379,10 @@ msgstr "Kontakt erfolgreich aktualisiert"
 #: src/services/api/errors.ts:82
 msgid "Contacts"
 msgstr "Kontakte"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:251
+msgid "Contacts already in the workspace are matched by email and updated"
+msgstr "Kontakte, die bereits im Workspace sind, werden per E-Mail erkannt und aktualisiert"
 
 #: src/components/lists/ListDrawer.tsx:508
 msgid "Contacts can subscribe or unsubscribe from the notification center."
@@ -6246,13 +6400,17 @@ msgstr "Kontakte, die diesen Bedingungen entsprechen, folgen dem 'Ja'-Pfad. Ande
 #~ msgid "Contacts matching these conditions will follow the 'Yes' path. Others will follow 'No'."
 #~ msgstr "Kontakte, die diesen Bedingungen entsprechen, folgen dem 'Ja'-Pfad. Andere folgen 'Nein'."
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:434
+msgid "Contacts not subscribed to this list are skipped."
+msgstr "Kontakte, die diese Liste nicht abonniert haben, werden übersprungen."
+
 #: src/components/broadcasts/compose/AudienceCard.tsx:84
 msgid "Contacts of the list who belong to any of these segments. Leave empty for the whole list."
 msgstr "Kontakte der Liste, die zu einem dieser Segmente gehören. Leer lassen für die ganze Liste."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1039
-msgid "Contacts will be added to these lists on import (optional)"
-msgstr "Kontakte werden beim Import zu diesen Listen hinzugefügt (optional)"
+#~ msgid "Contacts will be added to these lists on import (optional)"
+#~ msgstr "Kontakte werden beim Import zu diesen Listen hinzugefügt (optional)"
 
 #: src/components/settings/GeneralSettings.tsx:163
 msgid "Contacts without recorded consent"
@@ -6663,8 +6821,8 @@ msgstr "Länder"
 #: src/components/automations/config/TriggerConfigForm.tsx:109
 #: src/components/contacts/contactColumns.ts:66
 #: src/components/contacts/contactFilterFields.ts:32
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:97
 #: src/components/contacts/ContactsTable.tsx:315
+#: src/components/contacts/csv-import/contactFields.ts:30
 #: src/components/contacts/ExportContactsModal.tsx:81
 #: src/components/contacts/sheet/contactFieldLabels.ts:30
 #: src/components/segment/segmentLabels.ts:23
@@ -6978,6 +7136,11 @@ msgstr "Erstellen Sie Ihre erste Vorlage, um loszulegen"
 msgid "Created"
 msgstr "Erstellt"
 
+#: src/components/contacts/csv-import/ImportProgress.tsx:58
+msgctxt "import result"
+msgid "Created"
+msgstr "Erstellt"
+
 #. placeholder {0}: fullDate(template.created_at)
 #. placeholder {1}: fullDate(template.updated_at)
 #. placeholder {2}: timezone ?? 'UTC'
@@ -7099,9 +7262,13 @@ msgstr "CSS-Datei-URL"
 msgid "CSS Style Editor"
 msgstr "CSS-Stil-Editor"
 
+#: src/components/contacts/csv-import/FileStep.tsx:24
+msgid "CSV file"
+msgstr "CSV-Datei"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:148
-msgid "CSV must have at least a header row and one data row"
-msgstr "CSV muss mindestens eine Kopfzeile und eine Datenzeile haben"
+#~ msgid "CSV must have at least a header row and one data row"
+#~ msgstr "CSV muss mindestens eine Kopfzeile und eine Datenzeile haben"
 
 #: src/components/templates/TemplateSelectorModal.tsx:459
 msgctxt "template selector"
@@ -7239,6 +7406,7 @@ msgstr "Benutzerdefiniertes Feldlabel erfolgreich entfernt"
 msgid "Custom field label saved successfully"
 msgstr "Benutzerdefiniertes Feldlabel erfolgreich gespeichert"
 
+#: src/components/contacts/csv-import/ColumnsStep.tsx:89
 #: src/components/contacts/sheet/ContactProfileFields.tsx:155
 #: src/components/segment/segmentLabels.ts:204
 #: src/components/settings/CustomFieldsConfiguration.tsx:276
@@ -7247,8 +7415,8 @@ msgid "Custom fields"
 msgstr "Benutzerdefinierte Felder"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1149
-msgid "Custom Fields"
-msgstr "Benutzerdefinierte Felder"
+#~ msgid "Custom Fields"
+#~ msgstr "Benutzerdefinierte Felder"
 
 #: src/components/broadcasts/HeadersEditor.tsx:34
 msgid "Custom header"
@@ -7657,6 +7825,7 @@ msgstr "Verzögerung"
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:275
 #: src/components/contacts/BulkActionsBar.tsx:163
 #: src/components/contacts/BulkActionsBar.tsx:219
+#: src/components/contacts/BulkUpdateDrawer.tsx:158
 #: src/components/contacts/ContactsTable.tsx:92
 #: src/components/contacts/ContactsTable.tsx:103
 #: src/components/contacts/ContactsViewHeader.tsx:153
@@ -7702,8 +7871,8 @@ msgid "Delete"
 msgstr "Löschen"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:579
-msgid "DELETE"
-msgstr "DELETE"
+#~ msgid "DELETE"
+#~ msgstr "DELETE"
 
 #: src/components/email_builder/EmailBuilder.tsx:945
 msgid "Delete \"{name}\" from the library?"
@@ -7842,7 +8011,8 @@ msgstr "Kontakt löschen"
 #~ msgstr "Kontakt löschen"
 
 #: src/components/contacts/BulkActionsBar.tsx:215
-#: src/components/contacts/BulkUpdateDrawer.tsx:612
+#: src/components/contacts/BulkUpdateDrawer.tsx:311
+#: src/components/contacts/BulkUpdateDrawer.tsx:570
 #: src/pages/ContactsPage.tsx:245
 msgid "Delete contacts"
 msgstr "Kontakte löschen"
@@ -8003,6 +8173,8 @@ msgstr "Arbeitsbereich löschen"
 #~ msgstr "gelöscht"
 
 #: src/components/automations/describeTrigger.ts:27
+#: src/components/contacts/BulkUpdateDrawer.tsx:170
+#: src/components/contacts/BulkUpdateDrawer.tsx:544
 msgid "Deleted"
 msgstr "Gelöscht"
 
@@ -8217,6 +8389,10 @@ msgstr "Desktop"
 msgid "Desktop view (100%)"
 msgstr "Desktop-Ansicht (100%)"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:632
+msgid "Detail"
+msgstr "Detail"
+
 #: src/components/blog/PostDrawer.tsx:849
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
@@ -8274,7 +8450,7 @@ msgstr "Dimension"
 msgid "Dimensions"
 msgstr "Abmessungen"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:155
+#: src/components/web_analytics/explore/CsvExportModal.tsx:151
 msgid "Dimensions:"
 msgstr "Dimensionen:"
 
@@ -8501,6 +8677,10 @@ msgstr "Domain, auf der der Besuch begann und zu der der Pfad gehört"
 msgid "Domain the visitor arrived from"
 msgstr "Domain, von der der Besucher kam"
 
+#: src/components/contacts/csv-import/ColumnsStep.tsx:164
+msgid "Don't import"
+msgstr "Nicht importieren"
+
 #: src/components/settings/BlogSettings.tsx:477
 msgid "Don't index and don't follow links"
 msgstr "Nicht indizieren und Links nicht folgen"
@@ -8520,10 +8700,19 @@ msgstr "Öffnungen und Klicks für diesen Broadcast nicht tracken"
 #: src/components/analytics/GetStartedChecklist.tsx:312
 #: src/components/analytics/GetStartedChecklist.tsx:439
 #: src/components/automations/config/ConditionsField.tsx:142
+#: src/components/contacts/BulkUpdateDrawer.tsx:189
+#: src/components/contacts/BulkUpdateDrawer.tsx:245
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:195
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:264
 #: src/components/settings/ZapierSettings.tsx:269
 #: src/components/templates/TemplateTranslationsTab.tsx:501
 msgid "Done"
 msgstr "Fertig"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:189
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:193
+msgid "Done · {failed} failed"
+msgstr "Fertig · {failed} fehlgeschlagen"
 
 #: src/pages/SetupWizard.tsx:198
 msgid "Done once. Everything here can be changed later in System settings."
@@ -8553,13 +8742,21 @@ msgstr "Double Opt-in"
 
 #: src/components/file_manager/FileExplorer.tsx:569
 #: src/components/file_manager/FilePreview.tsx:98
-#: src/components/web_analytics/explore/CsvExportModal.tsx:143
+#: src/components/web_analytics/explore/CsvExportModal.tsx:139
 msgid "Download"
 msgstr "Herunterladen"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:608
+msgid "Download as CSV"
+msgstr "Als CSV herunterladen"
 
 #: src/components/file_manager/FileExplorer.tsx:728
 msgid "Download as zip"
 msgstr "Als ZIP herunterladen"
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:96
+msgid "Download failed rows"
+msgstr "Fehlgeschlagene Zeilen herunterladen"
 
 #: src/components/file_manager/fileManager.tsx:899
 #~ msgid "Download file"
@@ -8606,9 +8803,18 @@ msgstr "Ziehen, um diesen Block im Baum zu verschieben"
 msgid "Dragging {name} was cancelled."
 msgstr "Ziehen von {name} wurde abgebrochen."
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:389
+#: src/components/contacts/csv-import/FileStep.tsx:44
+msgid "Drop a CSV file here, or click to browse"
+msgstr "CSV-Datei hier ablegen oder zum Durchsuchen klicken"
+
 #: src/components/file_manager/FileExplorer.tsx:853
 msgid "Drop files here to upload"
 msgstr "Dateien hier ablegen zum Hochladen"
+
+#: src/components/contacts/csv-import/FileStep.tsx:61
+msgid "Drop the same file to resume"
+msgstr "Dieselbe Datei ablegen, um fortzufahren"
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:116
 msgid "Duplicate"
@@ -8618,6 +8824,10 @@ msgstr "Duplizieren"
 #: src/components/templates/TemplateSelectorModal.tsx:191
 msgid "Duplicate and edit"
 msgstr "Duplizieren und bearbeiten"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:452
+msgid "Duplicates removed"
+msgstr "Entfernte Duplikate"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:287
 msgid "Duration"
@@ -9100,13 +9310,11 @@ msgstr "Element-Innenabstand"
 
 #: src/components/automations/describeTrigger.ts:54
 #: src/components/automations/nodeTypes.ts:29
-#: src/components/contacts/BulkUpdateDrawer.tsx:682
+#: src/components/contacts/BulkUpdateDrawer.tsx:621
 #: src/components/contacts/contactFilterFields.ts:22
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:92
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:933
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:1055
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:1129
 #: src/components/contacts/ContactUpsertDrawer.tsx:535
+#: src/components/contacts/csv-import/contactFields.ts:48
+#: src/components/contacts/csv-import/ImportProgress.tsx:117
 #: src/components/contacts/ExportContactsModal.tsx:63
 #: src/components/contacts/sheet/activityLabel.ts:16
 #: src/components/contacts/sheet/describeActivity.tsx:129
@@ -9126,8 +9334,8 @@ msgid "Email"
 msgstr "E-Mail"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1092
-msgid "Email (Required)"
-msgstr "E-Mail (Erforderlich)"
+#~ msgid "Email (Required)"
+#~ msgstr "E-Mail (Erforderlich)"
 
 #: src/components/settings/WorkspaceMembers.tsx:573
 msgid "Email address"
@@ -9174,6 +9382,15 @@ msgstr "E-Mail geklickt"
 #~ msgid "Email clicks tracking"
 #~ msgstr "Klick-Tracking"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:360
+#: src/components/contacts/BulkUpdateDrawer.tsx:367
+msgid "Email column"
+msgstr "E-Mail-Spalte"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:236
+msgid "Email column mapped"
+msgstr "E-Mail-Spalte zugeordnet"
+
 #: src/components/automations/describeTrigger.ts:135
 #: src/components/segment/timelineKindLabels.ts:14
 msgid "Email complained"
@@ -9197,8 +9414,8 @@ msgid "Email failed: {name}"
 msgstr "E-Mail fehlgeschlagen: {name}"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:460
-msgid "Email field mapping is required"
-msgstr "E-Mail-Feldzuordnung ist erforderlich"
+#~ msgid "Email field mapping is required"
+#~ msgstr "E-Mail-Feldzuordnung ist erforderlich"
 
 #: src/components/automations/config/EmailConfigForm.tsx:99
 #: src/components/templates/SendTemplateModal.tsx:337
@@ -9224,16 +9441,16 @@ msgid "Email links cannot identify contacts until a domain is listed."
 msgstr "E-Mail-Links können keine Kontakte identifizieren, solange keine Domain aufgeführt ist."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:270
-msgid "Email mapping from previous session is invalid for this CSV. Please map fields manually."
-msgstr "E-Mail-Zuordnung aus vorheriger Sitzung ist für diese CSV ungültig. Bitte ordnen Sie Felder manuell zu."
+#~ msgid "Email mapping from previous session is invalid for this CSV. Please map fields manually."
+#~ msgstr "E-Mail-Zuordnung aus vorheriger Sitzung ist für diese CSV ungültig. Bitte ordnen Sie Felder manuell zu."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:482
-msgid "Email mapping is missing or invalid"
-msgstr "E-Mail-Zuordnung fehlt oder ist ungültig"
+#~ msgid "Email mapping is missing or invalid"
+#~ msgstr "E-Mail-Zuordnung fehlt oder ist ungültig"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1061
-msgid "Email mapping required"
-msgstr "E-Mail-Zuordnung erforderlich"
+#~ msgid "Email mapping required"
+#~ msgstr "E-Mail-Zuordnung erforderlich"
 
 #: src/components/analytics/EmailMetricsChart.tsx:291
 #~ msgid "Email Metrics"
@@ -9369,6 +9586,8 @@ msgstr "E-Mail, Name oder externe ID"
 msgid "Email:"
 msgstr "E-Mail:"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:399
+#: src/components/contacts/BulkUpdateDrawer.tsx:407
 #: src/components/contacts/sheet/ContactActivityTab.tsx:36
 #: src/components/segment/form_leaf.tsx:520
 #: src/components/segment/form_leaf.tsx:521
@@ -9887,7 +10106,7 @@ msgid "error"
 msgstr "Fehler"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:257
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:943
+#: src/components/contacts/csv-import/ImportProgress.tsx:123
 #: src/components/logs/MessagesTab.tsx:470
 #: src/components/messages/MessageHistoryTable.tsx:160
 #: src/components/messages/MessageHistoryTable.tsx:392
@@ -9913,7 +10132,7 @@ msgid "Error loading template: Invalid template data"
 msgstr "Fehler beim Laden der Vorlage: Ungültige Vorlagendaten"
 
 #. placeholder {0}: error.message
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:404
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:97
 msgid "Error parsing CSV: {0}"
 msgstr "Fehler beim Parsen der CSV: {0}"
 
@@ -9934,6 +10153,7 @@ msgid "Error: {errorMessage}"
 msgstr "Fehler: {errorMessage}"
 
 #: src/components/automations/stats/StepStats.tsx:32
+#: src/components/contacts/csv-import/ImportProgress.tsx:84
 #: src/components/email_builder/MjmlCodeEditor.tsx:684
 msgid "Errors"
 msgstr "Fehler"
@@ -9941,8 +10161,8 @@ msgstr "Fehler"
 #. placeholder {0}: Math.min(failureCount, 100)
 #. placeholder {1}: int(failureCount)
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:909
-msgid "Errors ({0} of {1} shown)"
-msgstr "Fehler ({0} von {1} angezeigt)"
+#~ msgid "Errors ({0} of {1} shown)"
+#~ msgstr "Fehler ({0} von {1} angezeigt)"
 
 #: src/components/segment/ConditionSentence.tsx:294
 msgid "event"
@@ -10057,6 +10277,10 @@ msgstr "Jede aktivierte Regel trifft auf diesen Besuch zu"
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:287
 msgid "Every field of the visit"
 msgstr "Alle Felder des Besuchs"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:212
+msgid "Every imported contact is added to these lists."
+msgstr "Jeder importierte Kontakt wird diesen Listen hinzugefügt."
 
 #: src/components/license/LicenceGateNotice.tsx:64
 msgid "Every member keeps the access they have, and any member can still be given full access. Only a narrower grant needs a licence."
@@ -10249,7 +10473,7 @@ msgstr "Das Audit-Log als CSV oder NDJSON exportieren"
 #~ msgid "Export the current filter as CSV or NDJSON, up to {AUDIT_LOG_EXPORT_MAX_ROWS} rows"
 #~ msgstr "Den aktuellen Filter als CSV oder NDJSON exportieren, bis zu {AUDIT_LOG_EXPORT_MAX_ROWS} Zeilen"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:128
+#: src/components/web_analytics/explore/CsvExportModal.tsx:124
 #: src/pages/WebAnalyticsPage.tsx:125
 msgid "Export to CSV"
 msgstr "Als CSV exportieren"
@@ -10276,7 +10500,7 @@ msgstr "Alle Kontakte werden exportiert"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:99
 #: src/components/contacts/contactFilterFields.ts:23
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:93
+#: src/components/contacts/csv-import/contactFields.ts:26
 #: src/components/contacts/ExportContactsModal.tsx:66
 #: src/components/contacts/sheet/contactFieldLabels.ts:36
 #: src/components/logs/MessageDetail.tsx:678
@@ -10310,8 +10534,10 @@ msgstr "Sehr hoch"
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:126
 #: src/components/contacts/BulkActionProgressModal.tsx:106
 #: src/components/contacts/BulkActionProgressModal.tsx:146
-#: src/components/contacts/BulkUpdateDrawer.tsx:712
-#: src/components/contacts/BulkUpdateDrawer.tsx:751
+#: src/components/contacts/BulkUpdateDrawer.tsx:174
+#: src/components/contacts/BulkUpdateDrawer.tsx:553
+#: src/components/contacts/BulkUpdateDrawer.tsx:600
+#: src/components/contacts/csv-import/ImportProgress.tsx:62
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:52
 #: src/components/logs/labels.ts:28
 #: src/components/logs/labels.ts:41
@@ -10644,8 +10870,8 @@ msgstr "Segment-Vorschau fehlgeschlagen"
 
 #. placeholder {0}: emails.length
 #: src/components/contacts/BulkUpdateDrawer.tsx:386
-msgid "Failed to process all {0} contacts"
-msgstr "Verarbeitung aller {0} Kontakte fehlgeschlagen"
+#~ msgid "Failed to process all {0} contacts"
+#~ msgstr "Verarbeitung aller {0} Kontakte fehlgeschlagen"
 
 #. placeholder {0}: file.name
 #: src/components/templates/SendTemplateModal.tsx:274
@@ -10992,20 +11218,27 @@ msgstr "Wird abgerufen: {0}"
 msgid "Field"
 msgstr "Feld"
 
+#. placeholder {0}: row.header
+#: src/components/contacts/csv-import/ColumnsStep.tsx:163
+msgid "Field for the column {0}"
+msgstr "Feld für die Spalte {0}"
+
 #: src/components/transactional/ApiCommandDrawer.tsx:166
 msgid "field is required"
 msgstr "Feld ist erforderlich"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1055
-msgid "field is required."
-msgstr "Feld ist erforderlich."
+#~ msgid "field is required."
+#~ msgstr "Feld ist erforderlich."
 
 #. placeholder {0}: filter.field_name
 #: src/components/segment/input_dimension_filters.tsx:84
 #~ msgid "field: {0}"
 #~ msgstr "Feld: {0}"
 
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:980
+#: src/components/contacts/BulkUpdateDrawer.tsx:335
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:294
+#: src/components/contacts/csv-import/ColumnsStep.tsx:187
 msgid "File"
 msgstr "Datei"
 
@@ -11042,7 +11275,7 @@ msgstr "Dateimanager-Einstellungen erfolgreich aktualisiert"
 
 #: src/components/file_manager/FileExplorer.tsx:755
 #: src/components/file_manager/FileExplorer.tsx:756
-#: src/components/web_analytics/explore/CsvExportModal.tsx:167
+#: src/components/web_analytics/explore/CsvExportModal.tsx:163
 msgid "File name"
 msgstr "Dateiname"
 
@@ -11160,6 +11393,10 @@ msgstr "Eine Testzustellung an die URL des Abonnements auslösen — Schreiben, 
 msgid "Firecrawl integration saved successfully"
 msgstr "Firecrawl-Integration erfolgreich gespeichert"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:402
+msgid "First {shownCount} of {count}"
+msgstr "Erste {shownCount} von {count}"
+
 #: src/components/logs/MessageDetail.tsx:448
 msgid "First click"
 msgstr "Erster Klick"
@@ -11183,8 +11420,8 @@ msgstr "Erste Zeile der Adresse des Kontakts"
 #: src/components/automations/config/TriggerConfigForm.tsx:96
 #: src/components/contacts/contactColumns.ts:62
 #: src/components/contacts/contactFilterFields.ts:24
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:94
 #: src/components/contacts/ContactsTable.tsx:311
+#: src/components/contacts/csv-import/contactFields.ts:27
 #: src/components/contacts/ExportContactsModal.tsx:69
 #: src/components/contacts/sheet/contactFieldLabels.ts:24
 #: src/components/segment/segmentLabels.ts:19
@@ -11388,6 +11625,15 @@ msgstr "Einen vollständigen Neuaufbau eines Segments erzwingen"
 #~ msgid "Forever"
 #~ msgstr ""
 
+#: src/components/contacts/csv-import/FileStep.tsx:86
+msgid "Forget"
+msgstr "Vergessen"
+
+#. placeholder {0}: saved.fileName
+#: src/components/contacts/csv-import/FileStep.tsx:83
+msgid "Forget {0}"
+msgstr "{0} vergessen"
+
 #: src/components/email_builder/MjmlCodeEditor.tsx:759
 msgid "Format"
 msgstr "Format"
@@ -11402,8 +11648,8 @@ msgstr "Leitet eingehende Antworten an Notifuse weiter, damit Automatisierungen 
 
 #. placeholder {0}: parsedData.emails.length
 #: src/components/contacts/BulkUpdateDrawer.tsx:262
-msgid "Found {0} email addresses"
-msgstr "{0} E-Mail-Adressen gefunden"
+#~ msgid "Found {0} email addresses"
+#~ msgstr "{0} E-Mail-Adressen gefunden"
 
 #. placeholder {0}: dayjs(savedAt).format('lll')
 #: src/components/blog/PostDrawer.tsx:305
@@ -11421,6 +11667,10 @@ msgstr "Häufigkeit"
 #: src/components/templates/TemplatePreviewDrawer.tsx:322
 msgid "From"
 msgstr "Von"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:546
+msgid "from {listName}"
+msgstr "von {listName}"
 
 #: src/components/contacts/sheet/describeActivity.tsx:367
 msgid "from {referrer}"
@@ -12106,6 +12356,10 @@ msgstr "Wie die Kategorieseite in den Suchergebnissen erscheint"
 msgid "How the post appears in search results"
 msgstr "Wie der Beitrag in den Suchergebnissen erscheint"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:428
+msgid "How the update runs"
+msgstr "Wie die Aktualisierung abläuft"
+
 #: src/components/segment/segmentLabels.ts:97
 msgid "How the visitor arrived on the page"
 msgstr "Wie der Besucher auf die Seite kam"
@@ -12367,6 +12621,10 @@ msgstr "{latest} ignorieren?"
 msgid "Ignore this version"
 msgstr "Diese Version ignorieren"
 
+#: src/components/contacts/csv-import/ColumnsStep.tsx:178
+msgid "Ignored"
+msgstr "Ignoriert"
+
 #: src/components/email_builder/blocks/MjImageBlock.tsx:43
 #: src/components/email_builder/ui/BackgroundInput.tsx:258
 msgid "Image"
@@ -12400,6 +12658,7 @@ msgstr "Implizites TLS (SMTPS)"
 msgid "Implicit TLS on 465"
 msgstr "Implizites TLS auf 465"
 
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:296
 #: src/components/contacts/ContactsViewHeader.tsx:269
 #: src/components/contacts/TrackingConsent.tsx:48
 #: src/components/email_builder/MjmlCodeEditor.tsx:632
@@ -12423,16 +12682,22 @@ msgstr "Vorlagen importieren & exportieren"
 msgid "Import a CSV into a list, or send contacts from your app with the <0>contacts.upsert</0> API."
 msgstr "Importieren Sie eine CSV-Datei in eine Liste oder senden Sie Kontakte aus Ihrer App über die API <0>contacts.upsert</0>."
 
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:252
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:262
+msgid "Import another file"
+msgstr "Eine weitere Datei importieren"
+
 #: src/components/file_manager/FileExplorer.tsx:477
 msgid "Import cancelled"
 msgstr "Import abgebrochen"
 
 #: src/components/analytics/GetStartedChecklist.tsx:175
 #: src/components/analytics/NewContactsTable.tsx:68
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:278
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:284
 msgid "Import contacts"
 msgstr "Kontakte importieren"
 
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:795
 #: src/components/contacts/ContactsCsvUploadProvider.tsx:105
 msgid "Import Contacts from CSV"
 msgstr "Kontakte aus CSV importieren"
@@ -12467,6 +12732,10 @@ msgstr "MJML importieren"
 msgid "Import MJML markup"
 msgstr "MJML-Markup importieren"
 
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:290
+msgid "Import steps"
+msgstr "Importschritte"
+
 #: src/components/contacts/ContactsViewHeader.tsx:208
 #: src/pages/ContactsPage.tsx:535
 msgid "Import to list"
@@ -12484,15 +12753,15 @@ msgstr "Wichtige Hinweise"
 #. placeholder {0}: int(successCount)
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:538
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:705
-msgid "Imported {0} contacts"
-msgstr "{0} Kontakte importiert"
+#~ msgid "Imported {0} contacts"
+#~ msgstr "{0} Kontakte importiert"
 
 #. placeholder {0}: int(successCount)
 #. placeholder {1}: int(failureCount)
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:537
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:704
-msgid "Imported {0} contacts ({1} failed, see details below)"
-msgstr "{0} Kontakte importiert ({1} fehlgeschlagen, siehe Details unten)"
+#~ msgid "Imported {0} contacts ({1} failed, see details below)"
+#~ msgstr "{0} Kontakte importiert ({1} fehlgeschlagen, siehe Details unten)"
 
 #: src/components/logs/auditPhrases.ts:46
 msgid "Imported contacts"
@@ -12506,9 +12775,17 @@ msgstr "Hat benutzerdefinierte Ereignisse importiert"
 msgid "Imported Fonts"
 msgstr "Importierte Schriften"
 
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:186
+msgid "Importing"
+msgstr "Import läuft"
+
 #: src/components/file_manager/FileExplorer.tsx:858
 msgid "Importing files..."
 msgstr "Dateien werden importiert..."
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:157
+msgid "Imports into"
+msgstr "Importiert in"
 
 #: src/components/web_analytics/lib/filterLabels.ts:16
 msgid "in"
@@ -13028,6 +13305,22 @@ msgstr "Diese Integration versendet die Marketing-E-Mails des Arbeitsbereichs: K
 msgid "It sends the workspace's transactional emails: notifications stop until another provider is chosen. This cannot be undone."
 msgstr "Diese Integration versendet die Transaktions-E-Mails des Arbeitsbereichs: Benachrichtigungen stoppen, bis ein anderer Anbieter gewählt ist. Dies kann nicht rückgängig gemacht werden."
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:501
+msgid "It stopped at address {savedAt} of {savedTotal}, but the file now has a different number of addresses: start over to process it."
+msgstr "Sie wurde bei Adresse {savedAt} von {savedTotal} angehalten, aber die Datei hat jetzt eine andere Anzahl von Adressen: Beginnen Sie neu, um sie zu verarbeiten."
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:500
+msgid "It stopped at address {savedAt} of {savedTotal}. Resuming keeps the results of that run."
+msgstr "Sie wurde bei Adresse {savedAt} von {savedTotal} angehalten. Beim Fortsetzen bleiben die Ergebnisse dieses Durchlaufs erhalten."
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:289
+msgid "It stopped at row {row} of {total}, but the file now has a different number of rows: start over to import it."
+msgstr "Er wurde bei Zeile {row} von {total} angehalten, aber die Datei hat jetzt eine andere Zeilenzahl: Beginnen Sie neu, um sie zu importieren."
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:290
+msgid "It stopped at row {row} of {total}. Resuming keeps the column mapping and lists of that run."
+msgstr "Er wurde bei Zeile {row} von {total} angehalten. Beim Fortsetzen bleiben die Spaltenzuordnung und die Listen dieses Durchlaufs erhalten."
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:192
 msgid "It uses syntax only the server's regular expressions read, so the Quick test and the tester skip it."
 msgstr "Sie verwendet eine Syntax, die nur die regulären Ausdrücke des Servers lesen, daher überspringen der Schnelltest und der Tester sie."
@@ -13075,8 +13368,8 @@ msgid "Its subscriptions are deleted with it; the contacts stay in the workspace
 msgstr "Ihre Abonnements werden mit ihr gelöscht; die Kontakte bleiben im Arbeitsbereich."
 
 #: src/components/contacts/contactColumns.ts:70
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:104
 #: src/components/contacts/ContactsTable.tsx:333
+#: src/components/contacts/csv-import/contactFields.ts:37
 #: src/components/contacts/sheet/contactFieldLabels.ts:33
 #: src/components/segment/segmentLabels.ts:30
 msgid "Job Title"
@@ -13161,6 +13454,14 @@ msgstr "Weiter bearbeiten"
 msgid "Keep entries for (days)"
 msgstr "Einträge aufbewahren für (Tage)"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:135
+msgid "Keep going"
+msgstr "Weitermachen"
+
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:164
+msgid "Keep importing"
+msgstr "Import fortsetzen"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:968
 msgid "Keep it at or below your provider's limit, minus your transactional traffic."
 msgstr "Halten Sie sie bei oder unter dem Limit Ihres Anbieters, abzüglich Ihres transaktionalen Traffics."
@@ -13181,6 +13482,11 @@ msgstr "Behalten Sie den Bestätigungslink: {CONFIRM_VARIABLE}."
 msgid "Keep the unsubscribe link: {UNSUBSCRIBE_VARIABLE}."
 msgstr "Behalten Sie den Abmeldelink: {UNSUBSCRIBE_VARIABLE}."
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:587
+#: src/components/contacts/csv-import/ImportProgress.tsx:74
+msgid "Keep this tab open"
+msgstr "Lassen Sie diesen Tab geöffnet"
+
 #: src/components/logs/AuditLogTab.tsx:614
 msgid "Kept for the deployment default"
 msgstr "Gemäß Standard der Installation aufbewahrt"
@@ -13192,6 +13498,10 @@ msgstr "Unbegrenzt aufbewahrt"
 #: src/components/templates/TemplateSettingsStep.tsx:172
 msgid "Kept from the template or model it starts from"
 msgstr "Von der Vorlage oder Galerievorlage übernommen, von der sie ausgeht"
+
+#: src/components/contacts/csv-import/FileStep.tsx:57
+msgid "Kept in this browser for 7 days. Drop the same file to pick up where it stopped."
+msgstr "7 Tage in diesem Browser gespeichert. Legen Sie dieselbe Datei ab, um dort fortzufahren, wo der Import angehalten wurde."
 
 #: src/components/segment/input_json_path.tsx:88
 msgid "key or index"
@@ -13237,8 +13547,8 @@ msgstr "Landingpage-URL"
 #: src/components/blog_editor/toolbars/components/CodeBlockToolbar.tsx:221
 #: src/components/contacts/contactColumns.ts:67
 #: src/components/contacts/contactFilterFields.ts:28
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:99
 #: src/components/contacts/ContactsTable.tsx:316
+#: src/components/contacts/csv-import/contactFields.ts:32
 #: src/components/contacts/ExportContactsModal.tsx:84
 #: src/components/contacts/sheet/contactFieldLabels.ts:35
 #: src/components/logs/MessageDetail.tsx:686
@@ -13350,8 +13660,8 @@ msgstr "Letzte Stunde"
 #: src/components/automations/config/TriggerConfigForm.tsx:97
 #: src/components/contacts/contactColumns.ts:63
 #: src/components/contacts/contactFilterFields.ts:25
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:95
 #: src/components/contacts/ContactsTable.tsx:312
+#: src/components/contacts/csv-import/contactFields.ts:28
 #: src/components/contacts/ExportContactsModal.tsx:72
 #: src/components/contacts/sheet/contactFieldLabels.ts:25
 #: src/components/segment/segmentLabels.ts:20
@@ -13552,7 +13862,7 @@ msgid "Limited to the top {EXPANDED_ROWS} values for performance"
 msgstr "Aus Performance-Gründen auf die obersten {EXPANDED_ROWS} Werte begrenzt"
 
 #: src/components/blog/ThemePreview.tsx:79
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:923
+#: src/components/contacts/csv-import/ImportProgress.tsx:108
 msgid "Line"
 msgstr "Zeile"
 
@@ -13575,6 +13885,10 @@ msgstr "Zeilenhöhe"
 #: src/components/email_builder/ui/FontStyleInput.tsx:253
 #~ msgid "Line Height"
 #~ msgstr "Zeilenhöhe"
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:87
+msgid "Line numbers are those of your file, header included. Fix these rows and import the file again: contacts already imported are updated, not duplicated."
+msgstr "Die Zeilennummern sind die Ihrer Datei, Kopfzeile eingeschlossen. Korrigieren Sie diese Zeilen und importieren Sie die Datei erneut: Bereits importierte Kontakte werden aktualisiert, nicht dupliziert."
 
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:347
 #: src/components/email_builder/ui/FontStyleInput.tsx:142
@@ -13692,7 +14006,8 @@ msgstr "Liquid zwischen den Blöcken eines Abschnitts oder einer Spalte landet m
 #: src/components/broadcasts/compose/AudienceCard.tsx:68
 #: src/components/broadcasts/compose/AudienceCard.tsx:70
 #: src/components/broadcasts/detail/BroadcastAside.tsx:142
-#: src/components/contacts/BulkUpdateDrawer.tsx:618
+#: src/components/contacts/BulkUpdateDrawer.tsx:319
+#: src/components/contacts/BulkUpdateDrawer.tsx:322
 #: src/components/contacts/ExportContactsModal.tsx:89
 #: src/components/contacts/sheet/activityLabel.ts:17
 #: src/components/contacts/sheet/describeActivity.tsx:163
@@ -13867,6 +14182,7 @@ msgstr "Liste aktualisiert"
 #: src/components/contacts/contactColumns.ts:60
 #: src/components/contacts/ContactsRail.tsx:75
 #: src/components/contacts/ContactsTable.tsx:221
+#: src/components/contacts/csv-import/ColumnsStep.tsx:221
 #: src/components/contacts/sheet/ContactListsCard.tsx:126
 #: src/components/logs/labels.ts:17
 #: src/components/settings/permissionLabels.ts:8
@@ -14215,13 +14531,21 @@ msgstr "Manuell"
 msgid "Map"
 msgstr "Karte"
 
+#: src/components/contacts/csv-import/ColumnsStep.tsx:239
+msgid "Map a column to Email to import"
+msgstr "Ordnen Sie eine Spalte E-Mail zu, um zu importieren"
+
 #: src/components/web_analytics/tabs/FiltersTab.tsx:150
 msgid "Map traffic to channels, fill custom dimensions and rewrite traffic source fields as sessions come in."
 msgstr "Ordnen Sie Traffic Kanälen zu, füllen Sie benutzerdefinierte Dimensionen und schreiben Sie Traffic-Quellenfelder neu, während Sitzungen eintreffen."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1055
-msgid "Map your CSV columns to contact fields. The"
-msgstr "Ordnen Sie Ihre CSV-Spalten Kontaktfeldern zu. Das"
+#~ msgid "Map your CSV columns to contact fields. The"
+#~ msgstr "Ordnen Sie Ihre CSV-Spalten Kontaktfeldern zu. Das"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:178
+msgid "Mapped"
+msgstr "Zugeordnet"
 
 #: src/components/web_analytics/tabs/AnnotationsTab.tsx:110
 msgid "Mark the dates that explain a chart — a launch, a campaign, an outage — and they appear as labelled verticals on the dashboard and goal charts."
@@ -14373,16 +14697,16 @@ msgstr "Median {0}"
 msgid "Median Scroll Depth"
 msgstr "Mediane Scrolltiefe"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:50
+#: src/components/web_analytics/explore/CsvExportModal.tsx:46
 #: src/components/web_analytics/FilterBuilder.tsx:205
 msgid "Median Scroll Depth (%)"
 msgstr "Mediane Scrolltiefe (%)"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:62
+#: src/components/web_analytics/explore/CsvExportModal.tsx:58
 msgid "Median Scroll Depth (change %)"
 msgstr "Mediane Scrolltiefe (Änderung %)"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:61
+#: src/components/web_analytics/explore/CsvExportModal.tsx:57
 msgid "Median Scroll Depth (previous)"
 msgstr "Mediane Scrolltiefe (vorheriger Zeitraum)"
 
@@ -14952,6 +15276,10 @@ msgstr "Neue Kategorie"
 msgid "New contact"
 msgstr "Neuer Kontakt"
 
+#: src/components/contacts/csv-import/ImportProgress.tsx:58
+msgid "new contacts"
+msgstr "neue Kontakte"
+
 #: src/components/analytics/NewContactsTable.tsx:134
 msgid "New contacts"
 msgstr "Neue Kontakte"
@@ -15300,8 +15628,8 @@ msgid "No country data"
 msgstr "Keine Länderdaten"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:468
-msgid "No CSV data available"
-msgstr "Keine CSV-Daten verfügbar"
+#~ msgid "No CSV data available"
+#~ msgstr "Keine CSV-Daten verfügbar"
 
 #: src/components/settings/CustomFieldsConfiguration.tsx:289
 msgid "No custom field is named yet"
@@ -15355,9 +15683,13 @@ msgstr "Keine Entwurfsbeiträge"
 msgid "no email"
 msgstr "keine E-Mail"
 
+#: src/components/contacts/csv-import/useCsvImportRun.ts:134
+msgid "no email address"
+msgstr "keine E-Mail-Adresse"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:165
-msgid "No email column found. Please ensure your CSV has a column with \"email\" in the name"
-msgstr "Keine E-Mail-Spalte gefunden. Stellen Sie sicher, dass Ihre CSV eine Spalte mit \\\"email\\\" im Namen hat"
+#~ msgid "No email column found. Please ensure your CSV has a column with \"email\" in the name"
+#~ msgstr "Keine E-Mail-Spalte gefunden. Stellen Sie sicher, dass Ihre CSV eine Spalte mit \\\"email\\\" im Namen hat"
 
 #: src/components/templates/SendTemplateModal.tsx:349
 msgid "No email integrations available. Please configure one in Settings."
@@ -15474,6 +15806,7 @@ msgstr "Für diese Variation wurden noch keine Link-Klicks aufgezeichnet"
 #~ msgstr ""
 
 #: src/components/automations/list/AutomationsTable.tsx:193
+#: src/components/contacts/csv-import/ColumnsStep.tsx:222
 msgid "No list"
 msgstr "Keine Liste"
 
@@ -15652,8 +15985,8 @@ msgid "No rule matches this visit"
 msgstr "Keine Regel trifft auf diesen Besuch zu"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1200
-msgid "No sample values available"
-msgstr "Keine Beispielwerte verfügbar"
+#~ msgid "No sample values available"
+#~ msgstr "Keine Beispielwerte verfügbar"
 
 #: src/components/email_builder/panels/LibraryPanel.tsx:289
 msgid "No saved block matches."
@@ -15831,6 +16164,14 @@ msgstr "Kein Auslöser konfiguriert"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:661
 msgid "No UTM"
 msgstr "Ohne UTM"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:416
+msgid "No valid address in this column."
+msgstr "Keine gültige Adresse in dieser Spalte."
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:153
+msgid "No values in the first rows"
+msgstr "Keine Werte in den ersten Zeilen"
 
 #: src/components/contacts/visits/ContactWebVisits.tsx:247
 msgid "No visits recorded for this contact"
@@ -16087,6 +16428,14 @@ msgstr "Nicht festgelegt"
 msgid "Not set up"
 msgstr "Nicht eingerichtet"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:549
+msgid "not subscribed"
+msgstr "nicht abonniert"
+
+#: src/components/contacts/bulk-update/useBulkUpdateRun.ts:89
+msgid "Not subscribed to this list"
+msgstr "Hat diese Liste nicht abonniert"
+
 #: src/components/web_analytics/filters/ConditionResultRow.tsx:43
 msgid "Not tested"
 msgstr "Nicht getestet"
@@ -16140,6 +16489,10 @@ msgstr "In den letzten 24 Stunden wurde nichts aufgezeichnet. Prüfen Sie, ob di
 #: src/components/analytics/RecentFailures.tsx:110
 msgid "Nothing has been sent yet. Bounces, complaints and failures will show here."
 msgstr "Es wurde noch nichts gesendet. Bounces, Beschwerden und Fehler werden hier angezeigt."
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:618
+msgid "Nothing here"
+msgstr "Hier ist nichts"
 
 #: src/components/logs/InboundWebhooksTab.tsx:307
 #: src/components/logs/MessagesTab.tsx:812
@@ -16328,6 +16681,18 @@ msgstr "Erhalten Sie dies über den OAuth2-Playground oder Ihren eigenen OAuth-F
 #~ msgid "of {opensBase} tracked"
 #~ msgstr ""
 
+#: src/components/contacts/csv-import/ImportProgress.tsx:52
+msgid "of {total} rows"
+msgstr "von {total} Zeilen"
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:52
+msgid "of {total} rows · {merged} repeated emails merged"
+msgstr "von {total} Zeilen · {merged} wiederholte E-Mails zusammengeführt"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:541
+msgid "of {total} unique emails"
+msgstr "von {total} eindeutigen E-Mails"
+
 #: src/components/common/TrackedTooltipTitle.tsx:20
 msgid "of {tracked} tracked"
 msgstr "von {tracked} erfasst"
@@ -16437,6 +16802,10 @@ msgstr "Einmal pro Kontakt"
 #: src/components/analytics/DashboardKpis.tsx:358
 msgid "Once your site is tracked"
 msgstr "Sobald Ihre Website getrackt wird"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:390
+msgid "One column holds the email addresses"
+msgstr "Eine Spalte enthält die E-Mail-Adressen"
 
 #: src/services/api/permissions.ts:956
 msgid "One endpoint, but it is the whole assistant: /api/llm.chat streams through the workspace's own provider integration, on the workspace's own billing. When a Firecrawl integration is configured it also lets the assistant run the scrape and search tools from the server, so this grant reaches the open web through your credentials."
@@ -16783,7 +17152,7 @@ msgstr "Einwilligung zum Öffnungs-Tracking"
 msgid "Opens Tracking Consent"
 msgstr "Einwilligung zum Öffnungs-Tracking"
 
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:105
+#: src/components/contacts/csv-import/contactFields.ts:38
 msgid "Opens tracking consent (granted or denied)"
 msgstr "Einwilligung zum Öffnungs-Tracking (granted oder denied)"
 
@@ -16808,8 +17177,8 @@ msgid "Operation complete"
 msgstr "Vorgang abgeschlossen"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:768
-msgid "Operation Complete"
-msgstr "Vorgang abgeschlossen"
+#~ msgid "Operation Complete"
+#~ msgstr "Vorgang abgeschlossen"
 
 #: src/components/web_analytics/filters/TestFilterModal.tsx:168
 #~ msgid "Operation results:"
@@ -16838,6 +17207,7 @@ msgstr "optional"
 
 #: src/components/analytics/GetStartedChecklist.tsx:367
 #: src/components/analytics/GetStartedChecklist.tsx:387
+#: src/components/contacts/csv-import/ColumnsStep.tsx:215
 #: src/components/settings/SystemSettingsDrawer.tsx:387
 #: src/components/settings/SystemSettingsDrawer.tsx:400
 #: src/components/settings/SystemSettingsDrawer.tsx:455
@@ -17187,8 +17557,8 @@ msgstr "Pfadstil-Zugriff"
 #: src/components/broadcasts/BroadcastsTable.tsx:466
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:307
 #: src/components/contacts/BulkActionProgressModal.tsx:50
-#: src/components/contacts/BulkUpdateDrawer.tsx:587
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:815
+#: src/components/contacts/BulkUpdateDrawer.tsx:215
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:221
 msgid "Pause"
 msgstr "Pausieren"
 
@@ -17231,6 +17601,8 @@ msgstr "Pausieren Sie zuerst die Automatisierung"
 #: src/components/broadcasts/detail/BroadcastAside.tsx:223
 #: src/components/broadcasts/detail/BroadcastAside.tsx:278
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:211
+#: src/components/contacts/BulkUpdateDrawer.tsx:184
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:187
 #: src/components/templates/templateUsage.ts:86
 #: src/pages/AutomationsPage.tsx:139
 msgid "Paused"
@@ -17379,8 +17751,8 @@ msgstr "Berechtigungen erfolgreich aktualisiert"
 #: src/components/automations/config/TriggerConfigForm.tsx:98
 #: src/components/contacts/contactColumns.ts:65
 #: src/components/contacts/contactFilterFields.ts:27
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:96
 #: src/components/contacts/ContactsTable.tsx:314
+#: src/components/contacts/csv-import/contactFields.ts:29
 #: src/components/contacts/ExportContactsModal.tsx:78
 #: src/components/contacts/sheet/contactFieldLabels.ts:27
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:339
@@ -17429,6 +17801,10 @@ msgctxt "newsletter status"
 msgid "Pick a winner"
 msgstr "Gewinner auswählen"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:463
+msgid "Pick an action and a file to see what will change."
+msgstr "Wählen Sie eine Aktion und eine Datei, um zu sehen, was sich ändert."
+
 #: src/components/broadcasts/detail/AbTestPanel.tsx:203
 #: src/components/broadcasts/useBroadcastActions.ts:121
 #~ msgid "Pick as winner"
@@ -17443,6 +17819,10 @@ msgstr "Als Gewinner wählen"
 #: src/components/integrations/LLMIntegration.tsx:220
 msgid "Pick one, or type any Anthropic model ID"
 msgstr "Wählen Sie eines aus oder geben Sie eine beliebige Anthropic-Modell-ID ein"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:368
+msgid "Pick the column"
+msgstr "Spalte wählen"
 
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:226
 msgid "Pick the dimensions to break this row down by: each one gets its own table."
@@ -17703,8 +18083,8 @@ msgid "Please select a list"
 msgstr "Bitte wählen Sie eine Liste aus"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:404
-msgid "Please select a list for unsubscribe operation"
-msgstr "Bitte wählen Sie eine Liste für den Abmeldevorgang"
+#~ msgid "Please select a list for unsubscribe operation"
+#~ msgstr "Bitte wählen Sie eine Liste für den Abmeldevorgang"
 
 #: src/components/integrations/LLMIntegration.tsx:197
 #~ msgid "Please select a model"
@@ -17758,8 +18138,8 @@ msgid "Please select an OAuth2 provider"
 msgstr "Bitte wählen Sie einen OAuth2-Anbieter"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:399
-msgid "Please select an operation"
-msgstr "Bitte wählen Sie einen Vorgang"
+#~ msgid "Please select an operation"
+#~ msgstr "Bitte wählen Sie einen Vorgang"
 
 #: src/components/settings/WebhooksSettings.tsx:569
 msgid "Please select at least one event type"
@@ -17775,8 +18155,8 @@ msgid "Please select or enter a model"
 msgstr "Bitte wählen Sie ein Modell aus oder geben Sie eines ein"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:394
-msgid "Please upload a CSV file with email addresses"
-msgstr "Bitte laden Sie eine CSV-Datei mit E-Mail-Adressen hoch"
+#~ msgid "Please upload a CSV file with email addresses"
+#~ msgstr "Bitte laden Sie eine CSV-Datei mit E-Mail-Adressen hoch"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:575
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:579
@@ -17833,7 +18213,7 @@ msgid "Post updated successfully"
 msgstr "Beitrag erfolgreich aktualisiert"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:111
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:102
+#: src/components/contacts/csv-import/contactFields.ts:35
 #: src/components/contacts/sheet/contactFieldLabels.ts:32
 #: src/components/segment/segmentLabels.ts:28
 msgid "Postcode"
@@ -17932,8 +18312,8 @@ msgid "Preview"
 msgstr "Vorschau"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:675
-msgid "Preview (first 10 emails)"
-msgstr "Vorschau (erste 10 E-Mails)"
+#~ msgid "Preview (first 10 emails)"
+#~ msgstr "Vorschau (erste 10 E-Mails)"
 
 #: src/services/api/permissions.ts:304
 msgid "Preview accepts any definition sent to it, not just a saved segment, so anyone holding it together with Contacts read can ask counting questions about contact attributes, list membership, custom events and timeline — one count at a time, on any condition they like. Segments read alone cannot reach it. Segment permissions also quietly decide who may run three kinds of background task on the shared /api/tasks.* endpoints."
@@ -18078,8 +18458,8 @@ msgid "Previous quarter"
 msgstr "Vorheriges Quartal"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:298
-msgid "Previous upload progress restored"
-msgstr "Vorheriger Upload-Fortschritt wiederhergestellt"
+#~ msgid "Previous upload progress restored"
+#~ msgstr "Vorheriger Upload-Fortschritt wiederhergestellt"
 
 #: src/components/web_analytics/usePeriodLabels.ts:17
 msgid "Previous week"
@@ -18114,6 +18494,8 @@ msgstr "Priorität:"
 msgid "Private"
 msgstr "Privat"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:541
+#: src/components/contacts/csv-import/ImportProgress.tsx:50
 #: src/components/contacts/SegmentProgress.tsx:31
 msgid "Processed"
 msgstr "Verarbeitet"
@@ -18126,30 +18508,28 @@ msgstr "Verarbeitet"
 #. placeholder {2}: progress.failed
 #: src/components/contacts/BulkUpdateDrawer.tsx:769
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:900
-msgid "Processed {0} contacts: {1} successful, {2} failed"
-msgstr "{0} Kontakte verarbeitet: {1} erfolgreich, {2} fehlgeschlagen"
+#~ msgid "Processed {0} contacts: {1} successful, {2} failed"
+#~ msgstr "{0} Kontakte verarbeitet: {1} erfolgreich, {2} fehlgeschlagen"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:388
-msgid "Processed {successful} contacts successfully, {failed} failed"
-msgstr "{successful} Kontakte erfolgreich verarbeitet, {failed} fehlgeschlagen"
+#~ msgid "Processed {successful} contacts successfully, {failed} failed"
+#~ msgstr "{successful} Kontakte erfolgreich verarbeitet, {failed} fehlgeschlagen"
 
 #. placeholder {0}: int(currentRow)
 #. placeholder {1}: int(totalRows)
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:880
-msgid "Processing batch {currentBatch} of {totalBatches} ({0} of {1} rows)"
-msgstr "Verarbeite Batch {currentBatch} von {totalBatches} ({0} von {1} Zeilen)"
+#~ msgid "Processing batch {currentBatch} of {totalBatches} ({0} of {1} rows)"
+#~ msgstr "Verarbeite Batch {currentBatch} von {totalBatches} ({0} von {1} Zeilen)"
 
 #: src/components/contacts/SegmentProgress.tsx:26
 msgid "Processing contacts"
 msgstr "Kontakte werden verarbeitet"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:75
-#: src/components/contacts/BulkUpdateDrawer.tsx:701
 msgid "Processing contacts..."
 msgstr "Kontakte werden verarbeitet..."
 
 #: src/components/contacts/BulkActionProgressModal.tsx:114
-#: src/components/contacts/BulkUpdateDrawer.tsx:717
 msgid "Processing paused"
 msgstr "Verarbeitung pausiert"
 
@@ -18938,6 +19318,7 @@ msgstr "Laden Sie die Seite neu, um Ihre gespeicherten Blöcke zu aktualisieren.
 #: src/components/automations/config/ConditionsField.tsx:128
 #: src/components/blog_editor/toolbars/components/LinkPopover.tsx:119
 #: src/components/blog/AuthorsField.tsx:155
+#: src/components/contacts/BulkUpdateDrawer.tsx:339
 #: src/components/contacts/sheet/ContactListsCard.tsx:113
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:91
 #: src/components/settings/CustomFieldsConfiguration.tsx:171
@@ -19106,6 +19487,10 @@ msgstr "Hat die Integration <0>{target}</0> entfernt"
 #: src/components/logs/auditPhrases.ts:94
 msgid "Removed the member <0>{target}</0>"
 msgstr "Hat das Mitglied <0>{target}</0> entfernt"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:312
+msgid "Removes the contacts and their history. Cannot be undone."
+msgstr "Entfernt die Kontakte und ihren Verlauf. Kann nicht rückgängig gemacht werden."
 
 #: src/components/email_builder/ui/SavedBlockCard.tsx:103
 #: src/components/settings/CustomFieldsConfiguration.tsx:211
@@ -19276,6 +19661,7 @@ msgstr "Die Reputationsisolierung ist aktiviert. Diese Absender haben keine veri
 msgid "Request ID"
 msgstr "Request-ID"
 
+#: src/components/contacts/csv-import/ColumnsStep.tsx:87
 #: src/components/settings/SystemSettingsDrawer.tsx:289
 #: src/components/settings/SystemSettingsDrawer.tsx:328
 #: src/components/settings/SystemSettingsDrawer.tsx:342
@@ -19284,8 +19670,8 @@ msgid "Required"
 msgstr "Erforderlich"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1123
-msgid "Required Fields"
-msgstr "Pflichtfelder"
+#~ msgid "Required Fields"
+#~ msgstr "Pflichtfelder"
 
 #: src/components/transactional/NotificationChecks.tsx:87
 #: src/components/transactional/NotificationChecks.tsx:125
@@ -19415,6 +19801,7 @@ msgstr "Erneut abonniert"
 msgid "Resubscribed to {list}"
 msgstr "Erneut bei {list} angemeldet"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:627
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:402
 msgid "Result"
 msgstr "Ergebnis"
@@ -19432,8 +19819,8 @@ msgstr "Ergebnis mit den Testdaten"
 #~ msgstr "Ergebnis:"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:731
-msgid "Results"
-msgstr "Ergebnisse"
+#~ msgid "Results"
+#~ msgstr "Ergebnisse"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:128
 msgid "Results:"
@@ -19442,10 +19829,9 @@ msgstr "Ergebnisse:"
 #: src/components/broadcasts/BroadcastsTable.tsx:200
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:314
 #: src/components/contacts/BulkActionProgressModal.tsx:55
-#: src/components/contacts/BulkUpdateDrawer.tsx:415
-#: src/components/contacts/BulkUpdateDrawer.tsx:597
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:380
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:820
+#: src/components/contacts/BulkUpdateDrawer.tsx:232
+#: src/components/contacts/BulkUpdateDrawer.tsx:240
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:233
 msgid "Resume"
 msgstr "Fortsetzen"
 
@@ -19461,17 +19847,26 @@ msgstr "Eine pausierte Kampagne fortsetzen und den Versand weiterführen"
 msgid "Resume broadcast?"
 msgstr "Kampagne fortsetzen?"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:510
+msgid "Resume from address {savedAt}"
+msgstr "Ab Adresse {savedAt} fortsetzen"
+
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:254
+#: src/components/contacts/csv-import/ColumnsStep.tsx:299
+msgid "Resume from row {row}"
+msgstr "Ab Zeile {row} fortsetzen"
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:413
-msgid "Resume Previous Operation"
-msgstr "Vorherigen Vorgang fortsetzen"
+#~ msgid "Resume Previous Operation"
+#~ msgstr "Vorherigen Vorgang fortsetzen"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:378
-msgid "Resume Previous Upload"
-msgstr "Vorherigen Upload fortsetzen"
+#~ msgid "Resume Previous Upload"
+#~ msgstr "Vorherigen Upload fortsetzen"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:810
-msgid "Resume Upload"
-msgstr "Upload fortsetzen"
+#~ msgid "Resume Upload"
+#~ msgstr "Upload fortsetzen"
 
 #: src/components/logs/auditPhrases.ts:37
 msgid "Resumed the newsletter <0>{target}</0>"
@@ -19521,6 +19916,7 @@ msgstr "Erneut versuchen"
 
 #: src/components/broadcasts/BroadcastsTable.tsx:209
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:327
+#: src/components/contacts/BulkUpdateDrawer.tsx:242
 msgid "Retry failed"
 msgstr "Fehlgeschlagene wiederholen"
 
@@ -19596,9 +19992,17 @@ msgstr "Root-E-Mail"
 msgid "Round"
 msgstr "Runden"
 
+#: src/components/contacts/csv-import/FileStep.tsx:77
+msgid "row {row} of {total}"
+msgstr "Zeile {row} von {total}"
+
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:982
-msgid "rows"
-msgstr "Zeilen"
+#~ msgid "rows"
+#~ msgstr "Zeilen"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:451
+msgid "Rows in the file"
+msgstr "Zeilen in der Datei"
 
 #: src/components/settings/BlogSettings.tsx:413
 #~ msgid "RSS / Feeds"
@@ -19708,6 +20112,7 @@ msgid "Run when the rule matches"
 msgstr "Werden ausgeführt, wenn die Regel zutrifft"
 
 #: src/components/broadcasts/detail/BroadcastAside.tsx:219
+#: src/components/contacts/BulkUpdateDrawer.tsx:183
 msgid "Running"
 msgstr "Läuft"
 
@@ -19784,7 +20189,7 @@ msgstr "Stichprobe {sample} % · Gewinner manuell gewählt"
 #~ msgid "Sample Percentage"
 #~ msgstr "Stichprobenprozentsatz"
 
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:1179
+#: src/components/contacts/csv-import/ColumnsStep.tsx:138
 msgid "Sample values"
 msgstr "Beispielwerte"
 
@@ -20308,6 +20713,10 @@ msgstr "Die Schemata `message_history` und `email_queue` im abfragbaren Katalog 
 msgid "See the `webhook_deliveries` schema listed in the queryable catalogue"
 msgstr "Das Schema `webhook_deliveries` im abfragbaren Katalog aufgeführt sehen"
 
+#: src/components/contacts/csv-import/ImportProgress.tsx:64
+msgid "see the errors below"
+msgstr "siehe Fehler unten"
+
 #: src/components/segment/SegmentCountCard.tsx:94
 msgid "See the query"
 msgstr "Abfrage anzeigen"
@@ -20436,6 +20845,7 @@ msgstr "Wählen Sie eine Datei"
 #: src/components/automations/nodes/ListStatusBranchNode.tsx:34
 #: src/components/broadcasts/compose/AudienceCard.tsx:71
 #: src/components/contacts/BulkActionsBar.tsx:197
+#: src/components/contacts/BulkUpdateDrawer.tsx:323
 #: src/components/contacts/sheet/ContactListsCard.tsx:207
 #: src/components/segment/form_leaf.tsx:422
 msgid "Select a list"
@@ -20589,8 +20999,8 @@ msgid "Select field"
 msgstr "Feld auswählen"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1100
-msgid "Select field to map to"
-msgstr "Feld für Zuordnung auswählen"
+#~ msgid "Select field to map to"
+#~ msgstr "Feld für Zuordnung auswählen"
 
 #: src/components/file_manager/FileExplorer.tsx:1183
 msgid "Select file"
@@ -20622,7 +21032,6 @@ msgid "Select language..."
 msgstr "Sprache auswählen..."
 
 #: src/components/automations/EditorSettings.tsx:42
-#: src/components/contacts/BulkUpdateDrawer.tsx:620
 msgid "Select list"
 msgstr "Liste auswählen"
 
@@ -20635,8 +21044,8 @@ msgid "Select lists (optional)"
 msgstr "Listen auswählen (optional)"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1012
-msgid "Select lists to add contacts to"
-msgstr "Listen auswählen, zu denen Kontakte hinzugefügt werden sollen"
+#~ msgid "Select lists to add contacts to"
+#~ msgstr "Listen auswählen, zu denen Kontakte hinzugefügt werden sollen"
 
 #: src/components/settings/Integrations.tsx:1465
 #~ msgid "Select OAuth2 Provider"
@@ -21251,7 +21660,7 @@ msgstr "Sitzung"
 #: src/components/web_analytics/DimensionTableWidget.tsx:94
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:63
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:127
-#: src/components/web_analytics/explore/CsvExportModal.tsx:45
+#: src/components/web_analytics/explore/CsvExportModal.tsx:41
 #: src/components/web_analytics/explore/ExploreSummary.tsx:51
 #: src/components/web_analytics/explore/ExploreTable.tsx:90
 #: src/components/web_analytics/tabs/DashboardTab.tsx:30
@@ -21261,15 +21670,15 @@ msgstr "Sitzung"
 msgid "Sessions"
 msgstr "Sitzungen"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:46
+#: src/components/web_analytics/explore/CsvExportModal.tsx:42
 msgid "Sessions (%)"
 msgstr "Sitzungen (%)"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:56
+#: src/components/web_analytics/explore/CsvExportModal.tsx:52
 msgid "Sessions (change %)"
 msgstr "Sitzungen (Änderung %)"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:55
+#: src/components/web_analytics/explore/CsvExportModal.tsx:51
 msgid "Sessions (previous)"
 msgstr "Sitzungen (vorheriger Zeitraum)"
 
@@ -21832,7 +22241,9 @@ msgstr "übersprungen"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:102
 #: src/components/contacts/BulkActionProgressModal.tsx:140
-#: src/components/contacts/BulkUpdateDrawer.tsx:744
+#: src/components/contacts/BulkUpdateDrawer.tsx:173
+#: src/components/contacts/BulkUpdateDrawer.tsx:549
+#: src/components/contacts/BulkUpdateDrawer.tsx:601
 msgid "Skipped"
 msgstr "Übersprungen"
 
@@ -22148,8 +22559,8 @@ msgid "Standard value is 480px for most email clients"
 msgstr "Standardwert ist 480px für die meisten E-Mail-Clients"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:582
-msgid "Start"
-msgstr "Start"
+#~ msgid "Start"
+#~ msgstr "Start"
 
 #: src/services/api/permissions.ts:615
 msgid "Start a broadcast send task immediately"
@@ -22172,8 +22583,8 @@ msgid "Start date cannot be in the future"
 msgstr "Das Startdatum darf nicht in der Zukunft liegen"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:869
-msgid "Start Fresh"
-msgstr "Neu beginnen"
+#~ msgid "Start Fresh"
+#~ msgstr "Neu beginnen"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:353
 msgid "Start from a link"
@@ -22194,8 +22605,13 @@ msgstr "Mit dieser Vorlage beginnen"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:416
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:381
-msgid "Start New"
-msgstr "Neu starten"
+#~ msgid "Start New"
+#~ msgstr "Neu starten"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:506
+#: src/components/contacts/csv-import/ColumnsStep.tsx:295
+msgid "Start over"
+msgstr "Neu beginnen"
 
 #: src/components/blog_editor/components/youtube/YoutubeNodeView.tsx:486
 msgid "Start Time"
@@ -22206,8 +22622,8 @@ msgid "Start typing..."
 msgstr "Beginnen Sie zu tippen..."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:810
-msgid "Start Upload"
-msgstr "Upload starten"
+#~ msgid "Start Upload"
+#~ msgstr "Upload starten"
 
 #: src/components/blog/PostDrawer.tsx:1094
 msgid "Start writing your blog post..."
@@ -22265,7 +22681,7 @@ msgid "STARTTLS required"
 msgstr "STARTTLS erforderlich"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:110
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:103
+#: src/components/contacts/csv-import/contactFields.ts:36
 #: src/components/contacts/sheet/contactFieldLabels.ts:31
 #: src/components/segment/segmentLabels.ts:29
 msgid "State"
@@ -22284,6 +22700,7 @@ msgstr "Statistiken erscheinen, sobald der Versand der Kampagne beginnt"
 #: src/components/blog/RecentThemesTable.tsx:116
 #: src/components/broadcasts/BroadcastsTable.tsx:230
 #: src/components/broadcasts/detail/BroadcastAside.tsx:238
+#: src/components/contacts/csv-import/ColumnsStep.tsx:174
 #: src/components/logs/MessagesTab.tsx:679
 #: src/components/logs/OutgoingWebhooksTab.tsx:141
 #: src/components/logs/OutgoingWebhooksTab.tsx:189
@@ -22325,6 +22742,37 @@ msgstr "Schritte"
 #: src/components/analytics/GetStartedChecklist.tsx:425
 msgid "Steps tick themselves as you go."
 msgstr "Die Schritte werden automatisch abgehakt, sobald Sie sie erledigen."
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:208
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:224
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:236
+msgid "Stop"
+msgstr "Anhalten"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:133
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:162
+msgid "Stop and close"
+msgstr "Anhalten und schließen"
+
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:160
+msgid "Stop the import?"
+msgstr "Import anhalten?"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:131
+msgid "Stop the update?"
+msgstr "Aktualisierung anhalten?"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:186
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:189
+msgid "Stopped"
+msgstr "Angehalten"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:185
+#: src/components/contacts/BulkUpdateDrawer.tsx:224
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:188
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:244
+msgid "Stopping…"
+msgstr "Wird angehalten…"
 
 #: src/components/automations/EditorSettings.tsx:72
 msgid "Stops this automation for a contact as soon as they reply to one of its emails. This requires inbound reply forwarding to be configured at your email provider (ESP): replies to your sending domain must be routed to the provider, which forwards them to Notifuse. Without that setup, replies aren't detected and the sequence won't stop."
@@ -22562,7 +23010,6 @@ msgid "Subscription to {name} updated"
 msgstr "Abonnement von {name} aktualisiert"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:143
-#: src/components/contacts/BulkUpdateDrawer.tsx:747
 #: src/components/logs/labels.ts:27
 msgid "Success"
 msgstr "Erfolg"
@@ -22580,13 +23027,12 @@ msgstr "Erfolgsquote"
 #~ msgstr "Erfolgsrate"
 
 #: src/components/contacts/BulkActionProgressModal.tsx:98
-#: src/components/contacts/BulkUpdateDrawer.tsx:711
 msgid "Successful"
 msgstr "Erfolgreich"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:384
-msgid "Successfully processed {successful} contacts"
-msgstr "{successful} Kontakte erfolgreich verarbeitet"
+#~ msgid "Successfully processed {successful} contacts"
+#~ msgstr "{successful} Kontakte erfolgreich verarbeitet"
 
 #: src/pages/SignInPage.tsx:67
 #: src/pages/SignInPage.tsx:151
@@ -22606,6 +23052,7 @@ msgstr "Diesen Zeitraum zusammenfassen"
 #~ msgstr ""
 
 #: src/components/broadcasts/compose/SendSummary.tsx:27
+#: src/components/contacts/BulkUpdateDrawer.tsx:427
 #: src/components/segment/SegmentSummaryPanel.tsx:66
 msgid "Summary"
 msgstr "Zusammenfassung"
@@ -23370,7 +23817,11 @@ msgstr "Ihre Änderungen werden durch die gewählte Vorlage ersetzt."
 msgid "The city name"
 msgstr "Der Name der Stadt"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:162
+#: src/components/contacts/BulkUpdateDrawer.tsx:362
+msgid "The column whose name contains \"mail\" is picked for you. Each address is processed once, in lowercase."
+msgstr "Die Spalte, deren Name „mail“ enthält, wird automatisch gewählt. Jede Adresse wird einmal verarbeitet, in Kleinbuchstaben."
+
+#: src/components/web_analytics/explore/CsvExportModal.tsx:158
 msgid "The comparison period as extra columns"
 msgstr "Der Vergleichszeitraum als zusätzliche Spalten"
 
@@ -23430,6 +23881,14 @@ msgstr "Das Bundesland oder die Region des Kontakts"
 msgid "The contact's time zone"
 msgstr "Die Zeitzone des Kontakts"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:132
+msgid "The contacts processed so far stay updated. Drop the same file again to resume where it stopped."
+msgstr "Die bisher verarbeiteten Kontakte bleiben aktualisiert. Legen Sie dieselbe Datei erneut ab, um dort fortzufahren, wo angehalten wurde."
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:305
+msgid "The contacts stay in the workspace and can subscribe again."
+msgstr "Die Kontakte bleiben im Workspace und können sich erneut anmelden."
+
 #: src/components/segment/SegmentCountCard.tsx:122
 msgid "The count failed."
 msgstr "Die Zählung ist fehlgeschlagen."
@@ -23442,19 +23901,23 @@ msgstr "Die Zählung folgt Ihrer Eingabe."
 msgid "The country, from the IP address, which is never stored"
 msgstr "Das Land, aus der IP-Adresse, die nie gespeichert wird"
 
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:400
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:87
 msgid "The CSV file appears to be empty or invalid."
 msgstr "Die CSV-Datei scheint leer oder ungültig zu sein."
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:98
+msgid "The CSV file needs a header row and at least one data row."
+msgstr "Die CSV-Datei braucht eine Kopfzeile und mindestens eine Datenzeile."
+
 #: src/components/contacts/BulkUpdateDrawer.tsx:664
-msgid "The CSV file should have a column containing email addresses"
-msgstr "Die CSV-Datei sollte eine Spalte mit E-Mail-Adressen haben"
+#~ msgid "The CSV file should have a column containing email addresses"
+#~ msgstr "Die CSV-Datei sollte eine Spalte mit E-Mail-Adressen haben"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:851
-msgid "The CSV file should have headers in the first row."
-msgstr "Die CSV-Datei sollte Überschriften in der ersten Zeile haben."
+#~ msgid "The CSV file should have headers in the first row."
+#~ msgstr "Die CSV-Datei sollte Überschriften in der ersten Zeile haben."
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:161
+#: src/components/web_analytics/explore/CsvExportModal.tsx:157
 msgid "The current date range, filters and session threshold"
 msgstr "Der aktuelle Zeitraum, die Filter und der Sitzungs-Schwellenwert"
 
@@ -23514,7 +23977,7 @@ msgstr "Die E-Mail, die dieser Schritt sendet"
 msgid "The export failed"
 msgstr "Der Export ist fehlgeschlagen"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:119
+#: src/components/web_analytics/explore/CsvExportModal.tsx:115
 msgid "The export failed. Please try again."
 msgstr "Der Export ist fehlgeschlagen. Bitte versuchen Sie es erneut."
 
@@ -23525,6 +23988,14 @@ msgstr "Das Beitragsbild"
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:295
 msgid "The fields this rule reads, for one visit. Nothing is saved or sent."
 msgstr "Die Felder, die diese Regel liest, für einen Besuch. Nichts wird gespeichert oder gesendet."
+
+#: src/components/contacts/csv-import/FileStep.tsx:45
+msgid "The first row holds the column names · one column holds email addresses"
+msgstr "Die erste Zeile enthält die Spaltennamen · eine Spalte enthält E-Mail-Adressen"
+
+#: src/components/contacts/csv-import/FileStep.tsx:26
+msgid "The first row holds the column names and one column holds email addresses. Consent columns take granted or denied, JSON fields take valid JSON."
+msgstr "Die erste Zeile enthält die Spaltennamen, und eine Spalte enthält E-Mail-Adressen. Einwilligungsspalten nehmen granted oder denied auf, JSON-Felder gültiges JSON."
 
 #: src/components/file_manager/FileExplorer.tsx:351
 msgid "The folder held nothing to delete."
@@ -23577,6 +24048,10 @@ msgstr "Die ID {id} konnte nicht geprüft werden; beim Speichern zeigt sich, ob 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:54
 msgid "the Image block"
 msgstr "den Bild-Block"
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:75
+msgid "The import runs in your browser: closing the drawer or the tab stops it, and you can resume it later from the same file."
+msgstr "Der Import läuft in Ihrem Browser: Wenn Sie das Fenster oder den Tab schließen, wird er angehalten, und Sie können ihn später mit derselben Datei fortsetzen."
 
 #: src/services/api/permissions.ts:926
 msgid "The inbound events email providers send back — bounces, complaints, deliveries and replies — as the raw rows the provider posted."
@@ -23751,6 +24226,14 @@ msgstr "Der angeforderte Arbeitsbereich konnte nicht gefunden werden."
 msgid "The response was cut off because it reached the token limit. Lower the reasoning effort, simplify the request, or raise the token limit, then try again."
 msgstr "Die Antwort wurde abgeschnitten, weil das Token-Limit erreicht wurde. Verringern Sie den Reasoning-Aufwand, vereinfachen Sie die Anfrage oder erhöhen Sie das Token-Limit und versuchen Sie es dann erneut."
 
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:161
+msgid "The rows sent so far stay imported. Drop the same file again to resume where it stopped."
+msgstr "Die bisher gesendeten Zeilen bleiben importiert. Legen Sie dieselbe Datei erneut ab, um dort fortzufahren, wo angehalten wurde."
+
+#: src/components/contacts/ContactsCsvUploadDrawer.tsx:131
+msgid "The saved column mapping does not fit this file: map the columns, then import."
+msgstr "Die gespeicherte Spaltenzuordnung passt nicht zu dieser Datei: Ordnen Sie die Spalten zu und importieren Sie dann."
+
 #: src/components/blog/ThemeEditorDrawer.tsx:435
 msgid "The saved version, on your blog"
 msgstr "Die gespeicherte Version, auf Ihrem Blog"
@@ -23857,13 +24340,21 @@ msgstr "Der von Ihnen geschriebene Text wird entfernt."
 msgid "The text you wrote will be replaced."
 msgstr "Der von Ihnen geschriebene Text wird ersetzt."
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:160
+#: src/components/web_analytics/explore/CsvExportModal.tsx:156
 msgid "The top {MAX_ROWS} rows by session count"
 msgstr "Die obersten {MAX_ROWS} Zeilen nach Anzahl der Sitzungen"
 
 #: src/components/templates/gallery/labels.ts:36
 msgid "The transactional API"
 msgstr "Die Transaktions-API"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:429
+msgid "The update runs in this browser tab, one contact at a time. Keep the tab open until it ends; a stopped update can be resumed from the same file."
+msgstr "Die Aktualisierung läuft in diesem Tab, ein Kontakt nach dem anderen. Lassen Sie den Tab bis zum Ende geöffnet; eine angehaltene Aktualisierung kann mit derselben Datei fortgesetzt werden."
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:588
+msgid "The update runs in your browser: closing the drawer or the tab stops it, and you can resume it later from the same file."
+msgstr "Die Aktualisierung läuft in Ihrem Browser: Wenn Sie das Fenster oder den Tab schließen, wird sie angehalten, und Sie können sie später mit derselben Datei fortsetzen."
 
 #: src/components/broadcasts/GlobalFeedSettings.tsx:92
 msgid "The URL must be publicly accessible. A POST request will be sent with broadcast and list information."
@@ -24035,13 +24526,13 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden. Zur Bestätigung ge
 
 #. placeholder {0}: csvData.emails.length
 #: src/components/contacts/BulkUpdateDrawer.tsx:639
-msgid "This action will permanently delete {0} contact(s)"
-msgstr "Diese Aktion löscht dauerhaft {0} Kontakt(e)"
+#~ msgid "This action will permanently delete {0} contact(s)"
+#~ msgstr "Diese Aktion löscht dauerhaft {0} Kontakt(e)"
 
 #. placeholder {0}: csvData.emails.length
 #: src/components/contacts/BulkUpdateDrawer.tsx:640
-msgid "This action will unsubscribe {0} contact(s)"
-msgstr "Diese Aktion meldet {0} Kontakt(e) ab"
+#~ msgid "This action will unsubscribe {0} contact(s)"
+#~ msgstr "Diese Aktion meldet {0} Kontakt(e) ab"
 
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:382
 msgid "This address has a % not followed by two hexadecimal digits. The server cannot read it and stores an empty landing domain and path, as filled here."
@@ -24170,6 +24661,14 @@ msgstr "Diese Datei enthält die Anzeigebedingungen eines Exports. Sie werden ni
 #: src/components/file_manager/FileTable.tsx:188
 msgid "This file type can't be used here"
 msgstr "Dieser Dateityp kann hier nicht verwendet werden"
+
+#: src/components/contacts/csv-import/ColumnsStep.tsx:286
+msgid "This file was partly imported on {date}"
+msgstr "Diese Datei wurde am {date} teilweise importiert"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:497
+msgid "This file was partly processed on {savedOn}"
+msgstr "Diese Datei wurde am {savedOn} teilweise verarbeitet"
 
 #: src/components/integrations/SupabaseIntegration.tsx:245
 #~ msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
@@ -24319,6 +24818,10 @@ msgstr "Dieses Quartal"
 #: src/components/web_analytics/filters/ConditionResultRow.tsx:41
 msgid "This regular expression uses syntax the browser cannot run. The server checks it on save."
 msgstr "Dieser reguläre Ausdruck verwendet eine Syntax, die der Browser nicht ausführen kann. Der Server prüft ihn beim Speichern."
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:157
+msgid "This removes the contacts and their history from the workspace. It cannot be undone."
+msgstr "Damit werden die Kontakte und ihr Verlauf aus dem Workspace entfernt. Das kann nicht rückgängig gemacht werden."
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:122
 msgid "This rule"
@@ -24550,7 +25053,7 @@ msgstr "Vielfaches der Schriftgröße"
 #: src/components/web_analytics/DimensionTableWidget.tsx:95
 #: src/components/web_analytics/explore/BreakdownDrawer.tsx:69
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:144
-#: src/components/web_analytics/explore/CsvExportModal.tsx:47
+#: src/components/web_analytics/explore/CsvExportModal.tsx:43
 #: src/components/web_analytics/explore/ExploreTable.tsx:123
 #: src/components/web_analytics/FilterBuilder.tsx:100
 #: src/components/web_analytics/tabs/DashboardTab.tsx:114
@@ -24558,15 +25061,15 @@ msgstr "Vielfaches der Schriftgröße"
 msgid "TimeScore"
 msgstr "TimeScore"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:58
+#: src/components/web_analytics/explore/CsvExportModal.tsx:54
 msgid "TimeScore (change %)"
 msgstr "TimeScore (Änderung %)"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:57
+#: src/components/web_analytics/explore/CsvExportModal.tsx:53
 msgid "TimeScore (previous)"
 msgstr "TimeScore (vorheriger Zeitraum)"
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:48
+#: src/components/web_analytics/explore/CsvExportModal.tsx:44
 #: src/components/web_analytics/FilterBuilder.tsx:203
 msgid "TimeScore (seconds)"
 msgstr "TimeScore (Sekunden)"
@@ -24585,8 +25088,8 @@ msgstr "TimeScore ist die mediane aktive Verweildauer über alle Sitzungen hinwe
 #: src/components/broadcasts/compose/SendingCard.tsx:116
 #: src/components/broadcasts/compose/SendingCard.tsx:118
 #: src/components/contacts/contactColumns.ts:68
-#: src/components/contacts/ContactsCsvUploadDrawer.tsx:98
 #: src/components/contacts/ContactsTable.tsx:317
+#: src/components/contacts/csv-import/contactFields.ts:31
 #: src/components/contacts/sheet/contactFieldLabels.ts:34
 #: src/components/segment/segmentLabels.ts:25
 #: src/components/settings/GeneralSettings.tsx:254
@@ -25230,6 +25733,11 @@ msgstr "Rückgängig ({undoKeys})"
 #~ msgid "Undo (Ctrl+Z)"
 #~ msgstr "Rückgängig (Strg+Z)"
 
+#: src/components/contacts/csv-import/FileStep.tsx:55
+#: src/components/contacts/csv-import/FileStep.tsx:63
+msgid "Unfinished imports"
+msgstr "Unvollständige Importe"
+
 #: src/components/broadcasts/detail/LinkStatsPanel.tsx:141
 msgid "Unique"
 msgstr "Eindeutig"
@@ -25275,6 +25783,9 @@ msgstr "Unbekanntes Datum"
 msgid "Unknown device"
 msgstr "Unbekanntes Gerät"
 
+#: src/components/contacts/bulk-update/useBulkUpdateRun.ts:92
+#: src/components/contacts/csv-import/useCsvImportRun.ts:169
+#: src/components/contacts/csv-import/useCsvImportRun.ts:175
 #: src/layouts/WorkspaceLayout.tsx:124
 msgid "Unknown error"
 msgstr "Unbekannter Fehler"
@@ -25382,16 +25893,24 @@ msgid "Unsubscribe"
 msgstr "Abbestellen"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:581
-msgid "UNSUBSCRIBE"
-msgstr "ABMELDEN"
+#~ msgid "UNSUBSCRIBE"
+#~ msgstr "ABMELDEN"
 
 #: src/components/templates/gallery/labels.ts:23
 msgid "Unsubscribe confirmation"
 msgstr "Abmeldebestätigung"
 
+#. placeholder {0}: listName ?? ''
+#: src/components/contacts/BulkUpdateDrawer.tsx:570
+msgid "Unsubscribe from {0}"
+msgstr "Von {0} abmelden"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:304
+msgid "Unsubscribe from a list"
+msgstr "Von einer Liste abmelden"
+
 #: src/components/contacts/BulkActionsBar.tsx:88
 #: src/components/contacts/BulkActionsBar.tsx:156
-#: src/components/contacts/BulkUpdateDrawer.tsx:611
 #: src/pages/ContactsPage.tsx:301
 msgid "Unsubscribe from list"
 msgstr "Von Liste abmelden"
@@ -25401,6 +25920,8 @@ msgstr "Von Liste abmelden"
 #: src/components/automations/stats/NodeStatsFooter.tsx:85
 #: src/components/broadcasts/detail/BroadcastAside.tsx:161
 #: src/components/broadcasts/detail/BroadcastFunnel.tsx:124
+#: src/components/contacts/BulkUpdateDrawer.tsx:171
+#: src/components/contacts/BulkUpdateDrawer.tsx:544
 #: src/components/contacts/contactDisplay.ts:37
 #: src/components/contacts/sheet/MessageJourneySteps.tsx:47
 #: src/components/lists/ListHeader.tsx:40
@@ -25504,6 +26025,11 @@ msgstr "Status aktualisieren"
 msgid "Updated"
 msgstr "Aktualisiert"
 
+#: src/components/contacts/csv-import/ImportProgress.tsx:59
+msgctxt "import result"
+msgid "Updated"
+msgstr "Aktualisiert"
+
 #. placeholder {0}: formatFullDateTime(notification.updated_at, timezone, i18n.locale)
 #: src/components/transactional/TransactionalDetail.tsx:320
 msgid "Updated {0}"
@@ -25525,6 +26051,10 @@ msgstr "Wird beim Tippen aktualisiert"
 #: src/components/segment/segmentLabels.ts:32
 msgid "Updated At"
 msgstr "Aktualisiert am"
+
+#: src/components/contacts/csv-import/ImportProgress.tsx:93
+msgid "Updated live"
+msgstr "Live aktualisiert"
 
 #: src/components/logs/auditPhrases.ts:14
 msgid "Updated the annotation <0>{target}</0>"
@@ -25613,12 +26143,12 @@ msgid "Upload"
 msgstr "Hochladen"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:899
-msgid "Upload Complete"
-msgstr "Upload abgeschlossen"
+#~ msgid "Upload Complete"
+#~ msgstr "Upload abgeschlossen"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:889
-msgid "Upload Error"
-msgstr "Upload-Fehler"
+#~ msgid "Upload Error"
+#~ msgstr "Upload-Fehler"
 
 #: src/components/file_manager/FileExplorer.tsx:457
 msgid "Upload failed: "
@@ -25626,12 +26156,12 @@ msgstr "Hochladen fehlgeschlagen: "
 
 #. placeholder {0}: error instanceof Error ? error.message : 'Unknown error'
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:737
-msgid "Upload failed: {0}"
-msgstr "Upload fehlgeschlagen: {0}"
+#~ msgid "Upload failed: {0}"
+#~ msgstr "Upload fehlgeschlagen: {0}"
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:738
-msgid "Upload failed. Please try again."
-msgstr "Upload fehlgeschlagen. Bitte versuchen Sie es erneut."
+#~ msgid "Upload failed. Please try again."
+#~ msgstr "Upload fehlgeschlagen. Bitte versuchen Sie es erneut."
 
 #: src/components/file_manager/FileExplorer.tsx:778
 #: src/components/file_manager/FileExplorer.tsx:1065
@@ -26633,7 +27163,7 @@ msgstr "Was ein Feedreader von jedem Beitrag zeigt"
 #~ msgid "What a licence includes"
 #~ msgstr ""
 
-#: src/components/web_analytics/explore/CsvExportModal.tsx:151
+#: src/components/web_analytics/explore/CsvExportModal.tsx:147
 msgid "What gets exported"
 msgstr "Was exportiert wird"
 
@@ -26805,6 +27335,10 @@ msgstr "Warum hat sich der Traffic verändert?"
 msgid "Width"
 msgstr "Breite"
 
+#: src/components/contacts/BulkUpdateDrawer.tsx:444
+msgid "will be deleted, with their history"
+msgstr "werden mit ihrem Verlauf gelöscht"
+
 #: src/components/file_manager/FileExplorer.tsx:1170
 msgid "will be inserted into {targetLabel}"
 msgstr "wird in {targetLabel} eingefügt"
@@ -26813,10 +27347,19 @@ msgstr "wird in {targetLabel} eingefügt"
 #~ msgid "Will be removed"
 #~ msgstr "Wird entfernt"
 
+#. placeholder {0}: list.name
+#: src/components/contacts/BulkUpdateDrawer.tsx:446
+msgid "will be unsubscribed from {0}"
+msgstr "werden von {0} abgemeldet"
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:447
+msgid "will be unsubscribed from the list you pick"
+msgstr "werden von der gewählten Liste abgemeldet"
+
 #. placeholder {0}: int(currentRow)
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:985
-msgid "Will resume from row {0}"
-msgstr "Wird ab Zeile {0} fortgesetzt"
+#~ msgid "Will resume from row {0}"
+#~ msgstr "Wird ab Zeile {0} fortgesetzt"
 
 #: src/components/broadcasts/detail/AbTestPanel.tsx:138
 #~ msgid "Winner"
@@ -26928,6 +27471,10 @@ msgstr "Innerhalb von"
 #: src/components/templates/SendTemplateModal.tsx:382
 msgid "Without a list, the test email has no working unsubscribe link and no List-Unsubscribe header."
 msgstr "Ohne Liste hat die Test-E-Mail weder einen funktionierenden Abmeldelink noch einen List-Unsubscribe-Header."
+
+#: src/components/contacts/BulkUpdateDrawer.tsx:453
+msgid "Without a valid email"
+msgstr "Ohne gültige E-Mail"
 
 #: src/components/email_builder/panels/TextVersionPanel.tsx:224
 msgid "Without its own text, this language receives the automatic version."
@@ -27186,8 +27733,8 @@ msgid "You can now sign in."
 msgstr "Sie können sich jetzt anmelden."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:327
-msgid "You can only upload CSV files!"
-msgstr "Sie können nur CSV-Dateien hochladen!"
+#~ msgid "You can only upload CSV files!"
+#~ msgstr "Sie können nur CSV-Dateien hochladen!"
 
 #: src/services/api/errors.ts:154
 msgid "You do not have read access to {resource}."
@@ -27242,7 +27789,9 @@ msgid "You don't have write permission for contacts"
 msgstr "Sie haben keine Schreibberechtigung für Kontakte"
 
 #: src/components/contacts/BulkActionsBar.tsx:46
+#: src/components/contacts/BulkUpdateDrawer.tsx:307
 #: src/components/contacts/ContactsViewHeader.tsx:212
+#: src/components/contacts/csv-import/ColumnsStep.tsx:217
 msgid "You don't have write permission for lists"
 msgstr "Sie haben keine Schreibberechtigung für Listen"
 
@@ -27368,8 +27917,8 @@ msgstr "Sie benötigen Schreibrecht für Transaktional"
 #. placeholder {0}: int(currentRow + 1)
 #. placeholder {1}: int(totalRows)
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:857
-msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {1}."
-msgstr "Sie setzen eine frühere Upload-Sitzung von \"{fileName}\" fort. Der Upload wird ab Zeile {0} von {1} fortgesetzt."
+#~ msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {1}."
+#~ msgstr "Sie setzen eine frühere Upload-Sitzung von \"{fileName}\" fort. Der Upload wird ab Zeile {0} von {1} fortgesetzt."
 
 #. placeholder {0}: currentRow + 1
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:857
