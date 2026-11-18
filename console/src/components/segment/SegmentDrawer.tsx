@@ -360,6 +360,8 @@ export function SegmentDrawer(props: SegmentDrawerProps) {
               stale={preview.isPreviewStale}
               blocked={preview.isPreviewBlocked}
               error={preview.previewError}
+              valueError={preview.valueError}
+              customFieldLabels={workspace?.settings?.custom_field_labels}
               canCount={!!preview.previewHash}
               onCount={preview.previewNow}
             />

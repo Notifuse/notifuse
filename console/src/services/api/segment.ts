@@ -155,6 +155,28 @@ export interface Segment {
   db_created_at: string
   db_updated_at: string
   users_count?: number
+  /** Why the segment's last computation failed, until a build completes or its tree changes. */
+  last_error?: SegmentLastError
+  last_error_at?: string
+}
+
+/**
+ * A contact value a segment's conditions cannot convert (a custom JSON date such as 2026-02-30).
+ * column, path and type are empty when the failing filter is not known; email and value are empty
+ * when no contact was found, or for a member without contacts read.
+ */
+export interface SegmentValueErrorDetails {
+  column?: string
+  path?: string[]
+  type?: 'date' | 'number' | ''
+  email?: string
+  value?: string
+}
+
+export interface SegmentLastError extends SegmentValueErrorDetails {
+  kind: 'value_conversion' | 'other'
+  cause?: string
+  source: 'build' | 'contact_queue'
 }
 
 // Editing state type

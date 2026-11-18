@@ -3,7 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
-import type { PreviewSegmentResponse } from '../../services/api/segment'
+import type { PreviewSegmentResponse, SegmentValueErrorDetails } from '../../services/api/segment'
+import { segmentValueErrorText } from './segmentValueError'
 import { FillBar } from '../layout/FillBar'
 
 export interface SegmentCountCardProps {
@@ -18,6 +19,10 @@ export interface SegmentCountCardProps {
   /** Stale with nothing on its way: the condition being written cannot be counted yet. */
   blocked: boolean
   error?: string
+  /** The count failed on a contact value the conditions cannot convert: no retry can help. */
+  valueError?: SegmentValueErrorDetails
+  /** The workspace's custom field labels, to name the field of a value error. */
+  customFieldLabels?: Record<string, string>
   /** Whether a count can be asked for now (the tree compiles). */
   canCount: boolean
   onCount: () => void
@@ -35,6 +40,8 @@ export function SegmentCountCard({
   stale,
   blocked,
   error,
+  valueError,
+  customFieldLabels,
   canCount,
   onCount
 }: SegmentCountCardProps) {
@@ -42,7 +49,9 @@ export function SegmentCountCard({
   const count = response?.total_count
   // The workspace total is cached, the count is fresh: a segment can briefly hold more than it
   const ratio = count !== undefined && totalContacts ? Math.min(1, count / totalContacts) : undefined
-  const format = new Intl.NumberFormat(i18n.locale, { maximumFractionDigits: 1 })
+  const format = new Intl.NumberFormat(i18n.locale, {
+    maximumFractionDigits: 1
+  })
   const percent =
     ratio === undefined
       ? undefined
@@ -99,7 +108,14 @@ export function SegmentCountCard({
 
       {/* One line, whatever the state, so the card keeps its height */}
       <div className="min-h-5 text-xs text-ink-3">
-        {error && canCount ? (
+        {valueError && canCount ? (
+          <Tooltip title={segmentValueErrorText(valueError, i18n, customFieldLabels)}>
+            <span className="inline-flex items-center gap-1.5 text-warning-fg" data-value-error>
+              <FontAwesomeIcon icon={faTriangleExclamation} />
+              {t`A contact's value can't be read.`}
+            </span>
+          </Tooltip>
+        ) : error && canCount ? (
           <Tooltip title={error}>
             <span className="inline-flex items-center gap-1.5 text-warning-fg">
               <FontAwesomeIcon icon={faTriangleExclamation} />

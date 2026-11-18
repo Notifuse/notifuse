@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Popconfirm, Tooltip } from 'antd'
-import { Pencil, RefreshCw } from 'lucide-react'
+import { Pencil, RefreshCw, TriangleAlert } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import { plural } from '@lingui/core/macro'
 import dayjs from '../../lib/dayjs'
@@ -9,6 +9,7 @@ import { rebuildSegment, type Segment } from '../../services/api/segment'
 import type { List } from '../../services/api/types'
 import { DrawerSegment } from '../segment/button_upsert'
 import { segmentSummary } from '../segment/segmentSummary'
+import { segmentLastErrorText } from '../segment/segmentValueError'
 import { SegmentBuildingIndicator } from './SegmentProgress'
 
 export interface SegmentDefinedByProps {
@@ -90,36 +91,62 @@ export function SegmentDefinedBy({ workspaceId, segment, lists, customFieldLabel
   // The same sentence as the table's « +N », for one string in the catalogue.
   const count = summary.more
   const joined = summary.hidden.join(', ')
+  const lastError = segment.last_error
+  const failedAgo = segment.last_error_at ? dayjs(segment.last_error_at).fromNow() : ''
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-      <span className="text-ink-3">{t`Defined by`}</span>
-      {summary.conditions.map((condition, index) => (
-        <Fragment key={index}>
-          {index > 0 ? <span className="text-ink-3">{summary.joiner}</span> : null}
-          <span className="rounded-md border border-line bg-subtle px-1.5 text-xs leading-5 text-ink-2">
-            {condition}
+    <div className="flex flex-col gap-2">
+      {lastError ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-2 rounded-lg bg-warning-bg px-3 py-2 text-sm text-warning-fg"
+          data-segment-last-error
+        >
+          <TriangleAlert size={14} aria-hidden="true" />
+          <span>{segmentLastErrorText(lastError, i18n, customFieldLabels)}</span>
+          <span>
+            {/* The queue's error is about one contact: a recompute would meet the same value */}
+            {lastError.source === 'contact_queue'
+              ? t`Until the value is fixed, this contact keeps its current place in the segment.`
+              : lastError.kind !== 'value_conversion'
+                ? t`Membership may be incomplete: recompute the segment.`
+                : t`Membership may be incomplete: fix the value, then recompute the segment.`}
           </span>
-        </Fragment>
-      ))}
-      {summary.more > 0 ? (
-        <Tooltip title={summary.hidden.join(` ${summary.joiner} `)}>
-          <span className="text-xs text-ink-3">
-            <span aria-hidden="true">{t`+${count}`}</span>
-            <span className="sr-only">
-              {plural(count, { one: `and # more: ${joined}`, other: `and # more: ${joined}` })}
-            </span>
-          </span>
-        </Tooltip>
+          {failedAgo ? <span className="text-xs">{t`Failed ${failedAgo}`}</span> : null}
+        </div>
       ) : null}
-      <span className="ml-auto flex items-center gap-2 text-xs text-ink-3">
-        {segment.status === 'building' ? (
-          <SegmentBuildingIndicator workspaceId={workspaceId} segment={segment} />
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+        <span className="text-ink-3">{t`Defined by`}</span>
+        {summary.conditions.map((condition, index) => (
+          <Fragment key={index}>
+            {index > 0 ? <span className="text-ink-3">{summary.joiner}</span> : null}
+            <span className="rounded-md border border-line bg-subtle px-1.5 text-xs leading-5 text-ink-2">
+              {condition}
+            </span>
+          </Fragment>
+        ))}
+        {summary.more > 0 ? (
+          <Tooltip title={summary.hidden.join(` ${summary.joiner} `)}>
+            <span className="text-xs text-ink-3">
+              <span aria-hidden="true">{t`+${count}`}</span>
+              <span className="sr-only">
+                {plural(count, {
+                  one: `and # more: ${joined}`,
+                  other: `and # more: ${joined}`
+                })}
+              </span>
+            </span>
+          </Tooltip>
         ) : null}
-        <Tooltip title={updated.format('LLL')}>
-          <span>{t`Updated ${updatedAgo}`}</span>
-        </Tooltip>
-      </span>
+        <span className="ml-auto flex items-center gap-2 text-xs text-ink-3">
+          {segment.status === 'building' ? (
+            <SegmentBuildingIndicator workspaceId={workspaceId} segment={segment} />
+          ) : null}
+          <Tooltip title={updated.format('LLL')}>
+            <span>{t`Updated ${updatedAgo}`}</span>
+          </Tooltip>
+        </span>
+      </div>
     </div>
   )
 }

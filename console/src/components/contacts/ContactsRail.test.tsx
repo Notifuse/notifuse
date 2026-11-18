@@ -126,6 +126,13 @@ describe('ContactsRail', () => {
     expect(await screen.findByText('Processed: 420', { exact: false })).toBeInTheDocument()
   })
 
+  it('flags a segment whose last computation failed', async () => {
+    renderRail({ segments: [segment({ last_error: { kind: 'other', source: 'build' } })] })
+    const flag = within(item('Plan Pro')).getByRole('img', { name: 'Its last computation failed' })
+    fireEvent.mouseEnter(flag)
+    expect(await screen.findByText('Its last computation failed. Open the segment to see why.')).toBeInTheDocument()
+  })
+
   it('offers to create the first list', async () => {
     state.lists = []
     const { onCreateList } = renderRail()

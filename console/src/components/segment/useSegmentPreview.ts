@@ -5,9 +5,11 @@ import {
   previewSegment,
   type PreviewSegmentRequest,
   type PreviewSegmentResponse,
+  type SegmentValueErrorDetails,
   type TreeNode
 } from '../../services/api/segment'
 import { HasLeaf, isTreeQueryable } from './tree_completeness'
+import { readSegmentValueError } from './segmentValueError'
 
 const PREVIEW_LIMIT = 100
 // Long enough that a burst of typing inside a condition costs a single count query.
@@ -22,7 +24,14 @@ export function useSegmentPreview(workspaceId: string | undefined, committedTree
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [previewResponse, setPreviewResponse] = useState<PreviewSegmentResponse | undefined>()
   const [previewedHash, setPreviewedHash] = useState<string | undefined>() // request behind previewResponse
-  const [previewError, setPreviewError] = useState<string | undefined>()
+  const [previewError, setPreviewErrorState] = useState<string | undefined>()
+  // Set with previewError when the count failed on a contact value the conditions cannot convert:
+  // retrying cannot help until that value or the conditions change.
+  const [valueError, setValueError] = useState<SegmentValueErrorDetails | undefined>()
+  const setPreviewError = useCallback((message: string | undefined, details?: SegmentValueErrorDetails) => {
+    setPreviewErrorState(message)
+    setValueError(details)
+  }, [])
   // Set while a condition is open in its form, so the count can follow it before it is confirmed
   const [draftTree, setDraftTreeState] = useState<TreeNode | undefined>()
   // False while the open condition breaks a rule of its form, which Confirm would refuse
@@ -81,7 +90,10 @@ export function useSegmentPreview(workspaceId: string | undefined, committedTree
 
         // No toast here: this runs on every edit, so the failure is reported on the circle itself
         console.error('Preview error:', error)
-        setPreviewError(error instanceof Error ? error.message : t`Failed to preview segment`)
+        setPreviewError(
+          error instanceof Error ? error.message : t`Failed to preview segment`,
+          readSegmentValueError(error)
+        )
       } finally {
         if (seq === requestSeqRef.current) {
           // Only release the marker this run owns; a newer edit may already be queued behind it
@@ -90,7 +102,7 @@ export function useSegmentPreview(workspaceId: string | undefined, committedTree
         }
       }
     },
-    [workspaceId, t]
+    [workspaceId, t, setPreviewError]
   )
 
   // Held in a ref so the debounce survives re-renders: rebuilding it would cancel the call
@@ -139,7 +151,7 @@ export function useSegmentPreview(workspaceId: string | undefined, committedTree
     debouncedPreview(effectiveTree, previewHash)
     // runPreview is deliberately absent: it changes identity on every render (its `t` dependency
     // does), which would re-run this on every render for no reason.
-  }, [previewHash, previewedHash, effectiveTree, debouncedPreview])
+  }, [previewHash, previewedHash, effectiveTree, debouncedPreview, setPreviewError])
 
   const previewNow = () => {
     if (!previewHash || !effectiveTree) return
@@ -173,6 +185,7 @@ export function useSegmentPreview(workspaceId: string | undefined, committedTree
     previewResponse,
     previewHash,
     previewError,
+    valueError,
     isPreviewStale,
     isPreviewRefreshing,
     isPreviewBlocked,

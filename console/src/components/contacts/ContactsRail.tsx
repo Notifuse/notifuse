@@ -1,5 +1,5 @@
-import { Skeleton } from 'antd'
-import { List as ListIcon, Plus, Users } from 'lucide-react'
+import { Skeleton, Tooltip } from 'antd'
+import { List as ListIcon, Plus, TriangleAlert, Users } from 'lucide-react'
 import { useLingui } from '@lingui/react/macro'
 import type { Segment } from '../../services/api/segment'
 import type { UserPermissions } from '../../services/api/types'
@@ -148,6 +148,18 @@ export function ContactsRail({
                 trailing={
                   segment.status === 'building' ? (
                     <SegmentBuildingIndicator workspaceId={workspaceId} segment={segment} />
+                  ) : segment.last_error ? (
+                    // The reason is on the segment's own view, with the field and the contact
+                    <Tooltip title={t`Its last computation failed. Open the segment to see why.`}>
+                      <span
+                        role="img"
+                        aria-label={t`Its last computation failed`}
+                        className="flex items-center text-warning-fg"
+                        data-segment-error
+                      >
+                        <TriangleAlert size={12} aria-hidden="true" />
+                      </span>
+                    </Tooltip>
                   ) : undefined
                 }
               />
