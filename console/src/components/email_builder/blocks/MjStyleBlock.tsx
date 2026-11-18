@@ -10,9 +10,9 @@ import {
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { faCode } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import PanelLayout from '../panels/PanelLayout'
-import InputLayout from '../ui/InputLayout'
 import CSSPreview from '../ui/CodePreview'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
 
 // Functional component for settings panel with i18n support
 interface MjStyleSettingsPanelProps {
@@ -105,20 +105,22 @@ const MjStyleSettingsPanel: React.FC<MjStyleSettingsPanelProps> = ({
   const hasContent = blockContent.trim().length > 0
 
   return (
-    <PanelLayout title={t`Style attributes`}>
-      <InputLayout
-        label={t`Inline Styles`}
+    <SettingsSection sectionKey="mj-style:css" title={t`CSS`} first>
+      <SettingsRow
+        label={t`Inline styles`}
         help={t`When enabled, these styles will be added as inline style attributes to every matching HTML element in the email. This is important for maximum email client compatibility since many email clients strip out non-inline styles.`}
+        isSet={currentAttributes['inline'] === 'inline'}
       >
         <Switch
           size="small"
+          aria-label={t`Inline styles`}
           checked={currentAttributes['inline'] === 'inline'}
           onChange={(checked) => onUpdate({ inline: checked ? 'inline' : undefined })}
         />
-      </InputLayout>
+      </SettingsRow>
 
-      <InputLayout label={t`CSS Content`} layout="vertical">
-        <div className="flex flex-col gap-3">
+      <SettingsRow label={t`CSS Content`} vertical>
+        <div className="flex flex-col gap-2">
           {hasContent && (
             <CSSPreview
               code={blockContent}
@@ -128,14 +130,7 @@ const MjStyleSettingsPanel: React.FC<MjStyleSettingsPanelProps> = ({
             />
           )}
 
-          <Button
-            type="primary"
-            ghost
-            size="small"
-            block
-            onClick={handleEditClick}
-            className="self-start"
-          >
+          <Button type="primary" ghost size="small" block onClick={handleEditClick}>
             {hasContent ? t`Edit CSS` : t`Add CSS`}
           </Button>
         </div>
@@ -170,8 +165,8 @@ const MjStyleSettingsPanel: React.FC<MjStyleSettingsPanelProps> = ({
             beforeMount={beforeMount}
           />
         </Drawer>
-      </InputLayout>
-    </PanelLayout>
+      </SettingsRow>
+    </SettingsSection>
   )
 }
 

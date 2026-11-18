@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import type { MJMLComponentType, EmailBlock, MJRawAttributes } from '../types'
+import type { MJMLComponentType, EmailBlock, MJRawAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -8,11 +8,11 @@ import {
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
-import InputLayout from '../ui/InputLayout'
-import StringPopoverInput from '../ui/StringPopoverInput'
 import CodeDrawerInput from '../ui/CodeDrawerInput'
-import PanelLayout from '../panels/PanelLayout'
 import CodePreview from '../ui/CodePreview'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { AdvancedSection } from './AdvancedSection'
+import { panelFields } from './panelFields'
 import { fontStylesheetUrl } from '../../../utils/safeHtml'
 
 const escapeHtmlAttribute = (value: string): string =>
@@ -279,68 +279,54 @@ const SandboxedIframe: React.FC<{
 
 // Functional component for settings panel with i18n support
 interface MjRawSettingsPanelProps {
+  blockId: string
   currentAttributes: MJRawAttributes
+  blockDefaults: MergedBlockAttributes
   htmlContent: string
   onUpdate: OnUpdateAttributesFunction
 }
 
 const MjRawSettingsPanel: React.FC<MjRawSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
+  blockDefaults,
   htmlContent,
   onUpdate
 }) => {
   const { t } = useLingui()
+  const f = panelFields(blockId, currentAttributes as Record<string, unknown>, blockDefaults as Record<string, unknown>, onUpdate)
   const hasContent = htmlContent.trim().length > 0
 
-  const handleContentChange = (content: string | undefined) => {
-    onUpdate({ content })
-  }
-
-  const handleCssClassChange = (cssClass: string | undefined) => {
-    onUpdate({ cssClass })
-  }
-
   return (
-    <PanelLayout title={t`Raw HTML Block`}>
-      <div className="space-y-4">
-        {/* HTML Content */}
-        <InputLayout
-          label={t`HTML Content`}
-          help={t`Enter custom HTML code. When placed in mj-head, use for CSS styles, meta tags, or head elements. When placed in mj-body, use for body-level HTML structures, tracking pixels, or template logic.`}
-          layout="vertical"
-        >
-          <div className="flex flex-col gap-3">
-            {hasContent && (
-              <CodePreview
-                code={htmlContent}
-                language="html"
-                maxHeight={120}
-                onExpand={() => {}}
-                showExpandButton={false}
-              />
-            )}
-
-            <CodeDrawerInput
-              value={htmlContent}
-              onChange={handleContentChange}
-              buttonText={hasContent ? t`Edit HTML Content` : t`Set HTML Content`}
-              title={t`HTML Content Editor`}
+    <>
+      <SettingsSection
+        sectionKey="mj-raw:html"
+        title={t`HTML`}
+        first
+        help={t`Enter custom HTML code. When placed in mj-head, use for CSS styles, meta tags, or head elements. When placed in mj-body, use for body-level HTML structures, tracking pixels, or template logic.`}
+      >
+        <div className="flex flex-col gap-2">
+          {hasContent && (
+            <CodePreview
+              code={htmlContent}
               language="html"
+              maxHeight={120}
+              onExpand={() => {}}
+              showExpandButton={false}
             />
-          </div>
-        </InputLayout>
-
-        {/* CSS Class */}
-        <InputLayout label={t`CSS Class`} help={t`Custom CSS class for styling`}>
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => handleCssClassChange(value)}
-            placeholder={t`my-custom-class`}
-            buttonText={t`Set Value`}
+          )}
+          <CodeDrawerInput
+            value={htmlContent}
+            onChange={(content) => onUpdate({ content })}
+            buttonText={hasContent ? t`Edit HTML Content` : t`Set HTML Content`}
+            title={t`HTML Content Editor`}
+            language="html"
           />
-        </InputLayout>
-      </div>
-    </PanelLayout>
+        </div>
+      </SettingsSection>
+
+      <AdvancedSection type="mj-raw" fields={f} />
+    </>
   )
 }
 
@@ -407,9 +393,7 @@ export class MjRawBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the raw HTML block
    */
-  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJRawAttributes
-
+  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction, blockDefaults: MergedBlockAttributes): React.ReactNode {
     // Content is stored on the block itself, not in attributes
     const blockWithContent = this.block as unknown as Record<string, unknown>
     const htmlContent =
@@ -417,7 +401,9 @@ export class MjRawBlock extends BaseEmailBlock {
 
     return (
       <MjRawSettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJRawAttributes}
+        blockDefaults={blockDefaults}
         htmlContent={htmlContent}
         onUpdate={onUpdate}
       />

@@ -5,20 +5,16 @@ import {
   BaseEmailBlock
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
-import PanelLayout from '../panels/PanelLayout'
 
-// Functional component for settings panel with i18n support
+// The head has no settings of its own: a message says where they are
 const MjHeadSettingsPanel: React.FC = () => {
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Head attributes`}>
-      <div className="text-sm text-gray-500 text-center py-8">
-        {t`No settings available for the head element.`}
-        <br />
-        {t`Add child elements like mj-font, mj-style, or mj-preview to configure email metadata.`}
-      </div>
-    </PanelLayout>
+    <div className="px-6 py-6 text-center text-xs text-ink-3">
+      <p className="m-0">{t`No settings available for the head element.`}</p>
+      <p className="m-0 mt-1">{t`Add child elements like mj-font, mj-style, or mj-preview to configure email metadata.`}</p>
+    </div>
   )
 }
 

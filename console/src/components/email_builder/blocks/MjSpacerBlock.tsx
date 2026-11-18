@@ -1,7 +1,6 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { InputNumber } from 'antd'
-import type { MJMLComponentType, MJSpacerAttributes, MergedBlockAttributes } from '../types'
+import type { MJMLComponentType, EmailBlock, MJSpacerAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -9,90 +8,102 @@ import {
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
-import InputLayout from '../ui/InputLayout'
-import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
-import PaddingInput from '../ui/PaddingInput'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import PanelLayout from '../panels/PanelLayout'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { ColorField } from '../ui/fields/ColorField'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { inheritedSidesOf, panelFields, sidesOf, useEmailColors } from './panelFields'
 
 // Functional component for settings panel with i18n support
 interface MjSpacerSettingsPanelProps {
+  blockId: string
   currentAttributes: MJSpacerAttributes
   blockDefaults: MergedBlockAttributes
   onUpdate: OnUpdateAttributesFunction
-  parsePixelValue: (value?: string) => number | undefined
+  emailTree?: EmailBlock
 }
 
+const SPACER_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+
 const MjSpacerSettingsPanel: React.FC<MjSpacerSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
   blockDefaults,
   onUpdate,
-  parsePixelValue
+  emailTree
 }) => {
   const { t } = useLingui()
+  const f = panelFields(blockId, currentAttributes as Record<string, unknown>, blockDefaults as Record<string, unknown>, onUpdate)
+  const colors = useEmailColors(emailTree)
 
   return (
-    <PanelLayout title={t`Spacer attributes`}>
-      <InputLayout label={t`Height`}>
-        <InputNumber
-          size="small"
-          value={parsePixelValue(currentAttributes.height)}
-          onChange={(value) => onUpdate({ height: value ? `${value}px` : undefined })}
-          placeholder={(parsePixelValue(blockDefaults.height) || 20).toString()}
-          min={0}
-          max={500}
-          step={1}
-          suffix="px"
-          style={{ width: '100%' }}
-        />
-      </InputLayout>
+    <>
+      <SettingsSection
+        sectionKey="mj-spacer:size"
+        title={t`Size`}
+        first
+        setCount={f.setCount('height')}
+        summary={f.value('height')}
+      >
+        <SettingsRow
+          label={t`Height`}
+          help={t`From 0 to 500 px; 20 px by default.`}
+          isSet={f.isSet('height')}
+          onReset={f.reset('height')}
+        >
+          <NumberUnitField
+            aria-label={t`Spacer height`}
+            value={f.value('height')}
+            inherited={f.inherited('height')}
+            placeholder="20"
+            units={['px']}
+            min={0}
+            max={500}
+            coalesceBase={f.base('height')}
+            onChange={f.write('height')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Container Background`}>
-        <ColorPickerWithPresets
-          value={currentAttributes.containerBackgroundColor || undefined}
-          onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-          placeholder={t`Transparent`}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-spacer:colors"
+        title={t`Colors`}
+        setCount={f.setCount('containerBackgroundColor')}
+      >
+        <SettingsRow
+          label={t`Container background`}
+          isSet={f.isSet('containerBackgroundColor')}
+          onReset={f.reset('containerBackgroundColor')}
+        >
+          <ColorField
+            aria-label={t`Container background`}
+            value={f.value('containerBackgroundColor')}
+            inherited={f.inherited('containerBackgroundColor')}
+            placeholder={t`Transparent`}
+            emailColors={colors}
+            onChange={f.write('containerBackgroundColor')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Padding`} layout="vertical">
-        <PaddingInput
-          value={{
-            top: currentAttributes.paddingTop,
-            right: currentAttributes.paddingRight,
-            bottom: currentAttributes.paddingBottom,
-            left: currentAttributes.paddingLeft
-          }}
-          defaultValue={{
-            top: blockDefaults.paddingTop,
-            right: blockDefaults.paddingRight,
-            bottom: blockDefaults.paddingBottom,
-            left: blockDefaults.paddingLeft
-          }}
-          onChange={(values: {
-            top: string | undefined
-            right: string | undefined
-            bottom: string | undefined
-            left: string | undefined
-          }) => {
-            onUpdate({
-              paddingTop: values.top,
-              paddingRight: values.right,
-              paddingBottom: values.bottom,
-              paddingLeft: values.left
-            })
-          }}
+      <SettingsSection sectionKey="mj-spacer:spacing" title={t`Spacing`} setCount={f.setCount(...SPACER_PADDING)}>
+        <SpacingField
+          label={t`Around the spacer`}
+          centerLabel={`↕ ${f.value('height') ?? f.inherited('height') ?? '20px'}`}
+          value={sidesOf(f, 'padding')}
+          inherited={inheritedSidesOf(f, 'padding')}
+          onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+            f.writeMany(toSideAttributes(sides, 'padding'), options)
+          }
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout label={t`CSS Class`}>
-        <StringPopoverInput
-          value={currentAttributes.cssClass || ''}
-          onChange={(value) => onUpdate({ cssClass: value || undefined })}
-          placeholder={t`Enter CSS class name`}
-        />
-      </InputLayout>
-    </PanelLayout>
+      <AdvancedSection type="mj-spacer" fields={f} />
+    </>
   )
 }
 
@@ -155,27 +166,18 @@ export class MjSpacerBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: MergedBlockAttributes
+    blockDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
   ): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJSpacerAttributes
-
     return (
       <MjSpacerSettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJSpacerAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
-        parsePixelValue={this.parsePixelValue}
+        emailTree={emailTree}
       />
     )
-  }
-
-  /**
-   * Parse pixel value from string (e.g., "20px" -> 20)
-   */
-  private parsePixelValue(value?: string): number | undefined {
-    if (!value) return undefined
-    const match = value.match(/^(\d+(?:\.\d+)?)px?$/)
-    return match ? parseFloat(match[1]) : undefined
   }
 
   getEdit(props: PreviewProps): React.ReactNode {

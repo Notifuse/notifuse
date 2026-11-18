@@ -1,6 +1,6 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { InputNumber, Row, Col } from 'antd'
+import { Select } from 'antd'
 import type { MJMLComponentType, EmailBlock, MJButtonAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
@@ -10,16 +10,25 @@ import {
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { containedContentStyle, sanitizeHtml } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import PaddingInput from '../ui/PaddingInput'
-import InputLayout from '../ui/InputLayout'
-import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
-import BorderInput from '../ui/BorderInput'
-import FontStyleInput from '../ui/FontStyleInput'
-import AlignSelector from '../ui/AlignSelector'
-import PanelLayout from '../panels/PanelLayout'
-import BorderRadiusInput from '../ui/BorderRadiusInput'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { DraftTextField } from '../ui/fields/DraftTextField'
+import { ColorField } from '../ui/fields/ColorField'
+import { FontFields } from '../ui/fields/FontFields'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { SegmentedField } from '../ui/fields/SegmentedField'
+import { useAlignOptions } from '../ui/fields/segmentedOptions'
+import { CornersField } from '../ui/fields/CornersField'
+import BorderField from '../ui/fields/BorderField'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { useImportedFonts, inheritedSidesOf, panelFields, sidesOf, useEmailColors, useLinkTargetOptions } from './panelFields'
 import { TiptapInlineEditor } from '../ui/tiptap'
+
+// Liquid examples go into messages as variables: braces in a message are placeholders
+const LIQUID_URL = '{{ url }}'
 
 // Local state management for button content to prevent unnecessary re-renders
 const useButtonContentState = (
@@ -135,260 +144,215 @@ const useButtonContentState = (
 
 // Functional component for settings panel with i18n support
 interface MjButtonSettingsPanelProps {
+  blockId: string
   currentAttributes: MJButtonAttributes
   blockDefaults: MergedBlockAttributes
   onUpdate: OnUpdateAttributesFunction
   emailTree?: EmailBlock
-  parseWidthNumber: (width?: string) => number | undefined
-  parseHeightNumber: (height?: string) => number | undefined
 }
 
+const BUTTON_FONT_FIELDS = [
+  'fontFamily',
+  'fontSize',
+  'fontWeight',
+  'fontStyle',
+  'textTransform',
+  'textDecoration',
+  'lineHeight',
+  'letterSpacing',
+  'textAlign'
+] as const
+const BUTTON_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+const BUTTON_BORDERS = ['borderTop', 'borderRight', 'borderBottom', 'borderLeft'] as const
+
 const MjButtonSettingsPanel: React.FC<MjButtonSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
   blockDefaults,
   onUpdate,
-  emailTree,
-  parseWidthNumber,
-  parseHeightNumber
+  emailTree
 }) => {
   const { t } = useLingui()
-
-  // Find all imported fonts in the email tree
-  const importedFonts: Array<{ name: string; href: string }> = []
-
-  if (emailTree) {
-    const fontBlocks = EmailBlockClass.findAllBlocksByType(emailTree, 'mj-font')
-    fontBlocks.forEach((fontBlock) => {
-      const attrs = fontBlock.attributes as { name?: string; href?: string }
-      if (attrs?.name && attrs?.href) {
-        importedFonts.push({
-          name: attrs.name,
-          href: attrs.href
-        })
-      }
-    })
-  }
+  const f = panelFields(blockId, currentAttributes as Record<string, unknown>, blockDefaults as Record<string, unknown>, onUpdate)
+  const colors = useEmailColors(emailTree)
+  const importedFonts = useImportedFonts(emailTree)
+  const alignOptions = useAlignOptions()
+  const targetOptions = useLinkTargetOptions()
+  const fontValues = Object.fromEntries(BUTTON_FONT_FIELDS.map((key) => [key, f.value(key)]))
+  const fontInherited = Object.fromEntries(BUTTON_FONT_FIELDS.map((key) => [key, f.inherited(key)]))
+  const fontSummary = [f.value('fontFamily')?.split(',')[0], f.value('fontSize'), f.value('fontWeight')]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <PanelLayout title={t`Button attributes`}>
-      <InputLayout label={t`Link URL`}>
-        <StringPopoverInput
-          value={currentAttributes.href || ''}
-          onChange={(value) => onUpdate({ href: value || undefined })}
-          placeholder={t`Enter button link URL or {{ url }}`}
-          buttonText={t`Set link`}
-          validateUri={true}
-        />
-      </InputLayout>
+    <>
+      <SettingsSection
+        sectionKey="mj-button:link"
+        title={t`Link`}
+        first
+        setCount={f.setCount('href', 'target', 'rel', 'title')}
+        summary={f.value('href')}
+      >
+        <SettingsRow label={t`URL`} isSet={f.isSet('href')} onReset={f.reset('href')}>
+          <DraftTextField
+            aria-label={t`Link URL`}
+            value={f.value('href')}
+            onChange={f.write('href')}
+            placeholder={t`https://… or ${LIQUID_URL}`}
+            validate="url"
+            mono
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Open in`} isSet={f.isSet('target')} onReset={f.reset('target')}>
+          <Select
+            size="small"
+            className="w-full"
+            aria-label={t`Open in`}
+            value={f.value('target')}
+            placeholder={targetOptions.find((option) => option.value === (f.inherited('target') ?? '_blank'))?.label}
+            options={targetOptions}
+            onChange={(value) => f.write('target')(value)}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Rel`} help={t`The link's rel attribute, e.g. noopener.`} isSet={f.isSet('rel')} onReset={f.reset('rel')}>
+          <DraftTextField aria-label={t`Rel`} value={f.value('rel')} onChange={f.write('rel')} placeholder="noopener" mono />
+        </SettingsRow>
+        <SettingsRow label={t`Tooltip`} help={t`Shown when the pointer rests on the button (title attribute).`} isSet={f.isSet('title')} onReset={f.reset('title')}>
+          <DraftTextField aria-label={t`Tooltip`} value={f.value('title')} onChange={f.write('title')} placeholder={t`Text on hover`} />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Colors`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Background`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.backgroundColor || undefined}
-                  onChange={(color) => onUpdate({ backgroundColor: color || undefined })}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Text`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.color || undefined}
-                  onChange={(color) => onUpdate({ color: color || undefined })}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Container`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.containerBackgroundColor || undefined}
-                  onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-                  placeholder={t`None`}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-button:colors"
+        title={t`Colors`}
+        setCount={f.setCount('backgroundColor', 'color', 'containerBackgroundColor')}
+      >
+        <SettingsRow label={t`Button`} isSet={f.isSet('backgroundColor')} onReset={f.reset('backgroundColor')}>
+          <ColorField
+            aria-label={t`Button color`}
+            value={f.value('backgroundColor')}
+            inherited={f.inherited('backgroundColor')}
+            emailColors={colors}
+            onChange={f.write('backgroundColor')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Text`} isSet={f.isSet('color')} onReset={f.reset('color')}>
+          <ColorField
+            aria-label={t`Text color`}
+            value={f.value('color')}
+            inherited={f.inherited('color')}
+            emailColors={colors}
+            onChange={f.write('color')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Container background`} isSet={f.isSet('containerBackgroundColor')} onReset={f.reset('containerBackgroundColor')}>
+          <ColorField
+            aria-label={t`Container background`}
+            value={f.value('containerBackgroundColor')}
+            inherited={f.inherited('containerBackgroundColor')}
+            emailColors={colors}
+            onChange={f.write('containerBackgroundColor')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Border radius`}>
-        <BorderRadiusInput
-          value={currentAttributes.borderRadius}
-          onChange={(value) => onUpdate({ borderRadius: value })}
-          defaultValue={blockDefaults.borderRadius}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Button Align`}>
-        <AlignSelector
-          value={currentAttributes.align || 'center'}
-          onChange={(value) => onUpdate({ align: value })}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Font Styling`} layout="vertical">
-        <FontStyleInput
-          value={{
-            fontFamily: currentAttributes.fontFamily,
-            fontSize: currentAttributes.fontSize,
-            fontWeight: currentAttributes.fontWeight,
-            fontStyle: currentAttributes.fontStyle,
-            textTransform: currentAttributes.textTransform,
-            textDecoration: currentAttributes.textDecoration,
-            lineHeight: currentAttributes.lineHeight,
-            letterSpacing: currentAttributes.letterSpacing,
-            textAlign: currentAttributes.textAlign
-          }}
-          defaultValue={{
-            fontFamily: blockDefaults.fontFamily,
-            fontSize: blockDefaults.fontSize,
-            fontWeight: blockDefaults.fontWeight,
-            fontStyle: blockDefaults.fontStyle,
-            textTransform: blockDefaults.textTransform || 'none',
-            textDecoration: blockDefaults.textDecoration,
-            lineHeight: blockDefaults.lineHeight,
-            letterSpacing: blockDefaults.letterSpacing,
-            textAlign: blockDefaults.textAlign
-          }}
-          onChange={(values) => {
-            onUpdate({
-              fontFamily: values.fontFamily,
-              fontSize: values.fontSize,
-              fontWeight: values.fontWeight,
-              fontStyle: values.fontStyle,
-              textTransform: values.textTransform,
-              textDecoration: values.textDecoration,
-              lineHeight: values.lineHeight,
-              letterSpacing: values.letterSpacing,
-              textAlign: values.textAlign
-            })
-          }}
+      <SettingsSection
+        sectionKey="mj-button:font"
+        title={t`Font`}
+        setCount={f.setCount(...BUTTON_FONT_FIELDS)}
+        summary={fontSummary}
+      >
+        <FontFields
+          value={fontValues}
+          inherited={fontInherited}
           importedFonts={importedFonts}
+          fields={BUTTON_FONT_FIELDS}
+          onChange={(updates, options) => f.writeMany(updates, options)}
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout label={t`Button Padding`} layout="vertical">
-        <PaddingInput
-          value={currentAttributes.innerPadding}
-          defaultValue={blockDefaults.innerPadding}
-          onChange={(value: string | undefined) => {
-            onUpdate({
-              innerPadding: value
-            })
+      <SettingsSection
+        sectionKey="mj-button:size"
+        title={t`Size and border`}
+        setCount={f.setCount('width', 'height', 'align', 'borderRadius', ...BUTTON_BORDERS)}
+        summary={[f.value('align'), f.value('borderRadius')].filter(Boolean).join(' · ')}
+      >
+        <SettingsRow label={t`Width`} isSet={f.isSet('width')} onReset={f.reset('width')}>
+          <NumberUnitField
+            aria-label={t`Button width`}
+            value={f.value('width')}
+            inherited={f.inherited('width')}
+            placeholder={t`Auto`}
+            units={['px']}
+            max={1000}
+            coalesceBase={f.base('width')}
+            onChange={f.write('width')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Height`} isSet={f.isSet('height')} onReset={f.reset('height')}>
+          <NumberUnitField
+            aria-label={t`Button height`}
+            value={f.value('height')}
+            inherited={f.inherited('height')}
+            placeholder={t`Auto`}
+            units={['px']}
+            max={1000}
+            coalesceBase={f.base('height')}
+            onChange={f.write('height')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Alignment`} isSet={f.isSet('align')} onReset={f.reset('align')}>
+          <SegmentedField
+            aria-label={t`Button alignment`}
+            value={f.value('align')}
+            inherited={f.inherited('align')}
+            options={alignOptions}
+            onChange={f.write('align')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Corners`} isSet={f.isSet('borderRadius')} onReset={f.reset('borderRadius')}>
+          <CornersField
+            aria-label={t`Corners`}
+            value={f.value('borderRadius')}
+            inherited={f.inherited('borderRadius')}
+            coalesceBase={f.base('borderRadius')}
+            onChange={f.write('borderRadius')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Border`} vertical isSet={f.isSet(...BUTTON_BORDERS)} onReset={f.reset(...BUTTON_BORDERS)}>
+          <BorderField
+            emailColors={colors}
+            value={Object.fromEntries(BUTTON_BORDERS.map((key) => [key, f.value(key)]))}
+            onChange={(borders, options) => f.writeMany({ ...borders }, options)}
+          />
+        </SettingsRow>
+      </SettingsSection>
+
+      <SettingsSection
+        sectionKey="mj-button:spacing"
+        title={t`Spacing`}
+        setCount={f.setCount(...BUTTON_PADDING, 'innerPadding')}
+      >
+        <SpacingField
+          label={t`Around the button`}
+          value={sidesOf(f, 'padding')}
+          inherited={inheritedSidesOf(f, 'padding')}
+          onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+            f.writeMany(toSideAttributes(sides, 'padding'), options)
+          }
+          inner={{
+            label: t`Inside the button`,
+            centerLabel: t`Text`,
+            value: f.value('innerPadding'),
+            inherited: f.inherited('innerPadding') ?? '10px 25px',
+            onChange: (value: string | undefined, options?: FieldWriteOptions) =>
+              f.writeMany({ innerPadding: value }, options)
           }}
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout label={t`Container Padding`} layout="vertical">
-        <PaddingInput
-          value={{
-            top: currentAttributes.paddingTop,
-            right: currentAttributes.paddingRight,
-            bottom: currentAttributes.paddingBottom,
-            left: currentAttributes.paddingLeft
-          }}
-          defaultValue={{
-            top: blockDefaults.paddingTop,
-            right: blockDefaults.paddingRight,
-            bottom: blockDefaults.paddingBottom,
-            left: blockDefaults.paddingLeft
-          }}
-          onChange={(values: {
-            top: string | undefined
-            right: string | undefined
-            bottom: string | undefined
-            left: string | undefined
-          }) => {
-            onUpdate({
-              paddingTop: values.top,
-              paddingRight: values.right,
-              paddingBottom: values.bottom,
-              paddingLeft: values.left
-            })
-          }}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Border`} layout="vertical">
-        <BorderInput
-          className="-mt-6"
-          value={{
-            borderTop: currentAttributes.borderTop,
-            borderRight: currentAttributes.borderRight,
-            borderBottom: currentAttributes.borderBottom,
-            borderLeft: currentAttributes.borderLeft
-          }}
-          onChange={(borderValues) => {
-            onUpdate({
-              borderTop: borderValues.borderTop,
-              borderRight: borderValues.borderRight,
-              borderBottom: borderValues.borderBottom,
-              borderLeft: borderValues.borderLeft
-            })
-          }}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Button Size`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Width`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <InputNumber
-                  size="small"
-                  value={parseWidthNumber(currentAttributes.width)}
-                  onChange={(value) => onUpdate({ width: value ? `${value}px` : undefined })}
-                  placeholder={(parseWidthNumber(blockDefaults.width) || t`Auto`).toString()}
-                  min={0}
-                  max={1000}
-                  step={1}
-                  suffix="px"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Height`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <InputNumber
-                  size="small"
-                  value={parseHeightNumber(currentAttributes.height)}
-                  onChange={(value) => onUpdate({ height: value ? `${value}px` : undefined })}
-                  placeholder={(
-                    parseHeightNumber(blockDefaults.height) || t`Auto`
-                  ).toString()}
-                  min={0}
-                  max={1000}
-                  step={1}
-                  suffix="px"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
-
-      <InputLayout label={t`CSS Class`}>
-        <StringPopoverInput
-          value={currentAttributes.cssClass || ''}
-          onChange={(value) => onUpdate({ cssClass: value || undefined })}
-          placeholder={t`Enter CSS class name`}
-        />
-      </InputLayout>
-    </PanelLayout>
+      <AdvancedSection type="mj-button" fields={f} />
+    </>
   )
 }
 
@@ -440,45 +404,24 @@ export class MjButtonBlock extends BaseEmailBlock {
     return []
   }
 
-  /**
-   * Render the settings panel for the button block
-   */
+
+
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
     blockDefaults: MergedBlockAttributes,
     emailTree?: EmailBlock
   ): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJButtonAttributes
-
     return (
       <MjButtonSettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJButtonAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
         emailTree={emailTree}
-        parseWidthNumber={this.parseWidthNumber}
-        parseHeightNumber={this.parseHeightNumber}
       />
     )
   }
 
-  /**
-   * Parse height to get numeric value
-   */
-  private parseHeightNumber(height?: string): number | undefined {
-    if (!height) return undefined
-    const match = height.match(/^(\d+(?:\.\d+)?)px?$/)
-    return match ? parseFloat(match[1]) : undefined
-  }
-
-  /**
-   * Parse width to get numeric value
-   */
-  private parseWidthNumber(width?: string): number | undefined {
-    if (!width) return undefined
-    const match = width.match(/^(\d+(?:\.\d+)?)px?$/)
-    return match ? parseFloat(match[1]) : undefined
-  }
 
   getEdit(props: PreviewProps): React.ReactNode {
     // Return a functional wrapper component that can use hooks

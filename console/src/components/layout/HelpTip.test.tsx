@@ -37,4 +37,18 @@ describe('HelpTip', () => {
     expect(container.querySelector('#help-1')).toHaveAttribute('hidden')
     expect(screen.getByRole('textbox', { name: 'Segments' })).toHaveAccessibleDescription('Text')
   })
+
+  it('shows a "?" by default and an "i" with icon="info", with the same name and tooltip', async () => {
+    const { container, rerender } = render(<HelpTip label="About the width">Up to 999 px.</HelpTip>)
+    expect(container.querySelector('svg')).toHaveAttribute('data-icon', 'help')
+    rerender(
+      <HelpTip label="About the width" icon="info">
+        Up to 999 px.
+      </HelpTip>
+    )
+    expect(container.querySelector('svg')).toHaveAttribute('data-icon', 'info')
+    const button = screen.getByRole('button', { name: 'About the width' })
+    fireEvent.focus(button)
+    expect(await screen.findByText('Up to 999 px.')).toBeInTheDocument()
+  })
 })

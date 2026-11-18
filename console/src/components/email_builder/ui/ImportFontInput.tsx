@@ -4,6 +4,10 @@ import { useLingui } from '@lingui/react/macro'
 import { fontStylesheetUrl, withHttpsScheme } from '../../../utils/safeHtml'
 import { hasLiquidOutput } from '../../../utils/liquid'
 
+// Liquid examples go into messages as variables: braces in a message are placeholders
+const LIQUID_FONT_URL = '{{ font_url }}'
+const LIQUID_VARIABLE = '{{ variable }}'
+
 interface ImportFontInputProps {
   value?: {
     name?: string
@@ -138,12 +142,12 @@ const ImportFontInput: React.FC<ImportFontInputProps> = ({
           size="small"
           value={inputValues.href}
           onChange={(e) => setInputValues((prev) => ({ ...prev, href: e.target.value }))}
-          placeholder={t`https://fonts.googleapis.com/css?family=... or {{ font_url }}`}
+          placeholder={t`https://fonts.googleapis.com/css?family=... or ${LIQUID_FONT_URL}`}
           status={inputValues.href && !isValidUrl(inputValues.href) ? 'error' : undefined}
         />
         {inputValues.href && !isValidUrl(inputValues.href) && (
           <div className="text-xs text-red-500 mt-1">
-            {t`Invalid URL format. Use a valid URL or liquid expression like {{ variable }}`}
+            {t`Invalid URL format. Use a valid URL or liquid expression like ${LIQUID_VARIABLE}`}
           </div>
         )}
       </div>

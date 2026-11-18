@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { Switch } from 'antd'
-import type { MJMLComponentType, MJWrapperAttributes, MergedBlockAttributes } from '../types'
+import type { EmailBlock, MJMLComponentType, MJWrapperAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -9,147 +9,149 @@ import {
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
-import InputLayout from '../ui/InputLayout'
-import BackgroundInput from '../ui/BackgroundInput'
-import BorderInput from '../ui/BorderInput'
-import BorderRadiusInput from '../ui/BorderRadiusInput'
-import PaddingInput from '../ui/PaddingInput'
-import AlignSelector from '../ui/AlignSelector'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import PanelLayout from '../panels/PanelLayout'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { SegmentedField } from '../ui/fields/SegmentedField'
+import { useAlignOptions } from '../ui/fields/segmentedOptions'
+import { CornersField } from '../ui/fields/CornersField'
+import BorderField from '../ui/fields/BorderField'
+import { BackgroundFields, type BackgroundValues } from '../ui/fields/BackgroundFields'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { inheritedSidesOf, panelFields, sidesOf, useEmailColors } from './panelFields'
 
 // Functional component for settings panel with i18n support
 interface MjWrapperSettingsPanelProps {
+  blockId: string
   currentAttributes: MJWrapperAttributes
   blockDefaults: MergedBlockAttributes
   onUpdate: OnUpdateAttributesFunction
+  emailTree?: EmailBlock
 }
 
+const WRAPPER_BACKGROUND = [
+  'backgroundColor',
+  'backgroundUrl',
+  'backgroundSize',
+  'backgroundRepeat',
+  'backgroundPosition',
+  'backgroundPositionX',
+  'backgroundPositionY'
+] as const
+const WRAPPER_BORDERS = ['borderTop', 'borderRight', 'borderBottom', 'borderLeft'] as const
+const WRAPPER_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+
 const MjWrapperSettingsPanel: React.FC<MjWrapperSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
   blockDefaults,
-  onUpdate
+  onUpdate,
+  emailTree
 }) => {
   const { t } = useLingui()
-
-  const handleAttributeChange = (key: string, value: unknown) => {
-    onUpdate({ [key]: value })
-  }
-
-  const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
-    onUpdate(backgroundValues)
-  }
+  const own = currentAttributes as Record<string, unknown>
+  const f = panelFields(blockId, own, blockDefaults as Record<string, unknown>, onUpdate)
+  const colors = useEmailColors(emailTree)
+  const alignOptions = useAlignOptions()
+  const background = Object.fromEntries(WRAPPER_BACKGROUND.map((key) => [key, f.value(key)])) as BackgroundValues
+  const inheritedBackground = Object.fromEntries(
+    WRAPPER_BACKGROUND.map((key) => [key, f.inherited(key)])
+  ) as BackgroundValues
+  // An empty full-width is the block's own choice (off), so it is read before the inherited one.
+  const fullWidth = (own.fullWidth ?? (blockDefaults as Record<string, unknown>).fullWidth) === 'full-width'
 
   return (
-    <PanelLayout title={t`Wrapper attributes`}>
-      <div className="space-y-4">
-        {/* Background Settings */}
-        <BackgroundInput
-          value={{
-            backgroundColor: currentAttributes.backgroundColor,
-            backgroundUrl: currentAttributes.backgroundUrl,
-            backgroundSize: currentAttributes.backgroundSize,
-            backgroundRepeat: currentAttributes.backgroundRepeat,
-            backgroundPosition: currentAttributes.backgroundPosition
-          }}
-          onChange={handleBackgroundChange}
+    <>
+      <SettingsSection
+        sectionKey="mj-wrapper:background"
+        title={t`Background`}
+        first
+        setCount={f.setCount(...WRAPPER_BACKGROUND)}
+        summary={background.backgroundUrl ? t`Image` : background.backgroundColor}
+      >
+        <BackgroundFields
+          value={background}
+          inherited={inheritedBackground}
+          emailColors={colors}
+          onChange={(updates, options) => f.writeMany({ ...updates }, options)}
         />
+      </SettingsSection>
 
-        {/* Border Settings */}
-        <InputLayout label={t`Border`} layout="vertical">
-          <BorderInput
-            className="-mt-6"
-            value={{
-              borderTop: currentAttributes.borderTop,
-              borderRight: currentAttributes.borderRight,
-              borderBottom: currentAttributes.borderBottom,
-              borderLeft: currentAttributes.borderLeft
-            }}
-            onChange={(borderValues) => {
-              onUpdate({
-                borderTop: borderValues.borderTop,
-                borderRight: borderValues.borderRight,
-                borderBottom: borderValues.borderBottom,
-                borderLeft: borderValues.borderLeft
-              })
-            }}
-          />
-        </InputLayout>
-
-        {/* Border Radius */}
-        <InputLayout label={t`Border radius`}>
-          <BorderRadiusInput
-            value={currentAttributes.borderRadius}
-            onChange={(value) => onUpdate({ borderRadius: value })}
-            defaultValue={blockDefaults.borderRadius}
-          />
-        </InputLayout>
-
-        {/* Full Width */}
-
-        <InputLayout
-          label={t`Full Width`}
+      <SettingsSection
+        sectionKey="mj-wrapper:layout"
+        title={t`Layout`}
+        setCount={f.setCount('fullWidth', 'textAlign')}
+        summary={[fullWidth ? t`Full width` : undefined, f.value('textAlign')].filter(Boolean).join(' · ')}
+      >
+        <SettingsRow
+          label={t`Full width`}
           help={t`Makes the wrapper span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections.`}
+          isSet={f.isSet('fullWidth')}
+          onReset={f.reset('fullWidth')}
         >
           <Switch
             size="small"
-            checked={currentAttributes.fullWidth === 'full-width'}
-            onChange={(checked) =>
-              handleAttributeChange('fullWidth', checked ? 'full-width' : '')
-            }
+            aria-label={t`Full width`}
+            checked={fullWidth}
+            onChange={(checked) => f.write('fullWidth')(checked ? 'full-width' : '')}
           />
-        </InputLayout>
+        </SettingsRow>
+        <SettingsRow label={t`Text alignment`} isSet={f.isSet('textAlign')} onReset={f.reset('textAlign')}>
+          <SegmentedField
+            aria-label={t`Text alignment`}
+            value={f.value('textAlign')}
+            inherited={f.inherited('textAlign')}
+            options={alignOptions}
+            onChange={f.write('textAlign')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-        {/* Padding Settings */}
-        <InputLayout label={t`Padding`} layout="vertical">
-          <PaddingInput
-            value={{
-              top: currentAttributes.paddingTop,
-              right: currentAttributes.paddingRight,
-              bottom: currentAttributes.paddingBottom,
-              left: currentAttributes.paddingLeft
-            }}
-            defaultValue={{
-              top: blockDefaults.paddingTop,
-              right: blockDefaults.paddingRight,
-              bottom: blockDefaults.paddingBottom,
-              left: blockDefaults.paddingLeft
-            }}
-            onChange={(values: {
-              top: string | undefined
-              right: string | undefined
-              bottom: string | undefined
-              left: string | undefined
-            }) => {
-              onUpdate({
-                paddingTop: values.top,
-                paddingRight: values.right,
-                paddingBottom: values.bottom,
-                paddingLeft: values.left
-              })
-            }}
+      <SettingsSection
+        sectionKey="mj-wrapper:border"
+        title={t`Border and corners`}
+        setCount={f.setCount(...WRAPPER_BORDERS, 'borderRadius')}
+        summary={f.value('borderRadius')}
+      >
+        <SettingsRow label={t`Border`} vertical isSet={f.isSet(...WRAPPER_BORDERS)} onReset={f.reset(...WRAPPER_BORDERS)}>
+          <BorderField
+            emailColors={colors}
+            value={Object.fromEntries(WRAPPER_BORDERS.map((key) => [key, f.value(key)]))}
+            onChange={(borders, options) => f.writeMany({ ...borders }, options)}
           />
-        </InputLayout>
+        </SettingsRow>
+        <SettingsRow label={t`Corners`} isSet={f.isSet('borderRadius')} onReset={f.reset('borderRadius')}>
+          <CornersField
+            aria-label={t`Corners`}
+            value={f.value('borderRadius')}
+            inherited={f.inherited('borderRadius')}
+            coalesceBase={f.base('borderRadius')}
+            onChange={f.write('borderRadius')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-        {/* Text Alignment */}
-        <InputLayout label={t`Text Alignment`}>
-          <AlignSelector
-            value={currentAttributes.textAlign || blockDefaults.textAlign || 'left'}
-            onChange={(value) => handleAttributeChange('textAlign', value)}
-          />
-        </InputLayout>
+      <SettingsSection
+        sectionKey="mj-wrapper:spacing"
+        title={t`Spacing`}
+        setCount={f.setCount(...WRAPPER_PADDING)}
+        summary={WRAPPER_PADDING.map((key) => f.value(key)).filter(Boolean).join(' · ')}
+      >
+        <SpacingField
+          label={t`Around the sections`}
+          centerLabel={t`Sections`}
+          value={sidesOf(f, 'padding')}
+          inherited={inheritedSidesOf(f, 'padding')}
+          onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+            f.writeMany(toSideAttributes(sides, 'padding'), options)
+          }
+        />
+      </SettingsSection>
 
-        {/* CSS Class */}
-        <InputLayout label={t`CSS Class`} help={t`Custom CSS class for styling`}>
-          <StringPopoverInput
-            value={currentAttributes.cssClass || ''}
-            onChange={(value) => handleAttributeChange('cssClass', value)}
-            placeholder={t`my-custom-class`}
-            buttonText={t`Set Value`}
-          />
-        </InputLayout>
-      </div>
-    </PanelLayout>
+      <AdvancedSection type="mj-wrapper" fields={f} />
+    </>
   )
 }
 
@@ -239,15 +241,16 @@ export class MjWrapperBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: MergedBlockAttributes
+    blockDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
   ): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJWrapperAttributes
-
     return (
       <MjWrapperSettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJWrapperAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
+        emailTree={emailTree}
       />
     )
   }

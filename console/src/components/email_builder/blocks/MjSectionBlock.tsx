@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Switch, Radio, Tooltip } from 'antd'
-import type { MJMLComponentType, MJSectionAttributes, MergedBlockAttributes } from '../types'
+import { Switch } from 'antd'
+import type { EmailBlock, MJMLComponentType, MJSectionAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -11,176 +11,185 @@ import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { sectionChildWidth } from '../utils/sectionChildWidth'
 import { gutterCells, sectionGutterWidth } from '../utils/sectionGutter'
 import { EmailBlockClass } from '../EmailBlockClass'
-import PanelLayout from '../panels/PanelLayout'
-import InputLayout from '../ui/InputLayout'
-import BackgroundInput from '../ui/BackgroundInput'
-import BorderInput from '../ui/BorderInput'
-import PaddingInput from '../ui/PaddingInput'
-import AlignSelector from '../ui/AlignSelector'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import BorderRadiusInput from '../ui/BorderRadiusInput'
-import WidthInput from '../ui/WidthInput'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { SegmentedField } from '../ui/fields/SegmentedField'
+import { useAlignOptions, useDirectionOptions } from '../ui/fields/segmentedOptions'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { CornersField } from '../ui/fields/CornersField'
+import BorderField from '../ui/fields/BorderField'
+import { BackgroundFields, type BackgroundValues } from '../ui/fields/BackgroundFields'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { inheritedSidesOf, panelFields, sidesOf, useEmailColors } from './panelFields'
 
 // Functional component for settings panel with i18n support
 interface MjSectionSettingsPanelProps {
+  blockId: string
   currentAttributes: MJSectionAttributes
   blockDefaults: MergedBlockAttributes
   onUpdate: OnUpdateAttributesFunction
+  emailTree?: EmailBlock
 }
 
+const SECTION_BACKGROUND = [
+  'backgroundColor',
+  'backgroundUrl',
+  'backgroundSize',
+  'backgroundRepeat',
+  'backgroundPosition',
+  'backgroundPositionX',
+  'backgroundPositionY'
+] as const
+const SECTION_BORDERS = ['borderTop', 'borderRight', 'borderBottom', 'borderLeft'] as const
+const SECTION_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+
 const MjSectionSettingsPanel: React.FC<MjSectionSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
   blockDefaults,
-  onUpdate
+  onUpdate,
+  emailTree
 }) => {
   const { t } = useLingui()
-
-  const handleAttributeChange = (key: string, value: unknown) => {
-    onUpdate({ [key]: value })
-  }
-
-  const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
-    onUpdate(backgroundValues)
-  }
+  const own = currentAttributes as Record<string, unknown>
+  const f = panelFields(blockId, own, blockDefaults as Record<string, unknown>, onUpdate)
+  const colors = useEmailColors(emailTree)
+  const alignOptions = useAlignOptions()
+  const directionOptions = useDirectionOptions()
+  const background = Object.fromEntries(SECTION_BACKGROUND.map((key) => [key, f.value(key)])) as BackgroundValues
+  const inheritedBackground = Object.fromEntries(
+    SECTION_BACKGROUND.map((key) => [key, f.inherited(key)])
+  ) as BackgroundValues
+  // An empty full-width is the block's own choice (off), so it is read before the inherited one.
+  const fullWidth = (own.fullWidth ?? (blockDefaults as Record<string, unknown>).fullWidth) === 'full-width'
+  const gutter = f.value('gutter')
 
   return (
-    <PanelLayout title={t`Section attributes`}>
-      <div className="space-y-4">
-        {/* Background Settings */}
-        <BackgroundInput
-          value={{
-            backgroundColor: currentAttributes.backgroundColor,
-            backgroundUrl: currentAttributes.backgroundUrl,
-            backgroundSize: currentAttributes.backgroundSize,
-            backgroundRepeat: currentAttributes.backgroundRepeat,
-            backgroundPosition: currentAttributes.backgroundPosition,
-            backgroundPositionX: currentAttributes.backgroundPositionX,
-            backgroundPositionY: currentAttributes.backgroundPositionY
-          }}
-          onChange={handleBackgroundChange}
+    <>
+      <SettingsSection
+        sectionKey="mj-section:background"
+        title={t`Background`}
+        first
+        setCount={f.setCount(...SECTION_BACKGROUND)}
+        summary={background.backgroundUrl ? t`Image` : background.backgroundColor}
+      >
+        <BackgroundFields
+          value={background}
+          inherited={inheritedBackground}
+          emailColors={colors}
+          onChange={(updates, options) => f.writeMany({ ...updates }, options)}
         />
+      </SettingsSection>
 
-        {/* Border Settings */}
-        <InputLayout label={t`Border`} layout="vertical">
-          <BorderInput
-            className="-mt-6"
-            value={{
-              borderTop: currentAttributes.borderTop,
-              borderRight: currentAttributes.borderRight,
-              borderBottom: currentAttributes.borderBottom,
-              borderLeft: currentAttributes.borderLeft
-            }}
-            onChange={(borderValues) => {
-              onUpdate({
-                borderTop: borderValues.borderTop,
-                borderRight: borderValues.borderRight,
-                borderBottom: borderValues.borderBottom,
-                borderLeft: borderValues.borderLeft
-              })
-            }}
-          />
-        </InputLayout>
-
-        {/* Border Radius */}
-        <InputLayout label={t`Border radius`}>
-          <BorderRadiusInput
-            value={currentAttributes.borderRadius}
-            onChange={(value) => onUpdate({ borderRadius: value })}
-            defaultValue={blockDefaults.borderRadius}
-          />
-        </InputLayout>
-
-        {/* Padding Settings */}
-
-        <InputLayout label={t`Padding`} layout="vertical">
-          <PaddingInput
-            value={{
-              top: currentAttributes.paddingTop,
-              right: currentAttributes.paddingRight,
-              bottom: currentAttributes.paddingBottom,
-              left: currentAttributes.paddingLeft
-            }}
-            defaultValue={{
-              top: blockDefaults.paddingTop,
-              right: blockDefaults.paddingRight,
-              bottom: blockDefaults.paddingBottom,
-              left: blockDefaults.paddingLeft
-            }}
-            onChange={(values: {
-              top: string | undefined
-              right: string | undefined
-              bottom: string | undefined
-              left: string | undefined
-            }) => {
-              onUpdate({
-                paddingTop: values.top,
-                paddingRight: values.right,
-                paddingBottom: values.bottom,
-                paddingLeft: values.left
-              })
-            }}
-          />
-        </InputLayout>
-
-        <InputLayout
-          label={t`Column gap`}
-          help={t`Space between the columns, in pixels or percent. The outer edges of the section get none.`}
-        >
-          <WidthInput
-            value={currentAttributes.gutter}
-            onChange={(value) => handleAttributeChange('gutter', value)}
-            placeholder={blockDefaults.gutter || t`None`}
-            defaultUnit="px"
-          />
-        </InputLayout>
-
-        {/* Layout Settings */}
-        <InputLayout label={t`Text Alignment`}>
-          <AlignSelector
-            value={currentAttributes.textAlign || blockDefaults.textAlign || 'left'}
-            onChange={(value) => handleAttributeChange('textAlign', value)}
-          />
-        </InputLayout>
-
-        <InputLayout label={t`Text Direction`}>
-          <Radio.Group
-            size="small"
-            value={currentAttributes.direction || blockDefaults.direction || 'ltr'}
-            onChange={(e) => handleAttributeChange('direction', e.target.value)}
-          >
-            <Radio.Button value="ltr">
-              <Tooltip title={t`Left to Right`}>LTR</Tooltip>
-            </Radio.Button>
-            <Radio.Button value="rtl">
-              <Tooltip title={t`Right to Left`}>RTL</Tooltip>
-            </Radio.Button>
-          </Radio.Group>
-        </InputLayout>
-
-        <InputLayout
-          label={t`Full Width`}
+      <SettingsSection
+        sectionKey="mj-section:layout"
+        title={t`Layout`}
+        setCount={f.setCount('fullWidth', 'textAlign', 'direction')}
+        summary={[fullWidth ? t`Full width` : undefined, f.value('textAlign'), f.value('direction')]
+          .filter(Boolean)
+          .join(' · ')}
+      >
+        <SettingsRow
+          label={t`Full width`}
           help={t`Makes the section span the entire email viewport width, ignoring container constraints (typically 600px). Useful for full-bleed backgrounds and hero sections.`}
+          isSet={f.isSet('fullWidth')}
+          onReset={f.reset('fullWidth')}
         >
           <Switch
             size="small"
-            checked={currentAttributes.fullWidth === 'full-width'}
-            onChange={(checked) =>
-              handleAttributeChange('fullWidth', checked ? 'full-width' : '')
-            }
+            aria-label={t`Full width`}
+            checked={fullWidth}
+            onChange={(checked) => f.write('fullWidth')(checked ? 'full-width' : '')}
           />
-        </InputLayout>
+        </SettingsRow>
+        <SettingsRow label={t`Text alignment`} isSet={f.isSet('textAlign')} onReset={f.reset('textAlign')}>
+          <SegmentedField
+            aria-label={t`Text alignment`}
+            value={f.value('textAlign')}
+            inherited={f.inherited('textAlign')}
+            options={alignOptions}
+            onChange={f.write('textAlign')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Direction`} isSet={f.isSet('direction')} onReset={f.reset('direction')}>
+          <SegmentedField
+            aria-label={t`Direction`}
+            value={f.value('direction')}
+            inherited={f.inherited('direction')}
+            options={directionOptions}
+            onChange={f.write('direction')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-        {/* Advanced Settings */}
-        <InputLayout label={t`CSS Class`} help={t`Custom CSS class for styling`}>
-          <StringPopoverInput
-            value={currentAttributes.cssClass}
-            onChange={(value) => handleAttributeChange('cssClass', value)}
-            placeholder={t`my-custom-class`}
-            buttonText={t`Set Value`}
+      <SettingsSection
+        sectionKey="mj-section:border"
+        title={t`Border and corners`}
+        setCount={f.setCount(...SECTION_BORDERS, 'borderRadius')}
+        summary={f.value('borderRadius')}
+      >
+        <SettingsRow label={t`Border`} vertical isSet={f.isSet(...SECTION_BORDERS)} onReset={f.reset(...SECTION_BORDERS)}>
+          <BorderField
+            emailColors={colors}
+            value={Object.fromEntries(SECTION_BORDERS.map((key) => [key, f.value(key)]))}
+            onChange={(borders, options) => f.writeMany({ ...borders }, options)}
           />
-        </InputLayout>
-      </div>
-    </PanelLayout>
+        </SettingsRow>
+        <SettingsRow label={t`Corners`} isSet={f.isSet('borderRadius')} onReset={f.reset('borderRadius')}>
+          <CornersField
+            aria-label={t`Corners`}
+            value={f.value('borderRadius')}
+            inherited={f.inherited('borderRadius')}
+            coalesceBase={f.base('borderRadius')}
+            onChange={f.write('borderRadius')}
+          />
+        </SettingsRow>
+      </SettingsSection>
+
+      <SettingsSection
+        sectionKey="mj-section:spacing"
+        title={t`Spacing`}
+        setCount={f.setCount(...SECTION_PADDING, 'gutter')}
+        summary={[...SECTION_PADDING.map((key) => f.value(key)), gutter ? t`gap ${gutter}` : undefined]
+          .filter(Boolean)
+          .join(' · ')}
+      >
+        <SpacingField
+          label={t`Around the columns`}
+          centerLabel={t`Columns`}
+          value={sidesOf(f, 'padding')}
+          inherited={inheritedSidesOf(f, 'padding')}
+          onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+            f.writeMany(toSideAttributes(sides, 'padding'), options)
+          }
+        />
+        <div className="mt-2">
+          <SettingsRow
+            label={t`Column gap`}
+            help={t`Space between the columns, in pixels or percent. The outer edges of the section get none.`}
+            isSet={f.isSet('gutter')}
+            onReset={f.reset('gutter')}
+          >
+            <NumberUnitField
+              aria-label={t`Column gap`}
+              value={gutter}
+              inherited={f.inherited('gutter')}
+              placeholder={t`None`}
+              units={['px', '%']}
+              defaultUnit="px"
+              step={{ '%': 1, px: 10 }}
+              coalesceBase={f.base('gutter')}
+              onChange={f.write('gutter')}
+            />
+          </SettingsRow>
+        </div>
+      </SettingsSection>
+
+      <AdvancedSection type="mj-section" fields={f} />
+    </>
   )
 }
 
@@ -259,15 +268,18 @@ export class MjSectionBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the section block
    */
-  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJSectionAttributes
-    const blockDefaults = this.getDefaults() as MergedBlockAttributes
-
+  renderSettingsPanel(
+    onUpdate: OnUpdateAttributesFunction,
+    blockDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
+  ): React.ReactNode {
     return (
       <MjSectionSettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJSectionAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
+        emailTree={emailTree}
       />
     )
   }

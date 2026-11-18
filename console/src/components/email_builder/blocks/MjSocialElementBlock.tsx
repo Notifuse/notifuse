@@ -1,19 +1,26 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Select, InputNumber, Row, Col, Input, Switch } from 'antd'
-import type { MJMLComponentType, MJSocialElementAttributes } from '../types'
+import { Select, Switch } from 'antd'
+import type { EmailBlock, MJMLComponentType, MJSocialElementAttributes, MergedBlockAttributes } from '../types'
 import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { isSafeHref } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
-import InputLayout from '../ui/InputLayout'
-import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
-import AlignSelector from '../ui/AlignSelector'
-import PaddingInput from '../ui/PaddingInput'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import BorderRadiusInput from '../ui/BorderRadiusInput'
-import { SingleBorderInput } from '../ui/BorderInput'
-import PanelLayout from '../panels/PanelLayout'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { DraftTextField } from '../ui/fields/DraftTextField'
+import { ColorField } from '../ui/fields/ColorField'
+import { FontFields } from '../ui/fields/FontFields'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { SegmentedField } from '../ui/fields/SegmentedField'
+import { useAlignOptions, useVerticalAlignOptions } from '../ui/fields/segmentedOptions'
+import { CornersField } from '../ui/fields/CornersField'
+import { SingleBorderField } from '../ui/fields/BorderField'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { parsePaddingShorthand, toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { useImportedFonts, inheritedSidesOf, panelFields, sidesOf, useEmailColors, useLinkTargetOptions } from './panelFields'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faFacebook,
@@ -34,6 +41,9 @@ import {
   faSquareXTwitter
 } from '@fortawesome/free-brands-svg-icons'
 import { faGlobe } from '@fortawesome/free-solid-svg-icons'
+
+// Liquid examples go into messages as variables: braces in a message are placeholders
+const LIQUID_URL = '{{ url }}'
 
 // Networks that have share URL templates in safe-mjml.
 // When name is plain (e.g. "facebook"), safe-mjml wraps href in share URL,
@@ -61,445 +71,388 @@ const isShareMode = (name?: string): boolean => {
   return NETWORKS_WITH_SHARE_URL.has(baseName) && !name.endsWith('-noshare')
 }
 
-// Functional component for settings panel with i18n support
-interface MjSocialElementSettingsPanelProps {
-  currentAttributes: MJSocialElementAttributes
-  blockDefaults: MJSocialElementAttributes
-  onUpdate: OnUpdateAttributesFunction
-  parsePixelValue: (value?: string) => number | undefined
+// A px length as a number ("20px", "20p" or "20"), for the placeholders
+const pixels = (value?: string): number | undefined => {
+  const match = value?.match(/^(\d+(?:\.\d+)?)px?$/)
+  return match ? parseFloat(match[1]) : undefined
 }
 
+// The networks offered for a new choice, with their names. « Twitter » is no longer offered (X
+// replaces it); an element saved as twitter still shows it (see networkOptions).
+const NETWORKS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'x', label: 'X' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'github', label: 'GitHub' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'pinterest', label: 'Pinterest' },
+  { value: 'google', label: 'Google' },
+  { value: 'snapchat', label: 'Snapchat' },
+  { value: 'dribbble', label: 'Dribbble' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'tumblr', label: 'Tumblr' },
+  { value: 'vimeo', label: 'Vimeo' },
+  { value: 'soundcloud', label: 'SoundCloud' },
+  { value: 'xing', label: 'Xing' }
+]
+
+// The settings panel of an mj-social-element block
+interface MjSocialElementSettingsPanelProps {
+  blockId: string
+  currentAttributes: MJSocialElementAttributes
+  /** The element's label, shown beside its icon */
+  content?: string
+  /** What the element inherits: its defaults, what its mj-social passes, the template's default attributes */
+  blockDefaults: Record<string, unknown>
+  onUpdate: OnUpdateAttributesFunction
+  emailTree?: EmailBlock
+}
+
+// The font group of an element: its size is a row of its own (8 to 48 px), beside its colour
+const ELEMENT_FONT_FIELDS = ['fontFamily', 'fontWeight', 'fontStyle', 'textDecoration', 'lineHeight'] as const
+const ELEMENT_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+
 const MjSocialElementSettingsPanel: React.FC<MjSocialElementSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
+  content,
   blockDefaults,
   onUpdate,
-  parsePixelValue
+  emailTree
 }) => {
   const { t } = useLingui()
+  const f = panelFields(blockId, currentAttributes as Record<string, unknown>, blockDefaults, onUpdate)
+  const colors = useEmailColors(emailTree)
+  const importedFonts = useImportedFonts(emailTree)
+  const alignOptions = useAlignOptions()
+  const verticalAlignOptions = useVerticalAlignOptions()
+  const targetOptions = useLinkTargetOptions()
+
+  const baseName = getBaseNetworkName(currentAttributes.name)
+  const networkOptions = [
+    { value: 'custom', label: t`Custom` },
+    ...NETWORKS.slice(0, 1),
+    // Kept for an element saved as twitter, which still shows and edits as such
+    ...(baseName === 'twitter' ? [{ value: 'twitter', label: 'Twitter' }] : []),
+    ...NETWORKS.slice(1),
+    { value: 'web', label: t`Website` }
+  ]
+  const networkLabel = networkOptions.find((option) => option.value === baseName)?.label
+
+  const fontValues = Object.fromEntries(
+    [...ELEMENT_FONT_FIELDS, 'fontSize'].map((key) => [key, f.value(key)])
+  )
+  const fontInherited = Object.fromEntries(
+    [...ELEMENT_FONT_FIELDS, 'fontSize'].map((key) => [key, f.inherited(key)])
+  )
+
+  // The element's padding sides inherit the padding its mj-social passes (its inner-padding), else 4px
+  const passedPadding = parsePaddingShorthand(f.inherited('padding'))
+  const inheritedSides = inheritedSidesOf(f, 'padding')
+  const elementPaddingInherited: SpacingSides = {
+    top: inheritedSides.top ?? passedPadding.top,
+    right: inheritedSides.right ?? passedPadding.right,
+    bottom: inheritedSides.bottom ?? passedPadding.bottom,
+    left: inheritedSides.left ?? passedPadding.left
+  }
+
+  // Without a height, the icon is as high as its size
+  const iconHeightPlaceholder = String(
+    pixels(f.value('iconSize')) ?? pixels(f.inherited('iconSize')) ?? 20
+  )
+  const contentValue = content === '' ? undefined : content
 
   return (
-    <PanelLayout title={t`Social element attributes`}>
-      <InputLayout label={t`Social Network`}>
-        <Select
-          size="small"
-          value={getBaseNetworkName(currentAttributes.name) || 'custom'}
-          onChange={(value) => {
-            if (value === 'custom') {
-              onUpdate({ name: undefined })
-            } else if (NETWORKS_WITH_SHARE_URL.has(value)) {
-              onUpdate({ name: value + '-noshare' })
-            } else {
-              onUpdate({ name: value })
-            }
-          }}
-          style={{ width: '100%' }}
-        >
-          <Select.Option value="custom">{t`Custom`}</Select.Option>
-          <Select.Option value="facebook">Facebook</Select.Option>
-          <Select.Option value="twitter">Twitter</Select.Option>
-          <Select.Option value="x">X (Twitter)</Select.Option>
-          <Select.Option value="instagram">Instagram</Select.Option>
-          <Select.Option value="linkedin">LinkedIn</Select.Option>
-          <Select.Option value="github">GitHub</Select.Option>
-          <Select.Option value="youtube">YouTube</Select.Option>
-          <Select.Option value="pinterest">Pinterest</Select.Option>
-          <Select.Option value="google">Google</Select.Option>
-          <Select.Option value="snapchat">Snapchat</Select.Option>
-          <Select.Option value="dribbble">Dribbble</Select.Option>
-          <Select.Option value="medium">Medium</Select.Option>
-          <Select.Option value="tumblr">Tumblr</Select.Option>
-          <Select.Option value="vimeo">Vimeo</Select.Option>
-          <Select.Option value="soundcloud">SoundCloud</Select.Option>
-          <Select.Option value="xing">Xing</Select.Option>
-          <Select.Option value="web">{t`Website`}</Select.Option>
-        </Select>
-      </InputLayout>
-
-      {NETWORKS_WITH_SHARE_URL.has(getBaseNetworkName(currentAttributes.name)) && (
-        <InputLayout
-          label={t`Share link`}
-          help={t`When enabled, the link will prompt visitors to share the URL on this social network. When disabled, the link opens directly.`}
-        >
-          <Switch
+    <>
+      <SettingsSection
+        sectionKey="mj-social-element:network"
+        title={t`Network`}
+        first
+        setCount={f.setCount('name', 'href', 'src', 'alt') + (contentValue ? 1 : 0)}
+        summary={networkLabel}
+      >
+        <SettingsRow label={t`Network`} isSet={f.isSet('name')} onReset={f.reset('name')}>
+          <Select
             size="small"
-            checked={isShareMode(currentAttributes.name)}
-            onChange={(checked) => {
-              const baseName = getBaseNetworkName(currentAttributes.name)
-              onUpdate({ name: checked ? baseName : baseName + '-noshare' })
+            className="w-full"
+            aria-label={t`Social network`}
+            value={baseName || 'custom'}
+            options={networkOptions}
+            onChange={(value: string) => {
+              if (value === 'custom') {
+                f.write('name')(undefined)
+              } else if (NETWORKS_WITH_SHARE_URL.has(value)) {
+                f.write('name')(value + '-noshare')
+              } else {
+                f.write('name')(value)
+              }
             }}
           />
-        </InputLayout>
-      )}
+        </SettingsRow>
+        <SettingsRow label={t`Link`} isSet={f.isSet('href')} onReset={f.reset('href')}>
+          <DraftTextField
+            aria-label={t`Link URL`}
+            value={f.value('href')}
+            onChange={f.write('href')}
+            placeholder={t`https://example.com or ${LIQUID_URL}`}
+            validate="url"
+            mono
+          />
+        </SettingsRow>
+        {NETWORKS_WITH_SHARE_URL.has(baseName) && (
+          <SettingsRow
+            label={t`Share link`}
+            help={t`When enabled, the link will prompt visitors to share the URL on this social network. When disabled, the link opens directly.`}
+          >
+            <Switch
+              size="small"
+              aria-label={t`Share link`}
+              checked={isShareMode(currentAttributes.name)}
+              onChange={(checked) => f.write('name')(checked ? baseName : baseName + '-noshare')}
+            />
+          </SettingsRow>
+        )}
+        <SettingsRow
+          label={t`Icon`}
+          help={t`Empty: the network's icon. A URL replaces it, on a network too.`}
+          isSet={f.isSet('src')}
+          onReset={f.reset('src')}
+        >
+          <DraftTextField
+            aria-label={t`Custom icon URL`}
+            value={f.value('src')}
+            onChange={f.write('src')}
+            placeholder={networkLabel && baseName !== 'web' ? t`${networkLabel} icon · URL to replace it` : 'https://example.com/icon.png'}
+            mono
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Alt text`} isSet={f.isSet('alt')} onReset={f.reset('alt')}>
+          <DraftTextField
+            aria-label={t`Alt text`}
+            value={f.value('alt')}
+            onChange={f.write('alt')}
+            placeholder={t`Social media icon`}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Label`}
+          help={t`The text shown beside the icon.`}
+          isSet={contentValue !== undefined}
+          onReset={() => onUpdate({ content: undefined })}
+        >
+          <DraftTextField
+            aria-label={t`Label`}
+            value={contentValue}
+            onChange={(value) => onUpdate({ content: value })}
+            placeholder={t`Text beside the icon`}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Link URL`}>
-        <StringPopoverInput
-          value={currentAttributes.href || ''}
-          onChange={(value) => onUpdate({ href: value || undefined })}
-          placeholder={t`https://example.com or {{ url }}`}
-          buttonText={t`Set link URL`}
-          validateUri={true}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Custom Icon URL`}>
-        <Input
-          size="small"
-          value={currentAttributes.src || ''}
-          onChange={(e) => onUpdate({ src: e.target.value || undefined })}
-          placeholder="https://example.com/icon.png"
-          style={{ width: '100%' }}
-          disabled={!!(currentAttributes.name && currentAttributes.name !== 'custom')}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Alt Text`}>
-        <Input
-          size="small"
-          value={currentAttributes.alt || ''}
-          onChange={(e) => onUpdate({ alt: e.target.value || undefined })}
-          placeholder={t`Social media icon`}
-          style={{ width: '100%' }}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Alignment`}>
-        <AlignSelector
-          value={currentAttributes.align || 'center'}
-          onChange={(value) => onUpdate({ align: value })}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Icon Settings`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Size`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <InputNumber
-                  size="small"
-                  value={parsePixelValue(currentAttributes.iconSize)}
-                  onChange={(value) => onUpdate({ iconSize: value ? `${value}px` : undefined })}
-                  placeholder={(parsePixelValue(blockDefaults.iconSize) || 20).toString()}
-                  min={10}
-                  max={100}
-                  step={1}
-                  suffix="px"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Height`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <InputNumber
-                  size="small"
-                  value={parsePixelValue(currentAttributes.iconHeight)}
-                  onChange={(value) => onUpdate({ iconHeight: value ? `${value}px` : undefined })}
-                  placeholder={(
-                    parsePixelValue(currentAttributes.iconSize) ||
-                    parsePixelValue(blockDefaults.iconHeight) ||
-                    20
-                  ).toString()}
-                  min={10}
-                  max={100}
-                  step={1}
-                  suffix="px"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
-
-      <InputLayout label={t`Icon Styling`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Background`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.backgroundColor || undefined}
-                  onChange={(color) => onUpdate({ backgroundColor: color || undefined })}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Border Radius`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <BorderRadiusInput
-                  value={currentAttributes.borderRadius}
-                  onChange={(value) => onUpdate({ borderRadius: value })}
-                  defaultValue={blockDefaults.borderRadius}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-        <div className="mb-2">
-          <span className="text-xs text-gray-500">{t`Border`}</span>
-          <div style={{ marginTop: '4px' }}>
-            <SingleBorderInput
-              value={currentAttributes.border}
-              onChange={(value) => onUpdate({ border: value })}
-              noneValue="none"
+      <SettingsSection
+        sectionKey="mj-social-element:icon"
+        title={t`Icon`}
+        setCount={f.setCount('iconSize', 'iconHeight', 'backgroundColor', 'borderRadius', 'border', 'verticalAlign', 'align')}
+      >
+        <SettingsRow
+          label={t`Size, height`}
+          help={t`10 to 100 px. Without a height, the icon is as high as its size.`}
+          isSet={f.isSet('iconSize', 'iconHeight')}
+          onReset={f.reset('iconSize', 'iconHeight')}
+        >
+          <div className="grid grid-cols-2 gap-1.5">
+            <NumberUnitField
+              aria-label={t`Icon size`}
+              value={f.value('iconSize')}
+              inherited={f.inherited('iconSize')}
+              placeholder="20"
+              units={['px']}
+              min={10}
+              max={100}
+              coalesceBase={f.base('iconSize')}
+              onChange={f.write('iconSize')}
+            />
+            <NumberUnitField
+              aria-label={t`Icon height`}
+              value={f.value('iconHeight')}
+              inherited={f.inherited('iconHeight')}
+              placeholder={iconHeightPlaceholder}
+              units={['px']}
+              min={10}
+              max={100}
+              coalesceBase={f.base('iconHeight')}
+              onChange={f.write('iconHeight')}
             />
           </div>
-        </div>
-      </InputLayout>
-
-      <InputLayout label={t`Text Settings`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Color`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.color || undefined}
-                  onChange={(color) => onUpdate({ color: color || undefined })}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Font Size`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <InputNumber
-                  size="small"
-                  value={parsePixelValue(currentAttributes.fontSize)}
-                  onChange={(value) => onUpdate({ fontSize: value ? `${value}px` : undefined })}
-                  placeholder={(parsePixelValue(blockDefaults.fontSize) || 13).toString()}
-                  min={8}
-                  max={48}
-                  step={1}
-                  suffix="px"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
-
-      <InputLayout label={t`Font Settings`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Weight`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <Select
-                  size="small"
-                  value={currentAttributes.fontWeight || 'normal'}
-                  onChange={(value) => onUpdate({ fontWeight: value })}
-                  style={{ width: '100%' }}
-                >
-                  <Select.Option value="normal">{t`Normal`}</Select.Option>
-                  <Select.Option value="bold">{t`Bold`}</Select.Option>
-                  <Select.Option value="lighter">{t`Lighter`}</Select.Option>
-                  <Select.Option value="100">100</Select.Option>
-                  <Select.Option value="200">200</Select.Option>
-                  <Select.Option value="300">300</Select.Option>
-                  <Select.Option value="400">400</Select.Option>
-                  <Select.Option value="500">500</Select.Option>
-                  <Select.Option value="600">600</Select.Option>
-                  <Select.Option value="700">700</Select.Option>
-                  <Select.Option value="800">800</Select.Option>
-                  <Select.Option value="900">900</Select.Option>
-                </Select>
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Style`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <Select
-                  size="small"
-                  value={currentAttributes.fontStyle || 'normal'}
-                  onChange={(value) => onUpdate({ fontStyle: value })}
-                  style={{ width: '100%' }}
-                >
-                  <Select.Option value="normal">{t`Normal`}</Select.Option>
-                  <Select.Option value="italic">{t`Italic`}</Select.Option>
-                  <Select.Option value="oblique">{t`Oblique`}</Select.Option>
-                </Select>
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Decoration`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <Select
-                  size="small"
-                  value={currentAttributes.textDecoration || 'none'}
-                  onChange={(value) => onUpdate({ textDecoration: value })}
-                  style={{ width: '100%' }}
-                >
-                  <Select.Option value="none">{t`None`}</Select.Option>
-                  <Select.Option value="underline">{t`Underline`}</Select.Option>
-                  <Select.Option value="overline">{t`Overline`}</Select.Option>
-                  <Select.Option value="line-through">{t`Line Through`}</Select.Option>
-                </Select>
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
-
-      <InputLayout label={t`Font Family`}>
-        <Input
-          size="small"
-          value={currentAttributes.fontFamily || ''}
-          onChange={(e) => onUpdate({ fontFamily: e.target.value || undefined })}
-          placeholder={blockDefaults.fontFamily || 'Ubuntu, Helvetica, Arial, sans-serif'}
-          style={{ width: '100%' }}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Line height`}>
-        <StringPopoverInput
-          value={currentAttributes.lineHeight || ''}
-          onChange={(value) => onUpdate({ lineHeight: value || undefined })}
-          placeholder={blockDefaults.lineHeight || '22px'}
-          buttonText={t`Set height`}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Vertical Align`}>
-        <Select
-          size="small"
-          value={currentAttributes.verticalAlign || 'middle'}
-          onChange={(value) => onUpdate({ verticalAlign: value })}
-          style={{ width: '100%' }}
+        </SettingsRow>
+        <SettingsRow label={t`Background`} isSet={f.isSet('backgroundColor')} onReset={f.reset('backgroundColor')}>
+          <ColorField
+            aria-label={t`Icon background`}
+            value={f.value('backgroundColor')}
+            inherited={f.inherited('backgroundColor')}
+            emailColors={colors}
+            onChange={f.write('backgroundColor')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Corners`} isSet={f.isSet('borderRadius')} onReset={f.reset('borderRadius')}>
+          <CornersField
+            aria-label={t`Corners`}
+            value={f.value('borderRadius')}
+            inherited={f.inherited('borderRadius')}
+            coalesceBase={f.base('borderRadius')}
+            onChange={f.write('borderRadius')}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Border`}
+          help={t`Around the icon. None by default, else the border of its social block.`}
+          vertical
+          isSet={f.isSet('border')}
+          onReset={f.reset('border')}
         >
-          <Select.Option value="top">{t`Top`}</Select.Option>
-          <Select.Option value="middle">{t`Middle`}</Select.Option>
-          <Select.Option value="bottom">{t`Bottom`}</Select.Option>
-        </Select>
-      </InputLayout>
+          <SingleBorderField value={f.value('border')} onChange={f.write('border')} noneValue="none" emailColors={colors} />
+        </SettingsRow>
+        <SettingsRow label={t`Vertical align`} isSet={f.isSet('verticalAlign')} onReset={f.reset('verticalAlign')}>
+          <SegmentedField
+            aria-label={t`Vertical align`}
+            value={f.value('verticalAlign')}
+            inherited={f.inherited('verticalAlign')}
+            options={verticalAlignOptions}
+            onChange={f.write('verticalAlign')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Alignment`} isSet={f.isSet('align')} onReset={f.reset('align')}>
+          <SegmentedField
+            aria-label={t`Alignment`}
+            value={f.value('align')}
+            inherited={f.inherited('align')}
+            options={alignOptions}
+            onChange={f.write('align')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Link Settings`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Target`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <Select
-                  size="small"
-                  value={currentAttributes.target || '_blank'}
-                  onChange={(value) => onUpdate({ target: value })}
-                  style={{ width: '100%' }}
-                >
-                  <Select.Option value="_blank">{t`New Window`}</Select.Option>
-                  <Select.Option value="_self">{t`Same Window`}</Select.Option>
-                  <Select.Option value="_parent">{t`Parent Frame`}</Select.Option>
-                  <Select.Option value="_top">{t`Top Frame`}</Select.Option>
-                </Select>
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Rel`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <Input
-                  size="small"
-                  value={currentAttributes.rel || ''}
-                  onChange={(e) => onUpdate({ rel: e.target.value || undefined })}
-                  placeholder="noopener"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
-
-      <InputLayout label={t`Title`}>
-        <Input
-          size="small"
-          value={currentAttributes.title || ''}
-          onChange={(e) => onUpdate({ title: e.target.value || undefined })}
-          placeholder={t`Tooltip text`}
-          style={{ width: '100%' }}
+      <SettingsSection
+        sectionKey="mj-social-element:text"
+        title={t`Text`}
+        setCount={f.setCount('color', 'fontSize', ...ELEMENT_FONT_FIELDS)}
+        summary={[f.value('fontFamily')?.split(',')[0], f.value('fontSize')].filter(Boolean).join(' · ')}
+      >
+        <SettingsRow
+          label={t`Color, size`}
+          help={t`Font size: 8 to 48 px.`}
+          isSet={f.isSet('color', 'fontSize')}
+          onReset={f.reset('color', 'fontSize')}
+        >
+          <div className="grid grid-cols-2 gap-1.5">
+            <ColorField
+              aria-label={t`Text color`}
+              value={f.value('color')}
+              inherited={f.inherited('color')}
+              emailColors={colors}
+              onChange={f.write('color')}
+            />
+            <NumberUnitField
+              aria-label={t`Font size`}
+              value={f.value('fontSize')}
+              inherited={f.inherited('fontSize')}
+              placeholder="13"
+              units={['px']}
+              min={8}
+              max={48}
+              coalesceBase={f.base('fontSize')}
+              onChange={f.write('fontSize')}
+            />
+          </div>
+        </SettingsRow>
+        <FontFields
+          value={fontValues}
+          inherited={fontInherited}
+          importedFonts={importedFonts}
+          fields={ELEMENT_FONT_FIELDS}
+          onChange={(updates, options) => f.writeMany(updates, options)}
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout label={t`Padding Settings`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Icon Padding`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <StringPopoverInput
-                  value={currentAttributes.iconPadding || ''}
-                  onChange={(value) => onUpdate({ iconPadding: value || undefined })}
-                  placeholder={blockDefaults.iconPadding || '0px'}
-                  buttonText={t`Set padding`}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Text Padding`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <StringPopoverInput
-                  value={currentAttributes.textPadding || ''}
-                  onChange={(value) => onUpdate({ textPadding: value || undefined })}
-                  placeholder={blockDefaults.textPadding || '4px 4px 4px 0'}
-                  buttonText={t`Set padding`}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-social-element:link"
+        title={t`Link`}
+        setCount={f.setCount('target', 'rel', 'title')}
+        summary={targetOptions.find((option) => option.value === f.value('target'))?.label}
+      >
+        <SettingsRow label={t`Open in`} isSet={f.isSet('target')} onReset={f.reset('target')}>
+          <Select
+            size="small"
+            className="w-full"
+            aria-label={t`Open in`}
+            value={f.value('target')}
+            placeholder={targetOptions.find((option) => option.value === (f.inherited('target') ?? '_blank'))?.label}
+            options={targetOptions}
+            onChange={(value: string) => f.write('target')(value)}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Rel`} help={t`The link's rel attribute, e.g. noopener.`} isSet={f.isSet('rel')} onReset={f.reset('rel')}>
+          <DraftTextField aria-label={t`Rel`} value={f.value('rel')} onChange={f.write('rel')} placeholder="noopener" mono />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Tooltip`}
+          help={t`Shown when the pointer rests on the icon (title attribute).`}
+          isSet={f.isSet('title')}
+          onReset={f.reset('title')}
+        >
+          <DraftTextField aria-label={t`Tooltip`} value={f.value('title')} onChange={f.write('title')} placeholder={t`Tooltip text`} />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Element Padding`} layout="vertical">
-        <PaddingInput
-          value={{
-            top: currentAttributes.paddingTop,
-            right: currentAttributes.paddingRight,
-            bottom: currentAttributes.paddingBottom,
-            left: currentAttributes.paddingLeft
-          }}
-          defaultValue={{
-            top: blockDefaults.paddingTop,
-            right: blockDefaults.paddingRight,
-            bottom: blockDefaults.paddingBottom,
-            left: blockDefaults.paddingLeft
-          }}
-          onChange={(values: {
-            top: string | undefined
-            right: string | undefined
-            bottom: string | undefined
-            left: string | undefined
-          }) => {
-            onUpdate({
-              paddingTop: values.top,
-              paddingRight: values.right,
-              paddingBottom: values.bottom,
-              paddingLeft: values.left
-            })
-          }}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-social-element:spacing"
+        title={t`Spacing`}
+        setCount={f.setCount('iconPadding', 'textPadding', ...ELEMENT_PADDING)}
+      >
+        <SettingsRow
+          label={t`Icon padding`}
+          help={t`Around the icon's image, as a CSS padding (e.g. 4px 8px).`}
+          isSet={f.isSet('iconPadding')}
+          onReset={f.reset('iconPadding')}
+        >
+          <DraftTextField
+            aria-label={t`Icon padding`}
+            value={f.value('iconPadding')}
+            onChange={f.write('iconPadding')}
+            placeholder={f.inherited('iconPadding') ?? '0px'}
+            mono
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Text padding`}
+          help={t`Around the text, as a CSS padding (e.g. 4px 4px 4px 0).`}
+          isSet={f.isSet('textPadding')}
+          onReset={f.reset('textPadding')}
+        >
+          <DraftTextField
+            aria-label={t`Text padding`}
+            value={f.value('textPadding')}
+            onChange={f.write('textPadding')}
+            placeholder={f.inherited('textPadding') ?? '4px 4px 4px 0'}
+            mono
+          />
+        </SettingsRow>
+        <div className="mt-2">
+          <SpacingField
+            label={t`Around the element`}
+            centerLabel={t`Icon and text`}
+            value={sidesOf(f, 'padding')}
+            inherited={elementPaddingInherited}
+            onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+              f.writeMany(toSideAttributes(sides, 'padding'), options)
+            }
+          />
+        </div>
+      </SettingsSection>
 
-      <InputLayout label={t`CSS Class`}>
-        <StringPopoverInput
-          value={currentAttributes.cssClass || ''}
-          onChange={(value) => onUpdate({ cssClass: value || undefined })}
-          placeholder={t`Enter CSS class name`}
-        />
-      </InputLayout>
-    </PanelLayout>
+      <AdvancedSection type="mj-social-element" fields={f} />
+    </>
   )
 }
 
@@ -607,18 +560,25 @@ export class MjSocialElementBlock extends BaseEmailBlock {
   }
 
   /**
-   * Render the settings panel for the social element block
+   * Render the settings panel for the social element block. blockDefaults is what the element
+   * inherits: its defaults, what its mj-social passes, then the template's default attributes.
    */
-  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJSocialElementAttributes
-    const blockDefaults = this.getDefaults() as MJSocialElementAttributes
+  renderSettingsPanel(
+    onUpdate: OnUpdateAttributesFunction,
+    blockDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
+  ): React.ReactNode {
+    const currentAttributes = (this.block.attributes ?? {}) as MJSocialElementAttributes
+    const content = (this.block as { content?: unknown }).content
 
     return (
       <MjSocialElementSettingsPanel
+        blockId={this.block.id}
         currentAttributes={currentAttributes}
-        blockDefaults={blockDefaults}
+        content={typeof content === 'string' ? content : undefined}
+        blockDefaults={blockDefaults as Record<string, unknown>}
         onUpdate={onUpdate}
-        parsePixelValue={this.parsePixelValue}
+        emailTree={emailTree}
       />
     )
   }
@@ -627,9 +587,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
    * Parse pixel value from string (e.g., "20px" -> 20)
    */
   private parsePixelValue(value?: string): number | undefined {
-    if (!value) return undefined
-    const match = value.match(/^(\d+(?:\.\d+)?)px?$/)
-    return match ? parseFloat(match[1]) : undefined
+    return pixels(value)
   }
 
   /**

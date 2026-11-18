@@ -1,154 +1,164 @@
 import React from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Select, InputNumber, Row, Col } from 'antd'
-import type { MJMLComponentType, MJDividerAttributes, MergedBlockAttributes } from '../types'
-import {
-  BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
-} from './BaseEmailBlock'
+import { Select } from 'antd'
+import type { MJMLComponentType, EmailBlock, MJDividerAttributes, MergedBlockAttributes } from '../types'
+import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
-import InputLayout from '../ui/InputLayout'
-import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
-import AlignSelector from '../ui/AlignSelector'
-import PaddingInput from '../ui/PaddingInput'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import PanelLayout from '../panels/PanelLayout'
-import WidthInput from '../ui/WidthInput'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { ColorField } from '../ui/fields/ColorField'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { SegmentedField } from '../ui/fields/SegmentedField'
+import { useAlignOptions } from '../ui/fields/segmentedOptions'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { inheritedSidesOf, panelFields, sidesOf, useEmailColors } from './panelFields'
 
 // Functional component for settings panel with i18n support
 interface MjDividerSettingsPanelProps {
+  blockId: string
   currentAttributes: MJDividerAttributes
   blockDefaults: MergedBlockAttributes
   onUpdate: OnUpdateAttributesFunction
-  parsePixelValue: (value?: string) => number | undefined
+  emailTree?: EmailBlock
 }
 
+const DIVIDER_LINE = ['borderColor', 'borderWidth', 'borderStyle'] as const
+const DIVIDER_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+
 const MjDividerSettingsPanel: React.FC<MjDividerSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
   blockDefaults,
   onUpdate,
-  parsePixelValue
+  emailTree
 }) => {
   const { t } = useLingui()
+  const f = panelFields(
+    blockId,
+    currentAttributes as Record<string, unknown>,
+    blockDefaults as Record<string, unknown>,
+    onUpdate
+  )
+  const colors = useEmailColors(emailTree)
+  const alignOptions = useAlignOptions()
+  // The three styles mj-divider accepts (border-style of its line)
+  const styleOptions = [
+    { value: 'solid', label: t`Solid` },
+    { value: 'dashed', label: t`Dashed` },
+    { value: 'dotted', label: t`Dotted` }
+  ]
+  const inheritedStyle = f.inherited('borderStyle') ?? 'solid'
 
   return (
-    <PanelLayout title={t`Divider attributes`}>
-      <InputLayout label={t`Border Style`} layout="vertical">
-        <Row gutter={16}>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Color`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.borderColor || undefined}
-                  onChange={(color) => onUpdate({ borderColor: color || undefined })}
-                />
-              </div>
+    <>
+      <SettingsSection
+        sectionKey="mj-divider:line"
+        title={t`Line`}
+        first
+        setCount={f.setCount(...DIVIDER_LINE, 'width', 'align')}
+        summary={[f.value('borderWidth'), f.value('borderStyle'), f.value('width')].filter(Boolean).join(' · ')}
+      >
+        <SettingsRow
+          label={t`Line`}
+          help={t`Color, thickness from 0 to 50 px (4 by default), and style: solid, dashed or dotted.`}
+          isSet={f.isSet(...DIVIDER_LINE)}
+          onReset={f.reset(...DIVIDER_LINE)}
+        >
+          <div className="grid grid-cols-2 items-center gap-1.5">
+            <div className="col-span-2">
+              <ColorField
+                aria-label={t`Line color`}
+                value={f.value('borderColor')}
+                inherited={f.inherited('borderColor')}
+                emailColors={colors}
+                onChange={f.write('borderColor')}
+              />
             </div>
-          </Col>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Style`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <Select
-                  size="small"
-                  value={currentAttributes.borderStyle || 'solid'}
-                  onChange={(value) => onUpdate({ borderStyle: value })}
-                  style={{ width: '100%' }}
-                >
-                  <Select.Option value="solid">{t`Solid`}</Select.Option>
-                  <Select.Option value="dashed">{t`Dashed`}</Select.Option>
-                  <Select.Option value="dotted">{t`Dotted`}</Select.Option>
-                </Select>
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Width`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <InputNumber
-                  size="small"
-                  value={parsePixelValue(currentAttributes.borderWidth)}
-                  onChange={(value) =>
-                    onUpdate({ borderWidth: value ? `${value}px` : undefined })
-                  }
-                  placeholder={(parsePixelValue(blockDefaults.borderWidth) || 4).toString()}
-                  min={0}
-                  max={50}
-                  step={1}
-                  suffix="px"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
+            <NumberUnitField
+              aria-label={t`Line thickness`}
+              value={f.value('borderWidth')}
+              inherited={f.inherited('borderWidth')}
+              placeholder="4"
+              units={['px']}
+              min={0}
+              max={50}
+              coalesceBase={f.base('borderWidth')}
+              onChange={f.write('borderWidth')}
+            />
+            <Select
+              size="small"
+              className="w-full"
+              aria-label={t`Line style`}
+              value={f.value('borderStyle')}
+              placeholder={styleOptions.find((option) => option.value === inheritedStyle)?.label ?? inheritedStyle}
+              options={styleOptions}
+              onChange={(value) => f.write('borderStyle')(value)}
+            />
+          </div>
+        </SettingsRow>
+        <SettingsRow label={t`Width`} isSet={f.isSet('width')} onReset={f.reset('width')}>
+          <NumberUnitField
+            aria-label={t`Divider width`}
+            value={f.value('width')}
+            inherited={f.inherited('width')}
+            placeholder={t`Auto`}
+            units={['%', 'px']}
+            defaultUnit="%"
+            step={{ '%': 1, px: 10 }}
+            coalesceBase={f.base('width')}
+            onChange={f.write('width')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Alignment`} isSet={f.isSet('align')} onReset={f.reset('align')}>
+          <SegmentedField
+            aria-label={t`Divider alignment`}
+            value={f.value('align')}
+            inherited={f.inherited('align')}
+            options={alignOptions}
+            onChange={f.write('align')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Divider Width`}>
-        <WidthInput
-          value={currentAttributes.width}
-          onChange={(value) => onUpdate({ width: value })}
-          placeholder={blockDefaults.width || t`Auto`}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-divider:colors"
+        title={t`Colors`}
+        setCount={f.setCount('containerBackgroundColor')}
+      >
+        <SettingsRow
+          label={t`Container background`}
+          isSet={f.isSet('containerBackgroundColor')}
+          onReset={f.reset('containerBackgroundColor')}
+        >
+          <ColorField
+            aria-label={t`Container background`}
+            value={f.value('containerBackgroundColor')}
+            inherited={f.inherited('containerBackgroundColor')}
+            placeholder={t`Transparent`}
+            emailColors={colors}
+            onChange={f.write('containerBackgroundColor')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Container Background`}>
-        <ColorPickerWithPresets
-          value={currentAttributes.containerBackgroundColor || undefined}
-          onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-          placeholder={t`Transparent`}
+      <SettingsSection sectionKey="mj-divider:spacing" title={t`Spacing`} setCount={f.setCount(...DIVIDER_PADDING)}>
+        <SpacingField
+          label={t`Around the line`}
+          centerLabel="———"
+          value={sidesOf(f, 'padding')}
+          inherited={inheritedSidesOf(f, 'padding')}
+          onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+            f.writeMany(toSideAttributes(sides, 'padding'), options)
+          }
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout label={t`Padding`} layout="vertical">
-        <PaddingInput
-          value={{
-            top: currentAttributes.paddingTop,
-            right: currentAttributes.paddingRight,
-            bottom: currentAttributes.paddingBottom,
-            left: currentAttributes.paddingLeft
-          }}
-          defaultValue={{
-            top: blockDefaults.paddingTop,
-            right: blockDefaults.paddingRight,
-            bottom: blockDefaults.paddingBottom,
-            left: blockDefaults.paddingLeft
-          }}
-          onChange={(values: {
-            top: string | undefined
-            right: string | undefined
-            bottom: string | undefined
-            left: string | undefined
-          }) => {
-            onUpdate({
-              paddingTop: values.top,
-              paddingRight: values.right,
-              paddingBottom: values.bottom,
-              paddingLeft: values.left
-            })
-          }}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Alignment`}>
-        <AlignSelector
-          value={currentAttributes.align || 'center'}
-          onChange={(value) => onUpdate({ align: value })}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`CSS Class`}>
-        <StringPopoverInput
-          value={currentAttributes.cssClass || ''}
-          onChange={(value) => onUpdate({ cssClass: value || undefined })}
-          placeholder={t`Enter CSS class name`}
-        />
-      </InputLayout>
-    </PanelLayout>
+      <AdvancedSection type="mj-divider" fields={f} />
+    </>
   )
 }
 
@@ -204,27 +214,18 @@ export class MjDividerBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: MergedBlockAttributes
+    blockDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
   ): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJDividerAttributes
-
     return (
       <MjDividerSettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJDividerAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
-        parsePixelValue={this.parsePixelValue}
+        emailTree={emailTree}
       />
     )
-  }
-
-  /**
-   * Parse pixel value from string (e.g., "4px" -> 4)
-   */
-  private parsePixelValue(value?: string): number | undefined {
-    if (!value) return undefined
-    const match = value.match(/^(\d+(?:\.\d+)?)px?$/)
-    return match ? parseFloat(match[1]) : undefined
   }
 
   getEdit(props: PreviewProps): React.ReactNode {
@@ -234,9 +235,7 @@ export class MjDividerBlock extends BaseEmailBlock {
     const isSelected = selectedBlockId === this.block.id
     const blockClasses = `email-block-hover ${isSelected ? 'selected' : ''}`.trim()
 
-    const selectionStyle: React.CSSProperties = isSelected
-      ? { position: 'relative', zIndex: 10 }
-      : {}
+    const selectionStyle: React.CSSProperties = isSelected ? { position: 'relative', zIndex: 10 } : {}
 
     const handleClick = (e: React.MouseEvent) => {
       e.stopPropagation()
@@ -268,17 +267,21 @@ export class MjDividerBlock extends BaseEmailBlock {
       width: attrs.width || '100%',
       height: '0px',
       border: 'none',
-      borderTop: `${attrs.borderWidth || '4px'} ${attrs.borderStyle || 'solid'} ${
-        attrs.borderColor || '#000000'
-      }`,
+      borderTop: `${attrs.borderWidth || '4px'} ${attrs.borderStyle || 'solid'} ${attrs.borderColor || '#000000'}`,
       margin: '0px',
       fontSize: '1px', // Prevent collapsing in some email clients
       lineHeight: '1px'
     }
 
     return (
-      <div key={key} style={containerStyle} className={blockClasses} onClick={handleClick} data-block-id={this.block.id}
-        data-display-condition={this.block.display_condition ? "true" : undefined}>
+      <div
+        key={key}
+        style={containerStyle}
+        className={blockClasses}
+        onClick={handleClick}
+        data-block-id={this.block.id}
+        data-display-condition={this.block.display_condition ? 'true' : undefined}
+      >
         <div style={dividerStyle}>&nbsp;</div>
       </div>
     )

@@ -18,6 +18,7 @@ import type {
   EmailBlock
 } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
+import { HelpTip } from '../../layout/HelpTip'
 import {
   DISPLAY_CONDITION_OPERATORS,
   MAX_DISPLAY_CONDITION_RULES,
@@ -51,8 +52,13 @@ const ANDOR_BOX: React.CSSProperties = {
   width: 42
 }
 
+// The result of a condition or a rule with the test data, as a pill
 export const ConditionResult: React.FC<{ shown: boolean; label: string }> = ({ shown, label }) => (
-  <span className={`inline-flex items-center gap-1 ${shown ? 'text-green-700' : 'text-gray-500'}`}>
+  <span
+    className={`inline-flex items-center gap-1 rounded-full px-2 text-2xs font-semibold ${
+      shown ? 'bg-success-bg text-success-fg' : 'bg-fill text-ink-2'
+    }`}
+  >
     <FontAwesomeIcon icon={shown ? faCircleCheck : faCircleXmark} />
     {label}
   </span>
@@ -168,18 +174,15 @@ export const DisplayConditionModal: React.FC<DisplayConditionModalProps> = ({
             </Button>
           </Space.Compact>
         </div>
-        <Space style={{ alignItems: 'center' }} wrap>
-          <VariableTag />
-          <b style={{ fontFamily: CONDITION_MONO, fontSize: 13 }}>{rule.variable}</b>
-          <span className="opacity-60">{operatorLabels[rule.operator] ?? rule.operator}</span>
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-6">
+          <span className="rounded-sm bg-info-bg px-1.5 font-mono text-xs text-info-fg">{rule.variable}</span>
+          <span className="text-ink-2">{operatorLabels[rule.operator] ?? rule.operator}</span>
           {operatorTakesValue(rule.operator) && (
-            <Tag variant="filled" color="blue" style={{ margin: 0 }}>
-              {rule.value}
-            </Tag>
+            <span className="rounded-sm bg-primary-100 px-1.5 font-medium text-primary-700">{rule.value}</span>
           )}
-        </Space>
+        </div>
         {missing && (
-          <div className="text-[11px] text-amber-600 mt-2 flex items-center gap-1">
+          <div className="mt-2 flex items-center gap-1 text-2xs text-warning-fg">
             <FontAwesomeIcon icon={faTriangleExclamation} />
             {t`Not in the test data: the rule is evaluated as if the variable were empty.`}
           </div>
@@ -257,7 +260,7 @@ export const DisplayConditionModal: React.FC<DisplayConditionModalProps> = ({
         )}
       </Space>
       {draftError && rule.variable !== '' && (
-        <div className="text-[11px] text-red-600 mt-2">{ruleErrorText(draftError)}</div>
+        <div className="mt-2 text-2xs text-danger-fg">{ruleErrorText(draftError)}</div>
       )}
     </div>
   )
@@ -275,6 +278,9 @@ export const DisplayConditionModal: React.FC<DisplayConditionModalProps> = ({
       title={
         <div className="flex items-center gap-2">
           <span>{t`Display condition`}</span>
+          <HelpTip label={t`About display conditions`} icon="info">
+            {t`The block and everything in it are sent only to recipients for whom the condition holds. Variables are those of the email's data: contact fields, data sent to the API, data feeds.`}
+          </HelpTip>
           <Tag bordered={false} className="!ml-1 !font-normal">
             {EmailBlockClass.from(block).getLabel()}
           </Tag>
@@ -294,9 +300,6 @@ export const DisplayConditionModal: React.FC<DisplayConditionModalProps> = ({
         </Button>
       ]}
     >
-      <Text type="secondary" className="text-xs block mb-4">
-        {t`The block and everything in it are sent only to recipients for whom the condition holds. Variables are those of the email's data: contact fields, data sent to the API, data feeds.`}
-      </Text>
       <div style={{ borderBottom: `1px solid ${LINE_COLOR}`, paddingBottom: '1rem' }}>
         <Select
           size="small"

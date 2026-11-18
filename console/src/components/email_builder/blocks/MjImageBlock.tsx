@@ -2,8 +2,8 @@ import React from 'react'
 import { useLingui } from '@lingui/react/macro'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faImage } from '@fortawesome/free-solid-svg-icons'
-import { Switch } from 'antd'
-import type { MJMLComponentType, MJImageAttributes, MergedBlockAttributes } from '../types'
+import { Select, Switch } from 'antd'
+import type { MJMLComponentType, EmailBlock, MJImageAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -12,176 +12,256 @@ import {
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { isSafeHref } from '../../../utils/safeHtml'
 import { EmailBlockClass } from '../EmailBlockClass'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import AlignSelector from '../ui/AlignSelector'
-import HeightInput from '../ui/HeightInput'
-import PaddingInput from '../ui/PaddingInput'
-import InputLayout from '../ui/InputLayout'
-import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
-import BorderInput from '../ui/BorderInput'
-import BorderRadiusInput from '../ui/BorderRadiusInput'
+import { hasLiquidOutput } from '../../../utils/liquid'
 import FileSrc from '../ui/FileSrc'
-import PanelLayout from '../panels/PanelLayout'
-import WidthPxInput from '../ui/WidthPxInput'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { DraftTextField } from '../ui/fields/DraftTextField'
+import { ColorField } from '../ui/fields/ColorField'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { SegmentedField } from '../ui/fields/SegmentedField'
+import { useAlignOptions } from '../ui/fields/segmentedOptions'
+import { CornersField } from '../ui/fields/CornersField'
+import BorderField from '../ui/fields/BorderField'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { inheritedSidesOf, panelFields, sidesOf, useEmailColors, useLinkTargetOptions } from './panelFields'
+
+// Liquid examples go into messages as variables: braces in a message are placeholders
+const LIQUID_URL = '{{ url }}'
 
 // Functional component for settings panel with i18n support
 interface MjImageSettingsPanelProps {
+  blockId: string
   currentAttributes: MJImageAttributes
   blockDefaults: MergedBlockAttributes
   onUpdate: OnUpdateAttributesFunction
+  emailTree?: EmailBlock
 }
 
+const IMAGE_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+const IMAGE_BORDERS = ['borderTop', 'borderRight', 'borderBottom', 'borderLeft'] as const
+
+// The image the URL points to, above the field; a Liquid URL or another scheme draws none.
+const canPreview = (src: string | undefined): src is string =>
+  Boolean(src) && /^https?:\/\//i.test(src ?? '') && !hasLiquidOutput(src ?? '')
+
 const MjImageSettingsPanel: React.FC<MjImageSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
   blockDefaults,
-  onUpdate
+  onUpdate,
+  emailTree
 }) => {
   const { t } = useLingui()
+  const f = panelFields(blockId, currentAttributes as Record<string, unknown>, blockDefaults as Record<string, unknown>, onUpdate)
+  const colors = useEmailColors(emailTree)
+  const alignOptions = useAlignOptions()
+  const targetOptions = useLinkTargetOptions()
+  const src = f.value('src')
+  const fluidOnMobile = (f.value('fluidOnMobile') ?? f.inherited('fluidOnMobile')) === 'true'
 
   return (
-    <PanelLayout title={t`Image attributes`}>
-      <InputLayout label={t`Image`} className="mt-0" layout="vertical">
-        <FileSrc
-          size="small"
-          value={currentAttributes.src || ''}
-          onChange={(value) => onUpdate({ src: value || undefined })}
-          placeholder={t`Enter image URL`}
-          acceptFileType="image/*"
-          acceptItem={(item) =>
-            !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false)
-          }
-          buttonText={t`Browse Images`}
-          targetLabel={t`the Image block`}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Link`}>
-        <StringPopoverInput
-          value={currentAttributes.href || ''}
-          onChange={(value) => onUpdate({ href: value || undefined })}
-          placeholder={t`Enter link URL or {{ url }}`}
-          buttonText={t`Set link`}
-          validateUri={true}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Alt text`}>
-        <StringPopoverInput
-          value={currentAttributes.alt || ''}
-          onChange={(value) => onUpdate({ alt: value || undefined })}
-          placeholder={t`Alternative text`}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Align`}>
-        <AlignSelector
-          value={currentAttributes.align || 'center'}
-          onChange={(value) => onUpdate({ align: value })}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Width`} help={t`Leave empty for full container width`}>
-        <WidthPxInput
-          value={currentAttributes.width}
-          onChange={(value) => onUpdate({ width: value })}
-          placeholder={t`Auto`}
-        />
-      </InputLayout>
-
-      <InputLayout
-        label={t`Full width on mobile`}
-        help={t`If "true", will be full width on mobile even if width is set`}
+    <>
+      <SettingsSection
+        sectionKey="mj-image:image"
+        title={t`Image`}
+        first
+        setCount={f.setCount('src', 'alt', 'title')}
+        summary={src}
       >
-        <Switch
-          size="small"
-          checked={currentAttributes['fluidOnMobile'] === 'true'}
-          onChange={(checked) => onUpdate({ fluidOnMobile: checked ? 'true' : 'false' })}
-        />
-      </InputLayout>
+        {canPreview(src) ? (
+          <div className="mb-2 flex h-24 items-center justify-center overflow-hidden rounded-md border border-solid border-line-soft bg-fill">
+            <img src={src} alt={f.value('alt') ?? ''} className="max-h-full max-w-full object-contain" />
+          </div>
+        ) : null}
+        <SettingsRow label={t`URL`} isSet={f.isSet('src')} onReset={f.reset('src')}>
+          <FileSrc
+            size="small"
+            aria-label={t`Image URL`}
+            value={src ?? ''}
+            onChange={(value) => f.write('src')(value || undefined)}
+            placeholder={t`Enter image URL`}
+            acceptFileType="image/*"
+            acceptItem={(item) => !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false)}
+            buttonText={t`Browse images`}
+            targetLabel={t`the Image block`}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Alt text`}
+          help={t`Read by screen readers, and shown when the image does not load.`}
+          isSet={f.isSet('alt')}
+          onReset={f.reset('alt')}
+        >
+          <DraftTextField aria-label={t`Alt text`} value={f.value('alt')} onChange={f.write('alt')} placeholder={t`Alternative text`} />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Tooltip`}
+          help={t`Shown when the pointer rests on the image (title attribute).`}
+          isSet={f.isSet('title')}
+          onReset={f.reset('title')}
+        >
+          <DraftTextField aria-label={t`Tooltip`} value={f.value('title')} onChange={f.write('title')} placeholder={t`Text on hover`} />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Height`}>
-        <HeightInput
-          value={currentAttributes.height}
-          onChange={(value) => onUpdate({ height: value })}
-          placeholder={blockDefaults.height || t`Auto`}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-image:link"
+        title={t`Link`}
+        setCount={f.setCount('href', 'target', 'rel')}
+        summary={f.value('href') ?? t`No link`}
+      >
+        <SettingsRow label={t`URL`} isSet={f.isSet('href')} onReset={f.reset('href')}>
+          <DraftTextField
+            aria-label={t`Link URL`}
+            value={f.value('href')}
+            onChange={f.write('href')}
+            placeholder={t`https://… or ${LIQUID_URL}`}
+            validate="url"
+            mono
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Open in`} isSet={f.isSet('target')} onReset={f.reset('target')}>
+          <Select
+            size="small"
+            className="w-full"
+            aria-label={t`Open in`}
+            value={f.value('target')}
+            placeholder={targetOptions.find((option) => option.value === (f.inherited('target') ?? '_blank'))?.label}
+            options={targetOptions}
+            onChange={(value) => f.write('target')(value)}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Rel`} help={t`The link's rel attribute, e.g. noopener.`} isSet={f.isSet('rel')} onReset={f.reset('rel')}>
+          <DraftTextField
+            aria-label={t`Rel`}
+            value={f.value('rel')}
+            onChange={f.write('rel')}
+            placeholder={f.inherited('rel') ?? 'noopener'}
+            mono
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Padding`} layout="vertical">
-        <PaddingInput
-          value={{
-            top: currentAttributes.paddingTop,
-            right: currentAttributes.paddingRight,
-            bottom: currentAttributes.paddingBottom,
-            left: currentAttributes.paddingLeft
-          }}
-          defaultValue={{
-            top: blockDefaults.paddingTop,
-            right: blockDefaults.paddingRight,
-            bottom: blockDefaults.paddingBottom,
-            left: blockDefaults.paddingLeft
-          }}
-          onChange={(values: {
-            top: string | undefined
-            right: string | undefined
-            bottom: string | undefined
-            left: string | undefined
-          }) => {
-            onUpdate({
-              paddingTop: values.top,
-              paddingRight: values.right,
-              paddingBottom: values.bottom,
-              paddingLeft: values.left
-            })
-          }}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-image:size"
+        title={t`Size`}
+        setCount={f.setCount('width', 'height', 'fluidOnMobile', 'align')}
+        summary={[f.value('width'), f.value('align')].filter(Boolean).join(' · ')}
+      >
+        <SettingsRow
+          label={t`Width`}
+          help={t`Leave empty for full container width`}
+          isSet={f.isSet('width')}
+          onReset={f.reset('width')}
+        >
+          <NumberUnitField
+            aria-label={t`Image width`}
+            value={f.value('width')}
+            inherited={f.inherited('width')}
+            placeholder={t`Auto`}
+            units={['px']}
+            max={2000}
+            coalesceBase={f.base('width')}
+            onChange={f.write('width')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Height`} isSet={f.isSet('height')} onReset={f.reset('height')}>
+          <NumberUnitField
+            aria-label={t`Image height`}
+            mode="height"
+            value={f.value('height')}
+            inherited={f.inherited('height')}
+            placeholder={t`Auto`}
+            coalesceBase={f.base('height')}
+            onChange={f.write('height')}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Full width on mobile`}
+          help={t`On mobile, the image takes the full width even when a width is set.`}
+          isSet={f.isSet('fluidOnMobile')}
+          onReset={f.reset('fluidOnMobile')}
+        >
+          <Switch
+            size="small"
+            aria-label={t`Full width on mobile`}
+            checked={fluidOnMobile}
+            onChange={(checked) => f.write('fluidOnMobile')(checked ? 'true' : 'false')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Alignment`} isSet={f.isSet('align')} onReset={f.reset('align')}>
+          <SegmentedField
+            aria-label={t`Image alignment`}
+            value={f.value('align')}
+            inherited={f.inherited('align')}
+            options={alignOptions}
+            onChange={f.write('align')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Container Background`}>
-        <ColorPickerWithPresets
-          value={currentAttributes.containerBackgroundColor || undefined}
-          onChange={(color) => {
-            onUpdate({ containerBackgroundColor: color || undefined })
-          }}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-image:border"
+        title={t`Border and corners`}
+        setCount={f.setCount('borderRadius', ...IMAGE_BORDERS)}
+        summary={f.value('borderRadius')}
+      >
+        <SettingsRow label={t`Border`} vertical isSet={f.isSet(...IMAGE_BORDERS)} onReset={f.reset(...IMAGE_BORDERS)}>
+          <BorderField
+            emailColors={colors}
+            value={Object.fromEntries(IMAGE_BORDERS.map((key) => [key, f.value(key)]))}
+            onChange={(borders, options) => f.writeMany({ ...borders }, options)}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Corners`} isSet={f.isSet('borderRadius')} onReset={f.reset('borderRadius')}>
+          <CornersField
+            aria-label={t`Corners`}
+            value={f.value('borderRadius')}
+            inherited={f.inherited('borderRadius')}
+            coalesceBase={f.base('borderRadius')}
+            onChange={f.write('borderRadius')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Border Radius`}>
-        <BorderRadiusInput
-          value={currentAttributes.borderRadius}
-          onChange={(value) => onUpdate({ borderRadius: value })}
-          defaultValue={blockDefaults.borderRadius}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-image:colors"
+        title={t`Colors`}
+        setCount={f.setCount('containerBackgroundColor')}
+      >
+        <SettingsRow
+          label={t`Container background`}
+          isSet={f.isSet('containerBackgroundColor')}
+          onReset={f.reset('containerBackgroundColor')}
+        >
+          <ColorField
+            aria-label={t`Container background`}
+            value={f.value('containerBackgroundColor')}
+            inherited={f.inherited('containerBackgroundColor')}
+            emailColors={colors}
+            onChange={f.write('containerBackgroundColor')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Border`} layout="vertical">
-        <BorderInput
-          className="-mt-6"
-          value={{
-            borderTop: currentAttributes.borderTop,
-            borderRight: currentAttributes.borderRight,
-            borderBottom: currentAttributes.borderBottom,
-            borderLeft: currentAttributes.borderLeft
-          }}
-          onChange={(borderValues) => {
-            onUpdate({
-              borderTop: borderValues.borderTop,
-              borderRight: borderValues.borderRight,
-              borderBottom: borderValues.borderBottom,
-              borderLeft: borderValues.borderLeft
-            })
-          }}
+      <SettingsSection sectionKey="mj-image:spacing" title={t`Spacing`} setCount={f.setCount(...IMAGE_PADDING)}>
+        <SpacingField
+          label={t`Around the image`}
+          centerLabel={t`Image`}
+          value={sidesOf(f, 'padding')}
+          inherited={inheritedSidesOf(f, 'padding')}
+          onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+            f.writeMany(toSideAttributes(sides, 'padding'), options)
+          }
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout label={t`CSS Class`}>
-        <StringPopoverInput
-          value={currentAttributes.cssClass || ''}
-          onChange={(value) => onUpdate({ cssClass: value || undefined })}
-          placeholder={t`Enter CSS class name`}
-        />
-      </InputLayout>
-    </PanelLayout>
+      <AdvancedSection type="mj-image" fields={f} />
+    </>
   )
 }
 
@@ -385,14 +465,16 @@ export class MjImageBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: MergedBlockAttributes
+    blockDefaults: MergedBlockAttributes,
+    emailTree?: EmailBlock
   ): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJImageAttributes
     return (
       <MjImageSettingsPanel
-        currentAttributes={currentAttributes}
+        blockId={this.block.id}
+        currentAttributes={this.block.attributes as MJImageAttributes}
         blockDefaults={blockDefaults}
         onUpdate={onUpdate}
+        emailTree={emailTree}
       />
     )
   }

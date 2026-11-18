@@ -5,26 +5,29 @@ import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } fr
 import { MJML_COMPONENT_DEFAULTS, MJ_SOCIAL_ELEMENT_DEFAULTS, SOCIAL_INHERITED_ATTRIBUTES } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { MjSocialElementBlock } from './MjSocialElementBlock'
-import InputLayout from '../ui/InputLayout'
-import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
-import PaddingInput from '../ui/PaddingInput'
-import StringPopoverInput from '../ui/StringPopoverInput'
-import PanelLayout from '../panels/PanelLayout'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInstagram } from '@fortawesome/free-brands-svg-icons'
-import FontStyleInput from '../ui/FontStyleInput'
-import { SingleBorderInput } from '../ui/BorderInput'
-import { Col, Input, InputNumber, Row, Segmented } from 'antd'
-import BorderRadiusInput from '../ui/BorderRadiusInput'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
+import { DraftTextField } from '../ui/fields/DraftTextField'
+import { ColorField } from '../ui/fields/ColorField'
+import { FontFields } from '../ui/fields/FontFields'
+import { NumberUnitField } from '../ui/fields/NumberUnitField'
+import { SegmentedField } from '../ui/fields/SegmentedField'
+import { useAlignOptions } from '../ui/fields/segmentedOptions'
+import { CornersField } from '../ui/fields/CornersField'
+import { SingleBorderField } from '../ui/fields/BorderField'
+import { SpacingField } from '../ui/fields/SpacingField'
+import { toSideAttributes, type SpacingSides } from '../ui/fields/spacing'
+import type { FieldWriteOptions } from '../ui/fields/types'
+import { AdvancedSection } from './AdvancedSection'
+import { useImportedFonts, inheritedSidesOf, panelFields, sidesOf, useEmailColors } from './panelFields'
 
 // A px length as a number, for the number fields
 const pixels = (value?: string): number | undefined => {
   const match = value?.match(/^(\d+(?:\.\d+)?)px$/)
   return match ? parseFloat(match[1]) : undefined
 }
-
-// mj-social has no text-transform nor letter-spacing attribute
-const SOCIAL_HIDDEN_FONT_FIELDS = ['textTransform', 'letterSpacing'] as const
 
 /**
  * What mj-social passes to each of its elements (see SOCIAL_INHERITED_ATTRIBUTES): the attributes the block or the
@@ -45,245 +48,236 @@ export function socialInheritedAttributes(
   return inherited
 }
 
-// Functional component for settings panel with i18n support
+// The settings panel of an mj-social block
 interface MjSocialSettingsPanelProps {
+  blockId: string
   currentAttributes: MJSocialAttributes
-  blockDefaults: MJSocialAttributes
+  /** What the block inherits, and, for what it passes to its icons, what an icon shows without it */
+  inherited: Record<string, unknown>
   onUpdate: OnUpdateAttributesFunction
-  /** What an icon shows for an inherited attribute the block does not set */
-  iconDefaults: Record<string, string | undefined>
-  importedFonts: Array<{ name: string; href: string }>
+  emailTree?: EmailBlock
 }
 
+// What mj-social carries of the font group: no text-transform, letter-spacing, nor a text align
+// of its own (its align places the icons, in the Layout section)
+const SOCIAL_FONT_FIELDS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'textDecoration', 'lineHeight'] as const
+const SOCIAL_PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+
 const MjSocialSettingsPanel: React.FC<MjSocialSettingsPanelProps> = ({
+  blockId,
   currentAttributes,
-  blockDefaults,
+  inherited,
   onUpdate,
-  iconDefaults,
-  importedFonts
+  emailTree
 }) => {
   const { t } = useLingui()
+  const f = panelFields(blockId, currentAttributes as Record<string, unknown>, inherited, onUpdate)
+  const colors = useEmailColors(emailTree)
+  const importedFonts = useImportedFonts(emailTree)
+  const alignOptions = useAlignOptions()
   // The layout the block takes without a mode of its own: the template's default mj-social mode, else a row
-  const defaultMode = blockDefaults.mode === 'vertical' ? 'vertical' : 'horizontal'
+  const defaultMode = f.inherited('mode') === 'vertical' ? 'vertical' : 'horizontal'
+  const fontValues = Object.fromEntries(SOCIAL_FONT_FIELDS.map((key) => [key, f.value(key)]))
+  const fontInherited = Object.fromEntries(SOCIAL_FONT_FIELDS.map((key) => [key, f.inherited(key)]))
+  const fontSummary = [f.value('fontFamily')?.split(',')[0], f.value('fontSize'), f.value('fontWeight')]
+    .filter(Boolean)
+    .join(' · ')
+  // Without a height, the icons are as high as their size
+  const iconHeightPlaceholder = String(pixels(f.value('iconSize')) ?? pixels(f.inherited('iconSize')) ?? 20)
 
   return (
-    <PanelLayout title={t`Social attributes`}>
-      <InputLayout label={t`Layout`}>
-        <Segmented
-          size="small"
-          value={currentAttributes.mode ?? defaultMode}
-          onChange={(value) =>
-            onUpdate({ mode: value === defaultMode ? undefined : (value as MJSocialAttributes['mode']) })
-          }
-          options={[
-            { label: t`In a row`, value: 'horizontal' },
-            { label: t`In a column`, value: 'vertical' }
-          ]}
-        />
-      </InputLayout>
+    <>
+      <SettingsSection
+        sectionKey="mj-social:layout"
+        title={t`Layout`}
+        first
+        setCount={f.setCount('mode', 'align')}
+      >
+        <SettingsRow label={t`Layout`} isSet={f.isSet('mode')} onReset={f.reset('mode')}>
+          <SegmentedField
+            aria-label={t`Layout`}
+            value={f.value('mode')}
+            inherited={defaultMode}
+            options={[
+              { label: t`In a row`, value: 'horizontal' },
+              { label: t`In a column`, value: 'vertical' }
+            ]}
+            // The default layout is written as no mode
+            onChange={(value) => f.write('mode')(value === defaultMode ? undefined : value)}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Alignment`} isSet={f.isSet('align')} onReset={f.reset('align')}>
+          <SegmentedField
+            aria-label={t`Alignment`}
+            value={f.value('align')}
+            inherited={f.inherited('align')}
+            options={alignOptions}
+            onChange={f.write('align')}
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Container color`}>
-        <ColorPickerWithPresets
-          value={currentAttributes.containerBackgroundColor || undefined}
-          onChange={(color) => onUpdate({ containerBackgroundColor: color || undefined })}
-          placeholder={t`None`}
-        />
-      </InputLayout>
-
-      <InputLayout label={t`Font Styling`} layout="vertical">
-        <FontStyleInput
-          value={{
-            fontFamily: currentAttributes.fontFamily,
-            fontSize: currentAttributes.fontSize,
-            fontWeight: currentAttributes.fontWeight,
-            fontStyle: currentAttributes.fontStyle,
-            textTransform: undefined,
-            textDecoration: currentAttributes.textDecoration,
-            lineHeight: currentAttributes.lineHeight,
-            letterSpacing: undefined,
-            textAlign: currentAttributes.align
-          }}
-          defaultValue={{
-            // What the icons show when mj-social passes nothing
-            fontFamily: iconDefaults.fontFamily,
-            fontSize: iconDefaults.fontSize,
-            fontWeight: iconDefaults.fontWeight,
-            fontStyle: iconDefaults.fontStyle,
-            textTransform: undefined,
-            textDecoration: iconDefaults.textDecoration,
-            lineHeight: blockDefaults.lineHeight,
-            letterSpacing: undefined,
-            textAlign: blockDefaults.align
-          }}
-          onChange={(values) => {
-            onUpdate({
-              fontFamily: values.fontFamily,
-              fontSize: values.fontSize,
-              fontWeight: values.fontWeight,
-              fontStyle: values.fontStyle,
-              textDecoration: values.textDecoration,
-              lineHeight: values.lineHeight,
-              align: values.textAlign as MJSocialAttributes['align']
-            })
-          }}
+      <SettingsSection
+        sectionKey="mj-social:font"
+        title={t`Font`}
+        help={t`Each icon's text takes these, unless the icon sets its own.`}
+        setCount={f.setCount(...SOCIAL_FONT_FIELDS)}
+        summary={fontSummary}
+      >
+        <FontFields
+          value={fontValues}
+          inherited={fontInherited}
           importedFonts={importedFonts}
-          hiddenFields={SOCIAL_HIDDEN_FONT_FIELDS}
+          fields={SOCIAL_FONT_FIELDS}
+          onChange={(updates, options) => f.writeMany(updates, options)}
         />
-      </InputLayout>
+      </SettingsSection>
 
-      <InputLayout
-        label={t`Icon border`}
-        help={t`Applies to every icon; an icon's own border wins.`}
-        layout="vertical"
-      >
-        <SingleBorderInput
-          value={currentAttributes.border}
-          onChange={(value) => onUpdate({ border: value })}
-        />
-      </InputLayout>
-
-      <InputLayout
-        label={t`Icons`}
+      <SettingsSection
+        sectionKey="mj-social:icons"
+        title={t`Icons`}
         help={t`Applies to every icon; an icon's own settings win.`}
-        layout="vertical"
+        setCount={f.setCount('iconSize', 'iconHeight', 'borderRadius', 'color', 'iconPadding', 'textPadding')}
+        summary={f.value('iconSize')}
       >
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Size`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <InputNumber
-                  size="small"
-                  value={pixels(currentAttributes.iconSize)}
-                  onChange={(value) => onUpdate({ iconSize: value ? `${value}px` : undefined })}
-                  placeholder="20"
-                  min={10}
-                  max={100}
-                  step={1}
-                  suffix="px"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Height`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <InputNumber
-                  size="small"
-                  value={pixels(currentAttributes.iconHeight)}
-                  onChange={(value) => onUpdate({ iconHeight: value ? `${value}px` : undefined })}
-                  // Without a height, the icons are as high as their size
-                  placeholder={String(pixels(currentAttributes.iconSize) ?? 20)}
-                  min={10}
-                  max={100}
-                  step={1}
-                  suffix="px"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Border Radius`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <BorderRadiusInput
-                  value={currentAttributes.borderRadius}
-                  onChange={(value) => onUpdate({ borderRadius: value })}
-                  defaultValue={blockDefaults.borderRadius}
-                />
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Text color`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <ColorPickerWithPresets
-                  value={currentAttributes.color || undefined}
-                  onChange={(color) => onUpdate({ color: color || undefined })}
-                />
-              </div>
-            </div>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Icon padding`}</span>
-              <Input
-                size="small"
-                value={currentAttributes.iconPadding || ''}
-                onChange={(e) => onUpdate({ iconPadding: e.target.value.trim() === '' ? undefined : e.target.value })}
-                placeholder="0px"
-                style={{ marginTop: '4px' }}
-              />
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Text padding`}</span>
-              <Input
-                size="small"
-                value={currentAttributes.textPadding || ''}
-                onChange={(e) => onUpdate({ textPadding: e.target.value.trim() === '' ? undefined : e.target.value })}
-                placeholder="4px 4px 4px 0"
-                style={{ marginTop: '4px' }}
-              />
-            </div>
-          </Col>
-        </Row>
-      </InputLayout>
+        <SettingsRow
+          label={t`Size, height`}
+          help={t`10 to 100 px. Without a height, the icons are as high as their size.`}
+          isSet={f.isSet('iconSize', 'iconHeight')}
+          onReset={f.reset('iconSize', 'iconHeight')}
+        >
+          <div className="grid grid-cols-2 gap-1.5">
+            <NumberUnitField
+              aria-label={t`Icon size`}
+              value={f.value('iconSize')}
+              inherited={f.inherited('iconSize')}
+              placeholder="20"
+              units={['px']}
+              min={10}
+              max={100}
+              coalesceBase={f.base('iconSize')}
+              onChange={f.write('iconSize')}
+            />
+            <NumberUnitField
+              aria-label={t`Icon height`}
+              value={f.value('iconHeight')}
+              inherited={f.inherited('iconHeight')}
+              placeholder={iconHeightPlaceholder}
+              units={['px']}
+              min={10}
+              max={100}
+              coalesceBase={f.base('iconHeight')}
+              onChange={f.write('iconHeight')}
+            />
+          </div>
+        </SettingsRow>
+        <SettingsRow label={t`Corners`} isSet={f.isSet('borderRadius')} onReset={f.reset('borderRadius')}>
+          <CornersField
+            aria-label={t`Corners`}
+            value={f.value('borderRadius')}
+            inherited={f.inherited('borderRadius')}
+            coalesceBase={f.base('borderRadius')}
+            onChange={f.write('borderRadius')}
+          />
+        </SettingsRow>
+        <SettingsRow label={t`Text color`} isSet={f.isSet('color')} onReset={f.reset('color')}>
+          <ColorField
+            aria-label={t`Text color`}
+            value={f.value('color')}
+            inherited={f.inherited('color')}
+            emailColors={colors}
+            onChange={f.write('color')}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Icon padding`}
+          help={t`Around each icon's image, as a CSS padding (e.g. 4px 8px).`}
+          isSet={f.isSet('iconPadding')}
+          onReset={f.reset('iconPadding')}
+        >
+          <DraftTextField
+            aria-label={t`Icon padding`}
+            value={f.value('iconPadding')}
+            onChange={f.write('iconPadding')}
+            placeholder={f.inherited('iconPadding') ?? '0px'}
+            mono
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Text padding`}
+          help={t`Around each icon's text, as a CSS padding (e.g. 4px 4px 4px 0).`}
+          isSet={f.isSet('textPadding')}
+          onReset={f.reset('textPadding')}
+        >
+          <DraftTextField
+            aria-label={t`Text padding`}
+            value={f.value('textPadding')}
+            onChange={f.write('textPadding')}
+            placeholder={f.inherited('textPadding') ?? '4px 4px 4px 0'}
+            mono
+          />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Padding`} layout="vertical">
-        <PaddingInput
-          value={{
-            top: currentAttributes.paddingTop,
-            right: currentAttributes.paddingRight,
-            bottom: currentAttributes.paddingBottom,
-            left: currentAttributes.paddingLeft
-          }}
-          defaultValue={{
-            top: blockDefaults.paddingTop,
-            right: blockDefaults.paddingRight,
-            bottom: blockDefaults.paddingBottom,
-            left: blockDefaults.paddingLeft
-          }}
-          onChange={(values: { top?: string; right?: string; bottom?: string; left?: string }) => {
-            onUpdate({
-              paddingTop: values.top,
-              paddingRight: values.right,
-              paddingBottom: values.bottom,
-              paddingLeft: values.left
-            })
-          }}
-        />
-      </InputLayout>
+      <SettingsSection
+        sectionKey="mj-social:colors"
+        title={t`Colors`}
+        setCount={f.setCount('containerBackgroundColor', 'border')}
+      >
+        <SettingsRow
+          label={t`Container background`}
+          isSet={f.isSet('containerBackgroundColor')}
+          onReset={f.reset('containerBackgroundColor')}
+        >
+          <ColorField
+            aria-label={t`Container background`}
+            value={f.value('containerBackgroundColor')}
+            inherited={f.inherited('containerBackgroundColor')}
+            emailColors={colors}
+            onChange={f.write('containerBackgroundColor')}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t`Icon border`}
+          help={t`Applies to every icon; an icon's own border wins.`}
+          vertical
+          isSet={f.isSet('border')}
+          onReset={f.reset('border')}
+        >
+          <SingleBorderField value={f.value('border')} onChange={f.write('border')} emailColors={colors} />
+        </SettingsRow>
+      </SettingsSection>
 
-      <InputLayout label={t`Icon spacing`} help={t`Padding around each icon`} layout="vertical">
-        <PaddingInput
-          value={currentAttributes.innerPadding}
-          defaultValue={blockDefaults.innerPadding}
-          onChange={(value: string | undefined) => {
-            onUpdate({
-              innerPadding: value
-            })
-          }}
+      <SettingsSection
+        sectionKey="mj-social:spacing"
+        title={t`Spacing`}
+        help={t`Around the block: the block's padding. Icon spacing: the padding around each icon.`}
+        setCount={f.setCount(...SOCIAL_PADDING, 'innerPadding')}
+      >
+        <SpacingField
+          label={t`Around the block`}
+          centerLabel={t`Icons`}
+          value={sidesOf(f, 'padding')}
+          inherited={inheritedSidesOf(f, 'padding')}
+          onChange={(sides: Partial<SpacingSides>, options?: FieldWriteOptions) =>
+            f.writeMany(toSideAttributes(sides, 'padding'), options)
+          }
         />
-      </InputLayout>
+        <div className="mt-2">
+          <SpacingField
+            label={t`Icon spacing`}
+            centerLabel={t`Icon`}
+            value={f.value('innerPadding')}
+            inherited={f.inherited('innerPadding') ?? '4px'}
+            onChange={(value: string | undefined, options?: FieldWriteOptions) =>
+              f.writeMany({ innerPadding: value }, options)
+            }
+          />
+        </div>
+      </SettingsSection>
 
-      <InputLayout label={t`CSS Class`}>
-        <StringPopoverInput
-          value={currentAttributes.cssClass || ''}
-          onChange={(value) => onUpdate({ cssClass: value || undefined })}
-          placeholder={t`Enter CSS class name`}
-        />
-      </InputLayout>
-    </PanelLayout>
+      <AdvancedSection type="mj-social" fields={f} />
+    </>
   )
 }
 
@@ -343,40 +337,32 @@ export class MjSocialBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    templateDefaults: MergedBlockAttributes,
+    blockDefaults: MergedBlockAttributes,
     emailTree?: EmailBlock
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJSocialAttributes
-    // The editor's defaults, then the template's default mj-social attributes
-    const blockDefaults = { ...this.getDefaults(), ...templateDefaults } as MJSocialAttributes
+    const inherited: Record<string, unknown> = { ...(blockDefaults as Record<string, unknown>) }
 
-    // What an icon shows when neither it nor the block sets an inherited attribute: the template's default
-    // mj-social-element attributes (they win over what mj-social passes), then mj-social's, then the element's
+    // For what the block passes to its icons and does not hold itself (font, text color): what an
+    // icon shows when neither it nor the block sets it — the template's default mj-social-element
+    // attributes (they win over what mj-social passes), then mj-social's, then the element's
     const attributeDefaults = emailTree ? EmailBlockClass.extractAttributeDefaults(emailTree) : {}
-    const iconDefaults: Record<string, string | undefined> = {}
+    // (not the editor's mj-social defaults: the canvas leaves those keys to the elements' own)
     for (const key of SOCIAL_INHERITED_ATTRIBUTES) {
       const value =
         attributeDefaults['mj-social-element']?.[key] ??
         attributeDefaults['mj-social']?.[key] ??
         (MJ_SOCIAL_ELEMENT_DEFAULTS as Record<string, unknown>)[key]
-      iconDefaults[key] = typeof value === 'string' ? value : undefined
-    }
-
-    const importedFonts: Array<{ name: string; href: string }> = []
-    if (emailTree) {
-      for (const fontBlock of EmailBlockClass.findAllBlocksByType(emailTree, 'mj-font')) {
-        const attrs = fontBlock.attributes as { name?: string; href?: string }
-        if (attrs?.name && attrs?.href) importedFonts.push({ name: attrs.name, href: attrs.href })
-      }
+      if (typeof value === 'string') inherited[key] = value
     }
 
     return (
       <MjSocialSettingsPanel
+        blockId={this.block.id}
         currentAttributes={currentAttributes}
-        blockDefaults={blockDefaults}
+        inherited={inherited}
         onUpdate={onUpdate}
-        iconDefaults={iconDefaults}
-        importedFonts={importedFonts}
+        emailTree={emailTree}
       />
     )
   }

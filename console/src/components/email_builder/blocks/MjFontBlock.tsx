@@ -8,13 +8,11 @@ import {
   type OnUpdateAttributesFunction
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
-import PanelLayout from '../panels/PanelLayout'
-import InputLayout from '../ui/InputLayout'
 import ImportFontInput from '../ui/ImportFontInput'
-import { faLightbulb } from '@fortawesome/free-regular-svg-icons'
-import { Alert } from 'antd'
+import { SettingsRow } from '../ui/fields/SettingsRow'
+import { SettingsSection } from '../ui/fields/SettingsSections'
 
-// Functional component for settings panel with i18n support
+// The settings panel of a font import
 interface MjFontSettingsPanelProps {
   currentAttributes: MJFontAttributes
   onUpdate: OnUpdateAttributesFunction
@@ -27,36 +25,32 @@ const MjFontSettingsPanel: React.FC<MjFontSettingsPanelProps> = ({
   const { t } = useLingui()
 
   return (
-    <PanelLayout title={t`Font attributes`}>
-      <Alert
-        type="info"
-        title={
+    <SettingsSection
+      sectionKey="mj-font:font"
+      title={t`Font`}
+      first
+      summary={currentAttributes.name}
+      help={
+        <ul className="m-0 list-inside list-disc p-0">
+          <li>
+            {t`Import fonts from hosted CSS files (like Google Fonts) to use in your email. The font will only take effect if you actually use it in text elements.`}
+          </li>
+          <li>{t`Test in different email clients as support varies`}</li>
+        </ul>
+      }
+    >
+      <SettingsRow
+        label={t`Imported font`}
+        vertical
+        help={
           <>
-            <div className="text-xs text-gray-600">
-              <div className="font-medium mb-1">
-                <FontAwesomeIcon icon={faLightbulb} className="mr-2" />
-                {t`How to use:`}
-              </div>
-              <ul className="space-y-1 ml-3">
-                <li>
-                  {t`Import fonts from hosted CSS files (like Google Fonts) to use in your email. The font will only take effect if you actually use it in text elements.`}
-                </li>
-                <li>
-                  {t`Use the font name in text elements:`}{' '}
-                  <code className="bg-white px-1 rounded">font-family="Raleway, Arial"</code>
-                </li>
-                <li>{t`Always provide fallback fonts for better compatibility`}</li>
-                <li>{t`Test in different email clients as support varies`}</li>
-              </ul>
-            </div>
+            <p className="m-0 mb-1">{t`Configure both the font name and CSS file URL together`}</p>
+            <p className="m-0 mb-1">
+              {t`Use the font name in text elements:`} <code className="font-mono">font-family="Raleway, Arial"</code>
+            </p>
+            <p className="m-0">{t`Always provide fallback fonts for better compatibility`}</p>
           </>
         }
-      />
-
-      <InputLayout
-        label={t`Font Configuration`}
-        help={t`Configure both the font name and CSS file URL together`}
-        layout="vertical"
       >
         <ImportFontInput
           value={{
@@ -78,8 +72,8 @@ const MjFontSettingsPanel: React.FC<MjFontSettingsPanelProps> = ({
           }}
           buttonText={t`Import Font`}
         />
-      </InputLayout>
-    </PanelLayout>
+      </SettingsRow>
+    </SettingsSection>
   )
 }
 

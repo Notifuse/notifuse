@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MjGroupBlock } from './MjGroupBlock'
 import { EmailBlockClass } from '../EmailBlockClass'
 import type { EmailBlock, MergedBlockAttributes } from '../types'
@@ -55,10 +55,11 @@ describe('new groups', () => {
 })
 
 describe('group Width placeholder', () => {
+  // The field shows the number; the % unit is the share's.
   it.each([
-    [1, '100%'],
-    [2, '50%'],
-    [3, '33.33%']
+    [1, '100'],
+    [2, '50'],
+    [3, '33.33']
   ])('shows the share of the section with %i layout children', (count, share) => {
     const g = groupBlock()
     const siblings = Array.from({ length: count - 1 }, (_, i) => column(`c${i}`))
@@ -69,13 +70,15 @@ describe('group Width placeholder', () => {
   it("shows the template's default group width first", () => {
     const g = groupBlock()
     const tree = treeWith([g, column('c')])
-    expect(widthPlaceholder(g, tree, { width: '300px' })).toBe('300px')
+    expect(widthPlaceholder(g, tree, { width: '300px' })).toBe('300')
+    const unit = screen.getByLabelText('Group width unit', { selector: '.ant-segmented' })
+    expect(within(unit).getByRole('radio', { name: 'px' })).toBeChecked()
   })
 
   it('shows no share for the group of the default attributes', () => {
     const defaults = groupBlock('defaults-group')
     const tree = treeWith([groupBlock(), column('c')], [defaults])
-    expect(widthPlaceholder(defaults, tree)).toBe('Enter width')
+    expect(widthPlaceholder(defaults, tree)).toBeNull()
   })
 })
 
