@@ -98,14 +98,16 @@ func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string
 		return err
 	}
 
-	// This sends a real email through the workspace's stored provider credentials,
-	// so it is a send and gated like one.
-	if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeWrite) {
-		return domain.NewPermissionError(
-			domain.PermissionResourceTransactional,
-			domain.PermissionTypeWrite,
-			"Insufficient permissions: write access to transactional required",
-		)
+	// Testing a provider is configuring one: the request carries the provider's
+	// settings and is completed with the saved integration's. It takes the role
+	// that creates and updates integrations (platform admins are synthesized as
+	// owners), as SECURITY.md describes for provider settings.
+	//
+	// Not logged: a denial is the caller's error, not ours.
+	if userWorkspace.Role != "owner" {
+		err := &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
+		tracing.MarkSpanError(ctx, err)
+		return err
 	}
 
 	// Fill in credentials the client could not send. Workspaces do not serve
