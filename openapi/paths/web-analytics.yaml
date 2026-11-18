@@ -186,6 +186,8 @@
 /api/webAnalytics.backfillStatus:
   post:
     summary: Get the latest backfill run
+    description: |
+      Returns the workspace's most recent attribution backfill run, whatever its state (pending, running, paused, completed or failed), with its progress and, for a failed run, its error. A run stopped through `backfillCancel` reads as failed with `cancelled` set. `backfill` is null when the workspace has never run one. Needs read access to web analytics.
     operationId: webAnalyticsBackfillStatus
     tags: [Web Analytics]
     security:
@@ -207,6 +209,8 @@
 /api/webAnalytics.backfillCancel:
   post:
     summary: Cancel the in-flight backfill run
+    description: |
+      Stops the workspace's pending, running or paused backfill run. The run is marked failed, and `backfillStatus` then reports it with `cancelled` set, to tell it from a run that broke. Partitions it already rewrote are not rolled back. Answers 400 when no run is in progress. Needs write access to web analytics.
     operationId: webAnalyticsBackfillCancel
     tags: [Web Analytics]
     security:
