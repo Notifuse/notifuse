@@ -1069,6 +1069,21 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     insertLibraryItem(item, target)
   }
 
+  // A tree set from outside the editor (the AI assistant, an import, a reset) is an undo step
+  // of its own, so undoing goes back to what was there before it rather than to an older state
+  // that drops it. The editor's own changes and its undo/redo pass the tree of the history
+  // entry they made current, which this leaves alone.
+  useEffect(() => {
+    if (tree === state.history[state.historyIndex]) return
+    lastCoalesceKey.current = null
+    setState((prev) => {
+      if (tree === prev.history[prev.historyIndex]) return prev
+      const history = [...prev.history.slice(0, prev.historyIndex + 1), tree]
+      return { ...prev, history, historyIndex: history.length - 1 }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree])
+
   const canUndo = state.historyIndex > 0
   const canRedo = state.historyIndex < state.history.length - 1
 

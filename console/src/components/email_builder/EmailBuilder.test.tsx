@@ -1090,6 +1090,42 @@ describe('EmailBuilder settings writes and undo steps', () => {
     expect(text.attributes?.color).toBe('#222222')
   })
 
+  it('undoes a change made from outside on its own, then the editor change before it', () => {
+    render(<Controlled initial={initial()} />)
+    write({ color: '#222222' })
+    const outside = JSON.parse(JSON.stringify(latestTree)) as EmailBlock
+    ;(EmailBlockClass.findBlockById(outside, 'text-1') as { content?: string }).content = '<p>From the assistant</p>'
+    act(() => setOutside(outside))
+
+    const content = () => (EmailBlockClass.findBlockById(latestTree, 'text-1') as { content?: string }).content
+    undo()
+    expect(content()).toBe('<p>Hi</p>')
+    expect(attrs().color).toBe('#222222')
+    undo()
+    expect(attrs().color).toBe('#111111')
+    expect(undoDisabled()).toBe(true)
+
+    redo()
+    redo()
+    expect(content()).toBe('<p>From the assistant</p>')
+    expect(attrs().color).toBe('#222222')
+  })
+
+  it('does not fold a write into the step before a change made from outside', () => {
+    render(<Controlled initial={initial()} />)
+    write({ paddingTop: '10px' }, 'k')
+    const outside = JSON.parse(JSON.stringify(latestTree)) as EmailBlock
+    ;(EmailBlockClass.findBlockById(outside, 'text-1') as { content?: string }).content = '<p>From the assistant</p>'
+    act(() => setOutside(outside))
+    write({ paddingTop: '20px' }, 'k')
+
+    undo()
+    expect(attrs().paddingTop).toBe('10px')
+    expect((EmailBlockClass.findBlockById(latestTree, 'text-1') as { content?: string }).content).toBe(
+      '<p>From the assistant</p>'
+    )
+  })
+
   it('removes an attribute written as undefined', () => {
     render(<Controlled initial={initial()} />)
     write({ color: undefined })
