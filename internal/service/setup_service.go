@@ -279,7 +279,7 @@ func (s *SetupService) GetEnvOverrides() map[string]bool {
 // is set, the way the runtime config does at boot (a non-empty env var wins, field by
 // field). The setup wizard leaves a field set by the environment out of its request, so
 // validation and storage must see the value the instance will actually run with. It is
-// idempotent. A group set entirely by the environment is taken from it in Initialize.
+// idempotent. Initialize stores the result for every group, set by the environment or not.
 func (s *SetupService) applyEnvValues(config *SetupConfig) {
 	env := s.envConfig
 	if env == nil {
@@ -334,46 +334,39 @@ func (s *SetupService) applyEnvValues(config *SetupConfig) {
 	tri(&config.CheckForUpdates, env.CheckForUpdates)
 }
 
-// ValidateSetupConfig validates the setup configuration, only checking user-provided fields
+// ValidateSetupConfig applies the environment to config (applyEnvValues), then checks
+// the result for every group: Initialize stores it whether or not a group is set by the
+// environment, so a value the request adds to an env-set group is checked too.
 func (s *SetupService) ValidateSetupConfig(config *SetupConfig) error {
 	s.applyEnvValues(config)
-	status := s.GetConfigurationStatus()
 
-	// Validate root_email if not configured via env: one or more emails, separated as
-	// ROOT_EMAIL is (commas, semicolons or spaces).
-	if !status.RootEmailConfigured {
-		rootEmails := appconfig.ParseRootEmails(config.RootEmail)
-		if len(rootEmails) == 0 {
-			return fmt.Errorf("root_email is required")
-		}
-		for _, email := range rootEmails {
-			if !govalidator.IsEmail(email) {
-				return fmt.Errorf("root_email contains an invalid email: %s", email)
-			}
+	// One or more root emails, separated as ROOT_EMAIL is (commas, semicolons or spaces).
+	rootEmails := appconfig.ParseRootEmails(config.RootEmail)
+	if len(rootEmails) == 0 {
+		return fmt.Errorf("root_email is required")
+	}
+	for _, email := range rootEmails {
+		if !govalidator.IsEmail(email) {
+			return fmt.Errorf("root_email contains an invalid email: %s", email)
 		}
 	}
 
-	// Validate SMTP if not configured via env
-	if !status.SMTPConfigured {
-		if config.SMTPHost == "" {
-			return fmt.Errorf("smtp_host is required")
-		}
-
-		if config.SMTPPort == 0 {
-			config.SMTPPort = 587 // Default
-		}
-
-		if config.SMTPFromEmail == "" {
-			return fmt.Errorf("smtp_from_email is required")
-		}
-
-		if err := s.ValidateSMTPCredentials(config.SMTPUsername, config.SMTPPassword); err != nil {
-			return err
-		}
+	if config.SMTPHost == "" {
+		return fmt.Errorf("smtp_host is required")
+	}
+	if config.SMTPPort == 0 {
+		config.SMTPPort = 587 // Default
+	}
+	if config.SMTPFromEmail == "" {
+		return fmt.Errorf("smtp_from_email is required")
+	}
+	if err := s.ValidateSMTPCredentials(config.SMTPUsername, config.SMTPPassword); err != nil {
+		return err
 	}
 
-	// Validate OIDC when the user enables it in the wizard (and it's not env-configured).
-	if !status.OIDCConfigured && config.OIDCEnabled {
+	// The checks the boot makes (config.OIDCConfig.Validate), so that an incomplete SSO is
+	// refused here rather than by a server that then fails to start.
+	if config.OIDCEnabled {
 		if config.OIDCIssuerURL == "" {
 			return fmt.Errorf("oidc_issuer_url is required when OIDC is enabled")
 		}
@@ -398,102 +391,17 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		return err
 	}
 
-	status := s.GetConfigurationStatus()
-
-	// Merge configuration: env vars always win
-	finalConfig := &SetupConfig{
-		RootEmail:   config.RootEmail,
-		APIEndpoint: config.APIEndpoint,
-	}
-
-	// Override with env values if configured
-	if status.RootEmailConfigured {
-		finalConfig.RootEmail = s.envConfig.RootEmail
-	}
-	if status.APIEndpointConfigured {
-		finalConfig.APIEndpoint = s.envConfig.APIEndpoint
-	}
-
-	// Sanitize API endpoint
-	finalConfig.APIEndpoint = strings.TrimRight(finalConfig.APIEndpoint, "/")
-
-	// Handle SMTP configuration
-	var smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpEHLOHostname string
-	var smtpPort int
-	var smtpUseTLS bool
-
-	if status.SMTPConfigured {
-		// Use env-configured SMTP
-		smtpHost = s.envConfig.SMTPHost
-		smtpPort = s.envConfig.SMTPPort
-		smtpUsername = s.envConfig.SMTPUsername
-		smtpPassword = s.envConfig.SMTPPassword
-		smtpFromEmail = s.envConfig.SMTPFromEmail
-		smtpFromName = s.envConfig.SMTPFromName
-		// TLS defaults to true unless explicitly set to false via env var
-		smtpUseTLS = s.envConfig.SMTPUseTLS != "false"
-		smtpEHLOHostname = s.envConfig.SMTPEHLOHostname
-	} else {
-		// Use user-provided SMTP
-		smtpHost = config.SMTPHost
-		smtpPort = config.SMTPPort
-		smtpUsername = config.SMTPUsername
-		smtpPassword = config.SMTPPassword
-		smtpFromEmail = config.SMTPFromEmail
-		smtpFromName = config.SMTPFromName
-		smtpUseTLS = config.SMTPUseTLS
-		smtpEHLOHostname = config.SMTPEHLOHostname
-	}
-
-	// Handle SMTP Bridge configuration
-	var smtpBridgeEnabled bool
-	var smtpBridgeDomain, smtpBridgeTLSCertBase64, smtpBridgeTLSKeyBase64 string
-	var smtpBridgePort int
-
-	if status.SMTPBridgeConfigured {
-		// Use env-configured SMTP Bridge (parse string to bool)
-		smtpBridgeEnabled = s.envConfig.SMTPBridgeEnabled == "true"
-		smtpBridgeDomain = s.envConfig.SMTPBridgeDomain
-		smtpBridgePort = s.envConfig.SMTPBridgePort
-		smtpBridgeTLSCertBase64 = s.envConfig.SMTPBridgeTLSCertBase64
-		smtpBridgeTLSKeyBase64 = s.envConfig.SMTPBridgeTLSKeyBase64
-	} else {
-		// Use user-provided SMTP Bridge
-		smtpBridgeEnabled = config.SMTPBridgeEnabled
-		smtpBridgeDomain = config.SMTPBridgeDomain
-		smtpBridgePort = config.SMTPBridgePort
-		smtpBridgeTLSCertBase64 = config.SMTPBridgeTLSCertBase64
-		smtpBridgeTLSKeyBase64 = config.SMTPBridgeTLSKeyBase64
-	}
-
-	// Handle OIDC configuration (env wins, else user-provided).
-	var oidcEnabled, oidcAutoCreate bool
-	var oidcIssuerURL, oidcClientID, oidcClientSecret, oidcRedirectURI, oidcScopes, oidcButtonLabel, oidcAllowedDomains string
-	if status.OIDCConfigured {
-		oidcEnabled = s.envConfig.OIDCEnabled == "true"
-		oidcIssuerURL = s.envConfig.OIDCIssuerURL
-		oidcClientID = s.envConfig.OIDCClientID
-		oidcClientSecret = s.envConfig.OIDCClientSecret
-		oidcRedirectURI = s.envConfig.OIDCRedirectURI
-		oidcScopes = s.envConfig.OIDCScopes
-		oidcButtonLabel = s.envConfig.OIDCButtonLabel
-		oidcAutoCreate = s.envConfig.OIDCAutoCreateUsers == "true"
-		oidcAllowedDomains = s.envConfig.OIDCAllowedDomains
-	} else {
-		oidcEnabled = config.OIDCEnabled
-		oidcIssuerURL = config.OIDCIssuerURL
-		oidcClientID = config.OIDCClientID
-		oidcClientSecret = config.OIDCClientSecret
-		oidcRedirectURI = config.OIDCRedirectURI
-		oidcScopes = config.OIDCScopes
-		oidcButtonLabel = config.OIDCButtonLabel
-		oidcAutoCreate = config.OIDCAutoCreateUsers
-		oidcAllowedDomains = config.OIDCAllowedDomains
-	}
+	// config now holds what the instance will run with: the environment applied field
+	// by field (a non-empty variable wins, as at boot), the request filling the rest,
+	// whether or not a whole group is set by the environment. ValidateSetupConfig
+	// applies it too; applying it again changes nothing.
+	s.applyEnvValues(config)
+	apiEndpoint := strings.TrimRight(config.APIEndpoint, "/")
+	oidcScopes := config.OIDCScopes
 	// Canonicalize before persisting: empty/token-less input becomes the full
 	// default (see NormalizeScopesForStorage — a stored bare value would override
 	// the richer default at boot), "openid" is always forced in.
-	if oidcEnabled {
+	if config.OIDCEnabled {
 		oidcScopes = appconfig.NormalizeScopesForStorage(oidcScopes)
 	}
 
@@ -501,32 +409,32 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 	systemConfig := &SystemConfig{
 		IsInstalled:             true,
 		AuditLogsRetentionDays:  domain.DefaultAuditLogRetentionDays,
-		RootEmail:               finalConfig.RootEmail,
-		APIEndpoint:             finalConfig.APIEndpoint,
-		SMTPHost:                smtpHost,
-		SMTPPort:                smtpPort,
-		SMTPUsername:            smtpUsername,
-		SMTPPassword:            smtpPassword,
-		SMTPFromEmail:           smtpFromEmail,
-		SMTPFromName:            smtpFromName,
-		SMTPUseTLS:              smtpUseTLS,
-		SMTPEHLOHostname:        smtpEHLOHostname,
+		RootEmail:               config.RootEmail,
+		APIEndpoint:             apiEndpoint,
+		SMTPHost:                config.SMTPHost,
+		SMTPPort:                config.SMTPPort,
+		SMTPUsername:            config.SMTPUsername,
+		SMTPPassword:            config.SMTPPassword,
+		SMTPFromEmail:           config.SMTPFromEmail,
+		SMTPFromName:            config.SMTPFromName,
+		SMTPUseTLS:              config.SMTPUseTLS,
+		SMTPEHLOHostname:        config.SMTPEHLOHostname,
 		TelemetryEnabled:        config.TelemetryEnabled,
 		CheckForUpdates:         config.CheckForUpdates,
-		SMTPBridgeEnabled:       smtpBridgeEnabled,
-		SMTPBridgeDomain:        smtpBridgeDomain,
-		SMTPBridgePort:          smtpBridgePort,
-		SMTPBridgeTLSCertBase64: smtpBridgeTLSCertBase64,
-		SMTPBridgeTLSKeyBase64:  smtpBridgeTLSKeyBase64,
-		OIDCEnabled:             oidcEnabled,
-		OIDCIssuerURL:           oidcIssuerURL,
-		OIDCClientID:            oidcClientID,
-		OIDCClientSecret:        oidcClientSecret,
-		OIDCRedirectURI:         oidcRedirectURI,
+		SMTPBridgeEnabled:       config.SMTPBridgeEnabled,
+		SMTPBridgeDomain:        config.SMTPBridgeDomain,
+		SMTPBridgePort:          config.SMTPBridgePort,
+		SMTPBridgeTLSCertBase64: config.SMTPBridgeTLSCertBase64,
+		SMTPBridgeTLSKeyBase64:  config.SMTPBridgeTLSKeyBase64,
+		OIDCEnabled:             config.OIDCEnabled,
+		OIDCIssuerURL:           config.OIDCIssuerURL,
+		OIDCClientID:            config.OIDCClientID,
+		OIDCClientSecret:        config.OIDCClientSecret,
+		OIDCRedirectURI:         config.OIDCRedirectURI,
 		OIDCScopes:              oidcScopes,
-		OIDCButtonLabel:         oidcButtonLabel,
-		OIDCAutoCreateUsers:     oidcAutoCreate,
-		OIDCAllowedDomains:      oidcAllowedDomains,
+		OIDCButtonLabel:         config.OIDCButtonLabel,
+		OIDCAutoCreateUsers:     config.OIDCAutoCreateUsers,
+		OIDCAllowedDomains:      config.OIDCAllowedDomains,
 	}
 
 	if err := s.settingService.SetSystemConfig(ctx, systemConfig, s.secretKey); err != nil {
@@ -537,7 +445,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 	// email is the primary; additional roots are created on startup by
 	// InitializeDatabase. Using the raw list string here would create a user
 	// with an invalid comma-joined email.
-	primaryRootEmail := appconfig.PrimaryRootEmail(finalConfig.RootEmail)
+	primaryRootEmail := appconfig.PrimaryRootEmail(config.RootEmail)
 	rootUser := &domain.User{
 		ID:        uuid.New().String(),
 		Email:     primaryRootEmail,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
@@ -72,6 +72,7 @@ describe('SetupWizard', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -244,6 +245,33 @@ describe('SetupWizard', () => {
       await screen.findByText('Enter the password that goes with this username, or clear both.')
     ).toBeInTheDocument()
     expect(setupApi.initialize).not.toHaveBeenCalled()
+  })
+
+  it('waits for another boot_id than the process that saved the setup: it still answers', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    // Opened before a restart: the status read then has another boot_id than the process
+    // that handles setup.initialize. Only the latter counts.
+    mockStatus({ ...ALL_BUT_UPDATES, boot_id: 'boot-at-opening' })
+    vi.mocked(setupApi.initialize).mockResolvedValue({ success: true, message: 'ok', boot_id: 'boot-before' })
+    const status = (bootId: string) =>
+      new Response(JSON.stringify({ ...ALL_BUT_UPDATES, is_installed: true, boot_id: bootId }), { status: 200 })
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(status('boot-before'))
+      .mockResolvedValueOnce(status('boot-after'))
+    renderWizard()
+
+    await screen.findByRole('switch', { name: 'Check for updates' })
+    await complete(user)
+    expect(await screen.findByText('Applying your configuration')).toBeInTheDocument()
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(1))
+    // The first answer comes from the process shutting down: still waiting.
+    expect(screen.queryByText('Notifuse is ready')).not.toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(await screen.findByText('Notifuse is ready')).toBeInTheDocument()
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
   })
 
   it('moves to the restart view once the setup is saved', async () => {

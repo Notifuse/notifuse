@@ -316,10 +316,19 @@ func TestSetupServiceCoverage_ValidateSetupConfig_ExactErrors(t *testing.T) {
 		assert.NoError(t, svc.ValidateSetupConfig(cfg))
 	})
 
-	t.Run("env-configured OIDC skips wizard OIDC validation entirely", func(t *testing.T) {
+	// Initialize stores the request's values for an env-set group too, so they are
+	// checked: SSO switched on with only the client ID in the environment and no issuer
+	// would be stored enabled, and the server would then refuse to start.
+	t.Run("env-configured OIDC is checked with the request's values merged in", func(t *testing.T) {
 		svc := newSvc(&service.EnvironmentConfig{OIDCClientID: "env-cid"})
 		cfg := &service.SetupConfig{RootEmail: "a@b.com", SMTPHost: "h", SMTPFromEmail: "f@b.com", OIDCEnabled: true}
-		assert.NoError(t, svc.ValidateSetupConfig(cfg))
+		assert.EqualError(t, svc.ValidateSetupConfig(cfg), "oidc_issuer_url is required when OIDC is enabled")
+
+		cfg = &service.SetupConfig{
+			RootEmail: "a@b.com", SMTPHost: "h", SMTPFromEmail: "f@b.com",
+			OIDCEnabled: true, OIDCIssuerURL: "https://idp.example.com", OIDCClientSecret: "s",
+		}
+		assert.NoError(t, svc.ValidateSetupConfig(cfg), "the env client ID completes the request")
 	})
 }
 

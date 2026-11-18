@@ -253,6 +253,39 @@ func TestSetupHandler_Status_EnvOverrides(t *testing.T) {
 	})
 }
 
+// The setup page waits for a different boot_id to know the restarted process answers,
+// not the one shutting down.
+func TestSetupHandler_Status_BootID(t *testing.T) {
+	newHandler := func() *SetupHandler {
+		settingService := service.NewSettingService(newMockSettingRepository())
+		setupService := service.NewSetupService(settingService, &service.UserService{}, newMockUserRepository(), logger.NewLogger(), "secret-key", nil, nil)
+		return NewSetupHandler(setupService, settingService, logger.NewLogger(), newMockAppShutdowner())
+	}
+	bootID := func(h *SetupHandler) string {
+		w := httptest.NewRecorder()
+		h.Status(w, httptest.NewRequest(http.MethodGet, "/api/setup.status", nil))
+		var body StatusResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+		return body.BootID
+	}
+
+	first := newHandler()
+	id := bootID(first)
+	assert.NotEmpty(t, id)
+	assert.Equal(t, id, bootID(first), "one process answers one boot_id")
+	assert.NotEqual(t, id, bootID(newHandler()), "a new process answers another")
+
+	// setup.initialize answers the boot_id of the process that handled it: the one the
+	// page compares against, whatever it read when it opened.
+	body := `{"root_email":"admin@example.com","api_endpoint":"https://api.example.com","smtp_host":"smtp.example.com","smtp_port":587,"smtp_from_email":"noreply@example.com"}`
+	w := httptest.NewRecorder()
+	first.Initialize(w, httptest.NewRequest(http.MethodPost, "/api/setup.initialize", bytes.NewBufferString(body)))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var initialized InitializeResponse
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&initialized))
+	assert.Equal(t, id, initialized.BootID)
+}
+
 func TestSetupHandler_TestSMTP(t *testing.T) {
 	tlsTrue := true
 	tlsFalse := false

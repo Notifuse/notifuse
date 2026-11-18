@@ -448,6 +448,18 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 
 	client := suite.APIClient
 
+	bootID := func(t *testing.T, c *testutil.APIClient) string {
+		resp, err := c.Get("/api/setup.status")
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		var status map[string]interface{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&status))
+		id, _ := status["boot_id"].(string)
+		return id
+	}
+	firstBootID := bootID(t, client)
+	require.NotEmpty(t, firstBootID, "setup.status carries a boot_id")
+
 	t.Run("Complete Setup Triggers Shutdown", func(t *testing.T) {
 		// Step 1: Complete setup wizard with full SMTP configuration
 		rootEmail := "admin@example.com"
@@ -484,6 +496,8 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 		assert.True(t, setupResp["success"].(bool), "Setup should succeed")
 		assert.Contains(t, setupResp["message"].(string), "restarting",
 			"Response should indicate server is restarting")
+		assert.Equal(t, firstBootID, setupResp["boot_id"],
+			"the answer names the process that handled it, the one the page waits to see replaced")
 
 		// Note: In production, Docker/systemd would restart the process here.
 		// The test suite will be cleaned up, simulating process termination.
@@ -503,6 +517,10 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 			return app.NewApp(cfg)
 		})
 		defer freshSuite.Cleanup()
+
+		// A new app instance (the harness's stand-in for the restarted process) draws its
+		// own boot_id, which is what the setup page waits for.
+		assert.NotEqual(t, firstBootID, bootID(t, freshSuite.APIClient))
 
 		// Verify the fresh app loaded config correctly by testing signin
 		signinReq := map[string]interface{}{

@@ -35,6 +35,8 @@ const EMPTY_STATUS: SetupStatus = {
 // Fields inside a panel keep two thirds of antd's margin: the panel's padding closes each one.
 const FORM_THEME = { components: { Form: { itemMarginBottom: 16 } } }
 
+// Only without a boot_id to compare (a server older than the field): a pause before the
+// first poll, so that the process shutting down is less likely to answer it.
 const RESTART_PAUSE_MS = 2000
 const RESTART_POLL_MS = 1000
 const RESTART_ATTEMPTS = 60
@@ -60,6 +62,18 @@ async function subscribeToNewsletter(email: string, values: SetupFormValues) {
     })
   } catch {
     // Fail silently.
+  }
+}
+
+/** The answer comes from another process than the one read on opening the page. */
+async function isRestarted(response: Response, previousBootId: string | undefined): Promise<boolean> {
+  if (!previousBootId) return true
+  try {
+    const body = (await response.json()) as Partial<SetupStatus>
+    // A server without boot_id cannot say; take its answer as before.
+    return !body.boot_id || body.boot_id !== previousBootId
+  } catch {
+    return false
   }
 }
 
@@ -104,19 +118,23 @@ export default function SetupWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /** Polls the address that just answered setup.initialize until the restarted server answers. */
-  const waitForRestart = async (rootEmail: string | undefined) => {
+  /**
+   * Polls the address that just answered setup.initialize until the restarted server answers:
+   * a boot_id other than the one of the process that handled setup.initialize, since that
+   * process still answers 200 while it drains.
+   */
+  const waitForRestart = async (rootEmail: string | undefined, previousBootId: string | undefined) => {
     const started = Date.now()
     const tick = () => Math.round((Date.now() - started) / 1000)
     setRestart({ phase: 'waiting', elapsed: 0, rootEmail })
-    await sleep(RESTART_PAUSE_MS)
+    if (!previousBootId) await sleep(RESTART_PAUSE_MS)
     for (let attempt = 0; attempt < RESTART_ATTEMPTS; attempt++) {
       if (unmounted.current) return
       setRestart({ phase: 'waiting', elapsed: tick(), rootEmail })
       try {
         // A plain GET without custom headers: no CORS preflight while the server comes back.
         const response = await fetch(`${apiBaseUrl()}/api/setup.status?t=${Date.now()}`, { method: 'GET' })
-        if (response.ok) {
+        if (response.ok && (await isRestarted(response, previousBootId))) {
           setRestart({ phase: 'ready', elapsed: tick(), rootEmail })
           return
         }
@@ -138,8 +156,9 @@ export default function SetupWizard() {
     const all = form.getFieldsValue(true) as SetupFormValues
     setSubmitting(true)
     setError(undefined)
+    let initializedBy: string | undefined
     try {
-      await setupApi.initialize(buildSetupConfig(all, status))
+      initializedBy = (await setupApi.initialize(buildSetupConfig(all, status))).boot_id
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Failed to complete setup`)
       setSubmitting(false)
@@ -148,7 +167,7 @@ export default function SetupWizard() {
     const rootEmail = isFieldLocked(status, 'root_email') ? undefined : splitList(all.root_email)[0]
     if (all.subscribe_newsletter && rootEmail) await subscribeToNewsletter(rootEmail, all)
     setSubmitting(false)
-    await waitForRestart(rootEmail)
+    await waitForRestart(rootEmail, initializedBy)
   }
 
   const goTo = (summary: PanelSummary) => {
