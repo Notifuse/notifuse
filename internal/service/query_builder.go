@@ -846,7 +846,7 @@ func (qb *QueryBuilder) buildCondition(dbColumn, operator string, sqlOp sqlOpera
 }
 
 // buildJSONCondition builds SQL conditions for JSON/JSONB fields
-// Uses PostgreSQL 17 subscript notation and proper type casting
+// Uses jsonb subscript notation (PostgreSQL 14+) and proper type casting
 func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.DimensionFilter, argIndex int, mode castMode) (string, []interface{}, int, error) {
 	var args []interface{}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
@@ -73,5 +74,25 @@ func TestCreateWorkspacePool_MissingDatabaseFallback(t *testing.T) {
 		var notFound *domain.ErrWorkspaceNotFound
 		require.True(t, errors.As(err, &notFound), "got %v", err)
 		assert.Equal(t, int32(1), opens.Load(), "no second open after the refusal")
+	})
+
+	t.Run("DB_EXPECT_EXISTING refuses to create it", func(t *testing.T) {
+		cm, mock, opens := newManager(t)
+		cm.config.Database.ExpectExisting = true
+		expectRegistered(mock, "acme", true)
+
+		ensured := false
+		cm.ensureWorkspaceDatabase = func(ctx context.Context, cfg *config.DatabaseConfig, workspaceID string, stillRegistered func(ctx context.Context) error) error {
+			ensured = true
+			return nil
+		}
+
+		_, err := cm.GetWorkspaceConnection(context.Background(), "acme")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "the database of workspace acme does not exist, and DB_EXPECT_EXISTING is set")
+		assert.True(t, database.IsDatabaseMissingError(err), "the 3D000 stays wrapped")
+		assert.False(t, ensured, "no database created")
+		assert.Equal(t, int32(1), opens.Load())
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }

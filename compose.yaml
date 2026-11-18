@@ -1,22 +1,82 @@
-# ⚠️  IMPORTANT: If using a .env file with Docker Compose
-# Values containing # must be quoted: DB_PASSWORD="mypass#word123"
-# See env.example for more details.
+# Notifuse with its own PostgreSQL, for production and development alike.
+#
+# The file works on its own: a server needs no clone of the repository.
+#
+#   curl -fsSL https://raw.githubusercontent.com/Notifuse/notifuse/main/compose.yaml -o compose.yaml
+#   cat > .env <<EOF
+#   SECRET_KEY=$(openssl rand -base64 32)
+#   DB_PASSWORD=$(openssl rand -hex 24)
+#   EOF
+#   docker compose up -d
+#
+# Then open http://<server>:8081 and finish the setup wizard. Notifuse serves plain
+# HTTP: put a reverse proxy with TLS in front of it before pointing a domain at it.
+#
+# Commands:
+#   docker compose up -d            start, pulling the release named below
+#   docker compose up -d --build    from a clone: build the image from this checkout
+#   docker compose watch            from a clone: rebuild when the source changes
+#   docker compose logs -f api      follow the server log
+#   docker compose down             stop; the database volume is KEPT
+#   docker compose down -v          stop and DELETE the database (and its upgrade copy)
+#
+# Upgrading Notifuse: set NOTIFUSE_VERSION in .env (or take the new version of this
+# file), then `docker compose up -d`. Read the CHANGELOG entries in between first.
+#
+# PostgreSQL 18. An installation made with PostgreSQL 17 is upgraded by the next
+# `docker compose up -d`: the pg-upgrade service below first copies the 17 data to
+# the postgres-upgrade-backup volume, then upgrades it in place. See
+# https://docs.notifuse.com/self-hosting/upgrading-postgresql to roll back, or to
+# delete the copy once you are satisfied.
+#
+# Backups: dump every database, the system one and one per workspace (pg_dumpall
+# does not restore here), and keep SECRET_KEY with them. With another DB_USER,
+# DB_NAME or DB_PREFIX, put yours in place of postgres, notifuse_system and notifuse:
+#   for db in $(docker compose exec -T postgres psql -U postgres -d postgres -Atc "SELECT datname FROM pg_database WHERE datname = 'notifuse_system' OR datname LIKE 'notifuse\_ws\_%'"); do
+#     docker compose exec -T postgres pg_dump -U postgres -Fc "$db" > "$db.dump"
+#   done
+#
+# Configuration comes from a .env file next to this one; env.example lists every
+# setting. SMTP, the root account and the public endpoint can all be set in the
+# setup wizard instead.
+# ⚠️  In .env, values containing # must be quoted: DB_PASSWORD="mypass#word123"
+#
+# Requires Docker Engine 25.0 and Compose v2.24 or newer (`docker compose version`).
 
 services:
   api:
+    # Pin a release in .env (NOTIFUSE_VERSION=v44.0). The default below moves with
+    # this file, so `git pull` or a new copy of the file, then `up -d`, upgrades.
+    # From a clone, a tag not published yet (on the dev branch) is built from source.
+    image: notifuse/notifuse:${NOTIFUSE_VERSION:-v44.0}
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '8081:8080'
-      - '587:587'
+      # host:container. The container side follows SERVER_PORT: publishing a fixed
+      # port while the server listens on another gives a healthy container that
+      # nothing can reach. HTTP_BIND=127.0.0.1 in .env when a reverse proxy on this
+      # host terminates TLS.
+      # Without HTTP_BIND, every interface, IPv6 included.
+      - '${HTTP_BIND:+${HTTP_BIND}:}${HTTP_PORT:-8081}:${SERVER_PORT:-8080}'
+      # Inbound SMTP bridge, used only when SMTP_BRIDGE_ENABLED is set. The container
+      # side follows SMTP_BRIDGE_PORT, as the HTTP one follows SERVER_PORT.
+      - '${SMTP_BRIDGE_HOST_PORT:-587}:${SMTP_BRIDGE_PORT:-587}'
+    # Every variable in .env reaches the server (up to 43.0, only those named below
+    # did), so a setting not named below needs no edit to this file. The values below
+    # still win for the keys they name.
+    env_file:
+      - path: .env
+        required: false
     environment:
       # Server Configuration
       - SERVER_PORT=${SERVER_PORT:-8080}
       - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
       - ENVIRONMENT=${ENVIRONMENT:-production}
 
-      # Database Configuration (Required)
+      # Database Configuration. DB_PASSWORD is read by both services, so they cannot
+      # drift apart. It defaults to postgres because existing installations were
+      # initialised with it; a new installation sets its own in .env.
       - DB_HOST=${DB_HOST:-postgres}
       - DB_PORT=${DB_PORT:-5432}
       - DB_USER=${DB_USER:-postgres}
@@ -38,27 +98,14 @@ services:
       # what a licence covers and where a key comes from.
       # - NOTIFUSE_LICENSE_KEY=${NOTIFUSE_LICENSE_KEY}
 
-      # All other settings (ROOT_EMAIL, API_ENDPOINT, SMTP)
-      # can be configured through the Setup Wizard on first launch
-      # Or set them here as environment variables if you prefer
-      # - ROOT_EMAIL=${ROOT_EMAIL}
-      # - API_ENDPOINT=${API_ENDPOINT}
-      # - SMTP_HOST=${SMTP_HOST}
-      # - SMTP_PORT=${SMTP_PORT}
-      # - SMTP_USERNAME=${SMTP_USERNAME}
-      # - SMTP_PASSWORD=${SMTP_PASSWORD}
-      # - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
-      # - SMTP_FROM_NAME=${SMTP_FROM_NAME}
-
-      # SMTP Bridge Configuration (Optional - for receiving inbound emails)
-      # - SMTP_BRIDGE_ENABLED=${SMTP_BRIDGE_ENABLED}
-      # - SMTP_BRIDGE_PORT=${SMTP_BRIDGE_PORT}
-      # - SMTP_BRIDGE_DOMAIN=${SMTP_BRIDGE_DOMAIN}
-      # - SMTP_BRIDGE_TLS=${SMTP_BRIDGE_TLS}  # off | starttls | implicit (default: starttls when certs present)
-      # - SMTP_BRIDGE_TLS_CERT_BASE64=${SMTP_BRIDGE_TLS_CERT_BASE64}
-      # - SMTP_BRIDGE_TLS_KEY_BASE64=${SMTP_BRIDGE_TLS_KEY_BASE64}
+      # All other settings (ROOT_EMAIL, API_ENDPOINT, SMTP, the SMTP bridge...) can
+      # be configured through the setup wizard on first launch, or set in .env.
     depends_on:
-      - postgres
+      postgres:
+        # Waits for the healthcheck, not only for the container to exist, so the
+        # server does not race a database that is still initialising or upgrading.
+        condition: service_healthy
+        restart: true
     volumes:
       - ./data:/app/data
     restart: unless-stopped
@@ -66,45 +113,188 @@ services:
     # under way, the emails being sent and the web analytics buffer finish. Docker's default 10 s
     # would kill it first.
     stop_grace_period: 75s
+    security_opt:
+      - no-new-privileges:true
     networks:
       - notifuse-network
     healthcheck:
-      test:
-        ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/healthz']
-      interval: 10s
+      # CMD-SHELL, so the port follows SERVER_PORT instead of being hardcoded.
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:$${SERVER_PORT:-8080}/healthz || exit 1']
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 60s
+      start_interval: 2s
+    logging: &logging
+      # Without a cap, container logs grow until the disk is full.
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+    develop:
+      # Only `docker compose watch` acts on these. Rebuilding is the only correct
+      # action: the image compiles Go and bundles the frontends.
+      watch:
+        - action: rebuild
+          path: ./cmd
+        - action: rebuild
+          path: ./config
+        - action: rebuild
+          path: ./internal
+        - action: rebuild
+          path: ./pkg
+        - action: rebuild
+          path: ./console/src
+        - action: rebuild
+          path: ./notification_center/src
+        - action: rebuild
+          path: ./web_analytics_sdk/src
+
+  # Runs to completion before PostgreSQL starts, on every `up`. On an empty volume
+  # or one already on 18 it exits at once. On data from an older PostgreSQL (17), it
+  # copies that data to the postgres-upgrade-backup volume (replacing any earlier
+  # copy), then upgrades it in place with pg_upgrade --link, which deletes the old
+  # data on the data volume.
+  # Without enough space for the copy it stops before changing anything, and so
+  # does PostgreSQL: the error is in `docker compose logs pg-upgrade`. An upgrade
+  # interrupted half-way starts again from the copy at the next `up`.
+  pg-upgrade:
+    # Pinned by digest: pgautoupgrade publishes no versioned releases.
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:722599f0fe6483f2a97e765066e23122a780b4ea221287edfaaf67268af6757a
+    entrypoint: ['sh', '/pg-upgrade.sh']
+    configs:
+      - source: pg-upgrade
+        target: /pg-upgrade.sh
+    environment:
+      # The role the data was created with: pgautoupgrade connects as it.
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      # The database it connects to; it defaults to POSTGRES_USER, which names no
+      # database once DB_USER is not postgres.
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - PGAUTO_ONESHOT=yes
+      # Skips rebuilding every index of every workspace database. Safe because the
+      # old and the new image are both Alpine (musl), whose text ordering cannot
+      # change between them. Set it to yes if you replaced the postgres image with
+      # a Debian one.
+      - PGAUTO_REINDEX=${PGAUTO_REINDEX:-no}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - postgres-upgrade-backup:/backup
+    network_mode: none
+    restart: 'no'
+    logging: *logging
 
   postgres:
-    # Pinned to 17 deliberately. Bumping the major version here would break
-    # every existing install: the server refuses to start on a data directory
-    # from an older major without pg_upgrade, and postgres:18 also moved PGDATA
-    # to /var/lib/postgresql/18/docker (declaring VOLUME /var/lib/postgresql),
-    # so the volume mounted below would no longer receive the data at all.
-    # Notifuse runs on 17+; to move to 18, migrate with pg_upgrade and mount
-    # the volume at /var/lib/postgresql. For faster analytics, prefer
-    # compose.alloydb.yaml.
-    image: postgres:17-alpine
+    # The image's major version and the mount path below are a matched pair:
+    # PostgreSQL 18 keeps its data in /var/lib/postgresql/18/docker, below the
+    # volume, which is what lets pg-upgrade move it to the next major in place.
+    # To stay on 17, use postgres:17-alpine with the volume at
+    # /var/lib/postgresql/data, and remove pg-upgrade. Notifuse runs on 17 or newer.
+    #
+    # Never set PGDATA here: an explicit PGDATA turns off the image's check for data
+    # from an older major, and PostgreSQL then initialises an empty database next
+    # to yours instead of refusing to start. DB_EXPECT_EXISTING=true in .env makes
+    # Notifuse refuse an empty database too.
+    image: postgres:18-alpine
     ports:
-      - '5433:5432'
+      # Reachable from this host only (psql, backups). Set POSTGRES_HOST_PORT in
+      # .env when 5433 is taken (tests/compose.test.yaml uses it too).
+      - '127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432'
     environment:
       - POSTGRES_USER=${DB_USER:-postgres}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      # Must stay a database the server can connect to before its own exists:
+      # Notifuse creates notifuse_system, and every workspace database, from here.
       - POSTGRES_DB=${POSTGRES_DB:-postgres}
+    depends_on:
+      pg-upgrade:
+        condition: service_completed_successfully
+    # Docker gives a container 64 MB of /dev/shm, which the parallel workers behind
+    # the web analytics aggregations can exhaust ("could not resize shared memory
+    # segment").
+    shm_size: 256mb
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     restart: unless-stopped
     networks:
       - notifuse-network
+    # SIGTERM is a smart shutdown in PostgreSQL: it waits for clients to disconnect,
+    # and Docker's default 10 s would turn that into a SIGKILL and a recovery at the
+    # next start.
+    stop_grace_period: 1m
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 5s
+      # Follows POSTGRES_USER and POSTGRES_DB rather than assuming postgres.
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 60s
+      start_interval: 1s
+    logging: *logging
+
+configs:
+  # The pg-upgrade entrypoint, kept in this file so that it works on its own. $$ is
+  # a literal $ (Compose interpolates the content).
+  pg-upgrade:
+    content: |
+      set -eu
+      data=/var/lib/postgresql
+      backup=/backup
+      restored=
+      # An upgrade that stopped half-way leaves its lock, with the old data moved
+      # where pgautoupgrade no longer finds it: start again from the copy.
+      if [ -e "$$data/18/docker/upgrade_in_progress.lock" ]; then
+        copy=
+        for dir in "$$backup"/pg*; do
+          case "$$dir" in *.partial) continue ;; esac
+          if [ -s "$$dir/PG_VERSION" ]; then copy=$$dir; fi
+        done
+        if [ -z "$$copy" ]; then
+          echo "A previous upgrade to PostgreSQL 18 did not finish, and the postgres-upgrade-backup volume holds no copy to start again from. Nothing was changed: see https://docs.notifuse.com/self-hosting/upgrading-postgresql" >&2
+          exit 1
+        fi
+        echo "A previous upgrade to PostgreSQL 18 did not finish: putting back the data copied before it ($$copy), then upgrading again."
+        find "$$data" -mindepth 1 -delete
+        cp -a "$$copy/." "$$data/"
+        restored=1
+      fi
+      # Data from an older PostgreSQL sits at the root of the volume; 18 keeps its
+      # own in 18/docker. Anything else has nothing to upgrade, and pgautoupgrade is
+      # not started at all: it never runs beside a PostgreSQL that uses the data.
+      if [ ! -s "$$data/PG_VERSION" ]; then
+        echo "No data from an older PostgreSQL to upgrade."
+        exit 0
+      fi
+      old=$$(cat "$$data/PG_VERSION")
+      major=$${old%%.*}
+      if [ "$$major" -ge 18 ]; then
+        echo "The data is already on PostgreSQL $$old."
+        exit 0
+      fi
+      # A fresh copy before every upgrade, in place of any older one: after a
+      # rollback, the data about to be upgraded is newer than the last copy.
+      if [ -z "$$restored" ]; then
+        find "$$backup" -mindepth 1 -delete
+        need=$$(du -sk "$$data" | cut -f1)
+        free=$$(df -Pk "$$backup" | awk 'NR == 2 { print $$4 }')
+        if [ "$$free" -lt $$((need + need / 10)) ]; then
+          echo "Not enough space to copy the PostgreSQL $$old data before upgrading it: $$need KB to copy, $$free KB free on the postgres-upgrade-backup volume. Nothing was changed; free some space, then run docker compose up -d again." >&2
+          exit 1
+        fi
+        echo "Copying the PostgreSQL $$old data to the postgres-upgrade-backup volume (pg$$major) before upgrading it to 18."
+        cp -a "$$data" "$$backup/pg$$major.partial"
+        mv "$$backup/pg$$major.partial" "$$backup/pg$$major"
+        echo "Copy done. Upgrading the data to PostgreSQL 18."
+      fi
+      exec docker-entrypoint.sh postgres
 
 volumes:
   postgres-data:
+    driver: local
+  # The PostgreSQL 17 data as it was before the upgrade to 18. Delete it once the
+  # upgraded installation works: docker volume rm <project>_postgres-upgrade-backup
+  postgres-upgrade-backup:
     driver: local
 
 networks:

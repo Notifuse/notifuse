@@ -423,7 +423,7 @@ func TestEnsureSystemDatabaseExists(t *testing.T) {
 		invalidDSN := "invalid://dsn/format"
 		dbName := "testdb"
 
-		err := EnsureSystemDatabaseExists(invalidDSN, dbName)
+		err := EnsureSystemDatabaseExists(invalidDSN, dbName, false)
 
 		assert.Error(t, err, "Should fail with invalid DSN")
 		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
@@ -433,7 +433,7 @@ func TestEnsureSystemDatabaseExists(t *testing.T) {
 		dsn := "postgres://invalid:invalid@nonexistent-host:9999/postgres?sslmode=disable"
 		dbName := "testdb"
 
-		err := EnsureSystemDatabaseExists(dsn, dbName)
+		err := EnsureSystemDatabaseExists(dsn, dbName, false)
 
 		assert.Error(t, err, "Should fail with invalid connection parameters")
 		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
@@ -443,7 +443,7 @@ func TestEnsureSystemDatabaseExists(t *testing.T) {
 		dsn := "postgres://user:pass@localhost:5432/postgres?sslmode=disable"
 		dbName := ""
 
-		err := EnsureSystemDatabaseExists(dsn, dbName)
+		err := EnsureSystemDatabaseExists(dsn, dbName, false)
 
 		// Should fail when trying to connect, but tests the parameter handling
 		assert.Error(t, err)

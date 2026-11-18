@@ -530,7 +530,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
 
-		logger := &mockLogger{}
+		logger := newRecordingLogger()
 		manager := NewManager(logger)
 
 		cfg := &config.Config{
@@ -554,6 +554,34 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 		err = manager.RunMigrations(context.Background(), cfg, db)
 
 		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+		// A first run on a server that should hold data must not go unnoticed.
+		warns := logger.at("warn")
+		require.Len(t, warns, 1)
+		assert.Contains(t, warns[0].msg, "it is connected to an empty database")
+	})
+
+	t.Run("First run refused under DB_EXPECT_EXISTING", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		manager := NewManager(&mockLogger{})
+		cfg := &config.Config{
+			Database: config.DatabaseConfig{Host: "localhost", Port: 5432, DBName: "notifuse_system", ExpectExisting: true},
+		}
+
+		expectMigrationLockGranted(mock)
+		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
+			WillReturnError(sql.ErrNoRows)
+		// No INSERT of the version expected: sqlmock fails an unexpected Exec.
+		mock.ExpectRollback() // the migration lock
+
+		err = manager.RunMigrations(context.Background(), cfg, db)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "the system database notifuse_system records no database version")
+		assert.Contains(t, err.Error(), "DB_EXPECT_EXISTING")
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 

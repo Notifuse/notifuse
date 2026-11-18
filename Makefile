@@ -1,4 +1,4 @@
-.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg test-licence-dev integration-durations test-telemetry dev coverage coverage-report docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build openapi-bundle openapi-lint openapi-preview demo-hmac
+.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg test-licence-dev integration-durations test-telemetry dev coverage coverage-report docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build docker-compose-watch openapi-bundle openapi-lint openapi-preview demo-hmac
 
 build:
 	@echo "Building with CGO enabled (required for V8)..."
@@ -169,17 +169,27 @@ docker-publish:
 	@:
 
 # Docker compose commands
-docker-compose-up:
+# The compose files ship no default SECRET_KEY: one committed to a public
+# repository is one every installation shares. Generate a local one on first use.
+.env:
+	@echo "No .env found, creating one with a generated SECRET_KEY..."
+	@printf 'SECRET_KEY=%s\n' "$$(openssl rand -base64 32)" > .env
+
+docker-compose-up: .env
 	@echo "Starting services with Docker Compose..."
 	docker compose up -d
 
-docker-compose-down:
+docker-compose-down: .env
 	@echo "Stopping services with Docker Compose..."
 	docker compose down
 
-docker-compose-build:
+docker-compose-build: .env
 	@echo "Building services with Docker Compose..."
 	docker compose build
+
+docker-compose-watch: .env
+	@echo "Starting services and rebuilding on source changes..."
+	docker compose watch
 
 # OpenAPI commands
 openapi-bundle:

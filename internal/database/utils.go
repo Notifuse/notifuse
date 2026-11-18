@@ -662,8 +662,10 @@ func dropWorkspaceDatabase(ctx context.Context, admin *sql.DB, dbName string) er
 	return nil
 }
 
-// EnsureSystemDatabaseExists creates the system database if it doesn't exist
-func EnsureSystemDatabaseExists(dsn string, dbName string) error {
+// EnsureSystemDatabaseExists creates the system database dbName on the PostgreSQL
+// server dsn points at, unless it exists. With expectExisting, a missing system
+// database is an error instead: the server is not the one that holds the installation.
+func EnsureSystemDatabaseExists(dsn string, dbName string, expectExisting bool) error {
 	// Connect to PostgreSQL server without specifying a database
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -676,26 +678,53 @@ func EnsureSystemDatabaseExists(dsn string, dbName string) error {
 		return fmt.Errorf("failed to ping PostgreSQL server: %w", err)
 	}
 
+	return ensureSystemDatabase(db, dbName, expectExisting)
+}
+
+// ensureSystemDatabase is EnsureSystemDatabaseExists on an open connection to any
+// database of the server.
+func ensureSystemDatabase(db *sql.DB, dbName string, expectExisting bool) error {
 	// Check if database exists
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)"
-	err = db.QueryRow(query, dbName).Scan(&exists)
+	err := db.QueryRow(query, dbName).Scan(&exists)
 	if err != nil {
 		return fmt.Errorf("failed to check if database exists: %w", err)
 	}
-
-	// Create database if it doesn't exist
-	if !exists {
-		// Use fmt.Sprintf for proper quoting of identifiers in SQL
-		createDBQuery := fmt.Sprintf("CREATE DATABASE %s",
-			// Proper quoting to prevent SQL injection
-			strings.ReplaceAll(dbName, `"`, `""`))
-
-		_, err = db.Exec(createDBQuery)
-		if err != nil {
-			return fmt.Errorf("failed to create system database: %w", err)
-		}
+	if exists {
+		return nil
 	}
 
+	if expectExisting {
+		return fmt.Errorf("the system database %s does not exist on this PostgreSQL server, and DB_EXPECT_EXISTING is set, so Notifuse does not create it: check DB_HOST, DB_PORT and DB_NAME, or restore the database. Unset DB_EXPECT_EXISTING for a new installation", dbName)
+	}
+
+	// Quoted, so the database is created under the exact name looked up above: unquoted,
+	// PostgreSQL folds a mixed-case DB_NAME to lower case, and the next start finds nothing.
+	_, err = db.Exec("CREATE DATABASE " + pq.QuoteIdentifier(dbName))
+	if err != nil {
+		return fmt.Errorf("failed to create system database: %w", err)
+	}
+
+	return nil
+}
+
+// RequireExistingInstallation returns an error unless the system database db holds a
+// Notifuse installation, recognised by the database version it records: what
+// DB_EXPECT_EXISTING checks before anything is written to it.
+func RequireExistingInstallation(db *sql.DB, dbName string) error {
+	var hasSettings bool
+	if err := db.QueryRow("SELECT to_regclass('settings') IS NOT NULL").Scan(&hasSettings); err != nil {
+		return fmt.Errorf("failed to check the system database %s: %w", dbName, err)
+	}
+	hasVersion := false
+	if hasSettings {
+		if err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM settings WHERE key = 'db_version')").Scan(&hasVersion); err != nil {
+			return fmt.Errorf("failed to check the system database %s: %w", dbName, err)
+		}
+	}
+	if !hasVersion {
+		return fmt.Errorf("the system database %s holds no Notifuse installation (no database version recorded), and DB_EXPECT_EXISTING is set, so Notifuse does not initialise it: check DB_HOST, DB_PORT and DB_NAME, or restore the database. Unset DB_EXPECT_EXISTING for a new installation", dbName)
+	}
 	return nil
 }

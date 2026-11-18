@@ -62,7 +62,7 @@ Privacy-first, cookieless web analytics built in — the [Staminads](https://git
 - **Setup**: enable Web Analytics on a workspace, paste the snippet from its settings page, done. Country, region and city come from the MaxMind GeoLite2 City database shipped in the image at `/app/geoip/GeoLite2-City.mmdb` — to keep it fresher, drop your own copy into the mounted `data/` directory as `GeoLite2-City.mmdb` (it takes precedence) or set `GEOIP_DB_PATH` (see [geoipupdate](https://github.com/maxmind/geoipupdate)). This product includes GeoLite2 data created by MaxMind, available from [maxmind.com](https://www.maxmind.com)
 - **Data retention**: every session is kept for as long as you keep it. Monthly partitions (`web_sessions_y2026m08` and its `web_pages_*` / `web_goals_*` siblings) are created automatically, and expiring old data is a deliberate `DROP TABLE` on the partitions you no longer want — instant, and the disk comes back immediately
 - **Scale path**: data lives in monthly-partitioned tables per workspace; heavy-traffic installs can run [AlloyDB Omni](https://cloud.google.com/alloydb/omni) via `compose.alloydb.yaml` and get columnar-engine acceleration for dashboard queries with zero schema changes
-- **Requirements**: PostgreSQL 17 or newer (the shipped compose file stays on 17 — upgrading a major version needs `pg_upgrade`, and PostgreSQL 18 also changed its data directory layout)
+- **Requirements**: PostgreSQL 17 or newer. `compose.yaml` ships PostgreSQL 18 and upgrades an installation made on 17 by itself (see [Upgrading PostgreSQL](https://docs.notifuse.com/self-hosting/upgrading-postgresql))
 
 ### 🎨 Advanced Features
 
@@ -71,6 +71,33 @@ Privacy-first, cookieless web analytics built in — the [Staminads](https://git
 - **Responsive Templates**: Mobile-optimized email templates
 - **Custom Fields**: Flexible contact data management
 - **Workspace Management**: Multi-tenant support for teams and agencies
+
+## 🐳 Install with Docker
+
+Nothing to clone: `compose.yaml` pulls the published image from Docker Hub and brings its own PostgreSQL.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Notifuse/notifuse/main/compose.yaml -o compose.yaml
+
+cat > .env <<EOF
+SECRET_KEY=$(openssl rand -base64 32)
+DB_PASSWORD=$(openssl rand -hex 24)
+EOF
+
+docker compose up -d
+```
+
+Open `http://<your-server>:8081` and finish the setup wizard: SMTP, the root account and the public endpoint are configured there. Notifuse serves plain HTTP, so put a reverse proxy with TLS in front of it before pointing a domain at it, and set `HTTP_BIND=127.0.0.1` in `.env` once you do.
+
+`SECRET_KEY` encrypts the provider credentials Notifuse stores in the database: back it up with the database, losing it means losing them.
+
+| Task | How |
+| --- | --- |
+| Upgrade | take the new `compose.yaml` (or set `NOTIFUSE_VERSION` in `.env`), then `docker compose up -d` |
+| Back up | `pg_dump` of `notifuse_system` and of every `notifuse_ws_*` database, see the header of `compose.yaml` |
+| Every setting | [env.example](env.example) |
+
+From a clone of this repository the same file builds the image from source: `docker compose up -d --build`, or `docker compose watch` to rebuild on every change. `compose.alloydb.yaml` runs Notifuse on [AlloyDB Omni](https://cloud.google.com/alloydb/omni) (PostgreSQL 17).
 
 ## 🏗️ Architecture
 

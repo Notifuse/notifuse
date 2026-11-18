@@ -1,10 +1,10 @@
 services:
   postgres-test:
     # Deliberately the oldest supported PostgreSQL: 17 is the compatibility
-    # floor, set by AlloyDB Omni. All DDL must stay valid here even if the
-    # shipped compose file ever moves ahead (see the pin rationale in
-    # compose.yaml, which stays on 17 for upgrade-safety reasons of its own).
-    image: postgres:17
+    # floor, set by AlloyDB Omni, and CI runs it. All DDL must stay valid here
+    # although compose.yaml ships 18. To run the suite on 18:
+    #   POSTGRES_TEST_IMAGE=postgres:18-alpine docker compose -f tests/compose.test.yaml up -d --force-recreate
+    image: ${POSTGRES_TEST_IMAGE:-postgres:17}
     command:
       - 'postgres'
       - '-c'
@@ -18,7 +18,11 @@ services:
     ports:
       - '5433:5432'
     volumes:
-      - postgres_test_data:/var/lib/postgresql/data
+      # The parent of both images' data directories (17: data, 18: 18/docker), so
+      # either image runs on it. A volume made by the earlier mount at
+      # /var/lib/postgresql/data starts a new test database: the old one stays
+      # unused at the volume root until `docker compose -f tests/compose.test.yaml down -v`.
+      - postgres_test_data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U notifuse_test -d postgres']
       interval: 10s
