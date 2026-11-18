@@ -15,11 +15,13 @@ import { SetupRail } from '../components/setup/SetupRail'
 import { initialSetupValues, usePanelSummaries, type PanelSummary } from '../components/setup/setupHooks'
 import { SetupRestartView, type RestartPhase } from '../components/setup/SetupRestartView'
 import { buildSetupConfig } from '../components/setup/buildSetupConfig'
+import { handOffSignInEmail } from '../components/setup/signInHandoff'
 import {
   isFieldLocked,
   setupPanelDomId,
   splitList,
   type SetupFormValues,
+  type SetupKey,
   type SetupPanelId
 } from '../components/setup/setupFields'
 
@@ -92,7 +94,20 @@ export default function SetupWizard() {
   const unmounted = useRef(false)
 
   const values = (Form.useWatch((all) => all, { form, preserve: true }) ?? initialSetupValues()) as SetupFormValues
-  const summaries = usePanelSummaries(status, values)
+  // The fields the form's rules refuse, read from the form at each render (a field that unmounts
+  // drops its errors with it); onFieldsChange only asks for that render when a field's errors change.
+  const [, setFieldsVersion] = useState(0)
+  const fieldErrors = [
+    ...new Set(
+      form
+        .getFieldsError()
+        .filter((field) => field.errors.length > 0)
+        .map((field) => field.name[0] as SetupKey)
+    )
+  ]
+  // The last SMTP test: the panel states say so too
+  const [smtpTestFailed, setSmtpTestFailed] = useState(false)
+  const summaries = usePanelSummaries(status, values, { fieldErrors, smtpTestFailed })
   const stateOf = (id: SetupPanelId) => summaries.find((summary) => summary.id === id)!
 
   useEffect(() => {
@@ -180,7 +195,9 @@ export default function SetupWizard() {
   }
 
   // A full reload, so /config.js is read again with the installed configuration.
+  // The sign-in page prefills the root email it is told to sign in with.
   const signIn = () => {
+    handOffSignInEmail(restart?.rootEmail)
     window.location.href = '/console/signin'
   }
 
@@ -222,13 +239,14 @@ export default function SetupWizard() {
                 layout="vertical"
                 initialValues={initialSetupValues()}
                 onFinish={submit}
+                onFieldsChange={() => setFieldsVersion((version) => version + 1)}
                 requiredMark
                 scrollToFirstError={{ block: 'center', behavior: 'smooth' }}
               >
                 <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
                   <div className="flex min-w-0 flex-col gap-3.5">
                     <AdministratorPanel status={status} state={stateOf('administrator')} />
-                    <SmtpPanel status={status} state={stateOf('smtp')} />
+                    <SmtpPanel status={status} state={stateOf('smtp')} onTestFailedChange={setSmtpTestFailed} />
                     <UpdatesPanel status={status} state={stateOf('updates')} />
                     <SsoPanel status={status} state={stateOf('sso')} />
                     <BridgePanel status={status} state={stateOf('bridge')} />

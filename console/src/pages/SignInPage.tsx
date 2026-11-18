@@ -7,6 +7,7 @@ import { ApiUnreachableError } from '../services/api/errors'
 import { SignInRequest, VerifyCodeRequest } from '../services/api/types'
 import { MainLayout } from '../layouts/MainLayout'
 import { useLingui } from '@lingui/react/macro'
+import { takeSignInEmail } from '../components/setup/signInHandoff'
 
 export function SignInPage() {
   const { t } = useLingui()
@@ -195,12 +196,19 @@ export function SignInPage() {
 
     let emailToUse = ''
 
+    // Just after the setup: the root email it hands over, read (and dropped) whatever wins
+    const fromSetup = takeSignInEmail()
+
     if (search.email) {
       // URL parameter takes priority
       emailToUse = search.email
     } else if ((window as unknown as Record<string, unknown>).demo === true) {
       // Demo mode fallback
       emailToUse = 'demo@notifuse.com'
+    } else if (fromSetup) {
+      // Prefilled only: the person checks it, then asks for the code
+      form.setFieldsValue({ email: fromSetup })
+      return
     }
 
     if (emailToUse) {

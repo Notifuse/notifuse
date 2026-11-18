@@ -775,7 +775,7 @@ msgstr "{count, plural, one {# contact} other {# contacts}}"
 msgid "{count, plural, one {# empty field} other {# empty fields}}"
 msgstr "{count, plural, one {# champ vide} other {# champs vides}}"
 
-#: src/components/setup/setupHooks.ts:43
+#: src/components/setup/setupHooks.ts:62
 msgid "{count, plural, one {# field to fill} other {# fields to fill}}"
 msgstr "{count, plural, one {# champ à remplir} other {# champs à remplir}}"
 
@@ -1081,6 +1081,10 @@ msgstr "Filtres {ignoredList} non appliqués sur ce tableau de bord"
 #: src/components/settings/integrations/EmailProviderCard.tsx:134
 msgid "{inactive, plural, one {# webhook inactive} other {# webhooks inactive}}"
 msgstr "{inactive, plural, one {# webhook inactif} other {# webhooks inactifs}}"
+
+#: src/components/setup/setupHooks.ts:59
+msgid "{invalid, plural, one {# field to fix} other {# fields to fix}}"
+msgstr "{invalid, plural, one {# champ à corriger} other {# champs à corriger}}"
 
 #: src/components/settings/ZapierSettings.tsx:100
 msgid "{label} copied to clipboard"
@@ -2162,7 +2166,7 @@ msgstr "À propos des segments"
 msgid "About single sign-on"
 msgstr "À propos de l'authentification unique"
 
-#: src/components/setup/SmtpPanel.tsx:119
+#: src/components/setup/SmtpPanel.tsx:131
 msgid "About system email delivery"
 msgstr "À propos de l'envoi des emails système"
 
@@ -2723,13 +2727,13 @@ msgstr "Ajoute les liens de désinscription de cette liste, comme le broadcast. 
 #~ msgstr "L'email administrateur est requis"
 
 #: src/components/setup/AdministratorPanel.tsx:25
-#: src/components/setup/setupHooks.ts:30
+#: src/components/setup/setupHooks.ts:43
 msgid "Administrator"
 msgstr "Administrateur"
 
 #: src/components/email_builder/blocks/AdvancedSection.tsx:13
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:479
-#: src/components/setup/SmtpPanel.tsx:220
+#: src/components/setup/SmtpPanel.tsx:232
 #: src/components/setup/SsoPanel.tsx:129
 msgid "Advanced"
 msgstr "Avancé"
@@ -5262,7 +5266,7 @@ msgstr "A annulé le rattrapage des statistiques web"
 msgid "Cannot be changed, used by the API and forms."
 msgstr "Non modifiable, utilisé par l'API et les formulaires."
 
-#: src/pages/SignInPage.tsx:250
+#: src/pages/SignInPage.tsx:258
 msgid "Cannot reach the configured API endpoint"
 msgstr "Impossible de joindre le point d'accès API configuré"
 
@@ -5460,7 +5464,7 @@ msgstr "Modifié : {section}"
 msgid "Changes"
 msgstr "Modifications"
 
-#: src/pages/SignInPage.tsx:261
+#: src/pages/SignInPage.tsx:269
 msgid "Changing your domain"
 msgstr "Changer de domaine"
 
@@ -6134,7 +6138,7 @@ msgstr "Valeurs séparées par des virgules"
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Séparés par des virgules. Seuls ces domaines peuvent créer automatiquement des comptes."
 
-#: src/components/setup/SmtpPanel.tsx:160
+#: src/components/setup/SmtpPanel.tsx:172
 msgid "Common ports: 587 (STARTTLS), 465 (implicit TLS), 25 (unencrypted)."
 msgstr "Ports courants : 587 (STARTTLS), 465 (TLS implicite), 25 (non chiffré)."
 
@@ -6222,7 +6226,7 @@ msgstr "Plaintes"
 msgid "Complement, don't repeat the subject line"
 msgstr "Complétez, ne répétez pas la ligne d'objet"
 
-#: src/components/setup/setupHooks.ts:44
+#: src/components/setup/setupHooks.ts:63
 msgid "Complete"
 msgstr "Terminé"
 
@@ -6469,7 +6473,7 @@ msgstr "Connecté le"
 msgid "Connected apps"
 msgstr "Applications connectées"
 
-#: src/components/setup/SmtpPanel.tsx:99
+#: src/components/setup/SmtpPanel.tsx:111
 msgid "Connected to {target} · {time}"
 msgstr "Connecté à {target} · {time}"
 
@@ -8099,7 +8103,7 @@ msgstr "Par défaut : l'extrait"
 msgid "Defaults to the featured image"
 msgstr "Par défaut : l'image à la une"
 
-#: src/components/setup/SmtpPanel.tsx:230
+#: src/components/setup/SmtpPanel.tsx:242
 msgid "Defaults to the SMTP host"
 msgstr "Par défaut, l'hôte SMTP"
 
@@ -9040,7 +9044,7 @@ msgstr "Terminé"
 msgid "Done · {failed} failed"
 msgstr "Terminé · {failed} en échec"
 
-#: src/pages/SetupWizard.tsx:198
+#: src/pages/SetupWizard.tsx:225
 msgid "Done once. Everything here can be changed later in System settings."
 msgstr "À faire une seule fois. Tout se modifie ensuite dans les paramètres système."
 
@@ -9626,7 +9630,7 @@ msgstr "Mode éditeur"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:595
 #: src/components/settings/integrations/providerDetails.ts:76
-#: src/components/setup/SmtpPanel.tsx:227
+#: src/components/setup/SmtpPanel.tsx:239
 msgid "EHLO hostname"
 msgstr "Nom d'hôte EHLO"
 
@@ -9666,8 +9670,8 @@ msgstr "Écoulé"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:998
 #: src/components/transactional/TransactionalDetail.tsx:408
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:483
-#: src/pages/SignInPage.tsx:276
-#: src/pages/SignInPage.tsx:283
+#: src/pages/SignInPage.tsx:284
+#: src/pages/SignInPage.tsx:291
 msgid "Email"
 msgstr "Email"
 
@@ -9747,7 +9751,7 @@ msgstr "Email livré"
 msgid "Email delivered: {name}"
 msgstr "Email livré : {name}"
 
-#: src/components/setup/setupHooks.ts:31
+#: src/components/setup/setupHooks.ts:44
 msgid "Email delivery"
 msgstr "Envoi des emails"
 
@@ -10353,7 +10357,7 @@ msgstr "Saisissez le texte d'aperçu ({name})"
 msgid "Enter the {name} subject"
 msgstr "Saisissez le sujet ({name})"
 
-#: src/pages/SignInPage.tsx:312
+#: src/pages/SignInPage.tsx:320
 msgid "Enter the 6-digit code sent to {email}"
 msgstr "Entrez le code à 6 chiffres envoyé à {email}"
 
@@ -10361,11 +10365,11 @@ msgstr "Entrez le code à 6 chiffres envoyé à {email}"
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
 msgstr "Entrez le nom de l'événement personnalisé (ex. \"achat\", \"inscription\")"
 
-#: src/components/setup/SmtpPanel.tsx:190
+#: src/components/setup/SmtpPanel.tsx:202
 msgid "Enter the password that goes with this username, or clear both."
 msgstr "Saisissez le mot de passe de cet identifiant, ou videz les deux."
 
-#: src/components/setup/SmtpPanel.tsx:181
+#: src/components/setup/SmtpPanel.tsx:193
 msgid "Enter the username that goes with this password, or clear both."
 msgstr "Saisissez l'identifiant de ce mot de passe, ou videz les deux."
 
@@ -10972,7 +10976,7 @@ msgstr "Échec de l'effacement du champ"
 msgid "Failed to compile template preview."
 msgstr "Échec de la compilation de l'aperçu du modèle."
 
-#: src/pages/SetupWizard.tsx:144
+#: src/pages/SetupWizard.tsx:169
 msgid "Failed to complete setup"
 msgstr "Échec de la finalisation de la configuration"
 
@@ -11163,7 +11167,7 @@ msgstr "Échec de la récupération des données : {0}"
 #~ msgid "Failed to fetch objects: "
 #~ msgstr "Échec de la récupération des objets : "
 
-#: src/pages/SetupWizard.tsx:95
+#: src/pages/SetupWizard.tsx:115
 msgid "Failed to fetch setup status"
 msgstr "Échec de la récupération du statut de configuration"
 
@@ -11279,7 +11283,7 @@ msgstr "Échec du rendu de l'aperçu"
 msgid "Failed to resend invitation"
 msgstr "Échec du renvoi de l'invitation"
 
-#: src/pages/SignInPage.tsx:232
+#: src/pages/SignInPage.tsx:240
 msgid "Failed to resend magic code"
 msgstr "Échec du renvoi du code magique"
 
@@ -11365,7 +11369,7 @@ msgstr "Échec du choix de la gagnante"
 msgid "Failed to send broadcast"
 msgstr "Échec de l'envoi de la diffusion"
 
-#: src/pages/SignInPage.tsx:103
+#: src/pages/SignInPage.tsx:104
 msgid "Failed to send magic code"
 msgstr "Échec de l'envoi du code magique"
 
@@ -11397,7 +11401,7 @@ msgstr "Échec du test du fournisseur d'email"
 msgid "Failed to test recipient feed: {0}"
 msgstr "Échec du test du flux destinataire : {0}"
 
-#: src/components/setup/SmtpPanel.tsx:67
+#: src/components/setup/SmtpPanel.tsx:79
 msgid "Failed to test SMTP connection"
 msgstr "Échec du test de la connexion SMTP"
 
@@ -11489,7 +11493,7 @@ msgstr "Échec de la mise à jour des paramètres de l'espace de travail"
 msgid "Failed to update workspace settings: {errorMessage}"
 msgstr "Échec de la mise à jour des paramètres de l'espace de travail : {errorMessage}"
 
-#: src/pages/SignInPage.tsx:74
+#: src/pages/SignInPage.tsx:75
 msgid "Failed to verify code"
 msgstr "Échec de la vérification du code"
 
@@ -12063,7 +12067,7 @@ msgstr "Depuis un e-mail"
 msgid "From console.anthropic.com"
 msgstr "Depuis console.anthropic.com"
 
-#: src/components/setup/SmtpPanel.tsx:199
+#: src/components/setup/SmtpPanel.tsx:211
 msgid "From email"
 msgstr "Email d'expédition"
 
@@ -12071,7 +12075,7 @@ msgstr "Email d'expédition"
 msgid "From Email"
 msgstr "Email de l'expéditeur"
 
-#: src/components/setup/SmtpPanel.tsx:201
+#: src/components/setup/SmtpPanel.tsx:213
 msgid "From email is required"
 msgstr "L'email de l'expéditeur est requis"
 
@@ -12083,7 +12087,7 @@ msgstr "Depuis firecrawl.dev, ou votre propre instance"
 msgid "From Google AI Studio"
 msgstr "Depuis Google AI Studio"
 
-#: src/components/setup/SmtpPanel.tsx:207
+#: src/components/setup/SmtpPanel.tsx:219
 msgid "From name"
 msgstr "Nom d'expéditeur"
 
@@ -12715,7 +12719,7 @@ msgid "Hook URL"
 msgstr "URL du hook"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:569
-#: src/components/setup/SmtpPanel.tsx:151
+#: src/components/setup/SmtpPanel.tsx:163
 #: src/components/transactional/ApiCommandDrawer.tsx:143
 msgid "Host"
 msgstr "Hôte"
@@ -13118,7 +13122,7 @@ msgstr "TLS implicite"
 msgid "Implicit TLS (SMTPS)"
 msgstr "TLS implicite (SMTPS)"
 
-#: src/components/setup/setupHooks.ts:52
+#: src/components/setup/setupHooks.ts:71
 msgid "Implicit TLS on 465"
 msgstr "TLS implicite sur 465"
 
@@ -13557,7 +13561,7 @@ msgstr "Condition d'affichage invalide"
 msgid "Invalid email"
 msgstr "Email invalide"
 
-#: src/components/setup/SmtpPanel.tsx:202
+#: src/components/setup/SmtpPanel.tsx:214
 msgid "Invalid email format"
 msgstr "Format d'email invalide"
 
@@ -14861,7 +14865,7 @@ msgstr "Chargement"
 msgid "Loading message history..."
 msgstr "Chargement de l'historique des messages..."
 
-#: src/pages/SetupWizard.tsx:171
+#: src/pages/SetupWizard.tsx:198
 msgid "Loading setup..."
 msgstr "Chargement de la configuration..."
 
@@ -14990,7 +14994,7 @@ msgstr "Lumen"
 msgid "Magenta"
 msgstr "Magenta"
 
-#: src/pages/SignInPage.tsx:101
+#: src/pages/SignInPage.tsx:102
 msgid "Magic code sent to your email"
 msgstr "Code magique envoyé à votre email"
 
@@ -15901,7 +15905,7 @@ msgstr "Nouvelle clé"
 msgid "New list"
 msgstr "Nouvelle liste"
 
-#: src/pages/SignInPage.tsx:230
+#: src/pages/SignInPage.tsx:238
 msgid "New magic code sent to your email"
 msgstr "Nouveau code magique envoyé à votre email"
 
@@ -16308,7 +16312,7 @@ msgstr "Aucun email envoyé sur cette période"
 msgid "No email template"
 msgstr "Aucun modèle d'email"
 
-#: src/components/setup/setupHooks.ts:51
+#: src/components/setup/setupHooks.ts:70
 msgid "No encryption"
 msgstr "Aucun chiffrement"
 
@@ -16484,7 +16488,7 @@ msgstr "Aucune notification ne correspond"
 #~ msgid "No Notifuse account is linked to that identity. Ask an administrator to invite you first."
 #~ msgstr "Aucun compte Notifuse n'est lié à cette identité. Demandez d'abord à un administrateur de vous inviter."
 
-#: src/pages/SignInPage.tsx:127
+#: src/pages/SignInPage.tsx:128
 msgid "No Notifuse account is linked to that identity. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "Aucun compte Notifuse n'est lié à cette identité. Si vous avez été invité, ouvrez le lien de votre e-mail d'invitation ; sinon, demandez à un administrateur de vous inviter."
 
@@ -17324,7 +17328,7 @@ msgstr "désactivés"
 
 #: src/components/settings/BlogSettings.tsx:334
 #: src/components/settings/GeneralSettings.tsx:215
-#: src/components/setup/setupHooks.ts:41
+#: src/components/setup/setupHooks.ts:54
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
 #: src/components/transactional/TransactionalDetail.tsx:416
@@ -17357,7 +17361,7 @@ msgstr "activés"
 
 #: src/components/settings/BlogSettings.tsx:317
 #: src/components/settings/GeneralSettings.tsx:215
-#: src/components/setup/setupHooks.ts:44
+#: src/components/setup/setupHooks.ts:63
 #: src/components/transactional/TransactionalDetail.tsx:373
 msgid "On"
 msgstr "Activé"
@@ -17833,8 +17837,8 @@ msgstr "optionnel"
 #: src/components/settings/SystemSettingsDrawer.tsx:387
 #: src/components/settings/SystemSettingsDrawer.tsx:400
 #: src/components/settings/SystemSettingsDrawer.tsx:455
-#: src/components/setup/SmtpPanel.tsx:183
-#: src/components/setup/SmtpPanel.tsx:192
+#: src/components/setup/SmtpPanel.tsx:195
+#: src/components/setup/SmtpPanel.tsx:204
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:353
 msgid "Optional"
@@ -17880,7 +17884,7 @@ msgstr "Options"
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:22
 #: src/components/segment/ConditionSentence.tsx:82
 #: src/components/segment/segmentSummary.ts:242
-#: src/pages/SignInPage.tsx:294
+#: src/pages/SignInPage.tsx:302
 msgid "or"
 msgstr "ou"
 
@@ -18112,7 +18116,7 @@ msgstr "Les partitions déjà réécrites conservent leurs nouvelles valeurs."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:692
 #: src/components/settings/integrations/providerDetails.ts:31
-#: src/components/setup/SmtpPanel.tsx:188
+#: src/components/setup/SmtpPanel.tsx:200
 #: src/components/transactional/ApiCommandDrawer.tsx:147
 msgid "Password"
 msgstr "Mot de passe"
@@ -18599,7 +18603,7 @@ msgstr "Veuillez entrer un slug"
 msgid "Please enter a URL"
 msgstr "Veuillez entrer une URL"
 
-#: src/pages/SignInPage.tsx:320
+#: src/pages/SignInPage.tsx:328
 msgid "Please enter a valid 6-digit code!"
 msgstr "Veuillez entrer un code à 6 chiffres valide !"
 
@@ -18608,7 +18612,7 @@ msgstr "Veuillez entrer un code à 6 chiffres valide !"
 msgid "Please enter a valid email"
 msgstr "Veuillez entrer un email valide"
 
-#: src/pages/SignInPage.tsx:280
+#: src/pages/SignInPage.tsx:288
 msgid "Please enter a valid email!"
 msgstr "Veuillez entrer un email valide !"
 
@@ -18678,11 +18682,11 @@ msgstr "Veuillez entrer votre clé API"
 msgid "Please fill in all required fields before testing"
 msgstr "Veuillez remplir tous les champs obligatoires avant de tester"
 
-#: src/pages/SignInPage.tsx:317
+#: src/pages/SignInPage.tsx:325
 msgid "Please input the magic code!"
 msgstr "Veuillez entrer le code magique !"
 
-#: src/pages/SignInPage.tsx:279
+#: src/pages/SignInPage.tsx:287
 msgid "Please input your email!"
 msgstr "Veuillez entrer votre email !"
 
@@ -18793,7 +18797,7 @@ msgstr "Veuillez sélectionner ou saisir un modèle"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:575
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:579
-#: src/components/setup/SmtpPanel.tsx:159
+#: src/components/setup/SmtpPanel.tsx:171
 #: src/components/transactional/ApiCommandDrawer.tsx:144
 msgid "Port"
 msgstr "Port"
@@ -20357,7 +20361,7 @@ msgstr "Requis lorsque le SSO est activé"
 msgid "Requires a padding"
 msgstr "Nécessite un espacement"
 
-#: src/pages/SignInPage.tsx:353
+#: src/pages/SignInPage.tsx:361
 msgid "Resend code"
 msgstr "Renvoyer le code"
 
@@ -21926,7 +21930,7 @@ msgstr "Envoyer l'invitation"
 #~ msgid "Send Invitation"
 #~ msgstr "Envoyer l'invitation"
 
-#: src/pages/SignInPage.tsx:288
+#: src/pages/SignInPage.tsx:296
 msgid "Send Magic Code"
 msgstr "Envoyer le code magique"
 
@@ -22440,7 +22444,7 @@ msgstr "Défini par {integrationName}"
 msgid "Set by {integrationName}. Edit the template itself to change its content."
 msgstr "Défini par {integrationName}. Modifiez le modèle lui-même pour changer son contenu."
 
-#: src/components/setup/setupHooks.ts:40
+#: src/components/setup/setupHooks.ts:53
 msgid "Set by environment"
 msgstr "Défini par l'environnement"
 
@@ -22564,7 +22568,7 @@ msgstr "A configuré cette installation de Notifuse"
 msgid "Set up web analytics"
 msgstr "Configurer l'analyse web"
 
-#: src/pages/SetupWizard.tsx:195
+#: src/pages/SetupWizard.tsx:222
 msgid "Set up your Notifuse instance"
 msgstr "Configurez votre instance Notifuse"
 
@@ -22636,7 +22640,7 @@ msgstr "Paramètres › Intégrations"
 #~ msgid "Setup Complete!"
 #~ msgstr "Configuration terminée !"
 
-#: src/pages/SetupWizard.tsx:217
+#: src/pages/SetupWizard.tsx:254
 msgid "Setup summary"
 msgstr "Résumé de l'installation"
 
@@ -22818,7 +22822,7 @@ msgstr "Affiché quand le pointeur s'arrête sur l'image (attribut title)."
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
 msgstr "Affiche les nouvelles versions de Notifuse et les correctifs de sécurité sur la liste des espaces de travail."
 
-#: src/pages/SignInPage.tsx:244
+#: src/pages/SignInPage.tsx:252
 msgid "Sign In"
 msgstr "Connexion"
 
@@ -22828,7 +22832,7 @@ msgstr "Connectez-vous avec {rootEmail}."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:636
 #: src/components/setup/SsoPanel.tsx:97
-#: src/pages/SignInPage.tsx:305
+#: src/pages/SignInPage.tsx:313
 msgid "Sign in with SSO"
 msgstr "Se connecter avec le SSO"
 
@@ -22900,7 +22904,7 @@ msgstr "depuis le {0}"
 msgid "Since {0}"
 msgstr "Depuis le {0}"
 
-#: src/components/setup/setupHooks.ts:33
+#: src/components/setup/setupHooks.ts:46
 #: src/services/api/licenseErrors.ts:51
 msgid "Single sign-on"
 msgstr "Authentification unique (SSO)"
@@ -22913,12 +22917,12 @@ msgstr "Authentification unique (OpenID Connect)"
 msgid "Single sign-on (SSO)"
 msgstr "Authentification unique (SSO)"
 
-#: src/pages/SignInPage.tsx:129
+#: src/pages/SignInPage.tsx:130
 msgid "Single sign-on cannot create an account for your email domain. If you were invited, open the link in your invitation email; otherwise ask an administrator to invite you."
 msgstr "L'authentification unique ne peut pas créer de compte pour votre domaine de messagerie. Si vous avez été invité, ouvrez le lien de votre e-mail d'invitation ; sinon, demandez à un administrateur de vous inviter."
 
-#: src/pages/SignInPage.tsx:139
-#: src/pages/SignInPage.tsx:156
+#: src/pages/SignInPage.tsx:140
+#: src/pages/SignInPage.tsx:157
 msgid "Single sign-on failed. Please try again or use a magic code."
 msgstr "L'authentification unique a échoué. Veuillez réessayer ou utiliser un code magique."
 
@@ -22926,7 +22930,7 @@ msgstr "L'authentification unique a échoué. Veuillez réessayer ou utiliser un
 msgid "Single sign-on is switched on, and this deployment's licence does not include it."
 msgstr "L'authentification unique (SSO) est activée, et la licence de ce déploiement ne la couvre pas."
 
-#: src/pages/SignInPage.tsx:135
+#: src/pages/SignInPage.tsx:136
 msgid "Single sign-on is temporarily unavailable. Please try a magic code."
 msgstr "L'authentification unique est temporairement indisponible. Veuillez essayer un code magique."
 
@@ -23021,7 +23025,7 @@ msgstr "SMTP"
 #: src/components/settings/SettingsSidebar.tsx:65
 #: src/components/settings/SMTPBridgeSettings.tsx:19
 #: src/components/setup/BridgePanel.tsx:30
-#: src/components/setup/setupHooks.ts:34
+#: src/components/setup/setupHooks.ts:47
 msgid "SMTP bridge"
 msgstr "Passerelle SMTP"
 
@@ -23069,7 +23073,7 @@ msgstr "SMTP ne signale pas les remises"
 msgid "SMTP domain"
 msgstr "Domaine SMTP"
 
-#: src/components/setup/SmtpPanel.tsx:123
+#: src/components/setup/SmtpPanel.tsx:135
 msgid "SMTP guides:"
 msgstr "Guides SMTP :"
 
@@ -23081,7 +23085,7 @@ msgstr "Hôte SMTP"
 msgid "SMTP Host"
 msgstr "Hôte SMTP"
 
-#: src/components/setup/SmtpPanel.tsx:152
+#: src/components/setup/SmtpPanel.tsx:164
 msgid "SMTP host is required"
 msgstr "L'hôte SMTP est requis"
 
@@ -23097,7 +23101,7 @@ msgstr "Port SMTP"
 msgid "SMTP Port"
 msgstr "Port SMTP"
 
-#: src/components/setup/SmtpPanel.tsx:161
+#: src/components/setup/SmtpPanel.tsx:173
 msgid "SMTP port is required"
 msgstr "Le port SMTP est requis"
 
@@ -23197,7 +23201,7 @@ msgstr "Partage social"
 msgid "Solid"
 msgstr "Plein"
 
-#: src/components/setup/SmtpPanel.tsx:103
+#: src/components/setup/SmtpPanel.tsx:115
 msgid "Some connection settings are set by the environment: the test would not check the connection the server will use."
 msgstr "Certains réglages de connexion sont définis par l'environnement : le test ne vérifierait pas la connexion que le serveur utilisera."
 
@@ -23428,11 +23432,11 @@ msgid "Starts with SG."
 msgstr "Commence par SG."
 
 #: src/components/settings/SMTPBridgeSettings.tsx:11
-#: src/components/setup/setupHooks.ts:53
+#: src/components/setup/setupHooks.ts:72
 msgid "STARTTLS"
 msgstr "STARTTLS"
 
-#: src/components/setup/setupHooks.ts:53
+#: src/components/setup/setupHooks.ts:72
 msgid "STARTTLS on {port}"
 msgstr "STARTTLS sur {port}"
 
@@ -23793,8 +23797,8 @@ msgstr "Réussi"
 #~ msgid "Successfully processed {successful} contacts"
 #~ msgstr "{successful} contacts traités avec succès"
 
-#: src/pages/SignInPage.tsx:67
-#: src/pages/SignInPage.tsx:151
+#: src/pages/SignInPage.tsx:68
+#: src/pages/SignInPage.tsx:152
 msgid "Successfully signed in"
 msgstr "Connexion réussie"
 
@@ -23877,7 +23881,7 @@ msgstr "Passez en mode Aperçu pour voir les effets du point de rupture. Le mode
 msgid "System"
 msgstr "Système"
 
-#: src/components/setup/SmtpPanel.tsx:117
+#: src/components/setup/SmtpPanel.tsx:129
 msgid "System email delivery (SMTP)"
 msgstr "Envoi des emails système (SMTP)"
 
@@ -24216,7 +24220,7 @@ msgstr "Termes"
 msgid "Test"
 msgstr "Tester"
 
-#: src/components/setup/SmtpPanel.tsx:90
+#: src/components/setup/SmtpPanel.tsx:102
 msgid "Test again"
 msgstr "Tester à nouveau"
 
@@ -24238,7 +24242,7 @@ msgstr "Test terminé"
 #~ msgid "Test Completed"
 #~ msgstr "Test terminé"
 
-#: src/components/setup/SmtpPanel.tsx:90
+#: src/components/setup/SmtpPanel.tsx:102
 msgid "Test connection"
 msgstr "Tester la connexion"
 
@@ -24285,7 +24289,7 @@ msgstr "Le test se termine dans {duration}"
 msgid "Test ends in {left}"
 msgstr "Le test se termine dans {left}"
 
-#: src/components/setup/SmtpPanel.tsx:135
+#: src/components/setup/setupHooks.ts:60
 msgid "Test failed"
 msgstr "Échec du test"
 
@@ -24938,7 +24942,7 @@ msgstr "Le nom doit contenir au moins une lettre latine ou un chiffre, pour form
 msgid "The name Notifuse gives when it connects. Defaults to the host above"
 msgstr "Le nom que Notifuse annonce à la connexion. Par défaut, l'hôte ci-dessus"
 
-#: src/components/setup/SmtpPanel.tsx:228
+#: src/components/setup/SmtpPanel.tsx:240
 msgid "The name this server gives when it connects to the SMTP server. Empty means the SMTP host."
 msgstr "Le nom que ce serveur donne en se connectant au serveur SMTP. Vide, c'est l'hôte SMTP."
 
@@ -25303,7 +25307,7 @@ msgstr "Le même e-mail leur sera renvoyé. Corrigez d'abord ce que le fournisse
 msgid "Thinking"
 msgstr "Réflexion"
 
-#: src/pages/SignInPage.tsx:133
+#: src/pages/SignInPage.tsx:134
 msgid "This account is already linked to a different single sign-on identity."
 msgstr "Ce compte est déjà lié à une autre identité d'authentification unique."
 
@@ -25584,7 +25588,7 @@ msgstr "Cette notification l'utilise toujours pour ses envois. Choisissez un aut
 msgid "This page cannot be previewed here"
 msgstr "Cette page ne peut pas être prévisualisée ici"
 
-#: src/pages/SignInPage.tsx:254
+#: src/pages/SignInPage.tsx:262
 msgid "This page is served from {pageOrigin}, but this instance sends its requests to {unreachableEndpoint}, which did not answer. If Notifuse has moved to {pageOrigin}, set the API_ENDPOINT environment variable to that address and restart the server."
 msgstr "Cette page est servie depuis {pageOrigin}, mais cette instance envoie ses requêtes à {unreachableEndpoint}, qui n'a pas répondu. Si Notifuse a été déplacé vers {pageOrigin}, définissez la variable d'environnement API_ENDPOINT sur cette adresse et redémarrez le serveur."
 
@@ -26083,7 +26087,7 @@ msgstr "Afficher/masquer la légende"
 msgid "Token"
 msgstr "Jeton"
 
-#: src/pages/SignInPage.tsx:137
+#: src/pages/SignInPage.tsx:138
 msgid "Too many sign-in attempts. Please wait a moment and try again."
 msgstr "Trop de tentatives de connexion. Veuillez patienter un instant et réessayer."
 
@@ -26973,7 +26977,7 @@ msgstr "A modifié le webhook <0>{target}</0>"
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "A modifié les paramètres de l'espace de travail <0>{target}</0>"
 
-#: src/components/setup/setupHooks.ts:32
+#: src/components/setup/setupHooks.ts:45
 #: src/components/setup/UpdatesPanel.tsx:42
 msgid "Updates and telemetry"
 msgstr "Mises à jour et télémétrie"
@@ -27082,7 +27086,7 @@ msgstr "Utilisez 0 pour conserver pour toujours, ou une valeur entre {AUDIT_LOG_
 #~ msgid "Use 0 to keep forever, or a value between 30 and 3650"
 #~ msgstr "Utilisez 0 pour conserver pour toujours, ou une valeur entre 30 et 3650"
 
-#: src/pages/SignInPage.tsx:345
+#: src/pages/SignInPage.tsx:353
 msgid "Use a different email"
 msgstr "Utiliser un autre email"
 
@@ -27164,8 +27168,8 @@ msgstr "Utiliser ce modèle"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:592
 #: src/components/settings/SystemSettingsDrawer.tsx:364
-#: src/components/setup/SmtpPanel.tsx:168
-#: src/components/setup/SmtpPanel.tsx:172
+#: src/components/setup/SmtpPanel.tsx:180
+#: src/components/setup/SmtpPanel.tsx:184
 msgid "Use TLS"
 msgstr "Utiliser TLS"
 
@@ -27185,7 +27189,7 @@ msgstr "Utilisé par"
 #~ msgid "Used for"
 #~ msgstr "Utilisé pour"
 
-#: src/components/setup/SmtpPanel.tsx:122
+#: src/components/setup/SmtpPanel.tsx:134
 msgid "Used for sign-in codes and invitations. Workspaces set up their own email providers later."
 msgstr "Sert aux codes de connexion et aux invitations. Les espaces de travail configurent ensuite leurs propres fournisseurs d'email."
 
@@ -27232,7 +27236,7 @@ msgid "User Metadata Field"
 msgstr "Champ de métadonnées utilisateur"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:687
-#: src/components/setup/SmtpPanel.tsx:179
+#: src/components/setup/SmtpPanel.tsx:191
 #: src/components/transactional/ApiCommandDrawer.tsx:146
 msgid "Username"
 msgstr "Nom d'utilisateur"
@@ -27475,7 +27479,7 @@ msgstr "A vérifié le code de connexion de <0>{target}</0>"
 msgid "Verify"
 msgstr "Vérifier"
 
-#: src/pages/SignInPage.tsx:335
+#: src/pages/SignInPage.tsx:343
 msgid "Verify Code"
 msgstr "Vérifier le code"
 
@@ -28838,7 +28842,7 @@ msgstr "Vos emails apparaîtront ici, jour par jour, dès votre premier envoi."
 msgid "Your files can be uploaded to any S3 compatible storage."
 msgstr "Vos fichiers peuvent être téléversés vers n'importe quel stockage compatible S3."
 
-#: src/pages/SignInPage.tsx:131
+#: src/pages/SignInPage.tsx:132
 msgid "Your identity provider has not verified your email address."
 msgstr "Votre fournisseur d'identité n'a pas vérifié votre adresse email."
 
