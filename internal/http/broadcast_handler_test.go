@@ -1614,6 +1614,29 @@ func TestHandleSendToIndividual(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
+
+	// A template that does not render with the recipient's data is the caller's template or
+	// data: 422 with the error.
+	t.Run("TemplateRenderError", func(t *testing.T) {
+		req := domain.SendToIndividualRequest{
+			WorkspaceID:    "workspace123",
+			BroadcastID:    "broadcast123",
+			RecipientEmail: "user@example.com",
+		}
+		mockService.EXPECT().
+			SendToIndividual(gomock.Any(), &req).
+			Return(&domain.TemplateRenderError{Message: "failed to process subject: Liquid error: divided by 0"})
+
+		jsonData, _ := json.Marshal(req)
+		httpReq := httptest.NewRequest(http.MethodPost, "/api/broadcasts.sendToIndividual", bytes.NewBuffer(jsonData))
+		httpReq.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		handler.HandleSendToIndividual(w, httpReq)
+
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+		assert.JSONEq(t, `{"error": "failed to process subject: Liquid error: divided by 0"}`, w.Body.String())
+	})
 }
 
 // TestRegisterRoutes tests the RegisterRoutes function

@@ -69,6 +69,17 @@
               error: 'Insufficient permissions: write access to transactional notifications required'
               resource: transactional
               permission: write
+      '422':
+        description: |
+          The email cannot be built from the template and the data of the send: a Liquid error,
+          such as a filter that fails or a comparison of a text with a number, or an MJML error.
+          Nothing is sent. The template or the data has to change; sending again fails the same way.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'template compilation failed: liquid rendering error in block (ID: mjml-source): liquid rendering failed: Liquid error: divided by 0'
       '500':
         description: Internal server error
         content:

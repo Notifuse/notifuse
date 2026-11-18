@@ -407,3 +407,16 @@ func TestQuotedNames(t *testing.T) {
 		}
 	}
 }
+
+// A TemplateRenderError says what failed as it is, and is found through the errors that wrap it.
+func TestTemplateRenderError(t *testing.T) {
+	err := &TemplateRenderError{Message: "template compilation failed: Liquid error: divided by 0"}
+	if got := err.Error(); got != "template compilation failed: Liquid error: divided by 0" {
+		t.Errorf("Error() = %q", got)
+	}
+
+	var found *TemplateRenderError
+	if !errors.As(fmt.Errorf("failed to send notification through any channel: %w", err), &found) || found != err {
+		t.Errorf("errors.As found %v, want the wrapped error", found)
+	}
+}

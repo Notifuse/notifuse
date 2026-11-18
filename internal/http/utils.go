@@ -179,6 +179,18 @@ func writeLicenseRequired(w http.ResponseWriter, feature, requiredTier, message 
 //
 // Unrecognized errors are left untouched and reported as unhandled, so the caller
 // keeps its own mapping (usually a method-specific 500).
+// writeTemplateRenderError writes a send whose template does not render with the data of the
+// send (a Liquid error, an MJML error) as a 422 with the error: the caller's template or data
+// has to change, and retrying cannot help.
+func writeTemplateRenderError(w http.ResponseWriter, err error) bool {
+	var renderErr *domain.TemplateRenderError
+	if !errors.As(err, &renderErr) {
+		return false
+	}
+	WriteJSONError(w, renderErr.Error(), http.StatusUnprocessableEntity)
+	return true
+}
+
 func writeServiceError(w http.ResponseWriter, err error, fallback string) bool {
 	if writePermissionError(w, err) {
 		return true
@@ -221,6 +233,9 @@ func writeServiceError(w http.ResponseWriter, err error, fallback string) bool {
 			"error":       valueErr.Error(),
 			"value_error": valueErr,
 		})
+		return true
+	}
+	if writeTemplateRenderError(w, err) {
 		return true
 	}
 	var unauthorized *domain.ErrUnauthorized

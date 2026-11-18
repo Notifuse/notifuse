@@ -88,6 +88,18 @@ func NewValidationError(message string) error {
 	}
 }
 
+// TemplateRenderError is an email that could not be built from its template and the data
+// of the send: a Liquid error, such as a filter that fails or a comparison of a text with a
+// number, or an MJML compilation error. The template or the data has to change; retrying the
+// send cannot help. Message is the error the caller gets.
+type TemplateRenderError struct {
+	Message string
+}
+
+func (e *TemplateRenderError) Error() string {
+	return e.Message
+}
+
 // PermissionError represents insufficient permissions for an operation
 type PermissionError struct {
 	Resource   PermissionResource `json:"resource"`

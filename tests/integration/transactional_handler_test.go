@@ -777,7 +777,7 @@ func testTransactionalSendCodeMode(t *testing.T, client *testutil.APIClient, fac
 	})
 
 	// A Liquid filter that fails, here a division by zero, fails the send like any other
-	// Liquid error: the call fails and nothing is queued or recorded.
+	// Liquid error: the caller gets the error and nothing is queued or recorded.
 	t.Run("A failing Liquid filter fails the send", func(t *testing.T) {
 		mjml := `<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{contact.first_name}}, total {{ 10 | divided_by: 0 }}</mj-text></mj-column></mj-section></mj-body></mjml>`
 		template, err := factory.CreateTemplate(workspaceID, testutil.WithCodeModeTemplate(mjml))
@@ -804,10 +804,9 @@ func testTransactionalSendCodeMode(t *testing.T, client *testutil.APIClient, fac
 		defer func() { _ = resp.Body.Close() }()
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
-		// The caller gets the generic send failure, as for any Liquid error; the Liquid
-		// message itself is in the logs and in the preview.
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode, "body: %s", body)
-		assert.Contains(t, string(body), "Failed to send notification")
+		// The caller gets 422 with the Liquid error, which names what to change.
+		assert.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, "body: %s", body)
+		assert.Contains(t, string(body), "divided by 0")
 
 		workspaceDB, err := factory.GetWorkspaceDB(workspaceID)
 		require.NoError(t, err)

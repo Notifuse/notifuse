@@ -264,6 +264,9 @@ func (h *TransactionalNotificationHandler) handleSend(w http.ResponseWriter, r *
 		if writePermissionError(w, err) {
 			return
 		}
+		if writeTemplateRenderError(w, err) {
+			return
+		}
 
 		h.logger.WithField("error", err.Error()).Error("Failed to send transactional notification")
 
@@ -273,8 +276,8 @@ func (h *TransactionalNotificationHandler) handleSend(w http.ResponseWriter, r *
 		// in our logs.
 		//
 		// "failed to send notification through any channel" deliberately does NOT join them.
-		// It is the catch-all for every SendEmailForTemplate failure — provider outage, rate
-		// limit, timeout, template error — with the real cause logged and dropped, so it names
+		// It is the catch-all for every other SendEmailForTemplate failure — provider outage, rate
+		// limit, timeout — with the real cause logged and dropped, so it names
 		// nothing a 400 would help the caller fix, and telling a client not to retry a
 		// provider that was briefly down loses a send that would have gone out.
 		if strings.Contains(err.Error(), "not found") ||

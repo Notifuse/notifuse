@@ -724,6 +724,15 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '422':
+        description: |
+          The email cannot be built from the template and the recipient's data: a Liquid error,
+          such as a filter that fails or a comparison of a text with a number, or an MJML error.
+          Nothing is sent. The template or the data has to change; sending again fails the same way.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
       '500':
         description: Internal server error
         content:

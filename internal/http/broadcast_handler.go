@@ -552,6 +552,9 @@ func (h *BroadcastHandler) HandleSendToIndividual(w http.ResponseWriter, r *http
 		if writeSenderError(w, err) {
 			return
 		}
+		if writeTemplateRenderError(w, err) {
+			return
+		}
 		if _, ok := err.(*domain.ErrBroadcastNotFound); ok {
 			WriteJSONError(w, "Broadcast not found", http.StatusNotFound)
 			return

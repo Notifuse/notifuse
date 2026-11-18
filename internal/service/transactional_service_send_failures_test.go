@@ -39,6 +39,7 @@ func TestTransactionalNotificationService_SendNotification_NothingSent(t *testin
 		sendErr         error
 		expectSend      bool
 		wantErr         string
+		wantRenderErr   bool // the caller gets the template's error, as a TemplateRenderError
 	}{
 		{
 			name:            "requested channel is not configured on the notification",
@@ -66,6 +67,15 @@ func TestTransactionalNotificationService_SendNotification_NothingSent(t *testin
 			sendErr:         errors.New("provider rejected the message"),
 			expectSend:      true,
 			wantErr:         "failed to send notification through any channel",
+		},
+		{
+			name:            "the template does not render with this data",
+			transactionalID: "integration-1",
+			integrations:    []domain.Integration{provider},
+			sendErr:         &domain.TemplateRenderError{Message: "template compilation failed: Liquid error: divided by 0"},
+			expectSend:      true,
+			wantErr:         "failed to send notification through any channel: template compilation failed: Liquid error: divided by 0",
+			wantRenderErr:   true,
 		},
 	}
 
@@ -127,6 +137,8 @@ func TestTransactionalNotificationService_SendNotification_NothingSent(t *testin
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.wantErr)
+			var renderErr *domain.TemplateRenderError
+			assert.Equal(t, tc.wantRenderErr, errors.As(err, &renderErr))
 			assert.Empty(t, messageID)
 		})
 	}
