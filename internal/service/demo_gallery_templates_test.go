@@ -151,7 +151,7 @@ func TestDemoGalleryTemplates_ReadOnlyWhatTheDemoProvides(t *testing.T) {
 		demoTemplateCartRecoveryA: {"list", "unsubscribe_url", "trigger_event"},
 		demoTemplateCartRecoveryB: {"list", "unsubscribe_url", "trigger_event"},
 		demoTemplateWinbackOffer:  {"list", "unsubscribe_url"},
-		demoTemplateOrderThankYou: {"list", "unsubscribe_url"},
+		demoTemplateOrderThankYou: {},
 	}
 	listNameWithoutFallback := regexp.MustCompile(`\{\{-?\s*list\.name\s*-?\}\}`)
 
@@ -241,6 +241,10 @@ func TestDemoGalleryTemplates_OrderThankYouRendersWithoutAnOrder(t *testing.T) {
 		assert.Contains(t, *resp.HTML, "Ana", language)
 		assert.Contains(t, *resp.HTML, why[language], language)
 		assert.NotContains(t, *resp.HTML, "subscribed to", language)
+		// Transactional: no unsubscribe or preferences link, in any language.
+		mjml := notifuse_mjml.ConvertJSONToMJML(email.VisualEditorTree)
+		assert.NotContains(t, mjml, "unsubscribe_url", language)
+		assert.NotContains(t, mjml, "notification_center_url", language)
 	}
 }
 

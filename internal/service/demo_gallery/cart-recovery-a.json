@@ -26,19 +26,19 @@
       "properties": {
         "items": [
           {
-            "name": "Linen shirt",
+            "name": "iPhone 17 Pro, 256 GB, Cosmic Orange",
             "quantity": 1,
-            "price": "$59.00",
-            "image_url": "https://images.unsplash.com/photo-1740711152088-88a009e877bb?w=600&h=600&fit=crop&auto=format&q=80"
+            "price": "$1,099.00",
+            "image_url": "https://images.unsplash.com/photo-1726587912121-ea21fcc57ff8?w=600&h=600&fit=crop&auto=format&q=80"
           },
           {
-            "name": "Canvas tote bag",
-            "quantity": 2,
-            "price": "$36.00",
-            "image_url": "https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&h=600&fit=crop&auto=format&q=80"
+            "name": "MagSafe Charger (1 m)",
+            "quantity": 1,
+            "price": "$49.00",
+            "image_url": "https://images.unsplash.com/photo-1615526675159-e248c3021d3f?w=600&h=600&fit=crop&auto=format&q=80"
           }
         ],
-        "cart_url": "https://acme.com/cart/42"
+        "cart_url": "https://demo.notifuse.com/cart/42"
       }
     }
   },
@@ -645,7 +645,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "A mustard knit beanie on a yellow background",
+                          "alt": "AirPods Pro in their open white charging case",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -659,7 +659,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "https://images.unsplash.com/photo-1630691650107-53dd500d2907?w=600&h=600&fit=crop&auto=format&q=80",
+                          "src": "https://images.unsplash.com/photo-1580477371194-4593e3c7c6cf?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -687,7 +687,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<b>Wool beanie</b><br><b>$24.00</b>"
+                        "content": "<b>AirPods Pro</b><br><b>$249.00</b>"
                       },
                       {
                         "id": "cart-button-20",
@@ -754,7 +754,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "A tan leather bifold wallet on a white table",
+                          "alt": "A space grey Apple Watch with a black sport band",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -768,7 +768,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "https://images.unsplash.com/photo-1624538000860-24716b9050f2?w=600&h=600&fit=crop&auto=format&q=80",
+                          "src": "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -796,7 +796,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<b>Leather wallet</b><br><b>$45.00</b>"
+                        "content": "<b>Apple Watch Series 11</b><br><b>$399.00</b>"
                       },
                       {
                         "id": "cart-button-24",
@@ -1519,7 +1519,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Un bonnet en maille moutarde sur un fond jaune",
+                          "alt": "Des AirPods Pro dans leur boîtier de charge blanc ouvert",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -1533,7 +1533,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "https://images.unsplash.com/photo-1630691650107-53dd500d2907?w=600&h=600&fit=crop&auto=format&q=80",
+                          "src": "https://images.unsplash.com/photo-1580477371194-4593e3c7c6cf?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -1561,7 +1561,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<b>Bonnet en laine</b><br><b>$24.00</b>"
+                        "content": "<b>AirPods Pro</b><br><b>$249.00</b>"
                       },
                       {
                         "id": "cart-button-20",
@@ -1628,7 +1628,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Un portefeuille en cuir fauve sur une table blanche",
+                          "alt": "Une Apple Watch gris sidéral avec un bracelet sport noir",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -1642,7 +1642,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "https://images.unsplash.com/photo-1624538000860-24716b9050f2?w=600&h=600&fit=crop&auto=format&q=80",
+                          "src": "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -1670,7 +1670,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<b>Portefeuille en cuir</b><br><b>$45.00</b>"
+                        "content": "<b>Apple Watch Series 11</b><br><b>$399.00</b>"
                       },
                       {
                         "id": "cart-button-24",
@@ -2393,7 +2393,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Un gorro de punto mostaza sobre un fondo amarillo",
+                          "alt": "Unos AirPods Pro en su estuche de carga blanco abierto",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -2407,7 +2407,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "https://images.unsplash.com/photo-1630691650107-53dd500d2907?w=600&h=600&fit=crop&auto=format&q=80",
+                          "src": "https://images.unsplash.com/photo-1580477371194-4593e3c7c6cf?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -2435,7 +2435,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<b>Gorro de lana</b><br><b>$24.00</b>"
+                        "content": "<b>AirPods Pro</b><br><b>$249.00</b>"
                       },
                       {
                         "id": "cart-button-20",
@@ -2502,7 +2502,7 @@
                         "type": "mj-image",
                         "attributes": {
                           "align": "center",
-                          "alt": "Una cartera de cuero marrón claro sobre una mesa blanca",
+                          "alt": "Un Apple Watch gris espacial con una correa deportiva negra",
                           "border": "none",
                           "borderRadius": "6px",
                           "containerBackgroundColor": "transparent",
@@ -2516,7 +2516,7 @@
                           "paddingLeft": "12px",
                           "rel": "noopener noreferrer",
                           "sizes": "",
-                          "src": "https://images.unsplash.com/photo-1624538000860-24716b9050f2?w=600&h=600&fit=crop&auto=format&q=80",
+                          "src": "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=600&h=600&fit=crop&auto=format&q=80",
                           "srcset": "",
                           "target": "_blank",
                           "title": "",
@@ -2544,7 +2544,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<b>Billetera de cuero</b><br><b>$45.00</b>"
+                        "content": "<b>Apple Watch Series 11</b><br><b>$399.00</b>"
                       },
                       {
                         "id": "cart-button-24",

@@ -835,7 +835,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>You are receiving this email because you placed an order with Apple.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Manage preferences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Unsubscribe</a></p>"
+                        "content": "Apple · 12 Market Street, San Francisco, CA 94103<br>You are receiving this email because you placed an order with Apple.<br>Questions? Reply to this email."
                       }
                     ]
                   }
@@ -1660,7 +1660,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Vous recevez cet e-mail car vous avez passé commande chez Apple.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gérer mes préférences</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Se désabonner</a></p>"
+                        "content": "Apple · 12 Market Street, San Francisco, CA 94103<br>Vous recevez cet e-mail car vous avez passé commande chez Apple.<br>Une question ? Répondez à cet e-mail."
                       }
                     ]
                   }
@@ -2485,7 +2485,7 @@
                           "backgroundColor": "transparent",
                           "cssClass": ""
                         },
-                        "content": "<p>Apple · 12 Market Street, San Francisco, CA 94103<br>Recibes este correo porque hiciste un pedido en Apple.<br><a href=\"{{ notification_center_url }}\" style=\"color:#5b6170\">Gestionar preferencias</a> · <a href=\"{{ unsubscribe_url }}\" style=\"color:#5b6170\">Cancelar suscripción</a></p>"
+                        "content": "Apple · 12 Market Street, San Francisco, CA 94103<br>Recibes este correo porque hiciste un pedido en Apple.<br>¿Tienes preguntas? Responde a este correo."
                       }
                     ]
                   }

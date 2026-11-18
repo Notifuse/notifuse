@@ -102,44 +102,25 @@ export const DEMO_PHOTOS: Record<string, DemoPhoto> = {
       es: 'Una comerciante sonriente con delantal detrás de su mostrador'
     }
   },
+  // The cart emails' "customers also loved" cards: Apple products in the gallery's two slots.
   'product-beanie.jpg': {
-    photo: '1630691650107-53dd500d2907',
+    photo: '1580477371194-4593e3c7c6cf',
     width: 600,
     height: 600,
     alt: {
-      en: 'A mustard knit beanie on a yellow background',
-      fr: 'Un bonnet en maille moutarde sur un fond jaune',
-      es: 'Un gorro de punto mostaza sobre un fondo amarillo'
+      en: 'AirPods Pro in their open white charging case',
+      fr: 'Des AirPods Pro dans leur boîtier de charge blanc ouvert',
+      es: 'Unos AirPods Pro en su estuche de carga blanco abierto'
     }
   },
   'product-wallet.jpg': {
-    photo: '1624538000860-24716b9050f2',
+    photo: '1546868871-7041f2a55e12',
     width: 600,
     height: 600,
     alt: {
-      en: 'A tan leather bifold wallet on a white table',
-      fr: 'Un portefeuille en cuir fauve sur une table blanche',
-      es: 'Una cartera de cuero marrón claro sobre una mesa blanca'
-    }
-  },
-  'product-shirt.jpg': {
-    photo: '1740711152088-88a009e877bb',
-    width: 600,
-    height: 600,
-    alt: {
-      en: 'A blue linen shirt on a hanger against a white wall',
-      fr: 'Une chemise en lin bleue sur un cintre contre un mur blanc',
-      es: 'Una camisa de lino azul en una percha contra una pared blanca'
-    }
-  },
-  'product-tote.jpg': {
-    photo: '1544816155-12df9643f363',
-    width: 600,
-    height: 600,
-    alt: {
-      en: 'A beige canvas tote bag against a grey wall',
-      fr: 'Un tote bag en toile beige contre un mur gris',
-      es: 'Una bolsa de tela beige contra una pared gris'
+      en: 'A space grey Apple Watch with a black sport band',
+      fr: 'Une Apple Watch gris sidéral avec un bracelet sport noir',
+      es: 'Un Apple Watch gris espacial con una correa deportiva negra'
     }
   }
 }
@@ -161,6 +142,11 @@ interface DemoTemplateOf<M extends GalleryModelId> {
   testData: Record<string, unknown>
   /** Photos of this template that differ from DEMO_PHOTOS, by gallery image. */
   photos?: Record<string, DemoPhoto>
+  /** Text the model writes itself (a price, say), replaced in every language. */
+  replace?: Record<string, string>
+  /** The gallery's transactional footer in place of the model's marketing one: the address, why the
+   * email came (this common line) and where to ask, with no unsubscribe or preferences link. */
+  transactionalFooter?: 'placedOrder' | 'hasAccount'
 }
 type DemoTemplate = { [M in GalleryModelId]: DemoTemplateOf<M> }[GalleryModelId]
 
@@ -173,10 +159,27 @@ const subscribedTo: Record<DemoLanguage, Partial<Common>> = {
   es: { subscribedTo: "Recibes este correo porque te suscribiste a {{ list.name | default: 'Newsletter' }}." }
 }
 
-// A transactional email's footer says why it came: the gallery's own words for an order.
-const placedOrder = (language: DemoLanguage): Partial<Common> => ({
-  subscribedTo: withBrand(GALLERY_CONTENT[language].common, DEMO_BRAND.name).placedOrder
-})
+/** The cart emails' recommendations: their names, and the prices the gallery's cards replace. */
+const cartRecommendations: Record<DemoLanguage, Copy<'cart'>['model']> = {
+  en: { product1: 'AirPods Pro', product2: 'Apple Watch Series 11' },
+  fr: { product1: 'AirPods Pro', product2: 'Apple Watch Series 11' },
+  es: { product1: 'AirPods Pro', product2: 'Apple Watch Series 11' }
+}
+const cartPrices = { '$24.00': '$249.00', '$45.00': '$399.00' }
+
+/** The cart the abandoned-cart event carries in the previews: Apple products, at the catalogue's prices. */
+const cartEvent = {
+  kind: 'custom_event.cart_abandoned',
+  name: 'cart_abandoned',
+  external_id: 'cart-42',
+  properties: {
+    items: [
+      { name: 'iPhone 17 Pro, 256 GB, Cosmic Orange', quantity: 1, price: '$1,099.00', image_url: unsplash('1726587912121-ea21fcc57ff8', 600, 600) },
+      { name: 'MagSafe Charger (1 m)', quantity: 1, price: '$49.00', image_url: unsplash('1615526675159-e248c3021d3f', 600, 600) }
+    ],
+    cart_url: 'https://demo.notifuse.com/cart/42'
+  }
+}
 
 const contact = (first_name: string, last_name: string) => ({
   contact: { first_name, last_name, email: `${first_name}.${last_name}@example.com`.toLowerCase() }
@@ -313,8 +316,13 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
       fr: '{{contact.first_name}}, les articles que vous avez choisis sont toujours enregistrés',
       es: '{{contact.first_name}}, los artículos que elegiste siguen guardados'
     },
-    copy: { en: { common: subscribedTo.en }, fr: { common: subscribedTo.fr }, es: { common: subscribedTo.es } },
-    testData: contact('Emma', 'Clarke')
+    copy: {
+      en: { common: subscribedTo.en, model: cartRecommendations.en },
+      fr: { common: subscribedTo.fr, model: cartRecommendations.fr },
+      es: { common: subscribedTo.es, model: cartRecommendations.es }
+    },
+    replace: cartPrices,
+    testData: { ...contact('Emma', 'Clarke'), trigger_event: cartEvent }
   },
   {
     // The discount-led arm: the same email, offering 10% off.
@@ -334,6 +342,7 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
       en: {
         common: subscribedTo.en,
         model: {
+          ...cartRecommendations.en,
           title: 'Here is 10% off to finish up',
           intro: 'Hi {{ contact.first_name }}, your cart is saved, and so is 10% off: use the code <b>APPLE10</b> at checkout. It is valid for 48 hours, accessories included.',
           button: 'Claim my 10% off'
@@ -342,6 +351,7 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
       fr: {
         common: subscribedTo.fr,
         model: {
+          ...cartRecommendations.fr,
           title: '10 % de remise pour conclure',
           intro: 'Bonjour {{ contact.first_name }}, votre panier est sauvegardé, et 10 % de remise vous attendent : utilisez le code <b>APPLE10</b> au moment du paiement. Il est valable 48 heures, accessoires compris.',
           button: 'Profiter des 10 %'
@@ -350,13 +360,15 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
       es: {
         common: subscribedTo.es,
         model: {
+          ...cartRecommendations.es,
           title: 'Un 10 % de descuento para terminar',
           intro: 'Hola, {{ contact.first_name }}. Guardamos tu carrito, y también un 10 % de descuento: usa el código <b>APPLE10</b> al finalizar la compra. Es válido durante 48 horas, accesorios incluidos.',
           button: 'Aprovechar el 10 %'
         }
       }
     },
-    testData: contact('Liam', 'Ferreira')
+    replace: cartPrices,
+    testData: { ...contact('Liam', 'Ferreira'), trigger_event: cartEvent }
   },
   {
     templateId: 'winback-offer',
@@ -387,6 +399,7 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
     templateId: 'order-thank-you',
     model: 'welcome',
     category: 'transactional',
+    transactionalFooter: 'placedOrder',
     subject: {
       en: 'Thank you for your order, {{contact.first_name}}! 🎉',
       fr: 'Merci pour votre commande, {{contact.first_name}} ! 🎉',
@@ -399,7 +412,6 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
     },
     copy: {
       en: {
-        common: placedOrder('en'),
         model: {
           title: 'Thank you for your order, {{ contact.first_name }}',
           intro: 'Your order is confirmed and already being prepared: you will get a tracking number as soon as it leaves our warehouse. And this purchase makes you a member of our <b>VIP Club</b>.',
@@ -413,7 +425,6 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
         }
       },
       fr: {
-        common: placedOrder('fr'),
         model: {
           title: 'Merci pour votre commande, {{ contact.first_name }}',
           intro: 'Votre commande est confirmée et déjà en préparation : vous recevrez un numéro de suivi dès son départ de notre entrepôt. Et cet achat vous fait entrer dans notre <b>Club VIP</b>.',
@@ -427,7 +438,6 @@ export const DEMO_TEMPLATES: DemoTemplate[] = [
         }
       },
       es: {
-        common: placedOrder('es'),
         model: {
           title: 'Gracias por tu pedido, {{ contact.first_name }}',
           intro: 'Tu pedido está confirmado y ya lo estamos preparando: recibirás un número de seguimiento en cuanto salga de nuestro almacén. Y esta compra te da entrada a nuestro <b>Club VIP</b>.',
@@ -481,15 +491,44 @@ function demoPhoto(spec: DemoTemplate, value: unknown): DemoPhoto | undefined {
   return photo
 }
 
-/** The tree with each gallery image swapped for its photo, and the photo's description as its alt. */
-function withPhotos(spec: DemoTemplate, block: EmailBlock, language: DemoLanguage): EmailBlock {
-  const node = block as unknown as { attributes?: Record<string, unknown>; children?: EmailBlock[] }
-  const photo = demoPhoto(spec, node.attributes?.src)
-  return {
-    ...block,
-    ...(photo ? { attributes: { ...node.attributes, src: unsplash(photo.photo, photo.width, photo.height), alt: photo.alt[language] } } : {}),
-    ...(node.children ? { children: node.children.map((child) => withPhotos(spec, child, language)) } : {})
-  } as EmailBlock
+/** The tree for the demo, in one language: each gallery image swapped for its photo with the photo's
+ * description as its alt, the template's replacements made, and its footer made transactional when
+ * it asks. Each replacement and the footer must find their text, so a gallery change cannot
+ * silently drop them. */
+function forDemo(spec: DemoTemplate, tree: EmailBlock, language: DemoLanguage, common: Common): EmailBlock {
+  const replacements = Object.entries(spec.replace ?? {})
+  const found = new Set<string>()
+  const footer = spec.transactionalFooter ? `${common.address}<br>${common[spec.transactionalFooter]}<br>${common.questions}` : undefined
+
+  const walk = (block: EmailBlock): EmailBlock => {
+    const node = block as unknown as { type: string; content?: string; attributes?: Record<string, unknown>; children?: EmailBlock[] }
+    const out = { ...node }
+    const photo = demoPhoto(spec, node.attributes?.src)
+    if (photo) out.attributes = { ...node.attributes, src: unsplash(photo.photo, photo.width, photo.height), alt: photo.alt[language] }
+    if (node.type === 'mj-text' && typeof node.content === 'string') {
+      let content = node.content
+      for (const [from, to] of replacements) {
+        if (content.includes(from)) {
+          content = content.split(from).join(to)
+          found.add(from)
+        }
+      }
+      if (footer && content.includes('{{ unsubscribe_url }}')) {
+        content = footer
+        found.add('footer')
+      }
+      out.content = content
+    }
+    if (node.children) out.children = node.children.map(walk)
+    return out as unknown as EmailBlock
+  }
+
+  const result = walk(tree)
+  for (const [from] of replacements) {
+    if (!found.has(from)) throw new Error(`${spec.templateId} (${language}): the model no longer writes ${from}`)
+  }
+  if (footer && !found.has('footer')) throw new Error(`${spec.templateId} (${language}): no marketing footer to make transactional`)
+  return result
 }
 
 /** Test data with each gallery image URL swapped for its photo's. */
@@ -521,7 +560,7 @@ export function buildDemoFixture(spec: DemoTemplate): DemoFixture {
       }
     }
     const built = model.build(content, assets)
-    languages[language] = { subject: built.subject, subject_preview: built.preheader, visual_editor_tree: withPhotos(spec, built.tree, language) }
+    languages[language] = { subject: built.subject, subject_preview: built.preheader, visual_editor_tree: forDemo(spec, built.tree, language, content.common) }
     if (language === DEMO_BRAND.defaultLanguage) testData = dataWithPhotos(spec, { ...built.testData, ...spec.testData }) as Record<string, unknown>
   }
 

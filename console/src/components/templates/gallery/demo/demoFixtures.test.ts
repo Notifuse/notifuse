@@ -112,4 +112,34 @@ describe('the demo seed’s gallery templates', () => {
     expect(JSON.stringify(fixture.languages.fr.visual_editor_tree)).toContain('vous avez passé commande chez Apple.')
     expect(JSON.stringify(fixture.languages.es.visual_editor_tree)).toContain('hiciste un pedido en Apple.')
   })
+
+  // Transactional: the gallery's transactional footer, never an unsubscribe or preferences link.
+  it('gives the order thank-you a transactional footer in each language', () => {
+    const fixture = buildDemoFixture(DEMO_TEMPLATES.find((spec) => spec.templateId === 'order-thank-you')!)
+    expect(JSON.stringify(fixture)).not.toMatch(/unsubscribe_url|notification_center_url/)
+    expect(JSON.stringify(fixture.languages.en.visual_editor_tree)).toContain('placed an order with Apple.<br>Questions? Reply to this email.')
+  })
+
+  it('fails when a replacement or a transactional footer no longer finds its text in the model', () => {
+    const welcome = DEMO_TEMPLATES.find((spec) => spec.templateId === 'welcome-email')!
+    expect(() => buildDemoFixture({ ...welcome, replace: { '$24.00': '$249.00' } })).toThrow('welcome-email (en): the model no longer writes $24.00')
+    const reset = DEMO_TEMPLATES.find((spec) => spec.templateId === 'password-reset')!
+    expect(() => buildDemoFixture({ ...reset, transactionalFooter: 'hasAccount' })).toThrow('password-reset (en): no marketing footer to make transactional')
+  })
+
+  // The demo is an Apple store: its cart emails show Apple products, in the cards and in the cart.
+  for (const templateId of ['cart-recovery-a', 'cart-recovery-b']) {
+    it(`shows Apple products in ${templateId}, at their prices`, () => {
+      const fixture = buildDemoFixture(DEMO_TEMPLATES.find((spec) => spec.templateId === templateId)!)
+      const json = JSON.stringify(fixture)
+      expect(json).not.toMatch(/beanie|wallet|linen|tote|acme\.com|\$24\.00|\$45\.00/i)
+      for (const language of DEMO_BRAND.languages) {
+        const tree = JSON.stringify(fixture.languages[language].visual_editor_tree)
+        expect(tree).toContain('<b>AirPods Pro</b><br><b>$249.00</b>')
+        expect(tree).toContain('<b>Apple Watch Series 11</b><br><b>$399.00</b>')
+      }
+      const items = (fixture.test_data.trigger_event as { properties: { items: { name: string; image_url: string }[] } }).properties.items
+      expect(items.map((item) => item.name)).toEqual(['iPhone 17 Pro, 256 GB, Cosmic Orange', 'MagSafe Charger (1 m)'])
+    })
+  }
 })
