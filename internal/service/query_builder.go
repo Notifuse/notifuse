@@ -630,10 +630,27 @@ const numericTextPattern = `^\s*[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?\s*$`
 // console tells the user to store and the only form that is unambiguous across locales.
 const timestampTextPattern = `^\s*\d{4}-\d{2}-\d{2}`
 
+// jsonValueText reads a JSON value as the text it holds: a string without its quotes, a number or
+// a boolean as written, an object or an array as its JSON text, and JSON null as SQL NULL.
+//
+// ::text gave the JSON text instead, quotes included, so the string "gold" read as `"gold"`: a
+// text « equals » never matched and « not equals » always did, a numeric string such as "42" made
+// the direct numeric cast raise, and the defensive date cast never recognised a date. #>> with an
+// empty path is the extraction ->> performs, for any path. The parentheses matter: `x #>> '{}'::numeric`
+// casts the literal.
+func jsonValueText(jsonPath string) string {
+	return fmt.Sprintf("(%s #>> '{}')", jsonPath)
+}
+
 // castNumeric renders the numeric conversion of a text expression under the given mode.
+//
+// Defensively, the shape is checked first and then the conversion itself: the pattern alone lets
+// 1e999999 through, which overflows, and pg_input_is_valid alone accepts NaN, Infinity, 0x1F and
+// 1_000. pg_input_is_valid needs PostgreSQL 16; Notifuse requires 17 at startup.
 func castNumeric(textExpr string, mode castMode) string {
 	if mode == castDefensively {
-		return fmt.Sprintf("CASE WHEN %s ~ '%s' THEN (%s)::numeric END", textExpr, numericTextPattern, textExpr)
+		return fmt.Sprintf("CASE WHEN %s ~ '%s' AND pg_input_is_valid(%s, 'numeric') THEN (%s)::numeric END",
+			textExpr, numericTextPattern, textExpr, textExpr)
 	}
 	return fmt.Sprintf("(%s)::numeric", textExpr)
 }
@@ -644,8 +661,8 @@ func castNumeric(textExpr string, mode castMode) string {
 // Those five columns used to hold nothing but an object or an array — contacts.upsert answered 400
 // for anything else — so (custom_json_1::text)::numeric raised on every non-null row and such a
 // filter failed loudly and always. A scalar is now stored as-is, matching what lists.subscribe had
-// always accepted, and PostgreSQL converts one without complaint: ('42'::jsonb)::text::numeric is
-// 42, and ('"2024-01-01"'::jsonb)::text::timestamptz is a real timestamp. The filter therefore
+// always accepted, and PostgreSQL converts one without complaint: ('42'::jsonb #>> '{}')::numeric is
+// 42, and ('"2024-01-01"'::jsonb #>> '{}')::timestamptz is a real timestamp. The filter therefore
 // started matching some rows and raising on others, and which of the two a customer saw depended on
 // the rows the planner happened to reach first.
 //
@@ -653,7 +670,7 @@ func castNumeric(textExpr string, mode castMode) string {
 // scalar, and a typeof guard there would break an array index such as custom_json_1[0].
 //
 // CASE rather than a conjunct: PostgreSQL does not promise to evaluate AND left to right, so
-// `jsonb_typeof(col) = 'object' AND (col::text)::numeric > $1` can still be reordered behind the
+// `jsonb_typeof(col) = 'object' AND (col #>> '{}')::numeric > $1` can still be reordered behind the
 // cast it is meant to protect. An object keeps raising, which is what the segment path chose for
 // values it cannot convert.
 func guardWholeColumnCast(castExpr string, dbColumn string, hasJSONPath bool) string {
@@ -664,9 +681,15 @@ func guardWholeColumnCast(castExpr string, dbColumn string, hasJSONPath bool) st
 }
 
 // castTimestamp renders the timestamp conversion of a text expression under the given mode.
+//
+// Defensively, the ISO shape is checked first and then the conversion itself: the prefix pattern
+// lets 2026-02-30 and « 2026-01-01 until further notice » through, which raise, and
+// pg_input_is_valid alone accepts now, today, infinity and locale-dependent forms such as
+// 01/02/2026, so "renewed_at": "now" would match « in the last N days » for ever.
 func castTimestamp(textExpr string, mode castMode) string {
 	if mode == castDefensively {
-		return fmt.Sprintf("CASE WHEN %s ~ '%s' THEN (%s)::timestamptz END", textExpr, timestampTextPattern, textExpr)
+		return fmt.Sprintf("CASE WHEN %s ~ '%s' AND pg_input_is_valid(%s, 'timestamptz') THEN (%s)::timestamptz END",
+			textExpr, timestampTextPattern, textExpr, textExpr)
 	}
 	return fmt.Sprintf("(%s)::timestamptz", textExpr)
 }
@@ -904,7 +927,7 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 			return "", nil, argIndex, err
 		}
 		return qb.buildCondition(
-			guardWholeColumnCast(castTimestamp(fmt.Sprintf("%s::text", jsonPath), mode), dbColumn, hasJSONPath),
+			guardWholeColumnCast(castTimestamp(jsonValueText(jsonPath), mode), dbColumn, hasJSONPath),
 			filter.Operator, sqlOp, values, argIndex)
 	}
 
@@ -927,19 +950,16 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 		return condition, args, argIndex + 1, nil
 	}
 
-	// For regular value comparisons, extract and cast the JSON value
-	// Extract as text first, then cast to target type
+	// For regular value comparisons, extract the JSON value as text (see jsonValueText), then cast
+	// it to the target type
 	var fieldExpr string
 	switch filter.FieldType {
 	case "string", "json":
-		// Extract as text
-		fieldExpr = fmt.Sprintf("%s::text", jsonPath)
+		fieldExpr = jsonValueText(jsonPath)
 	case "number":
-		// Extract as text, then cast to numeric
-		fieldExpr = guardWholeColumnCast(castNumeric(fmt.Sprintf("%s::text", jsonPath), mode), dbColumn, hasJSONPath)
+		fieldExpr = guardWholeColumnCast(castNumeric(jsonValueText(jsonPath), mode), dbColumn, hasJSONPath)
 	case "time":
-		// Extract as text, then cast to timestamptz
-		fieldExpr = guardWholeColumnCast(castTimestamp(fmt.Sprintf("%s::text", jsonPath), mode), dbColumn, hasJSONPath)
+		fieldExpr = guardWholeColumnCast(castTimestamp(jsonValueText(jsonPath), mode), dbColumn, hasJSONPath)
 	default:
 		return "", nil, argIndex, fmt.Errorf("invalid field_type for JSON field: %s", filter.FieldType)
 	}

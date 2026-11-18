@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -375,31 +376,23 @@ func TestEmailHandler_HandleOpens(t *testing.T) {
 	}
 }
 
-// TestEmailHandler_HandleTestEmailProvider_PermissionDenied pins that a denial
-// answers 403 naming the missing grant, rather than the 200 {success:false}
-// envelope a provider failure gets — nothing was sent, so it is not a test result.
-func TestEmailHandler_HandleTestEmailProvider_PermissionDenied(t *testing.T) {
+// TestEmailHandler_HandleTestEmailProvider_NotOwner pins the answer to a caller
+// that is not the workspace owner — testing a provider is reserved to the owner:
+// 403 with the service's message, not the 200 {success:false} envelope a provider
+// failure gets. Nothing was sent, so it is not a test result, and that envelope
+// would point the caller at their credentials instead of their role.
+func TestEmailHandler_HandleTestEmailProvider_NotOwner(t *testing.T) {
 	mockService, _, handler, _ := setupEmailHandlerTest(t)
 
 	mockService.EXPECT().
-		TestEmailProvider(gomock.Any(), "workspace123", gomock.Any(), gomock.Any(), "test@example.com").
-		Return(domain.NewPermissionError(
-			domain.PermissionResourceTransactional,
-			domain.PermissionTypeWrite,
-			"Insufficient permissions: write access to transactional required",
-		))
+		TestEmailProvider(gomock.Any(), "workspace123", "integration-1", gomock.Any(), "test@example.com").
+		Return(&domain.ErrUnauthorized{Message: "user is not an owner of the workspace"})
 
-	reqBody, err := json.Marshal(domain.TestEmailProviderRequest{
-		WorkspaceID: "workspace123",
-		To:          "test@example.com",
-		Provider: domain.EmailProvider{
-			Kind:    domain.EmailProviderKindSMTP,
-			Senders: []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Test Sender")},
-		},
-	})
-	require.NoError(t, err)
-
-	req := httptest.NewRequest(http.MethodPost, "/api/email.testProvider", bytes.NewReader(reqBody))
+	// Raw JSON, as an API client sends it.
+	body := `{"workspace_id":"workspace123","integration_id":"integration-1","to":"test@example.com",` +
+		`"provider":{"kind":"smtp","senders":[{"email":"sender@example.com","name":"Test Sender"}],` +
+		`"smtp":{"host":"smtp.example.com","port":25,"use_tls":false}}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/email.testProvider", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -409,6 +402,6 @@ func TestEmailHandler_HandleTestEmailProvider_PermissionDenied(t *testing.T) {
 
 	var response map[string]interface{}
 	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
-	assert.Equal(t, string(domain.PermissionResourceTransactional), response["resource"])
-	assert.Equal(t, string(domain.PermissionTypeWrite), response["permission"])
+	assert.Equal(t, "user is not an owner of the workspace", response["error"])
+	assert.NotContains(t, response, "success")
 }

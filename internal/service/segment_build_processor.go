@@ -77,7 +77,9 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 	}
 
 	if state.StartedAt == "" {
-		state.StartedAt = time.Now().UTC().Format(time.RFC3339)
+		// To the nanosecond: rescheduleRecompute compares it with a mark that may be set in the
+		// same second.
+		state.StartedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	}
 
 	// A build that fails with no retry left must not leave the segment building: the contact
@@ -296,7 +298,7 @@ func (p *SegmentBuildProcessor) build(ctx context.Context, task *domain.Task, st
 	}
 
 	// If segment has recompute_after set, reschedule it for next 5AM
-	p.rescheduleRecompute(ctx, task.WorkspaceID, segment)
+	p.rescheduleRecompute(ctx, task.WorkspaceID, segment, state.StartedAt, true)
 
 	p.logger.WithFields(map[string]interface{}{
 		"segment_id":     state.SegmentID,
@@ -318,9 +320,31 @@ func (p *SegmentBuildProcessor) nextBatch(ctx context.Context, workspaceID strin
 }
 
 // rescheduleRecompute moves the next daily rebuild of a segment with relative dates to the next
-// 5 AM in its timezone. Failures are logged: the segment is then rebuilt at the next check.
-func (p *SegmentBuildProcessor) rescheduleRecompute(ctx context.Context, workspaceID string, segment *domain.Segment) {
+// 5 AM in its timezone. After a build that completed, it clears the mark of a segment without
+// them, which a migration sets to have it rebuilt once: re-arming it would rebuild that segment
+// every day for ever. After a build that failed for good, the mark moves to the next 5 AM instead,
+// so the rebuild is tried again. Failures are logged: the segment is then rebuilt at the next check.
+//
+// A mark set after this build started is left alone. A build re-reads the segment on each run, so
+// one that was running when the stored query changed may have used both, and only the build the
+// mark asks for evaluates every contact with the new one. buildStartedAt is the build's
+// BuildSegmentState.StartedAt (RFC 3339, to the nanosecond since 44.0); a value that does not parse
+// disables that check.
+func (p *SegmentBuildProcessor) rescheduleRecompute(ctx context.Context, workspaceID string, segment *domain.Segment, buildStartedAt string, completed bool) {
 	if segment.RecomputeAfter == nil {
+		return
+	}
+	if startedAt, err := time.Parse(time.RFC3339, buildStartedAt); err == nil && segment.RecomputeAfter.After(startedAt) {
+		return
+	}
+
+	if completed && (segment.Tree == nil || !segment.Tree.HasRelativeDates()) {
+		if err := p.segmentRepo.UpdateRecomputeAfter(ctx, workspaceID, segment.ID, nil); err != nil {
+			p.logger.WithFields(map[string]interface{}{
+				"error":      err.Error(),
+				"segment_id": segment.ID,
+			}).Warn("Failed to clear recompute_after for segment (non-fatal)")
+		}
 		return
 	}
 
@@ -377,7 +401,7 @@ func (p *SegmentBuildProcessor) releaseAfterFinalFailure(ctx context.Context, ta
 
 	p.logger.WithField("segment_id", state.SegmentID).Warn("Segment build failed with no retry left, segment set back to active")
 	if segment != nil {
-		p.rescheduleRecompute(releaseCtx, task.WorkspaceID, segment)
+		p.rescheduleRecompute(releaseCtx, task.WorkspaceID, segment, state.StartedAt, false)
 	}
 }
 

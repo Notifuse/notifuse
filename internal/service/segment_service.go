@@ -169,7 +169,7 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 				SegmentID: segment.ID,
 				Version:   segment.Version,
 				BatchSize: 100,
-				StartedAt: time.Now().Format(time.RFC3339),
+				StartedAt: time.Now().UTC().Format(time.RFC3339Nano),
 			},
 		},
 		MaxRuntime: 300, // 5 minutes
@@ -355,7 +355,7 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 					SegmentID: existing.ID,
 					Version:   existing.Version,
 					BatchSize: 100,
-					StartedAt: time.Now().Format(time.RFC3339),
+					StartedAt: time.Now().UTC().Format(time.RFC3339Nano),
 				},
 			},
 			MaxRuntime: 300, // 5 minutes
@@ -459,7 +459,7 @@ func (s *SegmentService) RebuildSegment(ctx context.Context, workspaceID, segmen
 				SegmentID: segment.ID,
 				Version:   segment.Version,
 				BatchSize: 100,
-				StartedAt: time.Now().Format(time.RFC3339),
+				StartedAt: time.Now().UTC().Format(time.RFC3339Nano),
 			},
 		},
 		MaxRuntime: 300, // 5 minutes

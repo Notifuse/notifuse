@@ -52,9 +52,6 @@ export type TreeNodeInputProps = {
   // Reports the tree as it would stand if the condition currently open in the form were confirmed,
   // and undefined once no condition is open. Lets the drawer preview an in-progress condition.
   onDraftTreeChange?: (draftTree: TreeNode | undefined, countable?: boolean) => void
-  // Whether a value read out of a JSON column may be compared as a date. Automation triggers pass
-  // false: their conditions compile through casts that never convert a JSON date.
-  jsonDateValues?: boolean
   // Told whenever a condition opens in its editor or closes, so a caller can refuse to save, or to
   // close, while one is half-written.
   onEditingChange?: (open: boolean) => void
@@ -352,8 +349,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
         editingNodeLeaf: editingNodeLeaf as EditingNodeLeaf,
         setEditingNodeLeaf,
         cancelOrDeleteNode: () => cancelOrDeleteNode(path, pathKey),
-        customFieldLabels: props.customFieldLabels,
-        jsonDateValues: props.jsonDateValues
+        customFieldLabels: props.customFieldLabels
       }
 
       if (source === 'contacts') return <LeafContactForm {...formProps} />

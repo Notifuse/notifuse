@@ -97,6 +97,12 @@ func expectV44TriggerBodies(mock sqlmock.Sqlmock) {
 	mock.ExpectQuery(v38HealQuery).WillReturnRows(v38HealRows())
 }
 
+// expectV44SegmentQueries expects the step between the trigger bodies and the column: every
+// segment's query recompiled. None here.
+func expectV44SegmentQueries(mock sqlmock.Sqlmock) {
+	mock.ExpectQuery(segmentSelect).WillReturnRows(sqlmock.NewRows([]string{"id", "tree", "generated_sql", "generated_args"}))
+}
+
 const v44TestPauseColumnSQL = `ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS test_paused_seconds INTEGER NOT NULL DEFAULT 0`
 
 // The column comes last, after the trigger bodies: its ACCESS EXCLUSIVE lock on broadcasts is
@@ -114,6 +120,7 @@ func TestV44Migration_UpdateWorkspaceRunsExactlyItsStatementsInOrder(t *testing.
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	expectV44TriggerBodies(mock)
+	expectV44SegmentQueries(mock)
 	expectV44TestPauseColumn(mock)
 
 	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
@@ -194,6 +201,7 @@ func TestV44Migration_UpdateWorkspacePurgesTheOwnLinksBetweenTheBuildsAndTheMemb
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	expectV44TriggerBodies(mock)
+	expectV44SegmentQueries(mock)
 	expectV44TestPauseColumn(mock)
 
 	endpoint := "https://Mail.Brand.example./"
@@ -280,6 +288,7 @@ func TestV44Migration_ReplacesTriggerBodiesToPassTheEvent(t *testing.T) {
 	mock.ExpectExec("^SAVEPOINT v44_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("^CREATE OR REPLACE FUNCTION automation_trigger_cartauto").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("^RELEASE SAVEPOINT v44_automation_trigger_bodies$").WillReturnResult(sqlmock.NewResult(0, 0))
+	expectV44SegmentQueries(mock)
 	expectV44TestPauseColumn(mock)
 
 	require.NoError(t, (&V44Migration{}).UpdateWorkspace(context.Background(), &config.Config{}, &domain.Workspace{ID: "ws1"}, db))
@@ -377,6 +386,7 @@ func TestV44Migration_UpdateWorkspaceRepairsTheFinishedScheduledSends(t *testing
 		mock.ExpectExec("^" + regexp.QuoteMeta(stmt) + "$").WillReturnResult(sqlmock.NewResult(0, 0))
 	}
 	expectV44TriggerBodies(mock)
+	expectV44SegmentQueries(mock)
 	expectV44TestPauseColumn(mock)
 
 	m := &V44Migration{finishedSends: map[string][]v44FinishedSend{

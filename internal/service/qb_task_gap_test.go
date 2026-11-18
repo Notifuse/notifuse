@@ -288,7 +288,7 @@ func TestGapQB_BuildJSONConditionBranches(t *testing.T) {
 		}, 1, castDirectly)
 		require.NoError(t, err)
 		assert.Equal(t,
-			"(custom_json_1['tier']::text ILIKE $1 OR custom_json_1['tier']::text ILIKE $2)", cond)
+			"((custom_json_1['tier'] #>> '{}') ILIKE $1 OR (custom_json_1['tier'] #>> '{}') ILIKE $2)", cond)
 		assert.Equal(t, []interface{}{"%gold%", "%silver%"}, args)
 		assert.Equal(t, 3, next)
 	})
@@ -299,7 +299,7 @@ func TestGapQB_BuildJSONConditionBranches(t *testing.T) {
 			StringValues: []string{"trial"}, JSONPath: []string{"tier"},
 		}, 2, castDirectly)
 		require.NoError(t, err)
-		assert.Equal(t, "custom_json_1['tier']::text NOT ILIKE $2", cond)
+		assert.Equal(t, "(custom_json_1['tier'] #>> '{}') NOT ILIKE $2", cond)
 		assert.Equal(t, []interface{}{"%trial%"}, args)
 		assert.Equal(t, 3, next)
 	})
@@ -311,7 +311,7 @@ func TestGapQB_BuildJSONConditionBranches(t *testing.T) {
 		}, 1, castDirectly)
 		require.NoError(t, err)
 		assert.Equal(t,
-			"CASE WHEN jsonb_typeof(custom_json_1) = 'object' THEN (custom_json_1::text)::numeric END > $1",
+			"CASE WHEN jsonb_typeof(custom_json_1) = 'object' THEN ((custom_json_1 #>> '{}'))::numeric END > $1",
 			cond)
 		assert.Equal(t, []interface{}{5.0}, args)
 		assert.Equal(t, 2, next)
@@ -347,7 +347,7 @@ func TestGapQB_BuildJSONConditionBranches(t *testing.T) {
 			NumberValues: []float64{100},
 		}, 1, "ce.properties->>%s", castDefensively)
 		require.NoError(t, err)
-		assert.Equal(t, `CASE WHEN ce.properties->>$1 ~ '^\s*[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?\s*$' THEN (ce.properties->>$1)::numeric END > $2`, cond)
+		assert.Equal(t, `CASE WHEN ce.properties->>$1 ~ '^\s*[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?\s*$' AND pg_input_is_valid(ce.properties->>$1, 'numeric') THEN (ce.properties->>$1)::numeric END > $2`, cond)
 		assert.Equal(t, []interface{}{"total", 100.0}, args)
 		assert.Equal(t, 3, next)
 	})

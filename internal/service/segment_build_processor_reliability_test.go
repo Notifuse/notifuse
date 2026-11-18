@@ -275,6 +275,8 @@ func TestSegmentBuildProcessor_Process_BatchesButNoMatch(t *testing.T) {
 	ctx := context.Background()
 	task := buildTask(2, false)
 	segment := createTestSegmentWithSQL("segment1", "S", 2, string(domain.SegmentStatusBuilding))
+	// Relative dates: the segment is rebuilt every day.
+	segment.Tree = relativeDatesTree()
 	due := time.Now().Add(-time.Hour)
 	segment.RecomputeAfter = &due
 	segment.Timezone = "UTC"
@@ -490,4 +492,81 @@ func TestSegmentBuildProcessor_Process_FinalStepsRunWhenSliceDidNoBatch(t *testi
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(30*time.Second))
 	require.NoError(t, err)
 	assert.True(t, completed)
+}
+
+// relativeDatesTree is a segment tree that needs a daily rebuild: a timeline condition over the
+// last 30 days.
+func relativeDatesTree() *domain.TreeNode {
+	operator := "in_the_last_days"
+	return &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Source: "contact_timeline",
+			ContactTimeline: &domain.ContactTimelineCondition{
+				Kind:              "open_email",
+				CountOperator:     "at_least",
+				CountValue:        1,
+				TimeframeOperator: &operator,
+				TimeframeValues:   []string{"30"},
+			},
+		},
+	}
+}
+
+// A migration marks a segment whose stored query changed so that it is rebuilt once. Without
+// relative dates the completed build clears that mark; re-arming it, as for a daily segment, would
+// rebuild the segment every day for ever.
+func TestSegmentBuildProcessor_Process_ClearsAOneOffMark(t *testing.T) {
+	run := func(t *testing.T, startedAt string, markedAt time.Time) (*buildProcessorHarness, *domain.Task) {
+		t.Helper()
+		h := newBuildProcessorHarness(t)
+		ctx := context.Background()
+		task := buildTask(2, false)
+		task.State.BuildSegment.StartedAt = startedAt
+		segment := createTestSegmentWithSQL("segment1", "S", 2, string(domain.SegmentStatusBuilding))
+		segment.RecomputeAfter = &markedAt
+		segment.Timezone = "UTC"
+
+		h.segmentRepo.EXPECT().GetSegmentByID(ctx, "workspace1", "segment1").Return(segment, nil).AnyTimes()
+		h.contactRepo.EXPECT().Count(ctx, "workspace1").Return(1, nil)
+		h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "", 100).Return([]string{"a@test.com"}, nil)
+		h.expectQuery(t)
+		h.taskRepo.EXPECT().SaveState(ctx, "workspace1", "task1", gomock.Any(), gomock.Any()).Return(nil)
+		h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "a@test.com", 100).Return(nil, nil)
+		h.segmentRepo.EXPECT().RemoveOldMemberships(ctx, "workspace1", "segment1", int64(2)).Return(nil)
+		h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(2), string(domain.SegmentStatusActive)).
+			Return(true, nil)
+		return h, task
+	}
+
+	t.Run("a mark set before the build is cleared", func(t *testing.T) {
+		h, task := run(t, "", time.Now().Add(-time.Hour))
+		h.segmentRepo.EXPECT().UpdateRecomputeAfter(gomock.Any(), "workspace1", "segment1", (*time.Time)(nil)).Return(nil)
+
+		completed, err := h.processor.Process(context.Background(), task, time.Now().Add(5*time.Minute))
+		require.NoError(t, err)
+		assert.True(t, completed)
+	})
+
+	// A migration marks the segment and the build starts within the same second: the build's start
+	// is recorded to the nanosecond, so the mark still reads as set before it.
+	t.Run("a mark set just before the build, in the same second, is cleared", func(t *testing.T) {
+		h, task := run(t, "", time.Now().Add(-time.Millisecond))
+		h.segmentRepo.EXPECT().UpdateRecomputeAfter(gomock.Any(), "workspace1", "segment1", (*time.Time)(nil)).Return(nil)
+
+		completed, err := h.processor.Process(context.Background(), task, time.Now().Add(5*time.Minute))
+		require.NoError(t, err)
+		assert.True(t, completed)
+	})
+
+	// The build re-reads the segment on each run, so one that was running when the stored query
+	// changed may have used both: the mark asks for the build that uses only the new one.
+	t.Run("a mark set after the build started is kept", func(t *testing.T) {
+		h, task := run(t, time.Now().Add(-2*time.Hour).UTC().Format(time.RFC3339), time.Now().Add(-time.Hour))
+		h.segmentRepo.EXPECT().UpdateRecomputeAfter(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		completed, err := h.processor.Process(context.Background(), task, time.Now().Add(5*time.Minute))
+		require.NoError(t, err)
+		assert.True(t, completed)
+	})
 }

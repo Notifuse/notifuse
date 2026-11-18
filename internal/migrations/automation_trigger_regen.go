@@ -27,7 +27,14 @@ import (
 // failure rolls back just that automation and leaves its existing trigger in place. prefix
 // starts the error messages ("v38"), and savepoint names the savepoint. generator builds the
 // trigger bodies: each migration passes the one matching the enrolment functions it installed.
-func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator *service.AutomationTriggerGenerator, prefix, savepoint string, bodiesOnly bool) error {
+//
+// It returns how many triggers it replaced and the automations it left as they were, with why, so
+// that a caller run by a person (cmd/regen-json-filters) can say so; the migrations only need the
+// error.
+func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator *service.AutomationTriggerGenerator, prefix, savepoint string, bodiesOnly bool) (AutomationTriggerResult, error) {
+	skipped := map[string]string{}
+	replaced := 0
+	result := func() AutomationTriggerResult { return AutomationTriggerResult{Replaced: replaced, Skipped: skipped} }
 	// Every live automation with an installed trigger, not only the ones carrying
 	// conditions. Updates never regenerated the trigger before this release, so any edit to
 	// event_kind, list_id, segment_id or updated_fields left the automation firing on its
@@ -51,7 +58,7 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		  )
 	`)
 	if err != nil {
-		return fmt.Errorf("%s: failed to query automations with trigger conditions: %w", prefix, err)
+		return result(), fmt.Errorf("%s: failed to query automations with trigger conditions: %w", prefix, err)
 	}
 
 	type conditionalAutomation struct {
@@ -67,7 +74,7 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		var rootNodeID, installedDef sql.NullString
 		if scanErr := rows.Scan(&a.id, &rootNodeID, &a.triggerConfig, &installedDef); scanErr != nil {
 			_ = rows.Close()
-			return fmt.Errorf("%s: failed to scan automation: %w", prefix, scanErr)
+			return result(), fmt.Errorf("%s: failed to scan automation: %w", prefix, scanErr)
 		}
 		a.rootNodeID = rootNodeID.String
 		a.installedDef = installedDef.String
@@ -75,20 +82,21 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 	}
 	if iterErr := rows.Err(); iterErr != nil {
 		_ = rows.Close()
-		return fmt.Errorf("%s: error iterating automations: %w", prefix, iterErr)
+		return result(), fmt.Errorf("%s: error iterating automations: %w", prefix, iterErr)
 	}
 	if closeErr := rows.Close(); closeErr != nil {
-		return fmt.Errorf("%s: failed to close automations rows: %w", prefix, closeErr)
+		return result(), fmt.Errorf("%s: failed to close automations rows: %w", prefix, closeErr)
 	}
 
 	if len(automations) == 0 {
-		return nil
+		return result(), nil
 	}
 
 	for _, a := range automations {
 		var trigger domain.TimelineTriggerConfig
 		if unmarshalErr := json.Unmarshal(a.triggerConfig, &trigger); unmarshalErr != nil {
 			// Unparseable config — the installed trigger was already unusable; leave it.
+			skipped[a.id] = fmt.Sprintf("trigger configuration is not valid JSON: %v", unmarshalErr)
 			continue
 		}
 
@@ -96,6 +104,7 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		triggerSQL, genErr := generator.Generate(automation)
 		if genErr != nil {
 			// Incomplete or corrupt automation config — skip rather than abort.
+			skipped[a.id] = genErr.Error()
 			continue
 		}
 
@@ -112,6 +121,7 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		// activated before this release, so its installed clause never mentions changes.
 		if !bodiesOnly && strings.Contains(a.installedDef, "changes ?") &&
 			!strings.Contains(triggerSQL.WHENClause, "changes ?") {
+			skipped[a.id] = "the stored configuration would broaden the installed trigger"
 			continue
 		}
 
@@ -120,7 +130,7 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		// workspace migration, never record the version, and re-fail on every restart —
 		// and here the fallback is merely the status quo, an over-enrolling trigger.
 		if _, err := db.ExecContext(ctx, "SAVEPOINT "+savepoint); err != nil {
-			return fmt.Errorf("%s: failed to create savepoint: %w", prefix, err)
+			return result(), fmt.Errorf("%s: failed to create savepoint: %w", prefix, err)
 		}
 
 		regenFailed := false
@@ -143,6 +153,7 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 		for _, stmt := range statements {
 			if _, execErr := db.ExecContext(ctx, stmt); execErr != nil {
 				regenFailed = true
+				skipped[a.id] = execErr.Error()
 				break
 			}
 		}
@@ -155,25 +166,46 @@ func regenerateAutomationTriggers(ctx context.Context, db DBExecutor, generator 
 			probeRows, probeErr := db.QueryContext(ctx, triggerSQL.ValidationQuery)
 			if probeErr != nil {
 				regenFailed = true
+				skipped[a.id] = probeErr.Error()
 			} else {
 				// An error surfacing while the rows stream counts as a failed probe too:
 				// treating it as success would keep a trigger nothing validated.
 				closeErr := probeRows.Close()
 				if probeRows.Err() != nil || closeErr != nil {
 					regenFailed = true
+					skipped[a.id] = "the trigger's conditions could not be checked against this workspace"
 				}
 			}
 		}
 
+		if !regenFailed {
+			replaced++
+		}
 		if regenFailed {
 			if _, err := db.ExecContext(ctx, "ROLLBACK TO SAVEPOINT "+savepoint); err != nil {
-				return fmt.Errorf("%s: failed to roll back savepoint: %w", prefix, err)
+				return result(), fmt.Errorf("%s: failed to roll back savepoint: %w", prefix, err)
 			}
 		}
 		if _, err := db.ExecContext(ctx, "RELEASE SAVEPOINT "+savepoint); err != nil {
-			return fmt.Errorf("%s: failed to release savepoint: %w", prefix, err)
+			return result(), fmt.Errorf("%s: failed to release savepoint: %w", prefix, err)
 		}
 	}
 
-	return nil
+	return result(), nil
+}
+
+// AutomationTriggerResult says what a trigger regeneration did: the triggers replaced, and the
+// automations left as they were, with why.
+type AutomationTriggerResult struct {
+	Replaced int
+	Skipped  map[string]string
+}
+
+// RegenerateAutomationTriggerBodies replaces the function body of every live automation's trigger
+// with what the current generator builds, as v44 does, and returns the automations left as they
+// were, with why. For cmd/regen-json-filters, on a database already at 44: run inside a
+// transaction, since it uses savepoints.
+func RegenerateAutomationTriggerBodies(ctx context.Context, db DBExecutor) (AutomationTriggerResult, error) {
+	generator := service.NewAutomationTriggerGenerator(service.NewQueryBuilder())
+	return regenerateAutomationTriggers(ctx, db, generator, "regen", "regen_automation_trigger_bodies", true)
 }

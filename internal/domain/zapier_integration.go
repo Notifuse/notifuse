@@ -41,7 +41,7 @@ func (z *ZapierSettings) Validate() error {
 //
 // transactional:write is wider than "may send a configured notification", and the trade was
 // made deliberately. The same verb gates transactional.create/.update/.delete,
-// transactional.testTemplate, email.testProvider, and the SMTP bridge — which seeds an identity
+// transactional.testTemplate, and the SMTP bridge — which seeds an identity
 // so SendNotification runs this very check. So a leaked Zapier token can relay arbitrary mail
 // through the workspace's provider credentials over both HTTP and SMTP, and can delete
 // transactional notifications. There is no finer grain to grant: sending is the integration's

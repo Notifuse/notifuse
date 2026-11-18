@@ -5,14 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/pkg/trackingtoken"
@@ -344,8 +347,8 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 	client := suite.APIClient
 
 	// Sign in as the root operator: only it may create a workspace, and the
-	// creator has to be the caller here — email.testProvider is gated on
-	// transactional:write, which a non-member of the workspace does not hold.
+	// creator has to be the caller here — email.testProvider is reserved to the
+	// workspace owner, which the creator is.
 	email := "test@example.com"
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
@@ -484,6 +487,10 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 		assert.Contains(t, string(body), "Method not allowed")
 	})
 
+	t.Run("only the owner reaches the provider", func(t *testing.T) {
+		testEmailProviderOwnerOnly(t, suite, workspaceID)
+	})
+
 	t.Run("unauthorized access", func(t *testing.T) {
 		reqBody := domain.TestEmailProviderRequest{
 			WorkspaceID: workspaceID,
@@ -511,6 +518,146 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
+}
+
+// testEmailProviderOwnerOnly pins that email.testProvider is reserved to the
+// workspace owner, like configuring an integration: an API key or a member gets 403
+// and the provider is never contacted. The provider is a local SMTP listener, so
+// each refused case can check that nothing reached it; the owner case proves the
+// listener does see the connection when the test runs.
+func testEmailProviderOwnerOnly(t *testing.T, suite *testutil.IntegrationTestSuite, workspaceID string) {
+	factory := suite.DataFactory
+	baseURL := suite.ServerManager.GetURL()
+
+	stored, err := factory.CreateSMTPIntegration(workspaceID, testutil.WithIntegrationEmailProvider(domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{domain.NewEmailSender("sender@example.com", "Test Sender")},
+		SMTP: &domain.SMTPSettings{
+			Host:     "localhost",
+			Port:     1025,
+			Username: "stored-user",
+			Password: "stored-password",
+			UseTLS:   false,
+		},
+	}))
+	require.NoError(t, err)
+
+	provider := newConnectionCounter(t)
+
+	// Raw JSON, as an API client would send it: the saved integration, its secrets
+	// left blank as the console sends them, on the local listener.
+	body := func(integrationID string) json.RawMessage {
+		integrationField := ""
+		if integrationID != "" {
+			integrationField = fmt.Sprintf(`"integration_id":%q,`, integrationID)
+		}
+		return json.RawMessage(fmt.Sprintf(`{"workspace_id":%q,%s"to":"recipient@example.com",`+
+			`"provider":{"kind":"smtp","senders":[{"email":"sender@example.com","name":"Test Sender"}],`+
+			`"smtp":{"host":"127.0.0.1","port":%d,"username":"","password":"","use_tls":false}}}`,
+			workspaceID, integrationField, provider.port))
+	}
+
+	post := func(t *testing.T, token string, payload json.RawMessage) *http.Response {
+		t.Helper()
+		client := testutil.NewAPIClient(baseURL)
+		client.SetToken(token)
+		resp, err := client.Post("/api/email.testProvider", payload)
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = resp.Body.Close() })
+		return resp
+	}
+
+	authService := suite.ServerManager.GetApp().GetAuthService().(*service.AuthService)
+	apiKey, err := factory.CreateAPIKey(workspaceID, testutil.WithAPIKeyPermissions(domain.UserPermissions{
+		domain.PermissionResourceTransactional: {Read: true, Write: true},
+	}))
+	require.NoError(t, err)
+	apiKeyToken := authService.GenerateAPIAuthToken(apiKey)
+
+	member, err := factory.CreateUser()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspaceWithPermissions(member.ID, workspaceID, "member", domain.NewFullPermissions()))
+	memberClient := testutil.NewAPIClient(baseURL)
+	require.NoError(t, memberClient.Login(member.Email, "password"))
+	memberToken := memberClient.GetToken()
+	require.NotEmpty(t, memberToken)
+
+	refused := []struct {
+		name          string
+		token         string
+		integrationID string
+	}{
+		{"API key with transactional write, naming the saved integration", apiKeyToken, stored.ID},
+		{"member with every permission, naming the saved integration", memberToken, stored.ID},
+		{"API key with transactional write, without an integration", apiKeyToken, ""},
+	}
+	for _, tc := range refused {
+		t.Run(tc.name, func(t *testing.T) {
+			before := provider.count()
+			resp := post(t, tc.token, body(tc.integrationID))
+
+			assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+			assert.Equal(t, before, provider.count(), "a refused test must not contact the provider")
+		})
+	}
+
+	// An ordinary owner, not the root user that created the workspace: root is a
+	// platform admin synthesized as owner, so its token alone would not show that a
+	// plain owner still gets through.
+	owner, err := factory.CreateUser()
+	require.NoError(t, err)
+	require.NoError(t, factory.AddUserToWorkspace(owner.ID, workspaceID, "owner"))
+	ownerClient := testutil.NewAPIClient(baseURL)
+	require.NoError(t, ownerClient.Login(owner.Email, "password"))
+	ownerToken := ownerClient.GetToken()
+	require.NotEmpty(t, ownerToken)
+
+	t.Run("an owner's test does connect", func(t *testing.T) {
+		before := provider.count()
+		resp := post(t, ownerToken, body(stored.ID))
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Eventually(t, func() bool { return provider.count() > before }, 5*time.Second, 20*time.Millisecond,
+			"the owner's test reaches the provider, so the refused cases above are not vacuous")
+	})
+}
+
+// connectionCounter is a local TCP listener standing in for an SMTP provider. It
+// counts connections and answers each with an SMTP refusal, so a client that does
+// dial it fails at once instead of waiting for a greeting.
+type connectionCounter struct {
+	port int
+	mu   sync.Mutex
+	n    int
+}
+
+func newConnectionCounter(t *testing.T) *connectionCounter {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	c := &connectionCounter{port: listener.Addr().(*net.TCPAddr).Port}
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			c.mu.Lock()
+			c.n++
+			c.mu.Unlock()
+			_, _ = conn.Write([]byte("554 refused\r\n"))
+			_ = conn.Close()
+		}
+	}()
+	return c
+}
+
+func (c *connectionCounter) count() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.n
 }
 
 // testBotDetectionClickTracking uses destinations on the request host: /visit links are
