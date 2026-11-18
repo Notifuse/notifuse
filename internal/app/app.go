@@ -231,6 +231,14 @@ type App struct {
 	requestWg       sync.WaitGroup // wait group for active requests
 	shutdownTimeout time.Duration  // configurable shutdown timeout
 	backgroundWg    sync.WaitGroup // background work started by startBackground
+
+	// The shutdown runs once: a later call (a signal during a reload, a second reload) waits for
+	// it and returns its result. shutdownDone is closed when it has ended; it is made on first use,
+	// so that an App built as a literal has one too.
+	shutdownOnce     sync.Once
+	shutdownErr      error
+	shutdownDone     chan struct{}
+	shutdownDoneMake sync.Once
 }
 
 // AppOption defines a functional option for configuring the App
@@ -2040,6 +2048,15 @@ func (a *App) Start() error {
 
 // Shutdown gracefully shuts down the server
 func (a *App) Shutdown(ctx context.Context) error {
+	// sync.Once makes a later call wait until the first one has returned
+	a.shutdownOnce.Do(func() {
+		a.shutdownErr = a.shutdown(ctx)
+		close(a.shutdownDoneChan())
+	})
+	return a.shutdownErr
+}
+
+func (a *App) shutdown(ctx context.Context) error {
 	a.logger.Info("Starting graceful shutdown...")
 
 	// Signal shutdown to all components
@@ -2211,6 +2228,17 @@ func (a *App) Shutdown(ctx context.Context) error {
 	}
 
 	return shutdownErr
+}
+
+func (a *App) shutdownDoneChan() chan struct{} {
+	a.shutdownDoneMake.Do(func() { a.shutdownDone = make(chan struct{}) })
+	return a.shutdownDone
+}
+
+// ShutdownDone is closed once the shutdown has ended, whoever started it. When the app closes
+// its own server to load a new configuration, Start returns at once, and cmd/api waits for this.
+func (a *App) ShutdownDone() <-chan struct{} {
+	return a.shutdownDoneChan()
 }
 
 // startEmptyWorkspaceRepair runs repair (migrations.Manager.InitializeEmptyWorkspaces),

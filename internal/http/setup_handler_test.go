@@ -26,10 +26,19 @@ import (
 type mockAppShutdowner struct {
 	shutdownCalled atomic.Bool
 	shutdownError  error
+	// The deadline left on the context Shutdown received, when it had one
+	deadlineLeft chan time.Duration
 }
 
 func (m *mockAppShutdowner) Shutdown(ctx context.Context) error {
 	m.shutdownCalled.Store(true)
+	if m.deadlineLeft != nil {
+		if deadline, ok := ctx.Deadline(); ok {
+			m.deadlineLeft <- time.Until(deadline)
+		} else {
+			m.deadlineLeft <- 0
+		}
+	}
 	return m.shutdownError
 }
 
@@ -689,5 +698,34 @@ func TestSetupHandler_InitializeCheckForUpdatesDefault(t *testing.T) {
 			require.NoError(t, err, "the installation must store check_for_updates")
 			assert.Equal(t, c.want, stored.Value)
 		})
+	}
+}
+
+func TestSetupHandler_InitializeBoundsTheReloadShutdown(t *testing.T) {
+	settingService := service.NewSettingService(newMockSettingRepository())
+	setupService := service.NewSetupService(
+		settingService,
+		&service.UserService{},
+		newMockUserRepository(),
+		logger.NewLogger(),
+		"secret-key",
+		func() error { return nil },
+		nil,
+	)
+	shutdowner := &mockAppShutdowner{deadlineLeft: make(chan time.Duration, 1)}
+	handler := NewSetupHandler(setupService, settingService, logger.NewLogger(), shutdowner)
+
+	body := `{"root_email":"admin@example.com","api_endpoint":"https://api.example.com","smtp_host":"smtp.example.com","smtp_port":587,"smtp_from_email":"noreply@example.com","smtp_from_name":"Test"}`
+	w := httptest.NewRecorder()
+	handler.Initialize(w, httptest.NewRequest(http.MethodPost, "/api/setup.initialize", bytes.NewBufferString(body)))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	select {
+	case left := <-shutdowner.deadlineLeft:
+		// Under the 70 s cmd/api waits for it, so the databases close before the process exits
+		assert.Greater(t, left, 60*time.Second)
+		assert.LessOrEqual(t, left, reloadShutdownTimeout)
+	case <-time.After(5 * time.Second):
+		t.Fatal("setup.initialize started no shutdown")
 	}
 }
