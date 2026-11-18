@@ -29,14 +29,14 @@ func TestRequireServerVersion(t *testing.T) {
 		return result
 	}
 
-	t.Run("refuses PostgreSQL 15, naming both versions", func(t *testing.T) {
-		err := check(t, sqlmock.NewRows([]string{"num", "version"}).AddRow(150004, "15.4"), nil)
+	t.Run("refuses PostgreSQL 16, naming both versions", func(t *testing.T) {
+		err := check(t, sqlmock.NewRows([]string{"num", "version"}).AddRow(160004, "16.4"), nil)
 		require.Error(t, err)
-		assert.Equal(t, "PostgreSQL 16 or later is required; this server runs 15.4", err.Error())
+		assert.Equal(t, "PostgreSQL 17 or later is required; this server runs 16.4", err.Error())
 	})
 
-	t.Run("accepts 16.0 and later", func(t *testing.T) {
-		assert.NoError(t, check(t, sqlmock.NewRows([]string{"num", "version"}).AddRow(160000, "16.0"), nil))
+	t.Run("accepts 17.0 and later", func(t *testing.T) {
+		assert.NoError(t, check(t, sqlmock.NewRows([]string{"num", "version"}).AddRow(170000, "17.0"), nil))
 		assert.NoError(t, check(t, sqlmock.NewRows([]string{"num", "version"}).AddRow(170005, "17.5 (Debian 17.5-1)"), nil))
 	})
 

@@ -357,6 +357,13 @@ func (a *App) InitDB() error {
 		return fmt.Errorf("failed to ping system database: %w", err)
 	}
 
+	// Refuse a server too old for the compiled conditions, before the schema and the migrations
+	// (EnsureSystemDatabaseExists, above, may already have created the database).
+	if err := database.RequireServerVersion(db, database.MinServerVersionNum); err != nil {
+		_ = db.Close()
+		return err
+	}
+
 	// Initialize database schema if needed
 	if err := database.InitializeDatabase(db, a.config.RootEmails()); err != nil {
 		_ = db.Close()
