@@ -31,18 +31,15 @@ vi.mock('../context', () => ({
 vi.mock('../../segment/input', () => ({
   TreeNodeInput: ({
     onChange,
-    canReadTemplates,
-    jsonDateValues
+    canReadTemplates
   }: {
     onChange: (tree: TreeNode) => void
     canReadTemplates?: boolean
-    jsonDateValues?: boolean
   }) => (
     <>
       <button
         data-testid="tree-editor"
         data-can-read-templates={String(canReadTemplates)}
-        data-json-date-values={String(jsonDateValues)}
         onClick={() => onChange(twoLeafTree)}
       >
         tree editor
@@ -95,13 +92,11 @@ const incompleteTree: TreeNode = {
 const Harness = ({
   initial,
   onChange,
-  onClear,
-  jsonDateValues
+  onClear
 }: {
   initial?: TreeNode
   onChange: (tree: TreeNode) => void
   onClear: () => void
-  jsonDateValues?: boolean
 }) => {
   const [value, setValue] = useState(initial)
   return (
@@ -118,7 +113,6 @@ const Harness = ({
         setValue(undefined)
         onClear()
       }}
-      jsonDateValues={jsonDateValues}
     />
   )
 }
@@ -195,19 +189,6 @@ describe('ConditionsField', () => {
 
     await userEvent.click(screen.getByText('Edit'))
     expect(screen.getByTestId('tree-editor').getAttribute('data-can-read-templates')).toBe(String(canRead))
-  })
-
-  // Trigger conditions compile through casts that never convert a JSON date: the editor is told
-  // not to offer one. Other callers leave the default.
-  it.each([false, undefined])('hands the editor jsonDateValues %s', async (jsonDateValues) => {
-    render(
-      <I18nProvider i18n={i18n}>
-        <Harness initial={oneLeafTree} onChange={vi.fn()} onClear={vi.fn()} jsonDateValues={jsonDateValues} />
-      </I18nProvider>
-    )
-
-    await userEvent.click(screen.getByText('Edit'))
-    expect(screen.getByTestId('tree-editor').getAttribute('data-json-date-values')).toBe(String(jsonDateValues))
   })
 
   it('keeps the editor out of the panel until it is asked for', async () => {

@@ -52,9 +52,6 @@ export type LeafFormProps = {
   // countable is false while the form's own rules refuse the draft (a status left out, a second
   // value below the first): Confirm would not take it, so it is not counted either.
   onDraftChange?: (draftLeaf: TreeNode, countable: boolean) => void
-  // Whether a value read out of a JSON column may be compared as a date. Trigger conditions
-  // compile through casts that never convert a JSON date, so they pass false.
-  jsonDateValues?: boolean
 }
 
 // The email kinds an Activity condition can narrow to one template or broadcast, as
@@ -351,7 +348,6 @@ export const LeafContactForm = (props: LeafFormProps) => {
                 <InputDimensionFilters
                   schema={props.schema}
                   customFieldLabels={props.customFieldLabels}
-                  jsonDateValues={props.jsonDateValues}
                   showErrors={attempted}
                 />
               </Form.Item>

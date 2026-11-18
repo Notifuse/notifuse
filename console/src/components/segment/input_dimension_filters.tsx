@@ -11,8 +11,6 @@ export interface InputDimensionFiltersProps {
   onChange?: (updatedValue: DimensionFilter[]) => void
   schema: TableSchema
   customFieldLabels?: Record<string, string>
-  /** Whether a JSON value may be read as a date (not in trigger conditions). */
-  jsonDateValues?: boolean
   /** The label of the add button; « Add a filter » by default. */
   addLabel?: string
   /** Set once Confirm was refused: the incomplete parts of the rows turn red. */
@@ -29,7 +27,6 @@ export const InputDimensionFilters = ({
   onChange,
   schema,
   customFieldLabels,
-  jsonDateValues,
   addLabel,
   showErrors
 }: InputDimensionFiltersProps) => {
@@ -66,7 +63,6 @@ export const InputDimensionFilters = ({
               filter={filter}
               usedFields={filters.filter((_, i) => i !== index).map((other) => other.field_name)}
               customFieldLabels={customFieldLabels}
-              jsonDateValues={jsonDateValues}
               showErrors={showErrors}
               onChange={(next) => replace(index, next)}
               onDelete={() => remove(index)}
