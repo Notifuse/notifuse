@@ -422,13 +422,3 @@ export const MJML_VERTICAL_ALIGNMENTS = {
   MIDDLE: 'middle',
   BOTTOM: 'bottom'
 } as const
-
-/**
- * @deprecated Use GetInitialTemplate() instead
- */
-export const INITIAL_EMAIL_TEMPLATE = {
-  id: 'mjml-1',
-  type: 'mjml' as const,
-  children: [],
-  attributes: {}
-}
