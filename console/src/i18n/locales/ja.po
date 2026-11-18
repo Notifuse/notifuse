@@ -102,7 +102,7 @@ msgstr "（デフォルト）"
 msgid "(empty)"
 msgstr "(空)"
 
-#: src/components/blog/PostDrawer.tsx:768
+#: src/components/blog/PostDrawer.tsx:774
 msgid "(has checks left)"
 msgstr "(未確認の項目あり)"
 
@@ -648,6 +648,10 @@ msgstr ""
 msgid "{capability} requires a Notifuse licence."
 msgstr ""
 
+#: src/components/templates/TemplateSelectorInput.tsx:233
+msgid "{categoryLabel} category"
+msgstr "{categoryLabel} カテゴリ"
+
 #: src/components/templates/TemplateSelectorModal.tsx:626
 msgid "{categoryName} template: in an automation tied to a list, contacts unsubscribed, bounced or complained on that list don't receive it and leave the automation."
 msgstr "{categoryName} テンプレート: リストに紐づくオートメーションでは、そのリストで購読解除、バウンス、苦情報告済みのコンタクトには送信されず、オートメーションから外れます。"
@@ -1156,6 +1160,10 @@ msgstr "{pageviews, plural, other {# ページ}}"
 #~ msgid "{pageviews} pages"
 #~ msgstr "{pageviews}ページ"
 
+#: src/components/lists/ListDrawer.tsx:553
+msgid "{pending, plural, one {Turning double opt-in off does not change the # “Pending” contact: they stay pending until they confirm.} other {Turning double opt-in off does not change the # “Pending” contacts: they stay pending until they confirm.}}"
+msgstr "{pending, plural, other {ダブルオプトインをオフにしても、#件の「保留中」の連絡先は変わりません。確認するまで保留中のままです。}}"
+
 #: src/components/settings/integrations/providerDetails.ts:169
 msgid "{perMinuteText} emails/min"
 msgstr "{perMinuteText} 通/分"
@@ -1185,7 +1193,7 @@ msgstr "{providerName} · デフォルト送信者 {email}"
 msgid "{providerName} has no default sender"
 msgstr "{providerName} にはデフォルト送信者がありません"
 
-#: src/components/blog/PostDrawer.tsx:1075
+#: src/components/blog/PostDrawer.tsx:1081
 msgid "{readingTime} min read"
 msgstr "{readingTime}分で読めます"
 
@@ -1302,7 +1310,7 @@ msgstr "空き：{textFree}、{numberFree}、{dateFree}、{jsonFree}"
 msgid "{time} local time"
 msgstr "現地時間 {time}"
 
-#: src/components/blog/PostDrawer.tsx:1109
+#: src/components/blog/PostDrawer.tsx:1115
 #: src/components/seo/SeoChecks.tsx:37
 msgid "{toCheck, plural, one {# to check} other {# to check}}"
 msgstr "{toCheck, plural, other {確認が必要: #}}"
@@ -1724,6 +1732,10 @@ msgstr "閉じ Liquid タグ ({CLOSE_TAG}) が開きタグ ({OPEN_TAG}) より�
 msgid "A condition cannot use .empty or .to_liquid: use the operator \"is false or empty\"."
 msgstr "条件では .empty と .to_liquid は使用できません。演算子「が偽または空」を使用してください。"
 
+#: src/components/lists/ListDrawer.tsx:516
+msgid "A confirmation email is sent before the subscription; the contact stays “Pending” until they click."
+msgstr "購読の前に確認メールが送信されます。連絡先はクリックするまで「保留中」のままです。"
+
 #: src/components/settings/GeneralSettings.tsx:173
 msgid "A contact's own consent always wins."
 msgstr "連絡先自身の同意が常に優先されます。"
@@ -1768,6 +1780,14 @@ msgstr "表示条件のあるブロックの中に Liquid ブロックは配置�
 #: src/components/contacts/sheet/describeActivity.tsx:162
 msgid "a list"
 msgstr "リスト"
+
+#: src/components/lists/ListDrawer.tsx:168
+#~ msgid "A list already has the ID “{id}”. Change it."
+#~ msgstr ""
+
+#: src/components/lists/ListDrawer.tsx:167
+msgid "A list already has the ID “{listId}”. Change it."
+msgstr "ID「{listId}」はすでに別のリストで使われています。変更してください。"
 
 #: src/components/templates/gallery/labels.ts:39
 msgid "A list's emails"
@@ -2249,7 +2269,7 @@ msgid "Add filter conditions"
 msgstr "フィルター条件を追加"
 
 #: src/components/settings/Integrations.tsx:579
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:161
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:162
 msgid "Add integration"
 msgstr "連携を追加"
 
@@ -2491,7 +2511,7 @@ msgstr "集計"
 
 #: src/components/settings/Integrations.tsx:438
 #: src/components/settings/Integrations.tsx:747
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:165
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:166
 msgid "AI assistant"
 msgstr "AI アシスタント"
 
@@ -2659,7 +2679,7 @@ msgstr "すべての記事"
 msgid "all sessions"
 msgstr "全セッション"
 
-#: src/components/blog/PostDrawer.tsx:1112
+#: src/components/blog/PostDrawer.tsx:1118
 #: src/components/seo/SeoChecks.tsx:37
 #: src/components/transactional/NotificationChecks.tsx:230
 msgid "All set"
@@ -2699,6 +2719,10 @@ msgstr "許可するメールドメイン"
 #~ msgid "already set"
 #~ msgstr "設定済み"
 
+#: src/components/lists/ListDrawer.tsx:375
+msgid "already used"
+msgstr "使用済み"
+
 #: src/components/analytics/GetStartedChecklist.tsx:419
 msgid "Also available: <0>a blog</0> for your site."
 msgstr "サイト向けの<0>ブログ</0>もご利用いただけます。"
@@ -2707,7 +2731,7 @@ msgstr "サイト向けの<0>ブログ</0>もご利用いただけます。"
 msgid "Also the image of a post or category without one; 1200 × 630 px"
 msgstr "画像のない記事やカテゴリにも使われます。1200 × 630 px"
 
-#: src/components/blog/PostDrawer.tsx:958
+#: src/components/blog/PostDrawer.tsx:964
 msgid "Also the share image when none is set"
 msgstr "共有画像が未設定の場合は共有画像にもなります"
 
@@ -3421,7 +3445,7 @@ msgstr "著者名は必須です"
 msgid "Authorization Secret"
 msgstr "認証シークレット"
 
-#: src/components/blog/PostDrawer.tsx:979
+#: src/components/blog/PostDrawer.tsx:985
 msgid "Authors"
 msgstr "著者"
 
@@ -3553,6 +3577,10 @@ msgstr "オートメーション"
 #: src/services/api/permissions.ts:730
 msgid "Automations write is an indirect contact read that Contacts read cannot restrain: a webhook node sends the complete contact record to any URL the automation names, and nothing checks permissions while an automation runs. The same nodes add contacts to and remove them from lists, and send email, so this switch changes list membership and sends mail with no Lists or Transactional grant at all. Automations read returns a webhook node's full configuration, including the bearer secret saved on it."
 msgstr "オートメーションの書き込みは、コンタクトの読み取りでは抑制できない間接的なコンタクトの読み取りです: Webhookノードはコンタクトのレコード全体をオートメーションが指定した任意のURLへ送信し、オートメーションの実行中は権限が一切チェックされません。同じノードがコンタクトをリストに追加したりリストから削除したりし、メールも送信します。そのため、このスイッチはリストやトランザクションの付与が一切なくてもリストのメンバーシップを変更し、メールを送信します。オートメーションの読み取りは、Webhookノードの設定全体を返します。そこに保存されているベアラーシークレットも含まれます。"
+
+#: src/components/lists/ListDrawer.tsx:376
+msgid "available"
+msgstr "使用可能"
 
 #: src/components/integrations/SupabaseIntegration.tsx:141
 msgid "Available after saving"
@@ -3926,7 +3954,7 @@ msgid "Blocks"
 msgstr "ブロック"
 
 #: src/components/blog/CategoryDrawer.tsx:218
-#: src/components/blog/PostDrawer.tsx:829
+#: src/components/blog/PostDrawer.tsx:835
 #: src/components/logs/labels.ts:20
 #: src/components/settings/BlogSettings.tsx:228
 #: src/components/settings/BlogSettings.tsx:237
@@ -4211,7 +4239,7 @@ msgid "Bridge Port"
 msgstr "ブリッジポート"
 
 #: src/components/blog/CategoryDrawer.tsx:290
-#: src/components/blog/PostDrawer.tsx:996
+#: src/components/blog/PostDrawer.tsx:1002
 #: src/components/settings/BlogSettings.tsx:460
 msgid "Brief description for search results"
 msgstr "検索結果用の簡潔な説明"
@@ -4220,7 +4248,7 @@ msgstr "検索結果用の簡潔な説明"
 msgid "Brief description of this category"
 msgstr "このカテゴリの簡潔な説明"
 
-#: src/components/blog/PostDrawer.tsx:951
+#: src/components/blog/PostDrawer.tsx:957
 msgid "Brief summary of the post"
 msgstr "投稿の概要"
 
@@ -4586,7 +4614,7 @@ msgstr "ブラウザでテストできません"
 #: src/components/file_manager/FileExplorer.tsx:1181
 #: src/components/file_manager/FilePreview.tsx:127
 #: src/components/lists/DeleteListModal.tsx:125
-#: src/components/lists/ListDrawer.tsx:194
+#: src/components/lists/ListDrawer.tsx:573
 #: src/components/segment/button_upsert.tsx:427
 #: src/components/segment/input_dimension_filters.tsx:179
 #: src/components/segment/input_event_property_filters.tsx:130
@@ -4696,6 +4724,10 @@ msgstr "ニュースレター <0>{target}</0> を中止しました"
 msgid "Cancelled the web analytics backfill"
 msgstr "Web アナリティクスのバックフィルを中止しました"
 
+#: src/components/lists/ListDrawer.tsx:482
+msgid "Cannot be changed, used by the API and forms."
+msgstr "変更できません。API とフォームで使われます。"
+
 #: src/pages/SignInPage.tsx:250
 msgid "Cannot reach the configured API endpoint"
 msgstr "設定されたAPIエンドポイントに接続できません"
@@ -4728,12 +4760,12 @@ msgstr "先頭大文字"
 msgid "Categories"
 msgstr "カテゴリ"
 
-#: src/components/blog/PostDrawer.tsx:727
+#: src/components/blog/PostDrawer.tsx:733
 msgid "category"
 msgstr "カテゴリ"
 
 #: src/components/blog/CategoryDrawer.tsx:229
-#: src/components/blog/PostDrawer.tsx:891
+#: src/components/blog/PostDrawer.tsx:897
 #: src/components/blog/PostsTable.tsx:325
 #: src/components/blog/ThemeEditorDrawer.tsx:419
 #: src/components/templates/TemplateSelectorModal.tsx:444
@@ -4793,6 +4825,7 @@ msgstr "左中央"
 msgid "Center Right"
 msgstr "右中央"
 
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/templates/TemplateSettingsAside.tsx:163
 msgid "Change"
 msgstr "変更"
@@ -4931,14 +4964,24 @@ msgstr "入力中にチェックされ、保存時にサーバーが再度チェ
 msgid "Checking webhooks…"
 msgstr "Webhook を確認中…"
 
+#: src/components/lists/ListDrawer.tsx:371
+msgid "Checking…"
+msgstr "確認中…"
+
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:249
 msgid "Checks"
 msgstr "チェック"
 
 #: src/components/logs/MessagesTab.tsx:402
+#: src/components/templates/TemplateSelectorInput.tsx:382
 #: src/components/transactional/NotificationChecks.tsx:118
 msgid "Choose"
 msgstr "選択"
+
+#: src/components/lists/ListDrawer.tsx:528
+#: src/components/lists/ListDrawer.tsx:536
+msgid "Choose a confirmation template"
+msgstr "確認用テンプレートを選択"
 
 #: src/components/broadcasts/compose/sendSummaryChecks.tsx:177
 msgid "Choose a date to schedule"
@@ -5709,6 +5752,10 @@ msgstr "確認"
 msgid "Confirm a contact exists and list everything it is subscribed to (also needs Lists read)"
 msgstr "コンタクトの存在を確認し、購読しているものをすべて一覧表示する (リストの読み取りも必要)"
 
+#: src/components/lists/ListDrawer.tsx:527
+msgid "Confirmation template"
+msgstr "確認用テンプレート"
+
 #: src/components/automations/describeTrigger.ts:36
 msgid "Confirmed"
 msgstr "確認済み"
@@ -5760,7 +5807,7 @@ msgid "Connected"
 msgstr "接続日"
 
 #: src/components/settings/Integrations.tsx:748
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:166
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:167
 msgid "Connected apps"
 msgstr "接続済みアプリ"
 
@@ -5925,6 +5972,10 @@ msgstr "コンタクトを更新しました"
 msgid "Contacts"
 msgstr "コンタクト"
 
+#: src/components/lists/ListDrawer.tsx:502
+msgid "Contacts can subscribe or unsubscribe from the notification center."
+msgstr "連絡先は通知センターから購読または購読解除できます。"
+
 #: src/components/automations/config/FilterConfigForm.tsx:29
 msgid "Contacts matching these conditions follow the 'Yes' path. Others follow 'No'."
 msgstr "これらの条件に一致するコンタクトは「はい」パスに進みます。それ以外は「いいえ」に進みます。"
@@ -6049,6 +6100,7 @@ msgstr "コピーしました"
 #: src/components/common/CodeSnippet.tsx:46
 #: src/components/layout/Mono.tsx:35
 #: src/components/layout/Mono.tsx:36
+#: src/components/lists/ListDrawer.tsx:479
 #: src/components/logs/CodeBlock.tsx:33
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
@@ -6119,6 +6171,10 @@ msgstr "基本フィールド"
 msgid "Could not copy the external ID"
 msgstr "外部 ID をコピーできませんでした"
 
+#: src/components/lists/ListDrawer.tsx:361
+msgid "Could not copy the ID"
+msgstr "ID をコピーできませんでした"
+
 #: src/components/logs/AuditEntryDetail.tsx:97
 msgid "Could not copy the link"
 msgstr "リンクをコピーできませんでした"
@@ -6145,7 +6201,7 @@ msgstr "送信されたメールを読み込めませんでした"
 msgid "Could not load the goals"
 msgstr "ゴールを読み込めませんでした"
 
-#: src/components/blog/PostDrawer.tsx:395
+#: src/components/blog/PostDrawer.tsx:398
 #: src/components/templates/CreateTemplateDrawer.tsx:508
 msgid "Could not load the latest version. Please try again."
 msgstr "最新バージョンを読み込めませんでした。もう一度お試しください。"
@@ -6380,7 +6436,6 @@ msgstr "テンプレート以外にも及びます: 再利用可能なブロッ�
 
 #: src/components/automations/AutomationEditor.tsx:514
 #: src/components/file_manager/FileExplorer.tsx:932
-#: src/components/lists/ListDrawer.tsx:200
 msgid "Create"
 msgstr "作成"
 
@@ -6485,9 +6540,13 @@ msgstr "カテゴリを作成"
 msgid "Create First Theme"
 msgstr "最初のテーマを作成"
 
-#: src/components/lists/ListDrawer.tsx:181
-msgid "Create List"
+#: src/components/lists/ListDrawer.tsx:576
+msgid "Create list"
 msgstr "リストを作成"
+
+#: src/components/lists/ListDrawer.tsx:181
+#~ msgid "Create List"
+#~ msgstr "リストを作成"
 
 #: src/components/web_analytics/explore/ExploreTemplates.tsx:153
 msgid "Create my own"
@@ -6507,8 +6566,8 @@ msgid "Create new folder"
 msgstr "新規フォルダを作成"
 
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Create New List"
-msgstr "新規リストを作成"
+#~ msgid "Create New List"
+#~ msgstr "新規リストを作成"
 
 #: src/components/blog/PostDrawer.tsx:656
 #~ msgid "Create New Post"
@@ -6535,7 +6594,7 @@ msgstr "通知を作成"
 msgid "Create Notification"
 msgstr "通知を作成"
 
-#: src/components/blog/PostDrawer.tsx:816
+#: src/components/blog/PostDrawer.tsx:822
 msgid "Create post"
 msgstr "記事を作成"
 
@@ -6676,6 +6735,10 @@ msgstr "Zapierが作成"
 #: src/components/blog/ThemeEditorDrawer.tsx:260
 msgid "Created new version v{savedVersion}"
 msgstr "新しいバージョン v{savedVersion} を作成しました"
+
+#: src/components/lists/ListDrawer.tsx:571
+msgid "Created on {createdOn}"
+msgstr "作成日 {createdOn}"
 
 #: src/components/logs/auditPhrases.ts:87
 msgid "Created the API key <0>{target}</0>"
@@ -7199,12 +7262,12 @@ msgid "Default transactional"
 msgstr "トランザクションの既定"
 
 #: src/components/blog/CategoryDrawer.tsx:295
-#: src/components/blog/PostDrawer.tsx:1001
+#: src/components/blog/PostDrawer.tsx:1007
 msgid "Defaults to {fallbackShareTitle}"
 msgstr "既定値: {fallbackShareTitle}"
 
 #: src/components/blog/CategoryDrawer.tsx:289
-#: src/components/blog/PostDrawer.tsx:995
+#: src/components/blog/PostDrawer.tsx:1001
 msgid "Defaults to {fallbackTitle}"
 msgstr "既定値: {fallbackTitle}"
 
@@ -7231,11 +7294,11 @@ msgstr "既定値: ブログの説明"
 msgid "Defaults to the blog's share image"
 msgstr "既定値: ブログの共有画像"
 
-#: src/components/blog/PostDrawer.tsx:711
+#: src/components/blog/PostDrawer.tsx:717
 msgid "Defaults to the category's or the blog's description"
 msgstr "既定値: カテゴリまたはブログの説明"
 
-#: src/components/blog/PostDrawer.tsx:716
+#: src/components/blog/PostDrawer.tsx:722
 msgid "Defaults to the category's or the blog's share image"
 msgstr "既定値: カテゴリまたはブログの共有画像"
 
@@ -7243,11 +7306,11 @@ msgstr "既定値: カテゴリまたはブログの共有画像"
 msgid "Defaults to the description"
 msgstr "既定値: 説明"
 
-#: src/components/blog/PostDrawer.tsx:709
+#: src/components/blog/PostDrawer.tsx:715
 msgid "Defaults to the excerpt"
 msgstr "既定値: 抜粋"
 
-#: src/components/blog/PostDrawer.tsx:714
+#: src/components/blog/PostDrawer.tsx:720
 msgid "Defaults to the featured image"
 msgstr "既定値: アイキャッチ画像"
 
@@ -7814,7 +7877,7 @@ msgstr "この画像を説明..."
 
 #: src/components/automations/NodeConfigPanel.tsx:280
 #: src/components/blog/CategoryDrawer.tsx:280
-#: src/components/lists/ListDrawer.tsx:237
+#: src/components/lists/ListDrawer.tsx:488
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:475
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:193
 msgid "Description"
@@ -7843,7 +7906,7 @@ msgstr "デスクトップ"
 msgid "Desktop view (100%)"
 msgstr "デスクトップ表示（100%）"
 
-#: src/components/blog/PostDrawer.tsx:843
+#: src/components/blog/PostDrawer.tsx:849
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:198
 msgid "Details"
 msgstr "詳細"
@@ -7951,6 +8014,7 @@ msgstr "無効なルール"
 
 #: src/components/blog/CategoryDrawer.tsx:203
 #: src/components/layout/SaveBar.tsx:101
+#: src/components/lists/ListDrawer.tsx:212
 #: src/components/templates/CreateTemplateDrawer.tsx:896
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:225
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:258
@@ -7971,6 +8035,7 @@ msgstr "下書きを破棄"
 msgid "Discard unsaved changes?"
 msgstr "保存されていない変更を破棄しますか？"
 
+#: src/components/lists/ListDrawer.tsx:210
 #: src/components/templates/CreateTemplateDrawer.tsx:894
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:223
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:109
@@ -8130,17 +8195,18 @@ msgstr "点線"
 msgid "Double"
 msgstr "二重線"
 
+#: src/components/lists/ListDrawer.tsx:513
 #: src/components/lists/ListHeader.tsx:68
 msgid "Double opt-in"
 msgstr "ダブルオプトイン"
 
 #: src/components/lists/ListDrawer.tsx:260
-msgid "Double Opt-in"
-msgstr "ダブルオプトイン"
+#~ msgid "Double Opt-in"
+#~ msgstr "ダブルオプトイン"
 
 #: src/components/lists/ListDrawer.tsx:281
-msgid "Double Opt-in Template"
-msgstr "ダブルオプトインテンプレート"
+#~ msgid "Double Opt-in Template"
+#~ msgstr "ダブルオプトインテンプレート"
 
 #: src/components/file_manager/FileExplorer.tsx:569
 #: src/components/file_manager/FilePreview.tsx:98
@@ -8162,7 +8228,7 @@ msgstr "ZIP でダウンロード"
 #~ msgstr "{0}件のファイルをダウンロードしました"
 
 #: src/components/automations/AutomationStatusPill.tsx:15
-#: src/components/blog/PostDrawer.tsx:752
+#: src/components/blog/PostDrawer.tsx:758
 #: src/components/blog/PostsTable.tsx:348
 #: src/components/blog/ThemeEditorDrawer.tsx:473
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:199
@@ -8247,6 +8313,14 @@ msgstr "例: email"
 #: src/components/settings/ZapierSettings.tsx:172
 msgid "e.g. Marketing"
 msgstr "例: マーケティング"
+
+#: src/components/lists/ListDrawer.tsx:466
+msgid "e.g. members"
+msgstr "例: members"
+
+#: src/components/lists/ListDrawer.tsx:409
+msgid "e.g. Newsletter, Customers, Beta"
+msgstr "例: ニュースレター、顧客、ベータ"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:568
 msgid "e.g. notifuse"
@@ -8503,13 +8577,14 @@ msgid "Edit Liquid Content"
 msgstr "Liquidコンテンツを編集"
 
 #: src/components/contacts/ContactsViewHeader.tsx:211
+#: src/components/lists/ListDrawer.tsx:73
 msgid "Edit list"
 msgstr "リストを編集"
 
 #: src/components/lists/ListDrawer.tsx:181
 #: src/components/lists/ListDrawer.tsx:185
-msgid "Edit List"
-msgstr "リストを編集"
+#~ msgid "Edit List"
+#~ msgstr "リストを編集"
 
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:247
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:369
@@ -8529,7 +8604,7 @@ msgstr "権限を編集"
 msgid "Edit Permissions for {0}"
 msgstr "{0}の権限を編集"
 
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:841
 msgid "Edit post"
 msgstr "記事を編集"
 
@@ -8589,7 +8664,7 @@ msgstr "テンプレートで件名を編集"
 msgid "Edit the template"
 msgstr "テンプレートを編集"
 
-#: src/components/blog/PostDrawer.tsx:1064
+#: src/components/blog/PostDrawer.tsx:1070
 msgid "Edit the title in Details"
 msgstr "詳細でタイトルを編集"
 
@@ -8629,7 +8704,7 @@ msgid "Editable markup"
 msgstr "編集可能なマークアップ"
 
 #. placeholder {0}: relative(post.updated_at)
-#: src/components/blog/PostDrawer.tsx:757
+#: src/components/blog/PostDrawer.tsx:763
 #: src/components/blog/PostsTable.tsx:272
 msgid "Edited {0}"
 msgstr "{0}に編集"
@@ -8847,7 +8922,7 @@ msgid "Email providers and connected services"
 msgstr "メールプロバイダーと接続済みサービス"
 
 #: src/components/settings/integrations/EmailRoles.tsx:78
-#: src/components/settings/integrations/IntegrationCatalogue.tsx:163
+#: src/components/settings/integrations/IntegrationCatalogue.tsx:164
 msgid "Email sending"
 msgstr "メール送信"
 
@@ -9148,8 +9223,8 @@ msgid "Enter a number, with at most 15 digits before the decimal point."
 msgstr "小数点より前が 15 桁以内の数値を入力してください。"
 
 #: src/components/lists/ListDrawer.tsx:234
-msgid "Enter a unique alphanumeric ID"
-msgstr "一意の英数字IDを入力"
+#~ msgid "Enter a unique alphanumeric ID"
+#~ msgstr "一意の英数字IDを入力"
 
 #: src/components/web_analytics/FilterBuilder.tsx:349
 msgid "Enter a value"
@@ -9268,16 +9343,16 @@ msgid "Enter link URL or {{ url }}"
 msgstr "リンクURLまたは{{ url }}を入力"
 
 #: src/components/lists/ListDrawer.tsx:238
-msgid "Enter list description"
-msgstr "リストの説明を入力"
+#~ msgid "Enter list description"
+#~ msgstr "リストの説明を入力"
 
 #: src/components/lists/DeleteListModal.tsx:148
 msgid "Enter list ID to confirm"
 msgstr "確認のためリストIDを入力"
 
 #: src/components/lists/ListDrawer.tsx:222
-msgid "Enter list name"
-msgstr "リスト名を入力"
+#~ msgid "Enter list name"
+#~ msgstr "リスト名を入力"
 
 #: src/components/settings/BlogSettings.tsx:396
 msgid "Enter logo URL or select image"
@@ -9617,7 +9692,7 @@ msgstr "完全一致"
 msgid "exactly"
 msgstr "正確に"
 
-#: src/components/blog/PostDrawer.tsx:948
+#: src/components/blog/PostDrawer.tsx:954
 msgid "Excerpt"
 msgstr "抜粋"
 
@@ -9936,8 +10011,8 @@ msgid "Failed to create folder: "
 msgstr "フォルダの作成に失敗しました: "
 
 #: src/components/lists/ListDrawer.tsx:81
-msgid "Failed to create list: {error}"
-msgstr "リストの作成に失敗しました: {error}"
+#~ msgid "Failed to create list: {error}"
+#~ msgstr "リストの作成に失敗しました: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:206
@@ -9945,7 +10020,7 @@ msgid "Failed to create notification: {0}"
 msgstr "通知の作成に失敗しました: {0}"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:443
+#: src/components/blog/PostDrawer.tsx:446
 msgid "Failed to create post: {0}"
 msgstr "投稿の作成に失敗しました: {0}"
 
@@ -10360,8 +10435,8 @@ msgid "Failed to update file manager settings"
 msgstr "ファイルマネージャー設定の更新に失敗しました"
 
 #: src/components/lists/ListDrawer.tsx:95
-msgid "Failed to update list: {error}"
-msgstr "リストの更新に失敗しました: {error}"
+#~ msgid "Failed to update list: {error}"
+#~ msgstr "リストの更新に失敗しました: {error}"
 
 #. placeholder {0}: error.message
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:205
@@ -10373,7 +10448,7 @@ msgid "Failed to update permissions"
 msgstr "権限の更新に失敗しました"
 
 #. placeholder {0}: error.message
-#: src/components/blog/PostDrawer.tsx:530
+#: src/components/blog/PostDrawer.tsx:536
 msgid "Failed to update post: {0}"
 msgstr "投稿の更新に失敗しました: {0}"
 
@@ -10431,8 +10506,8 @@ msgstr "ファビコン"
 #~ msgid "Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
 #~ msgstr "ブログ用のファビコン。推奨: 32x32pxまたは192x192px PNG"
 
-#: src/components/blog/PostDrawer.tsx:957
-#: src/components/blog/PostDrawer.tsx:967
+#: src/components/blog/PostDrawer.tsx:963
+#: src/components/blog/PostDrawer.tsx:973
 msgid "Featured image"
 msgstr "アイキャッチ画像"
 
@@ -10718,7 +10793,7 @@ msgstr "作成後は変更できません: API 呼び出しで送信されます
 msgid "Fixed once created: its posts' links depend on it"
 msgstr "作成後は変更できません: 記事のリンクがこれに依存しています"
 
-#: src/components/blog/PostDrawer.tsx:932
+#: src/components/blog/PostDrawer.tsx:938
 msgid "Fixed once created: links to the post may already be shared"
 msgstr "作成後は変更できません: 記事へのリンクがすでに共有されている可能性があります"
 
@@ -10787,7 +10862,7 @@ msgstr "編集するまで名前に合わせて変わります"
 msgid "Follows the name until you edit it. Lowercase letters, numbers and underscores"
 msgstr "編集するまで名前に合わせて変わります。小文字の英字、数字、アンダースコア"
 
-#: src/components/blog/PostDrawer.tsx:935
+#: src/components/blog/PostDrawer.tsx:941
 msgid "Follows the title until you edit it"
 msgstr "編集するまでタイトルに合わせて変わります"
 
@@ -11519,7 +11594,7 @@ msgstr "推論モデルがどれだけ考えるか。その他のモデルでは
 msgid "How the category page appears in search results"
 msgstr "検索結果でのカテゴリページの表示"
 
-#: src/components/blog/PostDrawer.tsx:994
+#: src/components/blog/PostDrawer.tsx:1000
 msgid "How the post appears in search results"
 msgstr "検索結果での記事の表示"
 
@@ -11607,6 +11682,9 @@ msgstr "アイコンスタイリング"
 #~ msgstr "アイコン/ファビコンURL"
 
 #: src/components/contacts/ContactsViewHeader.tsx:181
+#: src/components/lists/ListDrawer.tsx:416
+#: src/components/lists/ListDrawer.tsx:444
+#: src/components/lists/ListDrawer.tsx:473
 #: src/components/messages/MessageHistoryTable.tsx:281
 msgid "ID"
 msgstr "ID"
@@ -11625,11 +11703,16 @@ msgid "ID can only contain lowercase letters, numbers, and underscores"
 msgstr "IDは小文字の英字、数字、アンダースコアのみ使用できます"
 
 #: src/components/automations/AutomationEditor.tsx:428
+#: src/components/lists/ListDrawer.tsx:359
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:239
 #: src/pages/TemplatesPage.tsx:329
 #: src/pages/TransactionalNotificationsPage.tsx:169
 msgid "ID copied"
 msgstr "IDをコピーしました"
+
+#: src/components/lists/ListDrawer.tsx:435
+msgid "ID derived from the name"
+msgstr "名前から生成される ID"
 
 #: src/components/broadcasts/DeleteBroadcastModal.tsx:76
 #: src/components/lists/DeleteListModal.tsx:154
@@ -11649,11 +11732,11 @@ msgstr "API用ID：{0}"
 msgid "ID is automatically generated but can be modified if needed"
 msgstr "IDは自動生成されますが、必要に応じて変更できます"
 
-#: src/components/lists/ListDrawer.tsx:230
+#: src/components/lists/ListDrawer.tsx:460
 msgid "ID must be alphanumeric"
 msgstr "IDは英数字である必要があります"
 
-#: src/components/lists/ListDrawer.tsx:231
+#: src/components/lists/ListDrawer.tsx:461
 msgid "ID must be less than 32 characters"
 msgstr "IDは32文字未満である必要があります"
 
@@ -11934,6 +12017,11 @@ msgstr "過去"
 #: src/components/segment/segmentSummary.ts:171
 msgid "in the last {days} days"
 msgstr "過去 {days} 日間"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:19
+#: src/components/lists/NotificationCenterListPreview.tsx:20
+msgid "In the notification center"
+msgstr "通知センターでの表示"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:155
 msgid "in the payload."
@@ -12493,6 +12581,7 @@ msgstr "両端揃え"
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:234
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:272
 #: src/components/layout/SaveBar.tsx:120
+#: src/components/lists/ListDrawer.tsx:213
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:836
 #: src/components/templates/CreateTemplateDrawer.tsx:720
 #: src/components/templates/CreateTemplateDrawer.tsx:898
@@ -12835,6 +12924,10 @@ msgstr "文字間隔"
 #~ msgid "Letter Spacing"
 #~ msgstr "文字間隔"
 
+#: src/components/lists/ListDrawer.tsx:453
+msgid "Letters and digits, 32 at most. Used by the API and forms; cannot change after creation."
+msgstr "英字と数字、32 文字以内。API とフォームで使われ、作成後は変更できません。"
+
 #: src/components/email_builder/EmailBuilder.tsx:1135
 msgid "Library"
 msgstr "ライブラリ"
@@ -13071,9 +13164,13 @@ msgstr "ブロードキャストを、そのオーディエンスとスケジュ
 msgid "List contacts with their full profile fields"
 msgstr "コンタクトを、そのプロフィールフィールドすべてとともに一覧表示する"
 
-#: src/components/lists/ListDrawer.tsx:76
-msgid "List created successfully"
+#: src/components/lists/ListDrawer.tsx:339
+msgid "List created"
 msgstr "リストを作成しました"
+
+#: src/components/lists/ListDrawer.tsx:76
+#~ msgid "List created successfully"
+#~ msgstr "リストを作成しました"
 
 #: src/services/api/permissions.ts:167
 msgid "List custom events recorded against contacts"
@@ -13088,13 +13185,17 @@ msgid "List everything one contact is subscribed to (also needs Contacts read)"
 msgstr "1件のコンタクトが購読しているものをすべて一覧表示する (コンタクトの読み取りも必要)"
 
 #: src/components/lists/ListDrawer.tsx:227
-msgid "List ID"
-msgstr "リストID"
+#~ msgid "List ID"
+#~ msgstr "リストID"
 
 #. placeholder {0}: record.list_id
 #: src/components/contacts/ContactDetailsDrawer.tsx:990
 #~ msgid "List ID: {0}"
 #~ msgstr "リストID: {0}"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:24
+msgid "List name"
+msgstr "リスト名"
 
 #: src/services/api/permissions.ts:248
 msgid "List segments with their full definition trees"
@@ -13166,9 +13267,13 @@ msgstr "確認するリスト"
 msgid "List transactional notification definitions"
 msgstr "トランザクション通知の定義を一覧表示する"
 
-#: src/components/lists/ListDrawer.tsx:90
-msgid "List updated successfully"
+#: src/components/lists/ListDrawer.tsx:312
+msgid "List updated"
 msgstr "リストを更新しました"
+
+#: src/components/lists/ListDrawer.tsx:90
+#~ msgid "List updated successfully"
+#~ msgstr "リストを更新しました"
 
 #: src/components/timeline/ContactTimeline.tsx:391
 #: src/components/timeline/ContactTimeline.tsx:404
@@ -13285,7 +13390,7 @@ msgstr "セットアップを読み込み中..."
 #~ msgid "Loading stats..."
 #~ msgstr "統計を読み込み中..."
 
-#: src/components/blog/PostDrawer.tsx:1081
+#: src/components/blog/PostDrawer.tsx:1087
 msgid "Loading template..."
 msgstr "テンプレートを読み込み中..."
 
@@ -13303,7 +13408,7 @@ msgstr "テンプレートを読み込み中..."
 
 #: src/components/blog_editor/NotifuseEditor.tsx:480
 #: src/components/templates/CreateTemplateDrawer.tsx:1012
-#: src/components/templates/TemplateSelectorInput.tsx:150
+#: src/components/templates/TemplateSelectorInput.tsx:162
 #: src/layouts/RootLayout.tsx:99
 #: src/pages/ContactsPage.tsx:461
 msgid "Loading..."
@@ -13385,7 +13490,7 @@ msgid "lowercase"
 msgstr "小文字"
 
 #: src/components/blog/CategoryDrawer.tsx:268
-#: src/components/blog/PostDrawer.tsx:934
+#: src/components/blog/PostDrawer.tsx:940
 msgid "Lowercase letters, numbers and hyphens"
 msgstr "小文字、数字、ハイフン"
 
@@ -13825,7 +13930,7 @@ msgstr "Microsoft 365 / Office 365"
 msgid "Middle"
 msgstr "中央"
 
-#: src/components/blog/PostDrawer.tsx:907
+#: src/components/blog/PostDrawer.tsx:913
 msgid "min"
 msgstr "分"
 
@@ -13988,6 +14093,10 @@ msgstr "控えめなブランディング"
 msgid "Modified"
 msgstr "更新日時"
 
+#: src/components/lists/ListDrawer.tsx:431
+msgid "Modify"
+msgstr "変更"
+
 #: src/pages/LogsPage.tsx:29
 #~ msgid "Monitor message delivery status and webhook events"
 #~ msgstr "メッセージ配信ステータスとWebhookイベントを監視"
@@ -14093,7 +14202,7 @@ msgstr "N/A"
 #: src/components/integrations/FirecrawlIntegration.tsx:89
 #: src/components/integrations/LLMIntegration.tsx:179
 #: src/components/integrations/SupabaseIntegration.tsx:175
-#: src/components/lists/ListDrawer.tsx:216
+#: src/components/lists/ListDrawer.tsx:402
 #: src/components/segment/button_upsert.tsx:452
 #: src/components/settings/GeneralSettings.tsx:197
 #: src/components/settings/GeneralSettings.tsx:227
@@ -14139,7 +14248,7 @@ msgid "Name is required"
 msgstr "名前は必須です"
 
 #: src/components/blog/CategoryDrawer.tsx:236
-#: src/components/lists/ListDrawer.tsx:219
+#: src/components/lists/ListDrawer.tsx:406
 msgid "Name must be less than 255 characters"
 msgstr "名前は255文字未満である必要があります"
 
@@ -14260,6 +14369,7 @@ msgid "New key"
 msgstr "新しいキー"
 
 #: src/components/contacts/ContactsRail.tsx:79
+#: src/components/lists/ListDrawer.tsx:73
 msgid "New list"
 msgstr "新しいリスト"
 
@@ -14280,8 +14390,8 @@ msgstr "新しいマジックコードをメールに送信しました"
 msgid "New notification"
 msgstr "新しい通知"
 
-#: src/components/blog/PostDrawer.tsx:743
-#: src/components/blog/PostDrawer.tsx:835
+#: src/components/blog/PostDrawer.tsx:749
+#: src/components/blog/PostDrawer.tsx:841
 #: src/components/blog/PostsTable.tsx:548
 msgid "New post"
 msgstr "新しい記事"
@@ -14394,7 +14504,7 @@ msgstr "次のステップ"
 
 #: src/components/automations/edges/edgeLabel.ts:34
 #: src/components/blog/PostDrawer.tsx:307
-#: src/components/blog/PostDrawer.tsx:581
+#: src/components/blog/PostDrawer.tsx:587
 #: src/components/broadcasts/HeadersEditor.tsx:66
 #: src/components/broadcasts/useBroadcastActions.tsx:174
 #: src/components/broadcasts/useBroadcastActions.tsx:180
@@ -14675,7 +14785,7 @@ msgstr "エラーなし"
 msgid "No failure"
 msgstr "失敗はありません"
 
-#: src/components/blog/PostDrawer.tsx:972
+#: src/components/blog/PostDrawer.tsx:978
 msgid "No featured image"
 msgstr "アイキャッチ画像なし"
 
@@ -15254,7 +15364,7 @@ msgid "Not counted beyond {countMax}"
 msgstr "{countMax} を超える分はカウントしません"
 
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:746
+#: src/components/blog/PostDrawer.tsx:752
 #: src/components/blog/ThemeEditorDrawer.tsx:469
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:250
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:128
@@ -15650,7 +15760,7 @@ msgstr "カードと、すべての送信者の選択欄に表示"
 msgid "On the card, and on the notifications it creates"
 msgstr "カードと、この連携が作成する通知に表示"
 
-#: src/components/blog/PostDrawer.tsx:1035
+#: src/components/blog/PostDrawer.tsx:1041
 msgid "On this page"
 msgstr "このページの内容"
 
@@ -16669,7 +16779,7 @@ msgstr "再生オプション"
 msgid "Playback Options"
 msgstr "再生オプション"
 
-#: src/components/blog/PostDrawer.tsx:984
+#: src/components/blog/PostDrawer.tsx:990
 msgid "Please add at least one author"
 msgstr "著者を1人以上追加してください"
 
@@ -16681,7 +16791,7 @@ msgstr "保存する前に送信者を1人以上追加してください"
 #~ msgid "Please check the form for errors"
 #~ msgstr "フォームにエラーがないか確認してください"
 
-#: src/components/blog/PostDrawer.tsx:857
+#: src/components/blog/PostDrawer.tsx:863
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:378
 msgid "Please check the form for errors."
 msgstr "フォームにエラーがないか確認してください。"
@@ -16714,11 +16824,11 @@ msgstr "カスタムラベルを入力してください"
 msgid "Please enter a label for this connection"
 msgstr "この接続のラベルを入力してください"
 
-#: src/components/lists/ListDrawer.tsx:229
+#: src/components/lists/ListDrawer.tsx:459
 msgid "Please enter a list ID"
 msgstr "リストIDを入力してください"
 
-#: src/components/lists/ListDrawer.tsx:218
+#: src/components/lists/ListDrawer.tsx:405
 msgid "Please enter a list name"
 msgstr "リスト名を入力してください"
 
@@ -16738,7 +16848,7 @@ msgstr "名前を入力してください"
 msgid "Please enter a notification name"
 msgstr "通知名を入力してください"
 
-#: src/components/blog/PostDrawer.tsx:882
+#: src/components/blog/PostDrawer.tsx:888
 msgid "Please enter a post title"
 msgstr "投稿タイトルを入力してください"
 
@@ -16755,7 +16865,7 @@ msgstr "送信レートの上限を入力してください"
 #~ msgstr ""
 
 #: src/components/blog/CategoryDrawer.tsx:260
-#: src/components/blog/PostDrawer.tsx:923
+#: src/components/blog/PostDrawer.tsx:929
 msgid "Please enter a slug"
 msgstr "スラッグを入力してください"
 
@@ -16825,7 +16935,7 @@ msgstr "メールアドレスを入力してください"
 msgid "Please enter integration name"
 msgstr "インテグレーション名を入力してください"
 
-#: src/components/blog/PostDrawer.tsx:905
+#: src/components/blog/PostDrawer.tsx:911
 msgid "Please enter reading time"
 msgstr "読了時間を入力してください"
 
@@ -16850,7 +16960,7 @@ msgstr "マジックコードを入力してください！"
 msgid "Please input your email!"
 msgstr "メールアドレスを入力してください！"
 
-#: src/components/blog/PostDrawer.tsx:892
+#: src/components/blog/PostDrawer.tsx:898
 msgid "Please select a category"
 msgstr "カテゴリを選択してください"
 
@@ -16902,8 +17012,8 @@ msgstr "ステータスを選択してください"
 #~ msgstr "テンプレートを選択してください"
 
 #: src/components/lists/ListDrawer.tsx:283
-msgid "Please select a template for double opt-in"
-msgstr "ダブルオプトイン用テンプレートを選択してください"
+#~ msgid "Please select a template for double opt-in"
+#~ msgstr "ダブルオプトイン用テンプレートを選択してください"
 
 #: src/components/blog/PublishModal.tsx:153
 msgid "Please select a time"
@@ -16971,13 +17081,13 @@ msgstr "SMTPリレーサーバーのポート（デフォルト: 587）"
 msgid "Port must be 1-65535"
 msgstr "ポートは1〜65535である必要があります"
 
-#: src/components/blog/PostDrawer.tsx:877
+#: src/components/blog/PostDrawer.tsx:883
 #: src/components/blog/PostsTable.tsx:290
 #: src/components/blog/ThemeEditorDrawer.tsx:420
 msgid "Post"
 msgstr "投稿"
 
-#: src/components/blog/PostDrawer.tsx:437
+#: src/components/blog/PostDrawer.tsx:440
 msgid "Post created successfully"
 msgstr "投稿を作成しました"
 
@@ -16989,7 +17099,7 @@ msgstr "投稿を削除しました"
 msgid "Post published successfully"
 msgstr "投稿を公開しました"
 
-#: src/components/blog/PostDrawer.tsx:886
+#: src/components/blog/PostDrawer.tsx:892
 msgid "Post title"
 msgstr "投稿タイトル"
 
@@ -17001,7 +17111,7 @@ msgstr "投稿を非公開にしました"
 msgid "Post unscheduled"
 msgstr "投稿の予約を解除しました"
 
-#: src/components/blog/PostDrawer.tsx:501
+#: src/components/blog/PostDrawer.tsx:507
 msgid "Post updated successfully"
 msgstr "投稿を更新しました"
 
@@ -17091,7 +17201,8 @@ msgstr "Enterで確定、Escapeでキャンセル"
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/button_upsert.tsx:670
 #: src/components/seo/SeoPreview.tsx:36
-#: src/components/templates/TemplateSelectorInput.tsx:190
+#: src/components/templates/TemplateSelectorInput.tsx:244
+#: src/components/templates/TemplateSelectorInput.tsx:292
 #: src/components/templates/TemplateSelectorModal.tsx:368
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
@@ -17190,6 +17301,10 @@ msgstr "テストデータでプレビュー"
 #: src/components/templates/CreateTemplateDrawer.tsx:1506
 msgid "Preview Your Email"
 msgstr "メールをプレビュー"
+
+#: src/components/lists/NotificationCenterListPreview.tsx:38
+msgid "Preview: the name and description as the contact sees them, with the subscribe button."
+msgstr "プレビュー: 連絡先に表示される名前と説明、および購読ボタン。"
 
 #: src/components/layout/DrawerControls.tsx:51
 msgid "Previous"
@@ -17357,13 +17472,16 @@ msgid "Provider's default sender"
 msgstr "プロバイダーのデフォルト送信者"
 
 #: src/components/contacts/ContactsViewHeader.tsx:192
-#: src/components/lists/ListDrawer.tsx:245
 msgid "Public"
 msgstr "公開"
 
+#: src/components/lists/ListDrawer.tsx:499
+msgid "Public list"
+msgstr "公開リスト"
+
 #: src/components/lists/ListDrawer.tsx:246
-msgid "Public lists are visible in the Notification Center for users to subscribe to"
-msgstr "公開リストは通知センターでユーザーが購読できるように表示されます"
+#~ msgid "Public lists are visible in the Notification Center for users to subscribe to"
+#~ msgstr "公開リストは通知センターでユーザーが購読できるように表示されます"
 
 #: src/pages/SetupWizard.tsx:385
 msgid "Public URL where this Notifuse instance is accessible"
@@ -17407,7 +17525,7 @@ msgstr "テーマ v{themeVersion} を公開"
 msgid "Publish this theme"
 msgstr "このテーマを公開"
 
-#: src/components/blog/PostDrawer.tsx:748
+#: src/components/blog/PostDrawer.tsx:754
 #: src/components/blog/PostsTable.tsx:344
 #: src/components/blog/PostsTable.tsx:376
 #: src/components/blog/PostsTable.tsx:434
@@ -17688,7 +17806,7 @@ msgstr "Zapierの設定ガイドを読む"
 #~ msgid "Reading the available metrics"
 #~ msgstr ""
 
-#: src/components/blog/PostDrawer.tsx:904
+#: src/components/blog/PostDrawer.tsx:910
 msgid "Reading time"
 msgstr "読了時間"
 
@@ -17858,8 +17976,8 @@ msgstr "リダイレクトURI"
 
 #: src/components/automations/AutomationEditor.tsx:482
 #: src/components/blog_editor/components/EditorHeader.tsx:69
-#: src/components/blog/PostDrawer.tsx:787
-#: src/components/blog/PostDrawer.tsx:790
+#: src/components/blog/PostDrawer.tsx:793
+#: src/components/blog/PostDrawer.tsx:796
 #: src/components/email_builder/EmailBuilder.tsx:1051
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
@@ -18899,7 +19017,7 @@ msgstr "サンドボックスモード"
 #: src/components/email_builder/ui/StringPopoverInput.tsx:100
 #: src/components/file_manager/buttonSettings.tsx:310
 #: src/components/layout/SaveBar.tsx:107
-#: src/components/lists/ListDrawer.tsx:200
+#: src/components/lists/ListDrawer.tsx:576
 #: src/components/settings/CustomFieldsConfiguration.tsx:389
 #: src/components/settings/Integrations.tsx:600
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:852
@@ -18945,7 +19063,7 @@ msgstr "新しいバージョンとして保存"
 #~ msgstr "ブロックを保存"
 
 #: src/components/blog/CategoryDrawer.tsx:205
-#: src/components/blog/PostDrawer.tsx:816
+#: src/components/blog/PostDrawer.tsx:822
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:505
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:260
 #: src/components/web_analytics/filters/FilterFormDrawer.tsx:144
@@ -19097,7 +19215,7 @@ msgstr "ブロードキャストをオーディエンス全体に予約送信ま
 msgid "Schedule timezone"
 msgstr "予約のタイムゾーン"
 
-#: src/components/blog/PostDrawer.tsx:750
+#: src/components/blog/PostDrawer.tsx:756
 #: src/components/blog/PostsTable.tsx:346
 #: src/components/blog/PostsTable.tsx:435
 #: src/components/broadcasts/compose/SendingCard.tsx:39
@@ -19176,7 +19294,7 @@ msgstr "ギャラリーを検索"
 
 #: src/components/blog/category/CategoryChecks.tsx:33
 #: src/components/blog/post/PostChecks.tsx:13
-#: src/components/blog/PostDrawer.tsx:1106
+#: src/components/blog/PostDrawer.tsx:1112
 msgid "Search and share"
 msgstr "検索と共有"
 
@@ -19476,7 +19594,7 @@ msgstr "ブロックを選択して属性を編集"
 msgid "Select a broadcast"
 msgstr "ブロードキャストを選択"
 
-#: src/components/blog/PostDrawer.tsx:895
+#: src/components/blog/PostDrawer.tsx:901
 msgid "Select a category"
 msgstr "カテゴリを選択"
 
@@ -19541,7 +19659,7 @@ msgstr "送信者を選択"
 msgid "Select a social block"
 msgstr "ソーシャルブロックを選択してください"
 
-#: src/components/templates/TemplateSelectorInput.tsx:79
+#: src/components/templates/TemplateSelectorInput.tsx:87
 msgid "Select a template"
 msgstr "テンプレートを選択"
 
@@ -19597,8 +19715,8 @@ msgid "Select columns"
 msgstr "列を選択"
 
 #: src/components/lists/ListDrawer.tsx:291
-msgid "Select confirmation email template"
-msgstr "確認メールテンプレートを選択"
+#~ msgid "Select confirmation email template"
+#~ msgstr "確認メールテンプレートを選択"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:435
 msgid "Select consent"
@@ -20149,6 +20267,10 @@ msgstr "送信元"
 msgid "Sent by the automation {0}"
 msgstr "オートメーション {0} が送信"
 
+#: src/components/templates/TemplateSelectorInput.tsx:221
+msgid "sent by the marketing provider"
+msgstr "マーケティング用プロバイダーから送信"
+
 #. placeholder {0}: broadcastName ?? message.broadcast_id ?? ''
 #: src/components/logs/MessageDetail.tsx:271
 msgid "Sent by the newsletter {0}"
@@ -20158,6 +20280,10 @@ msgstr "ニュースレター {0} が送信"
 #: src/components/logs/MessageDetail.tsx:275
 msgid "Sent by the transactional notification {0}"
 msgstr "トランザクション通知 {0} が送信"
+
+#: src/components/templates/TemplateSelectorInput.tsx:223
+msgid "sent by the transactional provider"
+msgstr "トランザクション用プロバイダーから送信"
 
 #: src/components/logs/MessageDetail.tsx:300
 #: src/components/logs/MessageDetail.tsx:813
@@ -20686,7 +20812,7 @@ msgstr "表示"
 msgid "Shown at the top of the category page"
 msgstr "カテゴリページの上部に表示されます"
 
-#: src/components/blog/PostDrawer.tsx:949
+#: src/components/blog/PostDrawer.tsx:955
 msgid "Shown in post lists, and as the description when no meta description is set"
 msgstr "記事一覧に表示され、メタディスクリプションがない場合は説明として使われます"
 
@@ -20697,6 +20823,10 @@ msgstr "アシスタントのモデル選択欄に表示されます"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:785
 msgid "Shown next to the API key"
 msgstr "API キーの横に表示されます"
+
+#: src/components/lists/ListDrawer.tsx:489
+msgid "Shown to contacts in the notification center when the list is public."
+msgstr "リストが公開のとき、通知センターで連絡先に表示されます。"
 
 #: src/components/email_builder/panels/TreePanel.tsx:279
 msgid "Shown under a condition"
@@ -20851,18 +20981,18 @@ msgstr "枠"
 
 #: src/components/blog/CategoryDrawer.tsx:252
 #: src/components/blog/CategoryDrawer.tsx:256
-#: src/components/blog/PostDrawer.tsx:915
-#: src/components/blog/PostDrawer.tsx:919
+#: src/components/blog/PostDrawer.tsx:921
+#: src/components/blog/PostDrawer.tsx:925
 msgid "Slug"
 msgstr "スラッグ"
 
 #: src/components/blog/CategoryDrawer.tsx:262
-#: src/components/blog/PostDrawer.tsx:928
+#: src/components/blog/PostDrawer.tsx:934
 msgid "Slug must be less than 100 characters"
 msgstr "スラッグは100文字以内にしてください"
 
 #: src/components/blog/CategoryDrawer.tsx:261
-#: src/components/blog/PostDrawer.tsx:926
+#: src/components/blog/PostDrawer.tsx:932
 msgid "Slug must contain only lowercase letters, numbers, and hyphens"
 msgstr "スラッグは小文字、数字、ハイフンのみ使用できます"
 
@@ -21200,7 +21330,7 @@ msgstr "入力を開始..."
 msgid "Start Upload"
 msgstr "アップロードを開始"
 
-#: src/components/blog/PostDrawer.tsx:1088
+#: src/components/blog/PostDrawer.tsx:1094
 msgid "Start writing your blog post..."
 msgstr "ブログ記事を書き始めましょう..."
 
@@ -21299,7 +21429,7 @@ msgid "Step status"
 msgstr "ステップのステータス"
 
 #: src/components/automations/list/AutomationsTable.tsx:151
-#: src/components/blog/PostDrawer.tsx:841
+#: src/components/blog/PostDrawer.tsx:847
 #: src/components/templates/TemplateDrawerBar.tsx:89
 msgid "Steps"
 msgstr "ステップ"
@@ -21425,6 +21555,7 @@ msgid "Submitting batch request to the server..."
 msgstr "バッチリクエストをサーバーに送信中..."
 
 #: src/components/contacts/sheet/ContactListsCard.tsx:196
+#: src/components/lists/NotificationCenterListPreview.tsx:34
 msgid "Subscribe"
 msgstr "購読"
 
@@ -21496,6 +21627,7 @@ msgstr "{name} を購読"
 msgid "Subscript"
 msgstr "下付き文字"
 
+#: src/components/lists/ListDrawer.tsx:494
 #: src/components/logs/OutgoingWebhooksTab.tsx:136
 #: src/components/logs/OutgoingWebhooksTab.tsx:181
 #: src/components/segment/segmentSummary.ts:148
@@ -21662,7 +21794,7 @@ msgstr "システム設定"
 msgid "System SMTP"
 msgstr "システムSMTP"
 
-#: src/components/blog/PostDrawer.tsx:1031
+#: src/components/blog/PostDrawer.tsx:1037
 msgid "Table of Contents"
 msgstr "目次"
 
@@ -21788,7 +21920,7 @@ msgstr "テンプレートブロックが見つかりません"
 msgid "Template changed by someone else"
 msgstr "テンプレートが他のユーザーによって変更されました"
 
-#: src/components/templates/TemplateSelectorInput.tsx:233
+#: src/components/templates/TemplateSelectorInput.tsx:210
 msgid "Template created and selected"
 msgstr "テンプレートを作成して選択しました"
 
@@ -22316,7 +22448,7 @@ msgstr "都市名"
 msgid "The comparison period as extra columns"
 msgstr "比較期間を追加の列として表示"
 
-#: src/components/lists/ListDrawer.tsx:292
+#: src/components/lists/ListDrawer.tsx:537
 msgid "The confirmation email each new subscriber receives"
 msgstr "新しい購読者それぞれが受け取る確認メール"
 
@@ -22452,6 +22584,10 @@ msgstr "SMTPサーバーへの接続時に、サーバーが自身を名乗る�
 msgid "The icon in the browser tab; 32 or 192 px square"
 msgstr "ブラウザのタブのアイコン。32 または 192 px の正方形"
 
+#: src/components/lists/ListDrawer.tsx:278
+msgid "The ID “{listId}” belonged to a deleted list and cannot be reused. Choose another."
+msgstr "ID「{listId}」は削除済みのリストのもので、再利用できません。別の ID を選んでください。"
+
 #: src/components/email_builder/blocks/MjImageBlock.tsx:54
 msgid "the Image block"
 msgstr "画像ブロック"
@@ -22503,6 +22639,14 @@ msgstr "ライブ状態のオートメーション\"{first}\"と\"{second}\"が�
 msgid "The list \"{listName}\" can't be deleted while the live automations \"{first}\", \"{second}\" and \"{third}\" use it. Pause them first, or change them to stop using the list."
 msgstr "ライブ状態のオートメーション\"{first}\"、\"{second}\"、\"{third}\"が使用しているため、リスト\"{listName}\"は削除できません。先にそれらを一時停止するか、このリストを使用しないように変更してください。"
 
+#: src/components/lists/ListDrawer.tsx:343
+msgid "The list could not be created."
+msgstr "リストを作成できませんでした。"
+
+#: src/components/lists/ListDrawer.tsx:316
+msgid "The list could not be saved."
+msgstr "リストを保存できませんでした。"
+
 #: src/services/api/permissions.ts:926
 msgid "The log names every member's email and IP address and records refused actions. Grant read to the people who need to answer \"who did this\", not to everyone."
 msgstr "このログには各メンバーのメールと IP アドレスが記録され、拒否された操作も残ります。「誰がこれをしたか」に答える必要がある人にだけ閲覧権限を付与してください。"
@@ -22514,6 +22658,10 @@ msgstr "このログには各メンバーのメールと IP アドレスが記�
 #: src/components/settings/ZapierSettings.tsx:88
 #~ msgid "The name {prefix} is already taken on this Notifuse installation. Please pick another one."
 #~ msgstr "名前「{prefix}」はこのNotifuseインストールですでに使用されています。別の名前を選んでください。"
+
+#: src/components/lists/ListDrawer.tsx:450
+msgid "The name gives no ID: enter one."
+msgstr "名前から ID を生成できません。ID を入力してください。"
 
 #: src/components/broadcasts/compose/useIssueText.ts:12
 msgid "the name is longer than 255 characters"
@@ -23054,6 +23202,10 @@ msgstr ""
 #~ msgid "This list does two things. It filters incoming beats — other origins are silently ignored. It also gates email-click identification: a tracked link only carries an identity token for a domain listed here, so while this is empty no email link can identify a contact. Use *.example.com to cover both example.com and its subdomains — example.com on its own does not match www.example.com."
 #~ msgstr "このリストには2つの役割があります。1つは受信するビーコンのフィルタリングです — 他のオリジンからのものは黙って無視されます。もう1つはメールクリックによる識別の制御です: トラッキング対象のリンクが識別トークンを持つのは、ここに登録されたドメインの場合だけです。そのため、この欄が空のあいだは、どのメールリンクもコンタクトを識別できません。example.com とそのサブドメインの両方を対象にするには *.example.com を使用してください — example.com 単体では www.example.com には一致しません。"
 
+#: src/components/lists/ListDrawer.tsx:211
+msgid "This list is not created yet."
+msgstr "このリストはまだ作成されていません。"
+
 #: src/pages/ContactsPage.tsx:621
 msgid "This list no longer exists"
 msgstr "このリストはもう存在しません"
@@ -23101,8 +23253,8 @@ msgstr "この権限は現在、どのエンドポイントも制御していま
 msgid "This permission is not enforced yet, so it is always granted. It cannot be turned off."
 msgstr "この権限はまだ適用されていないため、常に付与されます。オフにすることはできません。"
 
-#: src/components/blog/PostDrawer.tsx:1098
-#: src/components/blog/PostDrawer.tsx:1100
+#: src/components/blog/PostDrawer.tsx:1104
+#: src/components/blog/PostDrawer.tsx:1106
 msgid "This post"
 msgstr "この記事"
 
@@ -23166,6 +23318,10 @@ msgstr "このセッションは長すぎるため全体を表示できません
 #: src/components/automations/NodeConfigPanel.tsx:189
 msgid "This step is edited through the API."
 msgstr "このステップは API で編集します。"
+
+#: src/components/templates/TemplateSelectorInput.tsx:352
+msgid "This template cannot be found"
+msgstr "このテンプレートが見つかりません"
 
 #: src/components/transactional/PreviewPanel.tsx:80
 msgid "This template has no content to preview yet"
@@ -23419,7 +23575,7 @@ msgstr "効果的なプレビューテキストのヒント:"
 #~ msgid "Tips for fixing these errors:"
 #~ msgstr "これらのエラーを修正するヒント:"
 
-#: src/components/blog/PostDrawer.tsx:880
+#: src/components/blog/PostDrawer.tsx:886
 #: src/components/blog/PostsTable.tsx:566
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:409
 #: src/components/email_builder/blocks/MjTitleBlock.tsx:34
@@ -23437,7 +23593,7 @@ msgstr "タイトルは必須です"
 msgid "Title must be {MAX_TITLE_LENGTH} characters or less"
 msgstr "タイトルは{MAX_TITLE_LENGTH}文字以内で入力してください"
 
-#: src/components/blog/PostDrawer.tsx:883
+#: src/components/blog/PostDrawer.tsx:889
 msgid "Title must be less than 500 characters"
 msgstr "タイトルは500文字未満にしてください"
 
@@ -23929,6 +24085,10 @@ msgstr "<0>{target}</0> の Amazon SES テナント分離を有効にしまし�
 msgid "Turned the webhook <0>{target}</0> on or off"
 msgstr "Webhook <0>{target}</0> をオンまたはオフにしました"
 
+#: src/components/lists/ListDrawer.tsx:552
+msgid "Turning double opt-in off does not change the “Pending” contacts: they stay pending until they confirm."
+msgstr "ダブルオプトインをオフにしても、「保留中」の連絡先は変わりません。確認するまで保留中のままです。"
+
 #: src/components/web_analytics/tabs/SettingsTab.tsx:144
 #~ msgid "Two decimals is roughly one kilometer."
 #~ msgstr ""
@@ -23993,8 +24153,8 @@ msgstr "リファラルの質を把握する"
 
 #: src/components/automations/AutomationEditor.tsx:479
 #: src/components/blog_editor/components/EditorHeader.tsx:55
-#: src/components/blog/PostDrawer.tsx:778
-#: src/components/blog/PostDrawer.tsx:781
+#: src/components/blog/PostDrawer.tsx:784
+#: src/components/blog/PostDrawer.tsx:787
 #: src/components/email_builder/EmailBuilder.tsx:992
 #: src/components/email_builder/EmailBuilder.tsx:1044
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
@@ -24114,8 +24274,8 @@ msgstr "ブログ記事 <0>{target}</0> を非公開にしました"
 
 #: src/components/automations/AutomationEditor.tsx:463
 #: src/components/blog/CategoryDrawer.tsx:177
-#: src/components/blog/PostDrawer.tsx:578
-#: src/components/blog/PostDrawer.tsx:755
+#: src/components/blog/PostDrawer.tsx:584
+#: src/components/blog/PostDrawer.tsx:761
 #: src/components/blog/ThemeEditorDrawer.tsx:475
 #: src/components/layout/SaveBar.tsx:98
 #: src/components/templates/TemplateDrawerBar.tsx:36
@@ -24227,7 +24387,7 @@ msgstr "無題"
 msgid "Untitled automation"
 msgstr "無題のオートメーション"
 
-#: src/components/blog/PostDrawer.tsx:1069
+#: src/components/blog/PostDrawer.tsx:1075
 msgid "Untitled post"
 msgstr "無題の記事"
 
@@ -24935,7 +25095,7 @@ msgstr "メッセージを表示"
 msgid "View page"
 msgstr "ページを表示"
 
-#: src/components/blog/PostDrawer.tsx:806
+#: src/components/blog/PostDrawer.tsx:812
 msgid "View post"
 msgstr "記事を表示"
 
@@ -25375,7 +25535,7 @@ msgstr "ブログへのリンクが共有されたとき"
 msgid "When a link to the category is shared"
 msgstr "カテゴリへのリンクが共有されたとき"
 
-#: src/components/blog/PostDrawer.tsx:1000
+#: src/components/blog/PostDrawer.tsx:1006
 msgid "When a link to the post is shared"
 msgstr "記事へのリンクが共有されたとき"
 
@@ -25400,8 +25560,8 @@ msgstr "記事へのリンクが共有されたとき"
 #~ msgstr "有効にすると、メール内のリンクが開封とクリックで追跡されます"
 
 #: src/components/lists/ListDrawer.tsx:261
-msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
-msgstr "有効にすると、購読者はリストに追加される前にメールで購読を確認する必要があります"
+#~ msgid "When enabled, subscribers must confirm their subscription via email before being added to the list"
+#~ msgstr "有効にすると、購読者はリストに追加される前にメールで購読を確認する必要があります"
 
 #: src/components/settings/BlogSettings.tsx:439
 #~ msgid "When enabled, the feed includes only excerpts instead of full article content"
@@ -25626,7 +25786,7 @@ msgstr "リストを選ばない場合、テストメールには有効な配信
 msgid "Without its own text, this language receives the automatic version."
 msgstr "独自のテキストがない場合、この言語には自動版が送信されます。"
 
-#: src/components/blog/PostDrawer.tsx:1102
+#: src/components/blog/PostDrawer.tsx:1108
 msgid "Words"
 msgstr "単語数"
 
@@ -25741,7 +25901,7 @@ msgstr "ラッパー属性"
 #~ msgid "Wrapper Attributes"
 #~ msgstr "ラッパー属性"
 
-#: src/components/blog/PostDrawer.tsx:844
+#: src/components/blog/PostDrawer.tsx:850
 #: src/components/settings/PermissionsMatrix.tsx:102
 #: src/components/settings/PermissionsMatrix.tsx:194
 #: src/components/settings/PermissionsMatrix.tsx:251
@@ -25790,7 +25950,7 @@ msgstr "年次"
 
 #: src/components/automations/edges/edgeLabel.ts:33
 #: src/components/blog/PostDrawer.tsx:306
-#: src/components/blog/PostDrawer.tsx:580
+#: src/components/blog/PostDrawer.tsx:586
 #: src/components/broadcasts/HeadersEditor.tsx:65
 #: src/components/broadcasts/useBroadcastActions.tsx:199
 #: src/components/contacts/ContactUpsertDrawer.tsx:559
@@ -25954,7 +26114,7 @@ msgstr "Webアナリティクスの書き込み権限がありません"
 msgid "You have unsaved changes."
 msgstr "保存されていない変更があります。"
 
-#: src/components/blog/PostDrawer.tsx:579
+#: src/components/blog/PostDrawer.tsx:585
 msgid "You have unsaved changes. Are you sure you want to close this drawer?"
 msgstr "未保存の変更があります。このドロワーを閉じてもよろしいですか？"
 
@@ -26022,13 +26182,18 @@ msgstr "テストメールを送信するには、テンプレートの読み取
 msgid "You need Templates read permission"
 msgstr "テンプレートの読み取り権限が必要です"
 
-#: src/components/templates/TemplateSelectorInput.tsx:155
+#: src/components/templates/TemplateSelectorInput.tsx:167
+#: src/components/templates/TemplateSelectorInput.tsx:238
 msgid "You need Templates read permission to choose a template"
 msgstr "テンプレートを選択するには、テンプレートの読み取り権限が必要です"
 
+#: src/components/templates/TemplateSelectorInput.tsx:237
+msgid "You need Templates read permission to see its name and preview"
+msgstr "名前とプレビューを見るにはテンプレートの閲覧権限が必要です"
+
 #: src/components/broadcasts/compose/PreviewPanel.tsx:84
 #: src/components/broadcasts/detail/BroadcastAside.tsx:88
-#: src/components/templates/TemplateSelectorInput.tsx:154
+#: src/components/templates/TemplateSelectorInput.tsx:166
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:342
 msgid "You need Templates read permission to see this template's name and preview"
 msgstr "このテンプレートの名前とプレビューを表示するには、テンプレートの読み取り権限が必要です"
@@ -26079,6 +26244,10 @@ msgstr "このカテゴリへの変更は失われます。"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:833
 msgid "Your changes to this integration will be lost."
 msgstr "この連携への変更は失われます。"
+
+#: src/components/lists/ListDrawer.tsx:211
+msgid "Your changes to this list will be lost."
+msgstr "このリストへの変更は失われます。"
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:504
 msgid "Your changes to this scheduled broadcast will be lost."

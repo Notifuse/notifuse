@@ -345,3 +345,71 @@ describe('TemplateSelectorInput without Templates read', () => {
     expect(templatesApi.get).toHaveBeenCalledWith({ workspace_id: 'ws1', id: 'tpl-a' })
   })
 })
+
+// The list drawer shows the double opt-in template as a card: the same window, editor and preview
+// behind it.
+describe('TemplateSelectorInput as a card', () => {
+  const card = () => document.querySelector('[data-template-card]') as HTMLElement
+
+  it('shows the name, the category and sender line, and a thumbnail', async () => {
+    renderSelector({ value: 'tpl-a', variant: 'card', category: 'opt_in', sendsWith: 'marketing' })
+    expect(await within(card()).findByText('Template A')).toBeInTheDocument()
+    expect(within(card()).getByText('Opt-in category · sent by the marketing provider')).toBeInTheDocument()
+    expect(within(card()).getByTestId('frame')).toHaveAttribute('data-template', 'tpl-a')
+    expect(within(card()).getByRole('button', { name: 'Preview' })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).toBeNull()
+  })
+
+  it('opens the window on its category with Change', async () => {
+    renderSelector({ value: 'tpl-a', variant: 'card', category: 'opt_in' })
+    await within(card()).findByText('Template A')
+    await userEvent.click(within(card()).getByRole('button', { name: 'Change' }))
+    expect(await screen.findByRole('dialog', { name: /Choose a template/ })).toBeInTheDocument()
+    await waitFor(() =>
+      expect(templatesApi.list).toHaveBeenCalledWith({ workspace_id: 'ws1', category: 'opt_in', channel: 'email' })
+    )
+  })
+
+  it('offers Choose on an empty card, which opens the window and picks', async () => {
+    const { onChange } = renderSelector({ value: null, variant: 'card', placeholder: 'Choose a confirmation template' })
+    expect(within(card()).getByText('Choose a confirmation template')).toBeInTheDocument()
+    expect(within(card()).queryByRole('button', { name: 'Preview' })).toBeNull()
+    await userEvent.click(within(card()).getByRole('button', { name: 'Choose' }))
+    const dialog = await screen.findByRole('dialog', { name: /Choose a template/ })
+    await userEvent.dblClick(await within(dialog).findByRole('button', { name: /^Template B/ }))
+    expect(onChange).toHaveBeenCalledWith('tpl-b')
+  })
+
+  it('shows the stored ID, locked, without Templates read, and requests nothing', async () => {
+    renderSelector({ value: 'tpl-a', variant: 'card', canReadTemplates: false })
+    expect(within(card()).getByText('tpl-a')).toBeInTheDocument()
+    expect(within(card()).getByText('You need Templates read permission to see its name and preview')).toBeInTheDocument()
+    expect(within(card()).queryByRole('button')).toBeNull()
+    await act(async () => {})
+    expect(templatesApi.get).not.toHaveBeenCalled()
+  })
+
+  it('says what reading is needed to choose, without Templates read and no value', () => {
+    renderSelector({ value: null, variant: 'card', canReadTemplates: false, placeholder: 'Choose a confirmation template' })
+    expect(within(card()).getByText('You need Templates read permission to choose a template')).toBeInTheDocument()
+    expect(within(card()).queryByRole('button')).toBeNull()
+  })
+
+  it('shows a skeleton while the template resolves, with Change already there', async () => {
+    ;(templatesApi.get as Mock).mockReturnValue(new Promise(() => {}))
+    renderSelector({ value: 'tpl-a', variant: 'card' })
+    expect(card().querySelector('.ant-skeleton')).not.toBeNull()
+    expect(within(card()).getByRole('button', { name: 'Change' })).toBeInTheDocument()
+    expect(within(card()).queryByRole('button', { name: 'Preview' })).toBeNull()
+  })
+
+  it('says when the template cannot be found, and still offers Change', async () => {
+    ;(templatesApi.get as Mock).mockRejectedValue(new Error('Template not found'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    renderSelector({ value: 'tpl-gone', variant: 'card' })
+    expect(await within(card()).findByText('This template cannot be found')).toBeInTheDocument()
+    expect(within(card()).getByText('tpl-gone')).toBeInTheDocument()
+    expect(within(card()).getByRole('button', { name: 'Change' })).toBeInTheDocument()
+    expect(within(card()).queryByRole('button', { name: 'Preview' })).toBeNull()
+  })
+})

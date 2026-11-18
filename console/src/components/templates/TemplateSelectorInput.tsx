@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useLingui } from '@lingui/react/macro'
-import { Input, Button, Space, Tooltip } from 'antd'
+import { Input, Button, Space, Tooltip, Skeleton } from 'antd'
 import { EyeOutlined, LockOutlined } from '@ant-design/icons'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Mail, TriangleAlert } from 'lucide-react'
 import { templatesApi } from '../../services/api/template'
 import type { Template } from '../../services/api/types'
 import TemplatePreviewPopover from './TemplatePreviewDrawer'
@@ -10,6 +10,8 @@ import { CreateTemplateDrawer } from './CreateTemplateDrawer'
 import { TemplateSelectorModal } from './TemplateSelectorModal'
 import { useAuth, useWorkspacePermissions } from '../../contexts/AuthContext'
 import type { SendingProvider } from '../transactional/senderInfo'
+import { TemplatePreviewFrame } from '../broadcasts/detail/TemplatePreviewFrame'
+import { TEMPLATE_CATEGORY_LABELS, isTemplateCategory } from './templateCategories'
 
 interface TemplateSelectorInputProps {
   value?: string | null
@@ -54,6 +56,11 @@ interface TemplateSelectorInputProps {
   sendsWith?: SendingProvider
   /** A sender set by the caller that goes before the template's own: a broadcast variant's. */
   senderOverrideId?: string
+  /**
+   * `card` shows the chosen template as a card (thumbnail, name, category and sender line, Preview
+   * and Change) instead of the input; the window, the editor and the full preview are the same.
+   */
+  variant?: 'input' | 'card'
 }
 
 // What the editor opened from the window starts from.
@@ -73,14 +80,18 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   subtitle,
   listStatusNotice,
   sendsWith,
-  senderOverrideId
+  senderOverrideId,
+  variant = 'input'
 }) => {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const defaultPlaceholder = placeholder || t`Select a template`
   const [open, setOpen] = useState<boolean>(false)
   const [creation, setCreation] = useState<Creation | null>(null)
   const [fullPreview, setFullPreview] = useState<{ template: Template; language?: string } | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  // The value templates.get could not resolve (deleted, or the request failed): the card says so
+  // instead of loading for ever.
+  const [unresolved, setUnresolved] = useState<string | null>(null)
   const { workspaces } = useAuth()
   // Creating and duplicating need Templates write; the editor manages the saved blocks with it too,
   // as the templates page does.
@@ -113,6 +124,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
       })
       .catch((error) => {
         console.error('Failed to fetch template details:', error)
+        if (!cancelled) setUnresolved(value)
       })
     return () => {
       cancelled = true
@@ -154,44 +166,9 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
     ? t`You need Templates read permission to see this template's name and preview`
     : t`You need Templates read permission to choose a template`
 
-  return (
+  // The window, the full preview and the editor: the same whichever way the field is shown.
+  const layers = (
     <>
-      <Space.Compact style={{ width: '100%' }}>
-        <Input
-          value={canReadTemplates ? shownTemplate?.name || '' : value || ''}
-          placeholder={defaultPlaceholder}
-          // Not read-only when clearable: a read-only input hides its clear cross.
-          readOnly={!clearable}
-          disabled={disabled || !canReadTemplates}
-          onClick={showSelector}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
-              event.preventDefault()
-              showSelector()
-            }
-          }}
-          onClear={() => choose(null)}
-          allowClear={clearable && canReadTemplates}
-          suffix={
-            canReadTemplates ? (
-              <ChevronDown size={14} aria-hidden="true" className="text-ink-3" />
-            ) : (
-              // Focusable, so the hint also reaches keyboard users: the input itself is disabled.
-              <Tooltip title={lockHint} trigger={['hover', 'focus']}>
-                <LockOutlined aria-label={lockHint} tabIndex={0} />
-              </Tooltip>
-            )
-          }
-          size={size}
-          style={{ flex: 1 }}
-        />
-        {canReadTemplates && shownTemplate && currentWorkspace && (
-          <TemplatePreviewPopover record={shownTemplate} workspace={currentWorkspace}>
-            <Button icon={<EyeOutlined />} size={size} aria-label={t`Preview`} />
-          </TemplatePreviewPopover>
-        )}
-      </Space.Compact>
-
       {open ? (
         <TemplateSelectorModal
           workspace={currentWorkspace}
@@ -235,6 +212,178 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
         />
       ) : null}
     </>
+  )
+
+  if (variant === 'card') {
+    const categoryLabel = category && isTemplateCategory(category) ? i18n._(TEMPLATE_CATEGORY_LABELS[category]) : null
+    const providerLabel =
+      sendsWith === 'marketing'
+        ? t`sent by the marketing provider`
+        : sendsWith === 'transactional'
+          ? t`sent by the transactional provider`
+          : null
+    return (
+      <>
+        <TemplateCard
+          value={value}
+          template={shownTemplate}
+          notFound={!!value && unresolved === value && !shownTemplate}
+          locked={!canReadTemplates}
+          disabled={disabled}
+          categoryLine={[categoryLabel ? t`${categoryLabel} category` : null, providerLabel].filter(Boolean).join(' · ')}
+          emptyTitle={defaultPlaceholder}
+          lockHint={
+            value
+              ? t`You need Templates read permission to see its name and preview`
+              : t`You need Templates read permission to choose a template`
+          }
+          onChange={showSelector}
+          preview={
+            shownTemplate ? (
+              <TemplatePreviewPopover record={shownTemplate} workspace={currentWorkspace}>
+                <Button size="small">{t`Preview`}</Button>
+              </TemplatePreviewPopover>
+            ) : null
+          }
+          thumbnail={
+            shownTemplate ? (
+              <TemplatePreviewFrame workspace={currentWorkspace} template={shownTemplate} frameHeight={400} />
+            ) : null
+          }
+        />
+        {layers}
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Space.Compact style={{ width: '100%' }}>
+        <Input
+          value={canReadTemplates ? shownTemplate?.name || '' : value || ''}
+          placeholder={defaultPlaceholder}
+          // Not read-only when clearable: a read-only input hides its clear cross.
+          readOnly={!clearable}
+          disabled={disabled || !canReadTemplates}
+          onClick={showSelector}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+              event.preventDefault()
+              showSelector()
+            }
+          }}
+          onClear={() => choose(null)}
+          allowClear={clearable && canReadTemplates}
+          suffix={
+            canReadTemplates ? (
+              <ChevronDown size={14} aria-hidden="true" className="text-ink-3" />
+            ) : (
+              // Focusable, so the hint also reaches keyboard users: the input itself is disabled.
+              <Tooltip title={lockHint} trigger={['hover', 'focus']}>
+                <LockOutlined aria-label={lockHint} tabIndex={0} />
+              </Tooltip>
+            )
+          }
+          size={size}
+          style={{ flex: 1 }}
+        />
+        {canReadTemplates && shownTemplate && currentWorkspace && (
+          <TemplatePreviewPopover record={shownTemplate} workspace={currentWorkspace}>
+            <Button icon={<EyeOutlined />} size={size} aria-label={t`Preview`} />
+          </TemplatePreviewPopover>
+        )}
+      </Space.Compact>
+
+      {layers}
+    </>
+  )
+}
+
+interface TemplateCardProps {
+  value?: string | null
+  template: Template | null
+  notFound: boolean
+  locked: boolean
+  disabled: boolean
+  categoryLine: string
+  emptyTitle: string
+  lockHint: string
+  preview: React.ReactNode
+  thumbnail: React.ReactNode
+  onChange: () => void
+}
+
+// The chosen template as a card: a thumbnail of its top, its name, what kind of email it is and
+// who sends it. Without a value, an empty card that opens the window.
+function TemplateCard({
+  value,
+  template,
+  notFound,
+  locked,
+  disabled,
+  categoryLine,
+  emptyTitle,
+  lockHint,
+  preview,
+  thumbnail,
+  onChange
+}: TemplateCardProps) {
+  const { t } = useLingui()
+  const canChange = !locked && !disabled
+
+  let title: React.ReactNode
+  let line: React.ReactNode = categoryLine
+  if (locked) {
+    title = value ? (
+      <span className="font-mono text-sm text-ink">{value}</span>
+    ) : (
+      <span className="text-ink-3">{emptyTitle}</span>
+    )
+    line = lockHint
+  } else if (!value) {
+    title = <span className="font-medium text-ink">{emptyTitle}</span>
+  } else if (template) {
+    title = <span className="truncate font-medium text-ink">{template.name}</span>
+  } else if (notFound) {
+    title = <span className="font-mono text-sm text-ink">{value}</span>
+    line = (
+      <span className="inline-flex items-center gap-1 text-warning-fg">
+        <TriangleAlert size={12} aria-hidden="true" />
+        {t`This template cannot be found`}
+      </span>
+    )
+  } else {
+    title = <Skeleton.Input active size="small" style={{ width: 160, height: 16 }} />
+  }
+
+  return (
+    <div
+      data-template-card
+      className={`flex items-center gap-3 rounded-md border p-2.5 ${value || locked ? 'border-line' : 'border-dashed border-line'}`}
+    >
+      {/* A fixed box that clips the frame: the top of the email, scaled to the box's width. */}
+      <div className="flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-line-soft bg-subtle text-ink-4">
+        {locked ? (
+          <LockOutlined aria-hidden="true" />
+        ) : thumbnail ? (
+          <div className="w-full self-start">{thumbnail}</div>
+        ) : (
+          <Mail size={18} aria-hidden="true" />
+        )}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0">{title}</div>
+        {line ? <div className="text-xs text-ink-3">{line}</div> : null}
+      </div>
+      {canChange ? (
+        <div className="flex shrink-0 items-center gap-1.5">
+          {preview}
+          <Button size="small" onClick={onChange}>
+            {value ? t`Change` : t`Choose`}
+          </Button>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
