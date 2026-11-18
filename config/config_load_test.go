@@ -128,3 +128,65 @@ func TestLoadWithOptions_DefaultsAndEnvPrecedence(t *testing.T) {
 	assert.Equal(t, "demo", cfg.Environment)
 	assert.True(t, cfg.IsDemo())
 }
+
+// EnvValues tells the setup wizard and System settings which values the environment
+// sets. A built-in value must never show up there: it would read as set by the
+// environment and shadow the value an operator stored.
+func TestLoadWithOptions_EnvValuesHoldOnlyTheEnvironment(t *testing.T) {
+	base := map[string]string{
+		"SECRET_KEY": loadTestSecret, "SMTP_FROM_NAME": "", "SMTP_BRIDGE_PORT": "", "SMTP_RELAY_PORT": "",
+		"TELEMETRY": "", "CHECK_FOR_UPDATES": "",
+	}
+
+	t.Run("nothing set", func(t *testing.T) {
+		cfg, err := loadWithEnv(t, base)
+		require.NoError(t, err)
+		assert.Empty(t, cfg.EnvValues.SMTPFromName)
+		assert.Zero(t, cfg.EnvValues.SMTPBridgePort)
+		assert.Empty(t, cfg.EnvValues.Telemetry)
+		assert.Empty(t, cfg.EnvValues.CheckForUpdates)
+		// The runtime still gets the built-in values.
+		assert.Equal(t, "Notifuse", cfg.SMTP.FromName)
+		assert.Equal(t, 587, cfg.SMTPBridge.Port)
+	})
+
+	t.Run("values set in the environment", func(t *testing.T) {
+		env := map[string]string{}
+		for k, v := range base {
+			env[k] = v
+		}
+		env["SMTP_FROM_NAME"] = "Acme"
+		env["SMTP_BRIDGE_PORT"] = "2600"
+		env["TELEMETRY"] = "1"
+		env["CHECK_FOR_UPDATES"] = "false"
+		cfg, err := loadWithEnv(t, env)
+		require.NoError(t, err)
+		assert.Equal(t, "Acme", cfg.EnvValues.SMTPFromName)
+		assert.Equal(t, 2600, cfg.EnvValues.SMTPBridgePort)
+		assert.Equal(t, "true", cfg.EnvValues.Telemetry, "parsed as the runtime parses it")
+		assert.Equal(t, "false", cfg.EnvValues.CheckForUpdates)
+	})
+
+	t.Run("TELEMETRY=TRUE counts as true", func(t *testing.T) {
+		env := map[string]string{}
+		for k, v := range base {
+			env[k] = v
+		}
+		env["TELEMETRY"] = "TRUE"
+		cfg, err := loadWithEnv(t, env)
+		require.NoError(t, err)
+		assert.Equal(t, "true", cfg.EnvValues.Telemetry)
+	})
+
+	t.Run("the legacy SMTP_RELAY_PORT alias alone still sets the bridge port", func(t *testing.T) {
+		env := map[string]string{}
+		for k, v := range base {
+			env[k] = v
+		}
+		env["SMTP_RELAY_PORT"] = "2526"
+		cfg, err := loadWithEnv(t, env)
+		require.NoError(t, err)
+		assert.Equal(t, 2526, cfg.EnvValues.SMTPBridgePort)
+		assert.Equal(t, 2526, cfg.SMTPBridge.Port)
+	})
+}

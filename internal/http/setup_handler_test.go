@@ -213,6 +213,46 @@ func TestSetupHandler_Status(t *testing.T) {
 	}
 }
 
+// The wizard reads env_overrides to lock the fields the environment sets: names only,
+// and only before install (setup.status stays public afterwards).
+func TestSetupHandler_Status_EnvOverrides(t *testing.T) {
+	statusBody := func(t *testing.T, installed bool, env *service.EnvironmentConfig) map[string]any {
+		t.Helper()
+		settingRepo := newMockSettingRepository()
+		if installed {
+			_ = settingRepo.Set(context.Background(), "is_installed", "true")
+		}
+		settingService := service.NewSettingService(settingRepo)
+		setupService := service.NewSetupService(settingService, &service.UserService{}, newMockUserRepository(), logger.NewLogger(), "secret-key", nil, env)
+		handler := NewSetupHandler(setupService, settingService, logger.NewLogger(), newMockAppShutdowner())
+
+		w := httptest.NewRecorder()
+		handler.Status(w, httptest.NewRequest(http.MethodGet, "/api/setup.status", nil))
+		require.Equal(t, http.StatusOK, w.Code)
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+		return body
+	}
+	env := &service.EnvironmentConfig{SMTPHost: "smtp.secret-host.com", Telemetry: "false"}
+
+	t.Run("not installed lists the set keys, sorted, without values", func(t *testing.T) {
+		body := statusBody(t, false, env)
+		assert.Equal(t, []any{"smtp_host", "telemetry_enabled"}, body["env_overrides"])
+		raw, _ := json.Marshal(body)
+		assert.NotContains(t, string(raw), "secret-host")
+	})
+
+	t.Run("installed leaves the field out", func(t *testing.T) {
+		_, present := statusBody(t, true, env)["env_overrides"]
+		assert.False(t, present)
+	})
+
+	t.Run("no env leaves the field out", func(t *testing.T) {
+		_, present := statusBody(t, false, &service.EnvironmentConfig{})["env_overrides"]
+		assert.False(t, present)
+	})
+}
+
 func TestSetupHandler_TestSMTP(t *testing.T) {
 	tlsTrue := true
 	tlsFalse := false

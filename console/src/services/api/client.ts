@@ -68,6 +68,15 @@ async function throwIfNotOk(response: Response): Promise<void> {
   await handleResponse<never>(response);
 }
 
+/** The address every console request goes to: API_ENDPOINT, else this page's origin. */
+export function apiBaseUrl(): string {
+  let defaultOrigin = window.location.origin;
+  if (defaultOrigin.includes("notifusedev.com")) {
+    defaultOrigin = "https://localapi.notifuse.com:4000";
+  }
+  return window.API_ENDPOINT?.trim().replace(/\/+$/, "") || defaultOrigin;
+}
+
 async function fetchWithAuth(
   endpoint: string,
   options: RequestInit = {},
@@ -78,12 +87,7 @@ async function fetchWithAuth(
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...options.headers,
   };
-  let defaultOrigin = window.location.origin;
-  if (defaultOrigin.includes("notifusedev.com")) {
-    defaultOrigin = "https://localapi.notifuse.com:4000";
-  }
-  const apiEndpoint =
-    window.API_ENDPOINT?.trim().replace(/\/+$/, "") || defaultOrigin;
+  const apiEndpoint = apiBaseUrl();
   try {
     return await fetch(`${apiEndpoint}${endpoint}`, {
       ...options,

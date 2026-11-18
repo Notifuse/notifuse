@@ -149,7 +149,16 @@ test.describe('Public Pages Load', () => {
 
     // Mock setup status endpoint
     await page.route('**/api/setup.status*', (route: Route) =>
-      route.fulfill(jsonResponse({ completed: false, step: 1 }))
+      route.fulfill(
+        jsonResponse({
+          is_installed: false,
+          smtp_configured: false,
+          api_endpoint_configured: false,
+          root_email_configured: false,
+          smtp_bridge_configured: false,
+          oidc_configured: false
+        })
+      )
     )
 
     await page.goto('/console/setup')
@@ -158,10 +167,11 @@ test.describe('Public Pages Load', () => {
     await page.waitForLoadState('networkidle')
 
     // The wizard asks for the root account and the SMTP settings it sends mail with
-    await expect(page.getByRole('heading', { name: 'Setup' })).toBeVisible()
-    await expect(page.getByText('Root Email')).toBeVisible()
-    await expect(page.getByText('SMTP Configuration')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Complete Setup' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Set up your Notifuse instance' })).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Root email' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /System email delivery/ })).toBeVisible()
+    await expect(page.getByRole('switch', { name: 'Anonymous telemetry' })).toBeChecked()
+    await expect(page.getByRole('button', { name: /Complete setup/ })).toBeVisible()
 
     // Check for critical console errors
     const criticalErrors = errors.filter(

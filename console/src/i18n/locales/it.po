@@ -726,6 +726,10 @@ msgstr "{count, plural, one {# contatto} other {# contatti}}"
 msgid "{count, plural, one {# empty field} other {# empty fields}}"
 msgstr "{count, plural, one {# campo vuoto} other {# campi vuoti}}"
 
+#: src/components/setup/setupHooks.ts:43
+msgid "{count, plural, one {# field to fill} other {# fields to fill}}"
+msgstr "{count, plural, one {# campo da compilare} other {# campi da compilare}}"
+
 #: src/components/file_manager/FileTable.tsx:110
 msgid "{count, plural, one {# file} other {# files}}"
 msgstr "{count, plural, one {# file} other {# file}}"
@@ -843,6 +847,10 @@ msgstr "{done, plural, one {# di {total} completato} other {# di {total} complet
 #: src/components/broadcasts/SendingProgress.tsx:83
 msgid "{done} of {total}"
 msgstr "{done} di {total}"
+
+#: src/components/setup/SetupRestartView.tsx:76
+msgid "{elapsed} s"
+msgstr "{elapsed} s"
 
 #: src/components/segment/segmentValueError.ts:31
 msgid "{email} has \"{value}\" in {field}, which is not a date."
@@ -2008,6 +2016,10 @@ msgstr "Il test A/B è in corso. Le email sono in fase di invio al gruppo di tes
 msgid "Abandoned cart"
 msgstr "Carrello abbandonato"
 
+#: src/components/setup/LockableItem.tsx:40
+msgid "About {label}"
+msgstr "Informazioni su {label}"
+
 #: src/components/settings/GeneralSettings.tsx:167
 msgid "About consent"
 msgstr "Informazioni sul consenso"
@@ -2019,6 +2031,22 @@ msgstr "Informazioni sull'uscita alla risposta"
 #: src/components/broadcasts/compose/AudienceCard.tsx:83
 msgid "About segments"
 msgstr "Informazioni sui segmenti"
+
+#: src/components/setup/SsoPanel.tsx:52
+msgid "About single sign-on"
+msgstr "Informazioni sul single sign-on"
+
+#: src/components/setup/SmtpPanel.tsx:119
+msgid "About system email delivery"
+msgstr "Informazioni sull'invio delle email di sistema"
+
+#: src/components/setup/SsoPanel.tsx:107
+msgid "About the redirect URI"
+msgstr "Informazioni sull'URI di reindirizzamento"
+
+#: src/components/setup/BridgePanel.tsx:32
+msgid "About the SMTP bridge"
+msgstr "Informazioni sul bridge SMTP"
 
 #: src/components/logs/MessagesTab.tsx:604
 msgid "About these counts"
@@ -2544,10 +2572,17 @@ msgid "Adds this list's unsubscribe links, as the broadcast does. The broadcast 
 msgstr "Aggiunge i link di disiscrizione di questa lista, come il broadcast. Il broadcast va anche ai contatti disiscritti della lista, quindi il test non ha l'intestazione List-Unsubscribe. Disiscriversi o confermare da questo test, o un bounce o un reclamo su di esso, cambia davvero l'iscrizione del destinatario alla lista."
 
 #: src/pages/SetupWizard.tsx:369
-msgid "Admin email is required"
-msgstr "Email amministratore richiesta"
+#~ msgid "Admin email is required"
+#~ msgstr "Email amministratore richiesta"
+
+#: src/components/setup/AdministratorPanel.tsx:25
+#: src/components/setup/setupHooks.ts:30
+msgid "Administrator"
+msgstr "Amministratore"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:479
+#: src/components/setup/SmtpPanel.tsx:220
+#: src/components/setup/SsoPanel.tsx:129
 msgid "Advanced"
 msgstr "Avanzate"
 
@@ -2556,8 +2591,8 @@ msgid "Advanced conditions: create a segment"
 msgstr "Condizioni avanzate: crea un segmento"
 
 #: src/pages/SetupWizard.tsx:548
-msgid "Advanced Settings"
-msgstr "Impostazioni avanzate"
+#~ msgid "Advanced Settings"
+#~ msgstr "Impostazioni avanzate"
 
 #: src/components/email_builder/blocks/MjBreakpointBlock.tsx:48
 msgid "Affects how columns stack on mobile devices"
@@ -2798,8 +2833,8 @@ msgid "All transactional emails (notifications, password resets, etc.) will be s
 msgstr "Tutte le email transazionali (notifiche, reimpostazione password, ecc.) saranno inviate tramite questo provider da ora in poi."
 
 #: src/pages/SetupWizard.tsx:583
-msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
-msgstr "Consenti la ricezione di email per attivare notifiche transazionali. Richiede certificati TLS."
+#~ msgid "Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
+#~ msgstr "Consenti la ricezione di email per attivare notifiche transazionali. Richiede certificati TLS."
 
 #: src/components/settings/WebAnalyticsSettings.tsx:226
 #: src/components/settings/WebAnalyticsSettings.tsx:289
@@ -2807,7 +2842,8 @@ msgid "Allowed domains"
 msgstr "Domini consentiti"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:668
-#: src/pages/SetupWizard.tsx:761
+#: src/components/setup/SsoPanel.tsx:165
+#: src/components/setup/SsoPanel.tsx:178
 msgid "Allowed email domains"
 msgstr "Domini email consentiti"
 
@@ -3014,6 +3050,10 @@ msgstr "Annotazioni"
 msgid "Annotations have no permission of their own: they deliberately answer to this switch, so a Web Analytics grant is also the right to write on the shared timeline everyone reads. Write reaches workspace configuration too — /api/workspaces.setWebAnalyticsSettings answers to Web Analytics write rather than Workspace write, including the email-link identification setting that ties recipients to their browsing. The public /track collector is governed by nothing at all: it accepts data without any authentication, and no grant here changes that."
 msgstr "Le annotazioni non hanno un permesso proprio: rispondono deliberatamente a questo interruttore, quindi una concessione Web Analytics è anche il diritto di scrivere sulla timeline condivisa che tutti leggono. La scrittura raggiunge anche la configurazione del workspace — /api/workspaces.setWebAnalyticsSettings risponde alla scrittura Web Analytics anziché alla scrittura Workspace, inclusa l'impostazione di identificazione tramite link email che collega i destinatari alla loro navigazione. Il collector pubblico /track non è governato da nulla: accetta dati senza alcuna autenticazione, e nessuna concessione qui cambia questo."
 
+#: src/components/setup/UpdatesPanel.tsx:56
+msgid "Anonymous telemetry"
+msgstr "Telemetria anonima"
+
 #: src/components/email_builder/EmailBuilder.tsx:877
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "È in corso un’altra modifica della libreria. Riprova tra un momento."
@@ -3116,15 +3156,15 @@ msgstr "Documentazione API"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:708
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:709
 #: src/components/settings/integrations/providerDetails.ts:132
+#: src/components/setup/AdministratorPanel.tsx:53
 msgid "API endpoint"
 msgstr "Endpoint dell’API"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:287
-#: src/pages/SetupWizard.tsx:379
 msgid "API Endpoint"
 msgstr "API Endpoint"
 
-#: src/pages/SetupWizard.tsx:382
+#: src/components/setup/AdministratorPanel.tsx:56
 msgid "API endpoint is required"
 msgstr "API endpoint richiesto"
 
@@ -3248,6 +3288,10 @@ msgstr "Applica e ricompila"
 #: src/components/web_analytics/FilterBuilder.tsx:394
 msgid "Apply filter"
 msgstr "Applica filtro"
+
+#: src/components/setup/SetupRestartView.tsx:67
+msgid "Applying your configuration"
+msgstr "Applicazione della configurazione"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:450
 msgid "Are you sure you want to cancel the operation? Progress will be saved and you can resume later."
@@ -3432,7 +3476,7 @@ msgstr "ALMENO UNA"
 #~ msgid "At least one condition is required"
 #~ msgstr "È richiesta almeno una condizione"
 
-#: src/pages/SetupWizard.tsx:766
+#: src/components/setup/SsoPanel.tsx:168
 msgid "At least one domain is required when auto-create is enabled"
 msgstr "È richiesto almeno un dominio quando la creazione automatica è abilitata"
 
@@ -3441,6 +3485,7 @@ msgid "At least one operation is required"
 msgstr "È richiesta almeno un'operazione"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:88
+#: src/components/setup/AdministratorPanel.tsx:37
 msgid "At least one root email is required"
 msgstr "È richiesta almeno un'email root"
 
@@ -3571,7 +3616,8 @@ msgstr "automatico"
 msgid "Auto"
 msgstr "Automatico"
 
-#: src/pages/SetupWizard.tsx:753
+#: src/components/setup/SsoPanel.tsx:144
+#: src/components/setup/SsoPanel.tsx:154
 msgid "Auto-create accounts on first sign-in"
 msgstr "Crea automaticamente gli account al primo accesso"
 
@@ -3859,16 +3905,24 @@ msgid "Base64 encoded TLS certificate"
 msgstr "Certificato TLS codificato in Base64"
 
 #: src/pages/SetupWizard.tsx:646
-msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
-msgstr "Certificato TLS codificato in Base64. Esegui: cat fullchain.pem | base64 -w 0"
+#~ msgid "Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
+#~ msgstr "Certificato TLS codificato in Base64. Esegui: cat fullchain.pem | base64 -w 0"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:539
 msgid "Base64 encoded TLS private key"
 msgstr "Chiave privata TLS codificata in Base64"
 
 #: src/pages/SetupWizard.tsx:664
-msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
-msgstr "Chiave privata TLS codificata in Base64. Esegui: cat privkey.pem | base64 -w 0"
+#~ msgid "Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
+#~ msgstr "Chiave privata TLS codificata in Base64. Esegui: cat privkey.pem | base64 -w 0"
+
+#: src/components/setup/BridgePanel.tsx:58
+msgid "Base64 of the full chain: cat fullchain.pem | base64 -w 0"
+msgstr "Base64 della catena completa: cat fullchain.pem | base64 -w 0"
+
+#: src/components/setup/BridgePanel.tsx:67
+msgid "Base64 of the private key: cat privkey.pem | base64 -w 0"
+msgstr "Base64 della chiave privata: cat privkey.pem | base64 -w 0"
 
 #: src/components/settings/integrations/providerDetails.ts:70
 msgid "Basic (username and password)"
@@ -3928,6 +3982,10 @@ msgstr "Hook prima della creazione utente"
 #: src/components/transactional/NotificationChecks.tsx:238
 msgid "Before you create"
 msgstr "Prima di creare"
+
+#: src/components/setup/SetupRail.tsx:22
+msgid "Before you finish"
+msgstr "Prima di finire"
 
 #: src/components/updates/UpdateDrawer.tsx:87
 msgid "Before you upgrade:"
@@ -4617,8 +4675,11 @@ msgstr "Attributi pulsante"
 #~ msgid "Button Attributes"
 #~ msgstr "Attributi pulsante"
 
+#: src/components/setup/SsoPanel.tsx:94
+msgid "Button label"
+msgstr "Etichetta del pulsante"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:630
-#: src/pages/SetupWizard.tsx:743
 msgid "Button Label"
 msgstr "Etichetta pulsante"
 
@@ -5068,14 +5129,21 @@ msgstr "Canali"
 msgid "Check"
 msgstr "Verifica"
 
+#: src/components/setup/UpdatesPanel.tsx:50
+msgid "Check for updates"
+msgstr "Verifica aggiornamenti"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:709
-#: src/pages/SetupWizard.tsx:566
 msgid "Check for Updates"
 msgstr "Controlla aggiornamenti"
 
 #: src/components/templates/ImportErrorsModal.tsx:76
 msgid "Check the MJML hierarchy and that every tag is closed."
 msgstr "Controlla la gerarchia MJML e che ogni tag sia chiuso."
+
+#: src/components/setup/SetupRestartView.tsx:88
+msgid "Check the server logs, then reload this page. Your configuration is already saved."
+msgstr "Controlla i log del server, poi ricarica questa pagina. La configurazione è già salvata."
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:193
 msgid "Checked as you type; the server checks again on save."
@@ -5472,30 +5540,33 @@ msgstr "I clic non erano tracciati"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:663
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:665
 #: src/components/settings/SystemSettingsDrawer.tsx:583
-#: src/pages/SetupWizard.tsx:723
+#: src/components/setup/SsoPanel.tsx:78
 msgid "Client ID"
 msgstr "Client ID"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:650
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:666
-#: src/pages/SetupWizard.tsx:726
+#: src/components/setup/SsoPanel.tsx:79
 msgid "Client ID is required"
 msgstr "Il Client ID è obbligatorio"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:652
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:668
+#: src/components/setup/SsoPanel.tsx:86
 msgid "Client secret"
 msgstr "Client secret"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:672
 #: src/components/settings/SystemSettingsDrawer.tsx:593
-#: src/pages/SetupWizard.tsx:733
 msgid "Client Secret"
 msgstr "Client Secret"
 
+#: src/components/setup/SsoPanel.tsx:87
+msgid "Client secret is required"
+msgstr "Il client secret è obbligatorio"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:657
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:673
-#: src/pages/SetupWizard.tsx:736
 msgid "Client Secret is required"
 msgstr "Il Client Secret è obbligatorio"
 
@@ -5628,8 +5699,8 @@ msgid "Column width (e.g., '50%', '300px', 'auto')"
 msgstr "Larghezza colonna (es. '50%', '300px', 'auto')"
 
 #: src/pages/SetupWizard.tsx:769
-msgid "Comma-separated list of email domains permitted to auto-create accounts"
-msgstr "Elenco separato da virgole dei domini email autorizzati a creare automaticamente gli account"
+#~ msgid "Comma-separated list of email domains permitted to auto-create accounts"
+#~ msgstr "Elenco separato da virgole dei domini email autorizzati a creare automaticamente gli account"
 
 #: src/components/web_analytics/FilterBuilder.tsx:333
 msgid "Comma-separated values"
@@ -5639,8 +5710,11 @@ msgstr "Valori separati da virgole"
 msgid "Comma-separated. Only these domains may auto-create accounts."
 msgstr "Separati da virgole. Solo questi domini possono creare automaticamente gli account."
 
+#: src/components/setup/SmtpPanel.tsx:160
+msgid "Common ports: 587 (STARTTLS), 465 (implicit TLS), 25 (unencrypted)."
+msgstr "Porte comuni: 587 (STARTTLS), 465 (TLS implicito), 25 (non cifrato)."
+
 #: src/components/settings/SystemSettingsDrawer.tsx:351
-#: src/pages/SetupWizard.tsx:466
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
 msgstr "Porte comuni: 587 (TLS), 465 (SSL), 25 (non criptato)"
 
@@ -5724,9 +5798,9 @@ msgstr "Reclami"
 msgid "Complement, don't repeat the subject line"
 msgstr "Completa, non ripetere la subject line"
 
-#: src/pages/BroadcastsPage.tsx:269
-#~ msgid "Complete"
-#~ msgstr "Completato"
+#: src/components/setup/setupHooks.ts:44
+msgid "Complete"
+msgstr "Completato"
 
 #: src/pages/AnalyticsPage.tsx:134
 msgid "Complete days up to yesterday, in the workspace's time zone ({timezone})"
@@ -5736,9 +5810,13 @@ msgstr "Giorni completi fino a ieri, nel fuso orario del workspace ({timezone})"
 msgid "Complete or remove the unfinished filters"
 msgstr "Completa o rimuovi i filtri incompleti"
 
+#: src/components/setup/SetupRail.tsx:32
+msgid "Complete setup"
+msgstr "Completa la configurazione"
+
 #: src/pages/SetupWizard.tsx:798
-msgid "Complete Setup"
-msgstr "Completa configurazione"
+#~ msgid "Complete Setup"
+#~ msgstr "Completa configurazione"
 
 #: src/components/segment/SegmentCountCard.tsx:129
 msgid "Complete the condition to refresh the count"
@@ -5820,6 +5898,10 @@ msgstr "Condizioni"
 #: src/components/automations/NodeConfigPanel.tsx:167
 #~ msgid "Configuration for {nodeType} is not available in Phase 2"
 #~ msgstr "Configurazione per {nodeType} non disponibile in Fase 2"
+
+#: src/components/setup/SetupRestartView.tsx:73
+msgid "Configuration saved"
+msgstr "Configurazione salvata"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:482
 #: src/components/settings/integrations/providerDetails.ts:90
@@ -5961,6 +6043,10 @@ msgstr "Collegato il"
 #: src/components/settings/integrations/IntegrationCatalogue.tsx:167
 msgid "Connected apps"
 msgstr "App collegate"
+
+#: src/components/setup/SmtpPanel.tsx:99
+msgid "Connected to {target} · {time}"
+msgstr "Connesso a {target} · {time}"
 
 #: src/components/logs/auditPhrases.ts:85
 msgid "Connected Zapier as the integration <0>{target}</0>"
@@ -6268,6 +6354,7 @@ msgstr "Copiato"
 #: src/components/settings/WebhookDetail.tsx:380
 #: src/components/settings/ZapierSettings.tsx:191
 #: src/components/settings/ZapierSettings.tsx:260
+#: src/components/setup/SsoPanel.tsx:116
 #: src/components/transactional/ApiCallPanel.tsx:76
 msgid "Copy"
 msgstr "Copia"
@@ -6341,6 +6428,10 @@ msgstr "Impossibile copiare l'ID"
 #: src/components/logs/AuditEntryDetail.tsx:97
 msgid "Could not copy the link"
 msgstr "Impossibile copiare il link"
+
+#: src/components/setup/SsoPanel.tsx:36
+msgid "Could not copy the redirect URI"
+msgstr "Impossibile copiare l'URI di reindirizzamento"
 
 #: src/components/analytics/BlockError.tsx:20
 #: src/components/analytics/DashboardKpis.tsx:194
@@ -7483,7 +7574,6 @@ msgstr "Predefinito: {fallbackTitle}"
 #~ msgstr "Predefinito al meta title"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:597
-#: src/pages/SetupWizard.tsx:526
 msgid "Defaults to SMTP host"
 msgstr "Per impostazione predefinita usa l'host SMTP"
 
@@ -7514,6 +7604,10 @@ msgstr "Predefinito: l'estratto"
 #: src/components/blog/PostDrawer.tsx:720
 msgid "Defaults to the featured image"
 msgstr "Predefinito: l'immagine in evidenza"
+
+#: src/components/setup/SmtpPanel.tsx:230
+msgid "Defaults to the SMTP host"
+msgstr "Predefinito: l'host SMTP"
 
 #: src/components/transactional/TransactionalDetail.tsx:396
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:591
@@ -8372,7 +8466,7 @@ msgstr "non è uguale a"
 #: src/components/settings/GeneralSettings.tsx:460
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:745
 #: src/components/settings/integrations/providerDetails.ts:144
-#: src/pages/SetupWizard.tsx:605
+#: src/components/setup/BridgePanel.tsx:46
 msgid "Domain"
 msgstr "Dominio"
 
@@ -8381,8 +8475,8 @@ msgid "Domain and API key, US or EU"
 msgstr "Dominio e API Key, US o EU"
 
 #: src/pages/SetupWizard.tsx:613
-msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
-msgstr "Dominio per il server SMTP bridge (es. smtp.yourcompany.com)"
+#~ msgid "Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)"
+#~ msgstr "Dominio per il server SMTP bridge (es. smtp.yourcompany.com)"
 
 #: src/components/segment/segmentLabels.ts:99
 msgid "Domain the visit started on, which the path belongs to"
@@ -8415,6 +8509,10 @@ msgstr "Non tracciare aperture e clic per questo broadcast"
 #: src/components/templates/TemplateTranslationsTab.tsx:501
 msgid "Done"
 msgstr "Fatto"
+
+#: src/pages/SetupWizard.tsx:198
+msgid "Done once. Everything here can be changed later in System settings."
+msgstr "Si fa una volta sola. Tutto si può modificare in seguito nelle impostazioni di sistema."
 
 #: src/components/email_builder/blocks/MjDividerBlock.tsx:63
 #: src/components/email_builder/ui/BorderInput.tsx:58
@@ -8888,6 +8986,10 @@ msgstr "Modifica dati di test"
 msgid "Edit Test Data (JSON)"
 msgstr "Modifica dati di test (JSON)"
 
+#: src/components/setup/SetupPanel.tsx:81
+msgid "Edit the environment and restart the server to change these values."
+msgstr "Modifica l'ambiente e riavvia il server per cambiare questi valori."
+
 #: src/components/broadcasts/compose/ContentCard.tsx:193
 msgid "Edit the subject in the template"
 msgstr "Modifica l'oggetto nel modello"
@@ -8961,11 +9063,11 @@ msgstr "Modalità editor"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:595
 #: src/components/settings/integrations/providerDetails.ts:76
+#: src/components/setup/SmtpPanel.tsx:227
 msgid "EHLO hostname"
 msgstr "Hostname EHLO"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:442
-#: src/pages/SetupWizard.tsx:523
 msgid "EHLO Hostname"
 msgstr "Hostname EHLO"
 
@@ -9070,6 +9172,10 @@ msgstr "Email consegnata"
 #: src/components/contacts/sheet/describeActivity.tsx:294
 msgid "Email delivered: {name}"
 msgstr "Email consegnata: {name}"
+
+#: src/components/setup/setupHooks.ts:31
+msgid "Email delivery"
+msgstr "Invio email"
 
 #: src/components/contacts/sheet/describeActivity.tsx:145
 msgid "Email failed: {name}"
@@ -9334,8 +9440,8 @@ msgstr "Attiva"
 #~ msgstr "Abilita test A/B"
 
 #: src/pages/SetupWizard.tsx:556
-msgid "Enable Anonymous Telemetry"
-msgstr "Abilita telemetria anonima"
+#~ msgid "Enable Anonymous Telemetry"
+#~ msgstr "Abilita telemetria anonima"
 
 #: src/components/settings/BlogSettings.tsx:301
 #: src/components/settings/BlogSettings.tsx:328
@@ -9358,17 +9464,25 @@ msgstr "Abilitala per vedere quali regole prevarrebbero su di essa."
 msgid "Enable or disable a subscription"
 msgstr "Abilita o disabilita una subscription"
 
+#: src/components/setup/SsoPanel.tsx:42
+msgid "Enable single sign-on"
+msgstr "Attiva il single sign-on"
+
 #: src/pages/SetupWizard.tsx:687
-msgid "Enable Single Sign-On (OpenID Connect)"
-msgstr "Abilita il Single Sign-On (OpenID Connect)"
+#~ msgid "Enable Single Sign-On (OpenID Connect)"
+#~ msgstr "Abilita il Single Sign-On (OpenID Connect)"
 
 #: src/pages/SetupWizard.tsx:582
-msgid "Enable SMTP Bridge Server"
-msgstr "Abilita server SMTP bridge"
+#~ msgid "Enable SMTP Bridge Server"
+#~ msgstr "Abilita server SMTP bridge"
 
 #: src/components/settings/BlogSettings.tsx:303
 #~ msgid "Enable the blog feature to publish articles and content on your custom domain homepage. Your blog will be accessible at"
 #~ msgstr "Abilita la funzionalità blog per pubblicare articoli e contenuti sulla homepage del tuo dominio personalizzato. Il tuo blog sarà accessibile su"
+
+#: src/components/setup/BridgePanel.tsx:22
+msgid "Enable the SMTP bridge"
+msgstr "Attiva il bridge SMTP"
 
 #: src/components/web_analytics/filters/FilterTable.tsx:320
 msgid "Enable this rule?"
@@ -9379,7 +9493,6 @@ msgid "Enable this translation to edit it."
 msgstr "Attiva questa traduzione per modificarla."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:365
-#: src/pages/SetupWizard.tsx:481
 msgid "Enable TLS encryption for SMTP connection"
 msgstr "Abilita crittografia TLS per connessione SMTP"
 
@@ -9659,6 +9772,14 @@ msgstr "Inserisci il codice a 6 cifre inviato a {email}"
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
 msgstr "Inserisci il nome dell'evento personalizzato (es. 'acquisto', 'registrazione')"
 
+#: src/components/setup/SmtpPanel.tsx:190
+msgid "Enter the password that goes with this username, or clear both."
+msgstr "Inserisci la password di questo nome utente oppure svuota entrambi."
+
+#: src/components/setup/SmtpPanel.tsx:181
+msgid "Enter the username that goes with this password, or clear both."
+msgstr "Inserisci il nome utente di questa password oppure svuota entrambi."
+
 #: src/components/email_builder/ui/StringPopoverInput.tsx:26
 msgid "Enter value"
 msgstr "Inserisci valore"
@@ -9726,6 +9847,10 @@ msgstr "Elenca ogni indirizzo iscritto a una lista (richiede anche Lettura Liste
 #: src/components/templates/TemplateSettingsStep.tsx:205
 msgid "Envelope"
 msgstr "Busta"
+
+#: src/components/setup/SetupPanel.tsx:71
+msgid "Environment variables"
+msgstr "Variabili d'ambiente"
 
 #: src/components/segment/segmentLabels.ts:293
 msgid "equal to"
@@ -10251,7 +10376,7 @@ msgstr "Impossibile cancellare il campo"
 msgid "Failed to compile template preview."
 msgstr "Impossibile compilare l'anteprima del template."
 
-#: src/pages/SetupWizard.tsx:242
+#: src/pages/SetupWizard.tsx:144
 msgid "Failed to complete setup"
 msgstr "Impossibile completare la configurazione"
 
@@ -10442,7 +10567,7 @@ msgstr "Impossibile recuperare i dati: {0}"
 #~ msgid "Failed to fetch objects: "
 #~ msgstr "Impossibile recuperare gli oggetti: "
 
-#: src/pages/SetupWizard.tsx:58
+#: src/pages/SetupWizard.tsx:95
 msgid "Failed to fetch setup status"
 msgstr "Impossibile recuperare lo stato della configurazione"
 
@@ -10676,7 +10801,7 @@ msgstr "Impossibile testare il provider email"
 msgid "Failed to test recipient feed: {0}"
 msgstr "Impossibile testare il feed destinatario: {0}"
 
-#: src/pages/SetupWizard.tsx:87
+#: src/components/setup/SmtpPanel.tsx:67
 msgid "Failed to test SMTP connection"
 msgstr "Impossibile testare la connessione SMTP"
 
@@ -11290,12 +11415,15 @@ msgstr "Da un'email"
 msgid "From console.anthropic.com"
 msgstr "Da console.anthropic.com"
 
+#: src/components/setup/SmtpPanel.tsx:199
+msgid "From email"
+msgstr "Email del mittente"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:409
-#: src/pages/SetupWizard.tsx:504
 msgid "From Email"
 msgstr "Email Mittente"
 
-#: src/pages/SetupWizard.tsx:507
+#: src/components/setup/SmtpPanel.tsx:201
 msgid "From email is required"
 msgstr "L'email del mittente è obbligatoria"
 
@@ -11307,8 +11435,11 @@ msgstr "Da firecrawl.dev o dalla tua istanza"
 msgid "From Google AI Studio"
 msgstr "Da Google AI Studio"
 
+#: src/components/setup/SmtpPanel.tsx:207
+msgid "From name"
+msgstr "Nome del mittente"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:425
-#: src/pages/SetupWizard.tsx:515
 msgid "From Name"
 msgstr "Nome Mittente"
 
@@ -11516,8 +11647,11 @@ msgstr "Risposta del feed globale"
 #~ msgid "Global feed URL is required when enabled"
 #~ msgstr "L'URL del feed globale è richiesto quando abilitato"
 
+#: src/components/setup/SetupRestartView.tsx:106
+msgid "Go to sign in"
+msgstr "Vai all'accesso"
+
 #: src/pages/AcceptInvitationPage.tsx:127
-#: src/pages/SetupWizard.tsx:338
 msgid "Go to Sign In"
 msgstr "Vai al Login"
 
@@ -11831,8 +11965,8 @@ msgid "Help & Support"
 msgstr "Aiuto e Supporto"
 
 #: src/pages/SetupWizard.tsx:557
-msgid "Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected."
-msgstr "Aiutaci a migliorare Notifuse inviando statistiche di utilizzo anonime. Nessun dato personale o contenuto dei messaggi viene raccolto."
+#~ msgid "Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected."
+#~ msgstr "Aiutaci a migliorare Notifuse inviando statistiche di utilizzo anonime. Nessun dato personale o contenuto dei messaggi viene raccolto."
 
 #: src/components/blog_editor/components/image/ImageNodeView.tsx:329
 msgid "Helps screen readers describe the image"
@@ -11910,6 +12044,7 @@ msgid "Hook URL"
 msgstr "URL hook"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:569
+#: src/components/setup/SmtpPanel.tsx:151
 #: src/components/transactional/ApiCommandDrawer.tsx:143
 msgid "Host"
 msgstr "Host"
@@ -12224,6 +12359,10 @@ msgstr "TLS implicito"
 #: src/components/transactional/ApiCommandDrawer.tsx:130
 msgid "Implicit TLS (SMTPS)"
 msgstr "TLS implicito (SMTPS)"
+
+#: src/components/setup/setupHooks.ts:52
+msgid "Implicit TLS on 465"
+msgstr "TLS implicito su 465"
 
 #: src/components/contacts/ContactsViewHeader.tsx:269
 #: src/components/contacts/TrackingConsent.tsx:48
@@ -12586,13 +12725,13 @@ msgstr "Condizione di visualizzazione non valida"
 msgid "Invalid email"
 msgstr "Email non valida"
 
-#: src/pages/SetupWizard.tsx:370
-#: src/pages/SetupWizard.tsx:508
+#: src/components/setup/SmtpPanel.tsx:202
 msgid "Invalid email format"
 msgstr "Formato email non valido"
 
 #. placeholder {0}: invalid.join(', ')
 #: src/components/settings/SystemSettingsDrawer.tsx:93
+#: src/components/setup/AdministratorPanel.tsx:20
 msgid "Invalid email: {0}"
 msgstr "Email non valida: {0}"
 
@@ -12650,7 +12789,8 @@ msgstr "Struttura albero non valida: non è un oggetto"
 msgid "Invalid tree structure: root must be mjml type"
 msgstr "Struttura albero non valida: la radice deve essere di tipo mjml"
 
-#: src/pages/SetupWizard.tsx:383
+#: src/components/setup/AdministratorPanel.tsx:57
+#: src/components/setup/SsoPanel.tsx:113
 msgid "Invalid URL format"
 msgstr "Formato URL non valido"
 
@@ -12808,11 +12948,11 @@ msgid "isolation requested but not provisioned"
 msgstr "isolamento richiesto ma non provisionato"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:564
-#: src/pages/SetupWizard.tsx:711
+#: src/components/setup/SsoPanel.tsx:66
 msgid "Issuer URL"
 msgstr "URL dell'issuer"
 
-#: src/pages/SetupWizard.tsx:714
+#: src/components/setup/SsoPanel.tsx:69
 msgid "Issuer URL is required"
 msgstr "L'URL dell'issuer è obbligatorio"
 
@@ -13296,8 +13436,8 @@ msgid "less than or equal to"
 msgstr "minore o uguale a"
 
 #: src/pages/SetupWizard.tsx:688
-msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
-msgstr "Permetti agli utenti di accedere con un identity provider esterno (Google Workspace, Keycloak, Okta, …) oltre che con i codici magici."
+#~ msgid "Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes."
+#~ msgstr "Permetti agli utenti di accedere con un identity provider esterno (Google Workspace, Keycloak, Okta, …) oltre che con i codici magici."
 
 #: src/components/templates/CreateTemplateDrawer.tsx:1481
 msgid "Let's take a quick tour to help you get started with building beautiful emails using MJML."
@@ -13777,7 +13917,7 @@ msgstr "Caricamento"
 msgid "Loading message history..."
 msgstr "Caricamento cronologia messaggi..."
 
-#: src/pages/SetupWizard.tsx:298
+#: src/pages/SetupWizard.tsx:171
 msgid "Loading setup..."
 msgstr "Caricamento configurazione..."
 
@@ -14575,7 +14715,7 @@ msgstr "Pagine più viste"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:568
 #: src/components/settings/SystemSettingsDrawer.tsx:610
-#: src/pages/SetupWizard.tsx:715
+#: src/components/setup/SsoPanel.tsx:70
 msgid "Must be a valid https URL"
 msgstr "Deve essere un URL https valido"
 
@@ -15187,6 +15327,10 @@ msgstr "Nessuna email inviata in questo periodo"
 #: src/components/transactional/NotificationChecks.tsx:124
 msgid "No email template"
 msgstr "Nessun template email"
+
+#: src/components/setup/setupHooks.ts:51
+msgid "No encryption"
+msgstr "Nessuna cifratura"
 
 #: src/components/web_analytics/filters/BackfillStatus.tsx:143
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:365
@@ -16014,6 +16158,10 @@ msgstr "Notifuse ha disabilitato automaticamente questo webhook"
 msgid "Notifuse export (.json)"
 msgstr "Esportazione Notifuse (.json)"
 
+#: src/components/setup/SetupRestartView.tsx:52
+msgid "Notifuse is ready"
+msgstr "Notifuse è pronto"
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:261
 msgid "Notifuse will create a tenant in your AWS account, give it its own suppression list, and associate this integration's configuration set and sender identities with it. AWS bills per tenant per month, based on volume."
 msgstr "Notifuse creerà un tenant nel tuo account AWS, gli assegnerà una propria suppression list e vi assocerà il configuration set e le identità mittente di questa integrazione. AWS fattura per tenant al mese, in base al volume."
@@ -16161,6 +16309,7 @@ msgstr "disattivati"
 
 #: src/components/settings/BlogSettings.tsx:334
 #: src/components/settings/GeneralSettings.tsx:215
+#: src/components/setup/setupHooks.ts:41
 #: src/components/transactional/TransactionalDetail.tsx:373
 #: src/components/transactional/TransactionalDetail.tsx:412
 #: src/components/transactional/TransactionalDetail.tsx:416
@@ -16171,13 +16320,17 @@ msgstr "Disattivato"
 msgid "Off (plaintext)"
 msgstr "Disattivato (testo in chiaro)"
 
+#: src/components/setup/SsoPanel.tsx:146
+msgid "Off (recommended): only invited people can sign in with SSO. On: a verified email in an allowed domain gets an account."
+msgstr "Disattivato (consigliato): solo le persone invitate accedono con SSO. Attivato: un'email verificata di un dominio consentito ottiene un account."
+
 #: src/components/settings/WebAnalyticsSettings.tsx:343
 msgid "Off by default"
 msgstr "Disattivato per impostazione predefinita"
 
 #: src/pages/SetupWizard.tsx:717
-msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
-msgstr "URL base dell'issuer OIDC — la discovery avviene su <issuer>/.well-known/openid-configuration"
+#~ msgid "OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration"
+#~ msgstr "URL base dell'issuer OIDC — la discovery avviene su <issuer>/.well-known/openid-configuration"
 
 #: src/components/templates/ImportErrorsModal.tsx:27
 #~ msgid "OK"
@@ -16189,6 +16342,7 @@ msgstr "attivati"
 
 #: src/components/settings/BlogSettings.tsx:317
 #: src/components/settings/GeneralSettings.tsx:215
+#: src/components/setup/setupHooks.ts:44
 #: src/components/transactional/TransactionalDetail.tsx:373
 msgid "On"
 msgstr "Attivato"
@@ -16638,6 +16792,8 @@ msgstr "opzionale"
 #: src/components/settings/SystemSettingsDrawer.tsx:387
 #: src/components/settings/SystemSettingsDrawer.tsx:400
 #: src/components/settings/SystemSettingsDrawer.tsx:455
+#: src/components/setup/SmtpPanel.tsx:183
+#: src/components/setup/SmtpPanel.tsx:192
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:601
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:353
 msgid "Optional"
@@ -16662,6 +16818,14 @@ msgstr "Facoltativo. Vuoto significa tutta la lista."
 #: src/components/automations/config/WebhookConfigForm.tsx:57
 msgid "Optional. If provided, sent as Authorization: Bearer <secret>"
 msgstr "Opzionale. Se fornito, inviato come Authorization: Bearer <secret>"
+
+#: src/components/setup/SsoPanel.tsx:53
+msgid "Optional. Lets people sign in with an identity provider (Google Workspace, Keycloak, Okta…) besides login codes."
+msgstr "Facoltativo. Consente l'accesso con un provider di identità (Google Workspace, Keycloak, Okta…) oltre ai codici di accesso."
+
+#: src/components/setup/BridgePanel.tsx:33
+msgid "Optional. Receives emails on this server and turns them into transactional notifications. Needs a TLS certificate for its domain; the TLS mode is set with SMTP_BRIDGE_TLS."
+msgstr "Facoltativo. Riceve email su questo server e le trasforma in notifiche transazionali. Richiede un certificato TLS per il suo dominio; la modalità TLS si imposta con SMTP_BRIDGE_TLS."
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:570
 #~ msgid "Optionally filter contacts by segments within the selected lists"
@@ -16896,6 +17060,7 @@ msgstr "Le partizioni già riscritte mantengono i loro nuovi valori."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:692
 #: src/components/settings/integrations/providerDetails.ts:31
+#: src/components/setup/SmtpPanel.tsx:188
 #: src/components/transactional/ApiCommandDrawer.tsx:147
 msgid "Password"
 msgstr "Password"
@@ -17562,14 +17727,14 @@ msgstr "Carica un file CSV con indirizzi email"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:575
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:579
+#: src/components/setup/SmtpPanel.tsx:159
 #: src/components/transactional/ApiCommandDrawer.tsx:144
-#: src/pages/SetupWizard.tsx:619
 msgid "Port"
 msgstr "Porta"
 
 #: src/pages/SetupWizard.tsx:628
-msgid "Port for the SMTP bridge server (default: 587)"
-msgstr "Porta per il server relay SMTP (predefinita: 587)"
+#~ msgid "Port for the SMTP bridge server (default: 587)"
+#~ msgstr "Porta per il server relay SMTP (predefinita: 587)"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:347
 #: src/components/settings/SystemSettingsDrawer.tsx:500
@@ -17991,8 +18156,12 @@ msgstr "Lista pubblica"
 #~ msgstr "Le liste pubbliche sono visibili nel Centro Notifiche per permettere agli utenti di iscriversi"
 
 #: src/pages/SetupWizard.tsx:385
-msgid "Public URL where this Notifuse instance is accessible"
-msgstr "URL pubblico dove questa istanza Notifuse è accessibile"
+#~ msgid "Public URL where this Notifuse instance is accessible"
+#~ msgstr "URL pubblico dove questa istanza Notifuse è accessibile"
+
+#: src/components/setup/AdministratorPanel.tsx:54
+msgid "Public URL where this Notifuse instance is reachable. Prefilled with the address of this page."
+msgstr "URL pubblico a cui è raggiungibile questa istanza di Notifuse. Precompilato con l'indirizzo di questa pagina."
 
 #: src/components/blog/PublishModal.tsx:113
 msgid "Publication"
@@ -18354,6 +18523,10 @@ msgstr "Pronto"
 msgid "Ready to send"
 msgstr "Pronto per l'invio"
 
+#: src/components/setup/SetupRestartView.tsx:78
+msgid "Ready to sign in"
+msgstr "Pronto per l'accesso"
+
 #: src/components/contacts/SegmentsFilter.tsx:57
 #~ msgid "Ready to use"
 #~ msgstr "Pronto all'uso"
@@ -18507,8 +18680,15 @@ msgid "Red"
 msgstr "Rosso"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:608
+#: src/components/setup/SsoPanel.tsx:101
+#: src/components/setup/SsoPanel.tsx:107
+#: src/components/setup/SsoPanel.tsx:114
 msgid "Redirect URI"
 msgstr "URI di reindirizzamento"
+
+#: src/components/setup/SsoPanel.tsx:34
+msgid "Redirect URI copied"
+msgstr "URI di reindirizzamento copiato"
 
 #: src/components/automations/AutomationEditor.tsx:482
 #: src/components/blog_editor/components/EditorHeader.tsx:69
@@ -18638,6 +18818,10 @@ msgstr "Regione e città sono disattivate: le coordinate sono salvate con precis
 #~ msgid "Regional (~11km precision)"
 #~ msgstr "Regionale (precisione ~11km)"
 
+#: src/components/setup/SsoPanel.tsx:108
+msgid "Register this address with your identity provider. Left empty, it follows the API endpoint."
+msgstr "Registra questo indirizzo presso il provider di identità. Se vuoto, segue l'endpoint dell'API."
+
 #: src/components/settings/integrations/EmailProviderCard.tsx:204
 msgid "Register webhooks"
 msgstr "Registra i webhook"
@@ -18681,6 +18865,7 @@ msgstr "Rel"
 
 #: src/components/automations/AutomationEditor.tsx:413
 #: src/components/automations/AutomationEditor.tsx:551
+#: src/components/setup/SetupRestartView.tsx:95
 msgid "Reload"
 msgstr "Ricarica"
 
@@ -19345,8 +19530,12 @@ msgctxt "role"
 msgid "Root"
 msgstr "Amministratore"
 
+#: src/components/setup/AdministratorPanel.tsx:34
+#: src/components/setup/AdministratorPanel.tsx:47
+msgid "Root email"
+msgstr "Email root"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:264
-#: src/pages/SetupWizard.tsx:366
 msgid "Root Email"
 msgstr "Email Root"
 
@@ -19822,6 +20011,7 @@ msgid "Scheduled today"
 msgstr "Pianificato oggi"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:643
+#: src/components/setup/SsoPanel.tsx:136
 msgid "Scopes"
 msgstr "Scope"
 
@@ -20034,8 +20224,8 @@ msgid "See broadcast send tasks; a listing that names no type is narrowed to the
 msgstr "Visualizza i task di invio dei broadcast; un elenco che non specifica alcun tipo viene ristretto ai tipi che puoi leggere"
 
 #: src/pages/SetupWizard.tsx:412
-msgid "See docs for:"
-msgstr "Vedi documentazione per:"
+#~ msgid "See docs for:"
+#~ msgstr "Vedi documentazione per:"
 
 #: src/services/api/permissions.ts:973
 msgid "See integration sync tasks; a listing that names no type is narrowed to the types you may read"
@@ -20587,6 +20777,10 @@ msgstr "Invia invito"
 msgid "Send Magic Code"
 msgstr "Invia codice magico"
 
+#: src/components/setup/AdministratorPanel.tsx:65
+msgid "Send me product news (new features, security fixes)"
+msgstr "Inviami le novità del prodotto (nuove funzioni, correzioni di sicurezza)"
+
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:362
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:399
 msgid "Send now"
@@ -20933,6 +21127,10 @@ msgstr "Titolo SEO per motori ricerca (consigliato: 50-60 caratteri)"
 msgid "Separate sides"
 msgstr "Lati separati"
 
+#: src/components/setup/SsoPanel.tsx:137
+msgid "Separated by spaces. openid is always included. Unverified emails are refused unless OIDC_ALLOW_UNVERIFIED_EMAIL is set."
+msgstr "Separati da spazi. openid è sempre incluso. Le email non verificate vengono rifiutate a meno che non sia impostato OIDC_ALLOW_UNVERIFIED_EMAIL."
+
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:567
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:725
 #: src/components/settings/SMTPBridgeSettings.tsx:25
@@ -20940,15 +21138,14 @@ msgid "Server"
 msgstr "Server"
 
 #: src/pages/SetupWizard.tsx:211
-msgid "Server is restarting with new configuration..."
-msgstr "Il server si sta riavviando con la nuova configurazione..."
+#~ msgid "Server is restarting with new configuration..."
+#~ msgstr "Il server si sta riavviando con la nuova configurazione..."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:185
 msgid "Server is restarting..."
 msgstr "Il server si sta riavviando..."
 
 #: src/components/settings/SystemSettingsDrawer.tsx:210
-#: src/pages/SetupWizard.tsx:235
 msgid "Server restart timeout. Please refresh the page manually."
 msgstr "Timeout riavvio server. Aggiorna la pagina manualmente."
 
@@ -20957,8 +21154,8 @@ msgid "Server restarted successfully!"
 msgstr "Server riavviato con successo!"
 
 #: src/pages/SetupWizard.tsx:225
-msgid "Server restarted successfully! You can now sign in."
-msgstr "Server riavviato con successo! Ora puoi accedere."
+#~ msgid "Server restarted successfully! You can now sign in."
+#~ msgstr "Server riavviato con successo! Ora puoi accedere."
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:727
 #: src/components/settings/integrations/providerDetails.ts:35
@@ -21073,6 +21270,11 @@ msgstr "Impostare come provider email transazionale?"
 msgid "Set at send time"
 msgstr "Impostato all'invio"
 
+#: src/components/setup/LockableItem.tsx:51
+#: src/components/setup/SetupPanel.tsx:92
+msgid "Set by {envName}"
+msgstr "Impostato da {envName}"
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:277
 msgid "Set by {integrationName}"
 msgstr "Impostato da {integrationName}"
@@ -21080,6 +21282,10 @@ msgstr "Impostato da {integrationName}"
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:279
 msgid "Set by {integrationName}. Edit the template itself to change its content."
 msgstr "Impostato da {integrationName}. Modifica il template stesso per cambiarne il contenuto."
+
+#: src/components/setup/setupHooks.ts:40
+msgid "Set by environment"
+msgstr "Impostato dall'ambiente"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:102
 msgid "Set by environment variable"
@@ -21193,6 +21399,10 @@ msgstr "Ha configurato questa installazione di Notifuse"
 msgid "Set up web analytics"
 msgstr "Configura web analytics"
 
+#: src/pages/SetupWizard.tsx:195
+msgid "Set up your Notifuse instance"
+msgstr "Configura la tua istanza di Notifuse"
+
 #: src/pages/WebAnalyticsFiltersPage.tsx:368
 #~ msgid "set value"
 #~ msgstr ""
@@ -21228,8 +21438,12 @@ msgid "Sets the screen width below which the email will switch to mobile layout.
 msgstr "Imposta la larghezza schermo sotto la quale l'email passerà al layout mobile. La maggior parte dei client email utilizza 480px come breakpoint mobile standard."
 
 #: src/pages/SetupWizard.tsx:798
-msgid "Setting up..."
-msgstr "Configurazione in corso..."
+#~ msgid "Setting up..."
+#~ msgstr "Configurazione in corso..."
+
+#: src/components/setup/SetupRail.tsx:32
+msgid "Setting up…"
+msgstr "Configurazione in corso…"
 
 #: src/components/automations/EditorSettings.tsx:22
 #: src/components/automations/EditorSettings.tsx:24
@@ -21252,12 +21466,20 @@ msgid "Settings › Integrations"
 msgstr "Impostazioni › Integrazioni"
 
 #: src/pages/SetupWizard.tsx:345
-msgid "Setup"
-msgstr "Configurazione"
+#~ msgid "Setup"
+#~ msgstr "Configurazione"
 
 #: src/pages/SetupWizard.tsx:321
-msgid "Setup Complete!"
-msgstr "Configurazione completata!"
+#~ msgid "Setup Complete!"
+#~ msgstr "Configurazione completata!"
+
+#: src/pages/SetupWizard.tsx:217
+msgid "Setup summary"
+msgstr "Riepilogo della configurazione"
+
+#: src/components/setup/SetupRail.tsx:20
+msgid "Setup was not saved"
+msgstr "La configurazione non è stata salvata"
 
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:241
 msgid "Several senders"
@@ -21408,7 +21630,7 @@ msgstr "Mostrata ai contatti nel centro notifiche quando la lista è pubblica."
 msgid "Shown under a condition"
 msgstr "Visibile sotto condizione"
 
-#: src/pages/SetupWizard.tsx:567
+#: src/components/setup/UpdatesPanel.tsx:51
 msgid "Shows new Notifuse versions and security fixes on the workspace list."
 msgstr "Mostra le nuove versioni di Notifuse e le correzioni di sicurezza nell'elenco dei workspace."
 
@@ -21416,8 +21638,12 @@ msgstr "Mostra le nuove versioni di Notifuse e le correzioni di sicurezza nell'e
 msgid "Sign In"
 msgstr "Accedi"
 
+#: src/components/setup/SetupRestartView.tsx:54
+msgid "Sign in with {rootEmail}."
+msgstr "Accedi con {rootEmail}."
+
 #: src/components/settings/SystemSettingsDrawer.tsx:636
-#: src/pages/SetupWizard.tsx:747
+#: src/components/setup/SsoPanel.tsx:97
 #: src/pages/SignInPage.tsx:305
 msgid "Sign in with SSO"
 msgstr "Accedi con SSO"
@@ -21468,6 +21694,10 @@ msgstr "Visitatore non connesso"
 msgid "Signing out..."
 msgstr "Disconnessione in corso..."
 
+#: src/components/setup/AdministratorPanel.tsx:35
+msgid "Signs in as the root administrator. Add several addresses to give several people root access; each gets an account on the next start."
+msgstr "Accede come amministratore root. Aggiungi più indirizzi per dare accesso root a più persone; ognuna ottiene un account al prossimo avvio."
+
 #: src/components/settings/WebhooksSettings.tsx:617
 msgid "Signup"
 msgstr "Registrazione"
@@ -21486,9 +21716,14 @@ msgstr "dal {0}"
 msgid "Since {0}"
 msgstr "Dal {0}"
 
+#: src/components/setup/setupHooks.ts:33
 #: src/services/api/licenseErrors.ts:51
 msgid "Single sign-on"
-msgstr ""
+msgstr "Single sign-on"
+
+#: src/components/setup/SsoPanel.tsx:50
+msgid "Single sign-on (OpenID Connect)"
+msgstr "Single sign-on (OpenID Connect)"
 
 #: src/components/settings/LicenseSettings.tsx:118
 msgid "Single sign-on (SSO)"
@@ -21583,6 +21818,8 @@ msgstr "SMTP"
 
 #: src/components/settings/SettingsSidebar.tsx:65
 #: src/components/settings/SMTPBridgeSettings.tsx:19
+#: src/components/setup/BridgePanel.tsx:30
+#: src/components/setup/setupHooks.ts:34
 msgid "SMTP bridge"
 msgstr "Bridge SMTP"
 
@@ -21590,7 +21827,7 @@ msgstr "Bridge SMTP"
 msgid "SMTP Bridge"
 msgstr "Relay SMTP"
 
-#: src/pages/SetupWizard.tsx:610
+#: src/components/setup/BridgePanel.tsx:48
 msgid "SMTP bridge domain is required"
 msgstr "Dominio relay SMTP richiesto"
 
@@ -21598,21 +21835,21 @@ msgstr "Dominio relay SMTP richiesto"
 msgid "SMTP bridge is not configured."
 msgstr "Relay SMTP non configurato."
 
-#: src/pages/SetupWizard.tsx:625
-msgid "SMTP bridge port is required"
-msgstr "Porta relay SMTP richiesta"
+#: src/components/setup/BridgePanel.tsx:55
+#~ msgid "SMTP bridge port is required"
+#~ msgstr "Porta relay SMTP richiesta"
 
 #: src/components/settings/SMTPBridgeSettings.tsx:20
 msgid "SMTP bridge server for forwarding transactional emails"
 msgstr "Server relay SMTP per l'inoltro di email transazionali"
 
 #: src/pages/SetupWizard.tsx:407
-msgid "SMTP Configuration"
-msgstr "Configurazione SMTP"
+#~ msgid "SMTP Configuration"
+#~ msgstr "Configurazione SMTP"
 
 #: src/pages/SetupWizard.tsx:84
-msgid "SMTP connection successful!"
-msgstr "Connessione SMTP riuscita!"
+#~ msgid "SMTP connection successful!"
+#~ msgstr "Connessione SMTP riuscita!"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:121
 msgid "SMTP connection test failed"
@@ -21630,21 +21867,23 @@ msgstr "SMTP non segnala le consegne"
 msgid "SMTP domain"
 msgstr "Dominio SMTP"
 
+#: src/components/setup/SmtpPanel.tsx:123
+msgid "SMTP guides:"
+msgstr "Guide SMTP:"
+
 #: src/components/settings/integrations/providerDetails.ts:61
 msgid "SMTP host"
 msgstr "Host SMTP"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:326
-#: src/pages/SetupWizard.tsx:454
 msgid "SMTP Host"
 msgstr "Host SMTP"
 
-#: src/pages/SetupWizard.tsx:456
+#: src/components/setup/SmtpPanel.tsx:152
 msgid "SMTP host is required"
 msgstr "Host SMTP richiesto"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:394
-#: src/pages/SetupWizard.tsx:495
 msgid "SMTP Password"
 msgstr "Password SMTP"
 
@@ -21653,11 +21892,10 @@ msgid "SMTP port"
 msgstr "Porta SMTP"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:339
-#: src/pages/SetupWizard.tsx:463
 msgid "SMTP Port"
 msgstr "Porta SMTP"
 
-#: src/pages/SetupWizard.tsx:465
+#: src/components/setup/SmtpPanel.tsx:161
 msgid "SMTP port is required"
 msgstr "Porta SMTP richiesta"
 
@@ -21688,7 +21926,6 @@ msgstr "Utente SMTP"
 #~ msgstr "Utente SMTP"
 
 #: src/components/settings/SystemSettingsDrawer.tsx:381
-#: src/pages/SetupWizard.tsx:490
 msgid "SMTP Username"
 msgstr "Nome utente SMTP"
 
@@ -21753,6 +21990,10 @@ msgstr "Condivisione social"
 #: src/components/email_builder/ui/BorderInput.tsx:56
 msgid "Solid"
 msgstr "Solido"
+
+#: src/components/setup/SmtpPanel.tsx:103
+msgid "Some connection settings are set by the environment: the test would not check the connection the server will use."
+msgstr "Alcune impostazioni di connessione sono definite dall'ambiente: il test non verificherebbe la connessione che userà il server."
 
 #. placeholder {0}: seedResult.textError
 #: src/components/email_builder/panels/TextVersionPanel.tsx:262
@@ -21953,8 +22194,13 @@ msgid "Starts with SG."
 msgstr "Inizia con SG."
 
 #: src/components/settings/SMTPBridgeSettings.tsx:11
+#: src/components/setup/setupHooks.ts:53
 msgid "STARTTLS"
 msgstr "STARTTLS"
+
+#: src/components/setup/setupHooks.ts:53
+msgid "STARTTLS on {port}"
+msgstr "STARTTLS su {port}"
 
 #: src/components/transactional/ApiCommandDrawer.tsx:133
 msgid "STARTTLS required"
@@ -22165,8 +22411,8 @@ msgid "Subscribe to lists"
 msgstr "Iscrivi alle liste"
 
 #: src/pages/SetupWizard.tsx:397
-msgid "Subscribe to the newsletter (new features...)"
-msgstr "Iscriviti alla newsletter (nuove funzionalità...)"
+#~ msgid "Subscribe to the newsletter (new features...)"
+#~ msgstr "Iscriviti alla newsletter (nuove funzionalità...)"
 
 #: src/components/integrations/SupabaseIntegration.tsx:180
 #~ msgid "Subscribe users to these lists (Optional)"
@@ -22366,6 +22612,10 @@ msgstr "Passa alla modalità Anteprima per vedere gli effetti del breakpoint. La
 #: src/components/logs/labels.ts:8
 msgid "System"
 msgstr "Sistema"
+
+#: src/components/setup/SmtpPanel.tsx:117
+msgid "System email delivery (SMTP)"
+msgstr "Invio delle email di sistema (SMTP)"
 
 #: src/components/email_builder/ui/FontStyleInput.tsx:102
 msgid "System Fonts"
@@ -22699,6 +22949,10 @@ msgstr "Termini"
 msgid "Test"
 msgstr "Test"
 
+#: src/components/setup/SmtpPanel.tsx:90
+msgid "Test again"
+msgstr "Riprova il test"
+
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:417
 #: src/components/web_analytics/filters/TestFilterPanel.tsx:432
 msgid "Test all rules"
@@ -22717,8 +22971,11 @@ msgstr "Test completato"
 #~ msgid "Test Completed"
 #~ msgstr "Test completato"
 
+#: src/components/setup/SmtpPanel.tsx:90
+msgid "Test connection"
+msgstr "Verifica la connessione"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:320
-#: src/pages/SetupWizard.tsx:535
 msgid "Test Connection"
 msgstr "Testa connessione"
 
@@ -22760,6 +23017,10 @@ msgstr "Il test termina tra {duration}"
 #: src/components/broadcasts/detail/AbTestPanel.tsx:277
 msgid "Test ends in {left}"
 msgstr "Il test termina tra {left}"
+
+#: src/components/setup/SmtpPanel.tsx:135
+msgid "Test failed"
+msgstr "Test non riuscito"
 
 #: src/components/broadcasts/RecipientFeedSettings.tsx:181
 msgid "Test Failed"
@@ -22880,6 +23141,10 @@ msgstr "Decorazione testo"
 msgid "Text Direction"
 msgstr "Direzione testo"
 
+#: src/components/setup/SsoPanel.tsx:95
+msgid "Text of the button on the sign-in page."
+msgstr "Testo del pulsante nella pagina di accesso."
+
 #: src/components/email_builder/blocks/MjSocialElementBlock.tsx:436
 msgid "Text Padding"
 msgstr "Padding testo"
@@ -22893,8 +23158,8 @@ msgid "Text Settings"
 msgstr "Impostazioni testo"
 
 #: src/pages/SetupWizard.tsx:745
-msgid "Text shown on the sign-in button"
-msgstr "Testo mostrato sul pulsante di accesso"
+#~ msgid "Text shown on the sign-in button"
+#~ msgstr "Testo mostrato sul pulsante di accesso"
 
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:501
 msgid "Text style"
@@ -22978,6 +23243,10 @@ msgstr "Il blog servito sul tuo dominio personalizzato: identità, pagine, feed 
 #: src/components/settings/BlogSettings.tsx:213
 msgid "The blog's pages stop being served. Its posts and settings are kept, and come back when you turn it on again."
 msgstr "Le pagine del blog non vengono più servite. Articoli e impostazioni restano, e tornano quando lo riattivi."
+
+#: src/components/setup/BridgePanel.tsx:47
+msgid "The bridge listens on the port set by SMTP_BRIDGE_PORT, 587 by default: the port Docker publishes."
+msgstr "Il bridge è in ascolto sulla porta impostata da SMTP_BRIDGE_PORT, 587 per impostazione predefinita: la porta pubblicata da Docker."
 
 #: src/components/broadcasts/compose/BroadcastCompose.tsx:310
 msgid "The broadcast could not be saved"
@@ -23224,8 +23493,8 @@ msgid "The home page, and every page without its own tags"
 msgstr "La home page e ogni pagina senza tag propri"
 
 #: src/pages/SetupWizard.tsx:524
-msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
-msgstr "L'hostname con cui il tuo server si identifica quando si connette al server SMTP. Se vuoto, viene usato il valore dell'host SMTP."
+#~ msgid "The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty."
+#~ msgstr "L'hostname con cui il tuo server si identifica quando si connette al server SMTP. Se vuoto, viene usato il valore dell'host SMTP."
 
 #: src/components/settings/BlogSettings.tsx:398
 msgid "The icon in the browser tab; 32 or 192 px square"
@@ -23330,6 +23599,10 @@ msgstr "Il nome deve contenere almeno una lettera latina o una cifra, per formar
 msgid "The name Notifuse gives when it connects. Defaults to the host above"
 msgstr "Il nome che Notifuse indica quando si connette. Predefinito: l'host qui sopra"
 
+#: src/components/setup/SmtpPanel.tsx:228
+msgid "The name this server gives when it connects to the SMTP server. Empty means the SMTP host."
+msgstr "Il nome che questo server indica quando si connette al server SMTP. Vuoto significa l'host SMTP."
+
 #: src/components/transactional/UpsertTransactionalNotificationDrawer.tsx:485
 msgid "The only channel today"
 msgstr "L'unico canale per ora"
@@ -23371,6 +23644,10 @@ msgstr "Una volta salvato, il post non attribuirà più a {name} la paternità."
 #: src/pages/BroadcastsPage.tsx:250
 #~ msgid "The provider refused {0} recipients and every retry was used up. Open the logs to see why, then retry them."
 #~ msgstr "Il provider ha rifiutato {0} destinatari e tutti i tentativi sono stati esauriti. Controlla i log per capire perché, poi riprova."
+
+#: src/components/setup/SsoPanel.tsx:67
+msgid "The provider's base URL. Its settings are read from /.well-known/openid-configuration under it."
+msgstr "L'URL di base del provider. Le sue impostazioni vengono lette da /.well-known/openid-configuration sotto di esso."
 
 #: src/components/transactional/TransactionalDetail.tsx:284
 msgid "The provider's default sender: the template was not found."
@@ -23443,6 +23720,18 @@ msgstr "il mittente della variante {variant} non esiste più"
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:746
 msgid "The sending domain set up in Mailgun"
 msgstr "Il dominio di invio configurato in Mailgun"
+
+#: src/components/setup/SetupRestartView.tsx:87
+msgid "The server has not come back after 60 seconds."
+msgstr "Il server non è tornato dopo 60 secondi."
+
+#: src/components/setup/SetupRail.tsx:34
+msgid "The server restarts to apply the configuration."
+msgstr "Il server si riavvia per applicare la configurazione."
+
+#: src/components/setup/SetupRestartView.tsx:71
+msgid "The server restarts with the new settings. This usually takes a few seconds."
+msgstr "Il server si riavvia con le nuove impostazioni. Di solito servono pochi secondi."
 
 #: src/components/contacts/sheet/ContactMessagesTab.tsx:48
 #: src/components/logs/MessageDetail.tsx:158
@@ -23789,8 +24078,8 @@ msgid "This email is sent as HTML only"
 msgstr "Questa email viene inviata solo in HTML"
 
 #: src/pages/SetupWizard.tsx:372
-msgid "This email will be used for the root administrator account"
-msgstr "Questa email sarà utilizzata per l'account amministratore root"
+#~ msgid "This email will be used for the root administrator account"
+#~ msgstr "Questa email sarà utilizzata per l'account amministratore root"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:413
 msgid "This event fires often. These conditions are evaluated for every matching event."
@@ -24309,12 +24598,15 @@ msgstr "Titolo, slug e categoria obbligatori"
 msgid "TLS"
 msgstr "TLS"
 
+#: src/components/setup/BridgePanel.tsx:57
+msgid "TLS certificate (Base64)"
+msgstr "Certificato TLS (Base64)"
+
 #: src/components/settings/SystemSettingsDrawer.tsx:516
-#: src/pages/SetupWizard.tsx:638
 msgid "TLS Certificate (Base64)"
 msgstr "Certificato TLS (Base64)"
 
-#: src/pages/SetupWizard.tsx:643
+#: src/components/setup/BridgePanel.tsx:59
 msgid "TLS certificate is required"
 msgstr "Il certificato TLS è obbligatorio"
 
@@ -24326,11 +24618,15 @@ msgstr "Il certificato TLS è obbligatorio"
 msgid "TLS Key (Base64)"
 msgstr "Chiave TLS (Base64)"
 
-#: src/pages/SetupWizard.tsx:656
-msgid "TLS Private Key (Base64)"
+#: src/components/setup/BridgePanel.tsx:66
+msgid "TLS private key (Base64)"
 msgstr "Chiave privata TLS (Base64)"
 
-#: src/pages/SetupWizard.tsx:661
+#: src/pages/SetupWizard.tsx:656
+#~ msgid "TLS Private Key (Base64)"
+#~ msgstr "Chiave privata TLS (Base64)"
+
+#: src/components/setup/BridgePanel.tsx:68
 msgid "TLS private key is required"
 msgstr "La chiave privata TLS è obbligatoria"
 
@@ -25236,6 +25532,11 @@ msgstr "Ha aggiornato il webhook <0>{target}</0>"
 msgid "Updated the workspace settings of <0>{target}</0>"
 msgstr "Ha aggiornato le impostazioni del workspace <0>{target}</0>"
 
+#: src/components/setup/setupHooks.ts:32
+#: src/components/setup/UpdatesPanel.tsx:42
+msgid "Updates and telemetry"
+msgstr "Aggiornamenti e telemetria"
+
 #: src/components/settings/LicenseSettings.tsx:130
 #~ msgid "Upgrade licence"
 #~ msgstr ""
@@ -25312,6 +25613,10 @@ msgstr "URL del CDN che memorizza nella cache i tuoi file"
 #: src/components/settings/WebhookCard.tsx:333
 #~ msgid "URL:"
 #~ msgstr "URL:"
+
+#: src/components/setup/UpdatesPanel.tsx:57
+msgid "Usage statistics that help us improve Notifuse. No personal data, no message content."
+msgstr "Statistiche d'uso che ci aiutano a migliorare Notifuse. Nessun dato personale, nessun contenuto dei messaggi."
 
 #: src/components/transactional/ApiCommandDrawer.tsx:113
 #: src/components/transactional/ApiCommandDrawer.tsx:118
@@ -25411,7 +25716,8 @@ msgstr "Usa questo template"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:592
 #: src/components/settings/SystemSettingsDrawer.tsx:364
-#: src/pages/SetupWizard.tsx:480
+#: src/components/setup/SmtpPanel.tsx:168
+#: src/components/setup/SmtpPanel.tsx:172
 msgid "Use TLS"
 msgstr "Usa TLS"
 
@@ -25430,6 +25736,10 @@ msgstr "Usato da"
 #: src/components/settings/Integrations.tsx:408
 #~ msgid "Used for"
 #~ msgstr "Usato per"
+
+#: src/components/setup/SmtpPanel.tsx:122
+msgid "Used for sign-in codes and invitations. Workspaces set up their own email providers later."
+msgstr "Usato per i codici di accesso e gli inviti. Gli spazi di lavoro configurano in seguito i propri provider email."
 
 #: src/pages/TemplatesPage.tsx:437
 msgid "Used in"
@@ -25474,6 +25784,7 @@ msgid "User Metadata Field"
 msgstr "Campo metadati utente"
 
 #: src/components/settings/integrations/EmailProviderDrawer.tsx:687
+#: src/components/setup/SmtpPanel.tsx:179
 #: src/components/transactional/ApiCommandDrawer.tsx:146
 msgid "Username"
 msgstr "Nome utente"
@@ -25961,8 +26272,12 @@ msgid "Waiting"
 msgstr "In attesa"
 
 #: src/pages/SetupWizard.tsx:338
-msgid "Waiting for server restart..."
-msgstr "In attesa del riavvio del server..."
+#~ msgid "Waiting for server restart..."
+#~ msgstr "In attesa del riavvio del server..."
+
+#: src/components/setup/SetupRestartView.tsx:75
+msgid "Waiting for the server to come back"
+msgstr "In attesa che il server torni"
 
 #: src/components/automations/AutomationEditor.tsx:329
 msgid "Warning"
@@ -26332,8 +26647,8 @@ msgstr "Quando si applica"
 #~ msgstr "In caso di corrispondenza, esegui queste operazioni:"
 
 #: src/pages/SetupWizard.tsx:754
-msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
-msgstr "Quando è disattivato (scelta consigliata), solo gli utenti già invitati possono accedere tramite SSO. Quando è attivato, un'email verificata in un dominio consentito crea automaticamente un account."
+#~ msgid "When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically."
+#~ msgstr "Quando è disattivato (scelta consigliata), solo gli utenti già invitati possono accedere tramite SSO. Quando è attivato, un'email verificata in un dominio consentito crea automaticamente un account."
 
 #: src/components/web_analytics/filters/RuleEditorCards.tsx:244
 msgid "When one of them also matches a session, its value replaces this rule's."
@@ -26800,6 +27115,10 @@ msgstr "Ieri {time}"
 msgid "Yesterday, {time}"
 msgstr "Ieri, {time}"
 
+#: src/components/setup/SetupRestartView.tsx:54
+msgid "You can now sign in."
+msgstr "Ora puoi accedere."
+
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:327
 msgid "You can only upload CSV files!"
 msgstr "Puoi caricare solo file CSV!"
@@ -27048,8 +27367,8 @@ msgid "Your licence does not cover translations: see the notice above."
 msgstr "La tua licenza non include le traduzioni: vedi l’avviso qui sopra."
 
 #: src/pages/SetupWizard.tsx:323
-msgid "Your Notifuse instance has been successfully configured."
-msgstr "La tua istanza Notifuse è stata configurata con successo."
+#~ msgid "Your Notifuse instance has been successfully configured."
+#~ msgstr "La tua istanza Notifuse è stata configurata con successo."
 
 #: src/components/license/LicenseBanner.tsx:152
 msgid "Your Notifuse licence expired on {expiryLabel} and is in its grace period."
