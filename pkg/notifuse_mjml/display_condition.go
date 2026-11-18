@@ -392,12 +392,17 @@ func (names conditionNames) numericGuard(v, comparison string) string {
 // Any output other than "1" or nothing (a Liquid error text) hides the block. The
 // error is the engine's own failure (timeout, size), never the condition's result.
 func (c *DisplayCondition) Evaluate(data map[string]interface{}) (bool, error) {
+	return c.evaluateIn(nil, data)
+}
+
+// evaluateIn is Evaluate within budget, the Liquid work left to the compilation.
+func (c *DisplayCondition) evaluateIn(budget *renderBudget, data map[string]interface{}) (bool, error) {
 	if c == nil || len(c.Rules) == 0 {
 		return true, nil
 	}
 	open, close := c.toLiquid(newConditionNames(""))
 	data = withoutConditionNames(data)
-	out, err := liquidEngine.renderCached(open+"1"+close, data)
+	out, err := liquidEngine.renderIn(budget, open+"1"+close, data, true)
 	if err != nil {
 		return false, fmt.Errorf("display condition: %w", err)
 	}

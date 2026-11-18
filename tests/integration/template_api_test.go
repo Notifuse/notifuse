@@ -3,6 +3,7 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -1383,4 +1384,74 @@ func TestTemplateCompileHeadingStyles(t *testing.T) {
 	if assert.NotNil(t, body.Text, "the preview returns the automatic text version") {
 		assert.Contains(t, *body.Text, "Title")
 	}
+}
+
+// TestTemplateCompileWorkLimits verifies, from an API client, the two bounds on the work of a
+// compilation: a request body over 1 MiB is refused before it is parsed, and a tree of many
+// costly Liquid blocks stops on the email's work budget within seconds instead of running each
+// block to its own limit.
+func TestTemplateCompileWorkLimits(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	token := performCompleteSignInFlow(t, client, "test@example.com")
+	client.SetToken(token)
+	workspaceID := createTestWorkspace(t, client, "Compile Work Limits Workspace")
+
+	tree := func(blocks []interface{}) map[string]interface{} {
+		return map[string]interface{}{
+			"id": "mjml-1", "type": "mjml", "attributes": map[string]interface{}{},
+			"children": []interface{}{map[string]interface{}{
+				"id": "body-1", "type": "mj-body", "attributes": map[string]interface{}{},
+				"children": []interface{}{map[string]interface{}{
+					"id": "section-1", "type": "mj-section", "attributes": map[string]interface{}{},
+					"children": []interface{}{map[string]interface{}{
+						"id": "column-1", "type": "mj-column", "attributes": map[string]interface{}{},
+						"children": blocks,
+					}},
+				}},
+			}},
+		}
+	}
+	data := map[string]interface{}{"contact": map[string]interface{}{"first_name": "Ann"}}
+
+	t.Run("a body over 1 MiB is refused", func(t *testing.T) {
+		big := []interface{}{map[string]interface{}{
+			"id": "text-1", "type": "mj-text", "attributes": map[string]interface{}{},
+			"content": strings.Repeat("a", 1<<20),
+		}}
+		resp, err := client.CompileTemplate(map[string]interface{}{
+			"workspace_id": workspaceID, "message_id": "preview", "test_data": data, "visual_editor_tree": tree(big),
+		})
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+	})
+
+	t.Run("costly blocks stop on the email's work budget", func(t *testing.T) {
+		blocks := make([]interface{}, 100)
+		for i := range blocks {
+			blocks[i] = map[string]interface{}{
+				"id": fmt.Sprintf("text-%d", i), "type": "mj-text", "attributes": map[string]interface{}{},
+				"content": "{% for i in (1..4999990) %}{% endfor %}",
+			}
+		}
+		start := time.Now()
+		resp, err := client.CompileTemplate(map[string]interface{}{
+			"workspace_id": workspaceID, "message_id": "preview", "test_data": data, "visual_editor_tree": tree(blocks),
+		})
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		raw, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.Less(t, time.Since(start), 15*time.Second)
+		assert.Contains(t, string(raw), "work budget of the email", "status %d, body %s", resp.StatusCode, raw)
+	})
 }

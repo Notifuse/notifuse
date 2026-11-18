@@ -975,7 +975,7 @@ func TestProcessAttributeValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := processAttributeValue(tt.value, tt.attributeKey, tt.templateData, tt.blockID, false)
+			result := processAttributeValue(nil, tt.value, tt.attributeKey, tt.templateData, tt.blockID, false)
 
 			if result != tt.expected {
 				t.Errorf("Expected '%s', got '%s'", tt.expected, result)

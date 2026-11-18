@@ -135,24 +135,55 @@ func (s *SecureLiquidEngine) renderCached(content string, data map[string]interf
 }
 
 func (s *SecureLiquidEngine) render(content string, data map[string]interface{}, cached bool) (string, error) {
+	return s.renderIn(nil, content, data, cached)
+}
+
+// renderIn renders content within budget, the work left to its compilation, or with the
+// engine's own limits alone when budget is nil. The render takes the lower of its own timeout
+// and the time left, and of its own render score limit and the score left, and its score is
+// taken off the budget whatever its outcome.
+func (s *SecureLiquidEngine) renderIn(budget *renderBudget, content string, data map[string]interface{}, cached bool) (string, error) {
 	// Validate template size
 	if len(content) > s.maxSize {
 		return "", fmt.Errorf("template size (%d bytes) exceeds maximum allowed size (%d bytes)", len(content), s.maxSize)
 	}
 
+	timeout := s.timeout
+	opts := []liquid.RenderOption{liquid.RaiseErrors()}
+	// The budget, rather than the render's own limit, sets its timeout or its score limit.
+	budgetTime, budgetScore := false, 0
+	if budget != nil {
+		left, score, ok := budget.remaining()
+		if !ok {
+			return "", errBudgetExhausted
+		}
+		if left < timeout {
+			timeout, budgetTime = left, true
+		}
+		if score < DefaultMaxRenderScore {
+			budgetScore = score
+			opts = append(opts, liquid.WithLimits(liquid.ResourceLimitsConfig{RenderScoreLimit: &budgetScore}))
+		}
+	}
+
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// Channel to receive result or error
-	resultChan := make(chan string, 1)
-	errorChan := make(chan error, 1)
+	// The outcome of the render goroutine: its output, or its error, and its score.
+	type outcome struct {
+		output string
+		score  int
+		err    error // a render error, as Render returned it
+		failed error // a parse error or a recovered panic, already described
+	}
+	done := make(chan outcome, 1)
 
 	// Run rendering in goroutine with panic recovery
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				errorChan <- fmt.Errorf("panic during liquid rendering: %v", r)
+				done <- outcome{failed: fmt.Errorf("panic during liquid rendering: %v", r)}
 			}
 		}()
 
@@ -166,7 +197,7 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 				Environment: s.env,
 			})
 			if err != nil {
-				errorChan <- fmt.Errorf("liquid parsing failed: %w", err)
+				done <- outcome{failed: fmt.Errorf("liquid parsing failed: %w", err)}
 				return
 			}
 			if cached {
@@ -179,23 +210,47 @@ func (s *SecureLiquidEngine) render(content string, data map[string]interface{},
 		// A Liquid error the render records (a filter given the wrong arguments, a
 		// partial that cannot be read...) would write "Liquid error: ..." in the email:
 		// it fails the render instead, and its message tells the author what to fix.
-		res, err := tmpl.Render(ctx, data, liquid.RaiseErrors())
-		if err != nil {
-			errorChan <- renderError(err, content, s.timeout)
-			return
-		}
-		resultChan <- res.Output
+		res, err := tmpl.Render(ctx, data, opts...)
+		done <- outcome{output: res.Output, score: res.RenderScore, err: err}
 	}()
 
 	// Wait for result, error, or timeout
 	select {
-	case result := <-resultChan:
-		return result, nil
-	case err := <-errorChan:
-		return "", err
+	case o := <-done:
+		if budget != nil {
+			budget.spend(o.score)
+		}
+		switch {
+		case o.failed != nil:
+			return "", o.failed
+		case o.err != nil:
+			if budget != nil && budgetStopped(o.err, budgetTime, budgetScore, o.score) {
+				return "", errBudgetExhausted
+			}
+			return "", renderError(o.err, content, s.timeout)
+		}
+		return o.output, nil
 	case <-ctx.Done():
+		if budget != nil {
+			budget.spend(budget.score) // the score of a render cut by its timeout is not known
+		}
+		if budgetTime {
+			return "", errBudgetExhausted
+		}
 		return "", fmt.Errorf("liquid rendering timeout after %v (possible infinite loop or excessive computation)", s.timeout)
 	}
+}
+
+// budgetStopped reports whether the compilation's budget, rather than the render's own limits,
+// ended a render that failed with err after spending score: its time, when the budget set the
+// timeout, or its render score, when the budget set a lower score limit and the render reached it.
+func budgetStopped(err error, budgetTime bool, budgetScore, score int) bool {
+	var canceled *liquid.CanceledError
+	if budgetTime && errors.As(err, &canceled) {
+		return true
+	}
+	var limit *liquid.MemoryError
+	return budgetScore > 0 && errors.As(err, &limit) && score >= budgetScore
 }
 
 // renderError is the error of a render of content that could not complete. A Go
