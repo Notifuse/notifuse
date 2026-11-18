@@ -13,9 +13,12 @@ import {
   HEADING_LEVELS,
   colorFromPicker,
   defaultHeadingStyles,
+  headingFieldDiffers,
+  headingLevelDiffers,
   readHeadingStyles,
   validateHeadingStyle,
   writeHeadingStyles,
+  type HeadingField,
   type HeadingLevel,
   type HeadingStyle,
   type HeadingStyles
@@ -50,6 +53,12 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
   const defaults = defaultHeadingStyles()
   const styles: HeadingStyles = stored ?? defaults
   const current = styles[level]
+  const base = defaults[level]
+  // « Set »: the level's value differs from the default one; the reset writes the default back
+  const differs = (...fields: HeadingField[]) => fields.some((field) => headingFieldDiffers(current, base, field))
+  const resetFields = (...fields: HeadingField[]) => () =>
+    change(Object.fromEntries(fields.map((field) => [field, base[field]])) as Partial<HeadingStyle>)
+  const levelChanged = (value: HeadingLevel) => headingLevelDiffers(styles, defaults, value)
 
   const save = (next: HeadingStyle, options?: FieldWriteOptions): boolean => {
     if (validateHeadingStyle(next).length > 0) return false
@@ -72,11 +81,25 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
         <SegmentedField
           aria-label={t`Heading level`}
           value={String(level)}
-          options={HEADING_LEVELS.map((value) => ({ value: String(value), label: `H${value}` }))}
+          options={HEADING_LEVELS.map((value) =>
+            levelChanged(value)
+              ? {
+                  value: String(value),
+                  label: `H${value}`,
+                  title: t`H${value}, changed`,
+                  icon: <span data-testid="level-set-dot" className="inline-block size-1.5 rounded-full bg-primary-500" />
+                }
+              : { value: String(value), label: `H${value}` }
+          )}
           onChange={(value) => setLevel(Number(value) as HeadingLevel)}
         />
       </SettingsRow>
-      <SettingsRow label={t`Font`}>
+      <SettingsRow
+        label={t`Font`}
+        resetTo="default"
+        isSet={differs('fontFamily')}
+        onReset={resetFields('fontFamily')}
+      >
         <DraftTextField
           // A level of its own: a text left in the field does not follow to another level
           key={`font-${level}`}
@@ -87,7 +110,12 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
           onChange={(value) => change({ fontFamily: value })}
         />
       </SettingsRow>
-      <SettingsRow label={t`Size, weight`}>
+      <SettingsRow
+        label={t`Size, weight`}
+        resetTo="default"
+        isSet={differs('fontSize', 'fontWeight')}
+        onReset={resetFields('fontSize', 'fontWeight')}
+      >
         <div className="grid grid-cols-2 gap-1.5">
           <NumberUnitField
             aria-label={t`Size`}
@@ -108,7 +136,13 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
           />
         </div>
       </SettingsRow>
-      <SettingsRow label={t`Line height`} help={t`A multiple of the font size (1.3), or pixels (24px).`}>
+      <SettingsRow
+        label={t`Line height`}
+        help={t`A multiple of the font size (1.3), or pixels (24px).`}
+        resetTo="default"
+        isSet={differs('lineHeight')}
+        onReset={resetFields('lineHeight')}
+      >
         <DraftTextField
           key={`line-${level}`}
           aria-label={t`Line height`}
@@ -118,7 +152,12 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
           onChange={(value) => value !== undefined && change({ lineHeight: value })}
         />
       </SettingsRow>
-      <SettingsRow label={t`Color`}>
+      <SettingsRow
+        label={t`Color`}
+        resetTo="default"
+        isSet={differs('color')}
+        onReset={resetFields('color')}
+      >
         <ColorField
           aria-label={t`Color`}
           value={current.color}
@@ -127,7 +166,12 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
           onChange={(color) => change({ color: colorFromPicker(color) })}
         />
       </SettingsRow>
-      <SettingsRow label={t`Space above, below`}>
+      <SettingsRow
+        label={t`Space above, below`}
+        resetTo="default"
+        isSet={differs('marginTop', 'marginBottom')}
+        onReset={resetFields('marginTop', 'marginBottom')}
+      >
         <div className="grid grid-cols-2 gap-1.5">
           <NumberUnitField
             aria-label={t`Space above`}
@@ -164,11 +208,13 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
           {t`Heading ${level}`}
         </div>
       </div>
-      <div className="mt-1 flex justify-end">
-        <Button size="small" type="link" onClick={() => save(defaults[level])}>
-          {t`Reset H${level}`}
-        </Button>
-      </div>
+      {levelChanged(level) ? (
+        <div className="mt-1 flex justify-end">
+          <Button size="small" type="link" onClick={() => save(defaults[level])}>
+            {t`Reset H${level}`}
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -25,6 +25,9 @@ export interface DraftTextFieldProps {
   mono?: boolean
   /** Trim the text before writing it (default). */
   trim?: boolean
+  /** The address the « open » button follows for a saved value, null for none (default: the value
+   *  itself when `validate` is 'url' and the value is an openable web address). */
+  linkOf?: (value: string) => string | null
 }
 
 // DraftTextField: the text stays in the field while it is typed, and is written to the email once,
@@ -43,7 +46,8 @@ export function DraftTextField({
   maxLength,
   showCount = false,
   mono = false,
-  trim = true
+  trim = true,
+  linkOf
 }: DraftTextFieldProps) {
   const { t } = useLingui()
   const [editing, setEditing] = useState(false)
@@ -119,10 +123,12 @@ export function DraftTextField({
     }
   }
 
+  const urlLink = (url: string) => (validate === 'url' && !isLiquidExpression(url) && isOpenableUrl(url) ? url : null)
+  const href = !editing && value && !error ? (linkOf ?? urlLink)(value) : null
   const link =
-    validate === 'url' && !editing && value && !error && !isLiquidExpression(value) && isOpenableUrl(value) ? (
+    href ? (
       <a
-        href={value}
+        href={href}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={t`Open the link`}
