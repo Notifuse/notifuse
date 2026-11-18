@@ -115,7 +115,8 @@ const SETTINGS_FIELDS = [
 type TranslationEmailPayload = Partial<EmailTemplate> & Pick<EmailTemplate, 'subject'>
 
 // The drawer's bar: 40px and its 1px rule (FullDrawer).
-const HEADER_HEIGHT = 41
+// The FullDrawer's top bar (h-12): the editor fills the rest of the screen, with no scroll
+const HEADER_HEIGHT = 48
 
 // Liquid variables named in the custom text warnings, outside the translated sentences.
 const UNSUBSCRIBE_VARIABLE = '{{ unsubscribe_url }}'

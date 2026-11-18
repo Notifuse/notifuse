@@ -223,6 +223,16 @@ describe('CreateTemplateDrawer conflict handling', () => {
   })
 })
 
+describe('CreateTemplateDrawer editor height', () => {
+  // The drawer's top bar is 48 px (FullDrawer, h-12): an editor any taller scrolls the drawer
+  it("gives the editor the screen's height under the drawer's 48 px bar", async () => {
+    ;(templatesApi.get as Mock).mockResolvedValue({ template: makeTemplate(3) })
+    renderDrawer(<CreateTemplateDrawer workspace={workspace} template={makeTemplate(3)} />)
+    await userEvent.click(screen.getByRole('button', { name: /Edit template/i }))
+    await waitFor(() => expect(builder.props?.height).toBe('calc(100vh - 48px)'))
+  })
+})
+
 describe('CreateTemplateDrawer AI assistant context', () => {
   beforeEach(() => {
     vi.clearAllMocks()
