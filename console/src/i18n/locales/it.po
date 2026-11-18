@@ -25,7 +25,7 @@ msgstr " - Fallito"
 msgid " · {seconds}s"
 msgstr " · {seconds}s"
 
-#: src/components/email_builder/EmailBuilder.tsx:968
+#: src/components/email_builder/EmailBuilder.tsx:969
 msgid " (copy)"
 msgstr " (copia)"
 
@@ -1943,7 +1943,7 @@ msgstr "Un'offerta limitata: un'immagine, un codice promozionale e prodotti in e
 msgid "A Liquid block cannot go inside a block with a display condition"
 msgstr "Un blocco Liquid non può stare dentro un blocco con una condizione di visualizzazione"
 
-#: src/components/email_builder/EmailBuilder.tsx:434
+#: src/components/email_builder/EmailBuilder.tsx:435
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "Un blocco Liquid non può stare dentro un blocco con una condizione di visualizzazione: rimuovi prima la condizione o metti il blocco Liquid all'esterno."
 
@@ -2130,7 +2130,7 @@ msgstr "Carrello abbandonato"
 msgid "About {label}"
 msgstr "Informazioni su {label}"
 
-#: src/components/email_builder/ui/fields/SettingsSections.tsx:85
+#: src/components/email_builder/ui/fields/SettingsSections.tsx:84
 msgid "About {title}"
 msgstr "Informazioni su {title}"
 
@@ -3218,7 +3218,7 @@ msgstr "Le annotazioni non hanno un permesso proprio: rispondono deliberatamente
 msgid "Anonymous telemetry"
 msgstr "Telemetria anonima"
 
-#: src/components/email_builder/EmailBuilder.tsx:926
+#: src/components/email_builder/EmailBuilder.tsx:927
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "È in corso un’altra modifica della libreria. Riprova tra un momento."
 
@@ -4320,7 +4320,7 @@ msgstr "Lascia vuoto per mantenere il valore attuale."
 msgid "Block \"{name}\" deleted"
 msgstr "Blocco \"{name}\" eliminato"
 
-#: src/components/email_builder/EmailBuilder.tsx:1034
+#: src/components/email_builder/EmailBuilder.tsx:1035
 msgid "Block \"{name}\" inserted"
 msgstr "Blocco \"{name}\" inserito"
 
@@ -5136,8 +5136,8 @@ msgstr "Impossibile da testare nel browser"
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:151
-#: src/components/email_builder/EmailBuilder.tsx:982
-#: src/components/email_builder/EmailBuilder.tsx:998
+#: src/components/email_builder/EmailBuilder.tsx:983
+#: src/components/email_builder/EmailBuilder.tsx:999
 #: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/panels/TextVersionPanel.tsx:140
 #: src/components/email_builder/panels/TextVersionPanel.tsx:184
@@ -7037,7 +7037,7 @@ msgid "Couldn't load the template"
 msgstr "Impossibile caricare il template"
 
 #: src/components/templates/TemplateSelectorModal.tsx:233
-#: src/pages/TemplatesPage.tsx:514
+#: src/pages/TemplatesPage.tsx:512
 msgid "Couldn't load the templates"
 msgstr "Impossibile caricare i modelli"
 
@@ -7421,7 +7421,7 @@ msgstr "Crea la tua prima notifica per iniziare"
 msgid "Create Your First Post"
 msgstr "Crea il tuo primo post"
 
-#: src/pages/TemplatesPage.tsx:527
+#: src/pages/TemplatesPage.tsx:525
 msgid "Create your first template to get started"
 msgstr "Crea il tuo primo template per iniziare"
 
@@ -8150,7 +8150,7 @@ msgstr "Ritardo"
 #: src/components/contacts/ContactsTable.tsx:103
 #: src/components/contacts/ContactsViewHeader.tsx:153
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:56
-#: src/components/email_builder/EmailBuilder.tsx:996
+#: src/components/email_builder/EmailBuilder.tsx:997
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
 #: src/components/file_manager/FileExplorer.tsx:334
 #: src/components/file_manager/FileExplorer.tsx:403
@@ -8194,7 +8194,7 @@ msgstr "Elimina"
 #~ msgid "DELETE"
 #~ msgstr "ELIMINA"
 
-#: src/components/email_builder/EmailBuilder.tsx:994
+#: src/components/email_builder/EmailBuilder.tsx:995
 msgid "Delete \"{name}\" from the library?"
 msgstr "Eliminare \"{name}\" dalla libreria?"
 
@@ -9339,7 +9339,7 @@ msgstr "Ogni variante mantiene il mittente del suo template, a meno che tu non n
 #: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:303
 #: src/components/contacts/ContactsTable.tsx:91
-#: src/components/email_builder/EmailBuilder.tsx:1112
+#: src/components/email_builder/EmailBuilder.tsx:1113
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
 #: src/components/segment/input.tsx:389
 #: src/components/segment/input.tsx:393
@@ -13159,7 +13159,7 @@ msgstr "TLS implicito su 465"
 #: src/components/segment/segmentLabels.ts:252
 #: src/components/templates/ImportExportButton.tsx:203
 #: src/pages/ContactsPage.tsx:551
-#: src/pages/TemplatesPage.tsx:601
+#: src/pages/TemplatesPage.tsx:599
 msgid "Import"
 msgstr "Importa"
 
@@ -13839,7 +13839,7 @@ msgstr "Viene generata dall'HTML a ogni invio, quindi non c'è nulla da mantener
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "Non viene inviato all’ora prevista. Puoi modificarlo e programmarlo di nuovo; la data resta."
 
-#: src/components/email_builder/EmailBuilder.tsx:995
+#: src/components/email_builder/EmailBuilder.tsx:996
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "Viene rimosso per tutti i template del workspace. I template che contengono già questo blocco non cambiano."
 
@@ -14399,7 +14399,7 @@ msgstr "Solo lettere, cifre, spazi, virgolette, virgole e trattini."
 msgid "Level"
 msgstr "Livello"
 
-#: src/components/email_builder/EmailBuilder.tsx:1184
+#: src/components/email_builder/EmailBuilder.tsx:1185
 msgid "Library"
 msgstr "Libreria"
 
@@ -15556,7 +15556,7 @@ msgstr "Esportazione MJML Fallita"
 msgid "MJML exported successfully"
 msgstr "MJML esportato con successo"
 
-#: src/pages/TemplatesPage.tsx:587
+#: src/pages/TemplatesPage.tsx:585
 msgid "MJML file (.mjml)"
 msgstr "File MJML (.mjml)"
 
@@ -15676,7 +15676,7 @@ msgstr "Mensile"
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:350
-#: src/pages/TemplatesPage.tsx:493
+#: src/pages/TemplatesPage.tsx:491
 msgid "More actions"
 msgstr "Altre azioni"
 
@@ -15802,7 +15802,7 @@ msgstr "Il nome deve essere di meno di 255 caratteri"
 msgid "Name or ID"
 msgstr "Nome o ID"
 
-#: src/pages/TemplatesPage.tsx:635
+#: src/pages/TemplatesPage.tsx:633
 msgid "Name or subject"
 msgstr "Nome o oggetto"
 
@@ -15992,8 +15992,8 @@ msgstr "Nuova scheda"
 #: src/components/templates/TemplateSelectorModal.tsx:170
 #: src/components/templates/TemplateSelectorModal.tsx:176
 #: src/components/templates/TemplateStartModal.tsx:85
-#: src/pages/TemplatesPage.tsx:539
-#: src/pages/TemplatesPage.tsx:614
+#: src/pages/TemplatesPage.tsx:537
+#: src/pages/TemplatesPage.tsx:612
 msgid "New template"
 msgstr "Nuovo modello"
 
@@ -16747,7 +16747,7 @@ msgstr "Nessun template corrisponde."
 msgid "No template yet"
 msgstr "Ancora nessun modello"
 
-#: src/pages/TemplatesPage.tsx:526
+#: src/pages/TemplatesPage.tsx:524
 msgid "No templates found"
 msgstr "Nessun template trovato"
 
@@ -16756,7 +16756,7 @@ msgstr "Nessun template trovato"
 #~ msgid "No templates found for {0} category"
 #~ msgstr "Nessun template trovato per la categoria {0}"
 
-#: src/pages/TemplatesPage.tsx:555
+#: src/pages/TemplatesPage.tsx:553
 msgid "No templates found for category \"{label}\""
 msgstr "Nessun modello nella categoria \"{label}\""
 
@@ -16764,7 +16764,7 @@ msgstr "Nessun modello nella categoria \"{label}\""
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "Nessun template trovato per la categoria \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:575
+#: src/pages/TemplatesPage.tsx:573
 msgid "No templates match your search"
 msgstr "Nessun template corrisponde alla tua ricerca"
 
@@ -17190,7 +17190,7 @@ msgstr "Notifuse {latest} è disponibile"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse ha disabilitato automaticamente questo webhook"
 
-#: src/pages/TemplatesPage.tsx:586
+#: src/pages/TemplatesPage.tsx:584
 msgid "Notifuse export (.json)"
 msgstr "Esportazione Notifuse (.json)"
 
@@ -18983,7 +18983,7 @@ msgstr "Premi Invio per confermare, Esc per annullare"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:71
 #: src/components/common/ImageURLInput.tsx:58
-#: src/components/email_builder/EmailBuilder.tsx:1116
+#: src/components/email_builder/EmailBuilder.tsx:1117
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:132
 #: src/components/seo/SeoPreview.tsx:36
@@ -18993,7 +18993,7 @@ msgstr "Premi Invio per confermare, Esc per annullare"
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
 #: src/pages/TemplatesPage.tsx:476
-#: src/pages/TemplatesPage.tsx:480
+#: src/pages/TemplatesPage.tsx:479
 msgid "Preview"
 msgstr "Anteprima"
 
@@ -19821,7 +19821,7 @@ msgstr "URI di reindirizzamento copiato"
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:793
 #: src/components/blog/PostDrawer.tsx:796
-#: src/components/email_builder/EmailBuilder.tsx:1100
+#: src/components/email_builder/EmailBuilder.tsx:1101
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
 msgstr "Ripeti"
@@ -20253,14 +20253,14 @@ msgstr "Ripeti X"
 msgid "Repeat Y"
 msgstr "Ripeti Y"
 
-#: src/components/email_builder/EmailBuilder.tsx:981
+#: src/components/email_builder/EmailBuilder.tsx:982
 #: src/components/email_builder/panels/TextVersionPanel.tsx:183
 #: src/components/email_builder/ui/SaveBlockModal.tsx:97
 #: src/components/settings/LogoInput.tsx:107
 msgid "Replace"
 msgstr "Sostituisci"
 
-#: src/components/email_builder/EmailBuilder.tsx:979
+#: src/components/email_builder/EmailBuilder.tsx:980
 msgid "Replace \"{name}\" with the selected block?"
 msgstr "Sostituire \"{name}\" con il blocco selezionato?"
 
@@ -20447,7 +20447,7 @@ msgstr "Reimposta H{level}"
 msgid "Reset replaces all the content with the default language's."
 msgstr "Reimposta sostituisce tutto il contenuto con quello della lingua predefinita."
 
-#: src/pages/TemplatesPage.tsx:560
+#: src/pages/TemplatesPage.tsx:558
 msgid "reset the filter"
 msgstr "reimposta il filtro"
 
@@ -20624,7 +20624,7 @@ msgstr "Ha ritentato gli invii non riusciti della newsletter <0>{target}</0>"
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
 #: src/pages/AutomationsPage.tsx:208
 #: src/pages/BroadcastsPage.tsx:245
-#: src/pages/TemplatesPage.tsx:516
+#: src/pages/TemplatesPage.tsx:514
 #: src/pages/TransactionalNotificationsPage.tsx:189
 msgid "Retry"
 msgstr "Riprova"
@@ -23635,7 +23635,7 @@ msgstr "Salva la regione"
 msgid "Strikethrough"
 msgstr "Barrato"
 
-#: src/components/email_builder/EmailBuilder.tsx:1182
+#: src/components/email_builder/EmailBuilder.tsx:1183
 msgid "Structure"
 msgstr "Struttura"
 
@@ -24209,12 +24209,12 @@ msgstr "Mittente del template ({0})"
 #: src/components/templates/CreateTemplateDrawer.tsx:968
 #: src/components/templates/TemplateSelectorModal.tsx:285
 #: src/layouts/app-shell/menuItems.ts:229
-#: src/pages/TemplatesPage.tsx:593
+#: src/pages/TemplatesPage.tsx:591
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Template"
 
-#: src/components/email_builder/EmailBuilder.tsx:980
+#: src/components/email_builder/EmailBuilder.tsx:981
 msgid "Templates that already contain this block do not change."
 msgstr "I template che contengono già questo blocco non cambiano."
 
@@ -24530,7 +24530,7 @@ msgstr "Stile del testo"
 #~ msgid "Text Transform"
 #~ msgstr "Trasformazione testo"
 
-#: src/components/email_builder/EmailBuilder.tsx:1119
+#: src/components/email_builder/EmailBuilder.tsx:1120
 #: src/components/email_builder/MjmlCodeEditor.tsx:693
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
 #: src/components/logs/MessageDetail.tsx:807
@@ -26484,7 +26484,7 @@ msgstr "vero"
 #~ msgid "Try adjusting your search or status filter"
 #~ msgstr "Prova a modificare la ricerca o il filtro di stato"
 
-#: src/pages/TemplatesPage.tsx:558
+#: src/pages/TemplatesPage.tsx:556
 msgid "Try selecting a different category or"
 msgstr "Prova a selezionare una categoria diversa o"
 
@@ -26621,8 +26621,8 @@ msgstr "Comprendi la qualità dei referral"
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:784
 #: src/components/blog/PostDrawer.tsx:787
-#: src/components/email_builder/EmailBuilder.tsx:1041
-#: src/components/email_builder/EmailBuilder.tsx:1093
+#: src/components/email_builder/EmailBuilder.tsx:1042
+#: src/components/email_builder/EmailBuilder.tsx:1094
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
 msgid "Undo"
 msgstr "Annulla"

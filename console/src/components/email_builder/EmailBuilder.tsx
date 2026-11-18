@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
-import { App, Button, Segmented, Spin } from 'antd'
+import { App, Button, ConfigProvider, Segmented, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
 import { Redo2, Undo2 } from 'lucide-react'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
@@ -32,6 +32,7 @@ import { applyBlockUpdates, type BlockUpdates, type UpdateOptions } from './util
 import { ensureHeadingStyles } from './utils/headingStyles'
 import { rebalanceAdded, rebalanceRemoved } from './utils/layoutRebalance'
 import { countHiddenBlocks, liquidPlacementError } from './displayCondition'
+import { SETTINGS_PANEL_THEME } from './panels/settingsPanelTheme'
 
 type ViewMode = 'edit' | 'preview' | 'text'
 
@@ -1249,7 +1250,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
             <div
               ref={settingsPanelRef}
-              className="w-96 bg-gray-50 border-l border-gray-200 flex flex-col"
+              className="w-104 bg-fill border-l border-gray-200 flex flex-col"
             >
               <OverlayScrollbarsComponent
                 defer
@@ -1263,6 +1264,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               >
                 <div className="pb-32">
 <SettingsSectionsProvider>
+<ConfigProvider theme={SETTINGS_PANEL_THEME}>
 <EditorActionsContext.Provider value={editorActions}>
                   <SettingsPanel
                     key={`settings-${selectedBlock?.id || 'none'}`}
@@ -1279,6 +1281,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                     onSaveBlock={setSaveDialogBlockId}
                   />
 </EditorActionsContext.Provider>
+</ConfigProvider>
                   </SettingsSectionsProvider>
                 </div>
               </OverlayScrollbarsComponent>

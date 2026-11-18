@@ -25,7 +25,7 @@ msgstr " - Failed"
 msgid " · {seconds}s"
 msgstr " · {seconds}s"
 
-#: src/components/email_builder/EmailBuilder.tsx:968
+#: src/components/email_builder/EmailBuilder.tsx:969
 msgid " (copy)"
 msgstr " (copy)"
 
@@ -1943,7 +1943,7 @@ msgstr "A limited offer: a visual, a promo code and featured products."
 msgid "A Liquid block cannot go inside a block with a display condition"
 msgstr "A Liquid block cannot go inside a block with a display condition"
 
-#: src/components/email_builder/EmailBuilder.tsx:434
+#: src/components/email_builder/EmailBuilder.tsx:435
 msgid "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 msgstr "A Liquid block cannot go inside a block with a display condition: remove the condition first, or place the Liquid block outside."
 
@@ -2130,7 +2130,7 @@ msgstr "Abandoned cart"
 msgid "About {label}"
 msgstr "About {label}"
 
-#: src/components/email_builder/ui/fields/SettingsSections.tsx:85
+#: src/components/email_builder/ui/fields/SettingsSections.tsx:84
 msgid "About {title}"
 msgstr "About {title}"
 
@@ -3218,7 +3218,7 @@ msgstr "Annotations have no permission of their own: they deliberately answer to
 msgid "Anonymous telemetry"
 msgstr "Anonymous telemetry"
 
-#: src/components/email_builder/EmailBuilder.tsx:926
+#: src/components/email_builder/EmailBuilder.tsx:927
 msgid "Another change to the library is running. Try again in a moment."
 msgstr "Another change to the library is running. Try again in a moment."
 
@@ -4320,7 +4320,7 @@ msgstr "Blank keeps the current one."
 msgid "Block \"{name}\" deleted"
 msgstr "Block \"{name}\" deleted"
 
-#: src/components/email_builder/EmailBuilder.tsx:1034
+#: src/components/email_builder/EmailBuilder.tsx:1035
 msgid "Block \"{name}\" inserted"
 msgstr "Block \"{name}\" inserted"
 
@@ -5136,8 +5136,8 @@ msgstr "Can't test in the browser"
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:151
-#: src/components/email_builder/EmailBuilder.tsx:982
-#: src/components/email_builder/EmailBuilder.tsx:998
+#: src/components/email_builder/EmailBuilder.tsx:983
+#: src/components/email_builder/EmailBuilder.tsx:999
 #: src/components/email_builder/panels/Preview.tsx:210
 #: src/components/email_builder/panels/TextVersionPanel.tsx:140
 #: src/components/email_builder/panels/TextVersionPanel.tsx:184
@@ -7037,7 +7037,7 @@ msgid "Couldn't load the template"
 msgstr "Couldn't load the template"
 
 #: src/components/templates/TemplateSelectorModal.tsx:233
-#: src/pages/TemplatesPage.tsx:514
+#: src/pages/TemplatesPage.tsx:512
 msgid "Couldn't load the templates"
 msgstr "Couldn't load the templates"
 
@@ -7421,7 +7421,7 @@ msgstr "Create your first notification to get started"
 msgid "Create Your First Post"
 msgstr "Create Your First Post"
 
-#: src/pages/TemplatesPage.tsx:527
+#: src/pages/TemplatesPage.tsx:525
 msgid "Create your first template to get started"
 msgstr "Create your first template to get started"
 
@@ -8150,7 +8150,7 @@ msgstr "Delay"
 #: src/components/contacts/ContactsTable.tsx:103
 #: src/components/contacts/ContactsViewHeader.tsx:153
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:56
-#: src/components/email_builder/EmailBuilder.tsx:996
+#: src/components/email_builder/EmailBuilder.tsx:997
 #: src/components/email_builder/ui/SavedBlockCard.tsx:120
 #: src/components/file_manager/FileExplorer.tsx:334
 #: src/components/file_manager/FileExplorer.tsx:403
@@ -8194,7 +8194,7 @@ msgstr "Delete"
 #~ msgid "DELETE"
 #~ msgstr "DELETE"
 
-#: src/components/email_builder/EmailBuilder.tsx:994
+#: src/components/email_builder/EmailBuilder.tsx:995
 msgid "Delete \"{name}\" from the library?"
 msgstr "Delete \"{name}\" from the library?"
 
@@ -9339,7 +9339,7 @@ msgstr "Each variation keeps its template's sender unless you choose another one
 #: src/components/broadcasts/BroadcastsTable.tsx:198
 #: src/components/broadcasts/detail/BroadcastDetail.tsx:303
 #: src/components/contacts/ContactsTable.tsx:91
-#: src/components/email_builder/EmailBuilder.tsx:1112
+#: src/components/email_builder/EmailBuilder.tsx:1113
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:72
 #: src/components/segment/input.tsx:389
 #: src/components/segment/input.tsx:393
@@ -13159,7 +13159,7 @@ msgstr "Implicit TLS on 465"
 #: src/components/segment/segmentLabels.ts:252
 #: src/components/templates/ImportExportButton.tsx:203
 #: src/pages/ContactsPage.tsx:551
-#: src/pages/TemplatesPage.tsx:601
+#: src/pages/TemplatesPage.tsx:599
 msgid "Import"
 msgstr "Import"
 
@@ -13839,7 +13839,7 @@ msgstr "It is generated from the HTML at every send, so there is nothing to main
 msgid "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 msgstr "It is not sent at its scheduled time. You can edit it and schedule it again; its date is kept."
 
-#: src/components/email_builder/EmailBuilder.tsx:995
+#: src/components/email_builder/EmailBuilder.tsx:996
 msgid "It is removed for every template of the workspace. Templates that already contain this block do not change."
 msgstr "It is removed for every template of the workspace. Templates that already contain this block do not change."
 
@@ -14399,7 +14399,7 @@ msgstr "Letters, digits, spaces, quotes, commas and hyphens only."
 msgid "Level"
 msgstr "Level"
 
-#: src/components/email_builder/EmailBuilder.tsx:1184
+#: src/components/email_builder/EmailBuilder.tsx:1185
 msgid "Library"
 msgstr "Library"
 
@@ -15556,7 +15556,7 @@ msgstr "MJML Export Failed"
 msgid "MJML exported successfully"
 msgstr "MJML exported successfully"
 
-#: src/pages/TemplatesPage.tsx:587
+#: src/pages/TemplatesPage.tsx:585
 msgid "MJML file (.mjml)"
 msgstr "MJML file (.mjml)"
 
@@ -15676,7 +15676,7 @@ msgstr "Monthly"
 #: src/components/settings/integrations/EmailProviderCard.tsx:355
 #: src/components/transactional/TransactionalDetail.tsx:362
 #: src/components/transactional/TransactionalTable.tsx:350
-#: src/pages/TemplatesPage.tsx:493
+#: src/pages/TemplatesPage.tsx:491
 msgid "More actions"
 msgstr "More actions"
 
@@ -15802,7 +15802,7 @@ msgstr "Name must be less than 255 characters"
 msgid "Name or ID"
 msgstr "Name or ID"
 
-#: src/pages/TemplatesPage.tsx:635
+#: src/pages/TemplatesPage.tsx:633
 msgid "Name or subject"
 msgstr "Name or subject"
 
@@ -15992,8 +15992,8 @@ msgstr "New tab"
 #: src/components/templates/TemplateSelectorModal.tsx:170
 #: src/components/templates/TemplateSelectorModal.tsx:176
 #: src/components/templates/TemplateStartModal.tsx:85
-#: src/pages/TemplatesPage.tsx:539
-#: src/pages/TemplatesPage.tsx:614
+#: src/pages/TemplatesPage.tsx:537
+#: src/pages/TemplatesPage.tsx:612
 msgid "New template"
 msgstr "New template"
 
@@ -16747,7 +16747,7 @@ msgstr "No template matches."
 msgid "No template yet"
 msgstr "No template yet"
 
-#: src/pages/TemplatesPage.tsx:526
+#: src/pages/TemplatesPage.tsx:524
 msgid "No templates found"
 msgstr "No templates found"
 
@@ -16756,7 +16756,7 @@ msgstr "No templates found"
 #~ msgid "No templates found for {0} category"
 #~ msgstr "No templates found for {0} category"
 
-#: src/pages/TemplatesPage.tsx:555
+#: src/pages/TemplatesPage.tsx:553
 msgid "No templates found for category \"{label}\""
 msgstr "No templates found for category \"{label}\""
 
@@ -16764,7 +16764,7 @@ msgstr "No templates found for category \"{label}\""
 #~ msgid "No templates found for category \"{selectedCategory}\""
 #~ msgstr "No templates found for category \"{selectedCategory}\""
 
-#: src/pages/TemplatesPage.tsx:575
+#: src/pages/TemplatesPage.tsx:573
 msgid "No templates match your search"
 msgstr "No templates match your search"
 
@@ -17190,7 +17190,7 @@ msgstr "Notifuse {latest} is available"
 msgid "Notifuse disabled this webhook automatically"
 msgstr "Notifuse disabled this webhook automatically"
 
-#: src/pages/TemplatesPage.tsx:586
+#: src/pages/TemplatesPage.tsx:584
 msgid "Notifuse export (.json)"
 msgstr "Notifuse export (.json)"
 
@@ -18983,7 +18983,7 @@ msgstr "Press Enter to confirm, Escape to cancel"
 #: src/components/broadcasts/compose/PreviewPanel.tsx:57
 #: src/components/broadcasts/detail/BroadcastAside.tsx:71
 #: src/components/common/ImageURLInput.tsx:58
-#: src/components/email_builder/EmailBuilder.tsx:1116
+#: src/components/email_builder/EmailBuilder.tsx:1117
 #: src/components/file_manager/FileExplorer.tsx:1118
 #: src/components/segment/SegmentCountCard.tsx:132
 #: src/components/seo/SeoPreview.tsx:36
@@ -18993,7 +18993,7 @@ msgstr "Press Enter to confirm, Escape to cancel"
 #: src/components/templates/TemplateStartModal.tsx:401
 #: src/components/transactional/PreviewPanel.tsx:120
 #: src/pages/TemplatesPage.tsx:476
-#: src/pages/TemplatesPage.tsx:480
+#: src/pages/TemplatesPage.tsx:479
 msgid "Preview"
 msgstr "Preview"
 
@@ -19821,7 +19821,7 @@ msgstr "Redirect URI copied"
 #: src/components/blog_editor/components/EditorHeader.tsx:69
 #: src/components/blog/PostDrawer.tsx:793
 #: src/components/blog/PostDrawer.tsx:796
-#: src/components/email_builder/EmailBuilder.tsx:1100
+#: src/components/email_builder/EmailBuilder.tsx:1101
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:603
 msgid "Redo"
 msgstr "Redo"
@@ -20253,14 +20253,14 @@ msgstr "Repeat X"
 msgid "Repeat Y"
 msgstr "Repeat Y"
 
-#: src/components/email_builder/EmailBuilder.tsx:981
+#: src/components/email_builder/EmailBuilder.tsx:982
 #: src/components/email_builder/panels/TextVersionPanel.tsx:183
 #: src/components/email_builder/ui/SaveBlockModal.tsx:97
 #: src/components/settings/LogoInput.tsx:107
 msgid "Replace"
 msgstr "Replace"
 
-#: src/components/email_builder/EmailBuilder.tsx:979
+#: src/components/email_builder/EmailBuilder.tsx:980
 msgid "Replace \"{name}\" with the selected block?"
 msgstr "Replace \"{name}\" with the selected block?"
 
@@ -20447,7 +20447,7 @@ msgstr "Reset H{level}"
 msgid "Reset replaces all the content with the default language's."
 msgstr "Reset replaces all the content with the default language's."
 
-#: src/pages/TemplatesPage.tsx:560
+#: src/pages/TemplatesPage.tsx:558
 msgid "reset the filter"
 msgstr "reset the filter"
 
@@ -20624,7 +20624,7 @@ msgstr "Retried the failed sends of the newsletter <0>{target}</0>"
 #: src/components/web_analytics/explore/BreakdownTableCard.tsx:66
 #: src/pages/AutomationsPage.tsx:208
 #: src/pages/BroadcastsPage.tsx:245
-#: src/pages/TemplatesPage.tsx:516
+#: src/pages/TemplatesPage.tsx:514
 #: src/pages/TransactionalNotificationsPage.tsx:189
 msgid "Retry"
 msgstr "Retry"
@@ -23635,7 +23635,7 @@ msgstr "Store the region"
 msgid "Strikethrough"
 msgstr "Strikethrough"
 
-#: src/components/email_builder/EmailBuilder.tsx:1182
+#: src/components/email_builder/EmailBuilder.tsx:1183
 msgid "Structure"
 msgstr "Structure"
 
@@ -24209,12 +24209,12 @@ msgstr "Template's sender ({0})"
 #: src/components/templates/CreateTemplateDrawer.tsx:968
 #: src/components/templates/TemplateSelectorModal.tsx:285
 #: src/layouts/app-shell/menuItems.ts:229
-#: src/pages/TemplatesPage.tsx:593
+#: src/pages/TemplatesPage.tsx:591
 #: src/services/api/errors.ts:84
 msgid "Templates"
 msgstr "Templates"
 
-#: src/components/email_builder/EmailBuilder.tsx:980
+#: src/components/email_builder/EmailBuilder.tsx:981
 msgid "Templates that already contain this block do not change."
 msgstr "Templates that already contain this block do not change."
 
@@ -24530,7 +24530,7 @@ msgstr "Text style"
 #~ msgid "Text Transform"
 #~ msgstr "Text Transform"
 
-#: src/components/email_builder/EmailBuilder.tsx:1119
+#: src/components/email_builder/EmailBuilder.tsx:1120
 #: src/components/email_builder/MjmlCodeEditor.tsx:693
 #: src/components/email_builder/panels/TextVersionPanel.tsx:122
 #: src/components/logs/MessageDetail.tsx:807
@@ -26484,7 +26484,7 @@ msgstr "true"
 #~ msgid "Try adjusting your search or status filter"
 #~ msgstr "Try adjusting your search or status filter"
 
-#: src/pages/TemplatesPage.tsx:558
+#: src/pages/TemplatesPage.tsx:556
 msgid "Try selecting a different category or"
 msgstr "Try selecting a different category or"
 
@@ -26621,8 +26621,8 @@ msgstr "Understand the quality of referrals"
 #: src/components/blog_editor/components/EditorHeader.tsx:55
 #: src/components/blog/PostDrawer.tsx:784
 #: src/components/blog/PostDrawer.tsx:787
-#: src/components/email_builder/EmailBuilder.tsx:1041
-#: src/components/email_builder/EmailBuilder.tsx:1093
+#: src/components/email_builder/EmailBuilder.tsx:1042
+#: src/components/email_builder/EmailBuilder.tsx:1094
 #: src/components/email_builder/ui/tiptap/components/TiptapToolbar.tsx:594
 msgid "Undo"
 msgstr "Undo"

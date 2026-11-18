@@ -58,7 +58,7 @@ export const DisplayConditionSummary: React.FC<DisplayConditionSummaryProps> = (
   const liquidMessage = t`This block holds a Liquid block, which a condition could cut off from the rest of the email. Move the Liquid block out of it first.`
 
   return (
-    <div className="border-b border-line-soft bg-subtle px-3.5 py-2.5" data-testid="display-condition-summary">
+    <div className="border-b border-line bg-surface px-3.5 py-2.5" data-testid="display-condition-summary">
       {condition ? (
         <>
           <div className="flex items-center gap-2">

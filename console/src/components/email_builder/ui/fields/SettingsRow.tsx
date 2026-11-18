@@ -70,7 +70,12 @@ export function SettingsRow({
         )}
         <div className="flex min-w-0 items-center gap-1">
           <div className="min-w-0 flex-1">{children}</div>
-          {!vertical && reset}
+          {/* The reset's place is kept on every row: fields keep one width, set or not */}
+          {vertical ? null : (
+            <span className="flex w-4 flex-none justify-center" data-testid="reset-slot">
+              {reset}
+            </span>
+          )}
         </div>
       </div>
       {alert ? <div className={vertical ? 'mt-1' : 'mt-1 ml-26'}>{alert}</div> : null}

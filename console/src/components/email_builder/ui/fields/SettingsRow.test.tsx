@@ -52,6 +52,25 @@ describe('SettingsRow', () => {
     )
   })
 
+  it("keeps the reset's place on a row that is not set, so fields keep one width", () => {
+    render(
+      <SettingsRow label="Width">
+        <input aria-label="Width" />
+      </SettingsRow>
+    )
+    expect(screen.getByTestId('reset-slot')).toBeEmptyDOMElement()
+  })
+
+  it('has no reset slot on a vertical row: its reset sits beside the label', () => {
+    render(
+      <SettingsRow label="Spacing" vertical isSet onReset={() => {}}>
+        <div />
+      </SettingsRow>
+    )
+    expect(screen.queryByTestId('reset-slot')).toBeNull()
+    expect(screen.getByRole('button', { name: /Reset Spacing/ })).toBeInTheDocument()
+  })
+
   it('keeps an alert visible under the field', () => {
     render(
       <SettingsRow label="Width" alert={<span>Too wide</span>}>
