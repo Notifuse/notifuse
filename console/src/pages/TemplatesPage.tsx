@@ -469,14 +469,13 @@ export function TemplatesPage() {
     },
     {
       key: 'actions',
-      width: 80,
+      width: 96,
       render: (_: unknown, template: Template) => (
         <div className="flex items-center justify-end gap-0.5" onClick={(event) => event.stopPropagation()}>
           {/* Preview on every row, outside the menu */}
           <Tooltip title={t`Preview`}>
             <Button
               type="text"
-              size="small"
               aria-label={t`Preview`}
               icon={<Eye size={16} aria-hidden="true" />}
               onClick={() => setPreview(template.id)}
@@ -489,7 +488,6 @@ export function TemplatesPage() {
           >
             <Button
               type="text"
-              size="small"
               aria-label={t`More actions`}
               icon={<MoreHorizontal size={16} aria-hidden="true" />}
             />
