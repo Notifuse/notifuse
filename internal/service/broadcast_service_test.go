@@ -2331,6 +2331,8 @@ func TestBroadcastService_SendToIndividual_TemplateCompilationNotSuccessful(t *t
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "template compilation failed")
 	assert.Contains(t, err.Error(), errMsg)
+	var renderErr *domain.TemplateRenderError
+	assert.True(t, errors.As(err, &renderErr), "a compilation failure is a TemplateRenderError: %v", err)
 }
 
 func TestBroadcastService_SendToIndividual_EmailSendFailure(t *testing.T) {

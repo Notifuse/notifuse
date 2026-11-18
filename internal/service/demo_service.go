@@ -15,6 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // DemoService handles demo workspace operations
@@ -112,10 +113,10 @@ var (
 		"Howard", "Ward", "Torres", "Peterson", "Gray", "Ramirez", "James", "Watson",
 	}
 
-	emailDomains = []string{
-		"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com",
-		"aol.com", "protonmail.com", "mail.com", "zoho.com", "example.com",
-	}
+	// Only the domains RFC 2606 reserves for examples. The demo's contacts show on the public
+	// demo, on preview instances and in the documentation's screenshots, where an address at a
+	// real mailbox provider can be somebody's.
+	emailDomains = []string{"example.com", "example.org", "example.net"}
 
 	timezones = []string{
 		"UTC", "America/New_York", "America/Los_Angeles", "America/Chicago",
@@ -650,8 +651,8 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 		return err
 	}
 
-	// Step 5: Create sample broadcast campaigns and get their IDs
-	broadcastIDs, err := s.createSampleBroadcasts(ctx, workspaceID)
+	// Step 5: Create sample broadcast campaigns, which date and template their messages
+	broadcasts, err := s.createSampleBroadcasts(ctx, workspaceID, now)
 	if err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to create sample broadcasts")
 		return err
@@ -663,9 +664,17 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 		return err
 	}
 
-	// Step 7: Generate sample message history with realistic engagement rates using real broadcast IDs
-	if err := s.generateSampleMessageHistory(ctx, workspaceID, broadcastIDs); err != nil {
+	// Step 7: Generate sample message history with realistic engagement rates, each broadcast's
+	// dated and templated as that broadcast went out
+	if err := s.generateSampleMessageHistory(ctx, workspaceID, broadcasts, now); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate sample message history")
+		return err
+	}
+
+	// Step 7b: Mark the broadcasts as sent, with the counters their message history gave them.
+	// Fatal: a broadcast left a draft with a full history behind it could be sent for real.
+	if err := s.saveSampleBroadcasts(ctx, workspaceID, broadcasts); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to mark sample broadcasts as sent")
 		return err
 	}
 
@@ -692,8 +701,8 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 
 	// Step 10: Annotate the charts. It has to run after the web analytics (step 3b),
 	// which is what puts the launch spike on the chart the manual annotation points
-	// at, and after the broadcasts (step 5), because one annotation per broadcast is
-	// read back from the broadcast rows.
+	// at, and after the broadcasts are marked as sent (step 7b), because one annotation per
+	// broadcast is read back from the send date on its row.
 	if err := s.seedAnnotations(ctx, workspaceID, now); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to seed demo annotations")
 		// Non-fatal: the rest of the demo is still usable without them.
@@ -707,8 +716,10 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 func (s *DemoService) generateAndAddSampleContacts(ctx context.Context, workspaceID string, count int) error {
 	s.logger.WithField("workspace_id", workspaceID).WithField("count", count).Info("Generating sample contacts")
 
-	// Create contacts in batches to avoid overwhelming the system
+	// Create contacts in batches to avoid overwhelming the system. The addresses are unique
+	// across the batches: UpsertContact would merge two contacts given the same one.
 	batchSize := 100
+	used := map[string]bool{}
 	for i := 0; i < count; i += batchSize {
 		remaining := count - i
 		currentBatchSize := batchSize
@@ -716,7 +727,7 @@ func (s *DemoService) generateAndAddSampleContacts(ctx context.Context, workspac
 			currentBatchSize = remaining
 		}
 
-		batch := s.generateSampleContactsBatch(currentBatchSize, i)
+		batch := s.generateSampleContactsBatch(currentBatchSize, i, used)
 
 		// Add batch to workspace
 		for _, contact := range batch {
@@ -789,14 +800,15 @@ func (s *DemoService) createDemoSMTPIntegration(ctx context.Context, workspaceID
 	return nil
 }
 
-// generateSampleContactsBatch creates a batch of sample contacts
-func (s *DemoService) generateSampleContactsBatch(count int, startIndex int) []*domain.Contact {
+// generateSampleContactsBatch creates a batch of sample contacts, at addresses not in used,
+// which it adds them to.
+func (s *DemoService) generateSampleContactsBatch(count int, startIndex int, used map[string]bool) []*domain.Contact {
 	contacts := make([]*domain.Contact, count)
 
 	for i := 0; i < count; i++ {
 		firstName := getRandomElement(firstNames)
 		lastName := getRandomElement(lastNames)
-		email := generateEmail(firstName, lastName, startIndex+i)
+		email := uniqueDemoEmail(generateEmail(firstName, lastName, startIndex+i), used)
 
 		// Spread over the same window the web analytics history covers. Six
 		// months used to be enough because the purchase history was invented
@@ -853,6 +865,21 @@ func generateEmail(firstName, lastName string, index int) string {
 	default:
 		return fmt.Sprintf("%s.%s%d@%s", strings.ToLower(firstName), strings.ToLower(lastName), index, domain)
 	}
+}
+
+// uniqueDemoEmail is email if no other contact of the seed has it, else email with a number
+// after its local part ("ann.lee-2@example.com"), and records the address it returns as used.
+// Three domains and a few name formats give the same address to two contacts often enough to
+// matter: UpsertContact would merge them into one.
+func uniqueDemoEmail(email string, used map[string]bool) string {
+	candidate := email
+	if at := strings.LastIndex(email, "@"); at > 0 {
+		for n := 2; used[candidate]; n++ {
+			candidate = fmt.Sprintf("%s-%d%s", email[:at], n, email[at:])
+		}
+	}
+	used[candidate] = true
+	return candidate
 }
 
 // getRandomElement returns a random element from a string slice
@@ -1069,15 +1096,31 @@ var demoBroadcastCampaigns = []struct {
 		[]string{"newsletter-weekly", "newsletter-weekly-v2"}},
 }
 
-// createSampleBroadcasts creates multiple sample broadcast campaigns and returns their IDs
-func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID string) ([]string, error) {
+// How a sample broadcast went out, which dates both the broadcast row and its messages.
+const (
+	// demoBroadcastDraftLead is the time from a broadcast's created_at to its started_at: it
+	// was written the day before it went out.
+	demoBroadcastDraftLead = 24 * time.Hour
+	// demoBroadcastSendWindow is the time from a broadcast's started_at to its completed_at,
+	// over which its emails leave.
+	demoBroadcastSendWindow = 2 * time.Hour
+	// demoABTestSendWindow is the time over which the A/B test sample leaves after test_sent_at.
+	demoABTestSendWindow = 15 * time.Minute
+	// demoABWinnerDelay is the time from the A/B test's started_at to winner_sent_at: the test
+	// ran, a winner was picked, and the rest of the audience was sent the winning template.
+	demoABWinnerDelay = time.Hour
+)
+
+// createSampleBroadcasts creates the sample broadcast campaigns and returns them marked, in
+// memory, as sent before now: their messages are dated and templated from them
+// (demoBroadcastSend). They are stored as drafts until saveSampleBroadcasts writes them, once
+// their message history has given them their counters.
+func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID string, now time.Time) ([]*domain.Broadcast, error) {
 	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample broadcasts")
 
-	var broadcastIDs []string
+	var created []*domain.Broadcast
 
-	broadcasts := demoBroadcastCampaigns
-
-	for i, bc := range broadcasts {
+	for i, bc := range demoBroadcastCampaigns {
 		// Variations follow the templates declared alongside the campaign, so the
 		// utm_content a send stamps stays in step with the seeded sessions.
 		variations := make([]domain.BroadcastVariation, 0, len(bc.Templates))
@@ -1117,50 +1160,83 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 			continue
 		}
 
-		// Update broadcast status to "processed" since we're generating message history for it
-		// Set timestamps to simulate that it was processed in the past (10-1 days ago based on campaign)
-		daysAgo := 10 - (i * 2) // Spread broadcasts over last 10 days
+		// Processed in the past, a broadcast every two days, the first ten days ago and the
+		// last four. The message history is dated from these timestamps, never on its own.
+		daysAgo := 10 - (i * 2)
 		if daysAgo < 1 {
 			daysAgo = 1
 		}
-		sentTime := time.Now().AddDate(0, 0, -daysAgo)
-		completedTime := sentTime.Add(2 * time.Hour) // Completed 2 hours after processing started
+		demoMarkBroadcastSent(broadcast, now.AddDate(0, 0, -daysAgo))
 
-		broadcast.Status = domain.BroadcastStatusProcessed
-		broadcast.StartedAt = &sentTime
-		broadcast.CompletedAt = &completedTime
-		broadcast.UpdatedAt = completedTime
-
-		// The last broadcast is the A/B test; record its final variation as the selected
-		// winner (all of its messages were sent with that variation) so the Variations
-		// table highlights it. Derive the template id from the variation rather than
-		// hardcoding it, and set the test/winner phase timestamps so the record matches a
-		// genuine winner selection. WinningTemplate/*SentAt are top-level columns
-		// persisted by UpdateBroadcast below.
-		if len(variations) > 1 {
-			winner := variations[len(variations)-1].TemplateID
-			winnerSentTime := sentTime.Add(1 * time.Hour)
-			broadcast.WinningTemplate = &winner
-			broadcast.TestSentAt = &sentTime
-			broadcast.WinnerSentAt = &winnerSentTime
-		}
-
-		// Update the broadcast in the repository to reflect processed status
-		if err := s.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
-			s.logger.WithField("broadcast_id", broadcast.ID).WithField("error", err.Error()).Warn("Failed to update broadcast status to processed")
-			// Continue anyway - the broadcast was created, just not marked as processed
-		}
-
-		broadcastIDs = append(broadcastIDs, broadcast.ID)
-		s.logger.WithField("broadcast_id", broadcast.ID).WithField("name", bc.Name).WithField("status", "sent").Info("Sample broadcast created and marked as sent")
+		created = append(created, broadcast)
+		s.logger.WithField("broadcast_id", broadcast.ID).WithField("name", bc.Name).Info("Sample broadcast created")
 	}
 
-	if len(broadcastIDs) == 0 {
+	if len(created) == 0 {
 		return nil, fmt.Errorf("failed to create any sample broadcasts")
 	}
 
-	s.logger.WithField("workspace_id", workspaceID).WithField("count", len(broadcastIDs)).Info("Sample broadcasts created successfully")
-	return broadcastIDs, nil
+	s.logger.WithField("workspace_id", workspaceID).WithField("count", len(created)).Info("Sample broadcasts created successfully")
+	return created, nil
+}
+
+// demoMarkBroadcastSent marks a sample broadcast as processed, written the day before
+// startedAt and sent from startedAt over demoBroadcastSendWindow.
+//
+// The A/B test (demoIsABTest) is marked with its last variation as the winner: its sample was
+// sent the variations from the start, and the rest of the audience the winner once it was
+// picked, so the Variations table shows both variations' sends and highlights the winner.
+// WinningTemplate and the *SentAt fields are columns UpdateBroadcast writes.
+func demoMarkBroadcastSent(broadcast *domain.Broadcast, startedAt time.Time) {
+	completedAt := startedAt.Add(demoBroadcastSendWindow)
+	broadcast.Status = domain.BroadcastStatusProcessed
+	broadcast.CreatedAt = startedAt.Add(-demoBroadcastDraftLead)
+	broadcast.StartedAt = &startedAt
+	broadcast.CompletedAt = &completedAt
+	broadcast.UpdatedAt = completedAt
+
+	if demoIsABTest(broadcast) {
+		variations := broadcast.TestSettings.Variations
+		winner := variations[len(variations)-1].TemplateID
+		testSentAt := startedAt
+		winnerSentAt := startedAt.Add(demoABWinnerDelay)
+		broadcast.WinningTemplate = &winner
+		broadcast.TestSentAt = &testSentAt
+		broadcast.WinnerSentAt = &winnerSentAt
+	}
+}
+
+// demoIsABTest says whether a sample broadcast is the A/B test: a test with more than one
+// variation. It is the one predicate both the broadcast's dates (demoMarkBroadcastSent) and
+// its messages (demoBroadcastSend) go by.
+func demoIsABTest(broadcast *domain.Broadcast) bool {
+	return broadcast.TestSettings.Enabled && len(broadcast.TestSettings.Variations) > 1
+}
+
+// demoBroadcastSend draws how one recipient's email of a sample broadcast went out: the
+// template and the moment it left, never later than now. The broadcast is one
+// demoBroadcastCampaign accepts.
+//
+// A broadcast's emails leave from its started_at until its completed_at. The A/B test's leave
+// in its two phases, as the orchestrator sends them: the sample, its percentage of the
+// recipients, right after test_sent_at, each recipient sent one of the variations at random as
+// the email queue picks among the templates it holds; then everyone else, sent the winning
+// template from winner_sent_at.
+func demoBroadcastSend(broadcast *domain.Broadcast, now time.Time) (templateID string, sentAt time.Time) {
+	if demoIsABTest(broadcast) {
+		if rand.Intn(100) < broadcast.TestSettings.SamplePercentage {
+			variations := broadcast.TestSettings.Variations
+			return variations[rand.Intn(len(variations))].TemplateID, demoEventAfter(now, *broadcast.TestSentAt, demoABTestSendWindow)
+		}
+		return *broadcast.WinningTemplate, demoEventAfter(now, *broadcast.WinnerSentAt, broadcast.CompletedAt.Sub(*broadcast.WinnerSentAt))
+	}
+	return broadcast.TestSettings.Variations[0].TemplateID, demoEventAfter(now, *broadcast.StartedAt, broadcast.CompletedAt.Sub(*broadcast.StartedAt))
+}
+
+// demoInTestPhase says whether an email of the A/B test was part of its sample: the sample
+// leaves within demoABTestSendWindow of test_sent_at, well before winner_sent_at.
+func demoInTestPhase(broadcast *domain.Broadcast, sentAt time.Time) bool {
+	return demoIsABTest(broadcast) && sentAt.Before(*broadcast.WinnerSentAt)
 }
 
 // demoNotificationIDs gives, by message type, the transactional notification that sends the
@@ -1226,7 +1302,7 @@ func (s *DemoService) createSampleTransactionalNotifications(ctx context.Context
 // generateSampleMessageHistory creates realistic message history with specified engagement rates:
 // 90% delivered, 5% failed, 5% bounce, 20% opened, 10% click, 1% unsubscribed
 // Each contact receives approximately 3 emails (2-4 range)
-func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspaceID string, broadcastIDs []string) error {
+func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspaceID string, broadcasts []*domain.Broadcast, now time.Time) error {
 	s.logger.WithField("workspace_id", workspaceID).Info("Generating sample message history with ~3 emails per contact")
 
 	// Get workspace to retrieve secret key
@@ -1253,9 +1329,14 @@ func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspac
 
 	// Generate messages per contact (2-4 emails each)
 	// This also generates webhook events and updates for engagement (delivered, opened, clicked)
-	totalMessages, err := s.generateMessagesPerContact(ctx, workspaceID, workspace.Settings.SecretKey, contactsResp.Contacts, broadcastIDs)
+	totalMessages, err := s.generateMessagesPerContact(ctx, workspaceID, workspace.Settings.SecretKey, contactsResp.Contacts, broadcasts, now)
 	if err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate message history")
+		return err
+	}
+
+	// Without it every event on the contacts' timelines is dated at the seed.
+	if err := s.backdateDemoMessageTimeline(ctx, workspaceID); err != nil {
 		return err
 	}
 
@@ -1286,22 +1367,22 @@ const (
 )
 
 // demoBounceOrDeliver decides, from the moment an email left, whether SES bounced it or
-// delivered it.
-func demoBounceOrDeliver(engagement *messageEngagement, sentTime time.Time, bounceRate float64) {
+// delivered it, by now.
+func demoBounceOrDeliver(engagement *messageEngagement, now, sentTime time.Time, bounceRate float64) {
 	if rand.Float64() < bounceRate {
 		engagement.shouldBounce = true
-		engagement.bouncedTime = demoEventAfter(sentTime.Add(time.Second), 300*time.Second) // Within 5 minutes
+		engagement.bouncedTime = demoEventAfter(now, sentTime.Add(time.Second), 300*time.Second) // Within 5 minutes
 		return
 	}
 	engagement.shouldDeliver = true
-	engagement.deliveredTime = demoEventAfter(sentTime, 1800*time.Second) // Within 30 minutes
+	engagement.deliveredTime = demoEventAfter(now, sentTime, 1800*time.Second) // Within 30 minutes
 }
 
-// demoEventAfter is a random moment within `within` after `after`, and never later than now: an
-// event of a recent email (an open of yesterday's newsletter, a complaint) falls in the time
-// that has passed since, rather than in the future or piled up at the moment of the seed.
-func demoEventAfter(after time.Time, within time.Duration) time.Time {
-	now := time.Now()
+// demoEventAfter is a random moment within `within` after `after`, and never later than now, the
+// seed's one clock: an event of a recent email (an open of yesterday's newsletter, a complaint)
+// falls in the time that has passed since, rather than in the future or piled up at the moment
+// of the seed.
+func demoEventAfter(now, after time.Time, within time.Duration) time.Time {
 	if !after.Before(now) {
 		return now
 	}
@@ -1315,33 +1396,35 @@ func demoEventAfter(after time.Time, within time.Duration) time.Time {
 }
 
 // demoContactMessages sends a contact 2 to 4 of the campaigns, oldest first, each through create,
-// and returns those created with what becomes of them. A message create refuses is left out.
-func (s *DemoService) demoContactMessages(contact *domain.Contact, campaigns []demoCampaignTemplate, create func(*domain.MessageHistory) error) []messageEngagementData {
+// and returns those created with what becomes of them by now. A message create refuses is left
+// out.
+func (s *DemoService) demoContactMessages(contact *domain.Contact, campaigns []demoCampaignTemplate, now time.Time, create func(*domain.MessageHistory) error) []messageEngagementData {
 	numEmails := 2 + rand.Intn(3) // 2, 3, or 4 emails
 	if numEmails > len(campaigns) {
 		numEmails = len(campaigns)
 	}
-	selected := make([]demoCampaignTemplate, numEmails)
+	selected := make([]demoSend, numEmails)
 	for j, idx := range rand.Perm(len(campaigns))[:numEmails] {
-		selected[j] = campaigns[idx]
+		selected[j] = campaigns[idx].draw(now)
 	}
-	// Oldest first, so what an email's outcome changes for the contact holds for the emails
-	// after it: see demoStillReachable.
-	sort.SliceStable(selected, func(a, b int) bool { return selected[a].daysAgo > selected[b].daysAgo })
+	// In the order they left, so what an email's outcome changes for the contact holds for the
+	// emails after it: see demoStillReachable. A broadcast's emails leave over hours, so the
+	// order is the moment each one left, not the day its campaign went out.
+	sort.SliceStable(selected, func(a, b int) bool { return selected[a].sentAt.Before(selected[b].sentAt) })
 
 	var sent []messageEngagementData
 	var bounced, complained bool
-	for _, campaign := range selected {
+	for _, send := range selected {
+		campaign := send.campaign
 		if !demoStillReachable(campaign, bounced, complained) {
 			continue
 		}
-		campaignTime := time.Now().AddDate(0, 0, -campaign.daysAgo)
 		var message *domain.MessageHistory
 		var engagement messageEngagement
-		if campaign.broadcastID != nil {
-			message, engagement = s.generateMessageHistoryForContact(contact, campaign.templateID, campaign.templateVersion, *campaign.broadcastID, campaignTime)
+		if campaign.broadcast != nil {
+			message, engagement = s.generateMessageHistoryForContact(contact, send.templateID, campaign.templateVersion, campaign.broadcast, send.sentAt, now)
 		} else {
-			message, engagement = s.generateTransactionalMessageHistoryForContact(contact, campaign.templateID, campaign.templateVersion, campaign.messageType, campaignTime)
+			message, engagement = s.generateTransactionalMessageHistoryForContact(contact, send.templateID, campaign.templateVersion, campaign.messageType, send.sentAt, now)
 		}
 		if create(message) != nil {
 			continue
@@ -1360,16 +1443,35 @@ func demoStillReachable(campaign demoCampaignTemplate, bounced, complained bool)
 	if bounced {
 		return false
 	}
-	return !(complained && campaign.broadcastID != nil)
+	return !(complained && campaign.broadcast != nil)
 }
 
-// demoCampaignTemplate is one email the demo may send a contact.
+// demoCampaignTemplate is one email the demo may send a contact: a sample broadcast, whose row
+// gives the template and the moment of each email (demoBroadcastSend), or a transactional
+// email of templateID, sent daysAgo.
 type demoCampaignTemplate struct {
-	templateID      string
+	templateID      string // transactional only
 	templateVersion int64
-	broadcastID     *string // nil for transactional
-	messageType     string  // "newsletter", "welcome", "password-reset"
-	daysAgo         int
+	broadcast       *domain.Broadcast // nil for transactional
+	messageType     string            // "newsletter", "welcome", "password-reset"
+	daysAgo         int               // transactional only
+}
+
+// demoSend is one email of a campaign drawn for a contact: its template and when it left.
+type demoSend struct {
+	campaign   demoCampaignTemplate
+	templateID string
+	sentAt     time.Time
+}
+
+// draw picks the template and the moment of one email of the campaign. A transactional email
+// leaves within the hour of its day.
+func (c demoCampaignTemplate) draw(now time.Time) demoSend {
+	if c.broadcast != nil {
+		templateID, sentAt := demoBroadcastSend(c.broadcast, now)
+		return demoSend{campaign: c, templateID: templateID, sentAt: sentAt}
+	}
+	return demoSend{campaign: c, templateID: c.templateID, sentAt: demoEventAfter(now, now.AddDate(0, 0, -c.daysAgo), time.Hour)}
 }
 
 // demoTransactionalCampaigns are the demo's transactional emails over the last 10 days. Each
@@ -1381,26 +1483,43 @@ var demoTransactionalCampaigns = []demoCampaignTemplate{
 	{templateID: "password-reset", templateVersion: 1, messageType: "password-reset", daysAgo: 8},
 }
 
-// generateMessagesPerContact creates message history by assigning 2-4 emails to each contact
-func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceID string, secretKey string, contacts []*domain.Contact, broadcastIDs []string) (int, error) {
+// demoBroadcastCampaign is the campaign of a sample broadcast, or false for a broadcast its
+// messages cannot be dated from: one never marked as sent (demoMarkBroadcastSent), or with no
+// template.
+func demoBroadcastCampaign(broadcast *domain.Broadcast) (demoCampaignTemplate, bool) {
+	if broadcast == nil || broadcast.StartedAt == nil || broadcast.CompletedAt == nil || len(broadcast.TestSettings.Variations) == 0 {
+		return demoCampaignTemplate{}, false
+	}
+	if demoIsABTest(broadcast) && (broadcast.WinningTemplate == nil || broadcast.TestSentAt == nil || broadcast.WinnerSentAt == nil) {
+		return demoCampaignTemplate{}, false
+	}
+	return demoCampaignTemplate{templateVersion: 1, broadcast: broadcast, messageType: "newsletter"}, true
+}
+
+// demoBroadcastCounts are the emails of a sample broadcast the seed created.
+type demoBroadcastCounts struct {
+	total     int
+	testPhase int // the A/B test's sample
+}
+
+// generateMessagesPerContact creates message history by assigning 2-4 emails to each contact,
+// with what became of them by now.
+func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceID string, secretKey string, contacts []*domain.Contact, broadcasts []*domain.Broadcast, now time.Time) (int, error) {
 	s.logger.WithField("workspace_id", workspaceID).Info("Generating messages per contact")
 
 	campaigns := append([]demoCampaignTemplate{}, demoTransactionalCampaigns...)
-
-	// Add newsletter campaigns using real broadcast IDs
-	if len(broadcastIDs) >= 4 {
-		campaigns = append(campaigns,
-			demoCampaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[0], messageType: "newsletter", daysAgo: 1},
-			demoCampaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[1], messageType: "newsletter", daysAgo: 4},
-			demoCampaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[2], messageType: "newsletter", daysAgo: 7},
-			demoCampaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[3], messageType: "newsletter", daysAgo: 10},
-		)
+	byID := map[string]*domain.Broadcast{}
+	for _, broadcast := range broadcasts {
+		if campaign, ok := demoBroadcastCampaign(broadcast); ok {
+			campaigns = append(campaigns, campaign)
+			byID[broadcast.ID] = broadcast
+		}
 	}
 
 	totalMessages := 0
 	batchSize := 50
-	// The recipients drawn for each broadcast, which its A/B counters are made of.
-	broadcastRecipients := map[string]int{}
+	// The emails created for each broadcast, which its counters are made of.
+	counts := map[string]*demoBroadcastCounts{}
 
 	for i := 0; i < len(contacts); i += batchSize {
 		end := i + batchSize
@@ -1420,11 +1539,19 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 				}
 				return err
 			}
-			for _, data := range s.demoContactMessages(contact, campaigns, create) {
+			for _, data := range s.demoContactMessages(contact, campaigns, now, create) {
 				messagesWithEngagement = append(messagesWithEngagement, data)
 				totalMessages++
-				if data.message.BroadcastID != nil {
-					broadcastRecipients[*data.message.BroadcastID]++
+				if data.message.BroadcastID == nil {
+					continue
+				}
+				id := *data.message.BroadcastID
+				if counts[id] == nil {
+					counts[id] = &demoBroadcastCounts{}
+				}
+				counts[id].total++
+				if demoInTestPhase(byID[id], data.message.SentAt) {
+					counts[id].testPhase++
 				}
 			}
 		}
@@ -1446,36 +1573,104 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 		}
 	}
 
-	s.recordDemoABTestCounts(ctx, workspaceID, broadcastIDs, broadcastRecipients)
+	setDemoBroadcastCounts(broadcasts, counts)
 
 	s.logger.WithField("workspace_id", workspaceID).WithField("total_messages", totalMessages).Info("Messages per contact generation completed")
 	return totalMessages, nil
 }
 
-// recordDemoABTestCounts gives each A/B broadcast of the demo the recipients of its test and
-// winner phases, as a real send records them: its sample percentage of the recipients drawn
-// went to the test, the rest to the winner.
-func (s *DemoService) recordDemoABTestCounts(ctx context.Context, workspaceID string, broadcastIDs []string, recipients map[string]int) {
-	for _, broadcastID := range broadcastIDs {
-		total := recipients[broadcastID]
-		if total == 0 {
+// setDemoBroadcastCounts gives each sample broadcast the counters a real send leaves on it,
+// made of the emails the seed created for it. Every broadcast has its emails as enqueued_count,
+// as the orchestrator records when the send finishes. The A/B test also has the recipients of
+// its two phases, its sample and everyone else; a broadcast with one template keeps 0 for both,
+// as setPhaseRecipientCounts leaves it.
+func setDemoBroadcastCounts(broadcasts []*domain.Broadcast, counts map[string]*demoBroadcastCounts) {
+	for _, broadcast := range broadcasts {
+		count := counts[broadcast.ID]
+		if count == nil {
 			continue
 		}
-		broadcast, err := s.broadcastRepo.GetBroadcast(ctx, workspaceID, broadcastID)
-		if err != nil {
-			s.logger.WithField("broadcast_id", broadcastID).WithField("error", err.Error()).Warn("Failed to read sample broadcast for its A/B counts")
-			continue
-		}
-		if !broadcast.TestSettings.Enabled {
-			continue
-		}
-		broadcast.TestPhaseRecipientCount = total * broadcast.TestSettings.SamplePercentage / 100
-		broadcast.WinnerPhaseRecipientCount = total - broadcast.TestPhaseRecipientCount
-		if err := s.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
-			s.logger.WithField("broadcast_id", broadcastID).WithField("error", err.Error()).Warn("Failed to record sample broadcast A/B counts")
+		broadcast.EnqueuedCount = count.total
+		if demoIsABTest(broadcast) {
+			broadcast.TestPhaseRecipientCount = count.testPhase
+			broadcast.WinnerPhaseRecipientCount = count.total - count.testPhase
 		}
 	}
 }
+
+// saveSampleBroadcasts writes the sample broadcasts as sent, with their counters, in one update
+// each as the orchestrator's last write of a send. It runs once their message history is
+// created: the repository refuses to update a processed broadcast, so counters written after
+// the status are dropped (which left the A/B test with no phase counts).
+//
+// The repository stamps updated_at with the moment it writes, and created_at was the moment the
+// broadcast was created, so both are then set on the rows to the dates the send was given
+// (demoMarkBroadcastSent): left at the seed, the broadcast reads as created after it started.
+func (s *DemoService) saveSampleBroadcasts(ctx context.Context, workspaceID string, broadcasts []*domain.Broadcast) error {
+	ids := make([]string, len(broadcasts))
+	createdAt := make([]string, len(broadcasts))
+	updatedAt := make([]string, len(broadcasts))
+	for i, broadcast := range broadcasts {
+		// UpdateBroadcast overwrites the in-memory UpdatedAt too.
+		ids[i] = broadcast.ID
+		createdAt[i] = broadcast.CreatedAt.UTC().Format(time.RFC3339Nano)
+		updatedAt[i] = broadcast.UpdatedAt.UTC().Format(time.RFC3339Nano)
+		if err := s.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
+			return fmt.Errorf("failed to mark sample broadcast %s as sent: %w", broadcast.ID, err)
+		}
+	}
+
+	db, err := s.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+	if _, err := db.ExecContext(ctx, demoBackdateBroadcastsQuery, pq.Array(ids), pq.Array(createdAt), pq.Array(updatedAt)); err != nil {
+		return fmt.Errorf("failed to date the sample broadcasts: %w", err)
+	}
+	return nil
+}
+
+// demoBackdateBroadcastsQuery sets each broadcast's created_at and updated_at.
+const demoBackdateBroadcastsQuery = `
+	UPDATE broadcasts AS b
+	SET created_at = v.created_at, updated_at = v.updated_at
+	FROM unnest($1::text[], $2::timestamptz[], $3::timestamptz[]) AS v(id, created_at, updated_at)
+	WHERE b.id = v.id`
+
+// backdateDemoMessageTimeline dates the timeline entries of the seeded emails' events at the
+// event. The timeline trigger dates an entry at the message's updated_at, which the repository
+// methods the seed records events with (SetStatusesIfNotSet, SetOpened, SetClicked) set to the
+// moment they run: right for a live event, but it put every delivery, open and click of the
+// seeded history at the moment of the seed. The sent entries are dated right already, from the
+// message's own updated_at.
+func (s *DemoService) backdateDemoMessageTimeline(ctx context.Context, workspaceID string) error {
+	db, err := s.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+	if _, err := db.ExecContext(ctx, demoBackdateMessageTimelineQuery); err != nil {
+		return fmt.Errorf("failed to date the message timeline entries: %w", err)
+	}
+	return nil
+}
+
+// demoBackdateMessageTimelineQuery moves each event entry of a message to that event's time on
+// the message. An email.updated entry is a delivery, or the status of a hard bounce.
+const demoBackdateMessageTimelineQuery = `
+	UPDATE contact_timeline t
+	SET created_at = COALESCE(CASE t.kind
+		WHEN 'email.opened' THEN m.opened_at
+		WHEN 'email.clicked' THEN m.clicked_at
+		WHEN 'email.link_clicked' THEN m.clicked_at
+		WHEN 'email.bounced' THEN m.bounced_at
+		WHEN 'email.complained' THEN m.complained_at
+		WHEN 'email.updated' THEN CASE WHEN t.changes ? 'delivered_at' THEN m.delivered_at ELSE m.bounced_at END
+	END, t.created_at)
+	FROM message_history m
+	WHERE t.entity_type = 'message_history'
+		AND t.entity_id = m.id
+		AND t.kind IN ('email.opened', 'email.clicked', 'email.link_clicked', 'email.bounced',
+			'email.complained', 'email.updated')`
 
 // messageEngagementData holds a message and its engagement info
 type messageEngagementData struct {
@@ -1506,7 +1701,7 @@ func (s *DemoService) generateDeliveredInboundWebhookEventsForBatch(ctx context.
 
 	var inboundWebhookEvents []*domain.InboundWebhookEvent
 	var updates []domain.MessageEventUpdate
-	var hardBounced []string
+	hardBounced := map[string]time.Time{} // address → its bounce
 	record := func(data messageEngagementData, eventType domain.EmailEventType, at time.Time, update domain.MessageEventUpdate) error {
 		integrationID, sender := providers.of(data.message)
 		event, err := demoSESEvent(eventType, integrationID, sender, data.message, at)
@@ -1526,7 +1721,7 @@ func (s *DemoService) generateDeliveredInboundWebhookEventsForBatch(ctx context.
 			}); err != nil {
 				return err
 			}
-			hardBounced = append(hardBounced, data.message.ContactEmail)
+			hardBounced[data.message.ContactEmail] = engagement.bouncedTime
 			continue
 		}
 		if engagement.shouldDeliver {
@@ -1560,8 +1755,11 @@ func (s *DemoService) generateDeliveredInboundWebhookEventsForBatch(ctx context.
 
 	// As ProcessWebhook does for a hard bounce: the address is bounced on every list it is on,
 	// not only on the list of the email that bounced (which the message's own trigger covers).
+	// At the bounce, as ProcessWebhook marks it when SES reports it, rather than at the seed: the
+	// list change shows on the contact's timeline. Nothing reaches an address after its bounce,
+	// so each address bounces once.
 	if len(hardBounced) > 0 && s.contactRepo != nil {
-		if err := s.contactRepo.MarkEmailsAsBounced(ctx, workspaceID, dedupeStrings(hardBounced), time.Now().UTC()); err != nil {
+		if err := s.contactRepo.MarkEmailsAsBouncedAt(ctx, workspaceID, hardBounced); err != nil {
 			return fmt.Errorf("failed to mark emails as bounced: %w", err)
 		}
 	}
@@ -1624,9 +1822,10 @@ func notificationIDOf(messageType string) *string {
 
 // generateTransactionalMessageHistoryForContact creates a realistic transactional message history record for a contact
 // Transactional messages have no broadcast ID and different engagement patterns
-// Engagement rates: 0.5% hard bounces, the rest delivered, 60% open rate, 20% click rate
-func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *domain.Contact, templateID string, templateVersion int64, messageType string, baseTime time.Time) (*domain.MessageHistory, messageEngagement) {
-	messageID := fmt.Sprintf("demo_%s_%s_%d", contact.Email, messageType, baseTime.Unix())
+// Engagement rates: 0.5% hard bounces, the rest delivered, 60% open rate, 20% click rate.
+// The message is sent at sentTime, and its events follow it, by now.
+func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *domain.Contact, templateID string, templateVersion int64, messageType string, sentTime, now time.Time) (*domain.MessageHistory, messageEngagement) {
+	messageID := fmt.Sprintf("demo_%s_%s_%d", contact.Email, messageType, sentTime.Unix())
 
 	// Create message data for transactional message
 	messageData := domain.MessageData{
@@ -1650,7 +1849,6 @@ func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *dom
 	}
 
 	// Base transactional message with sent status
-	sentTime := baseTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Random time within first hour
 	message := &domain.MessageHistory{
 		ID:                          messageID,
 		ContactEmail:                contact.Email,
@@ -1669,7 +1867,7 @@ func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *dom
 	engagement := messageEngagement{}
 
 	// Delivered, or hard-bounced and gone no further.
-	demoBounceOrDeliver(&engagement, sentTime, demoTransactionalBounceRate)
+	demoBounceOrDeliver(&engagement, now, sentTime, demoTransactionalBounceRate)
 	if engagement.shouldBounce {
 		return message, engagement
 	}
@@ -1677,20 +1875,20 @@ func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *dom
 
 	// 60% open rate
 	if rand.Float64() < 0.60 {
-		openedTime := demoEventAfter(deliveredTime, 24*time.Hour) // Within 24 hours
+		openedTime := demoEventAfter(now, deliveredTime, 24*time.Hour) // Within 24 hours
 		engagement.shouldOpen = true
 		engagement.openedTime = openedTime
 
 		// 20% click rate (of all messages, so 20/60 = 33.33% of opened messages)
 		if rand.Float64() < 0.20/0.60 {
-			clickedTime := demoEventAfter(openedTime, 30*time.Minute) // Within 30 minutes of opening
+			clickedTime := demoEventAfter(now, openedTime, 30*time.Minute) // Within 30 minutes of opening
 			engagement.shouldClick = true
 			engagement.clickedTime = clickedTime
 		}
 
 		// Very low unsubscribe rates for transactional messages
 		if rand.Float64() < 0.001 {
-			unsubscribeTime := demoEventAfter(openedTime, time.Hour) // Within 1 hour of opening
+			unsubscribeTime := demoEventAfter(now, openedTime, time.Hour) // Within 1 hour of opening
 			message.UnsubscribedAt = &unsubscribeTime
 		}
 	}
@@ -1700,27 +1898,18 @@ func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *dom
 
 // generateMessageHistoryForContact creates a realistic message history record for a contact
 // with the specified engagement rates: 1.5% hard bounces, the rest delivered, 0.2% spam
-// complaints, 60% open rate, 20% click rate
-func (s *DemoService) generateMessageHistoryForContact(contact *domain.Contact, templateID string, templateVersion int64, broadcastID string, baseTime time.Time) (*domain.MessageHistory, messageEngagement) {
-	messageID := fmt.Sprintf("demo_%s_%s_%d", contact.Email, broadcastID, baseTime.Unix())
+// complaints, 60% open rate, 20% click rate. The message is sent at sentTime, which its
+// broadcast decides (demoBroadcastSend), and its events follow it, by now.
+func (s *DemoService) generateMessageHistoryForContact(contact *domain.Contact, templateID string, templateVersion int64, broadcast *domain.Broadcast, sentTime, now time.Time) (*domain.MessageHistory, messageEngagement) {
+	broadcastID := broadcast.ID
+	messageID := fmt.Sprintf("demo_%s_%s_%d", contact.Email, broadcastID, sentTime.Unix())
 
-	// Determine campaign type based on broadcastID
-	var campaignType string
-	utmMedium := "email"
-
-	if strings.Contains(broadcastID, "transactional") {
-		campaignType = "transactional"
-		switch templateID {
-		case "password-reset":
-			campaignType = "password_reset"
-		case "welcome-email":
-			campaignType = "welcome"
-		}
-	} else {
-		campaignType = "newsletter"
+	// The UTM parameters the broadcast tags its links with: the same campaign name as the
+	// seeded web sessions (demoBroadcastCampaigns).
+	campaign := ""
+	if broadcast.UTMParameters != nil {
+		campaign = broadcast.UTMParameters.Campaign
 	}
-
-	// Create base message data
 	messageData := domain.MessageData{
 		Data: map[string]interface{}{
 			"contact": map[string]interface{}{
@@ -1728,18 +1917,17 @@ func (s *DemoService) generateMessageHistoryForContact(contact *domain.Contact, 
 				"first_name": getStringValue(contact.FirstName),
 				"last_name":  getStringValue(contact.LastName),
 			},
-			"utm_source":   "demo.notifuse.com",
-			"utm_medium":   utmMedium,
-			"utm_campaign": broadcastID,
+			"utm_source":   demoBroadcastUTMSource,
+			"utm_medium":   "email",
+			"utm_campaign": campaign,
 		},
 		Metadata: map[string]interface{}{
 			"demo_generated": true,
-			"campaign_type":  campaignType,
+			"campaign_type":  "newsletter",
 		},
 	}
 
 	// Base message with sent status
-	sentTime := baseTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Random time within first hour
 	// The list the demo's broadcasts go to, which a broadcast's message stores: a complaint or a
 	// hard bounce on it sets the contact's status on that list (apply_message_status_to_contact_lists).
 	listID := demoListNewsletter
@@ -1761,7 +1949,7 @@ func (s *DemoService) generateMessageHistoryForContact(contact *domain.Contact, 
 	engagement := messageEngagement{}
 
 	// Delivered, or hard-bounced and gone no further.
-	demoBounceOrDeliver(&engagement, sentTime, demoNewsletterBounceRate)
+	demoBounceOrDeliver(&engagement, now, sentTime, demoNewsletterBounceRate)
 	if engagement.shouldBounce {
 		return message, engagement
 	}
@@ -1770,25 +1958,25 @@ func (s *DemoService) generateMessageHistoryForContact(contact *domain.Contact, 
 	// A few recipients mark the newsletter as spam once delivered.
 	if rand.Float64() < demoNewsletterComplaintRate {
 		engagement.shouldComplain = true
-		engagement.complainedTime = demoEventAfter(deliveredTime, 48*time.Hour) // Within 48 hours
+		engagement.complainedTime = demoEventAfter(now, deliveredTime, 48*time.Hour) // Within 48 hours
 	}
 
 	// 60% open rate
 	if rand.Float64() < 0.60 {
-		openedTime := demoEventAfter(deliveredTime, 7*24*time.Hour) // Within 7 days
+		openedTime := demoEventAfter(now, deliveredTime, 7*24*time.Hour) // Within 7 days
 		engagement.shouldOpen = true
 		engagement.openedTime = openedTime
 
 		// 20% click rate (of all messages, so 20/60 = 33.33% of opened messages)
 		if rand.Float64() < 0.20/0.60 {
-			clickedTime := demoEventAfter(openedTime, time.Hour) // Within 1 hour of opening
+			clickedTime := demoEventAfter(now, openedTime, time.Hour) // Within 1 hour of opening
 			engagement.shouldClick = true
 			engagement.clickedTime = clickedTime
 		}
 
 		// 1% unsubscribed (of all messages, not just opened)
 		if rand.Float64() < 0.01/0.60 {
-			unsubscribeTime := demoEventAfter(openedTime, 30*time.Minute) // Within 30 minutes of opening
+			unsubscribeTime := demoEventAfter(now, openedTime, 30*time.Minute) // Within 30 minutes of opening
 			message.UnsubscribedAt = &unsubscribeTime
 		}
 	}

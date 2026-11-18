@@ -119,6 +119,7 @@ func TestDemoSeedOnAProductionInstance(t *testing.T) {
 
 		assertDemoTemplates(t, demoDB, appConfig.APIEndpoint)
 		assertDemoMessageOutcomes(t, demoDB)
+		assertDemoBroadcastHistory(t, demoDB)
 
 		// The instance's own workspace is untouched.
 		assert.Equal(t, 1, count(t, systemDB, `SELECT COUNT(*) FROM workspaces WHERE id = $1`, own.ID))
@@ -236,6 +237,87 @@ func assertDemoMessageOutcomes(t *testing.T, demoDB *sql.DB) {
 		JOIN message_history later ON later.contact_email = c.contact_email AND later.sent_at > c.sent_at
 		WHERE c.complained_at IS NOT NULL AND later.broadcast_id IS NOT NULL`),
 		"a newsletter was seeded to a contact after their spam complaint")
+}
+
+// The seeded contacts and broadcasts read as a real send left them: addresses only at the
+// domains reserved for examples, each broadcast's emails dated from its own started_at over
+// its send window, the A/B test sent both variations in its sample and the winner to everyone
+// else, with counters that are its emails, and every event on the contact timeline dated at
+// the event rather than at the seed.
+func assertDemoBroadcastHistory(t *testing.T, demoDB *sql.DB) {
+	t.Helper()
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM contacts
+		WHERE email !~ '@example\.(com|org|net)$'`),
+		"a contact's address is not at a reserved example domain")
+
+	assert.Positive(t, scanCount(t, demoDB, `SELECT COUNT(*) FROM message_history WHERE broadcast_id IS NOT NULL`))
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM message_history m JOIN broadcasts b ON b.id = m.broadcast_id
+		WHERE m.sent_at < b.started_at OR m.sent_at > b.completed_at
+			OR m.created_at < b.started_at OR m.created_at > b.completed_at`),
+		"a broadcast's email is dated outside its send window")
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM message_history
+		WHERE LEAST(delivered_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at) < sent_at`),
+		"an event of an email is dated before the email was sent")
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM broadcasts b
+		WHERE b.enqueued_count <> (SELECT COUNT(*) FROM message_history m WHERE m.broadcast_id = b.id)`),
+		"a broadcast's enqueued_count is not its emails")
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM message_history m JOIN broadcasts b ON b.id = m.broadcast_id
+		WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(b.test_settings->'variations') v WHERE v->>'template_id' = m.template_id)`),
+		"a broadcast's email was sent a template that is none of its variations")
+
+	// The A/B test.
+	assert.Equal(t, 1, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM broadcasts
+		WHERE (test_settings->>'enabled')::boolean AND winning_template IS NOT NULL
+			AND test_sent_at IS NOT NULL AND winner_sent_at > test_sent_at`))
+	assert.Equal(t, 2, scanCount(t, demoDB, `
+		SELECT COUNT(DISTINCT m.template_id) FROM message_history m JOIN broadcasts b ON b.id = m.broadcast_id
+		WHERE (b.test_settings->>'enabled')::boolean AND m.sent_at >= b.test_sent_at AND m.sent_at < b.winner_sent_at`),
+		"the A/B test's sample was not sent both variations")
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM message_history m JOIN broadcasts b ON b.id = m.broadcast_id
+		WHERE (b.test_settings->>'enabled')::boolean AND m.sent_at >= b.winner_sent_at AND m.template_id <> b.winning_template`),
+		"an email of the A/B test's winner phase was sent another template")
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM broadcasts b
+		WHERE (b.test_settings->>'enabled')::boolean AND (
+			b.test_phase_recipient_count <> (SELECT COUNT(*) FROM message_history m WHERE m.broadcast_id = b.id AND m.sent_at < b.winner_sent_at)
+			OR b.winner_phase_recipient_count <> (SELECT COUNT(*) FROM message_history m WHERE m.broadcast_id = b.id AND m.sent_at >= b.winner_sent_at)
+			OR b.test_phase_recipient_count = 0 OR b.winner_phase_recipient_count = 0)`),
+		"the A/B test's phase counts are not its emails")
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM broadcasts
+		WHERE NOT (test_settings->>'enabled')::boolean AND (test_phase_recipient_count <> 0 OR winner_phase_recipient_count <> 0)`),
+		"a broadcast with one template has phase counts")
+
+	// The contact timeline, at the moment of each event. db_created_at is the moment the seed
+	// wrote the entry, and every event of the history happened before the seed began, so an
+	// entry dated at its event lies between the email's send and, well before, its own writing;
+	// one left at the moment the seed recorded the event has the two equal.
+	assert.Positive(t, scanCount(t, demoDB, `SELECT COUNT(*) FROM contact_timeline WHERE kind = 'email.opened'`))
+	assert.Positive(t, scanCount(t, demoDB, `SELECT COUNT(*) FROM contact_timeline WHERE kind = 'email.updated'`))
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM contact_timeline t JOIN message_history m ON m.id = t.entity_id
+		WHERE t.entity_type = 'message_history'
+			AND (t.created_at < m.sent_at OR t.created_at > t.db_created_at - INTERVAL '1 second')`),
+		"an email's timeline entry is dated before the email or at the moment of the seed")
+
+	// The broadcast rows, written the day before they went out and last updated as they
+	// completed, rather than at the seed (the repository stamps updated_at as it writes).
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM broadcasts
+		WHERE NOT (created_at < started_at) OR updated_at IS DISTINCT FROM completed_at
+			OR completed_at > NOW() - INTERVAL '1 day'`),
+		"a broadcast row is dated at the seed rather than at its send")
+	assert.Zero(t, scanCount(t, demoDB, `
+		SELECT COUNT(*) FROM inbound_webhook_events e JOIN message_history m ON m.id = e.message_id
+		WHERE e.created_at < m.sent_at OR e.created_at > NOW()`),
+		"a provider event is dated before its email or after the seed")
 }
 
 func scanCount(t *testing.T, db *sql.DB, query string) int {

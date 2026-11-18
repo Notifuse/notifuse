@@ -782,3 +782,25 @@ func TestWriteServiceError_SegmentValueError(t *testing.T) {
 	assert.False(t, writeServiceError(other, errors.New("failed to preview segment: boom"), "fallback"))
 	assert.Equal(t, 0, other.Body.Len())
 }
+
+// A send whose template does not render is the caller's template or data: 422 with the error,
+// from writeTemplateRenderError and from writeServiceError; any other error is left alone.
+func TestWriteTemplateRenderError(t *testing.T) {
+	renderErr := &domain.TemplateRenderError{Message: "template compilation failed: Liquid error: divided by 0"}
+
+	for name, write := range map[string]func(http.ResponseWriter, error) bool{
+		"writeTemplateRenderError": writeTemplateRenderError,
+		"writeServiceError":        func(w http.ResponseWriter, err error) bool { return writeServiceError(w, err, "fallback") },
+	} {
+		t.Run(name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			require.True(t, write(rr, fmt.Errorf("failed to send notification through any channel: %w", renderErr)))
+			assert.Equal(t, http.StatusUnprocessableEntity, rr.Code)
+			assert.JSONEq(t, `{"error": "template compilation failed: Liquid error: divided by 0"}`, rr.Body.String())
+		})
+	}
+
+	other := httptest.NewRecorder()
+	assert.False(t, writeTemplateRenderError(other, errors.New("failed to send notification through any channel")))
+	assert.Equal(t, 0, other.Body.Len())
+}

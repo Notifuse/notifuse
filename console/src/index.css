@@ -90,11 +90,11 @@ samp {
   font-family: var(--font-mono);
 }
 
-/* antd's reset is unlayered too: its margins on h1–h6, p, dl and dd, and its weight 500 on headings
+/* antd's reset is unlayered too: its margins on h1–h6, p, ol, ul, dl and dd, and its weight 500 on headings
    and dt, beat Tailwind's m-0 and font-semibold. A heading pushed up by its margin no longer lines up
    with what sits beside it in a flex row (a page title and its count). The layout components mark
    such elements with data-unreset, and revert-layer hands those two properties back to the utilities. */
-:where(h1, h2, h3, h4, h5, h6, p, dl, dt, dd)[data-unreset] {
+:where(h1, h2, h3, h4, h5, h6, p, ol, ul, dl, dt, dd)[data-unreset] {
   margin: revert-layer;
   font-weight: revert-layer;
 }

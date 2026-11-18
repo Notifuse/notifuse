@@ -19,7 +19,8 @@ import (
 // for the A/B campaign — the winner fields are stamped by the seed itself,
 // because no orchestrator ever ran. A regression that dropped the winner
 // stamping (or marked a single-template campaign as a test) would show a
-// Variations table with no winner highlighted.
+// Variations table with no winner highlighted. They are written once, after
+// their message history, with its counters (saveSampleBroadcasts).
 
 func demoBroadcastSvc(t *testing.T) (*DemoService, *broadcastSvcDeps, *mocks.MockBroadcastRepository) {
 	t.Helper()
@@ -65,6 +66,16 @@ func TestDemoService_CreateSampleBroadcasts(t *testing.T) {
 				created = append(created, b)
 				return nil
 			}).Times(4)
+		// Written once their message history has given them their counters: the repository
+		// refuses to update a processed broadcast.
+		broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Times(0)
+
+		// The seed's one clock, not the moment each broadcast is created.
+		now := time.Date(2026, 11, 18, 12, 0, 0, 0, time.UTC)
+		broadcasts, err := svc.createSampleBroadcasts(ctx, "ws-1", now)
+		require.NoError(t, err)
+		require.Len(t, broadcasts, 4)
+
 		var updated []*domain.Broadcast
 		broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
@@ -72,22 +83,19 @@ func TestDemoService_CreateSampleBroadcasts(t *testing.T) {
 				updated = append(updated, &cp)
 				return nil
 			}).Times(4)
-
-		ids, err := svc.createSampleBroadcasts(ctx, "ws-1")
-		require.NoError(t, err)
-		require.Len(t, ids, 4)
+		svc.workspaceRepo = demoTestBroadcastsDB(t, broadcasts)
+		require.NoError(t, svc.saveSampleBroadcasts(ctx, "demo", broadcasts))
 		require.Len(t, updated, 4)
 
 		for i, b := range updated {
 			assert.Equal(t, domain.BroadcastStatusProcessed, b.Status, "campaign %d", i)
 			require.NotNil(t, b.StartedAt)
 			require.NotNil(t, b.CompletedAt)
+			assert.Equal(t, now.AddDate(0, 0, -(10-2*i)), *b.StartedAt,
+				"campaigns are backdated 10, 8, 6, 4 days before the seed's now, in creation order")
 			assert.Equal(t, b.StartedAt.Add(2*time.Hour), *b.CompletedAt,
 				"completion is stamped two hours after the send started")
-			assert.True(t, b.StartedAt.Before(time.Now()), "sends are backdated")
 		}
-		// Campaigns are backdated 10, 8, 6, 4 days in creation order.
-		assert.True(t, updated[0].StartedAt.Before(*updated[3].StartedAt))
 
 		ab := updated[3]
 		require.NotNil(t, ab.WinningTemplate)
@@ -99,11 +107,16 @@ func TestDemoService_CreateSampleBroadcasts(t *testing.T) {
 		for _, single := range updated[:3] {
 			assert.Nil(t, single.WinningTemplate, "single-template campaigns have no winner")
 		}
-		assert.Equal(t, created[3].ID, ids[3])
+		assert.Equal(t, created[3].ID, broadcasts[3].ID)
+		// The broadcasts are written as returned, so their messages are dated from them.
+		for i, b := range broadcasts {
+			assert.Equal(t, updated[i].StartedAt, b.StartedAt)
+			assert.Equal(t, updated[i].WinnerSentAt, b.WinnerSentAt)
+		}
 	})
 
 	t.Run("one failing campaign is skipped, the rest still seed", func(t *testing.T) {
-		svc, d, broadcastRepo := demoBroadcastSvc(t)
+		svc, d, _ := demoBroadcastSvc(t)
 		defer d.ctrl.Finish()
 		expectBroadcastCreation(d)
 
@@ -114,11 +127,9 @@ func TestDemoService_CreateSampleBroadcasts(t *testing.T) {
 			d.repo.EXPECT().CreateBroadcast(gomock.Any(), gomock.Any()).Return(nil),
 			d.repo.EXPECT().CreateBroadcast(gomock.Any(), gomock.Any()).Return(nil),
 		)
-		broadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-
-		ids, err := svc.createSampleBroadcasts(ctx, "ws-1")
+		broadcasts, err := svc.createSampleBroadcasts(ctx, "ws-1", time.Now())
 		require.NoError(t, err)
-		assert.Len(t, ids, 3)
+		assert.Len(t, broadcasts, 3)
 	})
 
 	t.Run("every campaign failing is an error", func(t *testing.T) {
@@ -128,7 +139,7 @@ func TestDemoService_CreateSampleBroadcasts(t *testing.T) {
 		d.repo.EXPECT().CreateBroadcast(gomock.Any(), gomock.Any()).
 			Return(errors.New("nope")).Times(4)
 
-		_, err := svc.createSampleBroadcasts(ctx, "ws-1")
+		_, err := svc.createSampleBroadcasts(ctx, "ws-1", time.Now())
 		require.EqualError(t, err, "failed to create any sample broadcasts")
 	})
 }

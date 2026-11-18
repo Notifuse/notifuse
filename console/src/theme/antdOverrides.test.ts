@@ -173,7 +173,7 @@ describe('global antd rules', () => {
   it('hand the margin and weight of data-unreset elements back from the unlayered reset to Tailwind', () => {
     const css = stripComments(read('index.css'))
     expect(css).toMatch(
-      /:where\(h1, h2, h3, h4, h5, h6, p, dl, dt, dd\)\[data-unreset\] \{\s*margin: revert-layer;\s*font-weight: revert-layer;\s*\}/
+      /:where\(h1, h2, h3, h4, h5, h6, p, ol, ul, dl, dt, dd\)\[data-unreset\] \{\s*margin: revert-layer;\s*font-weight: revert-layer;\s*\}/
     )
   })
 

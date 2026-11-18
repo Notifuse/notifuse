@@ -1,808 +1,228 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
-import { Button, Input, Form, InputNumber, App, Divider, Row, Col, Collapse, Switch } from 'antd'
-import { ApiOutlined, CheckOutlined, ArrowRightOutlined } from '@ant-design/icons'
-import { setupApi } from '../services/api/setup'
-import type { SetupConfig } from '../types/setup'
-import { getBrowserTimezone } from '../lib/timezoneNormalizer'
+import { ConfigProvider, Form, Spin } from 'antd'
 import { useLingui } from '@lingui/react/macro'
+import { setupApi } from '../services/api/setup'
+import { apiBaseUrl } from '../services/api/client'
+import type { SetupStatus } from '../types/setup'
+import { getBrowserTimezone } from '../lib/timezoneNormalizer'
+import { AdministratorPanel } from '../components/setup/AdministratorPanel'
+import { SmtpPanel } from '../components/setup/SmtpPanel'
+import { UpdatesPanel } from '../components/setup/UpdatesPanel'
+import { SsoPanel } from '../components/setup/SsoPanel'
+import { BridgePanel } from '../components/setup/BridgePanel'
+import { SetupRail } from '../components/setup/SetupRail'
+import { initialSetupValues, usePanelSummaries, type PanelSummary } from '../components/setup/setupHooks'
+import { SetupRestartView, type RestartPhase } from '../components/setup/SetupRestartView'
+import { buildSetupConfig } from '../components/setup/buildSetupConfig'
+import {
+  isFieldLocked,
+  setupPanelDomId,
+  splitList,
+  type SetupFormValues,
+  type SetupPanelId
+} from '../components/setup/setupFields'
+
+const EMPTY_STATUS: SetupStatus = {
+  is_installed: false,
+  smtp_configured: false,
+  api_endpoint_configured: false,
+  root_email_configured: false,
+  smtp_bridge_configured: false,
+  oidc_configured: false
+}
+
+// Fields inside a panel keep two thirds of antd's margin: the panel's padding closes each one.
+const FORM_THEME = { components: { Form: { itemMarginBottom: 16 } } }
+
+const RESTART_PAUSE_MS = 2000
+const RESTART_POLL_MS = 1000
+const RESTART_ATTEMPTS = 60
+
+/** Fails silently: the newsletter must never block the setup. */
+async function subscribeToNewsletter(email: string, values: SetupFormValues) {
+  try {
+    const contact: Record<string, unknown> = { email }
+    try {
+      const timezone = getBrowserTimezone()
+      if (timezone) contact.timezone = timezone
+    } catch {
+      // No timezone then.
+    }
+    const endpoint = values.api_endpoint || window.API_ENDPOINT
+    if (endpoint) contact.custom_string_1 = endpoint
+    contact.custom_string_2 = values.check_for_updates === false ? 'false' : 'true'
+    contact.custom_string_3 = values.telemetry_enabled === false ? 'false' : 'true'
+    await fetch('https://email.notifuse.com/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: 'notifuse', contact, list_ids: ['newsletter'] })
+    })
+  } catch {
+    // Fail silently.
+  }
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export default function SetupWizard() {
   const { t } = useLingui()
   const navigate = useNavigate()
+  const [form] = Form.useForm<SetupFormValues>()
 
-  const [form] = Form.useForm()
-  const [loading, setLoading] = useState(false)
-  const [testing, setTesting] = useState(false)
+  const [status, setStatus] = useState<SetupStatus>(EMPTY_STATUS)
   const [statusLoading, setStatusLoading] = useState(true)
-  const [setupComplete, setSetupComplete] = useState(false)
-  const [apiEndpoint, setApiEndpoint] = useState('')
-  const [configStatus, setConfigStatus] = useState<{
-    smtp_configured: boolean
-    api_endpoint_configured: boolean
-    root_email_configured: boolean
-    smtp_bridge_configured: boolean
-    oidc_configured: boolean
-  }>({
-    smtp_configured: false,
-    api_endpoint_configured: false,
-    root_email_configured: false,
-    smtp_bridge_configured: false,
-    oidc_configured: false
-  })
-  const { message } = App.useApp()
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string>()
+  const [restart, setRestart] = useState<{ phase: RestartPhase; elapsed: number; rootEmail?: string }>()
+  const unmounted = useRef(false)
+
+  const values = (Form.useWatch((all) => all, { form, preserve: true }) ?? initialSetupValues()) as SetupFormValues
+  const summaries = usePanelSummaries(status, values)
+  const stateOf = (id: SetupPanelId) => summaries.find((summary) => summary.id === id)!
 
   useEffect(() => {
-    // Get API endpoint from window object
-    const endpoint = (window as unknown as Record<string, unknown>).API_ENDPOINT
-    setApiEndpoint(typeof endpoint === 'string' ? endpoint : '')
-
-    // Fetch setup status
+    unmounted.current = false
     const fetchStatus = async () => {
       try {
-        const status = await setupApi.getStatus()
-        // console.log('status', status)
-        if (status.is_installed) {
+        const current = await setupApi.getStatus()
+        if (current.is_installed) {
           navigate({ to: '/console/signin' })
           return
         }
-        setConfigStatus({
-          smtp_configured: status.smtp_configured,
-          api_endpoint_configured: status.api_endpoint_configured,
-          root_email_configured: status.root_email_configured,
-          smtp_bridge_configured: status.smtp_bridge_configured,
-          oidc_configured: status.oidc_configured
-        })
+        setStatus(current)
       } catch {
-        message.error(t`Failed to fetch setup status`)
+        setError(t`Failed to fetch setup status`)
       } finally {
         setStatusLoading(false)
       }
     }
     fetchStatus()
+    return () => {
+      unmounted.current = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleTestConnection = async () => {
-    try {
-      await form.validateFields(['smtp_host', 'smtp_port'])
-      setTesting(true)
-
-      const values = form.getFieldsValue()
-      const testConfig = {
-        smtp_host: values.smtp_host,
-        smtp_port: values.smtp_port,
-        smtp_username: values.smtp_username || '',
-        smtp_password: values.smtp_password || '',
-        smtp_use_tls: values.smtp_use_tls ?? true,
-        smtp_ehlo_hostname: values.smtp_ehlo_hostname || undefined
-      }
-
-      const result = await setupApi.testSmtp(testConfig)
-      setTesting(false)
-      message.success(result.message || t`SMTP connection successful!`)
-    } catch (error) {
-      setTesting(false)
-      message.error(error instanceof Error ? error.message : t`Failed to test SMTP connection`)
-    }
-  }
-
-  const handleSubmit = async (values: Record<string, unknown>) => {
-    setLoading(true)
-
-    // console.log('values', values)
-    try {
-      // Only include fields that are not configured via environment variables
-      const setupConfig: SetupConfig = {}
-
-      // Root email (only if not configured via env)
-      if (!configStatus.root_email_configured) {
-        setupConfig.root_email = typeof values.root_email === 'string' ? values.root_email : undefined
-      }
-
-      // API endpoint (only if not configured via env)
-      if (!configStatus.api_endpoint_configured) {
-        setupConfig.api_endpoint = typeof values.api_endpoint === 'string' ? values.api_endpoint : undefined
-      }
-
-      // SMTP configuration (only if not configured via env)
-      if (!configStatus.smtp_configured) {
-        setupConfig.smtp_host = typeof values.smtp_host === 'string' ? values.smtp_host : undefined
-        setupConfig.smtp_port = typeof values.smtp_port === 'number' ? values.smtp_port : undefined
-        setupConfig.smtp_username = typeof values.smtp_username === 'string' ? values.smtp_username : ''
-        setupConfig.smtp_password = typeof values.smtp_password === 'string' ? values.smtp_password : ''
-        setupConfig.smtp_from_email = typeof values.smtp_from_email === 'string' ? values.smtp_from_email : undefined
-        setupConfig.smtp_from_name = typeof values.smtp_from_name === 'string' ? values.smtp_from_name : 'Notifuse'
-        setupConfig.smtp_use_tls = typeof values.smtp_use_tls === 'boolean' ? values.smtp_use_tls : true
-      }
-
-      // SMTP Bridge configuration (only if not configured via env)
-      if (!configStatus.smtp_bridge_configured) {
-        setupConfig.smtp_bridge_enabled = typeof values.smtp_bridge_enabled === 'boolean' ? values.smtp_bridge_enabled : false
-        if (values.smtp_bridge_enabled) {
-          setupConfig.smtp_bridge_domain = typeof values.smtp_bridge_domain === 'string' ? values.smtp_bridge_domain : undefined
-          setupConfig.smtp_bridge_port = typeof values.smtp_bridge_port === 'number' ? values.smtp_bridge_port : 587
-          setupConfig.smtp_bridge_tls_cert_base64 = typeof values.smtp_bridge_tls_cert_base64 === 'string' ? values.smtp_bridge_tls_cert_base64 : undefined
-          setupConfig.smtp_bridge_tls_key_base64 = typeof values.smtp_bridge_tls_key_base64 === 'string' ? values.smtp_bridge_tls_key_base64 : undefined
-        }
-      }
-
-      // OIDC / SSO configuration (only if not configured via env)
-      if (!configStatus.oidc_configured) {
-        setupConfig.oidc_enabled = typeof values.oidc_enabled === 'boolean' ? values.oidc_enabled : false
-        if (values.oidc_enabled) {
-          setupConfig.oidc_issuer_url =
-            typeof values.oidc_issuer_url === 'string' ? values.oidc_issuer_url : undefined
-          setupConfig.oidc_client_id =
-            typeof values.oidc_client_id === 'string' ? values.oidc_client_id : undefined
-          setupConfig.oidc_client_secret =
-            typeof values.oidc_client_secret === 'string' ? values.oidc_client_secret : undefined
-          setupConfig.oidc_button_label =
-            typeof values.oidc_button_label === 'string' ? values.oidc_button_label : undefined
-          setupConfig.oidc_scopes =
-            typeof values.oidc_scopes === 'string' ? values.oidc_scopes : undefined
-          setupConfig.oidc_auto_create_users =
-            typeof values.oidc_auto_create_users === 'boolean' ? values.oidc_auto_create_users : false
-          setupConfig.oidc_allowed_domains =
-            typeof values.oidc_allowed_domains === 'string' ? values.oidc_allowed_domains : undefined
-        }
-      }
-
-      // Telemetry and check for updates settings
-      setupConfig.telemetry_enabled = typeof values.telemetry_enabled === 'boolean' ? values.telemetry_enabled : false
-      setupConfig.check_for_updates = typeof values.check_for_updates === 'boolean' ? values.check_for_updates : false
-
-      await setupApi.initialize(setupConfig)
-
-      // Subscribe to newsletter if checked (fail silently)
-      if (values.subscribe_newsletter && values.root_email) {
-        try {
-          const contact: Record<string, unknown> = {
-            email: values.root_email
-          }
-
-          // Add timezone from browser (normalized to canonical IANA name)
-          try {
-            const timezone = getBrowserTimezone()
-            if (timezone) {
-              contact.timezone = timezone
-            }
-          } catch {
-            // Fail silently if timezone detection fails
-          }
-
-          // Only include custom fields if values are available
-          const endpoint = values.api_endpoint || apiEndpoint
-          if (endpoint) {
-            contact.custom_string_1 = endpoint
-          }
-
-          if (values.check_for_updates !== undefined) {
-            contact.custom_string_2 = values.check_for_updates ? 'true' : 'false'
-          }
-
-          if (values.telemetry_enabled !== undefined) {
-            contact.custom_string_3 = values.telemetry_enabled ? 'true' : 'false'
-          }
-
-          await fetch('https://email.notifuse.com/subscribe', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              workspace_id: 'notifuse',
-              contact,
-              list_ids: ['newsletter']
-            })
-          })
-        } catch {
-          // Fail silently - don't block setup if newsletter subscription fails
-        }
-      }
-
-      // Show setup complete screen
-      setSetupComplete(true)
-
-      // Keep loading state active while server restarts
-      // Show loading message for server restart
-      const hideRestartMessage = message.loading({
-        content: t`Server is restarting with new configuration...`,
-        duration: 0, // Don't auto-dismiss
-        key: 'server-restart'
-      })
-
-      // Wait for server to restart
-      // Use the API endpoint from the form values or the already configured endpoint
-      const endpointToCheck = typeof values.api_endpoint === 'string' ? values.api_endpoint : (apiEndpoint || window.location.origin)
-
+  /** Polls the address that just answered setup.initialize until the restarted server answers. */
+  const waitForRestart = async (rootEmail: string | undefined) => {
+    const started = Date.now()
+    const tick = () => Math.round((Date.now() - started) / 1000)
+    setRestart({ phase: 'waiting', elapsed: 0, rootEmail })
+    await sleep(RESTART_PAUSE_MS)
+    for (let attempt = 0; attempt < RESTART_ATTEMPTS; attempt++) {
+      if (unmounted.current) return
+      setRestart({ phase: 'waiting', elapsed: tick(), rootEmail })
       try {
-        await waitForServerRestart(endpointToCheck)
-
-        // Success - server is back up
-        message.success({
-          content: t`Server restarted successfully! You can now sign in.`,
-          key: 'server-restart',
-          duration: 3
-        })
-
-        // Don't redirect automatically - let user click the button
-        setLoading(false)
-      } catch {
-        hideRestartMessage()
-        message.error({
-          content: t`Server restart timeout. Please refresh the page manually.`,
-          key: 'server-restart',
-          duration: 0
-        })
-        setLoading(false)
-      }
-    } catch (err) {
-      message.error(err instanceof Error ? err.message : t`Failed to complete setup`)
-      setLoading(false)
-    }
-  }
-
-  /**
-   * Wait for the server to restart after setup completion
-   * Polls the health endpoint until server is back online
-   */
-  const waitForServerRestart = async (configuredEndpoint: string): Promise<void> => {
-    const maxAttempts = 60 // 60 seconds max wait
-    const delayMs = 1000 // Check every second
-
-    // Determine the API endpoint URL - use same logic as api client
-    const apiEndpointUrl = configuredEndpoint
-
-    // Wait for server to start shutting down
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // Poll setup status endpoint to check if server has restarted
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        // Simple GET request without custom headers to avoid CORS preflight issues
-        // Add timestamp to prevent caching
-        const response = await fetch(`${apiEndpointUrl}/api/setup.status?t=${Date.now()}`, {
-          method: 'GET'
-        })
-
+        // A plain GET without custom headers: no CORS preflight while the server comes back.
+        const response = await fetch(`${apiBaseUrl()}/api/setup.status?t=${Date.now()}`, { method: 'GET' })
         if (response.ok) {
-          // Server is back!
-          console.log(`Server restarted successfully after ${i + 1} attempts`)
+          setRestart({ phase: 'ready', elapsed: tick(), rootEmail })
           return
         }
       } catch {
-        // Expected during restart - server is down
-        console.log(`Waiting for server... attempt ${i + 1}/${maxAttempts}`)
+        // Expected while the server is down.
       }
-
-      await new Promise((resolve) => setTimeout(resolve, delayMs))
+      await sleep(RESTART_POLL_MS)
     }
-
-    throw new Error('Server restart timeout')
+    setRestart({ phase: 'timeout', elapsed: tick(), rootEmail })
   }
 
-  const handleDone = () => {
-    // Force a full page reload to fetch fresh config from /config.js
-    // This ensures window.IS_INSTALLED is properly set from the backend
+  const submit = async () => {
+    try {
+      await form.validateFields()
+    } catch {
+      return
+    }
+    // All values, mounted or not: a value hidden behind a closed section is still sent.
+    const all = form.getFieldsValue(true) as SetupFormValues
+    setSubmitting(true)
+    setError(undefined)
+    try {
+      await setupApi.initialize(buildSetupConfig(all, status))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t`Failed to complete setup`)
+      setSubmitting(false)
+      return
+    }
+    const rootEmail = isFieldLocked(status, 'root_email') ? undefined : splitList(all.root_email)[0]
+    if (all.subscribe_newsletter && rootEmail) await subscribeToNewsletter(rootEmail, all)
+    setSubmitting(false)
+    await waitForRestart(rootEmail)
+  }
+
+  const goTo = (summary: PanelSummary) => {
+    const [firstMissing] = summary.missing
+    if (firstMissing) {
+      form.scrollToField(firstMissing, { block: 'center', behavior: 'smooth', focus: true })
+      return
+    }
+    document.getElementById(setupPanelDomId(summary.id))?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }
+
+  // A full reload, so /config.js is read again with the installed configuration.
+  const signIn = () => {
     window.location.href = '/console/signin'
   }
 
   if (statusLoading) {
     return (
-      <App>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-            <p className="mt-4 text-gray-600">{t`Loading setup...`}</p>
-          </div>
-        </div>
-      </App>
+      <div className="flex min-h-screen items-center justify-center bg-canvas" aria-busy="true">
+        <Spin description={t`Loading setup...`}>
+          <span className="block size-16" />
+        </Spin>
+      </div>
     )
   }
 
   return (
-    <App>
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-3xl">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <img src="/console/logo.png" alt="Notifuse" className="mx-auto" width={120} />
+    <div className="min-h-screen bg-canvas px-4 py-8 sm:px-6">
+      <div className="mx-auto w-full max-w-[1000px]">
+        <img src="/console/logo.png" alt="Notifuse" width={120} />
+        {restart ? (
+          <div className="mt-8">
+            <SetupRestartView
+              phase={restart.phase}
+              elapsed={restart.elapsed}
+              rootEmail={restart.rootEmail}
+              onSignIn={signIn}
+              onReload={() => window.location.reload()}
+            />
           </div>
-
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            {setupComplete ? (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <CheckOutlined
-                    style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }}
-                  />
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{t`Setup Complete!`}</h2>
-                  <p className="text-gray-600">
-                    {t`Your Notifuse instance has been successfully configured.`}
-                  </p>
+        ) : (
+          <>
+            <h1 data-unreset className="mt-4 mb-0.5 text-title font-semibold text-ink">
+              {t`Set up your Notifuse instance`}
+            </h1>
+            <p data-unreset className="mt-0 mb-5 text-ink-2">
+              {t`Done once. Everything here can be changed later in System settings.`}
+            </p>
+            <ConfigProvider theme={FORM_THEME}>
+              <Form
+                form={form}
+                layout="vertical"
+                initialValues={initialSetupValues()}
+                onFinish={submit}
+                requiredMark
+                scrollToFirstError={{ block: 'center', behavior: 'smooth' }}
+              >
+                <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                  <div className="flex min-w-0 flex-col gap-3.5">
+                    <AdministratorPanel status={status} state={stateOf('administrator')} />
+                    <SmtpPanel status={status} state={stateOf('smtp')} />
+                    <UpdatesPanel status={status} state={stateOf('updates')} />
+                    <SsoPanel status={status} state={stateOf('sso')} />
+                    <BridgePanel status={status} state={stateOf('bridge')} />
+                  </div>
+                  <aside className="lg:sticky lg:top-4" aria-label={t`Setup summary`}>
+                    <SetupRail summaries={summaries} error={error} submitting={submitting} onGoTo={goTo} />
+                  </aside>
                 </div>
-
-                <div className="mt-8 text-center">
-                  <Button
-                    type="primary"
-                    size="large"
-                    block
-                    onClick={handleDone}
-                    loading={loading}
-                    icon={!loading && <ArrowRightOutlined />}
-                    iconPlacement="end"
-                    disabled={loading}
-                  >
-                    {loading ? t`Waiting for server restart...` : t`Go to Sign In`}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-3xl font-bold text-gray-900">{t`Setup`}</h2>
-                </div>
-
-                <Form
-                  form={form}
-                  layout="vertical"
-                  onFinish={handleSubmit}
-                  initialValues={{
-                    smtp_port: 587,
-                    smtp_use_tls: true,
-                    smtp_from_name: 'Notifuse',
-                    subscribe_newsletter: false,
-                    telemetry_enabled: true,
-                    check_for_updates: true
-                  }}
-                >
-                  {(!configStatus.root_email_configured ||
-                    !configStatus.api_endpoint_configured) && (
-                    <div className="mt-12">
-                      {!configStatus.root_email_configured && (
-                        <Form.Item
-                          label={t`Root Email`}
-                          name="root_email"
-                          rules={[
-                            { required: true, message: t`Admin email is required` },
-                            { type: 'email', message: t`Invalid email format` }
-                          ]}
-                          tooltip={t`This email will be used for the root administrator account`}
-                        >
-                          <Input placeholder="admin@example.com" />
-                        </Form.Item>
-                      )}
-                      {!configStatus.api_endpoint_configured && (
-                        <Form.Item
-                          label={t`API Endpoint`}
-                          name="api_endpoint"
-                          rules={[
-                            { required: true, message: t`API endpoint is required` },
-                            { type: 'url', message: t`Invalid URL format` }
-                          ]}
-                          tooltip={t`Public URL where this Notifuse instance is accessible`}
-                        >
-                          <Input placeholder="https://notifuse.example.com" />
-                        </Form.Item>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Newsletter Subscription */}
-                  <Form.Item
-                    name="subscribe_newsletter"
-                    valuePropName="checked"
-                    label={t`Subscribe to the newsletter (new features...)`}
-                    style={{ marginTop: 24 }}
-                  >
-                    <Switch />
-                  </Form.Item>
-
-                  {/* SMTP Configuration Section */}
-                  {!configStatus.smtp_configured && (
-                    <>
-                      <Divider titlePlacement="center" style={{ marginTop: 32, marginBottom: 24 }}>
-                        {t`SMTP Configuration`}
-                      </Divider>
-
-                      <div className="text-center mb-4">
-                        <p className="text-sm text-gray-600">
-                          {t`See docs for:`}
-                          <a
-                            href="https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline pl-2"
-                          >
-                            Amazon SES
-                          </a>
-                          {' • '}
-                          <a
-                            href="https://documentation.mailgun.com/docs/mailgun/user-manual/sending-messages/send-smtp"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            Mailgun
-                          </a>
-                          {' • '}
-                          <a
-                            href="https://developers.sparkpost.com/api/smtp/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            SparkPost
-                          </a>
-                          {' • '}
-                          <a
-                            href="https://postmarkapp.com/developer/user-guide/send-email-with-smtp"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            Postmark
-                          </a>
-                        </p>
-                      </div>
-
-                      <Row gutter={16}>
-                        <Col span={10}>
-                          <Form.Item
-                            label={t`SMTP Host`}
-                            name="smtp_host"
-                            rules={[{ required: true, message: t`SMTP host is required` }]}
-                          >
-                            <Input placeholder="smtp.example.com" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                          <Form.Item
-                            label={t`SMTP Port`}
-                            name="smtp_port"
-                            rules={[{ required: true, message: t`SMTP port is required` }]}
-                            tooltip={t`Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)`}
-                          >
-                            <InputNumber
-                              min={1}
-                              max={65535}
-                              placeholder="587"
-                              style={{ width: '100%' }}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={6}>
-                          <Form.Item
-                            name="smtp_use_tls"
-                            valuePropName="checked"
-                            label={t`Use TLS`}
-                            tooltip={t`Enable TLS encryption for SMTP connection`}
-                          >
-                            <Switch defaultChecked />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <Form.Item label={t`SMTP Username`} name="smtp_username">
-                            <Input placeholder="user@example.com" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item label={t`SMTP Password`} name="smtp_password">
-                            <Input.Password placeholder="••••••••" />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <Form.Item
-                            label={t`From Email`}
-                            name="smtp_from_email"
-                            rules={[
-                              { required: true, message: t`From email is required` },
-                              { type: 'email', message: t`Invalid email format` }
-                            ]}
-                          >
-                            <Input placeholder="notifications@example.com" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item label={t`From Name`} name="smtp_from_name">
-                            <Input placeholder="Notifuse" />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-
-                      <Form.Item
-                        name="smtp_ehlo_hostname"
-                        label={t`EHLO Hostname`}
-                        tooltip={t`The hostname your server identifies itself as when connecting to the SMTP server. Defaults to the SMTP host value if empty.`}
-                      >
-                        <Input placeholder={t`Defaults to SMTP host`} />
-                      </Form.Item>
-
-                      <div className="text-right">
-                        <Button
-                          onClick={handleTestConnection}
-                          loading={testing}
-                          icon={<ApiOutlined />}
-                        >
-                          {t`Test Connection`}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Advanced Settings Collapse */}
-                  <Collapse
-                    ghost
-                    style={{ marginTop: 32 }}
-                    items={[
-                      {
-                        key: 'advanced',
-                        label: t`Advanced Settings`,
-                        children: (
-                          <>
-                            <Row gutter={16}>
-                              <Col span={12}>
-                                <Form.Item
-                                  name="telemetry_enabled"
-                                  valuePropName="checked"
-                                  label={t`Enable Anonymous Telemetry`}
-                                  tooltip={t`Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected.`}
-                                >
-                                  <Switch />
-                                </Form.Item>
-                              </Col>
-                              <Col span={12}>
-                                <Form.Item
-                                  name="check_for_updates"
-                                  valuePropName="checked"
-                                  label={t`Check for Updates`}
-                                  tooltip={t`Shows new Notifuse versions and security fixes on the workspace list.`}
-                                >
-                                  <Switch />
-                                </Form.Item>
-                              </Col>
-                            </Row>
-
-                            {/* SMTP Bridge Configuration - Hidden if configured via env */}
-                            {!configStatus.smtp_bridge_configured && (
-                              <>
-                                <Divider style={{ marginTop: 24, marginBottom: 24 }} />
-
-                                <Form.Item
-                                  name="smtp_bridge_enabled"
-                                  valuePropName="checked"
-                                  label={t`Enable SMTP Bridge Server`}
-                                  tooltip={t`Allow receiving emails to trigger transactional notifications. Requires TLS certificates.`}
-                                >
-                                  <Switch />
-                                </Form.Item>
-
-                                <Form.Item
-                                  noStyle
-                                  shouldUpdate={(prevValues, currentValues) =>
-                                    prevValues.smtp_bridge_enabled !==
-                                    currentValues.smtp_bridge_enabled
-                                  }
-                                >
-                                  {({ getFieldValue }) =>
-                                    getFieldValue('smtp_bridge_enabled') ? (
-                                      <div
-                                        style={{
-                                          marginTop: 16,
-                                          paddingLeft: 24,
-                                          borderLeft: '3px solid #1890ff'
-                                        }}
-                                      >
-                                        <Form.Item
-                                          label={t`Domain`}
-                                          name="smtp_bridge_domain"
-                                          rules={[
-                                            {
-                                              required: true,
-                                              message: t`SMTP bridge domain is required`
-                                            }
-                                          ]}
-                                          tooltip={t`Domain for the SMTP bridge server (e.g., smtp.yourcompany.com)`}
-                                        >
-                                          <Input placeholder="smtp.yourcompany.com" />
-                                        </Form.Item>
-
-                                        <Form.Item
-                                          label={t`Port`}
-                                          name="smtp_bridge_port"
-                                          initialValue={587}
-                                          rules={[
-                                            {
-                                              required: true,
-                                              message: t`SMTP bridge port is required`
-                                            }
-                                          ]}
-                                          tooltip={t`Port for the SMTP bridge server (default: 587)`}
-                                        >
-                                          <InputNumber
-                                            min={1}
-                                            max={65535}
-                                            style={{ width: '100%' }}
-                                          />
-                                        </Form.Item>
-
-                                        <Form.Item
-                                          label={t`TLS Certificate (Base64)`}
-                                          name="smtp_bridge_tls_cert_base64"
-                                          rules={[
-                                            {
-                                              required: true,
-                                              message: t`TLS certificate is required`
-                                            }
-                                          ]}
-                                          tooltip={t`Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0`}
-                                        >
-                                          <Input.TextArea
-                                            rows={4}
-                                            placeholder="LS0tLS1CRUdJTi..."
-                                            style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                                          />
-                                        </Form.Item>
-
-                                        <Form.Item
-                                          label={t`TLS Private Key (Base64)`}
-                                          name="smtp_bridge_tls_key_base64"
-                                          rules={[
-                                            {
-                                              required: true,
-                                              message: t`TLS private key is required`
-                                            }
-                                          ]}
-                                          tooltip={t`Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0`}
-                                        >
-                                          <Input.TextArea
-                                            rows={4}
-                                            placeholder="LS0tLS1CRUdJTi..."
-                                            style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                                          />
-                                        </Form.Item>
-                                      </div>
-                                    ) : null
-                                  }
-                                </Form.Item>
-                              </>
-                            )}
-
-                            {/* SSO (OIDC) Configuration - Hidden if configured via env */}
-                            {!configStatus.oidc_configured && (
-                              <>
-                                <Divider style={{ marginTop: 24, marginBottom: 24 }} />
-
-                                <Form.Item
-                                  name="oidc_enabled"
-                                  valuePropName="checked"
-                                  label={t`Enable Single Sign-On (OpenID Connect)`}
-                                  tooltip={t`Let users sign in with an external identity provider (Google Workspace, Keycloak, Okta, …) alongside magic codes.`}
-                                >
-                                  <Switch />
-                                </Form.Item>
-
-                                <Form.Item
-                                  noStyle
-                                  shouldUpdate={(prevValues, currentValues) =>
-                                    prevValues.oidc_enabled !== currentValues.oidc_enabled ||
-                                    prevValues.oidc_auto_create_users !==
-                                      currentValues.oidc_auto_create_users
-                                  }
-                                >
-                                  {({ getFieldValue }) =>
-                                    getFieldValue('oidc_enabled') ? (
-                                      <div
-                                        style={{
-                                          marginTop: 16,
-                                          paddingLeft: 24,
-                                          borderLeft: '3px solid #1890ff'
-                                        }}
-                                      >
-                                        <Form.Item
-                                          label={t`Issuer URL`}
-                                          name="oidc_issuer_url"
-                                          rules={[
-                                            { required: true, message: t`Issuer URL is required` },
-                                            { type: 'url', message: t`Must be a valid https URL` }
-                                          ]}
-                                          tooltip={t`OIDC issuer base URL — discovery happens at <issuer>/.well-known/openid-configuration`}
-                                        >
-                                          <Input placeholder="https://accounts.google.com" />
-                                        </Form.Item>
-
-                                        <Form.Item
-                                          label={t`Client ID`}
-                                          name="oidc_client_id"
-                                          rules={[
-                                            { required: true, message: t`Client ID is required` }
-                                          ]}
-                                        >
-                                          <Input placeholder="xxxxxxxx.apps.googleusercontent.com" />
-                                        </Form.Item>
-
-                                        <Form.Item
-                                          label={t`Client Secret`}
-                                          name="oidc_client_secret"
-                                          rules={[
-                                            { required: true, message: t`Client Secret is required` }
-                                          ]}
-                                        >
-                                          <Input.Password autoComplete="new-password" />
-                                        </Form.Item>
-
-                                        <Form.Item
-                                          label={t`Button Label`}
-                                          name="oidc_button_label"
-                                          tooltip={t`Text shown on the sign-in button`}
-                                        >
-                                          <Input placeholder={t`Sign in with SSO`} />
-                                        </Form.Item>
-
-                                        <Form.Item
-                                          name="oidc_auto_create_users"
-                                          valuePropName="checked"
-                                          label={t`Auto-create accounts on first sign-in`}
-                                          tooltip={t`When off (recommended), only already-invited users can sign in via SSO. When on, a verified email in an allowed domain creates an account automatically.`}
-                                        >
-                                          <Switch />
-                                        </Form.Item>
-
-                                        {getFieldValue('oidc_auto_create_users') ? (
-                                          <Form.Item
-                                            label={t`Allowed email domains`}
-                                            name="oidc_allowed_domains"
-                                            rules={[
-                                              {
-                                                required: true,
-                                                message: t`At least one domain is required when auto-create is enabled`
-                                              }
-                                            ]}
-                                            tooltip={t`Comma-separated list of email domains permitted to auto-create accounts`}
-                                          >
-                                            <Input placeholder="example.com, sub.example.com" />
-                                          </Form.Item>
-                                        ) : null}
-                                      </div>
-                                    ) : null
-                                  }
-                                </Form.Item>
-                              </>
-                            )}
-                          </>
-                        )
-                      }
-                    ]}
-                  />
-
-                  {/* Submit Button */}
-                  <Divider style={{ marginTop: 32, marginBottom: 24 }} />
-
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    size="large"
-                    icon={<CheckOutlined />}
-                    iconPlacement="end"
-                    block
-                  >
-                    {loading ? t`Setting up...` : t`Complete Setup`}
-                  </Button>
-                </Form>
-              </div>
-            )}
-          </div>
-        </div>
+              </Form>
+            </ConfigProvider>
+          </>
+        )}
       </div>
-    </App>
+    </div>
   )
 }

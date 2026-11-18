@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { App } from 'antd'
@@ -19,17 +20,27 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   return { ...actual, useNavigate: () => vi.fn() }
 })
 
-function mockStatus(oidcConfigured: boolean) {
-  const status: SetupStatus = {
-    is_installed: false,
-    smtp_configured: false,
-    api_endpoint_configured: false,
-    root_email_configured: false,
-    smtp_bridge_configured: false,
-    oidc_configured: oidcConfigured
-  }
-  vi.mocked(setupApi.getStatus).mockResolvedValue(status)
+const NOTHING_SET: SetupStatus = {
+  is_installed: false,
+  smtp_configured: false,
+  api_endpoint_configured: false,
+  root_email_configured: false,
+  smtp_bridge_configured: false,
+  oidc_configured: false
 }
+
+// Everything but the updates panel set by the environment: the page then only asks for
+// the switches under test.
+const ALL_BUT_UPDATES: SetupStatus = {
+  ...NOTHING_SET,
+  smtp_configured: true,
+  api_endpoint_configured: true,
+  root_email_configured: true,
+  smtp_bridge_configured: true,
+  oidc_configured: true
+}
+
+const mockStatus = (status: SetupStatus) => vi.mocked(setupApi.getStatus).mockResolvedValue(status)
 
 const renderWizard = () =>
   render(
@@ -40,71 +51,209 @@ const renderWizard = () =>
     </I18nProvider>
   )
 
-const ssoToggleLabel = 'Enable Single Sign-On (OpenID Connect)'
-
-async function expandAdvanced() {
-  // The SSO section lives inside the lazily-mounted "Advanced Settings" collapse.
-  const adv = await screen.findByText('Advanced Settings')
-  fireEvent.click(adv)
+const panel = (name: RegExp | string) => {
+  const heading = screen.getByRole('heading', { name })
+  return heading.closest('section') as HTMLElement
 }
 
-describe('SetupWizard — SSO step', () => {
+// A value set in one change: typing it key by key re-validates the form at each key.
+const fill = (element: HTMLElement, value: string) => fireEvent.change(element, { target: { value } })
+
+const complete = async (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(screen.getByRole('button', { name: /Complete setup/ }))
+
+describe('SetupWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.API_ENDPOINT = 'https://app.example.com'
+    vi.mocked(setupApi.initialize).mockResolvedValue({ success: true, message: 'ok' })
+    // The restart poll and the newsletter: nothing answers.
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('offline'))
   })
 
-  it('offers the SSO step when OIDC is not env-configured', async () => {
-    mockStatus(false)
-    renderWizard()
-    await expandAdvanced()
-    expect(await screen.findByText(ssoToggleLabel)).toBeInTheDocument()
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
-  it('hides the SSO step entirely when OIDC is configured via env', async () => {
-    mockStatus(true)
+  it('opens with update checks and telemetry on, and sends them on when untouched', async () => {
+    const user = userEvent.setup()
+    mockStatus(ALL_BUT_UPDATES)
     renderWizard()
-    await expandAdvanced()
-    // Give the (absent) section a chance to render, then assert it never does.
-    await waitFor(() => expect(screen.queryByText(ssoToggleLabel)).not.toBeInTheDocument())
+
+    expect(await screen.findByRole('switch', { name: 'Check for updates' })).toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Anonymous telemetry' })).toBeChecked()
+
+    await complete(user)
+    await waitFor(() => expect(setupApi.initialize).toHaveBeenCalledTimes(1))
+    expect(setupApi.initialize).toHaveBeenCalledWith({ telemetry_enabled: true, check_for_updates: true })
   })
 
-  it('reveals the OIDC fields only after enabling the SSO switch', async () => {
-    mockStatus(false)
+  it('sends every field it shows, under the names the server reads', async () => {
+    const user = userEvent.setup()
+    mockStatus(NOTHING_SET)
     renderWizard()
-    await expandAdvanced()
 
-    await screen.findByText(ssoToggleLabel)
-    // Fields are hidden until the operator flips the switch.
-    expect(screen.queryByLabelText('Issuer URL')).not.toBeInTheDocument()
+    const rootEmail = await screen.findByRole('combobox', { name: 'Root email' })
+    fill(rootEmail, 'admin@acme.com,second@acme.com,')
+    fill(screen.getByDisplayValue('https://app.example.com'), 'https://notifuse.acme.com')
 
-    const item = screen.getByText(ssoToggleLabel).closest('.ant-form-item')
-    const toggle = item?.querySelector('button[role="switch"]') as HTMLElement
-    expect(toggle).toBeTruthy()
-    fireEvent.click(toggle)
+    const smtp = panel(/System email delivery/)
+    fill(within(smtp).getByRole('textbox', { name: 'Host' }), 'smtp.acme.com')
+    fill(within(smtp).getByRole('spinbutton', { name: 'Port' }), '465')
+    fill(within(smtp).getByRole('textbox', { name: 'Username' }), 'user')
+    fill(within(smtp).getByLabelText('Password'), 'pass')
+    fill(within(smtp).getByRole('textbox', { name: 'From email' }), 'noreply@acme.com')
+    fill(within(smtp).getByRole('textbox', { name: 'From name' }), 'Acme')
+    await user.click(within(smtp).getByRole('button', { name: 'Advanced' }))
+    fill(within(smtp).getByRole('textbox', { name: 'EHLO hostname' }), 'mail.acme.com')
+    // Closing the section keeps the value.
+    await user.click(within(smtp).getByRole('button', { name: 'Advanced' }))
 
-    expect(await screen.findByLabelText('Issuer URL')).toBeInTheDocument()
-    expect(screen.getByLabelText('Client ID')).toBeInTheDocument()
-    expect(screen.getByLabelText('Client Secret')).toBeInTheDocument()
+    await user.click(screen.getByRole('switch', { name: 'Anonymous telemetry' }))
+
+    await user.click(screen.getByRole('switch', { name: 'Enable single sign-on' }))
+    const sso = panel(/Single sign-on/)
+    fill(within(sso).getByRole('textbox', { name: 'Issuer URL' }), 'https://idp.acme.com')
+    fill(within(sso).getByRole('textbox', { name: 'Client ID' }), 'cid')
+    fill(within(sso).getByLabelText('Client secret'), 'secret')
+    fill(within(sso).getByRole('textbox', { name: 'Button label' }), 'Acme SSO')
+    fill(within(sso).getByRole('textbox', { name: 'Redirect URI' }), 'https://sso.acme.com/api/user.oidc.callback')
+    await user.click(within(sso).getByRole('button', { name: 'Advanced' }))
+    fill(within(sso).getByRole('textbox', { name: 'Scopes' }), 'openid email')
+    await user.click(within(sso).getByRole('switch', { name: 'Auto-create accounts on first sign-in' }))
+    await user.type(within(sso).getByRole('combobox', { name: 'Allowed email domains' }), 'acme.com,')
+
+    await user.click(screen.getByRole('switch', { name: 'Enable the SMTP bridge' }))
+    const bridge = panel(/SMTP bridge/)
+    fill(within(bridge).getByRole('textbox', { name: 'Domain' }), 'in.acme.com')
+    fill(within(bridge).getByRole('textbox', { name: 'TLS certificate (Base64)' }), 'CERT')
+    fill(within(bridge).getByRole('textbox', { name: 'TLS private key (Base64)' }), 'KEY')
+
+    await complete(user)
+    await waitFor(() => expect(setupApi.initialize).toHaveBeenCalledTimes(1))
+    expect(setupApi.initialize).toHaveBeenCalledWith({
+      root_email: 'admin@acme.com, second@acme.com',
+      api_endpoint: 'https://notifuse.acme.com',
+      smtp_host: 'smtp.acme.com',
+      smtp_port: 465,
+      smtp_use_tls: true,
+      smtp_username: 'user',
+      smtp_password: 'pass',
+      smtp_from_email: 'noreply@acme.com',
+      smtp_from_name: 'Acme',
+      smtp_ehlo_hostname: 'mail.acme.com',
+      check_for_updates: true,
+      telemetry_enabled: false,
+      oidc_enabled: true,
+      oidc_issuer_url: 'https://idp.acme.com',
+      oidc_client_id: 'cid',
+      oidc_client_secret: 'secret',
+      oidc_button_label: 'Acme SSO',
+      oidc_redirect_uri: 'https://sso.acme.com/api/user.oidc.callback',
+      oidc_scopes: 'openid email',
+      oidc_auto_create_users: true,
+      oidc_allowed_domains: 'acme.com',
+      smtp_bridge_enabled: true,
+      smtp_bridge_domain: 'in.acme.com',
+      smtp_bridge_tls_cert_base64: 'CERT',
+      smtp_bridge_tls_key_base64: 'KEY'
+    })
+  }, 15000)
+
+  it('names the variables of a group the environment sets, and sends none of its fields', async () => {
+    const user = userEvent.setup()
+    mockStatus({ ...ALL_BUT_UPDATES, env_overrides: ['smtp_host', 'smtp_port', 'smtp_from_email'] })
+    renderWizard()
+
+    const smtp = await waitFor(() => panel(/System email delivery/))
+    expect(within(smtp).getByText('SMTP_HOST')).toBeInTheDocument()
+    expect(within(smtp).getByText('SMTP_FROM_EMAIL')).toBeInTheDocument()
+    expect(within(smtp).queryByRole('textbox', { name: 'Host' })).not.toBeInTheDocument()
+
+    await complete(user)
+    await waitFor(() => expect(setupApi.initialize).toHaveBeenCalledTimes(1))
+    const body = vi.mocked(setupApi.initialize).mock.calls[0][0]
+    expect(Object.keys(body).filter((key) => key.startsWith('smtp'))).toEqual([])
   })
 
-  it('requires allowed domains once auto-create is switched on', async () => {
-    mockStatus(false)
+  it('locks a single field the environment sets and leaves it out', async () => {
+    const user = userEvent.setup()
+    mockStatus({ ...ALL_BUT_UPDATES, smtp_configured: false, env_overrides: ['smtp_host'] })
     renderWizard()
-    await expandAdvanced()
 
-    await screen.findByText(ssoToggleLabel)
-    // Enable SSO to reveal the auto-create toggle.
-    const ssoItem = screen.getByText(ssoToggleLabel).closest('.ant-form-item')
-    fireEvent.click(ssoItem?.querySelector('button[role="switch"]') as HTMLElement)
+    const smtp = await waitFor(() => panel(/System email delivery/))
+    expect(within(smtp).getByPlaceholderText('Set by SMTP_HOST')).toBeDisabled()
+    expect(within(smtp).getByRole('button', { name: /Test connection/ })).toBeDisabled()
+    fill(within(smtp).getByRole('textbox', { name: 'From email' }), 'noreply@acme.com')
 
-    const autoLabel = 'Auto-create accounts on first sign-in'
-    await screen.findByText(autoLabel)
-    expect(screen.queryByLabelText('Allowed email domains')).not.toBeInTheDocument()
+    await complete(user)
+    await waitFor(() => expect(setupApi.initialize).toHaveBeenCalledTimes(1))
+    const body = vi.mocked(setupApi.initialize).mock.calls[0][0]
+    expect(body).not.toHaveProperty('smtp_host')
+    expect(body.smtp_from_email).toBe('noreply@acme.com')
+  })
 
-    const autoItem = screen.getByText(autoLabel).closest('.ant-form-item')
-    fireEvent.click(autoItem?.querySelector('button[role="switch"]') as HTMLElement)
+  it('shows a refused setup in the rail, not in a toast, and keeps the form', async () => {
+    const user = userEvent.setup()
+    mockStatus(ALL_BUT_UPDATES)
+    vi.mocked(setupApi.initialize).mockRejectedValue(new Error('smtp_host is required'))
+    renderWizard()
 
-    expect(await screen.findByLabelText('Allowed email domains')).toBeInTheDocument()
+    await screen.findByRole('switch', { name: 'Check for updates' })
+    await complete(user)
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Setup was not saved')
+    expect(alert).toHaveTextContent('smtp_host is required')
+    expect(screen.getByRole('button', { name: /Complete setup/ })).toBeInTheDocument()
+  })
+
+  it('prefills the API endpoint from API_ENDPOINT, else from the page origin', async () => {
+    mockStatus(NOTHING_SET)
+    const { unmount } = renderWizard()
+    expect(await screen.findByDisplayValue('https://app.example.com')).toBeInTheDocument()
+    unmount()
+
+    window.API_ENDPOINT = ''
+    renderWizard()
+    expect(await screen.findByDisplayValue(window.location.origin)).toBeInTheDocument()
+  })
+
+  it('reveals the SSO fields with its switch, and allowed domains with auto-create', async () => {
+    const user = userEvent.setup()
+    mockStatus(NOTHING_SET)
+    renderWizard()
+
+    const toggle = await screen.findByRole('switch', { name: 'Enable single sign-on' })
+    expect(screen.queryByRole('textbox', { name: 'Issuer URL' })).not.toBeInTheDocument()
+    await user.click(toggle)
+    expect(await screen.findByRole('textbox', { name: 'Issuer URL' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Allowed email domains' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('switch', { name: 'Auto-create accounts on first sign-in' }))
+    expect(await screen.findByRole('combobox', { name: 'Allowed email domains' })).toBeInTheDocument()
+  })
+
+  it('refuses a username without its password', async () => {
+    const user = userEvent.setup()
+    mockStatus(NOTHING_SET)
+    renderWizard()
+
+    const smtp = await waitFor(() => panel(/System email delivery/))
+    await user.type(within(smtp).getByRole('textbox', { name: 'Username' }), 'user')
+    await complete(user)
+    expect(
+      await screen.findByText('Enter the password that goes with this username, or clear both.')
+    ).toBeInTheDocument()
+    expect(setupApi.initialize).not.toHaveBeenCalled()
+  })
+
+  it('moves to the restart view once the setup is saved', async () => {
+    const user = userEvent.setup()
+    mockStatus(ALL_BUT_UPDATES)
+    renderWizard()
+
+    await screen.findByRole('switch', { name: 'Check for updates' })
+    await complete(user)
+    expect(await screen.findByText('Applying your configuration')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Go to sign in/ })).toBeDisabled()
   })
 })

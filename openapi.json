@@ -955,6 +955,19 @@
               }
             }
           },
+          "422": {
+            "description": "The email cannot be built from the template and the data of the send: a Liquid error,\nsuch as a filter that fails or a comparison of a text with a number, or an MJML error.\nNothing is sent. The template or the data has to change; sending again fails the same way.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "template compilation failed: liquid rendering error in block (ID: mjml-source): liquid rendering failed: Liquid error: divided by 0"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -3292,6 +3305,16 @@
           },
           "404": {
             "description": "Broadcast not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The email cannot be built from the template and the recipient's data: a Liquid error,\nsuch as a filter that fails or a comparison of a text with a number, or an MJML error.\nNothing is sent. The template or the data has to change; sending again fails the same way.\n",
             "content": {
               "application/json": {
                 "schema": {
