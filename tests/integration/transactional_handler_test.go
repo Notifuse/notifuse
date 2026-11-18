@@ -1,8 +1,10 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -772,6 +774,49 @@ func testTransactionalSendCodeMode(t *testing.T, client *testutil.APIClient, fac
 			assert.Contains(t, result, "message_id")
 			assert.NotEmpty(t, result["message_id"], "Message ID should not be empty")
 		})
+	})
+
+	// A Liquid filter that fails, here a division by zero, fails the send like any other
+	// Liquid error: the call fails and nothing is queued or recorded.
+	t.Run("A failing Liquid filter fails the send", func(t *testing.T) {
+		mjml := `<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{contact.first_name}}, total {{ 10 | divided_by: 0 }}</mj-text></mj-column></mj-section></mj-body></mjml>`
+		template, err := factory.CreateTemplate(workspaceID, testutil.WithCodeModeTemplate(mjml))
+		require.NoError(t, err)
+		notification, err := factory.CreateTransactionalNotification(workspaceID,
+			testutil.WithTransactionalNotificationID("send-filter-error-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+		contact, err := factory.CreateContact(workspaceID)
+		require.NoError(t, err)
+
+		resp, err := client.SendTransactionalNotification(map[string]interface{}{
+			"id":       notification.ID,
+			"contact":  map[string]interface{}{"email": contact.Email, "first_name": "Ann"},
+			"channels": []string{"email"},
+		})
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		// The caller gets the generic send failure, as for any Liquid error; the Liquid
+		// message itself is in the logs and in the preview.
+		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode, "body: %s", body)
+		assert.Contains(t, string(body), "Failed to send notification")
+
+		workspaceDB, err := factory.GetWorkspaceDB(workspaceID)
+		require.NoError(t, err)
+		for _, table := range []string{"email_queue", "message_history"} {
+			var n int
+			require.NoError(t, workspaceDB.QueryRowContext(context.Background(),
+				`SELECT COUNT(*) FROM `+table+` WHERE contact_email = $1`, contact.Email).Scan(&n))
+			assert.Zero(t, n, "%s rows for %s", table, contact.Email)
+		}
 	})
 }
 
