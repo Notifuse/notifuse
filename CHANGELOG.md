@@ -90,7 +90,7 @@ All notable changes to this project will be documented in this file.
 
 - **Improvement**: `DB_EXPECT_EXISTING=true` makes Notifuse refuse to start instead of creating or initialising its system database, and refuse to create a missing workspace database, on a server that must already hold the data (an upgrade, a restore). Without it, a first start on an empty database is now logged as a warning.
 
-- **Fix**: The setup wizard sends telemetry and update checks as it shows them; they were sent switched off unless « Advanced Settings » was opened. It also saves the EHLO hostname it tests with, accepts several root emails as documented, asks for the SSO redirect URI and scopes, and accepts a setup where the environment sets only some SMTP or SSO values.
+- **Fix**: The setup wizard sends telemetry and update checks as it shows them; they were sent switched off unless « Advanced Settings » was opened. It also saves the EHLO hostname it tests with, accepts several root emails as documented, asks for the SSO redirect URI and scopes, accepts a setup where the environment sets only some SMTP or SSO values, and waits for the restarted server before offering to sign in.
 
 - **Fix**: The sender name set in the setup wizard or in System settings is used for system emails; it was always replaced by « Notifuse » unless `SMTP_FROM_NAME` was set.
 

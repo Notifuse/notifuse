@@ -36,11 +36,15 @@ export interface SetupStatus {
   oidc_configured: boolean
   /** Before install only: the setting keys whose environment variable is set (names, never values). */
   env_overrides?: string[]
+  /** Random, drawn at each start of the server process: a new value means it restarted. */
+  boot_id?: string
 }
 
 export interface InitializeResponse {
   success: boolean
   message: string
+  /** The process that handled the request; the page waits for the server to answer another. */
+  boot_id?: string
 }
 
 export interface TestSMTPConfig {

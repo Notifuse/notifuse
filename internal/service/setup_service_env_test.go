@@ -174,3 +174,58 @@ func TestSetupService_Initialize_SeveralRootEmailsCreateThePrimary(t *testing.T)
 	require.NoError(t, svc.Initialize(context.Background(), req))
 	assert.Equal(t, "a@x.com, b@x.com", stored["root_email"], "the others are created at startup from the stored list")
 }
+
+// One precedence rule for every group: a non-empty variable wins, the request fills the
+// rest, even when the environment sets the whole group (as the runtime fills it from the
+// database at boot).
+func TestSetupService_Initialize_OnePrecedenceRule(t *testing.T) {
+	envSMTP := func() *service.EnvironmentConfig {
+		return &service.EnvironmentConfig{SMTPHost: "smtp.env.com", SMTPPort: 2525, SMTPFromEmail: "env@acme.com"}
+	}
+
+	t.Run("an env-set group stores the env values over the request's", func(t *testing.T) {
+		svc, stored := newStoringSetupService(t, envSMTP(), 1)
+		require.True(t, svc.GetConfigurationStatus().SMTPConfigured)
+		req := wizardRequest()
+		req.SMTPHost = "smtp.request.com"
+		req.SMTPFromEmail = "request@acme.com"
+
+		require.NoError(t, svc.Initialize(context.Background(), req))
+		assert.Equal(t, "smtp.env.com", stored["smtp_host"])
+		assert.Equal(t, "2525", stored["smtp_port"])
+		assert.Equal(t, "env@acme.com", stored["smtp_from_email"])
+	})
+
+	t.Run("a field the env leaves empty in an env-set group is stored from the request", func(t *testing.T) {
+		svc, stored := newStoringSetupService(t, envSMTP(), 1)
+		req := &service.SetupConfig{RootEmail: "admin@example.com", SMTPFromName: "Acme", SMTPUseTLS: false}
+
+		require.NoError(t, svc.Initialize(context.Background(), req))
+		assert.Equal(t, "Acme", stored["smtp_from_name"])
+		assert.Equal(t, "false", stored["smtp_use_tls"], "SMTP_USE_TLS unset: the request's value")
+	})
+
+	t.Run("an env-set OIDC group keeps a redirect URI only the request gives", func(t *testing.T) {
+		env := &service.EnvironmentConfig{OIDCEnabled: "true", OIDCIssuerURL: "https://idp.acme.com", OIDCClientID: "cid", OIDCClientSecret: "secret"}
+		svc, stored := newStoringSetupService(t, env, 1)
+		req := wizardRequest()
+		req.OIDCRedirectURI = "https://sso.acme.com/api/user.oidc.callback"
+
+		require.NoError(t, svc.Initialize(context.Background(), req))
+		assert.Equal(t, "true", stored["oidc_enabled"])
+		assert.Equal(t, "https://idp.acme.com", stored["oidc_issuer_url"])
+		assert.Equal(t, "https://sso.acme.com/api/user.oidc.callback", stored["oidc_redirect_uri"])
+	})
+}
+
+// Values the request adds to an env-set group are stored, so they are checked like the
+// rest: a half-filled SMTP login is refused even when SMTP_HOST, SMTP_PORT and
+// SMTP_FROM_EMAIL set the group.
+func TestSetupService_ValidateSetupConfig_ChecksEnvSetGroups(t *testing.T) {
+	env := &service.EnvironmentConfig{SMTPHost: "smtp.env.com", SMTPPort: 2525, SMTPFromEmail: "env@acme.com"}
+	svc := service.NewSetupService(&service.SettingService{}, &service.UserService{}, nil, &mockLogger{}, "k", nil, env)
+	require.True(t, svc.GetConfigurationStatus().SMTPConfigured)
+
+	req := &service.SetupConfig{RootEmail: "admin@example.com", SMTPUsername: "user"}
+	assert.ErrorContains(t, svc.ValidateSetupConfig(req), "SMTP password is required when a username is set")
+}
