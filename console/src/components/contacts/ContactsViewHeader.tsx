@@ -30,6 +30,8 @@ export interface ContactsViewHeaderProps {
   role: 'root' | 'owner' | 'member' | undefined
   /** The view's total, without the row filters nor the status tab: shown next to the title. */
   total?: number
+  /** The workspace's contacts, for the share the segment drawer's count shows. */
+  workspaceTotal?: number
   onExport: () => void
   onContactCreated: () => void
   /** Opens the settings drawer of the open list. */
@@ -50,6 +52,7 @@ export function ContactsViewHeader({
   permissions,
   role,
   total,
+  workspaceTotal,
   onExport,
   onContactCreated,
   onEditList,
@@ -241,8 +244,12 @@ export function ContactsViewHeader({
             {moreMenu}
             {canWriteSegments && segment ? (
               <SegmentActions
+                // Keyed by segment: Back to another segment must not leave its drawer editing the
+                // first one, then save the old form under the new segment's ID.
+                key={segment.id}
                 workspaceId={workspaceId}
                 segment={segment}
+                totalContacts={workspaceTotal}
                 canReadTemplates={!!permissions?.templates?.read}
               />
             ) : null}

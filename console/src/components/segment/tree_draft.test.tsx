@@ -87,6 +87,8 @@ describe('TreeNodeInput — draft tree', () => {
     expect(draft.branch?.leaves[1].leaf?.contact_list?.list_id).toBe('product')
     // ...and its sibling is untouched, so the count reflects the whole segment
     expect(draft.branch?.leaves[0].leaf?.contact_list?.list_id).toBe('newsletter')
+    // The condition keeps its status: its form takes it, so it may be counted
+    expect(onDraftTreeChange.mock.lastCall?.[1]).toBe(true)
   })
 
   it('withdraws the draft once the condition is confirmed', async () => {

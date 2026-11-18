@@ -635,6 +635,7 @@ export function ContactsPage() {
             permissions={permissions}
             role={role}
             total={viewTotal}
+            workspaceTotal={totalQuery.data?.total_contacts}
             onExport={() => setExportOpen(true)}
             onContactCreated={invalidateAfterContactChange}
             onEditList={() => setListDrawer('edit')}

@@ -99,6 +99,22 @@ describe('leaf forms — draft reporting', () => {
     expect(lastDraft(onDraftChange).leaf?.contact_list?.list_id).toBe('product')
   })
 
+  it('says whether the form would take the draft: « is in » needs a status', async () => {
+    const onDraftChange = vi.fn()
+    renderListForm({ operator: 'in', list_id: '', status: undefined }, onDraftChange)
+
+    openSelect(0)
+    fireEvent.click(await screen.findByTitle('Product updates'))
+    await waitFor(() => expect(onDraftChange).toHaveBeenCalled())
+    // A list without its status: the server could count it, Confirm would refuse it
+    await waitFor(() => expect(onDraftChange.mock.lastCall?.[1]).toBe(false))
+
+    openSelect(1)
+    fireEvent.click(await screen.findByTitle('Active'))
+    await waitFor(() => expect(onDraftChange.mock.lastCall?.[0].leaf?.contact_list?.status).toBe('active'))
+    expect(onDraftChange.mock.lastCall?.[1]).toBe(true)
+  })
+
   it('reports the condition without touching the confirm handler', async () => {
     const onDraftChange = vi.fn()
     const onChange = vi.fn()

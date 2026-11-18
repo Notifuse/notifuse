@@ -4,7 +4,7 @@ import { i18n } from '@lingui/core'
 import { I18nProvider } from '@lingui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { message } from 'antd'
-import ButtonUpsertSegment from './button_upsert'
+import { DrawerSegment } from './button_upsert'
 import { templatesApi } from '../../services/api/template'
 import type { PreviewSegmentRequest, Segment, TreeNode } from '../../services/api/segment'
 
@@ -24,7 +24,8 @@ vi.mock('@tanstack/react-router', async () => {
     ...actual,
     useParams: () => ({ workspaceId: 'ws1' }),
     useNavigate: () => vi.fn(),
-    useMatch: () => false
+    useMatch: () => false,
+    useBlocker: () => ({ status: 'idle' })
   }
 })
 
@@ -128,16 +129,16 @@ const openDrawer = (tree: TreeNode, canReadTemplates = true) => {
   const result = render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>
-        <ButtonUpsertSegment
+        <DrawerSegment
           segment={segmentWith(tree)}
           totalContacts={10000}
           canReadTemplates={canReadTemplates}
+          setDrawserVisible={vi.fn()}
         />
       </I18nProvider>
     </QueryClientProvider>
   )
 
-  fireEvent.click(screen.getByText('Edit segment'))
   return result
 }
 
