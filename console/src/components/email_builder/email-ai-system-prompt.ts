@@ -58,6 +58,8 @@ An email template has this structure:
 
 4. **Use explicit padding attributes**: paddingTop, paddingRight, paddingBottom, paddingLeft (NOT shorthand "padding")
 
+5. **Borders of social icons**: "border" on mj-social-element (one CSS border, e.g. "2px solid #000000") draws a border around that icon; on mj-social it applies to every icon, an icon's own border winning
+
 ## Block Structure
 
 Every block you create or reference MUST have:
@@ -344,7 +346,7 @@ If your response carried no text, the application sends the results of your tool
 1. ALWAYS wrap text content in sections > columns > content blocks
 2. Use wrapper for consistent background across sections
 3. Set explicit widths on the columns and groups of a section that sum to 100%; a group without a width takes an equal share of the section, like a column
-4. Use padding attributes instead of spacers when possible
+4. Use padding attributes instead of spacers when possible. For space between the columns of a section, set "gutter" on the mj-section (e.g. "20px" or "4%"): it spaces the columns and leaves the outer edges alone, where padding on each column would also pad the edges
 5. Always provide alt text for images
 6. Use groups to prevent columns from stacking on mobile when needed
 7. A marketing email ends with the compliance footer (unsubscribe + preferences links); see Compliance Footer

@@ -23,10 +23,14 @@ interface FontStyleInputProps {
   defaultValue: FontStyleValues
   onChange?: (value: FontStyleValues) => void
   importedFonts?: Array<{ name: string; href: string }>
+  /** Fields the component has no attribute for, left out of the form */
+  hiddenFields?: ReadonlyArray<'textTransform' | 'letterSpacing'>
 }
 
+const NO_HIDDEN_FIELDS: ReadonlyArray<'textTransform' | 'letterSpacing'> = []
+
 const FontStyleInput: React.FC<FontStyleInputProps> = memo(
-  ({ value, defaultValue, onChange, importedFonts = [] }) => {
+  ({ value, defaultValue, onChange, importedFonts = [], hiddenFields = NO_HIDDEN_FIELDS }) => {
     const { t } = useLingui()
     const [localValue, setLocalValue] = useState<FontStyleValues>(value || defaultValue)
 
@@ -234,16 +238,18 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
             </div>
           </Col>
           <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Text Transform`}</span>
-              <Select
-                size="small"
-                value={localValue.textTransform || 'none'}
-                onChange={(value) => handleValueChange('textTransform', value)}
-                options={textTransformOptions}
-                style={{ width: '100%', marginTop: '4px' }}
-              />
-            </div>
+            {!hiddenFields.includes('textTransform') && (
+              <div className="mb-2">
+                <span className="text-xs text-gray-500">{t`Text Transform`}</span>
+                <Select
+                  size="small"
+                  value={localValue.textTransform || 'none'}
+                  onChange={(value) => handleValueChange('textTransform', value)}
+                  options={textTransformOptions}
+                  style={{ width: '100%', marginTop: '4px' }}
+                />
+              </div>
+            )}
           </Col>
         </Row>
 
@@ -265,16 +271,18 @@ const FontStyleInput: React.FC<FontStyleInputProps> = memo(
             </div>
           </Col>
           <Col span={12}>
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">{t`Letter spacing`}</span>
-              <div style={{ marginTop: '4px' }}>
-                <LetterSpacingInput
-                  value={localValue.letterSpacing || ''}
-                  onChange={(value) => handleValueChange('letterSpacing', value)}
-                  placeholder={defaultValue.letterSpacing || 'none'}
-                />
+            {!hiddenFields.includes('letterSpacing') && (
+              <div className="mb-2">
+                <span className="text-xs text-gray-500">{t`Letter spacing`}</span>
+                <div style={{ marginTop: '4px' }}>
+                  <LetterSpacingInput
+                    value={localValue.letterSpacing || ''}
+                    onChange={(value) => handleValueChange('letterSpacing', value)}
+                    placeholder={defaultValue.letterSpacing || 'none'}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </Col>
         </Row>
 

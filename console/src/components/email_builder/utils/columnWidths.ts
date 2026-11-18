@@ -1,5 +1,5 @@
 import type { EmailBlock } from '../types'
-import { MJ_SECTION_DEFAULTS } from '../mjml-defaults'
+import { MJ_SECTION_DEFAULTS, MJ_WRAPPER_DEFAULTS } from '../mjml-defaults'
 import { groupWidth, parseWidth, type AttributeDefaults } from './sectionChildWidth'
 
 // Column widths of a section or a group, kept in proportion when a column or a group comes or goes. In a section,
@@ -57,18 +57,68 @@ const shorthandSide = (value: unknown, side: 'left' | 'right'): unknown => {
 
 // A side padding of the section, as MJML reads it: its own attributes, then the template's default attributes,
 // each with its padding-left or padding-right before its padding shorthand
-const sidePadding = (section: EmailBlock, attributeDefaults: AttributeDefaults, side: 'left' | 'right'): number => {
+const sidePadding = (
+  section: EmailBlock,
+  attributeDefaults: AttributeDefaults,
+  side: 'left' | 'right',
+  type: 'mj-section' | 'mj-wrapper' = 'mj-section'
+): number => {
   const key = side === 'left' ? 'paddingLeft' : 'paddingRight'
   const sources = [
     section.attributes as Record<string, unknown> | undefined,
-    attributeDefaults['mj-section'],
-    MJ_SECTION_DEFAULTS as Record<string, unknown>
+    attributeDefaults[type],
+    (type === 'mj-section' ? MJ_SECTION_DEFAULTS : MJ_WRAPPER_DEFAULTS) as Record<string, unknown>
   ]
   for (const source of sources) {
     const value = source?.[key] ?? shorthandSide(source?.padding, side)
     if (value !== undefined && value !== '') return pixels(value) ?? 0
   }
   return 0
+}
+
+/** The section's inner width in pixels, which its columns and its gutter are measured against: the body's width less
+ * the section's side padding. */
+export function sectionInnerWidth(
+  section: EmailBlock,
+  attributeDefaults: AttributeDefaults,
+  bodyWidth: number
+): number {
+  return bodyWidth - sidePadding(section, attributeDefaults, 'left') - sidePadding(section, attributeDefaults, 'right')
+}
+
+// A side border's width, as mjml-core's borderParser reads it: the first whole number of border-left or
+// border-right, else of border
+const sideBorder = (
+  block: EmailBlock,
+  attributeDefaults: AttributeDefaults,
+  side: 'left' | 'right',
+  type: 'mj-section' | 'mj-wrapper'
+): number => {
+  const key = side === 'left' ? 'borderLeft' : 'borderRight'
+  const sources = [block.attributes as Record<string, unknown> | undefined, attributeDefaults[type]]
+  const pick = (name: string): unknown => sources.find((source) => source?.[name])?.[name]
+  const value = pick(key) || pick('border')
+  const match = typeof value === 'string' ? /(?:^| )(\d+)/.exec(value) : null
+  return match ? parseInt(match[1], 10) : 0
+}
+
+/**
+ * The width a section's or a wrapper's children are laid out in, as MJML's getBoxWidths: the width it is given
+ * less its side padding and side borders.
+ */
+export function boxWidth(
+  block: EmailBlock,
+  type: 'mj-section' | 'mj-wrapper',
+  attributeDefaults: AttributeDefaults,
+  outerWidth: number
+): number {
+  return (
+    outerWidth -
+    sidePadding(block, attributeDefaults, 'left', type) -
+    sidePadding(block, attributeDefaults, 'right', type) -
+    sideBorder(block, attributeDefaults, 'left', type) -
+    sideBorder(block, attributeDefaults, 'right', type)
+  )
 }
 
 // A group's part of the section in percent, or null when it has no width that can be read
@@ -81,7 +131,7 @@ const groupPercent = (
   const width = parseWidth(groupWidth(group, attributeDefaults))
   if (!width) return null
   if (width.unit === '%') return width.amount
-  const inner = bodyWidth - sidePadding(section, attributeDefaults, 'left') - sidePadding(section, attributeDefaults, 'right')
+  const inner = sectionInnerWidth(section, attributeDefaults, bodyWidth)
   return inner > 0 ? (width.amount * 100) / inner : null
 }
 

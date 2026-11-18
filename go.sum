@@ -67,8 +67,8 @@ github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
 github.com/Notifuse/liquidgo/v5 v5.14.5 h1:v4CL0f4zNMHE/TgOcs5DWHXoLRvtbERjCh1sqIBvVBU=
 github.com/Notifuse/liquidgo/v5 v5.14.5/go.mod h1:xTpuB4jT9EJQo25q0tCPvvAU3U9wFYAP9pHCrRXx2dM=
-github.com/Notifuse/safe-mjml v1.0.1 h1:Htrrt+Mq9594XGBoUxvCcZZ31MC6oS6Tmkg7BzpcbC8=
-github.com/Notifuse/safe-mjml v1.0.1/go.mod h1:r13xNkJI0+KR3wN5JQL8fOhWSUkJO8usFAR1+W50Cj4=
+github.com/Notifuse/safe-mjml v1.1.0 h1:z2GnSDIzq9Zk+7RGGT3RmAlkFv6RaV1w2Af6ipY0FNI=
+github.com/Notifuse/safe-mjml v1.1.0/go.mod h1:r13xNkJI0+KR3wN5JQL8fOhWSUkJO8usFAR1+W50Cj4=
 github.com/PuerkitoBio/goquery v1.10.3 h1:pFYcNSqHxBD06Fpj/KsbStFRsgRATgnf3LeXiUkhzPo=
 github.com/PuerkitoBio/goquery v1.10.3/go.mod h1:tMUX0zDMHXYlAQk6p35XxQMqMweEKB7iK7iLNd4RH4Y=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=

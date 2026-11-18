@@ -1,7 +1,7 @@
 import React from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { DisplayCondition, EmailBlock, MJMLComponentType, SaveBlockHandler, SavedBlock, MergedBlockAttributes, BaseBlock } from './types'
-import { MJML_COMPONENT_DEFAULTS, mergeWithDefaults } from './mjml-defaults'
+import { MJML_COMPONENT_DEFAULTS, SOCIAL_INHERITED_ATTRIBUTES, mergeWithDefaults } from './mjml-defaults'
 import { EmailBlockFactory } from './blocks/EmailBlockFactory'
 import type { OnUpdateAttributesFunction, PreviewProps } from './blocks/BaseEmailBlock'
 
@@ -430,7 +430,14 @@ export class EmailBlockClass {
     content?: string,
     emailTree?: EmailBlock
   ): EmailBlock {
-    const globalDefaults = MJML_COMPONENT_DEFAULTS[type] || {}
+    const globalDefaults = { ...(MJML_COMPONENT_DEFAULTS[type] || {}) }
+    // A new social element takes what its mj-social passes rather than writing the same values as its own,
+    // which would win over what the mj-social sets (see SOCIAL_INHERITED_ATTRIBUTES)
+    if (type === 'mj-social-element') {
+      for (const key of [...SOCIAL_INHERITED_ATTRIBUTES, 'padding']) {
+        delete (globalDefaults as Record<string, unknown>)[key]
+      }
+    }
 
     // Extract mj-attributes defaults if emailTree is provided
     let attributeDefaults: Record<string, unknown> = {}
@@ -505,8 +512,7 @@ export class EmailBlockClass {
           attributes: {
             name: 'facebook-noshare',
             href: 'https://facebook.com',
-            backgroundColor: '#3b5998',
-            borderRadius: '3px'
+            backgroundColor: '#3b5998'
           },
           children: []
         },
@@ -516,8 +522,7 @@ export class EmailBlockClass {
           attributes: {
             name: 'instagram',
             href: 'https://instagram.com',
-            backgroundColor: '#E4405F',
-            borderRadius: '3px'
+            backgroundColor: '#E4405F'
           },
           children: []
         },
@@ -527,8 +532,7 @@ export class EmailBlockClass {
           attributes: {
             name: 'x-noshare',
             href: 'https://x.com',
-            backgroundColor: '#000000',
-            borderRadius: '3px'
+            backgroundColor: '#000000'
           },
           children: []
         }
