@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Button, Input, Select, Tooltip } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
@@ -26,6 +27,15 @@ export const InputEventPropertyFilters = (props: {
 }) => {
   const { t, i18n } = useLingui()
   const filters = props.value ?? []
+  const listRef = useRef<HTMLDivElement>(null)
+  // A row added by the button gets the keyboard on its property name.
+  const focusNewRow = useRef(false)
+  useEffect(() => {
+    if (!focusNewRow.current) return
+    focusNewRow.current = false
+    const keys = listRef.current?.querySelectorAll<HTMLInputElement>('[data-property-key]')
+    keys?.[keys.length - 1]?.focus()
+  }, [filters.length])
   const showErrors = !!props.showErrors
   const duplicates = duplicatePropertyKeys(filters)
 
@@ -34,7 +44,7 @@ export const InputEventPropertyFilters = (props: {
   const remove = (index: number) => props.onChange?.(filters.filter((_, i) => i !== index))
 
   return (
-    <div className="flex flex-col gap-2">
+    <div ref={listRef} className="flex flex-col gap-2">
       {filters.map((filter, index) => {
         const kind = valueKindOf(filter.operator, filter.field_type)
         const complete = isFilterRowComplete(filter, false)
@@ -48,6 +58,7 @@ export const InputEventPropertyFilters = (props: {
                 style={{ width: 160 }}
                 placeholder={t`e.g. sku`}
                 aria-label={t`Property name`}
+                data-property-key
                 status={keyError ? 'error' : undefined}
                 value={filter.field_name}
                 onChange={(event) => replace(index, { ...filter, field_name: event.target.value })}
@@ -118,9 +129,10 @@ export const InputEventPropertyFilters = (props: {
           type="link"
           size="small"
           icon={<FontAwesomeIcon icon={faPlus} />}
-          onClick={() =>
+          onClick={() => {
+            focusNewRow.current = true
             props.onChange?.([...filters, { field_name: '', field_type: 'string' } as unknown as DimensionFilter])
-          }
+          }}
         >
           {t`Add a property`}
         </Button>

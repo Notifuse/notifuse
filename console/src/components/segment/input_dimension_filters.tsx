@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Button } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
@@ -34,17 +35,28 @@ export const InputDimensionFilters = ({
 }: InputDimensionFiltersProps) => {
   const { t } = useLingui()
   const filters = value ?? []
+  const listRef = useRef<HTMLDivElement>(null)
+  // A row added by the button gets the keyboard: its field picker is the next thing to fill in.
+  const focusNewRow = useRef(false)
+  useEffect(() => {
+    if (!focusNewRow.current) return
+    focusNewRow.current = false
+    const rows = listRef.current?.querySelectorAll<HTMLElement>('[data-filter-row]')
+    rows?.[rows.length - 1]?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled])')?.focus()
+  }, [filters.length])
 
   const replace = (index: number, filter: DimensionFilter) =>
     onChange?.(filters.map((current, i) => (i === index ? filter : current)))
   const remove = (index: number) => onChange?.(filters.filter((_, i) => i !== index))
-  const add = () =>
+  const add = () => {
+    focusNewRow.current = true
     onChange?.([...filters, { field_name: '', field_type: 'string' } as unknown as DimensionFilter])
+  }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div ref={listRef} className="flex flex-col gap-2">
       {filters.map((filter, index) => (
-        <div key={index} className="flex items-start gap-2">
+        <div key={index} className="flex items-start gap-2" data-filter-row>
           <span className="w-6 shrink-0 pt-1 text-overline font-semibold tracking-wide text-ink-3">
             {index > 0 ? t`AND` : ''}
           </span>

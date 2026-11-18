@@ -1709,7 +1709,7 @@ msgstr "90 dies"
 msgid "900 - Black"
 msgstr "900 - Negre"
 
-#: src/components/segment/input.tsx:425
+#: src/components/segment/input.tsx:431
 msgid "A branch condition is required..."
 msgstr "Es requereix una condició de branca..."
 
@@ -1865,7 +1865,7 @@ msgstr "Una imatge quadrada, mostrada al costat del nom de l'espai de treball"
 msgid "A tree is required"
 msgstr "Es requereix un arbre"
 
-#: src/components/segment/input.tsx:526
+#: src/components/segment/input.tsx:532
 msgid "A value is required..."
 msgstr "Es requereix un valor..."
 
@@ -2144,11 +2144,11 @@ msgstr "Afegir un peu de foto..."
 msgid "Add a condition"
 msgstr "Afegeix una condició"
 
-#: src/components/segment/input_dimension_filters.tsx:67
+#: src/components/segment/input_dimension_filters.tsx:79
 msgid "Add a filter"
 msgstr "Afegir un filtre"
 
-#: src/components/segment/input_event_property_filters.tsx:125
+#: src/components/segment/input_event_property_filters.tsx:137
 msgid "Add a property"
 msgstr "Afegeix una propietat"
 
@@ -2579,7 +2579,7 @@ msgstr "Alinear a dalt"
 msgid "Alignment"
 msgstr "Alineació"
 
-#: src/components/segment/input.tsx:438
+#: src/components/segment/input.tsx:444
 msgid "all"
 msgstr "totes les"
 
@@ -2890,8 +2890,8 @@ msgid "and"
 msgstr "I"
 
 #: src/components/segment/ConditionSentence.tsx:141
-#: src/components/segment/input_dimension_filters.tsx:49
-#: src/components/segment/input.tsx:430
+#: src/components/segment/input_dimension_filters.tsx:61
+#: src/components/segment/input.tsx:436
 msgid "AND"
 msgstr "I"
 
@@ -3331,7 +3331,7 @@ msgstr "En la data i l'hora que trieu"
 msgid "at least"
 msgstr "com a mínim"
 
-#: src/components/segment/input.tsx:439
+#: src/components/segment/input.tsx:445
 msgid "at least one"
 msgstr "almenys una de les"
 
@@ -4644,7 +4644,7 @@ msgstr "No es pot provar al navegador"
 #: src/components/lists/ListDrawer.tsx:194
 #: src/components/segment/button_upsert.tsx:403
 #: src/components/segment/form_leaf.tsx:190
-#: src/components/segment/input.tsx:300
+#: src/components/segment/input.tsx:306
 #: src/components/settings/BlogSettings.tsx:216
 #: src/components/settings/CustomFieldsConfiguration.tsx:172
 #: src/components/settings/CustomFieldsConfiguration.tsx:387
@@ -5658,7 +5658,7 @@ msgstr "Condició"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:361
 #: src/components/segment/FilterRow.tsx:206
-#: src/components/segment/input.tsx:507
+#: src/components/segment/input.tsx:513
 msgid "Condition"
 msgstr "Condició"
 
@@ -6002,7 +6002,7 @@ msgstr "Contacte actualitzat correctament"
 msgid "Contacts"
 msgstr "Contactes"
 
-#: src/components/segment/input.tsx:455
+#: src/components/segment/input.tsx:461
 msgid "Contacts matching"
 msgstr "Contactes que compleixen"
 
@@ -7193,7 +7193,7 @@ msgstr "Dades a enviar"
 #: src/components/broadcasts/compose/SendingCard.tsx:95
 #: src/components/broadcasts/compose/SendingCard.tsx:97
 #: src/components/segment/FilterRow.tsx:166
-#: src/components/segment/input_event_property_filters.tsx:63
+#: src/components/segment/input_event_property_filters.tsx:74
 #: src/components/settings/CustomFieldsConfiguration.tsx:60
 #: src/components/web_analytics/annotations/AnnotationFormModal.tsx:145
 msgid "Date"
@@ -7416,7 +7416,7 @@ msgstr "Retard"
 #: src/components/file_manager/FilePreview.tsx:126
 #: src/components/file_manager/FilePreview.tsx:132
 #: src/components/lists/DeleteListModal.tsx:135
-#: src/components/segment/input.tsx:298
+#: src/components/segment/input.tsx:304
 #: src/components/settings/Integrations.tsx:271
 #: src/components/settings/Integrations.tsx:290
 #: src/components/settings/integrations/EmailProviderCard.tsx:191
@@ -8415,7 +8415,7 @@ msgstr "p. ex. Llançament de producte"
 msgid "e.g. Set channel for Google Ads"
 msgstr "p. ex. Establir el canal per a Google Ads"
 
-#: src/components/segment/input_event_property_filters.tsx:49
+#: src/components/segment/input_event_property_filters.tsx:59
 msgid "e.g. sku"
 msgstr "p. ex. sku"
 
@@ -8513,8 +8513,8 @@ msgstr "Cada variació conserva el remitent de la seva plantilla, tret que en tr
 #: src/components/email_builder/EmailBuilder.tsx:1063
 #: src/components/email_builder/ui/DisplayConditionSummary.tsx:105
 #: src/components/email_builder/ui/ImportFontInput.tsx:218
-#: src/components/segment/input.tsx:379
-#: src/components/segment/input.tsx:383
+#: src/components/segment/input.tsx:385
+#: src/components/segment/input.tsx:389
 #: src/components/settings/Integrations.tsx:261
 #: src/components/settings/integrations/EmailProviderCard.tsx:199
 #: src/components/settings/WebhookDetail.tsx:331
@@ -9159,7 +9159,7 @@ msgstr "Buit"
 msgid "Empty column. Add text, button, or image content."
 msgstr "Columna buida. Afegiu contingut de text, botó o imatge."
 
-#: src/components/segment/input.tsx:472
+#: src/components/segment/input.tsx:478
 msgid "Empty: add a condition or a subgroup."
 msgstr "Buit: afegeix una condició o un subgrup."
 
@@ -11512,7 +11512,7 @@ msgstr "Graella"
 msgid "Groove"
 msgstr "Groove"
 
-#: src/components/segment/input.tsx:517
+#: src/components/segment/input.tsx:523
 msgid "Group"
 msgstr "Grup"
 
@@ -11536,7 +11536,7 @@ msgstr "Atributs del grup"
 msgid "Group the acquisition channel belongs to"
 msgstr "Grup al qual pertany el canal d'adquisició"
 
-#: src/components/segment/input.tsx:462
+#: src/components/segment/input.tsx:468
 msgid "Group:"
 msgstr "Grup:"
 
@@ -14334,7 +14334,7 @@ msgstr "Pàgines més vistes"
 msgid "Must be a valid https URL"
 msgstr "Ha de ser un URL https vàlid"
 
-#: src/components/segment/input_event_property_filters.tsx:113
+#: src/components/segment/input_event_property_filters.tsx:124
 msgid "Must match how the value is stored on the event. Dates are compared as ISO-8601."
 msgstr "Ha de coincidir amb la manera com es desa el valor a l'esdeveniment. Les dates es comparen com a ISO-8601."
 
@@ -15797,10 +15797,14 @@ msgid "Null"
 msgstr "Nul"
 
 #: src/components/segment/FilterRow.tsx:165
-#: src/components/segment/input_event_property_filters.tsx:62
+#: src/components/segment/input_event_property_filters.tsx:73
 #: src/components/settings/CustomFieldsConfiguration.tsx:59
 msgid "Number"
 msgstr "Número"
+
+#: src/components/segment/form_leaf.tsx:234
+msgid "Number of days"
+msgstr "Nombre de dies"
 
 #: src/components/settings/WebAnalyticsSettings.tsx:289
 #~ msgid "Number of decimals kept. Two decimals is roughly one kilometer."
@@ -15893,11 +15897,11 @@ msgstr "D'un usuari d'IAM autoritzat a enviar amb SES"
 #~ msgid "of emails sent that day"
 #~ msgstr "dels correus enviats aquell dia"
 
-#: src/components/segment/input.tsx:464
+#: src/components/segment/input.tsx:470
 msgid "of the conditions"
 msgstr "condicions"
 
-#: src/components/segment/input.tsx:457
+#: src/components/segment/input.tsx:463
 msgid "of the following conditions"
 msgstr "condicions següents"
 
@@ -16370,7 +16374,7 @@ msgstr "Operacions"
 
 #: src/components/email_builder/ui/DisplayConditionModal.tsx:233
 #: src/components/segment/FilterRow.tsx:110
-#: src/components/segment/input_event_property_filters.tsx:75
+#: src/components/segment/input_event_property_filters.tsx:86
 #: src/components/web_analytics/filters/ConditionsBuilder.tsx:96
 msgid "Operator"
 msgstr "Operador"
@@ -16429,7 +16433,7 @@ msgstr "Opcions"
 msgid "or"
 msgstr "o"
 
-#: src/components/segment/input.tsx:430
+#: src/components/segment/input.tsx:436
 msgid "OR"
 msgstr "O"
 
@@ -17708,7 +17712,7 @@ msgstr "Progrés"
 msgid "Properties"
 msgstr "Propietats"
 
-#: src/components/segment/input_event_property_filters.tsx:50
+#: src/components/segment/input_event_property_filters.tsx:60
 msgid "Property name"
 msgstr "Nom de la propietat"
 
@@ -18542,20 +18546,20 @@ msgstr "Vols suprimir la condició de visualització?"
 msgid "Remove this author?"
 msgstr "Eliminar aquest autor?"
 
-#: src/components/segment/input.tsx:302
-#: src/components/segment/input.tsx:306
+#: src/components/segment/input.tsx:308
+#: src/components/segment/input.tsx:312
 msgid "Remove this condition"
 msgstr "Elimina aquesta condició"
 
 #: src/components/segment/FilterRow.tsx:39
 #: src/components/segment/FilterRow.tsx:43
-#: src/components/segment/input_event_property_filters.tsx:96
-#: src/components/segment/input_event_property_filters.tsx:100
+#: src/components/segment/input_event_property_filters.tsx:107
+#: src/components/segment/input_event_property_filters.tsx:111
 msgid "Remove this filter"
 msgstr "Elimina aquest filtre"
 
-#: src/components/segment/input.tsx:302
-#: src/components/segment/input.tsx:306
+#: src/components/segment/input.tsx:308
+#: src/components/segment/input.tsx:312
 msgid "Remove this group"
 msgstr "Elimina aquest grup"
 
@@ -21491,7 +21495,7 @@ msgstr "Origen"
 #~ msgid "source {0} not found"
 #~ msgstr "origen {0} no trobat"
 
-#: src/components/segment/input.tsx:323
+#: src/components/segment/input.tsx:329
 msgid "source {source} not found"
 msgstr "no s'ha trobat la font {source}"
 
@@ -22541,7 +22545,7 @@ msgstr "Text"
 #: src/components/email_builder/blocks/MjButtonBlock.tsx:199
 #: src/components/email_builder/blocks/MjTextBlock.tsx:47
 #: src/components/segment/FilterRow.tsx:164
-#: src/components/segment/input_event_property_filters.tsx:61
+#: src/components/segment/input_event_property_filters.tsx:72
 #: src/components/settings/CustomFieldsConfiguration.tsx:58
 msgid "Text"
 msgstr "Text"
@@ -23600,7 +23604,7 @@ msgstr "Aquest article"
 #~ msgid "This post's template was saved as version {latest} while you were editing. Overwrite it with your changes, or reload the latest version (your changes will be lost)?"
 #~ msgstr ""
 
-#: src/components/segment/input_event_property_filters.tsx:107
+#: src/components/segment/input_event_property_filters.tsx:118
 msgid "This property is already filtered"
 msgstr "Aquesta propietat ja està filtrada"
 
@@ -25277,7 +25281,7 @@ msgstr "Valor {value}"
 msgid "Value 2"
 msgstr "Valor 2"
 
-#: src/components/segment/input_event_property_filters.tsx:58
+#: src/components/segment/input_event_property_filters.tsx:69
 msgid "Value type"
 msgstr "Tipus de valor"
 
