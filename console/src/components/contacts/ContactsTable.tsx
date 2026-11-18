@@ -112,7 +112,6 @@ function RowActions({
       <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
         <Button
           type="text"
-          size="small"
           aria-label={t`Actions for ${contact.email}`}
           icon={<MoreHorizontal size={15} aria-hidden="true" />}
         />

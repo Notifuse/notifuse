@@ -417,7 +417,6 @@ export function PostsTable({
                 <Dropdown trigger={['click']} menu={{ items: rowMenu(post) }}>
                   <Button
                     type="text"
-                    size="small"
                     aria-label={t`More actions`}
                     icon={<MoreHorizontal size={16} aria-hidden="true" />}
                   />

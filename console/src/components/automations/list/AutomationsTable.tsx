@@ -267,7 +267,7 @@ export function AutomationsTable({
     },
     {
       key: 'actions',
-      width: 72,
+      width: 80,
       align: 'right',
       render: (_, a) => (
         <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
@@ -275,7 +275,6 @@ export function AutomationsTable({
             <Tooltip title={canWrite ? t`Pause automation` : noWrite}>
               <Button
                 type="text"
-                size="small"
                 aria-label={t`Pause automation`}
                 disabled={!canWrite}
                 icon={<Pause size={14} aria-hidden="true" />}
@@ -286,7 +285,6 @@ export function AutomationsTable({
             <Tooltip title={canWrite ? t`Activate automation` : noWrite}>
               <Button
                 type="text"
-                size="small"
                 aria-label={t`Activate automation`}
                 disabled={!canWrite}
                 icon={<Play size={14} aria-hidden="true" />}
@@ -295,7 +293,7 @@ export function AutomationsTable({
             </Tooltip>
           )}
           <Dropdown menu={{ items: menu(a) }} trigger={['click']} placement="bottomRight">
-            <Button type="text" size="small" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
+            <Button type="text" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
           </Dropdown>
         </div>
       )

@@ -182,7 +182,7 @@ export function AbTestPanel({
             {template ? (
               <TemplatePreviewDrawer record={template} workspace={workspace}>
                 <Tooltip title={t`Preview template`}>
-                  <Button size="small" type="text" aria-label={t`Preview template`} icon={<Eye size={14} />} />
+                  <Button type="text" aria-label={t`Preview template`} icon={<Eye size={14} />} />
                 </Tooltip>
               </TemplatePreviewDrawer>
             ) : null}

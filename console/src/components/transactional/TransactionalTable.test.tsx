@@ -323,12 +323,12 @@ describe('TransactionalTable', () => {
   it('fixes the widths of the template and figure columns and leaves the rest to the name', () => {
     renderTable([notification('welcome')])
     const widths = [...document.querySelectorAll('table colgroup col')].map((col) => (col as HTMLElement).style.width)
-    expect(widths).toEqual(['', '120px', '84px', '110px', '106px', '106px', '62px', '70px', '120px', '96px'])
+    expect(widths).toEqual(['', '120px', '84px', '110px', '106px', '106px', '62px', '70px', '120px', '108px'])
     // Fixed, so a long name truncates rather than widen its column
     const table = document.querySelector('table') as HTMLElement
     expect(table.style.tableLayout).toBe('fixed')
     // Scrolls rather than squeeze the name: the fixed widths above plus the name's 120 px minimum
-    expect(table.style.width).toBe('994px')
+    expect(table.style.width).toBe('1006px')
     // The actions stay pinned to the right edge while it scrolls
     const actions = within(screen.getByText('Name welcome').closest('tr') as HTMLElement)
       .getByRole('button', { name: 'More actions' })

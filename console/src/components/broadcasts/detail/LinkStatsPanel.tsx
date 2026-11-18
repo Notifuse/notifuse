@@ -172,7 +172,6 @@ export function LinkStatsPanel({ workspaceId, broadcastId, clicksTracked, varian
                 <Tooltip title={t`See who clicked`}>
                   <Button
                     type="text"
-                    size="small"
                     aria-label={t`See who clicked`}
                     icon={<Users size={14} aria-hidden="true" />}
                     onClick={() => showClickers(row.url)}

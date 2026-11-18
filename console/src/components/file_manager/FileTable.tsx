@@ -144,7 +144,6 @@ export function FileTable({
             <Dropdown menu={{ items: menu }} trigger={['click']} placement="bottomRight">
               <Button
                 type="text"
-                size="small"
                 aria-label={t`Actions for ${item.name}`}
                 icon={<MoreHorizontal size={16} aria-hidden="true" />}
               />

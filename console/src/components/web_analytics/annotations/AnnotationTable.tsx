@@ -84,11 +84,10 @@ export function AnnotationTable(props: AnnotationTableProps) {
             okText={t`Delete`}
             okButtonProps={{ danger: true }}
           >
-            <Button type="text" size="small" aria-label={t`Delete`} icon={<DeleteOutlined />} />
+            <Button type="text" aria-label={t`Delete`} icon={<DeleteOutlined />} />
           </Popconfirm>
           <Button
             type="text"
-            size="small"
             aria-label={t`Edit`}
             icon={<EditOutlined />}
             onClick={() => onEdit(record)}

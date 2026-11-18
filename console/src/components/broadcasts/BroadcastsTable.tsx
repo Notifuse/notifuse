@@ -437,7 +437,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
 
   columns.push({
     key: 'actions',
-    width: 64,
+    width: 80,
     align: 'right',
     render: (_, b) => {
       const verdict = pageStats.verdicts.get(b.id)
@@ -451,7 +451,6 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
             <Tooltip title={canWrite ? t`Send` : noWrite}>
               <Button
                 type="text"
-                size="small"
                 aria-label={t`Send`}
                 disabled={!canWrite}
                 icon={<Send size={14} aria-hidden="true" />}
@@ -462,7 +461,6 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
             <Tooltip title={canWrite ? t`Pause` : noWrite}>
               <Button
                 type="text"
-                size="small"
                 aria-label={t`Pause`}
                 disabled={!canWrite}
                 icon={<Pause size={14} aria-hidden="true" />}
@@ -472,7 +470,7 @@ export function BroadcastsTable(props: BroadcastsTableProps) {
           ) : null}
           {items && items.length > 0 ? (
             <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
-              <Button type="text" size="small" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
+              <Button type="text" aria-label={t`More actions`} icon={<Ellipsis size={14} aria-hidden="true" />} />
             </Dropdown>
           ) : null}
         </div>

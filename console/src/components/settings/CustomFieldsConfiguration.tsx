@@ -222,7 +222,6 @@ export function CustomFieldsConfiguration({
             >
               <Button
                 type="text"
-                size="small"
                 aria-label={t`Actions`}
                 disabled={!canManage}
                 icon={<MoreHorizontal size={16} aria-hidden="true" />}

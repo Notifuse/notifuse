@@ -274,7 +274,8 @@ export function TransactionalTable(props: TransactionalTableProps) {
       title: <span className="sr-only">{t`Actions`}</span>,
       key: 'actions',
       align: 'right',
-      width: 96,
+      // Three 28 px buttons, their gaps and the cell's padding
+      width: 108,
       // Kept in view when a narrow window scrolls the table, as the contacts table keeps its own
       fixed: 'right',
       // A click that misses a button, in the cell's padding, does not open the sheet either
@@ -327,7 +328,6 @@ export function TransactionalTable(props: TransactionalTableProps) {
           <div className="flex items-center justify-end gap-1">
             <RefusedButton
               type="text"
-              size="small"
               aria-label={t`Send test`}
               tooltip={t`Send test`}
               icon={<Send size={14} aria-hidden="true" />}
@@ -337,7 +337,6 @@ export function TransactionalTable(props: TransactionalTableProps) {
             <Tooltip title={t`API command`}>
               <Button
                 type="text"
-                size="small"
                 aria-label={t`API command`}
                 icon={<SquareTerminal size={14} aria-hidden="true" />}
                 onClick={() => props.onApi(notification)}
@@ -346,7 +345,6 @@ export function TransactionalTable(props: TransactionalTableProps) {
             <Dropdown trigger={['click']} menu={{ items, onClick: onMenu }}>
               <Button
                 type="text"
-                size="small"
                 aria-label={t`More actions`}
                 icon={<MoreHorizontal size={14} aria-hidden="true" />}
               />

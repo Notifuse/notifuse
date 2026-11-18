@@ -180,7 +180,6 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
             <Tooltip title={t`Edit theme`}>
               <Button
                 type="text"
-                size="small"
                 icon={<EditOutlined />}
                 onClick={() => handleEdit(record)}
               />
@@ -188,7 +187,6 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
             <Tooltip title={t`Preview this theme in a new tab`}>
               <Button
                 type="text"
-                size="small"
                 icon={<EyeOutlined />}
                 onClick={() => handlePreview(record)}
               />

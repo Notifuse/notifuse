@@ -179,7 +179,6 @@ export function ExploreTable(props: ExploreTableProps) {
         <Tooltip title={t`View breakdown`}>
           <Button
             type="text"
-            size="small"
             icon={<EyeOutlined />}
             onClick={(event) => {
               event.stopPropagation()

@@ -180,12 +180,12 @@ describe('BroadcastsTable', () => {
 
   it('scrolls below the width that leaves the Broadcast column its minimum', () => {
     expect(BROADCAST_NAME_MIN_WIDTH).toBe(200)
-    expect(tableWidth(renderTable({}).container)).toBe('1094px')
+    expect(tableWidth(renderTable({}).container)).toBe('1110px')
   })
 
   it('makes room for the website visits column when it is shown', () => {
     const { container } = renderTable({ canReadWeb: true })
-    expect(tableWidth(container)).toBe('1174px')
+    expect(tableWidth(container)).toBe('1190px')
     expect(container.querySelector('thead')).toHaveTextContent('Site visits')
   })
 

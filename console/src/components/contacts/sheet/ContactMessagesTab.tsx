@@ -306,7 +306,6 @@ export function ContactMessagesTab({ workspace, email, permissions, timezone, to
           <Tooltip title={t`View the sent email`}>
             <Button
               type="text"
-              size="small"
               aria-label={t`View the sent email`}
               // While its template loads, before the drawer opens.
               loading={previewing?.id === message.id && !previewLoaded}

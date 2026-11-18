@@ -340,7 +340,6 @@ export function FilterTable(props: FilterTableProps) {
             <NoWriteTooltip reason={noWriteReason}>
               <Button
                 type="text"
-                size="small"
                 aria-label={t`Delete rule`}
                 icon={<DeleteOutlined />}
                 disabled
@@ -358,7 +357,6 @@ export function FilterTable(props: FilterTableProps) {
             >
               <Button
                 type="text"
-                size="small"
                 aria-label={t`Delete rule`}
                 icon={<DeleteOutlined />}
                 disabled={props.saving || props.permissionsLoading}
@@ -368,7 +366,6 @@ export function FilterTable(props: FilterTableProps) {
           <Tooltip title={t`Edit rule`}>
             <Button
               type="text"
-              size="small"
               aria-label={t`Edit rule`}
               icon={<EditOutlined />}
               onClick={() => props.onEdit(record)}

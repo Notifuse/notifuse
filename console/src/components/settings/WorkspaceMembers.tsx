@@ -224,7 +224,6 @@ export function WorkspaceMembers({
       <Dropdown trigger={['click']} menu={{ items }} placement="bottomRight">
         <Button
           type="text"
-          size="small"
           aria-label={t`Actions`}
           icon={<MoreHorizontal size={16} aria-hidden="true" />}
         />
