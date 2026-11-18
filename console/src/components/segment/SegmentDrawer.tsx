@@ -192,7 +192,10 @@ export function SegmentDrawer(props: SegmentDrawerProps) {
   // the drawer is not part of the URL, so left alone it would stay open over another view. It
   // asks first when something would be lost, and waits while a save is on its way.
   const blocker = useBlocker({
-    shouldBlockFn: () => true,
+    // The page's own URL writes under the drawer (the Contacts search commits its text with a
+    // replace) are not a departure, and must not close it.
+    shouldBlockFn: ({ current, next, action }) =>
+      !(action === 'REPLACE' && next.pathname === current.pathname),
     enableBeforeUnload: () => hasUnsavedWork,
     withResolver: true
   })

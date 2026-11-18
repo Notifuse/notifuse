@@ -22,7 +22,7 @@ const { api, blockerState } = vi.hoisted(() => ({
     updateSegment: vi.fn()
   },
   blockerState: {
-    shouldBlockFn: undefined as undefined | (() => boolean),
+    shouldBlockFn: undefined as undefined | ((args: { current: { pathname: string }; next: { pathname: string }; action: string }) => boolean),
     // Simulates the router blocking a navigation (the browser's Back)
     block: () => {},
     proceed: vi.fn(),
@@ -37,7 +37,7 @@ vi.mock('@tanstack/react-router', async () => {
     useParams: () => ({ workspaceId: 'ws1' }),
     useNavigate: () => vi.fn(),
     useMatch: () => false,
-    useBlocker: (opts: { shouldBlockFn: () => boolean }) => {
+    useBlocker: (opts: { shouldBlockFn: typeof blockerState.shouldBlockFn }) => {
       const { useState } = (globalThis as unknown as { __react: typeof import('react') }).__react
       const [status, setStatus] = useState<'idle' | 'blocked'>('idle')
       blockerState.shouldBlockFn = opts.shouldBlockFn
@@ -327,7 +327,7 @@ describe('SegmentDrawer — closing', () => {
 describe('SegmentDrawer — the browser Back', () => {
   it('closes a clean drawer and lets the navigation go', () => {
     const { setVisible } = renderDrawer({ segment: segment() })
-    expect(blockerState.shouldBlockFn?.()).toBe(true)
+    expect(blockerState.shouldBlockFn?.({ current: { pathname: '/a' }, next: { pathname: '/a' }, action: 'BACK' })).toBe(true)
     pressBack()
     expect(setVisible).toHaveBeenCalledWith(false)
     expect(blockerState.proceed).toHaveBeenCalled()
@@ -386,5 +386,39 @@ describe('SegmentDrawer — the ID check', () => {
     await act(async () => answerOld(undefined))
     expect(saveButton()).toBeEnabled()
     expect(screen.queryByText(/already has the ID/)).toBeNull()
+  })
+})
+
+describe('SegmentDrawer — the page writing its own URL', () => {
+  it('lets a replace on the same page through, and stops a real departure', () => {
+    renderDrawer({ segment: segment() })
+    const page = { pathname: '/console/workspace/ws1/contacts' }
+    // The Contacts search commits its text with a replace on the same page
+    expect(blockerState.shouldBlockFn?.({ current: page, next: page, action: 'REPLACE' })).toBe(false)
+    expect(blockerState.shouldBlockFn?.({ current: page, next: page, action: 'PUSH' })).toBe(true)
+    expect(blockerState.shouldBlockFn?.({ current: page, next: { pathname: '/console/signin' }, action: 'REPLACE' })).toBe(true)
+  })
+})
+
+describe('SegmentDrawer — a segment refetched while open', () => {
+  it('sees no change when the segment it opened on is fetched again', () => {
+    const setVisible = vi.fn()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const tree = (value: Segment) => (
+      <QueryClientProvider client={client}>
+        <I18nProvider i18n={i18n}>
+          <App>
+            <SegmentDrawer canReadTemplates setDrawserVisible={setVisible} segment={value} />
+          </App>
+        </I18nProvider>
+      </QueryClientProvider>
+    )
+    const { rerender } = render(tree(segment()))
+    // Polled while it builds: a new object, a new status, a new date
+    rerender(tree(segment({ status: 'building', db_updated_at: '2026-02-01T00:00:00Z', name: 'Renamed elsewhere' })))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(setVisible).toHaveBeenCalledWith(false)
+    // The form kept what it opened on
+    expect(nameInput()).toHaveValue('Big spenders')
   })
 })
