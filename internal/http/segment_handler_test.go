@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/logger"
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -1508,4 +1510,59 @@ func TestSegmentHandler_GetContactsExpanded(t *testing.T) {
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
 		assert.Contains(t, body["error"], "expand")
 	})
+}
+
+// A preview that met a contact value it cannot convert answers 422 with the fields the console
+// composes its sentence from. The error is mapped before anything is logged at error level, and
+// the warning it leaves does not carry the contact's email.
+func TestSegmentHandler_HandlePreviewValueError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockService := mocks.NewMockSegmentService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	var logged []map[string]interface{}
+	mockLogger.EXPECT().WithFields(gomock.Any()).DoAndReturn(func(fields map[string]interface{}) logger.Logger {
+		logged = append(logged, fields)
+		return mockLogger
+	}).AnyTimes()
+	mockLogger.EXPECT().Warn("Segment preview met a contact value it cannot convert").Times(1)
+	// No Error call is expected: gomock fails the test on one.
+	handler := NewSegmentHandler(mockService, func() ([]byte, error) { return []byte("secret"), nil }, mockLogger)
+
+	valueErr := &domain.SegmentValueError{Column: "custom_json_1", Path: []string{"renewed_at"}, Type: domain.SegmentValueTypeDate,
+		Email: "jane@example.com", Value: "2026-02-30", Cause: `date/time field value out of range: "2026-02-30"`}
+	mockService.EXPECT().PreviewSegment(gomock.Any(), "workspace123", gomock.Any(), 10).Return(nil, valueErr)
+
+	body := `{"workspace_id":"workspace123","tree":{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[]}}}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/segments.preview", strings.NewReader(body))
+	rr := httptest.NewRecorder()
+	handler.handlePreview(rr, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, rr.Code)
+	assert.JSONEq(t, `{
+		"error": "custom_json_1.renewed_at: contact jane@example.com holds \"2026-02-30\", which is not a valid date",
+		"value_error": {"column": "custom_json_1", "path": ["renewed_at"], "type": "date", "email": "jane@example.com", "value": "2026-02-30"}
+	}`, rr.Body.String())
+
+	require.Len(t, logged, 1)
+	for _, v := range logged[0] {
+		assert.NotContains(t, fmt.Sprint(v), "jane@example.com", "the warning leaves the email out")
+	}
+	assert.Equal(t, "custom_json_1", logged[0]["column"])
+}
+
+// Without a culprit, the body still has value_error, with empty email and value.
+func TestSegmentHandler_HandlePreviewValueErrorWithoutCulprit(t *testing.T) {
+	mockService, _, handler := setupSegmentHandlerTest(t)
+	mockService.EXPECT().PreviewSegment(gomock.Any(), "workspace123", gomock.Any(), 10).
+		Return(nil, fmt.Errorf("wrapped: %w", &domain.SegmentValueError{Cause: "timestamp out of range"}))
+
+	body := `{"workspace_id":"workspace123","tree":{"kind":"leaf","leaf":{"source":"contacts","contact":{"filters":[]}}}}`
+	rr := httptest.NewRecorder()
+	handler.handlePreview(rr, httptest.NewRequest(http.MethodPost, "/api/segments.preview", strings.NewReader(body)))
+
+	assert.Equal(t, http.StatusUnprocessableEntity, rr.Code)
+	assert.JSONEq(t, `{
+		"error": "the segment query could not convert a value: timestamp out of range",
+		"value_error": {"column": "", "path": [], "type": "", "email": "", "value": ""}
+	}`, rr.Body.String())
 }

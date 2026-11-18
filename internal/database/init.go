@@ -370,7 +370,9 @@ func workspaceSchemaGroups(now time.Time) []workspaceSchemaGroup {
 			generated_args JSONB,
 			recompute_after TIMESTAMP WITH TIME ZONE,
 			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			` + schema.SegmentLastErrorColumn + `,
+			` + schema.SegmentLastErrorAtColumn + `
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_segments_status ON segments(status)`,
 		`CREATE TABLE IF NOT EXISTS contact_segments (

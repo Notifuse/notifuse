@@ -575,6 +575,10 @@ func (m *segmentMockScanner) Scan(dest ...interface{}) error {
 			if t, ok := val.(time.Time); ok {
 				*d = t
 			}
+		case *[]byte:
+			if b, ok := val.([]byte); ok {
+				*d = b
+			}
 		default:
 			// Try to use reflection or direct assignment for other types
 			// This handles interface{} types that might be passed
@@ -622,6 +626,8 @@ func TestScanSegment(t *testing.T) {
 				now,                // DBCreatedAt
 				now,                // DBUpdatedAt
 				42,                 // UsersCount
+				nil,                // LastError
+				nil,                // LastErrorAt
 			},
 		}
 
@@ -695,6 +701,8 @@ func TestScanSegment(t *testing.T) {
 				now,
 				now,
 				0,
+				nil, // LastError
+				nil, // LastErrorAt
 			},
 		}
 
@@ -734,6 +742,8 @@ func TestScanSegment(t *testing.T) {
 				now,
 				now,
 				0,
+				nil, // LastError
+				nil, // LastErrorAt
 			},
 		}
 
@@ -742,6 +752,85 @@ func TestScanSegment(t *testing.T) {
 		assert.NotNil(t, segment)
 		assert.Nil(t, segment.GeneratedSQL)
 		assert.Nil(t, segment.RecomputeAfter)
+		assert.Nil(t, segment.LastError)
+		assert.Nil(t, segment.LastErrorAt)
+	})
+
+	scanWithLastError := func(lastError []byte, at *time.Time) (*Segment, error) {
+		now := time.Now()
+		treeJSON, _ := json.Marshal(MapOfAny{"kind": "leaf", "leaf": map[string]interface{}{
+			"table": "contacts", "contact": map[string]interface{}{"filters": []interface{}{}}}})
+		return ScanSegment(&segmentMockScanner{values: []interface{}{
+			"segment123", "My Segment", "#FF5733", treeJSON, "UTC", int64(3), "active",
+			nil, []byte("[]"), nil, now, now, 0, lastError, at,
+		}})
+	}
+
+	t.Run("last error", func(t *testing.T) {
+		at := time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC)
+		segment, err := scanWithLastError([]byte(`{"kind":"value_conversion","column":"custom_json_1","path":["renewed_at"],"type":"date","email":"jane@example.com","value":"2026-02-30","cause":"date/time field value out of range: \"2026-02-30\"","source":"build"}`), &at)
+		require.NoError(t, err)
+		require.NotNil(t, segment.LastError)
+		assert.Equal(t, &SegmentLastError{
+			Kind: SegmentLastErrorKindValueConversion, Column: "custom_json_1", Path: []string{"renewed_at"},
+			Type: SegmentValueTypeDate, Email: "jane@example.com", Value: "2026-02-30",
+			Cause: `date/time field value out of range: "2026-02-30"`, Source: SegmentLastErrorSourceBuild,
+		}, segment.LastError)
+		require.NotNil(t, segment.LastErrorAt)
+		assert.Equal(t, at, *segment.LastErrorAt)
+	})
+
+	t.Run("last error that is not JSON", func(t *testing.T) {
+		segment, err := scanWithLastError([]byte(`not json`), nil)
+		assert.Error(t, err)
+		assert.Nil(t, segment)
+		assert.Contains(t, err.Error(), "failed to parse segment last error")
+	})
+}
+
+func TestSegment_JSONLastError(t *testing.T) {
+	t.Run("carried when set", func(t *testing.T) {
+		at := time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC)
+		segment := &Segment{ID: "s1", LastError: NewOtherSegmentLastError(SegmentLastErrorSourceBuild, "boom"), LastErrorAt: &at}
+		raw, err := json.Marshal(segment)
+		require.NoError(t, err)
+		var decoded map[string]interface{}
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+		assert.Equal(t, map[string]interface{}{
+			"kind": "other", "column": "", "path": []interface{}{}, "type": "", "email": "", "value": "",
+			"cause": "boom", "source": "build",
+		}, decoded["last_error"])
+		assert.Equal(t, "2026-11-18T09:00:00Z", decoded["last_error_at"])
+	})
+
+	t.Run("omitted when null", func(t *testing.T) {
+		raw, err := json.Marshal(&Segment{ID: "s1"})
+		require.NoError(t, err)
+		assert.NotContains(t, string(raw), "last_error")
+	})
+}
+
+func TestSegment_RedactForContactsAccess(t *testing.T) {
+	t.Run("blanks what quotes the contact", func(t *testing.T) {
+		original := &SegmentLastError{
+			Kind: SegmentLastErrorKindValueConversion, Column: "custom_json_1", Path: []string{"renewed_at"},
+			Type: SegmentValueTypeDate, Email: "jane@example.com", Value: "2026-02-30",
+			Cause: `date/time field value out of range: "2026-02-30"`, Source: SegmentLastErrorSourceContactQueue,
+		}
+		segment := &Segment{ID: "s1", LastError: original}
+		segment.RedactForContactsAccess()
+
+		assert.Equal(t, &SegmentLastError{
+			Kind: SegmentLastErrorKindValueConversion, Column: "custom_json_1", Path: []string{"renewed_at"},
+			Type: SegmentValueTypeDate, Source: SegmentLastErrorSourceContactQueue,
+		}, segment.LastError)
+		assert.Equal(t, "jane@example.com", original.Email, "the error it was read from is left alone")
+	})
+
+	t.Run("nothing to redact", func(t *testing.T) {
+		segment := &Segment{ID: "s1"}
+		segment.RedactForContactsAccess()
+		assert.Nil(t, segment.LastError)
 	})
 }
 

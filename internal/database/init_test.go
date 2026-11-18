@@ -654,3 +654,11 @@ func TestInitializeWorkspaceDatabase_CreatesTheTestPauseColumn(t *testing.T) {
 	rec := recordWorkspaceSchema(t)
 	assert.Contains(t, rec.statementContaining(t, "CREATE TABLE IF NOT EXISTS broadcasts"), schema.BroadcastTestPausedSecondsColumn+",")
 }
+
+// A fresh workspace creates segments.last_error and last_error_at as v44 adds them to existing ones.
+func TestInitializeWorkspaceDatabase_CreatesTheSegmentLastErrorColumns(t *testing.T) {
+	rec := recordWorkspaceSchema(t)
+	table := rec.statementContaining(t, "CREATE TABLE IF NOT EXISTS segments")
+	assert.Contains(t, table, schema.SegmentLastErrorColumn+",")
+	assert.Contains(t, table, schema.SegmentLastErrorAtColumn+"\n")
+}

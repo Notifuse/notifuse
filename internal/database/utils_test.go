@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/config"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -537,4 +539,28 @@ func TestConnectionPoolSettings_Coverage(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestIsDataConversionError(t *testing.T) {
+	wrapTwice := func(err error) error {
+		return fmt.Errorf("outer: %w", fmt.Errorf("inner: %w", err))
+	}
+
+	for _, code := range []pq.ErrorCode{"22007", "22008", "22P02", "22003"} {
+		t.Run(string(code), func(t *testing.T) {
+			err := &pq.Error{Code: code, Message: "conversion"}
+			assert.True(t, IsDataConversionError(err))
+			assert.True(t, IsDataConversionError(wrapTwice(err)), "seen through two wraps")
+			assert.True(t, IsDataConversionError(errors.Join(errors.New("other"), wrapTwice(err))), "seen through errors.Join")
+		})
+	}
+
+	for _, code := range []pq.ErrorCode{"22021", "22023", "23505", "3D000"} {
+		t.Run(string(code)+" is not one", func(t *testing.T) {
+			assert.False(t, IsDataConversionError(wrapTwice(&pq.Error{Code: code})))
+		})
+	}
+
+	assert.False(t, IsDataConversionError(errors.New(`invalid input syntax for type numeric: "x"`)), "a plain error with the same text")
+	assert.False(t, IsDataConversionError(nil))
 }

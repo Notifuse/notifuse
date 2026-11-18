@@ -124,7 +124,7 @@ func TestSegmentBuildProcessor_Process_AddContactErrorLastAttempt(t *testing.T) 
 
 	// No retry is left: the segment goes back to active, so the queue and the daily rebuild
 	// pick it up again, and its next rebuild waits for the next day instead of every tick.
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(gomock.Any(), "workspace1", "segment1", int64(1), isOtherBuildError()).
 		Return(true, nil)
 	h.segmentRepo.EXPECT().UpdateRecomputeAfter(gomock.Any(), "workspace1", "segment1", gomock.Any()).
 		DoAndReturn(func(_ context.Context, _, _ string, at *time.Time) error {
@@ -148,7 +148,7 @@ func TestSegmentBuildProcessor_Process_LastAttemptWithoutRecompute(t *testing.T)
 	h.segmentRepo.EXPECT().GetSegmentByID(ctx, "workspace1", "segment1").Return(segment, nil).AnyTimes()
 	h.contactRepo.EXPECT().Count(ctx, "workspace1").Return(1, nil)
 	h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "", 100).Return(nil, errors.New("db down"))
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(gomock.Any(), "workspace1", "segment1", int64(1), isOtherBuildError()).
 		Return(true, nil)
 
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
@@ -167,7 +167,7 @@ func TestSegmentBuildProcessor_Process_LastAttemptReleaseFails(t *testing.T) {
 	h.contactRepo.EXPECT().Count(ctx, "workspace1").Return(1, nil)
 	h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "", 100).Return(nil, errors.New("db down"))
 	// A failed reactivation is only logged; the build's own error is the one returned.
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(gomock.Any(), "workspace1", "segment1", int64(1), isOtherBuildError()).
 		Return(false, errors.New("still down"))
 
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
@@ -184,7 +184,7 @@ func TestSegmentBuildProcessor_Process_LastAttemptFailsBeforeTheBuild(t *testing
 	// The daily check already marked the segment building. A last attempt that cannot even
 	// read it still sets it back to active at the task's version, or it would stay building.
 	h.segmentRepo.EXPECT().GetSegmentByID(ctx, "workspace1", "segment1").Return(nil, errors.New("db down"))
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(4), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(gomock.Any(), "workspace1", "segment1", int64(4), isOtherBuildError()).
 		Return(true, nil)
 
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
@@ -206,8 +206,8 @@ func TestSegmentBuildProcessor_Process_LastAttemptReleaseOutlivesTheTaskContext(
 	h.contactRepo.EXPECT().GetBatchForSegmentAfter(gomock.Any(), "workspace1", "", 100).
 		Return(nil, context.DeadlineExceeded)
 	// The reactivation still gets a live context.
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
-		DoAndReturn(func(c context.Context, _, _ string, _ int64, _ string) (bool, error) {
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(gomock.Any(), "workspace1", "segment1", int64(1), isOtherBuildError()).
+		DoAndReturn(func(c context.Context, _, _ string, _ int64, _ *domain.SegmentLastError) (bool, error) {
 			assert.NoError(t, c.Err(), "the release must not run on the dead task context")
 			return true, nil
 		})
@@ -259,7 +259,7 @@ func TestSegmentBuildProcessor_Process_MatchedContactsAddedInQueryOrder(t *testi
 	// The next page starts after the last email of the batch, not at an offset.
 	h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "c@test.com", 100).Return(nil, nil)
 	h.segmentRepo.EXPECT().RemoveOldMemberships(ctx, "workspace1", "segment1", int64(1)).Return(nil)
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(ctx, "workspace1", "segment1", int64(1), gomock.Nil()).
 		Return(true, nil)
 
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
@@ -291,7 +291,7 @@ func TestSegmentBuildProcessor_Process_BatchesButNoMatch(t *testing.T) {
 	// Nobody matches: the members of the previous version are still dropped, and the next
 	// daily rebuild is still scheduled.
 	h.segmentRepo.EXPECT().RemoveOldMemberships(ctx, "workspace1", "segment1", int64(2)).Return(nil)
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(2), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(ctx, "workspace1", "segment1", int64(2), gomock.Nil()).
 		Return(true, nil)
 	h.segmentRepo.EXPECT().UpdateRecomputeAfter(ctx, "workspace1", "segment1", gomock.Any()).
 		DoAndReturn(func(_ context.Context, _, _ string, at *time.Time) error {
@@ -330,7 +330,7 @@ func TestSegmentBuildProcessor_Process_BumpNotLanded(t *testing.T) {
 		h.segmentRepo.EXPECT().GetSegmentByID(ctx, "workspace1", "segment1").Return(segment, nil)
 		// The release is conditional on the task's version, which the segment never reached:
 		// it changes nothing, and nothing is rescheduled.
-		h.segmentRepo.EXPECT().UpdateSegmentStatus(gomock.Any(), "workspace1", "segment1", int64(4), string(domain.SegmentStatusActive)).
+		h.segmentRepo.EXPECT().ReleaseSegmentWithError(gomock.Any(), "workspace1", "segment1", int64(4), isOtherBuildError()).
 			Return(false, nil)
 
 		completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
@@ -417,7 +417,7 @@ func TestSegmentBuildProcessor_Process_StatusWriteFindsSegmentMoved(t *testing.T
 		h.segmentRepo.EXPECT().RemoveOldMemberships(ctx, "workspace1", "segment1", int64(1)).Return(nil)
 		// The final write misses: recompute_after is not moved for a segment this build no
 		// longer owns.
-		h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+		h.segmentRepo.EXPECT().ReleaseSegmentWithError(ctx, "workspace1", "segment1", int64(1), gomock.Nil()).
 			Return(false, nil)
 
 		completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
@@ -442,7 +442,7 @@ func TestSegmentBuildProcessor_Process_ResumesLegacyOffset(t *testing.T) {
 	h.taskRepo.EXPECT().SaveState(ctx, "workspace1", "task1", gomock.Any(), gomock.Any()).Return(nil)
 	h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "z@test.com", 100).Return(nil, nil)
 	h.segmentRepo.EXPECT().RemoveOldMemberships(ctx, "workspace1", "segment1", int64(1)).Return(nil)
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(ctx, "workspace1", "segment1", int64(1), gomock.Nil()).
 		Return(true, nil)
 
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(5*time.Minute))
@@ -486,7 +486,7 @@ func TestSegmentBuildProcessor_Process_FinalStepsRunWhenSliceDidNoBatch(t *testi
 	// A slice that only has the end steps left runs them whatever its budget, so a short
 	// budget can never put them off forever.
 	h.segmentRepo.EXPECT().RemoveOldMemberships(ctx, "workspace1", "segment1", int64(1)).Return(nil)
-	h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(1), string(domain.SegmentStatusActive)).
+	h.segmentRepo.EXPECT().ReleaseSegmentWithError(ctx, "workspace1", "segment1", int64(1), gomock.Nil()).
 		Return(true, nil)
 
 	completed, err := h.processor.Process(ctx, task, time.Now().Add(30*time.Second))
@@ -534,7 +534,7 @@ func TestSegmentBuildProcessor_Process_ClearsAOneOffMark(t *testing.T) {
 		h.taskRepo.EXPECT().SaveState(ctx, "workspace1", "task1", gomock.Any(), gomock.Any()).Return(nil)
 		h.contactRepo.EXPECT().GetBatchForSegmentAfter(ctx, "workspace1", "a@test.com", 100).Return(nil, nil)
 		h.segmentRepo.EXPECT().RemoveOldMemberships(ctx, "workspace1", "segment1", int64(2)).Return(nil)
-		h.segmentRepo.EXPECT().UpdateSegmentStatus(ctx, "workspace1", "segment1", int64(2), string(domain.SegmentStatusActive)).
+		h.segmentRepo.EXPECT().ReleaseSegmentWithError(ctx, "workspace1", "segment1", int64(2), gomock.Nil()).
 			Return(true, nil)
 		return h, task
 	}

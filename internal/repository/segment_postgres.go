@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -114,7 +115,8 @@ func (r *segmentRepository) GetSegmentByID(ctx context.Context, workspaceID stri
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			COALESCE(COUNT(cs.email), 0) as users_count
+			COALESCE(COUNT(cs.email), 0) as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE s.id = $1
@@ -150,7 +152,8 @@ func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string,
 			SELECT 
 				s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 				s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-				COALESCE(COUNT(cs.email), 0) as users_count
+				COALESCE(COUNT(cs.email), 0) as users_count,
+			s.last_error, s.last_error_at
 			FROM segments s
 			LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 			WHERE s.status != 'deleted'
@@ -164,7 +167,8 @@ func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string,
 			SELECT 
 				s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 				s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-				0 as users_count
+				0 as users_count,
+			s.last_error, s.last_error_at
 			FROM segments s
 			WHERE s.status != 'deleted'
 			ORDER BY s.db_created_at DESC
@@ -193,7 +197,14 @@ func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string,
 	return segments, nil
 }
 
-// UpdateSegment updates an existing segment
+// UpdateSegment updates an existing segment.
+//
+// The last error is never written from the struct: a snapshot read before a build recorded one
+// would otherwise erase it. It is cleared when the version moves (the tree changed, or a rebuild
+// was asked for), since it described the query of the previous version, and kept otherwise. Every
+// update through the API carries a tree and bumps the version, so through the API it is always
+// cleared; the keep branch only serves a direct repository caller. In SET, version on the
+// right-hand side is the stored one.
 func (r *segmentRepository) UpdateSegment(ctx context.Context, workspaceID string, segment *domain.Segment) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
@@ -216,7 +227,9 @@ func (r *segmentRepository) UpdateSegment(ctx context.Context, workspaceID strin
 			generated_sql = $8,
 			generated_args = $9,
 			recompute_after = $10,
-			db_updated_at = $11
+			db_updated_at = $11,
+			last_error = CASE WHEN version <> $6 THEN NULL ELSE last_error END,
+			last_error_at = CASE WHEN version <> $6 THEN NULL ELSE last_error_at END
 		WHERE id = $1
 	`
 
@@ -378,7 +391,7 @@ func (r *segmentRepository) RemoveOldMemberships(ctx context.Context, workspaceI
 	return nil
 }
 
-// GetContactSegments retrieves all segments a contact belongs to
+// GetContactSegments retrieves all segments a contact belongs to, without their last error
 func (r *segmentRepository) GetContactSegments(ctx context.Context, workspaceID string, email string) ([]*domain.Segment, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
@@ -390,7 +403,8 @@ func (r *segmentRepository) GetContactSegments(ctx context.Context, workspaceID 
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
+			0 as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE cs.email = $1 AND s.status = 'active'
@@ -409,6 +423,9 @@ func (r *segmentRepository) GetContactSegments(ctx context.Context, workspaceID 
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan segment: %w", err)
 		}
+		// A contact's segments never carry the last error: it may name another contact.
+		segment.LastError = nil
+		segment.LastErrorAt = nil
 		segments = append(segments, segment)
 	}
 
@@ -542,7 +559,8 @@ func (r *segmentRepository) GetSegmentsDueForRecompute(ctx context.Context, work
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
+			0 as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		WHERE s.status = 'active'
 			AND s.recompute_after IS NOT NULL
@@ -650,6 +668,120 @@ func (r *segmentRepository) UpdateSegmentStatus(ctx context.Context, workspaceID
 	result, err := workspaceDB.ExecContext(ctx, query, segmentID, version, status, time.Now().UTC())
 	if err != nil {
 		return false, fmt.Errorf("failed to update segment status: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected == 1, nil
+}
+
+// lastErrorJSON is the stored form of a segment's last error: its JSON, or NULL for none.
+func lastErrorJSON(lastError *domain.SegmentLastError) (interface{}, error) {
+	if lastError == nil {
+		return nil, nil
+	}
+	raw, err := json.Marshal(lastError)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode segment last error: %w", err)
+	}
+	return string(raw), nil
+}
+
+// ReleaseSegmentWithError sets a segment still at version and not deleted back to active and
+// records lastError, dated now, in one write; a nil lastError clears the error and its date. It
+// returns false when the segment moved to another version or was deleted.
+func (r *segmentRepository) ReleaseSegmentWithError(ctx context.Context, workspaceID string, segmentID string, version int64, lastError *domain.SegmentLastError) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	stored, err := lastErrorJSON(lastError)
+	if err != nil {
+		return false, err
+	}
+
+	query := `
+		UPDATE segments
+		SET status = 'active',
+			last_error = $3::jsonb,
+			last_error_at = CASE WHEN $3::jsonb IS NULL THEN NULL ELSE NOW() END,
+			db_updated_at = $4
+		WHERE id = $1 AND version = $2 AND status <> 'deleted'
+	`
+
+	result, err := workspaceDB.ExecContext(ctx, query, segmentID, version, stored, time.Now().UTC())
+	if err != nil {
+		return false, fmt.Errorf("failed to release segment: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected == 1, nil
+}
+
+// SetSegmentLastError records lastError, dated now, on a segment still at version, not deleted
+// and holding no error: the first error recorded stays until something clears it, so two contacts
+// failing in turn do not replace each other's. It returns false when nothing was written.
+func (r *segmentRepository) SetSegmentLastError(ctx context.Context, workspaceID string, segmentID string, version int64, lastError *domain.SegmentLastError) (bool, error) {
+	if lastError == nil {
+		return false, fmt.Errorf("segment last error is required")
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	stored, err := lastErrorJSON(lastError)
+	if err != nil {
+		return false, err
+	}
+
+	query := `
+		UPDATE segments
+		SET last_error = $3::jsonb, last_error_at = NOW()
+		WHERE id = $1 AND version = $2 AND status <> 'deleted' AND last_error IS NULL
+	`
+
+	result, err := workspaceDB.ExecContext(ctx, query, segmentID, version, stored)
+	if err != nil {
+		return false, fmt.Errorf("failed to set segment last error: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected == 1, nil
+}
+
+// ClearSegmentLastErrorForEmail clears the error of a segment still at version when the contact
+// queue recorded it for email, the contact whose value it named. An error from a build, or naming
+// another contact, stays. It returns false when nothing was cleared.
+func (r *segmentRepository) ClearSegmentLastErrorForEmail(ctx context.Context, workspaceID string, segmentID string, version int64, email string) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		UPDATE segments
+		SET last_error = NULL, last_error_at = NULL
+		WHERE id = $1 AND version = $2
+			AND last_error->>'source' = 'contact_queue' AND last_error->>'email' = $3
+	`
+
+	result, err := workspaceDB.ExecContext(ctx, query, segmentID, version, email)
+	if err != nil {
+		return false, fmt.Errorf("failed to clear segment last error: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()

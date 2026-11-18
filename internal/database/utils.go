@@ -583,6 +583,25 @@ func IsDatabaseMissingError(err error) bool {
 	return errors.As(err, &pqErr) && pqErr.Code == "3D000"
 }
 
+// dataConversionCodes are the SQLSTATE codes a cast of a stored value raises when the value
+// cannot be converted: invalid_datetime_format, datetime_field_overflow,
+// invalid_text_representation and numeric_value_out_of_range. The rest of class 22 is left out on
+// purpose: character_not_in_repertoire (22021, a filter value with a bad encoding) or
+// invalid_parameter_value (22023) say nothing about a contact's value.
+var dataConversionCodes = map[pq.ErrorCode]bool{
+	"22007": true,
+	"22008": true,
+	"22P02": true,
+	"22003": true,
+}
+
+// IsDataConversionError reports whether err, through any wrap or errors.Join, is a PostgreSQL
+// error raised by a value that could not be converted to a date or a number.
+func IsDataConversionError(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && dataConversionCodes[pqErr.Code]
+}
+
 // WorkspaceDatabaseExists reports whether a database named dbName exists, through a
 // connection to any database of the server.
 func WorkspaceDatabaseExists(ctx context.Context, db *sql.DB, dbName string) (bool, error) {

@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -257,10 +258,22 @@ func (h *SegmentHandler) handlePreview(w http.ResponseWriter, r *http.Request) {
 
 	response, err := h.service.PreviewSegment(r.Context(), req.WorkspaceID, req.Tree, req.Limit)
 	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to preview segment")
+		// Mapped before logging, as in handleGet: a denial or a contact value that cannot be
+		// converted is the caller's answer, not a fault of ours. The value error is logged at
+		// warn level with its field and type, without the contact's email.
+		var valueErr *domain.SegmentValueError
+		if errors.As(err, &valueErr) {
+			h.logger.WithFields(map[string]interface{}{
+				"workspace_id": req.WorkspaceID,
+				"column":       valueErr.Column,
+				"path":         valueErr.Path,
+				"type":         valueErr.Type,
+			}).Warn("Segment preview met a contact value it cannot convert")
+		}
 		if writeServiceError(w, err, "Failed to preview segment") {
 			return
 		}
+		h.logger.WithField("error", err.Error()).Error("Failed to preview segment")
 		WriteJSONError(w, "Failed to preview segment", http.StatusInternalServerError)
 		return
 	}

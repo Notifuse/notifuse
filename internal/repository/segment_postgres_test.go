@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -164,7 +166,7 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 	t.Run("segment found", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count", "last_error", "last_error_at",
 		}).AddRow(
 			testSegment.ID,
 			testSegment.Name,
@@ -178,14 +180,17 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 			nil, // recompute_after
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
-			42, // users_count
+			42,  // users_count
+			nil, // last_error
+			nil, // last_error_at
 		)
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			COALESCE(COUNT(cs.email), 0) as users_count
+			COALESCE(COUNT(cs.email), 0) as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE s.id = $1
@@ -208,7 +213,8 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			COALESCE(COUNT(cs.email), 0) as users_count
+			COALESCE(COUNT(cs.email), 0) as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE s.id = $1
@@ -225,7 +231,8 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			COALESCE(COUNT(cs.email), 0) as users_count
+			COALESCE(COUNT(cs.email), 0) as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 	`)).WillReturnError(errors.New("database error"))
 
@@ -254,7 +261,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 	t.Run("segments found with counts", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count", "last_error", "last_error_at",
 		}).AddRow(
 			testSegment.ID,
 			testSegment.Name,
@@ -269,6 +276,8 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			42,
+			nil,
+			nil,
 		).AddRow(
 			"seg456",
 			"Premium Users",
@@ -283,13 +292,16 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			25,
+			nil,
+			nil,
 		)
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			COALESCE(COUNT(cs.email), 0) as users_count
+			COALESCE(COUNT(cs.email), 0) as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE s.status != 'deleted'
@@ -307,7 +319,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 	t.Run("segments found without counts", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count", "last_error", "last_error_at",
 		}).AddRow(
 			testSegment.ID,
 			testSegment.Name,
@@ -322,13 +334,16 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			0, // No count when withCount=false
+			nil,
+			nil,
 		)
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
+			0 as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		WHERE s.status != 'deleted'
 	`)).WillReturnRows(rows)
@@ -343,7 +358,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 	t.Run("no segments found", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count", "last_error", "last_error_at",
 		})
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
@@ -399,7 +414,9 @@ func TestSegmentRepository_UpdateSegment(t *testing.T) {
 			generated_sql = $8,
 			generated_args = $9,
 			recompute_after = $10,
-			db_updated_at = $11
+			db_updated_at = $11,
+			last_error = CASE WHEN version <> $6 THEN NULL ELSE last_error END,
+			last_error_at = CASE WHEN version <> $6 THEN NULL ELSE last_error_at END
 		WHERE id = $1
 	`)).WithArgs(
 			testSegment.ID,
@@ -635,7 +652,7 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 	t.Run("segments found for contact", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count", "last_error", "last_error_at",
 		}).AddRow(
 			testSegment.ID,
 			testSegment.Name,
@@ -650,13 +667,16 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			0,
+			[]byte(`{"kind":"value_conversion","column":"custom_json_1","path":["renewed_at"],"type":"date","email":"other@example.com","value":"2026-02-30","cause":"x","source":"build"}`),
+			testSegment.DBUpdatedAt,
 		)
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
+			0 as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE cs.email = $1 AND s.status = 'active'
@@ -668,19 +688,22 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 		assert.Len(t, segments, 1)
 		assert.Equal(t, testSegment.ID, segments[0].ID)
 		assert.Equal(t, testSegment.Name, segments[0].Name)
+		assert.Nil(t, segments[0].LastError, "a contact's segments carry no last error")
+		assert.Nil(t, segments[0].LastErrorAt)
 	})
 
 	t.Run("no segments found", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count", "last_error", "last_error_at",
 		})
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
+			0 as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE cs.email = $1 AND s.status = 'active'
@@ -697,7 +720,8 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
+			0 as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 	`)).WillReturnError(errors.New("database error"))
 
@@ -913,16 +937,17 @@ func TestSegmentRepository_GetSegmentsDueForRecompute(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
 			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at",
-			"users_count",
+			"users_count", "last_error", "last_error_at",
 		}).
 			AddRow("seg1", "Test Segment", "#FF0000", []byte("{}"), "UTC", int64(1), "active",
-				"SELECT email", []byte("[]"), now, now, now, 0)
+				"SELECT email", []byte("[]"), now, now, now, 0, nil, nil)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
+			0 as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		WHERE s.status = 'active'
 			AND s.recompute_after IS NOT NULL
@@ -964,7 +989,8 @@ func TestSegmentRepository_GetSegmentsDueForRecompute(t *testing.T) {
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
-			0 as users_count
+			0 as users_count,
+			s.last_error, s.last_error_at
 		FROM segments s
 		WHERE s.status = 'active'
 			AND s.recompute_after IS NOT NULL
@@ -976,7 +1002,7 @@ func TestSegmentRepository_GetSegmentsDueForRecompute(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{
 				"id", "name", "color", "tree", "timezone", "version", "status",
 				"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at",
-				"users_count",
+				"users_count", "last_error", "last_error_at",
 			}))
 
 		segments, err := repo.GetSegmentsDueForRecompute(ctx, workspaceID, 10)
@@ -1381,5 +1407,261 @@ func TestSegmentRepository_UpdateSegmentStatus(t *testing.T) {
 		updated, err := repo.UpdateSegmentStatus(ctx, "workspace123", "seg123", 4, "active")
 		require.Error(t, err)
 		assert.False(t, updated)
+	})
+}
+
+func TestSegmentRepository_ScansTheLastError(t *testing.T) {
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil).AnyTimes()
+
+	at := time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC)
+	columns := []string{
+		"id", "name", "color", "tree", "timezone", "version", "status",
+		"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
+		"last_error", "last_error_at",
+	}
+	row := func() *sqlmock.Rows {
+		return sqlmock.NewRows(columns).AddRow("seg1", "S", "#000", `{"kind":"leaf"}`, "UTC", int64(2), "active",
+			"SELECT email FROM contacts", `[]`, nil, at, at, 0,
+			[]byte(`{"kind":"value_conversion","column":"custom_json_1","path":["renewed_at"],"type":"date","email":"jane@example.com","value":"2026-02-30","cause":"out of range","source":"build"}`),
+			at)
+	}
+	expected := &domain.SegmentLastError{
+		Kind: domain.SegmentLastErrorKindValueConversion, Column: "custom_json_1", Path: []string{"renewed_at"},
+		Type: domain.SegmentValueTypeDate, Email: "jane@example.com", Value: "2026-02-30", Cause: "out of range",
+		Source: domain.SegmentLastErrorSourceBuild,
+	}
+
+	t.Run("GetSegmentByID", func(t *testing.T) {
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`as users_count, s.last_error, s.last_error_at FROM segments s`)).WillReturnRows(row())
+		segment, err := repo.GetSegmentByID(context.Background(), "workspace123", "seg1")
+		require.NoError(t, err)
+		assert.Equal(t, expected, segment.LastError)
+		require.NotNil(t, segment.LastErrorAt)
+		assert.Equal(t, at, *segment.LastErrorAt)
+	})
+
+	for _, withCount := range []bool{true, false} {
+		t.Run(fmt.Sprintf("GetSegments with count %v", withCount), func(t *testing.T) {
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`as users_count, s.last_error, s.last_error_at FROM segments s`)).WillReturnRows(row())
+			segments, err := repo.GetSegments(context.Background(), "workspace123", withCount)
+			require.NoError(t, err)
+			require.Len(t, segments, 1)
+			assert.Equal(t, expected, segments[0].LastError)
+		})
+	}
+
+	t.Run("GetSegmentsDueForRecompute", func(t *testing.T) {
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`as users_count, s.last_error, s.last_error_at FROM segments s`)).WillReturnRows(row())
+		segments, err := repo.GetSegmentsDueForRecompute(context.Background(), "workspace123", 10)
+		require.NoError(t, err)
+		require.Len(t, segments, 1)
+		assert.Equal(t, expected, segments[0].LastError)
+	})
+
+	require.NoError(t, sqlMock.ExpectationsWereMet())
+}
+
+// UpdateSegment binds nothing for the last error: the stored one is kept while the version stays
+// and cleared when it moves. The CASE's behaviour on a real database is pinned by the integration
+// test of segment value errors.
+func TestSegmentRepository_UpdateSegmentNeverWritesTheLastErrorFromTheStruct(t *testing.T) {
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+
+	segment := createTestSegment()
+	segment.LastError = domain.NewOtherSegmentLastError(domain.SegmentLastErrorSourceBuild, "from a stale snapshot")
+
+	sqlMock.ExpectExec(regexp.QuoteMeta(`
+			last_error = CASE WHEN version <> $6 THEN NULL ELSE last_error END,
+			last_error_at = CASE WHEN version <> $6 THEN NULL ELSE last_error_at END
+		WHERE id = $1`)).WithArgs(
+		segment.ID, segment.Name, segment.Color, sqlmock.AnyArg(), segment.Timezone, segment.Version,
+		segment.Status, segment.GeneratedSQL, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(),
+	).WillReturnResult(sqlmock.NewResult(0, 1))
+
+	require.NoError(t, repo.UpdateSegment(context.Background(), "workspace123", segment))
+	require.NoError(t, sqlMock.ExpectationsWereMet())
+}
+
+func TestSegmentRepository_StartRecomputeLeavesTheLastErrorAlone(t *testing.T) {
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+	mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+
+	sqlMock.ExpectExec(`^\s*UPDATE segments\s+SET version = version \+ 1, status = 'building', db_updated_at = \$3\s+WHERE id = \$1 AND version = \$2 AND status = 'active'\s*$`).
+		WithArgs("seg1", int64(2), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(0, 1))
+
+	ok, err := repo.StartRecompute(context.Background(), "workspace123", "seg1", 2)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	require.NoError(t, sqlMock.ExpectationsWereMet())
+}
+
+const releaseSegmentWithErrorSQL = `
+		UPDATE segments
+		SET status = 'active',
+			last_error = $3::jsonb,
+			last_error_at = CASE WHEN $3::jsonb IS NULL THEN NULL ELSE NOW() END,
+			db_updated_at = $4
+		WHERE id = $1 AND version = $2 AND status <> 'deleted'
+	`
+
+func TestSegmentRepository_ReleaseSegmentWithError(t *testing.T) {
+	lastErr := &domain.SegmentLastError{Kind: domain.SegmentLastErrorKindValueConversion, Column: "custom_json_1",
+		Path: []string{"renewed_at"}, Type: domain.SegmentValueTypeDate, Email: "jane@example.com",
+		Value: "2026-02-30", Cause: "out of range", Source: domain.SegmentLastErrorSourceBuild}
+
+	cases := []struct {
+		name     string
+		lastErr  *domain.SegmentLastError
+		stored   driver.Value
+		affected int64
+		want     bool
+	}{
+		{"records the error with the status", lastErr,
+			`{"kind":"value_conversion","column":"custom_json_1","path":["renewed_at"],"type":"date","email":"jane@example.com","value":"2026-02-30","cause":"out of range","source":"build"}`,
+			1, true},
+		{"nil clears the error", nil, nil, 1, true},
+		{"the segment moved on", lastErr, sqlmock.AnyArg(), 0, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+			db, sqlMock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+			mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+
+			sqlMock.ExpectExec("^"+regexp.QuoteMeta(strings.TrimSpace(releaseSegmentWithErrorSQL))+"$").
+				WithArgs("seg1", int64(3), tc.stored, sqlmock.AnyArg()).
+				WillReturnResult(sqlmock.NewResult(0, tc.affected))
+
+			updated, err := repo.ReleaseSegmentWithError(context.Background(), "workspace123", "seg1", 3, tc.lastErr)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, updated)
+			require.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("database error", func(t *testing.T) {
+		repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+		sqlMock.ExpectExec("UPDATE segments").WillReturnError(errors.New("boom"))
+
+		_, err = repo.ReleaseSegmentWithError(context.Background(), "workspace123", "seg1", 3, nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "boom")
+	})
+
+	t.Run("connection error", func(t *testing.T) {
+		repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(nil, errors.New("no db"))
+		_, err := repo.ReleaseSegmentWithError(context.Background(), "workspace123", "seg1", 3, nil)
+		require.Error(t, err)
+	})
+}
+
+const setSegmentLastErrorSQL = `
+		UPDATE segments
+		SET last_error = $3::jsonb, last_error_at = NOW()
+		WHERE id = $1 AND version = $2 AND status <> 'deleted' AND last_error IS NULL
+	`
+
+func TestSegmentRepository_SetSegmentLastError(t *testing.T) {
+	lastErr := domain.NewOtherSegmentLastError(domain.SegmentLastErrorSourceContactQueue, "boom")
+
+	for _, tc := range []struct {
+		name     string
+		affected int64
+		want     bool
+	}{{"written", 1, true}, {"refused by the guard", 0, false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+			db, sqlMock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+			mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+
+			sqlMock.ExpectExec("^"+regexp.QuoteMeta(strings.TrimSpace(setSegmentLastErrorSQL))+"$").
+				WithArgs("seg1", int64(2), `{"kind":"other","column":"","path":[],"type":"","email":"","value":"","cause":"boom","source":"contact_queue"}`).
+				WillReturnResult(sqlmock.NewResult(0, tc.affected))
+
+			updated, err := repo.SetSegmentLastError(context.Background(), "workspace123", "seg1", 2, lastErr)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, updated)
+			require.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("a nil error is refused before the database", func(t *testing.T) {
+		repo, _, _ := setupSegmentRepositoryTest(t)
+		_, err := repo.SetSegmentLastError(context.Background(), "workspace123", "seg1", 2, nil)
+		require.Error(t, err)
+	})
+
+	t.Run("database error", func(t *testing.T) {
+		repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+		sqlMock.ExpectExec("UPDATE segments").WillReturnError(errors.New("boom"))
+		_, err = repo.SetSegmentLastError(context.Background(), "workspace123", "seg1", 2, lastErr)
+		require.Error(t, err)
+	})
+}
+
+const clearSegmentLastErrorSQL = `
+		UPDATE segments
+		SET last_error = NULL, last_error_at = NULL
+		WHERE id = $1 AND version = $2
+			AND last_error->>'source' = 'contact_queue' AND last_error->>'email' = $3
+	`
+
+func TestSegmentRepository_ClearSegmentLastErrorForEmail(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		affected int64
+		want     bool
+	}{{"cleared", 1, true}, {"another source or contact", 0, false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+			db, sqlMock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer func() { _ = db.Close() }()
+			mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+
+			sqlMock.ExpectExec("^"+regexp.QuoteMeta(strings.TrimSpace(clearSegmentLastErrorSQL))+"$").
+				WithArgs("seg1", int64(2), "jane@example.com").
+				WillReturnResult(sqlmock.NewResult(0, tc.affected))
+
+			cleared, err := repo.ClearSegmentLastErrorForEmail(context.Background(), "workspace123", "seg1", 2, "jane@example.com")
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, cleared)
+			require.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("database error", func(t *testing.T) {
+		repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+		db, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+		mockWorkspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(db, nil)
+		sqlMock.ExpectExec("UPDATE segments").WillReturnError(errors.New("boom"))
+		_, err = repo.ClearSegmentLastErrorForEmail(context.Background(), "workspace123", "seg1", 2, "jane@example.com")
+		require.Error(t, err)
 	})
 }

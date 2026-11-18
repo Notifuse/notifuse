@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // SegmentService handles segment operations
@@ -206,7 +209,7 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 
 // GetSegment retrieves a segment by ID
 func (s *SegmentService) GetSegment(ctx context.Context, req *domain.GetSegmentRequest) (*domain.Segment, error) {
-	ctx, _, err := s.authorize(ctx, req.WorkspaceID, false)
+	ctx, userWorkspace, err := s.authorize(ctx, req.WorkspaceID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -231,12 +234,13 @@ func (s *SegmentService) GetSegment(ctx context.Context, req *domain.GetSegmentR
 		segment.UsersCount = count
 	}
 
+	redactSegmentsForCaller(userWorkspace, segment)
 	return segment, nil
 }
 
 // ListSegments retrieves all segments for a workspace
 func (s *SegmentService) ListSegments(ctx context.Context, req *domain.GetSegmentsRequest) ([]*domain.Segment, error) {
-	ctx, _, err := s.authorize(ctx, req.WorkspaceID, false)
+	ctx, userWorkspace, err := s.authorize(ctx, req.WorkspaceID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +255,23 @@ func (s *SegmentService) ListSegments(ctx context.Context, req *domain.GetSegmen
 		return nil, fmt.Errorf("failed to list segments: %w", err)
 	}
 
+	redactSegmentsForCaller(userWorkspace, segments...)
 	return segments, nil
+}
+
+// redactSegmentsForCaller removes from each segment's last error the contact's email, value and
+// the database's message for a caller without contacts:read: get and list only require
+// segments:read, and the error quotes a contact's data. The column, path, type and kind stay, so
+// the caller still learns that the segment failed and on which field.
+func redactSegmentsForCaller(userWorkspace *domain.UserWorkspace, segments ...*domain.Segment) {
+	if userWorkspace != nil && userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return
+	}
+	for _, segment := range segments {
+		if segment != nil {
+			segment.RedactForContactsAccess()
+		}
+	}
 }
 
 // UpdateSegment updates an existing segment
@@ -383,6 +403,13 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 		}
 
 		existing.Status = string(domain.SegmentStatusBuilding)
+	}
+
+	// The write cleared the last error with the version bump (see the repository's UpdateSegment):
+	// the segment returned says so.
+	if treeChanged {
+		existing.LastError = nil
+		existing.LastErrorAt = nil
 	}
 
 	s.logger.WithFields(map[string]interface{}{
@@ -533,6 +560,9 @@ func (s *SegmentService) PreviewSegment(ctx context.Context, workspaceID string,
 	// Get count using repository method
 	totalCount, err := s.segmentRepo.PreviewSegment(ctx, workspaceID, sqlQuery, args, limit)
 	if err != nil {
+		if valueErr := s.diagnosePreviewError(ctx, workspaceID, tree, err); valueErr != nil {
+			return nil, valueErr
+		}
 		return nil, fmt.Errorf("failed to preview segment: %w", err)
 	}
 
@@ -543,6 +573,29 @@ func (s *SegmentService) PreviewSegment(ctx context.Context, workspaceID string,
 		GeneratedSQL: sqlQuery,
 		SQLArgs:      args,
 	}, nil
+}
+
+// diagnosePreviewError turns a preview that failed on a value it could not convert into a
+// *domain.SegmentValueError naming the contact and the value, and returns nil for any other
+// failure, or when the tree casts no custom JSON value that could have raised (a bound value that
+// does not convert, for instance). The diagnosis searches every contact, under
+// segmentDiagnosisTimeout; past it the error carries the database's message alone. The caller
+// holds contacts:read, so naming the contact discloses nothing it could not read.
+func (s *SegmentService) diagnosePreviewError(ctx context.Context, workspaceID string, tree *domain.TreeNode, err error) *domain.SegmentValueError {
+	if !database.IsDataConversionError(err) {
+		return nil
+	}
+	var cause *pq.Error
+	if !errors.As(err, &cause) {
+		return nil
+	}
+	workspaceDB, connErr := s.workspaceRepo.GetConnection(ctx, workspaceID)
+	if connErr != nil {
+		return nil
+	}
+	diagCtx, cancel := context.WithTimeout(ctx, segmentDiagnosisTimeout)
+	defer cancel()
+	return diagnoseSegmentValue(diagCtx, workspaceDB, tree, cause, nil)
 }
 
 // GetSegmentContacts retrieves contacts that belong to a segment

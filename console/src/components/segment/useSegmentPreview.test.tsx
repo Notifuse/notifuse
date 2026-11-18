@@ -12,12 +12,15 @@ vi.mock('../../services/api/segment', async () => {
 })
 
 import { useSegmentPreview } from './useSegmentPreview'
+import { ApiError } from '../../services/api/errors'
 
 const listTree = (status?: string): TreeNode => ({
   kind: 'branch',
   branch: {
     operator: 'and',
-    leaves: [{ kind: 'leaf', leaf: { source: 'contact_lists', contact_list: { operator: 'in', list_id: 'vip', status } } }]
+    leaves: [
+      { kind: 'leaf', leaf: { source: 'contact_lists', contact_list: { operator: 'in', list_id: 'vip', status } } }
+    ]
   }
 })
 
@@ -47,5 +50,38 @@ describe('useSegmentPreview — the open condition', () => {
     const { result } = renderHook(() => useSegmentPreview('ws', undefined), { wrapper })
     act(() => result.current.setDraftTree(listTree('active')))
     await waitFor(() => expect(previewSegment).toHaveBeenCalledTimes(1))
+  })
+})
+
+describe('useSegmentPreview — a contact value the conditions cannot convert', () => {
+  beforeEach(() => {
+    previewSegment.mockReset()
+  })
+
+  it('keeps the value error apart, stops waiting, and drops it once a count succeeds', async () => {
+    const details = { column: 'custom_json_1', path: ['renewed_at'], type: 'date', email: 'a@b.c', value: '2026-02-30' }
+    previewSegment.mockRejectedValueOnce(
+      new ApiError('cannot convert', 422, { error: 'cannot convert', value_error: details })
+    )
+    const { result } = renderHook(() => useSegmentPreview('ws', undefined), { wrapper })
+
+    act(() => result.current.setDraftTree(listTree('active'), true))
+    await waitFor(() => expect(result.current.valueError).toEqual(details))
+    expect(result.current.previewError).toBe('cannot convert')
+    expect(result.current.isPreviewRefreshing).toBe(false)
+
+    previewSegment.mockResolvedValueOnce({ total_count: 3, contacts: [] })
+    act(() => result.current.setDraftTree(listTree('unsubscribed'), true))
+    await waitFor(() => expect(previewSegment).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(result.current.valueError).toBeUndefined())
+    expect(result.current.previewError).toBeUndefined()
+  })
+
+  it('leaves an ordinary failure without a value error', async () => {
+    previewSegment.mockRejectedValueOnce(new ApiError('boom', 500, { error: 'boom' }))
+    const { result } = renderHook(() => useSegmentPreview('ws', undefined), { wrapper })
+    act(() => result.current.setDraftTree(listTree('active'), true))
+    await waitFor(() => expect(result.current.previewError).toBe('boom'))
+    expect(result.current.valueError).toBeUndefined()
   })
 })

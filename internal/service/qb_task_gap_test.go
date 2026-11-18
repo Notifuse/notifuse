@@ -30,7 +30,7 @@ func TestGapQB_ParseNodeGuards(t *testing.T) {
 	qb := NewQueryBuilder()
 
 	t.Run("parseNode rejects an unknown kind by name", func(t *testing.T) {
-		cond, args, next, err := qb.parseNode(&domain.TreeNode{Kind: "sideways"}, 4)
+		cond, args, next, err := qb.parseNode(&domain.TreeNode{Kind: "sideways"}, 4, castDirectly)
 		require.EqualError(t, err, "invalid node kind: sideways")
 		assert.Equal(t, "", cond)
 		assert.Nil(t, args)
@@ -42,7 +42,7 @@ func TestGapQB_ParseNodeGuards(t *testing.T) {
 			Operator: "and",
 			Leaves:   []*domain.TreeNode{{Kind: "sideways"}},
 		}
-		cond, args, _, err := qb.parseBranch(branch, 1)
+		cond, args, _, err := qb.parseBranch(branch, 1, castDirectly)
 		require.EqualError(t, err, "invalid node kind: sideways")
 		assert.Equal(t, "", cond, "a failed child must not leak a partial condition")
 		assert.Nil(t, args)
@@ -51,7 +51,7 @@ func TestGapQB_ParseNodeGuards(t *testing.T) {
 	t.Run("empty contact conditions compile to no condition", func(t *testing.T) {
 		// Reachable only below BuildSQL: domain validation requires at least
 		// one filter, so this pins the builder's own degenerate contract.
-		cond, args, next, err := qb.parseContactConditions(&domain.ContactCondition{}, 7)
+		cond, args, next, err := qb.parseContactConditions(&domain.ContactCondition{}, 7, castDirectly)
 		require.NoError(t, err)
 		assert.Equal(t, "", cond)
 		assert.Nil(t, args)

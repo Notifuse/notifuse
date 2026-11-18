@@ -4645,3 +4645,84 @@ func TestEmailNodeExecutor_Execute_PassesTheTriggerEvent(t *testing.T) {
 		})
 	}
 }
+
+// jsonDateConditionMap compares custom_json_1.renewed_at as a date.
+func jsonDateConditionMap(operator string, values ...string) map[string]interface{} {
+	vals := make([]interface{}, len(values))
+	for i, v := range values {
+		vals[i] = v
+	}
+	return map[string]interface{}{
+		"kind": "leaf",
+		"leaf": map[string]interface{}{
+			"source": "contacts",
+			"contact": map[string]interface{}{
+				"filters": []interface{}{
+					map[string]interface{}{
+						"field_name": "custom_json_1", "field_type": "time", "operator": operator,
+						"json_path": []interface{}{"renewed_at"}, "string_values": vals,
+					},
+				},
+			},
+		},
+	}
+}
+
+// Branch and filter steps compile contact custom JSON filters defensively: the statement they
+// send tests the conversion before casting, so a value that cannot be converted reads as missing
+// instead of raising. What that answers on a real database (no match for « after », a match for
+// « not in the last N days ») is pinned by the integration test of segment value errors.
+func TestBranchAndFilterNodes_CastJSONValuesDefensively(t *testing.T) {
+	defensive := castTimestamp(`(custom_json_1['renewed_at'] #>> '{}')`, castDefensively)
+	expected := regexp.QuoteMeta("SELECT EXISTS (SELECT email FROM contacts WHERE (" + defensive + " > $1) AND email = $2)")
+
+	t.Run("filter", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(db, nil)
+		mock.ExpectQuery("^"+expected+"$").WithArgs(sqlmock.AnyArg(), "test@example.com").
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+
+		result, err := NewFilterNodeExecutor(NewQueryBuilder(), workspaceRepo).Execute(context.Background(), NodeExecutionParams{
+			WorkspaceID: "ws1",
+			Node: &domain.AutomationNode{ID: "filter1", Type: domain.NodeTypeFilter, Config: map[string]interface{}{
+				"continue_node_id": "continue_node", "exit_node_id": "exit_node",
+				"conditions": jsonDateConditionMap("after_date", "2026-01-01T00:00:00Z"),
+			}},
+			ContactData: &domain.Contact{Email: "test@example.com"},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "exit_node", *result.NextNodeID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("branch", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "ws1").Return(db, nil)
+		mock.ExpectQuery("^"+expected+"$").WithArgs(sqlmock.AnyArg(), "test@example.com").
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+
+		result, err := NewBranchNodeExecutor(NewQueryBuilder(), workspaceRepo).Execute(context.Background(), NodeExecutionParams{
+			WorkspaceID: "ws1",
+			Node: &domain.AutomationNode{ID: "branch1", Type: domain.NodeTypeBranch, Config: map[string]interface{}{
+				"paths": []interface{}{
+					map[string]interface{}{"id": "p1", "name": "Renewed", "next_node_id": "renewed_node",
+						"conditions": jsonDateConditionMap("after_date", "2026-01-01T00:00:00Z")},
+					map[string]interface{}{"id": "p2", "name": "Other", "next_node_id": "other_node"},
+				},
+				"default_path_id": "p2",
+			}},
+			ContactData: &domain.Contact{Email: "test@example.com"},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "renewed_node", *result.NextNodeID)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}

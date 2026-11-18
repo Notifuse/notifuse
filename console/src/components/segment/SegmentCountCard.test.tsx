@@ -11,14 +11,7 @@ const renderCard = (props: Partial<SegmentCountCardProps> = {}) => {
   const onCount = vi.fn()
   const result = render(
     <I18nProvider i18n={i18n}>
-      <SegmentCountCard
-        refreshing={false}
-        stale={false}
-        blocked={false}
-        canCount={true}
-        onCount={onCount}
-        {...props}
-      />
+      <SegmentCountCard refreshing={false} stale={false} blocked={false} canCount={true} onCount={onCount} {...props} />
     </I18nProvider>
   )
   return { onCount, ...result }
@@ -93,5 +86,34 @@ describe('SegmentCountCard', () => {
     fireEvent.click(screen.getByText('Retry'))
     expect(onCount).toHaveBeenCalled()
     expect(screen.getByText('1288 contacts')).toBeTruthy()
+  })
+})
+
+describe('SegmentCountCard — a contact value that cannot be read', () => {
+  it('says so in one line, with the contact and the value on hover, and offers no retry', async () => {
+    renderCard({
+      error: 'x',
+      valueError: {
+        column: 'custom_json_1',
+        path: ['renewed_at'],
+        type: 'date',
+        email: 'jane@example.com',
+        value: '2026-02-30'
+      },
+      customFieldLabels: { custom_json_1: 'Billing' }
+    })
+    expect(screen.getByText("A contact's value can't be read.")).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
+    expect(screen.queryByText('The count failed.')).toBeNull()
+    await userEvent.hover(screen.getByText("A contact's value can't be read."))
+    expect(
+      await screen.findByText('jane@example.com has "2026-02-30" in Billing › renewed_at, which is not a date.')
+    ).toBeInTheDocument()
+  })
+
+  it('words a number, and a value it could not pin on a contact', async () => {
+    renderCard({ error: 'x', valueError: { column: 'custom_json_2', path: ['score'], type: 'number' } })
+    await userEvent.hover(screen.getByText("A contact's value can't be read."))
+    expect(await screen.findByText("A contact's value in Custom JSON 2 › score is not a number.")).toBeInTheDocument()
   })
 })

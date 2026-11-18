@@ -137,3 +137,77 @@ describe('SegmentDefinedBy', () => {
     expect(screen.getByTestId('segment-drawer')).toHaveAttribute('data-total-contacts', '18342')
   })
 })
+
+describe('SegmentDefinedBy — a failed computation', () => {
+  it('says which value stopped it, that membership may be incomplete, and when', () => {
+    renderBar(
+      segment(leaf('FR'), {
+        last_error: {
+          kind: 'value_conversion',
+          source: 'build',
+          column: 'custom_json_1',
+          path: ['renewed_at'],
+          type: 'date',
+          email: 'jane@example.com',
+          value: '2026-02-30'
+        },
+        last_error_at: new Date(Date.now() - 3600 * 1000).toISOString()
+      })
+    )
+    const banner = document.querySelector('[data-segment-last-error]') as HTMLElement
+    expect(banner).toHaveTextContent(
+      'jane@example.com has "2026-02-30" in Custom JSON 1 › renewed_at, which is not a date.'
+    )
+    expect(banner).toHaveTextContent('Membership may be incomplete: fix the value, then recompute the segment.')
+    expect(banner).toHaveTextContent('Failed an hour ago')
+  })
+
+  it('asks only for a recompute when no value is at fault', () => {
+    renderBar(segment(leaf('FR'), { last_error: { kind: 'other', source: 'build' } }))
+    const banner = document.querySelector('[data-segment-last-error]') as HTMLElement
+    expect(banner).toHaveTextContent('The last computation failed.')
+    expect(banner).toHaveTextContent('Membership may be incomplete: recompute the segment.')
+    expect(banner).not.toHaveTextContent('fix the value')
+  })
+
+  it('says a value met by the contact queue keeps that contact where it was until it is fixed', () => {
+    renderBar(
+      segment(leaf('FR'), {
+        last_error: {
+          kind: 'value_conversion',
+          source: 'contact_queue',
+          column: 'custom_json_1',
+          path: ['renewed_at'],
+          type: 'date',
+          email: 'jane@example.com'
+        }
+      })
+    )
+    const banner = document.querySelector('[data-segment-last-error]') as HTMLElement
+    // The queue names the contact even when it could not read the value back
+    expect(banner).toHaveTextContent('The value of jane@example.com in Custom JSON 1 › renewed_at is not a date.')
+    expect(banner).toHaveTextContent('Until the value is fixed, this contact keeps its current place in the segment.')
+  })
+
+  it('reads a redacted error without the contact or the value', () => {
+    renderBar(
+      segment(leaf('FR'), {
+        last_error: {
+          kind: 'value_conversion',
+          source: 'build',
+          column: 'custom_json_1',
+          path: ['renewed_at'],
+          type: 'number'
+        }
+      })
+    )
+    expect(document.querySelector('[data-segment-last-error]')).toHaveTextContent(
+      "A contact's value in Custom JSON 1 › renewed_at is not a number."
+    )
+  })
+
+  it('shows nothing of the kind for a segment computed without error', () => {
+    renderBar(segment(leaf('FR')))
+    expect(document.querySelector('[data-segment-last-error]')).toBeNull()
+  })
+})
