@@ -5,7 +5,7 @@ import { useLingui } from '@lingui/react/macro'
 import { Plural } from '@lingui/react/macro'
 import { TreeNodeInput } from '../../segment/input'
 import { TableSchemas } from '../../segment/table_schemas'
-import { HasLeaf, pruneIncompleteConditions } from '../../segment/tree_completeness'
+import { asEditableRoot, HasLeaf, pruneIncompleteConditions } from '../../segment/tree_completeness'
 import { useAutomation } from '../context'
 import type { TreeNode } from '../../../services/api/segment'
 
@@ -143,7 +143,7 @@ export const ConditionsField: React.FC<ConditionsFieldProps> = ({
       >
         {notice}
         <TreeNodeInput
-          value={value ?? EMPTY_TREE}
+          value={asEditableRoot(value) ?? EMPTY_TREE}
           onChange={onChange}
           schemas={TableSchemas}
           lists={lists}

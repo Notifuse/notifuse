@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isFilterComplete, isFilterRowComplete, isTreeQueryable } from './tree_completeness'
+import { asEditableRoot, isFilterComplete, isFilterRowComplete, isTreeQueryable } from './tree_completeness'
 import type { DimensionFilter } from '../../services/api/segment'
 import type { TreeNode, TreeNodeLeaf } from '../../services/api/segment'
 
@@ -342,3 +342,21 @@ describe('isFilterRowComplete — what the editor asks for', () => {
     expect(isFilterRowComplete(cleared, false)).toBe(false)
   })
 })
+
+describe('asEditableRoot', () => {
+  const leaf: TreeNode = {
+    kind: 'leaf',
+    leaf: { source: 'contact_lists', contact_list: { operator: 'in', list_id: 'news', status: 'active' } }
+  }
+
+  it('wraps a condition saved alone at the root in an « all » group', () => {
+    expect(asEditableRoot(leaf)).toEqual({ kind: 'branch', branch: { operator: 'and', leaves: [leaf] } })
+  })
+
+  it('leaves a group, and nothing, as they are', () => {
+    const group: TreeNode = { kind: 'branch', branch: { operator: 'or', leaves: [leaf] } }
+    expect(asEditableRoot(group)).toBe(group)
+    expect(asEditableRoot(undefined)).toBeUndefined()
+  })
+})
+

@@ -18,7 +18,7 @@ import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { FullDrawer, Panel, Pill } from '../layout'
 import { TreeNodeInput } from './input'
 import { TableSchemas } from './table_schemas'
-import { HasLeaf } from './tree_completeness'
+import { asEditableRoot, HasLeaf } from './tree_completeness'
 import { SegmentCountCard } from './SegmentCountCard'
 import { SegmentColorPicker } from './SegmentColorPicker'
 import { SegmentSummaryPanel } from './SegmentSummaryPanel'
@@ -84,16 +84,19 @@ export function SegmentDrawer(props: SegmentDrawerProps) {
 
   // The segment's own values win; the defaults fill only what it lacks (a segment saved without a
   // timezone opens on the workspace's).
-  const initialValues = useMemo(
-    () =>
-      Object.assign(
-        {
-          color: DEFAULT_SEGMENT_COLOR,
-          timezone: workspace?.settings.timezone || 'UTC',
-          tree: props.initialTree ?? EMPTY_TREE
-        },
-        props.segment
-      ) as SegmentFormValues,
+  const initialValues = useMemo(() => {
+    const values = Object.assign(
+      {
+        color: DEFAULT_SEGMENT_COLOR,
+        timezone: workspace?.settings.timezone || 'UTC',
+        tree: props.initialTree ?? EMPTY_TREE
+      },
+      props.segment
+    ) as SegmentFormValues
+    // A segment created through the API may hold a single condition at its root: opened in its
+    // « all » group, and that is what the snapshot holds too, so opening it changes nothing.
+    return { ...values, tree: asEditableRoot(values.tree) ?? EMPTY_TREE }
+  },
     // Taken once: a refetched segment must not reset what is being edited.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
