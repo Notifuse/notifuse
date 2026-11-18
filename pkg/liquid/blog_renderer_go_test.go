@@ -639,3 +639,11 @@ func TestBlogTemplateRenderer_UnderLimits(t *testing.T) {
 	assert.Contains(t, out, "<p>1000</p>")
 	assert.NotContains(t, out, "Liquid error")
 }
+
+// A blog page keeps its Liquid errors in the page: a filter that fails leaves its
+// output empty and the page is served, unlike an email.
+func TestBlogRendererGo_FilterErrorKeepsThePage(t *testing.T) {
+	html, err := RenderBlogTemplateGo(`<p>a</p>{{ 10 | divided_by: 0 }}<p>b</p>`, map[string]interface{}{}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "<p>a</p><p>b</p>", html)
+}

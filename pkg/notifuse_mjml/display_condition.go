@@ -405,8 +405,10 @@ func (c *DisplayCondition) Evaluate(data map[string]interface{}) (bool, error) {
 }
 
 // withoutConditionNames returns data without its top-level keys named like the
-// generated variables: liquidgo reads data before assigns, so a "__dc" key would
-// otherwise decide the condition. The data is copied only when it has such a key.
+// generated variables. The generated code assigns each before reading it, and an
+// assign takes precedence over data, so such a key cannot decide a condition;
+// removing it keeps the two apart whatever the library's lookup order. The data is
+// copied only when it has such a key.
 func withoutConditionNames(data map[string]interface{}) map[string]interface{} {
 	if data == nil {
 		return map[string]interface{}{}

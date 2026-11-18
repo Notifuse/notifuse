@@ -1767,6 +1767,8 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 		// Assertions
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "template compilation failed")
+		var renderErr *domain.TemplateRenderError
+		assert.True(t, errors.As(err, &renderErr), "a compilation failure is a TemplateRenderError: %v", err)
 	})
 
 	t.Run("Error creating message history", func(t *testing.T) {

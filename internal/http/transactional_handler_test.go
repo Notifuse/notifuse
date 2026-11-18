@@ -1188,6 +1188,23 @@ func TestTransactionalNotificationHandler_HandleSend(t *testing.T) {
 			checkResponse:  nil,
 		},
 		{
+			// A template that does not render with the data of the send names what the caller
+			// has to change, and is the same at every retry.
+			name:        "a template that does not render is reported as unprocessable, with its error",
+			method:      http.MethodPost,
+			requestBody: validReqBody,
+			setupMock: func() {
+				mockService.EXPECT().
+					SendNotification(gomock.Any(), gomock.Eq(workspaceID), gomock.Any()).
+					Return("", fmt.Errorf("failed to send notification through any channel: %w",
+						&domain.TemplateRenderError{Message: "template compilation failed: Liquid error: divided by 0"}))
+			},
+			expectedStatus: http.StatusUnprocessableEntity,
+			checkResponse: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "template compilation failed: Liquid error: divided by 0", response["error"])
+			},
+		},
+		{
 			name:        "no email provider configured is reported as a bad request",
 			method:      http.MethodPost,
 			requestBody: validReqBody,

@@ -587,7 +587,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		}
 		s.logger.WithField("error", errMsg).Error("Template compilation failed")
 
-		err := fmt.Errorf("template compilation failed: %s", errMsg)
+		err := &domain.TemplateRenderError{Message: fmt.Sprintf("template compilation failed: %s", errMsg)}
 		tracing.MarkSpanError(ctx, err)
 		return err
 	}
@@ -620,7 +620,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 			"subject":     emailContent.Subject,
 		}).Error("Failed to process subject line with Liquid templating")
 		tracing.MarkSpanError(ctx, err)
-		return fmt.Errorf("failed to process subject with Liquid: %w", err)
+		return &domain.TemplateRenderError{Message: fmt.Sprintf("failed to process subject with Liquid: %v", err)}
 	}
 
 	// Allow override of subject via email options
@@ -638,7 +638,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 				"subject":     *request.EmailOptions.Subject,
 			}).Error("Failed to process subject override with Liquid templating")
 			tracing.MarkSpanError(ctx, err)
-			return fmt.Errorf("failed to process subject override with Liquid: %w", err)
+			return &domain.TemplateRenderError{Message: fmt.Sprintf("failed to process subject override with Liquid: %v", err)}
 		}
 		s.logger.WithFields(map[string]interface{}{
 			"message_id":       request.MessageID,

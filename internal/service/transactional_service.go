@@ -705,6 +705,8 @@ func (s *TransactionalNotificationService) SendNotification(
 	}
 
 	successfulChannels := 0
+	// renderErr is the email channel's error when its template did not render.
+	var renderErr *domain.TemplateRenderError
 
 	span.AddAttributes(
 		trace.StringAttribute("message_id", messageID),
@@ -805,6 +807,10 @@ func (s *TransactionalNotificationService) SendNotification(
 				successfulChannels++
 				childSpan.End()
 			} else {
+				var templateErr *domain.TemplateRenderError
+				if errors.As(err, &templateErr) {
+					renderErr = templateErr
+				}
 				// Log the error but continue with other channels
 				s.logger.WithFields(map[string]interface{}{
 					"error":        err.Error(),
@@ -823,6 +829,12 @@ func (s *TransactionalNotificationService) SendNotification(
 
 	if successfulChannels == 0 {
 		err := fmt.Errorf("failed to send notification through any channel")
+		// A template that does not render with this data names what the caller has to
+		// change, and is the same at every retry: it comes back to the caller. Any other
+		// failure, such as a provider outage, keeps the generic error.
+		if renderErr != nil {
+			err = fmt.Errorf("failed to send notification through any channel: %w", renderErr)
+		}
 		tracing.MarkSpanError(ctx, err)
 		return "", err
 	}

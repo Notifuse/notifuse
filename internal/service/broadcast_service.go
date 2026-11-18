@@ -1617,7 +1617,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 			errMsg = compiledTemplate.Error.Message
 		}
 		s.logger.Error("Failed to generate HTML from template")
-		return fmt.Errorf("template compilation failed: %s", errMsg)
+		return &domain.TemplateRenderError{Message: fmt.Sprintf("template compilation failed: %s", errMsg)}
 	}
 	if compiledTemplate.TextError != "" {
 		s.logger.WithFields(map[string]interface{}{
@@ -1633,7 +1633,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	subject, err := notifuse_mjml.ProcessLiquidTemplate(emailContent.Subject, templateData, "email_subject")
 	if err != nil {
 		s.logger.Error("Failed to process the subject for broadcast")
-		return fmt.Errorf("failed to process subject: %w", err)
+		return &domain.TemplateRenderError{Message: fmt.Sprintf("failed to process subject: %v", err)}
 	}
 
 	// Create SendEmailProviderRequest

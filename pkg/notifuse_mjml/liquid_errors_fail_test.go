@@ -52,9 +52,72 @@ func TestLiquidErrorFailsTheEmail(t *testing.T) {
 	})
 
 	t.Run("a missing field is no error", func(t *testing.T) {
-		resp := compileWithLiquid(t, "Hi {{ contact.first_name }}{% if contact.missing > 10 %}x{% endif %}", "Hello", MapOfAny{})
+		resp := compileWithLiquid(t, "Hi {{ contact.first_name }}{% if contact.missing > 10 %}x{% endif %}", "Hello", asNumber)
 		require.True(t, resp.Success, "error: %v", resp.Error)
 	})
+}
+
+// A filter that fails, which liquidgo records without writing anything, fails the
+// compilation like any other Liquid error: the email is not sent without the value.
+func TestLiquidFilterErrorFailsTheEmail(t *testing.T) {
+	failing := `{{ 10 | divided_by: 0 }}`
+	// Without data the compilation keeps the Liquid as written, so every case has some.
+	data := MapOfAny{"contact": map[string]interface{}{"first_name": "Ann"}}
+
+	t.Run("in the body", func(t *testing.T) {
+		resp := compileWithLiquid(t, "Total "+failing, "Hello", data)
+		require.False(t, resp.Success)
+		require.NotNil(t, resp.Error)
+		assert.Contains(t, resp.Error.Message, "divided by 0")
+		assert.Nil(t, resp.HTML)
+	})
+
+	t.Run("in the subject", func(t *testing.T) {
+		resp := compileWithLiquid(t, "Hi", "Total "+failing, data)
+		require.False(t, resp.Success)
+		require.NotNil(t, resp.Error)
+		assert.Contains(t, resp.Error.Message, "divided by 0")
+	})
+
+	t.Run("too few arguments", func(t *testing.T) {
+		resp := compileWithLiquid(t, `Hi {{ contact.first_name | replace }}`, "Hello", data)
+		require.False(t, resp.Success)
+		require.NotNil(t, resp.Error)
+		assert.Contains(t, resp.Error.Message, "wrong number of arguments")
+	})
+
+	for name, block := range map[string]string{
+		"in a text block of the visual tree":  `{"id":"t1","type":"mj-text","content":"Total ` + failing + `"}`,
+		"in a button link of the visual tree": `{"id":"b1","type":"mj-button","content":"Go","attributes":{"href":"https://example.com/?n=` + failing + `"}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			resp, err := CompileTemplate(CompileTemplateRequest{
+				WorkspaceID:      "ws",
+				MessageID:        "m",
+				VisualEditorTree: conditionTree(t, block),
+				TemplateData:     data,
+			})
+			require.NoError(t, err)
+			require.False(t, resp.Success)
+			require.NotNil(t, resp.Error)
+			assert.Contains(t, resp.Error.Message, "divided by 0")
+			assert.Nil(t, resp.HTML)
+		})
+	}
+
+	t.Run("a filter that succeeds is no error", func(t *testing.T) {
+		resp := compileWithLiquid(t, "Total {{ 10 | divided_by: 2 }}", "Total {{ 10 | divided_by: 2 }}", data)
+		require.True(t, resp.Success, "error: %v", resp.Error)
+		require.NotNil(t, resp.HTML)
+		assert.Contains(t, *resp.HTML, "Total 5")
+	})
+}
+
+// RenderWithTimeout returns the error of a filter that fails.
+func TestRenderWithTimeoutReturnsAFilterError(t *testing.T) {
+	_, err := NewSecureLiquidEngine().RenderWithTimeout(`{{ 10 | divided_by: 0 }}`, map[string]interface{}{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "divided by 0")
 }
 
 // A display condition never records a Liquid error, whatever the type of its
