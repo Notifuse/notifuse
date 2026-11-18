@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { SettingsPanelHeader } from './SettingsPanelHeader'
 import { useLingui } from '@lingui/react/macro'
 import { Empty } from 'antd'
 import type { DisplayCondition, EmailBlock } from '../types'
@@ -17,6 +18,11 @@ interface SettingsPanelProps {
   emailTree: EmailBlock
   testData?: Record<string, unknown>
   onTestDataChange?: (testData: Record<string, unknown>) => void
+  // The header's path and actions (the same as the canvas toolbar's)
+  onSelectBlock?: (blockId: string) => void
+  onCloneBlock?: (blockId: string) => void
+  onDeleteBlock?: (blockId: string) => void
+  onSaveBlock?: (blockId: string) => void
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -25,7 +31,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onUpdateAttributes,
   attributeDefaults,
   emailTree,
-  testData
+  testData,
+  onSelectBlock,
+  onCloneBlock,
+  onDeleteBlock,
+  onSaveBlock
 }) => {
   const { t } = useLingui()
   const [currentBlockId, setCurrentBlockId] = useState<string | null>(null)
@@ -133,11 +143,27 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   // Render the settings panel using the new block architecture
   const settings = blockInstance.renderSettingsPanel(handleDirectUpdate, blockDefaults, emailTree, onUpdateBlock)
+  const header = (
+    <SettingsPanelHeader
+      block={selectedBlock}
+      emailTree={emailTree}
+      onSelectBlock={onSelectBlock}
+      onCloneBlock={onCloneBlock}
+      onDeleteBlock={onDeleteBlock}
+      onSaveBlock={onSaveBlock}
+    />
+  )
   if (!isConditionEligible(emailTree, selectedBlock)) {
-    return settings
+    return (
+      <>
+        {header}
+        {settings}
+      </>
+    )
   }
   return (
     <>
+      {header}
       <DisplayConditionSummary
         block={selectedBlock}
         testData={testData}

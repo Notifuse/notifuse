@@ -1273,6 +1273,10 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                     emailTree={tree}
                     testData={testData}
                     onTestDataChange={onTestDataChange}
+                    onSelectBlock={handleSelectBlock}
+                    onCloneBlock={handleCloneBlock}
+                    onDeleteBlock={handleDeleteBlock}
+                    onSaveBlock={setSaveDialogBlockId}
                   />
 </EditorActionsContext.Provider>
                   </SettingsSectionsProvider>

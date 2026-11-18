@@ -3509,6 +3509,7 @@ msgstr "Sei sicuro di voler eliminare la lista \"{0}\"?"
 msgid "Are you sure you want to delete the post"
 msgstr "Sei sicuro di voler eliminare il post"
 
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:104
 #: src/components/email_builder/panels/TreePanel.tsx:225
 #: src/components/email_builder/ui/BlockToolbar.tsx:86
 msgid "Are you sure you want to delete this block?"
@@ -4346,6 +4347,10 @@ msgstr "Nome del blocco"
 #: src/components/email_builder/ui/BlockToolbar.tsx:197
 #~ msgid "Block Name"
 #~ msgstr "Nome blocco"
+
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:59
+msgid "Block path"
+msgstr "Percorso del blocco"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:868
 msgid "Block renamed to \"{name}\""
@@ -5960,6 +5965,8 @@ msgstr "Valore del Client Secret"
 msgid "Clone"
 msgstr "Clona"
 
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:89
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:90
 #: src/components/email_builder/ui/BlockToolbar.tsx:53
 msgid "Clone Block"
 msgstr "Clona blocco"
@@ -8288,6 +8295,8 @@ msgstr "Eliminare automation?"
 msgid "Delete block"
 msgstr "Elimina blocco"
 
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:108
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:109
 #: src/components/email_builder/ui/BlockToolbar.tsx:85
 msgid "Delete Block"
 msgstr "Elimina blocco"
@@ -21041,6 +21050,8 @@ msgstr "Salva il blocco selezionato"
 msgid "Save Theme"
 msgstr "Salva Tema"
 
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:96
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:97
 #: src/components/email_builder/ui/BlockToolbar.tsx:69
 #: src/components/email_builder/ui/SaveBlockModal.tsx:93
 msgid "Save to library"
@@ -21543,7 +21554,7 @@ msgstr "Seleziona un blocco nell’email, poi usa il pulsante di salvataggio nel
 msgid "Select a block of the same type"
 msgstr "Seleziona un blocco dello stesso tipo"
 
-#: src/components/email_builder/panels/SettingsPanel.tsx:81
+#: src/components/email_builder/panels/SettingsPanel.tsx:91
 msgid "Select a block to edit its attributes"
 msgstr "Seleziona un blocco per modificarne gli attributi"
 

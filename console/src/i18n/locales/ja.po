@@ -3509,6 +3509,7 @@ msgstr "リスト\"{0}\"を削除してもよろしいですか?"
 msgid "Are you sure you want to delete the post"
 msgstr "投稿を削除してもよろしいですか"
 
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:104
 #: src/components/email_builder/panels/TreePanel.tsx:225
 #: src/components/email_builder/ui/BlockToolbar.tsx:86
 msgid "Are you sure you want to delete this block?"
@@ -4346,6 +4347,10 @@ msgstr "ブロック名"
 #: src/components/email_builder/ui/BlockToolbar.tsx:197
 #~ msgid "Block Name"
 #~ msgstr "ブロック名"
+
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:59
+msgid "Block path"
+msgstr "ブロックのパス"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:868
 msgid "Block renamed to \"{name}\""
@@ -5960,6 +5965,8 @@ msgstr "クライアントシークレットの値"
 msgid "Clone"
 msgstr "複製"
 
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:89
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:90
 #: src/components/email_builder/ui/BlockToolbar.tsx:53
 msgid "Clone Block"
 msgstr "ブロックを複製"
@@ -8288,6 +8295,8 @@ msgstr "オートメーションを削除しますか？"
 msgid "Delete block"
 msgstr "ブロックを削除"
 
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:108
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:109
 #: src/components/email_builder/ui/BlockToolbar.tsx:85
 msgid "Delete Block"
 msgstr "ブロックを削除"
@@ -21041,6 +21050,8 @@ msgstr "選択したブロックを保存"
 msgid "Save Theme"
 msgstr "テーマを保存"
 
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:96
+#: src/components/email_builder/panels/SettingsPanelHeader.tsx:97
 #: src/components/email_builder/ui/BlockToolbar.tsx:69
 #: src/components/email_builder/ui/SaveBlockModal.tsx:93
 msgid "Save to library"
@@ -21543,7 +21554,7 @@ msgstr "メール内のブロックを選択し、ツールバーの保存ボタ
 msgid "Select a block of the same type"
 msgstr "同じ種類のブロックを選択してください"
 
-#: src/components/email_builder/panels/SettingsPanel.tsx:81
+#: src/components/email_builder/panels/SettingsPanel.tsx:91
 msgid "Select a block to edit its attributes"
 msgstr "ブロックを選択して属性を編集"
 

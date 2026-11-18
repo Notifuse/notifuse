@@ -340,6 +340,24 @@ describe('EmailBuilder moving and changing columns', () => {
     return { onTreeChange, call, children, widths }
   }
 
+  it("gives the settings panel's header the canvas actions: clone, delete, save, select", () => {
+    const { call, children } = setup()
+    call('onSelectBlock', 'a1-text')
+    const header = (name: string, ...args: unknown[]) =>
+      act(() => {
+        (mockSettingsPanelProps[name] as (...a: unknown[]) => void)(...args)
+      })
+    // The tree is the test's prop, which onTreeChange does not update: each action starts from it
+    header('onCloneBlock', 'a1-text')
+    expect(children('a1')).toHaveLength(2)
+    header('onDeleteBlock', 'a1-text')
+    expect(children('a1')).toHaveLength(0)
+    header('onSelectBlock', 'SA')
+    expect((mockSettingsPanelProps.selectedBlock as EmailBlock).id).toBe('SA')
+    header('onSaveBlock', 'SA')
+    expect(screen.getByRole('dialog', { name: 'Save to library' })).toBeInTheDocument()
+  })
+
   it('adds no undo step for a move that changes nothing', () => {
     const { onTreeChange, call } = setup()
     call('onMoveBlock', 'a1', 'SA', 0)

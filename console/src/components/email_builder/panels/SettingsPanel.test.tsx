@@ -183,3 +183,36 @@ describe('SettingsPanel writes and inherited values', () => {
     expect(screen.getAllByRole('spinbutton')[0]).toHaveAttribute('placeholder', '44')
   })
 })
+
+describe('SettingsPanel header', () => {
+  it('heads every block panel, with the actions passed to it, also where no condition applies', () => {
+    const onCloneBlock = vi.fn()
+    const onSelectBlock = vi.fn()
+    const { unmount } = render(
+      <SettingsPanel
+        selectedBlock={find('spacer-2')}
+        onUpdateBlock={vi.fn()}
+        onUpdateAttributes={vi.fn()}
+        attributeDefaults={{}}
+        emailTree={tree}
+        onCloneBlock={onCloneBlock}
+        onSelectBlock={onSelectBlock}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Clone Block' }))
+    expect(onCloneBlock).toHaveBeenCalledWith('spacer-2')
+    fireEvent.click(screen.getByRole('button', { name: 'Section' }))
+    expect(onSelectBlock).toHaveBeenCalledWith('sec')
+    unmount()
+
+    // The default attributes take no display condition: the header is there all the same
+    renderPanel('attrs')
+    expect(screen.getByTestId('settings-panel-header')).toBeInTheDocument()
+  })
+
+  it('has no header on the empty state', () => {
+    renderPanel('root')
+    expect(screen.queryByTestId('settings-panel-header')).toBeNull()
+  })
+})
+
