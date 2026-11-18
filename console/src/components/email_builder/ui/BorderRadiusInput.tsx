@@ -1,5 +1,6 @@
-import React, { memo } from 'react'
-import { InputNumber } from 'antd'
+import React, { memo, useState } from 'react'
+import { Button, Input, InputNumber, Tooltip } from 'antd'
+import { useLingui } from '@lingui/react/macro'
 
 interface BorderRadiusInputProps {
   value?: string
@@ -27,6 +28,13 @@ const BorderRadiusInput: React.FC<BorderRadiusInputProps> = memo(
     size = 'small',
     style = { width: '100px' }
   }) => {
+    const { t } = useLingui()
+    // The value the number field was asked for while it held one it cannot read
+    const [numberFieldFor, setNumberFieldFor] = useState<string | undefined>()
+    // Once text is typed, the text field stays until the px button: a value passing through a number while it is
+    // typed ("50%" → "50" → "50px") must not swap the field under the cursor
+    const [typingText, setTypingText] = useState(false)
+
     /**
      * Parse border radius to get numeric value
      */
@@ -43,6 +51,38 @@ const BorderRadiusInput: React.FC<BorderRadiusInputProps> = memo(
     }
 
     const parsedValue = parseBorderRadiusNumber(value)
+
+    // MJML 5 takes any border-radius ("50%", "10px 0", "4px / 8px"): one the number field cannot read is shown and
+    // edited as text, so that it is neither hidden nor lost
+    if (typingText || (value && parsedValue === undefined && numberFieldFor !== value)) {
+      return (
+        <div className="flex items-center gap-1" style={style}>
+          <Input
+            size={size}
+            value={value ?? ''}
+            onChange={(e) => {
+              setTypingText(true)
+              onChange?.(e.target.value.trim() === '' ? undefined : e.target.value)
+            }}
+            disabled={disabled}
+            aria-label={t`Border radius`}
+          />
+          <Tooltip title={t`Enter a number of pixels instead`}>
+            <Button
+              size={size}
+              onClick={() => {
+                setTypingText(false)
+                setNumberFieldFor(value)
+              }}
+              disabled={disabled}
+            >
+              px
+            </Button>
+          </Tooltip>
+        </div>
+      )
+    }
+
     const parsedPlaceholder = placeholder || (parseBorderRadiusNumber(defaultValue) || 0).toString()
 
     return (

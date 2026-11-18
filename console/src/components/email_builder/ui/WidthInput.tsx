@@ -6,17 +6,20 @@ interface WidthInputProps {
   value?: string
   onChange: (value: string | undefined) => void
   placeholder?: string
+  /** Unit offered while the value is empty, % unless given */
+  defaultUnit?: 'px' | '%'
 }
 
 const WidthInput: React.FC<WidthInputProps> = ({
   value,
   onChange,
-  placeholder
+  placeholder,
+  defaultUnit = '%'
 }) => {
   const { t } = useLingui()
   const [numericValue, setNumericValue] = useState<number | undefined>()
   const resolvedPlaceholder = placeholder || t`Enter width`
-  const [unit, setUnit] = useState<'px' | '%'>('%')
+  const [unit, setUnit] = useState<'px' | '%'>(defaultUnit)
 
   // Parse incoming value to extract number and unit
   useEffect(() => {
@@ -27,22 +30,22 @@ const WidthInput: React.FC<WidthInputProps> = ({
         setNumericValue(parseFloat(match[1]))
         setUnit(match[2] as 'px' | '%')
       } else {
-        // Try to parse as just a number (assume %)
+        // A number without a unit is read in the default unit (px for a gutter, as MJML reads it)
         const numValue = parseFloat(value)
         if (!isNaN(numValue)) {
           setNumericValue(numValue)
-          setUnit('%')
+          setUnit(defaultUnit)
         } else {
           setNumericValue(undefined)
-          setUnit('%')
+          setUnit(defaultUnit)
         }
       }
     } else {
       setNumericValue(undefined)
-      setUnit('%')
+      setUnit(defaultUnit)
     }
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [value])
+  }, [value, defaultUnit])
 
   const handleNumberChange = (newValue: number | null) => {
     setNumericValue(newValue || undefined)
