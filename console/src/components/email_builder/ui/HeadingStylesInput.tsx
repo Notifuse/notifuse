@@ -86,8 +86,8 @@ const HeadingStylesInput: React.FC<HeadingStylesInputProps> = ({ emailTree, onUp
               ? {
                   value: String(value),
                   label: `H${value}`,
-                  title: t`H${value}, changed`,
-                  icon: <span data-testid="level-set-dot" className="inline-block size-1.5 rounded-full bg-primary-500" />
+                  // No dot, as on the rows: the level's title says it on hover
+                  title: t`H${value}, changed`
                 }
               : { value: String(value), label: `H${value}` }
           )}

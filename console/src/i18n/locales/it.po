@@ -2495,7 +2495,7 @@ msgstr "Aggiungi condizioni per definire il tuo segmento di contatti"
 msgid "Add Contact"
 msgstr "Aggiungi contatto"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:134
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:135
 msgid "Add CSS"
 msgstr "Aggiungi CSS"
 
@@ -5130,7 +5130,7 @@ msgstr "Impossibile da testare nel browser"
 #: src/components/contacts/sheet/ContactListsCard.tsx:114
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:150
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:151
 #: src/components/email_builder/EmailBuilder.tsx:982
 #: src/components/email_builder/EmailBuilder.tsx:998
 #: src/components/email_builder/panels/Preview.tsx:210
@@ -7556,7 +7556,7 @@ msgstr "Classe CSS"
 #~ msgid "CSS Class"
 #~ msgstr "Classe CSS"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:122
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:123
 msgid "CSS Content"
 msgstr "Contenuto CSS"
 
@@ -7564,7 +7564,7 @@ msgstr "Contenuto CSS"
 #~ msgid "CSS File URL"
 #~ msgstr "URL file CSS"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:139
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:140
 msgid "CSS Style Editor"
 msgstr "Editor stile CSS"
 
@@ -9442,7 +9442,7 @@ msgstr "Modifica categoria"
 msgid "Edit Content"
 msgstr "Modifica contenuto"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:134
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:135
 msgid "Edit CSS"
 msgstr "Modifica CSS"
 
@@ -12545,7 +12545,7 @@ msgstr "Gruppo:"
 msgid "H{0} after H{1}"
 msgstr "H{0} dopo H{1}"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:89
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:90
 msgid "H{value}, changed"
 msgstr "H{value}, modificato"
 
@@ -13430,7 +13430,7 @@ msgstr "Indaco"
 #~ msgstr "Info"
 
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:110
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:116
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:117
 msgid "Inline styles"
 msgstr "Stili inline"
 
@@ -20998,7 +20998,7 @@ msgstr "Salva come nuova versione"
 msgid "Save changes"
 msgstr "Salva modifiche"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:153
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:154
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
 msgid "Save Changes"

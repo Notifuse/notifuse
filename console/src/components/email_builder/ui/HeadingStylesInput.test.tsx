@@ -174,7 +174,7 @@ describe('HeadingStylesInput', () => {
   it('marks no row, no level and offers no level reset on default styles', () => {
     renderInput(writeHeadingStyles(email(), defaultHeadingStyles()))
     expect(setRows()).toHaveLength(0)
-    expect(screen.queryAllByTestId('level-set-dot')).toHaveLength(0)
+    expect(screen.queryAllByTitle(/changed/)).toHaveLength(0)
     expect(screen.queryByRole('button', { name: 'Reset H1' })).toBeNull()
   })
 
@@ -188,11 +188,15 @@ describe('HeadingStylesInput', () => {
     expect(marked()).toEqual(['Size, weight', 'Line height', 'Space above, below'])
   })
 
-  it('marks the levels that differ from their defaults', () => {
+  it('names the levels that differ from their defaults on hover, with no dot', () => {
     renderInput(customised())
-    const levels = screen.getAllByRole('radio').map((radio) => radio.closest('label'))
-    const changed = levels.filter((level) => level && within(level).queryByTestId('level-set-dot'))
-    expect(changed.map((level) => level?.textContent)).toEqual(['H1', 'H2'])
+    expect(screen.getAllByTitle(/, changed$/).map((level) => level.getAttribute('title'))).toEqual([
+      'H1, changed',
+      'H2, changed'
+    ])
+    // No dot drawn in the level picker, as on the rows
+    const picker = screen.getByRole('radio', { name: 'H1' }).closest('.ant-segmented') as HTMLElement
+    expect(picker.querySelector('.rounded-full')).toBeNull()
   })
 
   it("resets a row to the level's defaults, leaving the other fields", () => {

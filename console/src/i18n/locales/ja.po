@@ -2495,7 +2495,7 @@ msgstr "条件を追加してコンタクトセグメントを定義"
 msgid "Add Contact"
 msgstr "コンタクトを追加"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:134
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:135
 msgid "Add CSS"
 msgstr "CSSを追加"
 
@@ -5130,7 +5130,7 @@ msgstr "ブラウザでテストできません"
 #: src/components/contacts/sheet/ContactListsCard.tsx:114
 #: src/components/contacts/sheet/ContactSheetTopActions.tsx:57
 #: src/components/contacts/TrackingConsent.tsx:186
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:150
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:151
 #: src/components/email_builder/EmailBuilder.tsx:982
 #: src/components/email_builder/EmailBuilder.tsx:998
 #: src/components/email_builder/panels/Preview.tsx:210
@@ -7556,7 +7556,7 @@ msgstr "CSSクラス"
 #~ msgid "CSS Class"
 #~ msgstr "CSSクラス"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:122
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:123
 msgid "CSS Content"
 msgstr "CSSコンテンツ"
 
@@ -7564,7 +7564,7 @@ msgstr "CSSコンテンツ"
 #~ msgid "CSS File URL"
 #~ msgstr "CSSファイルURL"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:139
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:140
 msgid "CSS Style Editor"
 msgstr "CSSスタイルエディタ"
 
@@ -9442,7 +9442,7 @@ msgstr "カテゴリを編集"
 msgid "Edit Content"
 msgstr "コンテンツを編集"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:134
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:135
 msgid "Edit CSS"
 msgstr "CSSを編集"
 
@@ -12545,7 +12545,7 @@ msgstr "グループ:"
 msgid "H{0} after H{1}"
 msgstr "H{1} の後に H{0}"
 
-#: src/components/email_builder/ui/HeadingStylesInput.tsx:89
+#: src/components/email_builder/ui/HeadingStylesInput.tsx:90
 msgid "H{value}, changed"
 msgstr "H{value}（変更済み）"
 
@@ -13430,7 +13430,7 @@ msgstr "インディゴ"
 #~ msgstr "情報"
 
 #: src/components/email_builder/blocks/MjStyleBlock.tsx:110
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:116
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:117
 msgid "Inline styles"
 msgstr "インラインスタイル"
 
@@ -20998,7 +20998,7 @@ msgstr "新しいバージョンとして保存"
 msgid "Save changes"
 msgstr "変更を保存"
 
-#: src/components/email_builder/blocks/MjStyleBlock.tsx:153
+#: src/components/email_builder/blocks/MjStyleBlock.tsx:154
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:142
 #: src/components/email_builder/ui/CodeDrawerInput.tsx:182
 msgid "Save Changes"

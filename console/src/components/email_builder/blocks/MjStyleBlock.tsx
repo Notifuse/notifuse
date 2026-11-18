@@ -110,6 +110,7 @@ const MjStyleSettingsPanel: React.FC<MjStyleSettingsPanelProps> = ({
         label={t`Inline styles`}
         help={t`When enabled, these styles will be added as inline style attributes to every matching HTML element in the email. This is important for maximum email client compatibility since many email clients strip out non-inline styles.`}
         isSet={currentAttributes['inline'] === 'inline'}
+        onReset={() => onUpdate({ inline: undefined })}
       >
         <Switch
           size="small"

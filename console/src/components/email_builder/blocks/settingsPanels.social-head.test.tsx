@@ -646,6 +646,12 @@ describe('Head block panels: every field writes its key', () => {
     expect(onUpdate).toHaveBeenLastCalledWith({ inline: 'inline' })
   })
 
+  it('Inline Styles, when on, has a reset that turns it off', () => {
+    const { onUpdate } = renderPanel(blockOf('mj-style', { inline: 'inline' }, '.a { color: red }'))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Inline styles to the inherited value' }))
+    expect(onUpdate).toHaveBeenLastCalledWith({ inline: undefined })
+  })
+
   it('CSS Content writes content from the drawer', async () => {
     const { onUpdate } = renderPanel(blockOf('mj-style', {}, ''))
     fireEvent.click(screen.getByRole('button', { name: 'Add CSS' }))
