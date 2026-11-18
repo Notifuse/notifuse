@@ -24,7 +24,7 @@ interface CatalogueEntry {
   icon: ReactNode
   name: string
   description: string
-  /** On the right of the entry: a restriction, or why it cannot be picked. */
+  /** Under the description, wrapping: a restriction, or why it cannot be picked. */
   pill?: ReactNode
   /** Shown but not clickable. */
   disabled?: boolean
@@ -75,14 +75,14 @@ export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigu
         description: emailDescriptions[kind],
         pill:
           transactionalEmailOnly.includes(kind) || isDeprecatedEmailProvider(kind) ? (
-            <span className="flex shrink-0 items-center gap-1.5">
+            <>
               {transactionalEmailOnly.includes(kind) ? (
                 <Pill tone="neutral" dot={false}>
                   {t`Transactional only`}
                 </Pill>
               ) : null}
               <DeprecatedPill kind={kind} />
-            </span>
+            </>
           ) : undefined,
         selection: { type: 'email', kind }
       }
@@ -150,8 +150,9 @@ export function IntegrationCatalogue({ open, onClose, onSelect, firecrawlConfigu
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-sm font-medium text-ink">{entry.name}</span>
             <span className="text-xs text-ink-3">{entry.description}</span>
+            {/* Under the text: two pills beside the description squeeze it to one word per line. */}
+            {entry.pill ? <span className="mt-1 flex flex-wrap items-center gap-1.5">{entry.pill}</span> : null}
           </span>
-          {entry.pill}
         </button>
       ))}
     </section>
