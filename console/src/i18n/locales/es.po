@@ -1374,7 +1374,7 @@ msgstr "{selectedCount, plural, one {Esto eliminará permanentemente # contacto.
 msgid "{senderId} (deleted)"
 msgstr "{senderId} (eliminado)"
 
-#: src/components/email_builder/ui/fields/SettingsSections.tsx:72
+#: src/components/email_builder/ui/fields/SettingsSections.tsx:76
 msgid "{setCount} set"
 msgstr "{setCount} definidos"
 
@@ -2125,12 +2125,12 @@ msgstr "La prueba A/B está en curso. Se están enviando los correos al grupo de
 msgid "Abandoned cart"
 msgstr "Carrito abandonado"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:41
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:40
 #: src/components/setup/LockableItem.tsx:40
 msgid "About {label}"
 msgstr "Acerca de {label}"
 
-#: src/components/email_builder/ui/fields/SettingsSections.tsx:79
+#: src/components/email_builder/ui/fields/SettingsSections.tsx:85
 msgid "About {title}"
 msgstr "Acerca de {title}"
 
@@ -20401,11 +20401,11 @@ msgstr "Reenviar invitación"
 msgid "Reset"
 msgstr "Restablecer"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:50
 msgid "Reset {label} to the default value"
 msgstr "Restablecer {label} al valor predeterminado"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:50
 msgid "Reset {label} to the inherited value"
 msgstr "Restablecer {label} al valor heredado"
 
@@ -20441,11 +20441,11 @@ msgstr "Restablecer reemplaza todo el contenido por el del idioma predeterminado
 msgid "reset the filter"
 msgstr "restablecer el filtro"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:52
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
 msgid "Reset to the default value"
 msgstr "Restablecer el valor predeterminado"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:52
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
 msgid "Reset to the inherited value"
 msgstr "Restablecer el valor heredado"
 

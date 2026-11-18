@@ -60,3 +60,5 @@ export const blur = (label: string, text: string) => {
   fireEvent.blur(input)
 }
 
+// The rows marked « set » (their value differs from the inherited one)
+export const setRows = () => screen.queryAllByTestId('settings-row').filter((row) => row.dataset.set === 'true')

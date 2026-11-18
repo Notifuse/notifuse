@@ -37,6 +37,17 @@ describe('SettingsSection', () => {
     expect(screen.getByText('Inter · 15 px')).toBeInTheDocument()
   })
 
+  it("is a band in the Segmented's track colour and radius once closed, flat on the panel when open", () => {
+    render(<Section setCount={2} />)
+    const section = screen.getByTestId('settings-section')
+    expect(section).not.toHaveClass('bg-primary-100')
+    expect(section).not.toHaveClass('rounded-md')
+    fireEvent.click(screen.getByRole('button', { expanded: true }))
+    expect(section).toHaveClass('bg-primary-100', 'rounded-md', 'mx-2')
+    // The count stays a pill on that colour: white
+    expect(screen.getByLabelText('2 set')).toHaveClass('bg-surface')
+  })
+
   it('remembers a toggle for the next block of the same type, through the editor', () => {
     const { rerender } = render(
       <SettingsSectionsProvider>

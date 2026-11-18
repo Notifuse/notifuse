@@ -1374,7 +1374,7 @@ msgstr "{selectedCount, plural, one {Dadurch wird # Kontakt dauerhaft gelöscht.
 msgid "{senderId} (deleted)"
 msgstr "{senderId} (gelöscht)"
 
-#: src/components/email_builder/ui/fields/SettingsSections.tsx:72
+#: src/components/email_builder/ui/fields/SettingsSections.tsx:76
 msgid "{setCount} set"
 msgstr "{setCount} festgelegt"
 
@@ -2125,12 +2125,12 @@ msgstr "A/B-Test läuft. E-Mails werden an die Testgruppe gesendet."
 msgid "Abandoned cart"
 msgstr "Verlassener Warenkorb"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:41
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:40
 #: src/components/setup/LockableItem.tsx:40
 msgid "About {label}"
 msgstr "Über {label}"
 
-#: src/components/email_builder/ui/fields/SettingsSections.tsx:79
+#: src/components/email_builder/ui/fields/SettingsSections.tsx:85
 msgid "About {title}"
 msgstr "Info zu {title}"
 
@@ -20401,11 +20401,11 @@ msgstr "Einladung erneut senden"
 msgid "Reset"
 msgstr "Zurücksetzen"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:50
 msgid "Reset {label} to the default value"
 msgstr "{label} auf den Standardwert zurücksetzen"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:50
 msgid "Reset {label} to the inherited value"
 msgstr "{label} auf den geerbten Wert zurücksetzen"
 
@@ -20441,11 +20441,11 @@ msgstr "Zurücksetzen ersetzt den gesamten Inhalt durch den der Standardsprache.
 msgid "reset the filter"
 msgstr "Filter zurücksetzen"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:52
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
 msgid "Reset to the default value"
 msgstr "Auf den Standardwert zurücksetzen"
 
-#: src/components/email_builder/ui/fields/SettingsRow.tsx:52
+#: src/components/email_builder/ui/fields/SettingsRow.tsx:51
 msgid "Reset to the inherited value"
 msgstr "Auf den geerbten Wert zurücksetzen"
 

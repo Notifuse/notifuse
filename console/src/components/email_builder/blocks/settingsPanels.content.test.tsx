@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { EmailBlock, MJMLComponentType } from '../types'
-import { blur, fresh, openSection, renderPanel } from './settingsPanelTestUtils'
+import { blur, fresh, openSection, renderPanel, setRows } from './settingsPanelTestUtils'
 
 // The file manager's button, replaced by one that picks a fixed file
 vi.mock('../../file_manager/context', () => ({
@@ -80,7 +80,7 @@ describe('Content block settings panels: nothing marked set on a new block', () 
     (type) => {
       renderPanel(fresh(type))
       openAll()
-      expect(screen.queryAllByTestId('set-dot')).toHaveLength(0)
+      expect(setRows()).toHaveLength(0)
     }
   )
 })

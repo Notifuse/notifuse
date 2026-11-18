@@ -7,7 +7,7 @@ export interface SettingsRowProps {
   label: string
   /** The field's help, in the « i » beside the label. */
   help?: ReactNode
-  /** The block's own value differs from the inherited one: a dot, and a reset. */
+  /** The block's own value differs from the inherited one: a darker label, and a reset in the primary colour. */
   isSet?: boolean
   /** Back to the inherited value (writes undefined for the row's keys). */
   onReset?: () => void
@@ -35,7 +35,6 @@ export function SettingsRow({
   const { t } = useLingui()
   const labelNode = (
     <span className={`flex min-w-0 items-center gap-1 text-xs ${isSet ? 'font-medium text-ink' : 'text-ink-2'}`}>
-      {isSet && <span data-testid="set-dot" className="-ml-2.5 mr-0.5 size-1.5 flex-none rounded-full bg-primary-500" />}
       <span className="min-w-0">{label}</span>
       {help ? (
         <HelpTip label={t`About ${label}`} icon="info" placement="left">
@@ -51,14 +50,15 @@ export function SettingsRow({
         aria-label={resetTo === 'default' ? t`Reset ${label} to the default value` : t`Reset ${label} to the inherited value`}
         title={resetTo === 'default' ? t`Reset to the default value` : t`Reset to the inherited value`}
         onClick={onReset}
-        className="flex-none cursor-pointer rounded-sm border-0 bg-transparent p-0.5 text-ink-4 hover:text-ink-2"
+        // The colour goes on the icon: the console's unlayered reset gives every button color: inherit
+        className="group flex-none cursor-pointer rounded-sm border-0 bg-transparent p-0.5"
       >
-        <RotateCcw size={12} aria-hidden="true" />
+        <RotateCcw size={12} aria-hidden="true" className="text-primary-500 group-hover:text-primary-700" />
       </button>
     ) : null
 
   return (
-    <div className="mb-1.5 last:mb-0" data-testid="settings-row">
+    <div className="mb-1.5 last:mb-0" data-testid="settings-row" data-set={isSet ? 'true' : undefined}>
       <div className={vertical ? 'flex flex-col gap-1' : 'grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2'}>
         {vertical ? (
           <div className="flex items-center justify-between gap-2">

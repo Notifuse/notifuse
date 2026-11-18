@@ -57,8 +57,10 @@ export function SettingsSection({ sectionKey, title, help, summary, setCount = 0
   const [open, setOpen] = useSectionOpen(sectionKey, first || setCount > 0)
   const bodyId = `settings-section-${sectionKey.replace(/[^a-z0-9-]/gi, '-')}`
   return (
-    <section className="border-b border-line-soft last:border-b-0" data-testid="settings-section">
-      <div className="flex min-h-9.5 items-center gap-2 px-3.5">
+    // Closed, a section is a band in the Segmented's track colour and radius (radii.md), inset from
+    // the panel's edges; open, it lies flat on the panel
+    <section className={open ? '' : 'mx-2 my-1 rounded-md bg-primary-100'} data-testid="settings-section">
+      <div className={`flex items-center gap-2 ${open ? 'min-h-9.5 px-3.5' : 'min-h-8.5 px-2.5'}`}>
         <button
           type="button"
           aria-expanded={open}
@@ -69,11 +71,15 @@ export function SettingsSection({ sectionKey, title, help, summary, setCount = 0
           <ChevronDown size={12} aria-hidden="true" className={`flex-none text-ink-4 transition-transform ${open ? '' : '-rotate-90'}`} />
           <span className="text-overline font-semibold tracking-wider text-ink-3 uppercase">{title}</span>
           {!open && setCount > 0 ? (
-            <span className="rounded-full bg-primary-100 px-1.5 text-overline font-semibold text-primary-700" aria-label={t`${setCount} set`}>
+            <span
+              className="min-w-3.25 rounded-full bg-surface px-0.75 text-center text-[9px]/[13px] font-semibold text-primary-700"
+              aria-label={t`${setCount} set`}
+            >
               {setCount}
             </span>
           ) : null}
-          {!open && summary ? <span className="ml-auto min-w-0 truncate text-2xs text-ink-4">{summary}</span> : null}
+          {/* ink-3, not ink-4: it stays readable on the closed section's lavender */}
+          {!open && summary ? <span className="ml-auto min-w-0 truncate text-2xs text-ink-3">{summary}</span> : null}
         </button>
         {help ? (
           <HelpTip label={t`About ${title}`} icon="info" placement="left">

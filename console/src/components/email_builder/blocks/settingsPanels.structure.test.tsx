@@ -5,7 +5,7 @@ import type { EmailBlock, MJMLComponentType } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { EmailBlockFactory } from './EmailBlockFactory'
 import { inheritedAttributes } from '../utils/inheritedAttributes'
-import { blur, fresh, openSection, renderPanel } from './settingsPanelTestUtils'
+import { blur, fresh, openSection, renderPanel, setRows } from './settingsPanelTestUtils'
 
 // FileSrc needs the file manager; its own tests cover it. Here it is a plain URL input that writes on blur.
 vi.mock('../ui/FileSrc', () => ({
@@ -61,7 +61,7 @@ describe('structure panels: no « set » mark straight out of createBlock', () =
     (blockType) => {
       renderPanel(fresh(blockType))
       openAll()
-      expect(screen.queryAllByTestId('set-dot')).toHaveLength(0)
+      expect(setRows()).toHaveLength(0)
       expect(screen.queryByLabelText(/\d+ set/)).toBeNull()
     }
   )
@@ -362,7 +362,7 @@ describe('column panel', () => {
     renderPanel(block('mj-column', borders('innerBorder')))
     const row = rowTitled('Inner border')
     expect(within(row).getByRole('spinbutton', { name: 'Border width' })).toHaveValue('1')
-    expect(within(row).getByTestId('set-dot')).toBeInTheDocument()
+    expect(row).toHaveAttribute('data-set', 'true')
   })
 
   it('writes the inner corners', () => {

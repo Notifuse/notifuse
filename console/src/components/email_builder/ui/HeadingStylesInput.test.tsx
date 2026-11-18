@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { App } from 'antd'
 import type { EmailBlock } from '../types'
 import HeadingStylesInput from './HeadingStylesInput'
+import { setRows } from '../blocks/settingsPanelTestUtils'
 import {
   defaultHeadingStyles,
   readHeadingStyles,
@@ -172,7 +173,7 @@ describe('HeadingStylesInput', () => {
 
   it('marks no row, no level and offers no level reset on default styles', () => {
     renderInput(writeHeadingStyles(email(), defaultHeadingStyles()))
-    expect(screen.queryAllByTestId('set-dot')).toHaveLength(0)
+    expect(setRows()).toHaveLength(0)
     expect(screen.queryAllByTestId('level-set-dot')).toHaveLength(0)
     expect(screen.queryByRole('button', { name: 'Reset H1' })).toBeNull()
   })
@@ -180,8 +181,8 @@ describe('HeadingStylesInput', () => {
   it('marks the rows of the chosen level that differ from its defaults', () => {
     renderInput(customised())
     const marked = () =>
-      // The label beside each « set » dot
-      screen.queryAllByTestId('set-dot').map((dot) => dot.nextElementSibling?.textContent)
+      // The label of each row marked « set »
+      setRows().map((row) => row.querySelector('span > span.min-w-0')?.textContent)
     expect(marked()).toEqual(['Size, weight', 'Space above, below'])
     pickLevel(2)
     expect(marked()).toEqual(['Size, weight', 'Line height', 'Space above, below'])

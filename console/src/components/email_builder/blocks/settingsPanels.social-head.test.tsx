@@ -5,7 +5,7 @@ import type { EmailBlock, MJMLComponentType } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { EmailBlockFactory } from './EmailBlockFactory'
 import { inheritedAttributes } from '../utils/inheritedAttributes'
-import { blur, emailWith, fresh, renderPanel } from './settingsPanelTestUtils'
+import { blur, emailWith, fresh, renderPanel, setRows } from './settingsPanelTestUtils'
 import { EditorActionsContext } from '../ui/fields/editorActions'
 
 // Monaco, replaced by a plain text area
@@ -100,14 +100,14 @@ describe('Social and head settings panels: nothing marked set on a new block', (
   ] as MJMLComponentType[])('shows no « set » mark on a %s straight out of createBlock, every section open', (type) => {
     renderPanel(fresh(type))
     openAll()
-    expect(screen.queryAllByTestId('set-dot')).toHaveLength(0)
+    expect(setRows()).toHaveLength(0)
   })
 
   it('shows none on a social element created inside its mj-social', () => {
     // createBlock leaves out what the mj-social passes, which the element then inherits
     renderElement(EmailBlockClass.createBlock('mj-social-element', 'element-1'))
     openAll()
-    expect(screen.queryAllByTestId('set-dot')).toHaveLength(0)
+    expect(setRows()).toHaveLength(0)
   })
 
   it("marks only what a new mj-social's starter icons write by hand: network, link and background", () => {
@@ -116,9 +116,7 @@ describe('Social and head settings panels: nothing marked set on a new block', (
     const starter = EmailBlockClass.createBlock('mj-social').children![0]
     renderElement(starter)
     openAll()
-    const marked = screen
-      .queryAllByTestId('set-dot')
-      .map((dot) => dot.closest('[data-testid="settings-row"]')?.querySelector('span > span.min-w-0')?.textContent)
+    const marked = setRows().map((row) => row.querySelector('span > span.min-w-0')?.textContent)
     expect(marked).toEqual(['Network', 'Link', 'Background'])
   })
 })

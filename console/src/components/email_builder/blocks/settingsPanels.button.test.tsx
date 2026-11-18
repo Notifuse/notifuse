@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { fireEvent, screen, within } from '@testing-library/react'
 import type { EmailBlock } from '../types'
-import { blur, fresh, openSection, renderPanel } from './settingsPanelTestUtils'
+import { blur, fresh, openSection, renderPanel, setRows } from './settingsPanelTestUtils'
 
 describe('Button settings panel', () => {
   const button = (attributes: Record<string, unknown> = {}) =>
@@ -9,7 +9,7 @@ describe('Button settings panel', () => {
 
   it('shows no « set » mark on a button straight out of createBlock', () => {
     renderPanel(fresh('mj-button'))
-    expect(screen.queryAllByTestId('set-dot')).toHaveLength(0)
+    expect(setRows()).toHaveLength(0)
   })
 
   it('writes the link, where it opens, its rel and its tooltip', () => {
@@ -43,7 +43,7 @@ describe('Button settings panel', () => {
   it('marks a value that differs from the inherited one, and resets it to the inherited value', () => {
     const { onUpdate } = renderPanel(button({ href: 'https://acme.test' }))
     const row = screen.getByLabelText('Link URL').closest('[data-testid="settings-row"]') as HTMLElement
-    expect(within(row).getByTestId('set-dot')).toBeInTheDocument()
+    expect(row).toHaveAttribute('data-set', 'true')
     fireEvent.click(within(row).getByRole('button', { name: /Reset URL/ }))
     // The reset writes the inherited value (the editor's default link is empty)
     expect(onUpdate).toHaveBeenLastCalledWith({ href: '' })
@@ -53,7 +53,7 @@ describe('Button settings panel', () => {
     renderPanel(button({ backgroundColor: '#123456' }), { backgroundColor: '#123456' })
     const colors = screen.getByRole('button', { name: /Colors/ })
     expect(colors).toBeInTheDocument()
-    expect(screen.queryAllByTestId('set-dot')).toHaveLength(0)
+    expect(setRows()).toHaveLength(0)
   })
 
   it('writes the inner padding as a shorthand string, never an object', () => {
