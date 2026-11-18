@@ -128,9 +128,9 @@ func (s *InboundWebhookEventService) ProcessInboundReply(ctx context.Context, wo
 		return fmt.Errorf("failed to parse inbound reply: %w", err)
 	}
 
-	// Classify: drop bounces/unsubscribes; auto-replies are recorded but never exit.
+	// Classify: drop bounces; auto-replies are recorded but never exit.
 	class := domain.Classify(reply)
-	if class == domain.ReplyBounce || class == domain.ReplyUnsubscribe {
+	if class == domain.ReplyBounce {
 		return nil
 	}
 

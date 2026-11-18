@@ -150,6 +150,30 @@ func TestProcessInboundReply_AutoReplyRecordedNoExit(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestProcessInboundReply_StopReplyExitsLikeAnyReply(t *testing.T) {
+	d := newReplyTestDeps(t, domain.EmailProviderKindMailgun)
+	autoID := "auto-1"
+
+	// A reply titled "Re: STOP" is a reply: recorded as email.replied, keeping its subject, and it
+	// ends the journey. It changes no list subscription: the ListUnsubscriber mock expects no call.
+	d.mhRepo.EXPECT().GetBySMTPMessageID(gomock.Any(), d.workspaceID, "orig-1@example.com").
+		Return(&domain.MessageHistory{ContactEmail: "jane@example.com", AutomationID: &autoID}, nil)
+	d.repo.EXPECT().StoreReplyEvent(gomock.Any(), d.workspaceID, gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, event *domain.InboundWebhookEvent) (bool, error) {
+			assert.Equal(t, domain.EmailEventReply, event.Type)
+			assert.Contains(t, event.RawPayload, "Re: STOP")
+			return true, nil
+		})
+	d.autoRepo.EXPECT().
+		ExitContactJourneysOnReply(gomock.Any(), d.workspaceID, "jane@example.com", &autoID, "replied", gomock.Any()).
+		Return(1, nil)
+
+	req := replyReq(`[["In-Reply-To","<orig-1@example.com>"],["Message-Id","<stop-1@x>"]]`)
+	req.Form.Set("subject", "Re: STOP")
+	err := d.svc.ProcessInboundReply(context.Background(), d.workspaceID, d.integID, req)
+	assert.NoError(t, err)
+}
+
 func TestProcessInboundReply_BounceDropped(t *testing.T) {
 	d := newReplyTestDeps(t, domain.EmailProviderKindMailgun)
 

@@ -101,6 +101,7 @@ All notable changes to this project will be documented in this file.
 - **Improvement**: A broadcast whose last attempt cannot record its outcome is tried again instead of staying in Sending; a run that outlives its time no longer makes the next run send to recipients again.
 
 - **Improvement**: With Exit on reply, an email whose journey cannot be checked is retried later instead of being sent, and an email whose journey no longer exists is not sent.
+- **Improvement**: A reply to an automation email whose subject is only "stop", "unsubscribe", "remove", "remove me" or "opt out" now appears in the contact's activity like any other reply, and ends the journey when the automation has Exit on reply. It changes no list subscription.
 
 - **Improvement**: `audience.exclude_unsubscribed` can only be changed before a broadcast starts sending, and a scheduled broadcast that has started sending can no longer change its tracking mode.
 
